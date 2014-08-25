@@ -4,6 +4,7 @@ import com.splicemachine.si.api.TransactionStorage;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.impl.InheritingTxnView;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -82,12 +83,12 @@ public class DDLChange implements Externalizable {
         out.writeLong(txn.getParentTxnId());
         out.writeBoolean(txn.isAdditive());
 
-        out.writeBoolean(parentTxn!=null);
-        if(parentTxn!=null){
-            out.writeLong(parentTxn.getTxnId());
-            out.writeLong(parentTxn.getParentTxnId());
-            out.writeBoolean(parentTxn.isAdditive());
-        }
+//        out.writeBoolean(parentTxn!=null);
+//        if(parentTxn!=null){
+//            out.writeLong(parentTxn.getTxnId());
+//            out.writeLong(parentTxn.getParentTxnId());
+//            out.writeBoolean(parentTxn.isAdditive());
+//        }
     }
 
     @Override
@@ -98,9 +99,9 @@ public class DDLChange implements Externalizable {
             changeId = in.readUTF();
 
         long txnId = in.readLong();
-        long beginTs = in.readLong();
-        long parentTxnId = in.readLong();
-        boolean additive = in.readBoolean();
+//        long beginTs = in.readLong();
+//        long parentTxnId = in.readLong();
+//        boolean additive = in.readBoolean();
 
         Txn parentTxn = TransactionStorage.getTxnSupplier().getTransaction(parentTxnId);
         txn = new InheritingTxnView(parentTxn,txnId,beginTs,null,true,dependent,true,additive,true,true,-1l,-1l, Txn.State.ACTIVE);
@@ -121,13 +122,13 @@ public class DDLChange implements Externalizable {
         TxnSupplier txnSupplier = TransactionStorage.getTxnSupplier();
         txn = txnSupplier.getTransaction(txnId);
 
-        if(in.readBoolean()){
-            long pTxnId = in.readLong();
-            long pBeginTs = pTxnId;
-            long pParentTxnId = in.readLong();
-            boolean pAdditive = in.readBoolean();
-
-            parentTxn = txnSupplier.getTransaction(txnId);
-        }
+//        if(in.readBoolean()){
+//            long pTxnId = in.readLong();
+//            long pBeginTs = pTxnId;
+//            long pParentTxnId = in.readLong();
+//            boolean pAdditive = in.readBoolean();
+//
+//            parentTxn = txnSupplier.getTransaction(txnId);
+//        }
     }
 }

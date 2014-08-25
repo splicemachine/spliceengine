@@ -30,9 +30,11 @@ public class DDLFilter implements Comparable<DDLFilter> {
 
         //if I haven't succeeded yet, don't do anything
         if(myTransaction.getEffectiveState()!= Txn.State.COMMITTED) return false;
+        //if my parent was rolled back, do nothing
+        if(myTransaction.getParentTxnView().getEffectiveState()== Txn.State.ROLLEDBACK) return false;
 
-        //if I have a parent, and he was rolled back, don't do anything
-        if(myParenTxn!=null && myParenTxn.getEffectiveState()== Txn.State.ROLLEDBACK) return false;
+//        if I have a parent, and he was rolled back, don't do anything
+//        if(myParenTxn!=null && myParenTxn.getEffectiveState()== Txn.State.ROLLEDBACK) return false;
         try{
             return visibilityMap.get(txn.getTxnId(),new Callable<Boolean>() {
                 @Override
@@ -60,32 +62,7 @@ public class DDLFilter implements Comparable<DDLFilter> {
         return myTransaction.getTxnId()<=otherTxnId;
     }
 
-    public boolean isVisibleBy(final long txnId) throws IOException{
-        Boolean visible = visibilityMap.getIfPresent(txnId);
-        if (visible != null) {
-            return visible;
-        }
-        //if I haven't succeeded yet, don't do anything
-        if(myTransaction.getEffectiveState()!= Txn.State.COMMITTED) return false;
-
-        TxnView parentTxn = myTransaction.getParentTxnView();
-        //if I have a parent, and he was rolled back, don't do anything
-        if(parentTxn.getEffectiveState()== Txn.State.ROLLEDBACK) return false;
-        try{
-            return visibilityMap.get(txnId,new Callable<Boolean>() {
-                @Override
-                public Boolean call() throws Exception {
-                    TxnView txn = transactionStore.getTransaction(txnId);
-                    return isVisible(txn);
-                }
-            });
-        }catch(ExecutionException ee){
-            throw new IOException(ee.getCause());
-        }
-
-    }
-
-		public TxnView getTransaction() {
+    public TxnView getTransaction() {
 				return myTransaction;
 		}
 

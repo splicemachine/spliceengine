@@ -27,6 +27,9 @@ import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.metrics.TimeView;
 import com.splicemachine.metrics.Timer;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnLifecycleManager;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -225,9 +228,6 @@ public class PopulateIndexTask extends ZkTask {
 												null,
 												keyEncodingMap,
 												ascDescInfo);
-//								IndexTransformer transformer =
-//                                        IndexTransformer.newTransformer(indexedColumns,mainColToIndexPosMap,descColumns,
-//                                                isUnique,isUniqueWithDuplicateNulls,columnOrdering,format_ids);
 
 								byte[] indexTableLocation = Bytes.toBytes(Long.toString(indexConglomId));
 								writeBuffer = SpliceDriver.driver().getTableWriter().writeBuffer(indexTableLocation,getTxn(),metricFactory);
@@ -319,4 +319,8 @@ public class PopulateIndexTask extends ZkTask {
         return SchedulerPriorities.INSTANCE.getBasePriority(PopulateIndexTask.class);
     }
 
+    @Override
+    protected Txn beginChildTransaction(TxnView parentTxn, TxnLifecycleManager tc) throws IOException {
+        return tc.beginChildTransaction(parentTxn,Long.toString(this.indexConglomId).getBytes());
+    }
 }

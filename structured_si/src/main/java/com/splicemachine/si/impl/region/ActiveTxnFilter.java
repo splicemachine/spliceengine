@@ -1,5 +1,6 @@
 package com.splicemachine.si.impl.region;
 
+import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.impl.TxnUtils;
@@ -19,6 +20,7 @@ class ActiveTxnFilter extends FilterBase {
     private final long beforeTs;
     private final long afterTs;
     private final byte[] destinationTable;
+    private final byte[] newEncodedDestinationTable;
 
     private boolean isAlive = false;
     private boolean stateSeen= false;
@@ -34,6 +36,7 @@ class ActiveTxnFilter extends FilterBase {
         this.beforeTs = beforeTs;
         this.afterTs = afterTs;
         this.destinationTable = destinationTable;
+        this.newEncodedDestinationTable = Encoding.encodeBytesUnsorted(destinationTable);
     }
 
     @Override
@@ -127,11 +130,16 @@ class ActiveTxnFilter extends FilterBase {
 
     private ReturnCode filterDestinationTable(KeyValue kv) {
         if(destinationTable==null) return ReturnCode.INCLUDE; //no destination table to check
-        if(matchesQualifier(kv,V2TxnDecoder.DESTINATION_TABLE_QUALIFIER_BYTES)
-                ||matchesQualifier(kv,V1TxnDecoder.OLD_WRITE_TABLE_COLUMN)){
+        byte[] compareBytes = null;
+        if(matchesQualifier(kv,V2TxnDecoder.DESTINATION_TABLE_QUALIFIER_BYTES)){
+            compareBytes = newEncodedDestinationTable;
+        }else if(matchesQualifier(kv,V1TxnDecoder.OLD_WRITE_TABLE_COLUMN))
+            compareBytes = destinationTable;
+
+        if(compareBytes!=null){
             if(destTablesSeen) return ReturnCode.SKIP;
             destTablesSeen = true;
-            if(!Bytes.equals(destinationTable, 0, destinationTable.length, kv.getBuffer(), kv.getValueOffset(), kv.getValueLength())){
+            if(!Bytes.equals(compareBytes, 0, compareBytes.length, kv.getBuffer(), kv.getValueOffset(), kv.getValueLength())){
                 //tables do not match
                 filter = true;
                 return ReturnCode.NEXT_ROW;

@@ -162,7 +162,11 @@ class V2TxnDecoder extends TxnDecoder{
             globalTs = Encoding.decodeLong(globalCommitKv.getBuffer(), globalCommitKv.getValueOffset(), false);
 
         Txn.State state = Txn.State.decode(stateKv.getBuffer(),stateKv.getValueOffset(),stateKv.getValueLength());
-
+        //adjust for committed timestamp
+        if(commitTs>0 || globalTs>0){
+            //we have a commit timestamp, our state MUST be committed
+            state = Txn.State.COMMITTED;
+        }
 
         if(state== Txn.State.ACTIVE){
 								/*

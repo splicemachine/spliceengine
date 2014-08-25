@@ -381,17 +381,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
         // check tentative indexes
         for (DDLChange ddlChange : DDLCoordinationFactory.getWatcher().getTentativeDDLs()) {
             TentativeDDLDesc ddlDesc = ddlChange.getTentativeDDLDesc();
-            TxnView txn = ddlChange.getTxn().getParentTxnView();
-//            TransactionManager transactionControl = HTransactorFactory.getTransactionManager();
-//            TransactionStatus status = null;
-//            try {
-//                status = transactionControl.getTransactionStatus(
-//                        new TransactionId(ddlChange.getParentTransactionId()));
-//            } catch (Exception e) {
-//                // Error while checking transaction status, remove change
-//                // necessary for backwards compatibility
-//                error = true;
-//            }
+            TxnView txn = ddlChange.getTxn();
             if (txn.getEffectiveState().isFinal()) {
                 DDLCoordinationFactory.getController().finishMetadataChange(ddlChange.getIdentifier());
             } else if (ddlDesc.getBaseConglomerateNumber() == congomId) {

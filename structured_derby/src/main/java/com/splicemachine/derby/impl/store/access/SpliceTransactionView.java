@@ -59,6 +59,12 @@ public class SpliceTransactionView extends BaseSpliceTransaction {
     }
 
     @Override
+    public void setActiveState(boolean nested, boolean dependent, TxnView parentTxn,byte[] tableName) {
+        assert state==ACTIVE: "Cannot have an inactive SpliceTransactionView";
+        //otherwise, it's a no-op
+    }
+
+    @Override
     public void setActiveState(boolean nested, boolean dependent, TxnView parentTxn) {
         assert state==ACTIVE: "Cannot have an inactive SpliceTransactionView";
         //otherwise, it's a no-op

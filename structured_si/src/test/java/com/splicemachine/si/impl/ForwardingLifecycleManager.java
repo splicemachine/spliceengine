@@ -67,8 +67,8 @@ public class ForwardingLifecycleManager implements TxnLifecycleManager{
 		}
 
 		@Override
-		public Txn chainTransaction(TxnView parentTxn, Txn.IsolationLevel isolationLevel, boolean dependent, boolean additive, byte[] destinationTable, Txn txnToCommit) throws IOException {
-				Txn txn = lifecycleManager.chainTransaction(parentTxn,isolationLevel,dependent,additive,destinationTable,txnToCommit);
+		public Txn chainTransaction(TxnView parentTxn, Txn.IsolationLevel isolationLevel, boolean additive, byte[] destinationTable, Txn txnToCommit) throws IOException {
+				Txn txn = lifecycleManager.chainTransaction(parentTxn,isolationLevel, additive,destinationTable,txnToCommit);
 				afterStart(txn);
 				return txn;
 		}

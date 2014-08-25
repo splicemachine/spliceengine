@@ -99,20 +99,22 @@ public class SpliceTransaction extends BaseSpliceTransaction {
 				return (tempxc == null) ? null : tempxc.getIdName();
 		}
 
-		public final void setActiveState(boolean nested, boolean dependent, TxnView parentTxn) {
+    public final void setActiveState(boolean nested, boolean additive, TxnView parentTxn) {
+        setActiveState(nested, additive, parentTxn,null);
+    }
+
+		public final void setActiveState(boolean nested, boolean additive, TxnView parentTxn,byte[] table) {
 				if (state == IDLE) {
             try {
                 synchronized(this) {
 //										if(nested){
                     TxnLifecycleManager lifecycleManager = TransactionLifecycle.getLifecycleManager();
                     if(nested)
-                        txn = lifecycleManager.beginChildTransaction(parentTxn,parentTxn.getIsolationLevel(), false,null);
+                        txn = lifecycleManager.beginChildTransaction(parentTxn,parentTxn.getIsolationLevel(), additive,table);
                     else
                         txn = lifecycleManager.beginTransaction();
 //										}
-//										this.setTransactionState(generateTransactionId(nested, dependent, parentTransactionID, allowWrites));
                     state = ACTIVE;
-                    //justCreated = false;
                 }
             } catch (Exception e) {
                 SpliceLogUtils.logAndThrowRuntime(LOG, e);
@@ -150,7 +152,7 @@ public class SpliceTransaction extends BaseSpliceTransaction {
 		public void setTxn(Txn txn) { this.txn = txn; }
 
     public Txn elevate(byte[] writeTable) throws IOException {
-        setActiveState(false,false,txn.getParentTxnView());
+//        setActiveState(false,false,txn.getParentTxnView());
         if(!txn.allowsWrites())
             txn = txn.elevateToWritable(writeTable);
         return txn;

@@ -114,7 +114,7 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 			checkContextAndStore(hbaseStore, contextMgr, "startNestedTransaction");
 			
 			return startNestedTransaction(hbaseStore, contextMgr,
-				dataValueFactory, null, false, NESTED_READONLY_USER_CONTEXT_ID, true, parentTxn);
+				dataValueFactory, null, false, NESTED_READONLY_USER_CONTEXT_ID, false, parentTxn);
 		}
 
 		/**
@@ -155,7 +155,7 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
                                                              String transName,
                                                              boolean abortAll,
                                                              String contextName,
-                                                             boolean dependent,
+                                                             boolean additive,
                                                              Txn parentTxn) {
         try {
             TxnLifecycleManager lifecycleManager = TransactionLifecycle.getLifecycleManager();
@@ -169,7 +169,7 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 						 * if parentTxn==null, then this will make a call to the timestamp source to generate a begin timestamp
 						 * for a read-only transaction; this requires a single network call.
 						 */
-            Txn txn = lifecycleManager.beginChildTransaction(parentTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION, true,null);
+            Txn txn = lifecycleManager.beginChildTransaction(parentTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION, additive,null);
             SpliceTransaction trans = new SpliceTransaction(NoLockSpace.INSTANCE, dataValueFactory, transName,txn);
             trans.setTransactionName(transName);
 

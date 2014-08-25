@@ -94,11 +94,10 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager {
 		}
 		@Override
 		public Txn chainTransaction(TxnView parentTxn,
-																Txn.IsolationLevel isolationLevel,
-																boolean dependent,
-																boolean additive,
-																byte[] destinationTable,
-																Txn txnToCommit) throws IOException {
+                                Txn.IsolationLevel isolationLevel,
+                                boolean additive,
+                                byte[] destinationTable,
+                                Txn txnToCommit) throws IOException {
 				if(parentTxn==null)
 						parentTxn = Txn.ROOT_TRANSACTION;
         if(destinationTable!=null){
@@ -127,7 +126,7 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager {
 						if(parentTxn.equals(Txn.ROOT_TRANSACTION)){
 								return ReadOnlyTxn.createReadOnlyParentTransaction(oldTs,oldTs,isolationLevel,this,additive);
 						}else{
-								return ReadOnlyTxn.createReadOnlyChildTransaction(parentTxn,this, additive);
+                return ReadOnlyTxn.createReadOnlyTransaction(oldTs, parentTxn, oldTs, isolationLevel, additive, this);
 						}
 				}
 		}

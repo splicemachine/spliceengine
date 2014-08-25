@@ -161,21 +161,21 @@ public interface TxnLifecycleManager {
 		 * "Chains" a new transaction to the old one.
 		 *
 		 * "Chaining" is when one transaction is committed, and the commit timestamp that was generated
-		 * for that transaction is used as the begin timestamp of the next transaction.
+		 * for that transaction is used as the begin timestamp of the next transaction. It is used
+     * when a new transaction is desired, but no breaks in logical time are acceptable (such as during
+     * a DDL or other form of operation where a clear demarcation of times are required).
 		 *
-		 * @param parentTxn the parent transaction, or {@code null} if this is a top-level transaction
-		 * @param isolationLevel the isolation level to use for reads
-		 * @param dependent if the new transaction is to be dependent. If {@code parentTxn==null} or is the root
-		 *                  transaction, then this has no effect
-		 * @param additive if the new transaction is to be additive.
-		 * @param destinationTable a table to which writes are to proceed, or {@code null} if the transaction
-		 *                           is to start as read-only.
-		 * @param txnToCommit the transaction to commit.
-		 * @return a new transaction whose begin timestamp is the same as the commit timestamp of {@code txnToCommit}
+		 *
+     * @param parentTxn the parent transaction, or {@code null} if this is a top-level transaction
+     * @param isolationLevel the isolation level to use for reads
+     * @param additive if the new transaction is to be additive.
+     * @param destinationTable a table to which writes are to proceed, or {@code null} if the transaction
+     *                           is to start as read-only.
+     * @param txnToCommit the transaction to commit.
+     * @return a new transaction whose begin timestamp is the same as the commit timestamp of {@code txnToCommit}
 		 */
 		Txn chainTransaction(TxnView parentTxn,
-													Txn.IsolationLevel isolationLevel,
-													boolean dependent,
-													boolean additive,
-													byte[] destinationTable, Txn txnToCommit) throws IOException;
+                         Txn.IsolationLevel isolationLevel,
+                         boolean additive,
+                         byte[] destinationTable, Txn txnToCommit) throws IOException;
 }
