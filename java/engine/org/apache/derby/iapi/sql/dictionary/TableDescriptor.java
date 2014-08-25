@@ -1416,6 +1416,11 @@ public class TableDescriptor extends TupleDescriptor
 	public boolean statisticsExist(ConglomerateDescriptor cd)
 		throws StandardException
 	{
+		return false;
+		
+		// getStatistics is synchronized :(
+		
+/*		
 		List sdl = getStatistics();
 
 		if (cd == null)
@@ -1432,6 +1437,8 @@ public class TableDescriptor extends TupleDescriptor
 		}
 
 		return false;
+		
+		*/
 	}
 
 	/**
