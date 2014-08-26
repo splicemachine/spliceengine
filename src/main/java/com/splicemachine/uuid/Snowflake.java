@@ -39,18 +39,18 @@ public class Snowflake {
 
     private static final long TIMESTAMP_MASK = 0x1ffffffffffl;
     private static final int timestampShift = 12;
-		private static final long TIMESTAMP_LOCATION = (TIMESTAMP_MASK<<timestampShift);
+    private static final long TIMESTAMP_LOCATION = (TIMESTAMP_MASK<<timestampShift);
 
 
     private static final short COUNTER_MASK = 0x07ff; //looks like 0111 1111 1111 (e.g. 11 bits of 1s)
     private static final long counterShift = 53;
-		/**
-		 * Fixed constant to allow consumers of Snowflake UUIDs to allow space in byte[] for
-		 * UUIDs without knowing the exact length of the UUID.
-		 */
-		public static final int UUID_BYTE_SIZE = 8;
+    /**
+     * Fixed constant to allow consumers of Snowflake UUIDs to allow space in byte[] for
+     * UUIDs without knowing the exact length of the UUID.
+     */
+    public static final int UUID_BYTE_SIZE = 8;
 
-		private volatile long lastTimestamp = 0l;
+    private volatile long lastTimestamp = 0l;
     private volatile short counter = 0;
 
     private final long machineId; //only the first counterBits bits are used;
@@ -69,18 +69,18 @@ public class Snowflake {
             throw new IllegalArgumentException("Cannot have a machine id with all zeros!");
     }
 
-		/**
-		 * Get the timestamp portion from the UUID.
-		 *
-		 * Recall that the UUID contains only 41 bits of the actual timestamp. This goes until Sep. 7, 2039,
-		 * so be aware.
-		 *
-		 * @param uuid the uuid to get the timestamp from
-		 * @return the timestamp portion of the UUID.
-		 */
-		public static long timestampFromUUID(long uuid){
-			return (uuid & TIMESTAMP_LOCATION)>>timestampShift;
-		}
+    /**
+     * Get the timestamp portion from the UUID.
+     *
+     * Recall that the UUID contains only 41 bits of the actual timestamp. This goes until Sep. 7, 2039,
+     * so be aware.
+     *
+     * @param uuid the uuid to get the timestamp from
+     * @return the timestamp portion of the UUID.
+     */
+    public static long timestampFromUUID(long uuid) {
+        return (uuid & TIMESTAMP_LOCATION) >> timestampShift;
+    }
 
     public byte[] nextUUIDBytes(){
         return Bytes.toBytes(nextUUID());
@@ -197,6 +197,15 @@ public class Snowflake {
         return new Generator(this,s);
     }
 
+    @Override
+    public String toString() {
+        return "Snowflake{" +
+                "lastTimestamp=" + lastTimestamp +
+                ", counter=" + counter +
+                ", machineId=" + machineId +
+                '}';
+    }
+
     public static class Generator implements UUIDGenerator {
         private final Snowflake snowflake;
         private long[] currentUuids;
@@ -216,23 +225,23 @@ public class Snowflake {
             return currentUuids[pos];
         }
 
-				@Override public byte[] nextBytes(){ return Bytes.toBytes(next()); }
-				@Override public int encodedLength() { return 8; }
+        @Override public byte[] nextBytes(){ return Bytes.toBytes(next()); }
+        @Override public int encodedLength() { return 8; }
 
-				@Override
-				public void next(byte[] data, int offset) {
-						long nextLong = next();
-						Bytes.toBytes(nextLong, data, offset);
-				}
+        @Override
+        public void next(byte[] data, int offset) {
+            long nextLong = next();
+            Bytes.toBytes(nextLong, data, offset);
+        }
 
-				private void refill(){
+        private void refill(){
             snowflake.nextUUIDBlock(currentUuids);
             currentPosition=0;
         }
     }
 
     @SuppressWarnings("unused")
-	private static String pad(long number){
+    private static String pad(long number){
         String binary = Long.toBinaryString(number);
         char[] zeros = new char[Long.numberOfLeadingZeros(number)];
         for(int i=0;i<zeros.length;i++){

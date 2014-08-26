@@ -143,4 +143,16 @@ public class SnowflakeTest {
         assertEquals(1402425364777L, Snowflake.timestampFromUUID(-6875755896327991295l));
         assertEquals(1402425368039L, Snowflake.timestampFromUUID(-4533884090081972223l));
     }
+
+    @Test
+    public void toString_includesExpectedMachineId() {
+        assertEquals("Snowflake{lastTimestamp=0, counter=0, machineId=2}", new Snowflake((short) (1 << 1)).toString());
+        assertEquals("Snowflake{lastTimestamp=0, counter=0, machineId=4}", new Snowflake((short) (1 << 2)).toString());
+        assertEquals("Snowflake{lastTimestamp=0, counter=0, machineId=8}", new Snowflake((short) (1 << 3)).toString());
+        assertEquals("Snowflake{lastTimestamp=0, counter=0, machineId=16}", new Snowflake((short) (1 << 4)).toString());
+        assertEquals("Snowflake{lastTimestamp=0, counter=0, machineId=32}", new Snowflake((short) (1 << 5)).toString());
+        assertEquals("Snowflake{lastTimestamp=0, counter=0, machineId=64}", new Snowflake((short) (1 << 6)).toString());
+        assertEquals("Snowflake{lastTimestamp=0, counter=0, machineId=2048}", new Snowflake((short) (1 << 11)).toString());
+    }
+
 }
