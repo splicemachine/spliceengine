@@ -1,6 +1,5 @@
 package com.splicemachine.uuid;
 
-import com.splicemachine.uuid.Snowflake;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -12,8 +11,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author Scott Fines
  * Created on: 6/21/13
  */
-//@Ignore
-public class BasicSnowflakeTest {
+public class SnowflakeTest {
+
     @Test
     public void testcanCreateAUUID() throws Exception {
         Snowflake snowflake = new Snowflake((short)(1<<6));
