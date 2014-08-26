@@ -1,11 +1,11 @@
 package com.splicemachine.derby.impl.sql.execute.operations.window;
 
+import java.io.Externalizable;
+
+import org.apache.derby.iapi.error.StandardException;
+
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.operations.WarningCollector;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-
-import java.io.Externalizable;
 
 /**
  * Created by jyuan on 7/25/14.
@@ -24,5 +24,5 @@ public interface WindowContext extends WarningCollector,Externalizable {
 
     boolean[] getKeyOrders();
 
-    WindowFrame getWindowFrame();
+    FrameDefinition getFrameDefinition();
 }

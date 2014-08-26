@@ -13,7 +13,6 @@ import org.apache.derby.iapi.store.access.ColumnOrdering;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import org.apache.derby.iapi.sql.execute.ExecRow;
 
 /**
  * This class records the window definition (partition, orderby and frame)
@@ -32,7 +31,7 @@ public class DerbyWindowContext implements WindowContext {
     private boolean[] sortOrders;
     private int[] keyColumns;
     private boolean[] keyOrders;
-    WindowFrame windowFrame;
+    FrameDefinition frameDefinition;
 
     public DerbyWindowContext() {
     }
@@ -54,7 +53,7 @@ public class DerbyWindowContext implements WindowContext {
         ColumnOrdering[] orderings = (ColumnOrdering[])
             ((FormatableArrayHolder) (statement.getSavedObject(orderingItemIdx))).getArray(ColumnOrdering.class);
 
-        windowFrame = WindowFrame.create((FormatableHashtable) statement.getSavedObject(frameDefnIdx));
+        frameDefinition = FrameDefinition.create((FormatableHashtable) statement.getSavedObject(frameDefnIdx));
 
         keyColumns = new int[partition.length + orderings.length];
         keyOrders = new boolean[partition.length + orderings.length];
@@ -132,8 +131,8 @@ public class DerbyWindowContext implements WindowContext {
     }
 
     @Override
-    public WindowFrame getWindowFrame() {
-        return windowFrame;
+    public FrameDefinition getFrameDefinition() {
+        return frameDefinition;
     }
 
 }
