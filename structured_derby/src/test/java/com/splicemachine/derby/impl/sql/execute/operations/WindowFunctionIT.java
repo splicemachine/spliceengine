@@ -2,8 +2,6 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.util.ArrayList;
-import java.util.List;
 
 import com.splicemachine.derby.management.XPlainTreeNode;
 import com.splicemachine.derby.test.framework.*;
@@ -511,4 +509,22 @@ public class WindowFunctionIT extends SpliceUnitTest {
         Assert.assertEquals(rows.length*2, operation.getWriteRows());
     }
 
+    @Test
+    public void testDenseRankWithoutPartition() throws Exception {
+        int[] result = {1, 2, 3, 4, 5, 5, 6, 7, 7, 8, 8, 8, 8, 9, 10};
+        int[] colVal = {84000, 79000, 78000, 76000, 75000, 75000, 55000, 53000, 53000, 52000, 52000, 52000, 52000, 51000, 50000};
+        String sqlText =
+            "SELECT empnum, dept, salary, DENSE_RANK() OVER (ORDER BY salary desc) AS Rank FROM %s";
+
+        ResultSet rs = methodWatcher.executeQuery(
+            String.format(sqlText, this.getTableReference(TABLE_NAME)));
+
+        int i = 0;
+        while (rs.next()) {
+            Assert.assertEquals(colVal[i],rs.getInt(3));
+            Assert.assertEquals(result[i],rs.getInt(4));
+            ++i;
+        }
+        rs.close();
+    }
 }

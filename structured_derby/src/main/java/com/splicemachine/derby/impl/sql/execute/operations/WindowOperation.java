@@ -8,7 +8,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import com.google.common.base.Strings;
-import com.splicemachine.derby.metrics.OperationMetric;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -35,6 +34,7 @@ import com.splicemachine.derby.impl.job.operation.SuccessFilter;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.DerbyAggregateContext;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.window.DerbyWindowContext;
+import com.splicemachine.derby.impl.sql.execute.operations.window.FrameBuffer;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowFunctionIterator;
 import com.splicemachine.derby.impl.storage.BaseHashAwareScanBoundary;
@@ -43,11 +43,15 @@ import com.splicemachine.derby.impl.storage.KeyValueUtils;
 import com.splicemachine.derby.impl.storage.RegionAwareScanner;
 import com.splicemachine.derby.impl.storage.RowProviders;
 import com.splicemachine.derby.impl.storage.SpliceResultScanner;
+import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.derby.utils.PartitionAwareIterator;
+import com.splicemachine.derby.utils.PartitionAwarePushBackIterator;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.StandardIterators;
 import com.splicemachine.derby.utils.marshall.BareKeyHash;
 import com.splicemachine.derby.utils.marshall.DataHash;
 import com.splicemachine.derby.utils.marshall.FixedBucketPrefix;
@@ -331,18 +335,7 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
         if (windowFunctionIterator == null) {
             timer = ctx.newTimer();
             rowDecoder = getTempDecoder();
-            // Pass in a region aware scanner to make sure the region scanner handles rows of one partition that
-            // "overflow" to another region
-            step2Scanner = getResultScanner(
-                    windowContext.getPartitionColumns(),
-                    ctx,
-                    extraUniqueSequenceID);
-
-            windowFunctionIterator = new WindowFunctionIterator(ctx, windowContext, aggregateContext, step2Scanner,
-                                                                rowDecoder, templateRow);
-            if (!windowFunctionIterator.init()) {
-                return null;
-            }
+            if (! createFrameIterator(ctx)) return null;
         }
 
         timer.startTiming();
@@ -351,6 +344,7 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
         if (row == null) {
             timer.stopTiming();
             windowFunctionIterator.close();
+            // TODO jc: set windowFunctionIterator to null here so that it will be recreated/reinitialized above?
             return null;
         }
         else {
@@ -359,6 +353,33 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
             timer.tick(1);
         }
         return row;
+    }
+
+    private boolean createFrameIterator(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+        // Pass in a region aware scanner to make sure the region scanner handles rows of one partition that
+        // "overflow" to another region
+        step2Scanner = getResultScanner(windowContext.getPartitionColumns(), spliceRuntimeContext, extraUniqueSequenceID);
+
+        // create the frame source for the frame buffer
+        rowDecoder = getTempDecoder();
+        PartitionAwareIterator<ExecRow> iterator =
+            StandardIterators.wrap(step2Scanner, rowDecoder, windowContext.getPartitionColumns(), templateRow.getRowArray());
+        PartitionAwarePushBackIterator<ExecRow> frameSource = new PartitionAwarePushBackIterator<ExecRow>(iterator);
+
+        // test the frame source
+        FrameBuffer frameBuffer = null;
+        if (! frameSource.test(spliceRuntimeContext)) {
+            // tests false - bail
+            return false;
+        }
+
+        // create the frame buffer that will use the frame source
+        frameBuffer =
+            new FrameBuffer(spliceRuntimeContext, aggregateContext.getAggregators(), frameSource, windowContext.getFrameDefinition(), templateRow);
+
+        // create the frame iterator
+        windowFunctionIterator = new WindowFunctionIterator(frameBuffer);
+        return true;
     }
 
     @Override

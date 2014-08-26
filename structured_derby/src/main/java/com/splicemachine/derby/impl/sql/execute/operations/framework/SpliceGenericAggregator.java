@@ -27,7 +27,7 @@ public class SpliceGenericAggregator {
 	
 	private final ClassFactory cf;
 	
-	private ExecAggregator cachedAggregator;
+	protected ExecAggregator cachedAggregator;
 
 	public SpliceGenericAggregator(AggregatorInfo aggInfo, ClassFactory cf) {
 		this.aggInfo = aggInfo;
