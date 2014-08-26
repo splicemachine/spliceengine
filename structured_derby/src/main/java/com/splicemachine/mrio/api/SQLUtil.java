@@ -87,7 +87,19 @@ public class SQLUtil {
 			  
 			  String   catalog           = null;
 		      String   schemaPattern     = null;
-		      String   tableNamePattern  = tableName;
+		      String   tableNamePattern  = null;
+		      
+			  HashMap<String, String> schema_tblName = parseTableName(tableName);
+			  
+			  if (schema_tblName != null)
+			  {
+				  Map.Entry pairs = (Map.Entry)schema_tblName.entrySet().iterator().next();
+				  schemaPattern = (String) pairs.getKey();
+				  tableNamePattern = (String) pairs.getValue();
+			  }
+			  else
+				  throw new SQLException("Splice table not known, please specify Splice tableName. "
+				  							+ "pattern: schemaName.tableName");
 		      
 			  DatabaseMetaData databaseMetaData = connect.getMetaData();
 
@@ -143,7 +155,6 @@ public class SQLUtil {
 		          prevColumnName = columnName;
 		          names.add(columnName);
 		          
-		          System.out.println("getTableStructure, columnName:"+columnName);
 		          types.add(columnType);
 		          
 		      }
@@ -168,7 +179,7 @@ public class SQLUtil {
 	  /**
 	   * 
 	   * Get ConglomID from 'tableName'
-	   * Param is Splice tableName
+	   * Param is Splice tableName with schema, pattern: schema.tableName
 	   * Return ConglomID
 	   * ConglomID means HBase table Name which maps to the Splice table Name
 	 * @throws SQLException 
@@ -177,12 +188,26 @@ public class SQLUtil {
 	  public String getConglomID(String tableName) throws SQLException
 	  {
 		  String conglom_id = null;
+		  String schema = null;
+		  String tblName = null;
+		  HashMap<String, String> schema_tblName = parseTableName(tableName);
+		  
+		  if (schema_tblName != null)
+		  {
+			  Map.Entry pairs = (Map.Entry)schema_tblName.entrySet().iterator().next();
+			  schema = (String) pairs.getKey();
+			  tblName = (String) pairs.getValue();
+		  }
+		  else
+			  throw new SQLException("Splice table not known, please specify Splice tableName. "
+			  							+ "pattern: schemaName.tableName");
+		  
 		  String query = "select s.schemaname,t.tablename,c.conglomeratenumber "+
 		                 "from sys.sysschemas s, sys.systables t, sys.sysconglomerates c "+
 				         "where s.schemaid = t.schemaid and "+
 		                 "t.tableid = c.tableid and "+
-				         "s.schemaname = 'SPLICE' and "+
-		                 "t.tablename = '"+tableName+"'";
+				         "s.schemaname = '"+schema+"' and "+
+		                 "t.tablename = '"+tblName+"'";
 		  PreparedStatement statement;
 		
 			statement = connect.prepareStatement(query);
@@ -261,17 +286,29 @@ public class SQLUtil {
 	  }
 
 	  
-	  public boolean checkTableExists(String tableName)
+	  public boolean checkTableExists(String tableName) throws SQLException
 	  {
 		  boolean tableExists = false;
 		  
 		    ResultSet rs = null;
 		    try {
 		        DatabaseMetaData meta = connect.getMetaData();
-		        rs = meta.getTables(null, null, null, new String[] { "TABLE" });
+		        HashMap<String, String> schema_tblName = parseTableName(tableName);
+				String schema = null;
+				String tblName = null;
+				if (schema_tblName != null)
+				{
+					Map.Entry pairs = (Map.Entry)schema_tblName.entrySet().iterator().next();
+					schema = (String) pairs.getKey();
+					tblName = (String) pairs.getValue();
+				 }
+				 else
+					throw new SQLException("Splice table not known, please specify Splice tableName. "
+					  							+ "pattern: schemaName.tableName");
+		        rs = meta.getTables(null, schema, tblName, new String[] { "TABLE" });
 		        while (rs.next()) {
 		            String currentTableName = rs.getString("TABLE_NAME");
-		            if (currentTableName.equalsIgnoreCase(tableName)) {
+		            if (currentTableName.equalsIgnoreCase(tblName)) {
 		                tableExists = true;
 		            }
 		        }
@@ -285,9 +322,31 @@ public class SQLUtil {
 		
 	  }
 	  
+	  public HashMap<String, String> parseTableName(String str)
+	  {
+		  if(str == null || str.trim().equals(""))
+			  return null;
+		  else
+		  {
+			 HashMap<String, String> res = new HashMap<String, String>();
+			 
+			 String[]tmp = str.split("\\.");
+			
+			 String schema = "SPLICE";
+			 String tableName = str;
+			 if(tmp.length >= 2)
+			 {
+				 schema = tmp[0];
+				 tableName = tmp[1];
+			 }
+			  res.put(schema, tableName);
+			  return res;
+		  } 
+	  }
+	  
 	  public static void main(String[] args) throws Exception {
 	    SQLUtil dao = SQLUtil.getInstance();
-	    HashMap<List, List> structure = dao.getPrimaryKey("USERTEST8");
+	    /*HashMap<List, List> structure = dao.getPrimaryKey("USERTEST8");
 	    Iterator iter = structure.entrySet().iterator();
 	    while(iter.hasNext())
 	    {
@@ -295,6 +354,9 @@ public class SQLUtil {
 	    	ArrayList<String> names = (ArrayList<String>)kv.getKey();
 	    	ArrayList<Integer> types = (ArrayList<Integer>)kv.getValue();
 	    }
-	    dao.getTransactionID();
+	    dao.getTransactionID();*/
+	    HashMap<String, String> res = dao.parseTableName("USERTEST.yu");
+	    Iterator iter = res.entrySet().iterator();
+	    
 	  }
 }

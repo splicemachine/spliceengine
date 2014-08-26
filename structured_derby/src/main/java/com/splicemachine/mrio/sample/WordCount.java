@@ -160,7 +160,7 @@ public class WordCount {
 		scan.setCacheBlocks(false);  // don't set to true for MR jobs
 	    
 		String inputTableName = "WIKIDATA";
-		String outputTableName = "USERTEST3";
+		String outputTableName = "USERTEST4";
 		
 		try {
 			SpliceTableMapReduceUtil.initTableMapperJob(
