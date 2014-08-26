@@ -132,6 +132,16 @@ public class HashNestedLoopJoinStrategy extends HashableJoinStrategy {
 	};	
 	public boolean singleRowOnly() {
 		return true;
+	}
+
+	@Override
+	public void divideUpPredicateLists(Optimizable innerTable,
+			OptimizablePredicateList originalRestrictionList,
+			OptimizablePredicateList storeRestrictionList,
+			OptimizablePredicateList nonStoreRestrictionList,
+			OptimizablePredicateList requalificationRestrictionList,
+			DataDictionary dd) throws StandardException {
+				originalRestrictionList.setPredicatesAndProperties(storeRestrictionList);
 	};
 
 }
