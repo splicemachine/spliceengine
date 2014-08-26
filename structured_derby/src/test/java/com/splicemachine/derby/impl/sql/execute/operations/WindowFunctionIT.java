@@ -5,6 +5,8 @@ import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.splicemachine.derby.management.XPlainTreeNode;
+import com.splicemachine.derby.test.framework.*;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -12,12 +14,6 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
-
-import com.splicemachine.derby.test.framework.SpliceDataWatcher;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
 
 /**
  * Created by jyuan on 7/30/14.
@@ -491,5 +487,28 @@ public class WindowFunctionIT extends SpliceUnitTest {
         rs.close();
     }
 
+    @Test
+    public void testXPlainTrace() throws Exception {
+        SpliceXPlainTrace xPlainTrace = new SpliceXPlainTrace();
+        xPlainTrace.turnOnTrace();
+        String s = "SELECT empnum, dept, salary, count(salary) over (Partition by dept) as c from %s";
+        String sqlText = String.format(s, this.getTableReference(TABLE_NAME));
+        ResultSet rs = xPlainTrace.executeQuery(sqlText);
+        int i = 0;
+        while (rs.next()) {
+            ++i;
+        }
+        rs.close();
+        Assert.assertEquals(rows.length, i);
+        xPlainTrace.turnOffTrace();
+
+        XPlainTreeNode operation = xPlainTrace.getOperationTree();
+        Assert.assertTrue(operation.getOperationType().compareToIgnoreCase(SpliceXPlainTrace.PROJECTRESTRICT)==0);
+        operation = operation.getChildren().getFirst();
+        Assert.assertTrue(operation.getOperationType().compareToIgnoreCase(SpliceXPlainTrace.WINDOW)==0);
+        Assert.assertEquals(rows.length, operation.getInputRows());
+        Assert.assertEquals(rows.length, operation.getOutputRows());
+        Assert.assertEquals(rows.length*2, operation.getWriteRows());
+    }
 
 }
