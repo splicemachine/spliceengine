@@ -7,6 +7,8 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static org.junit.Assert.assertEquals;
+
 /**
  * @author Scott Fines
  * Created on: 6/21/13
@@ -76,7 +78,7 @@ public class SnowflakeTest {
             Assert.assertTrue("Duplicate entry found!",future.get());
         }
         //make sure that the correct number of uuids were generated
-        Assert.assertEquals("Incorrect number of uuids generated!",numThreads*numIterations,existing.size());
+        assertEquals("Incorrect number of uuids generated!", numThreads * numIterations, existing.size());
     }
 
     @Test
@@ -127,6 +129,18 @@ public class SnowflakeTest {
             Assert.assertTrue("Duplicate entry found!",future.get());
         }
         //make sure that the correct number of uuids were generated
-        Assert.assertEquals("Incorrect number of uuids generated!",numThreads*numIterations,existing.size());
+        assertEquals("Incorrect number of uuids generated!", numThreads * numIterations, existing.size());
+    }
+
+    @Test
+    public void timestampFromUUID() {
+        assertEquals(1402425368772L, Snowflake.timestampFromUUID(-2074918693534679039l));
+        assertEquals(1402425369637L, Snowflake.timestampFromUUID(-7920591009858039807l));
+        assertEquals(1402425368822L, Snowflake.timestampFromUUID(-903982790418145279l));
+        assertEquals(1402425369571L, Snowflake.timestampFromUUID(-9091526912974639103l));
+        assertEquals(1402425371394L, Snowflake.timestampFromUUID(2320594542789664769l));
+        assertEquals(1402425364788L, Snowflake.timestampFromUUID(-6857741497818464255l));
+        assertEquals(1402425364777L, Snowflake.timestampFromUUID(-6875755896327991295l));
+        assertEquals(1402425368039L, Snowflake.timestampFromUUID(-4533884090081972223l));
     }
 }
