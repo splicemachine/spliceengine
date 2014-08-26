@@ -334,7 +334,6 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
 
         if (windowFunctionIterator == null) {
             timer = ctx.newTimer();
-            rowDecoder = getTempDecoder();
             if (! createFrameIterator(ctx)) return null;
         }
 
