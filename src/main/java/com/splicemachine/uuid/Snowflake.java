@@ -143,7 +143,6 @@ public class Snowflake {
              * long--we don't want to wait more than about 20ms before exploding. Thus, we retry 10 times, waiting
              * 2 ms in between each run.
              */
-        int numTries=10;
         short count;
                 /*
                  * When the counter goes over 11 bits, it needs to be reset. If that happens before the
@@ -168,11 +167,7 @@ public class Snowflake {
             lastTimestamp = timestamp;
         }
 
-        if(numTries<0)
-            throw new IllegalStateException("Unable to acquire a UUID after 10 tries, check System clock");
-
         //we now have time
-
         return buildUUID(timestamp, count);
     }
 
