@@ -109,8 +109,21 @@ public class DenseRankWindowFunctionTest extends WindowTestingFramework {
     }
 
     @Test
-    @Ignore("DB-1682 - timestamp error")
     public void testTimestampColumn() throws Exception {
+
+        // define the shape of the input rows
+        List<TestColumnDefinition> rowDefinition = new ArrayList<TestColumnDefinition>(
+            Arrays.asList(new TestColumnDefinition[]{
+                new IntegerColumnDefinition(),
+                new DoubleColumnDefinition().setVariantColumn(true),
+                new VarcharColumnDefinition(7).setVariantColumn(true),
+                new TimestampColumnDefinition().setVariantColumn(true),
+                new DateColumnDefinition().setVariantColumn(true)}));
+        helpTestColumns(new int[] {1}, new int[] {4}, rowDefinition, PRINT_RESULTS);
+    }
+
+    @Test
+    public void testStringColumn() throws Exception {
 
         // define the shape of the input rows
         List<TestColumnDefinition> rowDefinition = new ArrayList<TestColumnDefinition>(

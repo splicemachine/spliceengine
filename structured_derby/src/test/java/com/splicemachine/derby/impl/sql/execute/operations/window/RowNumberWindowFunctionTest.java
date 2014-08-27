@@ -24,7 +24,7 @@ public class RowNumberWindowFunctionTest extends WindowTestingFramework {
         //
         // create and setup the function
         RowNumberFunction function = new RowNumberFunction();
-        function.setup(cf, "function", DataTypeDescriptor.getBuiltInDataTypeDescriptor(java.sql.Types.BIGINT, false));
+        function.setup(cf, "row_number", DataTypeDescriptor.getBuiltInDataTypeDescriptor(java.sql.Types.BIGINT, false));
 
         // create the number of partitions, number of rows in partition, set (1-based) partition and orderby column IDs
         int nPartitions = 5;
@@ -53,9 +53,13 @@ public class RowNumberWindowFunctionTest extends WindowTestingFramework {
     }
 
     @Test
-    @Ignore("DB-1682 - timestamp error")
+    public void testStringColumn() throws Exception {
+        helpTestColumns(new int[] {1}, new int[] {3}, DONT_PRINT_RESULTS);
+    }
+
+    @Test
     public void testTimestampColumn() throws Exception {
-        helpTestColumns(new int[] {1}, new int[] {3}, PRINT_RESULTS);
+        helpTestColumns(new int[] {1}, new int[] {4}, DONT_PRINT_RESULTS);
     }
 
     @Test
