@@ -36,7 +36,7 @@ public class SpliceTableWatcher extends TestWatcher {
 		Statement statement = null;
 		ResultSet rs = null;
 		try {
-            connection =  (userName == null)?SpliceNetConnection.getConnection():SpliceNetConnection.getConnectionAs(userName,password);;
+            connection =  (userName == null)?SpliceNetConnection.getConnection():SpliceNetConnection.getConnectionAs(userName,password);
 			rs = connection.getMetaData().getTables(null, schemaName, tableName, null);
 			if (rs.next()) {
 				executeDrop(schemaName,tableName);

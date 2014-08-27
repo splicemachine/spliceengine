@@ -2,6 +2,7 @@ package com.splicemachine.si.api;
 
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.si.impl.DDLFilter;
+import com.splicemachine.si.impl.DataStore;
 import com.splicemachine.si.impl.SICompactionState;
 import com.splicemachine.si.impl.TxnFilter;
 import com.splicemachine.storage.EntryPredicateFilter;
@@ -58,4 +59,10 @@ public interface TransactionalRegion {
 
 
 		String getRegionName();
+
+    TxnSupplier getTxnSupplier();
+
+    ReadResolver getReadResolver();
+
+    DataStore getDataStore();
 }

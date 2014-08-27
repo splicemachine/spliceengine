@@ -820,7 +820,13 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
 
             Txn indexTransaction = getIndexTransaction(parent, tc, tentativeTransaction, heapConglomerateId);
 
-            populateIndex(activation, baseColumnPositions, descColumns, heapConglomerateId, table, indexTransaction, tentativeIndexDesc);
+            populateIndex(activation, baseColumnPositions,
+                    descColumns,
+                    heapConglomerateId,
+                    table,
+                    indexTransaction,
+                    tentativeTransaction.getCommitTimestamp(),
+                    tentativeIndexDesc);
             //only commit the index transaction if the job actually completed
             indexTransaction.commit();
         }finally{

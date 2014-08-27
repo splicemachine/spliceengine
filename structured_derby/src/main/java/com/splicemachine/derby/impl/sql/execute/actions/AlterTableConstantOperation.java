@@ -2341,7 +2341,9 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
 
                 Txn indexTransaction = getIndexTransaction(parent, tc, tentativeTransaction, newHeapConglom);
 
-                populateIndex(activation, baseColumnPositions, descColumns, newHeapConglom, table, indexTransaction, tentativeIndexDesc);
+                populateIndex(activation, baseColumnPositions, descColumns,
+                        newHeapConglom, table,
+                        indexTransaction, tentativeTransaction.getCommitTimestamp(),tentativeIndexDesc);
                 //only commit the index transaction if the job actually completed
                 tentativeTransaction.commit();
             }finally{
