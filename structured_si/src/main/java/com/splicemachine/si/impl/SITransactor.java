@@ -585,10 +585,7 @@ public class SITransactor<Table,
 												conflicts[1].add(dataTransactionId);
 												break;
 										case SIBLING:
-												if (doubleCheckConflict(updateTransaction, dataTransaction)) {
                             throw new WriteConflict(dataTransactionId,updateTransaction.getTxnId());
-												}
-												break;
 								}
 						} else if (dataStore.isSIFail(dataCommitKeyValue)) {
 								// Can't conflict with failed transaction.
@@ -623,34 +620,11 @@ public class SITransactor<Table,
                         conflicts[1].add(dataTransactionId);
                         break;
                     case SIBLING:
-                        if (doubleCheckConflict(updateTransaction, dataTransaction)) {
                             throw new WriteConflict(dataTransactionId,updateTransaction.getTxnId());
-                        }
-                        break;
                 }
             }
         }
 
-    
-    /**
-     * @param updateTransaction the transaction for the new change
-     * @param dataTransaction the transaction for the existing data
-     * @return true if there is a conflict
-     * @throws IOException if something goes wrong fetching transaction information
-     */
-    private boolean doubleCheckConflict(TxnView updateTransaction, TxnView dataTransaction) throws IOException {
-				//in the new system, timeouts are rolled back on the coprocessor side
-//        // If the transaction has timed out then it might be possible to make it fail and proceed without conflict.
-//        if (checkTransactionTimeout(dataTransaction)) {
-//            // Double check for conflict if there was a transaction timeout
-//            final Txn dataTransaction2 = transactionStore.getTransaction(dataTransaction.getLongTransactionId());
-//            final ConflictType conflictType2 = checkTransactionConflict(updateTransaction, dataTransaction2);
-//            if (conflictType2.equals(ConflictType.NONE)) {
-//                return false;
-//            }
-//        }
-        return true;
-    }
 
     /**
      * Look at the last keepAlive timestamp on the transaction, if it is too long in the past then "fail" the
@@ -700,18 +674,14 @@ public class SITransactor<Table,
 				private DataStore<
 								Mutation, Put, Delete, Get, Scan,
 								Table> dataStore;
-				private Clock clock;
-				private int transactionTimeoutMS;
-				private TransactionManager control;
-				private TxnSupplier txnStore;
+        private TxnSupplier txnStore;
         private TxnOperationFactory operationFactory;
 
         public Builder() {
 				}
 
-				public Builder control(TransactionManager control) {
-						this.control = control;
-						return this;
+				public Builder control() {
+            return this;
 				}
 
 				public Builder dataLib(SDataLib<
@@ -744,13 +714,11 @@ public class SITransactor<Table,
 				}
 
 				public Builder clock(Clock clock) {
-						this.clock = clock;
-						return this;
+            return this;
 				}
 
 				public Builder transactionTimeout(int transactionTimeoutMS) {
-						this.transactionTimeoutMS = transactionTimeoutMS;
-						return this;
+            return this;
 				}
 
 				public SITransactor<Table,

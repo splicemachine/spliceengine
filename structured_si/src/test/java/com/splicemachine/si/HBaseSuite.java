@@ -4,7 +4,6 @@ import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.txn.JtaXAResourceHBaseTest;
-import com.splicemachine.si.txn.TransactionManagerHBaseTest;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
@@ -16,7 +15,6 @@ import org.junit.runners.Suite;
  * Date: 2/17/14
  */
 @Suite.SuiteClasses({JtaXAResourceHBaseTest.class,
-				TransactionManagerHBaseTest.class,
 				SIFilterHBaseTest.class,
 				SITransactorHBasePackedTest.class,
 				HBasePackedCompactionTest.class,

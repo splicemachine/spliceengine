@@ -107,9 +107,7 @@ public class TestTransactionSetup {
 				//noinspection unchecked
 				dataStore = new DataStore(dataLib, reader, writer,
 								SIConstants.SI_NEEDED,
-								SIConstants.SI_NEEDED_VALUE_BYTES,
-								SIConstants.SI_TRANSACTION_ID_KEY,
-								SIConstants.SI_DELETE_PUT,
+                SIConstants.SI_DELETE_PUT,
                 commitTimestampQualifier,
 								tombstoneQualifier,
 								SIConstants.EMPTY_BYTE_ARRAY,

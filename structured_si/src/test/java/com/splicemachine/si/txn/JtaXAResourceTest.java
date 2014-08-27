@@ -4,12 +4,9 @@ import com.splicemachine.si.LStoreSetup;
 import com.splicemachine.si.StoreSetup;
 import com.splicemachine.si.TestTransactionSetup;
 import com.splicemachine.si.api.Transactor;
-import com.splicemachine.si.impl.Transaction;
-import com.splicemachine.si.impl.TransactionId;
-import com.splicemachine.si.api.TransactionStatus;
-import org.junit.Assert;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 

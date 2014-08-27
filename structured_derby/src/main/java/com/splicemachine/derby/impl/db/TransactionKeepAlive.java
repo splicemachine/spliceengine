@@ -1,15 +1,10 @@
 package com.splicemachine.derby.impl.db;
 
 import com.splicemachine.constants.SIConstants;
-import com.splicemachine.derby.hbase.SpliceObserverInstructions;
-import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.context.ContextService;
 import org.apache.log4j.Logger;
 
-import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.*;
 

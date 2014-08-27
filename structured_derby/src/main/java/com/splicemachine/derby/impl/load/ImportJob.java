@@ -1,12 +1,8 @@
 package com.splicemachine.derby.impl.load;
 
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
-import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
-import com.splicemachine.si.impl.TransactionId;
 import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.util.Bytes;
 
 /**
  * @author Scott Fines

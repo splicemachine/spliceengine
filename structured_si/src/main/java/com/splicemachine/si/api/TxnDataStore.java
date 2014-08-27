@@ -68,9 +68,7 @@ public class TxnDataStore {
 						//noinspection unchecked
 						dataStore = new DataStore(dl,reader,writer,
 										SIConstants.SI_NEEDED,
-										SIConstants.SI_NEEDED_VALUE_BYTES,
-										SIConstants.SI_TRANSACTION_ID_KEY,
-										SIConstants.SI_DELETE_PUT,
+                    SIConstants.SI_DELETE_PUT,
 										SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES,
 										SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES,
 										HConstants.EMPTY_BYTE_ARRAY,

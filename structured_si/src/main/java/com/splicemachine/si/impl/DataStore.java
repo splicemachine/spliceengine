@@ -2,12 +2,10 @@ package com.splicemachine.si.impl;
 
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.KeyValueUtils;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnLifecycleManager;
 import com.splicemachine.si.api.TxnSupplier;
-import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
@@ -17,7 +15,6 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
-import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -32,14 +29,11 @@ import static com.splicemachine.constants.SpliceConstants.*;
  * transaction table).
  */
 public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes, Scan, IHTable> {
-		private static Logger LOG = Logger.getLogger(DataStore.class);
-		final SDataLib<Put, Delete, Get, Scan> dataLib;
+    final SDataLib<Put, Delete, Get, Scan> dataLib;
 		private final STableReader<IHTable, Get, Scan> reader;
 		private final STableWriter<IHTable, Mutation, Put, Delete> writer;
 		private final String siNeededAttribute;
-		private final byte[] siNeededValue;
-		private final String transactionIdAttribute;
-		private final String deletePutAttribute;
+    private final String deletePutAttribute;
 		private final byte[] commitTimestampQualifier;
 		private final byte[] tombstoneQualifier;
 		private final byte[] siNull;
@@ -50,27 +44,23 @@ public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Ge
 		private TxnLifecycleManager control;
 
 		public DataStore(SDataLib<Put, Delete, Get, Scan> dataLib,
-										 STableReader reader,
-										 STableWriter writer,
-										 String siNeededAttribute,
-										 byte[] siNeededValue,
-										 String transactionIdAttribute,
-										 String deletePutAttribute,
-										 byte[] siCommitQualifier,
-										 byte[] siTombstoneQualifier,
-										 byte[] siNull,
-										 byte[] siAntiTombstoneValue,
-										 byte[] siFail,
-										 byte[] userColumnFamily,
-										 TxnSupplier txnSupplier,
-										 TxnLifecycleManager control) {
+                     STableReader reader,
+                     STableWriter writer,
+                     String siNeededAttribute,
+                     String deletePutAttribute,
+                     byte[] siCommitQualifier,
+                     byte[] siTombstoneQualifier,
+                     byte[] siNull,
+                     byte[] siAntiTombstoneValue,
+                     byte[] siFail,
+                     byte[] userColumnFamily,
+                     TxnSupplier txnSupplier,
+                     TxnLifecycleManager control) {
 				this.dataLib = dataLib;
 				this.reader = reader;
 				this.writer = writer;
 				this.siNeededAttribute = siNeededAttribute;
-				this.siNeededValue = dataLib.encode(siNeededValue);
-				this.transactionIdAttribute = transactionIdAttribute;
-				this.deletePutAttribute = deletePutAttribute;
+        this.deletePutAttribute = deletePutAttribute;
 				this.commitTimestampQualifier = dataLib.encode(siCommitQualifier);
 				this.tombstoneQualifier = dataLib.encode(siTombstoneQualifier);
 				this.siNull = dataLib.encode(siNull);
@@ -81,39 +71,21 @@ public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Ge
 				this.control = control;
 		}
 
-		public void setSINeededAttribute(OperationWithAttributes operation) {
-				operation.setAttribute(siNeededAttribute, siNeededValue);
-		}
-
-		public byte[] getSINeededAttribute(OperationWithAttributes operation) {
+    public byte[] getSINeededAttribute(OperationWithAttributes operation) {
 				return operation.getAttribute(siNeededAttribute);
 		}
 
-		public void setDeletePutAttribute(Put operation) {
-				operation.setAttribute(deletePutAttribute, SIConstants.TRUE_BYTES);
-		}
-
-		public Boolean getDeletePutAttribute(OperationWithAttributes operation) {
+    public Boolean getDeletePutAttribute(OperationWithAttributes operation) {
 				byte[] neededValue = operation.getAttribute(deletePutAttribute);
 				if(neededValue==null) return false;
 				return dataLib.decode(neededValue, Boolean.class);
 		}
 
-		public void setTransaction(Txn txn, OperationWithAttributes op){
-				op.setAttribute(SIConstants.SI_TRANSACTION_KEY,encodeForOp(txn));
-		}
-
-		public Txn getTxn(OperationWithAttributes op,boolean readOnly) throws IOException {
+    public Txn getTxn(OperationWithAttributes op,boolean readOnly) throws IOException {
 			return decodeForOp(op.getAttribute(SIConstants.SI_TRANSACTION_KEY),readOnly);
 		}
 
-		public TransactionId getTransactionIdFromOperation(OperationWithAttributes put) {
-				byte[] value = put.getAttribute(transactionIdAttribute);
-				if(value==null) return null;
-				return new TransactionId(Bytes.toString(value));
-		}
-
-		public Delete copyPutToDelete(Put put, Set<Long> transactionIdsToDelete) {
+    public Delete copyPutToDelete(Put put, Set<Long> transactionIdsToDelete) {
 				Delete delete = dataLib.newDelete(dataLib.getPutKey(put));
 				for (Long transactionId : transactionIdsToDelete) {
 						for (KeyValue keyValue : dataLib.listPut(put)) {
@@ -231,19 +203,7 @@ public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Ge
 				return reader.getTableName(table);
 		}
 
-		private byte[] encodeForOp(Txn txn){
-				MultiFieldEncoder encoder = MultiFieldEncoder.create(4);
-				encoder.encodeNext(txn.getTxnId());
-				TxnView parentTxn = txn.getParentTxnView();
-				if(parentTxn!=null && !Txn.ROOT_TRANSACTION.equals(parentTxn))
-						encoder.encodeNext(parentTxn.getTxnId());
-				else encoder.encodeEmpty();
-				encoder.encodeNext(txn.getBeginTimestamp());
-				encoder.encodeNext(txn.getIsolationLevel().encode());
-				return encoder.build();
-		}
-
-		private Txn decodeForOp(byte[] txnData,boolean readOnly) throws IOException {
+    private Txn decodeForOp(byte[] txnData,boolean readOnly) throws IOException {
 				MultiFieldDecoder decoder = MultiFieldDecoder.wrap(txnData);
 				long txnId = decoder.decodeNextLong();
 				long parentTxnId = decoder.readOrSkipNextLong(-1l);

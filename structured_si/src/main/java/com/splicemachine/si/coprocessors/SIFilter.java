@@ -1,12 +1,9 @@
 package com.splicemachine.si.coprocessors;
 
-import com.splicemachine.si.api.*;
+import com.splicemachine.si.api.RollForward;
 import com.splicemachine.si.impl.TxnFilter;
-import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.FilterBase;
 import org.apache.log4j.Logger;
 
@@ -19,25 +16,13 @@ import java.io.IOException;
  */
 public class SIFilter extends FilterBase {
     private static Logger LOG = Logger.getLogger(SIFilter.class);
-	private TransactionManager transactionManager;
-//		private TxnLifecycleManager txnLifecycleManager;
+    //		private TxnLifecycleManager txnLifecycleManager;
     protected String transactionIdString;
-    protected RollForward rollForwardQueue;
     private TxnFilter filterState = null;
-	private TransactionReadController<Get,Scan> readController;
-	public SIFilter() {}
 
-    public SIFilter(TransactionReadController<Get, Scan> readController,
-										TransactionId transactionId,
-										TransactionManager transactionManager,
-										RollForward rollForwardQueue) throws IOException {
-				this.transactionManager = transactionManager;
-				this.transactionIdString = transactionId.getTransactionIdString();
-				this.rollForwardQueue = rollForwardQueue;
-				this.readController = readController;
-    }
+    public SIFilter() {}
 
-		@Override
+    @Override
 		@SuppressWarnings("unchecked")
     public ReturnCode filterKeyValue(KeyValue keyValue) {
         if (LOG.isTraceEnabled()) {

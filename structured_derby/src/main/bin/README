@@ -410,7 +410,6 @@ com.splicemachine.si.impl.FilterState
 com.splicemachine.si.impl.PackedTxnFilter
 com.splicemachine.si.impl.SITransactor
 com.splicemachine.si.impl.SynchronousRollForwardQueue
-com.splicemachine.si.impl.TransactionStore
 com.splicemachine.si.txn.ZooKeeperStatTimestampSource
 com.splicemachine.test.SpliceTestPlatform
 com.splicemachine.utils.SpliceUtilities
