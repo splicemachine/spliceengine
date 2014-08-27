@@ -130,11 +130,15 @@ public class WindowTestingFramework {
         }
 
         // create agg function array
+        int aggregatorColID = inputRowDefinition.size()+3;
+        int inputColID = inputColumnIDs[0];
+        int resultColID = inputRowDefinition.size()+1;
         SpliceGenericAggregator[] functions = new SpliceGenericAggregator[] {
-            new SpliceGenericAggregator(function,inputRowDefinition.size()+2, inputColumnIDs[0],inputRowDefinition.size()+1)};
+            new SpliceGenericAggregator(function,aggregatorColID, inputColID,resultColID)};
 
         // create template row given
-        ExecRow templateRow = createTemplateRow(inputRowDefinition, function);
+        ExecRow templateRow = createTemplateRow(inputRowDefinition, function, resultColID,
+                                                inputColID, aggregatorColID, expectedResultsFunction.getNullReturnValue());
 
         // foreach partition, create a frameSource
         List<PartitionAwarePushBackIterator<ExecRow>> frameSources = new ArrayList<PartitionAwarePushBackIterator<ExecRow>>(nPartitions);
@@ -272,14 +276,21 @@ public class WindowTestingFramework {
      * @param function the window function that will be used to process the rows
      * @return the template <code>ExecRow</code> made up of null values of the supplied column types.
      */
-    public static ExecRow createTemplateRow(List<TestColumnDefinition> rowDescriptions, SpliceGenericWindowFunction function) {
-        ValueRow valueRow = new ValueRow(rowDescriptions.size()+2);
+    public static ExecRow createTemplateRow(List<TestColumnDefinition> rowDescriptions,
+                                            SpliceGenericWindowFunction function,
+                                            int resultColID,
+                                            int inputColID,
+                                            int functionColID,
+                                            DataValueDescriptor nullReturnValue) throws StandardException {
+        ValueRow valueRow = new ValueRow(rowDescriptions.size()+3);
         int i=1;    // ValueRow#setColumn() is 1-based
         for (TestColumnDefinition rowDesc : rowDescriptions) {
             valueRow.setColumn(i++, rowDesc.getNullDVD());
         }
-        valueRow.setColumn(i++, dvf.getNullInteger(null));          // result column
-        valueRow.setColumn(i, dvf.getDataValue(function, null));  // function column
+        // need, in order, result col type, input col type, function class
+        valueRow.setColumn(resultColID, nullReturnValue);                       // result column
+        valueRow.setColumn(inputColID, valueRow.cloneColumn(inputColID));       // input column
+        valueRow.setColumn(functionColID, dvf.getDataValue(function, null));    // function column
 
         return valueRow;
     }
@@ -582,6 +593,7 @@ public class WindowTestingFramework {
      */
     public interface ExpectedResultsFunction {
         DataValueDescriptor apply(DataValueDescriptor[] input) throws StandardException;
+        DataValueDescriptor getNullReturnValue() throws StandardException;
         void reset();
     }
 
@@ -610,6 +622,10 @@ public class WindowTestingFramework {
         protected RankingFunct(int[] partitionColIDs, int[] orderByColIDs) {
             this.partitionColIDs = subtractOne(partitionColIDs);
             this.orderByColIDs = subtractOne(orderByColIDs);
+        }
+
+        public DataValueDescriptor getNullReturnValue() throws StandardException {
+            return LazyDataValueFactory.getLazyNull(StoredFormatIds.SQL_LONGINT_ID);
         }
 
         /**

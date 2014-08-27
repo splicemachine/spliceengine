@@ -6,10 +6,13 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.NumberDataValue;
 import org.junit.Test;
+
+import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 
 /**
  * @author Jeff Cunningham
@@ -109,6 +112,11 @@ public class SumWindowFunctionTest extends WindowTestingFramework {
                 last = result;
             }
             return result;
+        }
+
+        @Override
+        public DataValueDescriptor getNullReturnValue() throws StandardException {
+            return LazyDataValueFactory.getLazyNull(StoredFormatIds.SQL_LONGINT_ID);
         }
     }
 }

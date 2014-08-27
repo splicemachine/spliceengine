@@ -53,9 +53,13 @@ public class RankWindowFunctionTest extends WindowTestingFramework {
     }
 
     @Test
-    @Ignore("DB-1682 - timestamp error")
-    public void testTimestampColumn() throws Exception {
+    public void testStringColumn() throws Exception {
         helpTestColumns(new int[] {1}, new int[] {3}, PRINT_RESULTS);
+    }
+
+    @Test
+    public void testTimestampColumn() throws Exception {
+        helpTestColumns(new int[] {1}, new int[] {4}, PRINT_RESULTS);
     }
 
     @Test

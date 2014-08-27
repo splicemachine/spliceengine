@@ -10,6 +10,7 @@ import org.apache.derby.iapi.sql.execute.ExecAggregator;
 import org.apache.derby.iapi.sql.execute.WindowFunction;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.SQLLongint;
 
 /**
  * Implementation of ROW_NUMBER -  Assigns a sequential number to each row in partition.
@@ -61,11 +62,7 @@ public class RowNumberFunction extends SpliceGenericWindowFunction implements Wi
     @Override
     public DataValueDescriptor getResult() throws StandardException {
         // just return the current rowNum
-        WindowChunk first = values.get(0);
-        DataValueDescriptor result = first.getResult();
-        result = result.cloneValue(false);
-        result.setValue(rowNum);
-        return result;
+        return new SQLLongint(rowNum);
     }
 
     @Override

@@ -10,6 +10,7 @@ import org.apache.derby.iapi.sql.execute.ExecAggregator;
 import org.apache.derby.iapi.sql.execute.WindowFunction;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.SQLLongint;
 
 /**
  * Implementation of DENSE_RANK -  Ranks each row in a partition. If values in the ranking column
@@ -21,7 +22,6 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
  */
 public class DenseRankFunction extends SpliceGenericWindowFunction implements WindowFunction {
     private long rank;
-    private DataValueDescriptor previousValue;
 
     @Override
     public WindowFunction setup(ClassFactory classFactory, String aggregateName, DataTypeDescriptor returnDataType) {
@@ -70,11 +70,7 @@ public class DenseRankFunction extends SpliceGenericWindowFunction implements Wi
     @Override
     public DataValueDescriptor getResult() throws StandardException {
         // just return the current rank
-        WindowChunk first = values.get(0);
-        DataValueDescriptor result = first.getResult();
-        result = result.cloneValue(false);
-        result.setValue(rank);
-        return result;
+        return new SQLLongint(rank);
     }
 
     @Override
