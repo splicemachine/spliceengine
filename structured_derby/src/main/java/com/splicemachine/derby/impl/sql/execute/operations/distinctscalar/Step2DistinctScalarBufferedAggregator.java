@@ -41,9 +41,12 @@ public class Step2DistinctScalarBufferedAggregator extends AbstractBufferedAggre
      * 
      */
     public void merge(ExecRow newRow) throws StandardException {
+
 				for(SpliceGenericAggregator aggregator:aggregates){
+                    if (!aggregator.isDistinct()) {
 //						aggregator.initializeAndAccumulateIfNeeded(newRow, newRow);
-						aggregator.merge(newRow,currentRow);
+                        aggregator.merge(newRow, currentRow);
+                    }
 				}
 		}
 

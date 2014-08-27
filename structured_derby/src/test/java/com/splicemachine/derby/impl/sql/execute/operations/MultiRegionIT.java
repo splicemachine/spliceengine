@@ -22,8 +22,8 @@ import java.sql.ResultSet;
 import java.util.List;
 
 @Category(SlowTest.class)
-public class StddevSplitIT extends SpliceUnitTest {
-    public static final String CLASS_NAME = StddevSplitIT.class.getSimpleName().toUpperCase();
+public class MultiRegionIT extends SpliceUnitTest {
+    public static final String CLASS_NAME = MultiRegionIT.class.getSimpleName().toUpperCase();
 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     public static final String TABLE_NAME = "TAB";
@@ -103,8 +103,20 @@ public class StddevSplitIT extends SpliceUnitTest {
         if (numRegions >=3) {
             Assert.assertTrue(count > 0);
         }
+
+        testDistinctCount();
     }
 
+    private void testDistinctCount() throws Exception {
+        Connection conn = methodWatcher.createConnection();
+        ResultSet rs = conn.createStatement().executeQuery(
+                String.format("select count(distinct i) from %s", this.getTableReference(TABLE_NAME)));
+
+        while(rs.next()){
+            Assert.assertEquals((int)rs.getInt(1), 10);
+        }
+        rs.close();
+    }
     private int getNumOfRegions(String schemaName, String tableName) throws Exception {
         long conglomId = spliceClassWatcher.getConglomId(tableName, schemaName);
         HBaseAdmin admin = SpliceUtils.getAdmin();
@@ -112,5 +124,4 @@ public class StddevSplitIT extends SpliceUnitTest {
 
         return regions.size();
     }
-
 }
