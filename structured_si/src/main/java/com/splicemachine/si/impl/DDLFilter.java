@@ -29,7 +29,7 @@ public class DDLFilter implements Comparable<DDLFilter> {
         if(visible!=null) return visible;
 
         //if I haven't succeeded yet, don't do anything
-        if(myTransaction.getEffectiveState()!= Txn.State.COMMITTED) return false;
+        if(myTransaction.getState()!= Txn.State.COMMITTED) return false;
         //if my parent was rolled back, do nothing
         if(myTransaction.getParentTxnView().getEffectiveState()== Txn.State.ROLLEDBACK) return false;
 
@@ -49,17 +49,18 @@ public class DDLFilter implements Comparable<DDLFilter> {
 		}
 
     private Boolean isVisible(TxnView txn) {
-				/*
-				 * For the purposes of DDL, we intercept any writes which occur AFTER us, regardless of
-				 * my status.
-				 *
-				 * The reason for this is because the READ of us will not see those writes, which means
-				 * that we need to intercept them and deal with them as if we were committed. If we rollback,
-				 * then it shouldn't matter to the other operation (except for performance), and if we commit,
-				 * then we should see properly constructed data.
-				 */
+        /*
+         * The Commit timestamp of myTransaction serves as the DDL
+         * "demarcation point"--that is, the firm separator of
+         * responsibilities. Any transaction which *begins before*
+         * the demarcation point must be dealt with during a
+         * second "populate" phase (e.g. Populate index, etc.), while
+         * any transaction which *begins after* the demarcation point
+         * is dealt with by our
+         *
+         */
         long otherTxnId = txn.getTxnId();
-        return myTransaction.getTxnId()<=otherTxnId;
+        return myTransaction.getCommitTimestamp()<=otherTxnId;
     }
 
     public TxnView getTransaction() {

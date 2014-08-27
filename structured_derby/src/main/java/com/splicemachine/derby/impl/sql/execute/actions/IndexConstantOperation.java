@@ -26,6 +26,7 @@ import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.dictionary.*;
 import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.utils.SpliceLogUtils;
@@ -91,24 +92,29 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 		this.indexName = indexName;
 	}
 
-    protected Txn getIndexTransaction(TransactionController parent, TransactionController tc, Txn tentativeTransaction, long tableConglomId) throws StandardException {
+    protected Txn getIndexTransaction(TransactionController parent,
+                                      TransactionController tc, Txn tentativeTransaction, long tableConglomId) throws StandardException {
         final TxnView parentTxn = ((SpliceTransactionManager)parent).getActiveStateTxn();
         final TxnView wrapperTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
-        Txn indexTxn;
+
+        /*
+         * We have an additional waiting transaction that we use to ensure that all elements
+         * which commit after the demarcation point are committed BEFORE the populate part.
+         */
+        byte[] tableBytes = Long.toString(tableConglomId).getBytes();
+        Txn waitTxn;
         try{
-            byte[] tableBytes = Long.toString(tableConglomId).getBytes();
-            indexTxn = TransactionLifecycle.getLifecycleManager().chainTransaction(wrapperTxn,
-                    Txn.IsolationLevel.SNAPSHOT_ISOLATION, true, tableBytes,tentativeTransaction);
-        } catch (IOException e) {
-            LOG.error("Couldn't commit transaction for tentative DDL operation");
-            // TODO must cleanup tentative DDL change
-            throw Exceptions.parseException(e);
+            waitTxn = TransactionLifecycle.getLifecycleManager().chainTransaction(wrapperTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION,false,tableBytes,tentativeTransaction);
+        }catch(IOException ioe){
+            LOG.error("Could not create a wait transaction",ioe);
+            throw Exceptions.parseException(ioe);
         }
+
         // Wait for past transactions to die
-        List<TxnView> toIgnore = Arrays.asList(parentTxn,wrapperTxn,tentativeTransaction,indexTxn);
+        List<TxnView> toIgnore = Arrays.asList(parentTxn,wrapperTxn,tentativeTransaction,waitTxn);
         long oldestActiveTxn;
         try {
-            oldestActiveTxn = waitForConcurrentTransactions(indexTxn, toIgnore,tableConglomId);
+            oldestActiveTxn = waitForConcurrentTransactions(waitTxn, toIgnore,tableConglomId);
         } catch (IOException e) {
             LOG.error("Unexpected error while waiting for past transactions to complete", e);
             throw Exceptions.parseException(e);
@@ -116,11 +122,23 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
         if (oldestActiveTxn>=0) {
             throw ErrorState.DDL_ACTIVE_TRANSACTIONS.newException("CreateIndex("+indexName+")",oldestActiveTxn);
         }
+        Txn indexTxn;
+        try{
+            /*
+             * We make the index transaction a top-level transaction to simplify the necessary logic
+             */
+            indexTxn = TransactionLifecycle.getLifecycleManager().chainTransaction(
+                    null, Txn.IsolationLevel.SNAPSHOT_ISOLATION, true, tableBytes,waitTxn);
+        } catch (IOException e) {
+            LOG.error("Couldn't commit transaction for tentative DDL operation");
+            // TODO must cleanup tentative DDL change
+            throw Exceptions.parseException(e);
+        }
         return indexTxn;
     }
 
     protected void populateIndex(Activation activation, int[] baseColumnPositions, boolean[] descColumns,
-                                 long tableConglomId, HTableInterface table, Txn indexTransaction,
+                                 long tableConglomId, HTableInterface table, Txn indexTransaction, long demarcationPoint,
                                  TentativeIndexDesc tentativeIndexDesc) throws StandardException {
         String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
 				/*
@@ -150,7 +168,8 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
             PopulateIndexJob job = new PopulateIndexJob(table, indexTransaction,
                     conglomId, tableConglomId, baseColumnPositions, unique, uniqueWithDuplicateNulls, descColumns,
                     statementInfo.getStatementUuid(),populateIndexOp.getOperationUuid(),
-                    activation.isTraced(), conglomerate.getColumnOrdering(), conglomerate.getFormat_ids());
+                    activation.isTraced(), conglomerate.getColumnOrdering(), conglomerate.getFormat_ids(),
+                    demarcationPoint);
 
             long start = System.currentTimeMillis();
             future = SpliceDriver.driver().getJobScheduler().submit(job);

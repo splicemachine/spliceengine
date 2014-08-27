@@ -33,6 +33,7 @@ public class PopulateIndexJob implements CoprocessorJob{
     private final long statementId;
     private final long operationId;
     private final boolean isTraced;
+    private final long demarcationPoint;
     private final int[] columnOrdering;
     private final int[] format_ids;
 
@@ -48,7 +49,9 @@ public class PopulateIndexJob implements CoprocessorJob{
                                 long operationId,
                                 boolean isTraced,
                                 int[] columnOrdering,
-                                int[] format_ids) {
+                                int[] format_ids,
+                                long demarcationPoint
+                                ) {
         this.table = table;
         this.txn = txn;
         this.indexConglomId = indexConglomId;
@@ -58,6 +61,7 @@ public class PopulateIndexJob implements CoprocessorJob{
         this.statementId = statementId;
         this.operationId = operationId;
         this.isTraced = isTraced;
+        this.demarcationPoint = demarcationPoint;
 
 
         this.indexedColumns = new BitSet();
@@ -83,7 +87,8 @@ public class PopulateIndexJob implements CoprocessorJob{
         PopulateIndexTask task = new PopulateIndexTask(indexConglomId,baseConglomId,
                                                        mainColToIndexPosMap, indexedColumns,
                                                        isUnique,isUniqueWithDuplicateNulls,
-                                                       getJobId(), descColumns, isTraced, statementId, operationId, columnOrdering, format_ids);
+                                                       getJobId(), descColumns, isTraced, statementId, operationId, columnOrdering, format_ids,
+                demarcationPoint);
         return Collections.singletonMap(task,Pair.newPair(HConstants.EMPTY_START_ROW,HConstants.EMPTY_END_ROW));
     }
 
