@@ -8,7 +8,7 @@ import java.util.Arrays;
  * If you need a thread-safe ring buffer, use the LMAX disruptor instead.
  *
  * @author Scott Fines
- * Date: 7/22/14
+ *         Date: 7/22/14
  */
 public class RingBuffer<T> {
     private int mask;
@@ -20,10 +20,10 @@ public class RingBuffer<T> {
 
     public RingBuffer(int bufferSize) {
         int s = 1;
-        while(s<bufferSize)
-            s<<=1;
+        while (s < bufferSize)
+            s <<= 1;
         this.buffer = new Object[s];
-        this.mask = s-1;
+        this.mask = s - 1;
         writePosition = 0;
         readPosition = 0;
     }
@@ -32,21 +32,20 @@ public class RingBuffer<T> {
      * @return the next item in the buffer, or {@code null} if there are
      * no items in the buffer
      */
-    @SuppressWarnings("unchecked")
-    public T next(){
+    public T next() {
         T n = peek();
         readPosition++;
         return n;
     }
 
-    public void add(T element){
+    public void add(T element) {
         int pos = writePosition & mask;
         buffer[pos] = element;
         writePosition++;
     }
 
-    public int size(){
-        return writePosition-readPosition;
+    public int size() {
+        return writePosition - readPosition;
     }
 
     public int bufferSize() {
@@ -56,16 +55,20 @@ public class RingBuffer<T> {
     @SuppressWarnings("unchecked")
     public T peek() {
         if(readPosition>=writePosition) return null; //buffer has already been fully read
-        return (T)buffer[readPosition & mask];
+        return (T) buffer[readPosition & mask];
     }
 
     public boolean isFull() {
-        return size()==buffer.length;
+        return size() == buffer.length;
     }
 
-    public void expand(){
-        buffer = Arrays.copyOf(buffer,2*buffer.length);
-        mask = buffer.length -1;
+    public boolean isEmpty() {
+        return size() == 0;
+    }
+
+    public void expand() {
+        buffer = Arrays.copyOf(buffer, 2 * buffer.length);
+        mask = buffer.length - 1;
     }
 
     public void readReset() {
@@ -76,13 +79,13 @@ public class RingBuffer<T> {
         readPosition++;
     }
 
-    public void clear(){
+    public void clear() {
         //skip the read position to the write position, so that you never see any of the old data
         readPosition = writePosition;
         offsetReadPosition = readPosition;
     }
 
-    public void mark(){
+    public void mark() {
         offsetReadPosition = readPosition;
     }
 }
