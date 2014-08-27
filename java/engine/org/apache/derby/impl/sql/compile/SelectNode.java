@@ -1210,17 +1210,18 @@ public class SelectNode extends ResultSetNode
 			 *		above the select so that the shape of the result set
 			 *		is as expected.
 			 */
+
 			if (isDistinct && orderByList != null && orderByList.allAscending())
 			{
 				/* Order by list currently restricted to columns in select
 				 * list, so we will always eliminate the order by here.
 				 */
-				if (orderByList.isInOrderPrefix(resultColumns))
-				{
-					orderByList = null;
-				}
-				else 
-				{
+//				if (orderByList.isInOrderPrefix(resultColumns))
+//				{
+//					orderByList = null;
+//				}
+//				else 
+//				{
 					/* Order by list is not an in order prefix of the select list
 					 * so we must reorder the columns in the the select list to
 					 * match the order by list and generate the PRN above us to
@@ -1231,7 +1232,7 @@ public class SelectNode extends ResultSetNode
 					resultColumns = orderByList.reorderRCL(resultColumns);
 					newTop.getResultColumns().removeOrderByColumns();
 					orderByList = null;
-				}
+//				}
 				orderByAndDistinctMerged = true;
 			}
 		}
@@ -1644,8 +1645,9 @@ public class SelectNode extends ResultSetNode
 
 		if (orderByList != null)
 		{
-			if (orderByList.getSortNeeded())
-			{
+			// Need to remove sort reduction if you are aggregating (hash)
+			if (orderByList.getSortNeeded() || (((selectAggregates != null) && (selectAggregates.size() > 0)) 
+					|| (groupByList != null))) {
 				prnRSN = (ResultSetNode) getNodeFactory().getNode(
 												C_NodeTypes.ORDER_BY_NODE,
 												prnRSN,
