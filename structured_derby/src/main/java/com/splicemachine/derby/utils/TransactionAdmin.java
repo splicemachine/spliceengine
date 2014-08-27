@@ -37,6 +37,31 @@ import java.util.List;
  */
 public class TransactionAdmin {
 
+    public static void killAllActiveTransactions(long maxTxnId) throws SQLException{
+        try {
+            ActiveTransactionReader reader = new ActiveTransactionReader(0l,maxTxnId,null);
+            CloseableStream<TxnView> activeTransactions = reader.getActiveTransactions();
+            final TxnLifecycleManager tc = TransactionLifecycle.getLifecycleManager();
+            TxnView next;
+            while((next = activeTransactions.next())!=null){
+                tc.rollback(next.getTxnId());
+            }
+        }catch (StreamException e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        } catch (IOException e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
+    }
+
+    public static void killTransaction(long txnId) throws SQLException{
+        try {
+            TxnLifecycleManager tc = TransactionLifecycle.getLifecycleManager();
+            tc.rollback(txnId);
+        } catch (IOException e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
+    }
+
 		private static final ResultColumnDescriptor[] CURRENT_TXN_ID_COLUMNS = new GenericColumnDescriptor[]{
 						new GenericColumnDescriptor("txnId",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT))
 		};
@@ -55,6 +80,7 @@ public class TransactionAdmin {
 				}
 				resultSet[0] = new EmbedResultSet40(defaultConn,rs,false,null,true);
 		}
+
     public static void SYSCS_GET_ACTIVE_TRANSACTION_IDS(ResultSet[] resultSets) throws SQLException{
         ActiveTransactionReader reader = new ActiveTransactionReader(0l,Long.MAX_VALUE,null);
         try {
@@ -86,15 +112,6 @@ public class TransactionAdmin {
         }
     }
 
-    private static ExecRow toRow(ResultColumnDescriptor[] columns) throws StandardException {
-        DataValueDescriptor[] dvds = new DataValueDescriptor[columns.length];
-        for(int i=0;i<columns.length;i++){
-            dvds[i] = columns[i].getType().getNull();
-        }
-        ExecRow row = new ValueRow(columns.length);
-        row.setRowArray(dvds);
-        return row;
-    }
 
     private static final ResultColumnDescriptor[] TRANSACTION_TABLE_COLUMNS = new GenericColumnDescriptor[]{
             new GenericColumnDescriptor("txnId", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
@@ -166,19 +183,6 @@ public class TransactionAdmin {
         }
     }
 
-		protected  static void setLong(DataValueDescriptor dvd, Long value) throws StandardException{
-				if(value !=null)
-						dvd.setValue(value.longValue());
-				else
-						dvd.setToNull();
-		}
-		protected static void setBoolean(DataValueDescriptor dvd, Boolean value) throws StandardException {
-				if(value !=null)
-						dvd.setValue(value.booleanValue());
-				else
-						dvd.setToNull();
-		}
-
     private static final ResultColumnDescriptor[] CHILD_TXN_ID_COLUMNS = new GenericColumnDescriptor[]{
             new GenericColumnDescriptor("childTxnId", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT))
     };
@@ -211,5 +215,24 @@ public class TransactionAdmin {
             throw PublicAPI.wrapStandardException(e);
         }
         resultSet[0] = new EmbedResultSet40(defaultConn, rs, false, null, true);
+    }
+
+    /******************************************************************************************************************/
+    /*private helper methods*/
+    private static void setLong(DataValueDescriptor dvd, Long value) throws StandardException{
+        if(value !=null)
+            dvd.setValue(value.longValue());
+        else
+            dvd.setToNull();
+    }
+
+    private static ExecRow toRow(ResultColumnDescriptor[] columns) throws StandardException {
+        DataValueDescriptor[] dvds = new DataValueDescriptor[columns.length];
+        for(int i=0;i<columns.length;i++){
+            dvds[i] = columns[i].getType().getNull();
+        }
+        ExecRow row = new ValueRow(columns.length);
+        row.setRowArray(dvds);
+        return row;
     }
 }

@@ -6,15 +6,18 @@ import com.splicemachine.derby.hbase.SpliceIndexEndpoint.ActiveWriteHandlersIfac
 import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.job.scheduler.StealableTaskSchedulerManagement;
 import com.splicemachine.derby.impl.job.scheduler.TieredSchedulerManagement;
+import com.splicemachine.derby.impl.sql.execute.actions.ActiveTransactionReader;
 import com.splicemachine.derby.management.StatementInfo;
 import com.splicemachine.derby.management.StatementManagement;
 import com.splicemachine.derby.management.XPlainTrace;
 import com.splicemachine.hbase.ThreadPoolStatus;
 import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.job.JobSchedulerManagement;
-import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.TransactionManager;
+import com.splicemachine.si.api.*;
 import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.stream.Accumulator;
+import com.splicemachine.stream.CloseableStream;
+import com.splicemachine.stream.StreamException;
 import com.splicemachine.utils.logging.Logging;
 import java.io.IOException;
 import javax.management.MBeanServerConnection;
@@ -495,23 +498,21 @@ public class SpliceAdmin extends BaseAdminProcedures {
     }
 
     public static void SYSCS_KILL_TRANSACTION(final long transactionId) throws SQLException {
-        try {
-            HTransactorFactory.getTransactionManager().fail(new TransactionId(Long.toString(transactionId)));
-        } catch (IOException e) {
-            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
-        }
+        /*
+         * We have to leave this method in place, because Derby will actually STORE a string
+         * reference to this method in database tables--removing it will therefore break
+         * backwards compatibility. However, the logic has been moved to TransactionAdmin
+         */
+        TransactionAdmin.killTransaction(transactionId);
     }
 
     public static void SYSCS_KILL_STALE_TRANSACTIONS(final long maximumTransactionId) throws SQLException {
-        try {
-            TransactionManager transactor = HTransactorFactory.getTransactionManager();
-            List<TransactionId> active = transactor.getActiveTransactionIds(new TransactionId(Long.toString(maximumTransactionId)));
-            for (TransactionId txnId : active) {
-                transactor.fail(txnId);
-            }
-        } catch (IOException e) {
-            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
-        }
+        /*
+         * We have to leave this method in place, because Derby will actually STORE a string
+         * reference to this method in database tables--removing it will therefore break
+         * backwards compatibility. However, the logic has been moved to TransactionAdmin
+         */
+        TransactionAdmin.killAllActiveTransactions(maximumTransactionId);
     }
 
     public static void SYSCS_GET_MAX_TASKS(final int workerTier, final ResultSet[] resultSet) throws SQLException {
