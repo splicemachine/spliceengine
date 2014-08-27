@@ -4,10 +4,7 @@ import com.carrotsearch.hppc.LongOpenHashSet;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.execute.actions.ActiveTransactionReader;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.api.TxnView;
-import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.stream.CloseableStream;
 import com.splicemachine.stream.StreamException;
 import org.apache.derby.iapi.error.PublicAPI;
@@ -25,7 +22,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.List;
 
 /**
  * Utility for Vacuuming Splice.

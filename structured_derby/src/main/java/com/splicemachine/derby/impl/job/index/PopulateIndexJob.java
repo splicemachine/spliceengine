@@ -1,20 +1,17 @@
 package com.splicemachine.derby.impl.job.index;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Map;
-
 import com.carrotsearch.hppc.BitSet;
+import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
+import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
+import com.splicemachine.job.Task;
 import com.splicemachine.si.api.Txn;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Pair;
 
-import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
-import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
-import com.splicemachine.job.Task;
-import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.impl.TransactionId;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.Map;
 
 /**
  * @author Scott Fines

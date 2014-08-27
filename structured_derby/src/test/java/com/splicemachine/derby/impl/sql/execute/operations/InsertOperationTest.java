@@ -11,29 +11,27 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.temp.TempTable;
 import com.splicemachine.derby.stats.TaskStats;
-import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.derby.utils.marshall.BareKeyHash;
+import com.splicemachine.derby.utils.marshall.DataHash;
+import com.splicemachine.derby.utils.marshall.EntryDataHash;
+import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.derby.utils.test.TestingDataType;
 import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.hbase.writer.CallBufferFactory;
 import com.splicemachine.hbase.KVPair;
+import com.splicemachine.hbase.writer.CallBufferFactory;
 import com.splicemachine.hbase.writer.RecordingCallBuffer;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.job.SimpleJobResults;
-import com.splicemachine.si.api.*;
-import com.splicemachine.si.impl.ActiveWriteTxn;
-import com.splicemachine.si.impl.ReadOnlyTxn;
-import com.splicemachine.si.impl.TransactionId;
-import com.splicemachine.si.jmx.ManagedTransactor;
 import com.splicemachine.metrics.MetricFactory;
+import com.splicemachine.si.api.Txn;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.storage.index.BitIndexing;
 import com.splicemachine.utils.kryo.KryoPool;
-
 import com.splicemachine.uuid.Snowflake;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -48,7 +46,6 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import javax.annotation.Nullable;
-
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
@@ -198,27 +195,27 @@ public class InsertOperationTest {
 
     @SuppressWarnings("unchecked")
     private void mockTransactions() throws IOException {
-        ManagedTransactor mockTransactor = mock(ManagedTransactor.class);
-        doNothing().when(mockTransactor).beginTransaction(any(Boolean.class));
-
-        TransactionManager mockControl = mock(TransactionManager.class);
-        when(mockControl.transactionIdFromString(any(String.class))).thenAnswer(new Answer<TransactionId>() {
-						@Override
-						public TransactionId answer(InvocationOnMock invocation) throws Throwable {
-								return new TransactionId((String) invocation.getArguments()[0]);
-						}
-				});
-				Transactor mockT = mock(Transactor.class);
-        when(mockTransactor.getTransactor()).thenReturn(mockT);
-        when(mockControl.beginChildTransaction(any(TransactionId.class),any(Boolean.class))).thenAnswer(new Answer<TransactionId>() {
-						@Override
-						public TransactionId answer(InvocationOnMock invocation) throws Throwable {
-								return (TransactionId) invocation.getArguments()[0];
-						}
-				});
-
-        HTransactorFactory.setTransactor(mockTransactor);
-				HTransactorFactory.setTransactionManager(mockControl);
+//        ManagedTransactor mockTransactor = mock(ManagedTransactor.class);
+//        doNothing().when(mockTransactor).beginTransaction(any(Boolean.class));
+//
+//        TransactionManager mockControl = mock(TransactionManager.class);
+//        when(mockControl.transactionIdFromString(any(String.class))).thenAnswer(new Answer<TransactionId>() {
+//						@Override
+//						public TransactionId answer(InvocationOnMock invocation) throws Throwable {
+//								return new TransactionId((String) invocation.getArguments()[0]);
+//						}
+//				});
+//				Transactor mockT = mock(Transactor.class);
+//        when(mockTransactor.getTransactor()).thenReturn(mockT);
+//        when(mockControl.beginChildTransaction(any(TransactionId.class),any(Boolean.class))).thenAnswer(new Answer<TransactionId>() {
+//						@Override
+//						public TransactionId answer(InvocationOnMock invocation) throws Throwable {
+//								return (TransactionId) invocation.getArguments()[0];
+//						}
+//				});
+//
+//        HTransactorFactory.setTransactor(mockTransactor);
+//				HTransactorFactory.setTransactionManager(mockControl);
     }
 
     private void assertRowDataMatches(List<KVPair> correctOutput,List<KVPair> output){

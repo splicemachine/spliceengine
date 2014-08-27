@@ -1,33 +1,23 @@
 package com.splicemachine.si.txn;
 
 import com.splicemachine.si.api.Transactor;
-import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.api.TxnLifecycleManager;
-import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
 import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * View hbase as a JTA transactional resource. This allows it to participate in transactions across multiple resources.
  */
 public class JtaXAResource implements XAResource {
     private static final Logger LOG = Logger.getLogger(JtaXAResource.class);
-    private Map<Xid, TransactionId> xidToTransactionState = new HashMap<Xid, TransactionId>();
     private final Transactor transactor;
 	private final TxnLifecycleManager control;
-    private ThreadLocal<TransactionId> threadLocalTransactionState = new ThreadLocal<TransactionId>();
+//    private ThreadLocal<TransactionId> threadLocalTransactionState = new ThreadLocal<TransactionId>();
     private int transactionTimeout = 60;
-
-		public JtaXAResource(final Transactor transactor,TransactionManager control) {
-//				this(transactor, null);
-				throw new UnsupportedOperationException("IMPLEMENT");
-		}
 
     public JtaXAResource(final Transactor transactor,TxnLifecycleManager control) {
         this.transactor = transactor;
@@ -61,8 +51,9 @@ public class JtaXAResource implements XAResource {
     @Override
     public void end(final Xid xid, final int flags) throws XAException {
     	SpliceLogUtils.trace(LOG, "end [%s]",xid);
-        threadLocalTransactionState.remove();
+        throw new UnsupportedOperationException("IMPLEMENT");
     }
+
     @Override
     public void forget(final Xid xid) throws XAException {
     	SpliceLogUtils.trace(LOG, "forget [%s]",xid);
@@ -85,10 +76,7 @@ public class JtaXAResource implements XAResource {
     }
 
     public boolean isSameRM(final XAResource xares) throws XAException {
-        if (xares instanceof JtaXAResource) {
-            return true;
-        }
-        return false;
+        return xares instanceof JtaXAResource;
     }
     @Override
     public int prepare(final Xid xid) throws XAException {
@@ -98,13 +86,12 @@ public class JtaXAResource implements XAResource {
 
     @Override
     public Xid[] recover(final int flag) throws XAException {
-        return xidToTransactionState.keySet().toArray(new Xid[] { });
+        throw new UnsupportedOperationException("IMPLEMENT");
     }
     @Override
     public void rollback(final Xid xid) throws XAException {
-    	SpliceLogUtils.trace(LOG,"rollback [%s]",xid);
-        forget(xid);
-        threadLocalTransactionState.remove();
+    	SpliceLogUtils.trace(LOG, "rollback [%s]", xid);
+        throw new UnsupportedOperationException("IMPLEMENT");
     }
 
     public boolean setTransactionTimeout(final int seconds) throws XAException {
@@ -125,13 +112,6 @@ public class JtaXAResource implements XAResource {
 //            xae.initCause(e);
 //            throw xae;
 //        }
-    }
-
-    /**
-     * @return the threadLocalTransaction state.
-     */
-    public TransactionId getThreadLocalTransactionState() {
-        return threadLocalTransactionState.get();
     }
 
 }

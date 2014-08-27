@@ -1,9 +1,7 @@
 package com.splicemachine.si.api;
 
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.si.data.hbase.HbRegion;
 import com.splicemachine.si.impl.SICompactionState;
-import com.splicemachine.si.impl.TransactionId;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 

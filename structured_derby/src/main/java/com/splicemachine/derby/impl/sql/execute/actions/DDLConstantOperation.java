@@ -5,15 +5,6 @@ import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.ddl.DDLChange;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
-import com.splicemachine.si.api.*;
-import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.job.JobFuture;
-import com.splicemachine.derby.ddl.DDLChange;
-import com.splicemachine.derby.ddl.DDLCoordinationFactory;
-import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.stream.CloseableStream;
@@ -56,8 +47,7 @@ import java.util.concurrent.ExecutionException;
 public abstract class DDLConstantOperation implements ConstantAction {
 private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
 
-    protected TransactionManager transactor = HTransactorFactory.getTransactionManager();
-	/**
+    /**
 	 * Get the schema descriptor for the schemaid.
 	 *
 	 * @param dd the data dictionary

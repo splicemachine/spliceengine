@@ -1,15 +1,17 @@
 package com.splicemachine.si.coprocessors;
 
-import com.splicemachine.si.api.*;
-import com.splicemachine.si.impl.*;
+import com.splicemachine.si.api.ReadResolver;
+import com.splicemachine.si.api.TransactionReadController;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.impl.PackedTxnFilter;
+import com.splicemachine.si.impl.RowAccumulator;
+import com.splicemachine.si.impl.TxnFilter;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.HasPredicateFilter;
-
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.FilterBase;
-import org.apache.log4j.Logger;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -20,11 +22,8 @@ import java.util.List;
  * An HBase filter that applies SI logic when reading data values.
  */
 public class SIFilterPacked extends FilterBase implements HasPredicateFilter {
-		private static Logger LOG = Logger.getLogger(SIFilterPacked.class);
-		private Txn txn;
+    private Txn txn;
 		private TransactionReadController<Get,Scan> readController;
-//		protected String transactionIdString;
-//		protected RollForwardQueue rollForwardQueue;
 		private EntryPredicateFilter predicateFilter;
 		private TxnFilter filterState = null;
 		private boolean countStar = false;
