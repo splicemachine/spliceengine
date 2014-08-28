@@ -9,11 +9,13 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.si.api.*;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableWriter;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
@@ -585,7 +587,10 @@ public class SITransactor<Table,
 												conflicts[1].add(dataTransactionId);
 												break;
 										case SIBLING:
-                            throw new WriteConflict(dataTransactionId,updateTransaction.getTxnId());
+                        if(LOG.isTraceEnabled())
+                            SpliceLogUtils.trace(LOG,"Write conflict on row "+ BytesUtil.toHex(dataCommitKeyValue.getRow()));
+
+                        throw new WriteConflict(dataTransactionId,updateTransaction.getTxnId());
 								}
 						} else if (dataStore.isSIFail(dataCommitKeyValue)) {
 								// Can't conflict with failed transaction.
@@ -593,6 +598,8 @@ public class SITransactor<Table,
 								// Committed transaction
 								final long dataCommitTimestamp = dataLib.decode(commitTimestampValue, Long.class);
 								if (dataCommitTimestamp > updateTransaction.getBeginTimestamp()) {
+                    if(LOG.isTraceEnabled())
+                        SpliceLogUtils.trace(LOG,"Write conflict on row "+ BytesUtil.toHex(dataCommitKeyValue.getRow()));
                     throw new WriteConflict(dataTransactionId,updateTransaction.getTxnId());
 								}
 						}
@@ -620,7 +627,9 @@ public class SITransactor<Table,
                         conflicts[1].add(dataTransactionId);
                         break;
                     case SIBLING:
-                            throw new WriteConflict(dataTransactionId,updateTransaction.getTxnId());
+                        if(LOG.isTraceEnabled())
+                            SpliceLogUtils.trace(LOG,"Write conflict on row "+ BytesUtil.toHex(dataCommitKeyValue.getRow()));
+                        throw new WriteConflict(dataTransactionId,updateTransaction.getTxnId());
                 }
             }
         }

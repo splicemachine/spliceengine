@@ -10,6 +10,7 @@ import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.EntryDataDecoder;
@@ -37,6 +38,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 		protected static Logger LOG = Logger.getLogger(SpliceScan.class);
@@ -92,6 +94,9 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 				setupScan();
 				attachFilter();
 				tableName = Bytes.toString(SpliceOperationCoprocessor.TEMP_TABLE);
+        if(LOG.isTraceEnabled()){
+            SpliceLogUtils.trace(LOG,"scanning with start key %s and stop key %s and transaction %s", Arrays.toString(startKeyValue),Arrays.toString(stopKeyValue),trans);
+        }
 //				setupRowColumns();
 //		table = SpliceAccessManager.getHTable(SpliceOperationCoprocessor.TEMP_TABLE);
 		}
@@ -117,6 +122,9 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 				setupScan();
 				attachFilter();
 				tableName = spliceConglomerate.getConglomerate().getContainerid() + "";
+        if(LOG.isTraceEnabled()){
+            SpliceLogUtils.trace(LOG,"scanning with start key %s and stop key %s and transaction %s", Arrays.toString(startKeyValue),Arrays.toString(stopKeyValue),trans);
+        }
 //				setupRowColumns();
 		}
 
@@ -191,7 +199,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 						return true;
 				} catch (Exception e) {
 						LOG.error(e.getMessage(), e);
-						return false;
+            throw Exceptions.parseException(e);
 				}
 		}
 
@@ -205,7 +213,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 								this.currentRowLocation = new HBaseRowLocation(currentResult.getRow());
 						return currentResult != null;
 				} catch (IOException e) {
-						throw StandardException.newException("Error calling next() on scan " + e);
+            throw Exceptions.parseException(e);
 				}
 		}
 

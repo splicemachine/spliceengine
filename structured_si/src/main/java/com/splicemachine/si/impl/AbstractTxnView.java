@@ -78,7 +78,7 @@ public abstract class AbstractTxnView implements TxnView {
     }
 
     @Override
-    public final boolean canSee(TxnView otherTxn) {
+    public boolean canSee(TxnView otherTxn) {
         assert otherTxn!=null: "Cannot access visibility semantics of a null transaction!";
         if(equals(otherTxn)) return true; //you can always see your own writes
         if(isAdditive() && otherTxn.isAdditive()){
@@ -274,7 +274,7 @@ public abstract class AbstractTxnView implements TxnView {
 
     /************************************************************************************************************/
     /*private helper methods*/
-    private TxnView getImmediateChild(TxnView ancestor) {
+    protected TxnView getImmediateChild(TxnView ancestor) {
         /*
          * This fetches the transaction which is the ancestor
          * of this transaction that is immediately BELOW the

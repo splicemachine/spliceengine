@@ -220,11 +220,14 @@ public class BytesUtil {
 
     private static final char[] hexArray = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
     public static String toHex(byte[] bytes) {
-        if(bytes==null || bytes.length<=0) return "";
-        char[] hexChars = new char[bytes.length * 2];
+       return toHex(bytes,0,bytes.length);
+    }
+    public static String toHex(byte[] bytes,int offset,int length) {
+        if(bytes==null || length<=0) return "";
+        char[] hexChars = new char[length * 2];
         int v;
-        for ( int j = 0; j < bytes.length; j++ ) {
-            v = bytes[j] & 0xFF;
+        for ( int j = 0,k=offset; j < length; k++,j++ ) {
+            v = bytes[k] & 0xFF;
             hexChars[j * 2] = hexArray[v >>> 4];
             hexChars[j * 2 + 1] = hexArray[v & 0x0F];
         }

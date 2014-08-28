@@ -75,7 +75,7 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 			if (contextMgr != contextFactory.getCurrentContextManager()) 
 				LOG.error(methodName + ": passed in context mgr not the same as current context mgr");
 			if (this.hbaseStore != hbaseStore) {
-				LOG.warn(methodName + ": passed in hbase store not the same as current context's store");
+          SpliceLogUtils.debug(LOG,"%s: passed in hbase store not the same as current context's store",methodName);
 			}
 		}
 		

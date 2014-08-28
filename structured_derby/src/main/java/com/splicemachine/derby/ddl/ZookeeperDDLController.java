@@ -40,18 +40,11 @@ public class ZookeeperDDLController implements DDLController, Watcher {
 
     @Override
     public String notifyMetadataChange(DDLChange change) throws StandardException {
+        byte[] data = encode(change);
         String changeId;
-        KryoPool kp = SpliceKryoRegistry.getInstance();
-        Kryo kryo = kp.get();
-        byte[] data;
-        try{
-            Output output = new Output(128,-1);
-            kryo.writeObject(output,change);
-            data = output.toBytes();
-        }finally{
-           kp.returnInstance(kryo);
-        }
         try {
+            if(LOG.isTraceEnabled())
+                LOG.trace("Creating DDL event");
             changeId = ZkUtils.create(SpliceConstants.zkSpliceDDLOngoingTransactionsPath + "/", data,
                     ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT_SEQUENTIAL);
         } catch (KeeperException e) {
@@ -91,6 +84,46 @@ public class ZookeeperDDLController implements DDLController, Watcher {
             }
         }
         return changeId;
+    }
+
+    private List<String> getCompletedServers(String changeId) throws StandardException {
+        /*
+         * Gets all the servers that have actively completed this change
+         */
+        List<String> children;
+        try {
+            children = ZkUtils.getChildren(changeId, this);
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
+        return children;
+    }
+
+    private Collection<String> getAllServers() throws StandardException {
+        /*
+         * Get all the servers that are actively a part of this cluster
+         */
+        Collection<String> servers;
+        try {
+            servers = ZkUtils.getChildren(SpliceConstants.zkSpliceDDLActiveServersPath, this);
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
+        return servers;
+    }
+
+    protected byte[] encode(DDLChange change) {
+        KryoPool kp = SpliceKryoRegistry.getInstance();
+        Kryo kryo = kp.get();
+        byte[] data;
+        try{
+            Output output = new Output(128,-1);
+            kryo.writeObject(output,change);
+            data = output.toBytes();
+        }finally{
+           kp.returnInstance(kryo);
+        }
+        return data;
     }
 
     @Override

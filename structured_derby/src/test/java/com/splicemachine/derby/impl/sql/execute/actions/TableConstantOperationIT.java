@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.derby.utils.ErrorState;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -452,8 +453,8 @@ public class TableConstantOperationIT extends SpliceUnitTest {
                         }
                     });
                 }catch (SQLException e){
-                    //TODO -sf- better error message will break this
-                    Assert.assertTrue("Unknown exception", e.getCause().getMessage().contains("serializable"));
+                    Assert.assertEquals("Did not get a write conflict error! Instead, got "+ e.getMessage(),
+                            ErrorState.WRITE_WRITE_CONFLICT.getSqlState(),e.getSQLState());
                 }
                 connection2.rollback();
 

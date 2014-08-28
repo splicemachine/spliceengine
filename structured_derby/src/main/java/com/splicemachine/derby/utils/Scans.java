@@ -192,18 +192,13 @@ public class Scans extends SpliceUtils {
 						colsToReturn.clear(); //we want everything
 				}
 
-               //exclude any primary key columns
-               if (keyColumnEncodingOrder != null && keyColumnEncodingOrder.length > 0) {
-                   for (int col:keyColumnEncodingOrder) {
-											 if(col>=0)
-													 colsToReturn.clear(col);
-                   }
-               }
-//        if(startKeyValue!=null && startSearchOperator != ScanController.GT){
-//            Predicate indexPredicate = generateIndexPredicate(startKeyValue,startSearchOperator);
-//            if(indexPredicate!=null)
-//                predicates.add(indexPredicate);
-//        }
+        //exclude any primary key columns
+        if (keyColumnEncodingOrder != null && keyColumnEncodingOrder.length > 0) {
+            for (int col:keyColumnEncodingOrder) {
+                if(col>=0)
+                    colsToReturn.clear(col);
+            }
+        }
 				return new EntryPredicateFilter(colsToReturn,predicates,true);
 		}
 

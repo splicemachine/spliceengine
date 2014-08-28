@@ -34,7 +34,7 @@ public class SpliceNetConnection {
         try {
             loadDriver();
             Connection connection = DriverManager.getConnection(url, new Properties());
-            compileAllInvalidStoredStatements(connection);
+//            compileAllInvalidStoredStatements(connection);
             return connection;
         } catch (SQLException e) {
             throw new IllegalStateException("url=" + url, e);
