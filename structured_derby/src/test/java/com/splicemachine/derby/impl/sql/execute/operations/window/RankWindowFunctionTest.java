@@ -36,10 +36,10 @@ public class RankWindowFunctionTest extends WindowTestingFramework {
         List<TestColumnDefinition> rowDefinition = new ArrayList<TestColumnDefinition>(
             Arrays.asList(new TestColumnDefinition[] {
                 new IntegerColumnDefinition(),
-                new DoubleColumnDefinition().setVariantColumn(true),
-                new VarcharColumnDefinition(7).setVariantColumn(true),
-                new TimestampColumnDefinition().setVariantColumn(true),
-                new DateColumnDefinition().setVariantColumn(true)}));
+                new DoubleColumnDefinition().setVariant(13),
+                new VarcharColumnDefinition(7).setVariant(5),
+                new TimestampColumnDefinition().setVariant(9),
+                new DateColumnDefinition().setVariant(13)}));
 
         // create frame definition and frame buffer we'll use
         FrameDefinition frameDefinition = DEFAULT_FRAME_DEF;
@@ -54,12 +54,12 @@ public class RankWindowFunctionTest extends WindowTestingFramework {
 
     @Test
     public void testStringColumn() throws Exception {
-        helpTestColumns(new int[] {1}, new int[] {3}, PRINT_RESULTS);
+        helpTestColumns(new int[] {1}, new int[] {3}, DONT_PRINT_RESULTS);
     }
 
     @Test
     public void testTimestampColumn() throws Exception {
-        helpTestColumns(new int[] {1}, new int[] {4}, PRINT_RESULTS);
+        helpTestColumns(new int[] {1}, new int[] {4}, DONT_PRINT_RESULTS);
     }
 
     @Test
@@ -85,10 +85,10 @@ public class RankWindowFunctionTest extends WindowTestingFramework {
         List<TestColumnDefinition> rowDefinition = new ArrayList<TestColumnDefinition>(
             Arrays.asList(new TestColumnDefinition[]{
                 new IntegerColumnDefinition(),
-                new DoubleColumnDefinition().setVariantColumn(true),
-                new VarcharColumnDefinition(7).setVariantColumn(true),
-                new TimestampColumnDefinition().setVariantColumn(true),
-                new DateColumnDefinition().setVariantColumn(true)}));
+                new DoubleColumnDefinition().setVariant(13),
+                new VarcharColumnDefinition(7).setVariant(5),
+                new TimestampColumnDefinition().setVariant(9),
+                new DateColumnDefinition().setVariant(13)}));
 
         // test the config
         helpTestWindowFunction(nPartitions, partitionSize, partitionColIDs, orderByColIDs, orderByColIDs, rowDefinition, DEFAULT_FRAME_DEF,
