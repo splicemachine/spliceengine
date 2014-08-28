@@ -42,11 +42,8 @@ import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.derby.iapi.sql.execute.CursorResultSet;
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.store.access.ConglomerateController;
-import org.apache.derby.iapi.store.access.DynamicCompiledOpenConglomInfo;
-import org.apache.derby.iapi.store.access.ScanController;
-import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
-import org.apache.derby.iapi.store.access.TransactionController;
+import org.apache.derby.iapi.sql.execute.ScanQualifier;
+import org.apache.derby.iapi.store.access.*;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 
@@ -235,13 +232,44 @@ public class IndexChanger
 	private void setScan()
 		 throws StandardException
 	{
+      /*
+       * -sf- Derby makes an assumption about system tables that isn't true
+       * for Splice land, which results in WriteConflicts occurring
+       * when you try to drop tables
+       *
+       * With indices, Derby only ever creates start and stop keys for the scan.
+       * However, if the entire index is to be scanned, one or more column in the start/stop
+       * key may be null. With derby this was apparently treated acceptably, but in Splice
+       * this results in garbage start and stop row keys, which in turn results in deleting
+       * every row in the index instead of deleting just the rows of interest.
+       *
+       * Thus, the following hack. When the row is not entirely filled, we convert
+       * the start/stop key into a single ANDed equals qualifier[], and use that instead
+       */
+      DataValueDescriptor[] ourRowDvds = ourIndexRow.getRowArray();
+      int numNonNull = ourRowDvds.length;
+      for(int i=0;i<ourRowDvds.length;i++){
+          if(ourRowDvds[i].isNull()){
+              numNonNull--;
+          }
+      }
+      Qualifier[][] qualifiers = null;
+      if(numNonNull<ourRowDvds.length){
+          qualifiers = new Qualifier[1][];
+          qualifiers[0] = new Qualifier[numNonNull];
+          for(int dvdPos=0,qualPos=0;dvdPos<ourRowDvds.length;dvdPos++){
+              if(ourRowDvds[dvdPos].isNull()) continue;
+
+              ScanQualifier qualifier = new GenericScanQualifier();
+              qualifier.setQualifier(dvdPos,ourRowDvds[dvdPos],DataValueDescriptor.ORDER_OP_EQUALS,false,false,false);
+              qualifiers[0][qualPos] = qualifier;
+          }
+      }
 		/* Get the SC from the activation if re-using */
-		if (! ownIndexSC)
-		{
+		if (! ownIndexSC) {
 			indexSC = activation.getIndexScanController();
 		}
-		else if (indexSC == null)
-		{
+		else if (indexSC == null) {
 			RowLocation templateBaseRowLocation = baseCC.newRowLocationTemplate();
 			/* DataDictionary doesn't have compiled info */
 			if (indexSCOCI == null)
@@ -256,7 +284,7 @@ public class IndexChanger
 		                  (FormatableBitSet)null,					/* all fields */
 			              ourIndexRow.getRowArray(),    /* startKeyValue */
 				          ScanController.GE,            /* startSearchOp */
-					      null,                         /* qualifier */
+					      qualifiers,                         /* qualifier */
 						  ourIndexRow.getRowArray(),    /* stopKeyValue */
 						ScanController.GT             /* stopSearchOp */
 	                      );
@@ -272,7 +300,7 @@ public class IndexChanger
 		                  (FormatableBitSet)null,					/* all fields */
 			              ourIndexRow.getRowArray(),    /* startKeyValue */
 				          ScanController.GE,            /* startSearchOp */
-					      null,                         /* qualifier */
+					      qualifiers,                         /* qualifier */
 						  ourIndexRow.getRowArray(),    /* stopKeyValue */
 						  ScanController.GT,             /* stopSearchOp */
 						  indexSCOCI,
@@ -285,7 +313,7 @@ public class IndexChanger
 			indexSC.reopenScan(
 							   ourIndexRow.getRowArray(),			/* startKeyValue */
 							   ScanController.GE, 	/* startSearchOperator */
-							   null,	            /* qualifier */
+							   qualifiers,	            /* qualifier */
 							   ourIndexRow.getRowArray(),			/* stopKeyValue */
 							   ScanController.GT	/* stopSearchOperator */
 							   );
