@@ -10,6 +10,31 @@ import org.apache.log4j.Logger;
 
 import java.util.*;
 
+/**
+ * Visitor that enables an update or delete statement to operate
+ * successfully over a sink operation (e.g. merge sort join).
+ * Vanilla Derby handles this by adding a CurrentRowLocationNode
+ * as a ResultColumn to the top most ProjectRestrictNode.
+ * In order for this to work in Splice with our sink operations,
+ * a CurrentRowLocationNode is also used, but on the lower level
+ * ProjectRestrictNodes, in particular those in the path
+ * to the leftmost leaf node. The row location of each row
+ * to updated can then be propogated to the top level
+ * update or delete statement.
+ * <p>
+ * This visitor is a no-op except for an update or delete statement
+ * above a sink operation, in which case the query plan tree is
+ * mutated to provide the support described above. No additional
+ * nodes are added, but existing nodes like ProjectRestrictNodes
+ * are modified.
+ * 
+ * @see org.apache.derby.impl.sql.compile.CurrentRowLocationNode
+ * @see org.apache.derby.impl.sql.compile.UpdateStatement#bindStatement()
+ * @see org.apache.derby.impl.sql.compile.DeleteStatement#bindStatement()
+ * 
+ * @author Walt Koetke
+ */
+
 public class RowLocationColumnVisitor extends AbstractSpliceVisitor {
 
     private static Logger LOG = Logger.getLogger(RowLocationColumnVisitor.class);
