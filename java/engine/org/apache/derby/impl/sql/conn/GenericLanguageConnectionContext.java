@@ -136,6 +136,7 @@ public class GenericLanguageConnectionContext
      */
     private Map<String, String> xplain_statements = new HashMap<String, String>();
     private long xplainStatementId;
+    private boolean isAutoTraced = true;
     //all the temporary tables declared for this connection
     private ArrayList<TempTableInfo> allDeclaredGlobalTempTables;
 
@@ -3898,6 +3899,12 @@ public class GenericLanguageConnectionContext
     }
     public void setXplainStatementId(long id) {
         xplainStatementId = id;
+    }
+    public void setAutoTrace(boolean onOff) {
+        this.isAutoTraced = onOff;
+    }
+    public boolean isAutoTraced() {
+        return this.isAutoTraced;
     }
     public void setASTVisitor( ASTVisitor visitor )
     {

@@ -1283,6 +1283,8 @@ public interface LanguageConnectionContext extends Context {
     public String getXplainStatement(String key);
     public void setXplainStatementId(long id);
     public long getXplainStatementId();
+    public void setAutoTrace(boolean onOff);
+    public boolean isAutoTraced();
     /**
      * Set a Visitor which walks the AST at various stages. This is useful
      * for poking user-written inspectors into the parse, bind, and optimize phases.

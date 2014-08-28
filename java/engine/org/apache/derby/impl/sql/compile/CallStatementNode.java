@@ -73,7 +73,11 @@ public class CallStatementNode extends DMLStatementNode
         xplainTraceProcedures.add("SYSCS_GET_STATISTICS_TIMING");
 
         xplainTraceProcedures.add("SYSCS_GET_XPLAIN_TRACE");
+        xplainTraceProcedures.add("SYSCS_PURGE_XPLAIN_TRACE");
         xplainTraceProcedures.add("SYSCS_GET_XPLAIN_STATEMENTID");
+
+        xplainTraceProcedures.add("SYSCS_GET_AUTO_TRACE");
+        xplainTraceProcedures.add("SYSCS_SET_AUTO_TRACE");
     }
 
 	/**
@@ -191,7 +195,7 @@ public class CallStatementNode extends DMLStatementNode
             String methodName = callNode.getMethodName();
             if (xplainTraceProcedures.contains(methodName)) {
                 // turn off explain trace for xplain procedures
-                getLanguageConnectionContext().getStatementContext().setExplainTableOrProcedure(true);
+                getLanguageConnectionContext().getStatementContext().setXPlainTableOrProcedure(true);
             }
         }
 	}

@@ -61,13 +61,13 @@ public class XPlainUtils {
         boolean result = false;
         if (lcc.getStatisticsTiming() && lcc.getRunTimeStatisticsMode()) {
 
-            if (!lcc.getStatementContext().hasExplainTableOrProcedure()) {
+            if (!lcc.getStatementContext().hasXPlainTableOrProcedure()) {
                 result = true;
             }
         }
         else {
             // automatically turn on explain trace
-            if (!lcc.getStatementContext().hasExplainTableOrProcedure() &&
+            if (!lcc.getStatementContext().hasXPlainTableOrProcedure() &&
                     lcc.getStatementContext().getMaxCardinality() > 3) {
                 result = true;
             }
@@ -80,40 +80,32 @@ public class XPlainUtils {
 
         StatementContext statementContext = lcc.getStatementContext();
 
-        if (statementContext != null &&
-            (statementContext.getMaxCardinality() > 0 || statementContext.hasExplainTableOrProcedure())) {
-            // This is the first time a sql statement is parsed
-            preparedStatement.setXPlainTableOrProcedure(statementContext.hasExplainTableOrProcedure());
-            if (statementContext.getMaxCardinality() > 3 && !statementContext.hasExplainTableOrProcedure()) {
+        // Determine if the statement should be auto traced
+        if (!preparedStatement.isAutoTraced() && statementContext != null &&
+            (statementContext.getMaxCardinality() > 0 || statementContext.hasXPlainTableOrProcedure())) {
+
+            preparedStatement.setXPlainTableOrProcedure(statementContext.hasXPlainTableOrProcedure());
+            if (statementContext.getMaxCardinality() > 3 && !statementContext.hasXPlainTableOrProcedure()) {
                 // Should be auto traced
                 preparedStatement.setAutoTraced(true);
-                activation.setTraced(true);
             }
-            else {
-                if (lcc.getStatisticsTiming() && lcc.getRunTimeStatisticsMode()) {
-                    // xplain trace is on
-                    if (!statementContext.hasExplainTableOrProcedure()) {
-                        activation.setTraced(true);
-
-                    }
-                }
-
-            }
-            statementContext.setExplainTableOrProcedure(false);
+            // Clear flags because statement context may be reused
+            statementContext.setXPlainTableOrProcedure(false);
             statementContext.setMaxCardinality(0);
         }
-        else {
-            if (lcc.getStatisticsTiming() && lcc.getRunTimeStatisticsMode()) {
-                // If xplain trace is on, and the statement was not auto traced
-                if (!preparedStatement.isAutoTraced() && !preparedStatement.hasXPlainTableOrProcedure()) {
-                    activation.setTraced(true);
-                }
-            }
-            else {
-                // if xplain trace is off, and the statement was not auto traced
-                if (!preparedStatement.isAutoTraced()) {
-                    activation.setTraced(false);
-                }
+
+        // Turn on explain trace if it is set by a user
+        if (lcc.getStatisticsTiming() && lcc.getRunTimeStatisticsMode()) {
+            if (!preparedStatement.hasXPlainTableOrProcedure())
+            activation.setTraced(true);
+            return;
+        }
+
+        // If auto trace is on for current connection, and the statement should be auto traced, trace this activation
+        if (lcc.isAutoTraced()) {
+            if (preparedStatement.isAutoTraced()) {
+                // This statement was auto traced before
+                activation.setTraced(true);
             }
         }
     }
