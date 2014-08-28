@@ -159,6 +159,11 @@ public class XPlainTreeNode {
                 f.set(this, l + f.getLong(this));
             }
         }
+
+        // For operation other than region scan, do not display region information
+        if (!operationType.toUpperCase().contains("REGIONSCAN")) {
+            region = null;
+        }
     }
 
     private boolean isStringField(String columnName) {

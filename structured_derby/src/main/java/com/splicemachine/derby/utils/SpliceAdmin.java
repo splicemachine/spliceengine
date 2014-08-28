@@ -1380,4 +1380,38 @@ public class SpliceAdmin extends BaseAdminProcedures {
         s = connection.prepareStatement("delete from sys.systaskhistory");
         s.execute();
     }
+
+    public static void SYSCS_SET_AUTO_TRACE(int enable) throws SQLException, StandardException {
+        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+        lcc.setAutoTrace(enable==0?false:true);
+    }
+
+    public static void SYSCS_GET_AUTO_TRACE(final ResultSet[] resultSet) throws Exception{
+        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+        boolean isAutoTraced = lcc.isAutoTraced();
+
+        List<ExecRow> rows = Lists.newArrayListWithExpectedSize(1);
+
+        ExecRow row = new ValueRow(1);
+        row.setRowArray(new DataValueDescriptor[]{
+                new SQLBoolean()});
+        DataValueDescriptor[] dvds = row.getRowArray();
+        dvds[0].setValue(isAutoTraced);
+        rows.add(row);
+
+        ResultColumnDescriptor[]columnInfo = new ResultColumnDescriptor[1];
+        columnInfo[0] = new GenericColumnDescriptor("AUTO_TRACE", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN));
+
+        EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
+        Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
+        IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, columnInfo,lastActivation);
+        try {
+            resultsToWrap.openCore();
+        } catch (StandardException e) {
+            throw PublicAPI.wrapStandardException(e);
+        }
+        EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap,false,null,true);
+
+        resultSet[0] = ers;
+    }
 }
