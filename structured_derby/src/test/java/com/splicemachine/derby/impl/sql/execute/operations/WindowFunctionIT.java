@@ -5,6 +5,7 @@ import java.sql.ResultSet;
 
 import org.junit.Assert;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -535,6 +536,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore("DB-1683 - order by follows window function")
     public void testDenseRankWithoutPartitionOrderby() throws Exception {
         int[] result = {1, 2, 3, 4, 5, 5, 6, 7, 7, 8, 8, 8, 8, 9, 10};
         int[] colVal = {84000, 79000, 78000, 76000, 75000, 75000, 55000, 53000, 53000, 52000, 52000, 52000, 52000, 51000, 50000};
