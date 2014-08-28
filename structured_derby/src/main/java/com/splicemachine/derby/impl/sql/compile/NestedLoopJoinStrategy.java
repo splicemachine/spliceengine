@@ -332,7 +332,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy {
 		SpliceLogUtils.trace(LOG, "rightResultSetCostEstimate outerCost=%s, innerFullKeyCost=%s",outerCost, innerCost);
 		if (outerCost.getEstimatedCost() == 0.0 && outerCost.getEstimatedRowCount() == 1) // I am not really a NLJ but a table scan, do not add network costs...
 			return;
-		double cost = (SpliceConstants.optimizerNetworkCost+innerCost.getEstimatedCost())* (double) outerCost.getEstimatedRowCount();
+		double cost = outerCost.getEstimatedCost() + (SpliceConstants.optimizerNetworkCost+innerCost.getEstimatedCost())* (double) outerCost.getEstimatedRowCount();
 		innerCost.setCost(cost, innerCost.rowCount() * outerCost.rowCount(), innerCost.singleScanRowCount());
 		SpliceLogUtils.trace(LOG, "rightResultSetCostEstimate computed cost innerCost=%s",innerCost);
 	};	
