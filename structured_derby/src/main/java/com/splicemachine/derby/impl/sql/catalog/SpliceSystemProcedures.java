@@ -496,6 +496,27 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                     procedures.add(purgeXplainTrace);
 
                     /*
+                     * Procedure to set auto trace
+                     */
+                    Procedure setAutoTrace = Procedure.newBuilder().name("SYSCS_SET_AUTO_TRACE")
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .integer("autoTrace")
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(setAutoTrace);
+
+                    /*
+                     * Procedure to set auto trace
+                     */
+                    Procedure getAutoTrace = Procedure.newBuilder().name("SYSCS_GET_AUTO_TRACE")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(getAutoTrace);
+
+                    /*
                      * Procedure to return timestamp generator info
                      */
                     procedures.add(Procedure.newBuilder().name("SYSCS_GET_TIMESTAMP_GENERATOR_INFO")
