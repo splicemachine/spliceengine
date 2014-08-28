@@ -38,10 +38,10 @@ public class DenseRankWindowFunctionTest extends WindowTestingFramework {
         List<TestColumnDefinition> rowDefinition = new ArrayList<TestColumnDefinition>(
             Arrays.asList(new TestColumnDefinition[]{
                 new IntegerColumnDefinition(),
-                new DoubleColumnDefinition().setVariantColumn(true),
-                new VarcharColumnDefinition(7).setVariantColumn(true),
-                new TimestampColumnDefinition().setVariantColumn(true),
-                new DateColumnDefinition().setVariantColumn(true)}));
+                new DoubleColumnDefinition().setVariant(13),
+                new VarcharColumnDefinition(7).setVariant(5),
+                new TimestampColumnDefinition().setVariant(9),
+                new DateColumnDefinition().setVariant(13)}));
 
         // create frame definition and frame buffer we'll use
         FrameDefinition frameDefinition = DEFAULT_FRAME_DEF;
@@ -65,7 +65,7 @@ public class DenseRankWindowFunctionTest extends WindowTestingFramework {
         List<TestColumnDefinition> rowDefinition = new ArrayList<TestColumnDefinition>(
             Arrays.asList(new TestColumnDefinition[]{
                 new IntegerColumnDefinition(),
-                new DoubleColumnDefinition().setVariantColumn(true)}));
+                new DoubleColumnDefinition().setVariant(13)}));
 
         List<ExecRow> inputRows = new ArrayList<ExecRow>();
         for (int i=1; i<=2; i++) {
@@ -103,7 +103,7 @@ public class DenseRankWindowFunctionTest extends WindowTestingFramework {
         List<TestColumnDefinition> rowDefinition = new ArrayList<TestColumnDefinition>(
             Arrays.asList(new TestColumnDefinition[]{
                 new IntegerColumnDefinition(),
-                new DoubleColumnDefinition().setVariantColumn(true)}));
+                new DoubleColumnDefinition().setVariant(13)}));
 
         helpTestColumns(new int[0], new int[] {1}, rowDefinition, DONT_PRINT_RESULTS);
     }
@@ -115,11 +115,11 @@ public class DenseRankWindowFunctionTest extends WindowTestingFramework {
         List<TestColumnDefinition> rowDefinition = new ArrayList<TestColumnDefinition>(
             Arrays.asList(new TestColumnDefinition[]{
                 new IntegerColumnDefinition(),
-                new DoubleColumnDefinition().setVariantColumn(true),
-                new VarcharColumnDefinition(7).setVariantColumn(true),
-                new TimestampColumnDefinition().setVariantColumn(true),
-                new DateColumnDefinition().setVariantColumn(true)}));
-        helpTestColumns(new int[] {1}, new int[] {4}, rowDefinition, PRINT_RESULTS);
+                new DoubleColumnDefinition().setVariant(13),
+                new VarcharColumnDefinition(7).setVariant(5),
+                new TimestampColumnDefinition().setVariant(9),
+                new DateColumnDefinition().setVariant(13)}));
+        helpTestColumns(new int[] {1}, new int[] {4}, rowDefinition, DONT_PRINT_RESULTS);
     }
 
     @Test
@@ -129,25 +129,25 @@ public class DenseRankWindowFunctionTest extends WindowTestingFramework {
         List<TestColumnDefinition> rowDefinition = new ArrayList<TestColumnDefinition>(
             Arrays.asList(new TestColumnDefinition[]{
                 new IntegerColumnDefinition(),
-                new DoubleColumnDefinition().setVariantColumn(true),
-                new VarcharColumnDefinition(7).setVariantColumn(true),
-                new TimestampColumnDefinition().setVariantColumn(true),
-                new DateColumnDefinition().setVariantColumn(true)}));
-        helpTestColumns(new int[] {1}, new int[] {3}, rowDefinition, PRINT_RESULTS);
+                new DoubleColumnDefinition().setVariant(13),
+                new VarcharColumnDefinition(7).setVariant(5),
+                new TimestampColumnDefinition().setVariant(9),
+                new DateColumnDefinition().setVariant(13)}));
+        helpTestColumns(new int[] {1}, new int[] {3}, rowDefinition, DONT_PRINT_RESULTS);
     }
 
     @Test
-    @Ignore("DB-1645 - restricted to only one order by column")
+//    @Ignore("DB-1645 - restricted to only one order by column")
     public void testThreeOrderByColumns() throws Exception {
 
         // define the shape of the input rows
         List<TestColumnDefinition> rowDefinition = new ArrayList<TestColumnDefinition>(
             Arrays.asList(new TestColumnDefinition[]{
                 new IntegerColumnDefinition(),
-                new DoubleColumnDefinition().setVariantColumn(true),
-                new VarcharColumnDefinition(7).setVariantColumn(true),
-                new TimestampColumnDefinition().setVariantColumn(true),
-                new DateColumnDefinition().setVariantColumn(true)}));
+                new DoubleColumnDefinition().setVariant(13),
+                new VarcharColumnDefinition(7).setVariant(5),
+                new TimestampColumnDefinition().setVariant(9),
+                new DateColumnDefinition().setVariant(13)}));
         helpTestColumns(new int[] {2}, new int[] {2,3,4}, rowDefinition, PRINT_RESULTS);
     }
 
@@ -161,7 +161,7 @@ public class DenseRankWindowFunctionTest extends WindowTestingFramework {
         function.setup(cf, "function", DataTypeDescriptor.getBuiltInDataTypeDescriptor(java.sql.Types.BIGINT, false));
 
         int nPartitions = 5;
-        int partitionSize = 5;
+        int partitionSize = 100;
         ExpectedResultsFunction expectedResultsFunction = new DenseRankFunct(partitionColIDs, orderByColIDs);
 
         // test the config

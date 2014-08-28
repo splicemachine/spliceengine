@@ -125,9 +125,6 @@ public class WindowTestingFramework {
         if (inputColumnIDs == null || inputColumnIDs.length == 0) {
             throw new RuntimeException("Must have at least one input column ID.");
         }
-        if (inputColumnIDs.length > 1) {
-            throw new RuntimeException("We currently only support one input column ID on functions.  See .");
-        }
 
         // create agg function array
         int aggregatorColID = inputRowDefinition.size()+3;
@@ -435,30 +432,56 @@ public class WindowTestingFramework {
     public interface TestColumnDefinition {
         DataValueDescriptor getNullDVD();
         DataValueDescriptor getDVD(int rowIndex) throws StandardException;
-        TestColumnDefinition setVariantColumn(boolean isVariantCol);
+        TestColumnDefinition setVariant(int repeatPeriod);
     }
 
     public abstract static class TestColumnDefinitionBase implements TestColumnDefinition {
-        protected boolean isVariant;
+        private static final int DUPLICATE_SET_SIZE_MULTIPLIER = 13;
+        protected List<DataValueDescriptor> duplicateSet;
+        protected int repeatPeriod;
+        protected int repeatCounter = -1;
+        protected int maxDuplicates;
 
-        protected Random random = new Random();
         protected static final int DEFAULT_RANDOM_MAX = 12;
         protected static final int DEFAULT_RANDOM_MIN = 1;
 
-        public TestColumnDefinition setVariantColumn(boolean isVariant) {
-            this.isVariant = isVariant;
+        protected boolean isVariant;
+
+        private static Random random = new Random();
+
+        public TestColumnDefinition setVariant(int repeatPeriod) {
+            this.isVariant = true;
+            this.repeatCounter = 0;
+            this.repeatPeriod = repeatPeriod;
+            this.maxDuplicates = DUPLICATE_SET_SIZE_MULTIPLIER *this.repeatPeriod;
+            this.duplicateSet = new ArrayList<DataValueDescriptor>(maxDuplicates);
             return this;
+        }
+
+        public DataValueDescriptor getNextDVD(DataValueDescriptor newDVD) {
+            DataValueDescriptor returned = newDVD.cloneValue(false);
+            if (isVariant && repeatCounter >= -1) {
+                if (repeatPeriod == repeatCounter) {
+                    repeatCounter = 0;
+                    returned = duplicateSet.get((int) nextRand(duplicateSet.size()-1, 0));
+                } else if (duplicateSet.size() >= maxDuplicates) {
+                    DataValueDescriptor dvd =duplicateSet.remove((int) nextRand(duplicateSet.size()-1, 0));
+                }
+                ++repeatCounter;
+                duplicateSet.add(returned);
+            }
+            return returned;
+        }
+
+        public static long nextRand(long max, long min) {
+            random = new Random();
+            return random.nextInt((int) ((max - min) + 1)) + min;
         }
     }
 
     public static class TimestampColumnDefinition extends TestColumnDefinitionBase implements TestColumnDefinition {
-        private static final long MILLIS_IN_SECOND = 1000;
-        private static final long SECONDS_IN_MINUTE = 60;
-        private static final long MINUTES_IN_HOUR = 60;
-        private static final long HOURS_IN_DAY = 24;
-        private static final long DAYS_IN_YEAR = 365;
-        private static final long MILLISECONDS_IN_YEAR =
-                            MILLIS_IN_SECOND * SECONDS_IN_MINUTE * MINUTES_IN_HOUR * HOURS_IN_DAY * DAYS_IN_YEAR;
+        // milli/sec * sec/min * sec/hr * hr/day * days/year
+        private static final long MILLISECONDS_IN_YEAR = 1000 * 60 * 60 * 24 * 365;
 
         @Override
          public DataValueDescriptor getNullDVD() {
@@ -477,8 +500,8 @@ public class WindowTestingFramework {
             if (! isVariant) {
                 return dvf.getDataValue(new Timestamp(now), (DateTimeDataValue)null);
             }
-            random = new Random();
-            return dvf.getDataValue(new Timestamp((long) random.nextInt((int) ((MILLISECONDS_IN_YEAR - now) + 1)) + now), (DateTimeDataValue)null);
+            return getNextDVD(dvf.getDataValue(new Timestamp(nextRand(MILLISECONDS_IN_YEAR, now)),
+                                               (DateTimeDataValue) null));
         }
     }
 
@@ -506,8 +529,7 @@ public class WindowTestingFramework {
             if (! isVariant) {
                 return dvf.getDataValue(rowIndex, null);
             }
-            random = new Random();
-            return dvf.getDataValue(random.nextInt((DEFAULT_RANDOM_MAX - DEFAULT_RANDOM_MIN) + 1) + DEFAULT_RANDOM_MIN, null);
+            return getNextDVD(dvf.getDataValue(nextRand(DEFAULT_RANDOM_MAX, DEFAULT_RANDOM_MIN), null));
         }
 
         public DataValueDescriptor getNullDVD() {
@@ -528,8 +550,7 @@ public class WindowTestingFramework {
             if (! isVariant) {
                 return dvf.getDataValue((double)rowIndex, null);
             }
-            random = new Random();
-            return dvf.getDataValue((double)random.nextInt((DEFAULT_RANDOM_MAX - DEFAULT_RANDOM_MIN) + 1) + DEFAULT_RANDOM_MIN, null);
+            return getNextDVD(dvf.getDataValue((double) nextRand(DEFAULT_RANDOM_MAX, DEFAULT_RANDOM_MIN), null));
         }
 
 
@@ -560,12 +581,11 @@ public class WindowTestingFramework {
             if (! isVariant) {
                 return dvf.getDataValue("joe_" +rowIndex, null);
             }
-            random = new Random();
             byte[] asciiBytes = new byte[this.length];
             for (int i=0; i<length; i++) {
-                asciiBytes[i] = (byte) ((byte)random.nextInt((MAX_ASCII_CHAR - MIN_ASCII_CHAR) + 1) + MIN_ASCII_CHAR);
+                asciiBytes[i] = (byte)nextRand(MAX_ASCII_CHAR,MIN_ASCII_CHAR);
             }
-            return dvf.getDataValue(new String(asciiBytes), null);
+            return getNextDVD(dvf.getDataValue(new String(asciiBytes), null));
         }
 
         public DataValueDescriptor getNullDVD() {

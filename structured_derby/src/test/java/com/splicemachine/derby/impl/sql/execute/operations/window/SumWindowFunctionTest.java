@@ -40,7 +40,7 @@ public class SumWindowFunctionTest extends WindowTestingFramework {
         List<TestColumnDefinition> rowDefinition = new ArrayList<TestColumnDefinition>(
             Arrays.asList(new TestColumnDefinition[]{
                 new IntegerColumnDefinition(),
-                new DoubleColumnDefinition().setVariantColumn(true)}));
+                new DoubleColumnDefinition().setVariant(13)}));
 
         // create frame definition and frame buffer we'll use
         FrameDefinition frameDefinition = DEFAULT_FRAME_DEF;
@@ -72,10 +72,10 @@ public class SumWindowFunctionTest extends WindowTestingFramework {
         List<TestColumnDefinition> rowDefinition = new ArrayList<TestColumnDefinition>(
             Arrays.asList(new TestColumnDefinition[]{
                 new IntegerColumnDefinition(),
-                new DoubleColumnDefinition().setVariantColumn(true),
-                new VarcharColumnDefinition(7).setVariantColumn(true),
-                new TimestampColumnDefinition().setVariantColumn(true),
-                new DateColumnDefinition().setVariantColumn(true)}));
+                new DoubleColumnDefinition().setVariant(13),
+                new VarcharColumnDefinition(7).setVariant(5),
+                new TimestampColumnDefinition().setVariant(9),
+                new DateColumnDefinition().setVariant(13)}));
 
         // test the config
         helpTestWindowFunction(nPartitions, partitionSize, partitionColIDs, orderByColIDs,
