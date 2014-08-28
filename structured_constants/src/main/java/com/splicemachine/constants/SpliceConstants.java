@@ -525,7 +525,7 @@ public class SpliceConstants {
 		 * 
 		 */
 		@Parameter private static final String FETCH_FROM_ROW_LOCATION_COST = "splice.optimizer.fetchFromRowLocationCost";
-		@DefaultValue(FETCH_FROM_ROW_LOCATION_COST) public static final double DEFAULT_FETCH_FROM_ROW_LOCATION_COST = 3.0d;		
+		@DefaultValue(FETCH_FROM_ROW_LOCATION_COST) public static final double DEFAULT_FETCH_FROM_ROW_LOCATION_COST = 7.0d;
 		public static double fetchFromRowLocationCost;
 
 		/**
@@ -932,6 +932,7 @@ public class SpliceConstants {
 		public static final int PACKED_COLUMN = 7;
 		public static final String PACKED_COLUMN_STRING = PACKED_COLUMN+"";
 		public static final byte[] PACKED_COLUMN_BYTES = Bytes.toBytes(PACKED_COLUMN_STRING);
+		public static final byte PACKED_COLUMN_BYTE = PACKED_COLUMN_BYTES[0];		
 
 		
 		
