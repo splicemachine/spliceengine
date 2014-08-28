@@ -226,7 +226,7 @@ public class HBaseRowLocation extends DataType implements RowLocation {
      * Standard toString() method.
      */
     public String toString() {
-        return("(row key "+this.slice+")");
+        return("(row key "+this.slice.toHexString()+")");
     }
 
     public Format getFormat() {

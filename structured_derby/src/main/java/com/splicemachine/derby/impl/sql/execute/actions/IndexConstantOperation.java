@@ -16,20 +16,17 @@ import com.splicemachine.job.JobFuture;
 import com.splicemachine.si.api.TransactionLifecycle;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
+import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.uuid.Snowflake;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.dictionary.*;
 import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
-
-import com.splicemachine.utils.SpliceLogUtils;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -125,10 +122,12 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
         Txn indexTxn;
         try{
             /*
-             * We make the index transaction a top-level transaction to simplify the necessary logic
+             * We need to make the indexTxn a child of the wrapper, so that we can be sure
+             * that the write pipeline is able to see the conglomerate descriptor. However,
+             * this makes the SI logic more complex during the populate phase.
              */
             indexTxn = TransactionLifecycle.getLifecycleManager().chainTransaction(
-                    null, Txn.IsolationLevel.SNAPSHOT_ISOLATION, true, tableBytes,waitTxn);
+                    wrapperTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION, true, tableBytes,waitTxn);
         } catch (IOException e) {
             LOG.error("Couldn't commit transaction for tentative DDL operation");
             // TODO must cleanup tentative DDL change

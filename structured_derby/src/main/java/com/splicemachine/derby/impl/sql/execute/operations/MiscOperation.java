@@ -5,6 +5,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.job.JobInfo;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobResults;
@@ -62,18 +63,14 @@ public class MiscOperation extends NoRowsOperation
 				@Override public ExecRow next() { return null; }
 
 				@Override
-				public void open() {
-						SpliceLogUtils.trace(LOG, "open");
-						try {
-								setup();
-								activation.getConstantAction().executeConstantAction(activation);
-						} catch (StandardException e) {
-								SpliceLogUtils.logAndThrowRuntime(LOG, e);
-						}
+        public void open() throws StandardException{
+            SpliceLogUtils.trace(LOG, "open");
+            setup();
+            activation.getConstantAction().executeConstantAction(activation);
 				}
 
 				@Override
-				public void close() {
+				public void close() throws StandardException {
 						SpliceLogUtils.trace(LOG, "close for miscRowProvider, isOpen=%s",isOpen);
 						if (!isOpen)
 								return;
@@ -93,7 +90,8 @@ public class MiscOperation extends NoRowsOperation
 										activation.close();
 						} catch (Exception e) {
 								SpliceLogUtils.error(LOG, e);
-						}
+                throw Exceptions.parseException(e);
+            }
 				}
 
 				@Override public RowLocation getCurrentRowLocation() { return null; }

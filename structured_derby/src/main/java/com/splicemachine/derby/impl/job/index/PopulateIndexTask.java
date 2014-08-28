@@ -31,7 +31,7 @@ import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnLifecycleManager;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.coprocessors.SIFilterPacked;
-import com.splicemachine.si.impl.DemarcatedTxnView;
+import com.splicemachine.si.impl.DDLTxnView;
 import com.splicemachine.si.impl.TransactionalRegions;
 import com.splicemachine.si.impl.TxnFilter;
 import com.splicemachine.si.impl.rollforward.SegmentedRollForward;
@@ -263,7 +263,7 @@ public class PopulateIndexTask extends ZkTask {
 
     protected MeasuredRegionScanner getRegionScanner(EntryPredicateFilter predicateFilter,Scan regionScan, MetricFactory metricFactory) throws IOException {
         //manually create the SIFilter
-        DemarcatedTxnView demarcationPoint = new DemarcatedTxnView(getTxn(), this.demarcationPoint);
+        DDLTxnView demarcationPoint = new DDLTxnView(getTxn(), this.demarcationPoint);
         TxnFilter packed =TransactionalRegions.get(region,SegmentedRollForward.NOOP_ACTION).packedFilter(demarcationPoint,predicateFilter,false);
         regionScan.setFilter(new SIFilterPacked(packed));
         RegionScanner sourceScanner = region.getScanner(regionScan);

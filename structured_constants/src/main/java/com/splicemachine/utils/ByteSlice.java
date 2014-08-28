@@ -2,6 +2,7 @@ package com.splicemachine.utils;
 
 import com.splicemachine.constants.bytes.BytesUtil;
 
+import com.splicemachine.encoding.Encoding;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.lucene.util.ArrayUtil;
 
@@ -222,4 +223,13 @@ public class ByteSlice implements Externalizable {
 		public void set(ByteSlice newData) {
 				set(newData.buffer,newData.offset,newData.length);
 		}
+
+    public String toHexString() {
+        if(this.length<=0) return "";
+       return BytesUtil.toHex(buffer,offset,length);
+    }
+
+    public static void main(String...args) throws Exception{
+        System.out.println(Encoding.decodeLong(BytesUtil.fromHex("008185909DCBC7A2A080C0")));
+    }
 }

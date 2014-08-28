@@ -170,5 +170,4 @@ public class IndexTransactionIT {
 
         Assert.assertEquals("Index is corrupt!",1,count);
     }
-
 }

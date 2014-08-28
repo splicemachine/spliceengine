@@ -12,7 +12,6 @@ import com.splicemachine.derby.impl.db.SpliceDatabase;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.si.api.TransactionLifecycle;
-import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.ZkUtils;
 import com.splicemachine.utils.kryo.KryoPool;
@@ -39,7 +38,11 @@ import java.util.concurrent.TimeUnit;
 import java.io.IOException;
 import java.util.*;
 import java.util.Map.Entry;
-import java.util.concurrent.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -71,6 +74,7 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
 
     private final Lock refreshNotifierLock = new ReentrantLock();
     private final Condition refreshNotifierCondition = refreshNotifierLock.newCondition();
+    private final AtomicInteger requestCount = new AtomicInteger(0);
 
     @Override
     public synchronized void registerLanguageConnectionContext(LanguageConnectionContext lcc) {
@@ -88,24 +92,32 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
         // run refresh() synchronously the first time
         refresh();
 
-        executor.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                refreshNotifierLock.lock();
-                try {
-                    refreshNotifierCondition.signal();
-                }finally{
-                    refreshNotifierLock.unlock();
-                }
-            }
-        }, REFRESH_TIMEOUT_MS, REFRESH_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+//        executor.scheduleAtFixedRate(new Runnable() {
+//            @Override
+//            public void run() {
+//
+//                signalRefresh();
+//            }
+//        }, REFRESH_TIMEOUT, REFRESH_TIMEOUT, TimeUnit.MILLISECONDS);
 
         refreshThread.submit(new Runnable() {
             @Override
             public void run() {
                 while(true){
+                    int signalledWhileRefresh;
+                    int currentSignalSize = requestCount.get();
+                    try{
+                        refresh();
+                    }catch(Throwable e){
+                        LOG.error("Failed to refresh ddl",e);
+                    }
+
                     refreshNotifierLock.lock();
                     try{
+                        signalledWhileRefresh = requestCount.addAndGet(-currentSignalSize);
+                        //someone notified us while we were refreshing, so don't go to sleep yet
+                        if(signalledWhileRefresh!=0)
+                            continue;
                         //wait to be notified
                         refreshNotifierCondition.await();
                     }catch (InterruptedException e) {
@@ -113,25 +125,55 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
                     } finally{
                         refreshNotifierLock.unlock();
                     }
-                    try{
-                        refresh();
-                    }catch(StandardException e){
-                        LOG.error("Failed to refresh ddl",e);
-                    }
                 }
             }
         });
     }
 
+    private void signalRefresh() {
+        /*
+         * We use condition signalling to notify events; this is
+         * a pretty decent way of ensuring that we don't waste resources
+         * when nothing is going on. However, it is possible that, if you
+         * receive a notification of an event while you are in the process
+         * of refreshing, that that event may not be picked up. To prevent
+         * this, we keep track of how many signals we emit, and the refresh
+         * thread makes sure to perform refreshes if it received an event
+         * while it wasn't listening.
+         */
+        refreshNotifierLock.lock();
+        try {
+            requestCount.incrementAndGet();
+            refreshNotifierCondition.signal();
+        }finally{
+            refreshNotifierLock.unlock();
+        }
+    }
+
+    private void createZKTree() throws StandardException {
+        for (String path : new String[] { SpliceConstants.zkSpliceDDLPath,
+                SpliceConstants.zkSpliceDDLOngoingTransactionsPath, SpliceConstants.zkSpliceDDLActiveServersPath }) {
+            try {
+                ZkUtils.create(path, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
+                        CreateMode.PERSISTENT);
+            } catch (KeeperException e) {
+                if (e.code().equals(Code.NODEEXISTS)) {
+                    // ignore
+                } else {
+                    throw Exceptions.parseException(e);
+                }
+            } catch (InterruptedException e) {
+                throw Exceptions.parseException(e);
+            }
+        }
+    }
+
     @Override
     public void process(WatchedEvent event) {
         if (event.getType().equals(EventType.NodeChildrenChanged)) {
-            refreshNotifierLock.lock();
-            try {
-                refreshNotifierCondition.signal();
-            }finally{
-                refreshNotifierLock.unlock();
-            }
+            if(LOG.isTraceEnabled())
+                LOG.trace("Received watch event, signalling refresh");
+            signalRefresh();
         }
     }
 
@@ -140,6 +182,8 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
         return new HashSet<DDLChange>(tentativeDDLs.values());
     }
 
+    /*****************************************************************************************************************/
+    /*private helper methods*/
     private synchronized void refresh() throws StandardException {
         initializeAccessManager();
 
@@ -148,28 +192,11 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
         boolean currentWasEmpty = currentDDLChanges.isEmpty();
         Set<DDLChange> newChanges = new HashSet<DDLChange>();
 
-        //
-        // Remove form all records changeIds that are not currently ongoing.
-        //
-        for (Iterator<String> iterator = seenDDLChanges.iterator(); iterator.hasNext(); ) {
-            String seenChangeId = iterator.next();
-            if (!ongoingDDLChangeIDs.contains(seenChangeId)) {
-                LOG.debug("Removing change with id " + seenChangeId);
-                changesTimeouts.remove(seenChangeId);
-                currentDDLChanges.remove(seenChangeId);
-                tentativeDDLs.remove(seenChangeId);
-                iterator.remove();
-                // notify access manager
-                if (accessManager != null) {
-                    accessManager.finishDDLChange(seenChangeId);
-                }
-            }
-        }
+        // remove finished ddl changes
+        clearFinishedChanges(children);
 
-        //
-        // Process NEW changeIds that we have not seen.
-        //
-        for (String changeId : ongoingDDLChangeIDs) {
+        for (Iterator<String> iterator = children.iterator(); iterator.hasNext();) {
+            String changeId = iterator.next();
             if (!seenDDLChanges.contains(changeId)) {
                 byte[] data;
                 try {
@@ -178,16 +205,7 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
                     throw Exceptions.parseException(e);
                 }
 
-                DDLChange ddlChange;
-                KryoPool kp = SpliceKryoRegistry.getInstance();
-                Kryo kryo = kp.get();
-
-                try{
-                    Input input = new Input(data);
-                    ddlChange = kryo.readObject(input, DDLChange.class);
-                }finally{
-                    kp.returnInstance(kryo);
-                }
+                DDLChange ddlChange = decode(data);
                 LOG.debug("New change with id " + changeId + " :" + ddlChange);
                 ddlChange.setChangeId(changeId);
                 newChanges.add(ddlChange);
@@ -233,23 +251,79 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
 
         }
 
-        //
-        // NEW changes: notify ddl controller we processed the change
-        //
-        for (DDLChange ddlChange : newChanges) {
-            acknowledgeChange(ddlChange.getChangeId(), id);
-        }
+        // notify ddl operation we processed the change
+        notifyProcessed(newChanges);
+        killTimeouts();
+    }
 
-        //
-        // Kill DDL transactions that have been ongoing for more than our timeout value.
-        //
-        for (Entry<String, Long> entry : changesTimeouts.entrySet()) {
-            long startTime = entry.getValue();
-            String changeId = entry.getKey();
-            if (System.currentTimeMillis() > startTime + MAXIMUM_DDL_WAIT_MS) {
-                killDDLTransaction(changeId);
+    private void clearFinishedChanges(List<String> children) {
+        /*
+         * Remove DDL changes which are known to be finished.
+         *
+         * This is to avoid processing a DDL change twice.
+         */
+        for (Iterator<String> iterator = seenDDLChanges.iterator(); iterator.hasNext();) {
+            String entry = iterator.next();
+            if (!children.contains(entry)) {
+                LOG.debug("Removing change with id " + entry);
+                changesTimeouts.remove(entry);
+                currentDDLChanges.remove(entry);
+                tentativeDDLs.remove(entry);
+                iterator.remove();
+                // notify access manager
+                if (accessManager != null) {
+                    accessManager.finishDDLChange(entry);
+                }
             }
         }
+    }
+
+    private void killTimeouts() {
+        /*
+         * Kill transactions which have been timed out.
+         */
+        for (Entry<String, Long> entry : changesTimeouts.entrySet()) {
+            if (System.currentTimeMillis() > entry.getValue() + MAXIMUM_DDL_WAIT) {
+                killDDLTransaction(entry.getKey());
+            }
+        }
+    }
+
+    private void notifyProcessed(Set<String> processedChanges) throws StandardException {
+        /*
+         * Notify the relevant controllers that their change has been processed
+         */
+        for (String change : processedChanges) {
+            try {
+                ZkUtils.create(SpliceConstants.zkSpliceDDLOngoingTransactionsPath + "/" + change + "/" + id,
+                        new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
+            } catch (KeeperException e) {
+                switch(e.code()) {
+                    case NODEEXISTS: //we may have already set the value, so ignore node exists issues
+                    case NONODE: // someone already removed the notification, it's obsolete
+                        // ignore
+                        break;
+                    default:
+                        throw Exceptions.parseException(e);
+                }
+            } catch (InterruptedException e) {
+                throw Exceptions.parseException(e);
+            }
+        }
+    }
+
+    private DDLChange decode(byte[] data) {
+        DDLChange ddlChange;
+        KryoPool kp = SpliceKryoRegistry.getInstance();
+        Kryo kryo = kp.get();
+
+        try{
+            Input input = new Input(data);
+            ddlChange = kryo.readObject(input, DDLChange.class);
+        }finally{
+            kp.returnInstance(kryo);
+        }
+        return ddlChange;
     }
 
     private void processTentativeDDLChange(String changeId, DDLChange ddlChange) throws StandardException {
@@ -278,8 +352,6 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
             LOG.warn("We are killing transaction " + txn + " since it exceeds the maximum wait period for"
                     + " the DDL change " + changeId + " publication");
             TransactionLifecycle.getLifecycleManager().rollback(txn.getTxnId());
-//            throw new UnsupportedOperationException("IMPLEMENT");
-////            HTransactorFactory.getTransactionManager().fail(new TransactionId(transactionId));
         } catch (Exception e) {
             LOG.warn("Couldn't kill transaction, already killed?", e);
         }
