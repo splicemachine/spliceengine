@@ -59,7 +59,7 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 
 		private MeasuredRegionScanner regionScanner;
 		private final Scan scan;
-        private final SkippingScanFilter skippingScanFilter;
+        private ScopedPredicates scopedPredicates;
 		private final ExecRow template;
 		private final String tableVersion;
 		private final int[] rowDecodingMap;
@@ -129,7 +129,6 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 													final String tableVersion,
 													SIFilterFactory filterFactory) {
 				this.scan = scan;
-                this.skippingScanFilter = Scans.findSkippingScanFilter(this.scan);
 				this.template = template;
 				this.rowDecodingMap = rowDecodingMap;
 				this.keyColumnSortOrder = keyColumnSortOrder;
@@ -288,8 +287,8 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 
     /* SkippingScanFilter can have different predicates for every range */
     private void updatePredicateFilterIfNecessary(KeyValue kv) throws IOException {
-        if(skippingScanFilter != null) {
-            predicateFilter.setValuePredicates(skippingScanFilter.getNextPredicates(kv));
+        if(scopedPredicates.isScanWithScopedPredicates()) {
+            predicateFilter.setValuePredicates(scopedPredicates.getNextPredicates(kv));
         }
     }
 
@@ -298,9 +297,11 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 		}
 
 	private EntryPredicateFilter buildInitialPredicateFilter() throws IOException {
+        scopedPredicates = new ScopedPredicates(Scans.findSkippingScanFilter(this.scan));
+
         EntryPredicateFilter entryPredicateFilter = EntryPredicateFilter.fromBytes(scan.getAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL));
         BitSet checkedColumns = entryPredicateFilter.getCheckedColumns();
-        if(skippingScanFilter != null){
+        if(scopedPredicates.isScanWithScopedPredicates()){
                 /*
                  * We have to be careful--EMPTY_PREDICATE could have been returned, in which case
                  * setting predicates can cause all kinds of calamituous behavior. To avoid that, when
