@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.store.access;
 
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.si.api.TransactionLifecycle;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnLifecycleManager;
@@ -151,10 +152,16 @@ public class SpliceTransaction extends BaseSpliceTransaction {
 
 		public void setTxn(Txn txn) { this.txn = txn; }
 
-    public Txn elevate(byte[] writeTable) throws IOException {
-//        setActiveState(false,false,txn.getParentTxnView());
-        if(!txn.allowsWrites())
-            txn = txn.elevateToWritable(writeTable);
+    public Txn elevate(byte[] writeTable) throws StandardException {
+        TxnView parent = txn!=null? txn.getParentTxnView(): Txn.ROOT_TRANSACTION;
+        setActiveState(false, false, parent);
+        if(!txn.allowsWrites()){
+            try {
+                txn = txn.elevateToWritable(writeTable);
+            } catch (IOException e) {
+                throw Exceptions.parseException(e);
+            }
+        }
         return txn;
     }
 
@@ -176,5 +183,9 @@ public class SpliceTransaction extends BaseSpliceTransaction {
             s += "CLOSED";
         s+=","+txn+")";
         return s;
+    }
+
+    public boolean allowsWrites() {
+        return txn!=null && txn.allowsWrites();
     }
 }

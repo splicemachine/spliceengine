@@ -671,11 +671,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
             storableDV = columnInfo[ix].dataType.getNull();
 
         // Add the column to the conglomerate.(Column ids in store are 0-based)
-        try {
-            ((SpliceTransaction)((SpliceTransactionManager)tc).getRawTransaction()).elevate(Bytes.toBytes(Long.toString(td.getHeapConglomerateId())));
-        } catch (IOException e) {
-            throw Exceptions.parseException(e);
-        }
+        ((SpliceTransaction)((SpliceTransactionManager)tc).getRawTransaction()).elevate(Bytes.toBytes(Long.toString(td.getHeapConglomerateId())));
         tc.addColumnToConglomerate(td.getHeapConglomerateId(), colNumber, storableDV,  columnInfo[ix].dataType.getCollationType());
 
         UUID defaultUUID = columnInfo[ix].newDefaultUUID;

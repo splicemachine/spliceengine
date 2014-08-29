@@ -2115,11 +2115,7 @@ public class SpliceTransactionManager implements XATransactionController,
       Txn txn = ((SpliceTransaction)rawtran).getActiveStateTxn();
       if(!readOnly){
           txnName = AccessFactoryGlobals.NESTED_UPDATE_USER_TRANS;
-          try {
-              ((SpliceTransaction) rawtran).elevate(Bytes.toBytes("unknown")); //TODO -sf- replace this with a known destination table
-          } catch (IOException e) {
-              throw Exceptions.parseException(e);
-          }
+          ((SpliceTransaction) rawtran).elevate(Bytes.toBytes("unknown")); //TODO -sf- replace this with a known destination table
           txn = ((SpliceTransaction)rawtran).getTxn();
       }else
         txnName = AccessFactoryGlobals.NESTED_READONLY_USER_TRANS;

@@ -1,15 +1,24 @@
 package com.splicemachine.derby.impl.sql.catalog;
 
+import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.impl.store.access.SpliceTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.utils.Exceptions;
 import org.apache.derby.catalog.AliasInfo;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.db.Database;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.cache.Cacheable;
+import org.apache.derby.iapi.services.context.ContextService;
+import org.apache.derby.iapi.services.monitor.Monitor;
 import org.apache.derby.iapi.services.sanity.SanityManager;
+import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.dictionary.*;
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.ScanQualifier;
+import org.apache.derby.iapi.store.access.AccessFactory;
 import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.Orderable;
@@ -21,6 +30,7 @@ import org.apache.log4j.Logger;
 import com.splicemachine.derby.impl.sql.depend.SpliceDependencyManager;
 import com.splicemachine.utils.SpliceLogUtils;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
@@ -276,8 +286,14 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
 
 	@Override
 	public void boot(boolean create, Properties startParams) throws StandardException {
-		SpliceLogUtils.trace(LOG, "boot with create=%s,startParams=%s",create,startParams);
-		super.boot(create, startParams);
+      SpliceLogUtils.trace(LOG, "boot with create=%s,startParams=%s",create,startParams);
+      if(create){
+          SpliceAccessManager af = (SpliceAccessManager)  Monitor.findServiceModule(this, AccessFactory.MODULE);
+          SpliceTransactionManager txnManager = (SpliceTransactionManager)af.getTransaction(ContextService.getFactory().getCurrentContextManager());
+          ((SpliceTransaction)txnManager.getRawTransaction()).elevate("boot".getBytes());
+      }
+
+      super.boot(create, startParams);
 	}
 
 	@Override
@@ -286,7 +302,30 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
 		return super.canSupport(startParams);
 	}
 
-	@Override
+    @Override
+    public void startWriting(LanguageConnectionContext lcc) throws StandardException {
+        BaseSpliceTransaction rawTransaction = ((SpliceTransactionManager) lcc.getTransactionExecute()).getRawTransaction();
+        assert rawTransaction instanceof SpliceTransaction : "Programmer Error: Cannot perform a data dictionary write with a non-SpliceTransaction";
+        SpliceTransaction txn = (SpliceTransaction)rawTransaction;
+        /*
+         * This is a bit of an awkward hack--at this stage, we need to ensure that the transaction
+         * allows writes, but we don't really know where it's going, except to the data dictionary (and
+         * therefore to system tables only)
+         *
+         * Thankfully, we only use the write-table transaction field to determine whether or not to
+         * pause DDL operations, which can only occur against non-system tables. Since we are indicating
+         * that this transaction will be writing to system tables, we don't have to worry about it.
+         *
+         * HOWEVER, it's possible that a transaction could modify both dictionary and non-dictionary tables.
+         * In that situation, we don't want to confuse people with which table is being modified. So to do this,
+         * we just only elevate the transaction if we absolutely have to.
+         */
+        if(!txn.allowsWrites())
+            txn.elevate("dictionary".getBytes());
+        super.startWriting(lcc);
+    }
+
+    @Override
 	public void addDescriptor(TupleDescriptor td, TupleDescriptor parent,
 			int catalogNumber, boolean duplicatesAllowed,
 			TransactionController tc) throws StandardException {
