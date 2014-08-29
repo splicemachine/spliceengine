@@ -56,6 +56,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 		//    private MultiFieldEncoder rowEncoder;
 		private SpliceRuntimeContext spliceRuntimeContext;
 		private byte[] rowKey = new byte[1];
+        private int rowsRead = 0;
 
 		public SpliceOperationRegionScanner(SpliceOperation topOperation,
 																				SpliceOperationContext context) throws StandardException, IOException {
@@ -129,6 +130,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 								 * If the bucket size ever grows beyond 256, we'll need to move to more
 								 * than 1 byte, which means we'll need to adjust this.
 								 */
+                                rowsRead++;
 								RowLocation location = topOperation.getCurrentRowLocation();
 								if(location!=null){
 										ByteSlice slice = ((HBaseRowLocation) location).getSlice();
@@ -176,7 +178,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 										}
 								}
 								//record statistics info
-								if(spliceRuntimeContext.shouldRecordTraceMetrics() && !metricsReported){
+								if(spliceRuntimeContext.shouldRecordTraceMetrics() && !metricsReported && rowsRead > 0){
 										String hostName = InetAddress.getLocalHost().getHostName(); //TODO -sf- this may not be correct
 										List<OperationRuntimeStats> stats = OperationRuntimeStats.getOperationStats(
 														topOperation,SpliceDriver.driver().getUUIDGenerator().nextUUID(),

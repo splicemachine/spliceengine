@@ -155,8 +155,10 @@ public class XPlainTreeNode {
                 String s = rs.getString(index);
                 f.set(this, s);
             } else {
-                Long l = rs.getLong(index);
-                f.set(this, l + f.getLong(this));
+                if (!isIdField(name)) {
+                    Long l = rs.getLong(index);
+                    f.set(this, l + f.getLong(this));
+                }
             }
         }
 
@@ -170,6 +172,12 @@ public class XPlainTreeNode {
         return (columnName.equals("HOST") ||
                 columnName.equals("REGION") ||
                 columnName.equals("OPERATIONTYPE"));
+    }
+
+    private boolean isIdField(String name) {
+        return (name.toUpperCase().equals("OPERATIONID") ||
+                name.toUpperCase().equals("STATEMENTID") ||
+                name.toUpperCase().equals("PARENTOPERATIONID"));
     }
 
     public boolean isTableScanOperation() {

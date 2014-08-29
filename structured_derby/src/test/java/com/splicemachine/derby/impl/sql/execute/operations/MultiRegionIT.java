@@ -1,11 +1,8 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.test.SlowTest;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
 
 import com.splicemachine.derby.utils.SpliceUtils;
 import org.apache.hadoop.hbase.HRegionInfo;
@@ -15,9 +12,11 @@ import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
+import org.junit.runner.Description;
 
 import java.io.IOException;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.List;
 
@@ -35,38 +34,35 @@ public class MultiRegionIT extends SpliceUnitTest {
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(spliceSchemaWatcher)
-            .around(spliceTableWatcher);
+            .around(spliceTableWatcher).around(new SpliceDataWatcher() {
+                @Override
+                protected void starting(Description description) {
+                    PreparedStatement ps;
+                    try {
+                        ps = spliceClassWatcher.prepareStatement(
+                                String.format("insert into %s (i, d) values (?, ?)", spliceTableWatcher));
+                        for (int j = 0; j < 100; ++j) {
+                            for (int i = 0; i < 10; i++) {
+                                ps.setInt(1, i);
+                                ps.setDouble(2, i*1.0);
+                                ps.execute();
+                            }
+                        }
+                        spliceClassWatcher.splitTable(TABLE_NAME, CLASS_NAME, 250);
+                        spliceClassWatcher.splitTable(TABLE_NAME, CLASS_NAME, 500);
+                        spliceClassWatcher.splitTable(TABLE_NAME, CLASS_NAME, 750);
+
+                    }  catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            });
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
-
-    /**
-     * This '@Before' method is ran before every '@Test' method
-     */
-    @Before
-    public void setUp() throws Exception {
-    	
-        Connection conn = methodWatcher.createConnection();
-        for (int j = 0 ; j < 100; ++j) {
-            for (int i=0; i<10; i++) {
-                conn.createStatement().execute(
-                    String.format("insert into %s (i, d) values (%d, %f)",
-                    		this.getTableReference(TABLE_NAME), i, i * 1.0));
-            }
-        }
-        ResultSet resultSet = conn.createStatement().executeQuery(
-                String.format("select * from %s", this.getTableReference(TABLE_NAME)));
-        Assert.assertEquals(1000, resultSetSize(resultSet));
-        resultSet.close();
-
-        spliceClassWatcher.splitTable(TABLE_NAME, CLASS_NAME, 250);
-        spliceClassWatcher.splitTable(TABLE_NAME, CLASS_NAME, 500);
-        spliceClassWatcher.splitTable(TABLE_NAME, CLASS_NAME, 750);
-    }
-
     
     @Test
-    public void test() throws Exception {
+    public void testStddevAndAutoTrace() throws Exception {
     	Connection conn = methodWatcher.createConnection();
 
         conn.createStatement().execute("call SYSCS_UTIL.SYSCS_PURGE_XPLAIN_TRACE()");
@@ -103,11 +99,10 @@ public class MultiRegionIT extends SpliceUnitTest {
         if (numRegions >=3) {
             Assert.assertTrue(count > 0);
         }
-
-        testDistinctCount();
     }
 
-    private void testDistinctCount() throws Exception {
+    @Test
+    public void testDistinctCount() throws Exception {
         Connection conn = methodWatcher.createConnection();
         ResultSet rs = conn.createStatement().executeQuery(
                 String.format("select count(distinct i) from %s", this.getTableReference(TABLE_NAME)));
@@ -117,11 +112,48 @@ public class MultiRegionIT extends SpliceUnitTest {
         }
         rs.close();
     }
+
     private int getNumOfRegions(String schemaName, String tableName) throws Exception {
         long conglomId = spliceClassWatcher.getConglomId(tableName, schemaName);
         HBaseAdmin admin = SpliceUtils.getAdmin();
         List<HRegionInfo> regions = admin.getTableRegions(Bytes.toBytes(Long.toString(conglomId)));
 
         return regions.size();
+    }
+
+    @Test
+    public void testAutoTraceOff() throws Exception {
+        Thread.sleep(5000);
+        Connection conn = methodWatcher.createConnection();
+
+        ResultSet rs =  conn.createStatement().executeQuery("select count(*) from sys.sysstatementhistory");
+        int before = 0;
+        if(rs.next()){
+            before = rs.getInt(1);
+        }
+        rs.close();
+
+        // turn off auto trace
+        conn.createStatement().execute("call SYSCS_UTIL.SYSCS_SET_AUTO_TRACE(0)");
+
+        rs = conn.createStatement().executeQuery(
+                String.format("select stddev_samp(i) from %s", this.getTableReference(TABLE_NAME)));
+
+        while(rs.next()){
+            Assert.assertEquals((int)rs.getDouble(1), 2);
+        }
+        rs.close();
+
+        // turn on auto trace
+        conn.createStatement().execute("call SYSCS_UTIL.SYSCS_SET_AUTO_TRACE(1)");
+
+        Thread.sleep(5000);
+        rs =  conn.createStatement().executeQuery("select count(*) from sys.sysstatementhistory");
+        int after = 0;
+        if(rs.next()){
+            after = rs.getInt(1);
+        }
+        rs.close();
+        Assert.assertTrue(before==after);
     }
 }
