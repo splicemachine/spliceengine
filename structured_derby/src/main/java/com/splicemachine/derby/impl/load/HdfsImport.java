@@ -301,11 +301,11 @@ public class HdfsImport {
         Txn parentTxn;
         try {
             parentTxn = ((SpliceTransaction)txn).elevate(conglomBytes);
-        } catch (IOException e) {
-            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        } catch (StandardException e) {
+            throw PublicAPI.wrapStandardException(e);
         }
 
-				Txn childTransaction;
+        Txn childTransaction;
 				try {
 						childTransaction = TransactionLifecycle.getLifecycleManager().beginChildTransaction(parentTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION, true, conglomBytes);
 				} catch (IOException e) {

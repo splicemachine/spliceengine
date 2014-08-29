@@ -250,7 +250,7 @@ public abstract class SpliceController implements ConglomerateController {
 				put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,SpliceConstants.PACKED_COLUMN_BYTES,data);
 		}
 
-    protected void elevateTransaction() throws IOException {
+    protected void elevateTransaction() throws StandardException {
         ((SpliceTransaction)trans).elevate(Bytes.toBytes(Long.toString(openSpliceConglomerate.getConglomerate().getContainerid())));
     }
 }

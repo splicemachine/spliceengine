@@ -39,7 +39,7 @@ public class HBaseController  extends SpliceController {
                 openSpliceConglomerate.getConglomerate().getContainerid(),row,trans.getTxnInformation());
         HTableInterface htable = SpliceAccessManager.getHTable(openSpliceConglomerate.getConglomerate().getContainerid());
         try {
-            elevateTransaction();
+//            elevateTransaction();
             Put put = SpliceUtils.createPut(SpliceUtils.getUniqueKey(), ((SpliceTransaction)trans).getTxn());
 
             encodeRow(row,put,null,null);
@@ -66,7 +66,7 @@ public class HBaseController  extends SpliceController {
 
         HTableInterface htable = SpliceAccessManager.getHTable(openSpliceConglomerate.getConglomerate().getContainerid());
         try {
-            elevateTransaction();
+//            elevateTransaction();
             Put put = SpliceUtils.createPut(SpliceUtils.getUniqueKey(), ((SpliceTransaction)trans).getTxn());
             encodeRow(row, put, null, null);
             destRowLocation.setValue(put.getRow());
@@ -90,7 +90,7 @@ public class HBaseController  extends SpliceController {
         HTableInterface htable = SpliceAccessManager.getHTable(openSpliceConglomerate.getConglomerate().getContainerid());
         try {
 
-            elevateTransaction();
+//            elevateTransaction();
             Put put = SpliceUtils.createPut(loc.getBytes(),((SpliceTransaction)trans).getTxn());
 
             encodeRow(row, put, SpliceUtils.bitSetToMap(validColumns), validColumns);

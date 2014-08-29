@@ -61,7 +61,7 @@ public class IndexController  extends SpliceController  {
 				try {
 						boolean[] order = ((IndexConglomerate)this.openSpliceConglomerate.getConglomerate()).getAscDescInfo();
 						byte[] rowKey = generateIndexKey(row, order);
-            elevateTransaction();
+//            elevateTransaction();
 						Put put = SpliceUtils.createPut(rowKey,((SpliceTransaction)trans).getTxn());
 						encodeRow(row, put,null,null);
 						htable.put(put);
@@ -82,7 +82,7 @@ public class IndexController  extends SpliceController  {
 						boolean[] order = ((IndexConglomerate)this.openSpliceConglomerate.getConglomerate()).getAscDescInfo();
 						byte[] rowKey = generateIndexKey(row, order);
 
-            elevateTransaction();
+//            elevateTransaction();
 						Put put = SpliceUtils.createPut(rowKey,((SpliceTransaction)trans).getTxn());
 						encodeRow(row, put,null,null);
 
