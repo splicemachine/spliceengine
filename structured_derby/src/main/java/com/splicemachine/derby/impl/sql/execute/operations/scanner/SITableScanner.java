@@ -194,6 +194,7 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 								currentRowLocation = null;
 								return null;
 						}else{
+                                updatePredicateFilterIfNecessary(keyValues.get(0));
 								if(template.nColumns()>0){
 										if(!filterRowKey(keyValues.get(0))||!filterRow(filter)){
 												//filter the row first, then filter the row key
@@ -250,11 +251,7 @@ public class SITableScanner implements StandardIterator<ExecRow>{
         return regionScanner.getBytesVisited();
     }
 
-    public void setPredicates(ObjectArrayList<Predicate> newPredicates){
-        predicateFilter.setValuePredicates(newPredicates);
-    }
-
-/*********************************************************************************************************************/
+    /*********************************************************************************************************************/
 		/*Private helper methods*/
 		private Supplier<MultiFieldDecoder> getKeyDecoder(FormatableBitSet accessedPks,
 																											int[] allPkColumns,
@@ -277,42 +274,55 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 
 		@SuppressWarnings("unchecked")
 		private SIFilter getSIFilter() throws IOException {
-				if(siFilter==null){
-						boolean isCountStar = scan.getAttribute(SIConstants.SI_COUNT_STAR)!=null;
-						predicateFilter= decodePredicateFilter(checkForSkipScanFilters());
-						accumulator = ExecRowAccumulator.newAccumulator(predicateFilter, false, template, rowDecodingMap, tableVersion);
-						siFilter = filterFactory.newFilter(predicateFilter,getRowEntryDecoder(),accumulator,isCountStar);
+				if(siFilter==null) {
+					boolean isCountStar = scan.getAttribute(SIConstants.SI_COUNT_STAR)!=null;
+                    predicateFilter= buildInitialPredicateFilter();
+					accumulator = ExecRowAccumulator.newAccumulator(predicateFilter, false, template, rowDecodingMap, tableVersion);
+					siFilter = filterFactory.newFilter(predicateFilter,getRowEntryDecoder(),accumulator,isCountStar);
 				}
 				return siFilter;
 		}
 
-    private ObjectArrayList<Predicate> checkForSkipScanFilters() throws IOException {
+    private void updatePredicateFilterIfNecessary(KeyValue kv) throws IOException {
         Filter filter = scan.getFilter();
         if(filter instanceof SkippingScanFilter){
             SkippingScanFilter ssF = (SkippingScanFilter)filter;
-            ssF.setSITableScanner(this);
-            return ssF.getNextPredicates();
+            predicateFilter.setValuePredicates(ssF.getNextPredicates(kv));
         }else if(filter instanceof FilterList){
             FilterList fl = (FilterList) filter;
             for(Filter f:fl.getFilters()){
                 if(f instanceof SkippingScanFilter){
                     SkippingScanFilter ssF = (SkippingScanFilter)f;
-                    ssF.setSITableScanner(this);
-                    return ssF.getNextPredicates();
+                    predicateFilter.setValuePredicates(ssF.getNextPredicates(kv));
                 }
             }
         }
-        return null;
     }
+
+    private boolean scanHasSkippingScanFilter() throws IOException {
+        Filter filter = scan.getFilter();
+        if(filter instanceof SkippingScanFilter){
+            return true;
+        }else if(filter instanceof FilterList){
+            FilterList fl = (FilterList) filter;
+            for(Filter f:fl.getFilters()){
+                if(f instanceof SkippingScanFilter){
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
 
     protected EntryDecoder getRowEntryDecoder() {
 				return new EntryDecoder();
 		}
 
-		private EntryPredicateFilter decodePredicateFilter(ObjectArrayList<Predicate> predicates) throws IOException {
+	private EntryPredicateFilter buildInitialPredicateFilter() throws IOException {
         EntryPredicateFilter entryPredicateFilter = EntryPredicateFilter.fromBytes(scan.getAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL));
         BitSet checkedColumns = entryPredicateFilter.getCheckedColumns();
-        if(predicates!=null){
+        if(scanHasSkippingScanFilter()){
                 /*
                  * We have to be careful--EMPTY_PREDICATE could have been returned, in which case
                  * setting predicates can cause all kinds of calamituous behavior. To avoid that, when
@@ -321,10 +331,10 @@ public class SITableScanner implements StandardIterator<ExecRow>{
                  * one to avoid contamination.
                  *
                  */
-            entryPredicateFilter = new EntryPredicateFilter(checkedColumns,predicates,entryPredicateFilter.indexReturned());
+            return new EntryPredicateFilter(checkedColumns,new ObjectArrayList<Predicate>(),entryPredicateFilter.indexReturned());
         }
         return entryPredicateFilter;
-		}
+	}
 
 		protected void setRowLocation(KeyValue sampleKv) throws StandardException {
 				if(indexName!=null && template.nColumns() > 0 && template.getColumn(template.nColumns()).getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID){
