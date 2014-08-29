@@ -59,8 +59,8 @@ public class SIObserver extends BaseRegionObserver {
 		rollForwardQueue = new SIRollForwardQueue(
 				new NoOpRollForwardQueue(),
 				//				HTransactorFactory.getRollForwardFactory().delayedRollForward(new HbRegion(region)),
-				new NoOpRollForwardQueue()
-//				new PushForwardQueue(HTransactorFactory.getRollForwardFactory().pushForward(new HbRegion(region)))
+//				new NoOpRollForwardQueue()
+				new PushForwardQueue(HTransactorFactory.getRollForwardFactory().pushForward(new HbRegion(region)))
 				);
 
 //        rollForwardQueue = new NoOpRollForwardQueue();

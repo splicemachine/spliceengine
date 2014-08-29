@@ -96,7 +96,7 @@ public class SITransactor<Table,
 				OperationStatus[] operationStatuses = processPutBatch(table,rollForwardQueue,mutations);
 				switch(operationStatuses[0].getOperationStatusCode()){
 						case NOT_RUN:
-								return false;
+								throw new IOException("Could not acquire Lock");
 						case BAD_FAMILY:
 								throw new NoSuchColumnFamilyException(operationStatuses[0].getExceptionMsg());
 						case SANITY_CHECK_FAILURE:
