@@ -163,80 +163,64 @@ public class XPlainTrace1IT extends XPlainTrace {
         Assert.assertEquals(operation.getRemoteScanRows(), 2*nrows);
     }
 
-    /*@Test
+    @Test
     public void testXPlainTraceOnOff() throws Exception {
-        connection = SpliceNetConnection.getConnection();
-        statement = connection.createStatement();
-
-        // Turn on explain trace
-        statement.execute("call SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(1)");
-        statement.execute("call SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(1)");
-
+        xPlainTrace.turnOnTrace();
         String sql = "select * from " + CLASS_NAME + "." + TABLE1;
-        ResultSet rs = statement.executeQuery(sql);
+        ResultSet rs = xPlainTrace.executeQuery(sql);
         int c = 0;
         while (rs.next()) {
             ++c;
         }
+        rs.close();
         Assert.assertEquals(c, nrows);
-        statement.execute("call SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(0)");
-        statement.execute("call SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(0)");
+        xPlainTrace.turnOffTrace();
 
-        // Count the #of traced sql statements
-        sql = "select * from sys.sysstatementhistory";
-        rs = statement.executeQuery(sql);
-        int count = 0;
-        while (rs.next()) {
-            ++count;
-        }
-
-        // Execute the same statement. It should not be traced
-        sql = "select * from " + CLASS_NAME + "." + TABLE1;
-        rs = statement.executeQuery(sql);
-        c = 0;
-        while (rs.next()) {
-            ++c;
-        }
-        Assert.assertEquals(c, nrows);
-
-        sql = "select * from sys.sysstatementhistory";
-        rs = statement.executeQuery(sql);
-        c = 0;
-        while (rs.next()) {
-            ++c;
-        }
-        // # of traced statement should not change
-        Assert.assertEquals(c, count);
-
-        // Turn on xplain trace and run the same sql statement. It should be traced
-        statement.execute("call SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(1)");
-        statement.execute("call SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(1)");
-        sql = "select * from " + CLASS_NAME + "." + TABLE1;
-        rs = statement.executeQuery(sql);
-        c = 0;
-        while (rs.next()) {
-            ++c;
-        }
-        Assert.assertEquals(c, nrows);
         long statementId = 0;
-        rs = statement.executeQuery("call SYSCS_UTIL.SYSCS_GET_XPLAIN_STATEMENTID()");
+        rs = xPlainTrace.executeQuery("call SYSCS_UTIL.SYSCS_GET_XPLAIN_STATEMENTID()");
         if (rs.next()) {
             statementId = rs.getLong(1);
         }
-        waitForStatement(statementId);
-        statement.execute("call SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(0)");
-        statement.execute("call SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(0)");
+        rs.close();
+        Assert.assertTrue(statementId != 0);
+        XPlainTreeNode operation = xPlainTrace.getOperationTree();
+        Assert.assertTrue(operation!=null);
 
-        sql = "select * from sys.sysstatementhistory";
-        rs = statement.executeQuery(sql);
+        // Execute the same statement. It should not be traced
+        rs = xPlainTrace.executeQuery(sql);
         c = 0;
         while (rs.next()) {
             ++c;
         }
-        // # of traced statement should increase by 2:
-        // 1 for the sql statement, 1 for call SYSCS_UTIL.SYSCS_GET_XPLAIN_STATEMENTID()
-        Assert.assertEquals(c, count+2);
-    }*/
+        rs.close();
+        Assert.assertEquals(c, nrows);
+
+        rs = xPlainTrace.executeQuery("call SYSCS_UTIL.SYSCS_GET_XPLAIN_STATEMENTID()");
+        long id = statementId;
+        if (rs.next()) {
+            statementId = rs.getLong(1);
+        }
+        rs.close();
+        Assert.assertTrue(statementId == id);
+
+        // Turn on xplain trace and run the same sql statement. It should be traced
+        xPlainTrace.turnOnTrace();
+        rs = xPlainTrace.executeQuery(sql);
+        c = 0;
+        while (rs.next()) {
+            ++c;
+        }
+        rs.close();
+        Assert.assertEquals(c, nrows);
+
+        rs = xPlainTrace.executeQuery("call SYSCS_UTIL.SYSCS_GET_XPLAIN_STATEMENTID()");
+        if (rs.next()) {
+            statementId = rs.getLong(1);
+        }
+        rs.close();
+        Assert.assertTrue(statementId != 0 && statementId != id);
+        xPlainTrace.turnOffTrace();
+    }
 
     @Test
     public void testTableScan() throws Exception {
@@ -289,7 +273,6 @@ public class XPlainTrace1IT extends XPlainTrace {
         Assert.assertEquals(child.getWriteRows(), 1);
     }
 
-    @Ignore
     @Test
     public void testNestedLoopJoin() throws Exception {
 
@@ -339,9 +322,8 @@ public class XPlainTrace1IT extends XPlainTrace {
         Assert.assertTrue(operationType.contains(SpliceXPlainTrace.TABLESCAN));
         Assert.assertEquals(child.getLocalScanRows(), nrows*nrows);
         Assert.assertEquals(child.getOutputRows(), nrows*nrows);
-        //Assert.assertEquals(child.getFilteredRows(), nrows*nrows - count);
         Assert.assertEquals(child.getIterations(), nrows);
         Assert.assertTrue(child.getInfo().compareToIgnoreCase("table:XPLAINTRACE1IT.TAB2")==0);
-        //Assert.assertTrue(child.getInfo().contains("Scan filter:(T1.I[2:1] = (T2.I[1:1] * 2)), table:"));
+
     }
 }
