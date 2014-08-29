@@ -9,14 +9,9 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
+import com.google.common.collect.Lists;
 import org.apache.commons.dbutils.BasicRowProcessor;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.hbase.util.Pair;
@@ -242,41 +237,19 @@ public class TestUtils {
      *  comparing as is, then all rows are compacted, sorted and compared.
      * </p>
      */
-    public static class FormattedResult implements Comparable<FormattedResult> {
+    public static class FormattedResult {
         private final String query;
         private final List<String> columns;
-        private final Map<String, List<String>> rowKeyToRows;
+        private final List<List<String>> rows;
 
-        private FormattedResult(String query, List<String> columns, Map<String, List<String>> rowKeyToRows) {
+        private FormattedResult(String query, List<String> columns, List<List<String>> rows) {
             this.query = query;
             this.columns = columns;
-            this.rowKeyToRows = rowKeyToRows;
-        }
-
-        @Override
-        public int compareTo(FormattedResult that) {
-            int colCompare = ResultFactory.hashList(this.columns).compareTo(ResultFactory.hashList(that.columns));
-            if (colCompare != 0) {
-                return colCompare;
-            }
-            List<String> thisRowKeys = this.getSortedRowKeys();
-            List<String> thatRowKeys = that.getSortedRowKeys();
-            if (thisRowKeys.size() < thatRowKeys.size()) {
-                return -1;
-            } else if (thisRowKeys.size() > thatRowKeys.size()) {
-                return +1;
-            }
-            for (int i=0; i<thisRowKeys.size(); i++) {
-                int comp = thisRowKeys.get(i).compareTo(thatRowKeys.get(i));
-                if (comp != 0) {
-                    return comp;
-                }
-            }
-            return 0;
+            this.rows = rows;
         }
 
         public int size() {
-            return this.rowKeyToRows.size();
+            return this.rows.size();
         }
 
         @Override
@@ -299,11 +272,11 @@ public class TestUtils {
             }
             buf.append("\n");
 
-            List<String> rowKeys = new ArrayList<String>(this.rowKeyToRows.keySet());
-            Collections.sort(rowKeys);
-            for (String rowKey : rowKeys) {
+            List<List<String>> sortedRows = Lists.newArrayList(rows);
+            Collections.sort(sortedRows, new ListComparator());
+            for (List<String> row : sortedRows) {
                 int i=0;
-                for (String colVal : this.rowKeyToRows.get(rowKey)) {
+                for (String colVal : row) {
                     Pair<String,String> pad = getPad(colVal.length(), colWidth.get(i++));
                     buf.append(pad.getFirst()).append(colVal).append(pad.getSecond()).append('|');
                 }
@@ -330,17 +303,11 @@ public class TestUtils {
 
         private int getMaxWidth(int min, int colIndex) {
             int maxWidth = (min % 2 == 0 ? min : min +1);
-            for (List<String> row : this.rowKeyToRows.values()) {
+            for (List<String> row : this.rows) {
                 String colVal = row.get(colIndex);
                 maxWidth = Math.max(maxWidth,colVal.length());
             }
             return maxWidth;
-        }
-
-        private List<String> getSortedRowKeys() {
-            List<String> rowKeys = new ArrayList<String>(this.rowKeyToRows.keySet());
-            Collections.sort(rowKeys);
-            return rowKeys;
         }
 
         public static class ResultFactory {
@@ -357,7 +324,7 @@ public class TestUtils {
              */
             public static FormattedResult convert(String query, String columnStr, List<String> rows, String columnSeparator) {
                 List<String> columns = new ArrayList<String>();
-                Map<String,List<String>> rowKeyToRows = new HashMap<String, List<String>>();
+                List<List<String>> rowKeyToRows = new ArrayList<List<String>>();
                 columns.addAll(Arrays.asList(columnStr.split(columnSeparator)));
 
                 for (String rowStr : rows) {
@@ -365,13 +332,14 @@ public class TestUtils {
                     for (String columnValue : rowStr.split(columnSeparator)) {
                         row.add((columnValue.contains("(null)") ? "NULL" : columnValue.trim()));
                     }
-                    rowKeyToRows.put(hashList(row), row);
+                    rowKeyToRows.add(row);
                 }
                 return new FormattedResult(query, columns, rowKeyToRows);
             }
 
             /**
              * Converts actual results to a <code>FormattedResult</code>
+             *
              * @param query the query string
              * @param rs the JDBC ResultSet to convert.  ResultSet rows will be sorted for comparison.
              * @return FormattedResult
@@ -379,35 +347,46 @@ public class TestUtils {
              */
             public static FormattedResult convert(String query, ResultSet rs) throws Exception {
                 List<String> columns = new ArrayList<String>();
-                Map<String,List<String>> rowKeyToRows = new HashMap<String, List<String>>();
-                ResultSetMetaData rsmd = rs.getMetaData();
-                int nCols = rsmd.getColumnCount();
+                List<List<String>> rows = new ArrayList<List<String>>();
+                ResultSetMetaData metaData = rs.getMetaData();
+                int nCols = metaData.getColumnCount();
 
                 boolean gotColumnNames = false;
                 while (rs.next()) {
                     List<String> row = new ArrayList<String>();
                     for (int i = 1; i <= nCols; i++) {
                         if (! gotColumnNames) {
-                            columns.add(rsmd.getColumnName(i).trim());
+                            columns.add(metaData.getColumnName(i).trim());
                         }
                         Object value = rs.getObject(i);
                         row.add((value != null ? value.toString().trim() : "NULL"));
                     }
-                    rowKeyToRows.put(hashList(row), row);
+                    rows.add(row);
                     gotColumnNames = true;
                 }
-                return new FormattedResult(query, columns, rowKeyToRows);
+                return new FormattedResult(query, columns, rows);
             }
 
-            private static String hashList(List<String> row) {
-                StringBuilder buf = new StringBuilder();
-                for (String colVal : row) {
-                    buf.append(colVal);
-                }
-                return buf.toString();
+            /** Convert the ResultSet to a FormattedResult and return the trimmed string version of that */
+            public static String toString(ResultSet rs) throws Exception {
+                return convert("", rs).toString().trim();
             }
+
         }
 
+    }
+
+    private static class ListComparator implements Comparator<List<String>> {
+        @Override
+        public int compare(List<String> list1, List<String> list2) {
+            for (int i = 0; i < list1.size(); i++) {
+                int c = list1.get(i).compareTo(list2.get(i));
+                if (c != 0) {
+                    return c;
+                }
+            }
+            return 0;
+        }
     }
 
 }
