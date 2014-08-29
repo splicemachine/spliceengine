@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations.joins;
 
 import com.splicemachine.derby.test.framework.DefaultedSpliceWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.test_tools.IntegerRows;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -52,6 +53,43 @@ public class HashNestedLoopJoinIT {
                 " 2 |20 | 2 |20 |\n" +
                 " 3 |30 | 3 |30 |\n" +
                 " 4 |40 | 4 |40 |";
+
+        assertEquals(EXPECTED, ResultFactory.toString(rs));
+    }
+
+    /* DB-1715: rows were dropped from the expected result set */
+    @Test
+    public void expectedRowsPresentBigTableLotsOfPredicates() throws Exception {
+
+        Connection conn = watcher.getOrCreateConnection();
+
+        TableCreator tableCreator = new TableCreator(watcher.getOrCreateConnection())
+                .withCreate("create table %s (c1 int, c2 int, c3 int, c4 int, c5 int, primary key(c1))")
+                .withInsert("insert into %s values(?,?,?,?,?)")
+                .withRows(new IntegerRows(1000, 5));
+
+        tableCreator.withTableName("A").create();
+        tableCreator.withTableName("B").create();
+
+        String JOIN_SQL = "select * from --SPLICE-PROPERTIES joinOrder=fixed\n" +
+                "A inner join B --SPLICE-PROPERTIES joinStrategy=HASH\n" +
+                "on A.c1 = B.c1" +
+                " where A.c2 > 1 AND" +
+                " (" +
+                " B.c5=3379 or " +
+                " B.c4=98 or" +
+                " B.c2=99999999 or " +
+                " (B.c2=106 and B.c3=107 and B.c4=108 and B.c5=109)" +
+                ")";
+
+        ResultSet rs = conn.createStatement().executeQuery(JOIN_SQL);
+
+        String EXPECTED = "" +
+                "C1  | C2  | C3  | C4  | C5  | C1  | C2  | C3  | C4  | C5  |\n" +
+                "------------------------------------------------------------\n" +
+                " 105 | 106 | 107 | 108 | 109 | 105 | 106 | 107 | 108 | 109 |\n" +
+                "3375 |3376 |3377 |3378 |3379 |3375 |3376 |3377 |3378 |3379 |\n" +
+                " 95  | 96  | 97  | 98  | 99  | 95  | 96  | 97  | 98  | 99  |";
 
         assertEquals(EXPECTED, ResultFactory.toString(rs));
     }
@@ -131,6 +169,7 @@ public class HashNestedLoopJoinIT {
 
         assertEquals(EXPECTED, ResultFactory.toString(rs));
     }
+
 
 }
 
