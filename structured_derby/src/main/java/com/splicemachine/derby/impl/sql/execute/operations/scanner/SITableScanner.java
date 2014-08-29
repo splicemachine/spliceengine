@@ -11,6 +11,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.operations.SkippingScanFilter;
 import com.splicemachine.derby.impl.store.ExecRowAccumulator;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
+import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.derby.utils.marshall.dvd.TypeProvider;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
@@ -40,7 +41,6 @@ import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.Filter;
-import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -59,6 +59,7 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 
 		private MeasuredRegionScanner regionScanner;
 		private final Scan scan;
+        private final SkippingScanFilter skippingScanFilter;
 		private final ExecRow template;
 		private final String tableVersion;
 		private final int[] rowDecodingMap;
@@ -128,6 +129,7 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 													final String tableVersion,
 													SIFilterFactory filterFactory) {
 				this.scan = scan;
+                this.skippingScanFilter = Scans.findSkippingScanFilter(this.scan);
 				this.template = template;
 				this.rowDecodingMap = rowDecodingMap;
 				this.keyColumnSortOrder = keyColumnSortOrder;
@@ -194,9 +196,10 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 								currentRowLocation = null;
 								return null;
 						}else{
-                                updatePredicateFilterIfNecessary(keyValues.get(0));
+                            KeyValue currentKeyValue = keyValues.get(0);
+                            updatePredicateFilterIfNecessary(currentKeyValue);
 								if(template.nColumns()>0){
-										if(!filterRowKey(keyValues.get(0))||!filterRow(filter)){
+										if(!filterRowKey(currentKeyValue)||!filterRow(filter)){
 												//filter the row first, then filter the row key
 												filterCounter.increment();
 												continue;
@@ -206,7 +209,7 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 										filterCounter.increment();
 										continue;
 								}
-								setRowLocation(keyValues.get(0));
+								setRowLocation(currentKeyValue);
 								return template;
 						}
 				}while(hasRow);
@@ -283,37 +286,12 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 				return siFilter;
 		}
 
+    /* SkippingScanFilter can have different predicates for every range */
     private void updatePredicateFilterIfNecessary(KeyValue kv) throws IOException {
-        Filter filter = scan.getFilter();
-        if(filter instanceof SkippingScanFilter){
-            SkippingScanFilter ssF = (SkippingScanFilter)filter;
-            predicateFilter.setValuePredicates(ssF.getNextPredicates(kv));
-        }else if(filter instanceof FilterList){
-            FilterList fl = (FilterList) filter;
-            for(Filter f:fl.getFilters()){
-                if(f instanceof SkippingScanFilter){
-                    SkippingScanFilter ssF = (SkippingScanFilter)f;
-                    predicateFilter.setValuePredicates(ssF.getNextPredicates(kv));
-                }
-            }
+        if(skippingScanFilter != null) {
+            predicateFilter.setValuePredicates(skippingScanFilter.getNextPredicates(kv));
         }
     }
-
-    private boolean scanHasSkippingScanFilter() throws IOException {
-        Filter filter = scan.getFilter();
-        if(filter instanceof SkippingScanFilter){
-            return true;
-        }else if(filter instanceof FilterList){
-            FilterList fl = (FilterList) filter;
-            for(Filter f:fl.getFilters()){
-                if(f instanceof SkippingScanFilter){
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
 
     protected EntryDecoder getRowEntryDecoder() {
 				return new EntryDecoder();
@@ -322,7 +300,7 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 	private EntryPredicateFilter buildInitialPredicateFilter() throws IOException {
         EntryPredicateFilter entryPredicateFilter = EntryPredicateFilter.fromBytes(scan.getAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL));
         BitSet checkedColumns = entryPredicateFilter.getCheckedColumns();
-        if(scanHasSkippingScanFilter()){
+        if(skippingScanFilter != null){
                 /*
                  * We have to be careful--EMPTY_PREDICATE could have been returned, in which case
                  * setting predicates can cause all kinds of calamituous behavior. To avoid that, when
