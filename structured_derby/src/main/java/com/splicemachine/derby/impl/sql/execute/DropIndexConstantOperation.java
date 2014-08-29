@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.sql.execute;
 import com.google.common.io.Closeables;
 import com.splicemachine.derby.impl.sql.execute.actions.IndexConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.index.SpliceIndexProtocol;
+import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
@@ -38,7 +39,7 @@ import java.util.List;
  * @author Scott Fines
  * Date: 3/4/14
  */
-public class DropIndexConstantOperation2 extends IndexConstantOperation{
+public class DropIndexConstantOperation extends IndexConstantOperation{
 		private String				fullIndexName;
 		private long				tableConglomerateId;
 		/**
@@ -53,8 +54,8 @@ public class DropIndexConstantOperation2 extends IndexConstantOperation{
 		 *  @param  tableConglomerateId	heap Conglomerate Id for table
 		 *
 		 */
-		public DropIndexConstantOperation2(String fullIndexName,String indexName,String tableName,
-																	 String schemaName, UUID tableId, long tableConglomerateId) {
+		public DropIndexConstantOperation(String fullIndexName, String indexName, String tableName,
+                                      String schemaName, UUID tableId, long tableConglomerateId) {
 				super(tableId, indexName, tableName, schemaName);
 				this.fullIndexName = fullIndexName;
 				this.tableConglomerateId = tableConglomerateId;
@@ -84,33 +85,49 @@ public class DropIndexConstantOperation2 extends IndexConstantOperation{
 				if(cd==null)
 						throw ErrorState.LANG_INDEX_NOT_FOUND_DURING_EXECUTION.newException(fullIndexName);
 
+        /*
+         * We cannot remove the index from the write pipeline until AFTER THE USER
+         * TRANSACTION completes, because ANY transaction which begins before the USER TRANSACTION
+         * commits must continue updating the index as if nothing is happening (in case the user
+         * aborts()). Therefore, the demarcation point for this DDL operation
+         * is the USER transaction. Thus, we have the following approach:
+         *
+         * 1. create a child transaction
+         * 2. drop the conglomerate within that child transaction
+         * 3. commit the child transaction (or abort() if a problem occurs)
+         * 4. Submit the USER transaction information to the write pipeline to create
+         * a write pipeline filter. This filter will allow transactions which begin
+         * before the USER transaction commits to continue writing to the index, while
+         * transactions which occur after the commit will not.
+         *
+         */
 				//drop the conglomerate in a child transaction
-				Txn metaTxn = drop(cd, td, sd, dd, lcc);
+				drop(cd, td, dd, lcc);
+        dropIndex(td,cd,(SpliceTransactionManager)lcc.getTransactionExecute());
 
-				//create a second nested transaction
-				TxnView parent = ((SpliceTransactionManager)tc).getActiveStateTxn();
-				try {
-            Txn pipelineTxn = TransactionLifecycle.getLifecycleManager().beginChildTransaction(parent, Txn.IsolationLevel.SNAPSHOT_ISOLATION, false,null);
-//						TransactionId pipelineTxn = HTransactorFactory.getTransactionManager().beginChildTransaction(parent, true,false);
-						List<TxnView> toIgnore = Arrays.asList(parent, pipelineTxn);
-						//wait to ensure that all previous transactions terminate
-						waitForConcurrentTransactions(pipelineTxn,toIgnore,tableConglomerateId);
-						//drop the index from the write pipeline
-						dropIndex(td,cd);
-
-						//TODO -sf- wait for all transactions to complete, then drop the
-						//physical hbase table
-            pipelineTxn.commit();
-//						HTransactorFactory.getTransactionManager().commit(pipelineTxn);
-
-				} catch (IOException e) {
-						throw Exceptions.parseException(e);
-				}
+//				//create a second nested transaction
+//				TxnView parent = ((SpliceTransactionManager)tc).getActiveStateTxn();
+//				try {
+//            Txn pipelineTxn = TransactionLifecycle.getLifecycleManager().beginChildTransaction(parent, Txn.IsolationLevel.SNAPSHOT_ISOLATION, false,null);
+//						List<TxnView> toIgnore = Arrays.asList(parent, pipelineTxn);
+//						//wait to ensure that all previous transactions terminate
+//						waitForConcurrentTransactions(pipelineTxn,toIgnore,tableConglomerateId);
+//						//drop the index from the write pipeline
+//						dropIndex(td,cd,);
+//
+//						//TODO -sf- wait for all transactions to complete, then drop the
+//						//physical hbase table
+//            pipelineTxn.commit();
+//				} catch (IOException e) {
+//						throw Exceptions.parseException(e);
+//				}
 		}
 
-		private void dropIndex(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor) throws StandardException {
+		private void dropIndex(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor,
+                           SpliceTransactionManager userTxnManager) throws StandardException {
 				final long tableConglomId = td.getHeapConglomerateId();
 				final long indexConglomId = conglomerateDescriptor.getConglomerateNumber();
+        final TxnView userTxn = userTxnManager.getRawTransaction().getActiveStateTxn();
 
 				//drop the index trigger from the main table
 				HTableInterface mainTable = SpliceAccessManager.getHTable(tableConglomId);
@@ -120,7 +137,7 @@ public class DropIndexConstantOperation2 extends IndexConstantOperation{
 										new Batch.Call<SpliceIndexProtocol, Void>() {
 												@Override
 												public Void call(SpliceIndexProtocol instance) throws IOException {
-														instance.dropIndex(indexConglomId,tableConglomId);
+														instance.dropIndex(indexConglomId,tableConglomId,userTxn.getTxnId());
 														return null;
 												}
 										}) ;
@@ -131,37 +148,31 @@ public class DropIndexConstantOperation2 extends IndexConstantOperation{
 				}
 		}
 
-		private Txn drop(ConglomerateDescriptor cd,
-											TableDescriptor td,
-											SchemaDescriptor sd,
-											DataDictionary dd,
-											LanguageConnectionContext lcc) throws StandardException {
-				TransactionController metaTxn = lcc.getTransactionExecute().startNestedUserTransaction(false, true);
+    private void drop(ConglomerateDescriptor cd,
+                      TableDescriptor td,
+                      DataDictionary dd,
+                      LanguageConnectionContext lcc) throws StandardException {
+        /*
+         * Manage the metadata changes necessary to drop a table. Will execute
+         * within a child transaction, and will commit that child transaction when completed.
+         * If a failure for any reason occurs, this will rollback the child transaction,
+         * then throw an exception
+         */
+        SpliceTransactionManager userTxnManager = (SpliceTransactionManager)lcc.getTransactionExecute();
+        SpliceTransactionManager metaTxnManager = (SpliceTransactionManager)userTxnManager.startNestedUserTransaction(false,false);
+        ((SpliceTransaction)metaTxnManager.getRawTransaction()).elevate("dictionary".getBytes());
+        try{
+            DependencyManager dm = dd.getDependencyManager();
+            dm.invalidateFor(cd,DependencyManager.DROP_INDEX,lcc);
 
-				DependencyManager dm = dd.getDependencyManager();
-				dm.invalidateFor(cd,DependencyManager.DROP_INDEX,lcc);
+            dd.dropStatisticsDescriptors(td.getUUID(),cd.getUUID(),metaTxnManager);
+            dd.dropConglomerateDescriptor(cd,metaTxnManager);
 
-				ConglomerateDescriptor[] congDescs = dd.getConglomerateDescriptors(cd.getConglomerateNumber());
-
-				boolean dropConglom = false;
-				ConglomerateDescriptor physicalCd;
-				if(congDescs.length==1)
-						dropConglom=true;
-				else{
-						physicalCd = cd.describeSharedConglomerate(congDescs,true);
-						IndexRowGenerator othersIRG = physicalCd.getIndexDescriptor();
-						boolean needNewConglomerate = (cd.getIndexDescriptor().isUnique() && !othersIRG.isUnique()) ||
-										(cd.getIndexDescriptor().isUniqueWithDuplicateNulls() && !othersIRG.isUniqueWithDuplicateNulls());
-						if(needNewConglomerate){
-								dropConglom = true;
-						}else
-								physicalCd = null;
-				}
-				dd.dropStatisticsDescriptors(td.getUUID(),cd.getUUID(),metaTxn);
-				dd.dropConglomerateDescriptor(cd,metaTxn);
-
-				td.removeConglomerateDescriptor(cd);
-				metaTxn.commit();
-        return ((SpliceTransaction)((SpliceTransactionManager)metaTxn).getRawTransaction()).getTxn();
+            td.removeConglomerateDescriptor(cd);
+        }catch(StandardException se){
+            metaTxnManager.abort();
+            throw se;
+        }
+        metaTxnManager.commit();
 		}
 }
