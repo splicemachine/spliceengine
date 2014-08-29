@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.job.scheduler;
 import com.google.common.base.Throwables;
 import com.splicemachine.job.Task;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
@@ -67,7 +68,11 @@ public class TaskCallable<T extends Task> implements Callable<Void> {
 								throw (InterruptedException)t;
 						}
 
-						SpliceLogUtils.error(WORKER_LOG,"task "+ Bytes.toLong(task.getTaskId())+" had an unexpected error",ee.getCause());
+            if(!(t instanceof StandardException)) //don't log StandardExceptions, since they are user-level errors
+                SpliceLogUtils.error(WORKER_LOG,"task "+ Bytes.toLong(task.getTaskId())+" had an unexpected error",t);
+            else if(WORKER_LOG.isDebugEnabled()) //if we have debug enabled, print the standards too
+                SpliceLogUtils.debug(WORKER_LOG,"task "+ Bytes.toLong(task.getTaskId())+" encountered a user-level error:",t);
+
 						try{
 								task.markFailed(ee.getCause());
 						}catch(ExecutionException failEx){

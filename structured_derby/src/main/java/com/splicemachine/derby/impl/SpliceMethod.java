@@ -1,62 +1,57 @@
 package com.splicemachine.derby.impl;
 
+import com.splicemachine.derby.utils.Exceptions;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.impl.sql.execute.BaseActivation;
 import org.apache.log4j.Logger;
 
-import com.splicemachine.utils.SpliceLogUtils;
-
 import java.lang.reflect.Method;
 import java.util.HashMap;
 
 public class SpliceMethod<T> {
-	private static Logger LOG = Logger.getLogger(SpliceMethod.class);
-	protected String methodName;
-	protected Activation activation;
-	protected Method method;
-	protected GeneratedMethod genMethod = null;
-	private static final HashMap<String,GeneratedMethod> directs;
-	 static {
-		directs = new HashMap<String,GeneratedMethod>(10);
-		for (int i = 0; i < 10; i++) {
-			directs.put("e"+i, new DirectCall(i));
-		}
-	 }	
-	
-	
-	public SpliceMethod() {
-		
-	}
-	public SpliceMethod(String methodName, Activation activation) {
-		this.methodName = methodName;
-		this.activation = activation;
-		genMethod = directs.get(methodName);
-	}
-	
-	@SuppressWarnings("unchecked")
-	public T invoke() throws StandardException{
-		if (genMethod != null)
-			return (T) genMethod.invoke(activation);
-		else { 	
-			try {
-				if (method == null)
-					method = activation.getClass().getMethod(methodName);
-				return (T) method.invoke(activation);
-			} catch (Exception e) {
-				SpliceLogUtils.logAndThrow(LOG, "error during invoke",
-						StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e));
-				return null;
-			} 
-		}
-	}
-	
-	static class DirectCall implements GeneratedMethod {
+    private static Logger LOG = Logger.getLogger(SpliceMethod.class);
+    protected String methodName;
+    protected Activation activation;
+    protected Method method;
+    private static final HashMap<String,GeneratedMethod> directs;
+    static {
+        directs = new HashMap<String,GeneratedMethod>(10);
+        for (int i = 0; i < 10; i++) {
+            directs.put("e"+i, new DirectCall(i));
+        }
+    }
+
+
+    public SpliceMethod() {
+
+    }
+    public SpliceMethod(String methodName, Activation activation) {
+        this.methodName = methodName;
+        this.activation = activation;
+    }
+
+    @SuppressWarnings("unchecked")
+    public T invoke() throws StandardException{
+        GeneratedMethod genMethod = directs.get(methodName);
+        if (genMethod != null)
+            return (T) genMethod.invoke(activation);
+        else {
+            try {
+                if (method == null)
+                    method = activation.getClass().getMethod(methodName);
+                return (T) method.invoke(activation);
+            } catch (Exception e) {
+                throw Exceptions.parseException(e);
+            }
+        }
+    }
+
+    static class DirectCall implements GeneratedMethod {
 		private final int which;
 		DirectCall(int which) {
 			this.which = which;

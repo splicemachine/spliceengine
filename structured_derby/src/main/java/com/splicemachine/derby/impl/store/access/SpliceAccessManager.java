@@ -930,6 +930,8 @@ public class SpliceAccessManager extends SpliceUtilities implements AccessFactor
 				// set up the property validation
 				pf = (PropertyFactory) Monitor.findServiceModule(this, org.apache.derby.iapi.reference.Module.PropertyFactory);
 
+        if(create)
+            ((SpliceTransaction)tc.getRawTransaction()).elevate("boot".getBytes());
 				// set up the transaction properties.  On J9, over NFS, runing on a
 				// power PC coprossor, the directories were created fine, but create
 				// db would fail when trying to create this first file in seg0.
