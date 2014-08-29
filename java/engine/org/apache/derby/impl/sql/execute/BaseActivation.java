@@ -93,6 +93,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 //    private static final Logger LOG = Logger.getLogger(BaseActivation.class);
 	private	LanguageConnectionContext	lcc;
 	protected ContextManager			cm;
+	protected DataValueFactory dvf;
 
 	protected ExecPreparedStatement preStmt;
 	protected ResultSet resultSet;
@@ -246,6 +247,8 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 
 		lcc = (LanguageConnectionContext) cm.getContext(LanguageConnectionContext.CONTEXT_ID);
 
+		dvf = lcc.getDataValueFactory();
+		
 		if (SanityManager.DEBUG) {
 			if (lcc == null)
 				SanityManager.THROWASSERT("lcc is null in activation type " + getClass());
@@ -1725,9 +1728,8 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 		Used by activations to generate data values.  Most DML statements
 		will use this method.  Possibly some DDL statements will, as well.
 	 */
-	public DataValueFactory getDataValueFactory()
-	{
-		return getLanguageConnectionContext().getDataValueFactory();
+	public DataValueFactory getDataValueFactory() {
+		return dvf;
 	}
 
 	/**
