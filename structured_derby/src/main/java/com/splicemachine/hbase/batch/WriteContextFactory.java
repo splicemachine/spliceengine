@@ -30,7 +30,7 @@ public interface WriteContextFactory<T> {
      */
     WriteContext createPassThrough(TxnView txn, T key, int expectedWrites, RegionCoprocessorEnvironment env) throws IOException,InterruptedException;
 
-    void dropIndex(long indexConglomId);
+    void dropIndex(long indexConglomId,TxnView txn);
 
     void addIndex(DDLChange ddlChange, int[] columnOrdring, int[] typeIds);
 

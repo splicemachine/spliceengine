@@ -4,6 +4,7 @@ import com.google.common.io.Closeables;
 import com.splicemachine.derby.ddl.DDLChange;
 import com.splicemachine.derby.ddl.TentativeIndexDesc;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.Exceptions;
@@ -323,6 +324,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
         TransactionController userTransaction = lcc.getTransactionExecute();
         //create the nested parent transaction
         TransactionController parentTransaction = lcc.getTransactionExecute().startNestedUserTransaction(false, true);
+        ((SpliceTransaction)((SpliceTransactionManager)parentTransaction).getRawTransaction()).elevate("index".getBytes());
 
         dd.startWriting(lcc);
         SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, parentTransaction, true) ;

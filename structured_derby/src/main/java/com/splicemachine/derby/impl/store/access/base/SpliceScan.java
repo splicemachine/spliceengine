@@ -192,8 +192,8 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 				if (currentResult == null)
 						throw StandardException.newException("Attempting to delete with a null current result");
 				try {
-            assert trans instanceof SpliceTransaction: "Programmer error: attempted a delete without the proper Transaction";
-            ((SpliceTransaction) trans).elevate(table.getTableName());
+//            assert trans instanceof SpliceTransaction: "Programmer error: attempted a delete without the proper Transaction";
+//            ((SpliceTransaction) trans).elevate(table.getTableName());
             SpliceUtils.doDelete(table, trans.getActiveStateTxn(), this.currentResult.getRow());
 						currentRowDeleted = true;
 						return true;
@@ -442,8 +442,8 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 				SpliceLogUtils.trace(LOG, "replace values for these valid Columns %s", validColumns);
 				try {
 						int[] validCols = SpliceUtils.bitSetToMap(validColumns);
-            assert trans instanceof SpliceTransaction: "Programmer error, attempting update with incorrect Transaction type";
-            ((SpliceTransaction)trans).elevate(table.getTableName());
+//            assert trans instanceof SpliceTransaction: "Programmer error, attempting update with incorrect Transaction type";
+//            ((SpliceTransaction)trans).elevate(table.getTableName());
 						Put put = SpliceUtils.createPut(currentRowLocation.getBytes(),trans.getActiveStateTxn());
 
 						DescriptorSerializer[] serializers = VersionedSerializers.forVersion("1.0",true).getSerializers(row);

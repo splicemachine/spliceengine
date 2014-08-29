@@ -91,53 +91,49 @@ public class CallStatementOperation extends NoRowsOperation {
 				return false;
 		}
 
-		private List<StatementInfo> dynamicStatementInfo;
-		private final RowProvider callableRowProvider = new SingleScanRowProvider(){
-				@Override public boolean hasNext() { return false; }
+    private List<StatementInfo> dynamicStatementInfo;
+    private final RowProvider callableRowProvider = new SingleScanRowProvider(){
+        @Override public boolean hasNext() { return false; }
 
-				@Override public ExecRow next() { return null; }
+        @Override public ExecRow next() { return null; }
 
-				@Override
-				public void open() {
-						SpliceLogUtils.trace(LOG, "open");
-						try {
-								setup();
-								if(timer==null)
-									timer = Metrics.newTimer();
+        @Override
+        public void open() throws StandardException{
+            SpliceLogUtils.trace(LOG, "open");
+            setup();
+            if(timer==null)
+                timer = Metrics.newTimer();
 
-								timer.startTiming();
-								startExecutionTime = System.currentTimeMillis();
-								Object invoked = methodCall.invoke();
-								ResultSet[][] dynamicResults = activation.getDynamicResults();
-								if(dynamicResults==null) {
-										dynamicStatementInfo = Collections.emptyList();
-										timer.stopTiming();
-										stopExecutionTime = System.currentTimeMillis();
-										return;
-								}
+            timer.startTiming();
+            startExecutionTime = System.currentTimeMillis();
+            Object invoked = methodCall.invoke();
+            ResultSet[][] dynamicResults = activation.getDynamicResults();
+            if(dynamicResults==null) {
+                dynamicStatementInfo = Collections.emptyList();
+                timer.stopTiming();
+                stopExecutionTime = System.currentTimeMillis();
+                return;
+            }
 
-								dynamicStatementInfo = Lists.newArrayListWithExpectedSize(dynamicResults.length);
-								for(ResultSet[] dResults:dynamicResults){
-										if(dResults==null) continue;
+            dynamicStatementInfo = Lists.newArrayListWithExpectedSize(dynamicResults.length);
+            for(ResultSet[] dResults:dynamicResults){
+                if(dResults==null) continue;
 
-										for(ResultSet rs:dResults){
-												if(rs==null) continue;
+                for(ResultSet rs:dResults){
+                    if(rs==null) continue;
 
-												if(rs instanceof EmbedResultSet){
-														org.apache.derby.iapi.sql.ResultSet underlyingSet = ((EmbedResultSet)rs).getUnderlyingResultSet();
-														if(underlyingSet instanceof OperationResultSet){
-																OperationResultSet ors = (OperationResultSet)underlyingSet;
-																dynamicStatementInfo.add(ors.getStatementInfo());
-														}
-												}
-										}
-								}
-								timer.stopTiming();
-								stopExecutionTime = System.currentTimeMillis();
-						} catch (StandardException e) {
-								SpliceLogUtils.logAndThrowRuntime(LOG, e);
-						}
-				}
+                    if(rs instanceof EmbedResultSet){
+                        org.apache.derby.iapi.sql.ResultSet underlyingSet = ((EmbedResultSet)rs).getUnderlyingResultSet();
+                        if(underlyingSet instanceof OperationResultSet){
+                            OperationResultSet ors = (OperationResultSet)underlyingSet;
+                            dynamicStatementInfo.add(ors.getStatementInfo());
+                        }
+                    }
+                }
+            }
+            timer.stopTiming();
+            stopExecutionTime = System.currentTimeMillis();
+        }
 
 				@Override
 				public void close() {

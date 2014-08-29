@@ -12,7 +12,6 @@ import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.hbase.batch.*;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.TransactionalRegion;
-import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.DDLFilter;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -48,7 +47,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
     private static final int writeBatchSize = Integer.MAX_VALUE;
 
     private final long congomId;
-    private final Set<IndexFactory> indexFactories = new CopyOnWriteArraySet<IndexFactory>();
+    private final Set<LocalWriteFactory> indexFactories = new CopyOnWriteArraySet<LocalWriteFactory>();
     private final Set<ConstraintFactory> constraintFactories = new CopyOnWriteArraySet<ConstraintFactory>();
     private final Set<DropColumnFactory> dropColumnFactories = new CopyOnWriteArraySet<DropColumnFactory>();
 
@@ -125,12 +124,12 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
 						}
 
             //add index handlers
-            for(IndexFactory indexFactory:indexFactories){
+            for(LocalWriteFactory indexFactory:indexFactories){
                 indexFactory.addTo(context,true,expectedWrites);
             }
 
             for(DropColumnFactory dropColumnFactory:dropColumnFactories) {
-                dropColumnFactory.addTo(context);
+                dropColumnFactory.addTo(context,true,expectedWrites);
             }
         }
     }
@@ -144,14 +143,18 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
     }
 
     @Override
-    public void dropIndex(long indexConglomId) { // XXX - TODO JLEACH - Cannot do this...
+    public void dropIndex(long indexConglomId,TxnView txn) {
         //ensure that all writes that need to be paused are paused
         synchronized (tableWriteLatch){
             tableWriteLatch.reset();
 
-            //drop the index
+            /*
+             * Drop the index. We cannot outright drop it, because
+             * existing transactions may be still using it. Instead,
+             * we replace it with a wrapped transaction
+             */
             try{
-                indexFactories.remove(IndexFactory.wrap(indexConglomId));
+                indexFactories.add(new DropIndexFactory(txn,IndexFactory.wrap(indexConglomId)));
             }finally{
                 tableWriteLatch.countDown();
             }
@@ -473,7 +476,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
 				}
 		}
 
-    private static class IndexFactory{
+    private static class IndexFactory implements LocalWriteFactory{
         private final long indexConglomId;
         private final byte[] indexConglomBytes;
         private final boolean isUnique;
@@ -565,6 +568,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
                     columnOrdering,formatIds);
         }
 
+        @Override
         public void addTo(PipelineWriteContext ctx,boolean keepState,int expectedWrites) throws IOException {
             IndexDeleteWriteHandler deleteHandler =
                     new IndexDeleteWriteHandler(indexedColumns, mainColToIndexPosMap, indexConglomBytes, descColumns,
@@ -609,7 +613,43 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
         }
     }
 
-    private static class DropColumnFactory  {
+    private static class DropIndexFactory implements LocalWriteFactory{
+        private TxnView txn;
+        private IndexFactory delegate;
+
+        private DropIndexFactory(TxnView txn, IndexFactory delegate) {
+            this.txn = txn;
+            this.delegate = delegate;
+        }
+
+        @Override
+        public void addTo(PipelineWriteContext ctx, boolean keepState, int expectedWrites) throws IOException {
+            /*
+             * We only want to add an entry if one of the following holds:
+             *
+             * 1. txn is not yet committed
+             * 2. ctx.txn.beginTimestamp < txn.commitTimestamp
+             */
+            boolean shouldAdd = false;
+            long commitTs = txn.getEffectiveCommitTimestamp();
+            if(commitTs>=0){
+                //we have been committed, so check to see if this transaction cares
+                shouldAdd = ctx.getTxn().getBeginTimestamp() < commitTs;
+            }
+            if(shouldAdd) delegate.addTo(ctx,keepState,expectedWrites);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if(o instanceof DropIndexFactory)
+                return delegate.equals(((DropIndexFactory) o).delegate);
+            else return o instanceof IndexFactory && delegate.equals(o);
+        }
+        @Override public int hashCode() { return delegate.hashCode(); }
+    }
+
+    private static class DropColumnFactory implements LocalWriteFactory{
         private UUID tableId;
         private TxnView txn;
         private long newConglomId;
@@ -645,7 +685,8 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
             return new DropColumnFactory(tableId, txn, newConglomId, columnInfos, droppedColumnPosition, ddlChange);
         }
 
-        public void addTo(PipelineWriteContext ctx) throws IOException{
+        @Override
+        public void addTo(PipelineWriteContext ctx,boolean keepState, int expectedWrites) throws IOException{
             DropColumnHandler handler = new DropColumnHandler(tableId, newConglomId, txn, columnInfos, droppedColumnPosition);
             if (ddlChange == null) {
                 ctx.addLast(handler);
