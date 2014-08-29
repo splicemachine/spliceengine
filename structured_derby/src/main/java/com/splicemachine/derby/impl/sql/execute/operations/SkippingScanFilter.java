@@ -1,13 +1,8 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.carrotsearch.hppc.ObjectArrayList;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.storage.EntryPredicateFilter;
-import com.splicemachine.storage.Predicate;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.filter.FilterBase;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -127,20 +122,6 @@ public class SkippingScanFilter extends FilterBase {
         currentStopKey = first.getSecond();
 
         matchesEverything = currentStartKey.length <= 0 && currentStopKey.length <= 0;
-    }
-
-    public ObjectArrayList<Predicate> getNextPredicates(KeyValue kv) throws IOException {
-        for (int i = 0; i < startStopKeys.size(); i++) {
-            Pair<byte[], byte[]> range = startStopKeys.get(i);
-            if (BytesUtil.isKeyValueInRange(kv, range)) {
-                return EntryPredicateFilter.fromBytes(predicates.get(i)).getValuePredicates();
-            }
-        }
-        /* No predicates for this KeyValue, return empty predicate list. */
-        ObjectArrayList<Predicate> EMPTY = EntryPredicateFilter.EMPTY_PREDICATE.getValuePredicates();
-        /* Returning a mutable constant (optimization) here, assumes caller will not modify! */
-        Preconditions.checkState(EMPTY.isEmpty());
-        return EMPTY;
     }
 
     public List<Pair<byte[], byte[]>> getStartStopKeys() {
