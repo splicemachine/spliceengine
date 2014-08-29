@@ -124,7 +124,7 @@ public class SpliceHTable extends HTable {
 
 										context = new ExecContext(resubmitKeys,context.errors,context.attemptCount+1);
 								}else{
-										throw ee.getCause();
+										throw ee;
 								}
 						}
 				}
