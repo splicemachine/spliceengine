@@ -1,6 +1,5 @@
-package com.splicemachine.constants.test;
+package com.splicemachine.constants.bytes;
 
-import com.splicemachine.constants.bytes.BytesUtil;
 import org.apache.hadoop.hbase.util.Pair;
 import org.junit.Assert;
 import org.junit.Test;
@@ -11,7 +10,7 @@ import java.util.Arrays;
 import java.util.Collection;
 
 @RunWith(Parameterized.class)
-public class BytesUtilTest {
+public class BytesUtil_ParameterizedTest {
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
@@ -33,7 +32,7 @@ public class BytesUtilTest {
 
     private final int[] intsToTest;
 
-    public BytesUtilTest(int[] intsToTest) {
+    public BytesUtil_ParameterizedTest(int[] intsToTest) {
         this.intsToTest = intsToTest;
     }
 

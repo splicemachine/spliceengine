@@ -1,11 +1,13 @@
 package com.splicemachine.test_tools;
 
+import com.google.common.collect.Lists;
 import org.apache.commons.dbutils.DbUtils;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.List;
 
 /**
  * Create tables and optionally insert data.
@@ -40,6 +42,7 @@ public class TableCreator {
     private String tableName;
     private String createSql;
     private String insertSql;
+    private List<String> indexSqlList = Lists.newArrayList();
     private Iterable<Iterable<Object>> rowProvider;
 
     public TableCreator(Connection connection) {
@@ -61,6 +64,11 @@ public class TableCreator {
         return this;
     }
 
+    public TableCreator withIndex(String sql) {
+        this.indexSqlList.add(sql);
+        return this;
+    }
+
     public TableCreator withRows(Iterable<Iterable<Object>> rowProvider) {
         this.rowProvider = rowProvider;
         return this;
@@ -68,6 +76,7 @@ public class TableCreator {
 
     public void create() throws SQLException {
         createTable();
+        createIndexes();
         if (rowProvider != null) {
             insertRows();
         }
@@ -80,6 +89,18 @@ public class TableCreator {
             statement.execute(CREATE_SQL);
         } finally {
             DbUtils.close(statement);
+        }
+    }
+
+    private void createIndexes() throws SQLException {
+        for (String indexSql : indexSqlList) {
+            String INDEX_SQL = tableName == null ? indexSql : String.format(indexSql, tableName);
+            Statement statement = connection.createStatement();
+            try {
+                statement.execute(INDEX_SQL);
+            } finally {
+                DbUtils.close(statement);
+            }
         }
     }
 
