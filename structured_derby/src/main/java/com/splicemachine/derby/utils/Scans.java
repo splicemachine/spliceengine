@@ -5,6 +5,7 @@ import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.sql.execute.operations.QualifierUtils;
+import com.splicemachine.derby.impl.sql.execute.operations.SkippingScanFilter;
 import com.splicemachine.storage.AndPredicate;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.OrPredicate;
@@ -16,6 +17,8 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.DataValueFactory;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.hbase.filter.FilterList;
 
 import java.io.IOException;
 
@@ -284,4 +287,22 @@ public class Scans extends SpliceUtils {
 						throw new IOException(e);
 				}
 		}
+
+    /**
+     * Return the scan's SkippingScanFilter if it has such, top level, or in a list (return first one)-- otherwise null.
+     */
+    public static SkippingScanFilter findSkippingScanFilter(Scan scan) {
+        Filter filter = scan.getFilter();
+        if(filter instanceof SkippingScanFilter){
+            return (SkippingScanFilter) filter;
+        }else if(filter instanceof FilterList){
+            FilterList fl = (FilterList) filter;
+            for(Filter f:fl.getFilters()){
+                if(f instanceof SkippingScanFilter){
+                    return (SkippingScanFilter) f;
+                }
+            }
+        }
+        return null;
+    }
 }
