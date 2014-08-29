@@ -6,13 +6,23 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.splicemachine.derby.impl.sql.compile.HashNestedLoopJoinStrategy;
 import com.splicemachine.utils.SpliceLogUtils;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.compile.AccessPath;
 import org.apache.derby.iapi.sql.compile.Optimizable;
-import org.apache.derby.impl.sql.compile.*;
+import org.apache.derby.impl.sql.compile.ColumnReference;
+import org.apache.derby.impl.sql.compile.FromBaseTable;
+import org.apache.derby.impl.sql.compile.HalfOuterJoinNode;
+import org.apache.derby.impl.sql.compile.IndexToBaseRowNode;
+import org.apache.derby.impl.sql.compile.JoinNode;
 import org.apache.derby.impl.sql.compile.Predicate;
+import org.apache.derby.impl.sql.compile.PredicateList;
+import org.apache.derby.impl.sql.compile.ProjectRestrictNode;
+import org.apache.derby.impl.sql.compile.ResultColumn;
+import org.apache.derby.impl.sql.compile.ResultColumnList;
+import org.apache.derby.impl.sql.compile.ResultSetNode;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
@@ -47,7 +57,7 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
         AccessPath ap = ((Optimizable) j.getRightResultSet()).getTrulyTheBestAccessPath();
         if (RSUtils.isHashableJoin(ap)){
             if(ap.getJoinStrategy() instanceof HashNestedLoopJoinStrategy)
-                return pullUpPreds(j,false);
+            	return pullUpPreds(j,false);
             else
                 return pullUpPreds(j,true);
         } else if (RSUtils.isNLJ(ap)){
