@@ -223,6 +223,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 						stats.setBufferFillRatio(buffer.getMaxFillRatio());
 				}
 				stats.addMetric(OperationMetric.INPUT_ROWS, aggregator.getRowsRead());
+                stats.addMetric(OperationMetric.OUTPUT_ROWS, aggregator.getRowsRead());
 
             if(regionScanner!=null && keyValues!=null){
 					//we are a scan

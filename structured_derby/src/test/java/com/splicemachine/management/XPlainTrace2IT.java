@@ -151,6 +151,7 @@ public class XPlainTrace2IT {
             Assert.assertEquals(operation.getOperationType().compareToIgnoreCase(SpliceXPlainTrace.SORT), 0);
             Assert.assertEquals(operation.getInputRows(), numLoops * nrows);
             Assert.assertEquals(operation.getWriteRows(), numLoops * nrows);
+            Assert.assertEquals(operation.getOutputRows(), numLoops * nrows);
         }
     }
 
