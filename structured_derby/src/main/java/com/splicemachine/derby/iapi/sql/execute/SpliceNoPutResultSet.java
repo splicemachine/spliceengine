@@ -183,7 +183,7 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 //				catch (IOException e) {
 //						throw Exceptions.parseException(e);
 //				}
-				boolean xplain = activation.getLanguageConnectionContext().getStatisticsTiming();
+				boolean xplain = activation.isTraced();
 				if(xplain){
 						String xplainSchema = activation.getLanguageConnectionContext().getXplainSchema();
 						long statementId = topOperation.getStatementId();

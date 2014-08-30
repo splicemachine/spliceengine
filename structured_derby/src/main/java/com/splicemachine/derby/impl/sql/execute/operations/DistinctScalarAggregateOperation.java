@@ -431,6 +431,9 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
 				}else if(step2Aggregator!=null){
 						//stats.addMetric(OperationMetric.INPUT_ROWS, step2Aggregator.getRowsRead());
 				}
+                if(step3Aggregator!=null){
+                    stats.addMetric(OperationMetric.OUTPUT_ROWS, timer.getNumEvents());
+                }
 
 				if(scanner!=null){
 						stats.addMetric(OperationMetric.LOCAL_SCAN_ROWS,scanner.getLocalRowsRead());
