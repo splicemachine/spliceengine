@@ -13,14 +13,14 @@
 	</parent>
 	<properties>
 		<guava.version>11.0.2</guava.version>
-    <junit.version>4.11</junit.version>
+		<junit.version>4.11</junit.version>
 	</properties>
 	<dependencies>
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>${junit.version}</version>
-    </dependency>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>${junit.version}</version>
+		</dependency>
 		<dependency>
 			<groupId>com.splicemachine</groupId>
 			<artifactId>structured_constants</artifactId>
@@ -157,7 +157,7 @@
 					<version>10.9.1.0</version>
 				</dependency>
 				<dependency>
-					<groupId>org.apache.derby</groupId>
+			<groupId>org.apache.derby</groupId>
 					<artifactId>derbytools</artifactId>
 					<version>10.9.1.0</version>
 				</dependency>

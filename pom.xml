@@ -38,14 +38,15 @@
 		<maven.compiler.source>1.6</maven.compiler.source>
 		<maven.compiler.target>1.6</maven.compiler.target>
 		<maven.jar.plugin.version>2.3.1</maven.jar.plugin.version>
-        <utilities.version>1.0-SNAPSHOT</utilities.version> <!-- Splice Internal Library -->
+		<utilities.version>1.0-SNAPSHOT</utilities.version>
+		<!-- Splice Internal Library -->
 		<log4j.version>1.2.15</log4j.version>
 		<derby.version>10.9.1.0-splice</derby.version>
 		<gson.version>2.2.2</gson.version>
 		<kryo.version>2.22</kryo.version>
-        <asynchbase.version>1.5.0-splice</asynchbase.version>
-        <stumbleasync.version>1.4.0</stumbleasync.version>
-        <protobuf.version>2.4.1</protobuf.version>
+		<asynchbase.version>1.5.0-splice</asynchbase.version>
+		<stumbleasync.version>1.4.0</stumbleasync.version>
+		<protobuf.version>2.4.1</protobuf.version>
 		<mockito.version>1.9.5</mockito.version>
 		<maven.build.timestamp.format>yyyy-MM-dd HH:mm Z</maven.build.timestamp.format>
 		<skip.integration.tests>true</skip.integration.tests>
@@ -56,73 +57,73 @@
 		<envClassifier/>
 		<excluded.categories>com.splicemachine.test.SlowTest</excluded.categories>
 	</properties>
-		<dependencies>
-			<dependency>
+	<dependencies>
+		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 			<version>${junit.version}</version>
-            <scope>test</scope>
+			<scope>test</scope>
 		</dependency>
-        <dependency>
-            <groupId>org.hbase</groupId>
-            <artifactId>asynchbase</artifactId>
-            <version>${asynchbase.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.slf4j</groupId>
-                    <artifactId>slf4j-api</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.slf4j</groupId>
-                    <artifactId>slf4j-log4j12</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.slf4j</groupId>
-                    <artifactId>log4j-over-slf4j</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.google.protobuf</groupId>
-                    <artifactId>protobuf-java</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.stumbleupon</groupId>
-                    <artifactId>async</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.apache.zookeeper</groupId>
-                    <artifactId>zookeeper</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>net.sourceforge.findbugs</groupId>
-            <artifactId>jsr305</artifactId>
-            <version>1.3.7</version>
-        </dependency>
-        <dependency>
-            <groupId>com.stumbleupon</groupId>
-            <artifactId>async</artifactId>
-            <version>${stumbleasync.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.slf4j</groupId>
-                    <artifactId>slf4j-api</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.slf4j</groupId>
-                    <artifactId>slf4j-log4j12</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.slf4j</groupId>
-                    <artifactId>log4j-over-slf4j</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>com.google.protobuf</groupId>
-            <artifactId>protobuf-java</artifactId>
-            <version>${protobuf.version}</version>
-        </dependency>
+		<dependency>
+			<groupId>org.hbase</groupId>
+			<artifactId>asynchbase</artifactId>
+			<version>${asynchbase.version}</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-log4j12</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>log4j-over-slf4j</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>com.google.protobuf</groupId>
+					<artifactId>protobuf-java</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>com.stumbleupon</groupId>
+					<artifactId>async</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.apache.zookeeper</groupId>
+					<artifactId>zookeeper</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>net.sourceforge.findbugs</groupId>
+			<artifactId>jsr305</artifactId>
+			<version>1.3.7</version>
+		</dependency>
+		<dependency>
+			<groupId>com.stumbleupon</groupId>
+			<artifactId>async</artifactId>
+			<version>${stumbleasync.version}</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-log4j12</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>log4j-over-slf4j</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>com.google.protobuf</groupId>
+			<artifactId>protobuf-java</artifactId>
+			<version>${protobuf.version}</version>
+		</dependency>
 	</dependencies>
 	<build>
 		<extensions>
@@ -152,12 +153,12 @@
 					<configuration>
 						<classifier>${envClassifier}</classifier>
 						<archive>
-              <manifestEntries>
-                <Implementation-Version>${buildNumber}</Implementation-Version>
-                <Release>${project.version}</Release>
-                <Build-Time>${maven.build.timestamp}</Build-Time>
-                <URL>http://www.splicemachine.com</URL>
-              </manifestEntries>
+							<manifestEntries>
+								<Implementation-Version>${buildNumber}</Implementation-Version>
+								<Release>${project.version}</Release>
+								<Build-Time>${maven.build.timestamp}</Build-Time>
+								<URL>http://www.splicemachine.com</URL>
+							</manifestEntries>
 						</archive>
 						<excludes>
 							<exclude>**/*log4j.properties</exclude>
@@ -207,58 +208,58 @@
 					</excludes>
 				</configuration>
 			</plugin>
-            <plugin>
-                <artifactId>maven-failsafe-plugin</artifactId>
-                <version>2.17</version>
-                <executions>
-                    <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: SERIAL -->
-                    <execution>
-                        <id>integration-tests-serial</id>
-                        <goals>
-                            <goal>integration-test</goal>
-                            <goal>verify</goal>
-                        </goals>
-                        <configuration>
-                            <groups>com.splicemachine.test.SerialTest</groups>
-                            <excludedGroups>${excluded.categories}</excludedGroups>
-                            <skipTests>${skip.integration.tests}</skipTests>
-                            <argLine>-Xmx3g</argLine>
-                            <redirectTestOutputToFile>true</redirectTestOutputToFile>
-                            <includes>
-                                <include>**/*IT.java</include>
-                            </includes>
-                            <excludes>
-                                <!-- Skip all unit tests -->
-                                <exclude>**/*Test.java</exclude>
-                            </excludes>
-                        </configuration>
-                    </execution>
-                    <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: PARALLEL -->
-                    <execution>
-                        <id>integration-tests-parallel</id>
-                        <goals>
-                            <goal>integration-test</goal>
-                            <goal>verify</goal>
-                        </goals>
-                        <configuration>
-                            <excludedGroups>com.splicemachine.test.SerialTest, ${excluded.categories}</excludedGroups>
-                            <skipTests>${skip.integration.tests}</skipTests>
-                            <parallel>classes</parallel>
-                            <threadCount>1</threadCount>
-                            <perCoreThreadCount>false</perCoreThreadCount>
-                            <argLine>-Xmx3g</argLine>
-                            <redirectTestOutputToFile>true</redirectTestOutputToFile>
-                            <includes>
-                                <include>**/*IT.java</include>
-                            </includes>
-                            <excludes>
-                                <!-- Skip all unit tests -->
-                                <exclude>**/*Test.java</exclude>
-                            </excludes>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
+			<plugin>
+				<artifactId>maven-failsafe-plugin</artifactId>
+				<version>2.17</version>
+				<executions>
+					<!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: SERIAL -->
+					<execution>
+						<id>integration-tests-serial</id>
+						<goals>
+							<goal>integration-test</goal>
+							<goal>verify</goal>
+						</goals>
+						<configuration>
+							<groups>com.splicemachine.test.SerialTest</groups>
+							<excludedGroups>${excluded.categories}</excludedGroups>
+							<skipTests>${skip.integration.tests}</skipTests>
+							<argLine>-Xmx3g</argLine>
+							<redirectTestOutputToFile>true</redirectTestOutputToFile>
+							<includes>
+								<include>**/*IT.java</include>
+							</includes>
+							<excludes>
+								<!-- Skip all unit tests -->
+								<exclude>**/*Test.java</exclude>
+							</excludes>
+						</configuration>
+					</execution>
+					<!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: PARALLEL -->
+					<execution>
+						<id>integration-tests-parallel</id>
+						<goals>
+							<goal>integration-test</goal>
+							<goal>verify</goal>
+						</goals>
+						<configuration>
+							<excludedGroups>com.splicemachine.test.SerialTest, ${excluded.categories}</excludedGroups>
+							<skipTests>${skip.integration.tests}</skipTests>
+							<parallel>classes</parallel>
+							<threadCount>1</threadCount>
+							<perCoreThreadCount>false</perCoreThreadCount>
+							<argLine>-Xmx3g</argLine>
+							<redirectTestOutputToFile>true</redirectTestOutputToFile>
+							<includes>
+								<include>**/*IT.java</include>
+							</includes>
+							<excludes>
+								<!-- Skip all unit tests -->
+								<exclude>**/*Test.java</exclude>
+							</excludes>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 	</build>
 	<reporting>
@@ -286,11 +287,11 @@
 	</pluginRepositories>
 	<repositories>
 
-        <!--
-        SPLICEMACHINE GROUP REPO: This is our single repo URL that proxies and caches other repos. Currently it
-        is proxying: maven central, splice releases, splice snapshots, splice 3rd party.  To view/edit configured
-        repos in the group log into nexus, select repository "Splice Developers", view Configuration tab.
-        -->
+		<!--
+		SPLICEMACHINE GROUP REPO: This is our single repo URL that proxies and caches other repos. Currently it
+		is proxying: maven central, splice releases, splice snapshots, splice 3rd party.  To view/edit configured
+		repos in the group log into nexus, select repository "Splice Developers", view Configuration tab.
+		-->
 		<repository>
 			<id>splicemachine</id>
 			<url>http://nexus.splicemachine.com/nexus/content/groups/developers</url>
@@ -377,7 +378,7 @@
 					<artifactId>hadoop-common</artifactId>
 					<version>${hadoop.version}</version>
 					<classifier>tests</classifier>
-                    <scope>test</scope>
+					<scope>test</scope>
 					<exclusions>
 						<exclusion>
 							<artifactId>junit</artifactId>
@@ -401,7 +402,7 @@
 					<artifactId>hadoop-hdfs</artifactId>
 					<version>${hadoop.version}</version>
 					<classifier>tests</classifier>
-                    <scope>test</scope>
+					<scope>test</scope>
 				</dependency>
 				<dependency>
 					<groupId>org.apache.hadoop</groupId>
@@ -413,11 +414,11 @@
 					<artifactId>hadoop-hdfs</artifactId>
 					<version>${hadoop.version}</version>
 				</dependency>
-                <dependency>
-                    <groupId>org.hbase</groupId>
-                    <artifactId>asynchbase</artifactId>
-                    <version>1.4.0</version>
-                </dependency>
+				<dependency>
+					<groupId>org.hbase</groupId>
+					<artifactId>asynchbase</artifactId>
+					<version>1.4.0</version>
+				</dependency>
 			</dependencies>
 			<repositories>
 				<repository>
@@ -509,7 +510,7 @@
 					<artifactId>hadoop-hdfs</artifactId>
 					<version>${hadoop.version}</version>
 					<classifier>tests</classifier>
-                    <scope>test</scope>
+					<scope>test</scope>
 				</dependency>
 				<dependency>
 					<groupId>org.apache.hadoop</groupId>
@@ -669,7 +670,7 @@
 					<artifactId>maprfs-core</artifactId>
 					<version>${hadoop.version}</version>
 				</dependency>
-            </dependencies>
+			</dependencies>
 			<repositories>
 				<repository>
 					<id>mapr-releases</id>
