@@ -2220,8 +2220,6 @@ throws SQLException
 	}
 |       <ROLES>
         {
-            // TODO: remove this when ROLE is supported
-            return new ijUnsupportedCommandResult("SHOW ROLES");
             return showRoles();
         }
 |       <ENABLED_ROLES>
@@ -2232,8 +2230,6 @@ throws SQLException
         }
 |       <SETTABLE_ROLES>
         {
-            // TODO: remove this when ROLE is supported
-            return new ijUnsupportedCommandResult("SHOW SETTABLE_ROLES");
             return showSettableRoles();
         }
 
