@@ -19,16 +19,16 @@
 	</scm>
 	<distributionManagement>
 		<repository>
-			<uniqueVersion>false</uniqueVersion>
-			<id>structured-hbase-release</id>
-			<name>Structured HBase Release</name>
+			<id>splicemachine-releases</id>
+			<name>Splice Machine Releases</name>
 			<url>http://nexus.splicemachine.com/nexus/content/repositories/releases</url>
+			<uniqueVersion>false</uniqueVersion>
 		</repository>
 		<snapshotRepository>
-			<uniqueVersion>true</uniqueVersion>
-			<id>structured-hbase-snapshot</id>
-			<name>Structured HBase Snapshot</name>
+			<id>splicemachine-snapshots</id>
+			<name>Splice Machine Snapshots</name>
 			<url>http://nexus.splicemachine.com/nexus/content/repositories/snapshots</url>
+			<uniqueVersion>true</uniqueVersion>
 		</snapshotRepository>
 	</distributionManagement>
 	<properties>
