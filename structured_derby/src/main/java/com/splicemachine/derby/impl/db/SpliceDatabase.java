@@ -17,6 +17,7 @@ import com.splicemachine.si.api.Txn;
 import com.google.common.io.Closeables;
 import com.splicemachine.derby.hbase.SpliceMasterObserverRestoreAction;
 import com.splicemachine.si.api.TxnView;
+import com.splicemachine.utils.SpliceUtilities;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.context.ContextService;
@@ -252,7 +253,7 @@ public class SpliceDatabase extends BasicDatabase {
         try {
             HTableDescriptor desc = new HTableDescriptor(SpliceMasterObserver.RESTORE_TABLE);
             desc.setValue(SpliceMasterObserverRestoreAction.BACKUP_PATH, restoreDir);
-            admin = SpliceAccessManager.getAdmin();
+            admin = SpliceUtilities.getAdmin();
             admin.createTable(desc);
         } catch (Exception E) {
             System.out.println("Create table exception");
@@ -279,7 +280,7 @@ public class SpliceDatabase extends BasicDatabase {
             backup.createBaseBackupDirectory();
             backup.insertBackup();
             long start = System.currentTimeMillis();
-            admin = SpliceAccessManager.getAdmin();
+            admin = SpliceUtilities.getAdmin();
             backup.createBackupItems(admin);
             for (BackupItem backupItem: backup.getBackupItems()) {
                 backupItem.createBackupItemFilesystem();

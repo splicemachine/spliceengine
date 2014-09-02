@@ -23,7 +23,6 @@ import com.splicemachine.metrics.TimeView;
 import com.splicemachine.metrics.Timer;
 import com.splicemachine.si.api.SIFilter;
 import com.splicemachine.si.api.TransactionalRegion;
-import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
 import com.splicemachine.si.impl.PackedTxnFilter;

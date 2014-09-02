@@ -1,5 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import com.splicemachine.derby.impl.store.access.SpliceTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.ddl.DDLChange;
 import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.ddl.DropTableDDLChangeDesc;
@@ -81,7 +83,8 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
 		LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
 		DataDictionary dd = lcc.getDataDictionary();
 		DependencyManager dm = dd.getDependencyManager();
-		TransactionController tc = lcc.getTransactionExecute().startNestedUserTransaction(false, true);
+		SpliceTransactionManager tc = (SpliceTransactionManager)lcc.getTransactionExecute().startNestedUserTransaction(false, true);
+      ((SpliceTransaction)tc.getRawTransaction()).elevate("dictionary".getBytes()); //TODO -sf- resolve proper conglomerate id
 
         try {
 

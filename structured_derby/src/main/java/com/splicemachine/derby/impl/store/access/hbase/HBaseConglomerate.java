@@ -6,6 +6,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.util.Properties;
 
+import com.google.common.io.Closeables;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.utils.ConglomerateUtils;
@@ -115,7 +116,7 @@ public class HBaseConglomerate extends SpliceConglomerate {
 				} catch (StandardException e) {
 						SpliceLogUtils.logAndThrow(LOG,"exception in HBaseConglomerate#addColumn",e);
 				} finally {
-						SpliceAccessManager.closeHTableQuietly(htable);
+            Closeables.closeQuietly(htable);
 				}
 		}
 

@@ -26,6 +26,7 @@ import com.splicemachine.tools.CachedResourcePool;
 import com.splicemachine.tools.EmbedConnectionMaker;
 import com.splicemachine.tools.ResourcePool;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.utils.SpliceUtilities;
 import com.splicemachine.utils.ZkUtils;
 import com.splicemachine.utils.kryo.KryoPool;
 import com.splicemachine.utils.logging.LogManager;
@@ -274,7 +275,7 @@ public class SpliceDriver extends SIConstants {
     	connection = null;
         try{
         	// The HBaseAdmin creates a connection to the ZooKeeper ensemble and thereafter into the HBase cluster.
-        	admin = SpliceAccessManager.getAdmin(config);
+        	admin = SpliceUtilities.getAdmin(config);
         	HTableDescriptor desc = new HTableDescriptor(SpliceMasterObserver.INIT_TABLE);
         	// Create the special "SPLICE_INIT" table which triggers the creation of the SpliceMasterObserver and ultimately
         	// triggers the creation of the "SPLICE_*" HBase tables.  This is an asynchronous call and so we "loop" via a
