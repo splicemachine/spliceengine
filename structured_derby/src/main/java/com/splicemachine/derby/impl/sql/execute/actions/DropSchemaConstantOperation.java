@@ -1,5 +1,8 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import com.splicemachine.derby.impl.store.access.SpliceTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.utils.Exceptions;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
@@ -40,7 +43,12 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
 	public void executeConstantAction( Activation activation ) throws StandardException {
 		LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
 		DataDictionary dd = lcc.getDataDictionary();
-		TransactionController tc = lcc.getTransactionExecute();
+      SpliceTransactionManager tc = (SpliceTransactionManager)lcc.getTransactionExecute().startNestedUserTransaction(false,false);
+      //elevate the child
+      ((SpliceTransaction)tc.getRawTransaction()).elevate("dictionary".getBytes());
+      lcc.pushNestedTransaction(tc); //push it down so that the lcc uses the proper transaction for writing
+
+      try{
 		/*
 		** Inform the data dictionary that we are about to write to it.
 		** There are several calls to data dictionary "get" methods here
@@ -50,9 +58,16 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
 		** We tell the data dictionary we're done writing at the end of
 		** the transaction.
 		*/
-		dd.startWriting(lcc);
-        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, true);
-        sd.drop(lcc, activation);
-	}
+          dd.startWriting(lcc);
+          SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, true);
+          sd.drop(lcc, activation);
+      }catch(Exception se){
+          tc.abort();
+          throw Exceptions.parseException(se);
+      }finally{
+          lcc.popNestedTransaction();
+      }
+      tc.commit();
+  }
 
 }

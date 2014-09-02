@@ -1,9 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -39,9 +36,9 @@ public class ConstraintConstantOperationIT {
 
     // foreign key constraint
     private static final String EMP_NAME_TABLE_NAME = "EmpName";
-    private static final String EMP_NAME_TABLE_DEF = "(empId int not null CONSTRAINT EMP_ID_FK REFERENCES "+
-            CLASS_NAME+"."+EMP_PRIV_TABLE_NAME+" ON UPDATE RESTRICT, fname varchar(8) not null, lname varchar(10) not null)";
-    protected static SpliceTableWatcher empNameTable = new SpliceTableWatcher(EMP_NAME_TABLE_NAME,CLASS_NAME, EMP_NAME_TABLE_DEF);
+//    private static final String EMP_NAME_TABLE_DEF = "(empId int not null CONSTRAINT EMP_ID_FK REFERENCES "+
+//            CLASS_NAME+"."+EMP_PRIV_TABLE_NAME+" ON UPDATE RESTRICT, fname varchar(8) not null, lname varchar(10) not null)";
+//    protected static SpliceTableWatcher empNameTable = new SpliceTableWatcher(EMP_NAME_TABLE_NAME,CLASS_NAME, EMP_NAME_TABLE_DEF);
 
     // table-level check constraint
     private static final String TASK_TABLE_NAME = "Tasks";
@@ -53,7 +50,7 @@ public class ConstraintConstantOperationIT {
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(tableSchema)
             .around(empPrivTable)
-            .around(empNameTable)
+//            .around(empNameTable)
             .around(taskTable);
 
     @Rule
@@ -65,27 +62,28 @@ public class ConstraintConstantOperationIT {
      */
     @Test
     public void testGoodInsertConstraint() throws Exception {
-        String query = String.format("select * from %s.%s", tableSchema.schemaName, EMP_NAME_TABLE_NAME);
-
+        String query = String.format("select * from %s.%s", tableSchema.schemaName, EMP_PRIV_TABLE_NAME);
         Connection connection = methodWatcher.createConnection();
-        connection.setAutoCommit(false);
-        Statement statement = connection.createStatement();
+        try{
 
-        // insert good data
-        statement.execute(
-                String.format("insert into %s.%s (EmpId, dob, ssn, salary) values (101, '04/08', '999-22-1234', 10001)",
-                        tableSchema.schemaName, EMP_PRIV_TABLE_NAME));
-        connection.commit();
+            connection.setAutoCommit(false);
+            Statement statement = connection.createStatement();
 
-        // insert good data
-        statement.execute(
-                String.format("insert into %s.%s (EmpId, fname, lname) values (101, 'Jeff', 'Cunningham')",
-                        tableSchema.schemaName, EMP_NAME_TABLE_NAME));
-        connection.commit();
+            // insert good data
+            statement.execute(
+                    String.format("insert into %s.%s (EmpId, dob, ssn, salary) values (101, '04/08', '999-22-1234', 10001)",
+                            tableSchema.schemaName, EMP_PRIV_TABLE_NAME));
 
-        ResultSet resultSet = connection.createStatement().executeQuery(query);
-        Assert.assertTrue("Connection should see its own writes",resultSet.next());
-        connection.commit();
+            // insert good data
+//            statement.execute(
+//                    String.format("insert into %s.%s (EmpId, fname, lname) values (101, 'Jeff', 'Cunningham')",
+//                            tableSchema.schemaName, EMP_NAME_TABLE_NAME));
+
+            ResultSet resultSet = connection.createStatement().executeQuery(query);
+            Assert.assertTrue("Connection should see its own writes",resultSet.next());
+        }finally{
+            connection.rollback();
+        }
     }
 
     /**
@@ -94,25 +92,27 @@ public class ConstraintConstantOperationIT {
      */
     @Test
     public void testBadInsertPrimaryKeyConstraint() throws Exception {
-
         Connection connection = methodWatcher.createConnection();
-        connection.setAutoCommit(false);
-        Statement statement = connection.createStatement();
+        try{
+            connection.setAutoCommit(false);
+            Statement statement = connection.createStatement();
 
-        // insert good data
-        statement.execute(
-                String.format("insert into %s.%s (EmpId, dob, ssn, salary) values (102, '02/14', '444-33-4321', 10001)",
-                        tableSchema.schemaName, EMP_PRIV_TABLE_NAME));
-        connection.commit();
-
-        // insert bad row - no 103 empID in referenced table where FK constraint defined
-        try {
+            // insert good data
             statement.execute(
-                    String.format("insert into %s.%s (EmpId, dob, ssn, salary) values (102, '03/14', '444-33-1212', 10001)",
+                    String.format("insert into %s.%s (EmpId, dob, ssn, salary) values (102, '02/14', '444-33-4321', 10001)",
                             tableSchema.schemaName, EMP_PRIV_TABLE_NAME));
-            Assert.fail("Expected exception inserting row with FK constraint violation.");
-        } catch (SQLException e) {
-            // expected
+
+            // insert bad row - no 103 empID in referenced table where FK constraint defined
+            try {
+                statement.execute(
+                        String.format("insert into %s.%s (EmpId, dob, ssn, salary) values (102, '03/14', '444-33-1212', 10001)",
+                                tableSchema.schemaName, EMP_PRIV_TABLE_NAME));
+                Assert.fail("Expected exception inserting row with PK constraint violation.");
+            } catch (SQLException e) {
+                // expected
+            }
+        }finally{
+            connection.rollback();
         }
     }
 
@@ -165,21 +165,27 @@ public class ConstraintConstantOperationIT {
      */
     @Test
     public void testUniqueConstraint() throws Exception {
-        Statement statement = methodWatcher.createConnection().createStatement();
+        TestConnection connection = methodWatcher.createConnection();
+        connection.setAutoCommit(false);
+        try{
+            Statement statement = connection.createStatement();
 
-        // insert good data
-        statement.execute(
-                String.format("insert into %s.%s (TaskId, empId, StartedAt, FinishedAt) values (%d, %d,%d,%d)",
-                        tableSchema.schemaName, TASK_TABLE_NAME, 1246, 101, 0600, 0700));
-
-        // insert bad row - non-unique task ID
-        try {
+            // insert good data
             statement.execute(
                     String.format("insert into %s.%s (TaskId, empId, StartedAt, FinishedAt) values (%d, %d,%d,%d)",
-                            tableSchema.schemaName, TASK_TABLE_NAME, 1246, 102, 0201, 0300));
-            Assert.fail("Expected exception inserting non-unique value on unique constrained col");
-        } catch (SQLException e) {
-            // expected
+                            tableSchema.schemaName, TASK_TABLE_NAME, 1246, 101, 0600, 0700));
+
+            // insert bad row - non-unique task ID
+            try {
+                statement.execute(
+                        String.format("insert into %s.%s (TaskId, empId, StartedAt, FinishedAt) values (%d, %d,%d,%d)",
+                                tableSchema.schemaName, TASK_TABLE_NAME, 1246, 102, 0201, 0300));
+                Assert.fail("Expected exception inserting non-unique value on unique constrained col");
+            } catch (SQLException e) {
+                // expected
+            }
+        }finally{
+            connection.rollback();
         }
     }
 
@@ -193,17 +199,19 @@ public class ConstraintConstantOperationIT {
 
         Connection connection = methodWatcher.createConnection();
         connection.setAutoCommit(false);
-        Statement statement = connection.createStatement();
+        try{
+            Statement statement = connection.createStatement();
 
-        // insert good data
-        statement.execute(
-                String.format("insert into %s.%s (TaskId, empId, StartedAt, FinishedAt) values (%d, %d,%d,%d)",
-                        tableSchema.schemaName, TASK_TABLE_NAME, 1244, 101, 0600, 0700));
+            // insert good data
+            statement.execute(
+                    String.format("insert into %s.%s (TaskId, empId, StartedAt, FinishedAt) values (%d, %d,%d,%d)",
+                            tableSchema.schemaName, TASK_TABLE_NAME, 1244, 101, 0600, 0700));
 
-        ResultSet resultSet = statement.executeQuery(query);
-        Assert.assertTrue("Connection should see its own writes",resultSet.next());
-
-        connection.commit();
+            ResultSet resultSet = statement.executeQuery(query);
+            Assert.assertTrue("Connection should see its own writes",resultSet.next());
+        }finally{
+            connection.rollback();
+        }
     }
 
     /**
@@ -219,19 +227,23 @@ public class ConstraintConstantOperationIT {
         SpliceTableWatcher.executeDrop(CLASS_NAME, TABLE_NAME);
         tableWatcher.create(Description.createSuiteDescription(CLASS_NAME, "testCreateTableUniqueConstraint"));
         Connection connection = methodWatcher.getOrCreateConnection();
-        Statement statement = connection.createStatement();
+        connection.setAutoCommit(false);
+        try{
+            Statement statement = connection.createStatement();
 
-        // insert good data
-        for (int i=1; i<20; i++) {
-        statement.execute(String.format("insert into %s.%s values (%d,'%s')", CLASS_NAME, TABLE_NAME, i, "jeff"));
+            // insert good data
+            for (int i=1; i<20; i++) {
+                statement.execute(String.format("insert into %s.%s values (%d,'%s')", CLASS_NAME, TABLE_NAME, i, "jeff"));
+            }
+
+            ResultSet rs =
+                    methodWatcher.getOrCreateConnection().createStatement().executeQuery(
+                            String.format("select * from %s.%s", CLASS_NAME, TABLE_NAME));
+            TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("get table metadata", rs);
+            System.out.println(fr.toString());
+        }finally{
+            connection.rollback();
         }
-        connection.commit();
-
-        ResultSet rs =
-                methodWatcher.getOrCreateConnection().createStatement().executeQuery(
-                        String.format("select * from %s.%s", CLASS_NAME, TABLE_NAME));
-        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("get table metadata", rs);
-        System.out.println(fr.toString());
     }
 
     /**

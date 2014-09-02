@@ -6,7 +6,9 @@ import com.splicemachine.derby.ddl.TentativeIndexDesc;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.impl.store.access.base.SpliceController;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
+import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.FormatableBitSetUtils;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -34,12 +36,14 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.store.access.ColumnOrdering;
 import org.apache.derby.iapi.store.access.ConglomerateController;
 import org.apache.derby.iapi.store.access.TransactionController;
+import org.apache.derby.iapi.store.access.conglomerate.Conglomerate;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.TypeId;
 import org.apache.derby.impl.services.daemon.IndexStatisticsDaemonImpl;
 import org.apache.derby.impl.sql.execute.IndexColumnOrder;
 import org.apache.derby.impl.sql.execute.RowUtil;
+import org.apache.derby.impl.store.access.conglomerate.ConglomerateUtil;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
@@ -826,6 +830,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
                     descColumns,
                     heapConglomerateId,
                     table,
+                    tc,
                     indexTransaction,
                     tentativeTransaction.getCommitTimestamp(),
                     tentativeIndexDesc);
@@ -835,6 +840,8 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
             Closeables.closeQuietly(table);
         }
     }
+
+
 
     private void validateTableDescriptor(TableDescriptor td) throws StandardException {
         /*

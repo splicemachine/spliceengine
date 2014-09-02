@@ -7,6 +7,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import com.google.common.base.Preconditions;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.ddl.DDLChange;
 import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.hbase.table.BetterHTablePool;
@@ -47,16 +48,14 @@ import org.apache.derby.iapi.store.raw.ContainerKey;
 import org.apache.derby.iapi.store.raw.LockingPolicy;
 import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.shared.common.reference.Attribute;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceUtilities;
 
 
-public class SpliceAccessManager extends SpliceUtilities implements AccessFactory, CacheableFactory, ModuleControl, PropertySetCallback {
+public class SpliceAccessManager implements AccessFactory, CacheableFactory, ModuleControl, PropertySetCallback {
 	private static Logger LOG = Logger.getLogger(SpliceAccessManager.class);
     private Hashtable implhash;
 	private HBaseStore rawstore;
@@ -76,16 +75,22 @@ public class SpliceAccessManager extends SpliceUtilities implements AccessFactor
     private volatile DDLFilter ddlDemarcationPoint = null;
     private volatile boolean cacheDisabled = false;
     private ConcurrentMap<String, DDLChange> ongoingDDLChanges = new ConcurrentHashMap<String, DDLChange>();
+    private static final HTableInterfaceFactory autoFlushTableFactory = new SpliceHTableFactory(false);
+    private static final HTableInterfaceFactory tableFactory = new SpliceHTableFactory();
 
 		public SpliceAccessManager() {
 				implhash   = new Hashtable();
 				formathash = new Hashtable();
-				singleRPCPool = new BetterHTablePool(new SpliceHTableFactory(),
-								tablePoolCleanerInterval,
-								TimeUnit.SECONDS,tablePoolMaxSize,tablePoolCoreSize);
-				flushablePool = new BetterHTablePool(new SpliceHTableFactory(false),
-								tablePoolCleanerInterval,
-								TimeUnit.SECONDS,tablePoolMaxSize,tablePoolCoreSize);
+        singleRPCPool = new BetterHTablePool(autoFlushTableFactory,
+								SpliceConstants.tablePoolCleanerInterval,
+								TimeUnit.SECONDS,
+                SpliceConstants.tablePoolMaxSize,
+                SpliceConstants.tablePoolCoreSize);
+        flushablePool = new BetterHTablePool(tableFactory,
+								SpliceConstants.tablePoolCleanerInterval,
+								TimeUnit.SECONDS,
+                SpliceConstants.tablePoolMaxSize,
+                SpliceConstants.tablePoolCoreSize);
 		}
 
 		protected LockingPolicy getDefaultLockingPolicy() {
@@ -1029,19 +1034,22 @@ public class SpliceAccessManager extends SpliceUtilities implements AccessFactor
 		public static HTableInterface getHTable(Long id) {
 //		if (LOG.isTraceEnabled())
 //			LOG.trace("Getting HTable " + id);
-				return singleRPCPool.getTable(Long.toString(id));
+        return autoFlushTableFactory.createHTableInterface(SpliceConstants.config,Long.toString(id).getBytes());
+//        return new HTable(SpliceConstants.config, HConnectionManager.getConnection(SpliceConstants.config), SpliceHConnection.)
+//				return singleRPCPool.getTable(Long.toString(id));
 		}
 
 		public static HTableInterface getHTable(byte[] tableName) {
 //		if (LOG.isTraceEnabled())
 //			LOG.trace("Getting HTable " + Bytes.toString(tableName));
-				return singleRPCPool.getTable(Bytes.toString(tableName));
+        return autoFlushTableFactory.createHTableInterface(SpliceConstants.config,tableName);
+//				return singleRPCPool.getTable(Bytes.toString(tableName));
 		}
 
 		public static HTableInterface getFlushableHTable(byte[] tableName) {
 //		if (LOG.isTraceEnabled())
 //			LOG.trace("Getting HTable " + Bytes.toString(tableName));
-				return flushablePool.getTable(Bytes.toString(tableName));
+        return tableFactory.createHTableInterface(SpliceConstants.config,tableName);
 		}
 
 }

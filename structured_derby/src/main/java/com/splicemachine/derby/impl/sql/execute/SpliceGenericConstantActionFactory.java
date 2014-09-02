@@ -102,34 +102,39 @@ public class SpliceGenericConstantActionFactory extends GenericConstantActionFac
                 tableName,schemaName,tableId,tableConglomerateId);
     }
 
-	@Override
-	public ConstantAction getSetConstraintsConstantAction(ConstraintDescriptorList cdl, boolean enable,boolean unconditionallyEnforce, Object[] ddlList) {
-    	SpliceLogUtils.trace(LOG, "getSetConstraintsConstantAction for {%s} on ddlList {%s}",cdl,Arrays.toString(ddlList));
-		return new SetConstraintsConstantOperation(cdl, enable, unconditionallyEnforce);
-	}
-	
-	
-	@Override
-	public ConstantAction getAlterTableConstantAction(SchemaDescriptor sd,
-			String tableName, UUID tableId, long tableConglomerateId,
-			int tableType, ColumnInfo[] columnInfo,
-			ConstantAction[] constraintActions, char lockGranularity,
-			boolean compressTable, int behavior, boolean sequential,
-			boolean truncateTable, boolean purge, boolean defragment,
-			boolean truncateEndOfTable, boolean updateStatistics,
-			boolean updateStatisticsAll, boolean dropStatistics,
-			boolean dropStatisticsAll, String indexNameForStatistics) {
-    	SpliceLogUtils.trace(LOG, "getAlterTableConstantAction for {%s.%s} with columnInfo {%s}",(sd==null?"none":sd.getSchemaName()),tableName, Arrays.toString(columnInfo));
-    	return new	AlterTableConstantOperation( sd, tableName, tableId, tableConglomerateId, 
-				  tableType, columnInfo, constraintActions, 
-				  lockGranularity, compressTable,
-				  behavior, sequential, truncateTable,
-				  purge, defragment, truncateEndOfTable,
-				  updateStatistics, 
-				  updateStatisticsAll,
-				  dropStatistics, 
-				  dropStatisticsAll,
-				  indexNameForStatistics);
+    @Override
+    public ConstantAction getSetConstraintsConstantAction(ConstraintDescriptorList cdl, boolean enable,boolean unconditionallyEnforce, Object[] ddlList) {
+        SpliceLogUtils.trace(LOG, "getSetConstraintsConstantAction for {%s} on ddlList {%s}",cdl,Arrays.toString(ddlList));
+        return new SetConstraintsConstantOperation(cdl, enable, unconditionallyEnforce);
+    }
+
+
+    @Override
+    public ConstantAction getAlterTableConstantAction(SchemaDescriptor sd,
+                                                      String tableName, UUID tableId, long tableConglomerateId,
+                                                      int tableType, ColumnInfo[] columnInfo,
+                                                      ConstantAction[] constraintActions, char lockGranularity,
+                                                      boolean compressTable, int behavior, boolean sequential,
+                                                      boolean truncateTable, boolean purge, boolean defragment,
+                                                      boolean truncateEndOfTable, boolean updateStatistics,
+                                                      boolean updateStatisticsAll, boolean dropStatistics,
+                                                      boolean dropStatisticsAll, String indexNameForStatistics) {
+        SpliceLogUtils.trace(LOG, "getAlterTableConstantAction for {%s.%s} with columnInfo {%s}",(sd==null?"none":sd.getSchemaName()),tableName, Arrays.toString(columnInfo));
+        if(truncateTable){
+            return new TruncateTableConstantOperation(sd,tableName,tableId,tableConglomerateId,
+                    lockGranularity,behavior,sequential,indexNameForStatistics);
+        }else{
+            return new	AlterTableConstantOperation( sd, tableName, tableId, tableConglomerateId,
+                     columnInfo, constraintActions,
+                    lockGranularity, compressTable,
+                    behavior, sequential,
+                    purge,
+                    updateStatistics,
+                    updateStatisticsAll,
+                    dropStatistics,
+                    dropStatisticsAll,
+                    indexNameForStatistics);
+        }
 	}
 
 	@Override

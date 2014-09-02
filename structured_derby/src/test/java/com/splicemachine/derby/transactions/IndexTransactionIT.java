@@ -170,4 +170,61 @@ public class IndexTransactionIT {
 
         Assert.assertEquals("Index is corrupt!",1,count);
     }
+
+    @Test
+    public void testDropIsIgnoredByOtherTransaction() throws Exception {
+        int aInt = 4;
+        int bInt = 4;
+        int cInt = 4;
+
+        PreparedStatement preparedStatement = conn1.prepareStatement("create index ab_idx on "+table+"(a,b)");
+        preparedStatement.execute();
+        conn1.commit(); //force to a new timestamp for visibility check
+        conn2.rollback(); //move other transaction forward so that index is visible
+
+        String query = "select * from " + table + " --SPLICE-PROPERTIES index=AB_IDX \n" +
+                "where a = " + aInt + " and b = " + bInt;
+        long count = conn2.count(query);
+        Assert.assertEquals("conn2 has incorrect index count!",0l,count);
+
+        /*
+         * Now, the real test:
+         *
+         * 1. drop index in one transaction
+         * 2. in other transaction, insert some data, then ensure that it's readable from that transaction.
+         * 3. commit the drop transaction
+         * 4. commit the insert transaction
+         * 5. check that the data is not visible any longer
+         */
+        conn2.createStatement().execute("drop index "+schemaWatcher.schemaName+".ab_idx");
+        try{
+            conn2.count(query);
+            Assert.fail("Should have thrown an IndexNotFoundException");
+        }catch(SQLException se){
+            Assert.assertEquals("Incorrect error message returned!",ErrorState.LANG_INVALID_FORCED_INDEX1.getSqlState(),se.getSQLState());
+        }
+
+        //insert some data with the other transaction
+        preparedStatement = conn1.prepareStatement("insert into " + table + " (a,b,c) values (?,?,?)");
+        preparedStatement.setInt(1,aInt);
+        preparedStatement.setInt(2,bInt);
+        preparedStatement.setInt(3, cInt);
+        preparedStatement.execute();
+
+        count = conn1.count(query);
+        Assert.assertEquals("conn1 has incorrect index count!",1l,count);
+
+        //commit the drop transaction
+        conn2.commit();
+
+        //move the other txn forward for visibility
+        conn1.rollback();
+
+        try{
+            conn1.count(query);
+            Assert.fail("Should have thrown an IndexNotFoundException");
+        }catch(SQLException se){
+            Assert.assertEquals("Incorrect error message returned!",ErrorState.LANG_INVALID_FORCED_INDEX1.getSqlState(),se.getSQLState());
+        }
+    }
 }

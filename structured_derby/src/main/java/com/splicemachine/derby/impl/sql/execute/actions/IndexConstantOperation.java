@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import org.apache.derby.iapi.store.access.ColumnOrdering;
 import com.splicemachine.derby.ddl.DDLChange;
 import com.splicemachine.derby.ddl.TentativeIndexDesc;
 import com.splicemachine.derby.hbase.SpliceDriver;
@@ -136,8 +137,14 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
         return indexTxn;
     }
 
-    protected void populateIndex(Activation activation, int[] baseColumnPositions, boolean[] descColumns,
-                                 long tableConglomId, HTableInterface table, Txn indexTransaction, long demarcationPoint,
+    protected void populateIndex(Activation activation,
+                                 int[] baseColumnPositions,
+                                 boolean[] descColumns,
+                                 long tableConglomId,
+                                 HTableInterface table,
+                                 TransactionController txnControl,
+                                 Txn indexTransaction,
+                                 long demarcationPoint,
                                  TentativeIndexDesc tentativeIndexDesc) throws StandardException {
         String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
 				/*
@@ -163,11 +170,17 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
         boolean uniqueWithDuplicateNulls = tentativeIndexDesc.isUniqueWithDuplicateNulls();
         long conglomId = tentativeIndexDesc.getConglomerateNumber();
         try{
-            SpliceConglomerate conglomerate = (SpliceConglomerate)((SpliceTransactionManager)activation.getTransactionController()).findConglomerate(tableConglomId);
+            SpliceConglomerate conglomerate = (SpliceConglomerate)((SpliceTransactionManager)txnControl).findConglomerate(tableConglomId);
+            long statementUuid = statementInfo.getStatementUuid();
+            long operationUuid = populateIndexOp.getOperationUuid();
+
+            int[] formatIds = conglomerate.getFormat_ids();
+            int[] columnOrder = conglomerate.getColumnOrdering();
+
             PopulateIndexJob job = new PopulateIndexJob(table, indexTransaction,
                     conglomId, tableConglomId, baseColumnPositions, unique, uniqueWithDuplicateNulls, descColumns,
-                    statementInfo.getStatementUuid(),populateIndexOp.getOperationUuid(),
-                    activation.isTraced(), conglomerate.getColumnOrdering(), conglomerate.getFormat_ids(),
+                    statementUuid, operationUuid,
+                    activation.isTraced(), columnOrder, formatIds,
                     demarcationPoint);
 
             long start = System.currentTimeMillis();
@@ -265,5 +278,13 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
                 throw Exceptions.parseException(e.getCause());
             }
         }
+    }
+
+    private int[] transformColumnOrdering(ColumnOrdering[] columnOrdering) {
+        int[] columnOrder = new int[columnOrdering.length];
+        for(int i=0;i<columnOrdering.length;i++){
+            columnOrder[i] = columnOrdering[i].getColumnId();
+        }
+        return columnOrder;
     }
 }

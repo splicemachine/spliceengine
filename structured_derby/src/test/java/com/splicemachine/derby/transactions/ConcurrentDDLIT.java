@@ -10,6 +10,7 @@ import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.util.List;
@@ -24,7 +25,7 @@ import java.util.concurrent.Future;
  * @author Scott Fines
  * Date: 8/28/14
  */
-@Ignore("Creates hundreds of conglomerates")
+//@Ignore("Creates hundreds of conglomerates")
 public class ConcurrentDDLIT {
     private static final Logger LOG = Logger.getLogger(ConcurrentDDLIT.class);
     public static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(ConcurrentDDLIT.class.getSimpleName().toUpperCase());
@@ -36,7 +37,7 @@ public class ConcurrentDDLIT {
 
     @Rule public final SpliceWatcher methodWatcher = new SpliceWatcher();
 
-    private static final int nThreads = 2;
+    private static final int nThreads = 4;
     private ExecutorService executor;
     private static List<TestConnection> connections;
 
@@ -65,12 +66,38 @@ public class ConcurrentDDLIT {
     }
 
     @Test(timeout = 1000000)
+    public void testConcurrentSchemaCreation() throws Exception {
+        int numTables = 100;
+        List<Future<Void>> results = Lists.newArrayListWithExpectedSize(nThreads);
+        for(int i=0;i<nThreads;i++){
+            TestConnection conn = connections.get(i);
+            results.add(executor.submit(new CreateSchemaCallable(i,conn,numTables)));
+        }
+        for(Future<Void> future:results){
+            future.get(); //check for errors
+        }
+    }
+
+    @Test(timeout = 1000000)
+    public void testConcurrentMetadataFetch() throws Exception {
+        int numTables = 100;
+        List<Future<Void>> results = Lists.newArrayListWithExpectedSize(nThreads);
+        for(int i=0;i<nThreads;i++){
+            TestConnection conn = connections.get(i);
+            results.add(executor.submit(new FetchMetadataCallable(i,conn,numTables)));
+        }
+        for(Future<Void> future:results){
+            future.get(); //check for errors
+        }
+    }
+
+    @Test(timeout = 1000000)
     public void testConcurrentTableCreation() throws Exception {
         int numTables = 100;
         List<Future<Void>> results = Lists.newArrayListWithExpectedSize(nThreads);
         for(int i=0;i<nThreads;i++){
             TestConnection conn = connections.get(i);
-            results.add(executor.submit(new CreateTableCallable(i,numTables,conn)));
+            results.add(executor.submit(new CreateTableCallable(i,conn,numTables)));
         }
         for(Future<Void> future:results){
             future.get(); //check for errors
@@ -83,61 +110,86 @@ public class ConcurrentDDLIT {
         List<Future<Void>> results = Lists.newArrayListWithExpectedSize(nThreads);
         for(int i=0;i<nThreads;i++){
             TestConnection conn = connections.get(i);
-            results.add(executor.submit(new CreateIndexCallable(i,numTables,conn)));
+            results.add(executor.submit(new CreateIndexCallable(i,conn,numTables)));
         }
         for(Future<Void> future:results){
             future.get(); //check for errors
         }
     }
 
-    private class CreateTableCallable implements Callable<Void> {
-        private final int position;
-        private final TestConnection conn;
-        private final int numElements;
+    private class FetchMetadataCallable extends CreateTableCallable {
+        private ResultSet rs;
 
-        public CreateTableCallable(int position,int numElements, TestConnection conn) {
-            this.position = position;
-            this.conn = conn;
-            this.numElements = numElements;
+        protected FetchMetadataCallable(int position, TestConnection conn, int numElements) {
+            super(position, conn, numElements);
         }
 
         @Override
-        public Void call() throws Exception {
-            LOG.info("Beginning Create/Drop test on position "+ position);
-            int value = position*numElements;
-            for(int i=value;i<value+numElements;i++){
-                String table = schemaWatcher.schemaName+".t"+i;
-                long txnId;
-                try{
-                    txnId = conn.getCurrentTransactionId();
-                    SpliceLogUtils.debug(LOG,"Creating table %s with txnId %d",table,txnId);
-                    conn.createStatement().execute("create table " + table + "(a int, b int)");
-                    conn.commit();
-                }catch(SQLException se){
-                    LOG.error("Failed to create table "+ table,se);
-                    throw se;
-                }
-                try{
-                    txnId = conn.getCurrentTransactionId();
-                    SpliceLogUtils.debug(LOG,"Dropping table %s with txnId %d",table,txnId);
-                    conn.createStatement().execute("drop table "+table);
-                    conn.commit();
-                }catch(SQLException se){
-                    LOG.error("Failed to drop table "+ table,se);
-                    throw se;
-                }
+        protected void setupAction(int value) throws SQLException {
+            rs = conn.getMetaData().getTables(null,schemaWatcher.schemaName,getRawTableName(value),null);
+        }
+
+        @Override
+        protected void teardownAction(int value) throws SQLException {
+            if(rs.next()){
+                super.teardownAction(value);
             }
-            return null;
         }
     }
 
+    private class CreateSchemaCallable extends Action {
 
-    private class CreateIndexCallable implements Callable<Void> {
-        private final int position;
-        private final TestConnection conn;
-        private final int numElements;
+        protected CreateSchemaCallable(int position, TestConnection conn, int numElements) {
+            super(position, conn, numElements);
+        }
 
-        public CreateIndexCallable(int position,int numElements, TestConnection conn) {
+        @Override
+        protected void setupAction(int value) throws SQLException {
+            String schema = schemaWatcher.schemaName+"_t_"+value;
+            conn.createStatement().execute("create schema " + schema);
+        }
+
+        @Override
+        protected void teardownAction(int value) throws SQLException {
+            String schema = schemaWatcher.schemaName+"_t_"+value;
+            conn.createStatement().execute("drop schema "+schema+ " restrict");
+        }
+    }
+
+    private class CreateTableCallable extends Action{
+
+        protected CreateTableCallable(int position, TestConnection conn, int numElements) {
+            super(position, conn, numElements);
+        }
+
+        @Override
+        protected void setupAction(int value) throws SQLException {
+            String table = getTableName(value);
+            conn.createStatement().execute("create table " + table + "(a int, b int)");
+        }
+
+        @Override
+        protected void teardownAction(int value) throws SQLException {
+            String table = getTableName(value);
+            conn.createStatement().execute("drop table "+table);
+        }
+
+        protected String getTableName(int value) {
+            String schema = schemaWatcher.schemaName;
+            return schema + "." + getRawTableName(value);
+        }
+
+        protected String getRawTableName(int value) {
+            return "t" + value;
+        }
+    }
+
+    private abstract class Action implements Callable<Void>{
+        protected final int position;
+        protected final TestConnection conn;
+        protected final int numElements;
+
+        protected Action(int position, TestConnection conn, int numElements) {
             this.position = position;
             this.conn = conn;
             this.numElements = numElements;
@@ -148,55 +200,67 @@ public class ConcurrentDDLIT {
             LOG.info("Beginning Create/Drop test on position "+ position);
             int value = position*numElements;
             for(int i=value;i<value+numElements;i++){
-                String table = schemaWatcher.schemaName+".t"+i;
                 long txnId;
                 try{
                     txnId = conn.getCurrentTransactionId();
-                    SpliceLogUtils.debug(LOG,"Creating table %s with txnId %d",table,txnId);
+                    SpliceLogUtils.debug(LOG,"Performing setup with txnId %d",txnId);
                     conn.clearWarnings();
-                    conn.createStatement().execute("create table " + table + "(a int, b int)");
+                    setupAction(i);
+                    printWarnings();
                     conn.commit();
                 }catch(SQLException se){
-                    LOG.error("Failed to create table "+ table,se);
-                    throw se;
-                }
-                String index = schemaWatcher.schemaName+".t_idx_"+i;
-                try{
-                    txnId = conn.getCurrentTransactionId();
-                    SpliceLogUtils.debug(LOG,"Creating index %s with txnId %d",table,txnId);
-                    conn.clearWarnings();
-                    conn.createStatement().execute("create index " + index + " on " + table + "(a)");
-                    SQLWarning warnings = conn.getWarnings();
-                    if(warnings!=null){
-                        SpliceLogUtils.debug(LOG,"Warning on create index: " + warnings.getNextWarning());
-                    }
-                    conn.commit();
-                }catch(SQLException se){
-                    LOG.error("Failed to create index "+ index,se);
+                    LOG.error("Failed setup action ",se);
                     throw se;
                 }
 
-                try{
-                    txnId = conn.getCurrentTransactionId();
-                    SpliceLogUtils.debug(LOG,"Dropping index %s with txnId %d",index,txnId);
-                    conn.createStatement().execute("drop index " + index);
-                    conn.commit();
-                }catch(SQLException se){
-                    LOG.error("Failed to drop index "+ index,se);
-                    throw se;
-                }
 
                 try{
                     txnId = conn.getCurrentTransactionId();
-                    SpliceLogUtils.debug(LOG,"Dropping table %s with txnId %d",table,txnId);
-                    conn.createStatement().execute("drop table "+table);
+                    SpliceLogUtils.debug(LOG, "Performing teardown with txnId %d", txnId);
+                    teardownAction(i);
+                    printWarnings();
                     conn.commit();
                 }catch(SQLException se){
-                    LOG.error("Failed to drop table "+ table,se);
+                    LOG.error("Failed teardown action ",se);
                     throw se;
                 }
             }
             return null;
+        }
+
+        protected abstract void setupAction(int value) throws SQLException;
+
+        protected abstract void teardownAction(int value) throws SQLException;
+
+        @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
+        private void printWarnings() throws SQLException {
+            SQLWarning warnings = conn.getWarnings();
+            if(warnings!=null){
+                SpliceLogUtils.debug(LOG, "Warning on create index: " + warnings.getNextWarning());
+            }
+        }
+
+    }
+
+    private class CreateIndexCallable extends CreateTableCallable{
+
+        protected CreateIndexCallable(int position, TestConnection conn, int numElements) {
+            super(position, conn, numElements);
+        }
+
+        @Override
+        protected void setupAction(int value) throws SQLException {
+            String index = schemaWatcher.schemaName+".t_idx_"+value;
+            conn.createStatement().execute("create index " + index + " on " + getTableName(value) + "(a)");
+            super.setupAction(value);
+
+        }
+
+        @Override
+        protected void teardownAction(int value) throws SQLException {
+            String index = schemaWatcher.schemaName+".t_idx_"+value;
+            conn.createStatement().execute("drop index " + index);
+            super.teardownAction(value);
         }
     }
 
