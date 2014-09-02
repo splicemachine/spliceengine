@@ -460,7 +460,9 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                      */
                     Procedure xplainStatementId = Procedure.newBuilder().name("SYSCS_GET_XPLAIN_STATEMENTID")
                             .numOutputParams(0)
-                            .numResultSets(1)
+                            .sqlControl(RoutineAliasInfo.NO_SQL)
+                            .isDeterministic(false)
+                            .returnType(DataTypeDescriptor.getCatalogType(Types.BIGINT))
                             .ownerClass(SpliceAdmin.class.getCanonicalName())
                             .build();
                     procedures.add(xplainStatementId);
@@ -470,7 +472,9 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                      */
                     Procedure runTimeStatistics = Procedure.newBuilder().name("SYSCS_GET_RUNTIME_STATISTICS")
                             .numOutputParams(0)
-                            .numResultSets(1)
+                            .sqlControl(RoutineAliasInfo.NO_SQL)
+                            .isDeterministic(false)
+                            .returnType(DataTypeDescriptor.getCatalogType(Types.BOOLEAN))
                             .ownerClass(SpliceAdmin.class.getCanonicalName())
                             .build();
                     procedures.add(runTimeStatistics);
@@ -480,7 +484,8 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                      */
                     Procedure statisticsTiming = Procedure.newBuilder().name("SYSCS_GET_STATISTICS_TIMING")
                             .numOutputParams(0)
-                            .numResultSets(1)
+                            .sqlControl(RoutineAliasInfo.NO_SQL)
+                            .returnType(DataTypeDescriptor.getCatalogType(Types.BOOLEAN))
                             .ownerClass(SpliceAdmin.class.getCanonicalName())
                             .build();
                     procedures.add(statisticsTiming);
@@ -511,7 +516,8 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                      */
                     Procedure getAutoTrace = Procedure.newBuilder().name("SYSCS_GET_AUTO_TRACE")
                             .numOutputParams(0)
-                            .numResultSets(1)
+                            .sqlControl(RoutineAliasInfo.NO_SQL)
+                            .returnType(DataTypeDescriptor.getCatalogType(Types.BOOLEAN))
                             .ownerClass(SpliceAdmin.class.getCanonicalName())
                             .build();
                     procedures.add(getAutoTrace);

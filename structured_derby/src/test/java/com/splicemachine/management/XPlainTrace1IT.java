@@ -177,7 +177,7 @@ public class XPlainTrace1IT extends XPlainTrace {
         xPlainTrace.turnOffTrace();
 
         long statementId = 0;
-        rs = xPlainTrace.executeQuery("call SYSCS_UTIL.SYSCS_GET_XPLAIN_STATEMENTID()");
+        rs = xPlainTrace.executeQuery("values SYSCS_UTIL.SYSCS_GET_XPLAIN_STATEMENTID()");
         if (rs.next()) {
             statementId = rs.getLong(1);
         }
@@ -195,7 +195,7 @@ public class XPlainTrace1IT extends XPlainTrace {
         rs.close();
         Assert.assertEquals(c, nrows);
 
-        rs = xPlainTrace.executeQuery("call SYSCS_UTIL.SYSCS_GET_XPLAIN_STATEMENTID()");
+        rs = xPlainTrace.executeQuery("values SYSCS_UTIL.SYSCS_GET_XPLAIN_STATEMENTID()");
         long id = statementId;
         if (rs.next()) {
             statementId = rs.getLong(1);
@@ -213,7 +213,7 @@ public class XPlainTrace1IT extends XPlainTrace {
         rs.close();
         Assert.assertEquals(c, nrows);
 
-        rs = xPlainTrace.executeQuery("call SYSCS_UTIL.SYSCS_GET_XPLAIN_STATEMENTID()");
+        rs = xPlainTrace.executeQuery("values SYSCS_UTIL.SYSCS_GET_XPLAIN_STATEMENTID()");
         if (rs.next()) {
             statementId = rs.getLong(1);
         }
