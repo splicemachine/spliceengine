@@ -258,13 +258,6 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
             	.catalog("SCHEMA")
             	.catalog("TABLENAME").build()
             ,
-            Procedure.newBuilder().name("SYSCS_GET_RUNTIMESTATISTICS").numOutputParams(0).numResultSets(0)
-                    .sqlControl(RoutineAliasInfo.CONTAINS_SQL)
-                    .returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR,Limits.DB2_VARCHAR_MAXWIDTH))
-                    .isDeterministic(false)
-                    .ownerClass(SYSTEM_PROCEDURES)
-                    .build()
-            ,
             Procedure.newBuilder().name("SYSCS_EXPORT_TABLE").numOutputParams(0).numResultSets(0)
                     .sqlControl(RoutineAliasInfo.READS_SQL_DATA).returnType(null).isDeterministic(false)
                     .ownerClass(SYSTEM_PROCEDURES)
@@ -315,34 +308,6 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
                 .catalog("TABLENAME")
                 .catalog("INDEXNAME")
             .build()
-            ,
-            Procedure.newBuilder().name("SYSCS_SET_XPLAIN_MODE")
-                .numOutputParams(0).numResultSets(0)
-                .containsSql().returnType(null).isDeterministic(false)
-                .ownerClass(SYSTEM_PROCEDURES)
-                .integer("mode")
-            .build()
-            ,
-            Procedure.newBuilder().name("SYSCS_GET_XPLAIN_MODE")
-                .numOutputParams(0).numResultSets(0)
-                .readsSqlData().returnType(TypeDescriptor.INTEGER).isDeterministic(false)
-                .ownerClass(SYSTEM_PROCEDURES)
-                .build()
-            ,
-            Procedure.newBuilder().name("SYSCS_SET_XPLAIN_SCHEMA")
-                .numOutputParams(0).numResultSets(0)
-                .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
-                .ownerClass(SYSTEM_PROCEDURES)
-                .catalog("schemaName")
-            .build()
-            ,
-            Procedure.newBuilder().name("SYSCS_GET_XPLAIN_SCHEMA")
-                .numOutputParams(0).numResultSets(0)
-                .readsSqlData()
-                .returnType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(
-                            Types.VARCHAR,false,128).getCatalogType())
-                .isDeterministic(false).ownerClass(SYSTEM_PROCEDURES)
-                .build()
             ,
             Procedure.newBuilder().name("SYSCS_EXPORT_TABLE_LOBS_TO_EXTFILE")
                 .numOutputParams(0).numResultSets(0)
