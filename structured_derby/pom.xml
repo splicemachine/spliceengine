@@ -13,52 +13,52 @@
 	</parent>
 	<dependencies>
 
-        <dependency>
-            <groupId>com.splicemachine</groupId>
-            <artifactId>utilities</artifactId>
-            <version>${utilities.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.hbase</groupId>
-            <artifactId>asynchbase</artifactId>
-            <version>${asynchbase.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.slf4j</groupId>
-                    <artifactId>slf4j-api</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.slf4j</groupId>
-                    <artifactId>slf4j-log4j12</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.slf4j</groupId>
-                    <artifactId>log4j-over-slf4j</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.google.protobuf</groupId>
-                    <artifactId>protobuf-java</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.stumbleupon</groupId>
-                    <artifactId>async</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.apache.zookeeper</groupId>
-                    <artifactId>zookeeper</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>com.stumbleupon</groupId>
-            <artifactId>async</artifactId>
-            <version>${stumbleasync.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.google.protobuf</groupId>
-            <artifactId>protobuf-java</artifactId>
-            <version>${protobuf.version}</version>
-        </dependency>
+		<dependency>
+			<groupId>com.splicemachine</groupId>
+			<artifactId>utilities</artifactId>
+			<version>${utilities.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.hbase</groupId>
+			<artifactId>asynchbase</artifactId>
+			<version>${asynchbase.version}</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-log4j12</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>log4j-over-slf4j</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>com.google.protobuf</groupId>
+					<artifactId>protobuf-java</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>com.stumbleupon</groupId>
+					<artifactId>async</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.apache.zookeeper</groupId>
+					<artifactId>zookeeper</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>com.stumbleupon</groupId>
+			<artifactId>async</artifactId>
+			<version>${stumbleasync.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.google.protobuf</groupId>
+			<artifactId>protobuf-java</artifactId>
+			<version>${protobuf.version}</version>
+		</dependency>
 		<dependency>
 			<groupId>org.roaringbitmap</groupId>
 			<artifactId>RoaringBitmap</artifactId>
@@ -73,7 +73,7 @@
 			<groupId>org.apache.derby</groupId>
 			<artifactId>derbyTesting</artifactId>
 			<version>${derby.version}</version>
-            <scope>test</scope>
+			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.derby</groupId>
@@ -184,13 +184,13 @@
 					<artifactId>junit</artifactId>
 				</exclusion>
 			</exclusions>
-      </dependency>
-      <dependency>
-         <groupId>org.codehaus.jsr166-mirror</groupId>
-         <artifactId>jsr166y</artifactId>
-         <version>1.7.0</version>
-      </dependency>
-   </dependencies>
+		</dependency>
+		<dependency>
+			<groupId>org.codehaus.jsr166-mirror</groupId>
+			<artifactId>jsr166y</artifactId>
+			<version>1.7.0</version>
+		</dependency>
+	</dependencies>
 	<build>
 		<resources>
 			<resource>
@@ -382,7 +382,9 @@
 								<argument>-Xdebug</argument>
 								<argument>-Djava.awt.headless=true</argument>
 								<argument>-Djava.net.preferIPv4Stack=true</argument>
-								<argument>-Dlog4j.configuration=file:${basedir}/src/main/resources/trace-log4j.properties</argument>
+								<argument>
+									-Dlog4j.configuration=file:${basedir}/src/main/resources/trace-log4j.properties
+								</argument>
 								<argument>-Xmx4g</argument>
 								<argument>-Xms1g</argument>
 								<argument>-Xmn128m</argument>
@@ -392,13 +394,15 @@
 								<argument>-XX:MaxNewSize=128m</argument>
 								<argument>-XX:CMSInitiatingOccupancyFraction=70</argument>
 								<argument>-XX:+UseCMSInitiatingOccupancyOnly</argument>
-								<argument>-XX:MaxGCPauseMillis=100</argument>								
+								<argument>-XX:MaxGCPauseMillis=100</argument>
 								<argument>-XX:MaxPermSize=256M</argument>
 								<argument>-XX:+CMSClassUnloadingEnabled</argument>
 								<argument>-XX:MaxDirectMemorySize=1g</argument>
 								<argument>-enableassertions</argument>
 								<argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4000</argument>
-								<argument>-Dderby.debug.true=DumpClassFile,DumpParseTree,DumpBindTree,DumpOptimizedTree,ByteCodeGenInstr</argument>
+								<argument>
+									-Dderby.debug.true=DumpClassFile,DumpParseTree,DumpBindTree,DumpOptimizedTree,ByteCodeGenInstr
+								</argument>
 								<argument>-Dderby.language.logQueryPlan=true</argument>
 								<argument>-Dderby.language.logStatementText=true</argument>
 								<argument>-Dderby.language.useStatistics=true</argument>
@@ -467,7 +471,9 @@
 								<argument>-cp</argument>
 								<classpath>${maven.runtime.classpath}</classpath>
 								<argument>-Djava.awt.headless=true</argument>
-								<argument>-Dlog4j.configuration=file:${basedir}/src/main/resources/info-log4j.properties</argument>
+								<argument>
+									-Dlog4j.configuration=file:${basedir}/src/main/resources/info-log4j.properties
+								</argument>
 								<argument>-Djava.net.preferIPv4Stack=true</argument>
 								<argument>-Dzookeeper.sasl.client=false</argument>
 								<argument>-Xmx2g</argument>
@@ -518,7 +524,9 @@
 								<argument>-Dcom.sun.management.jmxremote.authenticate=false</argument>
 								<argument>-Dcom.sun.management.jmxremote.port=10102</argument>
 								<argument>-Djava.awt.headless=true</argument>
-								<argument>-Dlog4j.configuration=file:${basedir}/src/main/resources/hbase-log4j.properties</argument>
+								<argument>
+									-Dlog4j.configuration=file:${basedir}/src/main/resources/hbase-log4j.properties
+								</argument>
 								<argument>-Djava.net.preferIPv4Stack=true</argument>
 								<argument>-Xmx4g</argument>
 								<argument>-Xms1g</argument>
@@ -529,7 +537,7 @@
 								<argument>-XX:MaxNewSize=128m</argument>
 								<argument>-XX:CMSInitiatingOccupancyFraction=70</argument>
 								<argument>-XX:+UseCMSInitiatingOccupancyOnly</argument>
-								<argument>-XX:MaxGCPauseMillis=100</argument>								
+								<argument>-XX:MaxGCPauseMillis=100</argument>
 								<argument>-XX:MaxPermSize=256M</argument>
 								<argument>-XX:+CMSClassUnloadingEnabled</argument>
 								<argument>-XX:MaxDirectMemorySize=1g</argument>
@@ -578,7 +586,7 @@
 								<argument>-cp</argument>
 								<classpath>${maven.runtime.classpath}</classpath>
 								<argument>-Djava.awt.headless=true</argument>
-                                <argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
+								<argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
 								<argument>-Djava.net.preferIPv4Stack=true</argument>
 								<argument>-Xmx2g</argument>
 								<argument>-Xmn128m</argument>
@@ -588,13 +596,13 @@
 								<argument>-XX:MaxNewSize=128m</argument>
 								<argument>-XX:CMSInitiatingOccupancyFraction=70</argument>
 								<argument>-XX:+UseCMSInitiatingOccupancyOnly</argument>
-								<argument>-XX:MaxGCPauseMillis=100</argument>								
+								<argument>-XX:MaxGCPauseMillis=100</argument>
 								<argument>-XX:MaxPermSize=256M</argument>
 								<argument>-XX:+CMSClassUnloadingEnabled</argument>
 								<argument>-XX:MaxDirectMemorySize=1g</argument>
 								<argument>com.splicemachine.test.SpliceTestClusterParticipant</argument>
 								<argument>${project.build.directory}/hbase</argument>
-                                <argument>${memberNumber}</argument>
+								<argument>${memberNumber}</argument>
 							</arguments>
 						</configuration>
 					</plugin>
@@ -677,7 +685,7 @@
 								<argument>-XX:MaxNewSize=128m</argument>
 								<argument>-XX:CMSInitiatingOccupancyFraction=70</argument>
 								<argument>-XX:+UseCMSInitiatingOccupancyOnly</argument>
-								<argument>-XX:MaxGCPauseMillis=100</argument>								
+								<argument>-XX:MaxGCPauseMillis=100</argument>
 								<argument>-XX:MaxPermSize=256M</argument>
 								<argument>-XX:+CMSClassUnloadingEnabled</argument>
 								<argument>-XX:MaxDirectMemorySize=1g</argument>
@@ -704,10 +712,10 @@
 					<name>ij</name>
 				</property>
 			</activation>
-            <properties>
-                <!-- Override from command line with -Dij.connection.port=1528 -->
-                <ij.connection.port>1527</ij.connection.port>
-            </properties>
+			<properties>
+				<!-- Override from command line with -Dij.connection.port=1528 -->
+				<ij.connection.port>1527</ij.connection.port>
+			</properties>
 			<build>
 				<plugins>
 					<plugin>
@@ -725,7 +733,9 @@
 							<systemProperties>
 								<systemProperty>
 									<key>ij.connection.splice</key>
-									<value>jdbc:splice://localhost:${ij.connection.port}/splicedb;user=splice;password=admin</value>
+									<value>
+										jdbc:splice://localhost:${ij.connection.port}/splicedb;user=splice;password=admin
+									</value>
 								</systemProperty>
 							</systemProperties>
 							<mainClass>org.apache.derby.tools.ij</mainClass>
