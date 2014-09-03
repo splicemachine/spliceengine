@@ -60,6 +60,13 @@ public abstract class SpliceController implements ConglomerateController {
     }
 
     public void close() throws StandardException {
+        if(table!=null){
+            try{
+                table.close();
+            }catch(IOException ioe){
+                throw Exceptions.parseException(ioe);
+            }
+        }
         Closeables.closeQuietly(table);
         Closeables.closeQuietly(entryEncoder);
         try {
@@ -100,19 +107,12 @@ public abstract class SpliceController implements ConglomerateController {
     public boolean isKeyed() { return false; }
 
 		public boolean delete(RowLocation loc) throws StandardException {
-				HTableInterface htable = SpliceAccessManager.getHTable(openSpliceConglomerate.getConglomerate().getContainerid());
+				HTableInterface htable = getTable();
 				try {
-            elevateTransaction();
 						SpliceUtils.doDelete(htable, ((SpliceTransaction)trans).getTxn(), loc.getBytes());
 						return true;
 				} catch (Exception e) {
-						throw StandardException.newException("delete Failed", e);
-				}finally{
-						try {
-								htable.close();
-						} catch (IOException e) {
-								SpliceLogUtils.warn(LOG,"Unable to close HTable");
-						}
+            throw Exceptions.parseException(e);
 				}
 		}
 

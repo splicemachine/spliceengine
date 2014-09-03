@@ -123,19 +123,35 @@ public class SpliceGenericConstantActionFactory extends GenericConstantActionFac
         if(truncateTable){
             return new TruncateTableConstantOperation(sd,tableName,tableId,tableConglomerateId,
                     lockGranularity,behavior,sequential,indexNameForStatistics);
-        }else{
+        }else if(compressTable){
+            if(purge){
+                return new PurgeTableConstantOperation(sd,tableName,tableId,tableConglomerateId,
+                        lockGranularity,
+                        behavior,
+                        sequential,
+                        indexNameForStatistics);
+            }else
+                return new CompressTableConstantOperation(sd,tableName,tableId,tableConglomerateId,
+                        lockGranularity,behavior,sequential,
+                        indexNameForStatistics);
+
+        }else if(updateStatistics||dropStatistics){
+            return new UpdateStatisticsConstantOperation(sd,tableName,tableId,tableConglomerateId,
+                    columnInfo,constraintActions,lockGranularity,
+                    behavior,sequential,
+                    updateStatistics,updateStatisticsAll,dropStatistics,dropStatisticsAll,indexNameForStatistics);
+        }else if(columnInfo!=null){
+            return new ModifyColumnConstantOperation(sd,tableName,tableId,
+                    tableConglomerateId,columnInfo,constraintActions,
+                    lockGranularity,behavior, indexNameForStatistics);
+        } else{
             return new	AlterTableConstantOperation( sd, tableName, tableId, tableConglomerateId,
-                     columnInfo, constraintActions,
-                    lockGranularity, compressTable,
-                    behavior, sequential,
-                    purge,
-                    updateStatistics,
-                    updateStatisticsAll,
-                    dropStatistics,
-                    dropStatisticsAll,
+                    columnInfo, constraintActions,
+                    lockGranularity,
+                    behavior,
                     indexNameForStatistics);
         }
-	}
+    }
 
 	@Override
 	public ConstantAction getCreateAliasConstantAction(String aliasName,String schemaName, String javaClassName, AliasInfo aliasInfo, char aliasType) {
