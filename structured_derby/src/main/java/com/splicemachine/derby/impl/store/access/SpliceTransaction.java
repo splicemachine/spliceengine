@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.store.access;
 import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.daemon.Serviceable;
@@ -27,6 +28,7 @@ import java.util.Properties;
 public class SpliceTransaction implements Transaction {
 	private static Logger LOG = Logger.getLogger(SpliceTransaction.class);
 	protected CompatibilitySpace compatibilitySpace;
+	protected SpliceTransactionFactory spliceTransactionFactory;
 	protected DataValueFactory dataValueFactory;
 	protected SpliceTransactionContext transContext;
 	private TransactionId transactionId;
@@ -42,22 +44,27 @@ public class SpliceTransaction implements Transaction {
 	protected TransactionManager transactor;
 
 	public SpliceTransaction(CompatibilitySpace compatibilitySpace,
+                             SpliceTransactionFactory spliceTransactionFactory,
                              DataValueFactory dataValueFactory,
                              TransactionManager transactor,
                              String transName) {
 		SpliceLogUtils.trace(LOG,"Instantiating Splice transaction");
 		this.compatibilitySpace = compatibilitySpace;
+		this.spliceTransactionFactory = spliceTransactionFactory;
 		this.dataValueFactory = dataValueFactory;
 		this.transactor = transactor;
 		this.transName = transName;
 		this.state = IDLE;
 	}
 
-	public SpliceTransaction(CompatibilitySpace compatibilitySpace, DataValueFactory dataValueFactory,
+	public SpliceTransaction(CompatibilitySpace compatibilitySpace,
+                             SpliceTransactionFactory spliceTransactionFactory,
+                             DataValueFactory dataValueFactory,
                              TransactionManager transactor,
                              String transName, TransactionId transactionId) {
 			SpliceLogUtils.trace(LOG,"Instantiating Splice transaction");
 			this.compatibilitySpace = compatibilitySpace;
+			this.spliceTransactionFactory = spliceTransactionFactory;
 			this.dataValueFactory = dataValueFactory;
 			this.transactor = transactor;
 			this.transName = transName;
@@ -252,7 +259,7 @@ public class SpliceTransaction implements Transaction {
 
 	public FileResource getFileHandler() {
 		SpliceLogUtils.debug(LOG,"getFileHandler");						
-		return null;
+		return spliceTransactionFactory.getFileHandler();
 	}
 
 	public boolean anyoneBlocked() {

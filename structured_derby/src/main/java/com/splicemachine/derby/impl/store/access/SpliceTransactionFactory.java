@@ -1,10 +1,13 @@
 package com.splicemachine.derby.impl.store.access;
 
+import com.splicemachine.derby.impl.store.access.base.SpliceLocalFileResource;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.context.ContextService;
 import org.apache.derby.iapi.services.daemon.Serviceable;
@@ -13,13 +16,17 @@ import org.apache.derby.iapi.services.locks.CompatibilitySpace;
 import org.apache.derby.iapi.services.locks.LockFactory;
 import org.apache.derby.iapi.services.monitor.ModuleControl;
 import org.apache.derby.iapi.services.monitor.ModuleSupportable;
+import org.apache.derby.iapi.store.access.FileResource;
 import org.apache.derby.iapi.store.access.TransactionInfo;
 import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.store.raw.log.LogInstant;
 import org.apache.derby.iapi.store.raw.xact.TransactionId;
 import org.apache.derby.iapi.types.J2SEDataValueFactory;
+import org.apache.derby.impl.io.DirStorageFactory4;
+import org.apache.derby.io.StorageFactory;
 import org.apache.log4j.Logger;
 
+import java.io.IOException;
 import java.util.Properties;
 
 public class SpliceTransactionFactory implements ModuleControl, ModuleSupportable{
@@ -35,6 +42,8 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 	protected J2SEDataValueFactory dataValueFactory;
 	protected ContextService contextFactory;
 	protected HBaseStore hbaseStore;
+	protected StorageFactory storageFactory;
+	protected FileResource fileHandler;
 
     public StandardException markCorrupt(StandardException originalError) {
 		return null;
@@ -51,7 +60,7 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 	public Transaction marshalTransaction(HBaseStore hbaseStore, ContextManager contextMgr, String transName, String transactionID) throws StandardException {
 		try {
             final TransactionManager transactor = HTransactorFactory.getTransactionManager();
-            Transaction trans = new SpliceTransaction(new SpliceLockSpace(),dataValueFactory,transactor,transName, transactor.transactionIdFromString(transactionID));
+            Transaction trans = new SpliceTransaction(new SpliceLockSpace(),this,dataValueFactory,transactor,transName, transactor.transactionIdFromString(transactionID));
             return trans;
 		} catch (Exception e) {
             SpliceLogUtils.logAndThrow(LOG,"marshallTransaction failure", Exceptions.parseException(e));
@@ -135,7 +144,7 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
                                                      boolean readOnly, String transName, boolean abortAll, String contextName, boolean nested, boolean dependent, String parentTransactionID) {
         try {
             final TransactionManager transactor = HTransactorFactory.getTransactionManager();
-			SpliceTransaction trans = new SpliceTransaction(new SpliceLockSpace(), dataValueFactory, transactor, transName); 
+			SpliceTransaction trans = new SpliceTransaction(new SpliceLockSpace(), this, dataValueFactory, transactor, transName); 
 			trans.setTransactionName(transName);
 			
 			SpliceTransactionContext context = new SpliceTransactionContext(contextMgr, contextName, trans, abortAll, hbaseStore);
@@ -239,10 +248,21 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 		contextFactory = ContextService.getFactory();
 		lockFactory = new SpliceLockFactory();
 		lockFactory.boot(create, properties);
+		storageFactory = new DirStorageFactory4();
+		try {
+			storageFactory.init(null, "splicedb", null, null);  // Grumble, grumble, ... not a big fan of hard coding "splicedb" as the dbname.
+		} catch (IOException ioe) {
+			throw StandardException.newException(
+					SQLState.FILE_UNEXPECTED_EXCEPTION, ioe);
+		}
+        fileHandler = new SpliceLocalFileResource(storageFactory);
 	}
 
 	public void stop() {
 		SpliceLogUtils.debug(LOG,"SpliceTransactionFactory -stop");
 	}
 
+	public FileResource getFileHandler() {			
+		return fileHandler;
+	}
 }
