@@ -13,6 +13,7 @@ import org.apache.derby.iapi.types.NumberDataValue;
 import org.junit.Test;
 
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
+import com.splicemachine.derby.impl.sql.execute.operations.window.function.SumAggregator;
 
 /**
  * @author Jeff Cunningham

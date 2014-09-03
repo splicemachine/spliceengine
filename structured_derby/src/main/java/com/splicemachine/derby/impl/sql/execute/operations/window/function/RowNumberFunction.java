@@ -1,4 +1,4 @@
-package com.splicemachine.derby.impl.sql.execute.operations.window;
+package com.splicemachine.derby.impl.sql.execute.operations.window.function;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -6,7 +6,6 @@ import java.io.ObjectOutput;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.ClassFactory;
-import org.apache.derby.iapi.sql.execute.ExecAggregator;
 import org.apache.derby.iapi.sql.execute.WindowFunction;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
@@ -23,13 +22,13 @@ public class RowNumberFunction extends SpliceGenericWindowFunction implements Wi
 
     @Override
     public WindowFunction setup(ClassFactory classFactory, String aggregateName, DataTypeDescriptor returnDataType) {
-        super.setup( classFactory, aggregateName, returnDataType );
+        super.setup(classFactory, aggregateName, returnDataType);
         return this;
     }
 
     @Override
-    public void accumulate(DataValueDescriptor addend, Object ga) throws StandardException {
-        this.add(addend);
+    public void accumulate(DataValueDescriptor[] valueDescriptors) throws StandardException {
+        this.add(valueDescriptors);
     }
 
     @Override
@@ -39,24 +38,18 @@ public class RowNumberFunction extends SpliceGenericWindowFunction implements Wi
     }
 
     @Override
-    protected void calculateOnAdd(WindowChunk chunk, DataValueDescriptor dvd) throws StandardException {
-        DataValueDescriptor result = chunk.getResult();
+    protected void calculateOnAdd(WindowChunk chunk, DataValueDescriptor[] dvds) throws StandardException {
         // row number is always increasing increasing as we iterate thru the window
         rowNum++;
         // always collect the now previous value
-        chunk.setResult(dvd);
+        chunk.setPrevious(dvds);
     }
 
     @Override
-    protected void calculateOnRemove(WindowChunk chunk, DataValueDescriptor dvd) throws StandardException {
+    protected void calculateOnRemove(WindowChunk chunk, DataValueDescriptor[] dvds) throws StandardException {
     }
 
     private void recalculate(WindowChunk chunk) throws StandardException{
-    }
-
-    @Override
-    public void merge(ExecAggregator inputAggregator) throws StandardException {
-
     }
 
     @Override
@@ -66,33 +59,17 @@ public class RowNumberFunction extends SpliceGenericWindowFunction implements Wi
     }
 
     @Override
-    public ExecAggregator newAggregator() {
-        return new RowNumberFunction();
-    }
-
-    @Override
-    public boolean didEliminateNulls() {
-        return false;
-    }
-
-    @Override
     public WindowFunction newWindowFunction() {
         return new RowNumberFunction();
     }
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
-
+        out.writeLong(rowNum);
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-
+        rowNum = in.readLong();
     }
-
-    @Override
-    public int getTypeFormatId() {
-        return 0;
-    }
-
 }

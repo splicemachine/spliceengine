@@ -4,12 +4,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.execute.ExecAggregator;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
+import com.splicemachine.derby.impl.sql.execute.operations.window.function.SpliceGenericWindowFunction;
 import com.splicemachine.derby.utils.PartitionAwarePushBackIterator;
 
 /**
@@ -17,7 +16,7 @@ import com.splicemachine.derby.utils.PartitionAwarePushBackIterator;
  */
 public class FrameBuffer {
     private final SpliceRuntimeContext runtimeContext;
-    private final SpliceGenericAggregator[] aggregators;
+    private final WindowAggregator[] aggregators;
     private final ExecRow templateRow;
 
     private PartitionAwarePushBackIterator<ExecRow> source;
@@ -30,7 +29,7 @@ public class FrameBuffer {
     private boolean endOfPartition;
 
     public FrameBuffer (SpliceRuntimeContext runtimeContext,
-                        SpliceGenericAggregator[] aggregators,
+                        WindowAggregator[] aggregators,
                         PartitionAwarePushBackIterator<ExecRow> source,
                         FrameDefinition frameDefinition, ExecRow templateRow) throws StandardException {
         this.source = source;
@@ -40,15 +39,8 @@ public class FrameBuffer {
         this.aggregators = aggregators;
         this.rows = new ArrayList<ExecRow>();
 
-        for (SpliceGenericAggregator aggregator: this.aggregators) {
-            SpliceGenericWindowFunction windowFunction;
-            ExecAggregator function = aggregator.getAggregatorInstance();
-            if (! (function instanceof SpliceGenericWindowFunction)) {
-                windowFunction = (SpliceGenericWindowFunction) function.newAggregator();
-            } else {
-                windowFunction = (SpliceGenericWindowFunction)function;
-            }
-            windowFunction.reset();
+        for (WindowAggregator aggregator: this.aggregators) {
+            SpliceGenericWindowFunction windowFunction = aggregator.findOrCreateNewWindowFunction();
             aggregator.initialize(this.templateRow);
         }
     }
@@ -57,7 +49,7 @@ public class FrameBuffer {
         rows = new ArrayList<ExecRow>();
 
         // Initialize window functions
-        for (SpliceGenericAggregator aggregator : this.aggregators) {
+        for (WindowAggregator aggregator : this.aggregators) {
             int aggregatorColumnId = aggregator.getAggregatorColumnId();
             SpliceGenericWindowFunction windowFunction =
                     (SpliceGenericWindowFunction) templateRow.getColumn(aggregatorColumnId).getObject();
@@ -86,7 +78,6 @@ public class FrameBuffer {
                 this.reset();
                 row = this.next();
             }
-
         }
 
         this.move();
@@ -192,7 +183,7 @@ public class FrameBuffer {
             return null;
         }
         ExecRow row = rows.get(current);
-        for (SpliceGenericAggregator aggregator : aggregators) {
+        for (WindowAggregator aggregator : aggregators) {
             // For current row  and window, evaluate the window function
             int aggregatorColumnId = aggregator.getAggregatorColumnId();
             int resultColumnId = aggregator.getResultColumnId();
@@ -203,13 +194,13 @@ public class FrameBuffer {
     }
 
     private void add(ExecRow row) throws StandardException{
-        for(SpliceGenericAggregator aggregator : aggregators) {
+        for(WindowAggregator aggregator : aggregators) {
             aggregator.accumulate(row, templateRow);
         }
     }
 
     private void remove() throws StandardException {
-        for(SpliceGenericAggregator aggregator : aggregators) {
+        for(WindowAggregator aggregator : aggregators) {
             int aggregatorColumnId = aggregator.getAggregatorColumnId();
             SpliceGenericWindowFunction windowFunction =
                 (SpliceGenericWindowFunction) templateRow.getColumn(aggregatorColumnId).getObject();
