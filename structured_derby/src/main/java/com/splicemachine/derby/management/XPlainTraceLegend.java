@@ -61,8 +61,8 @@ public class XPlainTraceLegend {
 
         //legendMap.put("FILTEREDROWS",  new LegendEntry("FILTEREDROWS", "FR", false));
         legendMap.put("TASKQUEUEWAITWALLTIME",  new LegendEntry("TASKQUEUEWAITWALLTIME", "TQWWT", false));
-        legendMap.put("STARTTIMESTAMP",  new LegendEntry("STARTTIMESTAMP", "ST", false));
-        legendMap.put("STOPTIMESTAMP",  new LegendEntry("STOPTIMESTAMP", "PT", false));
+        //legendMap.put("STARTTIMESTAMP",  new LegendEntry("STARTTIMESTAMP", "ST", false));
+        //legendMap.put("STOPTIMESTAMP",  new LegendEntry("STOPTIMESTAMP", "PT", false));
 
         legendMap.put("INPUTROWS",  new LegendEntry("INPUTROWS", "IR", false));
         legendMap.put("OUTPUTROWS",  new LegendEntry("OUTPUTROWS", "OR", false));
@@ -85,6 +85,7 @@ public class XPlainTraceLegend {
         //legendMap.put("WRITETOTALCPUTIME",  new LegendEntry("WRITETOTALCPUTIME", "WTCT", false));
         legendMap.put("ITERATIONS",  new LegendEntry("ITERATIONS", "ITR", false));
         legendMap.put("INFO",  new LegendEntry("INFO", "IF", false));
+        legendMap.put("CUMULATIVETIME",  new LegendEntry("CUMULATIVETIME", "CT", false));
     }
 
     public String getShortName(String fullName) {
