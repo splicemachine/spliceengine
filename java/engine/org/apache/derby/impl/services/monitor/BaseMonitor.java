@@ -21,62 +21,74 @@
 
 package org.apache.derby.impl.services.monitor;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.PrintStream;
-import java.io.PrintWriter;
-import java.lang.reflect.InvocationTargetException;
-import java.net.URL;
-import java.util.Collections;
-import java.util.Date;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Locale;
-import java.util.NoSuchElementException;
-import java.util.Properties;
-import java.util.ResourceBundle;
-import java.util.StringTokenizer;
-import java.util.Vector;
+import org.apache.derby.iapi.services.monitor.Monitor;
+import org.apache.derby.iapi.services.monitor.ModuleFactory;
+import org.apache.derby.iapi.services.monitor.ModuleControl;
+import org.apache.derby.iapi.services.monitor.ModuleSupportable;
 
+import org.apache.derby.iapi.services.monitor.PersistentService;
+
+import org.apache.derby.iapi.services.io.FormatIdUtil;
+import org.apache.derby.iapi.services.io.RegisteredFormatIds;
+import org.apache.derby.iapi.services.io.StoredFormatIds;
+
+import org.apache.derby.iapi.services.context.ContextManager;
+import org.apache.derby.iapi.services.context.Context;
+import org.apache.derby.iapi.services.context.ContextService;
+
+import org.apache.derby.iapi.services.stream.HeaderPrintWriter;
+import org.apache.derby.iapi.services.stream.InfoStreams;
+import org.apache.derby.iapi.services.stream.PrintWriterGetHeader;
+
+import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.error.ErrorStringBuilder;
-import org.apache.derby.iapi.error.ExceptionSeverity;
 import org.apache.derby.iapi.error.ShutdownException;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.reference.Attribute;
+import org.apache.derby.iapi.services.uuid.UUIDFactory;
+import org.apache.derby.iapi.services.timer.TimerFactory;
 import org.apache.derby.iapi.reference.MessageId;
 import org.apache.derby.iapi.reference.Module;
 import org.apache.derby.iapi.reference.Property;
 import org.apache.derby.iapi.reference.SQLState;
-import org.apache.derby.iapi.services.context.Context;
-import org.apache.derby.iapi.services.context.ContextManager;
-import org.apache.derby.iapi.services.context.ContextService;
-import org.apache.derby.iapi.services.i18n.BundleFinder;
-import org.apache.derby.iapi.services.i18n.MessageService;
-import org.apache.derby.iapi.services.info.JVMInfo;
+import org.apache.derby.iapi.reference.Attribute;
+import org.apache.derby.iapi.services.property.PropertyUtil;
+
 import org.apache.derby.iapi.services.io.AccessibleByteArrayOutputStream;
-import org.apache.derby.iapi.services.io.FormatIdUtil;
-import org.apache.derby.iapi.services.io.FormatableInstanceGetter;
-import org.apache.derby.iapi.services.io.RegisteredFormatIds;
-import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.services.loader.ClassInfo;
 import org.apache.derby.iapi.services.loader.InstanceGetter;
-import org.apache.derby.iapi.services.monitor.ModuleControl;
-import org.apache.derby.iapi.services.monitor.ModuleFactory;
-import org.apache.derby.iapi.services.monitor.ModuleSupportable;
-import org.apache.derby.iapi.services.monitor.Monitor;
-import org.apache.derby.iapi.services.monitor.PersistentService;
-import org.apache.derby.iapi.services.property.PropertyUtil;
-import org.apache.derby.iapi.services.sanity.SanityManager;
-import org.apache.derby.iapi.services.stream.InfoStreams;
-import org.apache.derby.iapi.services.stream.PrintWriterGetHeader;
-import org.apache.derby.iapi.services.timer.TimerFactory;
-import org.apache.derby.iapi.services.uuid.UUIDFactory;
-import org.apache.derby.io.StorageFactory;
+import org.apache.derby.iapi.services.io.FormatableInstanceGetter;
+import org.apache.derby.iapi.error.ExceptionSeverity;
+
+import  org.apache.derby.io.StorageFactory;
+
+import org.apache.derby.iapi.services.info.JVMInfo;
+import org.apache.derby.iapi.services.i18n.BundleFinder;
+import org.apache.derby.iapi.services.i18n.MessageService;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.BufferedInputStream;
+import java.io.PrintWriter;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.ByteArrayInputStream;
+import java.io.PrintStream;
+
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Properties;
+import java.util.Enumeration;
+import java.util.StringTokenizer;
+import java.util.Vector;
+import java.util.Locale;
+import java.util.ResourceBundle;
+import java.util.NoSuchElementException;
+
+import java.lang.reflect.InvocationTargetException;
+
+import java.net.URL;
 
 /**
 	Implementation of the monitor that uses the class loader
@@ -328,11 +340,7 @@ abstract class BaseMonitor
 			addDebugFlags(PropertyUtil.getSystemProperty(Monitor.DEBUG_TRUE), true);
 		}
 
-        // DEBUG: jpc
-        System.out.println("--- implementationSets: " + (implementationSets == null ? "null" :
-            (implementationSets.length > 0 ? implementationSets[0].size() : 0)));
-
-        try {
+		try {
 			systemStreams = (InfoStreams) Monitor.startSystemModule("org.apache.derby.iapi.services.stream.InfoStreams");
 
 			if (SanityManager.DEBUG) {
@@ -1252,12 +1260,8 @@ nextModule:
         	Enumeration e = cl == null ?
         		ClassLoader.getSystemResources("org/apache/derby/modules.properties") :
         		cl.getResources("org/apache/derby/modules.properties");
-            // DEBUG: jpc
-            System.out.println("--- modules properties: " + (e == null ? "null" : e));
             while (e.hasMoreElements()) {
                 URL modulesPropertiesURL = (URL) e.nextElement();
-                // DEBUG: jpc
-                System.out.println("---   modulesPropertiesURL: " + (modulesPropertiesURL == null ? "null" : modulesPropertiesURL.toString()));
                 InputStream is = null;
                 try {
                     is = modulesPropertiesURL.openStream();
