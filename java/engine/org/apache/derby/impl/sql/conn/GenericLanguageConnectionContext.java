@@ -5,6 +5,7 @@ import org.apache.derby.iapi.services.context.Context;
 import org.apache.derby.iapi.services.context.ContextImpl;
 import org.apache.derby.iapi.services.cache.CacheManager;
 
+import org.apache.derby.iapi.transaction.TransactionControl;
 import org.apache.derby.impl.sql.compile.CompilerContextImpl;
 import org.apache.derby.impl.sql.execute.InternalTriggerExecutionContext;
 import org.apache.derby.impl.sql.execute.AutoincrementCounter;
@@ -63,12 +64,7 @@ import org.apache.derby.iapi.sql.execute.RunTimeStatistics;
 import org.apache.derby.iapi.db.TriggerExecutionContext;
 import org.apache.derby.iapi.reference.Property;
 
-import java.util.List;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.IdentityHashMap;
-import java.util.WeakHashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * LanguageConnectionContext keeps the pool of prepared statements,
@@ -169,6 +165,14 @@ public class GenericLanguageConnectionContext
     transaction is.
     **/
     private final TransactionController tran;
+
+    /*
+     * A stack of nested transactions. Each time you want to execute some code in a nested context
+     * (i.e. you wish to create a child transaction to commit with), call pushNestedContext(String),
+     * with a nested transaction context.
+     *
+     */
+    private final List<TransactionController> nestedTransactions = new LinkedList<TransactionController>();
 
     /**
      * If non-null indicates that a read-only nested 
@@ -1948,7 +1952,18 @@ public class GenericLanguageConnectionContext
 
     public TransactionController getTransactionExecute()
     {
-        return tran;
+        TransactionController transToUse = nestedTransactions.size()<=0? tran: nestedTransactions.get(0);
+        return transToUse;
+    }
+
+    @Override
+    public void pushNestedTransaction(TransactionController nestedTransaction){
+        nestedTransactions.add(0, nestedTransaction);
+    }
+
+    @Override
+    public TransactionController popNestedTransaction(){
+        return nestedTransactions.remove(0);
     }
 
  /** Get the data value factory to use with this language connection

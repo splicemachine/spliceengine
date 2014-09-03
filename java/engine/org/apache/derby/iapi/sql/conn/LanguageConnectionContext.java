@@ -393,7 +393,10 @@ public interface LanguageConnectionContext extends Context {
 	 */
 
 	TransactionController getTransactionExecute();
-   
+
+    void pushNestedTransaction(TransactionController trans);
+
+    TransactionController popNestedTransaction();
 	/**
 		Get the data dictionary 
 

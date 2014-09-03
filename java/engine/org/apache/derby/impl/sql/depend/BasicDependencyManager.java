@@ -170,7 +170,7 @@ public class BasicDependencyManager implements DependencyManager {
         // one list is a duplicate, then it should be a duplicate in the
         // other list.
         boolean addedToDeps;
-        boolean addedToProvs;
+        boolean addedToProvs = false;
 
         addedToDeps = addDependencyToTable(dependents, d.getObjectID(), dy);
         if (addedToDeps) {
@@ -989,7 +989,7 @@ public class BasicDependencyManager implements DependencyManager {
 	 *
 	 * @return LanguageConnectionContext	The LanguageConnectionContext to use.
 	 */
-	private LanguageConnectionContext getLanguageConnectionContext(ContextManager cm)
+	protected LanguageConnectionContext getLanguageConnectionContext(ContextManager cm)
 	{
 		// find the language context.
 		return (LanguageConnectionContext) cm.getContext(LanguageConnectionContext.CONTEXT_ID);
