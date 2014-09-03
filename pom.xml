@@ -19,13 +19,13 @@
 	</scm>
 	<distributionManagement>
 		<repository>
-			<id>splicemachine-releases</id>
+			<id>splicemachine</id>
 			<name>Splice Machine Releases</name>
 			<url>http://nexus.splicemachine.com/nexus/content/repositories/releases</url>
 			<uniqueVersion>false</uniqueVersion>
 		</repository>
 		<snapshotRepository>
-			<id>splicemachine-snapshots</id>
+			<id>splicemachine</id>
 			<name>Splice Machine Snapshots</name>
 			<url>http://nexus.splicemachine.com/nexus/content/repositories/snapshots</url>
 			<uniqueVersion>true</uniqueVersion>
