@@ -1453,6 +1453,14 @@ public interface StoredFormatIds {
     public static final int SYNONYM_INFO_V01_ID = (MIN_ID_2 + 455);
     public static final int UDT_INFO_V01_ID = (MIN_ID_2 + 474);
     public static final int AGGREGATE_INFO_V01_ID = (MIN_ID_2 + 475);
+    /**
+     class org.apache.derby.Database.Language.Execution.WindowFunctionInfo
+     */
+    public static final int WINDOW_FUNCTION_INFO_V01_ID = (MIN_ID_2 + 476);
+    /**
+     class org.apache.derby.Database.Language.Execution.WindowFunctionInfoList
+     */
+    static public final int WINDOW_FUNCTION_INFO_LIST_V01_ID = (MIN_ID_2 + 477);
 
     /******************************************************************
     **
@@ -1905,7 +1913,7 @@ public interface StoredFormatIds {
      * Make sure this is updated when a new module is added
      */
     public static final int MAX_ID_2 =
-    		(MIN_ID_2 + 475);
+    		(MIN_ID_2 + 477);
 
     // DO NOT USE 4 BYTE IDS ANYMORE
     static public final int MAX_ID_4 =

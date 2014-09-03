@@ -22,13 +22,14 @@ package org.apache.derby.impl.sql.compile;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.sanity.SanityManager;
+import org.apache.derby.iapi.sql.compile.C_NodeTypes;
+import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 
 
 /**
  * Superclass of any window function call.
  */
-public abstract class WindowFunctionNode extends AggregateNode
-{
+public abstract class WindowFunctionNode extends AggregateNode {
 
     private WindowNode window; // definition or reference
 
@@ -137,6 +138,31 @@ public abstract class WindowFunctionNode extends AggregateNode
      */
     @Override
     public abstract ColumnReference getGeneratedRef();
+
+    @Override
+    public ResultColumn getNewExpressionResultColumn(DataDictionary dd) throws StandardException {
+        return super.getNewExpressionResultColumn(dd);
+    }
+
+    public ResultColumn[] getNewExpressionResultColumns(DataDictionary dd) throws StandardException {
+        OrderByList orderByList = this.window.getOrderByList();
+        if (orderByList == null) {
+            ResultColumn[] resultColumns = new ResultColumn[1];
+            resultColumns[0] = getNewExpressionResultColumn(dd);
+            return resultColumns;
+        }
+        ResultColumn[] resultColumns = new ResultColumn[orderByList.size()];
+        for (int i=0; i<orderByList.size(); i++) {
+            ValueNode node = orderByList.getOrderByColumn(i).getColumnExpression();
+
+            resultColumns[i] = (ResultColumn) getNodeFactory().getNode(
+                C_NodeTypes.RESULT_COLUMN,
+                "##aggregate expression",
+                node,
+                getContextManager());
+        }
+        return resultColumns;
+    }
 
     /**
      * Get the generated ResultColumn where this

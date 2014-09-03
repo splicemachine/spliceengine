@@ -49,8 +49,9 @@ import org.apache.derby.iapi.sql.compile.RowOrdering;
 import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.impl.sql.execute.AggregatorInfo;
-import org.apache.derby.impl.sql.execute.AggregatorInfoList;
 import org.apache.derby.impl.sql.execute.IndexColumnOrder;
+import org.apache.derby.impl.sql.execute.WindowFunctionInfo;
+import org.apache.derby.impl.sql.execute.WindowFunctionInfoList;
 
 
 /**
@@ -79,7 +80,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      * The list of all window functions in the query block
      * that contains this partition.
      */
-    Vector windowFunctions;
+    Vector<WindowFunctionNode> windowFunctions;
 
     /**
      * The list of aggregate nodes we've processed as
@@ -89,9 +90,9 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 
     /**
      * Information that is used at execution time to
-     * process aggregates.
+     * process a window function.
      */
-    private AggregatorInfoList aggInfo;
+    private WindowFunctionInfoList windowInfo;
 
     /**
      * The parent to the WindowResultSetNode.  We generate a ProjectRestrict
@@ -99,6 +100,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      */
     FromTable parent;
 
+    // TODO: Remove these two distinct vars
     private boolean	addDistinctAggregate;
     private int		addDistinctAggregateColumnNum;
 
@@ -235,6 +237,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
     /**
      * Add any distinct aggregates to the order by list.
      * Asserts that there are 0 or more distincts.
+     * TODO: Remove this method.
      */
     private void addDistinctAggregatesToOrderBy()
     {
@@ -248,10 +251,10 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             }
 
             AggregatorInfo agg = null;
-            int count = aggInfo.size();
+            int count = windowInfo.size();
             for (int i = 0; i < count; i++)
             {
-                agg = (AggregatorInfo) aggInfo.elementAt(i);
+//                agg = (AggregatorInfo) windowInfo.elementAt(i);
                 if (agg.isDistinct())
                 {
                     break;
@@ -396,7 +399,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      */
     private void addNewColumnsForAggregation()
         throws StandardException {
-        aggInfo = new AggregatorInfoList();
+        windowInfo = new WindowFunctionInfoList();
 
         addUnAggColumns();
         addAggregateColumns();
@@ -421,7 +424,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             getContextManager());
         ResultColumnList groupByRCL = resultColumns;
 
-        ArrayList referencesToSubstitute = new ArrayList();
+        List<SubstituteExpressionVisitor> referencesToSubstitute = new ArrayList<SubstituteExpressionVisitor>();
         for (OrderedColumn oc : allColumns) {
             ResultColumn newRC = (ResultColumn) getNodeFactory().getNode(
                 C_NodeTypes.RESULT_COLUMN,
@@ -454,7 +457,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                 C_NodeTypes.VIRTUAL_COLUMN_NODE,
                 this, // source result set.
                 gbRC,
-                new Integer(groupByRCL.size()),
+                groupByRCL.size(),
                 getContextManager());
 
             // we replace each group by expression
@@ -507,11 +510,10 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             //       FBT (C1, C2)
             oc.setColumnPosition(bottomRCL.size());
         }
-        Comparator sorter = new ExpressionSorter();
+        Comparator<SubstituteExpressionVisitor> sorter = new ExpressionSorter();
         Collections.sort(referencesToSubstitute, sorter);
-        for (int r = 0; r < referencesToSubstitute.size(); r++)
-            parent.getResultColumns().accept(
-                (SubstituteExpressionVisitor) referencesToSubstitute.get(r));
+        for (SubstituteExpressionVisitor aReferencesToSubstitute : referencesToSubstitute)
+            parent.getResultColumns().accept(aReferencesToSubstitute);
     }
 
     /**
@@ -582,7 +584,6 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      */
     private void addAggregateColumns() throws StandardException {
         DataDictionary dd = getDataDictionary();
-        WindowFunctionNode windowFunctionNode = null;
         ColumnReference newColumnRef;
         ResultColumn newRC;
         ResultColumn tmpRC;
@@ -614,9 +615,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 		/*
 		** For each windowFunctionNode
 		*/
-        int alSize = windowFunctions.size();
-        for (int index = 0; index < alSize; index++) {
-            windowFunctionNode = (WindowFunctionNode) windowFunctions.get(index);
+        for (WindowFunctionNode windowFunctionNode : windowFunctions) {
 
 			/*
 			** AGG RESULT: Set the windowFunctionNode result to null in the
@@ -669,18 +668,22 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 			** project restrict that has the expression that is
 			** to be aggregated
 			*/
-            newRC = windowFunctionNode.getNewExpressionResultColumn(dd);
-            newRC.markGenerated();
-            newRC.bindResultColumnToExpression();
-            bottomRCL.addElement(newRC);
-            newRC.setVirtualColumnId(bottomRCL.size());
-            aggInputVColId = newRC.getVirtualColumnId();
+            ResultColumn[] resultColumns = windowFunctionNode.getNewExpressionResultColumns(dd);
+            int[] inputVColIDs = new int[resultColumns.length];
+            int i = 0;
+            for (ResultColumn resultColumn : resultColumns) {
+                resultColumn.markGenerated();
+                resultColumn.bindResultColumnToExpression();
+                bottomRCL.addElement(resultColumn);
+                resultColumn.setVirtualColumnId(bottomRCL.size());
+                inputVColIDs[i++] = resultColumn.getVirtualColumnId();
+            }
+
             aggResultRC = (ResultColumn) getNodeFactory().getNode(
                 C_NodeTypes.RESULT_COLUMN,
                 "##WindowExpression",
                 windowFunctionNode.getNewNullResultExpression(),
                 getContextManager());
-
 
 			/*
 			** Add a reference to this column into the
@@ -723,13 +726,12 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 			** Note that the column ids in the row are 0 based
 			** so we have to subtract 1.
 			*/
-            aggInfo.addElement(new AggregatorInfo(
+            windowInfo.addElement(new WindowFunctionInfo(
                 windowFunctionNode.getAggregateName(),
                 windowFunctionNode.getAggregatorClassName(),
-                aggInputVColId - 1,            // windowFunctionNode input column
-                aggResultVColId - 1,            // the windowFunctionNode result column
-                aggregatorVColId - 1,        // the aggregator column
-                windowFunctionNode.isDistinct(),
+                inputVColIDs,       // windowFunctionNode input column
+                aggResultVColId,    // the windowFunctionNode result column
+                aggregatorVColId,   // the aggregator column
                 lf.getResultDescription(aggRCL.makeResultDescriptors(), "SELECT")
             ));
             this.processedAggregates.add(windowFunctionNode.getWrappedAggregate());
@@ -991,13 +993,13 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         int orderByItemIndex = acb.addItem(orderByHolder);
 
 		/*
-		** We have aggregates, so save the aggInfo
+		** We have aggregates, so save the windowInfo
 		** struct in the activation and store the number
 		*/
         if (SanityManager.DEBUG) {
-            SanityManager.ASSERT(aggInfo != null, "aggInfo not set up as expected");
+            SanityManager.ASSERT(windowInfo != null, "windowInfo not set up as expected");
         }
-        int aggInfoItemIndex = acb.addItem(aggInfo);
+        int aggInfoItemIndex = acb.addItem(windowInfo);
 
         // add the window frame definition
         int frameDefnIndex = acb.addItem(wdn.getFrameExtent().toMap());
@@ -1033,7 +1035,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         mb.push(costEstimate.rowCount());
         mb.push(costEstimate.getEstimatedCost());
 
-        mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getWindowResultSet",
+        mb.callMethod(VMOpcode.INVOKEINTERFACE, null, "getWindowResultSet",
                       ClassName.NoPutResultSet, 11);
 
     }
@@ -1080,7 +1082,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      * @return the new result column
      * @throws StandardException on error
      * @param    targetRC    the source
-     * @param    dd
+     * @param    dd the data dictionary
      */
     private ResultColumn getColumnReference(ResultColumn targetRC,
                                             DataDictionary dd)
@@ -1121,11 +1123,11 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      * we'll process those expressions in the order: a*(a+b),
      * a+b+c, a+b, then a.
      */
-    private static final class ExpressionSorter implements Comparator {
-        public int compare(Object o1, Object o2) {
+    private static final class ExpressionSorter implements Comparator<SubstituteExpressionVisitor> {
+        public int compare(SubstituteExpressionVisitor o1, SubstituteExpressionVisitor o2) {
             try {
-                ValueNode v1 = ((SubstituteExpressionVisitor) o1).getSource();
-                ValueNode v2 = ((SubstituteExpressionVisitor) o2).getSource();
+                ValueNode v1 = o1.getSource();
+                ValueNode v2 = o2.getSource();
                 int refCount1, refCount2;
                 CollectNodesVisitor vis = new CollectNodesVisitor(
                     ColumnReference.class);

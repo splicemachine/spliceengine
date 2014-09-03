@@ -2070,8 +2070,8 @@ public class SQLParser
 
         ValueNode[] columnRefs = new ValueNode[orderByList.size()];
 
-        for (int i=1; i<0; i++) {
-            columnRefs[i] = orderByList.getOrderByColumn(0).getColumnExpression();
+        for (int i=0; i<orderByList.size(); i++) {
+            columnRefs[i] = orderByList.getOrderByColumn(i).getColumnExpression();
         }
 
         return columnRefs;
@@ -10009,7 +10009,7 @@ windowOrAggregateFunctionNode() throws StandardException :
 	{
 	    rankColsRef = columnsRefForRankFunct(window);
         winOrAgg = (ValueNode) nodeFactory.getNode(C_NodeTypes.AGGREGATE_NODE,
-                            null,
+                            (rankColsRef.length == 0 ? null : rankColsRef[0]),
                             DenseRankFunctionDefinition.class,
                             Boolean.FALSE,
                             "DENSE_RANK",
@@ -10027,7 +10027,7 @@ windowOrAggregateFunctionNode() throws StandardException :
 	{
 	    rankColsRef = columnsRefForRankFunct(window);
         winOrAgg = (ValueNode) nodeFactory.getNode(C_NodeTypes.AGGREGATE_NODE,
-                            null,
+                            (rankColsRef.length == 0 ? null : rankColsRef[0]),
                             RankFunctionDefinition.class,
                             Boolean.FALSE,
                             "RANK",
@@ -10045,7 +10045,7 @@ windowOrAggregateFunctionNode() throws StandardException :
 	{
 	    rankColsRef = columnsRefForRankFunct(window);
         winOrAgg = (ValueNode) nodeFactory.getNode(C_NodeTypes.AGGREGATE_NODE,
-                            null,
+                            (rankColsRef.length == 0 ? null : rankColsRef[0]),
                             RowNumberFunctionDefinition.class,
                             Boolean.FALSE,
                             "ROW_NUMBER",
