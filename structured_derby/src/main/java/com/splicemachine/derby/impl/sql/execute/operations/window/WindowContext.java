@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.sql.execute.operations.window;
 import java.io.Externalizable;
 
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.sql.execute.ExecIndexRow;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.operations.WarningCollector;
@@ -25,4 +26,10 @@ public interface WindowContext extends WarningCollector,Externalizable {
     boolean[] getKeyOrders();
 
     FrameDefinition getFrameDefinition();
+
+    WindowAggregator[] getWindowFunctions();
+
+    ExecIndexRow getSortTemplateRow() throws StandardException;
+
+    ExecIndexRow getSourceIndexRow();
 }

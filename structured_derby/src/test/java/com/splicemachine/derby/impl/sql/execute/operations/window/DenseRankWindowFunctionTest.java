@@ -13,6 +13,8 @@ import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import com.splicemachine.derby.impl.sql.execute.operations.window.function.DenseRankFunction;
+
 /**
  * @author Jeff Cunningham
  *         Date: 8/21/14
@@ -137,7 +139,6 @@ public class DenseRankWindowFunctionTest extends WindowTestingFramework {
     }
 
     @Test
-//    @Ignore("DB-1645 - restricted to only one order by column")
     public void testThreeOrderByColumns() throws Exception {
 
         // define the shape of the input rows
@@ -148,7 +149,7 @@ public class DenseRankWindowFunctionTest extends WindowTestingFramework {
                 new VarcharColumnDefinition(7).setVariant(5),
                 new TimestampColumnDefinition().setVariant(9),
                 new DateColumnDefinition().setVariant(13)}));
-        helpTestColumns(new int[] {2}, new int[] {2,3,4}, rowDefinition, PRINT_RESULTS);
+        helpTestColumns(new int[] {2}, new int[] {2,3,4}, rowDefinition, DONT_PRINT_RESULTS);
     }
 
     //===============================================================================================

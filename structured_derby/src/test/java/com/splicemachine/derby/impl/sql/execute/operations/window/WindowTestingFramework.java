@@ -26,7 +26,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.services.reflect.SpliceReflectClasses;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.impl.sql.execute.SpliceExecutionFactory;
-import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
+import com.splicemachine.derby.impl.sql.execute.operations.window.function.SpliceGenericWindowFunction;
 import com.splicemachine.derby.utils.PartitionAwareIterator;
 import com.splicemachine.derby.utils.PartitionAwarePushBackIterator;
 
@@ -48,7 +48,7 @@ import com.splicemachine.derby.utils.PartitionAwarePushBackIterator;
  *          <li>Create an instance of the expected results function (the nested class created above)</li>
  *      </ul>
  *      <li>Use this framework to run your test and verify results -
- *      see {@link #helpTestWindowFunction(int, int, int[], int[], int[], java.util.List, FrameDefinition, com.splicemachine.derby.impl.sql.execute.operations.window.WindowTestingFramework.ExpectedResultsFunction, SpliceGenericWindowFunction, boolean)}</li>
+ *      see {@link #helpTestWindowFunction(int, int, int[], int[], int[], java.util.List, FrameDefinition, com.splicemachine.derby.impl.sql.execute.operations.window.WindowTestingFramework.ExpectedResultsFunction, com.splicemachine.derby.impl.sql.execute.operations.window.function.SpliceGenericWindowFunction, boolean)}</li>
  *     </li>
  * </ol>
  *
@@ -128,14 +128,13 @@ public class WindowTestingFramework {
 
         // create agg function array
         int aggregatorColID = inputRowDefinition.size()+3;
-        int inputColID = inputColumnIDs[0];
         int resultColID = inputRowDefinition.size()+1;
-        SpliceGenericAggregator[] functions = new SpliceGenericAggregator[] {
-            new SpliceGenericAggregator(function,aggregatorColID, inputColID,resultColID)};
+        WindowAggregator[] functions = new WindowAggregator[] {
+            new WindowAggregator(function,aggregatorColID, inputColumnIDs,resultColID)};
 
         // create template row given
         ExecRow templateRow = createTemplateRow(inputRowDefinition, function, resultColID,
-                                                inputColID, aggregatorColID, expectedResultsFunction.getNullReturnValue());
+                                                inputColumnIDs, aggregatorColID, expectedResultsFunction.getNullReturnValue());
 
         // foreach partition, create a frameSource
         List<PartitionAwarePushBackIterator<ExecRow>> frameSources = new ArrayList<PartitionAwarePushBackIterator<ExecRow>>(nPartitions);
@@ -149,7 +148,7 @@ public class WindowTestingFramework {
             if (partitionColIDs.length > 0) {
                 // init the frame source with rows of the partition
                 PartitionAwarePushBackIterator<ExecRow> frameSource =
-                    new PartitionAwarePushBackIterator<ExecRow>(new TestPartitionAwareIterator(inputRows, toBytes(partitionColIDs)));
+                    new PartitionAwarePushBackIterator<ExecRow>(new TestPartitionAwareIterator(inputRows, partitionColIDs));
                 frameSources.add(frameSource);
             } else {
                 allInputRows.addAll(inputRows);
@@ -163,7 +162,7 @@ public class WindowTestingFramework {
         if (partitionColIDs.length == 0) {
             // init the frame source with rows of the partition
             PartitionAwarePushBackIterator<ExecRow> frameSource =
-                new PartitionAwarePushBackIterator<ExecRow>(new TestPartitionAwareIterator(allInputRows, toBytes(partitionColIDs)));
+                new PartitionAwarePushBackIterator<ExecRow>(new TestPartitionAwareIterator(allInputRows, partitionColIDs));
             frameSources.add(frameSource);
         }
 
@@ -188,17 +187,6 @@ public class WindowTestingFramework {
         if (printResults) {
             System.out.println(printResults(expectedRows, results, -1, new StringBuilder()));
         }
-    }
-
-    private byte[] toBytes(int[] colIDs) {
-        if (colIDs == null || colIDs.length == 0) {
-            return new byte[0];
-        }
-        byte[] bytes = new byte[colIDs.length];
-        for (int i=0; i<colIDs.length; i++) {
-            bytes[i] = (byte)colIDs[i];
-        }
-        return bytes;
     }
 
     /**
@@ -276,7 +264,7 @@ public class WindowTestingFramework {
     public static ExecRow createTemplateRow(List<TestColumnDefinition> rowDescriptions,
                                             SpliceGenericWindowFunction function,
                                             int resultColID,
-                                            int inputColID,
+                                            int[] inputColIDs,
                                             int functionColID,
                                             DataValueDescriptor nullReturnValue) throws StandardException {
         ValueRow valueRow = new ValueRow(rowDescriptions.size()+3);
@@ -284,10 +272,14 @@ public class WindowTestingFramework {
         for (TestColumnDefinition rowDesc : rowDescriptions) {
             valueRow.setColumn(i++, rowDesc.getNullDVD());
         }
-        // need, in order, result col type, input col type, function class
-        valueRow.setColumn(resultColID, nullReturnValue);                       // result column
-        valueRow.setColumn(inputColID, valueRow.cloneColumn(inputColID));       // input column
-        valueRow.setColumn(functionColID, dvf.getDataValue(function, null));    // function column
+        // need, in order, result col type, input col type(s), function class
+        valueRow.setColumn(resultColID, nullReturnValue);                           // result column
+        // TODO: allow more than one input column?
+        ++i;
+        for (int inputColID : inputColIDs) {
+            valueRow.setColumn(i++, valueRow.cloneColumn(inputColID));   // input column
+        }
+        valueRow.setColumn(functionColID, dvf.getDataValue(function, null));        // function column
 
         return valueRow;
     }
@@ -370,14 +362,15 @@ public class WindowTestingFramework {
      * the "scan" rows.
      */
     public static class TestPartitionAwareIterator implements PartitionAwareIterator<ExecRow> {
-        final List<ExecRow> rows;
-        final byte[] partition;
+        private final List<ExecRow> rows;
+        private final int[] partitionColumns;
+        private byte[] partition;
 
         int index = 0;
 
-        public TestPartitionAwareIterator(List<ExecRow> rows, byte[] partition) {
+        public TestPartitionAwareIterator(List<ExecRow> rows, int[] partitionColumns) {
             this.rows = rows;
-            this.partition = partition;
+            this.partitionColumns = partitionColumns;
         }
 
         @Override
@@ -396,8 +389,17 @@ public class WindowTestingFramework {
             ExecRow row = null;
             if (index < rows.size()) {
                 row = rows.get(index++);
+                partition = createPartitionValue(row, partitionColumns);
             }
             return row;
+        }
+
+        private byte[] createPartitionValue(ExecRow row, int[] partitionColumns) throws StandardException {
+            StringBuilder buf = new StringBuilder();
+            for (int partitionColumn : partitionColumns) {
+                buf.append(row.getColumn(partitionColumn).toString());
+            }
+            return buf.toString().getBytes();
         }
 
         @Override

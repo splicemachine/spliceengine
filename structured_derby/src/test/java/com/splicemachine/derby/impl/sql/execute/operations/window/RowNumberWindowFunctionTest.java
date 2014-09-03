@@ -8,8 +8,9 @@ import java.util.List;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.junit.Ignore;
 import org.junit.Test;
+
+import com.splicemachine.derby.impl.sql.execute.operations.window.function.RowNumberFunction;
 
 /**
  * @author Jeff Cunningham
@@ -63,9 +64,8 @@ public class RowNumberWindowFunctionTest extends WindowTestingFramework {
     }
 
     @Test
-    @Ignore("DB-1645 - restricted to only one order by column")
     public void testThreeOrderByColumns() throws Exception {
-        helpTestColumns(new int[] {2}, new int[] {2,3,4}, PRINT_RESULTS);
+        helpTestColumns(new int[] {2}, new int[] {2,3,4}, DONT_PRINT_RESULTS);
     }
 
     //===============================================================================================

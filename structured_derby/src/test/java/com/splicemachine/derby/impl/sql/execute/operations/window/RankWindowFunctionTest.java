@@ -8,8 +8,10 @@ import java.util.List;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.junit.Ignore;
 import org.junit.Test;
+
+import com.splicemachine.derby.impl.sql.execute.operations.window.function.RankFunction;
+import com.splicemachine.derby.impl.sql.execute.operations.window.function.SpliceGenericWindowFunction;
 
 /**
  * @author Jeff Cunningham
@@ -54,31 +56,45 @@ public class RankWindowFunctionTest extends WindowTestingFramework {
 
     @Test
     public void testStringColumn() throws Exception {
-        helpTestColumns(new int[] {1}, new int[] {3}, DONT_PRINT_RESULTS);
+        helpTestColumns(-1, new int[] {1}, new int[] {3}, DONT_PRINT_RESULTS);
     }
 
     @Test
     public void testTimestampColumn() throws Exception {
-        helpTestColumns(new int[] {1}, new int[] {4}, DONT_PRINT_RESULTS);
+        helpTestColumns(-1, new int[] {1}, new int[] {4}, DONT_PRINT_RESULTS);
     }
 
     @Test
-    @Ignore("DB-1645 - restricted to only one order by column")
     public void testThreeOrderByColumns() throws Exception {
-        helpTestColumns(new int[] {2}, new int[] {2,3,4}, PRINT_RESULTS);
+        helpTestColumns(-1, new int[] {2}, new int[] {2,3,4}, DONT_PRINT_RESULTS);
+    }
+
+    @Test
+    public void testThreeOrderByColumnsChunkSizeMinus1() throws Exception {
+        helpTestColumns(SpliceGenericWindowFunction.CHUNKSIZE -1, new int[] {2}, new int[] {2,3,4}, DONT_PRINT_RESULTS);
+    }
+
+    @Test
+    public void testThreeOrderByColumnsChunkSizePlus1() throws Exception {
+        helpTestColumns(SpliceGenericWindowFunction.CHUNKSIZE +1, new int[] {2}, new int[] {2,3,4}, DONT_PRINT_RESULTS);
+    }
+
+    @Test
+    public void testThreeOrderByColumnsChunkSizePlus10() throws Exception {
+        helpTestColumns(SpliceGenericWindowFunction.CHUNKSIZE +10, new int[] {2}, new int[] {2,3,4}, DONT_PRINT_RESULTS);
     }
 
     //===============================================================================================
     // helpers
     //===============================================================================================
 
-    private void helpTestColumns(int[] partitionColIDs, int[] orderByColIDs, boolean print)
+    private void helpTestColumns(int partitionSize, int[] partitionColIDs, int[] orderByColIDs, boolean print)
         throws IOException, StandardException {
         RankFunction function = new RankFunction();
-        function.setup(cf, "function", DataTypeDescriptor.getBuiltInDataTypeDescriptor(java.sql.Types.BIGINT, false));
+        function.setup(cf, "rank", DataTypeDescriptor.getBuiltInDataTypeDescriptor(java.sql.Types.BIGINT, false));
 
         int nPartitions = 5;
-        int partitionSize = 50;
+        int pSize = (partitionSize == -1 ? SpliceGenericWindowFunction.CHUNKSIZE : partitionSize);
         ExpectedResultsFunction expectedResultsFunction = new RankFunct(partitionColIDs, orderByColIDs);
 
         // define the shape of the input rows
@@ -91,7 +107,7 @@ public class RankWindowFunctionTest extends WindowTestingFramework {
                 new DateColumnDefinition().setVariant(13)}));
 
         // test the config
-        helpTestWindowFunction(nPartitions, partitionSize, partitionColIDs, orderByColIDs, orderByColIDs, rowDefinition, DEFAULT_FRAME_DEF,
+        helpTestWindowFunction(nPartitions, pSize, partitionColIDs, orderByColIDs, orderByColIDs, rowDefinition, DEFAULT_FRAME_DEF,
                                expectedResultsFunction, function, print);
     }
 

@@ -31,8 +31,6 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.iapi.storage.ScanBoundary;
 import com.splicemachine.derby.impl.job.operation.SuccessFilter;
-import com.splicemachine.derby.impl.sql.execute.operations.framework.DerbyAggregateContext;
-import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.window.DerbyWindowContext;
 import com.splicemachine.derby.impl.sql.execute.operations.window.FrameBuffer;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
@@ -94,10 +92,8 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
     private Scan baseScan;
     protected SpliceOperation source;
     protected static List<NodeType> nodeTypes;
-    protected AggregateContext aggregateContext;
     protected ExecIndexRow sortTemplateRow;
     protected ExecIndexRow sourceExecIndexRow;
-    protected SpliceGenericAggregator[] aggregates;
     private ExecRow templateRow;
     private ArrayList<KeyValue> keyValues;
     private PairDecoder rowDecoder;
@@ -129,8 +125,7 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
         super(activation, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
         this.source = source;
         this.isInSortedOrder = isInSortedOrder;
-        this.windowContext = new DerbyWindowContext(partitionItemIdx, orderingItemIdx, frameDefnIndex);
-        this.aggregateContext = new DerbyAggregateContext(rowAllocator==null? null:rowAllocator.getMethodName(),aggregateItem);
+        this.windowContext = new DerbyWindowContext(partitionItemIdx, orderingItemIdx, frameDefnIndex, (rowAllocator==null? null:rowAllocator.getMethodName()), aggregateItem);
 
         recordConstructorTime();
     }
@@ -148,7 +143,6 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.readExternal(in);
-        this.aggregateContext = (AggregateContext)in.readObject();
         serializeSource = in.readBoolean();
         if (serializeSource) {
             source = (SpliceOperation) in.readObject();
@@ -162,7 +156,6 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
-        out.writeObject(aggregateContext);
         out.writeBoolean(serializeSource);
         if (serializeSource) {
             out.writeObject(source);
@@ -182,11 +175,9 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
             source.init(context);
         }
         baseScan = context.getScan();
-        aggregateContext.init(context);
         windowContext.init(context);
-        sortTemplateRow = aggregateContext.getSortTemplateRow();
-        aggregates = aggregateContext.getAggregators();
-        sourceExecIndexRow = aggregateContext.getSourceIndexRow();
+        sortTemplateRow = windowContext.getSortTemplateRow();
+        sourceExecIndexRow = windowContext.getSourceIndexRow();
         templateRow = getExecRowDefinition();
         startExecutionTime = System.currentTimeMillis();
     }
@@ -374,7 +365,11 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
 
         // create the frame buffer that will use the frame source
         frameBuffer =
-            new FrameBuffer(spliceRuntimeContext, aggregateContext.getAggregators(), frameSource, windowContext.getFrameDefinition(), templateRow);
+            new FrameBuffer(spliceRuntimeContext,
+                            windowContext.getWindowFunctions(),
+                            frameSource,
+                            windowContext.getFrameDefinition(),
+                            templateRow);
 
         // create the frame iterator
         windowFunctionIterator = new WindowFunctionIterator(frameBuffer);
