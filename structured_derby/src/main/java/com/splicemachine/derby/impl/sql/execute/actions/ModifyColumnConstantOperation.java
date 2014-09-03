@@ -293,6 +293,10 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
 
         dd.addDescriptor(columnDescriptor, td,DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc);
 
+        //notify other servers of the change
+        DDLChange change = new DDLChange(((SpliceTransactionManager)tc).getActiveStateTxn(), DDLChange.TentativeType.ADD_COLUMN);
+        notifyMetadataChange(change);
+
         // now add the column to the tables column descriptor list.
         //noinspection unchecked
         td.getColumnDescriptorList().add(columnDescriptor);

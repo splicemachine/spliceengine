@@ -17,8 +17,8 @@ import java.sql.SQLException;
  * @author Scott Fines
  * Date: 9/3/14
  */
-public class DropColumnIT {
-    public static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(DropColumnIT.class.getSimpleName().toUpperCase());
+public class DropColumnTransactionIT {
+    public static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(DropColumnTransactionIT.class.getSimpleName().toUpperCase());
 
     public static final SpliceTableWatcher table = new SpliceTableWatcher("A",schemaWatcher.schemaName,"(a int, b int)");
     public static final SpliceTableWatcher commitTable = new SpliceTableWatcher("B",schemaWatcher.schemaName,"(a int, b int)");
