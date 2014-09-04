@@ -50,7 +50,7 @@ public class FrameBuffer {
 
         // Initialize window functions
         for (WindowAggregator aggregator : this.aggregators) {
-            int aggregatorColumnId = aggregator.getAggregatorColumnId();
+            int aggregatorColumnId = aggregator.getFunctionColumnId();
             SpliceGenericWindowFunction windowFunction =
                     (SpliceGenericWindowFunction) templateRow.getColumn(aggregatorColumnId).getObject();
             windowFunction.reset();
@@ -185,7 +185,7 @@ public class FrameBuffer {
         ExecRow row = rows.get(current);
         for (WindowAggregator aggregator : aggregators) {
             // For current row  and window, evaluate the window function
-            int aggregatorColumnId = aggregator.getAggregatorColumnId();
+            int aggregatorColumnId = aggregator.getFunctionColumnId();
             int resultColumnId = aggregator.getResultColumnId();
             SpliceGenericWindowFunction function = (SpliceGenericWindowFunction) templateRow.getColumn(aggregatorColumnId).getObject();
             row.setColumn(resultColumnId, function.getResult().cloneValue(false));
@@ -201,7 +201,7 @@ public class FrameBuffer {
 
     private void remove() throws StandardException {
         for(WindowAggregator aggregator : aggregators) {
-            int aggregatorColumnId = aggregator.getAggregatorColumnId();
+            int aggregatorColumnId = aggregator.getFunctionColumnId();
             SpliceGenericWindowFunction windowFunction =
                 (SpliceGenericWindowFunction) templateRow.getColumn(aggregatorColumnId).getObject();
             windowFunction.remove();

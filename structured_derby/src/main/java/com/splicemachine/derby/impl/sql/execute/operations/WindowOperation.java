@@ -11,7 +11,6 @@ import com.google.common.base.Strings;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.execute.ExecIndexRow;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.KeyValue;
@@ -92,8 +91,6 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
     private Scan baseScan;
     protected SpliceOperation source;
     protected static List<NodeType> nodeTypes;
-    protected ExecIndexRow sortTemplateRow;
-    protected ExecIndexRow sourceExecIndexRow;
     private ExecRow templateRow;
     private ArrayList<KeyValue> keyValues;
     private PairDecoder rowDecoder;
@@ -112,9 +109,6 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
         SpliceOperation source,
         boolean isInSortedOrder,
         int	aggregateItem,
-        int	partitionItemIdx,
-        int	orderingItemIdx,
-        int frameDefnIndex,
         Activation activation,
         GeneratedMethod rowAllocator,
         int maxRowSize,
@@ -125,7 +119,7 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
         super(activation, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
         this.source = source;
         this.isInSortedOrder = isInSortedOrder;
-        this.windowContext = new DerbyWindowContext(partitionItemIdx, orderingItemIdx, frameDefnIndex, (rowAllocator==null? null:rowAllocator.getMethodName()), aggregateItem);
+        this.windowContext = new DerbyWindowContext((rowAllocator==null? null:rowAllocator.getMethodName()), aggregateItem);
 
         recordConstructorTime();
     }
@@ -176,8 +170,6 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
         }
         baseScan = context.getScan();
         windowContext.init(context);
-        sortTemplateRow = windowContext.getSortTemplateRow();
-        sourceExecIndexRow = windowContext.getSourceIndexRow();
         templateRow = getExecRowDefinition();
         startExecutionTime = System.currentTimeMillis();
     }
@@ -457,7 +449,7 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
                                                  SpliceRuntimeContext ctx,
                                                  final byte[] uniqueID) throws StandardException {
 
-        final DataValueDescriptor[] cols = sourceExecIndexRow.getRowArray();
+        final DataValueDescriptor[] cols = windowContext.getSourceIndexRow().getRowArray();
         ScanBoundary boundary = new BaseHashAwareScanBoundary(SpliceConstants.DEFAULT_FAMILY_BYTES){
             @Override
             public byte[] getStartKey(Result result) {
@@ -482,7 +474,7 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
     @Override
     public ExecRow getExecRowDefinition() {
         SpliceLogUtils.trace(LOG,"getExecRowDefinition");
-        return sourceExecIndexRow.getClone();
+        return windowContext.getSourceIndexRow().getClone();
     }
 
     @Override
