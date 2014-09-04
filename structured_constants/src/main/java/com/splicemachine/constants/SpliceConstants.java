@@ -18,7 +18,19 @@ import java.util.concurrent.TimeUnit;
 public class SpliceConstants {
     private static final Logger LOG = Logger.getLogger(SpliceConstants.class);
 
-		public enum AuthenticationType {NONE,LDAP,NATIVE,CUSTOM};
+    @Parameter public static final String ROLL_FORWARD_SEGMENTS = "splice.rollforward.numSegments";
+    @DefaultValue(ROLL_FORWARD_SEGMENTS) public static final int DEFAULT_ROLLFORWARD_SEGMENTS = 4; //by default, split into 4 segments
+    public static int numRollForwardSegments;
+
+    @Parameter public static final String ROLL_FORWARD_ROW_THRESHOLD = "splice.rollforward.rowThreshold";
+    @DefaultValue(ROLL_FORWARD_ROW_THRESHOLD) public static final int DEFAULT_ROLLFOWARD_ROW_THRESHOLD=1<<14; //about 16K
+    public static int rollForwardRowThreshold;
+
+    @Parameter public static final String ROLL_FORWARD_TXN_THRESHOLD = "splice.rollforward.rowThreshold";
+    @DefaultValue(ROLL_FORWARD_TXN_THRESHOLD) public static final int DEFAULT_ROLLFOWARD_TXN_THRESHOLD=1<<10; //about 1K
+    public static int rollForwardTxnThreshold;
+
+    public enum AuthenticationType {NONE,LDAP,NATIVE,CUSTOM};
 
 		@Parameter public static final String SEQUENTIAL_IMPORT_THREASHOLD="splice.import.sequentialFileSize";
 		@DefaultValue(SEQUENTIAL_IMPORT_THREASHOLD) public static final long DEFAULT_SEQUENTIAL_IMPORT_THRESHOLD = 1024*1024*1024; //defaults to 1GB
@@ -1183,6 +1195,10 @@ public class SpliceConstants {
 
 				interRegionTaskSplitThresholdBytes = config.getLong(INTER_REGION_TASK_SPLIT_THRESHOLD_BYTES,DEFAULT_INTER_REGION_TASK_SPLIT_THRESHOLD_BYTES);
 				maxInterRegionTaskSplits = config.getInt(MAX_INTER_REGION_TASK_SPLITS,DEFAULT_MAX_INTER_REGION_TASK_SPLITS);
+
+        numRollForwardSegments = config.getInt(ROLL_FORWARD_SEGMENTS,DEFAULT_ROLLFORWARD_SEGMENTS);
+        rollForwardRowThreshold = config.getInt(ROLL_FORWARD_ROW_THRESHOLD,DEFAULT_ROLLFOWARD_ROW_THRESHOLD);
+        rollForwardTxnThreshold = config.getInt(ROLL_FORWARD_TXN_THRESHOLD,DEFAULT_ROLLFOWARD_TXN_THRESHOLD);
 		}
 
 		public static void reloadConfiguration(Configuration configuration) {

@@ -20,7 +20,6 @@ import com.google.common.collect.Sets;
 import com.splicemachine.si.api.*;
 import com.splicemachine.si.impl.ActiveWriteTxn;
 import com.splicemachine.si.impl.TxnRegion;
-import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.impl.DataStore;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.rollforward.NoopRollForward;
@@ -72,7 +71,7 @@ public class IndexedPipelineTest {
 				TxnSupplier supplier = mock(TxnSupplier.class);
 				//TODO -sf- make this simpler
 				TransactionalRegion txnRegion = new TxnRegion(testRegion, NoopRollForward.INSTANCE, NoOpReadResolver.INSTANCE,
-								supplier,mock(DataStore.class),mock(SDataLib.class),mock(Transactor.class));
+								supplier,mock(DataStore.class), mock(Transactor.class));
 
         RegionCoprocessorEnvironment env = mock(RegionCoprocessorEnvironment.class);
         when(env.getRegion()).thenReturn(testRegion);
@@ -155,7 +154,7 @@ public class IndexedPipelineTest {
 				TxnSupplier supplier = mock(TxnSupplier.class);
 				//TODO -sf- make this simpler
 				TransactionalRegion txnRegion = new TxnRegion(testRegion, NoopRollForward.INSTANCE, NoOpReadResolver.INSTANCE,
-								supplier,mock(DataStore.class),mock(SDataLib.class),mock(Transactor.class));
+								supplier,mock(DataStore.class), mock(Transactor.class));
         final ActiveWriteTxn txn = new ActiveWriteTxn(1l, 1l);
         RegionCoprocessorEnvironment env = mock(RegionCoprocessorEnvironment.class);
         when(env.getRegion()).thenReturn(testRegion);
@@ -253,7 +252,7 @@ public class IndexedPipelineTest {
 				TxnSupplier supplier = mock(TxnSupplier.class);
 				//TODO -sf- make this simpler
 				TransactionalRegion txnRegion = new TxnRegion(testRegion, NoopRollForward.INSTANCE, NoOpReadResolver.INSTANCE,
-								supplier,mock(DataStore.class),mock(SDataLib.class),mock(Transactor.class));
+								supplier,mock(DataStore.class), mock(Transactor.class));
         final String txnId = "1";
         final TxnView txn = new ActiveWriteTxn(1l,1l);
         RegionCoprocessorEnvironment env = mock(RegionCoprocessorEnvironment.class);
@@ -351,7 +350,7 @@ public class IndexedPipelineTest {
 				TxnSupplier supplier = mock(TxnSupplier.class);
 				//TODO -sf- make this simpler
 				TransactionalRegion txnRegion = new TxnRegion(testRegion, NoopRollForward.INSTANCE, NoOpReadResolver.INSTANCE,
-								supplier,mock(DataStore.class),mock(SDataLib.class),mock(Transactor.class));
+								supplier,mock(DataStore.class), mock(Transactor.class));
         final TxnView txn = new ActiveWriteTxn(1l,1l);
         RegionCoprocessorEnvironment env = mock(RegionCoprocessorEnvironment.class);
         when(env.getRegion()).thenReturn(testRegion);
@@ -433,7 +432,7 @@ public class IndexedPipelineTest {
 				TxnSupplier supplier = mock(TxnSupplier.class);
 				//TODO -sf- make this simpler
 				TransactionalRegion txnRegion = new TxnRegion(testRegion, NoopRollForward.INSTANCE, NoOpReadResolver.INSTANCE,
-								supplier,mock(DataStore.class),mock(SDataLib.class),mock(Transactor.class));
+								supplier,mock(DataStore.class), mock(Transactor.class));
         final TxnView txn = new ActiveWriteTxn(1l,1l);
         RegionCoprocessorEnvironment env = mock(RegionCoprocessorEnvironment.class);
         when(env.getRegion()).thenReturn(testRegion);

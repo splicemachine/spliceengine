@@ -26,8 +26,9 @@ class RegionSegment {
 		private final Counter toResolve = new Counter();
 		private final ConcurrentHyperLogLogCounter txnCounter =  new ConcurrentHyperLogLogCounter(6);
 		private volatile boolean inProgress;
+    private String toString; //cache the toString for performance when needed
 
-		RegionSegment(byte[] startKey, byte[] endKey) {
+    RegionSegment(byte[] startKey, byte[] endKey) {
 				this.startKey = startKey;
 				this.endKey = endKey;
 		}
@@ -73,7 +74,14 @@ class RegionSegment {
 				toResolve.decrement();
 		}
 
-		public int position(byte[] rowKey) {
+    @Override
+    public String toString() {
+        if(toString==null)
+            toString =  "["+Bytes.toStringBinary(startKey)+","+Bytes.toString(endKey)+")";
+        return toString;
+    }
+
+    public int position(byte[] rowKey) {
 				if(startKey.length<=0){
 						if(endKey.length<=0) return 0;
 						else{
@@ -105,7 +113,8 @@ class RegionSegment {
 						}
 				}
 				int compare = rowKey.compareTo(startKey,0,startKey.length);
-				if(compare<0) return compare; //startKey > endKey
+				if(compare<=0) return compare; //startKey > endKey
+        else if(endKey.length<=0) return 0;
 				else{
 						compare = rowKey.compareTo(endKey,0,endKey.length);
 						if(compare>=0) return 1;

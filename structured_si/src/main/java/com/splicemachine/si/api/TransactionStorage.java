@@ -5,6 +5,7 @@ import com.splicemachine.constants.SIConstants;
 import com.splicemachine.hbase.table.SpliceHTableFactory;
 import com.splicemachine.si.impl.store.CompletedTxnCacheSupplier;
 import com.splicemachine.si.impl.store.LazyTxnSupplier;
+import com.splicemachine.si.impl.store.SimpleCompletedTxnCacheSupplier;
 import com.splicemachine.si.impl.txnclient.CoprocessorTxnStore;
 
 /**
@@ -34,7 +35,7 @@ public class TransactionStorage {
 		 * consider accessing the baseStore instead.
 		 */
 		private static volatile @ThreadSafe TxnSupplier cachedTransactionSupplier;
-    private static CompletedTxnCacheSupplier cacheManagement;
+    private static TransactionCacheManagement cacheManagement;
 
     public static TxnSupplier getTxnSupplier(){
 				TxnSupplier supply = cachedTransactionSupplier;
@@ -61,6 +62,7 @@ public class TransactionStorage {
 				synchronized (lock){
 						baseStore = store;
             CompletedTxnCacheSupplier delegate = new CompletedTxnCacheSupplier(baseStore, SIConstants.activeTransactionCacheSize, 16);
+//            SimpleCompletedTxnCacheSupplier delegate = new SimpleCompletedTxnCacheSupplier(baseStore, SIConstants.activeTransactionCacheSize, 16);
             cachedTransactionSupplier=new LazyTxnSupplier(delegate);
             cacheManagement = delegate;
 				}

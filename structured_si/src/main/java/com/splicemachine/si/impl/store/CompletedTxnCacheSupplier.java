@@ -30,7 +30,6 @@ public class CompletedTxnCacheSupplier implements TxnSupplier {
 
 		private final TxnSupplier delegate;
 
-		private final AtomicInteger size = new AtomicInteger();
 		private final AtomicLong hits = new AtomicLong();
 		private final AtomicLong requests = new AtomicLong();
 		private final AtomicLong evicted = new AtomicLong();
@@ -58,8 +57,17 @@ public class CompletedTxnCacheSupplier implements TxnSupplier {
 				this.delegate = delegate;
 		}
 
-		@Override public int getCurrentSize() { return size.get(); }
-		@Override public int getMaxSize() { return maxSize; }
+		@Override public int getCurrentSize() {
+        int totalSize = 0;
+        for(Segment segment:segments){
+            totalSize+=segment.size;
+        }
+        return totalSize;
+    }
+
+		@Override public int getMaxSize() {
+        return maxSize*segments.length;
+    }
 		@Override public long getTotalHits() { return hits.get(); }
 		@Override public long getTotalRequests() { return requests.get(); }
 		@Override public long getTotalMisses() { return getTotalRequests()-getTotalHits(); }
@@ -98,7 +106,6 @@ public class CompletedTxnCacheSupplier implements TxnSupplier {
 						case COMMITTED:
 						case ROLLEDBACK:
 								segments[pos].put(transaction); //it's been completed, so cache it for future use
-								size.incrementAndGet();
 				}
 				return transaction;
 		}
@@ -137,9 +144,8 @@ public class CompletedTxnCacheSupplier implements TxnSupplier {
     private class Segment {
 				private final ReentrantReadWriteLock lock;
 				private volatile int size = 0;
-				private int nextEvictPosition = 0;
 
-				private SoftReference<TxnView>[] data;
+        private SoftReference<TxnView>[] data;
 
 				@SuppressWarnings("unchecked")
 				private Segment(int maxSize) {
@@ -149,19 +155,26 @@ public class CompletedTxnCacheSupplier implements TxnSupplier {
 								s<<=1;
 						}
 						s<<=1;
-						this.data = new SoftReference[s];
+						this.data = new SoftReference[s<<1]; //double the size to avoid hash collisions
 				}
 
 				TxnView get(long txnId){
 						ReentrantReadWriteLock.ReadLock readLock = lock.readLock();
 						readLock.lock();
 						try{
-								for(int i=0;i<size;i++){
-										SoftReference<TxnView> datum = data[i];
+                int pos = hashFunction.hash(txnId) & (data.length-1);
+                int s = size;
+								for(int i=0;i<s;i++){
+										SoftReference<TxnView> datum = data[pos];
 										if(datum==null) continue;
 										TxnView v = datum.get();
-										if(v==null) continue;
+										if(v==null){
+                        //evicted due to memory pressure
+                        size--;
+                        continue;
+                    }
 										if(v.getTxnId()==txnId) return v;
+                    pos = (pos+1)& (data.length-1);
 								}
 								return null;
 						}finally{
@@ -173,34 +186,38 @@ public class CompletedTxnCacheSupplier implements TxnSupplier {
 					ReentrantReadWriteLock.WriteLock writeLock = lock.writeLock();
 						writeLock.lock();
 						try{
-								int position = -1;
-								for(int i=0;i<size;i++){
-										SoftReference<TxnView> datum = data[i];
-										if(datum==null){
-												if(position<0)
-														position = i;
-												continue;
-										}
-										TxnView v = datum.get();
-										if(v==null){
-												if(position<0)
-														position = i;
-												continue;
-										}
-										if(v.getTxnId()==txn.getTxnId()){
-												//another thread filled in the entry--bad luck
-												return false;
-										}
-								}
-								if(position<0 && size==data.length){
-										evicted.incrementAndGet();
-										position = nextEvictPosition; //evict the first entry
-										nextEvictPosition= (nextEvictPosition+1) & (data.length-1);
-								} else{
-										position = size;
-										size++;
-								}
-								data[position] = new SoftReference<TxnView>(txn);
+                int pos = hashFunction.hash(txn.getTxnId()) & (data.length-1);
+                if(size>=maxSize){
+                    /*
+                     * We are larger than the total allowed size of the cache. To
+                     * ensure that we stay below that size, we evict an entry.
+                     *
+                     * However, we don't want to waste a lot of time evicting entries
+                     * if we don't REALLY have to. Basically, we hash this entry
+                     * into a position. If that position is occupied, we evict
+                     * that entry. Otherwise, we fill that entry and move on. This way
+                     * we do only a single step, at the cost of randomly evicting entries.
+                     */
+                    SoftReference<TxnView> datum = data[pos];
+                    if(datum!=null && datum.get()!=null){
+                        evicted.incrementAndGet();
+                        size--;
+                    }
+                }else{
+                    /*
+                     * We are below the maximum size, so just use linear probing
+                     * to find the next open slot.
+                     */
+                    for(int i=0;i<size;i++){
+                        SoftReference<TxnView> datum = data[pos];
+                        if(datum==null||datum.get()==null){
+                            break;
+                        }else
+                            pos = (pos+1)&(data.length-1);
+                    }
+                }
+								data[pos] = new SoftReference<TxnView>(txn);
+                size++;
 								return true;
 						}finally{
 								writeLock.unlock();

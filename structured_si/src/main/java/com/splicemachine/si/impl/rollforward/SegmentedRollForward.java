@@ -6,9 +6,11 @@ import com.splicemachine.hash.HashFunctions;
 import com.splicemachine.si.api.RollForward;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.annotations.ThreadSafe;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
+import org.apache.log4j.Logger;
 
 import java.math.BigInteger;
 import java.util.Arrays;
@@ -49,14 +51,20 @@ import java.util.concurrent.atomic.AtomicLong;
  * Date: 7/2/14
  */
 public class SegmentedRollForward implements RollForward {
+    private static final Logger LOG = Logger.getLogger(SegmentedRollForward.class);
+
     public static class Context{
 				private final RegionSegment segment;
+        private final RollForwardStatus status;
 
-				public Context(RegionSegment segment) {
+				public Context(RegionSegment segment,RollForwardStatus status) {
 						this.segment = segment;
+            this.status = status;
 				}
 
-				public void rowResolved(){ segment.rowResolved(); }
+				public void rowResolved(){
+            segment.rowResolved();
+        }
 				public void complete(){ segment.markCompleted(); }
 		}
 
@@ -76,7 +84,7 @@ public class SegmentedRollForward implements RollForward {
 		 */
 		private final RegionSegment[] segments;
 
-		private final long segmentCheckInterval = (1<<16)-1; //check every 65K updates
+		private final long segmentCheckInterval = (1<<10)-1; //check every 1K updates
 		private final long rollForwardRowThreshold;
 		private final long rollForwardTransactionThreshold;
 
@@ -84,18 +92,21 @@ public class SegmentedRollForward implements RollForward {
 
 		private final AtomicLong updateCount = new AtomicLong(0l);
     private final Hash32 hashFunction = HashFunctions.murmur3(0);
+    private final RollForwardStatus status;
 
 		public SegmentedRollForward(final HRegion region,
 																final ScheduledExecutorService rollForwardScheduler,
 																int numSegments,
 																long rollForwardRowThreshold,
 																long rollForwardTransactionThreshold,
-																final @ThreadSafe Action action) {
+																final @ThreadSafe Action action,
+                                final RollForwardStatus status) {
 				this.region = region;
 				this.segments = buildSegments(region,numSegments);
 				this.action = action;
 				this.rollForwardRowThreshold = rollForwardRowThreshold;
 				this.rollForwardTransactionThreshold = rollForwardTransactionThreshold;
+        this.status = status;
 
 				/*
 				 * We want to periodically force the a roll forward
@@ -118,6 +129,7 @@ public class SegmentedRollForward implements RollForward {
 								for (RegionSegment segment : segments) {
 										long toResolveCount = segment.getToResolveCount();
 										if(segment.isInProgress()) continue; //skip segments which are currently still resolving
+                    if(toResolveCount<=10) continue; //skip segments which have basically nothing to resolve
 										if (toResolveCount > maxSize) {
 												maxSegment = segment;
 												maxSize = toResolveCount;
@@ -130,7 +142,10 @@ public class SegmentedRollForward implements RollForward {
 										if (maxSegment == null) return;
 
 										//submit an action for processing
-										action.submitAction(region, maxSegment.getRangeStart(), maxSegment.getRangeEnd(), new Context(maxSegment));
+                    if(LOG.isDebugEnabled())
+                        SpliceLogUtils.debug(LOG,"Submitting task on segment %s as it has the largest size of %d",maxSegment,maxSize);
+                    maxSegment.markInProgress();
+                    action.submitAction(region, maxSegment.getRangeStart(), maxSegment.getRangeEnd(), new Context(maxSegment,status));
 								}finally{
 										//reschedule us for future execution
 										rollForwardScheduler.schedule(this,10l,TimeUnit.SECONDS);
@@ -163,6 +178,7 @@ public class SegmentedRollForward implements RollForward {
 
 		@Override
 		public void submitForResolution(byte[] rowKey, long txnId) {
+        status.rowWritten();
 				RegionSegment regionSegment = getSegment(rowKey,0,segments.length);
 				regionSegment.update(txnId, 1l);
 
@@ -176,6 +192,7 @@ public class SegmentedRollForward implements RollForward {
 
 		@Override
 		public void submitForResolution(ByteSlice rowKey, long txnId) {
+        status.rowWritten();
 				RegionSegment regionSegment = getSegment(rowKey,segments.length/2);
 				regionSegment.update(txnId, 1l);
 
@@ -188,8 +205,7 @@ public class SegmentedRollForward implements RollForward {
 
 		@Override
 		public void recordResolved(ByteSlice rowKey, long txnId) {
-				int segment = hashFunction.hash(rowKey.array(),rowKey.offset(),rowKey.length()) & (segments.length-1);
-				RegionSegment regionSegment = segments[segment];
+				RegionSegment regionSegment = getSegment(rowKey,segments.length/2);
 				regionSegment.rowResolved(); //mark it resolved so that we keep track
 		}
 
@@ -356,11 +372,15 @@ public class SegmentedRollForward implements RollForward {
 				 */
 				long numRows = regionSegment.getToResolveCount();
 				if(numRows>rollForwardRowThreshold){
+            if(LOG.isTraceEnabled())
+                SpliceLogUtils.trace(LOG,"segment %s exceeds row threshold",regionSegment);
 						long uniqueTxns = (long)regionSegment.estimateUniqueWritingTransactions();
 						if(uniqueTxns>rollForwardTransactionThreshold){
+                if(LOG.isTraceEnabled())
+                    SpliceLogUtils.trace(LOG,"segment %s has %d transactions, exceeding the threshold. Rolling forward",regionSegment,uniqueTxns);
 								//we've exceeded our thresholds, a RollForward action is a good option now
 								regionSegment.markInProgress();
-								action.submitAction(region,regionSegment.getRangeStart(),regionSegment.getRangeEnd(),new Context(regionSegment));
+								action.submitAction(region,regionSegment.getRangeStart(),regionSegment.getRangeEnd(),new Context(regionSegment,status));
 						}
 				}
 		}}

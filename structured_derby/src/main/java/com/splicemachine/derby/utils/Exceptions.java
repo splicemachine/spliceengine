@@ -108,8 +108,6 @@ public class Exceptions {
 						}
         } else if(rootCause instanceof SpliceStandardException){
             return ((SpliceStandardException)rootCause).generateStandardException();
-        }else if(rootCause instanceof RetriesExhaustedWithDetailsException){
-            return parseException((RetriesExhaustedWithDetailsException)rootCause);
         } else if(rootCause instanceof org.hbase.async.RemoteException){
             return parseException(getRemoteIOException((org.hbase.async.RemoteException)rootCause));
         }else if(rootCause instanceof RemoteException){

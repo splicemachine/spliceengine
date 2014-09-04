@@ -3,6 +3,7 @@ package com.splicemachine.si.impl;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.si.api.*;
+import com.splicemachine.si.coprocessors.SICompactionScanner;
 import com.splicemachine.si.coprocessors.SIObserver;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
@@ -13,6 +14,7 @@ import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HRegionUtil;
+import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Pair;
 
@@ -33,25 +35,22 @@ public class TxnRegion implements TransactionalRegion {
 
 		/*Old API classes..eventually, we will replace them with better designs*/
 		private final DataStore dataStore;
-		private final SDataLib dataLib;
-		private final Transactor transactor;
+    private final Transactor transactor;
 		private final HbRegion hbRegion;
 
 		private final boolean transactionalWrites; //if false, then will use straightforward writes
 
 		public TxnRegion(HRegion region,
-										 RollForward rollForward,
-										 ReadResolver readResolver,
-										 TxnSupplier txnSupplier,
-										 DataStore dataStore,
-										 SDataLib dataLib,
-										 Transactor transactor) {
+                     RollForward rollForward,
+                     ReadResolver readResolver,
+                     TxnSupplier txnSupplier,
+                     DataStore dataStore,
+                     Transactor transactor) {
 				this.region = region;
 				this.rollForward = rollForward;
 				this.readResolver = readResolver;
 				this.txnSupplier = txnSupplier;
 				this.dataStore = dataStore;
-				this.dataLib = dataLib;
 				this.transactor = transactor;
 				this.hbRegion = new HbRegion(region);
 
@@ -75,7 +74,7 @@ public class TxnRegion implements TransactionalRegion {
 
 		@Override
 		public SICompactionState compactionFilter() throws IOException {
-				return new SICompactionState(dataStore,txnSupplier);
+				return new SICompactionState(dataStore,txnSupplier,rollForward);
 		}
 
 		@Override
@@ -132,6 +131,14 @@ public class TxnRegion implements TransactionalRegion {
     @Override public TxnSupplier getTxnSupplier() { return txnSupplier; }
     @Override public ReadResolver getReadResolver() { return readResolver; }
     @Override public DataStore getDataStore() { return dataStore; }
+
+    @Override public void discard() { } //no-op
+
+    @Override
+    public InternalScanner compactionScanner(InternalScanner scanner) {
+        SICompactionState state = new SICompactionState(dataStore,txnSupplier,rollForward);
+        return new SICompactionScanner(state,scanner);
+    }
 
     /*****************************************************************************************************************/
     /*private helper methods*/

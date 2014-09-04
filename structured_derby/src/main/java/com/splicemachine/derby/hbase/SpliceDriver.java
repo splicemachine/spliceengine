@@ -22,6 +22,8 @@ import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.SpliceMetrics;
 import com.splicemachine.hbase.writer.WriteCoordinator;
 import com.splicemachine.job.*;
+import com.splicemachine.si.api.TransactionStorage;
+import com.splicemachine.si.impl.TransactionalRegions;
 import com.splicemachine.tools.CachedResourcePool;
 import com.splicemachine.tools.EmbedConnectionMaker;
 import com.splicemachine.tools.ResourcePool;
@@ -380,8 +382,11 @@ public class SpliceDriver extends SIConstants {
             mbs.registerMBean(jobScheduler.getJobMetrics(),jobSchedulerName);
 
             //register transaction stuff
-            ObjectName storeName = new ObjectName("com.splicemachine.txn:type=TransactionCacheManagement");
-            mbs.registerMBean(TransactionStorage.getTxnManagement(),storeName);
+            ObjectName txnCacheName = new ObjectName("com.splicemachine.txn:type=TransactionCacheManagement");
+            mbs.registerMBean(TransactionStorage.getTxnManagement(),txnCacheName);
+
+            ObjectName rollForwardName = new ObjectName("com.splicemachine.txn:type=RollForwardManagement");
+            mbs.registerMBean(TransactionalRegions.getRollForwardManagement(),rollForwardName);
 //            ObjectName transactorName = new ObjectName("com.splicemachine.txn:type=TransactorStatus");
 //            mbs.registerMBean(HTransactorFactory.getTransactorStatus(), transactorName);
 

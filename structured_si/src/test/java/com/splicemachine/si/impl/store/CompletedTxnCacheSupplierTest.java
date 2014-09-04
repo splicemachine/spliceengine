@@ -21,7 +21,7 @@ import static org.mockito.Mockito.when;
  * @author Scott Fines
  * Date: 7/1/14
  */
-public class CompletedTxnCacheAccessTest {
+public class CompletedTxnCacheSupplierTest {
 
 		@Test
 		public void testDoesNotCacheActiveTransactions() throws Exception {

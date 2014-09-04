@@ -25,20 +25,16 @@ public class ActiveTxnCacheSupplier implements TxnSupplier {
 		private int size;
 		private final int maxSize;
 		private final TxnSupplier delegate;
-		private boolean cacheGlobally;
     private final Hash32 hashFunction;
 
-		public ActiveTxnCacheSupplier(TxnSupplier delegate, int maxSize){
-				this(delegate, maxSize,false);
-		}
-		public ActiveTxnCacheSupplier(TxnSupplier delegate, int maxSize, boolean cacheGlobally) {
+		public ActiveTxnCacheSupplier(TxnSupplier delegate, int maxSize) {
 				int s = 1;
 				while(s<maxSize){
 						s<<=1;
 				}
 				s<<=1;
 				//noinspection unchecked
-				data = new SoftReference[s];
+				data = new SoftReference[s<<1]; //double the size to avoid hash collisions
 				this.delegate = delegate;
 				this.maxSize = maxSize;
         this.hashFunction = HashFunctions.murmur3(0);
@@ -88,25 +84,30 @@ public class ActiveTxnCacheSupplier implements TxnSupplier {
     protected void addToCache(int hash, TxnView txn) {
 				int pos = hash &(data.length-1) ;
 				//cache it for future use
-				if(size==maxSize){
-						//evict the next non-null value at hash
-						for(int i=0;i<size;i++){
-								if(data[i]==null){
-										pos = (pos+1) & (data.length-1);
-										continue;
-								}
-								TxnView toEvict = data[i].get();
-								if(toEvict==null){
-										size--; //memory purged an entry for us
-								}
-								break;
-						}
-				}else{
+				if(size>=maxSize){
+            /*
+             * Since we are larger than the "maxSize", we will
+             * try and evict an entry if we come to it. However,
+             * if we find an empty slot first, we will just fill
+             * that slot, which will allow us to grow beyond
+             * the max size allotted (although not larger than
+             * the total size of the array).
+             *
+             * Also, this requires no looping, so once the
+             * cache is full, we are very efficient. However,this
+             * also pays no attention to liveness--adding a new
+             * element could remove a frequently accessed entry.
+             */
+            SoftReference<TxnView> elem = data[pos];
+            if(elem!=null && elem.get()==null)
+                size--;
+        }else{
 						//find the next empty spot
 						for(int i=0;i<size;i++){
-								if(data[i]==null || data[i].get()==null){
-										pos = i;
-								}
+								if(data[pos]==null || data[pos].get()==null){
+                    break;
+								}else
+                    pos = (pos+1) &(data.length-1);
 						}
 				}
 				data[pos] = new SoftReference<TxnView>(txn);

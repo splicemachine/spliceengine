@@ -49,7 +49,7 @@ public class SpliceOperationRegionObserver extends BaseRegionObserver {
             public boolean start() {
                 //TODO -sf- implement RollForward
                 HRegion region = ((RegionCoprocessorEnvironment) e).getRegion();
-                SpliceOperationRegionObserver.this.txnRegion = TransactionalRegions.get(region, SegmentedRollForward.NOOP_ACTION);
+                SpliceOperationRegionObserver.this.txnRegion = TransactionalRegions.get(region);
                 return true;
             }
 

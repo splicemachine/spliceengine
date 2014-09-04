@@ -4,6 +4,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.environment.EnvUtils;
+import com.splicemachine.si.impl.TransactionalRegions;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
@@ -28,6 +29,8 @@ public class SpliceDerbyCoprocessor extends BaseEndpointCoprocessor {
         SpliceConstants.TableEnv tableEvn = EnvUtils.getTableEnv((RegionCoprocessorEnvironment)e);
         tableEnvMatch = !SpliceConstants.TableEnv.ROOT_TABLE.equals(tableEvn);
 
+        //make sure the factory is correct
+        TransactionalRegions.setActionFactory(RollForwardAction.FACTORY);
         if (tableEnvMatch) {
             SpliceDriver.driver().start();
             runningCoprocessors.incrementAndGet();

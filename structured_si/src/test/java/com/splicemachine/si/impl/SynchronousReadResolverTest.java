@@ -6,6 +6,7 @@ import com.splicemachine.encoding.Encoding;
 import com.splicemachine.si.SimpleTimestampSource;
 import com.splicemachine.si.api.*;
 import com.splicemachine.si.impl.readresolve.SynchronousReadResolver;
+import com.splicemachine.si.impl.rollforward.RollForwardStatus;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Put;
@@ -33,7 +34,7 @@ public class SynchronousReadResolverTest {
 				HRegion region = TxnTestUtils.getMockRegion();
 
         final TxnStore store = new InMemoryTxnStore(new SimpleTimestampSource(),Long.MAX_VALUE);
-				ReadResolver resolver = SynchronousReadResolver.getResolver(region,store);
+				ReadResolver resolver = SynchronousReadResolver.getResolver(region,store,new RollForwardStatus());
 
         TxnLifecycleManager tc = mock(TxnLifecycleManager.class);
         doAnswer(new Answer<Void>() {
@@ -78,7 +79,7 @@ public class SynchronousReadResolverTest {
 				HRegion region = TxnTestUtils.getMockRegion();
 
         final TxnStore store = new InMemoryTxnStore(new SimpleTimestampSource(),Long.MAX_VALUE);
-				ReadResolver resolver = SynchronousReadResolver.getResolver(region,store);
+				ReadResolver resolver = SynchronousReadResolver.getResolver(region,store,new RollForwardStatus());
 
         TxnLifecycleManager tc = mock(TxnLifecycleManager.class);
         doAnswer(new Answer<Void>() {
@@ -127,7 +128,7 @@ public class SynchronousReadResolverTest {
 
         SimpleTimestampSource timestampSource = new SimpleTimestampSource();
         TxnStore store = new InMemoryTxnStore(timestampSource,Long.MAX_VALUE);
-				ReadResolver resolver = SynchronousReadResolver.getResolver(region,store);
+				ReadResolver resolver = SynchronousReadResolver.getResolver(region,store,new RollForwardStatus());
 
 				ClientTxnLifecycleManager tc = new ClientTxnLifecycleManager(timestampSource);
 				tc.setStore(store);

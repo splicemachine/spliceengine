@@ -4,7 +4,6 @@ import com.carrotsearch.hppc.LongArrayList;
 import com.carrotsearch.hppc.LongOpenHashSet;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.si.api.ReadResolver;
-import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.data.hbase.IHTable;
@@ -14,7 +13,6 @@ import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.log4j.Logger;
 
 import java.io.IOException;
 
@@ -36,6 +34,18 @@ public class SimpleTxnFilter implements TxnFilter {
 		private final LongArrayList tombstonedTxnRows = new LongArrayList(1); //usually, there are very few deletes
 		private final LongArrayList antiTombstonedTxnRows = new LongArrayList(1);
 		private final ByteSlice rowKey = new ByteSlice();
+
+    /*
+     * The most common case for databases is insert-only--that is, that there
+     * are few updates and deletes relative to the number of inserts. As a result,
+     * we can assume that *most* rows will only have a single version of data *most*
+     * of the time. This enables us to bypass transaction caching whenever we have
+     * a transaction--that is, the first time we look up a transaction, we stash it
+     * in this variable. Then, the next time we want the transaction information, we check
+     * this variable first. That way, we avoid potentially expensive locking through the
+     * transaction supplier.
+     */
+    private TxnView currentTxn;
 
 		@SuppressWarnings("unchecked")
 		public SimpleTxnFilter(TxnSupplier transactionStore,
@@ -126,13 +136,17 @@ public class SimpleTxnFilter implements TxnFilter {
 
         //submit it to the resolver to resolve asynchronously
         if(t.getEffectiveState().isFinal()){
-            //get the row data. This will allow efficient movement of the row key without copying byte[]s
-            rowKey.set(keyValue.getBuffer(),keyValue.getRowOffset(),keyValue.getRowLength());
-            readResolver.resolve(rowKey,ts);
+            doResolve(keyValue, ts);
         }
     }
 
-		private Filter.ReturnCode checkVisibility(KeyValue keyValue) throws IOException {
+    protected void doResolve(KeyValue keyValue, long ts) {
+        //get the row data. This will allow efficient movement of the row key without copying byte[]s
+        rowKey.set(keyValue.getBuffer(),keyValue.getRowOffset(),keyValue.getRowLength());
+        readResolver.resolve(rowKey,ts);
+    }
+
+    private Filter.ReturnCode checkVisibility(KeyValue keyValue) throws IOException {
 				/*
 				 * First, we check to see if we are covered by a tombstone--that is,
 				 * if keyValue has a timestamp <= the timestamp of a tombstone AND our isolationLevel
@@ -165,14 +179,17 @@ public class SimpleTxnFilter implements TxnFilter {
 		}
 
 		private boolean isVisible(long txnId) throws IOException {
-				TxnView otherTxn = transactionStore.getTransaction(txnId);
-				return myTxn.canSee(otherTxn);
+        TxnView toCompare = currentTxn;
+        if(currentTxn==null || currentTxn.getTxnId()!=txnId){
+            toCompare = transactionStore.getTransaction(txnId);
+            currentTxn = toCompare;
+        }
+				return myTxn.canSee(toCompare);
 		}
 
 		private void addToAntiTombstoneCache(KeyValue kv) throws IOException {
 				long txnId = kv.getTimestamp();
-				TxnView otherTxn = transactionStore.getTransaction(txnId);
-				if(myTxn.canSee(otherTxn)){
+        if(isVisible(txnId)){
 						/*
 						 * We can see this anti-tombstone, hooray!
 						 */
@@ -187,8 +204,7 @@ public class SimpleTxnFilter implements TxnFilter {
 				 * Only add a tombstone to our list if it's actually visible,
 				 * otherwise there's no point, since we can't see it anyway.
 				 */
-				TxnView transaction = transactionStore.getTransaction(txnId);
-				if(myTxn.canSee(transaction)){
+        if(isVisible(txnId)){
 						if(!antiTombstonedTxnRows.contains(txnId))
 								tombstonedTxnRows.add(txnId);
 				}
@@ -214,15 +230,17 @@ public class SimpleTxnFilter implements TxnFilter {
 						 * older installations of SpliceMachine used the commit timestamp to indicate
 						 * a failure, so we have to check for it.
 						 */
+            TxnView toCache;
 						if(dataStore.isSIFail(keyValue)){
 								//use the current read-resolver to remove the entry
-								rowKey.set(keyValue.getBuffer(),keyValue.getRowOffset(),keyValue.getRowLength());
-                readResolver.resolve(rowKey,keyValue.getTimestamp());
-								transactionStore.cache(new RolledBackTxn(txnId));
+                doResolve(keyValue, keyValue.getTimestamp());
+                toCache = new RolledBackTxn(txnId);
 						}else{
 								long commitTs = Bytes.toLong(keyValue.getBuffer(),keyValue.getValueOffset(),keyValue.getValueLength());
-								transactionStore.cache(new CommittedTxn(txnId,commitTs)); //since we don't care about the begin timestamp, just use the TxnId
+                toCache = new CommittedTxn(txnId, commitTs);//since we don't care about the begin timestamp, just use the TxnId
 						}
+            transactionStore.cache(toCache);
+            currentTxn = toCache;
 				}
 		}
 }

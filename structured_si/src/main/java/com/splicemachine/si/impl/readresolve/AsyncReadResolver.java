@@ -6,7 +6,9 @@ import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
 import com.splicemachine.annotations.ThreadSafe;
 import com.splicemachine.si.api.ReadResolver;
+import com.splicemachine.si.api.RollForward;
 import com.splicemachine.si.api.TxnSupplier;
+import com.splicemachine.si.impl.rollforward.RollForwardStatus;
 import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.log4j.Logger;
@@ -35,11 +37,13 @@ public class AsyncReadResolver  {
 		private final ThreadPoolExecutor consumerThreads;
 		private volatile boolean stopped;
     private final TxnSupplier txnSupplier;
+    private final RollForwardStatus status;
 
-		public AsyncReadResolver(int maxThreads,int bufferSize,
-                             TxnSupplier txnSupplier) {
+    public AsyncReadResolver(int maxThreads,int bufferSize,
+                             TxnSupplier txnSupplier,RollForwardStatus status) {
         this.txnSupplier = txnSupplier;
-				consumerThreads = new ThreadPoolExecutor(maxThreads,maxThreads,
+        this.status = status;
+        consumerThreads = new ThreadPoolExecutor(maxThreads,maxThreads,
 								60, TimeUnit.SECONDS,
 								new LinkedBlockingQueue<Runnable>(),
 								new ThreadFactoryBuilder().setNameFormat("readResolver-%d").setDaemon(true).build());
@@ -64,14 +68,15 @@ public class AsyncReadResolver  {
 				consumerThreads.shutdownNow();
 		}
 
-		public @ThreadSafe ReadResolver getResolver(final HRegion region){
-				return new RegionReadResolver(region);
+		public @ThreadSafe ReadResolver getResolver(HRegion region,RollForward rollForward){
+				return new RegionReadResolver(region,rollForward);
 		}
 
 		private static class ResolveEvent{
 				HRegion region;
 				long txnId;
 				ByteSlice rowKey = new ByteSlice();
+        RollForward rollForward;
 		}
 
 		private static class ResolveEventFactory implements EventFactory<ResolveEvent>{
@@ -87,7 +92,9 @@ public class AsyncReadResolver  {
 				@Override
 				public void onEvent(ResolveEvent event, long sequence, boolean endOfBatch) throws Exception {
             try{
-                SynchronousReadResolver.INSTANCE.resolve(event.region,event.rowKey,event.txnId,txnSupplier);
+                if(SynchronousReadResolver.INSTANCE.resolve(event.region,event.rowKey,event.txnId,txnSupplier,status)){
+                    event.rollForward.recordResolved(event.rowKey,event.txnId);
+                }
             }catch(Exception e){
                 LOG.info("Error during read resolution",e);
                 throw e;
@@ -97,9 +104,11 @@ public class AsyncReadResolver  {
 
 		private class RegionReadResolver implements ReadResolver {
 				private final HRegion region;
+        private final RollForward rollForward;
 
-				public RegionReadResolver(HRegion region) {
+				public RegionReadResolver(HRegion region,RollForward rollForward) {
 						this.region = region;
+            this.rollForward = rollForward;
 				}
 
         @Override
@@ -119,6 +128,7 @@ public class AsyncReadResolver  {
                 event.region = region;
                 event.txnId = txnId;
                 event.rowKey.set(rowKey.getByteCopy());
+                event.rollForward = rollForward;
             }finally{
                 ringBuffer.publish(sequence);
             }

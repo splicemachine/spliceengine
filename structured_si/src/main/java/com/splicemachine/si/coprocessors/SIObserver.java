@@ -63,17 +63,12 @@ public class SIObserver extends BaseRegionObserver {
 				tableEnvMatch = doesTableNeedSI(((RegionCoprocessorEnvironment)e).getRegion().getTableDesc().getNameAsString());
         if(tableEnvMatch){
             txnOperationFactory = new SimpleOperationFactory(TransactionStorage.getTxnSupplier());
-            region = TransactionalRegions.get(((RegionCoprocessorEnvironment) e).getRegion(), SegmentedRollForward.NOOP_ACTION);
+            region = TransactionalRegions.get(((RegionCoprocessorEnvironment) e).getRegion());
             Tracer.traceRegion(region.getTableName(), ((RegionCoprocessorEnvironment)e).getRegion());
         }
-//				readResolver = HTransactorFactory.getReadResolver(region);
-//				this.rollForward = NoopRollForward.INSTANCE;
-//				RollForwardAction action = HTransactorFactory.getRollForwardQueueFactory().newAction(new HbRegion(region));
-//		rollForwardQueue = new ConcurrentRollForwardQueue(action,10000,10000,5*60*S,timedRoller,rollerPool);
-//				rollForwardQueue = new SynchronousRollForwardQueue(action,10000,10*S,5*60*S,tableName);
-//				RollForwardQueueMap.registerRollForwardQueue(tableName, rollForwardQueue);
 				super.start(e);
     }
+
 
     public static boolean doesTableNeedSI(String tableName) {
         SpliceConstants.TableEnv tableEnv = EnvUtils.getTableEnv(tableName);
@@ -90,6 +85,8 @@ public class SIObserver extends BaseRegionObserver {
     @Override
     public void stop(CoprocessorEnvironment e) throws IOException {
         SpliceLogUtils.trace(LOG, "stopping %s", SIObserver.class);
+        if(region!=null)
+            region.discard();
         super.stop(e);
     }
 
@@ -260,8 +257,7 @@ public class SIObserver extends BaseRegionObserver {
     public InternalScanner preCompact(ObserverContext<RegionCoprocessorEnvironment> e, Store store,
                                       InternalScanner scanner) throws IOException {
         if (tableEnvMatch) {
-            final Transactor<IHTable, Mutation,Put> transactor = HTransactorFactory.getTransactor();
-            return new SICompactionScanner(transactor, scanner);
+            return region.compactionScanner(scanner);
         } else {
             return super.preCompact(e, store, scanner);
         }
