@@ -24,6 +24,7 @@ public class AddColumnTransactionIT {
     public static final SpliceTableWatcher commitTable = new SpliceTableWatcher("B",schemaWatcher.schemaName,"(a int, b int)");
     public static final SpliceTableWatcher beforeTable = new SpliceTableWatcher("C",schemaWatcher.schemaName,"(a int, b int)");
     public static final SpliceTableWatcher afterTable = new SpliceTableWatcher("D",schemaWatcher.schemaName,"(a int, b int)");
+    public static final SpliceTableWatcher addedTable = new SpliceTableWatcher("E",schemaWatcher.schemaName,"(a int, b int)");
 
     public static final SpliceWatcher classWatcher = new SpliceWatcher();
 
@@ -34,7 +35,8 @@ public class AddColumnTransactionIT {
             .around(table)
             .around(commitTable)
             .around(beforeTable)
-            .around(afterTable);
+            .around(afterTable)
+            .around(addedTable);
 
     private static TestConnection conn1;
     private static TestConnection conn2;
@@ -168,7 +170,7 @@ public class AddColumnTransactionIT {
             Assert.assertTrue("Column f is null!",!rs.wasNull());
         }
 
-        conn2.query("select * from " + commitTable+ " where a = "+ aInt);
+        conn2.query("select * from " + commitTable + " where a = " + aInt);
 
         if(rs.next()){
             try{
@@ -178,6 +180,100 @@ public class AddColumnTransactionIT {
                 Assert.assertEquals("Incorrect error message!", ErrorState.COLUMN_NOT_FOUND.getSqlState(),se.getSQLState());
             }
         }
+    }
 
+    @Test
+    @Ignore("Ignored until DB-1755 is resolved")
+    public void testAddColumnCannotProceedWithOpenDMLOperations() throws Exception {
+        TestConnection a;
+        TestConnection b;
+        if(conn1Txn>conn2Txn){
+            a = conn1;
+            b = conn2;
+        }else{
+            a = conn2;
+            b = conn1;
+        }
+
+        int aInt = 7;
+        int bInt = 7;
+        PreparedStatement ps = b.prepareStatement("insert into "+addedTable+" (a,b) values (?,?)");
+        ps.setInt(1,aInt);ps.setInt(2,bInt); ps.execute();
+
+        try{
+            a.createStatement().execute("alter table "+ addedTable+" add column f int with default 2");
+            Assert.fail("Did not catch an exception!");
+        }catch(SQLException se){
+            System.out.printf("%s:%s%n",se.getSQLState(),se.getMessage());
+            Assert.assertEquals("Incorrect error message!",ErrorState.DDL_ACTIVE_TRANSACTIONS.getSqlState(),se.getSQLState());
+        }
+    }
+
+    @Test
+    @Ignore("Ignored until DB-1755 is resolved")
+    public void testAddColumnAfterInsertionIsCorrect() throws Exception {
+        TestConnection a;
+        TestConnection b;
+        if(conn1Txn>conn2Txn){
+            a = conn2;
+            b = conn1;
+        }else{
+            a = conn1;
+            b = conn2;
+        }
+
+        int aInt = 8;
+        int bInt = 8;
+        PreparedStatement ps = b.prepareStatement("insert into "+addedTable+" (a,b) values (?,?)");
+        ps.setInt(1,aInt);ps.setInt(2,bInt); ps.execute();
+        b.commit();
+
+        a.createStatement().execute("alter table "+ addedTable+" add column f int with default 2");
+        a.commit();
+
+        ResultSet rs = a.query("select * from "+ addedTable+" where a = "+ aInt);
+        int count=0;
+        while(rs.next()){
+            int f = rs.getInt("F");
+            Assert.assertFalse("Got a null value for f!",rs.wasNull());
+            Assert.assertEquals("Incorrect default value!",2,f);
+            count++;
+        }
+        Assert.assertEquals("Incorrect returned row count",1,count);
+    }
+
+    @Test
+    @Ignore("Ignored until DB-1755 is resolved")
+    public void testAddColumnBeforeInsertionIsCorrect() throws Exception {
+        TestConnection a;
+        TestConnection b;
+        if(conn1Txn>conn2Txn){
+            a = conn2;
+            b = conn1;
+        }else{
+            a = conn1;
+            b = conn2;
+        }
+
+        int aInt = 10;
+        int bInt = 10;
+
+        //alter the table
+        a.createStatement().execute("alter table "+ addedTable+" add column f int with default 2");
+        //now insert some data
+        PreparedStatement ps = b.prepareStatement("insert into "+addedTable+" (a,b) values (?,?)");
+        ps.setInt(1,aInt);ps.setInt(2,bInt); ps.execute();
+        b.commit();
+
+        a.commit();
+        ResultSet rs = a.query("select * from "+ addedTable+" where a = "+ aInt);
+        int count=0;
+        while(rs.next()){
+            int f = rs.getInt("F");
+            Assert.assertFalse("Got a null value for f!",rs.wasNull());
+            Assert.assertEquals("Incorrect default value!",2,f);
+            count++;
+        }
+        Assert.assertEquals("Incorrect returned row count",1,count);
     }
 }

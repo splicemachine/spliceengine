@@ -386,7 +386,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
             TentativeDDLDesc ddlDesc = ddlChange.getTentativeDDLDesc();
             TxnView txn = ddlChange.getTxn();
             if (txn.getEffectiveState().isFinal()) {
-                DDLCoordinationFactory.getController().finishMetadataChange(ddlChange.getIdentifier());
+                DDLCoordinationFactory.getController().finishMetadataChange(ddlChange.getChangeId());
             } else if (ddlDesc.getBaseConglomerateNumber() == congomId) {
 
                 if(ddlChange.getChangeType() == DDLChangeType.CREATE_INDEX) {

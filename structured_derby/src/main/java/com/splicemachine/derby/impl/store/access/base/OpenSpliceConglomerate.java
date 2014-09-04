@@ -1,5 +1,7 @@
 package com.splicemachine.derby.impl.store.access.base;
 
+import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionView;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.store.access.DynamicCompiledOpenConglomInfo;
 import org.apache.derby.iapi.store.access.RowUtil;
@@ -39,9 +41,9 @@ public class OpenSpliceConglomerate  {
 		this.transactionManager = transactionManager;
 		this.transaction = transaction;
 		try {
-			((SpliceTransaction)transaction).setActiveState(false, false, null);
+			((BaseSpliceTransaction)transaction).setActiveState(false, false, null);
 		} catch (Exception e) {
-			e.printStackTrace();
+        throw new RuntimeException(e);
 		}
 		this.hold = hold;
 		this.lockLevel = lockLevel;

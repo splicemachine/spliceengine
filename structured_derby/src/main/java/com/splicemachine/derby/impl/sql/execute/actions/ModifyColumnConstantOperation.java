@@ -146,7 +146,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         // adjust dependencies on user defined types
         adjustUDTDependencies( lcc, dd, td, columnInfo, false );
 
-        executeConstraintActions(activation, numRows);
+        executeConstraintActions(activation, td,numRows);
         adjustLockGranularity();
     }
 
@@ -180,7 +180,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
 
         // Scan the table if necessary
         if (tableNeedsScanning) {
-            numRows = getSemiRowCount(tc);
+            numRows = getSemiRowCount(tc,td);
             // Don't allow add of non-nullable column to non-empty table
             if (numRows > 0) {
                 throw StandardException.newException(SQLState.LANG_ADDING_NON_NULL_COLUMN_TO_NON_EMPTY_TABLE,td.getQualifiedName());
@@ -211,7 +211,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                 case ColumnInfo.MODIFY_COLUMN_CONSTRAINT_NOT_NULL:
                     if(!tableScanned){
                         tableScanned=true;
-                        numRows = getSemiRowCount(tc);
+                        numRows = getSemiRowCount(tc,td);
                     }
                     // check that the data in the column is not null
                     String colNames[]  = new String[1];

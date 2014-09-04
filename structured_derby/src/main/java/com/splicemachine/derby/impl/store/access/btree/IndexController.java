@@ -50,6 +50,10 @@ public class IndexController  extends SpliceController  {
 				return DerbyBytesUtil.generateIndexKey(uniqueRow,order,"1.0");
 		}
 
+    public int nKeyFields(){
+        return nKeyFields;
+    }
+
 		@Override
 		public int insert(DataValueDescriptor[] row) throws StandardException {
 				SpliceLogUtils.trace(LOG,"insert row");
