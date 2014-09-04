@@ -211,7 +211,7 @@ public class IndexTransactionIT {
         preparedStatement.setInt(3, cInt);
         preparedStatement.execute();
 
-        count = conn1.count(query);
+        count = conn1.count(query); //confirm that we can still use the index, and that it's still being updated
         Assert.assertEquals("conn1 has incorrect index count!",1l,count);
 
         //commit the drop transaction

@@ -162,4 +162,26 @@ public class InsertInsertTransactionIT {
             throw se;
         }
     }
+
+    @Test
+    public void testFailedInsertWillNotBeVisibleEvenInSameTransaction() throws Exception {
+        int a = 5;
+        int b = 5;
+        PreparedStatement ps = conn1.prepareStatement("insert into "+ table + " (a,b) values (?,?),(?,?)");
+        ps.setInt(1,a);
+        ps.setInt(2,b);
+        ps.setInt(3,a);
+        ps.setInt(4,b);
+
+        try{
+            ps.execute();
+            Assert.fail("Unique exeption not thrown!");
+        }catch(SQLException se){
+            System.out.printf("%s:%s",se.getSQLState(),se.getMessage());
+            Assert.assertEquals("Incorrect error message",ErrorState.LANG_DUPLICATE_KEY_CONSTRAINT.getSqlState(),se.getSQLState());
+        }
+
+        long count = conn1.count("select * from "+ table+" where a = "+ 5);
+        Assert.assertEquals("Data is visible!",0,count);
+    }
 }

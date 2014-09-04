@@ -84,7 +84,7 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
         activation.setDDLTableDescriptor(td);
 
         adjustUDTDependencies(lcc,dd,td,null,false);
-        truncateTable(td, lcc);
+        truncateTable(td, activation);
     }
 
     /*
@@ -104,13 +104,13 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
     * incorrect. Recompile is done internally by Derby, user does not have
     * any effect.
     */
-    private void truncateTable(TableDescriptor td, LanguageConnectionContext lcc) throws StandardException {
+    private void truncateTable(TableDescriptor td, Activation activation) throws StandardException {
+        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         TransactionController tc = lcc.getTransactionExecute();
         DataDictionary dd = lcc.getDataDictionary();
         ExecRow emptyHeapRow;
         long newHeapConglom;
         Properties properties = new Properties();
-        RowLocation rl;
 
         //truncate table is not allowed if there are any tables referencing it.
         //except if it is self referencing.
@@ -154,7 +154,6 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
             }
         }
 
-        rl = compressHeapCC.newRowLocationTemplate();
         // Get the properties on the old heap
         compressHeapCC.getInternalTablePropertySet(properties);
         compressHeapCC.close();
@@ -171,36 +170,6 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
 
 		    /* Set up index info to perform truncate on them*/
         int numIndexes = getAffectedIndexes(td);
-        if(numIndexes > 0) {
-            ExecIndexRow[] indexRows = new ExecIndexRow[numIndexes];
-            ColumnOrdering[][] ordering  = new ColumnOrdering[numIndexes][];
-
-            for (int index = 0; index < numIndexes; index++) {
-                IndexRowGenerator curIndex = compressIRGs[index];
-                // create a single index row template for each index
-                indexRows[index] = curIndex.getIndexRowTemplate();
-                curIndex.getIndexRow(emptyHeapRow,
-                        rl,
-                        indexRows[index],
-                        null);
-				        /* For non-unique indexes, we order by all columns + the RID.
-				         * For unique indexes, we just order by the columns.
-				         * No need to try to enforce uniqueness here as
-				         * index should be valid.
-				         */
-                int[] baseColumnPositions = curIndex.baseColumnPositions();
-
-                boolean[] isAscending = curIndex.isAscending();
-
-                int numColumnOrderings = baseColumnPositions.length + 1;
-                ordering[index] = new ColumnOrdering[numColumnOrderings];
-
-                for (int ii =0; ii < numColumnOrderings - 1; ii++) {
-                    ordering[index][ii] = new IndexColumnOrder(ii, isAscending[ii]);
-                }
-                ordering[index][numColumnOrderings - 1] = new IndexColumnOrder(numColumnOrderings - 1);
-            }
-        }
 
 		    /*
 		    ** Inform the data dictionary that we are about to write to it.
@@ -217,7 +186,7 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
         if(numIndexes > 0) {
             long[] newIndexCongloms = new long[numIndexes];
             for (int index = 0; index < numIndexes; index++) {
-                updateIndex(newHeapConglom, dd, tc, td, index, newIndexCongloms);
+                updateIndex(newHeapConglom, activation, tc, td, index, newIndexCongloms);
             }
         }
 

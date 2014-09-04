@@ -232,16 +232,15 @@ public class SpliceTransactionManager implements XATransactionController,
 
 		if (!conglomerateControllers.isEmpty()) {
 			// loop from end to beginning, removing scans which are not held.
-			for (int i = conglomerateControllers.size() - 1; i >= 0; i--) {
-				ConglomerateController cc = (ConglomerateController) conglomerateControllers
-						.get(i);
+//			for (int i = conglomerateControllers.size() - 1; i >= 0; i--) {
+//				ConglomerateController cc = (ConglomerateController) conglomerateControllers .get(i);
 
-				if (cc.closeForEndTransaction(closeHeldControllers)) {
+//				if (cc.closeForEndTransaction(closeHeldControllers)) {
 					// TODO - now counting on cc's removing themselves by
 					// calling the closeMe() method.
 					/* conglomerateControllers.removeElementAt(i); */
-				}
-			}
+//				}
+//			}
 
 			if (closeHeldControllers) {
 				if (SanityManager.DEBUG) {

@@ -25,7 +25,7 @@ import java.util.concurrent.Future;
  * @author Scott Fines
  * Date: 8/28/14
  */
-//@Ignore("Creates hundreds of conglomerates")
+@Ignore("Creates hundreds of conglomerates")
 public class ConcurrentDDLIT {
     private static final Logger LOG = Logger.getLogger(ConcurrentDDLIT.class);
     public static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(ConcurrentDDLIT.class.getSimpleName().toUpperCase());
@@ -251,8 +251,8 @@ public class ConcurrentDDLIT {
         @Override
         protected void setupAction(int value) throws SQLException {
             String index = schemaWatcher.schemaName+".t_idx_"+value;
-            conn.createStatement().execute("create index " + index + " on " + getTableName(value) + "(a)");
             super.setupAction(value);
+            conn.createStatement().execute("create index " + index + " on " + getTableName(value) + "(a)");
 
         }
 
