@@ -1,6 +1,7 @@
 package com.splicemachine.derby.utils;
 
 import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintViolation;
+import com.splicemachine.si.api.CannotCommitException;
 import com.splicemachine.si.impl.WriteConflict;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.NotServingRegionException;
@@ -1893,6 +1894,18 @@ public enum ErrorState {
             long txn1 = conflict.getFirstTransaction();
             long txn2 = conflict.getSecondTransaction();
             return StandardException.newException(getSqlState(),txn1,txn2);
+        }
+    },
+    CANNOT_COMMIT("SE015"){
+        @Override
+        public boolean accepts(Throwable t) {
+            return super.accepts(t) || t instanceof CannotCommitException;
+        }
+
+        @Override
+        public StandardException newException(Throwable rootCause) {
+            CannotCommitException cce = (CannotCommitException)rootCause;
+            return StandardException.newException(getSqlState(), cce.getTxnId());
         }
     };
 

@@ -29,38 +29,7 @@ public class SpliceTableWatcher extends TestWatcher {
 
     @Override
     protected void starting(Description description) {
-        trace("Starting");
-        Statement statement = null;
-        ResultSet rs;
-        Connection connection =  (userName == null)?SpliceNetConnection.getConnection():SpliceNetConnection.getConnectionAs(userName,password);
-        try {
-            rs = connection.getMetaData().getTables(null, schemaName, tableName, null);
-        }catch(Exception e){
-            error("Error when fetching metadata",e);
-            throw new RuntimeException(e);
-        }
-
-        try {
-            if (rs.next()) {
-                executeDrop(schemaName,tableName);
-            }
-            connection.commit();
-        } catch (SQLException e) {
-            error("Error when dropping tables",e);
-        }
-
-        try{
-            statement = connection.createStatement();
-            statement.execute(String.format("create table %s.%s %s",schemaName,tableName,createString));
-            connection.commit();
-        } catch (Exception e) {
-            error("Create table statement is invalid. Statement = "+ String.format("create table %s.%s %s",schemaName,tableName,createString),e);
-            throw new RuntimeException(e);
-        } finally {
-            DbUtils.closeQuietly(rs);
-            DbUtils.closeQuietly(statement);
-            DbUtils.commitAndCloseQuietly(connection);
-        }
+        start();
         super.starting(description);
     }
 
@@ -181,5 +150,40 @@ public class SpliceTableWatcher extends TestWatcher {
 
     protected void error(Object message, Throwable t) {
         LOG.error(tag(message), t);
+    }
+
+    public void start() {
+        trace("Starting");
+        Statement statement = null;
+        ResultSet rs;
+        Connection connection =  (userName == null)?SpliceNetConnection.getConnection():SpliceNetConnection.getConnectionAs(userName,password);
+        try {
+            rs = connection.getMetaData().getTables(null, schemaName, tableName, null);
+        }catch(Exception e){
+            error("Error when fetching metadata",e);
+            throw new RuntimeException(e);
+        }
+
+        try {
+            if (rs.next()) {
+                executeDrop(schemaName,tableName);
+            }
+            connection.commit();
+        } catch (SQLException e) {
+            error("Error when dropping tables",e);
+        }
+
+        try{
+            statement = connection.createStatement();
+            statement.execute(String.format("create table %s.%s %s",schemaName,tableName,createString));
+            connection.commit();
+        } catch (Exception e) {
+            error("Create table statement is invalid. Statement = "+ String.format("create table %s.%s %s",schemaName,tableName,createString),e);
+            throw new RuntimeException(e);
+        } finally {
+            DbUtils.closeQuietly(rs);
+            DbUtils.closeQuietly(statement);
+            DbUtils.commitAndCloseQuietly(connection);
+        }
     }
 }

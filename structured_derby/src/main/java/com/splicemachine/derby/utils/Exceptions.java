@@ -112,6 +112,8 @@ public class Exceptions {
             return parseException((RetriesExhaustedWithDetailsException)rootCause);
         } else if(rootCause instanceof org.hbase.async.RemoteException){
             return parseException(getRemoteIOException((org.hbase.async.RemoteException)rootCause));
+        }else if(rootCause instanceof RemoteException){
+            rootCause = ((RemoteException)rootCause).unwrapRemoteException();
         }
 
         ErrorState state = ErrorState.stateFor(rootCause);

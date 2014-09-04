@@ -58,7 +58,7 @@ public class SpliceTransaction extends BaseSpliceTransaction {
 						txn.commit();
 						state = IDLE;
 				} catch (Exception e) {
-						throw StandardException.newException(e.getMessage(), e);
+            throw Exceptions.parseException(e);
 				}
 				return null;
 		}
