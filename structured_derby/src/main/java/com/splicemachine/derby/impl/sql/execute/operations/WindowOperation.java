@@ -238,7 +238,7 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
     protected JobResults doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException, IOException {
         long start = System.currentTimeMillis();
         RowProvider provider;
-        if (!isInSortedOrder) {
+//        if (!isInSortedOrder) {
             // If rows from source are not sorted, sort them based on (partition, order by) columns from over clause
             // in step 1 shuffle.
             // Compute Window function in step 2 shuffle
@@ -253,12 +253,12 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
             final RowProvider step1 = source.getMapRowProvider(this, firstStepDecoder, firstStep);
             final RowProvider step2 = getMapRowProvider(this, secondPairDecoder, secondStep);
             provider = RowProviders.combineInSeries(step1, step2);
-        } else {
+/*        } else {
             // Only do second step shuffle if the rows has been sorted based on (partition, orderBy) columns
             SpliceRuntimeContext secondStep = SpliceRuntimeContext.generateSinkRuntimeContext(false);
             secondStep.setStatementInfo(runtimeContext.getStatementInfo());
             provider = source.getMapRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext), secondStep);
-        }
+        }*/
         nextTime += System.currentTimeMillis()-start;
         SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(), this, runtimeContext);
         return provider.shuffleRows(soi,OperationUtils.cleanupSubTasks(this));
