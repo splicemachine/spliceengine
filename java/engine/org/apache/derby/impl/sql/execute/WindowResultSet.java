@@ -146,12 +146,6 @@ import org.apache.derby.iapi.types.RowLocation;
        * @param	aggregateItem	indicates the number of the
        *		SavedObject off of the PreparedStatement that holds the
        *		AggregatorInfoList used by this routine.
-       * @param	partitionItemIdx	indicates the number of the
-       *		SavedObject off of the PreparedStatement that holds the
-       *		Partition array used by this routine
-       * @param	orderingItemIdx	indicates the number of the
-       *		SavedObject off of the PreparedStatement that holds the
-       *		ColumOrdering array used by this routine
        * @param	activation				activation
        * @param	rowAllocator				generated method to build an empty
        *	 	output row
@@ -160,7 +154,7 @@ import org.apache.derby.iapi.types.RowLocation;
        *
        * @exception StandardException Thrown on error
         */
-       public WindowResultSet(NoPutResultSet source, boolean isInSortedOrder, int aggregateItem, int partitionItemIdx, int orderingItemIdx,
+       public WindowResultSet(NoPutResultSet source, boolean isInSortedOrder, int aggregateItem,
                                    Activation activation, GeneratedMethod rowAllocator, int maxRowSize, int resultSetNumber,
                                    double optimizerEstimatedRowCount, double optimizerEstimatedCost) throws StandardException {
            super(source, aggregateItem, activation, rowAllocator, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
@@ -171,11 +165,11 @@ import org.apache.derby.iapi.types.RowLocation;
            sortTemplateRow = getExecutionFactory().getIndexableRow((ExecRow) rowAllocator.invoke(activation));
            partition = (ColumnOrdering[])
                ((FormatableArrayHolder)
-                   (activation.getPreparedStatement().getSavedObject(partitionItemIdx)))
+                   (activation.getPreparedStatement().getSavedObject(0)))
                    .getArray(ColumnOrdering.class);
            order = (ColumnOrdering[])
                ((FormatableArrayHolder)
-                   (activation.getPreparedStatement().getSavedObject(orderingItemIdx)))
+                   (activation.getPreparedStatement().getSavedObject(0)))
                    .getArray(ColumnOrdering.class);
 
            if (SanityManager.DEBUG)

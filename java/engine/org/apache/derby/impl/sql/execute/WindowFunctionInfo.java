@@ -26,9 +26,12 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
 import org.apache.derby.iapi.services.io.Formatable;
+import org.apache.derby.iapi.services.io.FormatableArrayHolder;
+import org.apache.derby.iapi.services.io.FormatableHashtable;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.sql.ResultDescription;
+import org.apache.derby.iapi.store.access.ColumnOrdering;
 
 /**
  * This is a simple class used to store the run time information
@@ -66,8 +69,11 @@ public class WindowFunctionInfo implements Formatable
 	int		aggregatorColumn;
 	String	functionClassName;
 	ResultDescription	rd;
+    FormatableArrayHolder partitionInfo;
+    FormatableArrayHolder orderByInfo;
+    FormatableHashtable frameInfo;
 
-	/**
+    /**
 	 * Niladic constructor for Formattable
 	 */
 	public WindowFunctionInfo() {}
@@ -89,22 +95,24 @@ public class WindowFunctionInfo implements Formatable
 	 * @param rd	the result description
 	 *
 	 */
-	public WindowFunctionInfo
-    (
-        String functionName,
-        String functionClassName,
-        int[] inputColNums,
-        int outputColNum,
-        int aggregatorColNum,
-        ResultDescription rd
-    )
-	{
+	public WindowFunctionInfo(String functionName,
+                              String functionClassName,
+                              int[] inputColNums,
+                              int outputColNum,
+                              int aggregatorColNum,
+                              ResultDescription rd,
+                              FormatableArrayHolder partitionInfo,
+                              FormatableArrayHolder orderByInfo,
+                              FormatableHashtable frameInfo) {
 		this.functionName	= functionName;
 		this.functionClassName = functionClassName;
 		this.inputColumns	= inputColNums;
 		this.outputColumn	= outputColNum;
 		this.aggregatorColumn = aggregatorColNum;
 		this.rd 			= rd;
+        this.partitionInfo = partitionInfo;
+        this.orderByInfo = orderByInfo;
+        this.frameInfo = frameInfo;
 	}
 
 	/**
@@ -173,7 +181,39 @@ public class WindowFunctionInfo implements Formatable
 		return rd;
 	}
 
-	/**
+    public ColumnOrdering[] getPartitionInfo() {
+        ColumnOrdering[] partition = null;
+        if (partitionInfo != null) {
+            partition = (ColumnOrdering[]) partitionInfo.getArray(ColumnOrdering.class);
+        }
+        return partition;
+    }
+
+    public void setPartitionInfo(FormatableArrayHolder partitionInfo) {
+        this.partitionInfo = partitionInfo;
+    }
+
+    public ColumnOrdering[] getOrderByInfo() {
+        ColumnOrdering[] orderings = null;
+        if (orderByInfo != null) {
+            orderings = (ColumnOrdering[]) orderByInfo.getArray(ColumnOrdering.class);
+        }
+        return orderings;
+    }
+
+    public void setOrderByInfo(FormatableArrayHolder orderByInfo) {
+        this.orderByInfo = orderByInfo;
+    }
+
+    public FormatableHashtable getFrameInfo() {
+        return frameInfo;
+    }
+
+    public void setFrameInfo(FormatableHashtable frameInfo) {
+        this.frameInfo = frameInfo;
+    }
+
+    /**
 	 * Get a string for the object
 	 *
 	 * @return string
@@ -232,6 +272,9 @@ public class WindowFunctionInfo implements Formatable
 		out.writeInt(aggregatorColumn);
 		out.writeObject(functionClassName);
 		out.writeObject(rd);
+        out.writeObject(partitionInfo);
+        out.writeObject(orderByInfo);
+        out.writeObject(frameInfo);
 	}
 
 	/**
@@ -255,6 +298,9 @@ public class WindowFunctionInfo implements Formatable
 		aggregatorColumn = in.readInt();
 		functionClassName = (String)in.readObject();
 		rd = (ResultDescription)in.readObject();
+        partitionInfo = (FormatableArrayHolder) in.readObject();
+        orderByInfo = (FormatableArrayHolder) in.readObject();
+        frameInfo = (FormatableHashtable) in.readObject();
 	}
 	
 	/**
