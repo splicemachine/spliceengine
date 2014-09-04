@@ -23,7 +23,7 @@ mvn clean install -PITs -Dexcluded.categories=
 #### Building alternate profiles
 *to be certain inspect the top level pom.xml in this project*
 
-At the time fo this writing the available profiles are:
+At the time of this writing the available profiles are:
 * cloudera-cdh4.5.0 <- default
 * cloudera-cdh4.3.0
 * hdp1.3
@@ -35,6 +35,6 @@ Example:
 mvn clean install -DskipTests=true -Dhbase.profile=hdp1.3
 
 ##### Other notes:
-* All dependencies will be pulled from splice nexus repo [http://nexus.splicemachine.com/nexus/].
+* All dependencies will be pulled from splice nexus repo (http://nexus.splicemachine.com/nexus/).
 * There is no requirement to build any other packages to build splice.
 * All deployment (to nexus) is handled by [Jenkins](http://206.225.8.98:8080) and is not necessary for typical dev/test builds. (mvn deploy will fail with unauthorized access error)
