@@ -8,8 +8,6 @@ import java.util.List;
 import com.google.common.collect.Lists;
 import org.apache.derby.iapi.error.SQLWarningFactory;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.FormatableArrayHolder;
-import org.apache.derby.iapi.services.io.FormatableHashtable;
 import org.apache.derby.iapi.services.loader.ClassFactory;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
@@ -33,9 +31,6 @@ public class DerbyWindowContext implements WindowContext {
     private String rowAllocatorMethodName;
     private int aggregateItem;
     private Activation activation;
-    private int partitionItemIdx;
-    private int orderingItemIdx;
-    private int frameDefnIdx;
     private int[] partitionColumns;
     private int[] sortColumns;
     private boolean[] sortOrders;
@@ -50,10 +45,7 @@ public class DerbyWindowContext implements WindowContext {
     public DerbyWindowContext() {
     }
 
-    public DerbyWindowContext(int partitionItemIdx, int orderingItemIdx, int frameDefnIdx, String rowAllocatorMethodName, int aggregateItem) {
-        this.partitionItemIdx = partitionItemIdx;
-        this.orderingItemIdx = orderingItemIdx;
-        this.frameDefnIdx = frameDefnIdx;
+    public DerbyWindowContext(String rowAllocatorMethodName, int aggregateItem) {
         this.rowAllocatorMethodName = rowAllocatorMethodName;
         this.aggregateItem = aggregateItem;
     }
@@ -64,14 +56,15 @@ public class DerbyWindowContext implements WindowContext {
 
         GenericStorablePreparedStatement statement = context.getPreparedStatement();
         WindowFunctionInfoList windowFunctionInfos = (WindowFunctionInfoList)statement.getSavedObject(aggregateItem);
+        // TODO: this will have to change when we support > 1 window function per query
+        // (now using one partition/orderby/frame for all functions in array)
+        WindowFunctionInfo theInfo = windowFunctionInfos.firstElement();
 
-        ColumnOrdering[] partition = (ColumnOrdering[])
-            ((FormatableArrayHolder) (statement.getSavedObject(partitionItemIdx))).getArray(ColumnOrdering.class);
+        ColumnOrdering[] partition = theInfo.getPartitionInfo();
 
-        ColumnOrdering[] orderings = (ColumnOrdering[])
-            ((FormatableArrayHolder) (statement.getSavedObject(orderingItemIdx))).getArray(ColumnOrdering.class);
+        ColumnOrdering[] orderings = theInfo.getOrderByInfo();
 
-        frameDefinition = FrameDefinition.create((FormatableHashtable) statement.getSavedObject(frameDefnIdx));
+        frameDefinition = FrameDefinition.create(theInfo.getFrameInfo());
 
         keyColumns = new int[partition.length + orderings.length];
         keyOrders = new boolean[partition.length + orderings.length];
@@ -97,14 +90,6 @@ public class DerbyWindowContext implements WindowContext {
         this.windowAggregators = buildWindowAggregators(windowFunctionInfos,
                                                         context.getLanguageConnectionContext().getLanguageConnectionFactory().getClassFactory());
         this.rowAllocator = (rowAllocatorMethodName==null)? null: new SpliceMethod<ExecRow>(rowAllocatorMethodName,activation);
-    }
-
-    private boolean keysContain(int[] keyColumns, int inputColNum) {
-        for(int keyColumn:keyColumns){
-            if(keyColumn==inputColNum)
-                return true;
-        }
-        return false;
     }
 
     @Override
@@ -166,10 +151,6 @@ public class DerbyWindowContext implements WindowContext {
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
-        out.writeInt(partitionItemIdx);
-        out.writeInt(orderingItemIdx);
-        out.writeInt(frameDefnIdx);
-        // TODO: remove these^^^
         out.writeBoolean(rowAllocatorMethodName!=null);
         if(rowAllocatorMethodName!=null)
             out.writeUTF(rowAllocatorMethodName);
@@ -179,10 +160,6 @@ public class DerbyWindowContext implements WindowContext {
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        partitionItemIdx = in.readInt();
-        orderingItemIdx = in.readInt();
-        frameDefnIdx = in.readInt();
-        // TODO: remove these^^^
         if(in.readBoolean())
             this.rowAllocatorMethodName = in.readUTF();
         else

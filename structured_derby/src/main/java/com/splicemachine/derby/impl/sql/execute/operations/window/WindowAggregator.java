@@ -12,16 +12,13 @@ import org.apache.log4j.Logger;
 import com.splicemachine.derby.impl.sql.execute.operations.window.function.SpliceGenericWindowFunction;
 
 /**
- * GenericAggregator wrapper. This is a near identical copy of
- * {@link org.apache.derby.impl.sql.execute.GenericAggregator}; That class
- * has too strict of access restrictions to allow its constructive use outside of its
- * package, so this class had to be created to allow better access.
+ * Container and caching mechanism for window functions and their information container.
  *  
  */
 public class WindowAggregator {
 	private static Logger LOG = Logger.getLogger(WindowAggregator.class);
-	private WindowFunctionInfo aggInfo;
-	final int aggregatorColumnId;
+	private WindowFunctionInfo windowInfo;
+	final int functionColumnId;
 	private final int[] inputColumnIds;
 	private final int resultColumnId;
 
@@ -29,44 +26,37 @@ public class WindowAggregator {
 
 	protected SpliceGenericWindowFunction cachedAggregator;
 
-	public WindowAggregator(WindowFunctionInfo aggInfo, ClassFactory cf) {
-		this.aggInfo = aggInfo;
+	public WindowAggregator(WindowFunctionInfo windowInfo, ClassFactory cf) {
+		this.windowInfo = windowInfo;
 		this.cf = cf;
-        // TODO: assure all these are one-based
-		this.aggregatorColumnId = aggInfo.getWindowFunctionColNum();
-		this.inputColumnIds = aggInfo.getInputColNums();
-		this.resultColumnId = aggInfo.getOutputColNum();
+        // all these are one-based
+		this.functionColumnId = windowInfo.getWindowFunctionColNum();
+		this.inputColumnIds = windowInfo.getInputColNums();
+		this.resultColumnId = windowInfo.getOutputColNum();
 	}
 
+    /**
+     * Constructor used for testing
+     * @param cachedAggregator the function to test
+     * @param functionColumnId the 1-based column ID in the template row that holds the function class name
+     * @param inputColumnIds the 1-based column IDs in the exec row to accept as function arguments
+     * @param resultColumnId the 1-based column ID in the exec row in which to place the function result
+     */
     public WindowAggregator(WindowFunction cachedAggregator,
-                            int aggregatorColumnId,
+                            int functionColumnId,
                             int[] inputColumnIds,
                             int resultColumnId){
         this.cachedAggregator = (SpliceGenericWindowFunction) cachedAggregator;
-        this.aggInfo=null;
+        this.windowInfo =null;
         this.cf=null;
 
-        this.aggregatorColumnId = aggregatorColumnId;
+        this.functionColumnId = functionColumnId;
         this.inputColumnIds = inputColumnIds;
         this.resultColumnId = resultColumnId;
     }
-	
-	public WindowFunctionInfo getAggregatorInfo(){
-		return this.aggInfo;
-	}
 
-    public void setWindowFunctionInfo(WindowFunctionInfo aggInfo) {
-        this.aggInfo = aggInfo;
-    }
-
-    public void initializeAndAccumulateIfNeeded(ExecRow nextRow,ExecRow accumulatorRow) throws StandardException {
-		DataValueDescriptor aggCol = accumulatorRow.getColumn(aggregatorColumnId);
-		initializeAndAccumulateIfNeeded(getInputColumns(accumulatorRow, inputColumnIds),aggCol);
-	}
-
-    
     public void accumulate(ExecRow nextRow,ExecRow accumulatorRow) throws StandardException {
-		DataValueDescriptor aggCol = accumulatorRow.getColumn(aggregatorColumnId);
+		DataValueDescriptor aggCol = accumulatorRow.getColumn(functionColumnId);
 		accumulate(getInputColumns(nextRow, inputColumnIds),aggCol);
 	}
 
@@ -81,13 +71,9 @@ public class WindowAggregator {
         return newCols;
     }
 
-    public DataValueDescriptor getResultColumnValue(ExecRow row) throws StandardException{
-        return row.getColumn(aggInfo.getOutputColNum()+1);
-    }
-	
 	public void finish(ExecRow row) throws StandardException{
 		DataValueDescriptor outputCol = row.getColumn(resultColumnId);
-		DataValueDescriptor aggCol = row.getColumn(aggregatorColumnId);
+		DataValueDescriptor aggCol = row.getColumn(functionColumnId);
 
         WindowFunction ua = (WindowFunction)aggCol.getObject();
 		if(ua ==null) ua = findOrCreateNewWindowFunction();
@@ -98,7 +84,7 @@ public class WindowAggregator {
 	}
 	
     public boolean initialize(ExecRow row) throws StandardException {
-        UserDataValue aggColumn = (UserDataValue) row.getColumn(aggregatorColumnId);
+        UserDataValue aggColumn = (UserDataValue) row.getColumn(functionColumnId);
 
         WindowFunction ua = (WindowFunction) aggColumn.getObject();
         if (ua == null) {
@@ -109,13 +95,6 @@ public class WindowAggregator {
         return false;
     }
 
-    public boolean isInitialized(ExecRow row) throws StandardException{
-        UserDataValue aggColumn = (UserDataValue)row.getColumn(aggregatorColumnId);
-
-        WindowFunction ua = (WindowFunction)aggColumn.getObject();
-        return ua !=null;
-    }
-    
 	public void accumulate(DataValueDescriptor[] inputCols,DataValueDescriptor aggCol)
 																throws StandardException{
         WindowFunction ua = (WindowFunction)aggCol.getObject();
@@ -139,11 +118,11 @@ public class WindowAggregator {
         SpliceGenericWindowFunction aggInstance = cachedAggregator;
 		if (aggInstance == null){
 			try{
-				Class aggClass = cf.loadApplicationClass(aggInfo.getWindowFunctionClassName());
+				Class aggClass = cf.loadApplicationClass(windowInfo.getWindowFunctionClassName());
                 WindowFunction function = (WindowFunction) aggClass.newInstance();
                 function.setup(cf,
-                               aggInfo.getFunctionName(),
-                               aggInfo.getResultDescription().getColumnInfo()[ 0 ].getType()
+                               windowInfo.getFunctionName(),
+                               windowInfo.getResultDescription().getColumnInfo()[ 0 ].getType()
                 );
                 function = function.newWindowFunction();
                 cachedAggregator = (SpliceGenericWindowFunction) function;
@@ -156,15 +135,11 @@ public class WindowAggregator {
 		return aggInstance;
 	}
 
-    public void setResultColumn(ExecRow row,DataValueDescriptor result) {
-        row.setColumn(resultColumnId,result);
-    }
-
     public int getResultColumnId() {
         return resultColumnId;
     }
 
-    public int getAggregatorColumnId() {
-        return aggregatorColumnId;
+    public int getFunctionColumnId() {
+        return functionColumnId;
     }
 }
