@@ -169,6 +169,14 @@ _stop() {
             else
                 /bin/rm -f "${PID_FILE}"
             fi
+            #echo "Double check and kill any straggler"
+            S=$(ps -ef | awk '/splice/ && !/awk/ {print $2}')
+            if [[ -n ${S} ]]; then
+                echo "Found splice straggler. Killing..."
+                for pid in ${S}; do
+                    kill -15 ${pid}
+                done
+            fi
             return 1;
         fi
 
