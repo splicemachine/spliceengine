@@ -55,6 +55,11 @@ public class TransactionAdmin {
 
     public static void killTransaction(long txnId) throws SQLException{
         try {
+            TxnSupplier store = TransactionStorage.getTxnStore();
+            TxnView txn = store.getTransaction(txnId);
+            //if the transaction is read-only, or doesn't exist, then don't do anything to it
+            if(txn==null) return;
+
             TxnLifecycleManager tc = TransactionLifecycle.getLifecycleManager();
             tc.rollback(txnId);
         } catch (IOException e) {

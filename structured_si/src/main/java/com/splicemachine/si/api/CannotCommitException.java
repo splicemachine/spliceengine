@@ -7,12 +7,26 @@ import org.apache.hadoop.hbase.DoNotRetryIOException;
  *         Date: 6/18/14
  */
 public class CannotCommitException extends DoNotRetryIOException {
+    private long txnId = -1;
 
 		public CannotCommitException(long txnId,Txn.State actualState){
-				super("Transaction "+txnId+" cannot be committed--it is in the "+ actualState+" state");
+        super(String.format("[%d]Transaction %d cannot be committed--it is in the %s state",txnId,txnId,actualState));
 		}
 
     public CannotCommitException(String message){
         super(message);
+    }
+
+    public long getTxnId(){
+        if(txnId<0)
+            txnId = parseTxn(getMessage());
+        return txnId;
+    }
+
+    private long parseTxn(String message) {
+        int openIndex = message.indexOf("[");
+        int closeIndex = message.indexOf("]");
+        String txnNum = message.substring(openIndex+1,closeIndex);
+        return Long.parseLong(txnNum);
     }
 }
