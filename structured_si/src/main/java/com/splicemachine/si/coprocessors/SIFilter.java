@@ -1,6 +1,5 @@
 package com.splicemachine.si.coprocessors;
 
-import com.splicemachine.si.api.RollForward;
 import com.splicemachine.si.impl.TxnFilter;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.KeyValue;
@@ -17,10 +16,13 @@ import java.io.IOException;
 public class SIFilter extends FilterBase {
     private static Logger LOG = Logger.getLogger(SIFilter.class);
     //		private TxnLifecycleManager txnLifecycleManager;
-    protected String transactionIdString;
     private TxnFilter filterState = null;
 
     public SIFilter() {}
+
+    public SIFilter(TxnFilter txnFilter){
+        this.filterState = txnFilter;
+    }
 
     @Override
 		@SuppressWarnings("unchecked")
@@ -37,16 +39,14 @@ public class SIFilter extends FilterBase {
     }
 
     private void initFilterStateIfNeeded() throws IOException {
-				throw new UnsupportedOperationException("REMOVE");
-//        if (filterState == null) {
-//            filterState = readController.newFilterState(rollForwardQueue, transactionManager.transactionIdFromString(transactionIdString));
-//        }
     }
 
     @Override
     public boolean filterRow() {
-        return super.filterRow();
+        return filterState.getExcludeRow();
     }
+
+    @Override public boolean hasFilterRow() { return true; }
 
     @Override
     public void reset() {
@@ -57,11 +57,10 @@ public class SIFilter extends FilterBase {
 
     @Override
     public void readFields(DataInput in) throws IOException {
-        transactionIdString = in.readUTF();
     }
 
     @Override
     public void write(DataOutput out) throws IOException {
-        out.writeUTF(transactionIdString);
+        throw new UnsupportedOperationException("This filter should not be serializing");
     }
 }

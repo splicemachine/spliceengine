@@ -291,7 +291,7 @@ public class WorkStealingTaskScheduler<T extends Task> implements StealableTaskS
 								new TaskCallable<T>(next).call();
 						}catch(InterruptedException ie){
 								interrupted(next, usedScheduler);
-						}catch (Exception e) {
+						}catch (Throwable e) {
 								Throwable t = Throwables.getRootCause(e);
 								if(t instanceof InterruptedException){
 										interrupted(next,usedScheduler);

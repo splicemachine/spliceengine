@@ -41,7 +41,7 @@ public class SpliceHConnection extends HConnectionManager.HConnectionImplementat
 				super(conf, managed);
 		}
 
-		@Override
+    @Override
 		public synchronized ZooKeeperWatcher getZooKeeperWatcher() throws ZooKeeperConnectionException {
 				if(zooKeeper==null){
 						if(this.isClosed()){

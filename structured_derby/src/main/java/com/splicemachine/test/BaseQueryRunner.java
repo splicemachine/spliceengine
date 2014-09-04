@@ -192,7 +192,7 @@ public abstract class BaseQueryRunner {
     }
 
     private static String formatConnectString(String host, String port) {
-        return "jdbc:derby://"+host+":"+port+"/splicedb";
+        return "jdbc:derby://"+host+":"+port+"/splicedb;user=splice;password=admin";
     }
 
     protected abstract class Runner implements Callable<RunStats> {
@@ -273,6 +273,7 @@ public abstract class BaseQueryRunner {
         }
 
         protected void reportError(int iteration,SQLException se) throws IOException {
+            se.printStackTrace();
             outputWriter.write(String.format("[Iteration-%d] %s%n",iteration, Throwables.getStackTraceAsString(se.getNextException())));
         }
     }

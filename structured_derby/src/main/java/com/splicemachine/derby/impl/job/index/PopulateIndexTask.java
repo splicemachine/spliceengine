@@ -264,7 +264,7 @@ public class PopulateIndexTask extends ZkTask {
     protected MeasuredRegionScanner getRegionScanner(EntryPredicateFilter predicateFilter,Scan regionScan, MetricFactory metricFactory) throws IOException {
         //manually create the SIFilter
         DDLTxnView demarcationPoint = new DDLTxnView(getTxn(), this.demarcationPoint);
-        TxnFilter packed =TransactionalRegions.get(region,SegmentedRollForward.NOOP_ACTION).packedFilter(demarcationPoint,predicateFilter,false);
+        TxnFilter packed =TransactionalRegions.get(region).packedFilter(demarcationPoint,predicateFilter,false);
         regionScan.setFilter(new SIFilterPacked(packed));
         RegionScanner sourceScanner = region.getScanner(regionScan);
         return SpliceConstants.useReadAheadScanner? new ReadAheadRegionScanner(region, SpliceConstants.DEFAULT_CACHE_SIZE, sourceScanner,metricFactory)

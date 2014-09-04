@@ -80,7 +80,7 @@ public class SpliceOperationCoprocessor extends BaseEndpointCoprocessor implemen
                 imp = new SpliceTransactionResourceImpl();
                 imp.marshallTransaction(instructions);
                 Activation activation = instructions.getActivation(imp.getLcc());
-                SpliceOperationContext context = new SpliceOperationContext(region, TransactionalRegions.get(region, SegmentedRollForward.NOOP_ACTION),scan,activation,
+                SpliceOperationContext context = new SpliceOperationContext(region, TransactionalRegions.get(region),scan,activation,
                         instructions.getStatement(),imp.getLcc(),true,instructions.getTopOperation(),instructions.getSpliceRuntimeContext(),instructions.getTxn());
                 SpliceOperationRegionScanner spliceScanner = new SpliceOperationRegionScanner(instructions.getTopOperation(),context);
                 SpliceLogUtils.trace(LOG,"performing sink");

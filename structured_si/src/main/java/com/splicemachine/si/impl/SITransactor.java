@@ -634,30 +634,7 @@ public class SITransactor<Table,
             }
         }
 
-
-    /**
-     * Look at the last keepAlive timestamp on the transaction, if it is too long in the past then "fail" the
-     * transaction. Returns true if a timeout was generated.
-     */
-//    private boolean checkTransactionTimeout(Txn dataTransaction) throws IOException {
-//        if (!dataTransaction.isRootTransaction()
-//                && dataTransaction.getEffectiveStatus().isActive()
-//                && ((clock.getTime() - dataTransaction.keepAlive) > transactionTimeoutMS)) {
-//            transactionManager.fail(dataTransaction.getTransactionId());
-//            checkTransactionTimeout(dataTransaction.getParent());
-//            return true;
-//        } else return !dataTransaction.isRootTransaction() && checkTransactionTimeout(dataTransaction.getParent());
-//    }
-
-
-    // Roll-forward / compaction
-
-    @Override
-    public SICompactionState newCompactionState() {
-				return new SICompactionState(dataStore,transactionStore);
-    }
-
-// Helpers
+    // Helpers
 
     /**
      * Is this operation supposed to be handled by "snapshot isolation".

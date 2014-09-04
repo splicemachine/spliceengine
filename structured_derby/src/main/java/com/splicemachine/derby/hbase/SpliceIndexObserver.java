@@ -55,7 +55,7 @@ public class SpliceIndexObserver extends BaseRegionObserver {
             conglomId = Long.parseLong(tableName);
 
             operationFactory = new SimpleOperationFactory(TransactionStorage.getTxnSupplier());
-            region = TransactionalRegions.get(e.getEnvironment().getRegion(),SegmentedRollForward.NOOP_ACTION);
+            region = TransactionalRegions.get(e.getEnvironment().getRegion());
         }catch(NumberFormatException nfe){
             SpliceLogUtils.debug(LOG, "Unable to parse Conglomerate Id for table %s, indexing is will not be set up", tableName);
             conglomId=-1;

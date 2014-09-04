@@ -155,7 +155,7 @@ public class SinkTask extends ZkTask {
 								spliceRuntimeContext.recordTraceMetrics();
 						}
 
-						opContext = new SpliceOperationContext(region, TransactionalRegions.get(region, SegmentedRollForward.NOOP_ACTION),
+						opContext = new SpliceOperationContext(region, TransactionalRegions.get(region),
                     scan,activation,
 										instructions.getStatement(),
 										transactionResource.getLcc(),

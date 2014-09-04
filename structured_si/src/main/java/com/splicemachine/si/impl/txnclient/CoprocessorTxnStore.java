@@ -313,11 +313,16 @@ public class CoprocessorTxnStore implements TxnStore{
 				}else{
 						encoder.encodeEmpty();
 				}
-				if(txn.getEffectiveState()== Txn.State.COMMITTED){
-						//record the effective commit timestamp as the global commit timestamp for efficiency
-						encoder = encoder.encodeNext(txn.getEffectiveCommitTimestamp());
-				}else
-						encoder.encodeEmpty();
+        /*
+         * We only use this method if we are recording a new transaction. Because of that, we leave
+         * off the effectiveCommitTimestamp(). Likely, we wouldn't use it anyway, because we don't have one
+         * yet, but on the off chance that we do, we'll let the Transaction Resolver on the coprocessor
+         * side handle it.
+         *
+         * However, we need this in place because we use the same encoding/decoding strategy in multiple
+         * places, so we have to adhere to the same policy
+         */
+        encoder.encodeEmpty();
 
 				encoder.encodeNext(txn.getState().getId());
 

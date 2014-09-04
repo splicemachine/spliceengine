@@ -111,7 +111,7 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
             @Override
             public boolean start() {
                 if(conglomId>=0){
-                    region = TransactionalRegions.get(rce.getRegion(), SegmentedRollForward.NOOP_ACTION);
+                    region = TransactionalRegions.get(rce.getRegion());
                     txnStore = TransactionStorage.getTxnSupplier();
                 }else{
                     region = TransactionalRegions.nonTransactionalRegion(rce.getRegion());

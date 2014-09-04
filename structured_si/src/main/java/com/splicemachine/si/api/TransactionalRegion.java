@@ -6,6 +6,7 @@ import com.splicemachine.si.impl.DataStore;
 import com.splicemachine.si.impl.SICompactionState;
 import com.splicemachine.si.impl.TxnFilter;
 import com.splicemachine.storage.EntryPredicateFilter;
+import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 
 import java.io.IOException;
@@ -65,4 +66,8 @@ public interface TransactionalRegion {
     ReadResolver getReadResolver();
 
     DataStore getDataStore();
+
+    void discard();
+
+    InternalScanner compactionScanner(InternalScanner scanner);
 }

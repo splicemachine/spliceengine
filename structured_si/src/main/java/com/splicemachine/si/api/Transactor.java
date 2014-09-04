@@ -34,9 +34,4 @@ public interface Transactor<Table, Mutation extends OperationWithAttributes,Put 
 																		 byte[] family, byte[] qualifier,
 																		 Collection<KVPair> mutations,ConstraintChecker constraintChecker) throws IOException;
 
-    /**
-     * Create an object to keep track of the state of an HBase table compaction operation.
-     */
-    SICompactionState newCompactionState();
-
 }

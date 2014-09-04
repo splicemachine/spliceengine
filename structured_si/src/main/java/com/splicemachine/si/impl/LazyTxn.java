@@ -235,8 +235,14 @@ public class LazyTxn implements TxnView {
 
 		@Override
 		public boolean canSee(TxnView otherTxn) {
-				return false;
-		}
+        try {
+            lookup(!inFinalState);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return delegate.canSee(otherTxn);
+
+    }
 
 		@Override
 		public boolean equals(Object o) {

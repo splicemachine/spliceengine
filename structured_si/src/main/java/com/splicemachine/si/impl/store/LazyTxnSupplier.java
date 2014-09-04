@@ -52,7 +52,7 @@ public class LazyTxnSupplier implements TxnSupplier {
 
 		@Override
 		public void cache(TxnView toCache) {
-				delegate.cache(toCache);
+        delegate.cache(toCache);
 		}
 
     @Override

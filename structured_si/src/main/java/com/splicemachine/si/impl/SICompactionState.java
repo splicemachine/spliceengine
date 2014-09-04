@@ -2,11 +2,13 @@ package com.splicemachine.si.impl;
 
 import com.carrotsearch.hppc.LongOpenHashSet;
 import com.splicemachine.constants.SIConstants;
+import com.splicemachine.si.api.RollForward;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.impl.store.ActiveTxnCacheSupplier;
+import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -29,16 +31,15 @@ public class SICompactionState<Mutation,
 //    private final SDataLib<Put, Delete, Get, Scan> dataLib;
     private final DataStore<Mutation, Put, Delete, Get, Scan, IHTable> dataStore;
     private final TxnSupplier transactionStore;
-    //    private SpliceReusableHashmap<ByteBuffer,KeyValue> evaluatedTransactions;
     public SortedSet<KeyValue> dataToReturn;
-//    private LongOpenHashSet visitedTxnIds;
+    private final RollForward rollForward;
+    private ByteSlice rowSlice = new ByteSlice();
 
-    public SICompactionState(DataStore dataStore, TxnSupplier transactionStore) {
+    public SICompactionState(DataStore dataStore, TxnSupplier transactionStore,RollForward rollForward) {
         this.dataStore = dataStore;
+        this.rollForward = rollForward;
         this.transactionStore = new ActiveTxnCacheSupplier(transactionStore,SIConstants.activeTransactionCacheSize); //cache active transactions during our scan
         this.dataToReturn  = new TreeSet<KeyValue>(KeyValue.COMPARATOR);
-//        this.visitedTxnIds = new LongOpenHashSet();
-//        this.evaluatedTransactions = new SpliceReusableHashmap<ByteBuffer,KeyValue>();
     }
 
     /**
@@ -48,8 +49,6 @@ public class SICompactionState<Mutation,
      * @param results - the output key values
      */
     public void mutate(List<KeyValue> rawList, List<KeyValue> results) throws IOException {
-//        evaluatedTransactions.reset();
-//        visitedTxnIds.clear();
         dataToReturn.clear();
         for (KeyValue aRawList : rawList) {
             mutate(aRawList);
@@ -92,7 +91,6 @@ public class SICompactionState<Mutation,
 
     private void ensureTransactionCached(long timestamp,KeyValue keyValue) {
         if(!transactionStore.transactionCached(timestamp)){
-//            visitedTxnIds.add(timestamp);
             if(isFailedCommitTimestamp(keyValue)){
                 transactionStore.cache(new RolledBackTxn(timestamp));
             }else{
@@ -112,6 +110,7 @@ public class SICompactionState<Mutation,
              * This transaction has been rolled back, so just remove the data
              * from physical storage
              */
+            recordResolved(keyValue,transaction);
             return false;
         }
         TxnView t = transaction;
@@ -125,8 +124,14 @@ public class SICompactionState<Mutation,
              */
             long globalCommitTimestamp = transaction.getEffectiveCommitTimestamp();
             dataToReturn.add(newTransactionTimeStampKeyValue(keyValue,Bytes.toBytes(globalCommitTimestamp)));
+            recordResolved(keyValue, transaction);
         }
         return true;
+    }
+
+    private void recordResolved(KeyValue keyValue, TxnView transaction) {
+        rowSlice.set(keyValue.getBuffer(),keyValue.getRowOffset(),keyValue.getRowLength());
+        rollForward.recordResolved(rowSlice,transaction.getTxnId());
     }
 
 //    private Txn getFromCache(long timestamp) throws IOException {

@@ -6,6 +6,8 @@ import com.splicemachine.si.api.ReadResolver;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.impl.TransactionalRegions;
+import com.splicemachine.si.impl.rollforward.RollForwardStatus;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.annotations.ThreadSafe;
 import org.apache.hadoop.hbase.client.Delete;
@@ -37,30 +39,37 @@ public class SynchronousReadResolver {
      * @param txnSupplier a Transaction Supplier for fetching transaction information
      * @return a ReadResolver which uses Synchronous Read Resolution under the hood.
      */
-    public static @ThreadSafe ReadResolver getResolver(final HRegion region,final TxnSupplier txnSupplier){
+    public static @ThreadSafe ReadResolver getResolver(final HRegion region,final TxnSupplier txnSupplier,final RollForwardStatus status){
         return new ReadResolver() {
             @Override
             public void resolve(ByteSlice rowKey, long txnId) {
-                SynchronousReadResolver.INSTANCE.resolve(region,rowKey,txnId,txnSupplier);
+                SynchronousReadResolver.INSTANCE.resolve(region,rowKey,txnId,txnSupplier,status);
             }
         };
     }
 
-    void resolve(HRegion region, ByteSlice rowKey, long txnId, TxnSupplier supplier) {
+    boolean resolve(HRegion region, ByteSlice rowKey, long txnId, TxnSupplier supplier,RollForwardStatus status) {
         try {
             TxnView transaction = supplier.getTransaction(txnId);
+            boolean resolved = false;
             if(transaction.getEffectiveState()== Txn.State.ROLLEDBACK){
                 SynchronousReadResolver.INSTANCE.resolveRolledback(region, rowKey, txnId);
+                resolved = true;
             }else{
                 TxnView t = transaction;
                 while(t.getState()== Txn.State.COMMITTED){
                     t = t.getParentTxnView();
                 }
-                if(t==Txn.ROOT_TRANSACTION)
+                if(t==Txn.ROOT_TRANSACTION){
                     SynchronousReadResolver.INSTANCE.resolveCommitted(region,rowKey,txnId,transaction.getEffectiveCommitTimestamp());
+                    resolved = true;
+                }
             }
+            status.rowResolved();
+            return resolved;
         } catch (IOException e) {
             LOG.info("Unable to fetch transaction for id "+ txnId+", will not resolve",e);
+            return false;
         }
     }
 
