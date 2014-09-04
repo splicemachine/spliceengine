@@ -8447,6 +8447,12 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
 							<arg>txn1</arg>
 							<arg>txn2</arg>
 						</msg>
+
+						<msg>
+							<name>SE015</name>
+							<text>Unable to commit transaction {0}. It either timed out, or was rolled back by an administrative action</text>
+							<arg>txn</arg>
+						</msg>
        </family>
     </section>
 

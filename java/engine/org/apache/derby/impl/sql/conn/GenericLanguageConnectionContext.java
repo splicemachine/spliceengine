@@ -1924,7 +1924,7 @@ public class GenericLanguageConnectionContext
 
         if (readOnlyNestedTransaction == null)
             readOnlyNestedTransaction = 
-                tran.startNestedUserTransaction(readOnly, true);
+                getTransactionExecute().startNestedUserTransaction(readOnly, true);
 
         queryNestingDepth++;
     }
