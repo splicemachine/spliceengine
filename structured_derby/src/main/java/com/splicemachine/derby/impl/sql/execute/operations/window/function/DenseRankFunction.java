@@ -1,4 +1,4 @@
-package com.splicemachine.derby.impl.sql.execute.operations.window;
+package com.splicemachine.derby.impl.sql.execute.operations.window.function;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -6,10 +6,10 @@ import java.io.ObjectOutput;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.ClassFactory;
-import org.apache.derby.iapi.sql.execute.ExecAggregator;
 import org.apache.derby.iapi.sql.execute.WindowFunction;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.SQLLongint;
 
 /**
  * Implementation of DENSE_RANK -  Ranks each row in a partition. If values in the ranking column
@@ -21,7 +21,6 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
  */
 public class DenseRankFunction extends SpliceGenericWindowFunction implements WindowFunction {
     private long rank;
-    private DataValueDescriptor previousValue;
 
     @Override
     public WindowFunction setup(ClassFactory classFactory, String aggregateName, DataTypeDescriptor returnDataType) {
@@ -30,8 +29,8 @@ public class DenseRankFunction extends SpliceGenericWindowFunction implements Wi
     }
 
     @Override
-    public void accumulate(DataValueDescriptor addend, Object ga) throws StandardException {
-        this.add(addend);
+    public void accumulate(DataValueDescriptor[] valueDescriptors) throws StandardException {
+        this.add(valueDescriptors);
     }
 
     @Override
@@ -41,20 +40,20 @@ public class DenseRankFunction extends SpliceGenericWindowFunction implements Wi
     }
 
     @Override
-    protected void calculateOnAdd(WindowChunk chunk, DataValueDescriptor dvd) throws StandardException {
-        DataValueDescriptor result = chunk.getResult();
-        if ( (result == null || result.isNull()) || result.compare(dvd) != 0) {
+    protected void calculateOnAdd(WindowChunk chunk, DataValueDescriptor[] dvds) throws StandardException {
+        DataValueDescriptor[] previous = chunk.getPrevious();
+        if ( isNullOrEmpty(previous) || compareDVDArrays(previous,dvds) != 0) {
             // if previous result is null or if values differ, rank increases
             rank++;
         }
         // always collect the now previous value
-        chunk.setResult(dvd);
+        chunk.setPrevious(dvds);
     }
 
     @Override
-    protected void calculateOnRemove(WindowChunk chunk, DataValueDescriptor dvd) throws StandardException {
-        DataValueDescriptor result = chunk.getResult();
-        if (dvd.compare(result) == 0) {
+    protected void calculateOnRemove(WindowChunk chunk, DataValueDescriptor[] dvds) throws StandardException {
+        DataValueDescriptor[] previous = chunk.getPrevious();
+        if (compareDVDArrays(previous, dvds) == 0) {
             recalculate(chunk);
         }
     }
@@ -63,28 +62,9 @@ public class DenseRankFunction extends SpliceGenericWindowFunction implements Wi
     }
 
     @Override
-    public void merge(ExecAggregator inputAggregator) throws StandardException {
-
-    }
-
-    @Override
     public DataValueDescriptor getResult() throws StandardException {
         // just return the current rank
-        WindowChunk first = values.get(0);
-        DataValueDescriptor result = first.getResult();
-        result = result.cloneValue(false);
-        result.setValue(rank);
-        return result;
-    }
-
-    @Override
-    public ExecAggregator newAggregator() {
-        return new DenseRankFunction();
-    }
-
-    @Override
-    public boolean didEliminateNulls() {
-        return false;
+        return new SQLLongint(rank);
     }
 
     @Override

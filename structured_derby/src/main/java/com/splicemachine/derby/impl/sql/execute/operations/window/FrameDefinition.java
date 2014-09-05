@@ -6,10 +6,13 @@ import java.io.Serializable;
 import org.apache.derby.iapi.services.io.FormatableHashtable;
 
 /**
+ * This represent the frame definition for a given window function as a representation
+ * of the parsed frame clause from a window over() clause.
+ *
  * @author Jeff Cunningham
  *         Date: 7/10/14
  */
-public class WindowFrame {
+public class FrameDefinition {
 
     public enum FrameMode { ROWS, RANGE }
 
@@ -25,7 +28,8 @@ public class WindowFrame {
         private final Frame frame;
         private final long value;
 
-        private FrameType(int frame, long value) {
+        FrameType(int frame, long value) {
+            // default access to allow testing
             this.frame = Frame.values()[frame];
             this.value = value;
         }
@@ -36,16 +40,6 @@ public class WindowFrame {
 
         public Frame getFrame() {
             return frame;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-
-            FrameType frameType = (FrameType) o;
-
-            return value == frameType.value && frame == frameType.frame;
         }
     }
 
@@ -59,8 +53,8 @@ public class WindowFrame {
      * @param frameStart start of the window frame
      * @param frameEnd end of the window frame
      */
-    private WindowFrame(int frameMode, int frameStart, long frameStartRows,
-                                  int frameEnd, long frameEndRows) {
+    FrameDefinition(int frameMode, int frameStart, long frameStartRows, int frameEnd, long frameEndRows) {
+        // default access to allow testing
         this.frameMode = FrameMode.values()[frameMode];
         switch (Frame.values()[frameStart]) {
             case  UNBOUNDED_PRECEDING:
@@ -113,13 +107,8 @@ public class WindowFrame {
         return frameStart;
     }
 
-    public boolean isEquivalent(WindowFrame other) {
-        return this == other || other != null && !(frameMode != null ? !frameMode.equals(other.frameMode) :
-            other.frameMode != null) && frameStart.equals(other.frameStart) && frameEnd.equals (other.frameEnd);
-    }
-
-    public static WindowFrame create(FormatableHashtable data) {
-        return new WindowFrame((Integer)data.get("MODE"),
+    public static FrameDefinition create(FormatableHashtable data) {
+        return new FrameDefinition((Integer)data.get("MODE"),
                                (Integer)data.get("START_FRAME"),
                                (Integer)data.get("START_FRAME_ROWS"),
                                (Integer)data.get("END_FRAME"),

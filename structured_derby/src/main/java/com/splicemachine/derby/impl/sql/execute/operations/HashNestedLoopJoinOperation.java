@@ -222,6 +222,7 @@ public class HashNestedLoopJoinOperation extends JoinOperation{
 
     protected ExecRow advanceLeft(SpliceRuntimeContext context) throws IOException, StandardException {
         leftRowBuffer.readAdvance(); //clear the left row
+        this.returnedRight = false;
         if(leftRowBuffer.size()<=0){
             nextBatch(context);
         }

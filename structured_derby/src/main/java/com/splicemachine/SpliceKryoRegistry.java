@@ -88,6 +88,8 @@ import org.apache.derby.impl.sql.execute.MaxMinAggregator;
 import org.apache.derby.impl.sql.execute.SumAggregator;
 import org.apache.derby.impl.sql.execute.UserDefinedAggregator;
 import org.apache.derby.impl.sql.execute.ValueRow;
+import org.apache.derby.impl.sql.execute.WindowFunctionInfo;
+import org.apache.derby.impl.sql.execute.WindowFunctionInfoList;
 import org.apache.derby.impl.store.access.PC_XenaVersion;
 
 import com.splicemachine.constants.SpliceConstants;
@@ -788,5 +790,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(SizedInterval.class,EXTERNALIZABLE_SERIALIZER,183);
         instance.register(DerbyWindowContext.class,EXTERNALIZABLE_SERIALIZER,184);
         instance.register(ActivationSerializer.BooleanFieldStorage.class,EXTERNALIZABLE_SERIALIZER,185);
+        instance.register(WindowFunctionInfoList.class,EXTERNALIZABLE_SERIALIZER,186);
+        instance.register(WindowFunctionInfo.class,EXTERNALIZABLE_SERIALIZER,187);
     }
 }

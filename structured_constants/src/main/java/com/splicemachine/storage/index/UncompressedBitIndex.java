@@ -3,7 +3,6 @@ package com.splicemachine.storage.index;
 import com.splicemachine.storage.BitReader;
 import com.splicemachine.storage.BitWriter;
 
-import java.util.Arrays;
 import com.carrotsearch.hppc.BitSet;
 
 
@@ -236,28 +235,5 @@ class UncompressedBitIndex implements BitIndex {
             bitPos++;
         }
         return new UncompressedBitIndex(bitSet,scalarFields,floatFields,doubleFields);
-    }
-
-		public static void main(String... args) throws Exception{
-        BitSet bitSet = new BitSet(11);
-        bitSet.set(2);
-        bitSet.set(1);
-//        bitSet.set(3);
-//        bitSet.set(4);
-
-        BitSet scalarFields = new BitSet();
-//        lengthDelimited.set(4);
-
-        BitSet floatFields = new BitSet();
-
-        BitSet doubleFields = new BitSet();
-
-        BitIndex bits = UncompressedBitIndex.create(bitSet,scalarFields,floatFields,doubleFields);
-
-        byte[] data =bits.encode();
-        System.out.println(Arrays.toString(data));
-
-        BitIndex decoded = UncompressedBitIndex.wrap(data,0,data.length);
-        System.out.println(decoded);
     }
 }

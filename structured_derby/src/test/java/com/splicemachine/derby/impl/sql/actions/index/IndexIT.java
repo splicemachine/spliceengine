@@ -332,7 +332,7 @@ public class IndexIT extends SpliceUnitTest {
             String duration = TestUtils.getDuration(start, System.currentTimeMillis());
             int cnt = resultSetSize(rs);
             System.out.println("Rows returned: "+cnt+" in "+duration);
-            Assert.assertEquals(30000,cnt);
+            Assert.assertEquals(30000, cnt);
         } finally {
             SpliceIndexWatcher.executeDrop(SCHEMA_NAME, CustomerTable.INDEX_NAME);
         }
@@ -463,11 +463,11 @@ public class IndexIT extends SpliceUnitTest {
             SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, OrderLineTable.TABLE_NAME, OrderLineTable.INDEX_NAME, OrderLineTable.INDEX_ORDER_DEF, false);
 
             String query = String.format("select " +
-										"%1$s.c.c_last, %1$s.c.c_first, %1$s.o.o_id, %1$s.o.o_entry_d, %1$s.ol.ol_amount " +
-										"from " +
-										"%1$s.%2$s c, %1$s.%3$s o, %1$s.%4$s ol " +
-										"where " +
-										"c.c_id = o.o_c_id and ol.ol_o_id = o.o_id and c.c_last = 'ESEPRIANTI'",
+                            "%1$s.c.c_last, %1$s.c.c_first, %1$s.o.o_id, %1$s.o.o_entry_d, %1$s.ol.ol_amount " +
+                            "from " +
+                            "%1$s.%2$s c, %1$s.%3$s o, %1$s.%4$s ol " +
+                            "where " +
+                            "c.c_id = o.o_c_id and ol.ol_o_id = o.o_id and c.c_last = 'ESEPRIANTI'",
                     SCHEMA_NAME, CustomerTable.TABLE_NAME, OrderTable.TABLE_NAME, OrderLineTable.TABLE_NAME);
             long start = System.currentTimeMillis();
 						System.out.println(query);
@@ -659,27 +659,17 @@ public class IndexIT extends SpliceUnitTest {
 
     @Test
     public void testRolledBackIndexDisappears() throws Exception {
-        try {
-            methodWatcher.prepareStatement("drop index ic").execute();
-        } catch (Exception e1) {
-            // ignore
-        }
-        try {
-            methodWatcher.prepareStatement(String.format("drop table if exists %s.c", SCHEMA_NAME)).execute();
-        } catch (Exception e1) {
-            // ignore
-        }
         methodWatcher.prepareStatement(String.format("create table %s.c (i int)", SCHEMA_NAME)).execute();
         Connection connection1 = methodWatcher.createConnection();
         connection1.setAutoCommit(false);
-        PreparedStatement ps = connection1.prepareStatement(String.format("insert into %s.c values 1", SCHEMA_NAME));
         PreparedStatement createStmt = connection1.prepareStatement(String.format("create index ic on %s.c (i)", SCHEMA_NAME));
+        PreparedStatement insertStmt = connection1.prepareStatement(String.format("insert into %s.c values 1", SCHEMA_NAME));
         PreparedStatement countStmt = connection1.prepareStatement(String.format("select count(*) from %s.c", SCHEMA_NAME));
         for (int i = 0; i < 5; ++i) {
             createStmt.execute();
-            ps.execute();
-            ps.execute();
-            ps.execute();
+            insertStmt.execute();
+            insertStmt.execute();
+            insertStmt.execute();
             ResultSet rs = countStmt.executeQuery();
             Assert.assertTrue(rs.next());
             Assert.assertEquals(3, rs.getInt(1));

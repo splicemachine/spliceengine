@@ -2,7 +2,7 @@
 	'use strict';
 
 	angular.module('spliceAdminDirectives')
-		.directive('d3Bars', [/*'d3',*/ function(/*d3*/) {
+		.directive('d3Bars', [function() {
 			return {
 				restrict: 'EA',
 				scope: {

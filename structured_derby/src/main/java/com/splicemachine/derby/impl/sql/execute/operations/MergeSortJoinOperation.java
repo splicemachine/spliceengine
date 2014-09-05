@@ -237,32 +237,8 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
                 stats.addMetric(OperationMetric.REMOTE_SCAN_USER_TIME, remoteTime.getUserTime());
 
                 stats.addMetric(OperationMetric.OUTPUT_ROWS, timer.getNumEvents());
-            } else {
-						/*
-						 * When there is no scanner, then we are a sink, which means that
-						 * we are taking whatever rows are given to us and immediately
-						 * writing them to TEMP. Thus, the number of output rows is the
-						 * same as the number of input rows.
-						 */
-
-                //stats.addMetric(OperationMetric.INPUT_ROWS,timer.getNumEvents());
-            }
-            if (joiner != null) {
-                //sequential phase
-                if (regionScanner != null) {
-                    //under parallel operation
-
-                }
-                else
-                {
-                    //under control node
-                }
                 stats.addMetric(OperationMetric.INPUT_ROWS, joiner.getLeftRowsSeen());
-                //stats.addMetric(OperationMetric.FILTERED_ROWS, joiner.getLeftRowsSeen() * joiner.getRightRowsSeen() - timer.getNumEvents());
 
-            }
-            else {
-                //parallel phase
             }
         }
 

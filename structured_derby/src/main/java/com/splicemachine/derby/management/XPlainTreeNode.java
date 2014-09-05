@@ -83,6 +83,11 @@ public class XPlainTreeNode {
             private long writeTotalCPUTime;
             private long writeTotalUserTime;
 
+            private long startTimeStamp;
+            private long stopTimeStamp;
+
+    @Expose private long cumulativeTime;
+
     @Expose private Deque<XPlainTreeNode> children;
 
     private Field[] fields;
@@ -155,16 +160,51 @@ public class XPlainTreeNode {
                 String s = rs.getString(index);
                 f.set(this, s);
             } else {
-                Long l = rs.getLong(index);
-                f.set(this, l + f.getLong(this));
+                if (!isIdField(name)) {
+                    Long l = rs.getLong(index);
+                    Long v = f.getLong(this);
+                    if (name.compareTo("STARTTIMESTAMP") == 0) {
+                        if (v == 0) {
+                            f.set(this, l);
+                        }
+                        else {
+                            f.set(this, v < l ? v : l);
+                        }
+                        cumulativeTime = stopTimeStamp - startTimeStamp;
+                    }
+                    else if (name.compareTo("STOPTIMESTAMP") == 0) {
+                        if (v == 0) {
+                            f.set(this, l);
+                        }
+                        else {
+                            f.set(this, v > l ? v : l);
+                        }
+                        cumulativeTime = stopTimeStamp - startTimeStamp;
+                    }
+                    else {
+                        f.set(this, l + v);
+                    }
+                }
             }
         }
+
+        // For operation other than region scan, do not display region information
+        if (!operationType.toUpperCase().contains("REGIONSCAN")) {
+            region = null;
+        }
+        cumulativeTime = stopTimeStamp - startTimeStamp;
     }
 
     private boolean isStringField(String columnName) {
         return (columnName.equals("HOST") ||
                 columnName.equals("REGION") ||
                 columnName.equals("OPERATIONTYPE"));
+    }
+
+    private boolean isIdField(String name) {
+        return (name.toUpperCase().equals("OPERATIONID") ||
+                name.toUpperCase().equals("STATEMENTID") ||
+                name.toUpperCase().equals("PARENTOPERATIONID"));
     }
 
     public boolean isTableScanOperation() {
@@ -195,12 +235,34 @@ public class XPlainTreeNode {
             if (canBeAggregated(f)) {
                 String name = f.getName().toUpperCase();
                 Field otherField = otherFieldMap.get(name);
-
-                long sum = f.getLong(this) + otherField.getLong(other);
-                f.set(this, sum);
+                if (name.compareTo("STARTTIMESTAMP") == 0) {
+                    long t1 = f.getLong(this);
+                    long t2 = otherField.getLong(this);
+                    if (t1 == 0) {
+                        f.set(this, t2);
+                    }
+                    else {
+                        f.set(this, t1 < t2 ? t1 : t2);
+                    }
+                    cumulativeTime = stopTimeStamp - startTimeStamp;
+                }
+                else if (name.compareTo("STOPTIMESTAMP") == 0) {
+                    long t1 = f.getLong(this);
+                    long t2 = otherField.getLong(this);
+                    if (t1 == 0) {
+                        f.set(this, t2);
+                    }
+                    else {
+                        f.set(this, t1 > t2 ? t1 : t2);
+                    }
+                    cumulativeTime = stopTimeStamp - startTimeStamp;
+                }
+                else {
+                    long sum = f.getLong(this) + otherField.getLong(other);
+                    f.set(this, sum);
+                }
             }
         }
-        //iterations++;
     }
 
     private boolean canBeAggregated(Field f) {

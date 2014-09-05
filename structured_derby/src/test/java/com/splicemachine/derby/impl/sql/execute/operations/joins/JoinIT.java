@@ -10,6 +10,9 @@ import com.splicemachine.homeless.TestUtils;
 import java.sql.ResultSet;
 import java.util.Arrays;
 import java.util.List;
+
+import com.splicemachine.test_tools.TableCreator;
+import org.apache.commons.lang.RandomStringUtils;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -239,6 +242,30 @@ public class JoinIT extends SpliceUnitTest {
         TestUtils.FormattedResult expected = TestUtils.FormattedResult.ResultFactory.convert(query, expectedColumns, expectedRows, "\\s+");
         TestUtils.FormattedResult actual = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
         Assert.assertEquals("Actual results didn't match expected.", expected.toString(), actual.toString());
+    }
+
+    /* DB-1672: Prior to fix BroadcastJoinStrategy would return not feasible if table was created in the last 1/2 sec or so. */
+    @Test
+    public void testBroadcastJoinJustAfterTableCreation() throws Exception {
+
+        for (int i = 0; i < 6; i = i + 2) {
+
+            String tableName1 = String.valueOf(RandomStringUtils.randomAlphabetic(9));
+            String tableName2 = String.valueOf(RandomStringUtils.randomAlphabetic(9));
+
+            new TableCreator(methodWatcher.getOrCreateConnection())
+                    .withCreate("create table %s (c1 int, c2 int, c3 int)").withTableName(tableName1).create();
+
+            new TableCreator(methodWatcher.getOrCreateConnection())
+                    .withCreate("create table %s (c1 int, c2 int, c3 int)").withTableName(tableName2).create();
+
+            String sql = "select * from %s a --SPLICE-PROPERTIES joinStrategy=BROADCAST \n join %s b on a.c1=b.c2 ";
+
+            ResultSet rs = methodWatcher.prepareStatement(String.format(sql, tableName1, tableName2)).executeQuery();
+
+            Assert.assertFalse(rs.next());
+        }
+
     }
 
 }

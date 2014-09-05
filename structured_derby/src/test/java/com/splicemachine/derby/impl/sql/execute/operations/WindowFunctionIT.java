@@ -2,22 +2,23 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.util.ArrayList;
-import java.util.List;
 
 import org.junit.Assert;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
+import com.splicemachine.derby.management.XPlainTreeNode;
 import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.test.framework.SpliceXPlainTrace;
 
 /**
  * Created by jyuan on 7/30/14.
@@ -491,5 +492,142 @@ public class WindowFunctionIT extends SpliceUnitTest {
         rs.close();
     }
 
+    @Test
+    public void testXPlainTrace() throws Exception {
+        SpliceXPlainTrace xPlainTrace = new SpliceXPlainTrace();
+        xPlainTrace.turnOnTrace();
+        String s = "SELECT empnum, dept, salary, count(salary) over (Partition by dept) as c from %s";
+        String sqlText = String.format(s, this.getTableReference(TABLE_NAME));
+        ResultSet rs = xPlainTrace.executeQuery(sqlText);
+        int i = 0;
+        while (rs.next()) {
+            ++i;
+        }
+        rs.close();
+        Assert.assertEquals(rows.length, i);
+        xPlainTrace.turnOffTrace();
 
+        XPlainTreeNode operation = xPlainTrace.getOperationTree();
+        Assert.assertTrue(operation.getOperationType().compareToIgnoreCase(SpliceXPlainTrace.PROJECTRESTRICT)==0);
+        operation = operation.getChildren().getFirst();
+        Assert.assertTrue(operation.getOperationType().compareToIgnoreCase(SpliceXPlainTrace.WINDOW)==0);
+        Assert.assertEquals(rows.length, operation.getInputRows());
+        Assert.assertEquals(rows.length, operation.getOutputRows());
+        Assert.assertEquals(rows.length * 2, operation.getWriteRows());
+    }
+
+    @Test
+    public void testDenseRankWithoutPartition() throws Exception {
+        int[] result = {1, 2, 3, 4, 5, 5, 6, 7, 7, 8, 8, 8, 8, 9, 10};
+        int[] colVal = {84000, 79000, 78000, 76000, 75000, 75000, 55000, 53000, 53000, 52000, 52000, 52000, 52000, 51000, 50000};
+        String sqlText =
+            "SELECT empnum, dept, salary, DENSE_RANK() OVER (ORDER BY salary desc) AS Rank FROM %s";
+
+        ResultSet rs = methodWatcher.executeQuery(
+            String.format(sqlText, this.getTableReference(TABLE_NAME)));
+
+        int i = 0;
+        while (rs.next()) {
+            Assert.assertEquals(colVal[i],rs.getInt(3));
+            Assert.assertEquals(result[i],rs.getInt(4));
+            ++i;
+        }
+        rs.close();
+    }
+
+    @Test
+    public void testRowNumber2OrderByCols() throws Exception {
+        int[] result = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
+        int[] colVal = {78000, 76000, 75000, 53000, 52000, 52000, 50000, 53000, 52000, 52000, 51000, 84000, 79000, 75000, 55000};
+        String sqlText =
+            "SELECT empnum, dept, salary, ROW_NUMBER() OVER (ORDER BY dept, salary desc) AS Rank FROM %s";
+
+        ResultSet rs = methodWatcher.executeQuery(
+            String.format(sqlText, this.getTableReference(TABLE_NAME)));
+
+        int i = 0;
+        while (rs.next()) {
+            Assert.assertEquals(colVal[i],rs.getInt(3));
+            Assert.assertEquals(result[i],rs.getInt(4));
+            ++i;
+        }
+        rs.close();
+    }
+
+    @Test
+    public void testRank2OrderByCols() throws Exception {
+        int[] result = {1, 2, 3, 4, 5, 5, 7, 8, 9, 9, 11, 12, 13, 14, 15};
+        int[] colVal = {78000, 76000, 75000, 53000, 52000, 52000, 50000, 53000, 52000, 52000, 51000, 84000, 79000, 75000, 55000};
+        String sqlText =
+            "SELECT empnum, dept, salary, RANK() OVER (ORDER BY dept, salary desc) AS Rank FROM %s";
+
+        ResultSet rs = methodWatcher.executeQuery(
+            String.format(sqlText, this.getTableReference(TABLE_NAME)));
+
+        int i = 0;
+        while (rs.next()) {
+            Assert.assertEquals(colVal[i],rs.getInt(3));
+            Assert.assertEquals(result[i],rs.getInt(4));
+            ++i;
+        }
+        rs.close();
+    }
+
+    @Test
+    public void testDenseRank2OrderByCols() throws Exception {
+        int[] result = {1, 2, 3, 4, 5, 5, 6, 7, 8, 8, 9, 10, 11, 12, 13};
+        int[] colVal = {78000, 76000, 75000, 53000, 52000, 52000, 50000, 53000, 52000, 52000, 51000, 84000, 79000, 75000, 55000};
+        String sqlText =
+            "SELECT empnum, dept, salary, DENSE_RANK() OVER (ORDER BY dept, salary desc) AS Rank FROM %s";
+
+        ResultSet rs = methodWatcher.executeQuery(
+            String.format(sqlText, this.getTableReference(TABLE_NAME)));
+
+        int i = 0;
+        while (rs.next()) {
+            Assert.assertEquals(colVal[i],rs.getInt(3));
+            Assert.assertEquals(result[i],rs.getInt(4));
+            ++i;
+        }
+        rs.close();
+    }
+
+    @Test
+    public void testDenseRankWithPartition3OrderByCols() throws Exception {
+        int[] result = {1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 1, 2, 3, 4};
+        int[] colVal = {50000, 75000, 52000, 52000, 78000, 76000, 53000, 52000, 52000, 53000, 51000, 84000, 79000, 55000, 75000};
+        String sqlText =
+            "SELECT empnum, dept, salary, DENSE_RANK() OVER (PARTITION BY dept ORDER BY dept, empnum, salary desc) AS Rank FROM %s";
+
+        ResultSet rs = methodWatcher.executeQuery(
+            String.format(sqlText, this.getTableReference(TABLE_NAME)));
+
+        int i = 0;
+        while (rs.next()) {
+            Assert.assertEquals(colVal[i],rs.getInt(3));
+            Assert.assertEquals(result[i],rs.getInt(4));
+            ++i;
+        }
+        rs.close();
+    }
+
+    @Test
+    @Ignore("DB-1683 - order by follows window function")
+    public void testDenseRankWithoutPartitionOrderby() throws Exception {
+        int[] result = {1, 2, 3, 4, 5, 5, 6, 7, 7, 8, 8, 8, 8, 9, 10};
+        int[] colVal = {84000, 79000, 78000, 76000, 75000, 75000, 55000, 53000, 53000, 52000, 52000, 52000, 52000, 51000, 50000};
+        String sqlText =
+            "SELECT empnum, dept, salary, DENSE_RANK() OVER (ORDER BY salary desc) AS Rank FROM %s order by dept";
+
+        ResultSet rs = methodWatcher.executeQuery(
+            String.format(sqlText, this.getTableReference(TABLE_NAME)));
+
+        int i = 0;
+        while (rs.next()) {
+            Assert.assertEquals(colVal[i],rs.getInt(3));
+            Assert.assertEquals(result[i],rs.getInt(4));
+            ++i;
+        }
+        rs.close();
+    }
 }

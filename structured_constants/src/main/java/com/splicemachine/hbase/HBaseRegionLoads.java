@@ -3,7 +3,7 @@ package com.splicemachine.hbase;
 import com.google.common.collect.Maps;
 import com.google.common.io.Closeables;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.splicemachine.concurrent.DynamicSchedule;
+import com.splicemachine.concurrent.DynamicScheduledRunnable;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceUtilities;
 import org.apache.hadoop.hbase.*;
@@ -68,7 +68,7 @@ public class HBaseRegionLoads {
     public static void start() {
         if (started.compareAndSet(false, true)) {
             updateService
-                .execute(DynamicSchedule.runAndScheduleAsMultiple(updater,
+                .execute(new DynamicScheduledRunnable(updater,
                         updateService,
                         UPDATE_MULTIPLE,
                         SMALLEST_UPDATE_INTERVAL));

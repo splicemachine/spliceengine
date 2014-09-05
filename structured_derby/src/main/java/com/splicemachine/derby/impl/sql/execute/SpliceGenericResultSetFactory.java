@@ -1319,9 +1319,6 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
     public NoPutResultSet getWindowResultSet(NoPutResultSet source,
                                              boolean isInSortedOrder,
                                              int aggregateItem,
-                                             int partitionItemIdx,
-                                             int orderingItemIdx,
-                                             int frameDefnIndex,
                                              GeneratedMethod rowAllocator,
                                              int maxRowSize,
                                              int resultSetNumber,
@@ -1334,9 +1331,6 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
         SpliceOperation op =  new WindowOperation(below.getOperation(),
                                                             isInSortedOrder,
                                                             aggregateItem,
-                                                            partitionItemIdx,
-                                                            orderingItemIdx,
-                                                            frameDefnIndex,
                                                             source.getActivation(),
                                                             rowAllocator,
                                                             maxRowSize,
@@ -1352,5 +1346,5 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
         SpliceBaseOperation op = new ExplainOperation(opSet.getOperation(), activation, resultSetNumber);
 
         return new OperationResultSet(activation, op);
-    };
+    }
 }

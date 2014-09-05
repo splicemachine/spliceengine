@@ -1,331 +1,290 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
 import com.carrotsearch.hppc.BitSet;
-import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
-import com.splicemachine.derby.utils.DerbyBytesUtil;
+import com.splicemachine.SpliceKryoRegistry;
+import com.splicemachine.derby.utils.marshall.dvd.TypeProvider;
+import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.storage.ByteEntryAccumulator;
-import com.splicemachine.storage.EntryAccumulator;
-import com.splicemachine.storage.EntryDecoder;
+import com.splicemachine.storage.*;
 import com.splicemachine.storage.index.BitIndex;
-import com.splicemachine.utils.ByteSlice;
-import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.Arrays;
+
+import static com.google.common.base.Preconditions.checkArgument;
+
 /**
- * Class responsible for transforming an incoming main table row
- * into an index row
+ * Builds an index table KVPair given a base table KVPair.
+ *
+ * Transform:
+ *
+ * [srcRowKey, srcValue]  -> [indexRowKey, indexValue]
+ *
+ * Where
+ *
+ * FOR NON-UNIQUE: indexRowKey = [col1] + 0 + [col2] ... [colN] + encodeBytesUnsorted(srcRowKey)
+ * FOR UNIQUE:     indexRowKey = [col1] + 0 + [col2] ... [colN]
+ *
+ * And
+ *
+ * indexValue = multiValueEncoding( encodeBytesUnsorted ( srcRowKey ))
+ *
+ * Where colN is an indexed column that may be encoded as part of srcRowKey or srcValue depending on if it is part of
+ * a primary key in the source table.
  *
  * @author Scott Fines
- *         Created on: 8/23/13
+ *         Date: 4/17/14
  */
 public class IndexTransformer {
-    private final KryoPool kryoPool;
-    private final BitSet indexedColumns;
-    private final BitSet nonUniqueIndexedColumns;
-    private final BitSet translatedIndexedColumns;
+
+    /* Index for which we are transforming may be unique or not */
     private final boolean isUnique;
+    /* If true then we append srcRowKey to our emitted indexRowKey, even for unique indexes, for rows with nulls */
     private final boolean isUniqueWithDuplicateNulls;
-    private final int[] mainColToIndexPosMap;
-    private final BitSet descColumns;
+    /* Source table column types */
+    private final int[] columnTypes;
+    /* Indices of the primary keys in source table */
+    private final int[] srcPrimaryKeyIndices;
+    /* Sort order or primary keys in src table */
+    private final boolean[] srcKeyColumnSortOrder;
+    /* For each column index in the src table either -1 or the position of that column in the index  */
+    private final int[] indexKeyEncodingMap;
+    /* Sort order for each column encoded in indexRowKey */
+    private final boolean[] indexKeySortOrder;
+
+    private final TypeProvider typeProvider;
+
+    private MultiFieldDecoder srcKeyDecoder;
+    private EntryDecoder srcValueDecoder;
+
     private ByteEntryAccumulator indexKeyAccumulator;
-    private ByteEntryAccumulator indexRowAccumulator;
-    private EntryDecoder mainPutDecoder;
-    private int[] columnOrdering;
-    private int[] format_ids;
-    private KeyData[] pkIndex;
-    private DataValueDescriptor[] kdvds;
-    private DataValueDescriptor[] idvds;
-    private MultiFieldDecoder keyDecoder;
-    private BitSet pkColumns;
-    private BitSet nonPkColumns;
-    private BitSet pkIndexColumns;
-    private int[] reverseColumnOrdering;
+    private EntryEncoder indexValueEncoder;
 
-    private static final Logger LOG = Logger.getLogger(IndexTransformer.class);
-    public IndexTransformer(BitSet indexedColumns,
-                            BitSet translatedIndexedColumns,
-                            BitSet nonUniqueIndexedColumns,
-                            BitSet descColumns,
-                            int[] mainColToIndexPosMap,
-                            boolean isUnique,
+    public IndexTransformer(boolean isUnique,
                             boolean isUniqueWithDuplicateNulls,
-                            KryoPool kryoPool) {
-        this.indexedColumns = indexedColumns;
-        this.translatedIndexedColumns = translatedIndexedColumns;
-        this.nonUniqueIndexedColumns = nonUniqueIndexedColumns;
-        this.descColumns = descColumns;
-        this.mainColToIndexPosMap = mainColToIndexPosMap;
+                            String tableVersion,
+                            int[] srcPrimaryKeyIndices,
+                            int[] columnTypes,
+                            boolean[] srcKeyColumnSortOrder,
+                            int[] indexKeyEncodingMap,
+                            boolean[] indexKeySortOrder) {
+
+        checkArgument(!isUniqueWithDuplicateNulls || isUnique, "isUniqueWithDuplicateNulls only for use with unique indexes");
+
         this.isUnique = isUnique;
         this.isUniqueWithDuplicateNulls = isUniqueWithDuplicateNulls;
-        this.kryoPool = kryoPool;
-    }
-
-    public IndexTransformer(BitSet indexedColumns,
-                            BitSet translatedIndexedColumns,
-                            BitSet nonUniqueIndexedColumns,
-                            BitSet descColumns,
-                            int[] mainColToIndexPosMap,
-                            boolean isUnique,
-                            boolean isUniqueWithDuplicateNulls,
-                            KryoPool kryoPool,
-                            int[] columnOrdering,
-                            int[] format_ids){
-        this.indexedColumns = indexedColumns;
-        this.translatedIndexedColumns = translatedIndexedColumns;
-        this.nonUniqueIndexedColumns = nonUniqueIndexedColumns;
-        this.descColumns = descColumns;
-        this.mainColToIndexPosMap = mainColToIndexPosMap;
-        this.isUnique = isUnique;
-        this.isUniqueWithDuplicateNulls = isUniqueWithDuplicateNulls;
-        this.kryoPool = kryoPool;
-        this.columnOrdering = columnOrdering;
-        this.format_ids = format_ids;
-        pkColumns = new BitSet();
-        nonPkColumns = new BitSet();
-
-        if(columnOrdering != null && columnOrdering.length > 0) {
-            for (int col:columnOrdering) {
-                pkColumns.set(col);
-            }
-        }
-
-
-        nonPkColumns = (BitSet)pkColumns.clone();
-        nonPkColumns.flip(0, nonPkColumns.size());
-    }
-
-    public static IndexTransformer newTransformer(BitSet indexedColumns,
-                                                  int[] mainColToIndexPosMap,
-                                                  BitSet descColumns,
-                                                  boolean unique,
-                                                  boolean uniqueWithDuplicateNulls,
-                                                  KryoPool kryoPool,
-                                                  int[] columnOrdering,
-                                                  int[] format_ids){
-        BitSet translatedIndexedColumns = new BitSet(indexedColumns.cardinality());
-        for (int i = indexedColumns.nextSetBit(0); i >= 0; i = indexedColumns.nextSetBit(i + 1)) {
-            translatedIndexedColumns.set(mainColToIndexPosMap[i]);
-        }
-        BitSet nonUniqueIndexedColumns = (BitSet) translatedIndexedColumns.clone();
-        nonUniqueIndexedColumns.set(translatedIndexedColumns.length());
-
-        return new IndexTransformer(indexedColumns,
-                                    translatedIndexedColumns,
-                                    nonUniqueIndexedColumns,
-                                    descColumns,
-                                    mainColToIndexPosMap,
-                                    unique,
-                                    uniqueWithDuplicateNulls,
-                                    kryoPool,
-                                    columnOrdering,
-                                    format_ids
-        );
-    }
-
-    public static IndexTransformer newTransformer(BitSet indexedColumns,
-                                                  int[] mainColToIndexPosMap,
-                                                  BitSet descColumns,
-                                                  boolean unique,
-                                                  boolean uniqueWithDuplicateNulls,
-                                                  int[] columnOrdering,
-                                                  int[] format_ids){
-        return newTransformer(indexedColumns, mainColToIndexPosMap,
-                descColumns, unique, uniqueWithDuplicateNulls,SpliceDriver.getKryoPool(),columnOrdering,format_ids);
-    }
-
-    private void buildKeyMap (KVPair mutation) throws StandardException{
-
-        // if index key column set and primary key column set do not intersect,
-        // no need to build a key map
-        pkIndexColumns = (BitSet)pkColumns.clone();
-        pkIndexColumns.and(indexedColumns);
-
-        if(pkIndexColumns.cardinality() > 0)
-        {
-            int len = columnOrdering.length;
-            createKeyDecoder();
-            if (kdvds == null) {
-                kdvds = new DataValueDescriptor[len];
-                for(int i = 0; i < len; ++i) {
-                    kdvds[i] = LazyDataValueFactory.getLazyNull(format_ids[columnOrdering[i]]);
-                }
-            }
-            if(pkIndex == null)
-                pkIndex = new KeyData[len];
-            keyDecoder.set(mutation.getRow());
-            for (int i = 0; i < len; ++i) {
-                int offset = keyDecoder.offset();
-                DerbyBytesUtil.skip(keyDecoder, kdvds[i]);
-                int size = keyDecoder.offset()-1-offset;
-                pkIndex[i] = new KeyData(offset, size);
-            }
-            reverseColumnOrdering = new int[format_ids.length];
-            for (int i = 0; i < columnOrdering.length; ++i){
-                reverseColumnOrdering[columnOrdering[i]] = i;
-            }
-        }
-
-        if (idvds == null) {
-            int n = (int)indexedColumns.cardinality();
-            idvds = new DataValueDescriptor[n];
-            int pos = 0;
-            for (int i = 0; i < format_ids.length; ++i){
-                if (indexedColumns.get(i)) {
-                    idvds[pos++] = LazyDataValueFactory.getLazyNull(format_ids[i]);
-                }
-            }
-        }
-    }
-
-    private void createKeyDecoder() {
-        if (keyDecoder == null)
-            keyDecoder = MultiFieldDecoder.create();
-        else
-            keyDecoder.reset();
+        this.srcPrimaryKeyIndices = srcPrimaryKeyIndices;
+        this.columnTypes = columnTypes;
+        this.srcKeyColumnSortOrder = srcKeyColumnSortOrder;
+        this.indexKeyEncodingMap = indexKeyEncodingMap;
+        this.indexKeySortOrder = indexKeySortOrder;
+        this.typeProvider = VersionedSerializers.typesForVersion(tableVersion);
     }
 
     public KVPair translate(KVPair mutation) throws IOException, StandardException {
-        if (mutation == null) return null; //nothing to do
-
-        buildKeyMap(mutation);
-
-        //make sure that row and key accumulators are initialized
-        getRowAccumulator();
-        getKeyAccumulator();
-
-        if (mainPutDecoder == null)
-            mainPutDecoder = new EntryDecoder();
-
-        mainPutDecoder.set(mutation.getValue());
-
-        BitIndex mutationIndex = mainPutDecoder.getCurrentIndex();
-        MultiFieldDecoder mutationDecoder = mainPutDecoder.getEntryDecoder();
-
-        // Check for null columns in data when isUniqueWithDuplicateNulls == true
-        // -- in this case, we'll have to append a uniqueness value to the row key
-        boolean makeUniqueForDuplicateNulls = false;
-
-        // fill in index columns from mutation row
-        for (int i = mutationIndex.nextSetBit(0); i >= 0 && i < indexedColumns.length(); i = mutationIndex.nextSetBit(i + 1)) {
-            if (indexedColumns.get(i)) {
-                if (isUniqueWithDuplicateNulls && !makeUniqueForDuplicateNulls) {
-                    makeUniqueForDuplicateNulls = mainPutDecoder.nextIsNull(i);
-                }
-                int mappedPosition = mainColToIndexPosMap[i];
-                ByteSlice slice = ByteSlice.empty();
-                mainPutDecoder.nextField(mutationDecoder,i,slice);
-                ByteSlice keySlice = indexKeyAccumulator.getField(mappedPosition, true);
-                keySlice.set(slice, descColumns.get(mappedPosition));
-                occupy(indexKeyAccumulator, idvds[mappedPosition], i);
-
-            } else if (nonPkColumns.get(i)){
-                mainPutDecoder.seekForward(mutationDecoder, i);
-            }
+        if (mutation == null) {
+            return null;
         }
 
-        // fill in index columns from mutation row key
-        if (columnOrdering != null && columnOrdering.length > 0) {
-            for (int i = 0; i < columnOrdering.length; ++i) {
-                int pos = columnOrdering[i];
-                if (pos < mainColToIndexPosMap.length) {
-                    int mappedPosition = mainColToIndexPosMap[pos];
-                    if (indexedColumns.get(pos)) {
-                        if (descColumns.get(mappedPosition)) {
-                            for (int j = 0; j < pkIndex[i].getSize(); ++j) {
-                                keyDecoder.array()[pkIndex[i].getOffset() + j] ^=0xff;
-                            }
-                        }
-                        indexKeyAccumulator.add(mappedPosition,keyDecoder.array(),pkIndex[i].getOffset(),pkIndex[i].getSize());
-                        occupy(indexKeyAccumulator,idvds[mappedPosition],pos);
+        EntryAccumulator keyAccumulator = getKeyAccumulator();
+        keyAccumulator.reset();
+        boolean hasNullKeyFields = false;
+
+        /*
+         * Handle index columns from the source table's primary key.
+         */
+        if (srcPrimaryKeyIndices != null) {
+            //we have key columns to check
+            MultiFieldDecoder keyDecoder = getSrcKeyDecoder();
+            keyDecoder.set(mutation.getRow());
+            for (int sourceKeyColumnPos : srcPrimaryKeyIndices) {
+                int indexKeyPos = sourceKeyColumnPos < indexKeyEncodingMap.length ? indexKeyEncodingMap[sourceKeyColumnPos] : -1;
+                if (indexKeyPos < 0) {
+                    skip(keyDecoder, columnTypes[sourceKeyColumnPos]);
+                } else {
+                    int offset = keyDecoder.offset();
+                    boolean isNull = skip(keyDecoder, columnTypes[sourceKeyColumnPos]);
+                    hasNullKeyFields = isNull || hasNullKeyFields;
+                    if (!isNull) {
+                        int length = keyDecoder.offset() - offset - 1;
+                        accumulate(keyAccumulator, indexKeyPos,
+                                columnTypes[sourceKeyColumnPos],
+                                srcKeyColumnSortOrder != null && srcKeyColumnSortOrder[sourceKeyColumnPos] != indexKeySortOrder[sourceKeyColumnPos],
+                                keyDecoder.array(), offset, length);
                     }
                 }
             }
         }
 
-        // For index key, mark all column as occupied
-        BitSet remainingFields = indexKeyAccumulator.getRemainingFields();
-        for(int n = remainingFields.nextSetBit(0);n<indexedColumns.length() && n>=0;n=remainingFields.nextSetBit(n+1)) {
-            if (isUniqueWithDuplicateNulls && !makeUniqueForDuplicateNulls) {
-                makeUniqueForDuplicateNulls = true;
+        /*
+         * Handle non-null index columns from the source tables non-primary key columns.
+         */
+        EntryDecoder rowDecoder = getSrcValueDecoder();
+        rowDecoder.set(mutation.getValue());
+        BitIndex index = rowDecoder.getCurrentIndex();
+        MultiFieldDecoder rowFieldDecoder = rowDecoder.getEntryDecoder();
+        for (int i = index.nextSetBit(0); i >= 0; i = index.nextSetBit(i + 1)) {
+            int keyColumnPos = i < indexKeyEncodingMap.length ? indexKeyEncodingMap[i] : -1;
+            if (keyColumnPos < 0) {
+                rowDecoder.seekForward(rowFieldDecoder, i);
+            } else {
+                int offset = rowFieldDecoder.offset();
+                boolean isNull = rowDecoder.seekForward(rowFieldDecoder, i);
+                hasNullKeyFields = isNull || hasNullKeyFields;
+                if (!isNull) {
+                    int length = rowFieldDecoder.offset() - offset - 1;
+                    accumulate(keyAccumulator,
+                            keyColumnPos,
+                            columnTypes[i],
+                            !indexKeySortOrder[keyColumnPos],
+                            rowFieldDecoder.array(), offset, length);
+                }
             }
-            int mappedPosition = mainColToIndexPosMap[n];
-            occupy(indexKeyAccumulator, idvds[mappedPosition], n);
         }
 
-        //add the row location to the end of the index row
-        byte[] encodedRow = Encoding.encodeBytesUnsorted(mutation.getRow());
-        // only make the call to check the accumulator if we have to -- if we haven't already determined
-        makeUniqueForDuplicateNulls = (isUniqueWithDuplicateNulls &&
-                (makeUniqueForDuplicateNulls || !indexKeyAccumulator.isFinished()));
-        if(isUnique)
-            indexRowAccumulator.add((int) translatedIndexedColumns.length(), encodedRow,0,encodedRow.length);
-        byte[] indexRowKey = getIndexRowKey(encodedRow, (!isUnique || makeUniqueForDuplicateNulls));
-        byte[] indexRowData = indexRowAccumulator.finish();
-        return new KVPair(indexRowKey, indexRowData, mutation.getType());
+        /*
+         * Handle NULL index columns from the source tables non-primary key columns.
+         */
+        for (int srcColIndex = 0; srcColIndex < indexKeyEncodingMap.length; srcColIndex++) {
+            /* position of the source column within the index encoding */
+            int indexColumnPosition = indexKeyEncodingMap[srcColIndex];
+            if (!isSourceColumnPrimaryKey(srcColIndex) && indexColumnPosition >= 0 && !index.isSet(srcColIndex)) {
+                hasNullKeyFields = true;
+                keyAccumulator.add(indexColumnPosition, new byte[]{}, 0, 0);
+            }
+        }
+
+        //add the row key to the end of the index key
+        byte[] srcRowKey = Encoding.encodeBytesUnsorted(mutation.getRow());
+
+        EntryEncoder rowEncoder = getRowEncoder();
+        MultiFieldEncoder entryEncoder = rowEncoder.getEntryEncoder();
+        entryEncoder.reset();
+        entryEncoder.setRawBytes(srcRowKey);
+        byte[] indexValue = rowEncoder.encode();
+
+        byte[] indexRowKey;
+        if (isUnique) {
+            boolean nonUnique = isUniqueWithDuplicateNulls && (hasNullKeyFields || !keyAccumulator.isFinished());
+            indexRowKey = getIndexRowKey(srcRowKey, nonUnique);
+        } else
+            indexRowKey = getIndexRowKey(srcRowKey, true);
+
+        return new KVPair(indexRowKey, indexValue, mutation.getType());
     }
 
-    private void occupy(EntryAccumulator accumulator, DataValueDescriptor dvd, int position) {
-        int mappedPosition = mainColToIndexPosMap[position];
-        if(DerbyBytesUtil.isScalarType(dvd, null))
-            accumulator.markOccupiedScalar(mappedPosition);
-        else if(DerbyBytesUtil.isDoubleType(dvd))
-            accumulator.markOccupiedDouble(mappedPosition);
-        else if(DerbyBytesUtil.isFloatType(dvd))
-            accumulator.markOccupiedFloat(mappedPosition);
+    private boolean isSourceColumnPrimaryKey(int sourceColumnIndex) {
+        if (srcPrimaryKeyIndices != null) {
+            for (int srcPrimaryKeyIndex : srcPrimaryKeyIndices) {
+                if (srcPrimaryKeyIndex == sourceColumnIndex) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public byte[] getIndexRowKey(byte[] rowLocation, boolean nonUnique) {
+        byte[] data = indexKeyAccumulator.finish();
+        if (nonUnique) {
+            //append the row location to the end of the bytes
+            byte[] newData = Arrays.copyOf(data, data.length + rowLocation.length + 1);
+            System.arraycopy(rowLocation, 0, newData, data.length + 1, rowLocation.length);
+            data = newData;
+        }
+        return data;
+    }
+
+    public EntryEncoder getRowEncoder() {
+        if (indexValueEncoder == null) {
+            BitSet nonNullFields = new BitSet();
+            int highestSetPosition = 0;
+            for (int keyColumn : indexKeyEncodingMap) {
+                if (keyColumn > highestSetPosition)
+                    highestSetPosition = keyColumn;
+            }
+            nonNullFields.set(highestSetPosition + 1);
+            indexValueEncoder = EntryEncoder.create(SpliceKryoRegistry.getInstance(), 1, nonNullFields,
+                    BitSet.newInstance(), BitSet.newInstance(), BitSet.newInstance());
+        }
+        return indexValueEncoder;
+    }
+
+    private void accumulate(EntryAccumulator keyAccumulator, int pos,
+                            int type,
+                            boolean reverseOrder,
+                            byte[] array, int offset, int length) {
+        byte[] data = array;
+        int off = offset;
+        if (reverseOrder) {
+            //TODO -sf- could we cache these byte[] somehow?
+            data = new byte[length];
+            System.arraycopy(array, offset, data, 0, length);
+            for (int i = 0; i < data.length; i++) {
+                data[i] ^= 0xff;
+            }
+            off = 0;
+        }
+        if (typeProvider.isScalar(type))
+            keyAccumulator.addScalar(pos, data, off, length);
+        else if (typeProvider.isDouble(type))
+            keyAccumulator.addDouble(pos, data, off, length);
+        else if (typeProvider.isFloat(type))
+            keyAccumulator.addFloat(pos, data, off, length);
         else
-            accumulator.markOccupiedUntyped(mappedPosition);
+            keyAccumulator.add(pos, data, off, length);
+
     }
 
-    public byte[] getIndexRowKey(byte[] rowKey, boolean makeUniqueRowKey){
-        if(makeUniqueRowKey)
-            indexKeyAccumulator.add((int) translatedIndexedColumns.length(), rowKey, 0, rowKey.length);
-
-        return indexKeyAccumulator.finish();
+    private boolean skip(MultiFieldDecoder keyDecoder, int sourceKeyColumnType) {
+        boolean isNull;
+        if (typeProvider.isScalar(sourceKeyColumnType)) {
+            isNull = keyDecoder.nextIsNull();
+            keyDecoder.skipLong();
+        } else if (typeProvider.isDouble(sourceKeyColumnType)) {
+            isNull = keyDecoder.nextIsNullDouble();
+            keyDecoder.skipDouble();
+        } else if (typeProvider.isFloat(sourceKeyColumnType)) {
+            isNull = keyDecoder.nextIsNullFloat();
+            keyDecoder.skipFloat();
+        } else {
+            isNull = keyDecoder.nextIsNull();
+            keyDecoder.skip();
+        }
+        return isNull;
     }
 
-
-    public ByteEntryAccumulator getRowAccumulator() {
-        if (indexRowAccumulator == null)
-            indexRowAccumulator = new ByteEntryAccumulator(null, true, nonUniqueIndexedColumns);
-        else
-            indexRowAccumulator.reset();
-        return indexRowAccumulator;
+    private MultiFieldDecoder getSrcKeyDecoder() {
+        if (srcKeyDecoder == null)
+            srcKeyDecoder = MultiFieldDecoder.create();
+        return srcKeyDecoder;
     }
 
     public ByteEntryAccumulator getKeyAccumulator() {
-        if (indexKeyAccumulator == null)
-            indexKeyAccumulator = new ByteEntryAccumulator(null, false, isUnique ? translatedIndexedColumns : nonUniqueIndexedColumns);
-        else
-            indexKeyAccumulator.reset();
+        if (indexKeyAccumulator == null) {
+            BitSet keyFields = BitSet.newInstance();
+            for (int keyColumn : indexKeyEncodingMap) {
+                if (keyColumn >= 0)
+                    keyFields.set(keyColumn);
+            }
+            indexKeyAccumulator = new ByteEntryAccumulator(EntryPredicateFilter.emptyPredicate(), keyFields);
+        }
+
         return indexKeyAccumulator;
+    }
+
+    private EntryDecoder getSrcValueDecoder() {
+        if (srcValueDecoder == null)
+            srcValueDecoder = new EntryDecoder();
+        return srcValueDecoder;
     }
 
     public boolean isUnique() {
         return isUnique;
     }
 
-    public static class KeyData {
-        private int offset;
-        private int size;
-
-        public KeyData(int offset, int size) {
-            this.offset = offset;
-            this.size = size;
-        }
-
-        public int getOffset() {
-            return offset;
-        }
-
-        public int getSize() {
-            return size;
-        }
-    }
 }
