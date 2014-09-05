@@ -1,9 +1,5 @@
-SpliceMR
-========
-
 Map Reduce Integration with Splice DB
 
-###Usage of SpliceInputFormat:
 #### Preparation
 1. define table name that you want to retrieve data from (That table should exist in Splice Machine DB)
 > String inputTableName = "WIKIDATA";<br>
@@ -30,7 +26,7 @@ Map Reduce Integration with Splice DB
 1. implement your map function
 > public void map(ImmutableBytesWritable row, Result value, Context context)
 {
-&nbsp;&nbsp;&nbsp;&nbsp;// use 'value' to retreive a single row. 
+&nbsp;&nbsp;&nbsp;&nbsp;<br>// use 'value' to retreive a single row. 
 }
 
 2. retreive and parse single row with specified columns
