@@ -219,6 +219,7 @@ public class RowCountOperation extends SpliceBaseOperation{
         @Override
         protected void updateStats(OperationRuntimeStats stats) {
                 stats.addMetric(OperationMetric.INPUT_ROWS, timer.getNumEvents());
+                stats.addMetric(OperationMetric.OUTPUT_ROWS, timer.getNumEvents());
         }
 
 		private long getTotalOffset() throws StandardException {
