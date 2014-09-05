@@ -319,7 +319,8 @@ public class MultiFieldDecoder {
     }
 
     public boolean nextIsNull(){
-        return !available() || (currentOffset >= offset && data[currentOffset] == 0x00);
+        return !available()
+                || (currentOffset >= offset && data[currentOffset] == 0x00);
     }
 
     public void seek(int newPos) {
@@ -387,8 +388,13 @@ public class MultiFieldDecoder {
         return i;
     }
 
-/*******************************************************************************************************************************************************************/
-    /*private helper methods*/
+/*********************************************************************************************************************/
+/*private helper methods*/
+
+
+    /*
+     * Adjusts currentOffset to the position of the next delimiter + 1 (looking only in the next expectedLength bytes).
+     */
     private void adjustOffset(int expectedLength){
         /*
          * if expectedLength <0, then we don't know where
@@ -398,8 +404,9 @@ public class MultiFieldDecoder {
         if(expectedLength<0){
             expectedLength = offset+length-currentOffset;
         }
-        if(expectedLength+currentOffset>=data.length)
-            expectedLength = data.length-currentOffset;
+        if(expectedLength+currentOffset>=data.length) {
+            expectedLength = data.length - currentOffset;
+        }
         for(int i=1;i<expectedLength;i++){
             if(currentOffset+i>=offset+length){
                 //we're out of bytes, so we must have been the end
@@ -407,13 +414,12 @@ public class MultiFieldDecoder {
                 return;
             }
 
-            byte n = data[currentOffset+i];
-            if(n == 0x00){
+            if(data[currentOffset+i] == 0x00){
                 currentOffset+=i+1;
                 return;
             }
         }
-        currentOffset +=expectedLength+1; //not found before the end of the xpectedLength
+        currentOffset += expectedLength+1; //not found before the end of the xpectedLength
     }
     
     private boolean check2ByteNull(byte[] nullValue) {

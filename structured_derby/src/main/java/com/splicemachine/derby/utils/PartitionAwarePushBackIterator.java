@@ -1,9 +1,10 @@
 package com.splicemachine.derby.utils;
 
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import java.io.IOException;
+
 import org.apache.derby.iapi.error.StandardException;
 
-import java.io.IOException;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 
 /**
  * Created by jyuan on 7/27/14.
@@ -31,6 +32,17 @@ public class PartitionAwarePushBackIterator<T> implements PartitionAwareIterator
     @Override
     public void open() throws StandardException, IOException {
         iterator.open();
+    }
+
+    public boolean test(SpliceRuntimeContext ctx) throws IOException, StandardException {
+        iterator.open();
+        T row = this.next(ctx);
+        if (row != null) {
+            // frame source works, reset
+            this.pushBack(row);
+            return true;
+        }
+        return false;
     }
 
     @Override

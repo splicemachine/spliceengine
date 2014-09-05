@@ -11,6 +11,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.operations.SkippingScanFilter;
 import com.splicemachine.derby.impl.store.ExecRowAccumulator;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
+import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.derby.utils.marshall.dvd.TypeProvider;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
@@ -40,7 +41,6 @@ import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.Filter;
-import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -59,6 +59,7 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 
 		private MeasuredRegionScanner regionScanner;
 		private final Scan scan;
+        private ScopedPredicates scopedPredicates;
 		private final ExecRow template;
 		private final String tableVersion;
 		private final int[] rowDecodingMap;
@@ -194,8 +195,10 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 								currentRowLocation = null;
 								return null;
 						}else{
+                            KeyValue currentKeyValue = keyValues.get(0);
+                            updatePredicateFilterIfNecessary(currentKeyValue);
 								if(template.nColumns()>0){
-										if(!filterRowKey(keyValues.get(0))||!filterRow(filter)){
+										if(!filterRowKey(currentKeyValue)||!filterRow(filter)){
 												//filter the row first, then filter the row key
 												filterCounter.increment();
 												continue;
@@ -205,7 +208,7 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 										filterCounter.increment();
 										continue;
 								}
-								setRowLocation(keyValues.get(0));
+								setRowLocation(currentKeyValue);
 								return template;
 						}
 				}while(hasRow);
@@ -250,11 +253,7 @@ public class SITableScanner implements StandardIterator<ExecRow>{
         return regionScanner.getBytesVisited();
     }
 
-    public void setPredicates(ObjectArrayList<Predicate> newPredicates){
-        predicateFilter.setValuePredicates(newPredicates);
-    }
-
-/*********************************************************************************************************************/
+    /*********************************************************************************************************************/
 		/*Private helper methods*/
 		private Supplier<MultiFieldDecoder> getKeyDecoder(FormatableBitSet accessedPks,
 																											int[] allPkColumns,
@@ -277,42 +276,32 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 
 		@SuppressWarnings("unchecked")
 		private SIFilter getSIFilter() throws IOException {
-				if(siFilter==null){
-						boolean isCountStar = scan.getAttribute(SIConstants.SI_COUNT_STAR)!=null;
-						predicateFilter= decodePredicateFilter(checkForSkipScanFilters());
-						accumulator = ExecRowAccumulator.newAccumulator(predicateFilter, false, template, rowDecodingMap, tableVersion);
-						siFilter = filterFactory.newFilter(predicateFilter,getRowEntryDecoder(),accumulator,isCountStar);
+				if(siFilter==null) {
+					boolean isCountStar = scan.getAttribute(SIConstants.SI_COUNT_STAR)!=null;
+                    predicateFilter= buildInitialPredicateFilter();
+					accumulator = ExecRowAccumulator.newAccumulator(predicateFilter, false, template, rowDecodingMap, tableVersion);
+					siFilter = filterFactory.newFilter(predicateFilter,getRowEntryDecoder(),accumulator,isCountStar);
 				}
 				return siFilter;
 		}
 
-    private ObjectArrayList<Predicate> checkForSkipScanFilters() throws IOException {
-        Filter filter = scan.getFilter();
-        if(filter instanceof SkippingScanFilter){
-            SkippingScanFilter ssF = (SkippingScanFilter)filter;
-            ssF.setSITableScanner(this);
-            return ssF.getNextPredicates();
-        }else if(filter instanceof FilterList){
-            FilterList fl = (FilterList) filter;
-            for(Filter f:fl.getFilters()){
-                if(f instanceof SkippingScanFilter){
-                    SkippingScanFilter ssF = (SkippingScanFilter)f;
-                    ssF.setSITableScanner(this);
-                    return ssF.getNextPredicates();
-                }
-            }
+    /* SkippingScanFilter can have different predicates for every range */
+    private void updatePredicateFilterIfNecessary(KeyValue kv) throws IOException {
+        if(scopedPredicates.isScanWithScopedPredicates()) {
+            predicateFilter.setValuePredicates(scopedPredicates.getNextPredicates(kv));
         }
-        return null;
     }
 
     protected EntryDecoder getRowEntryDecoder() {
 				return new EntryDecoder();
 		}
 
-		private EntryPredicateFilter decodePredicateFilter(ObjectArrayList<Predicate> predicates) throws IOException {
+	private EntryPredicateFilter buildInitialPredicateFilter() throws IOException {
+        scopedPredicates = new ScopedPredicates(Scans.findSkippingScanFilter(this.scan));
+
         EntryPredicateFilter entryPredicateFilter = EntryPredicateFilter.fromBytes(scan.getAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL));
         BitSet checkedColumns = entryPredicateFilter.getCheckedColumns();
-        if(predicates!=null){
+        if(scopedPredicates.isScanWithScopedPredicates()){
                 /*
                  * We have to be careful--EMPTY_PREDICATE could have been returned, in which case
                  * setting predicates can cause all kinds of calamituous behavior. To avoid that, when
@@ -321,10 +310,10 @@ public class SITableScanner implements StandardIterator<ExecRow>{
                  * one to avoid contamination.
                  *
                  */
-            entryPredicateFilter = new EntryPredicateFilter(checkedColumns,predicates,entryPredicateFilter.indexReturned());
+            return new EntryPredicateFilter(checkedColumns,new ObjectArrayList<Predicate>(),entryPredicateFilter.indexReturned());
         }
         return entryPredicateFilter;
-		}
+	}
 
 		protected void setRowLocation(KeyValue sampleKv) throws StandardException {
 				if(indexName!=null && template.nColumns() > 0 && template.getColumn(template.nColumns()).getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID){

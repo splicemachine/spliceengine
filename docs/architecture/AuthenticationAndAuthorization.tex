@@ -1,6 +1,7 @@
 \documentclass{article}
 \usepackage[margin=1.25in]{geometry}
 \usepackage{fancyhdr}
+\usepackage{listings}
 \pagestyle{fancy}
 \lhead{} \rhead{}
 \chead{Splice Machine Technical Design Document}
@@ -20,6 +21,7 @@
 \begin{enumerate}
   \item 7/3/2014 - (JL) Initial version
   \item 7/25/2014 - (GD) Minor updates to impact, etc.
+  \item 8/22/2014 - (CZ) Update some wording, LDAP, add config settings, etc.
 \end{enumerate}
 
 \section{Background}
@@ -49,14 +51,13 @@ Authentication is simply resolving whether a user and password combinations
 corresponds to a valid user.  However, there are several options for validating
 this correct username, password combination.  There are currently 4 types of
 authentication mechanism in Splice Machine.
-
 \begin{enumerate}
-	\item None: All usernames and password are allowed to connect to database.
-	\item Native: Usernames in a database table are validated against their
-	encrypted password.
-	\item LDAP: Usernames checked against an existing LDAP service.
-	\item Custom: Custom Java Class provided to perform authentication against the
-	database.
+        \item None: All usernames and password are allowed to connect to database.
+        \item Native: Usernames in a database table are validated against their
+        encrypted password.
+        \item LDAP: Usernames checked against an existing LDAP service.
+        \item Custom: Custom Java Class provided to perform authentication against the
+        database.
 \end{enumerate}
 
 \subsubsection{None}
@@ -64,7 +65,7 @@ An open database that will allow each user to authenticate against the database
 can be configured by setting the following configuration.
 
 \begin{enumerate}
-	\item splice.authentication=NONE
+        \item splice.authentication=NONE
 \end{enumerate}
 
 This is not recommended for production use.
@@ -73,14 +74,14 @@ This is not recommended for production use.
 \subsubsection{Native (default)}
 This approach to authentication utilizes the sys.sysusers table in the splice
 schema.  The password is encrypted using MD5, SHA-256, or
-SHA-512 (Default) algorithm.  The 
+SHA-512 (Default) algorithm.   
 
 \begin{enumerate}
-	\item splice.authentication=NATIVE
+        \item splice.authentication=NATIVE
       \item splice.authentication.native.algorithm=MD5,SHA-256,SHA-512(Default)
 \end{enumerate}
 
-Default user:  \emph{splice}	
+Default user:  \emph{splice}    
 Default password: \emph{admin}
 
 Using Native mode, you log in using a modified connection string:
@@ -91,20 +92,16 @@ Therefore the administrative login is as follows:
 
 \texttt{splice> connect 'jdbc:derby://localhost:1527/splicedb;user=splice;password=admin'}
 
-
-
-
 \subsubsection{LDAP}
-This approach to authentication uses an external LDAP server. To enable this mode, change the property value of splice.authentication to LDAP in splice configuration file under structured_derby/src/main/resources/splice-site.xml , and set the following properties to appropriate values in the splice-site.xml file as desired. 
+This approach to authentication uses an external LDAP server. To enable this mode, change the property value of splice.authentication to LDAP, and set the following properties to appropriate values according to the LDAP server configuration. 
 \begin{enumerate}
-	\item splice.authentication=LDAP
-	\item splice.authentication.ldap.server=localhost:389
-	\item splice.authentication.ldap.searchAuthDN
-	\item splice.authentication.ldap.searchAuthPW
-	\item splice.authentication.ldap.searchBase
-	\item splice.authentication.ldap.searchFilter
+        \item splice.authentication=LDAP
+        \item splice.authentication.ldap.server=localhost:389
+        \item splice.authentication.ldap.searchAuthDN
+        \item splice.authentication.ldap.searchAuthPW
+        \item splice.authentication.ldap.searchBase
+        \item splice.authentication.ldap.searchFilter
 \end{enumerate}
-
 An embedded LDAP server will normally run in maven after LDAP mode is enabled, for testing purposes. But for now in a short period time, we encountered problems in maven to be compatible with the embedded LDAP plugin. As a temporary workaround, we use an external LDAP server hosted on an AWS instance, at 54.164.38.153:389. 
 
 \subsubsection{Custom}
@@ -116,23 +113,20 @@ that implements org.apache.derby.authentication.UserAuthenticator
 to be applied as long as the following configuration is set.
 
 \begin{enumerate}
-	\item splice.authentication=CUSTOM
-	\item	splice.authentication.custom.provider=com.splicemachine.derby.authentication.SpliceUserAuthentication (Default)
+        \item splice.authentication=CUSTOM
+        \item   splice.authentication.custom.provider=com.splicemachine.derby.authentication.SpliceUserAuthentication (Default)
 \end{enumerate}
 
 The interface is extremely simple and requires a developer to implement the
 single method:
 
-boolean	authenticateUser(String userName,String userPassword,String
+boolean authenticateUser(String userName,String userPassword,String
 databaseName,Properties info) throws SQLException;
 
 \subsubsection{Splice Scripts}
 
-We currently ship sqlshell.sh (two versions - one for standalone, the other for clustered).  This version automatically 
-logs in the user in our previous mode without specifying a user or password.  Given that we want the default to be with
-authorization enabled to NATIVE, propose we have two scripts:
 We currently ship sqlshell.sh (two versions - one for standalone, the other for clustered). Now with NATIVE authentication 
-turned on, we hard-code a pair of default user and password in these scripts to avoid authentication error on each connection.
+turned on, we hard-code a pair of default user and password in these scripts to automatically log in as the administrator.
 In the future we could decide whether to leave one script with no hard-coded user and password such that users can manually 
 set them. A potential proposal is to have two scripts:  
 
@@ -142,6 +136,104 @@ set them. A potential proposal is to have two scripts:
 \end{itemize}
 
 We are open to have other proposals. 
+
+\subsection{Software Packaging for Standalone/Cluster Installation}
+\subsubsection{Standalone Installation}
+Since NATIVE authentication mode is turned on by default, package should include splice-site.xml with properties set to NATIVE authentication mode as shown below:
+\begin{lstlisting}
+  <property> 
+    <name>splice.authentication</name> 
+    <value>NATIVE</value> 
+  </property> 
+  <property> 
+    <name>splice.authentication.native.algorithm</name> 
+    <value>SHA-512</value> 
+  </property> 
+\end{lstlisting}
+
+\subsubsection{Cluster Installation}
+Package should NOT include splice-site.xml file.
+
+\subsection{Standalone/Cluster Configuration}
+Users can toggle between authentication modes by modifying configurations and restarting HBase after configrations are updated. Detail configuration settings for using NONE, NATIVE, and LDAP authentication are listed below. 
+
+\subsubsection{Standalone Configuration}
+For NONE authentication mode, edit \\ structured\_derby/src/main/resources/splice-site.xml \\ 
+such that it contains the following:
+\begin{lstlisting}
+  <property> 
+    <name>splice.authentication</name> 
+    <value>NONE</value> 
+  </property> 
+\end{lstlisting}
+For NATIVE authentication mode, edit \\ structured\_derby/src/main/resources/splice-site.xml \\ 
+such that it contains the following: 
+\begin{lstlisting}
+  <property> 
+    <name>splice.authentication</name> 
+    <value>NATIVE</value> 
+  </property> 
+  <property> 
+    <name>splice.authentication.native.algorithm</name> 
+    <value>SHA-512</value> 
+  </property> 
+\end{lstlisting}
+For LDAP authentication mode, edit \\ structured\_derby/src/main/resources/splice-site.xml \\ such that it contains the following: 
+\begin{lstlisting}
+  <property> 
+    <name>splice.authentication</name> 
+    <value>LDAP</value> 
+  </property> 
+  <property> 
+    <name>splice.authentication.ldap.server</name> 
+    <value>ldap://54.164.38.153:389/</value> 
+  </property> 
+  <property> 
+    <name>splice.authentication.ldap.searchBase</name> 
+    <value>ou=People,dc=splicemachine,dc=com</value> 
+  </property> 
+\end{lstlisting}
+
+\subsubsection{Cluster Configuration}
+If Cloudera Manager is used, add the following properties to hbase-$>$configuration-$>$Service-Wide-$>$Advanced-$>$HBase Service Configuration Safety Valve for hbase-site.xml. \\
+Otherwise add the properties to hbase-site.xml manually. \\
+In case of MapR, hbase-site.xml is normally under /opt/mapr/hbase/hbase-VERSION/conf/ \\
+In case of HortonWorks, hbase-site.xml is normally under /etc/hbase/conf.dist/ \\ 
+Note that on HortonWorks, users can choose to use ambari. After enabling it, users can add custom hbase-site.xml properties through its web interface, via HBase-$>$Configs-$>$Custom hbase-site.xml-$>$Add Property...  \\ 
+For NONE authentication mode:
+\begin{lstlisting}
+  <property> 
+    <name>splice.authentication</name> 
+    <value>NONE</value> 
+  </property> 
+\end{lstlisting}
+For NATIVE authentication mode: 
+\begin{lstlisting}
+  <property> 
+    <name>splice.authentication</name> 
+    <value>NATIVE</value> 
+  </property> 
+  <property> 
+    <name>splice.authentication.native.algorithm</name> 
+    <value>SHA-512</value> 
+  </property> 
+\end{lstlisting} 
+For LDAP authentication mode: 
+\begin{lstlisting}
+  <property> 
+    <name>splice.authentication</name> 
+    <value>LDAP</value> 
+  </property> 
+  <property> 
+    <name>splice.authentication.ldap.server</name> 
+    <value>ldap://54.164.38.153:389/</value> 
+  </property> 
+  <property> 
+    <name>splice.authentication.ldap.searchBase</name> 
+    <value>ou=People,dc=splicemachine,dc=com</value> 
+  </property> 
+\end{lstlisting}
+ 
 
 \subsection{Authorization}
 Splice Machine will utilize derby authorization syntax and levels. 
@@ -199,3 +291,4 @@ See script updates in design above.  Additionally packaging will need to be upda
  
 
 \end{document}
+

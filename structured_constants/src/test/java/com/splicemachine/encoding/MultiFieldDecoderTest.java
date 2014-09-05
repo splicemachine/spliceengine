@@ -1,32 +1,166 @@
 package com.splicemachine.encoding;
 
-import org.junit.Assert;
 import org.junit.Test;
 
 import java.math.BigDecimal;
 
-/**
- * @author Scott Fines
- * Created on: 6/13/13
- */
+import static org.junit.Assert.*;
+
 public class MultiFieldDecoderTest {
+
+    private MultiFieldDecoder decoder = MultiFieldDecoder.create();
+
     @Test
-    public void testCanDecodeNullEntry() throws Exception {
-        MultiFieldEncoder encoder = MultiFieldEncoder.create(3);
-        encoder.encodeNext("test");
-        encoder.setRawBytes(new byte[]{});
-        encoder.encodeNext("test2");
+    public void testDecodeMultipleContiguousNonNull() throws Exception {
 
-        MultiFieldDecoder decoder = MultiFieldDecoder.create();
-        decoder.set(encoder.build());
-        String val = decoder.decodeNextString();
-        byte[] bytes = decoder.decodeNextBytes();
-        String val2 = decoder.decodeNextString();
+        MultiFieldEncoder encoder = MultiFieldEncoder.create(4)
+                .encodeNext("A")
+                .encodeNext("B")
+                .encodeNext("C")
+                .encodeNext("D");
 
-        Assert.assertEquals("test",val);
-        Assert.assertEquals(0,bytes.length);
-        Assert.assertEquals("test2",val2);
+        byte[] encodedBytes = encoder.build();
+        decoder.set(encodedBytes);
+
+        assertEquals("A", decoder.decodeNextString());
+        assertEquals("B", decoder.decodeNextString());
+        assertEquals("C", decoder.decodeNextString());
+        assertEquals("D", decoder.decodeNextString());
+
+        assertArrayEquals(new byte[]{67, 0, 68, 0, 69, 0, 70}, encodedBytes);
     }
+
+    @Test
+    public void testContiguousNull() throws Exception {
+
+        MultiFieldEncoder encoder = MultiFieldEncoder.create(6)
+                .encodeNext("A")
+                .encodeEmpty()
+                .encodeNext("B")
+                .encodeEmpty()
+                .encodeEmpty()
+                .encodeNext("C");
+
+        byte[] encodedBytes = encoder.build();
+
+        decoder.set(encodedBytes);
+
+        assertEquals("A", decoder.decodeNextString());
+        assertEquals(0, decoder.decodeNextBytes().length);
+        assertEquals("B", decoder.decodeNextString());
+        assertEquals(0, decoder.decodeNextBytes().length);
+        assertEquals(0, decoder.decodeNextBytes().length);
+        assertEquals("C", decoder.decodeNextString());
+
+        assertArrayEquals(new byte[]{67, 0, 0, 68, 0, 0, 0, 69}, encodedBytes);
+    }
+
+    @Test
+    public void testNonContiguousNull() throws Exception {
+
+        MultiFieldEncoder encoder = MultiFieldEncoder.create(6)
+                .encodeNext("A")
+                .encodeEmpty()
+                .encodeNext("B")
+                .encodeEmpty()
+                .encodeNext("C")
+                .encodeEmpty();
+
+        byte[] encodedBytes = encoder.build();
+
+        decoder.set(encodedBytes);
+
+        assertEquals("A", decoder.decodeNextString());
+        assertEquals(0, decoder.decodeNextBytes().length);
+        assertEquals("B", decoder.decodeNextString());
+        assertEquals(0, decoder.decodeNextBytes().length);
+        assertEquals("C", decoder.decodeNextString());
+        assertEquals(0, decoder.decodeNextBytes().length);
+
+        assertArrayEquals(new byte[]{67, 0, 0, 68, 0, 0, 69, 0}, encodedBytes);
+    }
+
+    @Test
+    public void testContiguousLeadingNull() throws Exception {
+
+        MultiFieldEncoder encoder = MultiFieldEncoder.create(6)
+                .encodeEmpty()
+                .encodeEmpty()
+                .encodeNext("B")
+                .encodeEmpty()
+                .encodeNext("C")
+                .encodeEmpty();
+
+        byte[] encodedBytes = encoder.build();
+
+        decoder.set(encodedBytes);
+
+        assertEquals(0, decoder.decodeNextBytes().length);
+        assertEquals(0, decoder.decodeNextBytes().length);
+        assertEquals("B", decoder.decodeNextString());
+        assertEquals(0, decoder.decodeNextBytes().length);
+        assertEquals("C", decoder.decodeNextString());
+        assertEquals(0, decoder.decodeNextBytes().length);
+
+        assertArrayEquals(new byte[]{0, 0, 68, 0, 0, 69, 0}, encodedBytes);
+    }
+
+    @Test
+    public void testContiguousTrailingNull() throws Exception {
+
+        MultiFieldEncoder encoder = MultiFieldEncoder.create(6)
+                .encodeEmpty()
+                .encodeEmpty()
+                .encodeEmpty()
+                .encodeNext("C")
+                .encodeEmpty()
+                .encodeEmpty();
+
+        byte[] encodedBytes = encoder.build();
+
+        decoder.set(encodedBytes);
+
+        assertEquals(0, decoder.decodeNextBytes().length);
+        assertEquals(0, decoder.decodeNextBytes().length);
+        assertEquals(0, decoder.decodeNextBytes().length);
+        assertEquals("C", decoder.decodeNextString());
+        assertEquals(0, decoder.decodeNextBytes().length);
+        assertEquals(0, decoder.decodeNextBytes().length);
+
+        assertArrayEquals(new byte[]{0, 0, 0, 69, 0, 0}, encodedBytes);
+    }
+
+    @Test
+    public void testAllNull() throws Exception {
+
+        MultiFieldEncoder encoder = MultiFieldEncoder.create(6)
+                .encodeEmpty()
+                .encodeEmpty()
+                .encodeEmpty()
+                .encodeEmpty()
+                .encodeEmpty()
+                .encodeEmpty();
+
+        byte[] encodedBytes = encoder.build();
+
+        decoder.set(encodedBytes);
+
+        assertTrue(decoder.nextIsNull());
+        assertEquals(0, decoder.decodeNextBytes().length);
+        assertTrue(decoder.nextIsNull());
+        assertEquals(0, decoder.decodeNextBytes().length);
+        assertTrue(decoder.nextIsNull());
+        assertEquals(0, decoder.decodeNextBytes().length);
+        assertTrue(decoder.nextIsNull());
+        assertEquals(0, decoder.decodeNextBytes().length);
+        assertTrue(decoder.nextIsNull());
+        assertEquals(0, decoder.decodeNextBytes().length);
+        assertTrue(decoder.nextIsNull());
+        assertEquals(0, decoder.decodeNextBytes().length);
+
+        assertArrayEquals(new byte[]{0, 0, 0, 0, 0}, encodedBytes);
+    }
+
 
     @Test
     public void testCanDecodeZeroBigDecimalFollowedByNumbers() throws Exception {
@@ -42,9 +176,9 @@ public class MultiFieldDecoderTest {
         String next = decoder.decodeNextString();
         String last = decoder.decodeNextString();
 
-        Assert.assertTrue("Incorrect BigDecimal!",val.compareTo(BigDecimal.ZERO)==0);
-        Assert.assertEquals("Incorrect second column!","c_credit1",next);
-        Assert.assertEquals("Incorrect third column!","c",last);
+        assertTrue("Incorrect BigDecimal!", val.compareTo(BigDecimal.ZERO) == 0);
+        assertEquals("Incorrect second column!", "c_credit1", next);
+        assertEquals("Incorrect third column!", "c", last);
     }
 
     @Test
@@ -55,9 +189,9 @@ public class MultiFieldDecoderTest {
         encoder.encodeNext("goodbye");
 
         MultiFieldDecoder decoder = MultiFieldDecoder.wrap(encoder.build());
-        Assert.assertEquals("hello",decoder.decodeNextString());
-        Assert.assertEquals(BigDecimal.valueOf(25),decoder.decodeNextBigDecimal());
-        Assert.assertEquals("goodbye",decoder.decodeNextString());
+        assertEquals("hello", decoder.decodeNextString());
+        assertEquals(BigDecimal.valueOf(25), decoder.decodeNextBigDecimal());
+        assertEquals("goodbye", decoder.decodeNextString());
     }
 
     @Test
@@ -72,8 +206,8 @@ public class MultiFieldDecoderTest {
         double v1 = decoder.decodeNextDouble();
         String goodbye = decoder.decodeNextString();
 
-        Assert.assertEquals("hello",hello);
-        Assert.assertEquals(v,v1,Math.pow(10,-6));
-        Assert.assertEquals("goodbye",goodbye);
+        assertEquals("hello", hello);
+        assertEquals(v, v1, Math.pow(10, -6));
+        assertEquals("goodbye", goodbye);
     }
 }

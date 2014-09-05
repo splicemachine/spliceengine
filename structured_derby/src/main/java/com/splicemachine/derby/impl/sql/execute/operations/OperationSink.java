@@ -135,7 +135,7 @@ public class OperationSink {
 						//stop timing events. We do this inside of the try block because we don't care
 						//if the task fails for some reason
 						totalTimer.stopTiming();
-						if(spliceRuntimeContext.shouldRecordTraceMetrics()){
+						if(spliceRuntimeContext.shouldRecordTraceMetrics() && (rowsRead >0 || rowsWritten > 0)){
 								long taskIdLong = taskId!=null? Bytes.toLong(taskId): SpliceDriver.driver().getUUIDGenerator().nextUUID();
 								String hostName = InetAddress.getLocalHost().getHostName(); //TODO -sf- this may not be correct
 								List<OperationRuntimeStats> operationStats = OperationRuntimeStats.getOperationStats(operation,

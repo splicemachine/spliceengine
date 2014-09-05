@@ -195,38 +195,4 @@ public class BitIndexing {
             return BitIndexing.sparseBitMap(bytes,offset,length);
         }
     }
-
-    public static void main(String...args) throws Exception{
-        BitSet t = new BitSet(30);
-        t.set(1);
-//        t.set(2);
-        t.set(3);
-//        t.set(4);
-        t.set(5);
-        t.set(6);
-//        t.set(9);
-//        t.set(11);
-//        t.set(12);
-//        t.set(17);
-//        t.set(22);
-//        t.set(24);
-//        t.set(25);
-//        t.set(26);
-//        t.set(29);
-//        t.set(30);
-
-        BitSet lengthFields = new BitSet();
-        lengthFields.set(3);
-        lengthFields.set(5);
-
-        BitIndex uncompressed = compressedBitMap(t,lengthFields);
-        byte[] encoded = uncompressed.encode();
-
-        BitIndex decoded = compressedBitMap(encoded, 0,encoded.length);
-        for(int i=uncompressed.nextSetBit(0);i>=0;i=uncompressed.nextSetBit(i+1)){
-            if(!decoded.isSet(i))
-                System.out.println(i);
-        }
-    }
-
 }

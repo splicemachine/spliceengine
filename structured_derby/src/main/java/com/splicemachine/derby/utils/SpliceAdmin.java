@@ -1283,90 +1283,24 @@ public class SpliceAdmin extends BaseAdminProcedures {
         resultSet[0] = xPlainTrace.getXPlainTraceOutput();
     }
 
-    public static void SYSCS_GET_XPLAIN_STATEMENTID(final ResultSet[] resultSet) throws Exception{
+    public static long SYSCS_GET_XPLAIN_STATEMENTID() throws Exception{
         LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
         long statementId = lcc.getXplainStatementId();
-        List<ExecRow> rows = Lists.newArrayListWithExpectedSize(1);
-
-        ExecRow row = new ValueRow(1);
-        row.setRowArray(new DataValueDescriptor[]{
-                new SQLLongint()});
-        DataValueDescriptor[] dvds = row.getRowArray();
-        dvds[0].setValue(statementId);
-        rows.add(row);
-
-        ResultColumnDescriptor[]columnInfo = new ResultColumnDescriptor[1];
-        columnInfo[0] = new GenericColumnDescriptor("STATEMENTID", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-
-        EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
-        Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
-        IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, columnInfo,lastActivation);
-        try {
-            resultsToWrap.openCore();
-        } catch (StandardException e) {
-            throw PublicAPI.wrapStandardException(e);
-        }
-        EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap,false,null,true);
-
-        resultSet[0] = ers;
+        return statementId;
     }
 
-    public static void SYSCS_GET_RUNTIME_STATISTICS(final ResultSet[] resultSet) throws Exception{
+    public static boolean SYSCS_GET_RUNTIME_STATISTICS() throws Exception{
         LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
         boolean runTimeStatisticsMode = lcc.getRunTimeStatisticsMode();
 
-        List<ExecRow> rows = Lists.newArrayListWithExpectedSize(1);
-
-        ExecRow row = new ValueRow(1);
-        row.setRowArray(new DataValueDescriptor[]{
-                new SQLBoolean()});
-        DataValueDescriptor[] dvds = row.getRowArray();
-        dvds[0].setValue(runTimeStatisticsMode);
-        rows.add(row);
-
-        ResultColumnDescriptor[]columnInfo = new ResultColumnDescriptor[1];
-        columnInfo[0] = new GenericColumnDescriptor("RUNTIMESTATISTICS", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN));
-
-        EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
-        Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
-        IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, columnInfo,lastActivation);
-        try {
-            resultsToWrap.openCore();
-        } catch (StandardException e) {
-            throw PublicAPI.wrapStandardException(e);
-        }
-        EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap,false,null,true);
-
-        resultSet[0] = ers;
+        return runTimeStatisticsMode;
     }
 
-    public static void SYSCS_GET_STATISTICS_TIMING(final ResultSet[] resultSet) throws Exception{
+    public static boolean SYSCS_GET_STATISTICS_TIMING() throws Exception{
         LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
         boolean statisticsTiming = lcc.getStatisticsTiming();
 
-        List<ExecRow> rows = Lists.newArrayListWithExpectedSize(1);
-
-        ExecRow row = new ValueRow(1);
-        row.setRowArray(new DataValueDescriptor[]{
-                new SQLBoolean()});
-        DataValueDescriptor[] dvds = row.getRowArray();
-        dvds[0].setValue(statisticsTiming);
-        rows.add(row);
-
-        ResultColumnDescriptor[]columnInfo = new ResultColumnDescriptor[1];
-        columnInfo[0] = new GenericColumnDescriptor("STATISTICSTIMING", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN));
-
-        EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
-        Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
-        IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, columnInfo,lastActivation);
-        try {
-            resultsToWrap.openCore();
-        } catch (StandardException e) {
-            throw PublicAPI.wrapStandardException(e);
-        }
-        EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap,false,null,true);
-
-        resultSet[0] = ers;
+        return statisticsTiming;
     }
 
     public static void SYSCS_PURGE_XPLAIN_TRACE() throws SQLException{
@@ -1379,5 +1313,17 @@ public class SpliceAdmin extends BaseAdminProcedures {
 
         s = connection.prepareStatement("delete from sys.systaskhistory");
         s.execute();
+    }
+
+    public static void SYSCS_SET_AUTO_TRACE(int enable) throws SQLException, StandardException {
+        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+        lcc.setAutoTrace(enable==0?false:true);
+    }
+
+    public static boolean SYSCS_GET_AUTO_TRACE() throws Exception{
+        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+        boolean isAutoTraced = lcc.isAutoTraced();
+
+        return isAutoTraced;
     }
 }

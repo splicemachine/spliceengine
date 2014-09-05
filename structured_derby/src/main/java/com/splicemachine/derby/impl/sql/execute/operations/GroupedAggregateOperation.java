@@ -65,6 +65,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
     private Scan baseScan;
     private SpliceResultScanner scanner;
     private boolean[] usedTempBuckets;
+    private long outputRows = 0;
 
     public GroupedAggregateOperation() {
         super();
@@ -418,6 +419,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 						ExecRow execRow = row.getRow();
 						setCurrentRow(execRow);
                         timer.tick(1);
+                        outputRows++;
 						return execRow;
 				}finally{
 						if(shouldClose) {
@@ -489,6 +491,8 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
             stats.addMetric(OperationMetric.REMOTE_SCAN_WALL_TIME, remoteReadTime.getWallClockTime());
             stats.addMetric(OperationMetric.REMOTE_SCAN_CPU_TIME, remoteReadTime.getCpuTime());
             stats.addMetric(OperationMetric.REMOTE_SCAN_USER_TIME, remoteReadTime.getUserTime());
+
+            stats.addMetric(OperationMetric.OUTPUT_ROWS, outputRows);
         } else {
             stats.addMetric(OperationMetric.INPUT_ROWS, aggregator.getRowsRead());
         }

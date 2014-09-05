@@ -11,7 +11,7 @@ import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
-import com.splicemachine.derby.impl.sql.execute.index.IndexTransformer2;
+import com.splicemachine.derby.impl.sql.execute.index.IndexTransformer;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
@@ -222,7 +222,7 @@ public class PopulateIndexTask extends ZkTask {
 								for(int i=indexedColumns.nextSetBit(0);i>=0;i=indexedColumns.nextSetBit(i+1)){
 										keyEncodingMap[i] = mainColToIndexPosMap[i];
 								}
-								IndexTransformer2 transformer = new IndexTransformer2(isUnique,isUniqueWithDuplicateNulls,null,
+								IndexTransformer transformer = new IndexTransformer(isUnique,isUniqueWithDuplicateNulls,null,
 												columnOrdering,
 												format_ids,
 												null,
@@ -295,7 +295,7 @@ public class PopulateIndexTask extends ZkTask {
 		}
 
 		private void translateResult(List<KeyValue> result,
-                                 IndexTransformer2 transformer,
+                                 IndexTransformer transformer,
                                  CallBuffer<KVPair> writeBuffer,
 																 Timer manipulationTimer) throws Exception {
         //we know that there is only one KeyValue for each row

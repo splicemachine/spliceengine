@@ -153,6 +153,18 @@ _stop() {
 
     if [[ ! -e "${PID_FILE}" ]]; then
         echo "${PID_FILE} is not running."
+        #echo "Double check and kill any straggler"
+        if [[ "$PID_FILE" = *"splice_pid"* ]]; then
+            S=$(ps -ef | awk '/SpliceTestPlatform|SpliceSinglePlatform/ && !/awk/ {print $2}')
+        fi
+        if [[ "$PID_FILE" = *"zoo_pid"* ]]; then
+            S=$(ps -ef | awk '/ZooKeeperServerMain/ && !/awk/ {print $2}')
+        fi
+        if [[ -n ${S} ]]; then
+            for pid in ${S}; do
+                kill -15 ${pid}
+            done
+        fi
         return 0;
     fi
 
@@ -168,6 +180,14 @@ _stop() {
 				/bin/rm -f "$(cygpath --path --unix ${PID_FILE})"
             else
                 /bin/rm -f "${PID_FILE}"
+            fi
+            #echo "Double check and kill any straggler"
+            S=$(ps -ef | awk '/splice/ && !/awk/ {print $2}')
+            if [[ -n ${S} ]]; then
+                echo "Found splice straggler. Killing..."
+                for pid in ${S}; do
+                    kill -15 ${pid}
+                done
             fi
             return 1;
         fi
@@ -223,6 +243,31 @@ _waitfor() {
         echo "TIMEOUT value must be positive"
         return 1;
     fi
+
+    # fix for DB-1643
+    if [ "$LOG_SUCCESS" = "Snapshotting" ]; then
+        # number of seconds we should wait between checks on clean status
+        INTERVAL=2
+        # total number of seconds we should wait for clean status
+        (( t = TIMEOUT ))
+        while (( t > 0 )); do
+            S=$(echo stat | nc localhost 2181 | grep Mode:)
+            if [ -n "${S}" ]; then
+                echo "Detected zookeeper running@localhost in $S"
+                return 0;
+            fi
+
+            # Show something while we wait
+            echo -ne "."
+            sleep ${INTERVAL}
+
+            # Still coming up... continue;
+            (( t -= INTERVAL ))
+        done
+        # did not start in allotted timeout - error
+        return 1;
+    fi
+    # fix for DB-1643 
 
     # number of seconds we should wait between checks on clean status
     INTERVAL=2

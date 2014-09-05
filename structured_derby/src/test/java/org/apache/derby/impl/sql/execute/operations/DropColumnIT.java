@@ -117,7 +117,7 @@ public class DropColumnIT extends SpliceUnitTest {
         nCols -= 1;
         n = columnCount(SCHEMA_NAME, CustomerTable.TABLE_NAME);
         Assert.assertEquals(n, nCols);
-        connection = methodWatcher.getOrCreateConnection();
+        connection = methodWatcher.createConnection();
         dmd = connection.getMetaData();
         rs = dmd.getPrimaryKeys(null, SCHEMA_NAME, CustomerTable.TABLE_NAME);
         Assert.assertEquals(0, resultSetSize(rs));

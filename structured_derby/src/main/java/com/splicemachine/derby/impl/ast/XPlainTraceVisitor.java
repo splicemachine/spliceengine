@@ -40,7 +40,7 @@ public class XPlainTraceVisitor extends AbstractSpliceVisitor  {
             if ((sName == null || sName.compareToIgnoreCase("SYS") == 0) &&
                     xplainTables.contains(tName.toUpperCase())) {
 
-                lcc.getStatementContext().setExplainTableOrProcedure(true);
+                lcc.getStatementContext().setXPlainTableOrProcedure(true);
             }
             else {
                 Collection<HServerLoad.RegionLoad> regionLoads =

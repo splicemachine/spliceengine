@@ -4,148 +4,91 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.execute.ExecAggregator;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.impl.sql.execute.operations.AggregateContext;
-import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
-import com.splicemachine.derby.impl.sql.execute.operations.window.WindowFrame.Frame;
-import com.splicemachine.derby.impl.sql.execute.operations.window.WindowFrame.FrameMode;
+import com.splicemachine.derby.impl.sql.execute.operations.window.function.SpliceGenericWindowFunction;
 import com.splicemachine.derby.utils.PartitionAwarePushBackIterator;
 
 /**
  * Created by jyuan on 8/4/14.
  */
 public class FrameBuffer {
+    private final SpliceRuntimeContext runtimeContext;
+    private final WindowAggregator[] aggregators;
+    private final ExecRow templateRow;
+
+    private PartitionAwarePushBackIterator<ExecRow> source;
     private int start;
     private int end;
     private int current;
     private ArrayList<ExecRow> rows;
-    private WindowFrame windowFrame;
-    private SpliceGenericAggregator[] aggregators;
-    private AggregateContext aggregateContext;
+    private FrameDefinition frameDefinition;
     private byte[] partition;
-    private ExecRow resultRow;
-    private SpliceRuntimeContext runtimeContext;
-    private PartitionAwarePushBackIterator<ExecRow> source;
     private boolean endOfPartition;
-    private WindowContext windowContext;
 
     public FrameBuffer (SpliceRuntimeContext runtimeContext,
-                        AggregateContext aggregateContext,
+                        WindowAggregator[] aggregators,
                         PartitionAwarePushBackIterator<ExecRow> source,
-                        WindowContext windowContext, ExecRow resultRow) throws StandardException {
+                        FrameDefinition frameDefinition, ExecRow templateRow) throws StandardException {
         this.source = source;
-        this.aggregateContext = aggregateContext;
         this.runtimeContext = runtimeContext;
-        this.windowContext = windowContext;
-        this.windowFrame = windowContext.getWindowFrame();
-        this.resultRow = resultRow;
-        aggregators = aggregateContext.getAggregators();
-        for (SpliceGenericAggregator aggregator:aggregators) {
-            SpliceGenericWindowFunction windowFunction = null;
-            ExecAggregator function = aggregator.getAggregatorInstance();
-            if (! (function instanceof SpliceGenericWindowFunction)) {
-                windowFunction = (SpliceGenericWindowFunction) function.newAggregator();
-            } else {
-                windowFunction = (SpliceGenericWindowFunction)function;
-            }
-            windowFunction.reset();
-            aggregator.initialize(resultRow);
+        this.frameDefinition = frameDefinition;
+        this.templateRow = templateRow;
+        this.aggregators = aggregators;
+        this.rows = new ArrayList<ExecRow>();
+
+        for (WindowAggregator aggregator: this.aggregators) {
+            SpliceGenericWindowFunction windowFunction = aggregator.findOrCreateNewWindowFunction();
+            aggregator.initialize(this.templateRow);
         }
     }
 
-    public void init(PartitionAwarePushBackIterator<ExecRow> source) throws StandardException, IOException {
-        // Create a buffer for rows that are being worked on
+    private void reset() throws StandardException, IOException {
         rows = new ArrayList<ExecRow>();
 
         // Initialize window functions
-        for (SpliceGenericAggregator aggregator:aggregators) {
-            int aggregatorColumnId = aggregator.getAggregatorColumnId();
+        for (WindowAggregator aggregator : this.aggregators) {
+            int aggregatorColumnId = aggregator.getFunctionColumnId();
             SpliceGenericWindowFunction windowFunction =
-                    (SpliceGenericWindowFunction)resultRow.getColumn(aggregatorColumnId).getObject();
+                    (SpliceGenericWindowFunction) templateRow.getColumn(aggregatorColumnId).getObject();
             windowFunction.reset();
-            aggregator.initialize(resultRow);
+            aggregator.initialize(templateRow);
         }
 
         // initializes frame buffer
-        WindowFrame.FrameMode frameMode = windowFrame.getFrameMode();
-        loadFrame(source);
-
-
+        loadFrame();
     }
 
-    private void loadFrame(PartitionAwarePushBackIterator<ExecRow> source) throws IOException, StandardException {
-        long frameStart = windowFrame.getFrameStart().getValue();
-        long frameEnd = windowFrame.getFrameEnd().getValue();
-        start = end = 0;
-        if (frameStart > 0) {
-            start = (int)frameStart;
-        }
-        endOfPartition = false;
-        partition = source.getPartition();
-        for (int i = 0; i <= frameEnd; ++i) {
-            ExecRow row = source.next(runtimeContext);
-            if (row == null) {
-                break;
-            }
-            if (Bytes.compareTo(partition, source.getPartition()) == 0) {
-                ExecRow clonedRow = row.getClone();
-                rows.add(clonedRow);
+    public ExecRow next(SpliceRuntimeContext runtimeContext) throws StandardException, IOException {
 
-                // if the next row belongs to the same partition and falls
-                // into the window range
-                if (i >= frameStart)
-                    add(clonedRow);
+        ExecRow row = this.next();
+
+        if (row == null) {
+            // This is the end of one partition, peek the next row
+            row = source.next(runtimeContext);
+            if (row == null) {
+                // This is the end of the region
+                return null;
             }
             else {
-                // we consumed this partition, push back the row that belongs to the next partition
+                // init a new window buffer for the next partition
                 source.pushBack(row);
-                endOfPartition = true;
-                break;
+                this.reset();
+                row = this.next();
             }
         }
-        current = 0;
-        end = rows.size() -1;
-    }
 
-    public ExecRow next() throws IOException, StandardException{
-        if (current >= rows.size()) {
-            return null;
-        }
-        ExecRow row = rows.get(current);
-        for (SpliceGenericAggregator aggregator:aggregators) {
-            // For current row  and window, evaluate the window function
-            int aggregatorColumnId = aggregator.getAggregatorColumnId();
-            int resultColumnId = aggregator.getResultColumnId();
-            SpliceGenericWindowFunction function = (SpliceGenericWindowFunction)resultRow.getColumn(aggregatorColumnId).getObject();
-            row.setColumn(resultColumnId, function.getResult().cloneValue(false));
-        }
+        this.move();
+
         return row;
-    }
-
-    private void add(ExecRow row) throws StandardException{
-        for(SpliceGenericAggregator aggregator : aggregators) {
-            aggregator.accumulate(row, resultRow);
-        }
-    }
-
-    private void remove() throws StandardException {
-        for(SpliceGenericAggregator aggregator : aggregators) {
-            int aggregatorColumnId = aggregator.getAggregatorColumnId();
-            SpliceGenericWindowFunction windowFunction =
-                    (SpliceGenericWindowFunction)resultRow.getColumn(aggregatorColumnId).getObject();
-            windowFunction.remove();
-        }
     }
 
     public void move() throws StandardException, IOException{
 
-        long frameStart = windowFrame.getFrameStart().getValue();
-        long frameEnd = windowFrame.getFrameEnd().getValue();
+        long frameStart = frameDefinition.getFrameStart().getValue();
+        long frameEnd = frameDefinition.getFrameEnd().getValue();
         // Increment the current index first
         current++;
 
@@ -194,6 +137,74 @@ public class FrameBuffer {
                     add(rows.get(end));
                 }
             }
+        }
+    }
+
+    //==========================================================================================
+    // private
+    //==========================================================================================
+
+    private void loadFrame() throws IOException, StandardException {
+        long frameStart = frameDefinition.getFrameStart().getValue();
+        long frameEnd = frameDefinition.getFrameEnd().getValue();
+        start = end = 0;
+        if (frameStart > 0) {
+            start = (int)frameStart;
+        }
+        endOfPartition = false;
+        partition = source.getPartition();
+        for (int i = 0; i <= frameEnd; ++i) {
+            ExecRow row = source.next(runtimeContext);
+            if (row == null) {
+                break;
+            }
+            if (Bytes.compareTo(partition, source.getPartition()) == 0) {
+                ExecRow clonedRow = row.getClone();
+                rows.add(clonedRow);
+
+                // if the next row belongs to the same partition and falls
+                // into the window range
+                if (i >= frameStart)
+                    add(clonedRow);
+            }
+            else {
+                // we consumed this partition, push back the row that belongs to the next partition
+                source.pushBack(row);
+                endOfPartition = true;
+                break;
+            }
+        }
+        current = 0;
+        end = rows.size() -1;
+    }
+
+    private ExecRow next() throws IOException, StandardException{
+        if (current >= rows.size()) {
+            return null;
+        }
+        ExecRow row = rows.get(current);
+        for (WindowAggregator aggregator : aggregators) {
+            // For current row  and window, evaluate the window function
+            int aggregatorColumnId = aggregator.getFunctionColumnId();
+            int resultColumnId = aggregator.getResultColumnId();
+            SpliceGenericWindowFunction function = (SpliceGenericWindowFunction) templateRow.getColumn(aggregatorColumnId).getObject();
+            row.setColumn(resultColumnId, function.getResult().cloneValue(false));
+        }
+        return row;
+    }
+
+    private void add(ExecRow row) throws StandardException{
+        for(WindowAggregator aggregator : aggregators) {
+            aggregator.accumulate(row, templateRow);
+        }
+    }
+
+    private void remove() throws StandardException {
+        for(WindowAggregator aggregator : aggregators) {
+            int aggregatorColumnId = aggregator.getFunctionColumnId();
+            SpliceGenericWindowFunction windowFunction =
+                (SpliceGenericWindowFunction) templateRow.getColumn(aggregatorColumnId).getObject();
+            windowFunction.remove();
         }
     }
 }

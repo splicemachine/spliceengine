@@ -65,7 +65,7 @@ public class ImportErrorIT {
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
 
-    @Test(expected = SQLException.class)
+    @Test
     public void testNoSuchTable() throws Exception {
         runImportTest("no_such_table","file_doesn't_exist.csv",new ErrorCheck() {
             @Override
@@ -80,7 +80,7 @@ public class ImportErrorIT {
 
     }
 
-    @Test(expected=SQLException.class)
+    @Test
     public void testCannotFindFile() throws Exception {
         runImportTest("file_doesn't_exist.csv",new ErrorCheck() {
             @Override
@@ -99,7 +99,7 @@ public class ImportErrorIT {
 
     }
 
-    @Test(expected = SQLException.class)
+    @Test
     public void testCannotInsertNullFieldIntoNonNullColumn() throws Exception {
         runImportTest("null_col.csv",new ErrorCheck() {
             @Override
@@ -113,7 +113,7 @@ public class ImportErrorIT {
         });
     }
 
-    @Test(expected = SQLException.class)
+    @Test
     public void testCannotInsertStringOverCharacterLimits() throws Exception {
         runImportTest("long_string.csv",new ErrorCheck(){
             @Override
@@ -128,7 +128,7 @@ public class ImportErrorIT {
         });
     }
 
-    @Test(expected = SQLException.class,timeout=5000)
+    @Test(timeout=5000)
     public void testCannotInsertALongIntoAnIntegerField() throws Exception {
         runImportTest("long_int.csv",new ErrorCheck() {
             @Override
@@ -142,7 +142,7 @@ public class ImportErrorIT {
         });
     }
 
-    @Test(expected = SQLException.class)
+    @Test
     public void testCannotInsertAFloatIntoAnIntegerField() throws Exception {
         runImportTest("float_int.csv",new ErrorCheck() {
             @Override
@@ -156,7 +156,7 @@ public class ImportErrorIT {
         });
     }
 
-    @Test(expected = SQLException.class)
+    @Test
     public void testCannotInsertADoubleIntoALongField() throws Exception {
         runImportTest("double_long.csv",new ErrorCheck() {
             @Override
@@ -170,7 +170,7 @@ public class ImportErrorIT {
         });
     }
 
-    @Test(expected = SQLException.class)
+    @Test
     public void testCannotInsertADoubleIntoAFloatField() throws Exception {
         runImportTest("double_float.csv", new ErrorCheck() {
             @Override
@@ -184,7 +184,7 @@ public class ImportErrorIT {
         });
     }
 
-    @Test(expected =  SQLException.class)
+    @Test
     public void testCannotInsertAPoorlyFormattedDate() throws Exception {
         runImportTest("bad_date.csv",new ErrorCheck() {
             @Override
@@ -198,7 +198,7 @@ public class ImportErrorIT {
         });
     }
 
-    @Test(expected =  SQLException.class)
+    @Test
     public void testCannotInsertAPoorlyFormattedTime() throws Exception {
         runImportTest("bad_time.csv",new ErrorCheck() {
             @Override
@@ -212,7 +212,7 @@ public class ImportErrorIT {
         });
     }
 
-		@Test(expected = SQLException.class)
+		@Test
 		public void testCannotInsertNullDateIntoDateField() throws Exception{
 				runImportTest("null_date.csv",new ErrorCheck() {
 						@Override
@@ -226,7 +226,7 @@ public class ImportErrorIT {
 				});
 		}
 
-		@Test(expected = SQLException.class)
+		@Test
 		public void testCannotInsertNullTimeIntoTimeField() throws Exception{
 				runImportTest("null_time.csv",new ErrorCheck() {
 						@Override
@@ -240,7 +240,7 @@ public class ImportErrorIT {
 				});
 		}
 
-		@Test(expected = SQLException.class)
+		@Test
 		public void testCannotInsertNullTimestampIntoTimestampField() throws Exception{
 				runImportTest("null_timestamp.csv",new ErrorCheck() {
 						@Override
@@ -254,7 +254,7 @@ public class ImportErrorIT {
 				});
 		}
 
-    @Test(expected =  SQLException.class)
+    @Test
     public void testCannotInsertAPoorlyFormatedTimestamp() throws Exception {
         runImportTest("bad_timestamp.csv",new ErrorCheck() {
             @Override
@@ -268,7 +268,7 @@ public class ImportErrorIT {
         });
     }
 
-    @Test(expected = SQLException.class)
+    @Test
     public void testDecimalTable() throws Exception {
         runImportTest("DECIMALTABLE","bad_decimal.csv",new ErrorCheck() {
             @Override
@@ -301,11 +301,15 @@ public class ImportErrorIT {
         void check(String table, String location, SQLException se);
     }
 
-    public void runImportTest(String file, ErrorCheck check) throws SQLException {
+    private void runImportTest(String file, ErrorCheck check) throws SQLException {
         runImportTest(TABLE,file,check);
     }
 
-    public void runImportTest(String table,String file,ErrorCheck check) throws SQLException {
+    /**
+     * Verifies that an import of the specified file into the specified table throws SQLException, then performs
+     * further assertions in ErrorCheck
+     */
+    private void runImportTest(String table,String file,ErrorCheck check) throws SQLException {
         String location = getResourceDirectory()+"/test_data/bad_import/"+file;
         PreparedStatement ps = null;
         try{
@@ -324,21 +328,20 @@ public class ImportErrorIT {
 
         try{
             ps.execute();
+            Assert.fail("No SQLException was thrown!");
         }catch(SQLException se){
             check.check(table, location, se);
-
-            throw se;
         }
-        Assert.fail("No error was returned!");
     }
 
-    public static String getBaseDirectory() {
+    private static String getBaseDirectory() {
         String userDir = System.getProperty("user.dir");
         if(!userDir.endsWith("structured_derby"))
             userDir = userDir+"/structured_derby";
         return userDir;
     }
-    public static String getResourceDirectory() {
+
+    private static String getResourceDirectory() {
         return getBaseDirectory()+"/src/test/test-data";
     }
 }
