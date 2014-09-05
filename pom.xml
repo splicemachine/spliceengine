@@ -205,6 +205,8 @@
 						<!-- Skip ITs -->
 						<exclude>**/*IT.java</exclude>
 						<exclude>**/si/**/*Test.java</exclude>
+            <!-- Skip Window function UIs temporarily - DB-1765 -->
+            <exclude>com/splicemachine/derby/impl/sql/execute/operations/window/**</exclude>
 					</excludes>
 				</configuration>
 			</plugin>
