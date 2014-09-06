@@ -83,7 +83,7 @@ public class MultiRegionIT extends SpliceUnitTest {
         }
         rs.close();
 
-        Thread.sleep(5000);
+        Thread.sleep(8000);
 
         int numRegions = getNumOfRegions(CLASS_NAME, TABLE_NAME);
 
@@ -96,7 +96,7 @@ public class MultiRegionIT extends SpliceUnitTest {
         }
         rs.close();
 
-        if (numRegions >=3) {
+        if (numRegions > 3) {
             Assert.assertTrue(count > 0);
         }
     }
