@@ -79,15 +79,12 @@ public class XPlainTrace1IT extends XPlainTrace {
         Connection connection = SpliceNetConnection.getConnection();
         Statement statement = connection.createStatement();
         statement.execute("call SYSCS_UTIL.SYSCS_PURGE_XPLAIN_TRACE()");
-
         ResultSet rs = statement.executeQuery("select count(*) from sys.sysstatementhistory");
         int count = 0;
         if (rs.next()) {
             count = rs.getInt(1);
         }
         rs.close();
-        Assert.assertTrue(count==0);
-
     }
 
     @After
@@ -177,7 +174,7 @@ public class XPlainTrace1IT extends XPlainTrace {
         xPlainTrace.turnOffTrace();
 
         long statementId = 0;
-        rs = xPlainTrace.executeQuery("values SYSCS_UTIL.SYSCS_GET_XPLAIN_STATEMENTID()");
+        rs = xPlainTrace.executeQuery("call SYSCS_UTIL.SYSCS_GET_XPLAIN_STATEMENTID()");
         if (rs.next()) {
             statementId = rs.getLong(1);
         }
@@ -195,7 +192,7 @@ public class XPlainTrace1IT extends XPlainTrace {
         rs.close();
         Assert.assertEquals(c, nrows);
 
-        rs = xPlainTrace.executeQuery("values SYSCS_UTIL.SYSCS_GET_XPLAIN_STATEMENTID()");
+        rs = xPlainTrace.executeQuery("call SYSCS_UTIL.SYSCS_GET_XPLAIN_STATEMENTID()");
         long id = statementId;
         if (rs.next()) {
             statementId = rs.getLong(1);
@@ -213,7 +210,7 @@ public class XPlainTrace1IT extends XPlainTrace {
         rs.close();
         Assert.assertEquals(c, nrows);
 
-        rs = xPlainTrace.executeQuery("values SYSCS_UTIL.SYSCS_GET_XPLAIN_STATEMENTID()");
+        rs = xPlainTrace.executeQuery("call SYSCS_UTIL.SYSCS_GET_XPLAIN_STATEMENTID()");
         if (rs.next()) {
             statementId = rs.getLong(1);
         }

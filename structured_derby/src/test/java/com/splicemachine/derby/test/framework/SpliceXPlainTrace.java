@@ -70,7 +70,7 @@ public class SpliceXPlainTrace extends XPlainTrace{
     public XPlainTreeNode getOperationTree() throws Exception{
 
         long statementId = 0;
-        ResultSet rs = executeQuery("values SYSCS_UTIL.SYSCS_GET_XPLAIN_STATEMENTID()");
+        ResultSet rs = executeQuery("call SYSCS_UTIL.SYSCS_GET_XPLAIN_STATEMENTID()");
         if (rs.next()) {
             statementId = rs.getLong(1);
         }
