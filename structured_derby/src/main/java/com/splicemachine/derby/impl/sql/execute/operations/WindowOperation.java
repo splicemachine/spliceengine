@@ -223,8 +223,11 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
     public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder,
                                          SpliceRuntimeContext spliceRuntimeContext)
                                         throws StandardException, IOException {
-
-        Scan reduceScan = buildReduceScan(extraUniqueSequenceID, spliceRuntimeContext);
+        byte[] prefix = extraUniqueSequenceID;
+        if (this != top) {
+            prefix = uniqueSequenceID;
+        }
+        Scan reduceScan = buildReduceScan(prefix, spliceRuntimeContext);
         boolean serializeSourceTemp = serializeSource;
         serializeSource = spliceRuntimeContext.isFirstStepInMultistep();
         SpliceUtils.setInstructions(reduceScan, activation, top, spliceRuntimeContext);
@@ -409,7 +412,8 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
         regionScanner.next(keyValues);
         if(keyValues.isEmpty()) return null;
 
-        return getTempDecoder().decode(KeyValueUtils.matchDataColumn(keyValues));
+        KeyValue kv = KeyValueUtils.matchDataColumn(keyValues);
+        return getTempDecoder().decode(kv);
     }
 
     protected PairDecoder getTempDecoder() throws StandardException {
