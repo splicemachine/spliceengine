@@ -1152,7 +1152,7 @@ public class SelectNode extends ResultSetNode
 		 */
 		if (groupByList != null &&
 			havingClause == null &&
-			selectAggregates.size() == 0 &&
+            !hasAggregatesInSelectList() &&
 			whereAggregates.size() == 0)
 		{
 			isDistinct = true;
@@ -2585,8 +2585,18 @@ public class SelectNode extends ResultSetNode
 	 */
 	public boolean hasAggregatesInSelectList() 
 	{
-		return !selectAggregates.isEmpty();
-	}
+        if (selectAggregates.isEmpty()) {
+            return false;
+        }
+	    boolean hasAggregates = false;
+        for (int i = 0; i < selectAggregates.size(); ++i) {
+            AggregateNode aggregateNode = (AggregateNode) selectAggregates.get(i);
+            if (!aggregateNode.isWindowFunction()) {
+                hasAggregates = true;
+            }
+        }
+        return hasAggregates;
+    }
 
 	/**
 	 * Used by SubqueryNode to avoid flattening of a subquery if a window is
