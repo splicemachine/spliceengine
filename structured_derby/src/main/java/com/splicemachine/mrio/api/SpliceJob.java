@@ -22,7 +22,7 @@ import org.apache.hadoop.mapreduce.Job.JobState;
 
 public class SpliceJob extends Job{
 
-	 private static SQLUtil sqlUtil = SQLUtil.getInstance();
+	 private static SQLUtil sqlUtil = null;
 	 private static Connection conn = null;
 	 public SpliceJob() throws IOException {
 		super();
@@ -44,6 +44,8 @@ public class SpliceJob extends Job{
 	 @Override
 	 public void submit() throws IOException, InterruptedException, ClassNotFoundException 
 	 {	
+		 if(sqlUtil == null)
+			 sqlUtil = SQLUtil.getInstance(conf.get(SpliceMRConstants.SPLICE_JDBC_STR));
 		 if (conn == null)
 			try {
 				conn = sqlUtil.createConn();

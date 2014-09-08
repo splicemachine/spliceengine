@@ -39,6 +39,7 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.iapi.types.SQLBlob;
@@ -221,76 +222,46 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 			this.pkColIds = pkColIds;
 			
 			boolean allNullFlag = true;
-			if(this.template == null)
-			{
-				data = createDVD();
-				template.setRowArray(data);
+			if(this.template == null){
+				try {
+					data = createDVD();
+					template.setRowArray(data);
+				} catch (StandardException e) {
+					// TODO Auto-generated catch block
+					throw new RuntimeException("Cannot create DataValueDescriptor:"+e);
+				}
+				
 			}
-			else
-			{
+			else{
 				DataValueDescriptor[] dvds = this.template.getRowArray();
 				
-				for(DataValueDescriptor d:dvds)
-				{
+				for(DataValueDescriptor d:dvds){
 					if(d != null){
 						allNullFlag = false;
 						break;
 					}
 				}
 			}
-			if(allNullFlag)
-			{
-				data = createDVD();
-				template.setRowArray(data);
+			if(allNullFlag){
+				try {
+					data = createDVD();
+					template.setRowArray(data);
+				} catch (StandardException e) {
+					// TODO Auto-generated catch block
+					throw new RuntimeException("Cannot create DataValueDescriptor:"+e);
+				}
 			}
 			else
 				data = template.getRowArray();	
 			
 	}
 
-	private DataValueDescriptor[] createDVD()
+	private DataValueDescriptor[] createDVD() throws StandardException
 	{
 		DataValueDescriptor dvds[] = new DataValueDescriptor[colTypes.size()];
 		for(int pos = 0; pos < colTypes.size(); pos++)
 		{
-			
-			switch(colTypes.get(pos))
-			{
-			case java.sql.Types.INTEGER:
-			
-				dvds[pos] = new SQLInteger();
-				break;
-			case java.sql.Types.BIGINT:
-				
-				dvds[pos] = new SQLLongint();
-				break;
-			case java.sql.Types.SMALLINT:
-				
-				dvds[pos] = new SQLSmallint();
-				break;
-			case java.sql.Types.BOOLEAN:
-				
-				dvds[pos] = new SQLBoolean();
-				break;
-			case java.sql.Types.DOUBLE:	
-			
-				dvds[pos] = new SQLDouble();
-				break;
-			case java.sql.Types.FLOAT:
-				
-				dvds[pos] = new SQLInteger();
-				break;
-			case java.sql.Types.CHAR:
-				
-			case java.sql.Types.VARCHAR:
-				
-				dvds[pos] = new SQLVarchar();
-				break;
-			case java.sql.Types.BINARY:	
-				
-			default:
-				dvds[pos] = new SQLBlob();
-			}
+			dvds[pos] = DataTypeDescriptor.getBuiltInDataTypeDescriptor(colTypes.get(pos)).getNull();
 		}
 		return dvds;
 		

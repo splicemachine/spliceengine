@@ -69,13 +69,14 @@ public class SpliceRecordReader extends SpliceTableRecordReaderBase{
     {
     	super();
     	this.conf = conf;
+    	//System.out.println("SpliceRecordReader, Conf"+conf.get(SpliceMRConstants.SPLICE_JDBC_STR));
     }
     
 	@Override
 	public void initialize(final InputSplit inputSplit, final TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
        
 		System.out.println("Initializing SpliceRecordReader....");
-		sqlUtil = SQLUtil.getInstance();
+		sqlUtil = SQLUtil.getInstance(conf.get(SpliceMRConstants.SPLICE_JDBC_STR));
     }
 	
 	@Override
@@ -167,36 +168,11 @@ public class SpliceRecordReader extends SpliceTableRecordReaderBase{
      * 
      * @param columnType (choose from java.sql.Types.*)
      * @return typeFormatId
+     * @throws StandardException 
      */
-    private int getTypeFormatId(int columnType)
+    private int getTypeFormatId(int columnType) throws StandardException
     {
-    	switch(columnType)
-		{
-				case java.sql.Types.INTEGER:
-					return new SQLInteger(1).getTypeFormatId();
-				case java.sql.Types.BIGINT:
-					return new SQLLongint(1).getTypeFormatId();				
-				case java.sql.Types.TIMESTAMP:
-					return new SQLTimestamp().getTypeFormatId();
-				case java.sql.Types.TIME:
-					return new SQLTime().getTypeFormatId();					
-				case java.sql.Types.SMALLINT:
-					return new SQLSmallint().getTypeFormatId();
-				case java.sql.Types.BOOLEAN:
-					return new SQLBoolean().getTypeFormatId();
-				case java.sql.Types.DOUBLE:
-					return new SQLDouble().getTypeFormatId();
-				case java.sql.Types.FLOAT:
-					return new SQLReal().getTypeFormatId();
-				case java.sql.Types.CHAR:
-					return new SQLChar().getTypeFormatId();
-				case java.sql.Types.VARCHAR:
-					return new SQLVarchar().getTypeFormatId();
-				case java.sql.Types.BINARY:
-					return new SQLBlob().getTypeFormatId();
-				default:
-					return new org.apache.derby.iapi.types.SQLClob().getTypeFormatId();
-		}
+    	return DataTypeDescriptor.getBuiltInDataTypeDescriptor(1).getNull().getTypeFormatId();
     }
     
     /**
@@ -304,7 +280,7 @@ public class SpliceRecordReader extends SpliceTableRecordReaderBase{
 		String tableName = conf.get(SpliceMRConstants.SPLICE_INPUT_TABLE_NAME);
 		
 		if (sqlUtil == null)
-			sqlUtil = SQLUtil.getInstance();
+			sqlUtil = SQLUtil.getInstance(conf.get(SpliceMRConstants.SPLICE_JDBC_STR));
 		tableStructure = sqlUtil.getTableStructure(tableName);
 		pks = sqlUtil.getPrimaryKey(tableName);
 		

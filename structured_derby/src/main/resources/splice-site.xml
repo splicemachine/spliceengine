@@ -3,12 +3,13 @@
 <configuration>
   <property>
     <name>splice.authentication</name>
-    <value>NATIVE</value>
+    <value>NONE</value>
     <description>Native authentication</description>
   </property>
+  <!--
   <property>
     <name>splice.authentication.native.algorithm</name>
     <value>SHA-512</value>
     <description>SHA-512 algorithm</description>
-  </property>
+  </property> -->
 </configuration>

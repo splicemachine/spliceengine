@@ -24,51 +24,47 @@ public class SQLUtil {
 	private Connection connect = null;
 	  private Statement statement = null;
 	  private ResultSet resultSet = null;
-	  private static SQLUtil derbyTest = null;
+	  private static SQLUtil sqlUtil = null;
+	  private String connStr = null;
 	  
-	  private SQLUtil() throws Exception {  
+	  private SQLUtil(String connStr) throws Exception {  
 	      Class.forName("org.apache.derby.jdbc.ClientDriver").newInstance();
-	      connect = DriverManager.getConnection("jdbc:splice://localhost:1527/splicedb;user=splice;password=admin");
+	      this.connStr = connStr;
+	      connect = DriverManager.getConnection(connStr);
 	      
 	  }
 	  
-	  public static SQLUtil getInstance()
-	  {
-		  if(derbyTest == null)
+	  public static SQLUtil getInstance(String connStr){
+		  if(sqlUtil == null)
 			try {
-				derbyTest = new SQLUtil();
+				sqlUtil = new SQLUtil(connStr);
 				
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-		  finally
-		  {
-			  return derbyTest;
+		  finally{
+			  return sqlUtil;
 		  }
 		  else
-			  return derbyTest;
+			  return sqlUtil;
 	  }
 	  
 	  
-	  public Connection createConn() throws SQLException
-	  {
-		  Connection conn = DriverManager.getConnection("jdbc:splice://localhost:1527/splicedb;user=splice;password=admin");
+	  public Connection createConn() throws SQLException{
+		  Connection conn = DriverManager.getConnection(connStr);
 		  return conn;
 	  }
 	  
-	  public void disableAutoCommit(Connection conn) throws SQLException
-	  {
+	  public void disableAutoCommit(Connection conn) throws SQLException{
 		  conn.setAutoCommit(false);
 	  }
 	  
-	  public void commit(Connection conn) throws SQLException
-	  {
+	  public void commit(Connection conn) throws SQLException{
 		  conn.commit();
 	  }
 	  
-	  public void rollback(Connection conn) throws SQLException
-	  {
+	  public void rollback(Connection conn) throws SQLException{
 		  conn.rollback();
 	  }
 	  
@@ -78,8 +74,7 @@ public class SQLUtil {
 	   * Column Id here refers to Column Seq, where Id=1 means the first column in primary keys.
 	   * 
 	   **/
-	  public HashMap<List, List> getPrimaryKey(String tableName)
-	  {
+	  public HashMap<List, List> getPrimaryKey(String tableName){
 		  HashMap<List, List> pks = new HashMap<List, List>();
 		  ArrayList names = new ArrayList();
 		  ArrayList types = new ArrayList();
@@ -98,7 +93,8 @@ public class SQLUtil {
 				  tableNamePattern = (String) pairs.getValue();
 			  }
 			  else
-				  throw new SQLException("Splice table not known, please specify Splice tableName. "
+				  throw new SQLException("Splice table not known, "
+				  							+ "please specify Splice tableName. "
 				  							+ "pattern: schemaName.tableName");
 		      
 			  DatabaseMetaData databaseMetaData = connect.getMetaData();
@@ -129,8 +125,7 @@ public class SQLUtil {
 	   * Return Column Name list : Column Type list
 	   * 
 	   * */
-	  public HashMap<List, List> getTableStructure(String tableName)
-	  {
+	  public HashMap<List, List> getTableStructure(String tableName){
 		  HashMap<List, List> colType = new HashMap<List, List>();
 		  ArrayList names = new ArrayList();
 		  ArrayList types = new ArrayList();
@@ -166,13 +161,7 @@ public class SQLUtil {
 		  return colType;
 	  }
 	  
-	  public void getSchema()
-	  {
-		 
-	  }
-	  
-	  public Connection getStaticConnection()
-	  {
+	  public Connection getStaticConnection(){
 		  return this.connect;
 	  }
 	  
@@ -185,15 +174,13 @@ public class SQLUtil {
 	 * @throws SQLException 
 	   * 
 	   * */
-	  public String getConglomID(String tableName) throws SQLException
-	  {
+	  public String getConglomID(String tableName) throws SQLException{
 		  String conglom_id = null;
 		  String schema = null;
 		  String tblName = null;
 		  HashMap<String, String> schema_tblName = parseTableName(tableName);
 		  
-		  if (schema_tblName != null)
-		  {
+		  if (schema_tblName != null){
 			  Map.Entry pairs = (Map.Entry)schema_tblName.entrySet().iterator().next();
 			  schema = (String) pairs.getKey();
 			  tblName = (String) pairs.getValue();
@@ -227,14 +214,12 @@ public class SQLUtil {
 	   * For every map job, there should be a different transactionID.
 	   * 
 	   * */
-	  public String getTransactionID()
-	  {
+	  public String getTransactionID(){
 		  String trxId = ""; 
 		  try {
 			
 			resultSet = connect.createStatement().executeQuery("call SYSCS_UTIL.SYSCS_GET_CURRENT_TRANSACTION()");
-			while(resultSet.next())
-			{
+			while(resultSet.next()){
 				trxId = String.valueOf(resultSet.getInt(1));
 			}
 			
@@ -245,20 +230,18 @@ public class SQLUtil {
 		  return trxId;
 	  }
 	  
-	  public String getTransactionID(Connection conn) throws SQLException
-	  {	  
+	  public String getTransactionID(Connection conn) throws SQLException{	  
 		  String trxId = null;
 		  resultSet = conn.createStatement().executeQuery("call SYSCS_UTIL.SYSCS_GET_CURRENT_TRANSACTION()");
-			while(resultSet.next())
-			{
+			while(resultSet.next()){
 				trxId = String.valueOf(resultSet.getInt(1));
 			}
-			
 		  return trxId;
 	  }
 	  
-	  public String getChildTransactionID(Connection conn, String parentTxsID, long conglomId) throws SQLException
-	  {
+	  public String getChildTransactionID(Connection conn, 
+			  								String parentTxsID, 
+			  								long conglomId) throws SQLException{
 		  PreparedStatement ps = conn.prepareStatement("call SYSCS_UTIL.SYSCS_START_CHILD_TRANSACTION(?, ?)");
 		  long ptxsID = Long.parseLong(parentTxsID);
 		  ps.setLong(1, ptxsID);
@@ -286,8 +269,7 @@ public class SQLUtil {
 	  }
 
 	  
-	  public boolean checkTableExists(String tableName) throws SQLException
-	  {
+	  public boolean checkTableExists(String tableName) throws SQLException{
 		  boolean tableExists = false;
 		  
 		    ResultSet rs = null;
@@ -296,15 +278,15 @@ public class SQLUtil {
 		        HashMap<String, String> schema_tblName = parseTableName(tableName);
 				String schema = null;
 				String tblName = null;
-				if (schema_tblName != null)
-				{
+				if (schema_tblName != null){
 					Map.Entry pairs = (Map.Entry)schema_tblName.entrySet().iterator().next();
 					schema = (String) pairs.getKey();
 					tblName = (String) pairs.getValue();
 				 }
 				 else
-					throw new SQLException("Splice table not known, please specify Splice tableName. "
-					  							+ "pattern: schemaName.tableName");
+					throw new SQLException("Splice table not known, "
+											+ "please specify Splice tableName. "
+					  						+ "pattern: schemaName.tableName");
 		        rs = meta.getTables(null, schema, tblName, new String[] { "TABLE" });
 		        while (rs.next()) {
 		            String currentTableName = rs.getString("TABLE_NAME");
@@ -322,20 +304,17 @@ public class SQLUtil {
 		
 	  }
 	  
-	  public HashMap<String, String> parseTableName(String str)
-	  {
+	  public HashMap<String, String> parseTableName(String str){
 		  if(str == null || str.trim().equals(""))
 			  return null;
-		  else
-		  {
+		  else{
 			 HashMap<String, String> res = new HashMap<String, String>();
 			 
 			 String[]tmp = str.split("\\.");
 			
 			 String schema = "SPLICE";
 			 String tableName = str;
-			 if(tmp.length >= 2)
-			 {
+			 if(tmp.length >= 2){
 				 schema = tmp[0];
 				 tableName = tmp[1];
 			 }
@@ -343,20 +322,5 @@ public class SQLUtil {
 			  return res;
 		  } 
 	  }
-	  
-	  public static void main(String[] args) throws Exception {
-	    SQLUtil dao = SQLUtil.getInstance();
-	    /*HashMap<List, List> structure = dao.getPrimaryKey("USERTEST8");
-	    Iterator iter = structure.entrySet().iterator();
-	    while(iter.hasNext())
-	    {
-	    	Map.Entry kv = (Map.Entry)iter.next();
-	    	ArrayList<String> names = (ArrayList<String>)kv.getKey();
-	    	ArrayList<Integer> types = (ArrayList<Integer>)kv.getValue();
-	    }
-	    dao.getTransactionID();*/
-	    HashMap<String, String> res = dao.parseTableName("USERTEST.yu");
-	    Iterator iter = res.entrySet().iterator();
-	    
-	  }
+	
 }

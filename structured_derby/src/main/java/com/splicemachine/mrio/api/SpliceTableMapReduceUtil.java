@@ -54,7 +54,6 @@ import org.apache.hadoop.util.StringUtils;
 @SuppressWarnings("unchecked")
 public class SpliceTableMapReduceUtil {
   static Log LOG = LogFactory.getLog(SpliceTableMapReduceUtil.class);
-  private static SQLUtil sqlUtil = SQLUtil.getInstance();
   /**
    * Use this before submitting a TableMap job. It will appropriately set up
    * the job.
