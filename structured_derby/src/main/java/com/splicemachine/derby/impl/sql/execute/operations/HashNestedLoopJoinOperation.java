@@ -3,12 +3,16 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.splicemachine.collections.RingBuffer;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.iapi.sql.execute.*;
+import com.splicemachine.derby.metrics.OperationMetric;
+import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.metrics.IOStats;
 import com.splicemachine.storage.AndPredicate;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.OrPredicate;
@@ -26,7 +30,6 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -40,10 +43,7 @@ import java.util.List;
  */
 public class HashNestedLoopJoinOperation extends JoinOperation{
 //    private static final Logger LOG = Logger.getLogger(HashNestedLoopJoinOperation.class);
-    private static final List<NodeType> nodeTypes;
-    static{
-        nodeTypes = Arrays.asList(NodeType.MAP, NodeType.SCROLL);
-    }
+    private static final List<NodeType> nodeTypes = ImmutableList.of(NodeType.MAP, NodeType.SCROLL);
 
     private int leftHashKeyItem;
     private int rightHashKeyItem;
@@ -120,6 +120,10 @@ public class HashNestedLoopJoinOperation extends JoinOperation{
 
     @Override
     public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+        if(timer == null) {
+            timer = spliceRuntimeContext.newTimer();
+            timer.startTiming();
+        }
         return next(false,spliceRuntimeContext);
     }
 
@@ -142,6 +146,7 @@ public class HashNestedLoopJoinOperation extends JoinOperation{
         ExecRow nextLeft = leftN;
         if(leftN==null) {
             clearCurrentRow();
+            timer.stopTiming();
             return null;
         }
         RingBuffer<ExecRow> rightExecRows = null;
@@ -205,6 +210,7 @@ public class HashNestedLoopJoinOperation extends JoinOperation{
                 DataValueDescriptor restrictBoolean = restriction.invoke();
                 //TODO -sf- is this truly correct? It doesn't seem that way
                 if(restrictBoolean.isNull() || restrictBoolean.getBoolean()){
+                    timer.tick(1);
                     return mergedRow;
                 }
             }
@@ -213,6 +219,7 @@ public class HashNestedLoopJoinOperation extends JoinOperation{
         }
         clearCurrentRow();
 
+        timer.stopTiming();
         return null;
     }
 
@@ -235,6 +242,17 @@ public class HashNestedLoopJoinOperation extends JoinOperation{
 
     protected ExecRow getEmptyRightRow() throws StandardException {
         return null; //for inner joins, return null here
+    }
+
+    @Override
+    protected void updateStats(OperationRuntimeStats stats) {
+        stats.addMetric(OperationMetric.INPUT_ROWS, rowsSeenLeft);
+        stats.addMetric(OperationMetric.OUTPUT_ROWS, timer.getNumEvents());
+        stats.addMetric(OperationMetric.REMOTE_SCAN_ROWS, rowsSeenRight);
+        stats.addMetric(OperationMetric.REMOTE_SCAN_BYTES, bytesReadRight);
+        stats.addMetric(OperationMetric.REMOTE_SCAN_WALL_TIME, remoteScanWallTime);
+        stats.addMetric(OperationMetric.REMOTE_SCAN_CPU_TIME, remoteScanCpuTime);
+        stats.addMetric(OperationMetric.REMOTE_SCAN_USER_TIME, remoteScanUserTime);
     }
 
     /*****************************************************************************************************************/
@@ -365,6 +383,13 @@ public class HashNestedLoopJoinOperation extends JoinOperation{
                 rightRow = nprs.getNextRow();
             }
             rightHashTable.markAllBuffers();
+            if(shouldRecordStats()) {
+                IOStats ioStats = rightRs.getStats();
+                bytesReadRight += ioStats.getBytes();
+                remoteScanCpuTime += ioStats.getTime().getCpuTime();
+                remoteScanUserTime += ioStats.getTime().getUserTime();
+                remoteScanWallTime += ioStats.getTime().getWallClockTime();
+            }
         }finally{
             rightRs.close();
         }
@@ -489,7 +514,7 @@ public class HashNestedLoopJoinOperation extends JoinOperation{
         if(missingPredicates.size()>0){
             Predicate andPred1 = AndPredicate.newAndPredicate(predicates2);
             Predicate andPred2 = AndPredicate.newAndPredicate(missingPredicates);
-            Predicate orPreds = OrPredicate.or(andPred1,andPred2);
+            Predicate orPreds = OrPredicate.or(andPred1, andPred2);
 
             return new EntryPredicateFilter(filter1.getCheckedColumns(),ObjectArrayList.from(orPreds)).toBytes();
         }else{
