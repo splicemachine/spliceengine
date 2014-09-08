@@ -26,6 +26,7 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.ResultColumnDescriptor;
 import org.apache.derby.iapi.sql.ResultDescription;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.SQLBlob;
 import org.apache.derby.iapi.types.SQLBoolean;
@@ -100,6 +101,77 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 	protected static String tableID;
 	private HashMap<List, List> tableStructure;
 	private HashMap<List, List> pks;
+	
+	private SpliceOutputFormat(){
+		super();
+		//sqlUtil = SQLUtil.getInstance();
+		
+	}
+	
+	public Configuration getConf() {
+		return this.conf;
+	}
+	public void setConf(Configuration conf) {
+		this.conf = conf;
+	}
+	
+	@Override
+	public void checkOutputSpecs(JobContext arg0) throws IOException,
+			InterruptedException {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public OutputCommitter getOutputCommitter(TaskAttemptContext arg0)
+			throws IOException, InterruptedException {
+		// TODO Auto-generated method stub
+		return new TableOutputCommitter();
+	}
+	
+	@Override
+	public RecordWriter getRecordWriter(TaskAttemptContext arg0)
+			throws IOException, InterruptedException {
+		// TODO Auto-generated method stub
+		if(conf == null)
+			throw new IOException("Error: Please set Configuration for SpliceOutputFormat");
+		if(sqlUtil == null)
+			sqlUtil = SQLUtil.getInstance(conf.get(SpliceMRConstants.SPLICE_JDBC_STR));
+		tableName = conf.get(TableOutputFormat.OUTPUT_TABLE);
+		
+		tableStructure = sqlUtil.getTableStructure(tableName);
+		pks = sqlUtil.getPrimaryKey(tableName);
+		ArrayList<String> pkColNames = null;
+		ArrayList<String> allColNames = new ArrayList<String>();
+		ArrayList<Integer> allColTypes = new ArrayList<Integer>();
+		Iterator tableiter = tableStructure.entrySet().iterator();
+		Iterator pkiter = pks.entrySet().iterator();
+	    if(tableiter.hasNext()){
+	    	Map.Entry kv = (Map.Entry)tableiter.next();
+	    	allColNames = (ArrayList<String>)kv.getKey(); 
+	    	allColTypes = (ArrayList<Integer>)kv.getValue();
+	    }
+	    if(pkiter.hasNext()){
+	    	Map.Entry kv = (Map.Entry)pkiter.next();
+	    	pkColNames = (ArrayList<String>)kv.getKey(); 	
+	    }
+	    int[]pkCols = new int[pkColNames.size()];
+	    String taskID = arg0.getTaskAttemptID().getTaskID().toString();
+	    if(pkColNames == null || pkColNames.size() == 0){
+	    	SpliceRecordWriter spw = new SpliceRecordWriter(null, allColTypes, taskID);
+			return spw;
+	    }
+	   
+	    else{
+	    	for (int i = 0; i < pkColNames.size(); i++){
+	    		pkCols[i] = allColNames.indexOf(pkColNames.get(i))+1;
+	    	}
+	    }
+	    
+	    SpliceRecordWriter spw = new SpliceRecordWriter(pkCols, allColTypes, taskID);
+		return spw;	
+	}
+	
 	protected static class SpliceRecordWriter extends RecordWriter<ImmutableBytesWritable, ExecRow> {
 	     
 		private RecordingCallBuffer callBuffer = null;
@@ -115,15 +187,15 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 		private String childTxsID = "";
 		
 		
-		private void setTaskID(String taskID)
-		{
+		private void setTaskID(String taskID){
 			this.taskID = taskID;
 		}
 		
-		public SpliceRecordWriter(int[]pkCols, ArrayList colTypes, String taskID) throws IOException
-		{
+		public SpliceRecordWriter(int[]pkCols, ArrayList colTypes, String taskID) throws IOException{
 			
 			System.out.println("Initializing SpliceRecordWriter....");
+			if(conf == null)
+				throw new IOException("Error: Please set Configuration for SpliceRecordWriter");
 			try {
 				this.colTypes = colTypes;
 				this.rowDesc = createDVD();
@@ -214,64 +286,21 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 			return new EntryDataHash(columns,null,serializers);
 	}
 		
-		private DataValueDescriptor[] createDVD()
+		private DataValueDescriptor[] createDVD() throws StandardException
 		{
 			DataValueDescriptor dvds[] = new DataValueDescriptor[colTypes.size()];
-			for(int pos = 0; pos < colTypes.size(); pos++)
-			{
-				switch(colTypes.get(pos))
-				{
-				case java.sql.Types.INTEGER:
-				
-					dvds[pos] = new SQLInteger();
-					break;
-				case java.sql.Types.BIGINT:
-					
-					dvds[pos] = new SQLLongint();
-					break;
-				case java.sql.Types.SMALLINT:
-					
-					dvds[pos] = new SQLSmallint();
-					break;
-				case java.sql.Types.BOOLEAN:
-					
-					dvds[pos] = new SQLBoolean();
-					break;
-				case java.sql.Types.DOUBLE:	
-				
-					dvds[pos] = new SQLDouble();
-					break;
-				case java.sql.Types.FLOAT:
-					
-					dvds[pos] = new SQLInteger();
-					break;
-				case java.sql.Types.CHAR:
-					
-				case java.sql.Types.VARCHAR:
-					
-					dvds[pos] = new SQLVarchar();
-					break;
-				case java.sql.Types.BINARY:	
-					
-				default:
-					dvds[pos] = new SQLBlob();
-				}
+			for(int pos = 0; pos < colTypes.size(); pos++){
+				dvds[pos] = DataTypeDescriptor.getBuiltInDataTypeDescriptor(colTypes.get(pos)).getNull();
 			}
-			return dvds;
-			
+			return dvds;			
 		}
-		
-		
 		
 		@Override
 		public void write(ImmutableBytesWritable arg0, ExecRow value)
 				throws IOException, InterruptedException {
 			// TODO Auto-generated method stub
-			
-			try {
-				
-				if(callBuffer == null)
-				{
+			try {		
+				if(callBuffer == null){
 					conn = sqlUtil.createConn();
 					sqlUtil.disableAutoCommit(conn);
 					
@@ -300,85 +329,5 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 				throw new IOException(e.getCause());
 			} 
 		}
-
 	}
-
-	
-	private SpliceOutputFormat()
-	{
-		super();
-		sqlUtil = SQLUtil.getInstance();
-	}
-
-	@Override
-	public void checkOutputSpecs(JobContext arg0) throws IOException,
-			InterruptedException {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public OutputCommitter getOutputCommitter(TaskAttemptContext arg0)
-			throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
-		return new TableOutputCommitter();
-	}
-	
-	@Override
-	public RecordWriter getRecordWriter(TaskAttemptContext arg0)
-			throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
-		tableName = conf.get(TableOutputFormat.OUTPUT_TABLE);
-		tableStructure = sqlUtil.getTableStructure(tableName);
-		pks = sqlUtil.getPrimaryKey(tableName);
-		ArrayList<String> pkColNames = null;
-		ArrayList<String> allColNames = new ArrayList<String>();
-		ArrayList<Integer> allColTypes = new ArrayList<Integer>();
-		Iterator tableiter = tableStructure.entrySet().iterator();
-		Iterator pkiter = pks.entrySet().iterator();
-	    if(tableiter.hasNext())
-	    {
-	    	Map.Entry kv = (Map.Entry)tableiter.next();
-	    	allColNames = (ArrayList<String>)kv.getKey(); 
-	    	allColTypes = (ArrayList<Integer>)kv.getValue();
-	    	
-	    }
-	    if(pkiter.hasNext())
-	    {
-	    	Map.Entry kv = (Map.Entry)pkiter.next();
-	    	pkColNames = (ArrayList<String>)kv.getKey();
-	    	
-	    }
-	    int[]pkCols = new int[pkColNames.size()];
-	    String taskID = arg0.getTaskAttemptID().getTaskID().toString();
-	    if(pkColNames == null || pkColNames.size() == 0)
-	    {
-	    	SpliceRecordWriter spw = new SpliceRecordWriter(null, allColTypes, taskID);
-			return spw;
-	    }
-	   
-	    else
-	    {
-	    	for (int i = 0; i < pkColNames.size(); i++)
-	    	{
-	    		pkCols[i] = allColNames.indexOf(pkColNames.get(i))+1;
-	    		
-	    	}
-	    }
-	    
-	    SpliceRecordWriter spw = new SpliceRecordWriter(pkCols, allColTypes, taskID);
-		return spw;
-		
-		
-		
-	}
-	public Configuration getConf() {
-		return this.conf;
-	}
-	public void setConf(Configuration conf) {
-		this.conf = conf;
-	}
-	
-	
-
 }

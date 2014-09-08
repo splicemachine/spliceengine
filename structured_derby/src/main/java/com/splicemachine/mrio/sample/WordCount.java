@@ -12,6 +12,7 @@ import java.util.NavigableMap;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.SQLDouble;
 import org.apache.derby.iapi.types.SQLInteger;
@@ -40,6 +41,7 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 
+import com.splicemachine.mrio.api.SpliceMRConstants;
 import com.splicemachine.mrio.api.SpliceOutputFormat;
 import com.splicemachine.mrio.api.SpliceTableMapReduceUtil;
 import com.splicemachine.mrio.api.SpliceJob;
@@ -146,11 +148,11 @@ public class WordCount {
 	public static void main(String[] args) throws IOException {
 		
 		// We create a table first, then import a small dataset into it.
-		
+		//DataTypeDescriptor.getBuiltInDataTypeDescriptor(jdbcType)
 		
 		// TODO Auto-generated method stub
 		Configuration config = HBaseConfiguration.create();
-		
+		config.set(SpliceMRConstants.SPLICE_JDBC_STR, "jdbc:splice://localhost:1527/splicedb;user=splice;password=admin");
 		SpliceJob job = new SpliceJob(config, NAME);
 		
 		job.setJarByClass(WordCount.class);     // class that contains mapper
@@ -160,7 +162,7 @@ public class WordCount {
 		scan.setCacheBlocks(false);  // don't set to true for MR jobs
 	    
 		String inputTableName = "WIKIDATA";
-		String outputTableName = "USERTEST4";
+		String outputTableName = "USERTEST3";
 		
 		try {
 			SpliceTableMapReduceUtil.initTableMapperJob(

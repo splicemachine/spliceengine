@@ -52,16 +52,11 @@ public class SpliceInputFormat extends InputFormat<ImmutableBytesWritable, ExecR
     private  SpliceRecordReader trr = null;
 	private  TableInputFormat tableInputFormat = new TableInputFormat();
 	
-	private SpliceInputFormat()
-	{
+	private SpliceInputFormat(){
 		
-		sqlUtil = SQLUtil.getInstance();
-
 	}
-	
-	
-	public static SpliceInputFormat getInstance()
-	{
+
+	public static SpliceInputFormat getInstance(){
 		if(inputFormat == null)
 			inputFormat = new SpliceInputFormat();
 		return inputFormat;
@@ -109,13 +104,13 @@ public class SpliceInputFormat extends InputFormat<ImmutableBytesWritable, ExecR
 	public void setConf(Configuration configuration) {
 		
 		tableName = configuration.get(SpliceMRConstants.SPLICE_INPUT_TABLE_NAME);	
-		
+		this.conf = configuration;
 		try {
+			if(sqlUtil == null)
+				sqlUtil = SQLUtil.getInstance(conf.get(SpliceMRConstants.SPLICE_JDBC_STR));
 			tableID = sqlUtil.getConglomID(tableName);
-			this.conf = configuration;
+			
 			conf.set(TableInputFormat.INPUT_TABLE, tableID);
-			
-			
 			this.tableInputFormat.setConf(conf);
 			
 		} catch (SQLException e1) {
