@@ -7,14 +7,18 @@ import java.sql.Statement;
 
 public class CreateOutputTable {
 
-	public void createTable(String tableName, String sqlStat)
+	public void createTable(String tableName, String sqlStat, String connStr)
 	{
 		try {
-			Connection conn = DriverManager.getConnection("jdbc:splice://localhost:1527/splicedb;user=splice;password=admin");
+			Class.forName("org.apache.derby.jdbc.ClientDriver");
+			Connection conn = DriverManager.getConnection(connStr);
 			Statement stmt = conn.createStatement();
 			stmt.execute(sqlStat);
 			
 		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
@@ -24,12 +28,14 @@ public class CreateOutputTable {
 		
 		//arg0: Table name
 		//arg1: SQL statment for creating table
-		if(args.length < 2)
+		if(args.length < 3)
 			throw new Exception("missing argument");
 		String tableName = args[0];
 		String sqlStat = args[1];
+		String connStr = args[2];
+		System.out.println(connStr);
 		CreateOutputTable cot = new CreateOutputTable();
-		cot.createTable(tableName, sqlStat);
+		cot.createTable(tableName, sqlStat, connStr);
 	}
 
 }
