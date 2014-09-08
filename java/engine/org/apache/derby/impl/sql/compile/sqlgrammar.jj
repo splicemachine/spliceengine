@@ -10080,13 +10080,16 @@ overClause(String functionName) throws StandardException :
 	    if(orderCols == null && frameDefn.getFrameMode() == WindowFrameDefinition.FrameMode.RANGE) {
             frameDefn = new WindowFrameDefinition(false);
 	    }
-	    frameDefn.setContextManager(getContextManager());
+	    OverClause overClause = new OverClause.Builder(getContextManager())
+	        .setPartition(partitionCols)
+	        .setOrderByClause(orderCols)
+	        .setFrameDefinition(frameDefn)
+	        .build();
+
 		return (QueryTreeNode) nodeFactory.getNode(
 			C_NodeTypes.WINDOW_DEFINITION_NODE,
 			functionName,
-			partitionCols,
-			orderCols,
-			frameDefn,
+			overClause,
 			getContextManager());
 	}
  |

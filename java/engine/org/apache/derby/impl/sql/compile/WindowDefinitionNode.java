@@ -37,42 +37,25 @@ public final class WindowDefinitionNode extends WindowNode
     private boolean inlined;
 
     /**
-     * The partition by list if the window definition contains a <window partition
-     * clause>, else null.
+     * The over() clause of the window function containing partition,
+     * over by and frame definition.
      */
-    private Partition partition;
-
-    /**
-     * The order by list if the window definition contains a <window order
-     * clause>, else null.
-     */
-    private OrderByList orderByList;
-
-    /**
-     * The window frame.
-     */
-    private WindowFrameDefinition frameExtent;
+    private OverClause overClause;
 
     /**
      * Initializer.
      *
      * @param arg1 The window name, null if in-lined definition
-     * @param arg2 GROUP BY list (partition)
-     * @param arg3 ORDER BY list
-     * @param arg4 frame
+     * @param arg2 OverClause containing partition, order by and frame spec
      * @exception StandardException
      */
     public void init(Object arg1,
-                     Object arg2,
-                     Object arg3,
-                     Object arg4)
+                     Object arg2)
         throws StandardException
     {
         String name = (String)arg1;
 
-        partition = (Partition)arg2;
-        orderByList = (OrderByList)arg3;
-        frameExtent = (WindowFrameDefinition)arg4;
+        overClause = (OverClause)arg2;
 
         if (name != null) {
             super.init(arg1);
@@ -85,12 +68,14 @@ public final class WindowDefinitionNode extends WindowNode
 
     public void bind(SelectNode target) throws StandardException {
         // bind partition
+        Partition partition = overClause.getPartition();
         if (partition != null) {
             Vector partitionAggregateVector = new Vector();
             partition.bindGroupByColumns(target, partitionAggregateVector);
         }
 
         // bind order by
+        OrderByList orderByList = overClause.getOrderByClause();
         if (orderByList != null) {
             FromList fromList = target.getFromList();
             for (int i=0; i<orderByList.size(); ++i) {
@@ -119,18 +104,18 @@ public final class WindowDefinitionNode extends WindowNode
     }
 
     public Partition getPartition() {
-        return partition;
+        return overClause.getPartition();
     }
 
     public WindowFrameDefinition getFrameExtent() {
-        return frameExtent;
+        return overClause.getFrameDefinition();
     }
 
     /**
      * @return the order by list of this window definition if any, else null.
      */
     public OrderByList getOrderByList() {
-        return orderByList;
+        return overClause.getOrderByClause();
     }
 
     /**
@@ -141,30 +126,8 @@ public final class WindowDefinitionNode extends WindowNode
         if (this == other) return true;
         if (other == null) return false;
 
-        if (frameExtent != null ? !frameExtent.isEquivalent(other.frameExtent) : other.frameExtent != null) return false;
-        if (orderByList != null ? !isEquivalent(orderByList, other.orderByList) : other.orderByList != null) return false;
-        if (partition != null ? !partition.isEquivalent(other.partition) : other.partition != null) return false;
+        return !(overClause != null ? !overClause.isEquivalent(other.overClause) : other.overClause != null);
 
-        return true;
-    }
-
-    private boolean isEquivalent(OrderByList thisOne, OrderByList thatOne) throws StandardException {
-        if (thisOne == thatOne) return true;
-        if ((thisOne != null && thatOne == null) || (thisOne == null)) return false;
-        if (thisOne.allAscending() != thatOne.allAscending()) return false;
-        if (thisOne.size() != thatOne.size()) return false;
-
-        for (int i=0; i<thatOne.size(); i++) {
-            ResultColumn thisResultCol = thisOne.getOrderByColumn(i).getResultColumn();
-            ResultColumn thatResultCol = thatOne.getOrderByColumn(i).getResultColumn();
-            if (thisResultCol != null && thatResultCol != null) {
-                if (! thisResultCol.isEquivalent(thatResultCol)) {
-                    return false;
-                }
-            } else if (thisResultCol == null)
-                return false;
-        }
-        return true;
     }
 
     /**
@@ -174,27 +137,7 @@ public final class WindowDefinitionNode extends WindowNode
     public String toString() {
         return ("name: " + getName() + "\n" +
             "inlined: " + inlined + "\n" +
-            "partition: " + partition + "\n" +
-            "orderby: " + printOrderByList() + "\n" +
-            frameExtent + "\n");
-    }
-
-    private String printOrderByList() {
-        if (orderByList == null) {
-            return "";
-        }
-        StringBuilder buf = new StringBuilder("\n");
-        for (int i=0; i<orderByList.size(); ++i) {
-            OrderByColumn col = orderByList.getOrderByColumn(i);
-//            buf.append("column_name: ").append(col.getResultColumn().getColumnName()).append("\n");
-            buf.append("column_name: ").append(col.getColumnExpression().getColumnName()).append("\n");
-            // Lang col indexes are 1-based, storage col indexes are zero-based
-            buf.append("columnid: ").append(col.getColumnPosition()).append("\n");
-            buf.append("ascending: ").append(col.isAscending()).append("\n");
-            buf.append("nullsOrderedLow: ").append(col.isAscending()).append("\n");
-        }
-//        if (buf.length() > 0) { buf.setLength(buf.length()-1); }
-        return buf.toString();
+            overClause + "\n");
     }
 
     /**
@@ -204,25 +147,13 @@ public final class WindowDefinitionNode extends WindowNode
      * @param depth     The depth of this node in the tree
      */
 
-    public void printSubNodes(int depth)
-    {
-        if (SanityManager.DEBUG)
-        {
+    public void printSubNodes(int depth) {
+        if (SanityManager.DEBUG) {
             super.printSubNodes(depth);
 
-            if (partition != null) {
-                printLabel(depth, "partition: "  + depth);
-                partition.treePrint(depth + 1);
-            }
-
-            if (orderByList != null) {
-                printLabel(depth, "orderByList: "  + depth);
-                orderByList.treePrint(depth + 1);
-            }
-
-            if (frameExtent != null) {
-                printLabel(depth, "frame: "  + depth);
-                frameExtent.treePrint(depth + 1);
+            if (overClause != null) {
+                printLabel(depth, "over: "  + depth);
+                overClause.treePrint(depth + 1);
             }
         }
     }

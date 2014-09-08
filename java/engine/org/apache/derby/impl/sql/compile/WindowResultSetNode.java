@@ -69,19 +69,19 @@ import org.apache.derby.impl.sql.execute.WindowFunctionInfoList;
  */
 public class WindowResultSetNode extends SingleChildResultSetNode {
 
-    WindowDefinitionNode wdn;
+    private WindowDefinitionNode wdn;
 
     /**
      * The list of all window functions in the query block
      * that contains this partition.
      */
-    Vector<WindowFunctionNode> windowFunctions;
+    private Vector<WindowFunctionNode> windowFunctions;
 
     /**
      * The list of aggregate nodes we've processed as
      * window functions
      */
-    Vector<AggregateNode> processedAggregates = new Vector<AggregateNode>();
+    private Vector<AggregateNode> processedAggregates = new Vector<AggregateNode>();
 
     /**
      * Information that is used at execution time to
@@ -93,7 +93,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      * The parent to the WindowResultSetNode.  We generate a ProjectRestrict
      * over the windowing node and parent is set to that node.
      */
-    FromTable parent;
+    private FromTable parent;
 
     // Is the source in sorted order
     private boolean isInSortedOrder;
