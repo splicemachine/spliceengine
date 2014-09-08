@@ -14,7 +14,7 @@ import java.util.concurrent.ExecutionException;
  * @author Scott Fines
  *         Date: 9/5/14
  */
-public class SimpleCompletedTxnCacheSupplier implements TxnSupplier,TransactionCacheManagement{
+public class SimpleCompletedTxnCacheSupplier implements TxnSupplier{
     private final Cache<Long,TxnView> cache;
     private final TxnSupplier delegate;
     private final int maxSize;
@@ -60,37 +60,13 @@ public class SimpleCompletedTxnCacheSupplier implements TxnSupplier,TransactionC
         return cache.getIfPresent(txnId);
     }
 
-    @Override
-    public long getTotalEvictedEntries() {
-        return cache.stats().evictionCount();
-    }
+    public long getTotalEvictedEntries() { return cache.stats().evictionCount(); }
+    public long getTotalHits() { return cache.stats().hitCount(); }
+    public long getTotalMisses() { return cache.stats().missCount(); }
+    public long getTotalRequests() { return cache.stats().requestCount(); }
+    public float getHitPercentage() { return (float)cache.stats().hitRate(); }
+    public int getCurrentSize() { return (int)cache.size(); }
 
-    @Override
-    public long getTotalHits() {
-        return cache.stats().hitCount();
-    }
-
-    @Override
-    public long getTotalMisses() {
-        return cache.stats().missCount();
-    }
-
-    @Override
-    public long getTotalRequests() {
-        return cache.stats().requestCount();
-    }
-
-    @Override
-    public float getHitPercentage() {
-        return (float)cache.stats().hitRate();
-    }
-
-    @Override
-    public int getCurrentSize() {
-        return (int)cache.size();
-    }
-
-    @Override
     public int getMaxSize() {
         return maxSize;
     }

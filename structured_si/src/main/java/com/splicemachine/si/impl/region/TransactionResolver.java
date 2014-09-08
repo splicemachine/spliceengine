@@ -10,6 +10,7 @@ import com.splicemachine.encoding.Encoding;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.impl.SparseTxn;
 import com.splicemachine.si.impl.TxnUtils;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -95,7 +96,7 @@ public class TransactionResolver {
         disruptor.start();
     }
 
-    public void resolveTimedOut(HRegion txnRegion,long txnId,boolean oldForm){
+    public void resolveTimedOut(HRegion txnRegion,SparseTxn txn,boolean oldForm){
         if(stopped) return; //we aren't running, so do nothing
         long sequence;
         try{
@@ -110,14 +111,14 @@ public class TransactionResolver {
             TxnResolveEvent event = ringBuffer.get(sequence);
             event.txnRegion = txnRegion;
             event.timedOut = true;
-            event.txnId = txnId;
+            event.txn = txn;
             event.oldForm = oldForm;
         }finally{
             ringBuffer.publish(sequence);
         }
     }
 
-    public void resolveGlobalCommitTimestamp(HRegion txnRegion, long txn,boolean oldForm){
+    public void resolveGlobalCommitTimestamp(HRegion txnRegion, SparseTxn txn,boolean oldForm){
         if(stopped) return; //we aren't running, so do nothing
         long sequence;
         try{
@@ -132,7 +133,7 @@ public class TransactionResolver {
             TxnResolveEvent event = ringBuffer.get(sequence);
             event.txnRegion = txnRegion;
             event.timedOut = false;
-            event.txnId = txn;
+            event.txn = txn;
             event.oldForm = oldForm;
         }finally{
             ringBuffer.publish(sequence);
@@ -141,9 +142,9 @@ public class TransactionResolver {
 
     private static class TxnResolveEvent{
         private boolean timedOut;
-        private long txnId;
         private HRegion txnRegion;
         private boolean oldForm;
+        private SparseTxn txn;
     }
 
 
@@ -151,23 +152,25 @@ public class TransactionResolver {
         @Override
         public void onEvent(TxnResolveEvent event, long sequence, boolean endOfBatch) throws Exception {
             if(event.timedOut){
-                resolveTimeOut(event.txnRegion,event.txnId,event.oldForm);
+                resolveTimeOut(event.txnRegion,event.txn,event.oldForm);
             }
-//            else
-//                resolveCommit(event.txnRegion,event.txnId,event.oldForm);
+            else
+                resolveCommit(event.txnRegion,event.txn,event.oldForm);
         }
     }
 
-    private void resolveCommit(HRegion txnRegion, long txnId,boolean oldForm) throws IOException {
+    private void resolveCommit(HRegion txnRegion, SparseTxn txn,boolean oldForm) throws IOException {
+        if(txn.getState()!= Txn.State.COMMITTED) return; //not committed, don't do anything
+        long txnId = txn.getTxnId();
         try{
-            TxnView view = txnSupplier.getTransaction(txnId);
+            TxnView parentView = txnSupplier.getTransaction(txn.getParentTxnId());
         /*
          * The logic necessary to acquire the transaction's global commit timestamp
          * is actually contained within the TxnView. We rely on the getEffectiveCommitTimestamp()
          * to properly obtain our global commit timestamp for us, then we just write it back to the proper
          * location.
          */
-            long globalCommitTs = view.getEffectiveCommitTimestamp();
+            long globalCommitTs = parentView.getEffectiveCommitTimestamp();
             if(globalCommitTs<0) return; //transaction isn't actually committed, so don't do it
 
             SpliceLogUtils.trace(LOG,"Adding global commit timestamp to transaction %d", txnId);
@@ -185,7 +188,8 @@ public class TransactionResolver {
         }
     }
 
-    private void resolveTimeOut(HRegion txnRegion,long txnId,boolean oldForm) {
+    private void resolveTimeOut(HRegion txnRegion,SparseTxn txn,boolean oldForm) {
+        long txnId = txn.getTxnId();
         try{
             Put put = new Put(TxnUtils.getRowKey(txnId));
 

@@ -47,4 +47,29 @@ public interface TxnStore extends TxnSupplier {
 
     List<TxnView> getActiveTransactions(long minTxnid, long maxTxnId,byte[] table) throws IOException;
 
+    /**
+     * @return a count of the total number of store lookups made since the server last started
+     */
+    long lookupCount();
+
+    /**
+     * @return a count of the total number of transactions elevated since the server last started
+     */
+    long elevationCount();
+
+    /**
+     * @return a count of the total number of writable transactions created since the server last started
+     */
+    long createdCount();
+
+    /**
+     * @return a count of the total number of transaction rollbacks made since the server last started
+     */
+    long rollbackCount();
+
+    /**
+     * @return a count of the total number of transaction commits made since the server last started
+     */
+    long commitCount();
+
 }

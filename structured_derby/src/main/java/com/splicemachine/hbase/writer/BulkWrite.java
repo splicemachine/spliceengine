@@ -1,16 +1,16 @@
 package com.splicemachine.hbase.writer;
 
+import com.carrotsearch.hppc.LongArrayList;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.si.api.TransactionStorage;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.ActiveWriteTxn;
 import com.splicemachine.si.impl.InheritingTxnView;
-import com.splicemachine.si.impl.LazyTxn;
+import com.splicemachine.si.impl.LazyTxnView;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.io.compress.SnappyCodec;
 
@@ -127,9 +127,21 @@ public class BulkWrite implements Externalizable {
 		public byte[] toBytes() throws IOException {
 				Output output = new Output(1024,-1);
 				output.writeLong(txn.getTxnId());
-				output.writeLong(txn.getBeginTimestamp());
-				output.writeLong(txn.getParentTxnId());
 				output.writeBoolean(txn.isAdditive());
+        output.writeByte(txn.getIsolationLevel().encode());
+        TxnView parent = txn.getParentTxnView();
+        LongArrayList txnIds = LongArrayList.newInstance();
+        while(!Txn.ROOT_TRANSACTION.equals(parent)){
+            txnIds.add(parent.getTxnId());
+            parent = parent.getParentTxnView();
+        }
+        int parentTxnSize = txnIds.size();
+        long[] elems = txnIds.buffer;
+        output.writeInt(parentTxnSize);
+        for(int i=1;i<=parentTxnSize;i++){
+            output.writeLong(elems[parentTxnSize-i]);
+        }
+
 				Object[] buffer = mutations.buffer;
 				int size = mutations.size();
 				for(int i=0;i< size;i++){
@@ -144,15 +156,17 @@ public class BulkWrite implements Externalizable {
 				Input input = new Input(bulkWriteBytes);
 
 				long txnId = input.readLong();
-				long beginTs = input.readLong();
-				long parentTxnId = input.readLong();
 				boolean additive = input.readBoolean();
+        Txn.IsolationLevel level = Txn.IsolationLevel.fromByte(input.readByte());
 
-        TxnView parentTxn;
-        if(parentTxnId>=0) parentTxn = txnStore.getTransaction(parentTxnId);
-        else parentTxn = Txn.ROOT_TRANSACTION;
+        int parents = input.readInt();
+        TxnView parent = Txn.ROOT_TRANSACTION;
+        for(int i=0;i<parents;i++){
+            long ts = input.readLong();
+            parent = new ActiveWriteTxn(ts,ts,parent,additive,level);
+        }
 
-        TxnView writeTxn = new ActiveWriteTxn(txnId,beginTs,parentTxn,additive);
+        TxnView writeTxn = new ActiveWriteTxn(txnId,txnId,parent,additive);
 				ObjectArrayList<KVPair> mutations = new ObjectArrayList<KVPair>();
 				while(input.available()>0){
 						mutations.add(KVPair.fromBytes(input));

@@ -5,6 +5,7 @@ import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.InheritingTxnView;
+import com.splicemachine.si.impl.LazyTxnView;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -120,7 +121,7 @@ public class DDLChange implements Externalizable {
                 ", identifier='" + changeId + '\'' +
                 '}';
         TxnSupplier txnSupplier = TransactionStorage.getTxnSupplier();
-        txn = txnSupplier.getTransaction(txnId);
+        txn = new LazyTxnView(txnId,txnSupplier);
 
 //        if(in.readBoolean()){
 //            long pTxnId = in.readLong();

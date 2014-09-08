@@ -344,7 +344,7 @@ public class TransactionInteractionTest {
 
     @Test
     public void testTwoAdditiveTransactionsUseReadUncommittedIsolationLevel() throws Exception {
-        String name = "scott7";
+        String name = "scott10";
         Txn userTxn = control.beginTransaction(DESTINATION_TABLE);
         Txn child1 = control.beginChildTransaction(userTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION,true,DESTINATION_TABLE);
         Txn child2 = control.beginChildTransaction(userTxn,Txn.IsolationLevel.SNAPSHOT_ISOLATION,true,null);
@@ -355,7 +355,7 @@ public class TransactionInteractionTest {
 
     @Test(expected=WriteConflict.class)
     public void testOnlyOneAdditiveTransactionConflicts() throws Throwable {
-        String name = "scott7";
+        String name = "scott9";
         Txn userTxn = control.beginTransaction(DESTINATION_TABLE);
         Txn child1 = control.beginChildTransaction(userTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION,true,DESTINATION_TABLE);
         Txn child2 = control.beginChildTransaction(userTxn,Txn.IsolationLevel.SNAPSHOT_ISOLATION,false,DESTINATION_TABLE);
@@ -370,7 +370,7 @@ public class TransactionInteractionTest {
 
     @Test(expected=WriteConflict.class)
     public void testTwoAdditiveTransactionsWithDifferentParentsConflicts() throws Throwable {
-        String name = "scott7";
+        String name = "scott12";
         Txn userTxn = control.beginTransaction(DESTINATION_TABLE);
         Txn child1 = control.beginChildTransaction(userTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION,true,DESTINATION_TABLE);
         Txn u2 = control.beginTransaction(DESTINATION_TABLE);
@@ -386,7 +386,7 @@ public class TransactionInteractionTest {
 
     @Test(expected=WriteConflict.class)
     public void testAdditiveGrandchildConflictsWithAdditiveChild() throws Throwable {
-        String name = "scott7";
+        String name = "scott8";
         Txn userTxn = control.beginTransaction(DESTINATION_TABLE);
         Txn child1 = control.beginChildTransaction(userTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION,true,DESTINATION_TABLE);
         Txn child2 = control.beginChildTransaction(userTxn,Txn.IsolationLevel.SNAPSHOT_ISOLATION,false,DESTINATION_TABLE);

@@ -141,8 +141,8 @@ public class RegionTxnStoreTest {
 
     protected TransactionResolver getTransactionResolver() {
         TransactionResolver resolver = mock(TransactionResolver.class);
-        doNothing().when(resolver).resolveGlobalCommitTimestamp(any(HRegion.class), anyLong(), anyBoolean());
-        doNothing().when(resolver).resolveTimedOut(any(HRegion.class), anyLong(), anyBoolean());
+        doNothing().when(resolver).resolveGlobalCommitTimestamp(any(HRegion.class), any(SparseTxn.class), anyBoolean());
+        doNothing().when(resolver).resolveTimedOut(any(HRegion.class), any(SparseTxn.class), anyBoolean());
         return resolver;
     }
 

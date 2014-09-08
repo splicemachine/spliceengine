@@ -23,6 +23,7 @@ import org.apache.hadoop.hbase.client.coprocessor.Batch;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Transaction Store which uses the TxnLifecycleEndpoint to manage and access transactions
@@ -39,6 +40,13 @@ public class CoprocessorTxnStore implements TxnStore{
 		private final HTableInterfaceFactory tableFactory;
 		private TxnSupplier cache; //a transaction store which uses a global cache for us
 		@ThreadSafe private final  TimestampSource timestampSource;
+
+    /*monitoring fields*/
+    private final AtomicLong lookups = new AtomicLong(0l);
+    private final AtomicLong elevations = new AtomicLong(0l);
+    private final AtomicLong txnsCreated = new AtomicLong(0l);
+    private final AtomicLong rollbacks = new AtomicLong(0l);
+    private final AtomicLong commits = new AtomicLong(0l);
 
 		public CoprocessorTxnStore(HTableInterfaceFactory tableFactory,
 															 TimestampSource timestampSource,
@@ -58,6 +66,7 @@ public class CoprocessorTxnStore implements TxnStore{
 						byte[] rowKey = TxnUtils.getRowKey(txn.getTxnId());
 						TxnLifecycleProtocol txnLifecycleProtocol = table.coprocessorProxy(TxnLifecycleProtocol.class, rowKey);
 						txnLifecycleProtocol.recordTransaction(txn.getTxnId(),encode(txn));
+            txnsCreated.incrementAndGet(); //only record stats if the record succeeds
 				}finally{
 						table.close();
 				}
@@ -71,6 +80,7 @@ public class CoprocessorTxnStore implements TxnStore{
 						byte[] rowKey = getTransactionRowKey(txnId);
 						TxnLifecycleProtocol txnLifecycleProtocol = table.coprocessorProxy(TxnLifecycleProtocol.class, rowKey);
 						txnLifecycleProtocol.rollback(txnId);
+            rollbacks.incrementAndGet();
 				}finally{
 						table.close();
 				}
@@ -82,7 +92,9 @@ public class CoprocessorTxnStore implements TxnStore{
 				try{
 						byte[] rowKey = getTransactionRowKey(txnId);
 						TxnLifecycleProtocol txnLifecycleProtocol = table.coprocessorProxy(TxnLifecycleProtocol.class, rowKey);
-						return txnLifecycleProtocol.commit(txnId);
+            long commit = txnLifecycleProtocol.commit(txnId);
+            commits.incrementAndGet();
+            return commit;
 				}finally{
 						table.close();
 				}
@@ -107,6 +119,7 @@ public class CoprocessorTxnStore implements TxnStore{
 						byte[] rowKey = getTransactionRowKey(txn.getTxnId());
 						TxnLifecycleProtocol txnLifecycleProtocol = table.coprocessorProxy(TxnLifecycleProtocol.class, rowKey);
 						txnLifecycleProtocol.elevateTransaction(txn.getTxnId(),newDestinationTable);
+            elevations.incrementAndGet();
 				}finally{
 						table.close();
 				}
@@ -193,6 +206,7 @@ public class CoprocessorTxnStore implements TxnStore{
 
 		@Override
 		public TxnView getTransaction(long txnId, boolean getDestinationTables) throws IOException {
+        lookups.incrementAndGet(); //we are performing a lookup, so increment the counter
 				HTableInterface table =
 								tableFactory.createHTableInterface(SpliceConstants.config,
 												SIConstants.TRANSACTION_TABLE_BYTES);
@@ -208,14 +222,27 @@ public class CoprocessorTxnStore implements TxnStore{
 				}
 		}
 
+    /*caching methods--since we don't have a cache, these are no-ops*/
 		@Override public boolean transactionCached(long txnId) { return false; }
-
 		@Override public void cache(TxnView toCache) {  }
+    @Override public TxnView getTransactionFromCache(long txnId) { return null; }
 
-    @Override
-    public TxnView getTransactionFromCache(long txnId) {
-        return null;
-    }
+    /**
+     * Set the underlying transaction cache to use.
+     *
+     * This allows us to provide a transaction cache when looking up parent transactions,
+     * which will reduce some of the cost of looking up a transaction.
+     *
+     * @param cacheStore the caching store to use
+     */
+    public void setCache(TxnSupplier cacheStore) { this.cache = cacheStore; }
+
+    /*monitoring methods*/
+    public long lookupCount() { return lookups.get(); }
+    public long elevationCount() { return elevations.get(); }
+    public long createdCount() { return txnsCreated.get(); }
+    public long rollbackCount() { return rollbacks.get(); }
+    public long commitCount() { return commits.get(); }
 
     /******************************************************************************************************************/
 		/*private helper methods*/
@@ -335,14 +362,11 @@ public class CoprocessorTxnStore implements TxnStore{
 				return encoder.build();
 		}
 
-		private byte[] getTransactionRowKey(long txnId) {
-				byte[] newRowKey = new byte[10];
-				newRowKey[0] = (byte)(txnId & (SpliceConstants.TRANSACTION_TABLE_BUCKET_COUNT-1)); //assign the bucket
-				BytesUtil.longToBytes(txnId, newRowKey, 2);
-				return newRowKey;
-		}
 
-		public void setCache(TxnSupplier cacheStore) {
-			this.cache = cacheStore;
-		}
+    private byte[] getTransactionRowKey(long txnId) {
+        byte[] newRowKey = new byte[10];
+        newRowKey[0] = (byte)(txnId & (SpliceConstants.TRANSACTION_TABLE_BUCKET_COUNT-1)); //assign the bucket
+        BytesUtil.longToBytes(txnId, newRowKey, 2);
+        return newRowKey;
+    }
 }

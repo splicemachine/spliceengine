@@ -1,7 +1,6 @@
 package com.splicemachine.si.impl.region;
 
 import com.carrotsearch.hppc.LongArrayList;
-import com.google.common.collect.Lists;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.encoding.Encoding;
@@ -357,10 +356,10 @@ public class RegionTxnStore {
                     case ACTIVE:
                         return txn;
                     case ROLLEDBACK:
-                        resolver.resolveTimedOut(region,txn.getTxnId(),oldForm);
+                        resolver.resolveTimedOut(region,txn,oldForm);
                         return null;
                     case COMMITTED:
-                        resolver.resolveGlobalCommitTimestamp(region,txn.getTxnId(),oldForm);
+                        resolver.resolveGlobalCommitTimestamp(region,txn,oldForm);
                         return null;
                 }
 
@@ -430,7 +429,7 @@ public class RegionTxnStore {
         switch(txn.getState()){
             case ROLLEDBACK:
                 if(txn.isTimedOut()){
-                    resolver.resolveTimedOut(region,txn.getTxnId(),oldForm);
+                    resolver.resolveTimedOut(region,txn,oldForm);
                 }
                 break;
             case COMMITTED:
@@ -440,7 +439,7 @@ public class RegionTxnStore {
                  * has been committed; still, submit this to the resolver on the off chance that it
                  * has been fully committed, so we can get away with the global commit work.
                  */
-                    resolver.resolveGlobalCommitTimestamp(region,txn.getTxnId(),oldForm);
+                    resolver.resolveGlobalCommitTimestamp(region,txn,oldForm);
                 }
         }
     }

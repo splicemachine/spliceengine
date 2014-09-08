@@ -131,7 +131,7 @@ public class SimpleTxnFilter implements TxnFilter {
 					return;
 				}
 
-				TxnView t = transactionStore.getTransaction(ts);
+				TxnView t = fetchTransaction(ts);
 				assert t!=null :"Could not find a transaction for id "+ ts;
 
         //submit it to the resolver to resolve asynchronously
@@ -179,15 +179,20 @@ public class SimpleTxnFilter implements TxnFilter {
 		}
 
 		private boolean isVisible(long txnId) throws IOException {
+        TxnView toCompare = fetchTransaction(txnId);
+				return myTxn.canSee(toCompare);
+		}
+
+    private TxnView fetchTransaction(long txnId) throws IOException {
         TxnView toCompare = currentTxn;
         if(currentTxn==null || currentTxn.getTxnId()!=txnId){
             toCompare = transactionStore.getTransaction(txnId);
             currentTxn = toCompare;
         }
-				return myTxn.canSee(toCompare);
-		}
+        return toCompare;
+    }
 
-		private void addToAntiTombstoneCache(KeyValue kv) throws IOException {
+    private void addToAntiTombstoneCache(KeyValue kv) throws IOException {
 				long txnId = kv.getTimestamp();
         if(isVisible(txnId)){
 						/*

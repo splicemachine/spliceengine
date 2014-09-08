@@ -256,6 +256,12 @@ public class InMemoryTxnStore implements TxnStore {
         return txns;
     }
 
+    @Override public long lookupCount() { return 0; }
+    @Override public long elevationCount() { return 0; }
+    @Override public long createdCount() { return 0; }
+    @Override public long rollbackCount() { return 0; }
+    @Override public long commitCount() { return 0; }
+
     public boolean keepAlive(Txn txn) throws TransactionTimeoutException {
 				Lock wl = lockStriper.get(txn.getTxnId()).writeLock();
 				wl.lock();

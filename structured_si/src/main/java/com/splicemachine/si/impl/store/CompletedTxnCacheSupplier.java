@@ -2,7 +2,6 @@ package com.splicemachine.si.impl.store;
 
 import com.splicemachine.hash.Hash32;
 import com.splicemachine.hash.HashFunctions;
-import com.splicemachine.si.api.TransactionCacheManagement;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnSupplier;
 import org.cliffc.high_scale_lib.Counter;
@@ -10,7 +9,6 @@ import com.splicemachine.si.api.TxnView;
 
 import java.io.IOException;
 import java.lang.ref.SoftReference;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -57,7 +55,7 @@ public class CompletedTxnCacheSupplier implements TxnSupplier {
 				this.delegate = delegate;
 		}
 
-		@Override public int getCurrentSize() {
+		public int getCurrentSize() {
         int totalSize = 0;
         for(Segment segment:segments){
             totalSize+=segment.size;
@@ -65,29 +63,28 @@ public class CompletedTxnCacheSupplier implements TxnSupplier {
         return totalSize;
     }
 
-		@Override public int getMaxSize() {
-        return maxSize*segments.length;
-    }
-		@Override public long getTotalHits() { return hits.get(); }
-		@Override public long getTotalRequests() { return requests.get(); }
-		@Override public long getTotalMisses() { return getTotalRequests()-getTotalHits(); }
+		public int getMaxSize() { return maxSize*segments.length; }
+		public long getTotalHits() { return hits.get(); }
+		public long getTotalRequests() { return requests.get(); }
+		public long getTotalMisses() { return getTotalRequests()-getTotalHits(); }
 
-		@Override
 		public float getHitPercentage() {
 				long totalRequests = getTotalRequests();
 				long hits = getTotalHits();
 				return (float)(((double)hits)/totalRequests);
 		}
 
-		@Override public long getTotalEvictedEntries() { return evicted.get(); }
+		public long getTotalEvictedEntries() { return evicted.get(); }
 
 		@Override
 		public TxnView getTransaction(long txnId) throws IOException {
+        if(txnId==-1) return Txn.ROOT_TRANSACTION;
 				return getTransaction(txnId,false);
 		}
 
 		@Override
 		public TxnView getTransaction(long txnId, boolean getDestinationTables) throws IOException {
+        if(txnId==-1) return Txn.ROOT_TRANSACTION;
 				requests.incrementAndGet();
 				int hash = hashFunction.hash(txnId);
 
@@ -102,7 +99,7 @@ public class CompletedTxnCacheSupplier implements TxnSupplier {
         if(transaction==null) //noinspection ConstantConditions
             return transaction; //don't cache read-only transactions;
 
-				switch(transaction.getState()){
+				switch(transaction.getEffectiveState()){
 						case COMMITTED:
 						case ROLLEDBACK:
 								segments[pos].put(transaction); //it's been completed, so cache it for future use

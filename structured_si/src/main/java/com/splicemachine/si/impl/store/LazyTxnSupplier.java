@@ -3,7 +3,7 @@ package com.splicemachine.si.impl.store;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.api.TxnView;
-import com.splicemachine.si.impl.LazyTxn;
+import com.splicemachine.si.impl.LazyTxnView;
 
 import java.io.IOException;
 
@@ -37,7 +37,7 @@ public class LazyTxnSupplier implements TxnSupplier {
         TxnView cached = delegate.getTransactionFromCache(txnId);
         if(cached!=null) return cached;
 
-				return new LazyTxn(txnId,delegate);
+				return new LazyTxnView(txnId,delegate);
 		}
 
 		@Override
