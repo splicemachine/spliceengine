@@ -82,9 +82,9 @@ public class SelectNode extends ResultSetNode
 	GroupByList	groupByList;
 
 	/**
-	 * List of windows.
+	 * List of windowNodeList.
 	 */
-	WindowList windows;
+	private WindowList windowNodeList;
 
 	/**
 	 * List of window function calls (e.g. ROW_NUMBER, AVG(i), DENSE_RANK).
@@ -170,7 +170,7 @@ public class SelectNode extends ResultSetNode
 		// in-line window specifications used in window functions in the SELECT
 		// column list and in genProjectRestrict for such window specifications
 		// used in window functions in ORDER BY.
-		this.windows = (WindowList)windowDefinitionList;
+		this.windowNodeList = (WindowList)windowDefinitionList;
 
 		bindTargetListOnly = false;
 		
@@ -206,8 +206,8 @@ public class SelectNode extends ResultSetNode
 
 				if (wfn.getWindow() instanceof WindowDefinitionNode) {
 					// Window function call contains an inline definition, add
-					// it to our list of windows.
-					windows = addInlinedWindowDefinition(windows, wfn);
+					// it to our list of windowNodeList.
+					windowNodeList = addInlinedWindowDefinition(windowNodeList, wfn);
 				} else {
 					// a window reference, bind it later.
                     // FIXME: when, where?
@@ -240,7 +240,7 @@ public class SelectNode extends ResultSetNode
 		} else {
 			// remember this window for posterity
 
-			wl.addWindow((WindowDefinitionNode)wfn.getWindow());
+			wl.addWindow(wfn.getWindow());
 		}
 
 		return wl;
@@ -351,10 +351,10 @@ public class SelectNode extends ResultSetNode
 				preJoinFL.treePrint(depth + 1);
 			}
 
-			if (windows != null)
+			if (windowNodeList != null)
 			{
 				printLabel(depth, "windows: ");
-				windows.treePrint(depth + 1);
+				windowNodeList.treePrint(depth + 1);
 			}
 		}
 	}
@@ -562,7 +562,7 @@ public class SelectNode extends ResultSetNode
 		// no resolution is necessary. See also
 		// WindowFunctionNode.bindExpression.
 
-		fromListParam.setWindows(windows);
+		fromListParam.setWindows(windowNodeList);
 
 		resultColumns.bindExpressions(fromListParam, 
 									  selectSubquerys,
@@ -677,8 +677,8 @@ public class SelectNode extends ResultSetNode
 
         /* Bind the window node - partition and orderby */
         if (hasWindows()) {
-            for (int i=0; i<windows.size(); ++i) {
-                WindowDefinitionNode wdn = (WindowDefinitionNode) windows.elementAt(i);
+            for (int i=0; i<windowNodeList.size(); ++i) {
+                WindowDefinitionNode wdn = (WindowDefinitionNode) windowNodeList.elementAt(i);
                 wdn.bind(this);
             }
         }
@@ -1283,8 +1283,8 @@ public class SelectNode extends ResultSetNode
 
 				if (wfn.getWindow() instanceof WindowDefinitionNode) {
 					// Window function call contains an inline definition, add
-					// it to our list of windows.
-					windows = addInlinedWindowDefinition(windows, wfn);
+					// it to our list of windowNodeList.
+					windowNodeList = addInlinedWindowDefinition(windowNodeList, wfn);
 
 				} else {
 					// a window reference, should be bound already.
@@ -1493,39 +1493,41 @@ public class SelectNode extends ResultSetNode
 								null,
 								getContextManager()	 );
 
-        if (windows != null) {
+        if (windowNodeList != null) {
 
             // Now we add a window result set wrapped in a PRN on top of what
             // we currently have.
 
-            if (windows.size() > 1) {
-                // FIXME: JPC - Derby currently limiting to 1 WF, why?
-                throw StandardException.newException(
-                    SQLState.LANG_WINDOW_LIMIT_EXCEEDED);
-            }
-
-            WindowNode wn = (WindowNode)windows.elementAt(0);
-
-            WindowResultSetNode wrsn =
-                (WindowResultSetNode)getNodeFactory().getNode(
-                    C_NodeTypes.WINDOW_RESULTSET_NODE,
-                    prnRSN,
-                    wn,
-                    windowFuncCalls,
-                    null,   // table properties
-                    new Integer(nestingLevel),
-                    getContextManager());
-
-            prnRSN = wrsn.getParent();
-            wrsn.assignCostEstimate(optimizer.getOptimizedCost());
-
-            // we need to remove any aggregates that were processed as window functions
-            // we do this so they're not processed again below
+//            if (windowNodeList.size() > 1) {
+//                // FIXME: JPC - Derby currently limiting to 1 WF, why?
+//                throw StandardException.newException(
+//                    SQLState.LANG_WINDOW_LIMIT_EXCEEDED);
+//            }
             Collection<AggregateNode> toRemove = new ArrayList<AggregateNode>();
-            for (AggregateNode windowAgg : wrsn.getProcessedAggregates()) {
-                for (Object aggNode : selectAggregates) {
-                    if (aggNode == windowAgg) {
-                        toRemove.add((AggregateNode)aggNode);
+            // FIXME: do we need to iterate thru all window nodes or will next PR pull in remainder?
+            for (int i=0; i<windowNodeList.size(); ++i) {
+                WindowNode wn = (WindowNode)windowNodeList.elementAt(i);
+
+                WindowResultSetNode wrsn =
+                    (WindowResultSetNode)getNodeFactory().getNode(
+                        C_NodeTypes.WINDOW_RESULTSET_NODE,
+                        prnRSN,
+                        wn,
+                        windowFuncCalls,
+                        null,   // table properties
+                        nestingLevel,
+                        getContextManager());
+
+                prnRSN = wrsn.getParent();
+                wrsn.assignCostEstimate(optimizer.getOptimizedCost());
+
+                // we need to remove any aggregates that were processed as window functions
+                // we do this so they're not processed again below
+                for (AggregateNode windowAgg : wrsn.getProcessedAggregates()) {
+                    for (Object aggNode : selectAggregates) {
+                        if (aggNode == windowAgg) {
+                            toRemove.add((AggregateNode)aggNode);
+                        }
                     }
                 }
             }
@@ -1709,7 +1711,7 @@ public class SelectNode extends ResultSetNode
 
 		if (wasGroupBy &&
 			resultColumns.numGeneratedColumnsForGroupBy() > 0 &&
-			windows == null) // windows handling already added a PRN which
+			windowNodeList == null) // windows handling already added a PRN which
 							 // obviates this.
 		{
 			// This case takes care of columns generated for group by's which 
@@ -2602,14 +2604,14 @@ public class SelectNode extends ResultSetNode
 	 * Used by SubqueryNode to avoid flattening of a subquery if a window is
 	 * defined on it. Note that any inline window definitions should have been
 	 * collected from both the selectList and orderByList at the time this
-	 * method is called, so the windows list is complete. This is true after
+	 * method is called, so the windowNodeList list is complete. This is true after
 	 * preprocess is completed.
 	 *
 	 * @return true if this select node has any windows on it
 	 */
 	public boolean hasWindows()
 	{
-		return windows != null;
+		return windowNodeList != null;
 	}
 
 

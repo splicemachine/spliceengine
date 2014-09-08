@@ -9977,7 +9977,7 @@ windowOrAggregateFunctionNode() throws StandardException :
 	|
 		winOrAgg = aggregateExpression("COUNT", CountAggregateDefinition.class)
 	)
-		<RIGHT_PAREN> [ window = overClause() ]
+		<RIGHT_PAREN> [ window = overClause("COUNT") ]
 	{
 		if (window != null) {
 		    ((AggregateNode)winOrAgg).setWindowFunction(true);
@@ -9991,7 +9991,7 @@ windowOrAggregateFunctionNode() throws StandardException :
 		return winOrAgg;
 	}
 |
-	winOrAgg = generalAggregate() [ window = overClause() ]
+	winOrAgg = generalAggregate() [ window = overClause("AGGREGATE") ]
 	{
 		if (window != null) {
             ((AggregateNode)winOrAgg).setWindowFunction(true);
@@ -10005,7 +10005,7 @@ windowOrAggregateFunctionNode() throws StandardException :
 		return winOrAgg;
 	}
 |
-	<DENSERANK> <LEFT_PAREN> <RIGHT_PAREN> window = overClause()
+	<DENSERANK> <LEFT_PAREN> <RIGHT_PAREN> window = overClause("DENSERANK")
 	{
 	    rankColsRef = columnsRefForRankFunct(window);
         winOrAgg = (ValueNode) nodeFactory.getNode(C_NodeTypes.AGGREGATE_NODE,
@@ -10023,7 +10023,7 @@ windowOrAggregateFunctionNode() throws StandardException :
 		return winOrAgg;
 	}
 |
-	<RANK> <LEFT_PAREN> <RIGHT_PAREN> window = overClause()
+	<RANK> <LEFT_PAREN> <RIGHT_PAREN> window = overClause("RANK")
 	{
 	    rankColsRef = columnsRefForRankFunct(window);
         winOrAgg = (ValueNode) nodeFactory.getNode(C_NodeTypes.AGGREGATE_NODE,
@@ -10041,7 +10041,7 @@ windowOrAggregateFunctionNode() throws StandardException :
 		return winOrAgg;
 	}
 |
-	<ROWNUMBER> <LEFT_PAREN> <RIGHT_PAREN> window = overClause()
+	<ROWNUMBER> <LEFT_PAREN> <RIGHT_PAREN> window = overClause("ROWNUMBER")
 	{
 	    rankColsRef = columnsRefForRankFunct(window);
         winOrAgg = (ValueNode) nodeFactory.getNode(C_NodeTypes.AGGREGATE_NODE,
@@ -10062,7 +10062,7 @@ windowOrAggregateFunctionNode() throws StandardException :
 
 
 QueryTreeNode
-overClause() throws StandardException :
+overClause(String functionName) throws StandardException :
 {
 	String windowRef;
 	Partition partitionCols = null;
@@ -10080,9 +10080,10 @@ overClause() throws StandardException :
 	    if(orderCols == null && frameDefn.getFrameMode() == WindowFrameDefinition.FrameMode.RANGE) {
             frameDefn = new WindowFrameDefinition(false);
 	    }
+	    frameDefn.setContextManager(getContextManager());
 		return (QueryTreeNode) nodeFactory.getNode(
 			C_NodeTypes.WINDOW_DEFINITION_NODE,
-			null,
+			functionName,
 			partitionCols,
 			orderCols,
 			frameDefn,

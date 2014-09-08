@@ -44,6 +44,10 @@ public abstract class WindowFunctionNode extends AggregateNode {
         this.window = (WindowNode)arg3;
     }
 
+    public WindowNode getWindowNode() {
+        return this.window;
+    }
+
     /**
      * ValueNode override.
      * @see ValueNode#isConstantExpression

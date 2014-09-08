@@ -33,7 +33,7 @@ public class WindowList extends OrderedColumnList
     /**
      * @param window the window definition to add to the list
      */
-    public void addWindow(WindowDefinitionNode window)
+    public void addWindow(WindowNode window)
     {
         addElement(window);
     }
