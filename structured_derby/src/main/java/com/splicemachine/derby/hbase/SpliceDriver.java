@@ -24,6 +24,7 @@ import com.splicemachine.hbase.writer.WriteCoordinator;
 import com.splicemachine.job.*;
 import com.splicemachine.si.api.TransactionStorage;
 import com.splicemachine.si.impl.TransactionalRegions;
+import com.splicemachine.si.impl.txnclient.CoprocessorTxnStore;
 import com.splicemachine.tools.CachedResourcePool;
 import com.splicemachine.tools.EmbedConnectionMaker;
 import com.splicemachine.tools.ResourcePool;
@@ -382,19 +383,11 @@ public class SpliceDriver extends SIConstants {
             mbs.registerMBean(jobScheduler.getJobMetrics(),jobSchedulerName);
 
             //register transaction stuff
-            ObjectName txnCacheName = new ObjectName("com.splicemachine.txn:type=TransactionCacheManagement");
-            mbs.registerMBean(TransactionStorage.getTxnManagement(),txnCacheName);
-
             ObjectName rollForwardName = new ObjectName("com.splicemachine.txn:type=RollForwardManagement");
             mbs.registerMBean(TransactionalRegions.getRollForwardManagement(),rollForwardName);
-//            ObjectName transactorName = new ObjectName("com.splicemachine.txn:type=TransactorStatus");
-//            mbs.registerMBean(HTransactorFactory.getTransactorStatus(), transactorName);
 
-            // These two (DelayedRollForwardQueue and PushForwardQueue) fail to register
-            // when using obfuscation. They are in SI.
-            // JPC - Commenting out for now until we can figure out how to register given their obfuscation.
-//            DelayedRollForwardQueue.registerJMX(mbs);
-//            PushForwardQueue.registerJMX(mbs);
+            ObjectName txnStoreName = new ObjectName("com.splicemachine.txn:type=TxnStoreManagement");
+            mbs.registerMBean(TransactionStorage.getTxnStoreManagement(),txnStoreName);
 
         } catch (MalformedObjectNameException e) {
             //we want to log the message, but this shouldn't affect startup

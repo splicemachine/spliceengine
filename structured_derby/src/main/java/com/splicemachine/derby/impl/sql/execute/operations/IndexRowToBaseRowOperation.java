@@ -450,7 +450,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 				for(int i=0;i<keyColumnEncodingOrder.length;i++){
 						int keyColumn = keyColumnEncodingOrder[i];
 						if(heapOnlyCols.get(keyColumn))
-								accessedKeys.clear(i);
+								accessedKeys.clear(keyColumn);
 				}
 				return accessedKeys;
 		}

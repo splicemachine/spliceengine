@@ -562,7 +562,8 @@ public class SITransactorTest extends SIConstants {
             Assert.fail();
         } catch (DoNotRetryIOException dnrio) {
             String message = dnrio.getMessage();
-						Assert.assertEquals("Incorrect error message", "Transaction " + t2.getTxnId() + " cannot be committed--it is in the ROLLEDBACK state", message);
+            String correctMessage = new CannotCommitException(t2.getTxnId(), Txn.State.ROLLEDBACK).getMessage();
+						Assert.assertEquals("Incorrect error message", correctMessage,message);
 						throw dnrio;
         }
     }
@@ -597,7 +598,8 @@ public class SITransactorTest extends SIConstants {
             t2.commit();
             Assert.fail();
         } catch (CannotCommitException dnrio) {
-						Assert.assertEquals("Incorrect error message", "Transaction " + t2.getTxnId() + " cannot be committed--it is in the ROLLEDBACK state", dnrio.getMessage());
+            Assert.assertEquals("Incorrect transaction id!",t2.getTxnId(),dnrio.getTxnId());
+            Assert.assertEquals("Incorrect cannot-commit state", Txn.State.ROLLEDBACK,dnrio.getActualState());
         }
 
         Txn t3 = control.beginTransaction();
@@ -1876,15 +1878,11 @@ public class SITransactorTest extends SIConstants {
         Txn t2 = control.beginChildTransaction(t1,t1.getIsolationLevel(), DESTINATION_TABLE);
         testUtility.insertAge(t2, "moe49", 21);
         t2.commit();
-//        final Transaction transactionStatusA = transactorSetup.transactionStore.getTransaction(t2.commit();
 				TxnView toCheckA = txnStore.getTransaction(t2.getTxnId());
         t1.commit();
 				TxnView toCheckB = txnStore.getTransaction(t2.getTxnId());
-//        final Transaction transactionStatusB = transactorSetup.transactionStore.getTransaction(t2.commit();
         Assert.assertEquals("committing parent of independent transaction should not change the commit time of the child",
 								toCheckA.getCommitTimestamp(), toCheckB.getCommitTimestamp());
-        Assert.assertEquals("committing parent of independent transaction should not change the global commit time of the child",
-								toCheckA.getEffectiveCommitTimestamp(), toCheckB.getEffectiveCommitTimestamp());
     }
 
 

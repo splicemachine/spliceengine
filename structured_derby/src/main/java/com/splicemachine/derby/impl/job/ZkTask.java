@@ -10,6 +10,7 @@ import com.splicemachine.job.TaskStatus;
 import com.splicemachine.si.api.*;
 import com.splicemachine.si.impl.ActiveWriteTxn;
 import com.splicemachine.si.impl.InheritingTxnView;
+import com.splicemachine.si.impl.LazyTxnView;
 import com.splicemachine.si.impl.ReadOnlyTxn;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
@@ -273,7 +274,7 @@ public abstract class ZkTask implements RegionTask,Externalizable {
 				TaskStatus taskStatus = getTaskStatus();
 				//if task has already been cancelled, then throw it away
 				if(taskStatus.getStatus()==Status.CANCELLED) throw new CancellationException();
-				setStatus(Status.EXECUTING,true);
+				setStatus(Status.EXECUTING, true);
     }
 
     private void setStatus(Status newStatus, boolean cancelOnError) throws ExecutionException{
@@ -299,7 +300,7 @@ public abstract class ZkTask implements RegionTask,Externalizable {
                 return;
         }
         status.setError(error);
-        setStatus(Status.FAILED,false);
+        setStatus(Status.FAILED, false);
     }
 
     @Override
@@ -431,7 +432,7 @@ public abstract class ZkTask implements RegionTask,Externalizable {
              *TransactionStorage.getTxnSupplier() will most likely return a lazy parent transaction,
              * which is good since the grandparent is unlikely to be accessed very often.
              */
-            ppParent = TransactionStorage.getTxnSupplier().getTransaction(pParentTxnId);
+            ppParent = new LazyTxnView(pParentTxnId,TransactionStorage.getTxnSupplier());
         }
 
         return new InheritingTxnView(ppParent,parentTxnId,parentTxnId,level,

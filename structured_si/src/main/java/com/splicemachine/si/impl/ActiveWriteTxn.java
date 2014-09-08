@@ -22,11 +22,18 @@ public class ActiveWriteTxn extends AbstractTxnView{
         this(txnId,beginTimestamp,parentTxn,false);
     }
 
+    public ActiveWriteTxn(long txnId,
+                          long beginTimestamp,
+                          TxnView parentTxn,
+                          boolean additive) {
+       this(txnId, beginTimestamp, parentTxn, additive, Txn.IsolationLevel.SNAPSHOT_ISOLATION);
+    }
 		public ActiveWriteTxn(long txnId,
 														 long beginTimestamp,
 														 TxnView parentTxn,
-                             boolean additive) {
-				super(txnId, beginTimestamp, Txn.IsolationLevel.SNAPSHOT_ISOLATION);
+                             boolean additive,
+                             Txn.IsolationLevel isolationLevel) {
+				super(txnId, beginTimestamp, isolationLevel);
 				this.parentTxn = parentTxn;
         this.additive = additive;
 		}
@@ -34,14 +41,14 @@ public class ActiveWriteTxn extends AbstractTxnView{
 
 		@Override public long getCommitTimestamp() { return -1l; }
 		@Override public long getEffectiveCommitTimestamp() { return -1l; }
+    @Override public long getGlobalCommitTimestamp() { return -1l; }
+
     @Override public TxnView getParentTxnView() { return parentTxn; }
+    @Override public long getParentTxnId() { return parentTxn.getParentTxnId(); }
 
     @Override public Txn.State getState() { return Txn.State.ACTIVE; }
-
 		@Override public boolean allowsWrites() { return true; }
-
     @Override public boolean isAdditive() { return additive; }
-		@Override public long getGlobalCommitTimestamp() { return -1l; }
 
     @Override
     public String toString() {

@@ -36,7 +36,10 @@ class ActiveTxnFilter extends FilterBase {
         this.beforeTs = beforeTs;
         this.afterTs = afterTs;
         this.destinationTable = destinationTable;
-        this.newEncodedDestinationTable = Encoding.encodeBytesUnsorted(destinationTable);
+        if(destinationTable!=null)
+            this.newEncodedDestinationTable = Encoding.encodeBytesUnsorted(destinationTable);
+        else
+            this.newEncodedDestinationTable = null;
     }
 
     @Override

@@ -1,12 +1,13 @@
 package com.splicemachine.si.impl;
 
+import com.carrotsearch.hppc.LongArrayList;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.si.api.*;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.*;
-import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
 
@@ -82,41 +83,44 @@ public class SimpleOperationFactory implements TxnOperationFactory {
 		}
 
 		@Override
-		public Txn fromReads(OperationWithAttributes op) throws IOException {
+		public TxnView fromReads(OperationWithAttributes op) throws IOException {
 				byte[] txnData = op.getAttribute(SIConstants.SI_TRANSACTION_ID_KEY);
 				if(txnData==null) return null; //non-transactional
-				long beginTs = Bytes.toLong(txnData,0,8);
-        long parentTxnId = Bytes.toLong(txnData,8,8);
-				Txn.IsolationLevel isoLevel = Txn.IsolationLevel.fromByte(txnData[16]);
-        TxnView parentTxn;
-        if(parentTxnId<0 || parentTxnId==beginTs){
-            //we are effectively a read-only child of the parent
-            parentTxn = Txn.ROOT_TRANSACTION;
-        }else
-            parentTxn = txnSupplier.getTransaction(parentTxnId);
+        MultiFieldDecoder decoder = MultiFieldDecoder.wrap(txnData);
+				long beginTs = decoder.decodeNextLong();
+        boolean additive = decoder.decodeNextBoolean();
+        Txn.IsolationLevel level = Txn.IsolationLevel.fromByte(decoder.decodeNextByte());
 
-        boolean isAdditive = BytesUtil.toBoolean(txnData,17);
-				return new ReadOnlyTxn(beginTs,beginTs,isoLevel,parentTxn,UnsupportedLifecycleManager.INSTANCE,isAdditive);
+        TxnView parent = Txn.ROOT_TRANSACTION;
+        while(decoder.available()){
+            long id = decoder.decodeNextLong();
+            parent = new ReadOnlyTxn(id,id,level,parent,UnsupportedLifecycleManager.INSTANCE,additive);
+        }
+				return new ReadOnlyTxn(beginTs,beginTs,level,parent,UnsupportedLifecycleManager.INSTANCE,additive);
 		}
 
 		@Override
 		public TxnView fromWrites(OperationWithAttributes op) throws IOException {
 				byte[] txnData = op.getAttribute(SIConstants.SI_TRANSACTION_ID_KEY);
 				if(txnData==null) return null; //non-transactional
-				long txnId = Bytes.toLong(txnData,0,8);
-				long parentTxnId = Bytes.toLong(txnData,8,8);
-				boolean isAdditive = BytesUtil.toBoolean(txnData,16); //TODO -sf- add this in somehow
-        TxnView parentTxn = parentTxnId<0? Txn.ROOT_TRANSACTION : txnSupplier.getTransaction(parentTxnId);
-				return new ActiveWriteTxn(txnId,txnId,parentTxn,isAdditive);
+        MultiFieldDecoder decoder = MultiFieldDecoder.wrap(txnData);
+        long beginTs = decoder.decodeNextLong();
+        boolean additive = decoder.decodeNextBoolean();
+        Txn.IsolationLevel level = Txn.IsolationLevel.fromByte(decoder.decodeNextByte());
+
+        TxnView parent = Txn.ROOT_TRANSACTION;
+        while(decoder.available()){
+            long id = decoder.decodeNextLong();
+            parent = new ActiveWriteTxn(id,id,parent,additive,level);
+        }
+        return new ActiveWriteTxn(beginTs,beginTs,parent,additive,level);
 		}
 
 		/******************************************************************************************************************/
 		/*private helper functions*/
 		private void encodeForWrites(OperationWithAttributes op, TxnView txn) {
-				byte[] data = new byte[17];
-				BytesUtil.longToBytes(txn.getTxnId(),data,0);
-				BytesUtil.longToBytes(txn.getParentTxnId(),data,8);
-				data[16] = (byte)(txn.isAdditive()? -1: 0);
+
+        byte[] data =encodeTransaction(txn);
 				op.setAttribute(SIConstants.SI_TRANSACTION_ID_KEY,data);
         op.setAttribute(SIConstants.SI_NEEDED,SIConstants.SI_NEEDED_VALUE_BYTES);
 		}
@@ -125,18 +129,49 @@ public class SimpleOperationFactory implements TxnOperationFactory {
 				if(isCountStar)
 						op.setAttribute(SIConstants.SI_COUNT_STAR,SIConstants.TRUE_BYTES);
 
-				byte[] data = new byte[18];
-				BytesUtil.longToBytes(txn.getBeginTimestamp(),data,0);
-        BytesUtil.longToBytes(txn.getParentTxnId(),data,8);
-				data[16] = txn.getIsolationLevel().encode();
-        data[17] = (byte)(txn.isAdditive()? -1:0);
+        byte[] data = encodeTransaction(txn);
 
 				op.setAttribute(SIConstants.SI_TRANSACTION_ID_KEY,data);
         op.setAttribute(SIConstants.SI_NEEDED,SIConstants.SI_NEEDED_VALUE_BYTES);
 		}
 
+    private byte[] encodeTransaction(TxnView txn) {
+        MultiFieldEncoder encoder = MultiFieldEncoder.create(4)
+                .encodeNext(txn.getTxnId())
+                .encodeNext(txn.isAdditive())
+                .encodeNext(txn.getIsolationLevel().encode());
 
-		private void makeNonTransactional(OperationWithAttributes op) {
+        LongArrayList parentTxnIds = LongArrayList.newInstance();
+        byte[] build = encodeParentIds(txn, parentTxnIds);
+        encoder.setRawBytes(build);
+        return encoder.build();
+    }
+
+    private byte[] encodeParentIds(TxnView txn, LongArrayList parentTxnIds) {
+        /*
+         * For both active reads AND active writes, we only need to know the
+         * parent's transaction ids, since we'll use the information immediately
+         * available to determine other properties (additivity, etc.) Thus,
+         * by doing this bit of logic, we can avoid a network call on the server
+         * for every parent on the transaction chain, at the cost of 2-10 bytes
+         * per parent on the chain--a cheap trade.
+         */
+        TxnView parent = txn.getParentTxnView();
+        while(!Txn.ROOT_TRANSACTION.equals(parent)){
+            parentTxnIds.add(parent.getTxnId());
+            parent = parent.getParentTxnView();
+        }
+        int parentSize = parentTxnIds.size();
+        long[] parentIds = parentTxnIds.buffer;
+        MultiFieldEncoder parents = MultiFieldEncoder.create(parentSize);
+        for(int i=1;i<parentSize;i++){
+            parents.encodeNext(parentIds[parentSize-i]);
+        }
+        return parents.build();
+    }
+
+
+    private void makeNonTransactional(OperationWithAttributes op) {
 				op.setAttribute(SIConstants.SI_EXEMPT,SIConstants.TRUE_BYTES);
 		}
 }

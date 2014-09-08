@@ -144,13 +144,21 @@ public interface Txn extends TxnView{
 
 						}
 				}
-		}
+
+        public static State fromString(String string) {
+            if(ROLLEDBACK.name().equalsIgnoreCase(string)) return ROLLEDBACK;
+            else if(COMMITTED.name().equalsIgnoreCase(string)) return COMMITTED;
+            else if(ACTIVE.name().equalsIgnoreCase(string)) return ACTIVE;
+            else
+                throw new IllegalArgumentException("Cannot parse Transaction state from string "+ string);
+        }
+    }
 
 		public enum IsolationLevel{
 				READ_UNCOMMITTED(1){
 						@Override
 						public boolean canSee(long beginTimestamp, TxnView otherTxn,boolean isParent) {
-								return otherTxn.getEffectiveState()!=State.ROLLEDBACK;
+								return otherTxn.getState()!=State.ROLLEDBACK;
 						}
 
             @Override public String toHumanFriendlyString() { return "READ UNCOMMITTED"; }

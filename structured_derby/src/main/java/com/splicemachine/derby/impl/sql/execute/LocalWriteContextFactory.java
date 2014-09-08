@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -47,7 +48,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
     private static final int writeBatchSize = Integer.MAX_VALUE;
 
     private final long congomId;
-    private final Set<LocalWriteFactory> indexFactories = new CopyOnWriteArraySet<LocalWriteFactory>();
+    private final List<LocalWriteFactory> indexFactories = new CopyOnWriteArrayList<LocalWriteFactory>();
     private final Set<ConstraintFactory> constraintFactories = new CopyOnWriteArraySet<ConstraintFactory>();
     private final Set<DropColumnFactory> dropColumnFactories = new CopyOnWriteArraySet<DropColumnFactory>();
 
@@ -154,11 +155,23 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
              * we replace it with a wrapped transaction
              */
             try{
-                indexFactories.add(new DropIndexFactory(txn,IndexFactory.wrap(indexConglomId)));
+                DropIndexFactory wrappedFactory = new DropIndexFactory(txn, IndexFactory.wrap(indexConglomId));
+                replace(wrappedFactory);
             }finally{
                 tableWriteLatch.countDown();
             }
         }
+    }
+
+    private void replace(LocalWriteFactory newFactory) {
+        for(int i=0;i<indexFactories.size();i++){
+            LocalWriteFactory localWriteFactory = indexFactories.get(i);
+            if(localWriteFactory.equals(newFactory)){
+                indexFactories.set(i, newFactory);
+                return;
+            }
+        }
+        indexFactories.add(newFactory);
     }
 
     @Override
@@ -166,7 +179,8 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
         synchronized (tableWriteLatch){
             tableWriteLatch.reset();
             try{
-                indexFactories.add(IndexFactory.create(ddlChange,columnOrdring, formatIds));
+                IndexFactory index = IndexFactory.create(ddlChange, columnOrdring, formatIds);
+                replace(index);
             }finally{
                 tableWriteLatch.countDown();
             }
@@ -369,7 +383,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
                     indexFactories.clear(); //safe to clear here because we don't chain indices
                     break;
                 } else {
-                    indexFactories.add(buildIndex(conglomDesc,constraintDescriptors,columnOrdering,formatIds));
+                    replace(buildIndex(conglomDesc,constraintDescriptors,columnOrdering,formatIds));
                 }
             }
         }
@@ -390,7 +404,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
             } else if (ddlDesc.getBaseConglomerateNumber() == congomId) {
 
                 if(ddlChange.getChangeType() == DDLChangeType.CREATE_INDEX) {
-                    indexFactories.add(IndexFactory.create(ddlChange,columnOrdering,formatIds));
+                    replace(IndexFactory.create(ddlChange, columnOrdering, formatIds));
                 }
                 else if (ddlChange.getChangeType() == DDLChangeType.DROP_COLUMN) {
                     dropColumnFactories.add(DropColumnFactory.create(ddlChange));
@@ -596,11 +610,16 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
-            if (!(o instanceof IndexFactory)) return false;
+            if(o instanceof IndexFactory){
+                IndexFactory that = (IndexFactory) o;
 
-            IndexFactory that = (IndexFactory) o;
+                return indexConglomId == that.indexConglomId;
+            }else if(o instanceof DropIndexFactory){
+                DropIndexFactory that = (DropIndexFactory) o;
 
-            return indexConglomId == that.indexConglomId;
+                return indexConglomId == that.delegate.indexConglomId;
+
+            }else return false;
         }
 
         @Override

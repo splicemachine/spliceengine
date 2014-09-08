@@ -4,9 +4,8 @@ import com.splicemachine.annotations.ThreadSafe;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.hbase.table.SpliceHTableFactory;
 import com.splicemachine.si.impl.store.CompletedTxnCacheSupplier;
-import com.splicemachine.si.impl.store.LazyTxnSupplier;
-import com.splicemachine.si.impl.store.SimpleCompletedTxnCacheSupplier;
 import com.splicemachine.si.impl.txnclient.CoprocessorTxnStore;
+import com.splicemachine.si.impl.txnclient.TxnStoreManagement;
 
 /**
  * Factory class for obtaining a transaction store, Transaction supplier, etc.
@@ -34,8 +33,8 @@ public class TransactionStorage {
 		 * in a final state may be cached by this supplier. If no caching is desired,
 		 * consider accessing the baseStore instead.
 		 */
-		private static volatile @ThreadSafe TxnSupplier cachedTransactionSupplier;
-    private static TransactionCacheManagement cacheManagement;
+		private static volatile @ThreadSafe CompletedTxnCacheSupplier cachedTransactionSupplier;
+    private static volatile TxnStoreManagement storeManagement;
 
     public static TxnSupplier getTxnSupplier(){
 				TxnSupplier supply = cachedTransactionSupplier;
@@ -62,9 +61,8 @@ public class TransactionStorage {
 				synchronized (lock){
 						baseStore = store;
             CompletedTxnCacheSupplier delegate = new CompletedTxnCacheSupplier(baseStore, SIConstants.activeTransactionCacheSize, 16);
-//            SimpleCompletedTxnCacheSupplier delegate = new SimpleCompletedTxnCacheSupplier(baseStore, SIConstants.activeTransactionCacheSize, 16);
-            cachedTransactionSupplier=new LazyTxnSupplier(delegate);
-            cacheManagement = delegate;
+            cachedTransactionSupplier=delegate;
+            storeManagement = new TxnStoreManagement();
 				}
 		}
 
@@ -79,24 +77,41 @@ public class TransactionStorage {
 								//TODO -sf- configure these fields separately
 								if(cachedTransactionSupplier==null){
                     CompletedTxnCacheSupplier delegate = new CompletedTxnCacheSupplier(txnStore, SIConstants.activeTransactionCacheSize, 16);
-                    cachedTransactionSupplier =new LazyTxnSupplier(delegate);
-                    cacheManagement = delegate;
+                    cachedTransactionSupplier = delegate;
+//                    cachedTransactionSupplier =new LazyTxnSupplier(delegate);
                 }
 								txnStore.setCache(cachedTransactionSupplier);
 								baseStore = txnStore;
 						}else if (cachedTransactionSupplier==null){
                 CompletedTxnCacheSupplier delegate = new CompletedTxnCacheSupplier(baseStore, SIConstants.activeTransactionCacheSize, 16);
-                cachedTransactionSupplier =new LazyTxnSupplier(delegate);
-                cacheManagement = delegate;
+                cachedTransactionSupplier = delegate;
+//                cachedTransactionSupplier =new LazyTxnSupplier(delegate);
 						}
+            storeManagement = new TxnStoreManagement();
 				}
 		}
 
-    public static TransactionCacheManagement getTxnManagement() {
-        TransactionCacheManagement cache = cacheManagement;
-        if(cache==null){
+    public static TxnStoreManagement getTxnStoreManagement() {
+        TxnStoreManagement store = storeManagement;
+        if(store==null){
             lazyInitialize();
+            store = storeManagement;
         }
-        return cacheManagement;
+        return store;
+    }
+
+    private static class TxnStoreManagement implements com.splicemachine.si.impl.txnclient.TxnStoreManagement{
+        @Override public long getTotalTxnLookups() { return baseStore.lookupCount(); }
+        @Override public long getTotalTxnElevations() { return baseStore.elevationCount(); }
+        @Override public long getTotalWritableTxnsCreated() { return baseStore.createdCount(); }
+        @Override public long getTotalRollbacks() { return baseStore.rollbackCount(); }
+        @Override public long getTotalCommits() { return baseStore.commitCount(); }
+        @Override public long getTotalEvictedCacheEntries() { return cachedTransactionSupplier.getTotalEvictedEntries(); }
+        @Override public long getTotalCacheHits() { return cachedTransactionSupplier.getTotalHits(); }
+        @Override public long getTotalCacheMisses() { return cachedTransactionSupplier.getTotalMisses(); }
+        @Override public long getTotalCacheRequests() { return cachedTransactionSupplier.getTotalRequests(); }
+        @Override public float getCacheHitPercentage() { return cachedTransactionSupplier.getHitPercentage(); }
+        @Override public int getCurrentCacheSize() { return cachedTransactionSupplier.getCurrentSize(); }
+        @Override public int getMaxCacheSize() { return cachedTransactionSupplier.getMaxSize(); }
     }
 }

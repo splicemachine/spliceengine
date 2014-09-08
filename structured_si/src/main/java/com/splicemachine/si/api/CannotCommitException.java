@@ -29,4 +29,11 @@ public class CannotCommitException extends DoNotRetryIOException {
         String txnNum = message.substring(openIndex+1,closeIndex);
         return Long.parseLong(txnNum);
     }
+
+    public Txn.State getActualState() {
+        String message = getMessage();
+        int startIndex = message.indexOf("the")+4;
+        int endIndex = message.indexOf(" state");
+        return Txn.State.fromString(message.substring(startIndex,endIndex));
+    }
 }

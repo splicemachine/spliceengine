@@ -1,11 +1,9 @@
 package com.splicemachine.si.impl.rollforward;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.hash.Hash32;
-import com.splicemachine.hash.HashFunctions;
+import com.splicemachine.annotations.ThreadSafe;
 import com.splicemachine.si.api.RollForward;
 import com.splicemachine.utils.ByteSlice;
-import com.splicemachine.annotations.ThreadSafe;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -91,7 +89,6 @@ public class SegmentedRollForward implements RollForward {
 		private final Action action;
 
 		private final AtomicLong updateCount = new AtomicLong(0l);
-    private final Hash32 hashFunction = HashFunctions.murmur3(0);
     private final RollForwardStatus status;
 
 		public SegmentedRollForward(final HRegion region,
@@ -193,7 +190,7 @@ public class SegmentedRollForward implements RollForward {
 		@Override
 		public void submitForResolution(ByteSlice rowKey, long txnId) {
         status.rowWritten();
-				RegionSegment regionSegment = getSegment(rowKey,segments.length/2);
+				RegionSegment regionSegment = getSegment(rowKey,0,segments.length);
 				regionSegment.update(txnId, 1l);
 
 				long toResolveCount = updateCount.incrementAndGet();
@@ -205,7 +202,7 @@ public class SegmentedRollForward implements RollForward {
 
 		@Override
 		public void recordResolved(ByteSlice rowKey, long txnId) {
-				RegionSegment regionSegment = getSegment(rowKey,segments.length/2);
+				RegionSegment regionSegment = getSegment(rowKey,0,segments.length);
 				regionSegment.rowResolved(); //mark it resolved so that we keep track
 		}
 
@@ -338,12 +335,16 @@ public class SegmentedRollForward implements RollForward {
 		}
 
 
-		private RegionSegment getSegment(ByteSlice rowKey, int pos) {
+		private RegionSegment getSegment(ByteSlice rowKey, int start, int stop) {
+        int pos = (stop+start)/2;
 				RegionSegment segment = segments[pos];
 				int p = segment.position(rowKey);
 				if(p==0) return segment;
-				else if(p<0) return getSegment(rowKey,pos-pos/2);
-				else return getSegment(rowKey,pos+pos/2);
+        if(pos==start||pos==stop) return segment;
+				if(p<0)
+            return getSegment(rowKey, start, pos);
+        else
+            return getSegment(rowKey, pos, stop);
 		}
 
 		private RegionSegment getSegment(byte[] rowKey, int start,int stop) {

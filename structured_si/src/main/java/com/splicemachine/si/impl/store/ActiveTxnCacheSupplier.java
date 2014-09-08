@@ -54,7 +54,7 @@ public class ActiveTxnCacheSupplier implements TxnSupplier {
 				txn = delegate.getTransaction(txnId,getDestinationTables);
 				if(txn==null) return null;
 
-				if(txn.getState()== Txn.State.ACTIVE)
+				if(txn.getEffectiveState()== Txn.State.ACTIVE)
 						addToCache(hash, txn);
 				return txn;
 		}

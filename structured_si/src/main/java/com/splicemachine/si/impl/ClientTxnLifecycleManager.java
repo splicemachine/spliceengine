@@ -171,8 +171,8 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager {
 				 * transaction to the table.
 				 */
 				if(parentTxn!=null &&!Txn.ROOT_TRANSACTION.equals(parentTxn))
-						parentTxn = new LazyTxn(parentTxn.getTxnId(),store,
-										true,true,true,parentTxn.isAdditive(),parentTxn.getIsolationLevel()); //TODO -sf- should this be here?
+						parentTxn = new LazyTxnView(parentTxn.getTxnId(),store,
+                    true,parentTxn.isAdditive(),parentTxn.getIsolationLevel()); //TODO -sf- should this be here?
 				WritableTxn newTxn = new WritableTxn(timestamp,
 								timestamp,isolationLevel,parentTxn,this, additive,destinationTable);
 				//record the transaction on the transaction table--network call
