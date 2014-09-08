@@ -15,32 +15,42 @@ public class ImportData {
 	String tableName = null;
 	Connection conn = null;
 	
-	public void createTable(String tableName, String sqlStat)
+	public void createTable(String tableName, String sqlStat, String connStr)
 	{
 		this.tableName = tableName;
 		try {
 			if(conn == null)
-				conn = DriverManager.getConnection("jdbc:splice://localhost:1527/splicedb;user=splice;password=admin");
+			{
+				Class.forName("org.apache.derby.jdbc.ClientDriver");
+				conn = DriverManager.getConnection(connStr);	
+			}
 			Statement stmt = conn.createStatement();
 			stmt.execute(sqlStat);
 			
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
 	
-	public void insertData(String filePath, String splitCha)
+	public void insertData(String filePath, String splitCha, String connStr)
 	{
 		BufferedReader br = null;
 		File f = new File(".");
-		String absolutePath = f.getAbsolutePath();
-		try {
+		//String absolutePath = f.getAbsolutePath();
+		try {		
 			if(conn == null)
-				conn = DriverManager.getConnection("jdbc:splice://localhost:1527/splicedb;user=splice;password=admin");
+			{
+				Class.forName("org.apache.derby.jdbc.ClientDriver");
+				conn = DriverManager.getConnection(connStr);
+			}
+				
 			Statement stmt = conn.createStatement();
 			
-			br = new BufferedReader(new FileReader(absolutePath + filePath));
+			br = new BufferedReader(new FileReader(filePath));
 			
 			String line = br.readLine();
 			
@@ -64,6 +74,9 @@ public class ImportData {
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 		finally{
 			if(br != null)
@@ -81,15 +94,17 @@ public class ImportData {
 		//arg1: SQL for creating table
 		//arg2: Source data file path (relative path to spliceengine/structured_derby/)
 		//arg3: Split Character
-		if(args.length < 4)
+		if(args.length < 5)
 			throw new Exception("missing argument");
 		String tableName = args[0];
 		String sqlStat = args[1];
 		String filePath = args[2];
 		String splitCha = args[3];
+		String connStr = args[4];
 		ImportData impData = new ImportData();
-		impData.createTable(tableName, sqlStat);
-		impData.insertData(filePath, splitCha);
+		
+		impData.createTable(tableName, sqlStat, connStr);
+		impData.insertData(filePath, splitCha, connStr);
 		
 	}
 

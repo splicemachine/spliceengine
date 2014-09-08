@@ -46,15 +46,31 @@ Map Reduce Integration with Splice DB
 > job.rollback()
 
 #### Run the example
-1. start your hdfs, yarn or hadoop
-> $ ./sbin/start-all.sh
+1. make sure your SpliceDB is on.
 
-2. run ImportData.java
-> add some args to this script, for example: WIKIDATA &nbsp;&nbsp;&nbsp;&nbsp;'create table WIKIDATA(WORD varchar(100))'&nbsp;&nbsp;&nbsp;/src/main/java/com/splicemachine/mrio/sample/mediawiki.dic.txt
+2. put sample/mediawiki.dic.txt under some path. example: /home/ubuntu/mediawiki.dic.txt <br>
+
+3. run ImportData.java
+> args: <br>
+  1. tableName
+  2. create table statement
+  3. inputFile path
+  4. jdbc connection string<br>
+
+> run the script, for example: <br>
+  java -cp splice_machine-FUJI.0-SNAPSHOT-cloudera-cdh4.5.0_complete.jar&nbsp;com.splicemachine.mrio.sample.ImportData&nbsp;&nbsp;&nbsp;&nbsp;
+  WIKIDATA &nbsp;&nbsp;&nbsp;&nbsp;'create table WIKIDATA(WORD varchar(100))'&nbsp;&nbsp;&nbsp;/home/ubuntu/mediawiki.dic.txt&nbsp;&nbsp;&nbsp;,&nbsp;&nbsp;&nbsp;'jdbc:splice://localhost:1527/splicedb;user=splice;password=admin'<br>
 > this will load data in mediawiki.dic.txt into WIKIDATA table in Splice
 
-3. run CreateOutputTable.java
-> add some args to this script, for example: USERTEST&nbsp;&nbsp;&nbsp;&nbsp;'create table USERTEST (WORD varchar(100), COUNT integer)'
+4. run CreateOutputTable.java
+> args:<br>
+  1. tableName
+  2. create table statement
+  3. jdbc connection string<br>
+
+> run the script, for example:<br>
+  java -cp splice_machine-FUJI.0-SNAPSHOT-cloudera-cdh4.5.0_complete.jar com.splicemachine.mrio.sample.CreateOutputTable &nbsp;&nbsp;&nbsp;&nbsp;
+  USERTEST&nbsp;&nbsp;&nbsp;&nbsp;'create table USERTEST (WORD varchar(100), COUNT integer)'&nbsp;&nbsp;&nbsp;&nbsp;'jdbc:derby://localhost:1527/splicedb;user=splice;password=admin’<br>
 > this will create the output table for reducer.
 
-4. when the map-reduce finished running, you can checkout the result in Splice, data will be saved in the output table you created. 
+5. when the map-reduce finished running, you can checkout the result in Splice, data will be saved in the output table you created. 
