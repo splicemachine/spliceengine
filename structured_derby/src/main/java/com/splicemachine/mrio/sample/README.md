@@ -71,7 +71,7 @@ Map Reduce Integration with Splice DB
 
   run the script, for example:<br>
   > java -cp splice_machine-FUJI.0-SNAPSHOT-cloudera-cdh4.5.0_complete.jar com.splicemachine.mrio.sample.CreateOutputTable &nbsp;&nbsp;&nbsp;&nbsp;
-  USERTEST&nbsp;&nbsp;&nbsp;&nbsp;'create table USERTEST (WORD varchar(100), COUNT integer)'&nbsp;&nbsp;&nbsp;&nbsp;'jdbc:derby://localhost:1527/splicedb;user=splice;password=admin’<br>
+  USERTEST&nbsp;&nbsp;&nbsp;&nbsp;'create table USERTEST (WORD varchar(100), COUNT integer)'&nbsp;&nbsp;&nbsp;&nbsp;'jdbc:derby://localhost:1527/splicedb;user=splice;password=admin'<br>
   
   this will create the output table for reducer.
 
