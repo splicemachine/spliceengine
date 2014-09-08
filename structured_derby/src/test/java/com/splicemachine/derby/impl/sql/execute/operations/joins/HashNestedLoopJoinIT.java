@@ -2,19 +2,27 @@ package com.splicemachine.derby.impl.sql.execute.operations.joins;
 
 import com.splicemachine.derby.test.framework.DefaultedSpliceWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.test_dao.*;
 import com.splicemachine.test_tools.IntegerRows;
 import com.splicemachine.test_tools.TableCreator;
+import org.apache.commons.lang.RandomStringUtils;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
+import static com.google.common.collect.Iterables.filter;
+import static com.google.common.collect.Iterables.isEmpty;
+import static com.splicemachine.derby.metrics.OperationMetric.*;
 import static com.splicemachine.homeless.TestUtils.FormattedResult.ResultFactory;
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 public class HashNestedLoopJoinIT {
 
@@ -32,7 +40,7 @@ public class HashNestedLoopJoinIT {
 
         Connection conn = watcher.getOrCreateConnection();
 
-        TableCreator tableCreator = new TableCreator(watcher.getOrCreateConnection())
+        TableCreator tableCreator = new TableCreator(conn)
                 .withCreate("create table %s (c1 int, c2 int, primary key(c1))")
                 .withInsert("insert into %s values(?,?)")
                 .withRows(rows(row(1, 10), row(2, 20), row(3, 30), row(4, 40)));
@@ -63,7 +71,7 @@ public class HashNestedLoopJoinIT {
 
         Connection conn = watcher.getOrCreateConnection();
 
-        TableCreator tableCreator = new TableCreator(watcher.getOrCreateConnection())
+        TableCreator tableCreator = new TableCreator(conn)
                 .withCreate("create table %s (c1 int, c2 int, c3 int, c4 int, c5 int, primary key(c1))")
                 .withInsert("insert into %s values(?,?,?,?,?)")
                 .withRows(new IntegerRows(1000, 5));
@@ -99,13 +107,13 @@ public class HashNestedLoopJoinIT {
     public void rightSidePredicatesApplied() throws Exception {
         Connection conn = watcher.getOrCreateConnection();
 
-        new TableCreator(watcher.getOrCreateConnection())
+        new TableCreator(conn)
                 .withCreate("create table ta (c1 int, alpha int, primary key(c1))")
                 .withInsert("insert into ta values(?,?)")
                 .withRows(rows(row(1, 10), row(2, 20), row(3, 30), row(4, 40), row(5, 50), row(6, 60), row(7, 70)))
                 .create();
 
-        new TableCreator(watcher.getOrCreateConnection())
+        new TableCreator(conn)
                 .withCreate("create table tb (c1 int, beta int, primary key(c1))")
                 .withInsert("insert into tb values(?,?)")
                 .withRows(rows(row(1, 10), row(2, 20), row(3, 30), row(4, 40), row(5, 50), row(6, 60), row(7, 70)))
@@ -130,7 +138,7 @@ public class HashNestedLoopJoinIT {
     public void rightSidePredicatesAppliedComplex() throws Exception {
         Connection conn = watcher.getOrCreateConnection();
 
-        new TableCreator(watcher.getOrCreateConnection())
+        new TableCreator(conn)
                 .withCreate("create table schemas (schemaid char(36), schemaname varchar(128))")
                 .withIndex("create unique index schemas_i1 on schemas (schemaname)")
                 .withIndex("create unique index schemas_i2 on schemas (schemaid)")
@@ -142,7 +150,7 @@ public class HashNestedLoopJoinIT {
                 )
                 .create();
 
-        new TableCreator(watcher.getOrCreateConnection())
+        new TableCreator(conn)
                 .withCreate("create table tables (tableid char(36), tablename varchar(128),schemaid char(36), version varchar(128))")
                 .withIndex("create unique index tables_i1 on tables (tablename, schemaid)")
                 .withIndex("create unique index tables_i2 on tables (tableid)")
@@ -170,6 +178,49 @@ public class HashNestedLoopJoinIT {
         assertEquals(EXPECTED, ResultFactory.toString(rs));
     }
 
+    @Test
+    public void joinWithStatistics() throws Exception {
+
+        Connection conn = watcher.getOrCreateConnection();
+        StatementHistoryDAO statementHistoryDAO = new StatementHistoryDAO(conn);
+        TaskHistoryDAO taskHistoryDAO = new TaskHistoryDAO(conn);
+
+        final String RANDOM_LONG = RandomStringUtils.randomNumeric(9);
+
+        watcher.prepareCall("CALL SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(1)").execute();
+        watcher.prepareCall("CALL SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(1)").execute();
+
+        // primary keys are 0,1,2...99
+        new TableCreator(conn).withCreate("create table tableA (c1 int, primary key(c1))")
+                .withInsert("insert into tableA values(?)")
+                .withRows(new IntegerRows(100, 1)).create();
+
+        // primary keys are 75,76,77...300
+        new TableCreator(conn).withCreate("create table tableB (c1 int, primary key(c1))")
+                .withInsert("insert into tableB values(?)")
+                .withRows(new IntegerRows(300, 1, 75)).create();
+
+        String JOIN_SQL = "select count(*) as \"Row Count\" from --SPLICE-PROPERTIES joinOrder=fixed\n" +
+                "tableA a inner join tableB b --SPLICE-PROPERTIES joinStrategy=HASH\n" +
+                "on a.c1 = b.c1 and " + RANDOM_LONG + "=" + RANDOM_LONG;
+
+        ResultSet rs = conn.createStatement().executeQuery(JOIN_SQL);
+
+        String EXPECTED = "" +
+                "Row Count |\n" +
+                "------------\n" +
+                "    25     |";
+
+        assertEquals(EXPECTED, ResultFactory.toString(rs));
+
+        // Assert that there are task history rows with stats: REMOTE_SCAN_ROWS=26, LOCAL_SCAN_ROWS=100, OUTPUT_ROWS=26
+        // Stats are inserted into SYS.SYSTASKHISTORY asynchronously.
+        StatementHistory statement = statementHistoryDAO.findStatement(RANDOM_LONG, 20, TimeUnit.SECONDS);
+        List<TaskHistory> taskHistoryList = taskHistoryDAO.getByStatementId(statement.getStatementId(), 20, TimeUnit.SECONDS);
+        assertFalse(isEmpty(filter(taskHistoryList, new TaskHistoryOperationMetricPredicate(REMOTE_SCAN_ROWS, 25L))));
+        assertFalse(isEmpty(filter(taskHistoryList, new TaskHistoryOperationMetricPredicate(LOCAL_SCAN_ROWS, 100L))));
+        assertFalse(isEmpty(filter(taskHistoryList, new TaskHistoryOperationMetricPredicate(OUTPUT_ROWS, 25L))));
+    }
 
 }
 
