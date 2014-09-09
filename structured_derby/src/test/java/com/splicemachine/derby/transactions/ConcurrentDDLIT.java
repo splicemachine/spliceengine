@@ -92,6 +92,19 @@ public class ConcurrentDDLIT {
     }
 
     @Test(timeout = 1000000)
+    public void testConcurrentConstrainedTableCreation() throws Exception {
+        int numTables = 100;
+        List<Future<Void>> results = Lists.newArrayListWithExpectedSize(nThreads);
+        for(int i=0;i<nThreads;i++){
+            TestConnection conn = connections.get(i);
+            results.add(executor.submit(new CreateConstrainedTableCallable(i,conn,numTables)));
+        }
+        for(Future<Void> future:results){
+            future.get(); //check for errors
+        }
+    }
+
+    @Test(timeout = 1000000)
     public void testConcurrentTableCreation() throws Exception {
         int numTables = 100;
         List<Future<Void>> results = Lists.newArrayListWithExpectedSize(nThreads);
@@ -156,6 +169,23 @@ public class ConcurrentDDLIT {
         }
     }
 
+    private class CreateConstrainedTableCallable extends CreateTableCallable{
+
+        private CreateConstrainedTableCallable(int position, TestConnection conn, int numElements) {
+            super(position, conn, numElements);
+        }
+
+        @Override
+        protected void setupAction(int value) throws SQLException {
+            String table = getTableName(value);
+            conn.createStatement().execute("create table "+ table+" (a int UNIQUE not null,b int)");
+        }
+
+        @Override
+        protected void teardownAction(int value) throws SQLException {
+            conn.createStatement().execute("drop table "+ getTableName(value));
+        }
+    }
     private class CreateTableCallable extends Action{
 
         protected CreateTableCallable(int position, TestConnection conn, int numElements) {

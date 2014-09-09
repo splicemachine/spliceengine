@@ -122,4 +122,24 @@ public class DropTableTransactionIT {
         long count = conn1.count("select * from "+ table+" where a="+aInt);
         Assert.assertEquals("Unable to read data from dropped table!",1l,count);
     }
+
+    @Test
+    public void testCanDropUnrelatedTablesConcurrently() throws Exception {
+        conn1.createStatement().execute("create table "+schemaWatcher+".t (a int unique not null, b int)"); //make sure and have an index
+        conn1.createStatement().execute("create table "+schemaWatcher+".t2 (a int unique not null, b int)");
+        conn1.commit();
+        conn2.commit(); //roll both connections forward to ensure visibility
+
+        /*
+         * Now try and drop both tables, one table in each transaction, and make sure that they do not conflict
+         * with each other
+         */
+        conn1.createStatement().execute("drop table "+ schemaWatcher+".t");
+
+        conn2.createStatement().execute("drop table "+ schemaWatcher+".t2");
+
+        //commit the two transactions to make sure that the tables no longer exist
+        conn1.commit();
+        conn2.commit();
+    }
 }
