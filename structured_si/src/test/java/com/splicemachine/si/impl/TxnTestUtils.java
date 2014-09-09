@@ -8,6 +8,7 @@ import com.splicemachine.hbase.ByteBufferArrayUtils;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.ByteSlice;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.*;
@@ -115,6 +116,8 @@ public class TxnTestUtils {
 		public static HRegion getMockRegion() throws IOException {
 				final Map<byte[],Set<KeyValue>> rowMap = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
 				HRegion fakeRegion = mock(HRegion.class);
+        when(fakeRegion.getStartKey()).thenReturn(HConstants.EMPTY_BYTE_ARRAY);
+        when(fakeRegion.getEndKey()).thenReturn(HConstants.EMPTY_BYTE_ARRAY);
 
 				when(fakeRegion.get(any(Get.class))).thenAnswer(new Answer<Result>(){
 						@Override
@@ -317,8 +320,11 @@ public class TxnTestUtils {
 				private boolean containedInScan(KeyValue kv) {
 						byte[] family = kv.getFamily();
 						Map<byte[], NavigableSet<byte[]>> familyMap = scan.getFamilyMap();
+            if(familyMap.size()<=0) return true;
+
 						if(!familyMap.containsKey(family)) return false;
 						NavigableSet<byte[]> qualifiersToFetch = familyMap.get(family);
+            if(qualifiersToFetch.size()<=0) return true;
 						return qualifiersToFetch.contains(kv.getQualifier());
 				}
 

@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import com.splicemachine.derby.utils.WarningState;
 import org.apache.derby.iapi.store.access.ColumnOrdering;
 import com.splicemachine.derby.ddl.DDLChange;
 import com.splicemachine.derby.ddl.TentativeIndexDesc;
@@ -26,6 +27,7 @@ import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.dictionary.*;
 import org.apache.derby.iapi.store.access.TransactionController;
+import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.log4j.Logger;
 
@@ -203,6 +205,11 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
             throw Exceptions.parseException(e);
         } finally {
             SpliceDriver.driver().getStatementManager().completedStatement(statementInfo, activation.isTraced());
+            if(activation.isTraced()){
+                GenericStorablePreparedStatement preparedStatement = (GenericStorablePreparedStatement) activation.getPreparedStatement();
+                preparedStatement.clearWarnings();
+                preparedStatement.addWarning(StandardException.newWarning(WarningState.XPLAIN_STATEMENT_ID.getSqlState(),statementInfo.getStatementUuid()));
+            }
             cleanupFuture(future);
         }
     }

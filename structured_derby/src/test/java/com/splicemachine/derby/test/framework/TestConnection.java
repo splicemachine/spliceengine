@@ -2,6 +2,7 @@ package com.splicemachine.derby.test.framework;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.test.ManagedCallableStatement;
+import com.splicemachine.derby.utils.WarningState;
 import com.splicemachine.stream.Accumulator;
 import com.splicemachine.stream.StreamException;
 
@@ -22,6 +23,7 @@ public class TestConnection implements Connection{
     private final List<Statement> statements = Lists.newArrayList();
 
     private boolean oldAutoCommit;
+    private long statementId;
 
     public TestConnection(Connection delegate) throws SQLException {
         this.delegate = delegate;
@@ -29,7 +31,10 @@ public class TestConnection implements Connection{
     }
 
     public ResultSet query(String sql) throws SQLException{
-        return createStatement().executeQuery(sql);
+        Statement s = createStatement();
+        ResultSet rs = s.executeQuery(sql);
+        statementId = parseWarnings(s.getWarnings());
+        return rs;
     }
 
     @Override
@@ -207,9 +212,23 @@ public class TestConnection implements Connection{
     public void forAllRows(String query,Accumulator<ResultSet>accumulator) throws Exception {
         Statement s = createStatement();
         ResultSet resultSet = s.executeQuery(query);
+        SQLWarning warnings = s.getWarnings();
+        statementId = parseWarnings(warnings);
         while(resultSet.next()){
             accumulator.accumulate(resultSet);
         }
+    }
+
+    private long parseWarnings(SQLWarning warnings) {
+        if(warnings!=null){
+            if(WarningState.XPLAIN_STATEMENT_ID.getSqlState().equals(warnings.getSQLState())){
+                String message = warnings.getMessage();
+                int start = message.indexOf("is ");
+                return Long.parseLong(message.substring(start+3).replace(",",""));
+            }else
+                System.out.println(warnings.getMessage());
+        }
+        return -1l;
     }
 
     public long count(String query) throws Exception{
@@ -221,6 +240,30 @@ public class TestConnection implements Connection{
             }
         });
         return rowCount.get();
+    }
+
+    public long getCount(PreparedStatement countPs) throws Exception{
+        countPs.clearWarnings();
+        ResultSet rs = countPs.executeQuery();
+        SQLWarning warnings = countPs.getWarnings();
+        statementId = parseWarnings(warnings);
+        if(rs.next()) return rs.getLong(1);
+        else return -1l;
+    }
+
+    public long getCount(String countQuery) throws Exception{
+        assert countQuery.contains("count"): "query is not a count query!";
+        Statement s = createStatement();
+        ResultSet rs = s.executeQuery(countQuery);
+        SQLWarning warnings = s.getWarnings();
+        statementId = parseWarnings(warnings);
+        if(rs.next())
+            return rs.getLong(1);
+        else return -1;
+    }
+
+    public long getLastStatementId(){
+        return statementId;
     }
 
     /***********************************************************************************/
@@ -239,4 +282,10 @@ public class TestConnection implements Connection{
         return resultSet.getLong(1);
     }
 
+    public boolean execute(String sql) throws SQLException{
+        Statement s = createStatement();
+        boolean executed = s.execute(sql);
+        statementId = parseWarnings(s.getWarnings());
+        return executed;
+    }
 }

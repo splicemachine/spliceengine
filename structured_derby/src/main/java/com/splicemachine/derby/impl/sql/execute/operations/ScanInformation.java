@@ -64,4 +64,6 @@ interface ScanInformation<T> {
     SpliceConglomerate getConglomerate() throws StandardException;
 
 		String getTableVersion() throws StandardException;
+
+    String getTableName() throws StandardException;
 }

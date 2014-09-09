@@ -2,22 +2,19 @@ package com.splicemachine.management;
 
 import com.splicemachine.derby.management.XPlainTreeNode;
 import com.splicemachine.derby.test.framework.*;
-import org.junit.Assert;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 
 /**
  * Created by jyuan on 7/15/14.
  */
 public class XPlainTrace3IT {
-    private SpliceXPlainTrace xPlainTrace = new SpliceXPlainTrace();
+    private static SpliceXPlainTrace xPlainTrace = new SpliceXPlainTrace();
+    private static TestConnection baseConnection;
     private static int nrows = 10;
 
     public XPlainTrace3IT() {
@@ -76,33 +73,48 @@ public class XPlainTrace3IT {
                     }
             });
 
+    @BeforeClass
+    public static void setUpClass() throws Exception {
+        baseConnection = new TestConnection(SpliceNetConnection.getConnection());
+        xPlainTrace.setConnection(baseConnection);
+    }
+
+    @AfterClass
+    public static void tearDown() throws Exception {
+        baseConnection.close();
+    }
+
     @Test
     public void testInsertAndCreateIndex() throws Exception {
         xPlainTrace.turnOnTrace();
         String sql = "insert into " + CLASS_NAME + "." + TABLE2 + " values 1, 2";
         boolean success = xPlainTrace.execute(sql);
+        long statementId = baseConnection.getLastStatementId();
         xPlainTrace.turnOffTrace();
 
-        XPlainTreeNode operation = xPlainTrace.getOperationTree();
-        Assert.assertEquals(operation.getOperationType().compareToIgnoreCase(SpliceXPlainTrace.INSERT), 0);
+        XPlainTreeNode operation = xPlainTrace.getOperationTree(statementId);
+        Assert.assertEquals(0,operation.getOperationType().compareToIgnoreCase(SpliceXPlainTrace.INSERT));
         Assert.assertEquals(operation.getInputRows(), 2);
         Assert.assertEquals(2, operation.getWriteRows());
 
         operation = operation.getChildren().getFirst();
-        Assert.assertTrue(operation.getOperationType().compareToIgnoreCase(SpliceXPlainTrace.UNION)==0);
+        Assert.assertEquals(0,operation.getOperationType().compareToIgnoreCase(SpliceXPlainTrace.UNION));
         Assert.assertEquals(2, operation.getInputRows());
 
         for(XPlainTreeNode child:operation.getChildren()) {
-            Assert.assertTrue(child.getOperationType().compareToIgnoreCase(SpliceXPlainTrace.ROW)==0);
+            Assert.assertEquals(0,child.getOperationType().compareToIgnoreCase(SpliceXPlainTrace.ROW));
         }
 
         xPlainTrace.turnOnTrace();
         String ddl = "create index ti on " + CLASS_NAME + "." + TABLE2 + "(i)";
         xPlainTrace.execute(ddl);
+        statementId = baseConnection.getLastStatementId();
         xPlainTrace.turnOffTrace();
 
-        operation = xPlainTrace.getOperationTree();
-        Assert.assertEquals(operation.getOperationType().compareToIgnoreCase(SpliceXPlainTrace.POPULATEINDEX), 0);
+        operation = xPlainTrace.getOperationTree(statementId);
+        String operationType = operation.getOperationType();
+        System.out.println(operationType);
+        Assert.assertEquals(0, operationType.compareToIgnoreCase(SpliceXPlainTrace.POPULATEINDEX));
         Assert.assertEquals(2, operation.getOutputRows());
         Assert.assertEquals(2, operation.getWriteRows());
         //Assert.assertEquals(2, operation.getLocalScanRows());
@@ -113,9 +125,10 @@ public class XPlainTrace3IT {
         xPlainTrace.turnOnTrace();
         String sql = "update " + CLASS_NAME + "." + TABLE3 + " set i=i+1";
         boolean success = xPlainTrace.execute(sql);
+        long statementId = baseConnection.getLastStatementId();
         xPlainTrace.turnOffTrace();
 
-        XPlainTreeNode operation = xPlainTrace.getOperationTree();
+        XPlainTreeNode operation = xPlainTrace.getOperationTree(statementId);
         Assert.assertTrue(operation.getOperationType().compareToIgnoreCase(SpliceXPlainTrace.UPDATE)==0);
         Assert.assertEquals(nrows, operation.getWriteRows());
         Assert.assertEquals(nrows, operation.getInputRows());
@@ -126,9 +139,10 @@ public class XPlainTrace3IT {
         xPlainTrace.turnOnTrace();
         String sql = "delete from " + CLASS_NAME + "." + TABLE1;
         boolean success = xPlainTrace.execute(sql);
+        long statementId = baseConnection.getLastStatementId();
         xPlainTrace.turnOffTrace();
 
-        XPlainTreeNode operation = xPlainTrace.getOperationTree();
+        XPlainTreeNode operation = xPlainTrace.getOperationTree(statementId);
         Assert.assertTrue(operation.getOperationType().compareToIgnoreCase(SpliceXPlainTrace.DELETE)==0);
         Assert.assertEquals(nrows, operation.getWriteRows());
         Assert.assertEquals(nrows, operation.getInputRows());

@@ -626,7 +626,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
         Assert.assertEquals(EMPTAB_ROWS.length, i);
         xPlainTrace.turnOffTrace();
 
-        XPlainTreeNode operation = xPlainTrace.getOperationTree();
+        XPlainTreeNode operation = xPlainTrace.getOperationTree(-1l);
         Assert.assertTrue(operation.getOperationType().compareToIgnoreCase(SpliceXPlainTrace.PROJECTRESTRICT)==0);
         operation = operation.getChildren().getFirst();
         Assert.assertTrue(operation.getOperationType().compareToIgnoreCase(SpliceXPlainTrace.WINDOW)==0);

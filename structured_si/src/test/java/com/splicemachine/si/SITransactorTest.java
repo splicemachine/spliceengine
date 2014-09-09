@@ -64,6 +64,7 @@ public class SITransactorTest extends SIConstants {
     @Before
     public void setUp() throws IOException {
         baseSetUp();
+        System.out.println("Setting up "+this.getClass());
     }
 
     @After

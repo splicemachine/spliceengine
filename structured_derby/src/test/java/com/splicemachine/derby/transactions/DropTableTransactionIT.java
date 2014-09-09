@@ -5,7 +5,9 @@ import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.derby.utils.ErrorState;
+import com.splicemachine.test.SerialTest;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
@@ -16,6 +18,7 @@ import java.sql.SQLException;
  * @author Scott Fines
  *         Date: 9/4/14
  */
+@Category(SerialTest.class) //serial until DB-1777 is resolved
 public class DropTableTransactionIT {
     public static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(InsertUpdateTransactionIT.class.getSimpleName().toUpperCase());
 
@@ -125,8 +128,8 @@ public class DropTableTransactionIT {
 
     @Test
     public void testCanDropUnrelatedTablesConcurrently() throws Exception {
-        conn1.createStatement().execute("create table "+schemaWatcher+".t (a int unique not null, b int)"); //make sure and have an index
-        conn1.createStatement().execute("create table "+schemaWatcher+".t2 (a int unique not null, b int)");
+        new SpliceTableWatcher("t",schemaWatcher.schemaName,"(a int unique not null, b int)").start();
+        new SpliceTableWatcher("t2",schemaWatcher.schemaName,"(a int unique not null, b int)").start();
         conn1.commit();
         conn2.commit(); //roll both connections forward to ensure visibility
 

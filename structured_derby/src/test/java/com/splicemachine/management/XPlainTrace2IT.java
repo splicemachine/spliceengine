@@ -2,16 +2,12 @@ package com.splicemachine.management;
 
 import com.splicemachine.derby.management.XPlainTreeNode;
 import com.splicemachine.derby.test.framework.*;
-import org.junit.Assert;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 
 /**
  * Created by jyuan on 7/14/14.
@@ -21,7 +17,8 @@ public class XPlainTrace2IT {
     public static int nrows = 10;
     public static int numLoops = 3;
 
-    private SpliceXPlainTrace xPlainTrace = new SpliceXPlainTrace();
+    private static  SpliceXPlainTrace xPlainTrace = new SpliceXPlainTrace();
+    private static TestConnection baseConnection;
 
     public XPlainTrace2IT() {
 
@@ -102,21 +99,29 @@ public class XPlainTrace2IT {
                 }
             });
 
+    @BeforeClass
+    public static void setUpClass() throws Exception {
+        baseConnection = new TestConnection(SpliceNetConnection.getConnection());
+        xPlainTrace.setConnection(baseConnection);
+    }
+
+    @AfterClass
+    public static void tearDown() throws Exception {
+        baseConnection.close();
+    }
+
     @Test
     public void testIndexLookup() throws Exception {
 
         xPlainTrace.turnOnTrace();
         String sql = "select j from " + CLASS_NAME + "." + TABLE3 + " --splice-properties index=ti \n where i = 1";
-        ResultSet rs = xPlainTrace.executeQuery(sql);
-        int count = 0;
-        while(rs.next()) {
-            ++count;
-        }
+        long count =  baseConnection.count(sql);
+        long statementId = baseConnection.getLastStatementId();
         Assert.assertEquals(count, 1);
 
         xPlainTrace.turnOffTrace();
 
-        XPlainTreeNode operation = xPlainTrace.getOperationTree();
+        XPlainTreeNode operation = xPlainTrace.getOperationTree(statementId);
         operation = operation.getChildren().getFirst();
         String operationType = operation.getOperationType();
         Assert.assertTrue(operationType.compareToIgnoreCase(SpliceXPlainTrace.INDEXROWTOBASEROW) == 0);
@@ -137,15 +142,12 @@ public class XPlainTrace2IT {
     public void testOrderBy() throws Exception {
         xPlainTrace.turnOnTrace();
         String sql = "select j from " + CLASS_NAME + "." + TABLE2 + " order by i desc";
-        ResultSet rs = xPlainTrace.executeQuery(sql);
-        int count = 0;
-        while(rs.next()) {
-            ++count;
-        }
+        long count = baseConnection.count(sql);
+        long statementId = baseConnection.getLastStatementId();
         Assert.assertEquals(count, numLoops*nrows);
         xPlainTrace.turnOffTrace();
 
-        XPlainTreeNode operation = xPlainTrace.getOperationTree();
+        XPlainTreeNode operation = xPlainTrace.getOperationTree(statementId);
         if (operation != null) {
             operation = operation.getChildren().getFirst();
             Assert.assertEquals(operation.getOperationType().compareToIgnoreCase(SpliceXPlainTrace.SORT), 0);
@@ -159,15 +161,12 @@ public class XPlainTrace2IT {
     public void testDistinctScan() throws Exception {
         xPlainTrace.turnOnTrace();
         String sql = "select distinct i from " + CLASS_NAME + "." + TABLE2;
-        ResultSet rs = xPlainTrace.executeQuery(sql);
-        int count = 0;
-        while(rs.next()) {
-            ++count;
-        }
+        long count = baseConnection.count(sql);
+        long statementId = baseConnection.getLastStatementId();
         Assert.assertEquals(count, nrows);
         xPlainTrace.turnOffTrace();
 
-        XPlainTreeNode operation = xPlainTrace.getOperationTree();
+        XPlainTreeNode operation = xPlainTrace.getOperationTree(statementId);
         Assert.assertEquals(operation.getOperationType().compareToIgnoreCase(SpliceXPlainTrace.DISTINCTSCAN), 0);
         Assert.assertEquals(operation.getWriteRows(), nrows);
         Assert.assertEquals(operation.getInputRows(), nrows*numLoops);
@@ -177,15 +176,12 @@ public class XPlainTrace2IT {
     public void testGroupedAggregate() throws Exception {
         xPlainTrace.turnOnTrace();
         String sql = "select i, sum(j) from " + CLASS_NAME + "." + TABLE2 + " group by i order by i";
-        ResultSet rs = xPlainTrace.executeQuery(sql);
-        int count = 0;
-        while(rs.next()) {
-            ++count;
-        }
+        long count = baseConnection.count(sql);
+        long statementId = baseConnection.getLastStatementId();
         Assert.assertEquals(count, nrows);
         xPlainTrace.turnOffTrace();
 
-        XPlainTreeNode operation = xPlainTrace.getOperationTree();
+        XPlainTreeNode operation = xPlainTrace.getOperationTree(statementId);
         Assert.assertEquals(operation.getOperationType().compareToIgnoreCase(SpliceXPlainTrace.SORT), 0);
 
         operation = operation.getChildren().getFirst();
@@ -198,15 +194,12 @@ public class XPlainTrace2IT {
     public void testOnceAndSubquery() throws Exception {
         xPlainTrace.turnOnTrace();
         String sql = "select i from " + CLASS_NAME + "." + TABLE1 + " a where a.i>  (select min(i) from "+ CLASS_NAME + "." + TABLE1 +" b where a.i < b.i)";
-        ResultSet rs = xPlainTrace.executeQuery(sql);
-        int count = 0;
-        while(rs.next()) {
-            ++count;
-        }
+        long count = baseConnection.count(sql);
+        long statementId = baseConnection.getLastStatementId();
         Assert.assertEquals(count, 1);
         xPlainTrace.turnOffTrace();
 
-        XPlainTreeNode operation = xPlainTrace.getOperationTree();
+        XPlainTreeNode operation = xPlainTrace.getOperationTree(statementId);
         Assert.assertEquals(operation.getOperationType().compareToIgnoreCase(SpliceXPlainTrace.PROJECTRESTRICT), 0);
 
         XPlainTreeNode child = operation.getChildren().getLast();
@@ -231,9 +224,10 @@ public class XPlainTrace2IT {
         xPlainTrace.turnOnTrace();
         String sql = "alter table " + CLASS_NAME + "." + TABLE1 + " drop column j";
         xPlainTrace.execute(sql);
+        long statementId = baseConnection.getLastStatementId();
         xPlainTrace.turnOffTrace();
 
-        XPlainTreeNode operation = xPlainTrace.getOperationTree();
+        XPlainTreeNode operation = xPlainTrace.getOperationTree(statementId);
         //Assert.assertEquals(operation.getInfo().compareToIgnoreCase(SpliceXPlainTrace.POPULATEINDEX)
 
     }

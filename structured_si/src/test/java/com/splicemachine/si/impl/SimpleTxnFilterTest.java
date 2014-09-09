@@ -31,11 +31,11 @@ public class SimpleTxnFilterTest {
 
 		@Test
 		public void testCanSeeCommittedRowSnapshotIsolation() throws Exception {
-				final Map<Long,Txn> txnMap = Maps.newHashMap();
+				final Map<Long,TxnView> txnMap = Maps.newHashMap();
 				TxnSupplier baseStore = getMapStore(txnMap);
 
 				//add a committed transaction to the map
-        Txn committed = getMockCommittedTxn(0l,1l,null);
+        TxnView committed = getMockCommittedTxn(0l,1l,null);
 				txnMap.put(0l, committed);
 
 				ReadResolver noopResolver = mock(ReadResolver.class);
@@ -61,11 +61,11 @@ public class SimpleTxnFilterTest {
 
     @Test
 		public void testCannotSeeRolledBackRow() throws Exception {
-				final Map<Long,Txn> txnMap = Maps.newHashMap();
+				final Map<Long,TxnView> txnMap = Maps.newHashMap();
 				TxnSupplier baseStore = getMapStore(txnMap);
 
 				//add a rolledBack transaction to the map
-        Txn rolledBack = getMockRolledBackTxn(0l,null);
+        TxnView rolledBack = getMockRolledBackTxn(0l,null);
 				txnMap.put(0l, rolledBack);
 
 				DataStore ds = getMockDataStore();
@@ -89,10 +89,10 @@ public class SimpleTxnFilterTest {
 				/*
 				 * Tests that data written by an active transaction will not read-resolve
 				 */
-				Map<Long,Txn> txnMap = Maps.newHashMap();
+				Map<Long,TxnView> txnMap = Maps.newHashMap();
 				TxnSupplier baseStore = getMapStore(txnMap);
 
-				Txn active = new WritableTxn(1l,1l, Txn.IsolationLevel.SNAPSHOT_ISOLATION,null,mock(TxnLifecycleManager.class), false);
+				Txn active = new WritableTxn(1l,1l, Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,mock(TxnLifecycleManager.class), false);
 				txnMap.put(active.getTxnId(),active);
 
 				assertActive(baseStore,active,2l);
@@ -104,11 +104,11 @@ public class SimpleTxnFilterTest {
 				 * Tests that data written by an active transaction will not read-resolve, even if
 				 * it was written by a child transaction which was committed.
 				 */
-				Map<Long,Txn> txnMap = Maps.newHashMap();
+				Map<Long,TxnView> txnMap = Maps.newHashMap();
 				TxnSupplier baseStore = getMapStore(txnMap);
 
-				Txn active = new WritableTxn(1l,1l, Txn.IsolationLevel.SNAPSHOT_ISOLATION,null,mock(TxnLifecycleManager.class), false);
-				Txn child = new WritableTxn(2l,2l, Txn.IsolationLevel.SNAPSHOT_ISOLATION,active,mock(TxnLifecycleManager.class), false);
+				TxnView active = new WritableTxn(1l,1l, Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,mock(TxnLifecycleManager.class), false);
+				TxnView child = new WritableTxn(2l,2l, Txn.IsolationLevel.SNAPSHOT_ISOLATION,active,mock(TxnLifecycleManager.class), false);
 				txnMap.put(active.getTxnId(),active);
 				txnMap.put(child.getTxnId(),child);
 
@@ -121,10 +121,10 @@ public class SimpleTxnFilterTest {
 				/*
 				 * Tests that data written by a committed transaction will read-resolve
 				 */
-				Map<Long,Txn> txnMap = Maps.newHashMap();
+				Map<Long,TxnView> txnMap = Maps.newHashMap();
 				TxnSupplier baseStore = getMapStore(txnMap);
 
-				Txn committed = getMockCommittedTxn(2l,3l,null);
+				TxnView committed = getMockCommittedTxn(2l,3l,null);
 				txnMap.put(committed.getTxnId(),committed);
 
 				assertCommitted(baseStore,committed,5l);
@@ -136,11 +136,11 @@ public class SimpleTxnFilterTest {
 				 * Tests that data written by a committed transaction will read-resolve a transaction
 				 * as committed if its parent is committed
 				 */
-				Map<Long,Txn> txnMap = Maps.newHashMap();
+				Map<Long,TxnView> txnMap = Maps.newHashMap();
 				TxnSupplier baseStore = getMapStore(txnMap);
 
-				Txn parentTxn = getMockCommittedTxn(1,4,null);
-				Txn committed = getMockCommittedTxn(2,2,parentTxn);
+				TxnView parentTxn = getMockCommittedTxn(1,4,Txn.ROOT_TRANSACTION);
+				TxnView committed = getMockCommittedTxn(2,2,parentTxn);
 				txnMap.put(committed.getTxnId(),committed);
 				txnMap.put(parentTxn.getTxnId(),parentTxn);
 
@@ -153,11 +153,11 @@ public class SimpleTxnFilterTest {
 				 * Tests that data written by a dependent child transaction will
 				 * read-resolve as committed if its parent is committed and it is NOT rolled back
 				 */
-				Map<Long,Txn> txnMap = Maps.newHashMap();
+				Map<Long,TxnView> txnMap = Maps.newHashMap();
 				TxnSupplier baseStore = getMapStore(txnMap);
 
-				Txn parentTxn = getMockCommittedTxn(1,4,null);
-				Txn committed = getMockCommittedTxn(2,3,null);
+				TxnView parentTxn = getMockCommittedTxn(1,4,null);
+				TxnView committed = getMockCommittedTxn(2,3,null);
 				txnMap.put(committed.getTxnId(),committed);
 				txnMap.put(parentTxn.getTxnId(),parentTxn);
 
@@ -170,10 +170,10 @@ public class SimpleTxnFilterTest {
 				/*
 				 * Tests that data written by a rolled-back transaction will read-resolve as rolled back.
 				 */
-				Map<Long,Txn> txnMap = Maps.newHashMap();
+				Map<Long,TxnView> txnMap = Maps.newHashMap();
 				TxnSupplier baseStore = getMapStore(txnMap);
 
-				Txn rolledBackTxn = getMockRolledBackTxn(1l,null);
+				TxnView rolledBackTxn = getMockRolledBackTxn(1l,null);
 				txnMap.put(rolledBackTxn.getTxnId(),rolledBackTxn);
 
 				assertRolledBack(baseStore,rolledBackTxn);
@@ -186,11 +186,11 @@ public class SimpleTxnFilterTest {
 				 * Tests that data written by a dependent child transaction will be rolled back if
 				 * the parent has been rolled back, if the child itself is still active
 				 */
-				Map<Long,Txn> txnMap = Maps.newHashMap();
+				Map<Long,TxnView> txnMap = Maps.newHashMap();
 				TxnSupplier baseStore = getMapStore(txnMap);
 
-				Txn parenTxn = getMockRolledBackTxn(1l,null);
-				Txn rolledBackTxn = getMockActiveTxn(2l,parenTxn);
+				TxnView parenTxn = getMockRolledBackTxn(1l,null);
+				TxnView rolledBackTxn = getMockActiveTxn(2l,parenTxn);
 				txnMap.put(rolledBackTxn.getTxnId(),rolledBackTxn);
 				txnMap.put(parenTxn.getTxnId(),parenTxn);
 
@@ -205,11 +205,11 @@ public class SimpleTxnFilterTest {
 				 * Tests that data written by a dependent child transaction will be rolled back if
 				 * the parent has been rolled back, even if the child itself has committed
 				 */
-				Map<Long,Txn> txnMap = Maps.newHashMap();
+				Map<Long,TxnView> txnMap = Maps.newHashMap();
 				TxnSupplier baseStore = getMapStore(txnMap);
 
-				Txn parenTxn = getMockRolledBackTxn(1l,null);
-				Txn rolledBackTxn = getMockCommittedTxn(2,3,parenTxn);
+				TxnView parenTxn = getMockRolledBackTxn(1l,null);
+				TxnView rolledBackTxn = getMockCommittedTxn(2,3,parenTxn);
 				txnMap.put(rolledBackTxn.getTxnId(),rolledBackTxn);
 				txnMap.put(parenTxn.getTxnId(),parenTxn);
 
@@ -222,11 +222,11 @@ public class SimpleTxnFilterTest {
 				 * Tests that data written by a rolled-back transaction will read-resolve as rolled back,
 				 * even if that transaction is the child of a transaction which has been committed
 				 */
-				Map<Long,Txn> txnMap = Maps.newHashMap();
+				Map<Long,TxnView> txnMap = Maps.newHashMap();
 				TxnSupplier baseStore = getMapStore(txnMap);
 
-				Txn parenTxn = getMockCommittedTxn(1l,3l,null);
-				Txn rolledBackTxn = getMockRolledBackTxn(2l,parenTxn);
+				TxnView parenTxn = getMockCommittedTxn(1l,3l,null);
+				TxnView rolledBackTxn = getMockRolledBackTxn(2l,parenTxn);
 				txnMap.put(rolledBackTxn.getTxnId(),rolledBackTxn);
 				txnMap.put(parenTxn.getTxnId(),parenTxn);
 
@@ -237,18 +237,18 @@ public class SimpleTxnFilterTest {
 		/*private helper methods*/
 
 
-		private TxnSupplier getMapStore(final Map<Long, Txn> txnMap) throws IOException {
+		private TxnSupplier getMapStore(final Map<Long, TxnView> txnMap) throws IOException {
 				TxnSupplier baseStore = mock(TxnSupplier.class);
-				when(baseStore.getTransaction(anyLong())).thenAnswer(new Answer<Txn>() {
+				when(baseStore.getTransaction(anyLong())).thenAnswer(new Answer<TxnView>() {
 						@Override
-						public Txn answer(InvocationOnMock invocationOnMock) throws Throwable {
+						public TxnView answer(InvocationOnMock invocationOnMock) throws Throwable {
 								//noinspection SuspiciousMethodCalls
 								return txnMap.get(invocationOnMock.getArguments()[0]);
 						}
 				});
-				when(baseStore.getTransaction(anyLong(),anyBoolean())).thenAnswer(new Answer<Txn>() {
+				when(baseStore.getTransaction(anyLong(),anyBoolean())).thenAnswer(new Answer<TxnView>() {
 						@Override
-						public Txn answer(InvocationOnMock invocationOnMock) throws Throwable {
+						public TxnView answer(InvocationOnMock invocationOnMock) throws Throwable {
 								//noinspection SuspiciousMethodCalls
 								return txnMap.get(invocationOnMock.getArguments()[0]);
 						}
@@ -296,7 +296,7 @@ public class SimpleTxnFilterTest {
 				return resolver;
 		}
 
-		private void assertRolledBack(TxnSupplier baseStore, Txn rolledBackTxn) throws IOException {
+		private void assertRolledBack(TxnSupplier baseStore, TxnView rolledBackTxn) throws IOException {
 				DataStore ds = getMockDataStore();
 				TxnView myTxn = new InheritingTxnView(Txn.ROOT_TRANSACTION,4l,4l,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.State.ACTIVE);
 
@@ -319,7 +319,7 @@ public class SimpleTxnFilterTest {
 				Assert.assertEquals("Incorrect version of data to be rolled back!",rolledBackTxn.getTxnId(),rolledBackTxnId);
 		}
 
-		private void assertCommitted(TxnSupplier baseStore, Txn committed,long readTs) throws IOException {
+		private void assertCommitted(TxnSupplier baseStore, TxnView committed,long readTs) throws IOException {
 				DataStore ds = getMockDataStore();
 				TxnView myTxn = new InheritingTxnView(Txn.ROOT_TRANSACTION,readTs,readTs,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.State.ACTIVE);
 
@@ -345,9 +345,9 @@ public class SimpleTxnFilterTest {
 		}
 
 
-		private void assertActive(TxnSupplier baseStore, Txn active,long readTs) throws IOException{
+		private void assertActive(TxnSupplier baseStore, TxnView active,long readTs) throws IOException{
 				DataStore ds = getMockDataStore();
-				Txn myTxn = new ReadOnlyTxn(readTs,readTs, Txn.IsolationLevel.SNAPSHOT_ISOLATION,null,mock(TxnLifecycleManager.class),false);
+				Txn myTxn = new ReadOnlyTxn(readTs,readTs, Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,mock(TxnLifecycleManager.class),false);
 
 				ReadResolver resolver = getActiveReadResolver();
 
@@ -361,44 +361,34 @@ public class SimpleTxnFilterTest {
 				//the read-resolver will ensure that an error is thrown if we attempt to read-resolve
 		}
 
-		private KeyValue getKeyValue(Txn txn) {
+		private KeyValue getKeyValue(TxnView txn) {
 				return new KeyValue(Encoding.encode("1"), SpliceConstants.DEFAULT_FAMILY_BYTES,
 								SpliceConstants.PACKED_COLUMN_BYTES,txn.getTxnId(),Encoding.encode("hello"));
 		}
 
-    protected Txn getMockCommittedTxn(long begin,long commit,TxnView parent) {
-        Txn committed = mock(Txn.class);
-        when(committed.getState()).thenReturn(Txn.State.COMMITTED);
-        when(committed.getEffectiveState()).thenReturn(Txn.State.COMMITTED);
-        when(committed.getCommitTimestamp()).thenReturn(commit);
-        when(committed.getBeginTimestamp()).thenReturn(begin);
-        when(committed.getTxnId()).thenReturn(begin);
+    protected TxnView getMockCommittedTxn(long begin,long commit,TxnView parent) {
         if(parent==null)
             parent = Txn.ROOT_TRANSACTION;
-        when(committed.getParentTxnView()).thenReturn(parent);
-        return committed;
+        return new InheritingTxnView(parent,begin,begin,
+                Txn.IsolationLevel.SNAPSHOT_ISOLATION,
+                false,false,
+                true,true,
+                commit,-1l,
+                Txn.State.COMMITTED);
     }
 
-    protected Txn getMockRolledBackTxn(long begin,TxnView parent) {
-        Txn rolledBack = mock(Txn.class);
-        when(rolledBack.getState()).thenReturn(Txn.State.ROLLEDBACK);
-        when(rolledBack.getTxnId()).thenReturn(begin);
-        when(rolledBack.getBeginTimestamp()).thenReturn(begin);
+    protected TxnView getMockRolledBackTxn(long begin,TxnView parent) {
         if(parent==null)
             parent = Txn.ROOT_TRANSACTION;
-        when(rolledBack.getParentTxnView()).thenReturn(parent);
-        return rolledBack;
+        return new InheritingTxnView(parent,
+                begin,begin,true,
+                Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.State.ROLLEDBACK);
     }
 
-    private Txn getMockActiveTxn(long begin,TxnView parent) {
-        Txn rolledBack = mock(Txn.class);
-        when(rolledBack.getState()).thenReturn(Txn.State.ACTIVE);
-        when(rolledBack.getTxnId()).thenReturn(begin);
-        when(rolledBack.getBeginTimestamp()).thenReturn(begin);
+    private TxnView getMockActiveTxn(long begin,TxnView parent) {
         if(parent==null)
             parent = Txn.ROOT_TRANSACTION;
-        when(rolledBack.getParentTxnView()).thenReturn(parent);
-        return rolledBack;
+        return new InheritingTxnView(parent,begin,begin,true, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.State.ACTIVE);
     }
 
 }

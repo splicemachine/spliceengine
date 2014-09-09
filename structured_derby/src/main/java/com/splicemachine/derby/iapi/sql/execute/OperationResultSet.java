@@ -5,15 +5,11 @@ import com.google.common.collect.Lists;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
-import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.OperationSink;
-import com.splicemachine.derby.impl.sql.execute.operations.OperationTree;
-import com.splicemachine.derby.impl.sql.execute.operations.OperationUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
-import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.management.OperationInfo;
 import com.splicemachine.derby.management.StatementInfo;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.derby.utils.WarningState;
 import com.splicemachine.metrics.IOStats;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
@@ -31,6 +27,7 @@ import org.apache.derby.iapi.store.access.conglomerate.TransactionManager;
 import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
+import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
@@ -62,6 +59,10 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
     private SpliceOperation topOperation;
     private SpliceNoPutResultSet delegate;
     private boolean closed = false;
+    private long parentOperationID = -1l;
+    private long statementId;
+    private SpliceBaseOperation.XplainOperationChainInfo operationChainInfo;
+
 		private StatementInfo statementInfo;
 		private long scrollUuid;
 
@@ -86,68 +87,172 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
         topOperation.markAsTopResultSet();
     }
 
+    private StatementInfo initStatmentInfo(StatementInfo stmtInfo, SpliceOperationContext opCtx) throws StandardException {
+        if (stmtInfo != null){
+            // if statementInfo already created for this ResultSet, don't create again nor add
+            // to StatementManager
+            return stmtInfo;
+        }
+        String sql = opCtx.getPreparedStatement().getSource();
+        String user = activation.getLanguageConnectionContext().getCurrentUserId(activation);
+        TxnView txn = getTransaction();
+        if (parentOperationID == -1) {
+            Snowflake snowflake = SpliceDriver.driver().getUUIDGenerator();
+            long sId = snowflake.nextUUID();
+            if (activation.isTraced()) {
+                activation.getLanguageConnectionContext().setXplainStatementId(sId);
+            }
+            stmtInfo = new StatementInfo(sql, user, txn,
+                    OperationTree.getNumSinks(topOperation),
+                    sId);
+        }
+        else {
+            stmtInfo = new StatementInfo(sql, user, txn,
+                    OperationTree.getNumSinks(topOperation),
+                    statementId);
+        }
+        List<OperationInfo> operationInfo = getOperationInfo(stmtInfo.getStatementUuid());
+        stmtInfo.setOperationInfo(operationInfo);
+        topOperation.setStatementId(stmtInfo.getStatementUuid());
+        SpliceDriver.driver().getStatementManager().addStatementInfo(stmtInfo);
+
+        return stmtInfo;
+    }
+
 		public SpliceNoPutResultSet getDelegate(){
 				return delegate;
 		}
 
-		public void open(boolean useProbe) throws StandardException{ open(useProbe,true); }
-
-		public void open(boolean useProbe,boolean showStatementInfo) throws StandardException{
-				SpliceLogUtils.trace(LOG,"openCore");
-				closed=false;
-				if(delegate!=null) delegate.close();
-
-				//elevate the transaction if necessary
-				Txn txn;
-				if(topOperation instanceof DMLWriteOperation){
-						txn = elevateTransaction();
-				}else
-						txn = getTransaction();
-
-				try {
-						SpliceOperationContext operationContext = SpliceOperationContext.newContext(activation,txn);
-						topOperation.init(operationContext);
-						topOperation.open();
-						if(showStatementInfo)
-								statementInfo = initStatmentInfo(statementInfo, operationContext);
-
-				} catch (IOException e) {
-						throw Exceptions.parseException(e);
-				}
-
-				try{
-						SpliceRuntimeContext runtimeContext = new SpliceRuntimeContext();
-						if(showStatementInfo)
-								runtimeContext.setStatementInfo(statementInfo);
-						if(activation.getLanguageConnectionContext().getStatisticsTiming()){
-								runtimeContext.recordTraceMetrics();
-								String xplainSchema = activation.getLanguageConnectionContext().getXplainSchema();
-								runtimeContext.setXplainSchema(xplainSchema);
-						}
-
-						List<byte[]> taskChain = OperationSink.taskChain.get();
-						if (taskChain != null && taskChain.size() > 0){
-								runtimeContext.setParentTaskId(taskChain.get(taskChain.size() - 1));
-						}
-
-						delegate = OperationTree.executeTree(topOperation,runtimeContext,useProbe);
-						delegate.setScrollId(scrollUuid);
-						//open the delegate
-						delegate.openCore();
-				}catch(RuntimeException e){
-						throw Exceptions.parseException(e);
-				}
-
-				if(PLAN_LOG.isDebugEnabled() && Boolean.valueOf(System.getProperty("derby.language.logQueryPlan"))){
-						PLAN_LOG.debug(topOperation.prettyPrint(1));
-				}
-
+		public void open(boolean useProbe) throws StandardException, IOException{
+            if (topOperation instanceof ExplainOperation) {
+                open(useProbe, false);
+            }
+            else {
+                open(useProbe, true);
+            }
 		}
 
+    public void executeScan(boolean useProbe, SpliceRuntimeContext context) throws StandardException {
+        try{
+            delegate = useProbe? topOperation.executeProbeScan(): topOperation.executeScan(context);
+            delegate.setScrollId(scrollUuid);
+            delegate.openCore();
+        }catch(RuntimeException re){
+            throw Exceptions.parseException(re);
+        }
+        if(PLAN_LOG.isDebugEnabled() && Boolean.valueOf(System.getProperty("derby.language.logQueryPlan"))){
+            PLAN_LOG.debug(topOperation.prettyPrint(1));
+        }
+    }
+
+    public SpliceRuntimeContext sinkOpen(boolean useProbe, boolean showStatementInfo) throws StandardException, IOException {
+        SpliceLogUtils.trace(LOG,"openCore");
+        closed=false;
+        if(delegate!=null) delegate.close();
+        SpliceRuntimeContext runtimeContext = new SpliceRuntimeContext();
+
+        try {
+            List<SpliceBaseOperation.XplainOperationChainInfo> operationChain = SpliceBaseOperation.operationChain.get();
+            if (operationChain != null && operationChain.size() > 0) {
+                operationChainInfo = operationChain.get(operationChain.size()-1);
+                runtimeContext.recordTraceMetrics();
+                parentOperationID = operationChainInfo.getOperationId();
+                statementId = operationChainInfo.getStatementId();
+            }
+
+            if(topOperation instanceof DMLWriteOperation){
+                //elevate the transaction
+                elevateTransaction();
+            }
+            SpliceOperationContext operationContext = SpliceOperationContext.newContext(activation);
+            topOperation.init(operationContext);
+            topOperation.open();
+            if(showStatementInfo){
+                statementInfo = initStatmentInfo(statementInfo, operationContext);
+                if(activation.isTraced()){
+                    SQLWarning w = StandardException.newWarning(WarningState.XPLAIN_STATEMENT_ID.getSqlState(), statementInfo.getStatementUuid());
+                    ((GenericStorablePreparedStatement)activation.getPreparedStatement()).addWarning(w);
+                }
+            }
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
+
+        try{
+
+            if(showStatementInfo)
+                runtimeContext.setStatementInfo(statementInfo);
+            if(activation.isTraced()){
+                runtimeContext.recordTraceMetrics();
+            }
+
+            List<byte[]> taskChain = OperationSink.taskChain.get();
+            if (taskChain != null && taskChain.size() > 0){
+                runtimeContext.setParentTaskId(taskChain.get(taskChain.size() - 1));
+            }
+
+            OperationTree.sink(topOperation, runtimeContext);
+            return runtimeContext;
+        }catch(RuntimeException e){
+            throw Exceptions.parseException(e);
+        }
+    }
+
+		public void open(boolean useProbe,boolean showStatementInfo) throws StandardException, IOException {
+        SpliceRuntimeContext ctx = sinkOpen(useProbe,showStatementInfo);
+        executeScan(useProbe,ctx);
+		}
+
+    @Override
+    public void openCore() throws StandardException {
+        try {
+            open(false);
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
+    }
+
+		private List<OperationInfo> getOperationInfo(long statementId) {
+				List<OperationInfo> info = Lists.newArrayList();
+        SpliceOperation top = topOperation;
+				if(!(top instanceof DMLWriteOperation||top instanceof MiscOperation)){
+					/*
+					 * We add an extra OperationInfo on the top here to indicate that there is
+					 * a "Scroll Insensitive" which returns the final output.
+					 */
+            String m = operationChainInfo==null ? null : operationChainInfo.getMethodName();
+
+						scrollUuid = SpliceDriver.driver().getUUIDGenerator().nextUUID();
+						OperationInfo opInfo = new OperationInfo(scrollUuid,statementId,"ScrollInsensitive",
+                                m, false,parentOperationID);
+						info.add(opInfo);
+				}else if (top instanceof MiscOperation){
+            top = topOperation.getLeftOperation();
+						scrollUuid = -1l;
+				}else{
+            scrollUuid = -1l;
+        }
+        populateOpInfo(statementId,scrollUuid,false,top,info);
+        return info;
+    }
 
 
-		@Override public void openCore() throws StandardException { open(false); }
-		@Override public void reopenCore() throws StandardException { open(false); }
+		private void populateOpInfo(long statementId,long parentOperationId,boolean isRight,SpliceOperation operation, List<OperationInfo> infos) {
+				if(operation==null) return;
+				long operationUuid = Bytes.toLong(operation.getUniqueSequenceID());
+				OperationInfo opInfo = new OperationInfo(operationUuid,statementId, operation.getName(), operation.getInfo(), isRight,parentOperationId);
+				infos.add(opInfo);
+				populateOpInfo(statementId,operationUuid, false, operation.getLeftOperation(), infos);
+				populateOpInfo(statementId,operationUuid,true,operation.getRightOperation(),infos);
+		}
+
+		@Override public void reopenCore() throws StandardException {
+        try {
+            open(false);
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
+    }
 
     @Override
     public ExecRow getNextRowCore() throws StandardException {
@@ -181,8 +286,7 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 
     @Override
     public double getEstimatedRowCount() {
-        checkDelegate();
-        return delegate.getEstimatedRowCount();
+        return topOperation.getOperationInformation().getEstimatedRowCount();
     }
 
     @Override
@@ -312,15 +416,12 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 
     @Override
     public void close() throws StandardException {
-				if(statementInfo!=null){
-						statementInfo.markCompleted();
-						String xplainSchema = activation.getLanguageConnectionContext().getXplainSchema();
-						boolean explain = xplainSchema !=null &&
-										activation.getLanguageConnectionContext().getRunTimeStatisticsMode();
-						SpliceDriver.driver().getStatementManager().completedStatement(statementInfo,
-										explain? xplainSchema: null);
-						statementInfo = null; //remove the field in case we call close twice
-				}
+        if(statementInfo!=null){
+            statementInfo.markCompleted();
+            SpliceDriver.driver().getStatementManager().completedStatement(statementInfo, activation.isTraced());
+            statementInfo = null; //remove the field in case we call close twice
+            ((GenericStorablePreparedStatement)activation.getPreparedStatement()).clearWarnings();
+        }
         if(delegate!=null)delegate.close();
         closed=true;
     }
@@ -462,52 +563,6 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
                 "No Delegate Result Set provided, please ensure open() or openCore() was called");
     }
 
-		private StatementInfo initStatmentInfo(StatementInfo stmtInfo, SpliceOperationContext opCtx) {
-				if (stmtInfo != null){
-						// if statementInfo already created for this ResultSet, don't create again nor add
-						// to StatementManager
-						return stmtInfo;
-				}
-				String sql = opCtx.getPreparedStatement().getSource();
-				String user = activation.getLanguageConnectionContext().getCurrentUserId(activation);
-				Txn txnId = ((SpliceTransactionManager)activation.getTransactionController()).getActiveStateTxn();
-				stmtInfo = new StatementInfo(sql, user, txnId,
-								OperationTree.getNumSinks(topOperation),
-								SpliceDriver.driver().getUUIDGenerator());
-				List<OperationInfo> operationInfo = getOperationInfo(stmtInfo.getStatementUuid());
-				stmtInfo.setOperationInfo(operationInfo);
-				topOperation.setStatementId(stmtInfo.getStatementUuid());
-				SpliceDriver.driver().getStatementManager().addStatementInfo(stmtInfo);
-				return stmtInfo;
-		}
-
-		private List<OperationInfo> getOperationInfo(long statementId) {
-				List<OperationInfo> info = Lists.newArrayList();
-				if(!(topOperation instanceof DMLWriteOperation)){
-					/*
-					 * We add an extra OperationInfo on the top here to indicate that there is
-					 * a "Scroll Insensitive" which returns the final output.
-					 */
-						scrollUuid = SpliceDriver.driver().getUUIDGenerator().nextUUID();
-						OperationInfo opInfo = new OperationInfo(scrollUuid,statementId,"ScrollInsensitive",false,-1l);
-						info.add(opInfo);
-				}else{
-						scrollUuid = -1l;
-				}
-
-				populateOpInfo(statementId,scrollUuid,false,topOperation,info);
-				return info;
-		}
-
-		private void populateOpInfo(long statementId,long parentOperationId,boolean isRight,SpliceOperation operation, List<OperationInfo> infos) {
-				if(operation==null) return;
-				long operationUuid = Bytes.toLong(operation.getUniqueSequenceID());
-				OperationInfo opInfo = new OperationInfo(operationUuid,statementId, operation.getName(),isRight,parentOperationId);
-				infos.add(opInfo);
-				populateOpInfo(statementId,operationUuid, false, operation.getLeftOperation(), infos);
-				populateOpInfo(statementId,operationUuid,true,operation.getRightOperation(),infos);
-		}
-
 		private Txn elevateTransaction() throws StandardException {
 				/*
 				 * Elevate the current transaction to make sure that we are writable
@@ -523,4 +578,7 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 				return ((BaseSpliceTransaction) rawStoreXact).getActiveStateTxn();
 		}
 
+    public IOStats getStats() {
+        return delegate.getStats();
+    }
 }

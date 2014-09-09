@@ -61,6 +61,7 @@ public class MultiScanOperationJob implements CoprocessorJob,Externalizable {
 				for(Scan scan:scans){
 						SinkTask task = new SinkTask(getJobId(),scan, instructions.getSpliceRuntimeContext().getParentTaskId(),
                                                          taskPriority);
+            task.setParentTxnInformation(instructions.getTxn());
 						taskMap.put(task,Pair.newPair(scan.getStartRow(),scan.getStopRow()));
 				}
 				return taskMap;

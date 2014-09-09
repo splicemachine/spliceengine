@@ -265,7 +265,9 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 
 		@Override
 		public SQLWarning getWarnings() {
-				return null;
+        SQLWarning warnings = activation.getWarnings();
+        activation.clearWarnings();
+        return warnings;
 		}
 
 		@Override

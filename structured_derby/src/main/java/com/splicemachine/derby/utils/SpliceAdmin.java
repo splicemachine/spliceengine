@@ -1253,7 +1253,8 @@ public class SpliceAdmin extends BaseAdminProcedures {
     }
 
     public static void SYSCS_GET_XPLAIN_STATEMENTID(final ResultSet[] resultSet) throws Exception{
-        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+        EmbedConnection defaultConn = (EmbedConnection) SpliceAdmin.getDefaultConn();
+        LanguageConnectionContext lcc = defaultConn.getLanguageConnection();
         long statementId = lcc.getXplainStatementId();
         List<ExecRow> rows = Lists.newArrayListWithExpectedSize(1);
 
@@ -1267,8 +1268,7 @@ public class SpliceAdmin extends BaseAdminProcedures {
         ResultColumnDescriptor[]columnInfo = new ResultColumnDescriptor[1];
         columnInfo[0] = new GenericColumnDescriptor("STATEMENTID", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
 
-        EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
-        Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
+        Activation lastActivation = lcc.getLastActivation();
         IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, columnInfo,lastActivation);
         try {
             resultsToWrap.openCore();

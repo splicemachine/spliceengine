@@ -78,7 +78,12 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
 		public static final Cache<Long,String> tableVersionCache = CacheBuilder.newBuilder()
 						.maximumSize(4096)
 						.build();
-		@SuppressWarnings("UnusedDeclaration")
+    public static final Cache<Long,String> tableNameCache = CacheBuilder.newBuilder()
+            .maximumSize(4096)
+            .build();
+    private String tableName;
+
+    @SuppressWarnings("UnusedDeclaration")
     @Deprecated
     public DerbyScanInformation() { }
 
@@ -144,7 +149,27 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
 
 		@Override public String getTableVersion() throws StandardException { return tableVersion; }
 
-		@Override
+    @Override
+    public String getTableName() throws StandardException {
+        if(tableName==null){
+            try {
+                tableName = tableNameCache.get(conglomId,new Callable<String>() {
+                    @Override
+                    public String call() throws Exception {
+                        DataDictionary dataDictionary = activation.getLanguageConnectionContext().getDataDictionary();
+                        UUID tableID = dataDictionary.getConglomerateDescriptor(conglomId).getTableID();
+                        TableDescriptor td = dataDictionary.getTableDescriptor(tableID);
+                        return td.getSchemaName()+"."+td.getName();
+                    }
+                });
+            } catch (ExecutionException e) {
+                throw Exceptions.parseException(e);
+            }
+        }
+        return tableName;
+    }
+
+    @Override
     public FormatableBitSet getAccessedColumns() throws StandardException {
         if(accessedCols==null){
             if(colRefItem==-1) {
