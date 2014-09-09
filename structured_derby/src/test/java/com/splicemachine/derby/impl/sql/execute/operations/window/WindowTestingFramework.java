@@ -484,6 +484,7 @@ public class WindowTestingFramework {
     public static class TimestampColumnDefinition extends TestColumnDefinitionBase implements TestColumnDefinition {
         // milli/sec * sec/min * sec/hr * hr/day * days/year
         private static final long MILLISECONDS_IN_YEAR = 1000 * 60 * 60 * 24 * 365;
+        private static final long MILLISECONDS_IN_3_YEAR = MILLISECONDS_IN_YEAR * 3;
 
         @Override
          public DataValueDescriptor getNullDVD() {
@@ -502,7 +503,7 @@ public class WindowTestingFramework {
             if (! isVariant) {
                 return dvf.getDataValue(new Timestamp(now), (DateTimeDataValue)null);
             }
-            return getNextDVD(dvf.getDataValue(new Timestamp(nextRand(MILLISECONDS_IN_YEAR, now)),
+            return getNextDVD(dvf.getDataValue(new Timestamp(nextRand(MILLISECONDS_IN_YEAR, now - MILLISECONDS_IN_3_YEAR)),
                                                (DateTimeDataValue) null));
         }
     }
