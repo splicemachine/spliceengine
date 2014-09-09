@@ -146,11 +146,13 @@ public abstract class WindowFunctionNode extends AggregateNode {
 
     public ResultColumn[] getNewExpressionResultColumns(DataDictionary dd) throws StandardException {
         OrderByList orderByList = this.window.getOrderByList();
-        if (orderByList == null) {
+        // return value intended for scalar aggregate function
+        if (isScalarAggregate() || orderByList == null) {
             ResultColumn[] resultColumns = new ResultColumn[1];
             resultColumns[0] = getNewExpressionResultColumn(dd);
             return resultColumns;
         }
+        // return value intended for ranking function
         ResultColumn[] resultColumns = new ResultColumn[orderByList.size()];
         for (int i=0; i<orderByList.size(); i++) {
             ValueNode node = orderByList.getOrderByColumn(i).getColumnExpression();
@@ -163,6 +165,8 @@ public abstract class WindowFunctionNode extends AggregateNode {
         }
         return resultColumns;
     }
+
+    public abstract boolean isScalarAggregate();
 
     /**
      * Get the generated ResultColumn where this

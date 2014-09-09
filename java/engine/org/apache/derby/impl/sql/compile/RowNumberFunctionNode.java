@@ -47,4 +47,9 @@ public class RowNumberFunctionNode extends AggregateWindowFunctionNode {
                  false,
                  TypeId.LONGINT_MAXWIDTH);
     }
+
+    @Override
+    public boolean isScalarAggregate() {
+        return false;
+    }
 }

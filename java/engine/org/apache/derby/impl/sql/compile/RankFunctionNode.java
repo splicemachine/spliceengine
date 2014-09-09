@@ -23,15 +23,12 @@ package org.apache.derby.impl.sql.compile;
 import java.sql.Types;
 
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.execute.WindowFunction;
 import org.apache.derby.iapi.types.TypeId;
 
 /**
  * Class that represents a call to the RANK() window function.
  */
 public final class RankFunctionNode extends AggregateWindowFunctionNode  {
-
-    private WindowFunction aggregateFunction;
 
     /**
      * Initializer. QueryTreeNode override.
@@ -48,5 +45,10 @@ public final class RankFunctionNode extends AggregateWindowFunctionNode  {
                 TypeId.LONGINT_SCALE,
                 false,
                 TypeId.LONGINT_MAXWIDTH);
+    }
+
+    @Override
+    public boolean isScalarAggregate() {
+        return false;
     }
 }

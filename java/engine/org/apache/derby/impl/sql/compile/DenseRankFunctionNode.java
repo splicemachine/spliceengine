@@ -46,4 +46,9 @@ public final class DenseRankFunctionNode extends AggregateWindowFunctionNode {
                 false,
                 TypeId.LONGINT_MAXWIDTH);
     }
+
+    @Override
+    public boolean isScalarAggregate() {
+        return false;
+    }
 }

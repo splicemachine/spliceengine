@@ -57,6 +57,11 @@ public class AggregateWindowFunctionNode extends WindowFunctionNode {
         return this.aggregateFunction;
     }
 
+    @Override
+    public boolean isScalarAggregate() {
+        return true;
+    }
+
     /**
      * QueryTreeNode override. Prints the sub-nodes of this object.
      *
