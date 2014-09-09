@@ -13,7 +13,7 @@ public class Threads {
     /**
      * Unchecked version of sleep.
      *
-     * Use when you calling thread being interrupted is unexpected-- thus unchecked exception is appropriate.
+     * Use when calling thread being interrupted is unexpected-- thus unchecked exception is appropriate.
      */
     public static void sleep(long duration, TimeUnit timeUnit) {
         try {
