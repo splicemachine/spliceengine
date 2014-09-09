@@ -1,8 +1,8 @@
 package com.splicemachine.test_dao;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.concurrent.Threads;
 import org.apache.commons.dbutils.DbUtils;
-import org.apache.hadoop.util.ThreadUtil;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -78,7 +78,7 @@ public class JDBCTemplate {
             if (!histories.isEmpty()) {
                 return histories;
             }
-            ThreadUtil.sleepAtLeastIgnoreInterrupts(250);
+            Threads.sleep(250, TimeUnit.MILLISECONDS);
         } while ((currentTimeMillis() - startTime) < waitUnit.toMillis(waitTime));
 
         return Lists.newArrayList();
@@ -94,7 +94,7 @@ public class JDBCTemplate {
             if (histories != null) {
                 return histories;
             }
-            ThreadUtil.sleepAtLeastIgnoreInterrupts(250);
+            Threads.sleep(250, TimeUnit.MILLISECONDS);
         } while ((currentTimeMillis() - startTime) < waitUnit.toMillis(waitTime));
 
         return null;
