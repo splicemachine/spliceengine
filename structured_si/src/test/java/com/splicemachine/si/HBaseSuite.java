@@ -3,10 +3,8 @@ package com.splicemachine.si;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.txn.JtaXAResourceHBaseTest;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
@@ -14,17 +12,15 @@ import org.junit.runners.Suite;
  * @author Scott Fines
  * Date: 2/17/14
  */
-@Suite.SuiteClasses({JtaXAResourceHBaseTest.class,
+@Suite.SuiteClasses({
 				SIFilterHBaseTest.class,
 				SITransactorHBasePackedTest.class,
-				HBasePackedCompactionTest.class,
         HBaseActiveTransactionTest.class,
-        HBaseTransactionInteractionTest.class,
+        HBaseTransactionInteractionTest.class
 })
 @RunWith(Suite.class)
-@Ignore("Temporary ignoring")
 public class HBaseSuite {
-		public static HStoreSetup classStoreSetup;
+		public static volatile HStoreSetup classStoreSetup;
 		public static TestTransactionSetup classTransactorSetup;
 		@BeforeClass
 		public static void setUp() throws Exception {
@@ -34,6 +30,7 @@ public class HBaseSuite {
 				classStoreSetup = new HStoreSetup(false);
 				classTransactorSetup = new TestTransactionSetup(classStoreSetup, false);
 				HTransactorFactory.setTransactor(classTransactorSetup.hTransactor);
+        System.out.println("[HBaseSuite]: HBase setup complete");
 		}
 
 		@AfterClass

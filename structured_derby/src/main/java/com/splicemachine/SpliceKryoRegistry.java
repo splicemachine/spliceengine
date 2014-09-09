@@ -19,6 +19,7 @@ import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.serializers.MapSerializer;
 import com.splicemachine.derby.ddl.DDLChange;
+import com.splicemachine.derby.ddl.DropTableDDLChangeDesc;
 import com.splicemachine.derby.ddl.TentativeDropColumnDesc;
 import com.splicemachine.derby.ddl.TentativeIndexDesc;
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
@@ -77,22 +78,7 @@ import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.derby.impl.sql.catalog.DDColumnDependableFinder;
 import org.apache.derby.impl.sql.catalog.DD_Version;
 import org.apache.derby.impl.sql.catalog.DDdependableFinder;
-import org.apache.derby.impl.sql.execute.AggregatorInfo;
-import org.apache.derby.impl.sql.execute.AggregatorInfoList;
-import org.apache.derby.impl.sql.execute.AvgAggregator;
-import org.apache.derby.impl.sql.execute.CountAggregator;
-import org.apache.derby.impl.sql.execute.DecimalBufferedSumAggregator;
-import org.apache.derby.impl.sql.execute.DoubleBufferedSumAggregator;
-import org.apache.derby.impl.sql.execute.FKInfo;
-import org.apache.derby.impl.sql.execute.FloatBufferedSumAggregator;
-import org.apache.derby.impl.sql.execute.IndexColumnOrder;
-import org.apache.derby.impl.sql.execute.LongBufferedSumAggregator;
-import org.apache.derby.impl.sql.execute.MaxMinAggregator;
-import org.apache.derby.impl.sql.execute.SumAggregator;
-import org.apache.derby.impl.sql.execute.UserDefinedAggregator;
-import org.apache.derby.impl.sql.execute.ValueRow;
-import org.apache.derby.impl.sql.execute.WindowFunctionInfo;
-import org.apache.derby.impl.sql.execute.WindowFunctionInfoList;
+import org.apache.derby.impl.sql.execute.*;
 import org.apache.derby.impl.store.access.PC_XenaVersion;
 
 import com.splicemachine.constants.SpliceConstants;
@@ -798,5 +784,9 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(DDLChange.class,EXTERNALIZABLE_SERIALIZER,188);
         instance.register(TentativeIndexDesc.class,EXTERNALIZABLE_SERIALIZER,189);
         instance.register(TentativeDropColumnDesc.class,EXTERNALIZABLE_SERIALIZER,190);
+        instance.register(DerbyWindowContext.class,EXTERNALIZABLE_SERIALIZER,191);
+        instance.register(ActivationSerializer.BooleanFieldStorage.class,EXTERNALIZABLE_SERIALIZER,192);
+        instance.register(ColumnInfo.class,EXTERNALIZABLE_SERIALIZER,193);
+        instance.register(DropTableDDLChangeDesc.class,EXTERNALIZABLE_SERIALIZER,194);
     }
 }

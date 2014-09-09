@@ -19,7 +19,7 @@ import java.util.List;
  * Date: 8/21/14
  */
 public class ActiveTransactionTest {
-    public static final byte[] DESTINATION_TABLE = Bytes.toBytes("1184");
+    public static final byte[] DESTINATION_TABLE = Bytes.toBytes("1216");
     boolean useSimple = true;
     protected static StoreSetup storeSetup;
     protected static TestTransactionSetup transactorSetup;
@@ -48,16 +48,25 @@ public class ActiveTransactionTest {
         storeSetup = new LStoreSetup();
         transactorSetup = new TestTransactionSetup(storeSetup, true);
     }
+
     @Before
     public void setUp() throws IOException {
         baseSetUp();
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        for(Txn txn: createdParentTxns){
+            txn.rollback(); // rollback the transaction to prevent contamination
+        }
+
     }
 
     @Test
     public void testGetActiveWriteTransactionsShowsWriteTransactions() throws Exception {
         Txn parent = control.beginTransaction(DESTINATION_TABLE);
         transactorSetup.timestampSource.rememberTimestamp(parent.getTxnId());
-        long[] ids = txnStore.getActiveTransactionIds(parent, null);
+        long[] ids = txnStore.getActiveTransactionIds(parent, DESTINATION_TABLE);
         Assert.assertEquals("Incorrect size",1,ids.length);
         Assert.assertArrayEquals("Incorrect values", new long[]{parent.getTxnId()}, ids);
 
@@ -68,7 +77,7 @@ public class ActiveTransactionTest {
 
         //now see if a read-only doesn't show
         Txn next = control.beginTransaction();
-        ids = txnStore.getActiveTransactionIds(next, null);
+        ids = txnStore.getActiveTransactionIds(next, DESTINATION_TABLE);
         Assert.assertEquals("Incorrect size",1,ids.length);
         Assert.assertArrayEquals("Incorrect values", new long[]{parent.getTxnId()}, ids);
     }
@@ -88,7 +97,7 @@ public class ActiveTransactionTest {
 
 
 				Txn next = control.beginTransaction(DESTINATION_TABLE);
-				ids = txnStore.getActiveTransactionIds(next, null);
+				ids = txnStore.getActiveTransactionIds(next, DESTINATION_TABLE);
 				Assert.assertEquals("Incorrect size",2,ids.length);
 				Arrays.sort(ids);
 				Assert.assertArrayEquals("Incorrect values",new long[]{parent.getTxnId(),next.getTxnId()},ids);
@@ -100,7 +109,7 @@ public class ActiveTransactionTest {
         transactorSetup.timestampSource.rememberTimestamp(parent.getTxnId());
 				Txn child = control.beginChildTransaction(parent,parent.getIsolationLevel(), DESTINATION_TABLE);
 				Txn grandChild = control.beginChildTransaction(child,child.getIsolationLevel(), DESTINATION_TABLE);
-				long[] ids = txnStore.getActiveTransactionIds(grandChild, null);
+				long[] ids = txnStore.getActiveTransactionIds(grandChild, DESTINATION_TABLE);
 				Assert.assertEquals("Incorrect size",3,ids.length);
 				Arrays.sort(ids);
 				Assert.assertArrayEquals("Incorrect values", new long[]{parent.getTxnId(), child.getTxnId(), grandChild.getTxnId()}, ids);
@@ -111,7 +120,7 @@ public class ActiveTransactionTest {
 				parent.rollback();
 
 				Txn next = control.beginTransaction(DESTINATION_TABLE);
-				ids = txnStore.getActiveTransactionIds(next, null);
+				ids = txnStore.getActiveTransactionIds(next, DESTINATION_TABLE);
 				Assert.assertEquals("Incorrect size",1,ids.length);
 				Assert.assertArrayEquals("Incorrect values", new long[]{next.getTxnId()}, ids);
 		}
@@ -130,7 +139,7 @@ public class ActiveTransactionTest {
         final Txn t0 = control.beginTransaction(DESTINATION_TABLE);
         transactorSetup.timestampSource.rememberTimestamp(t0.getTxnId());
         final Txn t1 = control.beginTransaction(DESTINATION_TABLE);
-        long[] ids = txnStore.getActiveTransactionIds(t1, null);
+        long[] ids = txnStore.getActiveTransactionIds(t1, DESTINATION_TABLE);
 				System.out.printf("%d,%d,%s%n",t0.getTxnId(),t1.getTxnId(),Arrays.toString(ids));
         Assert.assertEquals(2, ids.length);
 				Arrays.sort(ids);
@@ -144,7 +153,7 @@ public class ActiveTransactionTest {
         transactorSetup.timestampSource.rememberTimestamp(t0.getTxnId());
         final Txn t1 = control.beginTransaction(DESTINATION_TABLE);
         control.beginTransaction();
-        final long[] ids = txnStore.getActiveTransactionIds(t1, null);
+        final long[] ids = txnStore.getActiveTransactionIds(t1, DESTINATION_TABLE);
         Assert.assertEquals(2, ids.length);
 				Arrays.sort(ids);
         Assert.assertEquals(t0.getTxnId(), ids[0]);
@@ -158,7 +167,7 @@ public class ActiveTransactionTest {
         final Txn t1 = control.beginTransaction(DESTINATION_TABLE);
         final Txn t2 = control.beginTransaction(DESTINATION_TABLE);
         t0.commit();
-        final long[] ids = txnStore.getActiveTransactionIds(t2, null);
+        final long[] ids = txnStore.getActiveTransactionIds(t2, DESTINATION_TABLE);
         Assert.assertEquals(2, ids.length);
 				Arrays.sort(ids);
         Assert.assertEquals(t1.getTxnId(), ids[0]);
@@ -172,13 +181,15 @@ public class ActiveTransactionTest {
         final Txn t1 = control.beginTransaction(DESTINATION_TABLE);
         final Txn t2 = control.beginTransaction(DESTINATION_TABLE);
         t1.commit();
-        final long[] ids = txnStore.getActiveTransactionIds(t2, null);
+        final long[] ids = txnStore.getActiveTransactionIds(t2, DESTINATION_TABLE);
         Assert.assertEquals(2, ids.length);
 				Arrays.sort(ids);
         Assert.assertEquals(t0.getTxnId(), ids[0]);
         Assert.assertEquals(t2.getTxnId(), ids[1]);
     }
+
     @Test
+    @Ignore("This is subject to contamination failures when other tests are running concurrently")
     public void oldestActiveTransactionsSavedTimestampAdvances() throws IOException {
         final Txn t0 = control.beginTransaction(DESTINATION_TABLE);
         transactorSetup.timestampSource.rememberTimestamp(t0.getTxnId() - 1);
@@ -187,7 +198,7 @@ public class ActiveTransactionTest {
         t0.commit();
         final long originalSavedTimestamp = transactorSetup.timestampSource.retrieveTimestamp();
 				transactorSetup.timestampSource.rememberTimestamp(t3.getTxnId()-1);
-        txnStore.getActiveTransactionIds(t3, null);
+        txnStore.getActiveTransactionIds(t3, DESTINATION_TABLE);
         final long newSavedTimestamp = transactorSetup.timestampSource.retrieveTimestamp();
         Assert.assertEquals(originalSavedTimestamp + 2, newSavedTimestamp);
     }
@@ -199,38 +210,30 @@ public class ActiveTransactionTest {
         final Txn t1 = control.beginChildTransaction(t0,DESTINATION_TABLE);
         t1.commit();
         final Txn t2 = control.beginChildTransaction(t0,DESTINATION_TABLE);
-        long[] active = txnStore.getActiveTransactionIds(t2, null);
+        long[] active = txnStore.getActiveTransactionIds(t2, DESTINATION_TABLE);
         Assert.assertEquals(3, active.length);
 				Arrays.sort(active);
-				Assert.assertArrayEquals(new long[]{t0.getTxnId(),t1.getTxnId(), t2.getTxnId()}, active);
+				Assert.assertArrayEquals(new long[]{t0.getTxnId(), t1.getTxnId(), t2.getTxnId()}, active);
     }
 
     @Test
     public void oldestActiveTransactionIgnoresCommitTimestampIds() throws IOException {
         final Txn t0 = control.beginTransaction(DESTINATION_TABLE);
         transactorSetup.timestampSource.rememberTimestamp(t0.getTxnId());
-        Txn committedTransactionID = null;
-        for (int i = 0; i < SITransactor.MAX_ACTIVE_COUNT; i++) {
+        LongArrayList committedTxns = LongArrayList.newInstance();
+        for (int i = 0; i < 4; i++) {
             final Txn transactionId = control.beginTransaction(DESTINATION_TABLE);
-            if (committedTransactionID == null) {
-                committedTransactionID = transactionId;
-            }
             transactionId.commit();
+            committedTxns.add(transactionId.getTxnId());
         }
-				Assert.assertNotNull(committedTransactionID);
-				Long commitTimestamp = (committedTransactionID.getTxnId() + 1);
-				TxnView voidedTransactionID = txnStore.getTransaction(commitTimestamp);
-				Assert.assertNull("Transaction id mistakenly found!",voidedTransactionID);
 
         final Txn t1 = control.beginTransaction(DESTINATION_TABLE);
-        final long[] ids = txnStore.getActiveTransactionIds(t1, null);
+        final long[] ids = txnStore.getActiveTransactionIds(t1, DESTINATION_TABLE);
         Assert.assertEquals(2, ids.length);
 				Arrays.sort(ids);
         Assert.assertEquals(t0.getTxnId(), ids[0]);
 				Assert.assertEquals(t1.getTxnId(), ids[1]);
 				//this transaction should still be missing
-				voidedTransactionID = txnStore.getTransaction(commitTimestamp);
-				Assert.assertNull("Transaction id mistakenly found!",voidedTransactionID);
 		}
 
     @Test
@@ -239,13 +242,13 @@ public class ActiveTransactionTest {
         final Txn t0 = control.beginTransaction(DESTINATION_TABLE);
 				startedTxns.add(t0.getTxnId());
         transactorSetup.timestampSource.rememberTimestamp(t0.getTxnId());
-        for (int i = 0; i < SITransactor.MAX_ACTIVE_COUNT / 2; i++) {
+        for (int i = 0; i < 4; i++) {
 						Txn transactionId = control.beginTransaction(DESTINATION_TABLE);
 						startedTxns.add(transactionId.getTxnId());
 				}
         final Txn t1 = control.beginTransaction(DESTINATION_TABLE);
 				startedTxns.add(t1.getTxnId());
-        final long[] ids = txnStore.getActiveTransactionIds(t1, null);
+        final long[] ids = txnStore.getActiveTransactionIds(t1, DESTINATION_TABLE);
 
         Assert.assertEquals(startedTxns.size(), ids.length);
 				Arrays.sort(ids);

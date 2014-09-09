@@ -7,6 +7,7 @@ import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.impl.TxnFilter;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -62,12 +63,12 @@ public class SIFilterTest extends SIConstants {
     @Test
     public void testFiltering() throws Exception {
         final SDataLib dataLib = storeSetup.getDataLib();
-        final Txn t1 = control.beginTransaction();
+        final Txn t1 = control.beginTransaction(Bytes.toBytes("1184"));
         final TxnFilter filterState = readController.newFilterState(transactorSetup.readResolver, t1);
         insertAge(t1, "bill", 20);
 				t1.commit();
 
-        final Txn t2 = control.beginTransaction();
+        final Txn t2 = control.beginTransaction(Bytes.toBytes("1184"));
         insertAge(t2, "bill", 30);
 
         Result row = readEntireTuple("bill");

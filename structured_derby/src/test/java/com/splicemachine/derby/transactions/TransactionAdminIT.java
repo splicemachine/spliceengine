@@ -56,6 +56,6 @@ public class TransactionAdminIT {
     public void testKillTransactionKillsTransaction() throws Exception {
         conn1.createStatement().execute("call SYSCS_UTIL.SYSCS_KILL_TRANSACTION("+conn2Txn+")");
         //vacuum must wait for conn2 to complete, unless it's been killed
-        conn1.createStatement().execute("call SYSCS_UTIL.SYSCS_VACUUM()");
+        conn1.createStatement().execute("call SYSCS_UTIL.VACUUM()");
     }
 }

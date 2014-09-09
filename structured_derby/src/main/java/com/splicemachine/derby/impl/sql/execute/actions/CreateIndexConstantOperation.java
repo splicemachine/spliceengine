@@ -329,33 +329,35 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
         //create the nested parent transaction
         TransactionController parentTransaction = lcc.getTransactionExecute().startNestedUserTransaction(false, true);
         ((SpliceTransaction)((SpliceTransactionManager)parentTransaction).getRawTransaction()).elevate("index".getBytes());
+        lcc.pushNestedTransaction(parentTransaction);
 
-        dd.startWriting(lcc);
-        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, parentTransaction, true) ;
-        ConglomerateDescriptor existingIndex = dd.getConglomerateDescriptor(indexName, sd, false);
-        if (existingIndex != null) {
-            throw StandardException.newException(SQLState.LANG_OBJECT_ALREADY_EXISTS_IN_OBJECT,
-                    existingIndex.getDescriptorType(),
-                    existingIndex.getDescriptorName(),
-                    sd.getDescriptorType(),
-                    sd.getDescriptorName());
-        }
-        TableDescriptor td = activation.getDDLTableDescriptor();
-        if (td == null) {
-            td = tableId != null?dd.getTableDescriptor(tableId):dd.getTableDescriptor(tableName, sd, parentTransaction);
-        }
-        validateTableDescriptor(td);
-        try {
-            // invalidate any prepared statements that
-            // depended on this table (including this one)
-            if (! forCreateTable)
-                dm.invalidateFor(td, DependencyManager.CREATE_INDEX, lcc);
+        try{
+            dd.startWriting(lcc);
+            SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, parentTransaction, true) ;
+            ConglomerateDescriptor existingIndex = dd.getConglomerateDescriptor(indexName, sd, false);
+            if (existingIndex != null) {
+                throw StandardException.newException(SQLState.LANG_OBJECT_ALREADY_EXISTS_IN_OBJECT,
+                        existingIndex.getDescriptorType(),
+                        existingIndex.getDescriptorName(),
+                        sd.getDescriptorType(),
+                        sd.getDescriptorName());
+            }
+            TableDescriptor td = activation.getDDLTableDescriptor();
+            if (td == null) {
+                td = tableId != null?dd.getTableDescriptor(tableId):dd.getTableDescriptor(tableName, sd, parentTransaction);
+            }
+            validateTableDescriptor(td);
+            try {
+                // invalidate any prepared statements that
+                // depended on this table (including this one)
+                if (! forCreateTable)
+                    dm.invalidateFor(td, DependencyManager.CREATE_INDEX, lcc);
 
-            SpliceLogUtils.trace(LOG, "Translation Base Column Names");
-            // Translate the base column names to column positions
-            IndexRowGenerator			indexRowGenerator = null;
-            int[]	baseColumnPositions = new int[columnNames.length];
-            int maxBaseColumnPosition = getBaseColumnPositions(lcc, td, baseColumnPositions);
+                SpliceLogUtils.trace(LOG, "Translation Base Column Names");
+                // Translate the base column names to column positions
+                IndexRowGenerator			indexRowGenerator = null;
+                int[]	baseColumnPositions = new int[columnNames.length];
+                int maxBaseColumnPosition = getBaseColumnPositions(lcc, td, baseColumnPositions);
 
             /* The code below tries to determine if the index that we're about
              * to create can "share" a conglomerate with an existing index.
@@ -364,14 +366,14 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
              * *not* create a new conglomerate as part of this constant action.
              */
 
-            // check if we have similar indices already for this table
-            ConglomerateDescriptor[] congDescs = td.getConglomerateDescriptors();
-            boolean shareExisting = false;
-            for (ConglomerateDescriptor cd : congDescs) {
-                if (!cd.isIndex())
-                    continue;
+                // check if we have similar indices already for this table
+                ConglomerateDescriptor[] congDescs = td.getConglomerateDescriptors();
+                boolean shareExisting = false;
+                for (ConglomerateDescriptor cd : congDescs) {
+                    if (!cd.isIndex())
+                        continue;
 
-                if (droppedConglomNum == cd.getConglomerateNumber()) {
+                    if (droppedConglomNum == cd.getConglomerateNumber()) {
                     /* We can't share with any conglomerate descriptor
                      * whose conglomerate number matches the dropped
                      * conglomerate number, because that descriptor's
@@ -380,13 +382,13 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
                      * descriptor whose backing physical conglomerate
                      * is still around.
                      */
-                    continue;
-                }
+                        continue;
+                    }
 
-                IndexRowGenerator irg = cd.getIndexDescriptor();
-                int[] bcps = irg.baseColumnPositions();
-                boolean[] ia = irg.isAscending();
-                int j = 0;
+                    IndexRowGenerator irg = cd.getIndexDescriptor();
+                    int[] bcps = irg.baseColumnPositions();
+                    boolean[] ia = irg.isAscending();
+                    int j = 0;
 
                 /* The conditions which allow an index to share an existing
                  * conglomerate are as follows:
@@ -403,12 +405,12 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
                  *    c) both the existing index and the one being created are
                  *       non-unique and have uniqueWithDuplicateNulls set to FALSE.
                  */
-                boolean possibleShare = (irg.isUnique() || !unique) &&
-                        (bcps.length == baseColumnPositions.length);
+                    boolean possibleShare = (irg.isUnique() || !unique) &&
+                            (bcps.length == baseColumnPositions.length);
 
-                //check if existing index is non unique and uniqueWithDuplicateNulls
-                //is set to true (backing index for unique constraint)
-                if (possibleShare && !irg.isUnique()) {
+                    //check if existing index is non unique and uniqueWithDuplicateNulls
+                    //is set to true (backing index for unique constraint)
+                    if (possibleShare && !irg.isUnique()) {
                     /* If the existing index has uniqueWithDuplicateNulls set to
                      * TRUE it can be shared by other non-unique indexes; otherwise
                      * the existing non-unique index has uniqueWithDuplicateNulls
@@ -416,31 +418,31 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
                      * can only share if it has uniqueWithDuplicateNulls set to
                      * FALSE, as well.
                      */
-                    possibleShare = (irg.isUniqueWithDuplicateNulls() || !uniqueWithDuplicateNulls);
-                }
-
-                if (possibleShare && indexType.equals(irg.indexType())) {
-                    for (; j < bcps.length; j++) {
-                        if ((bcps[j] != baseColumnPositions[j]) || (ia[j] != isAscending[j]))
-                            break;
+                        possibleShare = (irg.isUniqueWithDuplicateNulls() || !uniqueWithDuplicateNulls);
                     }
-                }
 
-                if (j == baseColumnPositions.length) {  // share
+                    if (possibleShare && indexType.equals(irg.indexType())) {
+                        for (; j < bcps.length; j++) {
+                            if ((bcps[j] != baseColumnPositions[j]) || (ia[j] != isAscending[j]))
+                                break;
+                        }
+                    }
+
+                    if (j == baseColumnPositions.length) {  // share
                     /*
                      * Don't allow users to create a duplicate index. Allow if being done internally
                      * for a constraint
                      */
-                    if (!isConstraint) {
-                        activation.addWarning(StandardException.newWarning(SQLState.LANG_INDEX_DUPLICATE, cd.getConglomerateName()));
-                        return;
-                    }
+                        if (!isConstraint) {
+                            activation.addWarning(StandardException.newWarning(SQLState.LANG_INDEX_DUPLICATE, cd.getConglomerateName()));
+                            return;
+                        }
 
                     /* Sharing indexes share the physical conglomerate
                      * underneath, so pull the conglomerate number from
                      * the existing conglomerate descriptor.
                      */
-                    conglomId = cd.getConglomerateNumber();
+                        conglomId = cd.getConglomerateNumber();
 
                     /* We create a new IndexRowGenerator because certain
                      * attributes--esp. uniqueness--may be different between
@@ -453,20 +455,20 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
                      * what this index (the one we're creating now) is
                      * really supposed to look like.
                      */
-                    indexRowGenerator =
-                            new IndexRowGenerator(
-                                    indexType, unique, uniqueWithDuplicateNulls,
-                                    baseColumnPositions,
-                                    isAscending,
-                                    baseColumnPositions.length);
+                        indexRowGenerator =
+                                new IndexRowGenerator(
+                                        indexType, unique, uniqueWithDuplicateNulls,
+                                        baseColumnPositions,
+                                        isAscending,
+                                        baseColumnPositions.length);
 
-                    //DERBY-655 and DERBY-1343
-                    // Sharing indexes will have unique logical conglomerate UUIDs.
-                    conglomerateUUID = dd.getUUIDFactory().createUUID();
-                    shareExisting = true;
-                    break;
+                        //DERBY-655 and DERBY-1343
+                        // Sharing indexes will have unique logical conglomerate UUIDs.
+                        conglomerateUUID = dd.getUUIDFactory().createUUID();
+                        shareExisting = true;
+                        break;
+                    }
                 }
-            }
 
             /* If we have a droppedConglomNum then the index we're about to
              * "create" already exists--i.e. it has an index descriptor and
@@ -474,65 +476,65 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
              * The only thing we're missing, then, is the physical conglomerate
              * to back the index (because the old conglomerate was dropped).
              */
-            boolean alreadyHaveConglomDescriptor = (droppedConglomNum > -1L);
+                boolean alreadyHaveConglomDescriptor = (droppedConglomNum > -1L);
 
             /* If this index already has an essentially same one, we share the
              * conglomerate with the old one, and just simply add a descriptor
              * entry into SYSCONGLOMERATES--unless we already have a descriptor,
              * in which case we don't even need to do that.
              */
-            DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
-            if (shareExisting && !alreadyHaveConglomDescriptor) {
-                ConglomerateDescriptor cgd =
-                        ddg.newConglomerateDescriptor(conglomId, indexName, true,
-                                indexRowGenerator, isConstraint,
-                                conglomerateUUID, td.getUUID(), sd.getUUID() );
-                dd.addDescriptor(cgd, sd, DataDictionary.SYSCONGLOMERATES_CATALOG_NUM, false, parentTransaction);
-                // add newly added conglomerate to the list of conglomerate
-                // descriptors in the td.
-                ConglomerateDescriptorList cdl = td.getConglomerateDescriptorList();
-                //noinspection unchecked
-                cdl.add(cgd);
-                // can't just return yet, need to get member "indexTemplateRow"
-                // because create constraint may use it
-            }
-
-            long heapConglomerateId = td.getHeapConglomerateId();
-            Properties indexProperties = getIndexProperties(baseColumnPositions, heapConglomerateId);
-            indexRowGenerator = getIndexRowGenerator(baseColumnPositions, indexRowGenerator, shareExisting);
-
-            // Create the FormatableBitSet for mapping the partial to full base row
-            FormatableBitSet bitSet = FormatableBitSetUtils.fromIntArray(td.getNumberOfColumns()+1,baseColumnPositions);
-            FormatableBitSet zeroBasedBitSet = RowUtil.shift(bitSet, 1);
-
-            ExecRow baseRow = activation.getExecutionFactory().getValueRow(maxBaseColumnPosition);
-            ExecIndexRow indexRow = indexRowGenerator.getIndexRowKeyTemplate();
-            ExecRow compactBaseRow = activation.getExecutionFactory().getValueRow(baseColumnPositions.length);
-
-            indexTemplateRow = indexRow;//indexRows[0];
-
-            // Fill the partial row with nulls of the correct type
-            ColumnDescriptorList cdl = td.getColumnDescriptorList();
-            int	cdlSize = cdl.size();
-            for (int index = 0, numSet = 0; index < cdlSize; index++) {
-                if (! zeroBasedBitSet.get(index)) {
-                    continue;
+                DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
+                if (shareExisting && !alreadyHaveConglomDescriptor) {
+                    ConglomerateDescriptor cgd =
+                            ddg.newConglomerateDescriptor(conglomId, indexName, true,
+                                    indexRowGenerator, isConstraint,
+                                    conglomerateUUID, td.getUUID(), sd.getUUID() );
+                    dd.addDescriptor(cgd, sd, DataDictionary.SYSCONGLOMERATES_CATALOG_NUM, false, parentTransaction);
+                    // add newly added conglomerate to the list of conglomerate
+                    // descriptors in the td.
+                    ConglomerateDescriptorList cdl = td.getConglomerateDescriptorList();
+                    //noinspection unchecked
+                    cdl.add(cgd);
+                    // can't just return yet, need to get member "indexTemplateRow"
+                    // because create constraint may use it
                 }
-                numSet++;
-                ColumnDescriptor cd = cdl.elementAt(index);
-                DataTypeDescriptor dts = cd.getType();
 
-                DataValueDescriptor colDescriptor = dts.getNull();
-                baseRow.setColumn(index+1, colDescriptor);
-                compactBaseRow.setColumn(numSet,colDescriptor);
-            }
+                long heapConglomerateId = td.getHeapConglomerateId();
+                Properties indexProperties = getIndexProperties(baseColumnPositions, heapConglomerateId);
+                indexRowGenerator = getIndexRowGenerator(baseColumnPositions, indexRowGenerator, shareExisting);
 
-            //convert the base row to an index row
-            indexRowGenerator.getIndexRow(compactBaseRow, new HBaseRowLocation(), indexRow, bitSet);
+                // Create the FormatableBitSet for mapping the partial to full base row
+                FormatableBitSet bitSet = FormatableBitSetUtils.fromIntArray(td.getNumberOfColumns()+1,baseColumnPositions);
+                FormatableBitSet zeroBasedBitSet = RowUtil.shift(bitSet, 1);
+
+                ExecRow baseRow = activation.getExecutionFactory().getValueRow(maxBaseColumnPosition);
+                ExecIndexRow indexRow = indexRowGenerator.getIndexRowKeyTemplate();
+                ExecRow compactBaseRow = activation.getExecutionFactory().getValueRow(baseColumnPositions.length);
+
+                indexTemplateRow = indexRow;//indexRows[0];
+
+                // Fill the partial row with nulls of the correct type
+                ColumnDescriptorList cdl = td.getColumnDescriptorList();
+                int	cdlSize = cdl.size();
+                for (int index = 0, numSet = 0; index < cdlSize; index++) {
+                    if (! zeroBasedBitSet.get(index)) {
+                        continue;
+                    }
+                    numSet++;
+                    ColumnDescriptor cd = cdl.elementAt(index);
+                    DataTypeDescriptor dts = cd.getType();
+
+                    DataValueDescriptor colDescriptor = dts.getNull();
+                    baseRow.setColumn(index+1, colDescriptor);
+                    compactBaseRow.setColumn(numSet,colDescriptor);
+                }
+
+                //convert the base row to an index row
+                indexRowGenerator.getIndexRow(compactBaseRow, new HBaseRowLocation(), indexRow, bitSet);
 
             /* now that we got indexTemplateRow, done for sharing index */
-            if (shareExisting) // Sharing leaves...
-                return;
+                if (shareExisting) // Sharing leaves...
+                    return;
 
             /* For non-unique indexes, we order by all columns + the RID.
              * For unique indexes, we just order by the columns.
@@ -542,33 +544,38 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
              * so that we can reuse the wrappers during an external
              * sort.
              */
-            conglomId = parentTransaction.createConglomerate(indexType, indexTemplateRow.getRowArray(),
-                    getColumnOrderings(baseColumnPositions), indexRowGenerator.getColumnCollationIds(
-                    td.getColumnDescriptorList()), indexProperties, TransactionController.IS_DEFAULT);
+                conglomId = parentTransaction.createConglomerate(indexType, indexTemplateRow.getRowArray(),
+                        getColumnOrderings(baseColumnPositions), indexRowGenerator.getColumnCollationIds(
+                        td.getColumnDescriptorList()), indexProperties, TransactionController.IS_DEFAULT);
 
-            ConglomerateController indexController = parentTransaction.openConglomerate(conglomId, false, 0, TransactionController.MODE_TABLE,TransactionController.ISOLATION_SERIALIZABLE);
+                ConglomerateController indexController = parentTransaction.openConglomerate(conglomId, false, 0, TransactionController.MODE_TABLE,TransactionController.ISOLATION_SERIALIZABLE);
 
-            // Check to make sure that the conglomerate can be used as an index
-            if ( ! indexController.isKeyed()) {
+                // Check to make sure that the conglomerate can be used as an index
+                if ( ! indexController.isKeyed()) {
+                    indexController.close();
+                    throw StandardException.newException(SQLState.LANG_NON_KEYED_INDEX, indexName,indexType);
+                }
                 indexController.close();
-                throw StandardException.newException(SQLState.LANG_NON_KEYED_INDEX, indexName,indexType);
+
+                //
+                // Create a conglomerate descriptor with the conglomId filled
+                // in and add it--if we don't have one already.
+                //
+                createConglomerateDescriptor(dd, parentTransaction, sd, td, indexRowGenerator, alreadyHaveConglomDescriptor, ddg);
+                boolean[] descColumns = BooleanArrays.not(isAscending);
+                createAndPopulateIndex(activation, userTransaction, parentTransaction, td, baseColumnPositions, heapConglomerateId, descColumns);
+
+            } catch (StandardException se) {
+                se.printStackTrace();
+                parentTransaction.abort();
+                throw se;
+            } catch (Throwable t) {
+                t.printStackTrace();
+                parentTransaction.abort();
+                throw Exceptions.parseException(t);
             }
-            indexController.close();
-
-            //
-            // Create a conglomerate descriptor with the conglomId filled
-            // in and add it--if we don't have one already.
-            //
-            createConglomerateDescriptor(dd, parentTransaction, sd, td, indexRowGenerator, alreadyHaveConglomDescriptor, ddg);
-            boolean[] descColumns = BooleanArrays.not(isAscending);
-            createAndPopulateIndex(activation, userTransaction, parentTransaction, td, baseColumnPositions, heapConglomerateId, descColumns);
-
-        } catch (StandardException se) {
-            parentTransaction.abort();
-            throw se;
-        } catch (Throwable t) {
-            parentTransaction.abort();
-            throw Exceptions.parseException(t);
+        }finally{
+            lcc.popNestedTransaction();
         }
         parentTransaction.commit();
     }

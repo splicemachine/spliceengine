@@ -5,10 +5,12 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 
+import com.splicemachine.test.SerialTest;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.runner.Description;
 
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
@@ -20,6 +22,7 @@ import com.splicemachine.homeless.TestUtils;
  * @author Jeff Cunningham
  *         Date: 1/13/14
  */
+@Category(SerialTest.class) //Serial until DB-1777 is resolved
 public class UniqueConstraintIT extends SpliceUnitTest {
     private static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     public static final String CLASS_NAME = UniqueConstraintIT.class.getSimpleName().toUpperCase();

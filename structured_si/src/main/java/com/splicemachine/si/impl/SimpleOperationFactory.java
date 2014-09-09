@@ -164,7 +164,7 @@ public class SimpleOperationFactory implements TxnOperationFactory {
         int parentSize = parentTxnIds.size();
         long[] parentIds = parentTxnIds.buffer;
         MultiFieldEncoder parents = MultiFieldEncoder.create(parentSize);
-        for(int i=1;i<parentSize;i++){
+        for(int i=1;i<=parentSize;i++){
             parents.encodeNext(parentIds[parentSize-i]);
         }
         return parents.build();

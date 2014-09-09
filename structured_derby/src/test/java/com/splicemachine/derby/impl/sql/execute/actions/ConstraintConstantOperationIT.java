@@ -6,11 +6,14 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+
+import com.splicemachine.test.SerialTest;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -19,8 +22,9 @@ import org.junit.runner.Description;
  * Test constraints.
  *
  * @author Jeff Cunningham
- *         Date: 6/10/13
+ * Date: 6/10/13
  */
+@Category(SerialTest.class) //left serial until DB-1777 is resolved
 public class ConstraintConstantOperationIT {
     private static final String CLASS_NAME = ConstraintConstantOperationIT.class.getSimpleName().toUpperCase();
 

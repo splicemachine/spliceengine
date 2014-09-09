@@ -25,11 +25,14 @@ import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.uuid.UUIDGenerator;
+import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.dictionary.DataDictionary;
+import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
 import org.apache.derby.iapi.types.RowLocation;
@@ -45,6 +48,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.Callable;
 
 public class TableScanOperation extends ScanOperation {
 		private static final long serialVersionUID = 3l;
@@ -121,32 +125,32 @@ public class TableScanOperation extends ScanOperation {
 				recordConstructorTime();
 		}
 
-		@Override
-		public void readExternal(ObjectInput in) throws IOException,ClassNotFoundException {
-				super.readExternal(in);
-				tableName = in.readUTF();
-				indexColItem = in.readInt();
-				if(in.readBoolean())
-						indexName = in.readUTF();
-		}
+    @Override
+    public void readExternal(ObjectInput in) throws IOException,ClassNotFoundException {
+        super.readExternal(in);
+        tableName = in.readUTF();
+        indexColItem = in.readInt();
+        if(in.readBoolean())
+            indexName = in.readUTF();
+    }
 
-		@Override
-		public void writeExternal(ObjectOutput out) throws IOException {
-				super.writeExternal(out);
-				out.writeUTF(tableName);
-				out.writeInt(indexColItem);
-				out.writeBoolean(indexName != null);
-				if(indexName!=null)
-						out.writeUTF(indexName);
-		}
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        super.writeExternal(out);
+        out.writeUTF(tableName);
+        out.writeInt(indexColItem);
+        out.writeBoolean(indexName != null);
+        if(indexName!=null)
+            out.writeUTF(indexName);
+    }
 
-		@Override
-		public void init(SpliceOperationContext context) throws StandardException, IOException {
-				super.init(context);
-				this.baseColumnMap = operationInformation.getBaseColumnMap();
-				this.slice = ByteSlice.empty();
-				this.startExecutionTime = System.currentTimeMillis();
-				this.scan = context.getScan();
+    @Override
+    public void init(SpliceOperationContext context) throws StandardException, IOException {
+        super.init(context);
+        this.baseColumnMap = operationInformation.getBaseColumnMap();
+        this.slice = ByteSlice.empty();
+        this.startExecutionTime = System.currentTimeMillis();
+        this.scan = context.getScan();
 
 				//start reading rows
 				if(regionScanner!=null)
@@ -154,30 +158,24 @@ public class TableScanOperation extends ScanOperation {
 
         this.txnRegion = context.getTransactionalRegion();
 
+            if(activation.isTraced()){
                 String tableNameInfo = null;
                 if (this.indexName != null) {
                     tableNameInfo = "index:" + indexName + ")";
                 } else if (this.tableName != null) {
                     if (activation.isTraced()) {
-                        String tname = tableName;
-                        try {
-                            tname = SpliceXplainUtils.conglomerateToTableName(tableName);
-                        } catch(SQLException e) {
-                            // Ignore this error and use conglomerate id instead
-                        }
+                        String tname = scanInformation.getTableName();
                         tableNameInfo = "table:" + (tname==null?tableName:tname);
-                    }
-                    else {
+                    } else {
                         tableNameInfo = "table:" + tableName;
                     }
                 }
-
-                if (info == null) {
+                if(info==null)
                     info = tableNameInfo;
-                } else if (!info.contains(tableNameInfo)) {
-                    info += ", " + tableNameInfo;
-                }
-		}
+                else if(tableNameInfo!=null && !info.contains(tableNameInfo))
+                    info +=", "+ tableNameInfo;
+            }
+    }
 
 
 		@Override

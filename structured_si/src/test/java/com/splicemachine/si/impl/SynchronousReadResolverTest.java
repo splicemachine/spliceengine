@@ -4,7 +4,10 @@ import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.si.SimpleTimestampSource;
-import com.splicemachine.si.api.*;
+import com.splicemachine.si.api.ReadResolver;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnLifecycleManager;
+import com.splicemachine.si.api.TxnStore;
 import com.splicemachine.si.impl.readresolve.SynchronousReadResolver;
 import com.splicemachine.si.impl.rollforward.RollForwardStatus;
 import org.apache.hadoop.hbase.KeyValue;
@@ -20,7 +23,8 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import static org.mockito.Matchers.anyLong;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
 
 /**
  * Tests around the possibilities for the SynchronousReadResolver
@@ -78,15 +82,17 @@ public class SynchronousReadResolverTest {
 		public void testResolvingCommittedWorks() throws Exception {
 				HRegion region = TxnTestUtils.getMockRegion();
 
-        final TxnStore store = new InMemoryTxnStore(new SimpleTimestampSource(),Long.MAX_VALUE);
+        final SimpleTimestampSource commitTsGenerator = new SimpleTimestampSource();
+        final TxnStore store = new InMemoryTxnStore(commitTsGenerator,Long.MAX_VALUE);
 				ReadResolver resolver = SynchronousReadResolver.getResolver(region,store,new RollForwardStatus());
 
         TxnLifecycleManager tc = mock(TxnLifecycleManager.class);
-        doAnswer(new Answer<Void>() {
+        doAnswer(new Answer<Long>() {
             @Override
-            public Void answer(InvocationOnMock invocationOnMock) throws Throwable {
+            public Long answer(InvocationOnMock invocationOnMock) throws Throwable {
+                long next = commitTsGenerator.nextTimestamp();
                 store.commit((Long)invocationOnMock.getArguments()[0]);
-                return null;
+                return next+1;
             }
         }).when(tc).commit(anyLong());
 				Txn committedTxn = new WritableTxn(1l,1l, Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,tc, false);
@@ -101,7 +107,7 @@ public class SynchronousReadResolverTest {
 
 				region.put(testPut);
 
-				Txn readTxn = ReadOnlyTxn.createReadOnlyTransaction(2l,Txn.ROOT_TRANSACTION,2l,
+				Txn readTxn = ReadOnlyTxn.createReadOnlyTransaction(3l,Txn.ROOT_TRANSACTION,3l,
 								Txn.IsolationLevel.SNAPSHOT_ISOLATION, false,mock(TxnLifecycleManager.class));
 				SimpleTxnFilter filter = new SimpleTxnFilter(store,readTxn,resolver,TxnTestUtils.getMockDataStore());
 

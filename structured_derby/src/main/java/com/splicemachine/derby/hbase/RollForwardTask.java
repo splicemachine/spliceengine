@@ -21,6 +21,7 @@ import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
 import java.util.List;
@@ -74,7 +75,9 @@ public class RollForwardTask implements Task {
     @Override public Txn getTxn() { return null; } //task is non-transactional
     @Override public byte[] getParentTaskId() { return null; }
     @Override public String getJobId() { return "rollForward-"+region.getRegionNameAsString(); }
-    @Override public byte[] getTaskId() { return HConstants.EMPTY_BYTE_ARRAY; }
+    @Override public byte[] getTaskId() {
+        return Bytes.toBytes(-1l); //
+    }
     @Override public TaskStatus getTaskStatus() { return status; }
 
     @Override

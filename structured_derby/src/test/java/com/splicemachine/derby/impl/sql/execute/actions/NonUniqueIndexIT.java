@@ -25,7 +25,7 @@ import static org.junit.Assert.assertTrue;
  * @author Scott Fines
  *         Created on: 3/8/13
  */
-@Category(SerialTest.class)
+//@Category(SerialTest.class)
 public class NonUniqueIndexIT extends SpliceUnitTest { 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 

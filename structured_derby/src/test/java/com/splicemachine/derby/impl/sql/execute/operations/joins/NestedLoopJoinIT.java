@@ -8,7 +8,6 @@ import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -21,7 +20,7 @@ import java.util.*;
  * @author Scott Fines
  * Date: 3/4/14
  */
-@Category(SerialTest.class)
+//@Category(SerialTest.class)
 public class NestedLoopJoinIT {
 		public static final String CLASS_NAME = NestedLoopJoinIT.class.getSimpleName().toUpperCase();
 

@@ -16,6 +16,7 @@ public class SIFilterHBaseTest extends SIFilterTest {
         storeSetup = HBaseSuite.classStoreSetup;
         transactorSetup = HBaseSuite.classTransactorSetup;
 				baseSetup();
+        System.out.println("Setting up "+this.getClass());
     }
 
     @After

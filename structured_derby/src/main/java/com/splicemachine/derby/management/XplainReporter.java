@@ -46,7 +46,7 @@ public abstract class XplainReporter<T> {
 				this.taskQueue = new LinkedBlockingQueue<Pair<String, T>>();
 				final Txn txn;
 				try {
-						txn = TransactionLifecycle.getLifecycleManager().beginTransaction();
+						txn = TransactionLifecycle.getLifecycleManager().beginTransaction("xplain".getBytes());
             txn.commit();
 				} catch (IOException e) {
 						throw new RuntimeException(e); //TODO -sf- do something about this
