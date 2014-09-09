@@ -10,6 +10,7 @@ import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.NumberDataValue;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
@@ -41,7 +42,8 @@ public class SumWindowFunctionTest extends WindowTestingFramework {
         List<TestColumnDefinition> rowDefinition = new ArrayList<TestColumnDefinition>(
             Arrays.asList(new TestColumnDefinition[]{
                 new IntegerColumnDefinition(),
-                new DoubleColumnDefinition().setVariant(13)}));
+                new DoubleColumnDefinition().setVariant(13),
+                new TimestampColumnDefinition().setVariant(9)}));
 
         // create frame definition and frame buffer we'll use
         FrameDefinition frameDefinition = DEFAULT_FRAME_DEF;
@@ -56,18 +58,9 @@ public class SumWindowFunctionTest extends WindowTestingFramework {
                                expectedResultsFunction, function, DONT_PRINT_RESULTS);
     }
 
-    //===============================================================================================
-    // helpers
-    //===============================================================================================
-
-    private void helpTestColumns(int[] partitionColIDs, int[] orderByColIDs, boolean print)
-        throws IOException, StandardException {
-        SumAggregator function = new SumAggregator();
-        function.setup(cf, "sum", DataTypeDescriptor.getBuiltInDataTypeDescriptor(java.sql.Types.BIGINT, false));
-
-        int nPartitions = 5;
-        int partitionSize = 50;
-        ExpectedResultsFunction expectedResultsFunction = new SumFunct(2);
+    @Test
+    @Ignore("FIXME - jpc - expected result function is not getting reset at partition boundary.")
+    public void testDoubleColumn() throws Exception {
 
         // define the shape of the input rows
         List<TestColumnDefinition> rowDefinition = new ArrayList<TestColumnDefinition>(
@@ -77,11 +70,27 @@ public class SumWindowFunctionTest extends WindowTestingFramework {
                 new VarcharColumnDefinition(7).setVariant(5),
                 new TimestampColumnDefinition().setVariant(9),
                 new DateColumnDefinition().setVariant(13)}));
+        helpTestColumns(2, new int[] {1}, new int[] {3}, rowDefinition, PRINT_RESULTS);
+    }
+
+    //===============================================================================================
+    // helpers
+    //===============================================================================================
+
+    private void helpTestColumns(int aggCol, int[] partitionColIDs, int[] orderByColIDs,
+                                 List<TestColumnDefinition> rowDefinition, boolean print)
+        throws IOException, StandardException {
+        SumAggregator function = new SumAggregator();
+        function.setup(cf, "sum", DataTypeDescriptor.getBuiltInDataTypeDescriptor(java.sql.Types.BIGINT, false));
+
+
+        int nPartitions = 5;
+        int partitionSize = 5;
+        ExpectedResultsFunction expectedResultsFunction = new SumFunct(aggCol);
 
         // test the config
-        helpTestWindowFunction(nPartitions, partitionSize, partitionColIDs, orderByColIDs,
-                               orderByColIDs, rowDefinition, DEFAULT_FRAME_DEF,
-                               expectedResultsFunction, function, print);
+        helpTestWindowFunction(nPartitions, partitionSize, partitionColIDs, orderByColIDs, new int[]{aggCol}, rowDefinition,
+                               DEFAULT_FRAME_DEF, expectedResultsFunction, function, print);
     }
 
     /**

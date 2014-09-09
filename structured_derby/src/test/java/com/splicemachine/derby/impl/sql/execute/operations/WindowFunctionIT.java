@@ -27,13 +27,13 @@ public class WindowFunctionIT extends SpliceUnitTest {
     public static final String CLASS_NAME = WindowFunctionIT.class.getSimpleName().toUpperCase();
 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-    public static final String TABLE_NAME = "EMPTAB";
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
     private static String tableDef = "(empnum int, dept int, salary int)";
+    public static final String TABLE_NAME = "EMPTAB";
     protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE_NAME,CLASS_NAME, tableDef);
 
-    private static String[] rows = {
+    private static String[] EMPTAB_ROWS = {
         "20,1,75000",
         "70,1,76000",
         "60,1,78000",
@@ -51,15 +51,38 @@ public class WindowFunctionIT extends SpliceUnitTest {
         "30,3,84000"
     };
 
+    private static String table2Def = "(item int, price double, date timestamp)";
+    public static final String TABLE2_NAME = "purchased";
+    protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE2_NAME,CLASS_NAME, table2Def);
+
+    private static String[] PURCHASED_ROWS = {
+        "1, 1.0, '2014-09-08 18:27:48.881'",
+        "1, 1.0, '2014-09-08 17:45:15.204'",
+        "1, 7.0, '2014-09-08 18:33:46.446'",
+        "2, 12.0, '2014-09-08 18:40:15.480'",
+        "2, 5.0, '2014-09-08 18:26:51.387'",
+        "2, 6.0, '2014-09-08 17:50:17.182'",
+        "3, 10.0, '2014-09-08 18:25:42.387'",
+        "3, 7.0, '2014-09-08 18:00:44.742'",
+        "3, 3.0, '2014-09-08 17:36:55.414'",
+        "4, 10.0, '2014-09-08 17:50:17.182'",
+        "4, 2.0, '2014-09-08 18:05:47.166'",
+        "4, 8.0, '2014-09-08 18:08:04.986'",
+        "5, 4.0, '2014-09-08 17:46:26.428'",
+        "5, 10.0, '2014-09-08 18:11:23.645'",
+        "5, 11.0, '2014-09-08 17:41:56.353'"
+    };
+
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
                                             .around(spliceSchemaWatcher)
-                                            .around(spliceTableWatcher).around(new SpliceDataWatcher() {
+                                            .around(spliceTableWatcher)
+                                            .around(new SpliceDataWatcher() {
             @Override
             protected void starting(Description description) {
                 PreparedStatement ps;
                 try {
-                    for (String row : rows) {
+                    for (String row : EMPTAB_ROWS) {
                         ps = spliceClassWatcher.prepareStatement(
                             String.format("insert into %s values (%s)", spliceTableWatcher, row));
                         ps.execute();
@@ -68,7 +91,22 @@ public class WindowFunctionIT extends SpliceUnitTest {
                     throw new RuntimeException(e);
                 }
             }
-        });
+                                            }).around(spliceTableWatcher2)
+                                            .around(new SpliceDataWatcher() {
+                                                @Override
+                                                protected void starting(Description description) {
+                                                    PreparedStatement ps;
+                                                    try {
+                                                        for (String row : PURCHASED_ROWS) {
+                                                            ps = spliceClassWatcher.prepareStatement(
+                                                                String.format("insert into %s values (%s)", spliceTableWatcher2, row));
+                                                            ps.execute();
+                                                        }
+                                                    } catch (Exception e) {
+                                                        throw new RuntimeException(e);
+                                                    }
+                                                }
+                                            });
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
@@ -504,16 +542,16 @@ public class WindowFunctionIT extends SpliceUnitTest {
             ++i;
         }
         rs.close();
-        Assert.assertEquals(rows.length, i);
+        Assert.assertEquals(EMPTAB_ROWS.length, i);
         xPlainTrace.turnOffTrace();
 
         XPlainTreeNode operation = xPlainTrace.getOperationTree();
         Assert.assertTrue(operation.getOperationType().compareToIgnoreCase(SpliceXPlainTrace.PROJECTRESTRICT)==0);
         operation = operation.getChildren().getFirst();
         Assert.assertTrue(operation.getOperationType().compareToIgnoreCase(SpliceXPlainTrace.WINDOW)==0);
-        Assert.assertEquals(rows.length, operation.getInputRows());
-        Assert.assertEquals(rows.length, operation.getOutputRows());
-        Assert.assertEquals(rows.length * 2, operation.getWriteRows());
+        Assert.assertEquals(EMPTAB_ROWS.length, operation.getInputRows());
+        Assert.assertEquals(EMPTAB_ROWS.length, operation.getOutputRows());
+        Assert.assertEquals(EMPTAB_ROWS.length * 2, operation.getWriteRows());
     }
 
     @Test
@@ -627,6 +665,41 @@ public class WindowFunctionIT extends SpliceUnitTest {
             Assert.assertEquals(colVal[i],rs.getInt(3));
             Assert.assertEquals(result[i],rs.getInt(4));
             ++i;
+        }
+        rs.close();
+    }
+
+    @Test
+    public void testScalarAggWithOrderBy() throws Exception {
+        // DB-1774 - ClassCastException
+        double[] result = {1.0, 2.0, 9.0, 6.0, 11.0, 23.0, 3.0, 10.0, 20.0, 10.0, 12.0, 20.0, 11.0, 15.0, 25.0};
+        String sqlText =
+            "SELECT sum(price) over (Partition by item ORDER BY date) as  sumprice from %s";
+
+        ResultSet rs = methodWatcher.executeQuery(
+            String.format(sqlText, this.getTableReference(TABLE2_NAME)));
+
+        int i = 0;
+        while (rs.next()) {
+            Assert.assertEquals(result[i++],rs.getDouble(1), 0.00);
+        }
+        rs.close();
+    }
+
+    @Test
+    @Ignore("DB-1775 - returns wrong column values when other columns appear in select before scalar function")
+    public void testSelectAllColsScalarAggWithOrderBy() throws Exception {
+        // DB-1774 - ClassCastException
+        double[] result = {1.0, 2.0, 9.0, 6.0, 11.0, 23.0, 3.0, 10.0, 20.0, 10.0, 12.0, 20.0, 11.0, 15.0, 25.0};
+        String sqlText =
+            "SELECT item, price, sum(price) over (Partition by item ORDER BY date) as sumsal, date from %s";
+
+        ResultSet rs = methodWatcher.executeQuery(
+            String.format(sqlText, this.getTableReference(TABLE2_NAME)));
+
+        int i = 0;
+        while (rs.next()) {
+            Assert.assertEquals(result[i++],rs.getDouble(3), 0.00);
         }
         rs.close();
     }
