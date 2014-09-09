@@ -85,6 +85,7 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
 		DependencyManager dm = dd.getDependencyManager();
 		SpliceTransactionManager tc = (SpliceTransactionManager)lcc.getTransactionExecute().startNestedUserTransaction(false, true);
       ((SpliceTransaction)tc.getRawTransaction()).elevate("dictionary".getBytes()); //TODO -sf- resolve proper conglomerate id
+      lcc.pushNestedTransaction(tc);
 
         try {
 
@@ -243,6 +244,8 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
         } catch (Throwable t) {
             tc.abort();
             throw Exceptions.parseException(t);
+        }finally {
+            lcc.popNestedTransaction();
         }
 
         tc.commit();
