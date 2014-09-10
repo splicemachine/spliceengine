@@ -126,6 +126,7 @@ public class LazyNumberDataValueDescriptor extends LazyDataValueDescriptor imple
 				newDvd.serializer = serializer;
 				newDvd.tableVersion = tableVersion;
         newDvd.bytes = new ByteSlice(this.bytes);
+        newDvd.descendingOrder = descendingOrder;
         newDvd.deserialized = this.deserialized;
         newDvd.updateNullFlag();
 

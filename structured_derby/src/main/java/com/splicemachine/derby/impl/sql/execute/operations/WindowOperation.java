@@ -351,7 +351,9 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
         step2Scanner = getResultScanner(windowContext.getPartitionColumns(), spliceRuntimeContext, extraUniqueSequenceID);
 
         // create the frame source for the frame buffer
-        rowDecoder = getTempDecoder();
+        spliceRuntimeContext.setFirstStepInMultistep(true);
+        rowDecoder = OperationUtils.getPairDecoder(this, spliceRuntimeContext);
+        spliceRuntimeContext.setFirstStepInMultistep(false);
         PartitionAwareIterator<ExecRow> iterator =
             StandardIterators.wrap(step2Scanner, rowDecoder, windowContext.getPartitionColumns(), templateRow.getRowArray());
         PartitionAwarePushBackIterator<ExecRow> frameSource = new PartitionAwarePushBackIterator<ExecRow>(iterator);
@@ -413,23 +415,14 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
         if(keyValues.isEmpty()) return null;
 
         KeyValue kv = KeyValueUtils.matchDataColumn(keyValues);
-        return getTempDecoder().decode(kv);
+        return getTempDecoder(ctx).decode(kv);
     }
 
-    protected PairDecoder getTempDecoder() throws StandardException {
+    protected PairDecoder getTempDecoder(SpliceRuntimeContext ctx) throws StandardException {
         if (rowDecoder != null) {
             return rowDecoder;
         }
-        ExecRow templateRow = getExecRowDefinition();
-        DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(templateRow);
-        int[] keyCols = windowContext.getKeyColumns();
-        boolean[] keyOrders = windowContext.getKeyOrders();
-        KeyDecoder keyDecoder = new KeyDecoder(BareKeyHash.decoder(keyCols, keyOrders, serializers),9);
-        keyCols = IntArrays.complement(windowContext.getKeyColumns(), templateRow.nColumns());
-        KeyHashDecoder keyHashDecoder =  BareKeyHash.decoder(keyCols, null, serializers);
-
-        rowDecoder = new PairDecoder(keyDecoder, keyHashDecoder, templateRow);
-        return rowDecoder;
+        return OperationUtils.getPairDecoder(this, ctx);
     }
 
     @Override
