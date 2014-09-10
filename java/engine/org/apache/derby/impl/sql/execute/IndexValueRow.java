@@ -148,4 +148,21 @@ public class IndexValueRow implements ExecIndexRow {
 	{
 		valueRow.getNewObjectArray();
 	}
+
+    @Override
+    public int hashCode() {
+        return valueRow.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        IndexValueRow that = (IndexValueRow) o;
+
+        if (valueRow != null ? !valueRow.equals(that.valueRow) : that.valueRow != null) return false;
+
+        return true;
+    }
 }

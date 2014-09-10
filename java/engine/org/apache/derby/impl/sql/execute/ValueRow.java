@@ -25,6 +25,7 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.Arrays;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -287,4 +288,27 @@ public class ValueRow implements ExecRow, Externalizable, Comparable<ExecRow> {
 			column[i] = (DataValueDescriptor) in.readObject();
 		}
 	}
+
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + Arrays.hashCode(column);
+        result = prime * result + ncols;
+        return result;
+    }
+
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        ValueRow other = (ValueRow) obj;
+        if (!Arrays.equals(column, other.column))
+            return false;
+        if (ncols != other.ncols)
+            return false;
+        return true;
+    }
 }
