@@ -100,25 +100,26 @@
 					</execution>
 				</executions>
 			</plugin>
-			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>exec-maven-plugin</artifactId>
-				<version>1.3.2</version>
-				<executions>
-					<execution>
-						<phase>prepare-package</phase>
-						<goals>
-							<goal>exec</goal>
-						</goals>
-					</execution>
-				</executions>
-				<configuration>
-					<executable>grunt</executable>
-					<arguments>
-						<argument>karma</argument>
-					</arguments>
-				</configuration>
-			</plugin>
+			<!-- NOTE: Commented out the execution of JavaScript unit tests until Node.js has been configured for Jenkins servers. -->
+			<!--<plugin>-->
+				<!--<groupId>org.codehaus.mojo</groupId>-->
+				<!--<artifactId>exec-maven-plugin</artifactId>-->
+				<!--<version>1.3.2</version>-->
+				<!--<executions>-->
+					<!--<execution>-->
+						<!--<phase>prepare-package</phase>-->
+						<!--<goals>-->
+							<!--<goal>exec</goal>-->
+						<!--</goals>-->
+					<!--</execution>-->
+				<!--</executions>-->
+				<!--<configuration>-->
+					<!--<executable>grunt</executable>-->
+					<!--<arguments>-->
+						<!--<argument>karma</argument>-->
+					<!--</arguments>-->
+				<!--</configuration>-->
+			<!--</plugin>-->
 			<plugin>
 				<groupId>org.mortbay.jetty</groupId>
 				<artifactId>jetty-maven-plugin</artifactId>
