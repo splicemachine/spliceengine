@@ -50,6 +50,7 @@ import org.apache.derby.iapi.reference.SQLState;
 
 import org.apache.derby.iapi.services.loader.GeneratedClass;
 
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.sql.SQLWarning;
 import java.util.List;
@@ -554,8 +555,19 @@ recompileOutOfDatePlan:
 	}
 
 	public void setCompileTimeWarnings(SQLWarning warnings) {
-		this.warnings = warnings;
+      addWarning(warnings);
 	}
+
+    public void addWarning(SQLWarning warning){
+        if(this.warnings==null)
+            this.warnings = warning;
+        else
+            this.warnings.setNextWarning(warning);
+    }
+
+    public void clearWarnings(){
+        this.warnings = null;
+    }
 
 	public final SQLWarning getCompileTimeWarnings() {
 		return warnings;
