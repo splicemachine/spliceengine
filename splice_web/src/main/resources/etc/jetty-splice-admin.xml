@@ -44,4 +44,15 @@
 			<Arg type="boolean">true</Arg>
 	</New>
 
+	<!-- =========================================================== -->
+	<!-- HTTP Listener Port for Splice Admin Console                 -->
+	<!-- =========================================================== -->
+	<Call name="addConnector">
+		<Arg>
+			<New class="org.eclipse.jetty.server.nio.SelectChannelConnector">
+				<Set name="port">7020</Set>
+			</New>
+		</Arg>
+	</Call>
+
 </Configure>
