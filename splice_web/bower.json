@@ -1,6 +1,7 @@
 {
   "name": "splice-web",
   "version": "0.0.0",
+  "appPath": "src/main/webapp",
   "dependencies": {
     "angular": "1.2.15",
     "json3": "~3.2.6",
