@@ -1,3 +1,8 @@
+/**
+ * SpliceOutputFormat which performs writing to Splice
+ * @author Yanan Jian
+ * Created on: 08/14/14
+ */
 package com.splicemachine.mrio.api;
 
 import java.io.IOException;
@@ -21,6 +26,7 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.ResultColumnDescriptor;
 import org.apache.derby.iapi.sql.ResultDescription;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.SQLBlob;
 import org.apache.derby.iapi.types.SQLBoolean;
@@ -95,210 +101,20 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 	protected static String tableID;
 	private HashMap<List, List> tableStructure;
 	private HashMap<List, List> pks;
-	protected static class SpliceRecordWriter extends RecordWriter<ImmutableBytesWritable, ExecRow> {
-	     
-		private RecordingCallBuffer callBuffer = null;
-		private static final Snowflake snowflake = new Snowflake((short)1);
-		private int[] pkCols = null;
-		private DescriptorSerializer[] serializers = null;
-		private DataHash rowHash = null;
-		private KeyEncoder keyEncoder = null;
-		private ArrayList<Integer> colTypes = null;
-		private DataValueDescriptor[] rowDesc = null;
-		private String taskID = "";
-		private Connection conn = null;
-		private String childTxsID = "";
-		
-		
-		private void setTaskID(String taskID)
-		{
-			this.taskID = taskID;
-		}
-		
-		public SpliceRecordWriter(int[]pkCols, ArrayList colTypes, String taskID)
-		{
-			
-			
-			try {
-				this.colTypes = colTypes;
-				this.rowDesc = createDVD();
-				this.taskID = taskID;
-				this.keyEncoder =  getKeyEncoder(null);
-				this.pkCols = pkCols;
-				this.rowHash = getRowHash(null);
 	
-			} catch (StandardException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} 
-		}
-		
-		@Override
-		public void close(TaskAttemptContext arg0) throws IOException,
-				InterruptedException {
-			// TODO Auto-generated method stub
-			
-			try {
-				this.callBuffer.flushBuffer();
-				this.callBuffer.close();
-				sqlUtil.commit(conn);
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-				try {
-					sqlUtil.rollback(conn);
-				} catch (SQLException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				}
-			}
-		}
-		
-		
-		private KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-			HashPrefix prefix;
-			DataHash dataHash;
-			KeyPostfix postfix = NoOpPostfix.INSTANCE;
-			
-			if(pkCols==null){
-				    prefix = new SaltedPrefix(snowflake.newGenerator(100));
-					dataHash = NoOpDataHash.INSTANCE;
-			}else{
-					int[] keyColumns = new int[pkCols.length];
-					for(int i=0;i<keyColumns.length;i++){
-							keyColumns[i] = pkCols[i] -1;
-						
-							System.out.println("keyColumn:"+String.valueOf(keyColumns[i]));
-					}
-					prefix = NoOpPrefix.INSTANCE;
-					
-					DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(true).getSerializers(rowDesc);
-					dataHash = BareKeyHash.encoder(keyColumns,null, serializers);
-			}
-			
-			return new KeyEncoder(prefix,dataHash,postfix);
-	}
-		
-		private int[] getEncodingColumns(int n) {
-	        int[] columns = IntArrays.count(n);
-
-	        // Skip primary key columns to save space
-	        if (pkCols != null) {
-	        	System.out.println("pkCols not null");
-	            for(int pkCol:pkCols) {
-	            	System.out.println("pkCol:"+String.valueOf(pkCol));
-	                columns[pkCol-1] = -1;
-	            }
-	            return columns;
-	        }
-	        else
-	        	return null;
-	        
-	    }
-		
-		private DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-			//get all columns that are being set
-			int[] columns = getEncodingColumns(colTypes.size());
-			
-			DescriptorSerializer[] serializers = VersionedSerializers.forVersion("2.0",true).getSerializers(rowDesc);
-			return new EntryDataHash(columns,null,serializers);
-	}
-		
-		private DataValueDescriptor[] createDVD()
-		{
-			DataValueDescriptor dvds[] = new DataValueDescriptor[colTypes.size()];
-			for(int pos = 0; pos < colTypes.size(); pos++)
-			{
-				switch(colTypes.get(pos))
-				{
-				case java.sql.Types.INTEGER:
-				
-					dvds[pos] = new SQLInteger();
-					break;
-				case java.sql.Types.BIGINT:
-					
-					dvds[pos] = new SQLLongint();
-					break;
-				case java.sql.Types.SMALLINT:
-					
-					dvds[pos] = new SQLSmallint();
-					break;
-				case java.sql.Types.BOOLEAN:
-					
-					dvds[pos] = new SQLBoolean();
-					break;
-				case java.sql.Types.DOUBLE:	
-				
-					dvds[pos] = new SQLDouble();
-					break;
-				case java.sql.Types.FLOAT:
-					
-					dvds[pos] = new SQLInteger();
-					break;
-				case java.sql.Types.CHAR:
-					
-				case java.sql.Types.VARCHAR:
-					
-					dvds[pos] = new SQLVarchar();
-					break;
-				case java.sql.Types.BINARY:	
-					
-				default:
-					dvds[pos] = new SQLBlob();
-				}
-			}
-			return dvds;
-			
-		}
-		
-		
-		
-		@Override
-		public void write(ImmutableBytesWritable arg0, ExecRow value)
-				throws IOException, InterruptedException {
-			// TODO Auto-generated method stub
-			
-			try {
-				
-				if(callBuffer == null)
-				{
-					conn = sqlUtil.createConn();
-					sqlUtil.disableAutoCommit(conn);
-					
-					childTxsID = sqlUtil.getChildTransactionID(conn, 
-									conf.get(SpliceConstants.SPLICE_TRANSACTION_ID), Long.parseLong(tableID));
-					System.out.println("SpliceOutputFormat, Parent TXSID: "+conf.get(SpliceConstants.SPLICE_TRANSACTION_ID));
-					System.out.println("SpliceOutputFormat, Child TXSID: "+childTxsID);
-					callBuffer = WriteCoordinator.create(conf).writeBuffer(Bytes.toBytes(tableID), 
-									childTxsID, 1);	
-				}		
-				byte[] key = this.keyEncoder.getKey(value);
-				rowHash.setRow(value);
-				
-				byte[] bdata = rowHash.encode();
-				KVPair kv = new KVPair();
-				kv.setKey(key);
-				kv.setValue(bdata);	
-				callBuffer.add(kv);
-					
-			} catch (StandardException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
-
-	}
-
-	
-	private SpliceOutputFormat()
-	{
+	private SpliceOutputFormat(){
 		super();
-		sqlUtil = SQLUtil.getInstance();
+		//sqlUtil = SQLUtil.getInstance();
+		
 	}
-
+	
+	public Configuration getConf() {
+		return this.conf;
+	}
+	public void setConf(Configuration conf) {
+		this.conf = conf;
+	}
+	
 	@Override
 	public void checkOutputSpecs(JobContext arg0) throws IOException,
 			InterruptedException {
@@ -317,6 +133,12 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 	public RecordWriter getRecordWriter(TaskAttemptContext arg0)
 			throws IOException, InterruptedException {
 		// TODO Auto-generated method stub
+		if(conf == null)
+			throw new IOException("Error: Please set Configuration for SpliceOutputFormat");
+		if(sqlUtil == null)
+			sqlUtil = SQLUtil.getInstance(conf.get(SpliceMRConstants.SPLICE_JDBC_STR));
+		tableName = conf.get(TableOutputFormat.OUTPUT_TABLE);
+		
 		tableStructure = sqlUtil.getTableStructure(tableName);
 		pks = sqlUtil.getPrimaryKey(tableName);
 		ArrayList<String> pkColNames = null;
@@ -324,50 +146,188 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 		ArrayList<Integer> allColTypes = new ArrayList<Integer>();
 		Iterator tableiter = tableStructure.entrySet().iterator();
 		Iterator pkiter = pks.entrySet().iterator();
-	    while(tableiter.hasNext())
-	    {
+	    if(tableiter.hasNext()){
 	    	Map.Entry kv = (Map.Entry)tableiter.next();
 	    	allColNames = (ArrayList<String>)kv.getKey(); 
 	    	allColTypes = (ArrayList<Integer>)kv.getValue();
-	    	
-	    	break;
 	    }
-	    while(pkiter.hasNext())
-	    {
+	    if(pkiter.hasNext()){
 	    	Map.Entry kv = (Map.Entry)pkiter.next();
-	    	pkColNames = (ArrayList<String>)kv.getKey();  
-	    	System.out.println("primary key:");
-	    	System.out.println(pkColNames);
-	    	break;
+	    	pkColNames = (ArrayList<String>)kv.getKey(); 	
 	    }
-	    int[]pkCols = null;
-	    if(pkColNames != null && pkColNames.size() > 0)
-	    {
-	    	pkCols = new int[pkColNames.size()];
-	    	for (int i = 0; i < pkColNames.size(); i++)
-	    	{
+	    int[]pkCols = new int[pkColNames.size()];
+	    String taskID = arg0.getTaskAttemptID().getTaskID().toString();
+	    if(pkColNames == null || pkColNames.size() == 0){
+	    	SpliceRecordWriter spw = new SpliceRecordWriter(null, allColTypes, taskID);
+			return spw;
+	    }
+	   
+	    else{
+	    	for (int i = 0; i < pkColNames.size(); i++){
 	    		pkCols[i] = allColNames.indexOf(pkColNames.get(i))+1;
-	    		System.out.println("primary key pos:"+String.valueOf(pkCols[i]));
 	    	}
 	    }
 	    
-		String taskID = arg0.getTaskAttemptID().getTaskID().toString();
-		
-		SpliceRecordWriter spw = new SpliceRecordWriter(pkCols, allColTypes, taskID);
-		return spw;
-	}
-	public Configuration getConf() {
-		// TODO Auto-generated method stub
-		return this.conf;
-	}
-	public void setConf(Configuration conf) {
-		// TODO Auto-generated method stub
-		tableName = conf.get(TableOutputFormat.OUTPUT_TABLE);
-		tableID = sqlUtil.getConglomID(tableName);	
-		
-		this.conf = conf;
+	    SpliceRecordWriter spw = new SpliceRecordWriter(pkCols, allColTypes, taskID);
+		return spw;	
 	}
 	
-	
+	protected static class SpliceRecordWriter extends RecordWriter<ImmutableBytesWritable, ExecRow> {
+	     
+		private RecordingCallBuffer callBuffer = null;
+		private static final Snowflake snowflake = new Snowflake((short)1);
+		private int[] pkCols = null;
+		private DescriptorSerializer[] serializers = null;
+		private DataHash rowHash = null;
+		private KeyEncoder keyEncoder = null;
+		private ArrayList<Integer> colTypes = null;
+		private DataValueDescriptor[] rowDesc = null;
+		private String taskID = "";
+		private Connection conn = null;
+		private String childTxsID = "";
+		
+		
+		private void setTaskID(String taskID){
+			this.taskID = taskID;
+		}
+		
+		public SpliceRecordWriter(int[]pkCols, ArrayList colTypes, String taskID) throws IOException{
+			
+			System.out.println("Initializing SpliceRecordWriter....");
+			if(conf == null)
+				throw new IOException("Error: Please set Configuration for SpliceRecordWriter");
+			try {
+				this.colTypes = colTypes;
+				this.rowDesc = createDVD();
+				this.taskID = taskID;
+				this.pkCols = pkCols;
+				this.keyEncoder =  getKeyEncoder(null);
+				this.rowHash = getRowHash(null);	
+				tableID = sqlUtil.getConglomID(conf.get(TableOutputFormat.OUTPUT_TABLE));	
+				
+			} catch (StandardException e) {
+				// TODO Auto-generated catch block
+				throw new IOException(e.getCause());
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				throw new IOException(e.getCause());
+			} 
+		}
+		
+		@Override
+		public void close(TaskAttemptContext arg0) throws IOException,
+				InterruptedException {
+			// TODO Auto-generated method stub
+			
+			try {
+				this.callBuffer.flushBuffer();
+				this.callBuffer.close();
+				sqlUtil.commit(conn);
+				System.out.println("Task "+arg0.getTaskAttemptID()+" succeed");
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				try {
+					sqlUtil.rollback(conn);
+					System.out.println("Task "+arg0.getTaskAttemptID()+" failed");
+					throw new IOException("Exception in RecordWriter.close, "+e.getMessage());
+				} catch (SQLException e1) {
+					// TODO Auto-generated catch block
+					throw new IOException("Exception in RecordWriter.close, "+e1.getMessage());
+				}
+			}
+		}
+		
+		
+		private KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+			HashPrefix prefix;
+			DataHash dataHash;
+			KeyPostfix postfix = NoOpPostfix.INSTANCE;
+			
+			if(pkCols==null){
+				    prefix = new SaltedPrefix(snowflake.newGenerator(100));
+					dataHash = NoOpDataHash.INSTANCE;
+			}else{
+					int[] keyColumns = new int[pkCols.length];
+					for(int i=0;i<keyColumns.length;i++){
+							keyColumns[i] = pkCols[i] -1;
+							
+					}
+					prefix = NoOpPrefix.INSTANCE;
+					
+					DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(true).getSerializers(rowDesc);
+					dataHash = BareKeyHash.encoder(keyColumns,null, serializers);
+			}
+			
+			return new KeyEncoder(prefix,dataHash,postfix);
+	}
+		
+		private int[] getEncodingColumns(int n) {
+	        int[] columns = IntArrays.count(n);
 
+	        // Skip primary key columns to save space
+	        if (pkCols != null) {
+	        	
+	            for(int pkCol:pkCols) {
+	                columns[pkCol-1] = -1;
+	            }
+	            return columns;
+	        }
+	        else
+	        	return null;
+	        
+	    }
+		
+		private DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+			//get all columns that are being set
+			int[] columns = getEncodingColumns(colTypes.size());
+			
+			DescriptorSerializer[] serializers = VersionedSerializers.forVersion("2.0",true).getSerializers(rowDesc);
+			return new EntryDataHash(columns,null,serializers);
+	}
+		
+		private DataValueDescriptor[] createDVD() throws StandardException
+		{
+			DataValueDescriptor dvds[] = new DataValueDescriptor[colTypes.size()];
+			for(int pos = 0; pos < colTypes.size(); pos++){
+				dvds[pos] = DataTypeDescriptor.getBuiltInDataTypeDescriptor(colTypes.get(pos)).getNull();
+			}
+			return dvds;			
+		}
+		
+		@Override
+		public void write(ImmutableBytesWritable arg0, ExecRow value)
+				throws IOException, InterruptedException {
+			// TODO Auto-generated method stub
+			try {		
+				if(callBuffer == null){
+					conn = sqlUtil.createConn();
+					sqlUtil.disableAutoCommit(conn);
+					
+					childTxsID = sqlUtil.getChildTransactionID(conn, 
+									conf.get(SpliceMRConstants.SPLICE_TRANSACTION_ID), 
+									Long.parseLong(tableID));
+
+					callBuffer = WriteCoordinator.create(conf).writeBuffer(Bytes.toBytes(tableID), 
+									childTxsID, SpliceMRConstants.SPLICE_WRITE_BUFFER_SIZE);	
+				}		
+				byte[] key = this.keyEncoder.getKey(value);
+				rowHash.setRow(value);
+				
+				byte[] bdata = rowHash.encode();
+				KVPair kv = new KVPair();
+				kv.setKey(key);
+				kv.setValue(bdata);	
+				callBuffer.add(kv);
+					
+			} catch (StandardException e) {
+				// TODO Auto-generated catch block
+				throw new IOException(e.getCause());
+				
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				throw new IOException(e.getCause());
+			} 
+		}
+	}
 }

@@ -18,6 +18,7 @@ import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
+import org.apache.hadoop.hbase.mapreduce.TableInputFormat;
 import org.apache.hadoop.hbase.mapreduce.TableRecordReader;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -46,7 +47,6 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.impl.sql.execute.ValueRow;
 
 
-
 public class SpliceRecordReader extends SpliceTableRecordReaderBase{
 
 	private HTable htable = null;
@@ -69,13 +69,14 @@ public class SpliceRecordReader extends SpliceTableRecordReaderBase{
     {
     	super();
     	this.conf = conf;
+    	//System.out.println("SpliceRecordReader, Conf"+conf.get(SpliceMRConstants.SPLICE_JDBC_STR));
     }
     
 	@Override
 	public void initialize(final InputSplit inputSplit, final TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
        
-		System.out.println("Initializing....");
-		sqlUtil = SQLUtil.getInstance();
+		System.out.println("Initializing SpliceRecordReader....");
+		sqlUtil = SQLUtil.getInstance(conf.get(SpliceMRConstants.SPLICE_JDBC_STR));
     }
 	
 	@Override
@@ -109,7 +110,7 @@ public class SpliceRecordReader extends SpliceTableRecordReaderBase{
 			}
 		
 		try {
-			String transaction_id = conf.get(SpliceConstants.SPLICE_TRANSACTION_ID);
+			String transaction_id = conf.get(SpliceMRConstants.SPLICE_TRANSACTION_ID);
 			buildTableScannerBuilder(transaction_id);
 			tableScanner = this.builder.build();
 			//tableScanner.setColumnTypes(colTypes);
@@ -138,7 +139,7 @@ public class SpliceRecordReader extends SpliceTableRecordReaderBase{
 	 * 
 	 */
     @Override
-    public ExecRow getCurrentValue(){
+    public ExecRow getCurrentValue() throws IOException, InterruptedException{
     	DataValueDescriptor dvds[] = value.getRowArray();
     	boolean invalid = true;
     	for(DataValueDescriptor d : dvds)
@@ -151,14 +152,7 @@ public class SpliceRecordReader extends SpliceTableRecordReaderBase{
     	}
     	if(invalid)
     	{
-    		try {
-    			this.nextKeyValue();
-			
-    		} catch (IOException e) {
-    			e.printStackTrace();
-    		} catch (InterruptedException e) {
-    			e.printStackTrace();
-    		}
+    		this.nextKeyValue();
     	}
     	if(invalid)
     		value = null;
@@ -174,36 +168,11 @@ public class SpliceRecordReader extends SpliceTableRecordReaderBase{
      * 
      * @param columnType (choose from java.sql.Types.*)
      * @return typeFormatId
+     * @throws StandardException 
      */
-    private int getTypeFormatId(int columnType)
+    private int getTypeFormatId(int columnType) throws StandardException
     {
-    	switch(columnType)
-		{
-				case java.sql.Types.INTEGER:
-					return new SQLInteger(1).getTypeFormatId();
-				case java.sql.Types.BIGINT:
-					return new SQLLongint(1).getTypeFormatId();				
-				case java.sql.Types.TIMESTAMP:
-					return new SQLTimestamp().getTypeFormatId();
-				case java.sql.Types.TIME:
-					return new SQLTime().getTypeFormatId();					
-				case java.sql.Types.SMALLINT:
-					return new SQLSmallint().getTypeFormatId();
-				case java.sql.Types.BOOLEAN:
-					return new SQLBoolean().getTypeFormatId();
-				case java.sql.Types.DOUBLE:
-					return new SQLDouble().getTypeFormatId();
-				case java.sql.Types.FLOAT:
-					return new SQLReal().getTypeFormatId();
-				case java.sql.Types.CHAR:
-					return new SQLChar().getTypeFormatId();
-				case java.sql.Types.VARCHAR:
-					return new SQLVarchar().getTypeFormatId();
-				case java.sql.Types.BINARY:
-					return new SQLBlob().getTypeFormatId();
-				default:
-					return new org.apache.derby.iapi.types.SQLClob().getTypeFormatId();
-		}
+    	return DataTypeDescriptor.getBuiltInDataTypeDescriptor(1).getNull().getTypeFormatId();
     }
     
     /**
@@ -291,13 +260,10 @@ public class SpliceRecordReader extends SpliceTableRecordReaderBase{
 		if (value == null)
 			value = new ValueRow(0);
 			try {
-				value = tableScanner.next(null);
-			
+				value = tableScanner.next(null);		
 			} catch (StandardException e) {
-				e.printStackTrace();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+				throw new IOException(e.getMessage());
+			} 
 		if (value != null && value.getRowArray().length > 0) {
 			/*rowkey.set(value.getRow());
 			lastRow = rowkey.get();*/
@@ -310,9 +276,11 @@ public class SpliceRecordReader extends SpliceTableRecordReaderBase{
     public void setHTable(HTable htable) {
 		this.htable = htable;
 		Configuration conf = htable.getConfiguration();
-		String tableName = conf.get(org.apache.hadoop.hbase.mapreduce.TableInputFormat.INPUT_TABLE);
+		//String tableName = conf.get(TableInputFormat.INPUT_TABLE);
+		String tableName = conf.get(SpliceMRConstants.SPLICE_INPUT_TABLE_NAME);
+		
 		if (sqlUtil == null)
-			sqlUtil = SQLUtil.getInstance();
+			sqlUtil = SQLUtil.getInstance(conf.get(SpliceMRConstants.SPLICE_JDBC_STR));
 		tableStructure = sqlUtil.getTableStructure(tableName);
 		pks = sqlUtil.getPrimaryKey(tableName);
 		

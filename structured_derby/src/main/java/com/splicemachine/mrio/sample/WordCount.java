@@ -1,6 +1,7 @@
 package com.splicemachine.mrio.sample;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -11,6 +12,7 @@ import java.util.NavigableMap;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.SQLDouble;
 import org.apache.derby.iapi.types.SQLInteger;
@@ -39,11 +41,11 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 
-import com.splicemachine.mrio.api.SpliceInputFormat;
+import com.splicemachine.mrio.api.SpliceMRConstants;
 import com.splicemachine.mrio.api.SpliceOutputFormat;
 import com.splicemachine.mrio.api.SpliceTableMapReduceUtil;
 import com.splicemachine.mrio.api.SpliceJob;
-
+import com.splicemachine.mrio.api.SpliceInputFormat;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.index.BitIndex;
@@ -146,14 +148,13 @@ public class WordCount {
 	public static void main(String[] args) throws IOException {
 		
 		// We create a table first, then import a small dataset into it.
-		
+		//DataTypeDescriptor.getBuiltInDataTypeDescriptor(jdbcType)
 		
 		// TODO Auto-generated method stub
 		Configuration config = HBaseConfiguration.create();
-		
+		config.set(SpliceMRConstants.SPLICE_JDBC_STR, "jdbc:splice://localhost:1527/splicedb;user=splice;password=admin");
 		SpliceJob job = new SpliceJob(config, NAME);
-		//Job job = new Job(config, NAME);
-		//System.out.println("***"+config.get(spliceio.SpliceConstants.SPLICE_TRANSACTION_ID));
+		
 		job.setJarByClass(WordCount.class);     // class that contains mapper
 
 		Scan scan = new Scan();
@@ -161,9 +162,7 @@ public class WordCount {
 		scan.setCacheBlocks(false);  // don't set to true for MR jobs
 	    
 		String inputTableName = "WIKIDATA";
-		String outputTableName = "USERTEST1";
-		
-		//String outputPath = "output_test11";
+		String outputTableName = "USERTEST3";
 		
 		try {
 			SpliceTableMapReduceUtil.initTableMapperJob(
@@ -190,24 +189,31 @@ public class WordCount {
 				null,
 				false,
 				SpliceOutputFormat.class);
-
+		
 		//job.setOutputFormatClass(NullOutputFormat.class);   // because we aren't emitting anything from mapper
 		
-		boolean b;
-		try {
-			b = job.waitForCompletion(true);
-			if (!b)
-				throw new IOException("error with job!");
-			} catch (IOException e) {
-			// TODO Auto-generated catch block
-				e.printStackTrace();
+		boolean b = false;
+		
+			try {
+				b = job.waitForCompletion(true);
+				if (!b)
+					{
+					System.out.println("Job Failed");
+					job.rollback();
+					}
+				else
+					job.commit();
 			} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
+				// TODO Auto-generated catch block
 				e.printStackTrace();
 			} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}catch (SQLException e) {
+				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+			
 		}
 		
 		  
