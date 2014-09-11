@@ -194,7 +194,7 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 				try {
 						sequence = new DataValueDescriptor[1];
 						sequence[0] = activation.getDataValueFactory().getBitDataValue(uniqueSequenceID);
-						SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
+						SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext(operationInformation.getTransaction());
 						return new SpliceNoPutResultSet(activation,this,getReduceRowProvider(this,OperationUtils.getPairDecoder(this,spliceRuntimeContext), spliceRuntimeContext, true));
 				} catch (Exception e) {
 						SpliceLogUtils.logAndThrowRuntime(LOG, "executeProbeScan failed!", e);

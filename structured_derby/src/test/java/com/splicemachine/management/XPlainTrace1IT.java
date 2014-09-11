@@ -90,31 +90,11 @@ public class XPlainTrace1IT extends XPlainTrace {
 
     @Before
     public void setUp() throws Exception {
-        Statement statement = baseConnection.createStatement();
-        statement.execute("call SYSCS_UTIL.SYSCS_PURGE_XPLAIN_TRACE()");
+        baseConnection.execute("call SYSCS_UTIL.SYSCS_PURGE_XPLAIN_TRACE()");
     }
 
     @After
     public void tearDown() throws Exception {
-//        Statement statement = baseConnection.createStatement();
-//        ResultSet rs = statement.executeQuery("select count(*) from sys.sysstatementhistory");
-//        long count = 0;
-//        if (rs.next()) {
-//            count = rs.getInt(1);
-//        }
-//        rs.close();
-//        Assert.assertTrue(count>0);
-//
-//        statement.execute("call SYSCS_UTIL.SYSCS_PURGE_XPLAIN_TRACE()");
-//
-//        rs = statement.executeQuery("select count(*) from sys.sysstatementhistory");
-//        count = 0;
-//        if (rs.next()) {
-//            count = rs.getInt(1);
-//        }
-//        rs.close();
-//        Assert.assertTrue(count==0);
-//        baseConnection.commit();
     }
 
     @Test
@@ -267,6 +247,22 @@ public class XPlainTrace1IT extends XPlainTrace {
     }
 
     @Test
+    @Ignore
+    public void testRepeatedMSJThenNLJ() throws Exception {
+        for(int i=0;i<1000;i++){
+            System.out.println("----MergeSortJoin");
+            setUp();
+            testMergeSortJoin();
+            tearDown();
+
+            System.out.println("----NestedLoopJoin");
+            setUp();
+            testNestedLoopJoin();
+            tearDown();
+        }
+    }
+
+    @Test
     public void testNestedLoopJoin() throws Exception {
 
         xPlainTrace.turnOnTrace();
@@ -286,20 +282,20 @@ public class XPlainTrace1IT extends XPlainTrace {
         Assert.assertEquals(count ,operation.getInputRows());
         Assert.assertEquals(count ,operation.getOutputRows());
 
-        Assert.assertEquals(operation.getChildren().size(), 1);
+        Assert.assertEquals(1,operation.getChildren().size());
         operation = operation.getChildren().getFirst();
         operationType = operation.getOperationType();
-        Assert.assertEquals(operationType.compareTo(SpliceXPlainTrace.NESTEDLOOPJOIN), 0);
+        Assert.assertEquals(0,operationType.compareTo(SpliceXPlainTrace.NESTEDLOOPJOIN));
         Assert.assertEquals(operation.getInputRows(), nrows);
         Assert.assertEquals(operation.getRemoteScanRows(), count);
         Assert.assertEquals(operation.getOutputRows(), count);
 
         // Must have two children
-        Assert.assertEquals(operation.getChildren().size(), 2);
+        Assert.assertEquals(2,operation.getChildren().size());
         // First child should be a bulk table scan operation
         XPlainTreeNode child = operation.getChildren().getFirst();
         operationType = child.getOperationType();
-        Assert.assertEquals(operationType.compareTo(SpliceXPlainTrace.BULKTABLESCAN), 0);
+        Assert.assertEquals(0,operationType.compareTo(SpliceXPlainTrace.BULKTABLESCAN));
         Assert.assertEquals(child.getLocalScanRows(), nrows);
         Assert.assertEquals(child.getOutputRows(), nrows);
 

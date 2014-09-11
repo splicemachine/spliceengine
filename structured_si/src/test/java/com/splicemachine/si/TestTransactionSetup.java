@@ -102,7 +102,7 @@ public class TestTransactionSetup {
 				lfManager.setStore(txnStore);
 				txnLifecycleManager = lfManager;
 
-        txnOperationFactory = new SimpleOperationFactory(txnSupplier);
+        txnOperationFactory = new SimpleOperationFactory();
 
 				//noinspection unchecked
 				dataStore = new DataStore(dataLib, reader, writer,

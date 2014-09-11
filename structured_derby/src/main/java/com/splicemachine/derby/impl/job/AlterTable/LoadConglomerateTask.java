@@ -163,7 +163,11 @@ public class LoadConglomerateTask extends ZkTask {
                 stats.addMetric(OperationMetric.WRITE_ROWS, writeStats.getRowsWritten());
                 stats.addMetric(OperationMetric.WRITE_TOTAL_WALL_TIME, time.getWallClockTime());
 
-                SpliceDriver.driver().getTaskReporter().report(stats);
+                try{
+                    SpliceDriver.driver().getTaskReporter().report(stats,getTxn());
+                }catch(IOException ioe){
+                    throw new ExecutionException(ioe);
+                }
             }
         }
 

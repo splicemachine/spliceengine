@@ -1542,7 +1542,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         statementInfo.setOperationInfo(Arrays.asList(opInfo));
         SpliceDriver.driver().getStatementManager().addStatementInfo(statementInfo);
 
-        JobFuture future;
+        JobFuture future = null;
         JobInfo info;
         try{
             long fromConglomId = td.getHeapConglomerateId();
@@ -1572,7 +1572,12 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         } catch (InterruptedException e) {
             throw Exceptions.parseException(e);
         }finally {
-            SpliceDriver.driver().getStatementManager().completedStatement(statementInfo, activation.isTraced());
+            cleanupFuture(future);
+            try {
+                SpliceDriver.driver().getStatementManager().completedStatement(statementInfo, activation.isTraced(),dropColumnTxn);
+            } catch (IOException e) {
+                throw Exceptions.parseException(e);
+            }
 
         }
 

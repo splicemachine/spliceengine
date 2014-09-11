@@ -215,9 +215,8 @@ public class SpliceDriver extends SIConstants {
                         	return null;
                         }
 
+                        taskReporter = new XplainTaskReporter();
                         statementManager = new StatementManager();
-                        taskReporter = new XplainTaskReporter(1);
-                        taskReporter.start(1);
                         logging = new LogManager();
                         SpliceLogUtils.debug(LOG, "Finished Booting Database");
 

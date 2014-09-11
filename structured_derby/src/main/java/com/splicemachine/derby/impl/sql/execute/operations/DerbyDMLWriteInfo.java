@@ -6,6 +6,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.actions.WriteCursorConstantOperation;
 import com.splicemachine.derby.impl.store.access.ConglomerateDescriptorCache;
+import com.splicemachine.si.api.TxnView;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.Activation;
@@ -30,6 +31,7 @@ public class DerbyDMLWriteInfo implements DMLWriteInfo {
 
     private transient Activation activation;
     private String tableVersion;
+    private TxnView txn;
 
     @Override
     public void initialize(SpliceOperationContext opCtx) throws StandardException {
@@ -39,6 +41,7 @@ public class DerbyDMLWriteInfo implements DMLWriteInfo {
         DataDictionary dataDictionary = lcc.getDataDictionary();
         TableDescriptor tableDescriptor = dataDictionary.getTableDescriptor(conglomerateDescriptor.getTableID());
         this.tableVersion = tableDescriptor.getVersion();
+        this.txn = opCtx.getTxn();
     }
 
     @Override
@@ -64,7 +67,7 @@ public class DerbyDMLWriteInfo implements DMLWriteInfo {
 
 		@Override
     public SpliceObserverInstructions buildInstructions(SpliceOperation operation) {
-        return SpliceObserverInstructions.create(activation,operation,new SpliceRuntimeContext());
+        return SpliceObserverInstructions.create(activation,operation,new SpliceRuntimeContext(txn));
     }
 
 		@Override

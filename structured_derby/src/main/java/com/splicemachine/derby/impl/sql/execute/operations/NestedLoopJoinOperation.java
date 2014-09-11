@@ -196,7 +196,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
                     if (operationChainInfo == null) {
                         operationChainInfo = new XplainOperationChainInfo(
                                 spliceRuntimeContext.getStatementId(),
-                                Bytes.toLong(rightResultSetUniqueSequenceID));
+                                Bytes.toLong(uniqueSequenceID));
                     }
                     List<XplainOperationChainInfo> operationChain = SpliceBaseOperation.operationChain.get();
                     if (operationChain == null) {

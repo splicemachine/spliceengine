@@ -10,6 +10,8 @@ import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.*;
 
 import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 
 /**
  * @author Scott Fines
@@ -17,10 +19,7 @@ import java.io.IOException;
  */
 public class SimpleOperationFactory implements TxnOperationFactory {
 
-		private final TxnSupplier txnSupplier;
-
-		public SimpleOperationFactory(TxnSupplier txnSupplier) {
-				this.txnSupplier = txnSupplier;
+    public SimpleOperationFactory() {
 		}
 
 		@Override
@@ -86,20 +85,11 @@ public class SimpleOperationFactory implements TxnOperationFactory {
 		public TxnView fromReads(OperationWithAttributes op) throws IOException {
 				byte[] txnData = op.getAttribute(SIConstants.SI_TRANSACTION_ID_KEY);
 				if(txnData==null) return null; //non-transactional
-        MultiFieldDecoder decoder = MultiFieldDecoder.wrap(txnData);
-				long beginTs = decoder.decodeNextLong();
-        boolean additive = decoder.decodeNextBoolean();
-        Txn.IsolationLevel level = Txn.IsolationLevel.fromByte(decoder.decodeNextByte());
-
-        TxnView parent = Txn.ROOT_TRANSACTION;
-        while(decoder.available()){
-            long id = decoder.decodeNextLong();
-            parent = new ReadOnlyTxn(id,id,level,parent,UnsupportedLifecycleManager.INSTANCE,additive);
-        }
-				return new ReadOnlyTxn(beginTs,beginTs,level,parent,UnsupportedLifecycleManager.INSTANCE,additive);
+        return decode(txnData);
 		}
 
-		@Override
+
+    @Override
 		public TxnView fromWrites(OperationWithAttributes op) throws IOException {
 				byte[] txnData = op.getAttribute(SIConstants.SI_TRANSACTION_ID_KEY);
 				if(txnData==null) return null; //non-transactional
@@ -107,6 +97,8 @@ public class SimpleOperationFactory implements TxnOperationFactory {
         long beginTs = decoder.decodeNextLong();
         boolean additive = decoder.decodeNextBoolean();
         Txn.IsolationLevel level = Txn.IsolationLevel.fromByte(decoder.decodeNextByte());
+        //throw away the allow reads bit, since we won't care anyway
+        decoder.decodeNextBoolean();
 
         TxnView parent = Txn.ROOT_TRANSACTION;
         while(decoder.available()){
@@ -116,10 +108,25 @@ public class SimpleOperationFactory implements TxnOperationFactory {
         return new ActiveWriteTxn(beginTs,beginTs,parent,additive,level);
 		}
 
-		/******************************************************************************************************************/
+    @Override
+    public void writeTxn(TxnView txn, ObjectOutput oo) throws IOException {
+        byte[] txnData = encodeTransaction(txn);
+        oo.writeInt(txnData.length);
+        oo.write(txnData);
+    }
+
+    @Override
+    public TxnView readTxn(ObjectInput oi) throws IOException {
+        int size = oi.readInt();
+        byte[] txnData = new byte[size];
+        oi.read(txnData);
+
+        return decode(txnData);
+    }
+
+    /******************************************************************************************************************/
 		/*private helper functions*/
 		private void encodeForWrites(OperationWithAttributes op, TxnView txn) {
-
         byte[] data =encodeTransaction(txn);
 				op.setAttribute(SIConstants.SI_TRANSACTION_ID_KEY,data);
         op.setAttribute(SIConstants.SI_NEEDED,SIConstants.SI_NEEDED_VALUE_BYTES);
@@ -135,11 +142,33 @@ public class SimpleOperationFactory implements TxnOperationFactory {
         op.setAttribute(SIConstants.SI_NEEDED,SIConstants.SI_NEEDED_VALUE_BYTES);
 		}
 
+    private TxnView decode(byte[] txnData) {
+        MultiFieldDecoder decoder = MultiFieldDecoder.wrap(txnData);
+        long beginTs = decoder.decodeNextLong();
+        boolean additive = decoder.decodeNextBoolean();
+        Txn.IsolationLevel level = Txn.IsolationLevel.fromByte(decoder.decodeNextByte());
+        boolean allowsWrites = decoder.decodeNextBoolean();
+
+        TxnView parent = Txn.ROOT_TRANSACTION;
+        while(decoder.available()){
+            long id = decoder.decodeNextLong();
+            if(allowsWrites)
+                parent = new ActiveWriteTxn(id,id, parent, additive, level);
+            else
+                parent = new ReadOnlyTxn(id,id,level,parent, UnsupportedLifecycleManager.INSTANCE,additive);
+        }
+        if(allowsWrites)
+            return new ActiveWriteTxn(beginTs,beginTs,parent,additive,level);
+        else
+            return new ReadOnlyTxn(beginTs,beginTs,level,parent,UnsupportedLifecycleManager.INSTANCE,additive);
+    }
+
     private byte[] encodeTransaction(TxnView txn) {
-        MultiFieldEncoder encoder = MultiFieldEncoder.create(4)
+        MultiFieldEncoder encoder = MultiFieldEncoder.create(5)
                 .encodeNext(txn.getTxnId())
                 .encodeNext(txn.isAdditive())
-                .encodeNext(txn.getIsolationLevel().encode());
+                .encodeNext(txn.getIsolationLevel().encode())
+                .encodeNext(txn.allowsWrites());
 
         LongArrayList parentTxnIds = LongArrayList.newInstance();
         byte[] build = encodeParentIds(txn, parentTxnIds);

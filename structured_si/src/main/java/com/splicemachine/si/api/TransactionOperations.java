@@ -25,7 +25,7 @@ public class TransactionOperations {
             TxnOperationFactory factory = operationFactory;
             if(factory!=null) return factory;
 
-            factory = new SimpleOperationFactory(TransactionStorage.getTxnSupplier());
+            factory = new SimpleOperationFactory();
             operationFactory = factory;
             return factory;
         }

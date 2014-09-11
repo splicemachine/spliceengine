@@ -11,7 +11,6 @@ import com.splicemachine.si.api.*;
 import com.splicemachine.si.impl.SimpleOperationFactory;
 import com.splicemachine.si.impl.TransactionalRegions;
 import com.splicemachine.si.impl.WriteConflict;
-import com.splicemachine.si.impl.rollforward.SegmentedRollForward;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
@@ -54,7 +53,7 @@ public class SpliceIndexObserver extends BaseRegionObserver {
         try{
             conglomId = Long.parseLong(tableName);
 
-            operationFactory = new SimpleOperationFactory(TransactionStorage.getTxnSupplier());
+            operationFactory = new SimpleOperationFactory();
             region = TransactionalRegions.get(e.getEnvironment().getRegion());
         }catch(NumberFormatException nfe){
             SpliceLogUtils.debug(LOG, "Unable to parse Conglomerate Id for table %s, indexing is will not be set up", tableName);

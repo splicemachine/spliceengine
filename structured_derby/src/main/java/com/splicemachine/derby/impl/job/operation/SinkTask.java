@@ -62,6 +62,7 @@ public class SinkTask extends ZkTask {
 		private SpliceRuntimeContext spliceRuntimeContext;
 		private SpliceTransactionResourceImpl transactionResource;
 		private SpliceOperationContext opContext;
+    private boolean isTraced = false;
 
 		/*Stats stuff*/
 
@@ -145,8 +146,17 @@ public class SinkTask extends ZkTask {
 						prepared=true;
 						if(instructions==null)
 								instructions = SpliceUtils.getSpliceObserverInstructions(scan);
-						transactionResource.marshallTransaction(instructions);
+            setupTransaction();
+            transactionResource.marshallTransaction(getTxn(), instructions);
 						Activation activation = instructions.getActivation(transactionResource.getLcc());
+            if(activation.isTraced()){
+                Txn txn = getTxn();
+                if(!txn.allowsWrites()){
+                    elevateTransaction("xplain".getBytes());
+                    instructions.setTxn(txn);
+                }
+            }
+            instructions.setTxn(getTxn());
 						spliceRuntimeContext = instructions.getSpliceRuntimeContext();
 						spliceRuntimeContext.markAsSink();
 						spliceRuntimeContext.setCurrentTaskId(getTaskId());
@@ -167,8 +177,13 @@ public class SinkTask extends ZkTask {
 						closeQuietly(prepared, transactionResource, opContext);
 						throw new ExecutionException(e);
 				}
-				super.execute();
-		}
+        waitTimeNs = System.nanoTime()-prepareTimestamp;
+        try{
+            doExecute();
+        }finally{
+            taskWatcher.setTask(null);
+        }
+    }
 
 		protected void closeQuietly(boolean prepared, SpliceTransactionResourceImpl impl, SpliceOperationContext opContext)  {
 				try{

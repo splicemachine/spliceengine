@@ -13,6 +13,7 @@ import com.splicemachine.hbase.writer.CallBufferFactory;
 import com.splicemachine.hbase.writer.ConcurrentWriteBuffer;
 import com.splicemachine.si.api.TransactionLifecycle;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.storage.EntryEncoder;
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.iapi.error.StandardException;

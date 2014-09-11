@@ -76,7 +76,7 @@ public class DistributedClientScanProvider extends AbstractMultiScanProvider {
 		}
 
 		@Override
-		public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) {
+		public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) throws IOException {
 				if(regionName==null)
 						regionName = "ControlRegion";
 				OperationRuntimeStats stats = new OperationRuntimeStats(statementId,operationId,taskId,regionName,5);
@@ -97,8 +97,8 @@ public class DistributedClientScanProvider extends AbstractMultiScanProvider {
 				stats.addMetric(OperationMetric.OUTPUT_ROWS,timer.getNumEvents());
 				stats.addMetric(OperationMetric.INPUT_ROWS,scanner.getRemoteRowsRead());
 
-				SpliceDriver.driver().getTaskReporter().report(stats);
-		}
+        SpliceDriver.driver().getTaskReporter().report(stats,spliceRuntimeContext.getTxn());
+    }
 
 		@Override
 		public IOStats getIOStats() {

@@ -271,7 +271,7 @@ public class PopulateIndexTask extends ZkTask {
                         : new BufferedRegionScanner(region,sourceScanner,regionScan,SpliceConstants.DEFAULT_CACHE_SIZE,SpliceConstants.DEFAULT_CACHE_SIZE,metricFactory);
     }
 
-    protected void reportStats(long startTime, MeasuredRegionScanner brs, RecordingCallBuffer<KVPair> writeBuffer,TimeView manipulationTime) {
+    protected void reportStats(long startTime, MeasuredRegionScanner brs, RecordingCallBuffer<KVPair> writeBuffer,TimeView manipulationTime) throws IOException {
 				if(isTraced){
 						//record some stats
 						OperationRuntimeStats stats = new OperationRuntimeStats(statementId,operationId, Bytes.toLong(taskId),region.getRegionNameAsString(),12);
@@ -298,7 +298,7 @@ public class PopulateIndexTask extends ZkTask {
 
 						OperationRuntimeStats.addWriteStats(writeStats,stats);
 
-						SpliceDriver.driver().getTaskReporter().report(stats);
+						SpliceDriver.driver().getTaskReporter().report(stats,getTxn());
 				}
 		}
 

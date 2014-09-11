@@ -2,18 +2,12 @@ package com.splicemachine.si.coprocessors;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.TreeMultimap;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.environment.EnvUtils;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.si.api.*;
-import com.splicemachine.si.data.hbase.HbRegion;
-import com.splicemachine.si.data.hbase.IHTable;
 import com.splicemachine.si.impl.*;
-import com.splicemachine.si.impl.rollforward.NoopRollForward;
-import com.splicemachine.si.impl.rollforward.SegmentedRollForward;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -22,7 +16,6 @@ import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Scan;
@@ -38,7 +31,6 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -62,7 +54,7 @@ public class SIObserver extends BaseRegionObserver {
 				SpliceLogUtils.trace(LOG, "starting %s", SIObserver.class);
 				tableEnvMatch = doesTableNeedSI(((RegionCoprocessorEnvironment)e).getRegion().getTableDesc().getNameAsString());
         if(tableEnvMatch){
-            txnOperationFactory = new SimpleOperationFactory(TransactionStorage.getTxnSupplier());
+            txnOperationFactory = new SimpleOperationFactory();
             region = TransactionalRegions.get(((RegionCoprocessorEnvironment) e).getRegion());
             Tracer.traceRegion(region.getTableName(), ((RegionCoprocessorEnvironment)e).getRegion());
         }

@@ -196,7 +196,7 @@ public class SpliceOperationContext {
         return new SpliceOperationContext(null,null,null,
                 a,
                 (GenericStorablePreparedStatement)a.getPreparedStatement(),
-                null,false,null, new SpliceRuntimeContext(),txn);
+                null,false,null, new SpliceRuntimeContext(txn),txn);
     }
 
     public SpliceOperation getTopOperation() {

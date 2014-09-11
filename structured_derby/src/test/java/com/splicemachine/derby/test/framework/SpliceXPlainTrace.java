@@ -1,9 +1,7 @@
 package com.splicemachine.derby.test.framework;
 
-import com.splicemachine.derby.management.XPlainTreeNode;
 import com.splicemachine.derby.management.XPlainTrace;
-import com.splicemachine.stream.Accumulator;
-import com.splicemachine.stream.StreamException;
+import com.splicemachine.derby.management.XPlainTreeNode;
 
 import java.sql.*;
 
@@ -110,6 +108,10 @@ public class SpliceXPlainTrace extends XPlainTrace{
 
     public boolean execute(String sql) throws Exception{
         return testConn.execute(sql);
+    }
+
+    public long getLastStatementId(){
+        return testConn.getLastStatementId();
     }
 
     @Override

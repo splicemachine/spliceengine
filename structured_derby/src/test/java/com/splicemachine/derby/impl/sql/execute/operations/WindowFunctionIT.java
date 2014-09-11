@@ -624,9 +624,10 @@ public class WindowFunctionIT extends SpliceUnitTest {
         }
         rs.close();
         Assert.assertEquals(EMPTAB_ROWS.length, i);
+        long statementId = xPlainTrace.getLastStatementId();
         xPlainTrace.turnOffTrace();
 
-        XPlainTreeNode operation = xPlainTrace.getOperationTree(-1l);
+        XPlainTreeNode operation = xPlainTrace.getOperationTree(statementId);
         Assert.assertTrue(operation.getOperationType().compareToIgnoreCase(SpliceXPlainTrace.PROJECTRESTRICT)==0);
         operation = operation.getChildren().getFirst();
         Assert.assertTrue(operation.getOperationType().compareToIgnoreCase(SpliceXPlainTrace.WINDOW)==0);
