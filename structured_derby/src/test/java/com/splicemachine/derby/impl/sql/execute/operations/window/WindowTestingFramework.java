@@ -477,12 +477,13 @@ public class WindowTestingFramework {
 
         public static long nextRand(long max, long min) {
             random = new Random();
-            return random.nextInt((int) ((max - min) + 1)) + min;
+            return random.nextInt((int) Math.abs(((max - min) + 1))) + min;
         }
     }
 
     public static class TimestampColumnDefinition extends TestColumnDefinitionBase implements TestColumnDefinition {
         // milli/sec * sec/min * sec/hr * hr/day * days/year
+        // FIXME: imnprove random timestamp calculation; overflow, not random enough
         private static final long MILLISECONDS_IN_YEAR = 1000 * 60 * 60 * 24 * 365;
         private static final long MILLISECONDS_IN_3_YEAR = MILLISECONDS_IN_YEAR * 3;
 

@@ -1,5 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations.window;
 
+import java.util.Arrays;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.ClassFactory;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -21,6 +23,7 @@ public class WindowAggregator {
 	final int functionColumnId;
 	private final int[] inputColumnIds;
 	private final int resultColumnId;
+    private final String functionName;
 
 	private final ClassFactory cf;
 
@@ -33,7 +36,18 @@ public class WindowAggregator {
 		this.functionColumnId = windowInfo.getWindowFunctionColNum();
 		this.inputColumnIds = windowInfo.getInputColNums();
 		this.resultColumnId = windowInfo.getOutputColNum();
+        this.functionName = windowInfo.getFunctionName();
 	}
+
+    @Override
+    public String toString() {
+        return "WindowAggregator{" +
+            "functionColumnId=" + functionColumnId +
+            ", inputColumnIds=" + Arrays.toString(inputColumnIds) +
+            ", resultColumnId=" + resultColumnId +
+            ", functionName='" + functionName + '\'' +
+            '}';
+    }
 
     /**
      * Constructor used for testing
@@ -53,6 +67,7 @@ public class WindowAggregator {
         this.functionColumnId = functionColumnId;
         this.inputColumnIds = inputColumnIds;
         this.resultColumnId = resultColumnId;
+        this.functionName = cachedAggregator.toString();
     }
 
     public void accumulate(ExecRow nextRow,ExecRow accumulatorRow) throws StandardException {
