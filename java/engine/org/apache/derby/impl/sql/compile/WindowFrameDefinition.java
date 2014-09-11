@@ -176,9 +176,10 @@ public class WindowFrameDefinition extends QueryTreeNode implements Serializable
 
     @Override
     public String toString() {
-        return ("frame mode: " + frameMode + "\n" +
-            "frame start: " + frameStart + "\n" +
-            "frame end: " + frameEnd);
+        return ("frameDefinition:\n" +
+            "    frame mode: " + frameMode + "\n" +
+            "    frame start: " + frameStart + "\n" +
+            "    frame end: " + frameEnd);
     }
 
     public FrameMode getFrameMode() {

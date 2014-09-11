@@ -21,6 +21,7 @@
 package org.apache.derby.impl.sql.compile;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -75,7 +76,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      * The list of all window functions in the query block
      * that contains this partition.
      */
-    private Vector<WindowFunctionNode> windowFunctions;
+    private Collection<WindowFunctionNode> windowFunctions;
 
     /**
      * The list of aggregate nodes we've processed as
@@ -122,8 +123,9 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         super.init(bottomPR, tableProperties);
         setLevel(((Integer) nestingLevel).intValue());
         /* Group by without aggregates gets xformed into distinct */
+        this.windowFunctions = (Collection<WindowFunctionNode>) windowFunctions;
         if (SanityManager.DEBUG) {
-            SanityManager.ASSERT(((Vector) windowFunctions).size() > 0,
+            SanityManager.ASSERT(! this.windowFunctions.isEmpty(),
                                  "windowFunctions expected to be non-empty");
             if (!(childResult instanceof Optimizable)) {
                 SanityManager.THROWASSERT("childResult, " + childResult.getClass().getName() +
@@ -136,7 +138,6 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         }
 
         this.wdn = (WindowDefinitionNode) windowDef;
-        this.windowFunctions = (Vector<WindowFunctionNode>) windowFunctions;
         this.parent = this;
 
 		/*
@@ -158,8 +159,8 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 		*/
         addAggregates();
 
-        addBottomRCL(resultColumns, newBottomRCL);
-        addBottomRCL(childResult.resultColumns, newBottomRCL);
+//        addBottomRCL(resultColumns, newBottomRCL);
+//        addBottomRCL(childResult.resultColumns, newBottomRCL);
 		/* We say that the source is never in sorted order if there is a distinct aggregate.
 		 * (Not sure what happens if it is, so just skip it for now.)
 		 * Otherwise, we check to see if the source is in sorted order on any permutation
@@ -369,7 +370,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
     private void addUnAggColumns() throws StandardException {
         ResultColumnList bottomRCL = childResult.getResultColumns();
 
-        List<OrderedColumn> allColumns  =
+        Collection<OrderedColumn> allColumns  =
             collectColumns(resultColumns, wdn.getPartition(), wdn.getOrderByList());
         /*
          * Set the Windowing RCL to be empty
@@ -516,9 +517,18 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         for (int i=0; i<resultColumns.size(); i++) {
             ResultColumn aCol = (ResultColumn) resultColumns.elementAt(i);
             BaseColumnNode baseColumnNode = aCol.getBaseColumnNode();
-            if (aCol.getExpression() instanceof ColumnReference && baseColumnNode != null) {
-                ColumnReference node = (ColumnReference) aCol.getExpression();
-                if (! names.contains(baseColumnNode.getColumnName())) {
+            if (baseColumnNode != null) {
+                ColumnReference node = null;
+                if (aCol.getExpression() instanceof ColumnReference) {
+                    node = (ColumnReference) aCol.getExpression();
+                } else if (aCol.getExpression() instanceof VirtualColumnNode) {
+                    // if VirtualColumnNode, getSourceColumn():ResultColumn.getExpression():ColumnReference
+                    ResultColumn sourceColumn = ((VirtualColumnNode)aCol.getExpression()).getSourceColumn();
+                    if (sourceColumn != null && sourceColumn.getExpression() instanceof ColumnReference) {
+                        node = (ColumnReference) sourceColumn.getExpression();
+                    }
+                }
+                if (node != null && ! names.contains(baseColumnNode.getColumnName())) {
                     // create fake OrderedColumn to fit into calling code
                     GroupByColumn gbc = new GroupByColumn();
                     gbc.init(node);
@@ -532,6 +542,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         return cols;
     }
 
+
     /**
      * In the query rewrite involving aggregates, add the columns for
      * aggregation.
@@ -542,6 +553,8 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         LanguageFactory lf = getLanguageConnectionContext().getLanguageFactory();
         DataDictionary dd = getDataDictionary();
         ResultColumnList bottomRCL = childResult.getResultColumns();
+        // note partitionRCL is a reference to resultColumns
+        // setting columns on partitionRCL will also set them on resultColumns
         ResultColumnList partitionRCL = resultColumns;
 
 		/*
@@ -614,10 +627,10 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 			** project restrict that have the expressions
 			** to be aggregated
 			*/
-            ResultColumn[] resultColumns = windowFunctionNode.getNewExpressionResultColumns(dd);
-            int[] inputVColIDs = new int[resultColumns.length];
+            ResultColumn[] expressionResults = windowFunctionNode.getNewExpressionResultColumns(dd);
+            int[] inputVColIDs = new int[expressionResults.length];
             int i = 0;
-            for (ResultColumn resultColumn : resultColumns) {
+            for (ResultColumn resultColumn : expressionResults) {
                 resultColumn.markGenerated();
                 resultColumn.bindResultColumnToExpression();
                 bottomRCL.addElement(resultColumn);
@@ -626,7 +639,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 
                 /*
                 ** Add a reference to this column into the
-                ** group by columns.
+                ** partition RCL.
                 */
                 tmpRC = getColumnReference(resultColumn, dd);
                 partitionRCL.addElement(tmpRC);
@@ -654,8 +667,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                 getContextManager());
 
 			/*
-			** Add a reference to this column in the partition result
-			** set.
+			** Add a reference to this column in the partition RCL.
 			*/
             tmpRC = getColumnReference(newRC, dd);
             partitionRCL.addElement(tmpRC);
@@ -779,7 +791,12 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 
     public String toString() {
         if (SanityManager.DEBUG) {
-            return wdn.toString()+ "\n" + super.toString();
+            StringBuilder buf= new StringBuilder("functions: ");
+            for (WindowFunctionInfo info : windowInfoList) {
+                buf.append('\n').append(info.toString());
+            }
+            buf.append("\nWindowDefinition: ").append(wdn.toString()).append(super.toString());
+            return buf.toString();
         } else {
             return "";
         }
@@ -796,10 +813,9 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             super.printSubNodes(depth);
 
             printLabel(depth, "windowFunction:\n");
-
-            for (int i = 0; i < windowFunctions.size(); i++) {
-                AggregateNode agg = windowFunctions.get(i);
-                debugPrint(formatNodeString("[" + i + "]:", depth + 1));
+            int i = 0;
+            for (AggregateNode agg : windowFunctions) {
+                debugPrint(formatNodeString("[" + i++ + "]:", depth + 1));
                 agg.treePrint(depth + 1);
             }
 

@@ -38,7 +38,6 @@ public final class DenseRankFunctionNode extends AggregateWindowFunctionNode {
      * @throws org.apache.derby.iapi.error.StandardException
      */
     public void init(Object arg1, Object arg2) throws StandardException {
-//        super.init(arg1, "DENSE_RANK", arg2);
         super.init(arg1, arg2);
         setType(TypeId.getBuiltInTypeId(Types.BIGINT),
                 TypeId.LONGINT_PRECISION,

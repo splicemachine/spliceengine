@@ -24,7 +24,10 @@ package	org.apache.derby.impl.sql.compile;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Vector;
 
 import org.apache.derby.iapi.error.StandardException;
@@ -89,7 +92,7 @@ public class SelectNode extends ResultSetNode
 	/**
 	 * List of window function calls (e.g. ROW_NUMBER, AVG(i), DENSE_RANK).
 	 */
-	Vector windowFuncCalls;
+	private Vector windowFuncCalls;
 
 	/** User specified a group by without aggregates and we turned 
 	 * it into a select distinct 
@@ -1498,22 +1501,19 @@ public class SelectNode extends ResultSetNode
             // Now we add a window result set wrapped in a PRN on top of what
             // we currently have.
 
-//            if (windowNodeList.size() > 1) {
-//                // FIXME: JPC - Derby currently limiting to 1 WF, why?
-//                throw StandardException.newException(
-//                    SQLState.LANG_WINDOW_LIMIT_EXCEEDED);
-//            }
+            // collect all functions that have the same definition. These can be
+            // used to create one Window Resultset
+            WindowDefnToFunctionsMap defnToFunctionsMap =
+                WindowDefnToFunctionsMap.collectFunctionsForDefinitions(windowNodeList, windowFuncCalls);
             Collection<AggregateNode> toRemove = new ArrayList<AggregateNode>();
-            // FIXME: do we need to iterate thru all window nodes or will next PR pull in remainder?
-            for (int i=0; i<windowNodeList.size(); ++i) {
-                WindowNode wn = (WindowNode)windowNodeList.elementAt(i);
 
+            for (Map.Entry<WindowNode,Collection<WindowFunctionNode>> defnToFunctions : defnToFunctionsMap.entrySet()) {
                 WindowResultSetNode wrsn =
                     (WindowResultSetNode)getNodeFactory().getNode(
                         C_NodeTypes.WINDOW_RESULTSET_NODE,
                         prnRSN,
-                        wn,
-                        windowFuncCalls,
+                        defnToFunctions.getKey(),
+                        defnToFunctions.getValue(),
                         null,   // table properties
                         nestingLevel,
                         getContextManager());
@@ -1770,7 +1770,7 @@ public class SelectNode extends ResultSetNode
 		return prnRSN;
 	}
 
-	/**
+    /**
 	 * Is the result of this node an ordered result set.  An ordered result set
 	 * means that the results from this node will come in a known sorted order.
 	 * This means that the data is ordered according to the order of the elements in the RCL.
@@ -2641,5 +2641,25 @@ public class SelectNode extends ResultSetNode
                                  boolean allowDefaults)
         throws StandardException
     {
+    }
+
+    private static class WindowDefnToFunctionsMap extends HashMap<WindowNode,Collection<WindowFunctionNode>> {
+        public static WindowDefnToFunctionsMap collectFunctionsForDefinitions(WindowList definitions, Vector functions) {
+            WindowDefnToFunctionsMap map = new WindowDefnToFunctionsMap();
+            for (Object node : functions) {
+                WindowFunctionNode functionNode = (WindowFunctionNode) node;
+                WindowNode window = functionNode.getWindow();
+
+                Collection<WindowFunctionNode> functionNodes = map.get(window);
+                if (functionNodes == null) {
+                    functionNodes = new LinkedHashSet<WindowFunctionNode>();
+                    map.put(window,functionNodes);
+                }
+                if (! functionNodes.contains(functionNode)) {
+                    functionNodes.add(functionNode);
+                }
+            }
+            return map;
+        }
     }
 }

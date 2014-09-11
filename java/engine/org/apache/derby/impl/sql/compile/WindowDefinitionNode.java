@@ -137,7 +137,7 @@ public final class WindowDefinitionNode extends WindowNode
     public String toString() {
         return ("name: " + getName() + "\n" +
             "inlined: " + inlined + "\n" +
-            overClause + "\n");
+            overClause);
     }
 
     /**
@@ -156,5 +156,25 @@ public final class WindowDefinitionNode extends WindowNode
                 overClause.treePrint(depth + 1);
             }
         }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        WindowDefinitionNode that = (WindowDefinitionNode) o;
+
+        if (inlined != that.inlined) return false;
+        if (overClause != null ? !overClause.equals(that.overClause) : that.overClause != null) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = (inlined ? 1 : 0);
+        result = 31 * result + (overClause != null ? overClause.hashCode() : 0);
+        return result;
     }
 }

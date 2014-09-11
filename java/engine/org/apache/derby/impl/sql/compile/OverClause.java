@@ -56,7 +56,7 @@ public class OverClause extends QueryTreeNode {
         return ("over:\n" +
             "  partition: " + partition + "\n" +
             "  orderby: " + printOrderByList() + "\n" +
-            frameDefinition + "\n");
+            "  "+frameDefinition + "\n");
     }
 
 
@@ -67,24 +67,22 @@ public class OverClause extends QueryTreeNode {
      * @param depth     The depth of this node in the tree
      */
 
-    public void printSubNodes(int depth)
-    {
-        if (SanityManager.DEBUG)
-        {
+    public void printSubNodes(int depth) {
+        if (SanityManager.DEBUG) {
             super.printSubNodes(depth);
 
             if (partition != null) {
-                printLabel(depth, "partition: "  + depth);
+                printLabel(depth, "partition: " + depth);
                 partition.treePrint(depth + 1);
             }
 
             if (orderByClause != null) {
-                printLabel(depth, "orderByList: "  + depth);
+                printLabel(depth, "orderByList: " + depth);
                 orderByClause.treePrint(depth + 1);
             }
 
             if (frameDefinition != null) {
-                printLabel(depth, "frame: "  + depth);
+                printLabel(depth, "frame: " + depth);
                 frameDefinition.treePrint(depth + 1);
             }
         }
@@ -132,6 +130,7 @@ public class OverClause extends QueryTreeNode {
     }
 
     private boolean isEquivalent(OrderByList thisOne, OrderByList thatOne) throws StandardException {
+        // implemented to compare OrderByLists for equivalence
         if (thisOne == thatOne) return true;
         if ((thisOne != null && thatOne == null) || (thisOne == null)) return false;
         if (thisOne.allAscending() != thatOne.allAscending()) return false;
@@ -151,7 +150,8 @@ public class OverClause extends QueryTreeNode {
         return true;
     }
 
-    private OverClause(Partition partition, OrderByList orderByClause, WindowFrameDefinition frameDefinition) {
+    private OverClause(ContextManager contextManager, Partition partition, OrderByList orderByClause, WindowFrameDefinition frameDefinition) {
+        setContextManager(contextManager);
         this.partition = partition;
         this.orderByClause = orderByClause;
         this.frameDefinition = frameDefinition;
@@ -165,14 +165,12 @@ public class OverClause extends QueryTreeNode {
         StringBuilder buf = new StringBuilder("\n");
         for (int i=0; i<orderByClause.size(); ++i) {
             OrderByColumn col = orderByClause.getOrderByColumn(i);
-//            buf.append("column_name: ").append(col.getResultColumn().getColumnName()).append("\n");
-            buf.append("column_name: ").append(col.getColumnExpression().getColumnName()).append("\n");
+            buf.append("    column_name: ").append(col.getColumnExpression().getColumnName()).append("\n");
             // Lang col indexes are 1-based, storage col indexes are zero-based
-            buf.append("columnid: ").append(col.getColumnPosition()).append("\n");
-            buf.append("ascending: ").append(col.isAscending()).append("\n");
-            buf.append("nullsOrderedLow: ").append(col.isAscending()).append("\n");
+            buf.append("    columnid: ").append(col.getColumnPosition()).append("\n");
+            buf.append("    ascending: ").append(col.isAscending()).append("\n");
+            buf.append("    nullsOrderedLow: ").append(col.isAscending()).append("\n");
         }
-//        if (buf.length() > 0) { buf.setLength(buf.length()-1); }
         return buf.toString();
     }
 
@@ -187,24 +185,30 @@ public class OverClause extends QueryTreeNode {
         }
 
         public OverClause build() {
-            return new OverClause(partition, orderByClause, frameDefinition);
+            return new OverClause(contextManager, partition, orderByClause, frameDefinition);
         }
 
         public Builder setPartition(Partition partition) {
             this.partition = partition;
-            this.partition.setContextManager(this.contextManager);
+            if (this.partition != null) {
+                this.partition.setContextManager(this.contextManager);
+            }
             return this;
         }
 
         public Builder setOrderByClause(OrderByList orderByList) {
             this.orderByClause = orderByList;
-            this.orderByClause.setContextManager(this.contextManager);
+            if (this.orderByClause != null) {
+                this.orderByClause.setContextManager(this.contextManager);
+            }
             return this;
         }
 
         public Builder setFrameDefinition(WindowFrameDefinition frameDefinition) {
             this.frameDefinition = frameDefinition;
-            this.frameDefinition.setContextManager(this.contextManager);
+            if (this.frameDefinition != null) {
+                this.frameDefinition.setContextManager(this.contextManager);
+            }
             return this;
         }
     }

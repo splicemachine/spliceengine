@@ -227,7 +227,7 @@ public class WindowFunctionInfo implements Formatable
 				"\n\tInputColNums: " + arrayToString(inputColumns) +
 				"\n\tOutputColNum: " + outputColumn +
 				"\n\tWindowFunctionColNum: " + aggregatorColumn +
-				"\n" + rd;
+				"\n\tResultDescription: " + rd;
 		}
 		else
 		{
