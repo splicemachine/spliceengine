@@ -673,7 +673,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                 ** Add a reference to this column into the
                 ** group by columns.
                 */
-                tmpRC = getColumnReference(newRC, dd);
+                tmpRC = getColumnReference(resultColumn, dd);
                 partitionRCL.addElement(tmpRC);
                 tmpRC.setVirtualColumnId(partitionRCL.size());
             }
