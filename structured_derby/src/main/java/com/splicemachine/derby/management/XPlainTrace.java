@@ -232,7 +232,7 @@ public class XPlainTrace {
                         XPlainTreeNode child = new XPlainTreeNode(statementId, operationId);
                         child.setOperationType("RegionScan");
                         node.addLastChild(child);
-                        node = child;
+                        child.setAttributes(rs);
                     }
                 }
                 node.setAttributes(rs);
