@@ -12,7 +12,6 @@ import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.si.api.TransactionStorage;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnOperationFactory;
 import com.splicemachine.si.api.TxnView;
@@ -58,7 +57,7 @@ public class SpliceUtils extends SpliceUtilities {
         } catch (UnknownHostException e) {
             throw new RuntimeException(e);
         }
-        operationFactory = new SimpleOperationFactory(TransactionStorage.getTxnSupplier());
+        operationFactory = new SimpleOperationFactory();
     }
 
     /**
@@ -180,7 +179,7 @@ public class SpliceUtils extends SpliceUtilities {
     }
 
     public static byte[] generateInstructions(Activation activation,SpliceOperation topOperation, SpliceRuntimeContext spliceRuntimeContext) {
-        SpliceObserverInstructions instructions = SpliceObserverInstructions.create(activation,topOperation,spliceRuntimeContext);
+        SpliceObserverInstructions instructions = SpliceObserverInstructions.create(activation,topOperation,spliceRuntimeContext,spliceRuntimeContext.getTxn());
         return generateInstructions(instructions);
     }
 

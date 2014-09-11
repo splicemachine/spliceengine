@@ -16,6 +16,7 @@ import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.tools.run;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
@@ -244,11 +245,11 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
             // If rows from source are not sorted, sort them based on (partition, order by) columns from over clause
             // in step 1 shuffle.
             // Compute Window function in step 2 shuffle
-            SpliceRuntimeContext firstStep = SpliceRuntimeContext.generateSinkRuntimeContext(true);
+            SpliceRuntimeContext firstStep = SpliceRuntimeContext.generateSinkRuntimeContext(operationInformation.getTransaction(), true);
             firstStep.setStatementInfo(runtimeContext.getStatementInfo());
             PairDecoder firstStepDecoder = OperationUtils.getPairDecoder(this, firstStep);
 
-            SpliceRuntimeContext secondStep = SpliceRuntimeContext.generateSinkRuntimeContext(false);
+            SpliceRuntimeContext secondStep = SpliceRuntimeContext.generateSinkRuntimeContext(operationInformation.getTransaction(),false);
             secondStep.setStatementInfo(runtimeContext.getStatementInfo());
             PairDecoder secondPairDecoder = OperationUtils.getPairDecoder(this, secondStep);
 

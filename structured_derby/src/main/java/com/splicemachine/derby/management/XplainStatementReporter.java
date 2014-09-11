@@ -5,6 +5,7 @@ import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.marshall.DataHash;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.storage.EntryEncoder;
+import org.apache.derby.iapi.error.StandardException;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -13,10 +14,10 @@ import java.net.UnknownHostException;
  * @author Scott Fines
  * Date: 1/22/14
  */
-public class XplainStatementReporter extends XplainReporter<StatementInfo> {
+public class XplainStatementReporter extends TransactionalXplainReporter<StatementInfo> {
 
-		public XplainStatementReporter(int numWorkers) {
-				super("SYSSTATEMENTHISTORY",numWorkers);
+		public XplainStatementReporter() throws StandardException {
+				super("SYSSTATEMENTHISTORY");
 		}
 
 		@Override

@@ -1339,7 +1339,7 @@ public class SpliceAdmin extends BaseAdminProcedures {
     }
 
     public static void SYSCS_PURGE_XPLAIN_TRACE() throws SQLException{
-        Connection connection = SpliceDriver.driver().getInternalConnection();
+        Connection connection = SpliceAdmin.getDefaultConn();
         PreparedStatement s = connection.prepareStatement("delete from sys.sysstatementhistory");
         s.execute();
 

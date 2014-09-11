@@ -325,7 +325,7 @@ public class HdfsImport {
 				boolean rollback = false;
 				try {
 						importer = new HdfsImport(builder.build(),statementInfo.getStatementUuid(),opInfo.getOperationUuid());
-						SpliceRuntimeContext runtimeContext = new SpliceRuntimeContext();
+						SpliceRuntimeContext runtimeContext = new SpliceRuntimeContext(childTransaction);
 						runtimeContext.setStatementInfo(statementInfo);
 						return importer.executeShuffle(runtimeContext,childTransaction);
 				} catch(AssertionError ae){
@@ -340,8 +340,6 @@ public class HdfsImport {
 				}finally{
 						//put this stuff first to avoid a memory leak
 						String xplainSchema = lcc.getXplainSchema();
-						boolean explain = lcc.getRunTimeStatisticsMode();
-						SpliceDriver.driver().getStatementManager().completedStatement(statementInfo, explain);
 						if(rollback){
 								try {
                     childTransaction.rollback();
@@ -359,7 +357,8 @@ public class HdfsImport {
 										LOG.error("Unable to roll back child transaction, but don't want to swamp actual error causing rollback",e);
 								}
 						}else{
-								try {
+                reportStats(lcc, childTransaction, statementInfo);
+                try {
                     childTransaction.commit();
 //										TransactionUtils.commit(HTransactorFactory.getTransactionManager(), childTransaction, 0, 5);
 								} catch (IOException e) {
@@ -375,8 +374,29 @@ public class HdfsImport {
 				}
 		}
 
+    private static void reportStats(LanguageConnectionContext lcc, Txn childTransaction, StatementInfo statementInfo) throws SQLException {
+        boolean explain = lcc.getRunTimeStatisticsMode();
+        try {
+            SpliceDriver.driver().getStatementManager().completedStatement(statementInfo, explain,childTransaction);
+        } catch (IOException e) {
+            try {
+                childTransaction.rollback();
+            } catch (IOException e1) {
+                throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+            }
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        } catch (StandardException e) {
+            try {
+                childTransaction.rollback();
+            } catch (IOException e1) {
+                throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+            }
+            throw PublicAPI.wrapStandardException(e);
+        }
+    }
 
-		public ExecRow executeShuffle(SpliceRuntimeContext runtimeContext,Txn txn) throws StandardException {
+
+    public ExecRow executeShuffle(SpliceRuntimeContext runtimeContext,Txn txn) throws StandardException {
 				try {
 						admin = new HBaseAdmin(SpliceUtils.config);
 				} catch (MasterNotRunningException e) {

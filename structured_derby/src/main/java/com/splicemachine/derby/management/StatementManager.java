@@ -2,8 +2,13 @@ package com.splicemachine.derby.management;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.log4j.Logger;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -26,18 +31,25 @@ public class StatementManager implements StatementManagement{
 		private final AtomicReferenceArray<StatementInfo> completedStatements;
 		private final AtomicInteger statementInfoPointer = new AtomicInteger(0);
 
-		private final XplainStatementReporter statementReporter;
-		private final XplainReporter<OperationInfo> operationReporter;
+		private volatile XplainStatementReporter statementReporter;
+		private volatile XplainOperationReporter operationReporter;
 
-		public StatementManager() {
+		public StatementManager() throws StandardException {
 				this.completedStatements = new AtomicReferenceArray<StatementInfo>(SpliceConstants.pastStatementBufferSize);
-				this.statementReporter = new XplainStatementReporter(1);
-				this.statementReporter.start(1);
-				this.operationReporter = new XplainOperationReporter(1);
-				this.operationReporter.start(1);
 		}
 
-		public void addStatementInfo(StatementInfo statementInfo){
+    private void setupXplainReporters() throws StandardException {
+        if(statementReporter==null){
+            synchronized (this){
+                if(statementReporter==null){
+                    this.statementReporter = new XplainStatementReporter();
+                    this.operationReporter = new XplainOperationReporter();
+                }
+            }
+        }
+    }
+
+    public void addStatementInfo(StatementInfo statementInfo){
 				executingStatements.add(statementInfo);
             if (LOG.isTraceEnabled()) {
                 LOG.trace(String.format("Adding stmt to executings, size=%s, stmtUuid=%s, txnId=%s, SQL={\n%s\n}",
@@ -48,7 +60,7 @@ public class StatementManager implements StatementManagement{
             }
 		}
 
-		public void completedStatement(StatementInfo statementInfo, boolean shouldTrace){
+		public void completedStatement(StatementInfo statementInfo, boolean shouldTrace,TxnView txn) throws IOException, StandardException {
             statementInfo.markCompleted(); //make sure the stop time is set
             int position = statementInfoPointer.getAndIncrement()%completedStatements.length();
             completedStatements.set(position, statementInfo);
@@ -61,12 +73,13 @@ public class StatementManager implements StatementManagement{
             }
 
             if (shouldTrace) {
+                setupXplainReporters();
                 if (statementInfo.getSql().compareTo("null") != 0) {
-                    statementReporter.report(statementInfo);
+                    statementReporter.report(statementInfo,txn);
                 }
                 Set<OperationInfo> operationInfo = statementInfo.getOperationInfo();
                 for (OperationInfo info : operationInfo) {
-                    operationReporter.report(info);
+                    operationReporter.report(info,txn);
                 }
             }
 

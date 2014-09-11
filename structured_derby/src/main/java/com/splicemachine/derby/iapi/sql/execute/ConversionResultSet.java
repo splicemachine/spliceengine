@@ -2,6 +2,7 @@ package com.splicemachine.derby.iapi.sql.execute;
 
 import com.splicemachine.derby.impl.sql.execute.operations.NoRowsOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.UpdateOperation;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.utils.Exceptions;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -34,14 +35,13 @@ public class ConversionResultSet implements NoPutResultSet,CursorResultSet,Exter
     }
 
     public ConversionResultSet(SpliceOperation topOperation) {
-        this.topOperation = topOperation;
-        this.spliceRuntimeContext = new SpliceRuntimeContext();
+        this(topOperation,null);
     }
 
     public ConversionResultSet(SpliceOperation topOperation, Activation activation) {
         this.topOperation = topOperation;
         this.activation = activation;
-        this.spliceRuntimeContext = new SpliceRuntimeContext();
+        this.spliceRuntimeContext = new SpliceRuntimeContext(((SpliceTransactionManager)activation.getTransactionController()).getActiveStateTxn());
     }
 
     @Override

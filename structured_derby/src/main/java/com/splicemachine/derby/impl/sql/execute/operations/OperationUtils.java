@@ -7,11 +7,13 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation.NodeType;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.KeyDecoder;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.job.JobResults;
+import com.splicemachine.si.api.Txn;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
@@ -68,7 +70,7 @@ public class OperationUtils {
 		return ops;
 	}
 
-		public static NoPutResultSet executeScan(SpliceOperation operation,Logger log) throws StandardException {
+		public static NoPutResultSet executeScan(SpliceOperation operation,Logger log,Txn txn) throws StandardException {
 				SpliceLogUtils.trace(log,"executeScan");
 				final List<SpliceOperation> operationStack = new ArrayList<SpliceOperation>();
 				operation.generateLeftOperationStack(operationStack);
@@ -76,7 +78,7 @@ public class OperationUtils {
 				SpliceOperation regionOperation = operationStack.get(0);
 				SpliceLogUtils.trace(log,"regionOperation=%s",regionOperation);
 				RowProvider provider;
-				SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
+				SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext(txn);
 				PairDecoder decoder = OperationUtils.getPairDecoder(operation,spliceRuntimeContext);
 				try {
 						if (regionOperation.getNodeTypes().contains(NodeType.REDUCE) && operation != regionOperation) {

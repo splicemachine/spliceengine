@@ -7,30 +7,24 @@ import com.splicemachine.derby.iapi.sql.execute.ConversionResultSet;
 import com.splicemachine.derby.iapi.sql.execute.ConvertedResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
-import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.derby.impl.store.access.SpliceTransactionManagerContext;
-import com.splicemachine.si.api.TransactionLifecycle;
+import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
-import com.splicemachine.si.impl.ReadOnlyTxn;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.kryo.KryoObjectInput;
 import com.splicemachine.utils.kryo.KryoObjectOutput;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.ParameterValueSet;
 import org.apache.derby.iapi.sql.ResultSet;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.conn.StatementContext;
 import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
-import org.apache.derby.iapi.store.access.AccessFactoryGlobals;
 import org.apache.derby.impl.sql.GenericActivationHolder;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
-import org.apache.derby.impl.store.raw.log.ReadOnly;
 import org.apache.log4j.Logger;
+
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -80,10 +74,10 @@ public class SpliceObserverInstructions implements Externalizable {
 		}
 
 		public SpliceObserverInstructions(GenericStorablePreparedStatement statement,
-																			SpliceOperation topOperation,
-																			ActivationContext activationContext,
-																			String transactionId, String sessionUserName, SchemaDescriptor defaultSchemaDescriptor,
-																			SpliceRuntimeContext spliceRuntimeContext) {
+                                      SpliceOperation topOperation,
+                                      ActivationContext activationContext,
+                                      String sessionUserName, SchemaDescriptor defaultSchemaDescriptor,
+                                      SpliceRuntimeContext spliceRuntimeContext) {
 				SpliceLogUtils.trace(LOG, "instantiated with statement %s", statement);
 				this.statement = statement;
 				this.topOperation = topOperation;
@@ -109,9 +103,7 @@ public class SpliceObserverInstructions implements Externalizable {
 				 * we only need to construct a read-only transaction out of the two key pieces of information:
 				 * the begin timestamp/txnId, and the isolationLevel.
 				 */
-				long txnId = in.readLong();
-				Txn.IsolationLevel isolationLevel = Txn.IsolationLevel.fromByte(in.readByte());
-				txn = ReadOnlyTxn.create(txnId,isolationLevel, TransactionLifecycle.getLifecycleManager());
+        this.txn = TransactionOperations.getOperationFactory().readTxn(in);
 
 				this.sessionUserName = in.readUTF();
 				this.defaultSchemaDescriptor = (SchemaDescriptor) in.readObject();
@@ -124,8 +116,7 @@ public class SpliceObserverInstructions implements Externalizable {
 				out.writeObject(statement);
 				out.writeObject(topOperation);
 				out.writeObject(activationContext);
-				out.writeLong(txn.getEffectiveBeginTimestamp());
-				out.writeByte(txn.getIsolationLevel().encode());
+        TransactionOperations.getOperationFactory().writeTxn(txn, out);
 				out.writeUTF(sessionUserName);
 				out.writeObject(defaultSchemaDescriptor);
 				out.writeObject(spliceRuntimeContext);
@@ -133,6 +124,10 @@ public class SpliceObserverInstructions implements Externalizable {
 
 
 		public SpliceRuntimeContext getSpliceRuntimeContext() {
+        TxnView txn = spliceRuntimeContext.getTxn();
+        if(txn==null){
+            spliceRuntimeContext.setTxn(getTxn());
+        }
 				return spliceRuntimeContext;
 		}
 
@@ -140,11 +135,6 @@ public class SpliceObserverInstructions implements Externalizable {
 				this.spliceRuntimeContext = spliceRuntimeContext;
 		}
 
-		/**
-		 * Retrieve the GenericStorablePreparedStatement: This contains the byte code for the activation.
-		 *
-		 * @return
-		 */
 		public GenericStorablePreparedStatement getStatement() {
 				SpliceLogUtils.trace(LOG, "getStatement %s",statement);
 				return statement;
@@ -162,11 +152,6 @@ public class SpliceObserverInstructions implements Externalizable {
 				}
 		}
 
-		/**
-		 * Retrieve the Top Operation: This can recurse to creat the operational stack for hbase for the scan.
-		 *
-		 * @return
-		 */
 		public SpliceOperation getTopOperation() {
 				SpliceLogUtils.trace(LOG, "getTopOperation %s",topOperation);
 				return topOperation;
@@ -267,7 +252,7 @@ public class SpliceObserverInstructions implements Externalizable {
 						boolean statementAtomic = context.isAtomic();
 						boolean statementReadOnly = context.isForReadOnly();
 						String stmtText = context.getStatementText();
-						boolean stmtRollBackParentContext = true; //todo -sf- this is wrong, but okay for now
+//						boolean stmtRollBackParentContext = true; //todo -sf- this is wrong, but okay for now
 						long stmtTimeout = 0; //timeouts handled by RPC --probably wrong, but also okay for now
 
 						ParameterValueSet pvs = activation.getParameterValueSet().getClone();
@@ -284,7 +269,7 @@ public class SpliceObserverInstructions implements Externalizable {
 								SpliceDriver.getKryoPool().returnInstance(kryo);
 						}
 						return new ActivationContext(pvs,setOps,statementAtomic,statementReadOnly,
-										stmtText,stmtRollBackParentContext,stmtTimeout,output.toBytes());
+										stmtText, true,stmtTimeout,output.toBytes());
 				}
 
 				@Override
@@ -365,19 +350,11 @@ public class SpliceObserverInstructions implements Externalizable {
 				return defaultSchemaDescriptor;
 		}
 
-		public void setDefaultSchemaDescriptor(SchemaDescriptor defaultSchemaDescriptor) {
-				this.defaultSchemaDescriptor = defaultSchemaDescriptor;
-		}
-
-		public String getSessionUserName() {
+    public String getSessionUserName() {
 				return sessionUserName;
 		}
 
-		public void setSessionUserName(String sessionUserName) {
-				this.sessionUserName = sessionUserName;
-		}
-
-		public void setTxn(Txn txn){
+    public void setTxn(Txn txn){
 				this.txn = txn;
 		}
 

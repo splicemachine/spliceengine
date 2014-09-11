@@ -387,4 +387,9 @@ public class XPlainTreeNode {
     public long getRemoteGetRows() {
         return remoteGetRows;
     }
+
+    @Override
+    public String toString() {
+        return "XplainTreeNode("+operationType+","+operationId+","+parentOperationId+")";
+    }
 }

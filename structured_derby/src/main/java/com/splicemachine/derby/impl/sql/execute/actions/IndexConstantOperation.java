@@ -204,13 +204,17 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
         } catch (InterruptedException e) {
             throw Exceptions.parseException(e);
         } finally {
-            SpliceDriver.driver().getStatementManager().completedStatement(statementInfo, activation.isTraced());
+            cleanupFuture(future);
             if(activation.isTraced()){
                 GenericStorablePreparedStatement preparedStatement = (GenericStorablePreparedStatement) activation.getPreparedStatement();
                 preparedStatement.clearWarnings();
                 preparedStatement.addWarning(StandardException.newWarning(WarningState.XPLAIN_STATEMENT_ID.getSqlState(),statementInfo.getStatementUuid()));
             }
-            cleanupFuture(future);
+            try {
+                SpliceDriver.driver().getStatementManager().completedStatement(statementInfo, activation.isTraced(),((SpliceTransactionManager) txnControl).getActiveStateTxn());
+            } catch (IOException e) {
+                throw Exceptions.parseException(e);
+            }
         }
     }
 

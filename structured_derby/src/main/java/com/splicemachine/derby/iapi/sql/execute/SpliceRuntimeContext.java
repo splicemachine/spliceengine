@@ -2,10 +2,12 @@ package com.splicemachine.derby.iapi.sql.execute;
 
 import com.carrotsearch.hppc.IntIntOpenHashMap;
 import com.carrotsearch.hppc.cursors.IntCursor;
+import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.temp.TempTable;
 import com.splicemachine.derby.management.StatementInfo;
 import com.splicemachine.metrics.*;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.kryo.KryoPool;
 
 import java.io.Externalizable;
@@ -46,33 +48,56 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
 		private TempTable tempTable;
         private long statementId;
 
-		public SpliceRuntimeContext() {
-				this(SpliceDriver.driver().getTempTable(),SpliceDriver.driver().getKryoPool());
+    /*
+     * Useful for passing the transaction around
+     */
+    private transient TxnView txn;
+
+    public SpliceRuntimeContext(){
+        this(null);
+    }
+
+
+    public SpliceRuntimeContext(TxnView txn) {
+				this(SpliceDriver.driver().getTempTable(), SpliceKryoRegistry.getInstance(),txn);
 		}
 
-		public SpliceRuntimeContext(TempTable tempTable,KryoPool kryoPool){
+    public SpliceRuntimeContext(TempTable tempTable,KryoPool kryoPool){
+        this(tempTable, kryoPool,null);
+    }
+
+		public SpliceRuntimeContext(TempTable tempTable,KryoPool kryoPool,TxnView txn){
 				this.tempTable = tempTable;
 				this.hashBucket = tempTable.getCurrentSpread().bucket((int) System.currentTimeMillis());
 				this.kryoPool = kryoPool;
+        this.txn = txn;
 		}
 
-		public static SpliceRuntimeContext generateLeftRuntimeContext(int resultSetNumber) {
-				SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
+		public static SpliceRuntimeContext generateLeftRuntimeContext(TxnView txn,int resultSetNumber) {
+				SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext(txn);
 				spliceRuntimeContext.addPath(resultSetNumber, 0);
 				return spliceRuntimeContext;
 		}
 
-		public static SpliceRuntimeContext generateRightRuntimeContext(int resultSetNumber) {
-				SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
+		public static SpliceRuntimeContext generateRightRuntimeContext(TxnView txn,int resultSetNumber) {
+				SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext(txn);
 				spliceRuntimeContext.addPath(resultSetNumber, 1);
 				return spliceRuntimeContext;
 		}
 
-		public static SpliceRuntimeContext generateSinkRuntimeContext(boolean firstStepInMultistep) {
-				SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
+		public static SpliceRuntimeContext generateSinkRuntimeContext(TxnView txn,boolean firstStepInMultistep) {
+				SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext(txn);
 				spliceRuntimeContext.firstStepInMultistep = firstStepInMultistep;
 				return spliceRuntimeContext;
 		}
+
+    public TxnView getTxn() {
+        return txn;
+    }
+
+    public void setTxn(TxnView txn) {
+        this.txn = txn;
+    }
 
 		public void addLeftRuntimeContext(int resultSetNumber) {
 				this.addPath(resultSetNumber, 0);
@@ -88,7 +113,7 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
 
 
 		public SpliceRuntimeContext copy() {
-				SpliceRuntimeContext copy = new SpliceRuntimeContext();
+				SpliceRuntimeContext copy = new SpliceRuntimeContext(txn);
 				for (IntCursor path : paths.keys()) {
 						copy.addPath(path.value, paths.get(path.value));
 				}
@@ -99,6 +124,7 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
 				copy.statementInfo = statementInfo;
                 copy.statementId = statementId;
 				copy.recordTraceMetrics = recordTraceMetrics;
+        copy.txn = txn;
 				return copy;
 		}
 

@@ -150,7 +150,7 @@ public class OperationSink {
 										operationStat.addMetric(OperationMetric.TASK_QUEUE_WAIT_WALL_TIME,waitTimeNs);
 										operationStat.setHostName(hostName);
 
-										reporter.report(operationStat);
+										reporter.report(operationStat,this.txn);
 								}
 						}
         } catch (Exception e) {

@@ -78,16 +78,17 @@ public class SpliceOperationCoprocessor extends BaseEndpointCoprocessor implemen
                         instructions.getStatement(),instructions.getTopOperation(), scan);
                 SpliceLogUtils.trace(LOG,"Creating RegionScanner");
                 imp = new SpliceTransactionResourceImpl();
-                imp.marshallTransaction(instructions);
+//                imp.marshallTransaction(instructions);
                 Activation activation = instructions.getActivation(imp.getLcc());
                 SpliceOperationContext context = new SpliceOperationContext(region, TransactionalRegions.get(region),scan,activation,
                         instructions.getStatement(),imp.getLcc(),true,instructions.getTopOperation(),instructions.getSpliceRuntimeContext(),instructions.getTxn());
-                SpliceOperationRegionScanner spliceScanner = new SpliceOperationRegionScanner(instructions.getTopOperation(),context);
-                SpliceLogUtils.trace(LOG,"performing sink");
-                TaskStats out = spliceScanner.sink();
-                SpliceLogUtils.trace(LOG, "Coprocessor sunk %d records",out.getTotalRowsWritten());
-                spliceScanner.close();
-                return out;
+//                SpliceOperationRegionScanner spliceScanner = new SpliceOperationRegionScanner(instructions.getTopOperation(),context);
+//                SpliceLogUtils.trace(LOG,"performing sink");
+//                TaskStats out = spliceScanner.sink();
+//                SpliceLogUtils.trace(LOG, "Coprocessor sunk %d records",out.getTotalRowsWritten());
+//                spliceScanner.close();
+//                return out;
+                return null;
             } catch (SQLException e) {
                 exception = new IOException(e);
                 throw exception;

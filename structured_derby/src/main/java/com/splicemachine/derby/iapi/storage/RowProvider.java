@@ -79,7 +79,7 @@ public interface RowProvider extends RowProviderIterator<ExecRow>  {
                      long operationId,
                      long taskId,
                      String xplainSchema,
-                     String regionName);
+                     String regionName) throws IOException;
 
 	IOStats getIOStats();
 }

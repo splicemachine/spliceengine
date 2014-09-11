@@ -171,7 +171,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 				out.writeDouble(optimizerEstimatedCost);
 				out.writeDouble(optimizerEstimatedRowCount);
 				out.writeObject(operationInformation);
-//				writeNullableString(getTransactionID(), out);
 				out.writeBoolean(isTopResultSet);
             out.writeBoolean(uniqueSequenceID != null);
             if (uniqueSequenceID != null){
@@ -398,7 +397,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 				//TODO -sf- can we remove the transaction here?
 				SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),
 								this,spliceRuntimeContext,
-								operationInformation.getTransaction());
+								spliceRuntimeContext.getTxn());
 				jobResults = rowProvider.shuffleRows(soi,OperationUtils.cleanupSubTasks(this));
 				return jobResults;
 		}

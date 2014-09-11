@@ -290,7 +290,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 				RowProvider leftProvider = leftResultSet.getMapRowProvider(this, OperationUtils.getPairDecoder(this, spliceLRuntimeContext), spliceLRuntimeContext);
 				RowProvider rightProvider = rightResultSet.getMapRowProvider(this, OperationUtils.getPairDecoder(this, spliceRRuntimeContext), spliceRRuntimeContext);
 				RowProvider combined = RowProviders.combine(leftProvider, rightProvider);
-        SpliceRuntimeContext instructionContext = new SpliceRuntimeContext();
+        SpliceRuntimeContext instructionContext = new SpliceRuntimeContext(operationInformation.getTransaction());
         instructionContext.setStatementInfo(runtimeContext.getStatementInfo());
         SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(), this, instructionContext);
         JobResults stats = combined.shuffleRows(soi,OperationUtils.cleanupSubTasks(this));

@@ -11,6 +11,7 @@ import com.splicemachine.hbase.async.SimpleAsyncScanner;
 import com.splicemachine.metrics.BaseIOStats;
 import com.splicemachine.metrics.IOStats;
 import com.splicemachine.metrics.TimeView;
+import com.splicemachine.tools.splice;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.client.HTableInterface;
@@ -92,7 +93,7 @@ public class ClientScanProvider extends AbstractScanProvider {
 		}
 
 		@Override
-		public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) {
+		public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) throws IOException {
 				if(regionName==null)
 						regionName="ControlRegion";
 				OperationRuntimeStats stats = new OperationRuntimeStats(statementId,operationId,taskId,regionName,8);
@@ -110,7 +111,7 @@ public class ClientScanProvider extends AbstractScanProvider {
 				stats.addMetric(OperationMetric.START_TIMESTAMP,startExecutionTime);
 				stats.addMetric(OperationMetric.STOP_TIMESTAMP,stopExecutionTime);
 
-				SpliceDriver.driver().getTaskReporter().report(stats);
+				SpliceDriver.driver().getTaskReporter().report(stats, spliceRuntimeContext.getTxn());
 		}
 
 		@Override

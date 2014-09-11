@@ -47,10 +47,10 @@ public abstract class ZkTask implements RegionTask,Externalizable {
 		private String taskPath;
 
 		protected byte[] parentTaskId = null;
-		private TaskWatcher taskWatcher;
+		protected TaskWatcher taskWatcher;
 
 		private volatile Thread executionThread;
-		private long prepareTimestamp;
+		protected long prepareTimestamp;
 		protected long waitTimeNs;
 		protected HRegion region;
 
@@ -84,7 +84,7 @@ public abstract class ZkTask implements RegionTask,Externalizable {
         jobId = in.readUTF();
         priority = in.readInt();
         if(in.readBoolean())
-						parentTxn = decodeTxn(in);
+						parentTxn = TransactionOperations.getOperationFactory().readTxn(in);
         int taskIdSize = in.readInt();
         if(taskIdSize>0){
             taskId = new byte[taskIdSize];
@@ -103,7 +103,7 @@ public abstract class ZkTask implements RegionTask,Externalizable {
         out.writeInt(priority);
         out.writeBoolean(parentTxn!=null);
         if(parentTxn!=null)
-						encodeParentTxn(out);
+            TransactionOperations.getOperationFactory().writeTxn(parentTxn,out);
         if(taskId!=null){
             out.writeInt(taskId.length);
             out.write(taskId);
@@ -119,13 +119,24 @@ public abstract class ZkTask implements RegionTask,Externalizable {
 
 		@Override
     public void execute() throws ExecutionException, InterruptedException {
-        /*
-         * Create the Child transaction.
-         *
-         * We do this here rather than elsewhere (like inside the JobScheduler) so
-         * that we avoid timing out the transaction when we have to sit around and
-         * wait for a long time.
-         */
+        setupTransaction();
+
+        waitTimeNs = System.nanoTime()-prepareTimestamp;
+				try{
+						doExecute();
+				}finally{
+						taskWatcher.task=null;
+				}
+    }
+
+    protected void setupTransaction() throws ExecutionException {
+    /*
+     * Create the Child transaction.
+     *
+     * We do this here rather than elsewhere (like inside the JobScheduler) so
+     * that we avoid timing out the transaction when we have to sit around and
+     * wait for a long time.
+     */
         if(parentTxn!=null){
 						TxnLifecycleManager tc = TransactionLifecycle.getLifecycleManager();
             try {
@@ -135,13 +146,11 @@ public abstract class ZkTask implements RegionTask,Externalizable {
                 throw new ExecutionException("Unable to acquire child transaction",e);
             }
         }
+    }
 
-				waitTimeNs = System.nanoTime()-prepareTimestamp;
-				try{
-						doExecute();
-				}finally{
-						taskWatcher.task=null;
-				}
+    protected void elevateTransaction(byte[] table) throws IOException{
+        txn = txn.elevateToWritable(table);
+        status.setTxn(txn);
     }
 
 		protected Txn beginChildTransaction(TxnView parentTxn,TxnLifecycleManager tc) throws IOException {
@@ -367,14 +376,18 @@ public abstract class ZkTask implements RegionTask,Externalizable {
 				return jobId;
 		}
 
-		private static class TaskWatcher implements Watcher {
+		protected static class TaskWatcher implements Watcher {
 				private volatile ZkTask task;
 
 				private TaskWatcher(ZkTask task) {
 						this.task = task;
 				}
 
-				@Override
+        public void setTask(ZkTask task) {
+            this.task = task;
+        }
+
+        @Override
 				public void process(WatchedEvent event) {
 						if (event.getType() != Event.EventType.NodeDeleted)
 								return;

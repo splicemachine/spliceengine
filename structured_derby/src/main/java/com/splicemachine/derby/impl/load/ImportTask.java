@@ -208,7 +208,7 @@ public class ImportTask extends ZkTask{
 				return new FileErrorLogger(fileSystem,badLogFile,128);
 		}
 
-		protected void reportStats(long startTimeMs, long stopTimeMs,TimeView processTime,TimeView totalTimeView) {
+		protected void reportStats(long startTimeMs, long stopTimeMs,TimeView processTime,TimeView totalTimeView) throws IOException {
 				if(importContext.shouldRecordStats()){
 						OperationRuntimeStats runtimeStats = new OperationRuntimeStats(statementId, operationId,
 										Bytes.toLong(getTaskId()),region.getRegionNameAsString(),12);
@@ -235,7 +235,7 @@ public class ImportTask extends ZkTask{
 						WriteStats writeStats = importer.getWriteStats();
 						OperationRuntimeStats.addWriteStats(writeStats, runtimeStats);
 
-						SpliceDriver.driver().getTaskReporter().report(runtimeStats);
+						SpliceDriver.driver().getTaskReporter().report(runtimeStats,getTxn());
 				}
 		}
 

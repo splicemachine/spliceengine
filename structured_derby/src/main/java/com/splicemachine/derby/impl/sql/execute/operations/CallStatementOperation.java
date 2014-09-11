@@ -223,7 +223,7 @@ public class CallStatementOperation extends NoRowsOperation {
 				}
 
 				@Override
-				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) {
+				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) throws IOException {
 						if(regionName==null)
 							regionName = "ControlRegion";
 						OperationRuntimeStats stats = new OperationRuntimeStats(statementId,
@@ -239,7 +239,7 @@ public class CallStatementOperation extends NoRowsOperation {
 						}
 
 						stats.setHostName(SpliceUtils.getHostName());
-						SpliceDriver.driver().getTaskReporter().report(stats);
+						SpliceDriver.driver().getTaskReporter().report(stats,operationInformation.getTransaction());
 				}
 
 				@Override

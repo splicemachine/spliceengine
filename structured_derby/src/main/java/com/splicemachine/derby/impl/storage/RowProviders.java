@@ -282,7 +282,7 @@ public class RowProviders {
 				@Override public String toString() { return String.format("DelegatingRowProvider { provider=%s } ",provider); }
 
 				@Override
-				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema, String regionName) {
+				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema, String regionName) throws IOException {
 					provider.reportStats(statementId,operationId,taskId,xplainSchema,regionName);
 				}
 				@Override public IOStats getIOStats() { return provider.getIOStats(); }
@@ -398,7 +398,7 @@ public class RowProviders {
 				}
 
 				@Override
-				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) {
+				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) throws IOException {
 						if(taskId==-1l) taskId = SpliceDriver.driver().getUUIDGenerator().nextUUID();
 						List<OperationRuntimeStats> opStats = OperationRuntimeStats.getOperationStats(
 										source, taskId, statementId, WriteStats.NOOP_WRITE_STATS, Metrics.noOpTimeView(), spliceRuntimeContext);
@@ -406,7 +406,7 @@ public class RowProviders {
 						String hostName = SpliceUtils.getHostName();
 						for(OperationRuntimeStats opStat:opStats){
 								opStat.setHostName(hostName);
-								taskReporter.report(opStat);
+								taskReporter.report(opStat,spliceRuntimeContext.getTxn());
 						}
 				}
 
@@ -512,7 +512,7 @@ public class RowProviders {
 				}
 
 				@Override
-				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) {
+				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) throws IOException {
 						firstRowProvider.reportStats(statementId,operationId,taskId,xplainSchema,regionName);
 						secondRowProvider.reportStats(statementId,operationId,taskId,xplainSchema,regionName);
 				}

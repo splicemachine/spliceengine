@@ -325,7 +325,8 @@ public class BroadcastJoinOperation extends JoinOperation {
             SpliceRuntimeContext ctxNoSink = runtimeContext.copy();
             ctxNoSink.unMarkAsSink();
             OperationResultSet ors = new OperationResultSet(activation,rightResultSet);
-            ors.sinkOpen(false,true);
+            ors.setParentOperationID(Bytes.toLong(getUniqueSequenceID()));
+            ors.sinkOpen(runtimeContext.getTxn(),true);
             ors.executeScan(false,ctxNoSink);
             SpliceNoPutResultSet resultSet = ors.getDelegate();
             DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(rightTemplate);

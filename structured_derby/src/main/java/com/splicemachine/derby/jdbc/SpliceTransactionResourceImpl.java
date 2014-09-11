@@ -68,10 +68,10 @@ public final class SpliceTransactionResourceImpl {
 				database = db;
 		}
 
-		public void marshallTransaction(SpliceObserverInstructions instructions) throws StandardException, SQLException {
+		public void marshallTransaction(TxnView txn,SpliceObserverInstructions instructions) throws StandardException, SQLException {
 				if (LOG.isDebugEnabled())
 						SpliceLogUtils.debug(LOG, "marshallTransaction with txn %s",instructions.getTxn());
-				lcc = database.generateLanguageConnectionContext(instructions.getTxn(),
+				lcc = database.generateLanguageConnectionContext(txn,
 								cm, username, drdaID, dbname, instructions.getSessionUserName(), instructions.getDefaultSchemaDescriptor());
 		}
 

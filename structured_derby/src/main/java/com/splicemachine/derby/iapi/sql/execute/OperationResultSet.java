@@ -64,9 +64,10 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
     private SpliceBaseOperation.XplainOperationChainInfo operationChainInfo;
 
 		private StatementInfo statementInfo;
-		private long scrollUuid;
+		private long scrollUuid = -1l;
+    private TxnView txn;
 
-		public OperationResultSet() {
+    public OperationResultSet() {
 			// no-op
 		}
 
@@ -87,7 +88,7 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
         topOperation.markAsTopResultSet();
     }
 
-    private StatementInfo initStatmentInfo(StatementInfo stmtInfo, SpliceOperationContext opCtx) throws StandardException {
+    private StatementInfo initStatmentInfo(TxnView txn,StatementInfo stmtInfo, SpliceOperationContext opCtx) throws StandardException {
         if (stmtInfo != null){
             // if statementInfo already created for this ResultSet, don't create again nor add
             // to StatementManager
@@ -95,7 +96,6 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
         }
         String sql = opCtx.getPreparedStatement().getSource();
         String user = activation.getLanguageConnectionContext().getCurrentUserId(activation);
-        TxnView txn = getTransaction();
         if (parentOperationID == -1) {
             Snowflake snowflake = SpliceDriver.driver().getUUIDGenerator();
             long sId = snowflake.nextUUID();
@@ -145,30 +145,28 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
         }
     }
 
-    public SpliceRuntimeContext sinkOpen(boolean useProbe, boolean showStatementInfo) throws StandardException, IOException {
+    public SpliceRuntimeContext sinkOpen(TxnView txn,boolean showStatementInfo) throws StandardException, IOException {
+        this.txn = txn;
         SpliceLogUtils.trace(LOG,"openCore");
         closed=false;
         if(delegate!=null) delegate.close();
-        SpliceRuntimeContext runtimeContext = new SpliceRuntimeContext();
+        SpliceRuntimeContext runtimeContext = new SpliceRuntimeContext(txn);
 
         try {
             List<SpliceBaseOperation.XplainOperationChainInfo> operationChain = SpliceBaseOperation.operationChain.get();
             if (operationChain != null && operationChain.size() > 0) {
                 operationChainInfo = operationChain.get(operationChain.size()-1);
                 runtimeContext.recordTraceMetrics();
-                parentOperationID = operationChainInfo.getOperationId();
+                if(parentOperationID==-1l)
+                    parentOperationID = operationChainInfo.getOperationId();
                 statementId = operationChainInfo.getStatementId();
             }
 
-            if(topOperation instanceof DMLWriteOperation){
-                //elevate the transaction
-                elevateTransaction();
-            }
-            SpliceOperationContext operationContext = SpliceOperationContext.newContext(activation);
+            SpliceOperationContext operationContext = SpliceOperationContext.newContext(activation,txn);
             topOperation.init(operationContext);
             topOperation.open();
             if(showStatementInfo){
-                statementInfo = initStatmentInfo(statementInfo, operationContext);
+                statementInfo = initStatmentInfo(txn,statementInfo, operationContext);
                 if(activation.isTraced()){
                     SQLWarning w = StandardException.newWarning(WarningState.XPLAIN_STATEMENT_ID.getSqlState(), statementInfo.getStatementUuid());
                     ((GenericStorablePreparedStatement)activation.getPreparedStatement()).addWarning(w);
@@ -198,6 +196,17 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
         }
     }
 
+    public SpliceRuntimeContext sinkOpen(boolean useProbe, boolean showStatementInfo) throws StandardException, IOException {
+        TxnView t;
+        if(topOperation instanceof DMLWriteOperation || activation.isTraced()){
+            //elevate the transaction
+            t = elevateTransaction();
+        }else
+            t = getTransaction();
+
+        return sinkOpen(t,showStatementInfo);
+    }
+
 		public void open(boolean useProbe,boolean showStatementInfo) throws StandardException, IOException {
         SpliceRuntimeContext ctx = sinkOpen(useProbe,showStatementInfo);
         executeScan(useProbe,ctx);
@@ -212,6 +221,10 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
         }
     }
 
+    public void setParentOperationID(long operationId){
+        this.parentOperationID = operationId;
+    }
+
 		private List<OperationInfo> getOperationInfo(long statementId) {
 				List<OperationInfo> info = Lists.newArrayList();
         SpliceOperation top = topOperation;
@@ -222,7 +235,7 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 					 */
             String m = operationChainInfo==null ? null : operationChainInfo.getMethodName();
 
-						scrollUuid = SpliceDriver.driver().getUUIDGenerator().nextUUID();
+            scrollUuid = SpliceDriver.driver().getUUIDGenerator().nextUUID();
 						OperationInfo opInfo = new OperationInfo(scrollUuid,statementId,"ScrollInsensitive",
                                 m, false,parentOperationID);
 						info.add(opInfo);
@@ -243,7 +256,12 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 				OperationInfo opInfo = new OperationInfo(operationUuid,statementId, operation.getName(), operation.getInfo(), isRight,parentOperationId);
 				infos.add(opInfo);
 				populateOpInfo(statementId,operationUuid, false, operation.getLeftOperation(), infos);
-				populateOpInfo(statementId,operationUuid,true,operation.getRightOperation(),infos);
+//        /*
+//         * Most joins will record their information during the scan phase, and are not themselves
+//         * sinks. However, MergeSortJoin will need to record its right hand side data directly here
+//         */
+        if(operation.getNodeTypes().contains(SpliceOperation.NodeType.REDUCE))
+            populateOpInfo(statementId,operationUuid,true,operation.getRightOperation(),infos);
 		}
 
 		@Override public void reopenCore() throws StandardException {
@@ -418,7 +436,11 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
     public void close() throws StandardException {
         if(statementInfo!=null){
             statementInfo.markCompleted();
-            SpliceDriver.driver().getStatementManager().completedStatement(statementInfo, activation.isTraced());
+            try {
+                SpliceDriver.driver().getStatementManager().completedStatement(statementInfo, activation.isTraced(),getTransaction());
+            } catch (IOException e) {
+                throw Exceptions.parseException(e);
+            }
             statementInfo = null; //remove the field in case we call close twice
             ((GenericStorablePreparedStatement)activation.getPreparedStatement()).clearWarnings();
         }
@@ -563,19 +585,33 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
                 "No Delegate Result Set provided, please ensure open() or openCore() was called");
     }
 
-		private Txn elevateTransaction() throws StandardException {
+		private TxnView elevateTransaction() throws StandardException {
 				/*
 				 * Elevate the current transaction to make sure that we are writable
 				 */
 				TransactionController transactionExecute = activation.getLanguageConnectionContext().getTransactionExecute();
 				Transaction rawStoreXact = ((TransactionManager) transactionExecute).getRawStoreXact();
-        return ((SpliceTransaction)rawStoreXact).elevate(((DMLWriteOperation)topOperation).getDestinationTable());
+        BaseSpliceTransaction rawTxn = (BaseSpliceTransaction) rawStoreXact;
+        TxnView currentTxn = rawTxn.getActiveStateTxn();
+        if(topOperation instanceof DMLWriteOperation)
+            return ((SpliceTransaction)rawTxn).elevate(((DMLWriteOperation) topOperation).getDestinationTable());
+        else if (activation.isTraced()){
+            if(!currentTxn.allowsWrites())
+                return ((SpliceTransaction)rawTxn).elevate("xplain".getBytes());
+            else
+                return currentTxn; //no need to elevate, since we're already elevated with better information
+        }else
+            throw new IllegalStateException("Programmer error: " +
+                    "attempting to elevate an operation txn without specifying a destination table");
 		}
 
 		private TxnView getTransaction() throws StandardException {
-				TransactionController transactionExecute = activation.getLanguageConnectionContext().getTransactionExecute();
-				Transaction rawStoreXact = ((TransactionManager) transactionExecute).getRawStoreXact();
-				return ((BaseSpliceTransaction) rawStoreXact).getActiveStateTxn();
+        if(txn==null){
+            TransactionController transactionExecute = activation.getLanguageConnectionContext().getTransactionExecute();
+            Transaction rawStoreXact = ((TransactionManager) transactionExecute).getRawStoreXact();
+            txn = ((BaseSpliceTransaction) rawStoreXact).getActiveStateTxn();
+        }
+        return txn;
 		}
 
     public IOStats getStats() {

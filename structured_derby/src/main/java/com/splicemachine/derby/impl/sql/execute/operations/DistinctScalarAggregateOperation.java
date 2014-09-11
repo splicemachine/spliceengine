@@ -174,15 +174,15 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
 				long start = System.currentTimeMillis();
 				RowProvider provider;
 				if (!isInSortedOrder) {
-						SpliceRuntimeContext firstStep = SpliceRuntimeContext.generateSinkRuntimeContext(true);
+						SpliceRuntimeContext firstStep = SpliceRuntimeContext.generateSinkRuntimeContext(operationInformation.getTransaction(),true);
 						firstStep.setStatementInfo(runtimeContext.getStatementInfo());
-						SpliceRuntimeContext secondStep = SpliceRuntimeContext.generateSinkRuntimeContext(false);
+						SpliceRuntimeContext secondStep = SpliceRuntimeContext.generateSinkRuntimeContext(operationInformation.getTransaction(),false);
 						secondStep.setStatementInfo(runtimeContext.getStatementInfo());
 						final RowProvider step1 = source.getMapRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext), firstStep); // Step 1
 						final RowProvider step2 = getMapRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext), secondStep); // Step 2
 						provider = RowProviders.combineInSeries(step1, step2);
 				} else {
-						SpliceRuntimeContext secondStep = SpliceRuntimeContext.generateSinkRuntimeContext(false);
+						SpliceRuntimeContext secondStep = SpliceRuntimeContext.generateSinkRuntimeContext(operationInformation.getTransaction(),false);
 						secondStep.setStatementInfo(runtimeContext.getStatementInfo());
 						provider = source.getMapRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext), secondStep); // Step 1
 				}

@@ -154,11 +154,11 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
                 List<XplainOperationChainInfo> operationChain = SpliceBaseOperation.operationChain.get();
 
                 // Prepare XplainOperationChainInfo record for subquery
-                if (operationChain != null && operationChain.size() > 0) {
-                    // This is in a subquery and explain trace is on
-                    XplainOperationChainInfo parent = operationChain.get(operationChain.size()-1);
-                    statisticsTimingOn = true;
-                    }
+//                if (operationChain != null && operationChain.size() > 0) {
+//                    This is in a subquery and explain trace is on
+//                    XplainOperationChainInfo parent = operationChain.get(operationChain.size()-1);
+//                    statisticsTimingOn = true;
+//                    }
 
                 startExecutionTime = System.currentTimeMillis();
 		}
