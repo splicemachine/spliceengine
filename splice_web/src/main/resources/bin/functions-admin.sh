@@ -59,7 +59,7 @@ _retryAdmin() {
     else
         echo
         echo "Splice Admin Server is ready"
-        echo "The Admin URI is http://${HOSTNAME}:${PORT}/app"
+        echo "The Admin URI is http://${HOSTNAME}:${PORT}/"
         return 0;
     fi
 }
