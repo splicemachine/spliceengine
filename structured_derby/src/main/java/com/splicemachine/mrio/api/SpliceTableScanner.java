@@ -1,3 +1,8 @@
+/**
+ * SpliceTableScanner which internally used by SpliceTableScannerBuilder
+ * @author Yanan Jian
+ * Created on: 08/14/14
+ */
 package com.splicemachine.mrio.api;
 
 import com.google.common.collect.Lists;
@@ -34,6 +39,7 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.iapi.types.SQLBlob;
@@ -193,7 +199,7 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 									return new FilterStatePacked((FilterState)iFilterState, hRowAccumulator){
 											@Override
 											public Filter.ReturnCode doAccumulate(KeyValue dataKeyValue) throws IOException {
-												//System.out.println("accumulating ---------");
+												
 													if (!accumulator.isFinished() && accumulator.isOfInterest(dataKeyValue)) {
 														
 																if (!accumulator.accumulate(dataKeyValue)) {
@@ -214,79 +220,48 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 			this.colTypes = colTypes;
 			this.pkColNames = pkColNames;
 			this.pkColIds = pkColIds;
-			System.out.println(this.template.getRowArray().length);
+			
 			boolean allNullFlag = true;
-			if(this.template == null)
-			{
-				data = createDVD();
-				template.setRowArray(data);
-				System.out.println(this.template.getRowArray().length);
+			if(this.template == null){
+				try {
+					data = createDVD();
+					template.setRowArray(data);
+				} catch (StandardException e) {
+					// TODO Auto-generated catch block
+					throw new RuntimeException("Cannot create DataValueDescriptor:"+e);
+				}
+				
 			}
-			else
-			{
+			else{
 				DataValueDescriptor[] dvds = this.template.getRowArray();
 				
-				for(DataValueDescriptor d:dvds)
-				{
+				for(DataValueDescriptor d:dvds){
 					if(d != null){
 						allNullFlag = false;
 						break;
 					}
 				}
 			}
-			if(allNullFlag)
-			{
-				data = createDVD();
-				template.setRowArray(data);
+			if(allNullFlag){
+				try {
+					data = createDVD();
+					template.setRowArray(data);
+				} catch (StandardException e) {
+					// TODO Auto-generated catch block
+					throw new RuntimeException("Cannot create DataValueDescriptor:"+e);
+				}
 			}
 			else
 				data = template.getRowArray();	
 			
 	}
 
-	private DataValueDescriptor[] createDVD()
+	private DataValueDescriptor[] createDVD() throws StandardException
 	{
 		DataValueDescriptor dvds[] = new DataValueDescriptor[colTypes.size()];
 		for(int pos = 0; pos < colTypes.size(); pos++)
 		{
-			
-			switch(colTypes.get(pos))
-			{
-			case java.sql.Types.INTEGER:
-			
-				dvds[pos] = new SQLInteger();
-				break;
-			case java.sql.Types.BIGINT:
-				
-				dvds[pos] = new SQLLongint();
-				break;
-			case java.sql.Types.SMALLINT:
-				
-				dvds[pos] = new SQLSmallint();
-				break;
-			case java.sql.Types.BOOLEAN:
-				
-				dvds[pos] = new SQLBoolean();
-				break;
-			case java.sql.Types.DOUBLE:	
-			
-				dvds[pos] = new SQLDouble();
-				break;
-			case java.sql.Types.FLOAT:
-				
-				dvds[pos] = new SQLInteger();
-				break;
-			case java.sql.Types.CHAR:
-				
-			case java.sql.Types.VARCHAR:
-				
-				dvds[pos] = new SQLVarchar();
-				break;
-			case java.sql.Types.BINARY:	
-				
-			default:
-				dvds[pos] = new SQLBlob();
-			}
+			dvds[pos] = DataTypeDescriptor.getBuiltInDataTypeDescriptor(colTypes.get(pos)).getNull();
 		}
 		return dvds;
 		
@@ -301,7 +276,7 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 			SIFilter filter = getSIFilter();
 			
 			if(keyValues==null)
-					keyValues = Lists.newArrayListWithExpectedSize(2);
+					keyValues = Lists.newArrayListWithExpectedSize(colTypes.size());
 			boolean hasRow;
 			keyValues.clear();
 			
@@ -331,21 +306,28 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 							currentRowLocation = null;	
 							return null;
 					}else{
+						
 							if(template.nColumns()>0){
+								
 									KeyValue kv = keyValues.get(0);
 									if(!filterRowKey(kv)||!filterRow(filter)){
 											//filter the row first, then filter the row key
+											
 											filterCounter.increment();
 											setRowLocation(kv);
+											
 											return template;
 									}
 							}else if(!filterRow(filter)){
 									//still need to filter rows to deal with transactional issues
+								
 									filterCounter.increment();
 									KeyValue kv = keyValues.get(0);
-									setRowLocation(kv);								
+									setRowLocation(kv);		
+									
 									return template;
 							}
+							
 							setRowLocation(keyValues.get(0));
 							
 							return template;
@@ -482,9 +464,11 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 			Iterator<KeyValue> kvIter = keyValues.iterator();
 			
 			while(kvIter.hasNext()){
+				
 					KeyValue kv = kvIter.next();
 					
 					Filter.ReturnCode returnCode = filter.filterKeyValue(kv);
+					
 					switch(returnCode){
 							case NEXT_COL:
 							case NEXT_ROW:
@@ -498,22 +482,19 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 					}
 					
 			}
-			
 			return keyValues.size() > 0 && filter.getAccumulator().result() != null;
 	}
 
 	private boolean filterRowKey(KeyValue keyValue) throws IOException {
 			if(!isKeyed) 
 			{
-				
 				return true;
 			}
 
 			byte[] dataBuffer = keyValue.getBuffer();
 			int dataOffset = keyValue.getRowOffset();
 			int dataLength = keyValue.getRowLength();
-			if(keyDecoder == null)
-				System.out.println("keyDecoder null-------");
+			
 			keyDecoder.set(dataBuffer, dataOffset, dataLength);
 			if(keyAccumulator==null)
 					keyAccumulator = ExecRowAccumulator.newAccumulator(predicateFilter,false,template,
@@ -521,7 +502,6 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 
 			keyAccumulator.reset();
 			primaryKeyIndex.reset();
-
 			return predicateFilter.match(primaryKeyIndex, keyDecoderProvider, keyAccumulator);
 	}
 
