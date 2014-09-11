@@ -19,6 +19,7 @@ import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.SpliceXPlainTrace;
+import com.splicemachine.homeless.TestUtils;
 
 /**
  * Created by jyuan on 7/30/14.
@@ -702,5 +703,24 @@ public class WindowFunctionIT extends SpliceUnitTest {
             Assert.assertEquals(result[i++],rs.getDouble(3), 0.00);
         }
         rs.close();
+    }
+
+    @Test
+    public void testMultiFunction() throws Exception {
+        String sqlText;
+        {
+            sqlText = "SELECT empnum, dept, salary, DENSE_RANK() OVER (PARTITION BY dept ORDER BY salary desc) AS DenseRank, RANK() OVER (PARTITION BY dept ORDER BY salary desc) AS Rank, ROW_NUMBER() OVER (PARTITION BY dept ORDER BY salary desc) AS RowNumber FROM %s";
+            ResultSet rs = methodWatcher.executeQuery(
+                String.format(sqlText, this.getTableReference(TABLE_NAME)));
+            TestUtils.printResult(sqlText, rs, System.out);
+            rs.close();
+        }
+        {
+            sqlText = "SELECT empnum, dept, salary, DENSE_RANK() OVER (PARTITION BY dept ORDER BY salary desc) AS DenseRank, ROW_NUMBER() OVER (ORDER BY dept) AS RowNumber FROM %s";
+            ResultSet rs = methodWatcher.executeQuery(
+                String.format(sqlText, this.getTableReference(TABLE_NAME)));
+            TestUtils.printResult(sqlText, rs, System.out);
+            rs.close();
+        }
     }
 }
