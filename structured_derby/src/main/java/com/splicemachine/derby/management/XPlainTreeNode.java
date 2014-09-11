@@ -86,7 +86,7 @@ public class XPlainTreeNode {
             private long startTimeStamp;
             private long stopTimeStamp;
 
-    @Expose private long cumulativeTime;
+            private long cumulativeTime;
 
     @Expose private Deque<XPlainTreeNode> children;
 

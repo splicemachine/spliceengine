@@ -85,7 +85,7 @@ public class XPlainTraceLegend {
         //legendMap.put("WRITETOTALCPUTIME",  new LegendEntry("WRITETOTALCPUTIME", "WTCT", false));
         legendMap.put("ITERATIONS",  new LegendEntry("ITERATIONS", "ITR", false));
         legendMap.put("INFO",  new LegendEntry("INFO", "IF", false));
-        legendMap.put("CUMULATIVETIME",  new LegendEntry("CUMULATIVETIME", "CT", false));
+        //legendMap.put("CUMULATIVETIME",  new LegendEntry("CUMULATIVETIME", "CT", false));
     }
 
     public String getShortName(String fullName) {
