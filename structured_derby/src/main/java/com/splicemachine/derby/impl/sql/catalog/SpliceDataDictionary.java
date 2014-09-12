@@ -159,18 +159,16 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
 	 */
     @Override
 	protected void updateSystemProcedures(TransactionController tc)
-		throws StandardException
-	{
-    	// Update (or create) the system stored procedures if requested.
-//    	if (SpliceConstants.updateSystemProcs) {
-    		createOrUpdateAllSystemProcedures(tc);
-//    		createOrUpdateAllSystemProcedures(tc);
-//    		createOrUpdateAllSystemProcedures(tc);
-//    	}
-    	// Only update the system procedures once.  Otherwise, each time an ij session is created, the system procedures will be dropped/created again.
-    	// It would be better if it was possible to detect when the database is being booted during server startup versus the database being booted during ij startup.
-//    	SpliceConstants.updateSystemProcs = false;
-	}
+		throws StandardException {
+//        BaseSpliceTransaction rawTransaction = ((SpliceTransactionManager) tc).getRawTransaction();
+//        if(!rawTransaction.getActiveStateTxn().allowsWrites()){
+//            assert rawTransaction instanceof SpliceTransaction: "Cannot update system procedures without elevating a transaction first";
+//
+//            SpliceTransaction transaction = (SpliceTransaction)rawTransaction;
+//            transaction.elevate("dictionary".getBytes());
+//        }
+        super.updateSystemProcedures(tc);
+    }
 
     private TabInfoImpl getStatementHistoryTable() throws StandardException {
         if (statementHistoryTable == null) {

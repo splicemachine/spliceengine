@@ -83,9 +83,9 @@ class DDLZookeeperClient {
     // methods for dealing with the change nodes
     // - - - - - - - - - - - - - - - - - - - - - - -
 
-    static String createChangeNode(String jsonChange) throws StandardException {
+    static String createChangeNode(byte[] changeData) throws StandardException {
         try {
-            String changeId = ZkUtils.create(CHANGES_PATH + "/", Bytes.toBytes(jsonChange), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT_SEQUENTIAL);
+            String changeId = ZkUtils.create(CHANGES_PATH + "/", changeData, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT_SEQUENTIAL);
             return changeId.substring(changeId.lastIndexOf('/') + 1);
         } catch (KeeperException e) {
             throw Exceptions.parseException(e);

@@ -69,7 +69,7 @@ public class ActiveTxnCacheSupplier implements TxnSupplier {
 		@Override
 		public void cache(TxnView toCache) {
 //				if(cacheGlobally){
-						delegate.cache(toCache);
+//						delegate.cache(toCache);
 //				}else{
 						addToCache(hashFunction.hash(toCache.getTxnId()), toCache);
 //		}
