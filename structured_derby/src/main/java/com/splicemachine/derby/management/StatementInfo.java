@@ -87,7 +87,7 @@ public class StatementInfo {
             this.numSinks = numSinks;
             this.user = user;
             this.sql = sql;
-            this.txn = txnId;
+            this.txn = txn.getTxnId();
 
             if(numSinks>0){
                 runningJobIds = Collections.newSetFromMap(new ConcurrentHashMap<JobInfo, Boolean>());

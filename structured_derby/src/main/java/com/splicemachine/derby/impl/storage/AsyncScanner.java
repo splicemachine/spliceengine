@@ -6,6 +6,8 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.AsyncScanIterator;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.metrics.*;
+import com.splicemachine.metrics.Counter;
+import com.splicemachine.metrics.Timer;
 import com.stumbleupon.async.Callback;
 import com.stumbleupon.async.Deferred;
 import org.apache.derby.iapi.error.StandardException;

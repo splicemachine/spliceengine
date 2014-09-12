@@ -3,7 +3,6 @@ package com.splicemachine.si.impl;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.api.TxnView;
 
 import java.io.IOException;
@@ -13,14 +12,10 @@ import java.util.concurrent.TimeUnit;
 
 public class DDLFilter implements Comparable<DDLFilter> {
     private final TxnView myTransaction;
-    private final TxnView myParenTxn;
-		private final TxnSupplier transactionStore;
-		private Cache<Long,Boolean> visibilityMap;
+    private Cache<Long,Boolean> visibilityMap;
 
-		public DDLFilter(TxnView myTransaction,TxnView myParenTxn, TxnSupplier transactionStore) {
+		public DDLFilter(TxnView myTransaction) {
 				this.myTransaction = myTransaction;
-        this.myParenTxn = myParenTxn;
-        this.transactionStore = transactionStore;
 				visibilityMap = CacheBuilder.newBuilder().expireAfterWrite(60, TimeUnit.SECONDS).maximumSize(10000).build();
 		}
 

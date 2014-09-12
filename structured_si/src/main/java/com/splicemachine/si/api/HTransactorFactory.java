@@ -1,7 +1,5 @@
 package com.splicemachine.si.api;
 
-import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableWriter;
@@ -15,14 +13,6 @@ import com.splicemachine.si.impl.SystemClock;
 import com.splicemachine.si.jmx.ManagedTransactor;
 import com.splicemachine.si.jmx.TransactorStatus;
 import org.apache.hadoop.hbase.client.*;
-import org.apache.hadoop.hbase.regionserver.HRegion;
-import com.splicemachine.si.txn.SpliceTimestampSource;
-import com.splicemachine.utils.ZkUtils;
-import org.apache.hadoop.hbase.client.*;
-
-import java.io.IOException;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Used to construct a transactor object that is bound to the HBase types and that provides SI functionality. This is
@@ -75,7 +65,7 @@ public class HTransactorFactory extends SIConstants {
 
             if(readController==null)
                 readController = new SITransactionReadController<
-                        Get,Scan,Delete,Put>(ds,dataLib, TransactionStorage.getTxnSupplier(),tc);
+                        Get,Scan,Delete,Put>(ds,dataLib, TransactionStorage.getTxnSupplier());
             Transactor transactor = new SITransactor.Builder()
                     .dataLib(dataLib)
                     .dataWriter(writer)

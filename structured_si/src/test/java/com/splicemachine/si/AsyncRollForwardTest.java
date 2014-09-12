@@ -1,21 +1,12 @@
 package com.splicemachine.si;
 
 import com.google.common.base.Function;
-import com.google.common.base.Suppliers;
-import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnLifecycleManager;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.impl.Tracer;
 import com.splicemachine.si.impl.WriteConflict;
-import com.splicemachine.si.data.api.STableReader;
-import com.splicemachine.si.impl.Tracer;
-import com.splicemachine.si.impl.TransactionId;
-import com.splicemachine.si.impl.WriteConflict;
-import com.splicemachine.si.impl.rollforward.DelayedRollForwardAction;
-import com.splicemachine.si.impl.rollforward.PushForwardAction;
-import com.splicemachine.si.impl.rollforward.SIRollForwardQueue;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;

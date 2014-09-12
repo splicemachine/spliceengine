@@ -61,6 +61,7 @@ public class LoadConglomerateTask extends ZkTask {
     private KVPair newPair;
     private boolean initialized = false;
     private Timer writeTimer;
+    private long demarcationPoint;
 
 		private byte[] scanStart;
 		private byte[] scanStop;
@@ -75,7 +76,8 @@ public class LoadConglomerateTask extends ZkTask {
                                  String jobId,
                                  boolean isTraced,
                                  long statementId,
-                                 long operationId) {
+                                 long operationId,
+                                 long demarcationPoint) {
 
         super(jobId, OperationJob.operationTaskPriority, null);
         this.tableId = tableId;
@@ -86,6 +88,7 @@ public class LoadConglomerateTask extends ZkTask {
         this.isTraced = isTraced;
         this.statementId = statementId;
         this.operationId = operationId;
+        this.demarcationPoint = demarcationPoint;
     }
 
 		@Override
@@ -93,7 +96,7 @@ public class LoadConglomerateTask extends ZkTask {
 				return new LoadConglomerateTask(tableId,
 								fromConglomId,toConglomId,
 								columnInfo,droppedColumnPosition,
-				jobId,isTraced,statementId,operationId);
+				jobId,isTraced,statementId,operationId,demarcationPoint);
 		}
 
 		@Override public boolean isSplittable() { return false; }
@@ -107,7 +110,7 @@ public class LoadConglomerateTask extends ZkTask {
 
 		private void initialize() throws StandardException{
         Txn txn = getTxn();
-        scanner = new ConglomerateScanner(columnInfo, region, txn, isTraced,scanStart,scanStop);
+        scanner = new ConglomerateScanner(region, txn,demarcationPoint, isTraced,scanStart,scanStop);
         transformer = new RowTransformer(tableId, txn, columnInfo, droppedColumnPosition);
         loader = new ConglomerateLoader(toConglomId, txn, isTraced);
         initialized = true;

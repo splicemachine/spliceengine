@@ -123,7 +123,7 @@ public class TestTransactionSetup {
 				keepAliveScheduler = new ManualKeepAliveScheduler(txnStore);
         ((ClientTxnLifecycleManager)txnLifecycleManager).setKeepAliveScheduler(keepAliveScheduler);
 
-				readController = new SITransactionReadController(dataStore,dataLib, txnStore,txnLifecycleManager);
+				readController = new SITransactionReadController(dataStore,dataLib, txnStore);
 				//noinspection unchecked
 //				LClientTransactor cTransactor = new LClientTransactor(dataStore, txnLifecycleManager, dataLib);
 				builder = builder

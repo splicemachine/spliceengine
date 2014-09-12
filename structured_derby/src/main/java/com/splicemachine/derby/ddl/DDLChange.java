@@ -104,8 +104,7 @@ public class DDLChange implements Externalizable {
 //        long parentTxnId = in.readLong();
 //        boolean additive = in.readBoolean();
 
-        Txn parentTxn = TransactionStorage.getTxnSupplier().getTransaction(parentTxnId);
-        txn = new InheritingTxnView(parentTxn,txnId,beginTs,null,true,dependent,true,additive,true,true,-1l,-1l, Txn.State.ACTIVE);
+        txn = new LazyTxnView(txnId,TransactionStorage.getTxnSupplier());
     }
     
     public void setChangeId(String changeId) {
@@ -120,16 +119,5 @@ public class DDLChange implements Externalizable {
                 ", tentativeDDLDesc=" + tentativeDDLDesc +
                 ", identifier='" + changeId + '\'' +
                 '}';
-        TxnSupplier txnSupplier = TransactionStorage.getTxnSupplier();
-        txn = new LazyTxnView(txnId,txnSupplier);
-
-//        if(in.readBoolean()){
-//            long pTxnId = in.readLong();
-//            long pBeginTs = pTxnId;
-//            long pParentTxnId = in.readLong();
-//            boolean pAdditive = in.readBoolean();
-//
-//            parentTxn = txnSupplier.getTransaction(txnId);
-//        }
     }
 }

@@ -67,10 +67,8 @@ public class SIFilterPacked extends FilterBase implements HasPredicateFilter {
 						initFilterStateIfNeeded();
 						return filterState.filterKeyValue(keyValue);
 				} catch (IOException e) {
-					System.out.println("sdfsdfsd " + this.tableName);
 						throw new RuntimeException(e);
 				} catch (Exception e) {
-					System.out.println("sdfsdfsd " + this.tableName);
 					throw new RuntimeException(e);
 				}
 		}

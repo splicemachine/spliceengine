@@ -116,112 +116,110 @@ public class SQLUtil {
 		      
 			  DatabaseMetaData databaseMetaData = connect.getMetaData();
 
-		      ResultSet result = databaseMetaData.getColumns(
-		          catalog, schemaPattern,  tableNamePattern, columnNamePattern);
-		      
-		      while(result.next()){
-		          String columnName = result.getString(4);
-		          int    columnType = result.getInt(5);
-		          
-		          System.out.println("ColumnName:"+columnName+" Type:"+String.valueOf(columnType));
-		          names.add(columnName);
-		          types.add(columnType);
-		          
-		      }
-		      long elapsedTimeMillis = System.currentTimeMillis()-start;
-		      System.out.println("Elapsed time:"+String.valueOf(elapsedTimeMillis));
-		      colType.put(names, types);
-		    } catch (Exception e) {
-		      System.out.println(e);
-		    } 
-		  return colType;
-	  }
-	  
-	  public Connection getStaticConnection()
-	  {
-		  return this.connect;
-	  }
-	  
-	  /**
-	   * 
-	   * Get ConglomID from 'tableName'
-	   * Param is Splice tableName
-	   * Return ConglomID
-	   * ConglomID means HBase table Name which maps to the Splice table Name
-	   * 
-	   * */
-	  public String getConglomID(String tableName)
-	  {
-		  String conglom_id = null;
-		  String query = "select s.schemaname,t.tablename,c.conglomeratenumber "+
-		                 "from sys.sysschemas s, sys.systables t, sys.sysconglomerates c "+
-				         "where s.schemaid = t.schemaid and "+
-		                 "t.tableid = c.tableid and "+
-				         "s.schemaname = 'SPLICE' and "+
-		                 "t.tablename = '"+tableName+"'";
-		  PreparedStatement statement;
-		try {
-			statement = connect.prepareStatement(query);
-			resultSet = statement.executeQuery();
-		    while (resultSet.next()) {
-		        conglom_id = resultSet.getString("CONGLOMERATENUMBER");   
-		        break;
-		      }
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}	  
-	      return conglom_id;
-	  }
-	  
-	  /**
-	   * 
-	   * Get TransactionID
-	   * Each Transaction has a uniq ID
-	   * For every map job, there should be a different transactionID.
-	   * 
-	   * */
-	  public long getTransactionID()
-	  {
-		  long trxId = -1;
-		  try {
-			
-			resultSet = connect.createStatement().executeQuery("call SYSCS_UTIL.SYSCS_GET_CURRENT_TRANSACTION()");
-			while(resultSet.next())
-			{
-				trxId = resultSet.getLong(1);
-			}
-			
-		  } catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		  return trxId;
-	  }
-	  
-	  public String getTransactionID(Connection conn) throws SQLException
-	  {	  
-		  String trxId = null;
-		  resultSet = conn.createStatement().executeQuery("call SYSCS_UTIL.SYSCS_GET_CURRENT_TRANSACTION()");
-			while(resultSet.next())
-			{
-				trxId = String.valueOf(resultSet.getInt(1));
-			}
-			
-		  return trxId;
-	  }
-	  
-	  public String getChildTransactionID(Connection conn, String parentTxsID, long conglomId) throws SQLException
-	  {
-		  PreparedStatement ps = conn.prepareStatement("call SYSCS_UTIL.SYSCS_START_CHILD_TRANSACTION(?, ?)");
-		  long ptxsID = Long.parseLong(parentTxsID);
-		  ps.setLong(1, ptxsID);
-		  ps.setLong(2, conglomId);
-		  ResultSet rs3 = ps.executeQuery();
-		  rs3.next();
-		  long childTxsID = rs3.getLong(1);
+          ResultSet result = databaseMetaData.getColumns(
+                  catalog, schemaPattern,  tableNamePattern, columnNamePattern);
+
+          while(result.next()){
+              String columnName = result.getString(4);
+              int    columnType = result.getInt(5);
+
+              System.out.println("ColumnName:"+columnName+" Type:"+String.valueOf(columnType));
+              names.add(columnName);
+              types.add(columnType);
+
+          }
+          long elapsedTimeMillis = System.currentTimeMillis()-start;
+          System.out.println("Elapsed time:"+String.valueOf(elapsedTimeMillis));
+          colType.put(names, types);
+      } catch (Exception e) {
+          System.out.println(e);
+      }
+        return colType;
+    }
+
+    public Connection getStaticConnection()
+    {
+        return this.connect;
+    }
+
+    /**
+     *
+     * Get ConglomID from 'tableName'
+     * Param is Splice tableName
+     * Return ConglomID
+     * ConglomID means HBase table Name which maps to the Splice table Name
+     *
+     * */
+    public String getConglomID(String tableName)
+    {
+        String conglom_id = null;
+        String query = "select s.schemaname,t.tablename,c.conglomeratenumber "+
+                "from sys.sysschemas s, sys.systables t, sys.sysconglomerates c "+
+                "where s.schemaid = t.schemaid and "+
+                "t.tableid = c.tableid and "+
+                "s.schemaname = 'SPLICE' and "+
+                "t.tablename = '"+tableName+"'";
+        PreparedStatement statement;
+        try {
+            statement = connect.prepareStatement(query);
+            resultSet = statement.executeQuery();
+            while (resultSet.next()) {
+                conglom_id = resultSet.getString("CONGLOMERATENUMBER");
+                break;
+            }
+        } catch (SQLException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        return conglom_id;
+    }
+
+    /**
+     *
+     * Get TransactionID
+     * Each Transaction has a uniq ID
+     * For every map job, there should be a different transactionID.
+     *
+     * */
+    public long getTransactionID()
+    {
+        long trxId = -1;
+        try {
+
+            resultSet = connect.createStatement().executeQuery("call SYSCS_UTIL.SYSCS_GET_CURRENT_TRANSACTION()");
+            while(resultSet.next())
+            {
+                trxId = resultSet.getLong(1);
+            }
+
+        } catch (SQLException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        return trxId;
+    }
+
+    public String getTransactionID(Connection conn) throws SQLException
+    {
+        String trxId = null;
+        resultSet = conn.createStatement().executeQuery("call SYSCS_UTIL.SYSCS_GET_CURRENT_TRANSACTION()");
+        while(resultSet.next())
+        {
+            trxId = String.valueOf(resultSet.getInt(1));
+        }
+
+        return trxId;
+    }
+
+    public long getChildTransactionID(Connection conn, long parentTxsID, long conglomId) throws SQLException {
+        PreparedStatement ps = conn.prepareStatement("call SYSCS_UTIL.SYSCS_START_CHILD_TRANSACTION(?, ?)");
+        ps.setLong(1, parentTxsID);
+        ps.setLong(2, conglomId);
+        ResultSet rs3 = ps.executeQuery();
+        rs3.next();
+        long childTxsID = rs3.getLong(1);
         return childTxsID;
-	  }
+    }
 	  
 	  private void close() {
 	    try {

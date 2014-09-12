@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.catalog;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
@@ -159,17 +160,18 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
     @Override
 	protected void updateSystemProcedures(TransactionController tc)
 		throws StandardException
-	{        
+	{
     	// Update (or create) the system stored procedures if requested.
-    	if (SpliceConstants.updateSystemProcs) {
+//    	if (SpliceConstants.updateSystemProcs) {
     		createOrUpdateAllSystemProcedures(tc);
 //    		createOrUpdateAllSystemProcedures(tc);
 //    		createOrUpdateAllSystemProcedures(tc);
-    	}
+//    	}
     	// Only update the system procedures once.  Otherwise, each time an ij session is created, the system procedures will be dropped/created again.
     	// It would be better if it was possible to detect when the database is being booted during server startup versus the database being booted during ij startup.
-    	SpliceConstants.updateSystemProcs = false;
+//    	SpliceConstants.updateSystemProcs = false;
 	}
+
     private TabInfoImpl getStatementHistoryTable() throws StandardException {
         if (statementHistoryTable == null) {
             statementHistoryTable = new TabInfoImpl(new SYSSTATEMENTHISTORYRowFactory(uuidFactory,exFactory,dvf));
