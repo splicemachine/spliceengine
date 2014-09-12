@@ -22,7 +22,7 @@ import org.apache.derby.iapi.types.SQLVarchar;
 import org.apache.derby.impl.sql.execute.ValueRow;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.serde.Constants;
-import org.apache.hadoop.hive.serde2.AbstractSerDe;
+import org.apache.hadoop.hive.serde2.SerDe;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.SerDeStats;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
@@ -38,7 +38,7 @@ import org.apache.log4j.PropertyConfigurator;
 import com.splicemachine.mrio.api.SQLUtil;
 import com.splicemachine.mrio.api.SpliceMRConstants;
 
-public class SpliceSerDe extends AbstractSerDe {
+public class SpliceSerDe implements SerDe {
 	 private StructTypeInfo rowTypeInfo;
 	 private ObjectInspector rowOI;
 	 private List<String> colNames;
@@ -56,7 +56,7 @@ public class SpliceSerDe extends AbstractSerDe {
 	  * column names and their types. That information will be used to help 
 	  * perform actual serialization and deserialization of data.
 	  */
-	 @Override
+	 //@Override
 	 public void initialize(Configuration conf, Properties tbl)
 	     throws SerDeException {
 	   // Get a list of the table's column names.
@@ -150,7 +150,7 @@ public class SpliceSerDe extends AbstractSerDe {
 	  * This method does the work of deserializing a record into Java objects
 	  * that Hive can work with via the ObjectInspector interface.
 	  */
-	 @Override
+	 //@Override
 	 public Object deserialize(Writable blob) throws SerDeException {
 	   row.clear();
 	   // Do work to turn the fields in the blob into a set of row fields
@@ -178,7 +178,7 @@ public class SpliceSerDe extends AbstractSerDe {
 	 /**
 	  * Return an ObjectInspector for the row of data
 	  */
-	 @Override
+	 //@Override
 	 public ObjectInspector getObjectInspector() throws SerDeException {
 		 Log.debug(Thread.currentThread() .getStackTrace()[1].getMethodName());
 	   return rowOI;
@@ -187,7 +187,7 @@ public class SpliceSerDe extends AbstractSerDe {
 	 /**
 	  * Unimplemented
 	  */
-	 @Override
+	 //@Override
 	 public SerDeStats getSerDeStats() {
 		 Log.debug(Thread.currentThread() .getStackTrace()[1].getMethodName());
 	   return null;
@@ -196,7 +196,7 @@ public class SpliceSerDe extends AbstractSerDe {
 	 /**
 	  * Return the class that stores the serialized data representation.
 	  */
-	 @Override
+	 //@Override
 	 public Class<? extends Writable> getSerializedClass() {
 		 Log.debug(Thread.currentThread() .getStackTrace()[1].getMethodName());
 	   return ExecRowWritable.class;
@@ -207,7 +207,7 @@ public class SpliceSerDe extends AbstractSerDe {
 	  * uses the ObjectInspector to get the data for each column and serialize
 	  * it.
 	  */
-	 @Override
+	 //@Override
 	 public Writable serialize(Object obj, ObjectInspector oi)
 	     throws SerDeException {
 	   // Take the object and transform it into a serialized representation
