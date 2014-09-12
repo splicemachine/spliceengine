@@ -651,12 +651,11 @@ public class WindowFunctionIT extends SpliceUnitTest {
     }
 
     @Test
-    @Ignore("DB-1683 - order by follows window function")
     public void testDenseRankWithoutPartitionOrderby() throws Exception {
         int[] result = {1, 2, 3, 4, 5, 5, 6, 7, 7, 8, 8, 8, 8, 9, 10};
         int[] colVal = {84000, 79000, 78000, 76000, 75000, 75000, 55000, 53000, 53000, 52000, 52000, 52000, 52000, 51000, 50000};
         String sqlText =
-            "SELECT empnum, dept, salary, DENSE_RANK() OVER (ORDER BY salary desc) AS Rank FROM %s order by dept";
+            "SELECT empnum, dept, salary, DENSE_RANK() OVER (ORDER BY salary desc) AS Rank FROM %s order by salary desc";
 
         ResultSet rs = methodWatcher.executeQuery(
             String.format(sqlText, this.getTableReference(TABLE_NAME)));
@@ -688,7 +687,6 @@ public class WindowFunctionIT extends SpliceUnitTest {
     }
 
     @Test
-    @Ignore("DB-1775 - returns wrong column values when other columns appear in select before scalar function")
     public void testSelectAllColsScalarAggWithOrderBy() throws Exception {
         // DB-1774 - ClassCastException
         double[] result = {1.0, 2.0, 9.0, 6.0, 11.0, 23.0, 3.0, 10.0, 20.0, 10.0, 12.0, 20.0, 11.0, 15.0, 25.0};
