@@ -100,5 +100,40 @@ TAR structure:
 			</includes>
 		</fileSet>
 
+		<!-- splice_web project -->
+		<fileSet>
+			<directory>../splice_web/target</directory>
+			<outputDirectory>splicemachine/lib</outputDirectory>
+			<includes>
+				<include>*.war</include>
+			</includes>
+		</fileSet>
+		<fileSet>
+			<directory>../splice_web/target/dependency</directory>
+			<outputDirectory>splicemachine/lib</outputDirectory>
+			<includes>
+				<include>*.jar</include>
+			</includes>
+			<excludes>
+				<exclude>*complete.jar</exclude>
+			</excludes>
+		</fileSet>
+		<fileSet>
+			<directory>../splice_web/target/classes/bin</directory>
+			<outputDirectory>splicemachine/bin</outputDirectory>
+			<fileMode>0755</fileMode>
+			<directoryMode>0755</directoryMode>
+			<includes>
+				<include>*sh</include>
+			</includes>
+		</fileSet>
+		<fileSet>
+			<directory>../splice_web/target/classes/etc</directory>
+			<outputDirectory>splicemachine/etc</outputDirectory>
+			<includes>
+				<include>*xml</include>
+			</includes>
+		</fileSet>
+
 	</fileSets>
 </assembly>
