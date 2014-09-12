@@ -215,8 +215,7 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
             dm.invalidateFor(td, DependencyManager.DROP_TABLE, lcc);
 
             /* Invalidate dependencies remotely.  */
-            DDLChange ddlChange = new DDLChange(tc.getTransactionIdString(), DDLChangeType.DROP_TABLE);
-            ddlChange.setParentTransactionId(tc.getActiveStateTxIdString());
+            DDLChange ddlChange = new DDLChange(tc.getActiveStateTxn(), DDLChangeType.DROP_TABLE);
             ddlChange.setTentativeDDLDesc(new DropTableDDLChangeDesc(this.conglomerateNumber, this.tableId));
 
             notifyMetadataChange(ddlChange);

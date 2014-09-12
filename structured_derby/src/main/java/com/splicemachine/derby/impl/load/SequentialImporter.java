@@ -9,6 +9,8 @@ import com.splicemachine.derby.utils.marshall.PairEncoder;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.*;
 import com.splicemachine.metrics.MetricFactory;
+import com.splicemachine.metrics.Metrics;
+import com.splicemachine.metrics.TimeView;
 import com.splicemachine.metrics.Timer;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;

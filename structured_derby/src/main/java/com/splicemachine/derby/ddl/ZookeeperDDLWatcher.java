@@ -2,10 +2,9 @@ package com.splicemachine.derby.ddl;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
+import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.SpliceKryoRegistry;
-import com.splicemachine.constants.SpliceConstants;
-import com.google.common.collect.Lists;
 import com.splicemachine.concurrent.MoreExecutors;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.db.SpliceDatabase;
@@ -24,24 +23,14 @@ import org.apache.derby.iapi.services.monitor.Monitor;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.store.access.AccessFactory;
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.WatchedEvent;
-import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.*;
 import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.Watcher.Event.EventType;
 
-import java.util.*;
-import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.io.IOException;
 import java.util.*;
 import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -66,8 +55,6 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
 
     private String id;
     private SpliceAccessManager accessManager;
-    private ScheduledExecutorService executor = MoreExecutors
-            .namedSingleThreadScheduledExecutor("ZookeeperDDLWatcherRefresh");
 
     private ExecutorService refreshThread = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder()
             .setNameFormat("ZooKeeperDDLWatcherRefresher").setDaemon(true).build());
@@ -193,9 +180,9 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
         Set<DDLChange> newChanges = new HashSet<DDLChange>();
 
         // remove finished ddl changes
-        clearFinishedChanges(children);
+        clearFinishedChanges(ongoingDDLChangeIDs);
 
-        for (Iterator<String> iterator = children.iterator(); iterator.hasNext();) {
+        for (Iterator<String> iterator = ongoingDDLChangeIDs.iterator(); iterator.hasNext();) {
             String changeId = iterator.next();
             if (!seenDDLChanges.contains(changeId)) {
                 byte[] data;
@@ -283,19 +270,19 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
          * Kill transactions which have been timed out.
          */
         for (Entry<String, Long> entry : changesTimeouts.entrySet()) {
-            if (System.currentTimeMillis() > entry.getValue() + MAXIMUM_DDL_WAIT) {
+            if (System.currentTimeMillis() > entry.getValue() + MAXIMUM_DDL_WAIT_MS) {
                 killDDLTransaction(entry.getKey());
             }
         }
     }
 
-    private void notifyProcessed(Set<String> processedChanges) throws StandardException {
+    private void notifyProcessed(Set<DDLChange> processedChanges) throws StandardException {
         /*
          * Notify the relevant controllers that their change has been processed
          */
-        for (String change : processedChanges) {
+        for (DDLChange change : processedChanges) {
             try {
-                ZkUtils.create(SpliceConstants.zkSpliceDDLOngoingTransactionsPath + "/" + change + "/" + id,
+                ZkUtils.create(SpliceConstants.zkSpliceDDLOngoingTransactionsPath + "/" + change.getChangeId() + "/" + id,
                         new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
             } catch (KeeperException e) {
                 switch(e.code()) {

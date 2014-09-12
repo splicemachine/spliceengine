@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.google.common.io.Closeables;
 import com.splicemachine.derby.ddl.DDLChange;
+import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.ddl.TentativeDropColumnDesc;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.AlterTable.DropColumnJob;
@@ -294,7 +295,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         dd.addDescriptor(columnDescriptor, td,DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc);
 
         //notify other servers of the change
-        DDLChange change = new DDLChange(((SpliceTransactionManager)tc).getActiveStateTxn(), DDLChange.TentativeType.ADD_COLUMN);
+        DDLChange change = new DDLChange(((SpliceTransactionManager)tc).getActiveStateTxn(), DDLChangeType.ADD_COLUMN);
         notifyMetadataChange(change);
 
         // now add the column to the tables column descriptor list.
@@ -1439,7 +1440,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         TentativeDropColumnDesc tentativeDropColumnDesc =
                 new TentativeDropColumnDesc( tableId, newHeapConglom, td.getHeapConglomerateId(), allColumnInfo, droppedColumnPosition);
 
-        DDLChange ddlChange = new DDLChange(tentativeTransaction, DDLChange.TentativeType.DROP_COLUMN);
+        DDLChange ddlChange = new DDLChange(tentativeTransaction, DDLChangeType.DROP_COLUMN);
         ddlChange.setTentativeDDLDesc(tentativeDropColumnDesc);
         ddlChange.setParentTxn(parentTxn);
 
@@ -1551,7 +1552,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
             ColumnInfo[] allColumnInfo = DataDictionaryUtils.getColumnInfo(td);
             LoadConglomerateJob job = new LoadConglomerateJob(table,
                     tableId, fromConglomId, toConglomId, allColumnInfo, droppedColumnPosition, dropColumnTxn,
-                    statementInfo.getStatementUuid(), opInfo.getOperationUuid(),demarcationPoint, activation.isTraced());
+                    statementInfo.getStatementUuid(), opInfo.getOperationUuid(), activation.isTraced(),demarcationPoint);
             long start = System.currentTimeMillis();
             future = SpliceDriver.driver().getJobScheduler().submit(job);
             info = new JobInfo(job.getJobId(),future.getNumTasks(),start);

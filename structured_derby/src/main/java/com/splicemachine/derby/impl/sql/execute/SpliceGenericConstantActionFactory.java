@@ -123,23 +123,23 @@ public class SpliceGenericConstantActionFactory extends GenericConstantActionFac
         if(truncateTable){
             return new TruncateTableConstantOperation(sd,tableName,tableId,tableConglomerateId,
                     lockGranularity,behavior,sequential,indexNameForStatistics);
-        }else if(compressTable){
-            if(purge){
-                return new PurgeTableConstantOperation(sd,tableName,tableId,tableConglomerateId,
-                        lockGranularity,
-                        behavior,
-                        sequential,
-                        indexNameForStatistics);
-            }else
-                return new CompressTableConstantOperation(sd,tableName,tableId,tableConglomerateId,
-                        lockGranularity,behavior,sequential,
-                        indexNameForStatistics);
-
-        }else if(updateStatistics||dropStatistics){
-            return new UpdateStatisticsConstantOperation(sd,tableName,tableId,tableConglomerateId,
-                    columnInfo,constraintActions,lockGranularity,
-                    behavior,sequential,
-                    updateStatistics,updateStatisticsAll,dropStatistics,dropStatisticsAll,indexNameForStatistics);
+//        }        else if(compressTable){
+//            if(purge){
+//                return new PurgeTableConstantOperation(sd,tableName,tableId,tableConglomerateId,
+//                        lockGranularity,
+//                        behavior,
+//                        sequential,
+//                        indexNameForStatistics);
+//            }else
+//                return new CompressTableConstantOperation(sd,tableName,tableId,tableConglomerateId,
+//                        lockGranularity,behavior,sequential,
+//                        indexNameForStatistics);
+//
+//        }else if(updateStatistics||dropStatistics){
+//            return new UpdateStatisticsConstantOperation(sd,tableName,tableId,tableConglomerateId,
+//                    columnInfo,constraintActions,lockGranularity,
+//                    behavior,sequential,
+//                    updateStatistics,updateStatisticsAll,dropStatistics,dropStatisticsAll,indexNameForStatistics);
         }else if(columnInfo!=null){
             return new ModifyColumnConstantOperation(sd,tableName,tableId,
                     tableConglomerateId,columnInfo,constraintActions,

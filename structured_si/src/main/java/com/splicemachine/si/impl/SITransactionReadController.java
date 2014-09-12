@@ -27,17 +27,14 @@ public class SITransactionReadController<
 		private final DataStore dataStore;
 		private final SDataLib dataLib;
 		private final TxnSupplier txnSupplier;
-		private final TxnLifecycleManager tc;
 
 
-		public SITransactionReadController(DataStore dataStore,
-																			 SDataLib dataLib,
-																			 TxnSupplier txnSupplier,
-																			 TxnLifecycleManager tc) {
+    public SITransactionReadController(DataStore dataStore,
+                                       SDataLib dataLib,
+                                       TxnSupplier txnSupplier) {
 				this.dataStore = dataStore;
 				this.dataLib = dataLib;
 				this.txnSupplier = txnSupplier;
-				this.tc = tc;
 		}
 
 		@Override
@@ -124,8 +121,8 @@ public class SITransactionReadController<
 		}
 
 		@Override
-		public DDLFilter newDDLFilter(TxnView txn,TxnView parentTxn) throws IOException {
-        return new DDLFilter(txn,parentTxn,txnSupplier);
+		public DDLFilter newDDLFilter(TxnView txn) throws IOException {
+        return new DDLFilter(txn);
 		}
 
 

@@ -1,8 +1,6 @@
 package com.splicemachine.si;
 
 import com.google.common.base.Function;
-import com.google.common.base.Suppliers;
-import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnLifecycleManager;

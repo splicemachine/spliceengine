@@ -331,7 +331,6 @@ public class JobControlTest {
         }
 
         @Override
-				@Override
 				public RegionTask getClone() {
 						return this;
 				}

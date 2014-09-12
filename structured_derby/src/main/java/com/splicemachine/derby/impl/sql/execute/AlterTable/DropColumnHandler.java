@@ -48,7 +48,7 @@ public class DropColumnHandler implements WriteHandler {
         this.columnInfos = columnInfos;
         this.droppedColumnPosition = droppedColumnPosition;
         rowTransformer = new RowTransformer(tableId, txn, columnInfos, droppedColumnPosition);
-        loader = new ConglomerateLoader(toConglomId, txn);
+        loader = new ConglomerateLoader(toConglomId, txn,false);
     }
 
     @Override

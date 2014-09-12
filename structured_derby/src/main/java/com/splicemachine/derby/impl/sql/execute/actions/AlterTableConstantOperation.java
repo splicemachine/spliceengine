@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.google.common.io.Closeables;
 import com.splicemachine.derby.ddl.DDLChange;
+import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.ddl.TentativeIndexDesc;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
@@ -398,7 +399,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
                     uniqueWithDuplicateNulls,
                     SpliceUtils.bitSetFromBooleanArray(descColumns));
             DDLChange ddlChange = new DDLChange(tentativeTransaction,
-                    DDLChange.TentativeType.CREATE_INDEX);
+                    DDLChangeType.CREATE_INDEX);
             ddlChange.setTentativeDDLDesc(tentativeIndexDesc);
             ddlChange.setParentTxn(((SpliceTransactionManager)tc).getActiveStateTxn());
 

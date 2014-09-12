@@ -53,9 +53,6 @@ public class ZookeeperDDLController implements DDLController, Watcher {
             throw Exceptions.parseException(e);
         }
 
-        if(LOG.isDebugEnabled())
-            LOG.debug("Notifying metadata change with id " + changeId + ": " + jsonChange);
-
         long startTimestamp = System.currentTimeMillis();
         synchronized (LOCK) {
             while (true) {

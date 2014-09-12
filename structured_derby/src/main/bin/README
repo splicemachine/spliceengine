@@ -356,7 +356,6 @@ com.splicemachine.derby.impl.ast.MSJJoinConditionVisitor
 com.splicemachine.derby.impl.ast.PlanPrinter
 com.splicemachine.derby.impl.ast.SpliceDerbyVisitorAdapter
 com.splicemachine.derby.impl.db.SpliceDatabase
-com.splicemachine.derby.impl.db.TransactionKeepAlive
 com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler
 com.splicemachine.derby.impl.job.scheduler.DistributedJobScheduler
 com.splicemachine.derby.impl.job.scheduler.WorkStealingTaskScheduler

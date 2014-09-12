@@ -60,8 +60,12 @@ public class NestedLoopJoinOperation extends JoinOperation {
 								resultSetNumber,oneRowRightSide,notExistsRightSide,optimizerEstimatedRowCount,
 								optimizerEstimatedCost,userSuppliedOptimizerOverrides);
 				this.isHash = false;
-				init(SpliceOperationContext.newContext(activation,null));
-				recordConstructorTime();
+        try {
+            init(SpliceOperationContext.newContext(activation,null));
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
+        recordConstructorTime();
 		}
 
 		@Override

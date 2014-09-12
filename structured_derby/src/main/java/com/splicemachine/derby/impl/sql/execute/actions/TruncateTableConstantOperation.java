@@ -51,10 +51,7 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
                                           int behavior,
                                           boolean sequential,
                                           String indexNameForStatistics) {
-        super(sd, tableName, tableId, tableConglomerateId,
-                 null, null, lockGranularity,
-                false, behavior, sequential,
-                false,false,false,false,false, indexNameForStatistics);
+        super(sd,tableName,tableId,tableConglomerateId,null,null,lockGranularity,behavior,indexNameForStatistics);
     }
 
 

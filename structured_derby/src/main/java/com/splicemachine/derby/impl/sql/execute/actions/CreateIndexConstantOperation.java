@@ -2,20 +2,17 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.google.common.io.Closeables;
 import com.splicemachine.derby.ddl.DDLChange;
+import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.ddl.TentativeIndexDesc;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.derby.impl.store.access.base.SpliceController;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.FormatableBitSetUtils;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.primitives.BooleanArrays;
 import com.splicemachine.si.api.TransactionLifecycle;
-import com.splicemachine.derby.ddl.DDLChangeType;
-import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnLifecycleManager;
 import com.splicemachine.si.api.TxnView;
@@ -36,14 +33,12 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.store.access.ColumnOrdering;
 import org.apache.derby.iapi.store.access.ConglomerateController;
 import org.apache.derby.iapi.store.access.TransactionController;
-import org.apache.derby.iapi.store.access.conglomerate.Conglomerate;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.TypeId;
 import org.apache.derby.impl.services.daemon.IndexStatisticsDaemonImpl;
 import org.apache.derby.impl.sql.execute.IndexColumnOrder;
 import org.apache.derby.impl.sql.execute.RowUtil;
-import org.apache.derby.impl.store.access.conglomerate.ConglomerateUtil;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
@@ -736,7 +731,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
         }
     }
 
-    private Properties getIndexProperties(int[] baseColumnPositions, long heapConglomerateId) {
+    private Properties getIndexProperties(int[] baseColumnPositions, long heapConglomerateId) throws StandardException {
         /*
          * Describe the properties of the index to the store using Properties
          *
@@ -777,26 +772,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
         }
         // By convention, the row location column is the last column
         indexProperties.put("rowLocationColumn", Integer.toString(baseColumnPositions.length));
-            // Perform tentative DDL change
-            Txn tentativeTransaction;
-            TxnView parentTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
-            try {
-                TxnLifecycleManager lifecycleManager = TransactionLifecycle.getLifecycleManager();
-                tentativeTransaction = lifecycleManager.beginTransaction(Bytes.toBytes(Long.toString(heapConglomerateId)));
-            } catch (IOException e) {
-                LOG.error("Couldn't start transaction for tentative DDL operation");
-                throw Exceptions.parseException(e);
-            }
-            TentativeIndexDesc tentativeIndexDesc = new TentativeIndexDesc(conglomId, heapConglomerateId,
-                    baseColumnPositions, unique,
-                    uniqueWithDuplicateNulls,
-                    SpliceUtils.bitSetFromBooleanArray(descColumns));
-            DDLChange ddlChange = new DDLChange(tentativeTransaction,
-                    DDLChangeType.CREATE_INDEX);
-            ddlChange.setTentativeDDLDesc(tentativeIndexDesc);
-            ddlChange.setParentTxn(parentTxn);
 
-        // For now, all columns are key fields, including the RowLocation
         indexProperties.put("nKeyFields",Integer.toString(baseColumnPositions.length + 1));
         return indexProperties;
     }
@@ -864,7 +840,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
 
     private DDLChange performMetadataChange(Txn tentativeTransaction, TentativeIndexDesc tentativeIndexDesc) throws StandardException {
         DDLChange ddlChange = new DDLChange(tentativeTransaction,
-                DDLChange.TentativeType.CREATE_INDEX);
+                DDLChangeType.CREATE_INDEX);
         ddlChange.setTentativeDDLDesc(tentativeIndexDesc);
 
         notifyMetadataChange(ddlChange);

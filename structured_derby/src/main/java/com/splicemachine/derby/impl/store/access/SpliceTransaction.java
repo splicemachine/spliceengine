@@ -141,14 +141,6 @@ public class SpliceTransaction extends BaseSpliceTransaction {
 		public Txn getTxn() {
 				return txn;
 		}
-    @Override
-    public String toString() {
-        return "SpliceTransaction{" +
-                "state=" + state +
-                ", transName='" + transName + '\'' +
-                ", transactionId=" + transactionId +
-                '}';
-    }
 
 		public void setTxn(Txn txn) { this.txn = txn; }
 

@@ -60,5 +60,5 @@ public interface TransactionReadController<Get,Scan> {
      * @param txn the ddl transaction
      * @return Object that tracks visibility
      */
-    DDLFilter newDDLFilter(TxnView txn,TxnView parentTxn) throws IOException;
+    DDLFilter newDDLFilter(TxnView txn) throws IOException;
 }
