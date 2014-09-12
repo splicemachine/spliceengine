@@ -78,11 +78,14 @@ public class DDLChange implements Externalizable {
         out.writeBoolean(changeId!=null);
         if(changeId!=null)
             out.writeUTF(changeId);
+        out.writeBoolean(tentativeDDLDesc!=null);
+        if(tentativeDDLDesc!=null)
+            out.writeObject(tentativeDDLDesc);
 
         out.writeLong(txn.getTxnId());
-        out.writeLong(txn.getBeginTimestamp());
-        out.writeLong(txn.getParentTxnId());
-        out.writeBoolean(txn.isAdditive());
+//        out.writeLong(txn.getBeginTimestamp());
+//        out.writeLong(txn.getParentTxnId());
+//        out.writeBoolean(txn.isAdditive());
 
 //        out.writeBoolean(parentTxn!=null);
 //        if(parentTxn!=null){
@@ -98,6 +101,8 @@ public class DDLChange implements Externalizable {
             changeType = (DDLChangeType)in.readObject();
         if(in.readBoolean())
             changeId = in.readUTF();
+        if(in.readBoolean())
+            tentativeDDLDesc = (TentativeDDLDesc)in.readObject();
 
         long txnId = in.readLong();
 //        long beginTs = in.readLong();

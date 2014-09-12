@@ -6,8 +6,10 @@ import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.*;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
+import com.splicemachine.si.api.TxnLifecycleManager;
 import com.splicemachine.si.coprocessors.SIObserver;
 import com.splicemachine.si.coprocessors.TimestampMasterObserver;
+import com.splicemachine.si.coprocessors.TxnLifecycleEndpoint;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HConstants;
@@ -31,6 +33,7 @@ class SpliceTestPlatformConfig {
             SpliceIndexManagementEndpoint.class,
             SpliceIndexEndpoint.class,
             CoprocessorTaskScheduler.class,
+            TxnLifecycleEndpoint.class,
             SIObserver.class);
 
     private static final List<Class<?>> MASTER_COPROCESSORS = Arrays.<Class<?>>asList(

@@ -196,9 +196,13 @@ public class CompletedTxnCacheSupplier implements TxnSupplier {
                      * we do only a single step, at the cost of randomly evicting entries.
                      */
                     SoftReference<TxnView> datum = data[pos];
-                    if(datum!=null && datum.get()!=null){
-                        evicted.incrementAndGet();
-                        size--;
+                    if(datum!=null){
+                        TxnView present = datum.get();
+                        if(present!=null){
+                            if(txn.equals(present)) return true;
+                            evicted.incrementAndGet();
+                            size--;
+                        }
                     }
                 }else{
                     /*
