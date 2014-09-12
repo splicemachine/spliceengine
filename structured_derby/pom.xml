@@ -190,6 +190,91 @@
 			<artifactId>jsr166y</artifactId>
 			<version>1.7.0</version>
 		</dependency>
+
+<dependency>
+  <groupId>org.apache.hive</groupId>
+  <artifactId>hive-exec</artifactId>
+<version>${hive.version}</version>
+</dependency>
+
+
+<dependency>
+  <groupId>org.apache.hive</groupId>
+  <artifactId>hive-serde</artifactId>
+<version>${hive.version}</version>
+</dependency>
+
+
+<dependency>
+  <groupId>org.apache.hive</groupId>
+  <artifactId>hive-metastore</artifactId>
+<version>${hive.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>javax.jdo</groupId>
+                    <artifactId>jdo2-api</artifactId>
+                </exclusion>
+            </exclusions>
+</dependency>
+
+<dependency>
+  <groupId>org.apache.hive</groupId>
+  <artifactId>hive-service</artifactId>
+<version>${hive.version}</version>
+</dependency>
+
+<dependency>
+  <groupId>org.apache.hive</groupId>
+  <artifactId>hive-shims</artifactId>
+<version>${hive.version}</version>
+</dependency>
+
+<dependency>
+  <groupId>org.apache.hive</groupId>
+  <artifactId>hive-cli</artifactId>
+<version>${hive.version}</version>
+</dependency>
+
+<dependency>
+  <groupId>org.apache.hive</groupId>
+  <artifactId>hive-contrib</artifactId>
+<version>${hive.version}</version>
+</dependency>
+
+<dependency>
+  <groupId>org.apache.hive</groupId>
+  <artifactId>hive-hbase-handler</artifactId>
+<version>${hive.version}</version>
+</dependency>
+
+<!--
+<dependency>
+  <groupId>org.apache.hive</groupId>
+  <artifactId>hive-beeline</artifactId>
+<version>0.13.0.2.1.0.0-92</version>
+</dependency>
+-->
+
+<dependency>
+  <groupId>org.apache.hive</groupId>
+  <artifactId>hive-common</artifactId>
+<version>${hive.version}</version>
+</dependency>
+
+<dependency>
+  <groupId>org.apache.hive</groupId>
+  <artifactId>hive-hwi</artifactId>
+<version>${hive.version}</version>
+</dependency>
+
+<dependency>
+  <groupId>org.apache.hive</groupId>
+  <artifactId>hive-jdbc</artifactId>
+<version>${hive.version}</version>
+</dependency>
+
+
+		
 	</dependencies>
 	<build>
 		<resources>

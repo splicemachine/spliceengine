@@ -341,6 +341,7 @@
 				<zookeeper.version>3.4.5-cdh4.5.0.1-splice</zookeeper.version>
 				<hbase.version>0.94.6-cdh4.5.0-splice</hbase.version>
 				<hadoop.version>2.0.0-cdh4.5.0</hadoop.version>
+                <hive.version>0.11.0.1.3.2.0-111</hive.version>
 				<envClassifier>cloudera-cdh4.5.0</envClassifier>
 			</properties>
 			<dependencies>
@@ -555,6 +556,7 @@
 				<!-- hbase.version>0.94.6.1.3.7.0-2</hbase.version -->
 				<hbase.version>0.94.6-hdp1.3.7-splice</hbase.version>
 				<hadoop.version>1.2.0.1.3.7.0-2</hadoop.version>
+                <hive.version>0.11.0.1.3.2.0-111</hive.version>
 				<envClassifier>hdp1.3</envClassifier>
 			</properties>
 			<dependencies>
