@@ -538,8 +538,9 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         }
 
         // now add all remaining ordered columns
-        cols.addAll(colSet);
-        return cols;
+        colSet.addAll(cols);
+
+        return colSet;
     }
 
 
