@@ -47,7 +47,7 @@ echo "Running with debug = ${DEBUG} and config file = ${CONFIG_FILE}"
 
 # server still running? - must stop first
 S=$(ps -ef | awk '/splice_web/ && !/awk/ {print $2}')
-if [[ -e "${ROOT_DIR}"/splice_pid || -n ${S} ]]; then
+if [[ -e "${ROOT_DIR}"/admin_pid || -n ${S} ]]; then
     echo "Splice Admin is currently running and must be shut down. Run stop-splice-admin.sh"
     exit 1;
 fi
