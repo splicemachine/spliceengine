@@ -4,15 +4,14 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.splicemachine.rest</groupId>
 	<artifactId>splice_web</artifactId>
-	<version>FUJI.0-SNAPSHOT</version>
 	<packaging>war</packaging>
-	<name>splice_web Jersey Webapp</name>
-	<properties>
-		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<jersey.version>1.8</jersey.version>
-		<derby.version>10.9.1.0-splice</derby.version>
-		<junit.version>4.11</junit.version>
-	</properties>
+	<name>splice_web</name>
+	<description>Splice Machine Webapp</description>
+	<parent>
+		<artifactId>spliceengine</artifactId>
+		<groupId>com.splicemachine</groupId>
+		<version>FUJI.0-SNAPSHOT</version>
+	</parent>
 	<dependencies>
 		<dependency>
 			<groupId>com.sun.jersey</groupId>
@@ -27,7 +26,7 @@
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
-			<version>${junit.version}</version>
+			<version>4.8.2</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
@@ -42,24 +41,6 @@
 			<version>${derby.version}</version>
 		</dependency>
 	</dependencies>
-	<repositories>
-		<repository>
-			<id>central</id>
-			<url>http://repo1.maven.org/maven2</url>
-		</repository>
-		<repository>
-			<id>splicemachine</id>
-			<url>http://nexus.splicemachine.com/nexus/content/repositories/releases</url>
-			<releases>
-				<enabled>true</enabled>
-			</releases>
-		</repository>
-		<repository>
-			<id>m2.java.net</id>
-			<name>Java.net Maven 2 Repository</name>
-			<url>http://download.java.net/maven/2</url>
-		</repository>
-	</repositories>
 	<pluginRepositories>
 		<pluginRepository>
 			<id>m2.java.net</id>
@@ -102,25 +83,25 @@
 				</executions>
 			</plugin>
 			<!-- NOTE: Commented out the execution of JavaScript unit tests until Node.js has been configured for Jenkins servers. -->
-			<!--<plugin>-->
-				<!--<groupId>org.codehaus.mojo</groupId>-->
-				<!--<artifactId>exec-maven-plugin</artifactId>-->
-				<!--<version>1.3.2</version>-->
-				<!--<executions>-->
-					<!--<execution>-->
-						<!--<phase>prepare-package</phase>-->
-						<!--<goals>-->
-							<!--<goal>exec</goal>-->
-						<!--</goals>-->
-					<!--</execution>-->
-				<!--</executions>-->
-				<!--<configuration>-->
-					<!--<executable>grunt</executable>-->
-					<!--<arguments>-->
-						<!--<argument>karma</argument>-->
-					<!--</arguments>-->
-				<!--</configuration>-->
-			<!--</plugin>-->
+				<!-- <plugin>
+					<groupId>org.codehaus.mojo</groupId>
+					<artifactId>exec-maven-plugin</artifactId>
+					<version>1.3.2</version>
+					<executions>
+						<execution>
+							<phase>prepare-package</phase>
+							<goals>
+								<goal>exec</goal>
+							</goals>
+						</execution>
+					</executions>
+					<configuration>
+						<executable>grunt</executable>
+						<arguments>
+							<argument>karma</argument>
+						</arguments>
+					</configuration>
+				</plugin> -->
 			<plugin>
 				<groupId>org.mortbay.jetty</groupId>
 				<artifactId>jetty-maven-plugin</artifactId>

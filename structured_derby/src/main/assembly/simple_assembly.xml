@@ -101,6 +101,7 @@ TAR structure:
 		</fileSet>
 
 		<!-- splice_web project -->
+		<!--
 		<fileSet>
 			<directory>../splice_web/target</directory>
 			<outputDirectory>splicemachine/lib</outputDirectory>
@@ -134,6 +135,6 @@ TAR structure:
 				<include>*xml</include>
 			</includes>
 		</fileSet>
-
+		-->
 	</fileSets>
 </assembly>
