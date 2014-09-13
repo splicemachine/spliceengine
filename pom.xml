@@ -11,7 +11,6 @@
 	<modules>
 		<module>structured_constants</module>
 		<module>structured_si</module>
-		<module>splice_web</module>
 		<module>structured_derby</module>
 	</modules>
 	<scm>
@@ -36,11 +35,11 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<junit.version>4.11</junit.version>
-		<jersey-version>1.8</jersey-version>
 		<maven.compiler.source>1.6</maven.compiler.source>
 		<maven.compiler.target>1.6</maven.compiler.target>
 		<maven.jar.plugin.version>2.3.1</maven.jar.plugin.version>
-		<utilities.version>1.1-SNAPSHOT</utilities.version> <!-- Splice Internal Library -->
+		<utilities.version>1.1-SNAPSHOT</utilities.version>
+		<!-- Splice Internal Library -->
 		<log4j.version>1.2.15</log4j.version>
 		<derby.version>10.9.1.0-splice</derby.version>
 		<gson.version>2.2.2</gson.version>
@@ -51,7 +50,8 @@
 		<mockito.version>1.9.5</mockito.version>
 		<maven.build.timestamp.format>yyyy-MM-dd HH:mm Z</maven.build.timestamp.format>
 		<skip.integration.tests>true</skip.integration.tests>
-		<failTasksRandomly>true</failTasksRandomly> <!-- run chaos monkey -->
+		<failTasksRandomly>true</failTasksRandomly>
+		<!-- run chaos monkey -->
 		<log4j.config.uri>file:${basedir}/src/main/resources/info-log4j.properties</log4j.config.uri>
 		<assemble>false</assemble>
 		<envClassifier/>
