@@ -11,6 +11,7 @@
 	<modules>
 		<module>structured_constants</module>
 		<module>structured_si</module>
+		<module>splice_web</module>
 		<module>structured_derby</module>
 	</modules>
 	<scm>
