@@ -222,6 +222,16 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
 
             for (LanguageConnectionContext langContext : getLanguageConnectionContexts()) {
 
+                /*
+                 * There is a weird situation that can theoretically occur
+                 * here, where the collection returned by getLanguageConnectionContexts()
+                 * can contain a null language connection context. This isn't a huge deal
+                 * for the purposes of this method (if there's no LCC, don't bother
+                 * trying to finish or start DDL changes), so we put in this check,
+                 * but we probably need to figure out why and how a null LCC is being
+                 * added to the context.
+                 */
+                if(langContext==null) continue;
                 // CASE 2: We are no longer aware of any ongoing DDL changes.
                 if (currentDDLChanges.isEmpty()) {
                     LOG.debug("Finishing global ddl changes ");

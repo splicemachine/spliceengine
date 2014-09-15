@@ -129,6 +129,10 @@ public abstract class ZkTask implements RegionTask,Externalizable {
 				}
     }
 
+    protected TxnView getParentTxn() {
+        return parentTxn;
+    }
+
     protected void setupTransaction() throws ExecutionException {
     /*
      * Create the Child transaction.

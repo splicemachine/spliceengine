@@ -22,6 +22,8 @@ import com.splicemachine.metrics.TimeView;
 import com.splicemachine.metrics.Timer;
 import com.splicemachine.hbase.writer.WriteStats;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnLifecycleManager;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.KeyValue;
@@ -174,6 +176,11 @@ public class LoadConglomerateTask extends ZkTask {
             }
         }
 
+    }
+
+    @Override
+    protected Txn beginChildTransaction(TxnView parentTxn, TxnLifecycleManager tc) throws IOException {
+        return tc.beginChildTransaction(parentTxn,Long.toString(toConglomId).getBytes());
     }
 
     @Override

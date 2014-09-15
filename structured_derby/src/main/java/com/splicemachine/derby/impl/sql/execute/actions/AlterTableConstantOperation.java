@@ -401,7 +401,6 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
             DDLChange ddlChange = new DDLChange(tentativeTransaction,
                     DDLChangeType.CREATE_INDEX);
             ddlChange.setTentativeDDLDesc(tentativeIndexDesc);
-            ddlChange.setParentTxn(((SpliceTransactionManager)tc).getActiveStateTxn());
 
             notifyMetadataChange(ddlChange);
 

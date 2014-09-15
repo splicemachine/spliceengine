@@ -83,6 +83,7 @@ public class ConglomerateLoader {
     }
 
     public WriteStats getWriteStats() {
+        if(writeBuffer==null) return WriteStats.NOOP_WRITE_STATS;
         return writeBuffer.getWriteStats();
     }
 }

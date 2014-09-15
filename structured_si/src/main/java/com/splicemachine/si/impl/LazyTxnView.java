@@ -195,7 +195,10 @@ public class LazyTxnView implements TxnView {
         }
     }
 
-    public void setSupplier(TxnSupplier supplier) {
-        this.store = supplier;
+    public void setSupplier(TxnSupplier supplier) { this.store = supplier; }
+
+    @Override
+    public String toString() {
+        return "LazyWritableTxn("+txnId+")";
     }
 }

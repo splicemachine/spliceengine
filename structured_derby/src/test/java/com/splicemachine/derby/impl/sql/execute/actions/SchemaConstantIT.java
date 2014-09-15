@@ -4,10 +4,12 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import com.splicemachine.test.SerialTest;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
@@ -17,6 +19,7 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 /**
  * Schema creation / drop tests.
  */
+@Category(SerialTest.class)
 public class SchemaConstantIT extends SpliceUnitTest { 
     public static final String CLASS_NAME = SchemaConstantIT.class.getSimpleName().toUpperCase();
     public static final String SCHEMA1_NAME = CLASS_NAME + "_1";

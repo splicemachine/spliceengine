@@ -12,10 +12,7 @@ import com.splicemachine.derby.ddl.DDLChange;
 import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.hbase.table.BetterHTablePool;
 import com.splicemachine.hbase.table.SpliceHTableFactory;
-import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.TransactionReadController;
-import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.api.*;
 import com.splicemachine.si.impl.DDLFilter;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
@@ -496,6 +493,14 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
         DDLChange ddlChange = ongoingDDLChanges.remove(identifier);
         if (ddlChange != null) {
             try {
+                TxnView txn = ddlChange.getTxn();
+                try{
+                    txn.allowsWrites();
+                }catch(RuntimeException re){
+                    if(re.getCause() instanceof ReadOnlyModificationException)
+                        throw new IOException("DDLChange "+ddlChange+" does not have a writable transaction");
+                    else throw re;
+                }
                 TransactionReadController<Get, Scan> txController = HTransactorFactory.getTransactionReadController();
                 DDLFilter ddlFilter = txController.newDDLFilter(ddlChange.getTxn());
                 if (ddlFilter.compareTo(ddlDemarcationPoint) > 0) {

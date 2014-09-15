@@ -351,7 +351,7 @@ public class HashNestedLoopJoinOperation extends JoinOperation{
             ExecRow next = leftRowBuffer.next();
             leftResultSet.setCurrentRow(next);
             setCurrentRow(next);
-            rightRs.sinkOpen(true,false);
+            rightRs.sinkOpen(context.getTxn(),false);
             Scan nonSIScan = scanProvider.get(context);
 
             byte[] startRow = nonSIScan.getStartRow();

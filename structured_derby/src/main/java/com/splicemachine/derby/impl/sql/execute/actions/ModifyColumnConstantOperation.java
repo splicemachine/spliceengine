@@ -1442,7 +1442,6 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
 
         DDLChange ddlChange = new DDLChange(tentativeTransaction, DDLChangeType.DROP_COLUMN);
         ddlChange.setTentativeDDLDesc(tentativeDropColumnDesc);
-        ddlChange.setParentTxn(parentTxn);
 
         notifyMetadataChange(ddlChange);
 
