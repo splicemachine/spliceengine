@@ -68,6 +68,8 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
         } catch(StandardException se){
             child.abort();
             throw se;
+        }finally{
+            lcc.popNestedTransaction();
         }
         child.commit();
     }

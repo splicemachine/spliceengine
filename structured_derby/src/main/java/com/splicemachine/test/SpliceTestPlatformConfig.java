@@ -98,6 +98,7 @@ class SpliceTestPlatformConfig {
         config.set("hbase.master.dns.interface", interfaceName);
         config.setLong("splice.ddl.drainingWait.maximum",15000l); //wait 15 sseconds before bailing on bad ddl statements
         config.setLong(HConstants.HREGION_MAX_FILESIZE, 1024 * 1024 * 1024L); // 128?
+        config.set("hbase.master.jmx.port","10102");
 
         //set a low value threshold for gz file size on import
         config.setLong(SpliceConstants.SEQUENTIAL_IMPORT_FILESIZE_THREASHOLD, 1024 * 1024L);
