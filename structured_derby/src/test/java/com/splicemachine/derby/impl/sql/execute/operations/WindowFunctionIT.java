@@ -74,6 +74,24 @@ public class WindowFunctionIT extends SpliceUnitTest {
         "5, 11.0, '2014-09-08 17:41:56.353'"
     };
 
+    private static String table3Def = "(PersonID int,FamilyID int,FirstName varchar(10),LastName varchar(25),DOB timestamp)";
+    public static final String TABLE3_NAME = "people";
+    protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher(TABLE3_NAME,CLASS_NAME, table3Def);
+
+    private static String[] PEOPLE_ROWS = {
+        "1,1,'Joe','Johnson', '2000-10-23 13:00:00'",
+        "2,1,'Jim','Johnson','2001-12-15 05:45:00'",
+        "3,2,'Karly','Matthews','2000-05-20 04:00:00'",
+        "4,2,'Kacy','Matthews','2000-05-20 04:02:00'",
+        "5,2,'Tom','Matthews','2001-09-15 11:52:00'",
+        "1,1,'Joe','Johnson', '2000-10-23 13:00:00'",
+        "2,1,'Jim','Johnson','2001-12-15 05:45:00'",
+        "3,2,'Karly','Matthews','2000-05-20 04:00:00'",
+        "5,2,'Tom','Matthews','2001-09-15 11:52:00'",
+        "1,1,'Joe','Johnson', '2000-10-23 13:00:00'",
+        "2,1,'Jim','Johnson','2001-12-15 05:45:00'"
+    };
+
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
                                             .around(spliceSchemaWatcher)
@@ -91,8 +109,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
-            }
-                                            }).around(spliceTableWatcher2)
+            }})
+                                            .around(spliceTableWatcher2)
                                             .around(new SpliceDataWatcher() {
                                                 @Override
                                                 protected void starting(Description description) {
@@ -107,7 +125,23 @@ public class WindowFunctionIT extends SpliceUnitTest {
                                                         throw new RuntimeException(e);
                                                     }
                                                 }
-                                            });
+                                            })
+    .around(spliceTableWatcher3)
+    .around(new SpliceDataWatcher() {
+        @Override
+        protected void starting(Description description) {
+            PreparedStatement ps;
+            try {
+                for (String row : PEOPLE_ROWS) {
+                    ps = spliceClassWatcher.prepareStatement(
+                        String.format("insert into %s values (%s)", spliceTableWatcher3, row));
+                    ps.execute();
+                }
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+    });
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
@@ -670,6 +704,26 @@ public class WindowFunctionIT extends SpliceUnitTest {
     }
 
     @Test
+    public void testRowNumberWithoutPartitionOrderby() throws Exception {
+        // DB-1683
+        int[] personID = {1, 1, 1, 2, 2, 2, 3, 3, 4, 5, 5};
+        int[] number = { 4,  5,  6,  9, 10, 11,  1,  2,  3,  7,  8};
+        String sqlText =
+            "select PersonID,FamilyID,FirstName,LastName, ROW_NUMBER() over (order by DOB) as Number from %s order by PersonID";
+
+        ResultSet rs = methodWatcher.executeQuery(
+            String.format(sqlText, this.getTableReference(TABLE3_NAME)));
+
+        int i = 0;
+        while (rs.next()) {
+            Assert.assertEquals(personID[i],rs.getInt(1));
+            Assert.assertEquals(number[i],rs.getInt(5));
+            ++i;
+        }
+        rs.close();
+    }
+
+    @Test
     public void testScalarAggWithOrderBy() throws Exception {
         // DB-1774 - ClassCastException
         double[] result = {1.0, 2.0, 9.0, 6.0, 11.0, 23.0, 3.0, 10.0, 20.0, 10.0, 12.0, 20.0, 11.0, 15.0, 25.0};
@@ -688,7 +742,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
 
     @Test
     public void testSelectAllColsScalarAggWithOrderBy() throws Exception {
-        // DB-1774 - ClassCastException
+        // DB-1775
         double[] result = {1.0, 2.0, 9.0, 6.0, 11.0, 23.0, 3.0, 10.0, 20.0, 10.0, 12.0, 20.0, 11.0, 15.0, 25.0};
         String sqlText =
             "SELECT item, price, sum(price) over (Partition by item ORDER BY date) as sumsal, date from %s";
