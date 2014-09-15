@@ -209,7 +209,8 @@ public class NestedLoopJoinOperation extends JoinOperation {
                     }
                     operationChain.add(operationChainInfo);
                 }
-                probeResultSet.open(hash);
+                probeResultSet.sinkOpen(spliceRuntimeContext.getTxn(),false);
+                probeResultSet.executeScan(hash,spliceRuntimeContext);
                 populated=false;
                 this.outerJoin = outerJoin;
             }
