@@ -155,8 +155,14 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
              * we replace it with a wrapped transaction
              */
             try{
-                DropIndexFactory wrappedFactory = new DropIndexFactory(txn, IndexFactory.wrap(indexConglomId));
-                replace(wrappedFactory);
+                for(int i=0;i<indexFactories.size();i++){
+                    LocalWriteFactory factory = indexFactories.get(i);
+                    if(factory.getConglomerateId()==indexConglomId){
+                        DropIndexFactory wrappedFactory = new DropIndexFactory(txn,factory);
+                        indexFactories.set(i,wrappedFactory);
+                        return;
+                    }
+                }
             }finally{
                 tableWriteLatch.countDown();
             }
@@ -608,6 +614,11 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
         }
 
         @Override
+        public long getConglomerateId() {
+            return indexConglomId;
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if(o instanceof IndexFactory){
@@ -617,7 +628,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
             }else if(o instanceof DropIndexFactory){
                 DropIndexFactory that = (DropIndexFactory) o;
 
-                return indexConglomId == that.delegate.indexConglomId;
+                return indexConglomId == that.delegate.getConglomerateId();
 
             }else return false;
         }
@@ -634,9 +645,9 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
 
     private static class DropIndexFactory implements LocalWriteFactory{
         private TxnView txn;
-        private IndexFactory delegate;
+        private LocalWriteFactory delegate;
 
-        private DropIndexFactory(TxnView txn, IndexFactory delegate) {
+        private DropIndexFactory(TxnView txn, LocalWriteFactory delegate) {
             this.txn = txn;
             this.delegate = delegate;
         }
@@ -649,14 +660,13 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
              * 1. txn is not yet committed
              * 2. ctx.txn.beginTimestamp < txn.commitTimestamp
              */
-            boolean shouldAdd = false;
             long commitTs = txn.getEffectiveCommitTimestamp();
-            if(commitTs>=0){
-                //we have been committed, so check to see if this transaction cares
-                shouldAdd = ctx.getTxn().getBeginTimestamp() < commitTs;
-            }
+            boolean shouldAdd = commitTs < 0 || ctx.getTxn().getBeginTimestamp() < commitTs;
+
             if(shouldAdd) delegate.addTo(ctx,keepState,expectedWrites);
         }
+
+        @Override public long getConglomerateId() { return delegate.getConglomerateId(); }
 
         @Override
         public boolean equals(Object o) {
@@ -665,6 +675,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
                 return delegate.equals(((DropIndexFactory) o).delegate);
             else return o instanceof IndexFactory && delegate.equals(o);
         }
+
         @Override public int hashCode() { return delegate.hashCode(); }
     }
 
@@ -714,5 +725,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
                 ctx.addLast(new SnapshotIsolatedWriteHandler(handler, ddlFilter));
             }
         }
+
+        @Override public long getConglomerateId() { return newConglomId; }
     }
 }

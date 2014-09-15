@@ -160,7 +160,8 @@ public class DropIndexConstantOperation extends IndexConstantOperation{
          */
         SpliceTransactionManager userTxnManager = (SpliceTransactionManager)lcc.getTransactionExecute();
         SpliceTransactionManager metaTxnManager = (SpliceTransactionManager)userTxnManager.startNestedUserTransaction(false,false);
-        ((SpliceTransaction)metaTxnManager.getRawTransaction()).elevate("dictionary".getBytes());
+        ((SpliceTransaction)metaTxnManager.getRawTransaction()).elevate(Long.toString(td.getHeapConglomerateId()).getBytes());
+        lcc.pushNestedTransaction(metaTxnManager);
         try{
             DependencyManager dm = dd.getDependencyManager();
             dm.invalidateFor(cd,DependencyManager.DROP_INDEX,lcc);
@@ -172,6 +173,8 @@ public class DropIndexConstantOperation extends IndexConstantOperation{
         }catch(StandardException se){
             metaTxnManager.abort();
             throw se;
+        }finally{
+            lcc.popNestedTransaction();
         }
         metaTxnManager.commit();
 		}
