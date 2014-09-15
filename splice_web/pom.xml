@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.splicemachine.rest</groupId>
 	<artifactId>splice_web</artifactId>
-	<version>1.0-SNAPSHOT</version>
+	<version>FUJI.0-SNAPSHOT</version>
 	<packaging>war</packaging>
 	<name>splice_web Jersey Webapp</name>
 	<properties>
@@ -68,7 +68,6 @@
 		</pluginRepository>
 	</pluginRepositories>
 	<build>
-		<finalName>splice_web</finalName>
 		<plugins>
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
@@ -152,6 +151,7 @@
 						<artifactId>maven-assembly-plugin</artifactId>
 						<version>2.4</version>
 						<configuration>
+							<appendAssemblyId>false</appendAssemblyId>
 							<source>6</source>
 							<archive>
 								<manifestEntries>
