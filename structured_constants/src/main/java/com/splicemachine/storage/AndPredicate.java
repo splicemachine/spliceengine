@@ -6,10 +6,6 @@ import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
 
 /**
  * @author Scott Fines
@@ -151,4 +147,11 @@ public class AndPredicate implements Predicate{
         return Pair.newPair(new AndPredicate(predicates.getFirst()),predicates.getSecond()-offset+1);
     }
 
+    @Override
+    public String toString() {
+        return "AndPredicate{" +
+                "ands=" + ands +
+                ", failed=" + failed +
+                '}';
+    }
 }
