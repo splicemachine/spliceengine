@@ -30,6 +30,7 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -110,7 +111,7 @@ public class HashNestedLoopJoinOperation extends JoinOperation{
         while(rightOp!=null){
             if(rightOp instanceof ScanOperation){
                 assert !(rightOp instanceof MultiProbeTableScanOperation): "HashNestedLoopJoin does not currently support multi-probe table scans";
-                scanProvider = new BaseScanProvider((ScanOperation)rightOp);
+                scanProvider = new ScanProvider((ScanOperation)rightOp);
                 break;
             }else
                 rightOp = rightOp.getLeftOperation();
@@ -276,7 +277,7 @@ public class HashNestedLoopJoinOperation extends JoinOperation{
 
     private void nextBatch(SpliceRuntimeContext context) throws IOException, StandardException {
         if(leftRowBuffer==null)
-            leftRowBuffer = new RingBuffer<ExecRow>(SpliceConstants.hashNLJLeftRowBufferSize); 
+            leftRowBuffer = new RingBuffer<ExecRow>(SpliceConstants.hashNLJLeftRowBufferSize);
         if(rightHashTable==null){
             DualHashHashTable.EntryHasher<ExecRow> rightEntryHasher = new DualHashHashTable.EntryHasher<ExecRow>() {
                 @Override
@@ -324,7 +325,7 @@ public class HashNestedLoopJoinOperation extends JoinOperation{
                     return true;
                 }
             };
-            
+
             rightHashTable = new DualHashHashTable<ExecRow>(SpliceConstants.hashNLJRightHashTableSize, rightEntryHasher, leftEntryHasher);
         } else {
             rightHashTable.clear();
@@ -352,9 +353,15 @@ public class HashNestedLoopJoinOperation extends JoinOperation{
             setCurrentRow(next);
             rightRs.sinkOpen(true,false);
             Scan nonSIScan = scanProvider.get(context);
-            byte[] startRow = nonSIScan.getStartRow();
 
-            addRangeAndPredicate(0,startRow, nonSIScan.getStopRow(), nonSIScan.getAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL), keyData);
+            byte[] startRow = nonSIScan.getStartRow();
+            byte[] stopRow = nonSIScan.getStopRow();
+
+            /* Ignore if both startRow and stopRow are zero length and it is because the join cols are null. */
+            if (startRow.length > 0 || stopRow.length > 0 || !isNullForAllJoinColumns(next)) {
+                byte[] predicateBytes = nonSIScan.getAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL);
+                addRangeAndPredicate(0, startRow, stopRow, predicateBytes, keyData);
+            }
             remaining--;
         }
         leftRowBuffer.readReset();
@@ -369,7 +376,7 @@ public class HashNestedLoopJoinOperation extends JoinOperation{
         scan.setFilter(filter);
         scan.setMaxVersions();
         scan.setCaching(SpliceConstants.DEFAULT_CACHE_SIZE);
-        scanProvider.set(scan,context);
+        scanProvider.set(scan);
 
 
         //execute the scan
@@ -393,6 +400,16 @@ public class HashNestedLoopJoinOperation extends JoinOperation{
         }finally{
             rightRs.close();
         }
+    }
+
+    private boolean isNullForAllJoinColumns(ExecRow next) {
+        boolean allJoinColumnValuesNull = true;
+        DataValueDescriptor[] leftDvds = next.getRowArray();
+        for (int i = 0; i < leftHashKeys.length; i++) {
+            DataValueDescriptor leftDvd = leftDvds[leftHashKeys[i]];
+            allJoinColumnValuesNull = allJoinColumnValuesNull && leftDvd.isNull();
+        }
+        return allJoinColumnValuesNull;
     }
 
     private void addRangeAndPredicate(int position, byte[] startKey,byte[] stopKey,byte[] predicateBytes, List<ScanRange> startStopKeys) throws IOException {
@@ -533,32 +550,29 @@ public class HashNestedLoopJoinOperation extends JoinOperation{
             this.stop = stop;
             this.predicate = predicate;
         }
+
+        @Override
+        public String toString() {
+            return "ScanRange{" +
+                    "start=" + Arrays.toString(start) +
+                    ", stop=" + Arrays.toString(stop) +
+                    ", predicate=" + Arrays.toString(predicate) +
+                    '}';
+        }
     }
 
-    private static interface ScanProvider{
-        Scan get(SpliceRuntimeContext ctx) throws StandardException,IOException;
-
-        void set(Scan newScan,SpliceRuntimeContext ctx) throws StandardException,IOException;
-    }
-
-    private static final ScanProvider NOOP_SCAN_PROVIDER = new ScanProvider() {
-        @Override public Scan get(SpliceRuntimeContext ctx) throws StandardException, IOException { return null; }
-        @Override public void set(Scan newScan, SpliceRuntimeContext ctx) throws StandardException, IOException {  }
-    };
-
-    private class BaseScanProvider implements ScanProvider {
+    private static class ScanProvider {
         private ScanOperation scanOp;
-        public BaseScanProvider(ScanOperation scanOp) {
+
+        public ScanProvider(ScanOperation scanOp) {
             this.scanOp = scanOp;
         }
 
-        @Override
         public Scan get(SpliceRuntimeContext ctx) throws StandardException, IOException {
             return scanOp.getNonSIScan(ctx);
         }
 
-        @Override
-        public void set(Scan newScan, SpliceRuntimeContext ctx) throws StandardException, IOException {
+        public void set(Scan newScan) throws StandardException, IOException {
             scanOp.setScan(newScan);
         }
     }
