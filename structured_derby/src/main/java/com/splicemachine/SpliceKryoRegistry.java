@@ -787,5 +787,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(ColumnInfo.class,EXTERNALIZABLE_SERIALIZER,193);
         instance.register(DropTableDDLChangeDesc.class,EXTERNALIZABLE_SERIALIZER,194);
         instance.register(DDLChangeType.class,195);
+        instance.register(NoTentativeDDLChange.class,196);
     }
 }

@@ -2,10 +2,9 @@ package com.splicemachine.derby.ddl;
 
 import com.splicemachine.si.api.TransactionStorage;
 import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.api.TxnView;
-import com.splicemachine.si.impl.InheritingTxnView;
 import com.splicemachine.si.impl.LazyTxnView;
+import org.apache.log4j.Logger;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -13,18 +12,13 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
 public class DDLChange implements Externalizable {
-
-
-    public enum TentativeType {
-        CHANGE_PK, ADD_CHECK, CREATE_FK, CREATE_INDEX, ADD_NOT_NULL, ADD_COLUMN, DROP_COLUMN
-    }
+    private static final Logger LOG = Logger.getLogger(DDLChange.class);
     /* Currently is the sequence ID from zookeeper for this change.  Example: 16862@host0000000005 */
     private String changeId;
     private DDLChangeType changeType;
     private TentativeDDLDesc tentativeDDLDesc;
     private TxnView txn;
 
-    private TxnView parentTxn;
     /*Serialization constructor*/
     public DDLChange(){}
 
@@ -34,20 +28,18 @@ public class DDLChange implements Externalizable {
 
     public DDLChange(TxnView txn, DDLChangeType type) {
         this.txn = txn;
+        assert txn.allowsWrites(): "Cannot create a DDLChange with a read-only transaction";
         this.changeType = type;
     }
 
     public void setTxn(Txn txn) {
+        assert txn.allowsWrites(): "Cannot create a DDLChange with a read-only transaction";
         this.txn = txn;
     }
 
     public TxnView getTxn() {
         return txn;
     }
-
-    public TxnView getParentTxn() { return parentTxn; }
-
-    public void setParentTxn(TxnView parentTxn) { this.parentTxn = parentTxn; }
 
     public DDLChangeType getChangeType() {
         return changeType;

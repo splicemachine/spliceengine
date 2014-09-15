@@ -407,13 +407,24 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
             TxnView txn = ddlChange.getTxn();
             if (txn.getEffectiveState().isFinal()) {
                 DDLCoordinationFactory.getController().finishMetadataChange(ddlChange.getChangeId());
-            } else if (ddlDesc.getBaseConglomerateNumber() == congomId) {
-
-                if(ddlChange.getChangeType() == DDLChangeType.CREATE_INDEX) {
-                    replace(IndexFactory.create(ddlChange, columnOrdering, formatIds));
-                }
-                else if (ddlChange.getChangeType() == DDLChangeType.DROP_COLUMN) {
-                    dropColumnFactories.add(DropColumnFactory.create(ddlChange));
+            } else {
+                switch (ddlChange.getChangeType()){
+                    case CHANGE_PK:
+                    case ADD_CHECK:
+                    case CREATE_FK:
+                    case ADD_NOT_NULL:
+                    case ADD_COLUMN:
+                    case DROP_TABLE:
+                        break; //TODO -sf- implement
+                    case CREATE_INDEX:
+                        assert ddlDesc!=null: "Cannot have a null ddl descriptor!";
+                        if(ddlDesc.getBaseConglomerateNumber()==congomId)
+                            replace(IndexFactory.create(ddlChange,columnOrdering,formatIds));
+                        break;
+                    case DROP_COLUMN:
+                        assert ddlDesc!=null: "Cannot have a null ddl descriptor!";
+                        if(ddlDesc.getBaseConglomerateNumber()==congomId)
+                            dropColumnFactories.add(DropColumnFactory.create(ddlChange));
                 }
             }
         }

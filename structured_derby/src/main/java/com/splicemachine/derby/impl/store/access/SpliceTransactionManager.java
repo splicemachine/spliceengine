@@ -10,6 +10,7 @@ import java.util.Properties;
 import com.splicemachine.derby.ddl.DDLChange;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.si.api.ReadOnlyModificationException;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
 import org.apache.derby.iapi.error.StandardException;
@@ -2218,7 +2219,11 @@ public class SpliceTransactionManager implements XATransactionController,
 
     @Override
     public void prepareDataDictionaryChange() throws StandardException {
-        currentDDLChangeId = DDLCoordinationFactory.getController().notifyMetadataChange(new DDLChange(getActiveStateTxn()));
+        TxnView txn = getActiveStateTxn();
+        if(!txn.allowsWrites())
+            throw Exceptions.parseException(new ReadOnlyModificationException("Unable to perform 2PC data dictionary change with a read-only transaction: "+ txn));
+
+        currentDDLChangeId = DDLCoordinationFactory.getController().notifyMetadataChange(new DDLChange(txn));
     }
 
     @Override

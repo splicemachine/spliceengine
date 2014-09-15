@@ -6,7 +6,9 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.actions.WriteCursorConstantOperation;
 import com.splicemachine.derby.impl.store.access.ConglomerateDescriptorCache;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.si.api.TxnView;
+import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.Activation;
@@ -20,15 +22,14 @@ import org.apache.derby.iapi.sql.execute.ConstantAction;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 
 /**
  * @author Scott Fines
  *         Created on: 10/4/13
  */
 public class DerbyDMLWriteInfo implements DMLWriteInfo {
-
-    private static final ConglomerateDescriptorCache CONGLOMERATE_DESCRIPTOR_CACHE = ConglomerateDescriptorCache.INSTANCE;
-
     private transient Activation activation;
     private String tableVersion;
     private TxnView txn;
@@ -36,11 +37,22 @@ public class DerbyDMLWriteInfo implements DMLWriteInfo {
     @Override
     public void initialize(SpliceOperationContext opCtx) throws StandardException {
         this.activation = opCtx.getActivation();
-        ConglomerateDescriptor conglomerateDescriptor = CONGLOMERATE_DESCRIPTOR_CACHE.get(activation);
-        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
-        DataDictionary dataDictionary = lcc.getDataDictionary();
-        TableDescriptor tableDescriptor = dataDictionary.getTableDescriptor(conglomerateDescriptor.getTableID());
-        this.tableVersion = tableDescriptor.getVersion();
+        if(tableVersion==null){
+            final long conglomId = getConglomerateId();
+            try {
+                this.tableVersion = DerbyScanInformation.tableVersionCache.get(conglomId,new Callable<String>() {
+                    @Override
+                    public String call() throws Exception {
+                        DataDictionary dataDictionary = activation.getLanguageConnectionContext().getDataDictionary();
+                        UUID tableID = dataDictionary.getConglomerateDescriptor(conglomId).getTableID();
+                        TableDescriptor td = dataDictionary.getTableDescriptor(tableID);
+                        return td.getVersion();
+                    }
+                });
+            } catch (ExecutionException e) {
+                throw Exceptions.parseException(e);
+            }
+        }
         this.txn = opCtx.getTxn();
     }
 
@@ -82,10 +94,15 @@ public class DerbyDMLWriteInfo implements DMLWriteInfo {
 
 		@Override
     public void writeExternal(ObjectOutput out) throws IOException {
+        out.writeBoolean(tableVersion!=null);
+        if(tableVersion!=null)
+            out.writeUTF(tableVersion);
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        if(in.readBoolean())
+            tableVersion = in.readUTF();
     }
 
     public static FormatableBitSet fromIntArray(int[] values){

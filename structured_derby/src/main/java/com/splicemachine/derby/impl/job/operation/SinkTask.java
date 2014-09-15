@@ -93,10 +93,13 @@ public class SinkTask extends ZkTask {
 				for(Map.Entry<String,byte[]>attribute:scan.getAttributesMap().entrySet()){
 						scanCopy.setAttribute(attribute.getKey(),attribute.getValue());
 				}
-				return new SinkTask(jobId,scanCopy,parentTaskId,getPriority());
+        SinkTask sinkTask = new SinkTask(jobId, scanCopy, parentTaskId, getPriority());
+        sinkTask.setParentTxnInformation(getParentTxn());
+        return sinkTask;
 		}
 
-		@Override public boolean isSplittable() { return true; }
+
+    @Override public boolean isSplittable() { return true; }
 
 		@Override
     public void prepareTask(byte[] start, byte[] end,RegionCoprocessorEnvironment rce,SpliceZooKeeperManager zooKeeper) throws ExecutionException {
@@ -153,10 +156,10 @@ public class SinkTask extends ZkTask {
                 Txn txn = getTxn();
                 if(!txn.allowsWrites()){
                     elevateTransaction("xplain".getBytes());
-                    instructions.setTxn(txn);
                 }
             }
             instructions.setTxn(getTxn());
+
 						spliceRuntimeContext = instructions.getSpliceRuntimeContext();
 						spliceRuntimeContext.markAsSink();
 						spliceRuntimeContext.setCurrentTaskId(getTaskId());

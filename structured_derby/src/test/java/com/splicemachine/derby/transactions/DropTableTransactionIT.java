@@ -20,7 +20,7 @@ import java.sql.SQLException;
  */
 @Category(SerialTest.class) //serial until DB-1777 is resolved
 public class DropTableTransactionIT {
-    public static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(InsertUpdateTransactionIT.class.getSimpleName().toUpperCase());
+    public static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(DropTableTransactionIT.class.getSimpleName().toUpperCase());
 
     public static final SpliceTableWatcher table = new SpliceTableWatcher("A",schemaWatcher.schemaName,"(a int, b int)");
 
