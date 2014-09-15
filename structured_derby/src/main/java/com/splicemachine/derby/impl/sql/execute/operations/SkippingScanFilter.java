@@ -23,10 +23,10 @@ public class SkippingScanFilter extends FilterBase {
 
     private byte[] currentStartKey;
     private byte[] currentStopKey;
-    private int currentIndex = 0;
+    private int currentIndex;
 
     private boolean matchesRow;
-    private boolean matchesEverything = false;
+    private boolean matchesEverything;
 
     //serialization filter, DO NOT USE
     @Deprecated
@@ -53,9 +53,9 @@ public class SkippingScanFilter extends FilterBase {
         byte[] kvBuffer = kv.getBuffer();
         int rowKeyOffset = kv.getRowOffset();
         short rowKeyLength = kv.getRowLength();
-        if (currentStartKey.length <= 0) {
+        if (currentStartKey.length == 0) {
             if (Bytes.compareTo(currentStopKey, 0, currentStopKey.length, kvBuffer, rowKeyOffset, rowKeyLength) <= 0) {
-                //this kv is past the end of this current value. set the next range and try again
+                //this kv is past the end of this current range. set the next range and try again
                 Pair<byte[], byte[]> newRange = startStopKeys.get(currentIndex++);
                 currentStartKey = newRange.getFirst();
                 currentStopKey = newRange.getSecond();
@@ -67,7 +67,7 @@ public class SkippingScanFilter extends FilterBase {
             //the current start key is after this kv, so seek to the current start key
             return ReturnCode.SEEK_NEXT_USING_HINT;
         } else if (Bytes.compareTo(currentStopKey, 0, currentStopKey.length, kvBuffer, rowKeyOffset, rowKeyLength) <= 0) {
-            //this kv is past the end of this current value. set the next range and try again
+            //this kv is past the end of this current range. set the next range and try again
             Pair<byte[], byte[]> newRange = startStopKeys.get(currentIndex++);
             currentStartKey = newRange.getFirst();
             currentStopKey = newRange.getSecond();
@@ -121,7 +121,7 @@ public class SkippingScanFilter extends FilterBase {
         currentStartKey = first.getFirst();
         currentStopKey = first.getSecond();
 
-        matchesEverything = currentStartKey.length <= 0 && currentStopKey.length <= 0;
+        matchesEverything = currentStartKey.length == 0 && currentStopKey.length == 0;
     }
 
     public List<Pair<byte[], byte[]>> getStartStopKeys() {
