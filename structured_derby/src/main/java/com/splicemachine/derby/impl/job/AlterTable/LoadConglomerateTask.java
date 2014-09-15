@@ -217,6 +217,7 @@ public class LoadConglomerateTask extends ZkTask {
             statementId = in.readLong();
             operationId = in.readLong();
         }
+        demarcationPoint = in.readLong();
     }
 
     @Override
@@ -238,5 +239,6 @@ public class LoadConglomerateTask extends ZkTask {
             out.writeLong(statementId);
             out.writeLong(operationId);
         }
+        out.writeLong(demarcationPoint);
     }
 }

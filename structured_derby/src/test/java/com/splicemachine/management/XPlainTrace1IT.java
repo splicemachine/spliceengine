@@ -290,8 +290,8 @@ public class XPlainTrace1IT extends XPlainTrace {
         Assert.assertEquals(operation.getRemoteScanRows(), count);
         Assert.assertEquals(operation.getOutputRows(), count);
 
-        // Must have two children
-        Assert.assertEquals(2,operation.getChildren().size());
+        // will have 1 child for each row on the left, plus one extra
+        Assert.assertEquals(11,operation.getChildren().size());
         // First child should be a bulk table scan operation
         XPlainTreeNode child = operation.getChildren().getFirst();
         operationType = child.getOperationType();

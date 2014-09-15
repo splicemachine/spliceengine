@@ -614,6 +614,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
     @Test
     public void testXPlainTrace() throws Exception {
         SpliceXPlainTrace xPlainTrace = new SpliceXPlainTrace();
+        xPlainTrace.setConnection(methodWatcher.getOrCreateConnection());
         xPlainTrace.turnOnTrace();
         String s = "SELECT empnum, dept, salary, count(salary) over (Partition by dept) as c from %s";
         String sqlText = String.format(s, this.getTableReference(TABLE_NAME));
