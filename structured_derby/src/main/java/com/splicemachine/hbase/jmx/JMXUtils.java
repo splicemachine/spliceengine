@@ -14,6 +14,7 @@ import java.util.List;
 
 import com.google.common.collect.Lists;
 
+import com.splicemachine.constants.SpliceConstants;
 import org.apache.hadoop.hbase.util.Pair;
 
 import com.splicemachine.derby.hbase.ManifestReader.SpliceMachineVersion;
@@ -42,8 +43,9 @@ public class JMXUtils {
 
 	public static List<Pair<String,JMXConnector>> getMBeanServerConnections(Collection<String> serverConnections) throws IOException {
 		List<Pair<String,JMXConnector>> mbscArray = new ArrayList<Pair<String,JMXConnector>>(serverConnections.size());
+      String regionServerPort = SpliceConstants.config.get("hbase.regionserver.jmx.port","10102");
 		for (String serverName: serverConnections) {
-			JMXServiceURL url = new JMXServiceURL(String.format("service:jmx:rmi://%s/jndi/rmi://%s:10102/jmxrmi",serverName,serverName));
+			JMXServiceURL url = new JMXServiceURL(String.format("service:jmx:rmi://%1$s/jndi/rmi://%1$s:%2$s/jmxrmi",serverName,regionServerPort));
 		    JMXConnector jmxc = JMXConnectorFactory.connect(url, null); 		
 		    mbscArray.add(Pair.newPair(serverName,jmxc));
 		}
