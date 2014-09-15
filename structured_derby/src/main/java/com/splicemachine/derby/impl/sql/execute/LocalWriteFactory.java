@@ -11,4 +11,6 @@ import java.io.IOException;
 public interface LocalWriteFactory {
 
     void addTo(PipelineWriteContext ctx,boolean keepState,int expectedWrites) throws IOException;
+
+    long getConglomerateId();
 }
