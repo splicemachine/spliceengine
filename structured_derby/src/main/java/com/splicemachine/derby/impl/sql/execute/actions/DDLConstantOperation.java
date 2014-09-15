@@ -891,8 +891,10 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
                 return input.getTxnId();
             }
         });
-        long waitTime = SpliceConstants.ddlDrainingInitialWait;
-        long totalWait = 0;
+        long waitTime = SpliceConstants.ddlDrainingInitialWait; //the initial time to wait
+        long maxWait = SpliceConstants.ddlDrainingMaximumWait; // the maximum time to wait
+        long scale = 2; //the scale factor for the exponential backoff
+        long timeAvailable = maxWait;
         long activeTxnId = -1l;
         do{
             CloseableStream<TxnView> activeTxns = transactionReader.getActiveTransactions();
@@ -910,14 +912,26 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
                 activeTxns.close();
             }
             if(activeTxnId<0) return activeTxnId;
+            /*
+             * It is possible for a sleep to pick up before the
+             * waitTime is expired. Therefore, we measure that actual
+             * time spent and use that for our time remaining period
+             * instead.
+             */
+            long start = System.currentTimeMillis();
             try {
                 Thread.sleep(waitTime);
             } catch (InterruptedException e) {
                 throw new IOException(e);
             }
-            totalWait += waitTime;
-            waitTime *= 10;
-        } while(totalWait < SpliceConstants.ddlDrainingMaximumWait);
+            long stop = System.currentTimeMillis();
+            timeAvailable-=(stop-start);
+            /*
+             * We want to exponentially back off, but only to the limit imposed on us. Once
+             * our backoff exceeds that limit, we want to just defer to that limit directly.
+             */
+            waitTime = Math.min(timeAvailable,scale*waitTime);
+        } while(timeAvailable>0);
 
         if (activeTxnId>=0) {
             LOG.warn(String.format("Running DDL statement %s. There are transaction still active: %d", toString(), activeTxnId));
