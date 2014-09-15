@@ -121,14 +121,14 @@ public class HashNestedLoopJoinOperation extends JoinOperation{
 
     @Override
     public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-        if(timer == null) {
-            timer = spliceRuntimeContext.newTimer();
-            timer.startTiming();
-        }
         return next(false,spliceRuntimeContext);
     }
 
     protected ExecRow next(boolean outerJoin,SpliceRuntimeContext context) throws StandardException,IOException{
+        if(timer == null) {
+            timer = context.newTimer();
+            timer.startTiming();
+        }
         /*
          * The algorithm is as follows:
          *
