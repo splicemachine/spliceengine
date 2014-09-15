@@ -897,10 +897,12 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
         do{
             CloseableStream<TxnView> activeTxns = transactionReader.getActiveTransactions();
             try{
-                TxnView txn = activeTxns.next();
-                if(txn!=null){
-                    if(!ignoreIds.contains(txn.getTxnId()))
+                TxnView txn;
+                while((txn = activeTxns.next())!=null){
+                    if(!ignoreIds.contains(txn.getTxnId())){
                         activeTxnId = txn.getTxnId();
+                        break;
+                    }
                 }
             } catch (StreamException e) {
                 throw new IOException(e.getCause());
