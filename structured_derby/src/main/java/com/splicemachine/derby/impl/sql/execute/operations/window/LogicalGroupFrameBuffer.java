@@ -1,13 +1,15 @@
 package com.splicemachine.derby.impl.sql.execute.operations.window;
 
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.utils.PartitionAwarePushBackIterator;
+import java.io.IOException;
+import java.util.List;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.util.Bytes;
 
-import java.io.IOException;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.utils.PartitionAwarePushBackIterator;
 
 /**
  * Created by jyuan on 9/15/14.
@@ -15,7 +17,7 @@ import java.io.IOException;
 public class LogicalGroupFrameBuffer extends BaseFrameBuffer {
 
     public LogicalGroupFrameBuffer (SpliceRuntimeContext runtimeContext,
-                                    WindowAggregator[] aggregators,
+                                    List<WindowAggregator> aggregators,
                                     PartitionAwarePushBackIterator<ExecRow> source,
                                     FrameDefinition frameDefinition,
                                     int[] sortColumns,
@@ -25,9 +27,6 @@ public class LogicalGroupFrameBuffer extends BaseFrameBuffer {
 
     @Override
     protected void loadFrame() throws IOException, StandardException {
-        long frameStart = frameDefinition.getFrameStart().getValue();
-        long frameEnd = frameDefinition.getFrameEnd().getValue();
-
         // peak the first row
         ExecRow row = source.next(runtimeContext);
         source.pushBack(row);
@@ -83,10 +82,6 @@ public class LogicalGroupFrameBuffer extends BaseFrameBuffer {
 
     @Override
     public void move() throws StandardException, IOException{
-        FrameDefinition.FrameMode frameMode = frameDefinition.getFrameMode();
-        long frameStart = frameDefinition.getFrameStart().getValue();
-        long frameEnd = frameDefinition.getFrameEnd().getValue();
-
         // Increment the current index first
         current++;
         // if the next candidate row is not in the buffer yet, read it from scanner

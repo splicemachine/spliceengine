@@ -1,35 +1,37 @@
 package com.splicemachine.derby.impl.sql.execute.operations.window;
 
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.impl.sql.execute.operations.window.function.SpliceGenericWindowFunction;
-import com.splicemachine.derby.utils.PartitionAwarePushBackIterator;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 
-import java.io.IOException;
-import java.util.ArrayList;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.impl.sql.execute.operations.window.function.SpliceGenericWindowFunction;
+import com.splicemachine.derby.utils.PartitionAwarePushBackIterator;
 
 /**
  * Created by jyuan on 9/15/14.
  */
 abstract public class BaseFrameBuffer implements WindowFrameBuffer{
+    protected final SpliceRuntimeContext runtimeContext;
+    private final List<WindowAggregator> aggregators;
+    protected final long frameStart;
+    protected final long frameEnd;
+    private final ExecRow templateRow;
+
     protected int start;
     protected int end;
     protected int current;
     protected ArrayList<ExecRow> rows;
-    protected final ExecRow templateRow;
     protected PartitionAwarePushBackIterator<ExecRow> source;
     protected byte[] partition;
     protected boolean endOfPartition;
     protected int[] sortColumns;
 
-    protected final SpliceRuntimeContext runtimeContext;
-    protected final WindowAggregator[] aggregators;
-
-    protected FrameDefinition frameDefinition;
-
     public static WindowFrameBuffer createFrameBuffer(SpliceRuntimeContext runtimeContext,
-                                                      WindowAggregator[] aggregators,
+                                                      List<WindowAggregator> aggregators,
                                                       PartitionAwarePushBackIterator<ExecRow> source,
                                                       FrameDefinition frameDefinition,
                                                       int[] sortColumns,
@@ -47,7 +49,7 @@ abstract public class BaseFrameBuffer implements WindowFrameBuffer{
     }
 
     public BaseFrameBuffer (SpliceRuntimeContext runtimeContext,
-                            WindowAggregator[] aggregators,
+                            List<WindowAggregator> aggregators,
                             PartitionAwarePushBackIterator<ExecRow> source,
                             FrameDefinition frameDefinition,
                             int[] sortColumns,
@@ -55,17 +57,18 @@ abstract public class BaseFrameBuffer implements WindowFrameBuffer{
         this.runtimeContext = runtimeContext;
         this.aggregators = aggregators;
         this.source = source;
-        this.frameDefinition = frameDefinition;
         this.sortColumns = sortColumns;
         this.templateRow = templateRow;
-        init();
-    }
-    private void init() throws StandardException{
-        this.rows = new ArrayList<ExecRow>();
+
         for (WindowAggregator aggregator: this.aggregators) {
-            SpliceGenericWindowFunction windowFunction = aggregator.findOrCreateNewWindowFunction();
             aggregator.initialize(this.templateRow);
         }
+        // All aggregators in this frame buffer share the same over() clause
+        // so should all have the same frame definition.
+        // The frame definition will not change over the life of this frame buffer
+        this.frameStart = frameDefinition.getFrameStart().getValue();
+        this.frameEnd = frameDefinition.getFrameEnd().getValue();
+        this.rows = new ArrayList<ExecRow>();
     }
 
     @Override

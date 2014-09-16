@@ -148,16 +148,6 @@ public class WindowTestingFramework {
             throw new RuntimeException("Must have at least one input column ID.");
         }
 
-        // create agg function array
-        int aggregatorColID = inputRowDefinition.size()+3;
-        int resultColID = inputRowDefinition.size()+1;
-        WindowAggregator[] functions = new WindowAggregator[] {
-            new WindowAggregator(function,aggregatorColID, inputColumnIDs,resultColID)};
-
-        // create template row given
-        ExecRow templateRow = createTemplateRow(inputRowDefinition, function, resultColID,
-                                                inputColumnIDs, aggregatorColID, expectedResultsFunction.getNullReturnValue());
-
         // foreach partition, create a frameSource
         List<PartitionAwarePushBackIterator<ExecRow>> frameSources = new ArrayList<PartitionAwarePushBackIterator<ExecRow>>(nPartitions);
         List<ExecRow> expectedRows = new ArrayList<ExecRow>(nPartitions*partitionSize);
@@ -186,6 +176,16 @@ public class WindowTestingFramework {
                 new PartitionAwarePushBackIterator<ExecRow>(new TestPartitionAwareIterator(allInputRows, partitionColIDs));
             frameSources.add(frameSource);
         }
+
+        // create agg function array
+        int aggregatorColID = inputRowDefinition.size()+3;
+        int resultColID = inputRowDefinition.size()+1;
+
+        // create template row given
+        ExecRow templateRow = createTemplateRow(inputRowDefinition, function, resultColID,
+                                                inputColumnIDs, aggregatorColID, expectedResultsFunction.getNullReturnValue());
+        List<WindowAggregator> functions = Arrays.asList(new WindowAggregator[] {
+            new WindowAggregatorImpl(function,aggregatorColID, inputColumnIDs,resultColID, frameDefinition)});
 
         // iterate thru the partitions creating a frame buffer for each
         List<ExecRow> results = new ArrayList<ExecRow>();
