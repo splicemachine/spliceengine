@@ -2076,6 +2076,13 @@ public class SQLParser
 
         return columnRefs;
     }
+
+    private void setWindowFrameMode(QueryTreeNode node, WindowFrameDefinition.FrameMode mode) {
+        WindowDefinitionNode wdn = (WindowDefinitionNode) node;
+        WindowFrameDefinition frame = wdn.getFrameExtent();
+        frame.setFrameMode(mode);
+
+    }
 }
 
 PARSER_END(SQLParser)
@@ -10008,6 +10015,7 @@ windowOrAggregateFunctionNode() throws StandardException :
 	<DENSERANK> <LEFT_PAREN> <RIGHT_PAREN> window = overClause()
 	{
 	    rankColsRef = columnsRefForRankFunct(window);
+	    setWindowFrameMode(window, WindowFrameDefinition.FrameMode.ROWS);
         winOrAgg = (ValueNode) nodeFactory.getNode(C_NodeTypes.AGGREGATE_NODE,
                             (rankColsRef.length == 0 ? null : rankColsRef[0]),
                             DenseRankFunctionDefinition.class,
@@ -10026,6 +10034,7 @@ windowOrAggregateFunctionNode() throws StandardException :
 	<RANK> <LEFT_PAREN> <RIGHT_PAREN> window = overClause()
 	{
 	    rankColsRef = columnsRefForRankFunct(window);
+	    setWindowFrameMode(window, WindowFrameDefinition.FrameMode.ROWS);
         winOrAgg = (ValueNode) nodeFactory.getNode(C_NodeTypes.AGGREGATE_NODE,
                             (rankColsRef.length == 0 ? null : rankColsRef[0]),
                             RankFunctionDefinition.class,
@@ -10044,6 +10053,7 @@ windowOrAggregateFunctionNode() throws StandardException :
 	<ROWNUMBER> <LEFT_PAREN> <RIGHT_PAREN> window = overClause()
 	{
 	    rankColsRef = columnsRefForRankFunct(window);
+	    setWindowFrameMode(window, WindowFrameDefinition.FrameMode.ROWS);
         winOrAgg = (ValueNode) nodeFactory.getNode(C_NodeTypes.AGGREGATE_NODE,
                             (rankColsRef.length == 0 ? null : rankColsRef[0]),
                             RowNumberFunctionDefinition.class,

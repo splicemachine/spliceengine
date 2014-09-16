@@ -103,7 +103,7 @@ public class WindowFrameDefinition extends QueryTreeNode implements Serializable
         }
     }
 
-    private final FrameMode frameMode;
+    private FrameMode frameMode;
     private final FrameType frameStart;
     private final FrameType frameEnd;
 
@@ -184,6 +184,10 @@ public class WindowFrameDefinition extends QueryTreeNode implements Serializable
 
     public FrameMode getFrameMode() {
         return frameMode;
+    }
+
+    public void setFrameMode(FrameMode mode) {
+        frameMode = mode;
     }
 }
 
