@@ -296,7 +296,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
 
         //notify other servers of the change
         DDLChange change = new DDLChange(((SpliceTransactionManager)tc).getActiveStateTxn(), DDLChangeType.ADD_COLUMN);
-        notifyMetadataChange(change);
+        notifyMetadataChangeAndWait(change);
 
         // now add the column to the tables column descriptor list.
         //noinspection unchecked
@@ -1443,7 +1443,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         DDLChange ddlChange = new DDLChange(tentativeTransaction, DDLChangeType.DROP_COLUMN);
         ddlChange.setTentativeDDLDesc(tentativeDropColumnDesc);
 
-        notifyMetadataChange(ddlChange);
+        notifyMetadataChangeAndWait(ddlChange);
 
         HTableInterface table = SpliceAccessManager.getHTable(Long.toString(tableConglomId).getBytes());
         try {

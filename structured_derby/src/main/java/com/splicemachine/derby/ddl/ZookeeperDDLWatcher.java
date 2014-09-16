@@ -45,8 +45,12 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
 
     private static final Logger LOG = Logger.getLogger(ZookeeperDDLWatcher.class);
 
-    private static final long REFRESH_TIMEOUT_MS = TimeUnit.SECONDS.toMillis(30);
-    private static final long MAXIMUM_DDL_WAIT_MS = TimeUnit.SECONDS.toMillis(90);
+    private static final long REFRESH_TIMEOUT_MS = TimeUnit.SECONDS.toMillis(20);
+    /*
+     * We wait longer than the max DDL wait to make sure that we don't time out until after the controller
+     * has
+     */
+    private static final long MAXIMUM_DDL_WAIT_MS = TimeUnit.SECONDS.toMillis(2*SpliceConstants.maxDdlWait);
 
     private Set<String> seenDDLChanges = new HashSet<String>();
     private Map<String, Long> changesTimeouts = new HashMap<String, Long>();
@@ -79,17 +83,15 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
         // run refresh() synchronously the first time
         refresh();
 
-//        executor.scheduleAtFixedRate(new Runnable() {
-//            @Override
-//            public void run() {
-//
-//                signalRefresh();
-//            }
-//        }, REFRESH_TIMEOUT, REFRESH_TIMEOUT, TimeUnit.MILLISECONDS);
-
         refreshThread.submit(new Runnable() {
             @Override
             public void run() {
+                /*
+                 * We loop infinitely here, and rely on daemon threads to allow
+                 * us to shut down properly. This way, we will just always be running
+                 * as long as we are up.
+                 */
+                //noinspection InfiniteLoopStatement
                 while(true){
                     int signalledWhileRefresh;
                     int currentSignalSize = requestCount.get();
@@ -105,8 +107,11 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
                         //someone notified us while we were refreshing, so don't go to sleep yet
                         if(signalledWhileRefresh!=0)
                             continue;
-                        //wait to be notified
-                        refreshNotifierCondition.await();
+                        /*
+                         * Wait to be notified, but only up to the refresh interval. After that,
+                         * we go ahead and refresh anyway.
+                         */
+                        refreshNotifierCondition.await(REFRESH_TIMEOUT_MS,TimeUnit.MILLISECONDS);
                     }catch (InterruptedException e) {
                         LOG.error("Interrupted while forcibly refreshing, terminating thread");
                     } finally{
@@ -134,24 +139,6 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
             refreshNotifierCondition.signal();
         }finally{
             refreshNotifierLock.unlock();
-        }
-    }
-
-    private void createZKTree() throws StandardException {
-        for (String path : new String[] { SpliceConstants.zkSpliceDDLPath,
-                SpliceConstants.zkSpliceDDLOngoingTransactionsPath, SpliceConstants.zkSpliceDDLActiveServersPath }) {
-            try {
-                ZkUtils.create(path, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
-                        CreateMode.PERSISTENT);
-            } catch (KeeperException e) {
-                if (e.code().equals(Code.NODEEXISTS)) {
-                    // ignore
-                } else {
-                    throw Exceptions.parseException(e);
-                }
-            } catch (InterruptedException e) {
-                throw Exceptions.parseException(e);
-            }
         }
     }
 
@@ -345,14 +332,14 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
     }
 
     private void killDDLTransaction(String changeId) {
-        try {
-            TxnView txn = currentDDLChanges.get(changeId).getTxn();
-            LOG.warn("We are killing transaction " + txn + " since it exceeds the maximum wait period for"
-                    + " the DDL change " + changeId + " publication");
-            TransactionLifecycle.getLifecycleManager().rollback(txn.getTxnId());
-        } catch (Exception e) {
-            LOG.warn("Couldn't kill transaction, already killed?", e);
-        }
+//        try {
+//            TxnView txn = currentDDLChanges.get(changeId).getTxn();
+////            LOG.warn("We are killing transaction " + txn + " since it exceeds the maximum wait period for"
+////                    + " the DDL change " + changeId + " publication");
+////            TransactionLifecycle.getLifecycleManager().rollback(txn.getTxnId());
+//        } catch (Exception e) {
+//            LOG.warn("Couldn't kill transaction, already killed?", e);
+//        }
         deleteChangeNode(changeId);
     }
 

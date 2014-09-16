@@ -4,23 +4,21 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Output;
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.utils.ErrorState;
 import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.utils.ZkUtils;
 import com.splicemachine.utils.kryo.KryoPool;
-import com.splicemachine.derby.utils.Exceptions;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.*;
 import org.apache.zookeeper.Watcher.Event.EventType;
 
 import java.util.Collection;
-import java.util.concurrent.TimeUnit;
-import java.io.IOException;
-import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static com.splicemachine.derby.ddl.DDLZookeeperClient.*;
 
@@ -31,44 +29,49 @@ public class ZookeeperDDLController implements DDLController, Watcher {
 
     private static final Logger LOG = Logger.getLogger(ZookeeperDDLController.class);
 
-    private final Object LOCK = new Object();
+    private final Lock notificationLock = new ReentrantLock();
+    private final Condition notificationSignal = notificationLock.newCondition();
 
     // timeout to refresh the info, in case some server is dead or a new server came up
     private static final long REFRESH_TIMEOUT = TimeUnit.SECONDS.toMillis(2);
     // maximum wait for everybody to respond, after this we fail the DDL change
-    private static final long MAXIMUM_WAIT = TimeUnit.SECONDS.toMillis(60);
+    private static final long MAXIMUM_WAIT = TimeUnit.SECONDS.toMillis(SpliceConstants.maxDdlWait);
 
+    private final ActiveServerList activeServers = new ActiveServerList();
     @Override
     public String notifyMetadataChange(DDLChange change) throws StandardException {
         byte[] data = encode(change);
         String changeId = DDLZookeeperClient.createChangeNode(data);
 
-        long startTimestamp = System.currentTimeMillis();
-        synchronized (LOCK) {
-            while (true) {
-                Collection<String> activeServers = getActiveServers(this);
-                Collection<String> finishedServers = getFinishedServers(changeId, this);
+        long availableTime = MAXIMUM_WAIT;
+        long elapsedTime = 0;
+        while (true) {
+            Collection<String> activeServers = this.activeServers.getActiveServers();
+            Collection<String> finishedServers = getFinishedServers(changeId, this);
 
-                if (finishedServers.containsAll(activeServers)) {
-                    // everybody responded, leave loop
-                    break;
-                }
-
-                long elapsedTime = System.currentTimeMillis() - startTimestamp;
-
-                if (elapsedTime > MAXIMUM_WAIT) {
-                    LOG.error("Maximum wait for all servers exceeded. Waiting response from " + activeServers
-                            + ". Received response from " + finishedServers);
-                    deleteChangeNode(changeId);
-                    throw StandardException.newException(SQLState.LOCK_TIMEOUT, "Wait of " + elapsedTime +
-                            " exceeded timeout of " + MAXIMUM_WAIT);
-                }
-                try {
-                    LOCK.wait(REFRESH_TIMEOUT);
-                } catch (InterruptedException e) {
-                    throw Exceptions.parseException(e);
-                }
+            if (finishedServers.containsAll(activeServers)) {
+                // everybody responded, leave loop
+                break;
             }
+
+            if (availableTime<0) {
+                LOG.error("Maximum wait for all servers exceeded. Waiting response from " + activeServers
+                        + ". Received response from " + finishedServers);
+                deleteChangeNode(changeId);
+                throw ErrorState.DDL_TIMEOUT.newException(elapsedTime,MAXIMUM_WAIT);
+            }
+            long startTimestamp = System.currentTimeMillis();
+            notificationLock.lock();
+            try {
+                notificationSignal.await(REFRESH_TIMEOUT,TimeUnit.MILLISECONDS);
+            } catch (InterruptedException e) {
+                throw Exceptions.parseException(e);
+            }finally{
+                notificationLock.unlock();
+            }
+            long stopTimestamp = System.currentTimeMillis();
+            availableTime-= (stopTimestamp -startTimestamp);
+            elapsedTime+=(stopTimestamp-startTimestamp);
         }
         return changeId;
     }
@@ -96,9 +99,34 @@ public class ZookeeperDDLController implements DDLController, Watcher {
     @Override
     public void process(WatchedEvent event) {
         if (event.getType().equals(EventType.NodeChildrenChanged)) {
-            synchronized (LOCK) {
-                LOCK.notify();
+            notificationLock.lock();
+            try{
+                notificationSignal.signalAll();
+            }finally{
+                notificationLock.unlock();
             }
+        }
+    }
+
+    private static class ActiveServerList implements Watcher{
+        private volatile boolean needsRefreshed = true;
+        private volatile Collection<String> activeServers;
+
+        public Collection<String> getActiveServers() throws StandardException {
+            if(needsRefreshed){
+                synchronized (this){
+                    if(needsRefreshed){
+                        activeServers = DDLZookeeperClient.getActiveServers(this);
+                        needsRefreshed = false;
+                    }
+                }
+            }
+            return activeServers;
+        }
+
+        @Override
+        public void process(WatchedEvent watchedEvent) {
+            needsRefreshed = true;
         }
     }
 
