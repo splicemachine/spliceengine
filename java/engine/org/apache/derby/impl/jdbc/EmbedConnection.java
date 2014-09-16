@@ -2573,9 +2573,11 @@ public abstract class EmbedConnection implements EngineConnection
 				ContextManager cm2 = tr.getContextManager();
 				// If the system has been shut down, cm1 can be null.
 				// Otherwise, cm1 and cm2 should be identical.
-				Util.ASSERT(this, (cm1 == cm2 || cm1 == null),
-					"Current Context Manager not the one was expected: " +
-					 cm1 + " " + cm2);
+				if (cm1 != cm2 && cm1 != null) {
+					Util.ASSERT(this, (cm1 == cm2 || cm1 == null),
+						"Current Context Manager not the one was expected: " +
+						 cm1 + " " + cm2);
+				}
 			}
 		}
 
