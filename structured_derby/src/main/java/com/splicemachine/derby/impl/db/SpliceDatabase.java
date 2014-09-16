@@ -10,6 +10,9 @@ import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.CancellationException;
 
+import com.splicemachine.derby.ddl.DDLChange;
+import com.splicemachine.derby.ddl.DDLChangeType;
+import com.splicemachine.derby.ddl.DDLWatcher;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.hbase.HBaseRegionLoads;
@@ -143,9 +146,25 @@ public class SpliceDatabase extends BasicDatabase {
     public LanguageConnectionContext setupConnection(ContextManager cm, String user, String drdaID, String dbname)
             throws StandardException {
 
-        LanguageConnectionContext lctx = super.setupConnection(cm, user, drdaID, dbname);
+        final LanguageConnectionContext lctx = super.setupConnection(cm, user, drdaID, dbname);
 
-        DDLCoordinationFactory.getWatcher().registerLanguageConnectionContext(lctx);
+        DDLCoordinationFactory.getWatcher().registerDDLListener(new DDLWatcher.DDLListener() {
+            @Override public void startGlobalChange() { lctx.startGlobalDDLChange(); }
+            @Override public void finishGlobalChange() { lctx.finishGlobalDDLChange(); }
+
+            @Override
+            public void startChange(DDLChange change) throws StandardException {
+                /* Clear DD caches on remote nodes for each DDL statement.  Before we did this remote nodes would
+                 * correctly generate new activations classes and instances of constant action classes for statements on
+                 * tables dropped and re-added with the same name, but would include in them stale information from the
+                 * DD caches (conglomerate ID, for example) */
+                if(change.getChangeType()== DDLChangeType.DROP_TABLE){
+                    lctx.getDataDictionary().clearCaches();
+                }
+            }
+
+            @Override public void finishChange(String changeId) {  }
+        });
 
         // If you add a visitor, be careful of ordering.
 
