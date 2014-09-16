@@ -1335,8 +1335,8 @@ class DDMWriter
 			res = encoder.flush(buffer);
 		}
 		if (SanityManager.DEBUG) {
-			SanityManager.ASSERT(res == CoderResult.UNDERFLOW,
-								 "CharBuffer was not exhausted: res = " + res);
+			if (res != CoderResult.UNDERFLOW)
+			SanityManager.ASSERT(res == CoderResult.UNDERFLOW,"CharBuffer was not exhausted: res = " + res);
 		}
 	}
 
