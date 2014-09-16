@@ -163,8 +163,8 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
         }
         StatementInfo statementInfo = new StatementInfo(String.format("populate index on %s",tableName),userId,
                 ((SpliceTransactionManager)activation.getTransactionController()).getActiveStateTxn(),1, SpliceDriver.driver().getUUIDGenerator());
-        OperationInfo populateIndexOp = new OperationInfo(statementInfo.getStatementUuid(),
-                SpliceDriver.driver().getUUIDGenerator().nextUUID(), "PopulateIndex", null, false,-1l);
+        OperationInfo populateIndexOp = new OperationInfo(SpliceDriver.driver().getUUIDGenerator().nextUUID(),
+                statementInfo.getStatementUuid(), "PopulateIndex", null, false,-1l);
         statementInfo.setOperationInfo(Arrays.asList(populateIndexOp));
         SpliceDriver.driver().getStatementManager().addStatementInfo(statementInfo);
         JobFuture future = null;

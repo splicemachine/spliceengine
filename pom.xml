@@ -249,7 +249,7 @@
 							<excludedGroups>com.splicemachine.test.SerialTest, ${excluded.categories}</excludedGroups>
 							<skipTests>${skip.integration.tests}</skipTests>
 							<parallel>classes</parallel>
-							<threadCount>1</threadCount>
+							<threadCount>4</threadCount>
 							<perCoreThreadCount>false</perCoreThreadCount>
 							<argLine>-Xmx3g</argLine>
 							<redirectTestOutputToFile>true</redirectTestOutputToFile>
