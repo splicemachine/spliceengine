@@ -124,6 +124,7 @@ public class TxnTestUtils {
 						public Result answer(InvocationOnMock invocationOnMock) throws Throwable {
 								final Get get = (Get)invocationOnMock.getArguments()[0];
 								Set<KeyValue> keyValues = rowMap.get(get.getRow());
+                System.out.println(keyValues);
 								if(get.hasFamilies()){
 										Set<KeyValue> filtered = Sets.filter(keyValues, new Predicate<KeyValue>() {
 												@Override
@@ -153,11 +154,15 @@ public class TxnTestUtils {
 								Map<byte[], List<KeyValue>> familyMap = put.getFamilyMap();
 								for (List<KeyValue> kvs : familyMap.values()) {
 										for (KeyValue kv : kvs) {
-												if (kv.isLatestTimestamp())
-														kv = new KeyValue(kv.getRow(), kv.getFamily(), kv.getQualifier(), System.currentTimeMillis(), kv.getValue());
-												keyValues.add(kv);
-										}
+                        boolean ts = !kv.isLatestTimestamp();
+                        kv = ts? kv:new KeyValue(kv.getRow(), kv.getFamily(), kv.getQualifier(),System.currentTimeMillis(), kv.getValue());
+                        if(keyValues.contains(kv)){
+                            keyValues.remove(kv);
+                        }
+                        keyValues.add(kv);
+                    }
 								}
+                System.out.printf("put kvs=%s%n",keyValues);
 								return null;
 						}
 				};

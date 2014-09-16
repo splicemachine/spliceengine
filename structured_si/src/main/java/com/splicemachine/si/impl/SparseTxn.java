@@ -175,4 +175,21 @@ public class SparseTxn{
     public boolean isTimedOut() {
         return timedOut;
     }
+
+    @Override
+    public String toString() {
+        return "SparseTxn{" +
+                "txnId=" + txnId +
+                ", beginTimestamp=" + beginTimestamp +
+                ", parentTxnId=" + parentTxnId +
+                ", commitTimestamp=" + commitTimestamp +
+                ", globalCommitTimestamp=" + globalCommitTimestamp +
+                ", hasAdditiveField=" + hasAdditiveField +
+                ", additive=" + additive +
+                ", isolationLevel=" + isolationLevel +
+                ", state=" + state +
+                ", destTableBuffer=" + destTableBuffer +
+                ", timedOut=" + timedOut +
+                '}';
+    }
 }
