@@ -111,7 +111,7 @@ public class UniqueIndexIT extends SpliceUnitTest {
      * then perform a lookup on that same data via the index to ensure
      * that the index will find those values.
      */
-    @Test(timeout=10000)
+    @Test(timeout=20000)
     public void testCanCreateIndexFromExistingData() throws Exception{
         String name = "sfines";
         int value =2;
