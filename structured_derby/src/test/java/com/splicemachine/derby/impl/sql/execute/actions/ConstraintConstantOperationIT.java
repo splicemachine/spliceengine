@@ -24,7 +24,7 @@ import org.junit.runner.Description;
  * @author Jeff Cunningham
  * Date: 6/10/13
  */
-@Category(SerialTest.class) //left serial until DB-1777 is resolved
+//@Category(SerialTest.class) //left serial until DB-1777 is resolved
 public class ConstraintConstantOperationIT {
     private static final String CLASS_NAME = ConstraintConstantOperationIT.class.getSimpleName().toUpperCase();
 

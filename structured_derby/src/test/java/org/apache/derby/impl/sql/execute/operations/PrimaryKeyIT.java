@@ -21,7 +21,7 @@ import com.google.common.collect.Lists;
  * @author Scott Fines
  *         Created on: 3/1/13
  */
-@Category(SerialTest.class)
+//@Category(SerialTest.class)
 public class PrimaryKeyIT extends SpliceUnitTest { 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	public static final String CLASS_NAME = PrimaryKeyIT.class.getSimpleName().toUpperCase();

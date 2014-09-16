@@ -154,7 +154,7 @@ public class NonUniqueIndexIT extends SpliceUnitTest {
      * then perform a lookup on that same data via the index to ensure
      * that the index will find those values.
      */
-    @Test(timeout=15000)
+    @Test(timeout=30000)
     public void testCanCreateIndexFromExistingData() throws Exception{
         String name = "sfines";
         int value =2;
@@ -308,7 +308,6 @@ public class NonUniqueIndexIT extends SpliceUnitTest {
         Assert.assertTrue("Results returned!",!resultSet.next());
     }
 
-//    @Test(timeout=10000)
     @Test
     public void testCanUpdateEntryIndexChanges() throws Exception{
         methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('sfines',2)",this.getTableReference(TABLE_NAME_6)));

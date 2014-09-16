@@ -18,7 +18,7 @@ import java.sql.SQLException;
  * @author Scott Fines
  *         Date: 9/4/14
  */
-@Category(SerialTest.class) //serial until DB-1777 is resolved
+//@Category(SerialTest.class) //serial until DB-1777 is resolved
 public class DropTableTransactionIT {
     public static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(DropTableTransactionIT.class.getSimpleName().toUpperCase());
 

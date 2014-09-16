@@ -2,7 +2,9 @@ package com.splicemachine.management;
 
 import com.splicemachine.derby.management.XPlainTreeNode;
 import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.test.SerialTest;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -12,6 +14,7 @@ import java.sql.PreparedStatement;
 /**
  * Created by jyuan on 7/14/14.
  */
+@Category(SerialTest.class)
 public class XPlainTrace2IT {
 
     public static int nrows = 10;

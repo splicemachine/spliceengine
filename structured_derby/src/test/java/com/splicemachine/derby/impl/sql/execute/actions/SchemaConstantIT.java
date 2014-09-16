@@ -19,7 +19,7 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 /**
  * Schema creation / drop tests.
  */
-@Category(SerialTest.class)
+//@Category(SerialTest.class)
 public class SchemaConstantIT extends SpliceUnitTest { 
     public static final String CLASS_NAME = SchemaConstantIT.class.getSimpleName().toUpperCase();
     public static final String SCHEMA1_NAME = CLASS_NAME + "_1";

@@ -30,6 +30,10 @@ public class SpliceConstants {
     @DefaultValue(ROLL_FORWARD_TXN_THRESHOLD) public static final int DEFAULT_ROLLFOWARD_TXN_THRESHOLD=1<<10; //about 1K
     public static int rollForwardTxnThreshold;
 
+    @Parameter public static final String MAX_DDL_WAIT = "splice.ddl.maxWaitSeconds";
+    @DefaultValue(MAX_DDL_WAIT) public static final int DEFAULT_MAX_DDL_WAIT=240;
+    public static long maxDdlWait;
+
     public enum AuthenticationType {NONE,LDAP,NATIVE,CUSTOM};
 
 		@Parameter public static final String SEQUENTIAL_IMPORT_THREASHOLD="splice.import.sequentialFileSize";
@@ -1199,6 +1203,8 @@ public class SpliceConstants {
         numRollForwardSegments = config.getInt(ROLL_FORWARD_SEGMENTS,DEFAULT_ROLLFORWARD_SEGMENTS);
         rollForwardRowThreshold = config.getInt(ROLL_FORWARD_ROW_THRESHOLD,DEFAULT_ROLLFOWARD_ROW_THRESHOLD);
         rollForwardTxnThreshold = config.getInt(ROLL_FORWARD_TXN_THRESHOLD,DEFAULT_ROLLFOWARD_TXN_THRESHOLD);
+
+        maxDdlWait = config.getInt(MAX_DDL_WAIT,DEFAULT_MAX_DDL_WAIT);
 		}
 
 		public static void reloadConfiguration(Configuration configuration) {
