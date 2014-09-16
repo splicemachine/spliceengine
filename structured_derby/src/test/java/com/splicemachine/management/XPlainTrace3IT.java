@@ -2,16 +2,18 @@ package com.splicemachine.management;
 
 import com.splicemachine.derby.management.XPlainTreeNode;
 import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.test.SerialTest;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
 import java.sql.PreparedStatement;
-
-/**
+ /**
  * Created by jyuan on 7/15/14.
  */
+ @Category(SerialTest.class) //in serial category because it's difficult to get the statement id always
 public class XPlainTrace3IT {
     private static SpliceXPlainTrace xPlainTrace = new SpliceXPlainTrace();
     private static TestConnection baseConnection;

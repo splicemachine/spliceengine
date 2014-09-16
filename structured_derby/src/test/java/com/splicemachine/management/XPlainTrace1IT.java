@@ -3,7 +3,9 @@ package com.splicemachine.management;
 import com.splicemachine.derby.management.XPlainTrace;
 import com.splicemachine.derby.management.XPlainTreeNode;
 import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.test.SerialTest;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -16,6 +18,7 @@ import java.util.Deque;
  *
  * Created by jyuan on 7/7/14.
  */
+@Category(SerialTest.class) //in serial category because of trying to get the correct statement id
 public class XPlainTrace1IT extends XPlainTrace {
 
     public static final String CLASS_NAME = XPlainTrace1IT.class.getSimpleName().toUpperCase();
