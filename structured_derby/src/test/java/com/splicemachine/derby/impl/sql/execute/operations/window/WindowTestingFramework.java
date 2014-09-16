@@ -169,10 +169,11 @@ public class WindowTestingFramework {
         // iterate thru the partitions creating a frame buffer for each
         List<ExecRow> results = new ArrayList<ExecRow>();
         for (PartitionAwarePushBackIterator<ExecRow> frameSource : frameSources) {
-            FrameBuffer frameBuffer = new FrameBuffer(null,
+            WindowFrameBuffer frameBuffer = BaseFrameBuffer.createFrameBuffer(null,
                                                       functions,
                                                       frameSource,
                                                       theFrame,
+                                                      orderByColIDs,
                                                       templateRow);
 
             // process each frame buffer

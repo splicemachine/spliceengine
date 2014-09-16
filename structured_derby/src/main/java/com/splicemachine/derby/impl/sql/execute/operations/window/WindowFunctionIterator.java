@@ -13,9 +13,9 @@ import com.splicemachine.derby.utils.StandardIterator;
  */
 public class WindowFunctionIterator implements StandardIterator<ExecRow> {
 
-    private final FrameBuffer frameBuffer;
+    private final WindowFrameBuffer frameBuffer;
 
-    public WindowFunctionIterator(FrameBuffer frameBuffer) {
+    public WindowFunctionIterator(WindowFrameBuffer frameBuffer) {
         this.frameBuffer = frameBuffer;
     }
 
