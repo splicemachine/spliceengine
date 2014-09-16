@@ -808,23 +808,40 @@ public class WindowFunctionIT extends SpliceUnitTest {
     }
 
     @Test
-    @Ignore("DB-1647 - functions with same over() work. Still working on functions with diff over()")
-    public void testMultiFunction() throws Exception {
-        String sqlText;
-        {
-            sqlText = "SELECT empnum, dept, salary, DENSE_RANK() OVER (PARTITION BY dept ORDER BY salary desc) AS DenseRank, RANK() OVER (PARTITION BY dept ORDER BY salary desc) AS Rank, ROW_NUMBER() OVER (PARTITION BY dept ORDER BY salary desc) AS RowNumber FROM %s";
-            ResultSet rs = methodWatcher.executeQuery(
-                String.format(sqlText, this.getTableReference(TABLE_NAME)));
-            TestUtils.printResult(sqlText, rs, System.out);
-            rs.close();
+    public void testMultiFunctionInQuerySameOverClause() throws Exception {
+        // DB-1647 (partial; multiple functions with same over() work)
+        int[] dept = {1 , 1 , 1 , 1, 1 , 1 , 1 , 2 , 2 , 2 , 2 , 3 , 3 , 3, 3};
+        int[] denseRank = {1 , 2 , 3 , 4, 5 , 5 , 6 , 1 , 2 , 2 , 3 , 1 , 2 , 3, 4};
+        int[] rank = {1, 2, 3, 4, 5, 5, 7, 1, 2, 2, 4, 1, 2, 3, 4};
+        int[] rowNumber = {1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 1, 2, 3, 4};
+        String sqlText =
+            "SELECT empnum, dept, salary, DENSE_RANK() OVER (PARTITION BY dept ORDER BY salary desc) AS DenseRank, RANK() OVER (PARTITION BY dept ORDER BY salary desc) AS Rank, ROW_NUMBER() OVER (PARTITION BY dept ORDER BY salary desc) AS RowNumber FROM %s";
+
+        ResultSet rs = methodWatcher.executeQuery(
+            String.format(sqlText, this.getTableReference(TABLE_NAME)));
+
+        int i = 0;
+        while (rs.next()) {
+            Assert.assertEquals(dept[i],rs.getInt(2));
+            Assert.assertEquals(denseRank[i],rs.getInt(4));
+            Assert.assertEquals(rank[i],rs.getInt(5));
+            Assert.assertEquals(rowNumber[i],rs.getInt(6));
+            ++i;
         }
-        {
-            sqlText = "SELECT empnum, dept, salary, DENSE_RANK() OVER (PARTITION BY dept ORDER BY salary desc) AS DenseRank, ROW_NUMBER() OVER (ORDER BY dept) AS RowNumber FROM %s";
-            ResultSet rs = methodWatcher.executeQuery(
-                String.format(sqlText, this.getTableReference(TABLE_NAME)));
-            TestUtils.printResult(sqlText, rs, System.out);
-            rs.close();
-        }
+        rs.close();
+    }
+
+    @Test
+    @Ignore("DB-1647 - Still working on multi functions with diff over()")
+    public void testMultiFunctionInQueryDifferentOverClause() throws Exception {
+        // DB-1647 (multiple functions with different over() do not work)
+        String sqlText = "SELECT empnum, dept, salary, DENSE_RANK() OVER (PARTITION BY dept ORDER BY salary desc) AS DenseRank, ROW_NUMBER() OVER (ORDER BY dept) AS RowNumber FROM %s";
+        ResultSet rs = methodWatcher.executeQuery(
+            String.format(sqlText, this.getTableReference(TABLE_NAME)));
+        TestUtils.printResult(sqlText, rs, System.out);
+        rs.close();
+
+        Assert.fail("You fool! You've ruined us all!");
     }
     @Test
     public void testWindowFunctionWithGroupBy() throws Exception {
