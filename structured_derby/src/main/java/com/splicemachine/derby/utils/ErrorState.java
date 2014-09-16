@@ -1907,7 +1907,9 @@ public enum ErrorState {
             CannotCommitException cce = (CannotCommitException)rootCause;
             return StandardException.newException(getSqlState(), cce.getTxnId());
         }
-    };
+    },
+    DDL_TIMEOUT("SE017")
+    ;
 
 		private final String sqlState;
 

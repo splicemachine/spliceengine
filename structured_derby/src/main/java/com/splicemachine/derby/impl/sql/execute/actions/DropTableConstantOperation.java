@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import com.splicemachine.derby.ddl.DDLCoordinationFactory;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.ddl.DDLChange;
@@ -218,7 +219,7 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
             DDLChange ddlChange = new DDLChange(tc.getActiveStateTxn(), DDLChangeType.DROP_TABLE);
             ddlChange.setTentativeDDLDesc(new DropTableDDLChangeDesc(this.conglomerateNumber, this.tableId));
 
-            notifyMetadataChange(ddlChange);
+            notifyMetadataChangeAndWait(ddlChange);
 
             //
             // The table itself can depend on the user defined types of its columns.

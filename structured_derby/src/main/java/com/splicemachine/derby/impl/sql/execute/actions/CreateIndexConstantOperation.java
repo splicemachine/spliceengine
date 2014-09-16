@@ -843,7 +843,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
                 DDLChangeType.CREATE_INDEX);
         ddlChange.setTentativeDDLDesc(tentativeIndexDesc);
 
-        notifyMetadataChange(ddlChange);
+        notifyMetadataChangeAndWait(ddlChange);
         return ddlChange;
     }
 

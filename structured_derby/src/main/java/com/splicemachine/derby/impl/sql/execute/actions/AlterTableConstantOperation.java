@@ -402,7 +402,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
                     DDLChangeType.CREATE_INDEX);
             ddlChange.setTentativeDDLDesc(tentativeIndexDesc);
 
-            notifyMetadataChange(ddlChange);
+            notifyMetadataChangeAndWait(ddlChange);
 
             HTableInterface table = SpliceAccessManager.getHTable(writeTable);
             try{

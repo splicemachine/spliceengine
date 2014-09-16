@@ -184,7 +184,6 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
         final RowProvider rowProvider = getMapRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext),runtimeContext);
 
         nextTime+= System.currentTimeMillis()-start;
-        //TODO -sf- can we remove the transaction here?
         Txn childTransaction = getChildTransaction();
         try{
             SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),

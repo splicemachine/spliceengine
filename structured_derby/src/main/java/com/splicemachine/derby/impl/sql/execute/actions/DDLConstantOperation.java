@@ -854,6 +854,11 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
 	    return DDLCoordinationFactory.getController().notifyMetadataChange(change);
     }
 
+    protected void notifyMetadataChangeAndWait(DDLChange change) throws StandardException{
+        String changeId = notifyMetadataChange(change);
+        DDLCoordinationFactory.getController().finishMetadataChange(changeId);
+    }
+
 	/**
 	 * @return list of tables affected by this DDL operation that have to be forbidden to write by concurrent transactions. 
 	 */
