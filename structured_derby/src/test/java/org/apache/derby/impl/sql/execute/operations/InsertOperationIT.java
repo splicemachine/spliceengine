@@ -37,6 +37,7 @@ public class InsertOperationIT extends SpliceUnitTest {
 		protected static SpliceTableWatcher spliceTableWatcher12 = new SpliceTableWatcher("HMM",InsertOperationIT.class.getSimpleName(),"(b16a char(2) for bit data, b16b char(2) for bit data, vb16a varchar(2) for bit data, vb16b varchar(2) for bit data, lbv long varchar for bit data)");
 		protected static SpliceTableWatcher spliceTableWatcher13 = new SpliceTableWatcher("WARNING",InsertOperationIT.class.getSimpleName(),"(a char(1))");
 		protected static SpliceTableWatcher spliceTableWatcher14 = new SpliceTableWatcher("T1",InsertOperationIT.class.getSimpleName(),"(c1 int generated always as identity, c2 int)");
+    protected static SpliceTableWatcher spliceTableWatcher15 = new SpliceTableWatcher("T2",InsertOperationIT.class.getSimpleName(),"(a int, b int)");
 		protected static SpliceTableWatcher sameLengthTable = new SpliceTableWatcher("SAME_LENGTH",InsertOperationIT.class.getSimpleName(),"(name varchar(40))");
 
 
@@ -57,7 +58,9 @@ public class InsertOperationIT extends SpliceUnitTest {
 						.around(spliceTableWatcher13)
 						.around(spliceTableWatcher12)
 						.around(sameLengthTable)
-						.around(spliceTableWatcher14);
+						.around(spliceTableWatcher14)
+            .around(spliceTableWatcher15);
+
 		@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
 		@Test
@@ -270,4 +273,20 @@ public class InsertOperationIT extends SpliceUnitTest {
 				Assert.assertEquals("Should have returned 4 rows from identity insert",4,i);
 		}
 
+    @Test
+    public void testRepeatedInsertOverSelectReportsCorrectNumbers() throws Exception {
+        //insert a single record
+        methodWatcher.executeUpdate(String.format("insert into %s (a,b) values (1,1)",spliceTableWatcher15));
+        PreparedStatement ps = methodWatcher.prepareStatement(String.format("insert into %1$s (a,b) select * from %1$s",spliceTableWatcher15));
+        int iterCount = 10;
+        for(int i=0;i<iterCount;i++){
+            int count = ps.executeUpdate();
+            Assert.assertEquals("Reported incorrect value!",(1<<i),count);
+        }
+
+        ResultSet rs = methodWatcher.executeQuery(String.format("select count(*) from %s",spliceTableWatcher15));
+        Assert.assertTrue("Did not return rows for a count query!",rs.next());
+        long count = rs.getLong(1);
+        Assert.assertEquals("Incorrect inserted records!",(1<<iterCount),count);
+    }
 }
