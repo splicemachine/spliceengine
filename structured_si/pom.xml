@@ -12,28 +12,88 @@
 		<version>FUJI.0-SNAPSHOT</version>
 	</parent>
 	<dependencies>
-
 		<dependency>
-			<groupId>com.splicemachine</groupId>
-			<artifactId>utilities</artifactId>
-			<version>${utilities.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>com.splicemachine</groupId>
-			<artifactId>structured_constants</artifactId>
-			<version>FUJI.0-SNAPSHOT</version>
-			<classifier>${envClassifier}</classifier>
-			<type>jar</type>
+			<groupId>com.carrotsearch</groupId>
+			<artifactId>hppc</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>com.github.stephenc.high-scale-lib</groupId>
 			<artifactId>high-scale-lib</artifactId>
-			<version>1.1.1</version>
+		</dependency>
+		<dependency>
+			<groupId>com.google.code.findbugs</groupId>
+			<artifactId>jsr305</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.google.guava</groupId>
+			<artifactId>guava</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.lmax</groupId>
+			<artifactId>disruptor</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.splicemachine</groupId>
+			<artifactId>structured_constants</artifactId>
+			<classifier>${envClassifier}</classifier>
+			<type>jar</type>
+		</dependency>
+		<dependency>
+			<groupId>com.splicemachine</groupId>
+			<artifactId>utilities</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.stumbleupon</groupId>
+			<artifactId>async</artifactId>
+			<exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-log4j12</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>log4j-over-slf4j</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>com.yammer.metrics</groupId>
+			<artifactId>metrics-core</artifactId>
+			<exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-log4j12</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>log4j-over-slf4j</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>log4j</groupId>
+			<artifactId>log4j</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.zookeeper</groupId>
+			<artifactId>zookeeper</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.hbase</groupId>
 			<artifactId>asynchbase</artifactId>
-			<version>${asynchbase.version}</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.slf4j</groupId>
@@ -62,23 +122,13 @@
 			</exclusions>
 		</dependency>
 		<dependency>
-			<groupId>com.stumbleupon</groupId>
-			<artifactId>async</artifactId>
-			<version>${stumbleasync.version}</version>
-			<exclusions>
-				<exclusion>
-					<groupId>org.slf4j</groupId>
-					<artifactId>slf4j-api</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.slf4j</groupId>
-					<artifactId>slf4j-log4j12</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.slf4j</groupId>
-					<artifactId>log4j-over-slf4j</artifactId>
-				</exclusion>
-			</exclusions>
+			<groupId>org.jboss.netty</groupId>
+			<artifactId>netty</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.mockito</groupId>
+			<artifactId>mockito-all</artifactId>
+			<scope>test</scope>
 		</dependency>
 	</dependencies>
 	<build>
@@ -195,89 +245,54 @@
 								<!-- ### Overrides for structured_si ### -->
 								<!-- ################################### -->
 								<!-- # Preserve the classes accessed externally. -->
-								<option>-keep public class com.splicemachine.si.impl.WriteConflict { public *; }
-								</option>
+								<option>-keep public class com.splicemachine.si.impl.WriteConflict { public *; } </option>
 								<option>-keep public class com.splicemachine.si.impl.DDLFilter { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.PackedTxnFilter { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.PushBackIterator { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.Transaction { public *; }</option>
-								<option>-keep public class com.splicemachine.si.impl.TransactionStore { public *; }
-								</option>
-								<option>-keep public class com.splicemachine.si.impl.RowAccumulator { public *; }
-								</option>
-								<option>-keep public class com.splicemachine.si.data.hbase.HRowAccumulator { public *;
-									}
-								</option>
-								<option>-keep public class com.splicemachine.si.data.hbase.IHTable { public *; }
-								</option>
-								<option>-keep public class com.splicemachine.si.coprocessors.SIObserver { public *; }
-								</option>
-								<option>-keep public class com.splicemachine.si.coprocessors.SIFilter { public *; }
-								</option>
-								<option>-keep public class com.splicemachine.si.coprocessors.RollForwardQueueMap {
-									public *; }
-								</option>
-								<option>-keep public class com.splicemachine.si.coprocessors.TimestampMasterObserver {
-									public *; }
-								</option>
-								<option>-keep public class com.splicemachine.si.impl.timestamp.TimestampMasterManagement
-									{ public *; }
-								</option>
-								<option>-keep public class com.splicemachine.si.impl.timestamp.TimestampRegionManagement
-									{ public *; }
-								</option>
-								<option>-keep public class com.splicemachine.si.impl.timestamp.TimestampOracle { public
-									*; }
-								</option>
-								<option>-keep public class com.splicemachine.si.impl.timestamp.TimestampClient { public
-									*; }
-								</option>
+								<option>-keep public class com.splicemachine.si.impl.TransactionStore { public *; } </option>
+								<option>-keep public class com.splicemachine.si.impl.RowAccumulator { public *; } </option>
+								<option>-keep public class com.splicemachine.si.data.hbase.HRowAccumulator { public *; } </option>
+								<option>-keep public class com.splicemachine.si.data.hbase.IHTable { public *; } </option>
+								<option>-keep public class com.splicemachine.si.coprocessors.SIObserver { public *; } </option>
+								<option>-keep public class com.splicemachine.si.coprocessors.SIFilter { public *; } </option>
+								<option>-keep public class com.splicemachine.si.coprocessors.RollForwardQueueMap { public *; } </option>
+								<option>-keep public class com.splicemachine.si.coprocessors.TimestampMasterObserver { public *; } </option>
+								<option>-keep public class com.splicemachine.si.impl.timestamp.TimestampMasterManagement { public *; } </option>
+								<option>-keep public class com.splicemachine.si.impl.timestamp.TimestampRegionManagement { public *; } </option>
+								<option>-keep public class com.splicemachine.si.impl.timestamp.TimestampOracle { public *; } </option>
+								<option>-keep public class com.splicemachine.si.impl.timestamp.TimestampClient { public *; } </option>
 								<option>-keep public class com.splicemachine.si.impl.Tracer { public *; }</option>
 								<option>-keep public class com.splicemachine.si.api.Transactor { public *; }</option>
 								<option>-keep public class com.splicemachine.si.api.TransactionalFilter { public *; } </option>
 								<option>-keep public class com.splicemachine.si.api.TransactionReadController { public *; }</option>
 								<option>-keep public class com.splicemachine.si.api.ConstraintChecker { public *; }</option>
 								<!-- ### Method: beginTransaction ### -->
-								<option>-keep public class com.splicemachine.si.api.TransactionManager { public *; }
-								</option>
+								<option>-keep public class com.splicemachine.si.api.TransactionManager { public *; } </option>
 								<!-- ### Needed for SpliceDriver.registerJMX() during database booting. ### -->
-								<option>-keep public class com.splicemachine.si.api.HTransactorFactory { public *; }
-								</option>
-								<!-- ### Method: beginTransaction ### -->
-								<option>-keep public class com.splicemachine.si.impl.SITransactionManager { public *;
-									}
-								</option>
+								<option>-keep public class com.splicemachine.si.api.HTransactorFactory { public *; } </option> <!-- ### Method: beginTransaction ### -->
+								<option>-keep public class com.splicemachine.si.impl.SITransactionManager { public *; } </option>
 								<!-- ### Needed as return value from TransactionManager.beginTransaction() ### -->
-								<option>-keep public class com.splicemachine.si.impl.TransactionId { public *; }
-								</option>
+								<option>-keep public class com.splicemachine.si.impl.TransactionId { public *; } </option>
 								<!-- ### Needed as return value from HTransactorFactory.getTransactorStatus() in SpliceDriver.registerJMX(). ### -->
-								<option>-keep public class com.splicemachine.si.jmx.ManagedTransactor { public *; }
-								</option>
+								<option>-keep public class com.splicemachine.si.jmx.ManagedTransactor { public *; } </option>
 								<!-- ### Needed as return value from HTransactorFactory.getTransactorStatus() in SpliceDriver.registerJMX(). ### -->
-								<option>-keep public class com.splicemachine.si.jmx.TransactorStatus { public *; }
-								</option>
+								<option>-keep public class com.splicemachine.si.jmx.TransactorStatus { public *; } </option>
 								<!-- ### Needed by ij for SELECT queries. ### -->
-								<option>-keep public class com.splicemachine.si.impl.RowAccumulator { public *; }
-								</option>
+								<option>-keep public class com.splicemachine.si.impl.RowAccumulator { public *; } </option>
 								<!-- ### Method, newFilterState, needed by ij for SELECT queries. TODO: only need method? ### -->
-								<option>-keep public class com.splicemachine.si.api.TransactionReadController { public
-									*; }
-								</option>
+								<option>-keep public class com.splicemachine.si.api.TransactionReadController { public *; } </option>
 								<!-- ### Method, newFilterState, needs this as a parameter. ### -->
-								<option>-keep public class com.splicemachine.si.api.RollForwardQueue { public *; }
-								</option>
+								<option>-keep public class com.splicemachine.si.api.RollForwardQueue { public *; } </option>
 								<!-- ### Method, newFilterState, needs this as a parameter. ### -->
 								<option>-keep public class com.splicemachine.si.impl.TxnFilter { public *; }</option>
 								<!-- ### Method, newFilterState, needs this as a parameter. ### -->
 								<option>-keep public class com.splicemachine.si.impl.FilterState { public *; }</option>
 								<!-- ### Needed by ij for INSERT statements. ### -->
-								<option>-keep public class com.splicemachine.si.data.hbase.HbRegion { public *; }
-								</option>
+								<option>-keep public class com.splicemachine.si.data.hbase.HbRegion { public *; } </option>
 								<!-- ### Needed for ITs. ### -->
-								<option>-keep public class com.splicemachine.si.api.TransactionStatus { public *; }
-								</option>
-								<option>-keep public class com.splicemachine.si.api.TransactorListener { public *; }
-								</option>
+								<option>-keep public class com.splicemachine.si.api.TransactionStatus { public *; } </option>
+								<option>-keep public class com.splicemachine.si.api.TransactorListener { public *; } </option>
 								<option>-keep public class com.splicemachine.si.api.SIFilter { public *; }</option>
 							</options>
 							<libs>
@@ -299,7 +314,6 @@
 							<dependency>
 								<groupId>net.sf.proguard</groupId>
 								<artifactId>proguard-base</artifactId>
-								<version>4.11</version>
 								<scope>runtime</scope>
 							</dependency>
 						</dependencies>
