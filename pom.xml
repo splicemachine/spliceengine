@@ -280,7 +280,6 @@
 				<artifactId>jackson-mapper-asl</artifactId>
 				<version>1.8.8</version>
 			</dependency>
-			<!-- dependency> <groupId>org.codehaus.jackson</groupId> <artifactId>jackson-mapper-asl</artifactId> <version>1.7.1</version> </dependency -->
 			<dependency>
 				<groupId>org.codehaus.jsr166-mirror</groupId>
 				<artifactId>jsr166y</artifactId>
@@ -512,15 +511,7 @@
 			</plugin>
 		</plugins>
 	</reporting>
-	<pluginRepositories>
-		<pluginRepository>
-			<id>codehaus-release-repo</id>
-			<name>Codehaus Release Repo</name>
-			<url>http://repository.codehaus.org</url>
-		</pluginRepository>
-	</pluginRepositories>
 	<repositories>
-
 		<!--
 		SPLICEMACHINE GROUP REPO: This is our single repo URL that proxies and caches other repos. Currently it
 		is proxying: maven central, splice releases, splice snapshots, splice 3rd party.  To view/edit configured
@@ -530,7 +521,6 @@
 			<id>splicemachine</id>
 			<url>http://nexus.splicemachine.com/nexus/content/groups/developers</url>
 		</repository>
-
 	</repositories>
 	<profiles>
 		<profile>
