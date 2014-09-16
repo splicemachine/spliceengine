@@ -22,7 +22,7 @@ import com.splicemachine.homeless.TestUtils;
  * @author Jeff Cunningham
  *         Date: 1/13/14
  */
-@Category(SerialTest.class) //Serial until DB-1777 is resolved
+//@Category(SerialTest.class) //Serial until DB-1777 is resolved
 public class UniqueConstraintIT extends SpliceUnitTest {
     private static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     public static final String CLASS_NAME = UniqueConstraintIT.class.getSimpleName().toUpperCase();

@@ -33,7 +33,7 @@ import com.splicemachine.utils.SpliceLogUtils;
  * @author Scott Fines
  * Created on: 3/7/13
  */
-@Category(SerialTest.class) //left serial until DB-1777 is resolved
+//@Category(SerialTest.class) //left serial until DB-1777 is resolved
 public class UniqueIndexIT extends SpliceUnitTest {
 
     private static final String CLASS_NAME = UniqueIndexIT.class.getSimpleName().toUpperCase();

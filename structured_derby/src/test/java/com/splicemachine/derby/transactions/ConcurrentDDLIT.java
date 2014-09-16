@@ -66,6 +66,19 @@ public class ConcurrentDDLIT {
     }
 
     @Test(timeout = 1000000)
+    public void testConcurrentShowTables() throws Exception {
+        int numTables = 100;
+        List<Future<Void>> results = Lists.newArrayListWithExpectedSize(nThreads);
+        for(int i=0;i<nThreads;i++){
+            TestConnection conn = connections.get(i);
+            results.add(executor.submit(new ShowTablesCallable(i,conn,numTables)));
+        }
+        for(Future<Void> future:results){
+            future.get(); //check for errors
+        }
+    }
+
+    @Test(timeout = 1000000)
     public void testConcurrentSchemaCreation() throws Exception {
         int numTables = 100;
         List<Future<Void>> results = Lists.newArrayListWithExpectedSize(nThreads);
@@ -294,4 +307,18 @@ public class ConcurrentDDLIT {
         }
     }
 
+    private class ShowTablesCallable extends Action {
+        private ShowTablesCallable(int position, TestConnection conn, int numElements) {
+            super(position, conn, numElements);
+        }
+
+        @Override
+        protected void setupAction(int value) throws SQLException {
+            conn.setAutoCommit(false);
+            conn.getMetaData().getTables(null,null,"SYSTABLES",null);
+            conn.commit();
+        }
+
+        @Override protected void teardownAction(int value) throws SQLException {  }
+    }
 }
