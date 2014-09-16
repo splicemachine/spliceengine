@@ -308,7 +308,7 @@
 								<goals>
 									<goal>proguard</goal>
 								</goals>
-							<t/execution>
+							</execution>
 						</executions>
 						<dependencies>
 							<dependency>
