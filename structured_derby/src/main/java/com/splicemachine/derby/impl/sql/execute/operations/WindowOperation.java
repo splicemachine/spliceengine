@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import com.google.common.base.Strings;
+import com.splicemachine.derby.impl.sql.execute.operations.window.*;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -31,10 +32,6 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.iapi.storage.ScanBoundary;
 import com.splicemachine.derby.impl.job.operation.SuccessFilter;
-import com.splicemachine.derby.impl.sql.execute.operations.window.DerbyWindowContext;
-import com.splicemachine.derby.impl.sql.execute.operations.window.FrameBuffer;
-import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
-import com.splicemachine.derby.impl.sql.execute.operations.window.WindowFunctionIterator;
 import com.splicemachine.derby.impl.storage.BaseHashAwareScanBoundary;
 import com.splicemachine.derby.impl.storage.DistributedClientScanProvider;
 import com.splicemachine.derby.impl.storage.KeyValueUtils;
@@ -359,18 +356,19 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
         PartitionAwarePushBackIterator<ExecRow> frameSource = new PartitionAwarePushBackIterator<ExecRow>(iterator);
 
         // test the frame source
-        FrameBuffer frameBuffer = null;
+        WindowFrameBuffer frameBuffer = null;
         if (! frameSource.test(spliceRuntimeContext)) {
             // tests false - bail
             return false;
         }
 
         // create the frame buffer that will use the frame source
-        frameBuffer =
-            new FrameBuffer(spliceRuntimeContext,
+        frameBuffer = BaseFrameBuffer.createFrameBuffer(
+                            spliceRuntimeContext,
                             windowContext.getWindowFunctions(),
                             frameSource,
                             windowContext.getFrameDefinition(),
+                            windowContext.getSortColumns(),
                             templateRow);
 
         // create the frame iterator
