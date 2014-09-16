@@ -60,7 +60,7 @@
 		<dependency>
 			<groupId>com.splicemachine</groupId>
 			<artifactId>structured_constants</artifactId>
-			<classifier>${envClassifier}${obfuscate.si}</classifier>
+			<classifier>${envClassifier}</classifier>
 			<type>jar</type>
 		</dependency>
 		<dependency>
