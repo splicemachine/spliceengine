@@ -250,7 +250,9 @@ public class SinkTask extends ZkTask {
             if(topOperation instanceof InsertOperation)
                 additive = true;
 				}
-				return tc.beginChildTransaction(parentTxn,parentTxn.getIsolationLevel(), additive,table);
+        Txn txn = tc.beginChildTransaction(parentTxn, parentTxn.getIsolationLevel(), additive, table);
+        SpliceLogUtils.trace(LOG,"Executing with transaction %s, which is a child of %s",txn,parentTxn);
+        return txn;
 		}
 
 		@Override

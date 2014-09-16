@@ -370,7 +370,6 @@ class JobControl implements JobFuture {
 						if(parentTxn!=null){
 								//set a new transaction on the entry
                 newTaskData.getFirst().setParentTxnInformation(parentTxn);
-//								newTaskData.getFirst().setParentTxnInformation(TransactionLifecycle.getLifecycleManager().beginChildTransaction(parentTxn, destTable));
 						}
             //submit the task again
             submit(newTaskData.getFirst(), newTaskData.getSecond(), job.getTable(), tryCount + 1);

@@ -190,18 +190,15 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
                     this, runtimeContext,
                     childTransaction);
             jobResults = rowProvider.shuffleRows(soi,OperationUtils.cleanupSubTasks(this));
-        }finally{
-            /*
-             * Commit the underlying child transaction.
-             *
-             * If jobResults==null, then the shuffle itself failed with an error, so roll
-             * it back.
-             */
-            if(jobResults==null || jobResults.getJobStats().getNumFailedTasks()>0){
-                childTransaction.rollback();
-            }else
-                childTransaction.commit();
+        }catch(StandardException se){
+            childTransaction.rollback();
+            throw se;
+        } catch(IOException ioe){
+            childTransaction.rollback();
+            throw ioe;
         }
+        childTransaction.commit();
+
 				long rowsModified = 0;
 				for(TaskStats stats:jobResults.getJobStats().getTaskStats()){
 						rowsModified+=stats.getTotalRowsWritten();

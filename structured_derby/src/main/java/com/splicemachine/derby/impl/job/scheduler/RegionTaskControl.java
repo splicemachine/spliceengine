@@ -249,7 +249,8 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
      * relaxed about this check.
      */
     boolean rollback() {
-				Txn txn = task.getTxn();
+				Txn txn = getTxn();
+        SpliceLogUtils.trace(LOG,"rolling back transaction %s",txn);
 				if(txn==null) return true;
 				try {
 						txn.rollback();
@@ -265,6 +266,7 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
 
     boolean commit(){
 				Txn txn = getTxn();
+        SpliceLogUtils.trace(LOG,"committing transaction %s",txn);
 				if(txn==null) return true;
 
 				try{
