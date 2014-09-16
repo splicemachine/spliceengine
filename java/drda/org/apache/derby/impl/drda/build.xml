@@ -37,8 +37,8 @@
 
   <target name="compile">
   <javac
-      source="1.4"
-      target="1.4"
+      source="1.6"
+      target="1.6"
       bootclasspath="${empty}"
       nowarn="on"
       debug="${debug}"
@@ -55,8 +55,8 @@
       <include name="${derby.dir}/impl/drda/DecryptionManager.java"/>
     </javac>
   <javac
-    source="1.4"
-    target="1.4"
+    source="1.6"
+    target="1.6"
       bootclasspath="${empty}"
       nowarn="on"
       debug="${debug}"
@@ -75,8 +75,8 @@
       <include name="${derby.dir}/impl/drda/XADatabase.java"/>
     </javac>
     <javac
-      source="1.4"
-      target="1.4"
+      source="1.6"
+      target="1.6"
       bootclasspath="${empty}"
       nowarn="on"
       debug="${debug}"
