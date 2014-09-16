@@ -8459,6 +8459,13 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
 										<text>Unique statement identifier is {0}</text>
 										<arg>statement id</arg>
 						</msg>
+
+						<msg>
+										<name>SE017</name>
+										<text>DDL coordination timed out. Time {0} exceeded maximum timeout of {1}</text>
+										<arg>time1</arg>
+										<arg>time2</arg>
+						</msg>
        </family>
     </section>
 
