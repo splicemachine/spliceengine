@@ -255,7 +255,7 @@ public class ImportTask extends ZkTask{
 				if(shouldParallelize) {
 						return new ParallelImporter(importContext,row, txn,errorReporter);
 				} else
-						return new ParallelImporter(importContext,row,1,SpliceConstants.maxImportReadBufferSize,txn,errorReporter);
+						return new ParallelImporter(importContext,row,SpliceConstants.maxImportProcessingThreads,SpliceConstants.maxImportReadBufferSize,txn,errorReporter);
 		}
 
     @Override
