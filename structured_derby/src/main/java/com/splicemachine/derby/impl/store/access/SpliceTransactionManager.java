@@ -2121,6 +2121,8 @@ public class SpliceTransactionManager implements XATransactionController,
         txnName = AccessFactoryGlobals.NESTED_READONLY_USER_TRANS;
 
       Transaction childTxn = accessmanager.getRawStore().startNestedTransaction(getLockSpace(),cm,txnName,txn);
+      if(!readOnly)
+          ((SpliceTransaction)childTxn).elevate("unknown".getBytes()); //TODO -sf- replace this with an actual name
 
       SpliceTransactionManager rt = new SpliceTransactionManager(
               accessmanager, childTxn, this);
