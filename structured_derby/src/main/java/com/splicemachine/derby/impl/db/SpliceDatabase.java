@@ -4,12 +4,10 @@ import javax.security.auth.login.Configuration;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.CancellationException;
 
+import com.google.common.collect.Lists;
 import com.splicemachine.derby.ddl.DDLChange;
 import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.ddl.DDLWatcher;
@@ -21,7 +19,9 @@ import com.google.common.io.Closeables;
 import com.splicemachine.derby.hbase.SpliceMasterObserverRestoreAction;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceUtilities;
+import org.apache.derby.iapi.error.ShutdownException;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.context.Context;
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.context.ContextService;
 import org.apache.derby.iapi.services.monitor.Monitor;
@@ -141,6 +141,43 @@ public class SpliceDatabase extends BasicDatabase {
             TransactionController tc = af.getTransaction( ContextService.getFactory().getCurrentContextManager());
             ((SpliceTransaction)((SpliceTransactionManager) tc).getRawTransaction()).elevate("boot".getBytes());
         }
+
+        DDLCoordinationFactory.getWatcher().registerDDLListener(new DDLWatcher.DDLListener() {
+            @Override
+            public void startGlobalChange() {
+                Collection<LanguageConnectionContext> allContexts = ContextService.getFactory().getAllContexts(LanguageConnectionContext.CONTEXT_ID);
+                for(LanguageConnectionContext context:allContexts){
+                    context.startGlobalDDLChange();
+                }
+            }
+
+            @Override
+            public void finishGlobalChange() {
+                Collection<LanguageConnectionContext> allContexts = ContextService.getFactory().getAllContexts(LanguageConnectionContext.CONTEXT_ID);
+                for(LanguageConnectionContext context:allContexts){
+                    context.finishGlobalDDLChange();
+                }
+            }
+
+            @Override
+            public void startChange(DDLChange change) throws StandardException {
+                if(change.getChangeType()==DDLChangeType.DROP_TABLE){
+                    try {
+                        Collection<LanguageConnectionContext> allContexts = ContextService.getFactory().getAllContexts(LanguageConnectionContext.CONTEXT_ID);
+                        for(LanguageConnectionContext context:allContexts){
+                            context.getDataDictionary().clearCaches();
+                        }
+                    } catch (ShutdownException e) {
+                        LOG.warn("could not get contexts, database shutting down", e);
+                    }
+                }
+            }
+
+            @Override
+            public void finishChange(String changeId) {
+
+            }
+        });
     }
 
     public LanguageConnectionContext setupConnection(ContextManager cm, String user, String drdaID, String dbname)

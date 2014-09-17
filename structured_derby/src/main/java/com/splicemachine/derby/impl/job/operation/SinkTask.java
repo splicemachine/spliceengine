@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.job.operation;
 
+import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
@@ -113,12 +114,12 @@ public class SinkTask extends ZkTask {
 
 		private void adjustScan(byte[] start, byte[] end) {
 				byte[] scanStart =scan.getStartRow();
-				if(scanStart==null||scanStart.length<0||Bytes.compareTo(scanStart,start)<0){
+				if(scanStart==null||scanStart.length<=0||Bytes.compareTo(scanStart,start)<0){
 						scan.setStartRow(start);
 				}
 
 				byte[] scanStop = scan.getStopRow();
-				if(scanStop==null||scanStop.length<0||Bytes.compareTo(end,scanStop)>0)
+				if(scanStop==null||scanStop.length<=0||Bytes.compareTo(end,scanStop)>0)
 						scan.setStopRow(end);
 
 		}
@@ -199,12 +200,13 @@ public class SinkTask extends ZkTask {
 
 		@Override
     public void doExecute() throws ExecutionException, InterruptedException {
-				if(LOG.isTraceEnabled())
-						SpliceLogUtils.trace(LOG,"executing task %s",Bytes.toString(getTaskId()));
         try {
 						SpliceOperation op = instructions.getTopOperation();
+            Txn txn = getTxn();
+            if(LOG.isTraceEnabled())
+                SpliceLogUtils.trace(LOG,"Sink[%s]: %s over [%s,%s)",Bytes.toLong(getTaskId()),txn, BytesUtil.toHex(scan.getStartRow()),BytesUtil.toHex(scan.getStopRow()));
             OperationSink opSink = OperationSink.create((SinkingOperation) op, getTaskId(),
-										getTxn(), op.getStatementId(),waitTimeNs);
+                    txn, op.getStatementId(),waitTimeNs);
 
             TaskStats stats;
             if(op instanceof DMLWriteOperation)
@@ -215,8 +217,8 @@ public class SinkTask extends ZkTask {
 						}
             status.setStats(stats);
 
-						if(LOG.isTraceEnabled())
-								SpliceLogUtils.trace(LOG,"task %s sunk successfully, closing", Bytes.toString(getTaskId()));
+            if(LOG.isTraceEnabled())
+                SpliceLogUtils.trace(LOG,"Sink[%s]: %s sunk %d rows",Bytes.toLong(getTaskId()),txn,stats.getTotalRowsWritten());
         } catch (Exception e) {
             if(e instanceof ExecutionException)
                 throw (ExecutionException)e;
@@ -237,21 +239,16 @@ public class SinkTask extends ZkTask {
         SpliceOperation topOperation = instructions.getTopOperation();
         if(topOperation instanceof DMLWriteOperation){
 						table = ((DMLWriteOperation) topOperation).getDestinationTable();
-            /*
-             * (DB-949)Insert operations should use an Additive transaction, so that internal WW conflicts will
-             * be replaced by the proper UniqueConstraint violations (if necessary)
-             *
-             * -sf- Technically speaking, we could make DeleteOperations additive as well, in order to avoid
-             * throwing a Write/Write conflict if you accidentally deleted the same row twice in the same
-             * operation. However, we would like to do our best to avoid those kinds of situations in the
-             * first place, as they are inefficient (also, I have no good way of creating such an issue), so
-             * we will leave it out for now
-             */
-            if(topOperation instanceof InsertOperation)
+            if(topOperation instanceof InsertOperation){
+		            /*
+		             * (DB-949)Insert operations should use an Additive transaction, so that internal WW conflicts will
+		             * be replaced by the proper UniqueConstraint violations (if necessary)
+		             */
                 additive = true;
+            }
 				}
         Txn txn = tc.beginChildTransaction(parentTxn, parentTxn.getIsolationLevel(), additive, table);
-        SpliceLogUtils.trace(LOG,"Executing with transaction %s, which is a child of %s",txn,parentTxn);
+        SpliceLogUtils.trace(LOG,"Executing task %s with transaction %s, which is a child of %s",Bytes.toLong(taskId),txn,parentTxn);
         return txn;
 		}
 

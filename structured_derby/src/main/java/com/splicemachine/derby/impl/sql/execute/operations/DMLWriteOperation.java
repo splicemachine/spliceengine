@@ -106,6 +106,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 				super.readExternal(in);
 				source = (SpliceOperation)in.readObject();
 				writeInfo = (DMLWriteInfo)in.readObject();
+        heapConglom = in.readLong();
 		}
 
 		@Override
@@ -113,6 +114,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 				super.writeExternal(out);
 				out.writeObject(source);
 				out.writeObject(writeInfo);
+        out.writeLong(heapConglom);
 		}
 
 		@Override

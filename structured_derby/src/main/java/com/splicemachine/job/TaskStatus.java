@@ -10,6 +10,7 @@ import com.splicemachine.si.api.TransactionStorage;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.InheritingTxnView;
+import com.splicemachine.si.impl.LazyTxnView;
 import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.log4j.Logger;
 
@@ -66,8 +67,6 @@ public class TaskStatus implements Externalizable{
         if(error!=null){
             error = Exceptions.getRootCause(error);
             errorTransport = ErrorTransport.newTransport(error);
-//            this.shouldRetry = Exceptions.shouldRetry(error);
-//            this.errorMessage = error.getMessage();
         }
     }
 
@@ -180,7 +179,7 @@ public class TaskStatus implements Externalizable{
              * we treat this as a read-only transaction. Since commits and rollbacks don't do anything
              * for read only operations, it's fine to just inherit from the root transaction.
              */
-            TxnView pView = parentTxn<0||(parentTxn==txnId&&!allowsWrites)? Txn.ROOT_TRANSACTION: TransactionStorage.getTxnSupplier().getTransaction(parentTxn);
+            TxnView pView = !allowsWrites? Txn.ROOT_TRANSACTION: new LazyTxnView(parentTxn,TransactionStorage.getTxnSupplier());
             txn = new InheritingTxnView(pView,txnId,txnId,allowsWrites, null, null);
         }
     }

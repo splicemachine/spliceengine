@@ -98,8 +98,16 @@ public class LazyTxnView implements TxnView {
 
     @Override
     public long getBeginTimestamp() {
-        lookup(false); //begin timestamp never changes
-        return delegate.getBeginTimestamp();
+        /*
+         * As of this comment (Sept. 2014) the begin timestamp and the
+         * transaction id are the same thing. Therefore, we can defer
+         * one from the other. However, should that change(e.g. because
+         * we create some other form of Lamport clock to determine transactional
+         * relationships), we will need to re-implement this method.
+         */
+        return txnId;
+//        lookup(false); //begin timestamp never changes
+//        return delegate.getBeginTimestamp();
     }
 
     @Override

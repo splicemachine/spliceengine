@@ -103,6 +103,35 @@ public class TransactionInteractionTest {
         Assert.assertEquals("Incorrect results","scott absent",testUtility.read(userTxn,"scott"));
     }
 
+    @Test
+    public void testInsertThenRollbackThenInsertNewRowThenScanWillOnlyReturnOneRow() throws Exception {
+        Txn userTxn = control.beginTransaction(DESTINATION_TABLE);
+
+        Txn child = control.beginChildTransaction(userTxn,DESTINATION_TABLE);
+
+        Txn grandChild = control.beginChildTransaction(child,DESTINATION_TABLE);
+        //insert the row
+        transactionalInsert("scott10", grandChild, 29);
+
+        Assert.assertEquals("Incorrect results", "scott10 age=29 job=null", testUtility.read(grandChild, "scott10"));
+
+        //rollback
+        grandChild.rollback();
+
+        //now insert a second row with a new grandChild
+
+        Txn grandChild2 = control.beginChildTransaction(child,DESTINATION_TABLE);
+        transactionalInsert("scott11",grandChild2,29);
+
+        grandChild2.commit();
+
+        child.commit();
+
+        String actual = testUtility.scanAll(userTxn, "scott10", "scott12", null).trim();
+        String expected = "scott11 age=29 job=null[ V.age@~9=29 ] ".trim();
+        Assert.assertEquals("Incorrect scan results", expected, actual);
+    }
+
     @Test(expected = WriteConflict.class)
     public void testInsertAndDeleteBeforeInsertTransactionCommitsThrowsWriteWriteConflict() throws Throwable {
         /*
@@ -313,7 +342,10 @@ public class TransactionInteractionTest {
      * 2. T2 has been marked as additive
      * 3. T1.parent = T2.parent (e.g. they are direct relatives)
      *
-     * Thus, the following tests a few situations:
+     *
+     * Write characteristics of an Additive Transaction:
+     *
+     * For writes, we have the following cases:
      *
      * 1. T1 additive:
      *  A. T2 additive:
@@ -322,9 +354,32 @@ public class TransactionInteractionTest {
      *  B. T2 not additive => WWConflict
      * 2. T2 additive, T1 not additive => WWConflict
      *
-     * When these cases hold, we also have an additional feature: that reads between two additive transactions
-     * (assuming the above rules) operate with a READ_UNCOMMITTED isolation level, even if they are both
-     * at a normally higher level.
+     * Read characteristics of an additive transaction:
+     *
+     * In general, we would *like* to use normal visibility semantics with additive transactions.
+     * However, that is not a possibility, because of the following case:
+     *
+     * Suppose you are attempting the following sql:
+     *
+     * insert into t select * from t;
+     *
+     * With this query, we will construct 1 transaction per region; this means that it will be possible
+     * for the following sequence to occur:
+     *
+     * 1. Child 1 writes row R
+     * 2. Child 1 commits
+     * 3. Child 2 begins
+     * 4. Child 2 reads row R
+     *
+     * Because Child 1 and Child 2 are at the same level, the normal process would treat them as if they
+     * were two individual operations. In this case, since Child 1 has committed before Child 2 began, Snapshot
+     * Isolation semantics would allow that child to see writes. In practice, this leads to inconsistent iteration.
+     *
+     * We want to make it so that Child2 does not see the writes from Child1, even though they are independent
+     * from one another. We realize that insertions are "additive", so we discover the second major feature
+     * of additive child transactions: writes from one additive child transaction are NOT VISIBLE to
+     * any other additive child transaction (as long as they are additive with respect to one another).
+     *
      */
     @Test
     public void testTwoAdditiveTransactionsDoNotConflict() throws Exception {
@@ -343,14 +398,15 @@ public class TransactionInteractionTest {
     }
 
     @Test
-    public void testTwoAdditiveTransactionsUseReadUncommittedIsolationLevel() throws Exception {
+    public void testTwoAdditiveTransactionsCannotSeeEachOthersWritesEvenAfterCommit() throws Exception {
         String name = "scott10";
         Txn userTxn = control.beginTransaction(DESTINATION_TABLE);
         Txn child1 = control.beginChildTransaction(userTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION,true,DESTINATION_TABLE);
         Txn child2 = control.beginChildTransaction(userTxn,Txn.IsolationLevel.SNAPSHOT_ISOLATION,true,null);
 
         testUtility.insertAge(child1,name,29);
-        Assert.assertEquals("Additive transaction cannot see sibling's writes",name+" age=29 job=null",testUtility.read(child2,name));
+        child1.commit();
+        Assert.assertEquals("Additive transaction cannot see sibling's writes",name+" absent",testUtility.read(child2,name));
     }
 
     @Test(expected=WriteConflict.class)

@@ -40,20 +40,24 @@ public class SynchronousReadResolver {
      * @return a ReadResolver which uses Synchronous Read Resolution under the hood.
      */
     public static @ThreadSafe ReadResolver getResolver(final HRegion region,final TxnSupplier txnSupplier,final RollForwardStatus status){
+       return getResolver(region,txnSupplier,status,false);
+    }
+
+    public static @ThreadSafe ReadResolver getResolver(final HRegion region,final TxnSupplier txnSupplier,final RollForwardStatus status, final boolean failOnError){
         return new ReadResolver() {
             @Override
             public void resolve(ByteSlice rowKey, long txnId) {
-                SynchronousReadResolver.INSTANCE.resolve(region,rowKey,txnId,txnSupplier,status);
+                SynchronousReadResolver.INSTANCE.resolve(region,rowKey,txnId,txnSupplier,status,failOnError);
             }
         };
     }
 
-    boolean resolve(HRegion region, ByteSlice rowKey, long txnId, TxnSupplier supplier,RollForwardStatus status) {
+    boolean resolve(HRegion region, ByteSlice rowKey, long txnId, TxnSupplier supplier,RollForwardStatus status,boolean failOnError) {
         try {
             TxnView transaction = supplier.getTransaction(txnId);
             boolean resolved = false;
             if(transaction.getEffectiveState()== Txn.State.ROLLEDBACK){
-                SynchronousReadResolver.INSTANCE.resolveRolledback(region, rowKey, txnId);
+                SynchronousReadResolver.INSTANCE.resolveRolledback(region, rowKey, txnId,failOnError);
                 resolved = true;
             }else{
                 TxnView t = transaction;
@@ -61,7 +65,7 @@ public class SynchronousReadResolver {
                     t = t.getParentTxnView();
                 }
                 if(t==Txn.ROOT_TRANSACTION){
-                    SynchronousReadResolver.INSTANCE.resolveCommitted(region,rowKey,txnId,transaction.getEffectiveCommitTimestamp());
+                    SynchronousReadResolver.INSTANCE.resolveCommitted(region,rowKey,txnId,transaction.getEffectiveCommitTimestamp(),failOnError);
                     resolved = true;
                 }
             }
@@ -69,6 +73,8 @@ public class SynchronousReadResolver {
             return resolved;
         } catch (IOException e) {
             LOG.info("Unable to fetch transaction for id "+ txnId+", will not resolve",e);
+            if(failOnError)
+                throw new RuntimeException(e);
             return false;
         }
     }
@@ -76,7 +82,7 @@ public class SynchronousReadResolver {
     /******************************************************************************************************************/
     /*private helper methods */
 
-    private void resolveCommitted(HRegion region,ByteSlice rowKey, long txnId, long commitTimestamp) {
+    private void resolveCommitted(HRegion region,ByteSlice rowKey, long txnId, long commitTimestamp,boolean failOnError) {
         /*
          * Resolve the row as committed directly.
          *
@@ -87,19 +93,21 @@ public class SynchronousReadResolver {
 
         Put put = new Put(rowKey.getByteCopy());
         put.add(SIConstants.DEFAULT_FAMILY_BYTES,
-                SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES,txnId,
+                SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES, txnId,
                 Bytes.toBytes(commitTimestamp));
         put.setAttribute(SIConstants.SI_EXEMPT,SIConstants.TRUE_BYTES);
-        put.setAttribute(SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME,SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_VALUE);
+        put.setAttribute(SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME, SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_VALUE);
         put.setWriteToWAL(false);
         try{
             region.put(put,false);
         } catch (IOException e) {
-            LOG.info("Exception encountered when attempting to resolve a row as rolled back",e);
+            LOG.info("Exception encountered when attempting to resolve a row as committed",e);
+            if(failOnError)
+                throw new RuntimeException(e);
         }
     }
 
-    private void resolveRolledback(HRegion region,ByteSlice rowKey, long txnId) {
+    private void resolveRolledback(HRegion region,ByteSlice rowKey, long txnId,boolean failOnError) {
         /*
          * Resolve the row as rolled back directly.
          *
@@ -119,6 +127,8 @@ public class SynchronousReadResolver {
             region.delete(delete,false);
         }catch(IOException ioe){
             LOG.info("Exception encountered when attempting to resolve a row as rolled back",ioe);
+            if(failOnError)
+                throw new RuntimeException(ioe);
         }
     }
 }

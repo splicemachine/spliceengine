@@ -79,6 +79,7 @@ public class ReadOnlyTxn extends AbstractTxn {
 
 		@Override
 		public long getEffectiveCommitTimestamp() {
+        if(state.get()==State.ROLLEDBACK)  return -1l;
 				if(parentTxn!=null)
 						return parentTxn.getEffectiveCommitTimestamp();
 				return -1l; //read-only transactions do not need to commit, so they don't need a TxnId
