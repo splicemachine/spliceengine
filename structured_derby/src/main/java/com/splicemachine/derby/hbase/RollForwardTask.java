@@ -117,7 +117,8 @@ public class RollForwardTask implements Task {
 
     private MeasuredRegionScanner getRegionScanner(Txn txn,SegmentedRollForward.Context context) throws IOException {
         TxnSupplier txnSupplier = TransactionStorage.getTxnSupplier();
-        ReadResolver resolver = SynchronousReadResolver.getResolver(region, txnSupplier, TransactionalRegions.getRollForwardStatus());
+        //want to make sure that we bail the task on error
+        ReadResolver resolver = SynchronousReadResolver.getResolver(region, txnSupplier, TransactionalRegions.getRollForwardStatus(),true);
         DataStore dataStore = TxnDataStore.getDataStore();
         TxnFilter filer = new UpdatingTxnFilter(txnSupplier,txn,resolver,dataStore,context);
         SIFilter filter = new SIFilter(filer);
@@ -126,6 +127,7 @@ public class RollForwardTask implements Task {
         scan.setStartRow(start);
         scan.setStopRow(stop);
         scan.setFilter(filter);
+        scan.setCacheBlocks(false);
 
         return new BufferedRegionScanner(region,region.getScanner(scan), scan,16,Metrics.noOpMetricFactory());
     }

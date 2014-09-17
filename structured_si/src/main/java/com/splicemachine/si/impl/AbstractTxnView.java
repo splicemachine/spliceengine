@@ -26,6 +26,7 @@ public abstract class AbstractTxnView implements TxnView {
 
     @Override
     public long getEffectiveCommitTimestamp() {
+        if(getState()== Txn.State.ROLLEDBACK) return -1l; //don't have an effective commit timestamp if rolledback
         long gCTs = getGlobalCommitTimestamp();
         if(gCTs>0) return gCTs;
         TxnView pTxn = getParentTxnView();
@@ -86,21 +87,17 @@ public abstract class AbstractTxnView implements TxnView {
              * Both transactions are additive, but we can only treat them as additive
              * if they are both children of the same parent.
              *
-             * However, if they DO have the same parent, then they operate as if they
-             * have a READ_UNCOMMITTED isolation level.
-             *
-             * Note that a readonly child transaction inherits the same transactional
-             * structure as the parent (e.g. there is no such thing as a read-only child
-             * transaction, you are just reading with the parent transaction). As a result,
-             * we say that if otherTxn is a direct child of us, or we are a direct child
-             * of otherTxn, then we can also be additive with respect to one another.
+             * If they are additive, and both children of the same parent, then
+             * we can *NOT* see the writes of the other transaction. This allows
+             * us to enforce consistent iteration with multiple child transactions
+             * of the same operations (like an insert or an update).
              */
             TxnView myParent = getParentTxnView();
             TxnView otherParent = otherTxn.getParentTxnView();
             if(equals(otherParent)
                     || otherTxn.equals(myParent)
                     || !myParent.equals(Txn.ROOT_TRANSACTION) && myParent.equals(otherParent)){
-                return Txn.IsolationLevel.READ_UNCOMMITTED.canSee(beginTimestamp,otherTxn,false);
+                return false;
             }
         }
           /*

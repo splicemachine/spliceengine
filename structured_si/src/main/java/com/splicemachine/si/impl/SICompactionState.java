@@ -1,12 +1,10 @@
 package com.splicemachine.si.impl;
 
-import com.carrotsearch.hppc.LongOpenHashSet;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.si.api.RollForward;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.api.TxnView;
-import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.impl.store.ActiveTxnCacheSupplier;
 import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.KeyValue;
@@ -93,7 +91,7 @@ public class SICompactionState<Mutation,
         if(!transactionStore.transactionCached(timestamp)){
             if(isFailedCommitTimestamp(keyValue)){
                 transactionStore.cache(new RolledBackTxn(timestamp));
-            }else{
+            }else if (keyValue.getValueLength()>0){ //shouldn't happen, but you never know
                 long commitTs = Bytes.toLong(keyValue.getBuffer(), keyValue.getValueOffset(), keyValue.getValueLength());
                 transactionStore.cache(new CommittedTxn(timestamp,commitTs));
             }

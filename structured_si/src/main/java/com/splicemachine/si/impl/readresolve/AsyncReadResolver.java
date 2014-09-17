@@ -92,7 +92,7 @@ public class AsyncReadResolver  {
 				@Override
 				public void onEvent(ResolveEvent event, long sequence, boolean endOfBatch) throws Exception {
             try{
-                if(SynchronousReadResolver.INSTANCE.resolve(event.region,event.rowKey,event.txnId,txnSupplier,status)){
+                if(SynchronousReadResolver.INSTANCE.resolve(event.region,event.rowKey,event.txnId,txnSupplier,status,false)){
                     event.rollForward.recordResolved(event.rowKey,event.txnId);
                 }
             }catch(Exception e){

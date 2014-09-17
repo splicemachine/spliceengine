@@ -81,6 +81,7 @@ public class WritableTxn extends AbstractTxn {
 
 		@Override
 		public long getEffectiveCommitTimestamp() {
+        if(state==State.ROLLEDBACK) return -1l;
 				if(globalCommitTimestamp>=0) return globalCommitTimestamp;
         if(Txn.ROOT_TRANSACTION.equals(parent))
             globalCommitTimestamp = commitTimestamp;
@@ -156,6 +157,6 @@ public class WritableTxn extends AbstractTxn {
 
     @Override
     public String toString(){
-        return "WritableTxn("+txnId+","+getState()+")";
+        return "WritableTxn("+txnId+","+getState()+","+parent+")";
     }
 }
