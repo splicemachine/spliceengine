@@ -3,6 +3,7 @@ package com.splicemachine.job;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
+import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.Exceptions;
@@ -93,20 +94,20 @@ public class TaskStatus implements Externalizable{
     public byte[] toBytes() throws IOException {
     	Kryo kryo = null;
     	try {
-    		kryo = SpliceDriver.getKryoPool().get();
+    		kryo = SpliceKryoRegistry.getInstance().get();
     		Output output = new Output(100,-1);
     		kryo.writeObject(output,this);
     		return output.toBytes();
     	} finally {
     		if (kryo != null)	
-    			SpliceDriver.getKryoPool().returnInstance(kryo);
+    			SpliceKryoRegistry.getInstance().returnInstance(kryo);
     	}
     }
 
     public static TaskStatus fromBytes(byte[] bytes) throws IOException, ClassNotFoundException {
         Input input = new Input(bytes);
         Kryo kryo = null;
-        KryoPool kryoPool = SpliceDriver.getKryoPool();
+        KryoPool kryoPool = SpliceKryoRegistry.getInstance();
         try {
             kryo = kryoPool.get();
             return kryo.readObject(input,TaskStatus.class);
