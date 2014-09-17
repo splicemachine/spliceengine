@@ -63,7 +63,6 @@ public class JobControlTest {
 
         JobMetrics throwaway = mock(JobMetrics.class);
 
-        SpliceDriver.getKryoPool(); //initialize stuff before it's needed so as not to interfere with the test
         final JobControl control = new JobControl(mockJob,"/test",mockZkManager,1,throwaway);
 
         //submit two tasks
@@ -143,7 +142,7 @@ public class JobControlTest {
 
         JobMetrics throwaway = mock(JobMetrics.class);
 
-        SpliceDriver.getKryoPool(); //initialize stuff before it's needed so as not to interfere with the test
+
         final JobControl control = new JobControl(mockJob,"/test",mockZkManager,1,throwaway);
 
         //submit two tasks
@@ -265,7 +264,7 @@ public class JobControlTest {
         doAnswer(new Answer<Void>() {
             @Override
             public Void answer(InvocationOnMock invocation) throws Throwable {
-                TaskFutureContext futureContext = new TaskFutureContext(taskNode1, Bytes.toBytes(1),Bytes.toBytes(1),0.0d);
+                TaskFutureContext futureContext = new TaskFutureContext(taskNode1, Bytes.toBytes(1),Bytes.toBytes(1l),0.0d);
                 @SuppressWarnings("unchecked") Batch.Callback<TaskFutureContext[]> o = (Batch.Callback<TaskFutureContext[]>) invocation.getArguments()[4];
                 byte[] startKey = (byte[])invocation.getArguments()[1];
 
