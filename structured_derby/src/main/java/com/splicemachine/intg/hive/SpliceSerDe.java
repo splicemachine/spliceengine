@@ -1,5 +1,10 @@
 package com.splicemachine.intg.hive;
 
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
+import java.io.Serializable;
+import java.io.UnsupportedEncodingException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -8,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import org.apache.commons.lang.SerializationUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
@@ -17,7 +23,9 @@ import org.apache.derby.iapi.types.SQLBoolean;
 import org.apache.derby.iapi.types.SQLDouble;
 import org.apache.derby.iapi.types.SQLInteger;
 import org.apache.derby.iapi.types.SQLLongint;
+import org.apache.derby.iapi.types.SQLReal;
 import org.apache.derby.iapi.types.SQLSmallint;
+import org.apache.derby.iapi.types.SQLTimestamp;
 import org.apache.derby.iapi.types.SQLVarchar;
 import org.apache.derby.impl.sql.execute.ValueRow;
 import org.apache.hadoop.conf.Configuration;
@@ -25,7 +33,12 @@ import org.apache.hadoop.hive.serde.Constants;
 import org.apache.hadoop.hive.serde2.SerDe;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.SerDeStats;
+import org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector.PrimitiveCategory;
+import org.apache.hadoop.hive.serde2.objectinspector.StructField;
+import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 import org.apache.hadoop.hive.serde2.typeinfo.StructTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
@@ -47,6 +60,8 @@ public class SpliceSerDe implements SerDe {
 	 public static final String SPLICE_JDBC_STR = "splice.jdbc";
 	 private List<Object> row = new ArrayList<Object>();
 	 private SQLUtil sqlUtil = null;
+	 private LazySimpleSerDe.SerDeParameters serdeParams;
+	 
 	 static Logger Log = Logger.getLogger(
 			 SpliceSerDe.class.getName());
 
@@ -64,11 +79,12 @@ public class SpliceSerDe implements SerDe {
 	   spliceTableName = spliceTableName.trim();
 	   if(sqlUtil == null)
 		   sqlUtil = SQLUtil.getInstance(tbl.getProperty(SpliceMRConstants.SPLICE_JDBC_STR));
+	  
 	   getSpliceTableStructure(spliceTableName);
 	  
 	   String colNamesStr = tbl.getProperty(Constants.LIST_COLUMNS);
 	   colNames = Arrays.asList(colNamesStr.split(","));
-	   Log.info("------col names read from property: "+colNamesStr);
+	  
 	   // Get a list of TypeInfos for the columns. This list lines up with
 	   // the list of column names.
 	   String colTypesStr = tbl.getProperty(Constants.LIST_COLUMN_TYPES);
@@ -79,11 +95,10 @@ public class SpliceSerDe implements SerDe {
 	       (StructTypeInfo) TypeInfoFactory.getStructTypeInfo(colNames, colTypes);
 	   rowOI =
 	       TypeInfoUtils.getStandardJavaObjectInspectorFromTypeInfo(rowTypeInfo);
-	   for(TypeInfo typeInfo : colTypes)
-	   {
-		   Log.info("----- col Type: "+typeInfo.getTypeName());
-	   }
+	   serdeParams = LazySimpleSerDe.initSerdeParams(conf, tbl, getClass().getName());
+	  
 	   Log.info("--------Finished initialize");
+	   
 	 }
 
 	 
@@ -154,7 +169,7 @@ public class SpliceSerDe implements SerDe {
 	 public Object deserialize(Writable blob) throws SerDeException {
 	   row.clear();
 	   // Do work to turn the fields in the blob into a set of row fields
-	   Log.debug(Thread.currentThread() .getStackTrace()[1].getMethodName());
+	   Log.debug("*******"+Thread.currentThread() .getStackTrace()[1].getMethodName());
 	   ExecRowWritable rowWritable = (ExecRowWritable) blob;
 	   
 	   try {
@@ -180,7 +195,7 @@ public class SpliceSerDe implements SerDe {
 	  */
 	 //@Override
 	 public ObjectInspector getObjectInspector() throws SerDeException {
-		 Log.debug(Thread.currentThread() .getStackTrace()[1].getMethodName());
+		 Log.debug("******"+Thread.currentThread() .getStackTrace()[1].getMethodName());
 	   return rowOI;
 	 }
 
@@ -189,7 +204,7 @@ public class SpliceSerDe implements SerDe {
 	  */
 	 //@Override
 	 public SerDeStats getSerDeStats() {
-		 Log.debug(Thread.currentThread() .getStackTrace()[1].getMethodName());
+		 Log.debug("*******"+Thread.currentThread() .getStackTrace()[1].getMethodName());
 	   return null;
 	 }
 
@@ -198,7 +213,7 @@ public class SpliceSerDe implements SerDe {
 	  */
 	 //@Override
 	 public Class<? extends Writable> getSerializedClass() {
-		 Log.debug(Thread.currentThread() .getStackTrace()[1].getMethodName());
+		 Log.debug("********"+Thread.currentThread() .getStackTrace()[1].getMethodName());
 	   return ExecRowWritable.class;
 	 }
 
@@ -211,14 +226,67 @@ public class SpliceSerDe implements SerDe {
 	 public Writable serialize(Object obj, ObjectInspector oi)
 	     throws SerDeException {
 	   // Take the object and transform it into a serialized representation
-		 Log.debug(Thread.currentThread() .getStackTrace()[1].getMethodName());
-		 DataValueDescriptor[] data = new DataValueDescriptor[]{new SQLInteger(1),
-					new SQLVarchar("abcd")};
-		 ExecRow row = new ValueRow(data.length);
-			row.setRowArray(data);
+		 DataValueDescriptor dvds[] = new DataValueDescriptor[colTypes.size()];
+		if (oi.getCategory() != ObjectInspector.Category.STRUCT) {
+	            throw new SerDeException(getClass().toString()
+	                    + " can only serialize struct types, but we got: "
+	                    + oi.getTypeName());
+	        }
+		 StructObjectInspector soi = (StructObjectInspector)oi;
+		 List<? extends StructField> fields = soi.getAllStructFieldRefs();
+	        List<Object> list = soi.getStructFieldsDataAsList(obj);
+	        List<? extends StructField> declaredFields =
+	                (serdeParams.getRowTypeInfo() != null &&
+	                        ((StructTypeInfo) serdeParams.getRowTypeInfo())
+	                                .getAllStructFieldNames().size() > 0) ?
+	                        ((StructObjectInspector) getObjectInspector()).getAllStructFieldRefs()
+	                        : null;
+	      try {  
+	    	
+			 for (int i = 0; i < fields.size(); i++) {
+			      StructField field = fields.get(i);
+			      ObjectInspector fieldOI = field.getFieldObjectInspector(); 
+			      Object fieldObj = soi.getStructFieldData(obj, field);
+			      
+			      PrimitiveObjectInspector primOI = (PrimitiveObjectInspector)fieldOI;
+			      Object data = primOI.getPrimitiveJavaObject(fieldObj);
+			     
+			      if(primOI.getPrimitiveCategory() == PrimitiveCategory.INT)
+			    	  dvds[i] = new SQLInteger((Integer)data);
+			      else if (primOI.getPrimitiveCategory() == PrimitiveCategory.STRING)
+			    	  dvds[i] = new SQLVarchar((String)data);
+			      else if(primOI.getPrimitiveCategory() == PrimitiveCategory.BINARY)
+			    	  dvds[i] = new SQLBlob(SerializationUtils.serialize((Serializable) data));
+			      else if(primOI.getPrimitiveCategory() == PrimitiveCategory.BOOLEAN)
+			    	  dvds[i] = new SQLBoolean((Boolean)data);
+			      else if(primOI.getPrimitiveCategory() == PrimitiveCategory.DECIMAL)
+			    	  dvds[i] = new org.apache.derby.iapi.types.SQLDecimal((String)data);
+			      else if(primOI.getPrimitiveCategory() == PrimitiveCategory.DOUBLE)
+			    	  dvds[i] = new SQLDouble((Double)data);
+			      else if(primOI.getPrimitiveCategory() == PrimitiveCategory.FLOAT)
+			    	  // Is it the correct way? Treat Float as SQLReal?
+			    	  dvds[i] = new SQLReal((Float)data);
+			      else if(primOI.getPrimitiveCategory() == PrimitiveCategory.LONG)
+			    	  dvds[i] = new SQLLongint((Long)data);
+			      else if(primOI.getPrimitiveCategory() == PrimitiveCategory.SHORT)
+			    	  dvds[i] = new SQLSmallint((Short)data);
+			      else if(primOI.getPrimitiveCategory() ==  PrimitiveCategory.TIMESTAMP)
+			    	  dvds[i] = new SQLTimestamp((Timestamp)data);
+			      // how to deal with PrimitiveCategory.VOID?
+			 }
+			
+			
+		} catch (StandardException e) {
+			// TODO Auto-generated catch block
+			throw new RuntimeException("Serialized Object To Java Type Error");
+		}
+	     
+		ExecRow row = new ValueRow(dvds.length);
+		row.setRowArray(dvds);
 		ExecRowWritable rowWritable = new ExecRowWritable(colTypes);
 		rowWritable.set(row);
 		return rowWritable;
 		 
 	 }
 }
+

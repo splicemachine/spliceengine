@@ -89,6 +89,10 @@ public class HiveSpliceTableInputFormat extends SpliceTableInputFormatBase
 		HTable table;
 		try {
 			String spliceTableName = conf.get(SpliceSerDe.SPLICE_TABLE_NAME).trim();
+			LOG.error("-------------createRecordReader, spliceTableName:"+spliceTableName);
+			if(sqlUtil == null)
+				//sqlUtil = SQLUtil.getInstance(conf.get(SpliceMRConstants.SPLICE_JDBC_STR));
+				sqlUtil = SQLUtil.getInstance("jdbc:splice://localhost:1527/splicedb;user=splice;password=admin");
 			tableStructure = sqlUtil.getTableStructure(spliceTableName);
 			Iterator iter = tableStructure.entrySet().iterator();
 	    	if(iter.hasNext())

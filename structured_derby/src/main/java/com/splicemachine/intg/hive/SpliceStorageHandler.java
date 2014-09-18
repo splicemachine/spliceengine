@@ -3,7 +3,6 @@ package com.splicemachine.intg.hive;
 import java.sql.SQLException;
 import java.util.Map;
 import java.util.Properties;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hive.metastore.HiveMetaHook;
@@ -79,6 +78,15 @@ implements HiveMetaHook, HiveStoragePredicateHandler{
 		System.out.println("SpliceStorageHandler, configureInputJobProperties:"
 				+ "get tableName from tableDesc: "+tableDesc.getTableName());
 		
+	      configureTableJobProperties(tableDesc, jobProperties);
+	  }
+	
+	@Override
+	  public void configureOutputJobProperties(
+	    TableDesc tableDesc,
+	    Map<String, String> jobProperties) {
+		System.out.println("SpliceStorageHandler, configureOutputJobProperties:"
+				+ "get tableName from tableDesc: "+tableDesc.getTableName());
 	      configureTableJobProperties(tableDesc, jobProperties);
 	  }
 	
@@ -187,3 +195,4 @@ implements HiveMetaHook, HiveStoragePredicateHandler{
 	}
 
 }
+
