@@ -85,6 +85,7 @@ public class HashNestedLoopJoinStrategy extends HashableJoinStrategy {
     @Override
     public boolean feasible(Optimizable innerTable, OptimizablePredicateList predList, Optimizer optimizer) throws StandardException {
     	SpliceLogUtils.trace(LOG, "feasible innerTable=%s, predList=%s, optimizer=%s",innerTable,predList,optimizer);
+    	return false;  // Temprorary until we can reason about this join algorithm
         /*
          * Somewhat Temporary Fix.
          *
@@ -96,12 +97,13 @@ public class HashNestedLoopJoinStrategy extends HashableJoinStrategy {
          * to make those work.
          */
     	// Could Check for Sortability here?
-    	boolean hashableFeasible = super.feasible(innerTable,predList,optimizer);
+/*    	boolean hashableFeasible = super.feasible(innerTable,predList,optimizer);
     	boolean isOneRowResultSet = false;
     	if (innerTable instanceof FromBaseTable)
     		isOneRowResultSet = ((FromBaseTable) innerTable).isOneRowResultSet(predList);
     	SpliceLogUtils.trace(LOG, "feasible? hashableFeasible=%s, isOneRowResultSet=%s",hashableFeasible,isOneRowResultSet);    	
-    	return hashableFeasible && isOneRowResultSet;        
+    	return hashableFeasible && isOneRowResultSet;       
+    	*/ 
     }
     
 

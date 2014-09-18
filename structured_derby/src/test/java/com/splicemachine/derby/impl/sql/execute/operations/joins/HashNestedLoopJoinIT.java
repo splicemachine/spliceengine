@@ -6,6 +6,7 @@ import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_dao.*;
 import com.splicemachine.test_tools.IntegerRows;
 import com.splicemachine.test_tools.TableCreator;
+
 import org.apache.commons.lang.RandomStringUtils;
 import org.junit.ClassRule;
 import org.junit.Ignore;
@@ -28,6 +29,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
 @Category(SerialTest.class) //made sequential because of joinWithStatistics() test
+@Ignore
 public class HashNestedLoopJoinIT {
 
     private static final String CLASS_NAME = HashNestedLoopJoinIT.class.getSimpleName().toUpperCase();
