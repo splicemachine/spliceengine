@@ -1,5 +1,4 @@
 package com.splicemachine.intg.hive;
-
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.Date;
@@ -108,12 +107,6 @@ org.apache.hadoop.mapred.OutputFormat<ImmutableBytesWritable, Put>{
 	protected static String tableID;
 	private HashMap<List, List> tableStructure;
 	private HashMap<List, List> pks;
-	
-	private HiveSpliceOutputFormat(){
-		super();
-		//sqlUtil = SQLUtil.getInstance();
-		
-	}
 	
 	public Configuration getConf() {
 		return this.conf;
@@ -284,14 +277,16 @@ org.apache.hadoop.mapred.OutputFormat<ImmutableBytesWritable, Put>{
 			try {		
 				if(callBuffer == null){
 					conn = sqlUtil.createConn();
-					sqlUtil.disableAutoCommit(conn);
+					//sqlUtil.disableAutoCommit(conn);
 					
-					childTxsID = sqlUtil.getChildTransactionID(conn, 
+					/*childTxsID = sqlUtil.getChildTransactionID(conn, 
 									conf.get(SpliceMRConstants.SPLICE_TRANSACTION_ID), 
 									Long.parseLong(tableID));
 
 					callBuffer = WriteCoordinator.create(conf).writeBuffer(Bytes.toBytes(tableID), 
-									childTxsID, SpliceMRConstants.SPLICE_WRITE_BUFFER_SIZE);	
+									childTxsID, SpliceMRConstants.SPLICE_WRITE_BUFFER_SIZE);*/	
+					callBuffer = WriteCoordinator.create(conf).writeBuffer(Bytes.toBytes(tableID), 
+							sqlUtil.getTransactionID(), SpliceMRConstants.SPLICE_WRITE_BUFFER_SIZE);
 				}		
 				ExecRow value = ((ExecRowWritable)valueWritable).get();
 				byte[] key = this.keyEncoder.getKey(value);
@@ -375,8 +370,9 @@ org.apache.hadoop.mapred.OutputFormat<ImmutableBytesWritable, Put>{
 	    jc.set(TableOutputFormat.OUTPUT_TABLE, spliceTableName);
 	    final boolean walEnabled = HiveConf.getBoolVar(
 	        jc, HiveConf.ConfVars.HIVE_HBASE_WAL_ENABLED);
-	    final HTable table = new HTable(HBaseConfiguration.create(jc), spliceTableName);
-	    table.setAutoFlush(false);
+	    //final HTable table = new HTable(HBaseConfiguration.create(jc), spliceTableName);
+	    //table.setAutoFlush(false);
+	    setConf(jc);
 	    RecordWriter rw = null;
 	    try {
 			rw = this.getRecordWriter();
@@ -396,3 +392,4 @@ org.apache.hadoop.mapred.OutputFormat<ImmutableBytesWritable, Put>{
 	
 	
 }
+
