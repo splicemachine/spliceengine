@@ -8,20 +8,21 @@
 	<packaging>war</packaging>
 	<name>splice_web</name>
 	<description>Splice Machine Webapp</description>
-	<parent>
+	<version>FUJI.0-SNAPSHOT</version>
+	<!--parent>
 		<artifactId>spliceengine</artifactId>
 		<groupId>com.splicemachine</groupId>
 		<version>FUJI.0-SNAPSHOT</version>
-	</parent>
+	</parent-->
 	<dependencies>
-		<dependency>
-			<groupId>com.sun.jersey</groupId>
-			<artifactId>jersey-core</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.codehaus.jackson</groupId>
-			<artifactId>jackson-mapper-asl</artifactId>
-		</dependency>
+		<dependency> <groupId>com.sun.jersey</groupId> <artifactId>jersey-client</artifactId> <version>1.8</version> <scope>test</scope> </dependency>
+		<dependency> <groupId>com.sun.jersey</groupId> <artifactId>jersey-core</artifactId> <version>1.8</version> </dependency>
+		<dependency> <groupId>com.sun.jersey</groupId> <artifactId>jersey-json</artifactId> <version>1.8</version> <scope>runtime</scope> </dependency>
+		<dependency> <groupId>com.sun.jersey</groupId> <artifactId>jersey-server</artifactId> <version>1.8</version> <scope>runtime</scope> </dependency>
+		<dependency> <groupId>junit</groupId> <artifactId>junit</artifactId> <version>4.11</version> <scope>test</scope> </dependency>
+		<dependency> <groupId>org.apache.derby</groupId> <artifactId>derbyclient</artifactId> <version>10.9.1.0-splice</version> <scope>runtime</scope> </dependency>
+		<dependency> <groupId>org.codehaus.jackson</groupId> <artifactId>jackson-core-asl</artifactId> <version>1.8.8</version> </dependency>
+		<dependency> <groupId>org.codehaus.jackson</groupId> <artifactId>jackson-mapper-asl</artifactId> <version>1.8.8</version> </dependency>
 	</dependencies>
 	<pluginRepositories>
 		<pluginRepository>
@@ -31,6 +32,7 @@
 		</pluginRepository>
 	</pluginRepositories>
 	<build>
+		<finalName>splice_web</finalName>
 		<plugins>
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
@@ -105,6 +107,17 @@
 			</plugin>
 		</plugins>
 	</build>
+	<repositories>
+		<!--
+		SPLICEMACHINE GROUP REPO: This is our single repo URL that proxies and caches other repos. Currently it
+		is proxying: maven central, splice releases, splice snapshots, splice 3rd party.  To view/edit configured
+		repos in the group log into nexus, select repository "Splice Developers", view Configuration tab.
+		-->
+		<repository>
+			<id>splicemachine</id>
+			<url>http://nexus.splicemachine.com/nexus/content/groups/developers</url>
+		</repository>
+	</repositories>
 	<profiles>
 		<profile>
 			<id>assemble</id>
