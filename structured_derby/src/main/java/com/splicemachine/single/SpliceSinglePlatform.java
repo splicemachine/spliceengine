@@ -15,6 +15,7 @@ import com.splicemachine.si.coprocessors.TimestampMasterObserver;
 
 import java.io.PrintStream;
 
+import com.splicemachine.si.coprocessors.TxnLifecycleEndpoint;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HConstants;
@@ -65,7 +66,7 @@ public class SpliceSinglePlatform extends ServerAdminClient {
 			System.exit(1);
 		}
 	}
-	
+
 	private static void usage(String msg, Throwable t) {
 		PrintStream out = System.out;
 		if (t != null) {
@@ -80,14 +81,14 @@ public class SpliceSinglePlatform extends ServerAdminClient {
 		out.println("Usage: SpliceSinglePlatform( String zookeeperTargetDirectory, String hbaseRootDirUri, Integer masterPort, " +
                               "Integer masterInfoPort, Integer regionServerPort, Integer regionServerInfoPort, Integer derbyPort, String true|false )");
 	}
-	
+
 	public void start() throws Exception {
 		Configuration config = HBaseConfiguration.create();
 		setBaselineConfigurationParameters(config);
         LOG.info("Derby listen port: "+derbyPort);
 		miniHBaseCluster = new MiniHBaseCluster(config,1,1);
 	}
-	
+
 	public static void stop(String host, int port) {
 		kill(host, port);
 	}
@@ -109,7 +110,7 @@ public class SpliceSinglePlatform extends ServerAdminClient {
 		    configuration.set("hbase.rootdir", hbaseRootDirUri);
         }
 		configuration.setInt("hbase.rpc.timeout", 120000);
-		configuration.setInt("hbase.regionserver.lease.period", 120000);		
+		configuration.setInt("hbase.regionserver.lease.period", 120000);
 		configuration.set("hbase.cluster.distributed", "true");
 		configuration.set("hbase.master.distributed.log.splitting", "false");
 		configuration.setInt("hbase.balancer.period", 10000);
@@ -152,7 +153,8 @@ public class SpliceSinglePlatform extends ServerAdminClient {
                         SpliceDerbyCoprocessor.class.getCanonicalName() + "," +
                         SpliceIndexManagementEndpoint.class.getCanonicalName() + "," +
                         SpliceIndexEndpoint.class.getCanonicalName() + "," +
-                        CoprocessorTaskScheduler.class.getCanonicalName()+","+
+                        CoprocessorTaskScheduler.class.getCanonicalName() + "," +
+                        TxnLifecycleEndpoint.class.getCanonicalName() + "," +
                         SIObserver.class.getCanonicalName()
         );
         configuration.set("hbase.coprocessor.master.classes",
