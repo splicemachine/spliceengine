@@ -24,6 +24,8 @@ package org.apache.derby.iapi.services.context;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 import org.apache.derby.iapi.error.ShutdownException;
 import org.apache.derby.iapi.services.monitor.Monitor;
@@ -167,7 +169,7 @@ public final class ContextService //OLD extends Hashtable
      * @see #newContextManager()
      * @see SystemContext#cleanupOnError(Throwable)
      */
-	private HashSet<ContextManager> allContexts;
+	private Set<ContextManager> allContexts;
 
     /**
      * Create a new ContextService for a Derby system.
@@ -181,7 +183,7 @@ public final class ContextService //OLD extends Hashtable
 
 		ContextService.factory = this;
 
-		allContexts = new HashSet<ContextManager>();
+		allContexts = new CopyOnWriteArraySet<ContextManager>();
 
 	}
 
@@ -574,8 +576,7 @@ public final class ContextService //OLD extends Hashtable
      * Remove a ContextManager from the list of all active
      * contexts managers.
      */
-    synchronized void removeContext(ContextManager cm)
-    {
+    void removeContext(ContextManager cm) {
         if (allContexts != null)
             allContexts.remove( cm);
     }
@@ -597,10 +598,8 @@ public final class ContextService //OLD extends Hashtable
      */
     public <T extends Context> List<T> getAllContexts(String contextId) {
         List<T> contexts = new ArrayList<T>();
-        synchronized (this) {
-            for (ContextManager contextManager : allContexts) {
-                contexts.addAll((Collection<? extends T>) contextManager.getContextStack(contextId));
-            }
+        for (ContextManager contextManager : allContexts) {
+            contexts.addAll((Collection<? extends T>) contextManager.getContextStack(contextId));
         }
         return contexts;
     }
