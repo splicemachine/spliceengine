@@ -15,11 +15,7 @@
             </unpackOptions>
             <includes>
                 <include>org.apache.derby:derby</include>
-                <include>org.apache.derby:derbynet</include>
                 <include>org.apache.derby:derbyclient</include>
-                <include>org.apache.derby:derbytools</include>
-                <include>org.apache.derby:derbyrun</include>
-                <include>org.datanucleus:datanucleus-core</include>
                 <include>com.splicemachine:structured_si</include>
                 <include>com.splicemachine:structured_constants</include>
                 <include>com.splicemachine:splice_machine</include>
