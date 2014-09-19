@@ -81,6 +81,10 @@ public class ActiveTxnCacheSupplier implements TxnSupplier {
         return getFromCache(hash,txnId);
     }
 
+    public int getSize(){
+        return size;
+    }
+
     protected void addToCache(int hash, TxnView txn) {
 				int pos = hash &(data.length-1) ;
 				//cache it for future use
@@ -99,7 +103,7 @@ public class ActiveTxnCacheSupplier implements TxnSupplier {
              * element could remove a frequently accessed entry.
              */
             SoftReference<TxnView> elem = data[pos];
-            if(elem!=null && elem.get()==null)
+//            if(elem!=null && elem.get()==null)
                 size--;
         }else{
 						//find the next empty spot
