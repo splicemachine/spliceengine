@@ -10,6 +10,8 @@ import com.splicemachine.si.api.TxnView;
 import java.io.IOException;
 import java.lang.ref.SoftReference;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
@@ -139,14 +141,15 @@ public class CompletedTxnCacheSupplier implements TxnSupplier {
     }
 
     private class Segment {
-				private final ReentrantReadWriteLock lock;
+				private final Lock readLock;
+        private final Lock writeLock;
 				private volatile int size = 0;
 
         private SoftReference<TxnView>[] data;
 
 				@SuppressWarnings("unchecked")
 				private Segment(int maxSize) {
-						lock = new ReentrantReadWriteLock(false);
+            this.readLock = writeLock = new ReentrantLock(false);
 						int s = 1;
 						while(s<=maxSize){
 								s<<=1;
@@ -156,7 +159,6 @@ public class CompletedTxnCacheSupplier implements TxnSupplier {
 				}
 
 				TxnView get(long txnId){
-						ReentrantReadWriteLock.ReadLock readLock = lock.readLock();
 						readLock.lock();
 						try{
                 int pos = hashFunction.hash(txnId) & (data.length-1);
@@ -180,7 +182,6 @@ public class CompletedTxnCacheSupplier implements TxnSupplier {
 				}
 
 				boolean put(TxnView txn){
-					ReentrantReadWriteLock.WriteLock writeLock = lock.writeLock();
 						writeLock.lock();
 						try{
                 int pos = hashFunction.hash(txn.getTxnId()) & (data.length-1);
