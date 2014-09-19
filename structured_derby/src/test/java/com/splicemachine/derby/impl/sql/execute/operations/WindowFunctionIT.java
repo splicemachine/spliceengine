@@ -824,4 +824,28 @@ public class WindowFunctionIT extends SpliceUnitTest {
             rs.close();
         }
     }
+    @Test
+    public void testWindowFunctionWithGroupBy() throws Exception {
+
+        int[] col2 = {1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3};
+        int[] col3 = {78000, 76000, 75000, 53000, 52000, 52000, 50000, 53000, 52000, 52000, 51000, 84000, 79000, 75000, 55000};
+        int[] col4 = {1, 2, 3, 4, 5, 5, 7, 1, 2, 2, 4, 1, 2, 3, 4};
+        String sqlText =
+                "select empnum, dept, sum(salary)," +
+                "rank() over(partition by dept order by salary desc) rank " +
+                "from %s " +
+                "group by empnum, dept";
+
+        ResultSet rs = methodWatcher.executeQuery(
+                String.format(sqlText, this.getTableReference(TABLE_NAME)));
+
+        int i = 0;
+        while (rs.next()) {
+            Assert.assertEquals(col2[i],rs.getInt(2));
+            Assert.assertEquals(col3[i],rs.getInt(3));
+            Assert.assertEquals(col4[i],rs.getInt(4));
+            i++;
+        }
+        rs.close();
+    }
 }
