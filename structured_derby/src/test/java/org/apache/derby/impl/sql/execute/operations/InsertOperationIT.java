@@ -1,10 +1,7 @@
 package org.apache.derby.impl.sql.execute.operations;
 
 import com.google.common.collect.Maps;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.test.framework.*;
 import org.apache.log4j.Logger;
 import org.junit.*;
 import org.junit.rules.RuleChain;
@@ -12,9 +9,12 @@ import org.junit.rules.TestRule;
 
 import java.io.File;
 import org.apache.commons.io.FileUtils;
+import org.junit.runner.Description;
+
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.sql.*;
 import java.util.*;
 
@@ -38,6 +38,9 @@ public class InsertOperationIT extends SpliceUnitTest {
 		protected static SpliceTableWatcher spliceTableWatcher13 = new SpliceTableWatcher("WARNING",InsertOperationIT.class.getSimpleName(),"(a char(1))");
 		protected static SpliceTableWatcher spliceTableWatcher14 = new SpliceTableWatcher("T1",InsertOperationIT.class.getSimpleName(),"(c1 int generated always as identity, c2 int)");
     protected static SpliceTableWatcher spliceTableWatcher15 = new SpliceTableWatcher("T2",InsertOperationIT.class.getSimpleName(),"(a int, b int)");
+    protected static SpliceTableWatcher spliceTableWatcher16 = new SpliceTableWatcher("T3",InsertOperationIT.class.getSimpleName(),"(a int, b decimal(16,10))");
+    protected static SpliceTableWatcher spliceTableWatcher17 = new SpliceTableWatcher("T4",InsertOperationIT.class.getSimpleName(),"(c int, d int)");
+    protected static SpliceTableWatcher spliceTableWatcher18 = new SpliceTableWatcher("T5",InsertOperationIT.class.getSimpleName(),"(a int, c int,b decimal(16,10), d int)");
 		protected static SpliceTableWatcher sameLengthTable = new SpliceTableWatcher("SAME_LENGTH",InsertOperationIT.class.getSimpleName(),"(name varchar(40))");
 
 
@@ -59,11 +62,60 @@ public class InsertOperationIT extends SpliceUnitTest {
 						.around(spliceTableWatcher12)
 						.around(sameLengthTable)
 						.around(spliceTableWatcher14)
-            .around(spliceTableWatcher15);
+            .around(spliceTableWatcher15)
+            .around(spliceTableWatcher16)
+            .around(spliceTableWatcher17)
+            .around(spliceTableWatcher18).around(new SpliceDataWatcher() {
+                @Override
+                protected void starting(Description description) {
+                    try {
+                        PreparedStatement ps = spliceClassWatcher.prepareStatement(String.format("insert into %s (a,b) values (?,?)",spliceTableWatcher16));
+                        ps.setInt(1,1);ps.setBigDecimal(2, BigDecimal.ONE); ps.execute();
+
+                        ps = spliceClassWatcher.prepareStatement(String.format("insert into %s (c,d) values (?,?)",spliceTableWatcher17));
+                        ps.setInt(1,1);ps.setInt(2,1); ps.execute();
+                        ps.setInt(1,2);ps.setInt(2,2); ps.execute();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            });
 
 		@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
-		@Test
+    @Test
+    public void testInsertOverMergeSortOuterJoinIsCorrect() throws Exception {
+        /*
+         * Regression test for DB-1833. Tests that we can insert over a subselect that has a merge-sort
+         * join present,without getting any errors.
+         */
+         long insertCount = methodWatcher.executeUpdate(String.format("insert into %1$s select " +
+                "%2$s.a,%3$s.c,%2$s.b,%3$s.d " +
+                "from %2$s --SPLICE-PROPERTIES joinStrategy=SORTMERGE \n" +
+                "right join %3$s on %2$s.a=%3$s.c",spliceTableWatcher18,spliceTableWatcher16,spliceTableWatcher17));
+        Assert.assertEquals("Incorrect number of rows inserted!",2,insertCount);
+        ResultSet rs = methodWatcher.executeQuery("select * from "+spliceTableWatcher18);
+        int count = 0;
+        while(rs.next()){
+            int a = rs.getInt(1);
+            if(rs.wasNull()){
+                BigDecimal b = rs.getBigDecimal(3);
+                Assert.assertTrue("B is not null!",rs.wasNull());
+            }else{
+                BigDecimal b = rs.getBigDecimal(3);
+                Assert.assertFalse("B is null!", rs.wasNull());
+                Assert.assertTrue("Incorrect B value!", BigDecimal.ONE.subtract(b).abs().compareTo(new BigDecimal(".0000000001"))<0);
+            }
+            count++;
+            int c = rs.getInt(2);
+            Assert.assertFalse("C is null!", rs.wasNull());
+            int d = rs.getInt(4);
+            Assert.assertFalse("D is null!",rs.wasNull());
+        }
+        Assert.assertEquals("Incorrect row count!",2,count);
+    }
+
+    @Test
 		public void testDataTruncationWarningIsEmitted() throws Exception {
 				PreparedStatement ps = methodWatcher.prepareStatement("insert into "+ spliceTableWatcher13+" values cast(? as char(1))");
 				ps.setString(1,"12");
