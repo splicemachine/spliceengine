@@ -111,6 +111,8 @@ public class GroupByNode extends SingleChildResultSetNode
 	
 	private SubqueryList havingSubquerys;
 
+    private Vector aggregateResultColumns;
+
     @Override
     public boolean isParallelizable() {
         return true; //is a grouped aggregate
@@ -662,6 +664,7 @@ public class GroupByNode extends SingleChildResultSetNode
 		** For each aggregate
 		*/
 		int alSize = aggregateVector.size();
+        aggregateResultColumns = new Vector(alSize);
 		for (int index = 0; index < alSize; index++)
 		{
 			aggregate = (AggregateNode) aggregateVector.get(index);
@@ -704,6 +707,7 @@ public class GroupByNode extends SingleChildResultSetNode
 			tmpRC.bindResultColumnToExpression();
 			groupByRCL.addElement(tmpRC);
 			tmpRC.setVirtualColumnId(groupByRCL.size());
+            aggregateResultColumns.addElement(tmpRC);
 
 			/*
 			** Set the column reference to point to
@@ -890,6 +894,10 @@ public class GroupByNode extends SingleChildResultSetNode
 			return "";
 		}
 	}
+
+    public Vector getAggregateResultColumns() {
+        return aggregateResultColumns;
+    }
 
 	/**
 	 * Prints the sub-nodes of this object.  See QueryTreeNode.java for

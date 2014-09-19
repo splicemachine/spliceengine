@@ -10022,7 +10022,7 @@ windowOrAggregateFunctionNode() throws StandardException :
                             Boolean.FALSE,
                             "DENSE_RANK",
                             getContextManager());
-
+        ((AggregateNode)winOrAgg).setWindowFunction(true);
 		winOrAgg = (ValueNode) nodeFactory.getNode(
 			C_NodeTypes.DENSERANK_FUNCTION_NODE,
 			window,
@@ -10041,7 +10041,7 @@ windowOrAggregateFunctionNode() throws StandardException :
                             Boolean.FALSE,
                             "RANK",
                             getContextManager());
-
+        ((AggregateNode)winOrAgg).setWindowFunction(true);
 		winOrAgg = (ValueNode) nodeFactory.getNode(
 			C_NodeTypes.RANK_FUNCTION_NODE,
 			window,
@@ -10060,7 +10060,7 @@ windowOrAggregateFunctionNode() throws StandardException :
                             Boolean.FALSE,
                             "ROW_NUMBER",
                             getContextManager());
-
+        ((AggregateNode)winOrAgg).setWindowFunction(true);
 		winOrAgg = (ValueNode) nodeFactory.getNode(
 			C_NodeTypes.ROW_NUMBER_FUNCTION_NODE,
 			window,

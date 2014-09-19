@@ -1496,6 +1496,56 @@ public class SelectNode extends ResultSetNode
 								null,
 								getContextManager()	 );
 
+        /*
+		** If we have aggregates OR a select list we want
+		** to generate a GroupByNode.  In the case of a
+		** scalar aggregate we have no grouping columns.
+		**
+		** JRESOLVE: what about correlated aggregates from another
+		** block.
+		*/
+        Vector aggregateResultColumns = null;
+        if ((selectAggregates != null) && (selectAggregates.size() > 0)) {
+            // Remove window functions from selectAggregates first
+            Collection<AggregateNode> toRemove = new ArrayList<AggregateNode>();
+            for (int i = 0; i < selectAggregates.size(); ++i) {
+                AggregateNode n = (AggregateNode)selectAggregates.get(i);
+                if (n.isWindowFunction()) {
+                    toRemove.add(n);
+                }
+            }
+            selectAggregates.removeAll(toRemove);
+        }
+        if (((selectAggregates != null) && (selectAggregates.size() > 0))
+                || (groupByList != null))
+        {
+
+            Vector aggs = selectAggregates;
+            if (havingAggregates != null && !havingAggregates.isEmpty()) {
+                havingAggregates.addAll(selectAggregates);
+                aggs = havingAggregates;
+            }
+            GroupByNode gbn = (GroupByNode) getNodeFactory().getNode(
+                    C_NodeTypes.GROUP_BY_NODE,
+                    prnRSN,
+                    groupByList,
+                    aggs,
+                    havingClause,
+                    havingSubquerys,
+                    null,
+                    new Integer(nestingLevel),
+                    getContextManager());
+            gbn.considerPostOptimizeOptimizations(originalWhereClause != null);
+            gbn.assignCostEstimate(optimizer.getOptimizedCost());
+
+            //groupByList = null;
+            prnRSN  = gbn.getParent();
+
+            // Remember whether or not we can eliminate the sort.
+            eliminateSort = eliminateSort || gbn.getIsInSortedOrder();
+            aggregateResultColumns = gbn.getAggregateResultColumns();
+        }
+
         if (windowNodeList != null) {
 
             // Now we add a window result set wrapped in a PRN on top of what
@@ -1514,6 +1564,8 @@ public class SelectNode extends ResultSetNode
                         prnRSN,
                         defnToFunctions.getKey(),
                         defnToFunctions.getValue(),
+                        groupByList,
+                        aggregateResultColumns,
                         null,   // table properties
                         nestingLevel,
                         getContextManager());
@@ -1533,45 +1585,6 @@ public class SelectNode extends ResultSetNode
             }
             selectAggregates.removeAll(toRemove);
         }
-
-
-		/*
-		** If we have aggregates OR a select list we want
-		** to generate a GroupByNode.  In the case of a
-		** scalar aggregate we have no grouping columns.
-		**
-		** JRESOLVE: what about correlated aggregates from another
-		** block.
-		*/ 
-		if (((selectAggregates != null) && (selectAggregates.size() > 0)) 
-			|| (groupByList != null))
-		{
-			Vector aggs = selectAggregates;
-			if (havingAggregates != null && !havingAggregates.isEmpty()) {
-				havingAggregates.addAll(selectAggregates);
-				aggs = havingAggregates;
-			}
-			GroupByNode gbn = (GroupByNode) getNodeFactory().getNode(
-												C_NodeTypes.GROUP_BY_NODE,
-												prnRSN,
-												groupByList,
-												aggs,
-												havingClause,
-												havingSubquerys,
-												null,
-												new Integer(nestingLevel),
-												getContextManager());
-			gbn.considerPostOptimizeOptimizations(originalWhereClause != null);
-			gbn.assignCostEstimate(optimizer.getOptimizedCost());
-
-			groupByList = null;
-			prnRSN  = gbn.getParent();
-
-			// Remember whether or not we can eliminate the sort.
-			eliminateSort = eliminateSort || gbn.getIsInSortedOrder();
-		}
-
-
 
 		// if it is distinct, that must also be taken care of.
 		if (isDistinct)

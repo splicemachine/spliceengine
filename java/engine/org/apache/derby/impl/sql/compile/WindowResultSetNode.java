@@ -98,6 +98,10 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
     // Is the source in sorted order
     private boolean isInSortedOrder;
 
+    private Vector aggregateResultColumns;
+
+    private GroupByList	groupByList;
+
     /**
      * Intializer for a WindowResultSetNode.
      *
@@ -116,6 +120,8 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         Object bottomPR,
         Object windowDef,
         Object windowFunctions,
+        Object groupByList,
+        Object aggregateResultColumns,
         Object tableProperties,
         Object nestingLevel)
         throws StandardException {
@@ -123,6 +129,8 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         setLevel(((Integer) nestingLevel).intValue());
         /* Group by without aggregates gets xformed into distinct */
         this.windowFunctions = (Collection<WindowFunctionNode>) windowFunctions;
+        this.groupByList = (GroupByList)groupByList;
+        this.aggregateResultColumns = (Vector)aggregateResultColumns;
         if (SanityManager.DEBUG) {
             SanityManager.ASSERT(! this.windowFunctions.isEmpty(),
                                  "windowFunctions expected to be non-empty");
@@ -372,11 +380,103 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         // note windowingRCL is a reference to resultColumns
         // setting columns on windowingRCL will also set them on resultColumns
         ResultColumnList windowingRCL = resultColumns;
+        List<SubstituteExpressionVisitor> referencesToSubstitute = new ArrayList<SubstituteExpressionVisitor>();
+
+        // Add all columns from groupByList
+        if (groupByList != null) {
+            for (int i = 0; i < groupByList.size(); ++i) {
+                {
+                    GroupByColumn gbc = (GroupByColumn) groupByList.elementAt(i);
+                    ResultColumn newRC = (ResultColumn) getNodeFactory().getNode(
+                            C_NodeTypes.RESULT_COLUMN,
+                            "##UnaggColumn",
+                            gbc.getColumnExpression(),
+                            getContextManager());
+
+                    // add this result column to the bottom rcl
+                    bottomRCL.addElement(newRC);
+                    newRC.markGenerated();
+                    newRC.bindResultColumnToExpression();
+                    newRC.setVirtualColumnId(bottomRCL.size());
+
+                    // now add this column to the groupbylist
+                    ResultColumn gbRC = (ResultColumn) getNodeFactory().getNode(
+                            C_NodeTypes.RESULT_COLUMN,
+                            "##UnaggColumn",
+                            gbc.getColumnExpression(),
+                            getContextManager());
+                    windowingRCL.addElement(gbRC);
+                    gbRC.markGenerated();
+                    gbRC.bindResultColumnToExpression();
+                    gbRC.setVirtualColumnId(windowingRCL.size());
+
+                    /*
+                     ** Reset the original node to point to the
+                     ** Group By result set.
+                     */
+                    VirtualColumnNode vc = (VirtualColumnNode) getNodeFactory().getNode(
+                            C_NodeTypes.VIRTUAL_COLUMN_NODE,
+                            this, // source result set.
+                            gbRC,
+                            new Integer(windowingRCL.size()),
+                            getContextManager());
+
+                    ValueNode vn = gbc.getColumnExpression();
+                    SubstituteExpressionVisitor vis =
+                            new SubstituteExpressionVisitor(vn, vc,
+                                    AggregateNode.class);
+                    referencesToSubstitute.add(vis);
+                    gbc.setColumnPosition(bottomRCL.size());
+                }
+            }
+        }
+        if (aggregateResultColumns != null) {
+            // Include grouped aggregate result columns in the result column list
+            for (int i = 0; i < aggregateResultColumns.size(); ++i) {
+                ResultColumn rc = (ResultColumn) aggregateResultColumns.get(i);
+                ResultColumn newRC = (ResultColumn) getNodeFactory().getNode(
+                        C_NodeTypes.RESULT_COLUMN,
+                        "##UnWindowingColumn" + rc.getExpression().getColumnName(),
+                        rc.getExpression(),
+                        getContextManager());
+
+                // add this result column to the bottom rcl
+                bottomRCL.addElement(newRC);
+                newRC.markGenerated();
+                newRC.bindResultColumnToExpression();
+                newRC.setVirtualColumnId(bottomRCL.size());
+
+                // now add this column to the windowingRCL
+                ResultColumn wRC = (ResultColumn) getNodeFactory().getNode(
+                        C_NodeTypes.RESULT_COLUMN,
+                        "##UnWindowingColumn" + rc.getExpression().getColumnName(),
+                        rc.getExpression(),
+                        getContextManager());
+                windowingRCL.addElement(wRC);
+                wRC.markGenerated();
+                wRC.bindResultColumnToExpression();
+                wRC.setVirtualColumnId(windowingRCL.size());
+
+                VirtualColumnNode vc = (VirtualColumnNode) getNodeFactory().getNode(
+                        C_NodeTypes.VIRTUAL_COLUMN_NODE,
+                        this, // source result set.
+                        wRC,
+                        new Integer(windowingRCL.size()),
+                        getContextManager());
+
+                ValueNode vn = rc.getExpression();
+                SubstituteExpressionVisitor vis =
+                        new SubstituteExpressionVisitor(vn, vc,
+                                AggregateNode.class);
+                referencesToSubstitute.add(vis);
+
+            }
+        }
 
         Collection<OrderedColumn> allColumns  =
             collectColumns(parent.getResultColumns(), wdn.getPartition(), wdn.getOrderByList());
 
-        List<SubstituteExpressionVisitor> referencesToSubstitute = new ArrayList<SubstituteExpressionVisitor>();
+
         for (OrderedColumn oc : allColumns) {
             ResultColumn newRC = (ResultColumn) getNodeFactory().getNode(
                 C_NodeTypes.RESULT_COLUMN,
@@ -461,6 +561,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             //       FBT (C1, C2)
             oc.setColumnPosition(bottomRCL.size());
         }
+
         Comparator<SubstituteExpressionVisitor> sorter = new ExpressionSorter();
         Collections.sort(referencesToSubstitute, sorter);
         for (SubstituteExpressionVisitor aReferencesToSubstitute : referencesToSubstitute)
