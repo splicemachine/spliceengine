@@ -43,7 +43,6 @@ import java.util.List;
 public class MergeSortJoinOperation extends JoinOperation implements SinkingOperation {
     private static final long serialVersionUID = 2l;
     private static Logger LOG = Logger.getLogger(MergeSortJoinOperation.class);
-    protected boolean wasRightOuterJoin;
     protected int leftHashKeyItem;
     protected int[] leftHashKeys;
     protected int rightHashKeyItem;
