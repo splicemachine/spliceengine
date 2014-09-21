@@ -26,14 +26,13 @@ import java.lang.reflect.*;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.DatabaseMetaData;
-import org.apache.derby.catalog.TypeDescriptor;
 
+import org.apache.derby.catalog.TypeDescriptor;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataTypeUtilities;
 import org.apache.derby.iapi.sql.ResultColumnDescriptor;
 import org.apache.derby.impl.jdbc.EmbedResultSetMetaData;
 import org.apache.derby.catalog.types.RoutineAliasInfo;
-
 import org.apache.derby.shared.common.reference.JDBC40Translation;
 /**
     <P>Use of VirtualTableInterface to provide support for
@@ -311,6 +310,26 @@ public class GetProcedureColumns extends org.apache.derby.vti.VTITemplate
 
     public void close()
     {
+    }
+
+    /**
+     * Method to map column names in the result set to their numeric index.
+     * @param columnName name of column in result set
+     * @return index to the column in the result set
+     * @throws SQLException for unknown column names
+     */
+    public int findColumn(String columnName) throws SQLException
+    {
+    	int count = columnInfo.length;
+    	for (int i = 0; i < count; i++)
+    	{
+    		if (columnInfo[i].getName().equals(columnName))
+    		{
+    			return i+1;
+    		}
+    	}
+
+    	throw new SQLException(String.format("Unknown column name: %s", columnName));
     }
 
 	/*

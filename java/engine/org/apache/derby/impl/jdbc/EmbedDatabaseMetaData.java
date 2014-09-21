@@ -21,36 +21,45 @@
 
 package org.apache.derby.impl.jdbc;
 
+import org.apache.derby.catalog.AliasInfo;
+import org.apache.derby.catalog.GetProcedureColumns;
 import org.apache.derby.iapi.services.info.ProductVersionHolder;
-
 import org.apache.derby.iapi.services.monitor.Monitor;
-
 import org.apache.derby.iapi.services.sanity.SanityManager;
-
+import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.ResultColumnDescriptor;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
-
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.sql.dictionary.SPSDescriptor;
-
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.types.DataTypeDescriptor;
+import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.SQLInteger;
+import org.apache.derby.iapi.types.SQLSmallint;
+import org.apache.derby.iapi.types.SQLVarchar;
+import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.iapi.error.StandardException;
-
+import org.apache.derby.impl.sql.GenericColumnDescriptor;
 import org.apache.derby.impl.sql.execute.GenericConstantActionFactory;
 import org.apache.derby.impl.sql.execute.GenericExecutionFactory;
-
+import org.apache.derby.impl.sql.execute.ValueRow;
+import org.apache.derby.impl.sql.execute.IteratorNoPutResultSet;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.reference.Limits;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.Properties;
-
 import java.sql.DatabaseMetaData;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.ResultSet;
 import java.sql.Types;
-
 import java.io.IOException;
 import java.io.InputStream;
+
 import org.apache.derby.iapi.util.InterruptStatus;
 
 /**
@@ -1584,9 +1593,9 @@ public class EmbedDatabaseMetaData extends ConnectionChild
 		// Using the new JDBC 4.0 version of the query here. The query
 		// was given a new name to allow the old query to
 		// be used by ODBCMetaDataGenerator.
-		return doGetProcCols(catalog, schemaPattern,
+		return doGetProcColsPacked(catalog, schemaPattern,
 			procedureNamePattern, columnNamePattern,
-			"getProcedureColumns40");
+			"getProcedureColumnsPacked");
 	}
 
 	/**
@@ -1660,6 +1669,177 @@ public class EmbedDatabaseMetaData extends ConnectionChild
 		s.setString(2, swapNull(procedureNamePattern));
 		s.setString(3, swapNull(columnNamePattern));
 		return s.executeQuery();
+	}
+
+	/**
+	 * This is a re-implementation of the doGetProcCols method which removes the
+	 * GetProcedureColumns VTI since VTIs are not supported in Splice yet.
+	 * The related bug is DB-1804.
+	 * @param queryName Name of the query to execute; is used
+	 *	to determine whether the result set should conform to
+	 *	JDBC or ODBC specifications.
+	 */
+	private ResultSet doGetProcColsPacked(String catalog, String schemaPattern,
+			String procedureNamePattern, String columnNamePattern,
+			String queryName) throws SQLException {
+
+		PreparedStatement s = getPreparedQuery(queryName);
+		// 
+		// catalog is not part of the query
+		//
+		s.setString(1, swapNull(schemaPattern));
+		s.setString(2, swapNull(procedureNamePattern));
+		ResultSet rsProcs =  s.executeQuery();
+
+		// Describe the format of the input rows (ExecRows) for the ResultSet.
+		//
+		// Columns of "virtual" row:
+		//   PROCEDURE_CAT				VARCHAR
+		//   PROCEDURE_SCHEM			VARCHAR
+		//   PROCEDURE_NAME				VARCHAR
+		//   COLUMN_NAME				VARCHAR
+		//   COLUMN_TYPE				SMALLINT
+		//   DATA_TYPE					INTEGER
+		//   TYPE_NAME					VARCHAR
+		//   PRECISION					INTEGER
+		//   LENGTH						INTEGER
+		//   SCALE						SMALLINT
+		//   RADIX						SMALLINT
+		//   NULLABLE					SMALLINT
+		//   REMARKS					VARCHAR
+		//   COLUMN_DEF					VARCHAR
+		//   SQL_DATA_TYPE				INTEGER
+		//   SQL_DATETIME_SUB			INTEGER
+		//   CHAR_OCTET_LENGTH			INTEGER
+		//   ORDINAL_POSITION			INTEGER
+		//   IS_NULLABLE				VARCHAR
+		//   SPECIFIC_NAME				VARCHAR
+		//   METHOD_ID					SMALLINT
+		//   PARAMETER_ID				SMALLINT
+		ArrayList<ExecRow> rows = new ArrayList<ExecRow>();
+		DataValueDescriptor[] dvds = new DataValueDescriptor[] {
+				new SQLVarchar(),
+				new SQLVarchar(),
+				new SQLVarchar(),
+				new SQLVarchar(),
+				new SQLSmallint(),
+				new SQLInteger(),
+				new SQLVarchar(),
+				new SQLInteger(),
+				new SQLInteger(),
+				new SQLSmallint(),
+				new SQLSmallint(),
+				new SQLSmallint(),
+				new SQLVarchar(),
+				new SQLVarchar(),
+				new SQLInteger(),
+				new SQLInteger(),
+				new SQLInteger(),
+				new SQLInteger(),
+				new SQLVarchar(),
+				new SQLVarchar(),
+				new SQLSmallint(),
+				new SQLSmallint()
+		};
+		int numCols = dvds.length;
+		ExecRow dataTemplate = new ValueRow(numCols);
+		dataTemplate.setRowArray(dvds);
+
+		while (rsProcs.next()) {
+
+			// Expand the ALIASINFO packed column into the following additional fields:
+			//   COLUMN_NAME, COLUMN_TYPE, DATA_TYPE, TYPE_NAME, PRECISION,
+			//   LENGTH, SCALE, RADIX, NULLABLE, REMARKS,
+			//   CHAR_OCTET_LENGTH, ORDINAL_POSITION, IS_NULLABLE, METHOD_ID, PARAMETER_ID
+			AliasInfo aliasInfo = (AliasInfo) rsProcs.getObject("ALIASINFO");
+			String aliasType = rsProcs.getString("ALIASTYPE");
+			ResultSet rsProcCols = new GetProcedureColumns(aliasInfo, aliasType);
+			while (rsProcCols.next()) {
+				// TODO: Add LIKE clause filtering in Java for columnNamePattern
+
+				try {
+					dvds[0].setValue(rsProcs.getString("PROCEDURE_CAT"));
+					dvds[1].setValue(rsProcs.getString("PROCEDURE_SCHEM"));
+					dvds[2].setValue(rsProcs.getString("PROCEDURE_NAME"));
+					dvds[3].setValue(rsProcCols.getString("COLUMN_NAME"));
+					dvds[4].setValue(rsProcCols.getShort("COLUMN_TYPE"));
+					dvds[5].setValue(rsProcCols.getInt("DATA_TYPE"));
+					dvds[6].setValue(rsProcCols.getString("TYPE_NAME"));
+					dvds[7].setValue(rsProcCols.getInt("PRECISION"));
+					dvds[8].setValue(rsProcCols.getInt("LENGTH"));
+					int dataType = rsProcCols.getInt("DATA_TYPE");
+					if (dataType == Types.DECIMAL || dataType == Types.NUMERIC || dataType == Types.INTEGER ||
+						dataType == Types.SMALLINT || dataType == Types.TINYINT || dataType == Types.BIGINT ||
+						dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP) {
+						dvds[9].setValue(rsProcCols.getShort("SCALE"));
+					} else {
+						dvds[9].setToNull();
+					}
+					if (dataType == Types.DECIMAL || dataType == Types.NUMERIC || dataType == Types.INTEGER ||
+						dataType == Types.SMALLINT || dataType == Types.TINYINT || dataType == Types.BIGINT ||
+						dataType == Types.DOUBLE || dataType == Types.FLOAT || dataType == Types.REAL ||
+						dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP) {
+						dvds[10].setValue(rsProcCols.getShort("RADIX"));
+					} else {
+						dvds[10].setToNull();
+					}
+					dvds[11].setValue(rsProcCols.getShort("NULLABLE"));
+					dvds[12].setValue(rsProcCols.getString("REMARKS"));
+					dvds[13].setValue(rsProcs.getString("COLUMN_DEF"));
+					dvds[14].setValue(rsProcs.getInt("SQL_DATA_TYPE"));
+					dvds[15].setValue(rsProcs.getInt("SQL_DATETIME_SUB"));
+					if (dataType == Types.CHAR || dataType == Types.VARCHAR || dataType == Types.BINARY || dataType == Types.VARBINARY) {
+						dvds[16].setValue(rsProcCols.getInt("LENGTH"));
+					} else {
+						dvds[16].setToNull();
+					}
+					dvds[17].setValue((int)(rsProcCols.getShort("PARAMETER_ID") + 1));
+					dvds[18].setValue(rsProcCols.getShort("NULLABLE") == DatabaseMetaData.procedureNullable ? "YES" : "NO");
+					dvds[19].setValue(rsProcs.getString("SPECIFIC_NAME"));
+					dvds[20].setValue(rsProcCols.getShort("METHOD_ID"));
+					dvds[21].setValue(rsProcCols.getShort("PARAMETER_ID"));
+				} catch (StandardException se) {
+					throw PublicAPI.wrapStandardException(se);
+				}
+    			rows.add(dataTemplate.getClone());
+			}
+		}
+
+		// Describe the format of the output rows (ResultSet).
+		ResultColumnDescriptor[]columnInfo = new ResultColumnDescriptor[numCols];
+		columnInfo[0] = new GenericColumnDescriptor("PROCEDURE_CAT", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 128));
+		columnInfo[1] = new GenericColumnDescriptor("PROCEDURE_SCHEM", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 128));
+		columnInfo[2] = new GenericColumnDescriptor("PROCEDURE_NAME", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 128));
+		columnInfo[3] = new GenericColumnDescriptor("COLUMN_NAME", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 128));
+		columnInfo[4] = new GenericColumnDescriptor("COLUMN_TYPE", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.SMALLINT));
+		columnInfo[5] = new GenericColumnDescriptor("DATA_TYPE", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
+		columnInfo[6] = new GenericColumnDescriptor("TYPE_NAME", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 128));
+		columnInfo[7] = new GenericColumnDescriptor("PRECISION", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
+		columnInfo[8] = new GenericColumnDescriptor("LENGTH", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
+		columnInfo[9] = new GenericColumnDescriptor("SCALE", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.SMALLINT));
+		columnInfo[10] = new GenericColumnDescriptor("RADIX", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.SMALLINT));
+		columnInfo[11] = new GenericColumnDescriptor("NULLABLE", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.SMALLINT));
+		columnInfo[12] = new GenericColumnDescriptor("REMARKS", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 128));
+		columnInfo[13] = new GenericColumnDescriptor("COLUMN_DEF", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 128));
+		columnInfo[14] = new GenericColumnDescriptor("SQL_DATA_TYPE", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
+		columnInfo[15] = new GenericColumnDescriptor("SQL_DATETIME_SUB", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
+		columnInfo[16] = new GenericColumnDescriptor("CHAR_OCTET_LENGTH", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
+		columnInfo[17] = new GenericColumnDescriptor("ORDINAL_POSITION", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
+		columnInfo[18] = new GenericColumnDescriptor("IS_NULLABLE", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 128));
+		columnInfo[19] = new GenericColumnDescriptor("SPECIFIC_NAME", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 128));
+		columnInfo[20] = new GenericColumnDescriptor("METHOD_ID", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.SMALLINT));
+		columnInfo[21] = new GenericColumnDescriptor("PARAMETER_ID", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.SMALLINT));
+		EmbedConnection defaultConn = (EmbedConnection) getEmbedConnection();
+		Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
+		IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, columnInfo, lastActivation);
+		try {
+			resultsToWrap.openCore();
+		} catch (StandardException se) {
+			throw PublicAPI.wrapStandardException(se);
+		}
+		EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap, false, null, true);
+
+		return ers;
 	}
 
     /**
