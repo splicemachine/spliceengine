@@ -3,11 +3,20 @@ package com.splicemachine.derby.utils;
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.impl.sql.execute.actions.ActiveTransactionReader;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+<<<<<<< HEAD
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.si.api.*;
 import com.splicemachine.stream.CloseableStream;
 import com.splicemachine.stream.StreamException;
 import com.splicemachine.utils.ByteSlice;
+=======
+import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.impl.Transaction;
+import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.si.impl.TransactionStore;
+import com.splicemachine.utils.CloseableIterator;
+
+>>>>>>> 9850dd3... DB-1804 Re-implemenation of the JDBC getProcedureColumns API as a stored procedure to workaround the lack of support for VTIs.
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
@@ -19,6 +28,7 @@ import org.apache.derby.iapi.types.SQLLongint;
 import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.derby.impl.jdbc.EmbedResultSet40;
 import org.apache.derby.impl.sql.GenericColumnDescriptor;
+import org.apache.derby.impl.sql.execute.IteratorNoPutResultSet;
 import org.apache.derby.impl.sql.execute.ValueRow;
 import org.apache.hadoop.hbase.util.Bytes;
 
