@@ -5,7 +5,6 @@ import com.splicemachine.constants.SIConstants;
 import com.splicemachine.hbase.table.SpliceHTableFactory;
 import com.splicemachine.si.impl.store.CompletedTxnCacheSupplier;
 import com.splicemachine.si.impl.txnclient.CoprocessorTxnStore;
-import com.splicemachine.si.impl.txnclient.TxnStoreManagement;
 
 /**
  * Factory class for obtaining a transaction store, Transaction supplier, etc.
@@ -60,8 +59,9 @@ public class TransactionStorage {
 		public static void setTxnStore(@ThreadSafe TxnStore store){
 				synchronized (lock){
 						baseStore = store;
-            CompletedTxnCacheSupplier delegate = new CompletedTxnCacheSupplier(baseStore, SIConstants.activeTransactionCacheSize, 16);
-            cachedTransactionSupplier=delegate;
+            cachedTransactionSupplier= new CompletedTxnCacheSupplier(baseStore,
+                    SIConstants.completedTransactionCacheSize,
+                    SIConstants.completedTransactionConcurrency);
             storeManagement = new TxnStoreManagement();
 				}
 		}
@@ -76,16 +76,16 @@ public class TransactionStorage {
 								CoprocessorTxnStore txnStore = new CoprocessorTxnStore(new SpliceHTableFactory(true),tsSource,null);
 								//TODO -sf- configure these fields separately
 								if(cachedTransactionSupplier==null){
-                    CompletedTxnCacheSupplier delegate = new CompletedTxnCacheSupplier(txnStore, SIConstants.activeTransactionCacheSize, 16);
-                    cachedTransactionSupplier = delegate;
-//                    cachedTransactionSupplier =new LazyTxnSupplier(delegate);
+                    cachedTransactionSupplier = new CompletedTxnCacheSupplier(txnStore,
+                            SIConstants.completedTransactionCacheSize,
+                            SIConstants.completedTransactionConcurrency);
                 }
 								txnStore.setCache(cachedTransactionSupplier);
 								baseStore = txnStore;
 						}else if (cachedTransactionSupplier==null){
-                CompletedTxnCacheSupplier delegate = new CompletedTxnCacheSupplier(baseStore, SIConstants.activeTransactionCacheSize, 16);
-                cachedTransactionSupplier = delegate;
-//                cachedTransactionSupplier =new LazyTxnSupplier(delegate);
+                cachedTransactionSupplier = new CompletedTxnCacheSupplier(baseStore,
+                        SIConstants.completedTransactionCacheSize,
+                        SIConstants.completedTransactionConcurrency);
 						}
             storeManagement = new TxnStoreManagement();
 				}
