@@ -1,6 +1,7 @@
 package com.splicemachine.derby.hbase;
 
 import com.google.common.collect.Lists;
+import com.google.common.io.Closeables;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.hbase.BufferedRegionScanner;
@@ -84,8 +85,9 @@ public class RollForwardTask implements Task {
     public void execute() throws ExecutionException, InterruptedException {
         try {
             Txn txn = TransactionLifecycle.getLifecycleManager().beginTransaction();
+            MeasuredRegionScanner mrs = null;
             try{
-                MeasuredRegionScanner mrs = getRegionScanner(txn,context);
+                mrs = getRegionScanner(txn,context);
                 List<KeyValue> kvs = Lists.newArrayList();
                 int checkSize = 1024-1;
                 int rowCount = 0;
@@ -108,6 +110,7 @@ public class RollForwardTask implements Task {
                 throw e;
             }finally{
                 context.complete();
+                Closeables.closeQuietly(mrs);
             }
             txn.commit();
         } catch (Exception e) {

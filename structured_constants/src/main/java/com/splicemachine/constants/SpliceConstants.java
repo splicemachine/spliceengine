@@ -19,7 +19,7 @@ public class SpliceConstants {
     private static final Logger LOG = Logger.getLogger(SpliceConstants.class);
 
     @Parameter public static final String ROLL_FORWARD_SEGMENTS = "splice.rollforward.numSegments";
-    @DefaultValue(ROLL_FORWARD_SEGMENTS) public static final int DEFAULT_ROLLFORWARD_SEGMENTS = 4; //by default, split into 4 segments
+    @DefaultValue(ROLL_FORWARD_SEGMENTS) public static final int DEFAULT_ROLLFORWARD_SEGMENTS = 4;
     public static int numRollForwardSegments;
 
     @Parameter public static final String ROLL_FORWARD_ROW_THRESHOLD = "splice.rollforward.rowThreshold";

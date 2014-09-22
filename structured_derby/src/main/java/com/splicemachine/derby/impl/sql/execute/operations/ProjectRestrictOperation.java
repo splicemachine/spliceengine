@@ -394,6 +394,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		@Override
 		public void	close() throws StandardException, IOException {
 				SpliceLogUtils.trace(LOG, "close in ProjectRestrict");
+        operationChain.remove(); //we are done here
 				/* Nothing to do if open was short circuited by false constant expression */
 				if (LOG.isTraceEnabled())
 						SpliceLogUtils.trace(LOG, ">>>   ProjectRestrictOp: Closing ", (source != null ? source.getClass().getSimpleName() : "null source"));
