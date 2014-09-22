@@ -49,7 +49,7 @@ public class SnowflakeTest {
     @Test
     public void testNoDuplicatesManyThreadsSameSnowflake() throws Exception {
         int numThreads=3;
-        final int numIterations = 100000;
+        final int numIterations = 50000;
         ExecutorService executor = Executors.newFixedThreadPool(numThreads);
         final ConcurrentMap<Long,Boolean> existing = new ConcurrentHashMap<Long, Boolean>();
         List<Future<Boolean>> futures = new ArrayList<Future<Boolean>>(numThreads);
@@ -98,7 +98,7 @@ public class SnowflakeTest {
     @Test
     public void testNoDuplicatesManyThreads() throws Exception {
         int numThreads=5;
-        final int numIterations = 200000;
+        final int numIterations = 100000;
         ExecutorService executor = Executors.newFixedThreadPool(numThreads);
         final ConcurrentMap<Long,Boolean> existing = new ConcurrentHashMap<Long, Boolean>();
         List<Future<Boolean>> futures = new ArrayList<Future<Boolean>>(numThreads);
