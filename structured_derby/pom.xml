@@ -48,6 +48,7 @@
 		<dependency> <groupId>org.mockito</groupId> <artifactId>mockito-all</artifactId> </dependency>
 		<dependency> <groupId>org.uncommons.maths</groupId> <artifactId>uncommons-maths</artifactId> </dependency>
 		<dependency> <groupId>org.uncommons.watchmaker</groupId> <artifactId>watchmaker-framework</artifactId> </dependency>
+        <dependency> <groupId>net.sf.supercsv</groupId> <artifactId>super-csv</artifactId> </dependency>
 	</dependencies>
 	<build>
 		<resources>

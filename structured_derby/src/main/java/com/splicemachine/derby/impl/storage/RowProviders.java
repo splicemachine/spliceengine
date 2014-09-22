@@ -14,8 +14,8 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.job.operation.MultiScanOperationJob;
 import com.splicemachine.derby.impl.job.scheduler.JobFutureFromResults;
-import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationSink;
+import com.splicemachine.derby.impl.sql.execute.operations.OperationSinkFactory;
 import com.splicemachine.derby.management.StatementInfo;
 import com.splicemachine.derby.management.XplainTaskReporter;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
@@ -328,16 +328,9 @@ public class RowProviders {
 						SpliceOperation op = instructions.getTopOperation();
 						op.init(SpliceOperationContext.newContext(op.getActivation()));
 						try {
-								OperationSink opSink = OperationSink.create((SinkingOperation) op, null, instructions.getTxn(),
-												spliceRuntimeContext.getStatementInfo().getStatementUuid(),0l);
-
-								JobStats stats;
-								if (op instanceof DMLWriteOperation)
-										stats = new LocalTaskJobStats(opSink.sink(((DMLWriteOperation) op).getDestinationTable(), spliceRuntimeContext));
-								else {
-										byte[] tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
-										stats = new LocalTaskJobStats(opSink.sink(tempTableBytes, spliceRuntimeContext));
-								}
+								OperationSink opSink = OperationSinkFactory.create((SinkingOperation) op, null, instructions.getTxn(),
+                                        spliceRuntimeContext.getStatementInfo().getStatementUuid(), 0L);
+								JobStats stats = new LocalTaskJobStats(opSink.sink(spliceRuntimeContext));
 								for(Callable<Void> callable:postCompleteTasks){
 										try{
 												callable.call();
