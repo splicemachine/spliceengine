@@ -767,7 +767,8 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             }
         }
 
-        // remaining columns from select
+        // remaining columns from select, preserve their result ordering
+        List<OrderedColumn> allColumns = new ArrayList<OrderedColumn>(partitionSize + oderbySize + resultColumns.size());
         for (int i=0; i<resultColumns.size(); i++) {
             ResultColumn aCol = (ResultColumn) resultColumns.elementAt(i);
             BaseColumnNode baseColumnNode = aCol.getBaseColumnNode();
@@ -786,12 +787,15 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                     // create fake OrderedColumn to fit into calling code
                     GroupByColumn gbc = new GroupByColumn();
                     gbc.init(node);
-                    colSet.add(gbc);
+                    allColumns.add(gbc);
                 }
             }
         }
 
-        return colSet;
+        // add partition and order by columns to END of the list in order to preserve
+        // natural result ordering from child projection
+        allColumns.addAll(colSet);
+        return allColumns;
     }
 
     /**
@@ -873,6 +877,17 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
     public boolean pushOptPredicate(OptimizablePredicate optimizablePredicate)
         throws StandardException {
         return ((Optimizable) childResult).pushOptPredicate(optimizablePredicate);
+    }
+
+    public String getFunctionNames() {
+        StringBuilder buf= new StringBuilder();
+        for (WindowFunctionInfo info : windowInfoList) {
+            buf.append(info.getFunctionName()).append(',');
+        }
+        if (buf.length() > 0) {
+            buf.setLength(buf.length()-1);
+        }
+        return buf.toString();
     }
 
     /**

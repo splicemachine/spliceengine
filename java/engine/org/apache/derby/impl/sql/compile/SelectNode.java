@@ -24,8 +24,8 @@ package	org.apache.derby.impl.sql.compile;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Vector;
@@ -1553,8 +1553,8 @@ public class SelectNode extends ResultSetNode
 
             // collect all functions that have the same definition. These can be
             // used to create one Window Resultset
-            WindowDefnToFunctionsMap defnToFunctionsMap =
-                WindowDefnToFunctionsMap.collectFunctionsForDefinitions(windowNodeList, windowFuncCalls);
+            Map<WindowNode,Collection<WindowFunctionNode>> defnToFunctionsMap =
+                                                        collectFunctionsForDefinitions(windowFuncCalls);
             Collection<AggregateNode> toRemove = new ArrayList<AggregateNode>();
 
             for (Map.Entry<WindowNode,Collection<WindowFunctionNode>> defnToFunctions : defnToFunctionsMap.entrySet()) {
@@ -2656,23 +2656,32 @@ public class SelectNode extends ResultSetNode
     {
     }
 
-    private static class WindowDefnToFunctionsMap extends HashMap<WindowNode,Collection<WindowFunctionNode>> {
-        public static WindowDefnToFunctionsMap collectFunctionsForDefinitions(WindowList definitions, Vector functions) {
-            WindowDefnToFunctionsMap map = new WindowDefnToFunctionsMap();
-            for (Object node : functions) {
-                WindowFunctionNode functionNode = (WindowFunctionNode) node;
-                WindowNode window = functionNode.getWindow();
+    /**
+     * Creates a map of function definition (or reference) -> functions that have the
+     * same definition. Each given function has a reference to its definition.<br/>
+     * This is useful for "batching" functions that have the same over() claus.
+     * @param functions the given functions to batch.
+     * @return the mapping [functionDefinition] -> [funct1,funct2,...]
+     */
+    private static Map<WindowNode,Collection<WindowFunctionNode>> collectFunctionsForDefinitions(Vector functions) {
+        // maintaining insertion order of keys (same as vector order)
+        Map<WindowNode,Collection<WindowFunctionNode>> map = new LinkedHashMap<WindowNode,Collection<WindowFunctionNode>>();
+        for (Object node : functions) {
+            // the function
+            WindowFunctionNode functionNode = (WindowFunctionNode) node;
+            // the function definition or reference
+            WindowNode window = functionNode.getWindow();
 
-                Collection<WindowFunctionNode> functionNodes = map.get(window);
-                if (functionNodes == null) {
-                    functionNodes = new LinkedHashSet<WindowFunctionNode>();
-                    map.put(window,functionNodes);
-                }
-                if (! functionNodes.contains(functionNode)) {
-                    functionNodes.add(functionNode);
-                }
+            Collection<WindowFunctionNode> functionNodes = map.get(window);
+            if (functionNodes == null) {
+                // maintaining insertion order of values
+                functionNodes = new LinkedHashSet<WindowFunctionNode>();
+                map.put(window,functionNodes);
             }
-            return map;
+            if (! functionNodes.contains(functionNode)) {
+                functionNodes.add(functionNode);
+            }
         }
+        return map;
     }
 }
