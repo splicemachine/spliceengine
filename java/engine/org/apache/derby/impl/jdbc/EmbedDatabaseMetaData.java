@@ -1755,9 +1755,12 @@ public class EmbedDatabaseMetaData extends ConnectionChild
 			String aliasType = rsProcs.getString("ALIASTYPE");
 			ResultSet rsProcCols = new GetProcedureColumns(aliasInfo, aliasType);
 			while (rsProcCols.next()) {
-				// TODO: Add LIKE clause filtering in Java for columnNamePattern
-
 				try {
+					// Skip the column names that don't match the specified pattern if one is passed.
+					if (columnNamePattern != null && !likeMatch(rsProcCols.getString("COLUMN_NAME"), columnNamePattern)) {
+						continue;
+					}
+
 					dvds[0].setValue(rsProcs.getString("PROCEDURE_CAT"));
 					dvds[1].setValue(rsProcs.getString("PROCEDURE_SCHEM"));
 					dvds[2].setValue(rsProcs.getString("PROCEDURE_NAME"));
@@ -1843,6 +1846,47 @@ public class EmbedDatabaseMetaData extends ConnectionChild
 	}
 
     /**
+     * Perform a SQL LIKE comparison.
+     * PLEASE NOTE: Only the '%' wild card is supported.
+     * The '_' wild card is not supported since it is a valid character in a Java variable name.
+     * @param str String to compare against the SQL Like pattern
+     * @param sqlLikePattern SQL LIKE matching pattern
+     * @throws StandardException if the pattern is invalid or null
+     */
+	private static boolean likeMatch(String str, String sqlLikePattern) throws StandardException {
+		validateProcedureColumnNamePattern(sqlLikePattern);
+		String regexPattern = convertLikePatternToRegexPattern(sqlLikePattern);
+		return (str != null && str.matches(regexPattern));
+	}
+
+    /**
+     * Validate that the pattern for matching a procedure column is for a valid Java variable name
+     * and that the matching pattern uses the SQL LIKE syntax.
+     * @param columnNamePattern SQL LIKE matching pattern for a procedure column name (Java variable name)
+     * @throws StandardException if the pattern is invalid or null
+     */
+	private static void validateProcedureColumnNamePattern(String columnNamePattern) throws StandardException {
+		// Remove the valid percentage wild cards used in the SQL LIKE matching pattern and
+		// then check that the remaining characters are valid for a Java variable name.
+		if (columnNamePattern == null || !columnNamePattern.replaceAll("%", "").matches("[a-zA-Z_\\$][a-zA-Z_0-9\\$]*")) {
+			throw StandardException.newException( SQLState.LANG_INVALID_FUNCTION_ARGUMENT, columnNamePattern, "stored procedure");
+//			throw new SQLException("INVALID_PROCEDURE_COLUMN_NAME_PATTERN");  // TODO: Add message.
+		}
+	}
+
+	/**
+	 * Convert a SQL LIKE matching pattern into a Java regex matching pattern.
+	 * @param sqlLikePattern SQL LIKE pattern
+	 * @return Java regex pattern
+	 */
+    private static String convertLikePatternToRegexPattern(String sqlLikePattern) {
+		// From running manual tests, Derby is case sensitive when matching full text.
+		// Treat underscores as their literal value and not as a single character wild card (as in LIKE SQL comparisons)
+		// since underscore is a valid character in a Java variable name (stored procedure column).
+		return sqlLikePattern.replace("%", ".*");
+	}
+
+	/**
      * Get a description of tables available in a catalog.
      *
      * <P>Only table descriptions matching the catalog, schema, table
