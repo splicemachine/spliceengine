@@ -4,6 +4,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
+import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.management.OperationInfo;
@@ -11,7 +12,6 @@ import com.splicemachine.derby.management.StatementInfo;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.WarningState;
 import com.splicemachine.metrics.IOStats;
-import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.uuid.Snowflake;
@@ -123,14 +123,10 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 				return delegate;
 		}
 
-		public void open(boolean useProbe) throws StandardException, IOException{
-            if (topOperation instanceof ExplainOperation) {
-                open(useProbe, false);
-            }
-            else {
-                open(useProbe, true);
-            }
-		}
+    public void open(boolean useProbe) throws StandardException, IOException{
+        boolean showStatementInfo = !(topOperation instanceof ExplainOperation || topOperation instanceof ExportOperation);
+        open(useProbe, showStatementInfo);
+    }
 
     public void executeScan(boolean useProbe, SpliceRuntimeContext context) throws StandardException {
         try{
@@ -184,7 +180,7 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
                 runtimeContext.recordTraceMetrics();
             }
 
-            List<byte[]> taskChain = OperationSink.taskChain.get();
+            List<byte[]> taskChain = TableOperationSink.taskChain.get();
             if (taskChain != null && taskChain.size() > 0){
                 runtimeContext.setParentTaskId(taskChain.get(taskChain.size() - 1));
             }

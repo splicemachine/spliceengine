@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute;
 
 import java.util.List;
 
+import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -1340,11 +1341,40 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
 
         return new OperationResultSet(source.getActivation(),op);
     }
+
     @Override
     public NoPutResultSet getExplainResultSet(NoPutResultSet source, Activation activation, int resultSetNumber) throws StandardException {
         ConvertedResultSet opSet = (ConvertedResultSet)source;
         SpliceBaseOperation op = new ExplainOperation(opSet.getOperation(), activation, resultSetNumber);
 
         return new OperationResultSet(activation, op);
+    }
+
+    @Override
+    public NoPutResultSet getExportResultSet(NoPutResultSet source,
+                                             Activation activation,
+                                             int resultSetNumber,
+                                             String exportPath,
+                                             String fileSystemType,
+                                             int replicationCount,
+                                             String encoding,
+                                             String fieldSeparator,
+                                             String quoteChar) throws StandardException {
+
+        ConvertedResultSet convertedResultSet = (ConvertedResultSet) source;
+        SpliceBaseOperation op = new ExportOperation(
+                convertedResultSet.getOperation(),
+                activation,
+                resultSetNumber,
+                fileSystemType,
+                exportPath,
+                replicationCount,
+                encoding,
+                fieldSeparator,
+                quoteChar
+        );
+        OperationResultSet operationResultSet = new OperationResultSet(activation, op);
+        operationResultSet.markAsTopResultSet();
+        return operationResultSet;
     }
 }

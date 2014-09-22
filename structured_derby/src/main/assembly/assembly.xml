@@ -32,6 +32,7 @@
                 <include>com.stumbleupon:async</include>
                 <include>com.google.protobuf:protobuf-java</include>
                 <include>com.splicemachine:utilities</include>
+                <include>net.sf.supercsv:super-csv</include>
             </includes>
         </dependencySet>
     </dependencySets>
