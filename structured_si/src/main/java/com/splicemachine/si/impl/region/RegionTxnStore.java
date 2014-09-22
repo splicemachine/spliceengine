@@ -44,12 +44,14 @@ public class RegionTxnStore {
 		private final TxnDecoder oldTransactionDecoder;
 		private final V2TxnDecoder newTransactionDecoder;
     private final TransactionResolver resolver;
+    private final TxnSupplier txnStore;
 
-		public RegionTxnStore(HRegion region,TransactionResolver resolver) {
+		public RegionTxnStore(HRegion region,TransactionResolver resolver,TxnSupplier txnStore) {
 				this.region = region;
 				this.oldTransactionDecoder = V1TxnDecoder.INSTANCE;
 				this.newTransactionDecoder = V2TxnDecoder.INSTANCE;
         this.resolver = resolver;
+        this.txnStore = txnStore;
 		}
 
 		/**
@@ -322,7 +324,6 @@ public class RegionTxnStore {
 
         scan.setFilter(new ActiveTxnFilter(beforeTs,afterTs,destinationTable));
 
-        final TxnSupplier store = TransactionStorage.getTxnSupplier();
         RegionScanner baseScanner = region.getScanner(scan);
 
         final RegionScanner scanner = new BufferedRegionScanner(region,baseScanner,scan,1024, Metrics.noOpMetricFactory());
@@ -352,7 +353,7 @@ public class RegionTxnStore {
                     return txn;
                 }
 
-                switch(store.getTransaction(parentTxnId).getEffectiveState()){
+                switch(txnStore.getTransaction(parentTxnId).getEffectiveState()){
                     case ACTIVE:
                         return txn;
                     case ROLLEDBACK:
