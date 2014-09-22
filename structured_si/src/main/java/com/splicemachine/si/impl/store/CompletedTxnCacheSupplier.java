@@ -1,5 +1,6 @@
 package com.splicemachine.si.impl.store;
 
+import com.splicemachine.collections.LongKeyedCache;
 import com.splicemachine.hash.Hash32;
 import com.splicemachine.hash.HashFunctions;
 import com.splicemachine.si.api.Txn;
@@ -43,7 +44,6 @@ public class CompletedTxnCacheSupplier implements TxnSupplier {
 				while(s<=maxSize){
 						s<<=1;
 				}
-				s<<=1; //make it twice as big to keep the load factor low
 				int c = 1;
 				while(c<concurrencyLevel){
 						c<<=1;
@@ -143,39 +143,28 @@ public class CompletedTxnCacheSupplier implements TxnSupplier {
     private class Segment {
 				private final Lock readLock;
         private final Lock writeLock;
-				private volatile int size = 0;
 
-        private SoftReference<TxnView>[] data;
+        private LongKeyedCache<TxnView> cache;
+        /*
+         * We maintain a separate size counter OUTSIDE of the cache,
+         * so that we can perform a volatile read to determine the total
+         * size of the cache without resorting to locks. To keep it up
+         * to date, we keep it in sync with what the cache claims is the size
+         * on every write(i.e. under the lock).
+         */
+        private volatile int size = 0;
 
 				@SuppressWarnings("unchecked")
 				private Segment(int maxSize) {
             this.readLock = writeLock = new ReentrantLock(false);
-						int s = 1;
-						while(s<=maxSize){
-								s<<=1;
-						}
-						s<<=1;
-						this.data = new SoftReference[s<<1]; //double the size to avoid hash collisions
+            this.cache = LongKeyedCache.<TxnView>newBuilder().maxEntries(maxSize)
+                    .withSoftReferences().withHashFunction(HashFunctions.murmur3(0)).build();
 				}
 
 				TxnView get(long txnId){
 						readLock.lock();
 						try{
-                int pos = hashFunction.hash(txnId) & (data.length-1);
-                int s = size;
-								for(int i=0;i<s;i++){
-										SoftReference<TxnView> datum = data[pos];
-										if(datum==null) continue;
-										TxnView v = datum.get();
-										if(v==null){
-                        //evicted due to memory pressure
-                        size--;
-                        continue;
-                    }
-										if(v.getTxnId()==txnId) return v;
-                    pos = (pos+1)& (data.length-1);
-								}
-								return null;
+                return cache.get(txnId);
 						}finally{
 								readLock.unlock();
 						}
@@ -184,43 +173,9 @@ public class CompletedTxnCacheSupplier implements TxnSupplier {
 				boolean put(TxnView txn){
 						writeLock.lock();
 						try{
-                int pos = hashFunction.hash(txn.getTxnId()) & (data.length-1);
-                if(size>=maxSize){
-                    /*
-                     * We are larger than the total allowed size of the cache. To
-                     * ensure that we stay below that size, we evict an entry.
-                     *
-                     * However, we don't want to waste a lot of time evicting entries
-                     * if we don't REALLY have to. Basically, we hash this entry
-                     * into a position. If that position is occupied, we evict
-                     * that entry. Otherwise, we fill that entry and move on. This way
-                     * we do only a single step, at the cost of randomly evicting entries.
-                     */
-                    SoftReference<TxnView> datum = data[pos];
-                    if(datum!=null){
-                        TxnView present = datum.get();
-                        if(present!=null){
-                            if(txn.equals(present)) return true;
-                            evicted.incrementAndGet();
-                            size--;
-                        }
-                    }
-                }else{
-                    /*
-                     * We are below the maximum size, so just use linear probing
-                     * to find the next open slot.
-                     */
-                    for(int i=0;i<size;i++){
-                        SoftReference<TxnView> datum = data[pos];
-                        if(datum==null||datum.get()==null){
-                            break;
-                        }else
-                            pos = (pos+1)&(data.length-1);
-                    }
-                }
-								data[pos] = new SoftReference<TxnView>(txn);
-                size++;
-								return true;
+                boolean put = cache.put(txn.getTxnId(),txn);
+                size = cache.size();
+                return put;
 						}finally{
 								writeLock.unlock();
 						}

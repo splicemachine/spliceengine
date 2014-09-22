@@ -131,9 +131,17 @@ public class SIConstants extends SpliceConstants {
 		public static int transactionlockStripes;
 
 
-		@Parameter public static final String ACTIVE_TRANSACTION_CACHE_SIZE = "splice.txn.activeTxnCacheSize";
+		@Parameter public static final String ACTIVE_TRANSACTION_CACHE_SIZE = "splice.txn.activeTxns.cacheSize";
 		@DefaultValue(ACTIVE_TRANSACTION_CACHE_SIZE) public static final int DEFAULT_ACTIVE_TRANSACTION_CACHE_SIZE = 1<<14;
 		public static int activeTransactionCacheSize;
+
+    @Parameter public static final String COMPLETED_TRANSACTION_CACHE_SIZE = "splice.txn.completedTxns.cacheSize";
+    @DefaultValue(COMPLETED_TRANSACTION_CACHE_SIZE) public static final int DEFAULT_COMPLETED_TRANSACTION_CACHE_SIZE = 1<<17; // want to hold lots of completed transactions
+    public static int completedTransactionCacheSize;
+
+    @Parameter public static final String COMPLETED_TRANSACTION_CACHE_CONCURRENCY = "splice.txn.completedTxns.concurrency";
+    @DefaultValue(COMPLETED_TRANSACTION_CACHE_CONCURRENCY) public static final int DEFAULT_COMPLETED_TRANSACTION_CONCURRENCY = 64;
+    public static int completedTransactionConcurrency;
 
 		public static void setParameters(Configuration config){
 				committingPause = config.getInt(COMMITTING_PAUSE,DEFAULT_COMMITTING_PAUSE);
@@ -141,12 +149,7 @@ public class SIConstants extends SpliceConstants {
 				transactionKeepAliveInterval = config.getInt(TRANSACTION_KEEP_ALIVE_INTERVAL,DEFAULT_TRANSACTION_KEEP_ALIVE_INTERVAL);
 				transactionlockStripes = config.getInt(TRANSACTION_LOCK_STRIPES,DEFAULT_LOCK_STRIPES);
 				activeTransactionCacheSize = config.getInt(ACTIVE_TRANSACTION_CACHE_SIZE,DEFAULT_ACTIVE_TRANSACTION_CACHE_SIZE);
+        completedTransactionCacheSize = config.getInt(COMPLETED_TRANSACTION_CACHE_SIZE,DEFAULT_COMPLETED_TRANSACTION_CACHE_SIZE);
+        completedTransactionConcurrency = config.getInt(COMPLETED_TRANSACTION_CACHE_CONCURRENCY,DEFAULT_COMPLETED_TRANSACTION_CONCURRENCY);
 		}
-
-    public static void main(String...args) throws Exception{
-        System.out.println(Bytes.toStringBinary(TRANSACTION_DEPENDENT_COLUMN_BYTES));
-        System.out.println(Bytes.toStringBinary(TRANSACTION_ALLOW_WRITES_COLUMN_BYTES));
-        System.out.println(Bytes.toStringBinary(TRANSACTION_ADDITIVE_COLUMN_BYTES));
-        System.out.println(Encoding.decodeInt(Bytes.toBytesBinary("\\x85")));
-    }
 }
