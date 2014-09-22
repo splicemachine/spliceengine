@@ -353,25 +353,25 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
         spliceRuntimeContext.setFirstStepInMultistep(true);
         rowDecoder = OperationUtils.getPairDecoder(this, spliceRuntimeContext);
         spliceRuntimeContext.setFirstStepInMultistep(false);
+
         PartitionAwareIterator<ExecRow> iterator =
             StandardIterators.wrap(step2Scanner, rowDecoder, windowContext.getPartitionColumns(), templateRow.getRowArray());
         PartitionAwarePushBackIterator<ExecRow> frameSource = new PartitionAwarePushBackIterator<ExecRow>(iterator);
 
         // test the frame source
-        WindowFrameBuffer frameBuffer = null;
         if (! frameSource.test(spliceRuntimeContext)) {
             // tests false - bail
             return false;
         }
 
         // create the frame buffer that will use the frame source
-        frameBuffer = BaseFrameBuffer.createFrameBuffer(
-                            spliceRuntimeContext,
-                            windowContext.getWindowFunctions(),
-                            frameSource,
-                            windowContext.getFrameDefinition(),
-                            windowContext.getSortColumns(),
-                            templateRow);
+        WindowFrameBuffer frameBuffer = BaseFrameBuffer.createFrameBuffer(
+                        spliceRuntimeContext,
+                        windowContext.getWindowFunctions(),
+                        frameSource,
+                        windowContext.getFrameDefinition(),
+                        windowContext.getSortColumns(),
+                        templateRow);
 
         // create the frame iterator
         windowFunctionIterator = new WindowFunctionIterator(frameBuffer);

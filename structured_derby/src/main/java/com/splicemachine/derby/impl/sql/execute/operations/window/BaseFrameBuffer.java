@@ -16,9 +16,9 @@ import com.splicemachine.derby.utils.PartitionAwarePushBackIterator;
  */
 abstract public class BaseFrameBuffer implements WindowFrameBuffer{
     protected final SpliceRuntimeContext runtimeContext;
-    private final List<WindowAggregator> aggregators;
     protected final long frameStart;
     protected final long frameEnd;
+    private final List<WindowAggregator> aggregators;
     private final ExecRow templateRow;
 
     protected int start;

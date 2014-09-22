@@ -189,15 +189,14 @@ public class WindowAggregatorImpl implements WindowAggregator {
         DataValueDescriptor[] cols = row.getRowArray();
         int i = 0;
         for (int colID : colIDs) {
-            newCols[i++] = cols[colID -1]; // colIDs are 1-based
+            newCols[i++] = cols[colID -1]; // colIDs are 1-based; convert to 0-based
         }
         return newCols;
     }
 
     private void createDefinition(WindowFunctionInfo windowInfo) {
-
+        // coming from Derby, these are 0-based column IDs
         ColumnOrdering[] partition = windowInfo.getPartitionInfo();
-
         ColumnOrdering[] orderings = windowInfo.getOrderByInfo();
 
         frameDefinition = FrameDefinition.create(windowInfo.getFrameInfo());
@@ -206,7 +205,6 @@ public class WindowAggregatorImpl implements WindowAggregator {
         keyOrders = new boolean[partition.length + orderings.length];
 
         partitionColumns = new int[partition.length];
-
         int pos=0;
         for(ColumnOrdering partCol : partition){
             partitionColumns[pos] = partCol.getColumnId();
@@ -217,9 +215,9 @@ public class WindowAggregatorImpl implements WindowAggregator {
         sortColumns = new int[orderings.length];
         pos = 0;
         for(ColumnOrdering order : orderings){
-            sortColumns[orderings.length + pos] = order.getColumnId();
-            keyColumns[orderings.length + pos] = order.getColumnId();
-            keyOrders[orderings.length + pos] = order.getIsAscending();
+            sortColumns[pos] = order.getColumnId();
+            keyColumns[partition.length + pos] = order.getColumnId();
+            keyOrders[partition.length + pos] = order.getIsAscending();
             pos++;
         }
 
