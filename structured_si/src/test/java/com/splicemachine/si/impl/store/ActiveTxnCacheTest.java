@@ -92,29 +92,6 @@ public class ActiveTxnCacheTest {
         Assert.assertEquals("Did not access data from cache",2,accessCount.get());
     }
 
-    @Test
-    @Ignore
-    public void testActiveCacheWillThrowAwaySoftReferences() throws Exception {
-       /*
-        * This is a test that the ActiveTxnCache won't hold on to so many references
-        * that we can run out of memory. If ActiveTxnCache is working correctly, this should
-        * run for forever (as the garbage collector will just collect away soft references as needed).
-        * However, if it is not, we'll eventually see an OOM being thrown.
-        */
-        ActiveTxnCacheSupplier store = new ActiveTxnCacheSupplier(mock(TxnSupplier.class),1024);
-
-        long txnId = 0;
-        while(true){
-            TxnView newTxn = ReadOnlyTxn.create(txnId, Txn.IsolationLevel.SNAPSHOT_ISOLATION, UnsupportedLifecycleManager.INSTANCE);
-            store.cache(newTxn);
-            txnId++;
-
-            if((txnId % 1000000)==0){
-                System.out.printf("Cached %d txns, giving a size of %d entries %n",txnId,store.getSize());
-            }
-        }
-    }
-
     /*****************************************************************************************************************/
     /*private helper methods*/
     protected TxnLifecycleManager getLifecycleManager() throws IOException {

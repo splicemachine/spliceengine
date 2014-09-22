@@ -59,7 +59,7 @@ public class TxnLifecycleEndpoint extends BaseEndpointCoprocessor implements Txn
                     }
                 }
             }
-            regionStore = new RegionTxnStore(region,resolver);
+            regionStore = new RegionTxnStore(region,resolver,TransactionStorage.getTxnSupplier());
             timestampSource = TransactionTimestamps.getTimestampSource();
         }
 		}

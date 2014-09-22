@@ -124,7 +124,6 @@ public class TxnTestUtils {
 						public Result answer(InvocationOnMock invocationOnMock) throws Throwable {
 								final Get get = (Get)invocationOnMock.getArguments()[0];
 								Set<KeyValue> keyValues = rowMap.get(get.getRow());
-                System.out.println(keyValues);
 								if(get.hasFamilies()){
 										Set<KeyValue> filtered = Sets.filter(keyValues, new Predicate<KeyValue>() {
 												@Override
@@ -162,7 +161,6 @@ public class TxnTestUtils {
                         keyValues.add(kv);
                     }
 								}
-                System.out.printf("put kvs=%s%n",keyValues);
 								return null;
 						}
 				};

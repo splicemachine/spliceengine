@@ -1,11 +1,13 @@
 package com.splicemachine.si.impl;
 
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.impl.region.RegionTxnStore;
 import com.splicemachine.si.impl.region.TransactionResolver;
 import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static com.splicemachine.si.impl.TxnTestUtils.assertTxnsMatch;
@@ -27,7 +29,7 @@ public class RegionTxnStoreTest {
 				HRegion region = getMockRegion();
 
         TransactionResolver resolver = getTransactionResolver();
-				RegionTxnStore store = new RegionTxnStore(region,resolver);
+				RegionTxnStore store = new RegionTxnStore(region,resolver,mock(TxnSupplier.class));
 
 				SparseTxn txn = new SparseTxn(1,1,-1,-1,-1,true,true, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.State.ACTIVE,new ByteSlice());
 				store.recordTransaction(txn);
@@ -41,7 +43,7 @@ public class RegionTxnStoreTest {
 		public void testCanCommitATransaction() throws Exception {
 				HRegion region = getMockRegion();
 
-				RegionTxnStore store = new RegionTxnStore(region,getTransactionResolver());
+				RegionTxnStore store = new RegionTxnStore(region,getTransactionResolver(),mock(TxnSupplier.class));
 
 				SparseTxn txn = new SparseTxn(1,1,-1,-1,-1,true,true, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.State.ACTIVE,new ByteSlice());
 				store.recordTransaction(txn);
@@ -74,7 +76,7 @@ public class RegionTxnStoreTest {
 		public void testCanRollbackATransaction() throws Exception {
 				HRegion region = getMockRegion();
 
-				RegionTxnStore store = new RegionTxnStore(region,getTransactionResolver());
+				RegionTxnStore store = new RegionTxnStore(region,getTransactionResolver(),mock(TxnSupplier.class));
 
 				SparseTxn txn = new SparseTxn(1,1,-1,-1,-1,true,true, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.State.ACTIVE,new ByteSlice());
 				store.recordTransaction(txn);
@@ -94,10 +96,11 @@ public class RegionTxnStoreTest {
 		}
 
 		@Test
+//    @Ignore
 		public void testCanGetActiveTransactions() throws Exception {
 				HRegion region = getMockRegion();
 
-				RegionTxnStore store = new RegionTxnStore(region,getTransactionResolver());
+				RegionTxnStore store = new RegionTxnStore(region,getTransactionResolver(),mock(TxnSupplier.class));
 
 				SparseTxn txn = new SparseTxn(1,1,-1,-1,-1,true,true, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.State.ACTIVE,new ByteSlice());
 				store.recordTransaction(txn);
@@ -111,7 +114,7 @@ public class RegionTxnStoreTest {
 		public void testGetActiveTransactionsFiltersOutRolledbackTxns() throws Exception {
 				HRegion region = getMockRegion();
 
-				RegionTxnStore store = new RegionTxnStore(region,getTransactionResolver());
+				RegionTxnStore store = new RegionTxnStore(region,getTransactionResolver(),mock(TxnSupplier.class));
 
 				SparseTxn txn = new SparseTxn(1,1,-1,-1,-1,true,true, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.State.ACTIVE,new ByteSlice());
 				store.recordTransaction(txn);
@@ -127,7 +130,7 @@ public class RegionTxnStoreTest {
 		public void testGetActiveTransactionsFiltersOutCommittedTxns() throws Exception {
 				HRegion region = getMockRegion();
 
-				RegionTxnStore store = new RegionTxnStore(region,getTransactionResolver());
+				RegionTxnStore store = new RegionTxnStore(region,getTransactionResolver(),mock(TxnSupplier.class));
 
 				SparseTxn txn = new SparseTxn(1,1,-1,-1,-1,true,true, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.State.ACTIVE,new ByteSlice());
 				store.recordTransaction(txn);

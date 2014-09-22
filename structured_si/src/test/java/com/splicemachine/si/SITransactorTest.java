@@ -75,12 +75,6 @@ public class SITransactorTest extends SIConstants {
     }
 
 
-//		private void dumpStore(String label) {
-//        if (useSimple) {
-//            System.out.println("store " + label + " =" + storeSetup.getStore());
-//        }
-//    }
-
     @Test
     public void writeRead() throws IOException {
 				Txn t1 = control.beginTransaction();
