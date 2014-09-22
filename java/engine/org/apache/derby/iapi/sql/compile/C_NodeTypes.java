@@ -248,8 +248,10 @@ public interface C_NodeTypes
     static final int RANK_FUNCTION_NODE = 233;
     static final int EXPLAIN_NODE = 234;
 
+    static final int EXPORT_NODE = 250;
+
     // Final value in set, keep up to date!
-    static final int FINAL_VALUE = EXPLAIN_NODE;
+    static final int FINAL_VALUE = EXPORT_NODE;
 
     /**
      * Extensions to this interface can use nodetypes > MAX_NODE_TYPE with out fear of collision

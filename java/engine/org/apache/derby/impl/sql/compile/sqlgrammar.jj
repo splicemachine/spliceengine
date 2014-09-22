@@ -2694,6 +2694,7 @@ TOKEN [IGNORE_CASE] :
 |	<DENSERANK: "dense_rank">
 |	<GET_CURRENT_CONNECTION: "getCurrentConnection">
 |	<EXPLAIN: "explain">
+|	<EXPORT: "export">
 |	<LONGINT: "bigint">
 |	<LONG: "long">
 |	<LTRIM: "ltrim">
@@ -3224,7 +3225,8 @@ StatementPart(Token[] tokenHolder) throws StandardException :
 		statementNode = grantStatement() |
 		statementNode = revokeStatement() |
 		statementNode = execStatement() |
-		statementNode = explainStatement()
+		statementNode = explainStatement() |
+		statementNode = exportStatement()
         // statementNode = SQLTransactionStatement()
     )
     {
@@ -3408,6 +3410,22 @@ explainStatement() throws StandardException :
     {
         return (ExplainNode) nodeFactory.getNode(C_NodeTypes.EXPLAIN_NODE,
                                    statementNode,
+                                   getContextManager());
+    }
+}
+
+StatementNode
+exportStatement() throws StandardException :
+{
+    StatementNode   statementNode;
+    Vector parameterList = new Vector();
+}
+{
+    <EXPORT> methodCallParameterList(parameterList) statementNode = preparableSQLDataStatement()
+    {
+        return (ExportNode) nodeFactory.getNode(C_NodeTypes.EXPORT_NODE,
+                                   statementNode,
+                                   parameterList,
                                    getContextManager());
     }
 }
@@ -4523,7 +4541,7 @@ exactNumericType() throws StandardException :
 	| <DECIMAL> | <DEC> )
 	[ <LEFT_PAREN> precision = precision() [ <COMMA> scale = scale() ] <RIGHT_PAREN> ]
 	{
-		if ((precision <= 0) || 
+		if ((precision <= 0) ||
 			(precision > TypeCompiler.MAX_DECIMAL_PRECISION_SCALE))
 		{
 			throw StandardException.newException(SQLState.LANG_INVALID_PRECISION, 
@@ -15124,6 +15142,7 @@ reservedKeyword() :
 |	tok = <CALL>
 |   tok = <CURRENT_ROLE>
 |	tok = <EXPLAIN>
+|	tok = <EXPORT>
 |	tok = <LONGINT>
 |	tok = <LTRIM>
 |	tok = <RTRIM>

@@ -314,8 +314,8 @@ public interface C_NodeNames
 
     static final String EXPLAIN_NODE_NAME = "org.apache.derby.impl.sql.compile.ExplainNode";
 
-	// The names are in alphabetic order.
-	//
+    static final String EXPORT_NODE_NAME = "org.apache.derby.impl.sql.compile.ExportNode";
+
     // WARNING: WHEN ADDING NODE TYPES HERE, YOU MUST ALSO ADD
     // THEM TO tools/jar/DBMSnodes.properties
 

@@ -1830,4 +1830,17 @@ public interface ResultSetFactory {
 
     public NoPutResultSet getExplainResultSet(NoPutResultSet source, Activation activation, int resultSetNumber) throws StandardException;
 
+    /**
+     * Export
+     */
+    public NoPutResultSet getExportResultSet(NoPutResultSet source,
+                                             Activation activation,
+                                             int resultSetNumber,
+                                             String exportPath,
+                                             String fileSystemType,
+                                             int replicationCount,
+                                             String encoding,
+                                             String fieldSeparator,
+                                             String quoteChar) throws StandardException;
+
 }
