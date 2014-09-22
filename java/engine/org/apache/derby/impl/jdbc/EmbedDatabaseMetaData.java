@@ -1870,7 +1870,6 @@ public class EmbedDatabaseMetaData extends ConnectionChild
 		// then check that the remaining characters are valid for a Java variable name.
 		if (columnNamePattern == null || !columnNamePattern.replaceAll("%", "").matches("[a-zA-Z_\\$][a-zA-Z_0-9\\$]*")) {
 			throw StandardException.newException( SQLState.LANG_INVALID_FUNCTION_ARGUMENT, columnNamePattern, "stored procedure");
-//			throw new SQLException("INVALID_PROCEDURE_COLUMN_NAME_PATTERN");  // TODO: Add message.
 		}
 	}
 
