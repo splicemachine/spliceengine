@@ -1,13 +1,9 @@
 package com.splicemachine.derby.hbase;
 
-import java.io.IOException;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.impl.TransactionalRegions;
-import com.splicemachine.si.impl.rollforward.SegmentedRollForward;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
@@ -20,20 +16,22 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.log4j.Logger;
-
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.utils.SpliceLogUtils;
 import org.hbase.async.HbaseAttributeHolder;
+
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Region Observer looking for a scan with <i>SpliceServerInstructions</i> set on the attribute map of the scan.
- * 
+ *
  * @author johnleach
  *
  */
 public class SpliceOperationRegionObserver extends BaseRegionObserver {
-	private static Logger LOG = Logger.getLogger(SpliceOperationRegionObserver.class);
-	public static String SPLICE_OBSERVER_INSTRUCTIONS = "Z"; // Reducing this so the amount of network traffic will be reduced...
+    private static Logger LOG = Logger.getLogger(SpliceOperationRegionObserver.class);
+    public static String SPLICE_OBSERVER_INSTRUCTIONS = "Z"; // Reducing this so the amount of network traffic will be reduced...
 
     private TransactionalRegion txnRegion;
 
@@ -62,14 +60,16 @@ public class SpliceOperationRegionObserver extends BaseRegionObserver {
         super.start(e);
     }
 
-	/**
-	 * Logs the stop of the observer.
-	 */
-	@Override
-	public void stop(CoprocessorEnvironment e) throws IOException {
-		SpliceLogUtils.info(LOG, "Stopping the CoProcessor %s",SpliceOperationRegionObserver.class);
-		super.stop(e);
-	}
+    /**
+     * Logs the stop of the observer.
+     */
+    @Override
+    public void stop(CoprocessorEnvironment e) throws IOException {
+        SpliceLogUtils.info(LOG, "Stopping the CoProcessor %s",SpliceOperationRegionObserver.class);
+        super.stop(e);
+        if(txnRegion!=null)
+            txnRegion.discard();
+    }
 
     @Override
     public RegionScanner preScannerOpen(ObserverContext<RegionCoprocessorEnvironment> e, Scan scan, RegionScanner s) throws IOException {

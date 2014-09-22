@@ -27,6 +27,7 @@ import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.metrics.TimeView;
 import com.splicemachine.metrics.Timer;
+import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnLifecycleManager;
 import com.splicemachine.si.api.TxnView;
@@ -264,7 +265,9 @@ public class PopulateIndexTask extends ZkTask {
     protected MeasuredRegionScanner getRegionScanner(EntryPredicateFilter predicateFilter,Scan regionScan, MetricFactory metricFactory) throws IOException {
         //manually create the SIFilter
         DDLTxnView demarcationPoint = new DDLTxnView(getTxn(), this.demarcationPoint);
-        TxnFilter packed =TransactionalRegions.get(region).packedFilter(demarcationPoint,predicateFilter,false);
+        TransactionalRegion transactionalRegion = TransactionalRegions.get(region);
+        TxnFilter packed = transactionalRegion.packedFilter(demarcationPoint, predicateFilter, false);
+        transactionalRegion.discard();
         regionScan.setFilter(new SIFilterPacked(packed));
         RegionScanner sourceScanner = region.getScanner(regionScan);
         return SpliceConstants.useReadAheadScanner? new ReadAheadRegionScanner(region, SpliceConstants.DEFAULT_CACHE_SIZE, sourceScanner,metricFactory)

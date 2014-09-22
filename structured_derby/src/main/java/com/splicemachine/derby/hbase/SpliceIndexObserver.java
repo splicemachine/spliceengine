@@ -12,6 +12,7 @@ import com.splicemachine.si.impl.SimpleOperationFactory;
 import com.splicemachine.si.impl.TransactionalRegions;
 import com.splicemachine.si.impl.WriteConflict;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
@@ -45,7 +46,14 @@ public class SpliceIndexObserver extends BaseRegionObserver {
 		private TransactionalRegion region;
     private TxnOperationFactory operationFactory;
 
-		@Override
+    @Override
+    public void stop(CoprocessorEnvironment e) throws IOException {
+        super.stop(e);
+        if(region!=null)
+            region.discard();
+    }
+
+    @Override
     public void postOpen(final ObserverContext<RegionCoprocessorEnvironment> e) {
         //get the Conglomerate Id. If it's not a table that we can index (e.g. META, ROOT, SYS_TEMP,__TXN_LOG, etc)
         //then don't bother with setting things up

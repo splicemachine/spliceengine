@@ -16,6 +16,7 @@ import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.hbase.MeasuredResultScanner;
 import com.splicemachine.hbase.ReadAheadRegionScanner;
+import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
@@ -96,7 +97,9 @@ public class ConglomerateScanner {
     private MeasuredRegionScanner getRegionScanner(Txn txn, long demarcationTimestamp,Scan regionScan, MetricFactory metricFactory) throws IOException {
         //manually create the SIFilter
         DDLTxnView demarcationPoint = new DDLTxnView(txn, demarcationTimestamp);
-        TxnFilter packed = TransactionalRegions.get(region).packedFilter(demarcationPoint, EntryPredicateFilter.emptyPredicate(), false);
+        TransactionalRegion transactionalRegion = TransactionalRegions.get(region);
+        TxnFilter packed = transactionalRegion.packedFilter(demarcationPoint, EntryPredicateFilter.emptyPredicate(), false);
+        transactionalRegion.discard();
         regionScan.setFilter(new SIFilterPacked(packed));
         RegionScanner sourceScanner = region.getScanner(regionScan);
         return SpliceConstants.useReadAheadScanner? new ReadAheadRegionScanner(region, SpliceConstants.DEFAULT_CACHE_SIZE, sourceScanner,metricFactory)

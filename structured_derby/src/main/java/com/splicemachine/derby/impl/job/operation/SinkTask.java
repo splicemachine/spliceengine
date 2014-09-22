@@ -18,6 +18,7 @@ import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.Status;
+import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnLifecycleManager;
 import com.splicemachine.si.api.TxnView;
@@ -169,7 +170,8 @@ public class SinkTask extends ZkTask {
 								spliceRuntimeContext.recordTraceMetrics();
 						}
 
-						opContext = new SpliceOperationContext(region, TransactionalRegions.get(region),
+            TransactionalRegion txnRegion = TransactionalRegions.get(region);
+            opContext = new SpliceOperationContext(region, txnRegion,
                     scan,activation,
 										instructions.getStatement(),
 										transactionResource.getLcc(),
