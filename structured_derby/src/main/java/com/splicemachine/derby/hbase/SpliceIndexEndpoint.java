@@ -130,6 +130,8 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
         if(factoryPair!=null &&  factoryPair.getSecond().decrementAndGet()<=0){
             factoryMap.remove(conglomId);
         }
+        if(region!=null)
+            region.discard();
     }
 
 		@Override

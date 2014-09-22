@@ -160,6 +160,8 @@ public class SpliceOperationContext {
         }finally{
             if(scanner!=null)
                 scanner.close();
+            if(txnRegion!=null)
+                txnRegion.discard();
         }
     }
 

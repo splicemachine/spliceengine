@@ -56,7 +56,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
                 (rsn = ((DMLStatementNode) node).getResultSetNode()) != null) {
 
             String plan = treeToString(rsn);
-            planMap.put(query, plan.split("\n"));
+//            planMap.put(query, plan.split("\n"));
             if (LOG.isInfoEnabled()){
                 LOG.info(String.format("Plan nodes for query <<\n\t%s\n>>\n%s",
                         query, plan));
