@@ -8,8 +8,7 @@ import org.cliffc.high_scale_lib.Counter;
 
 import java.util.concurrent.atomic.AtomicIntegerArray;
 import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  *
@@ -139,7 +138,8 @@ class RegionSegment {
 
 				private final AtomicIntegerArray registers;
 
-				private final ReadWriteLock readClearLock = new ReentrantReadWriteLock(false);
+				private final Lock estimateLock;
+        private final Lock clearLock;
         private final Hash64 hashFunction = HashFunctions.murmur2_64(0);
 
 
@@ -150,6 +150,7 @@ class RegionSegment {
 
 						alphaM = computeAlpha(numRegisters);
 						this.registers = new AtomicIntegerArray(numRegisters);
+            this.estimateLock = clearLock = new ReentrantLock();
 				}
 
 				void update(long value){
@@ -168,8 +169,7 @@ class RegionSegment {
 				}
 
 				double getEstimate(){
-						Lock readLock = readClearLock.readLock();
-						readLock.lock();
+						estimateLock.lock();
 						try{
 								double z = 0d;
 								int zeroRegisterCount = 0;
@@ -186,19 +186,18 @@ class RegionSegment {
 								}
 								return (long)E;
 						}finally{
-								readLock.unlock();
+								estimateLock.unlock();
 						}
 				}
 
 				void clear(){
-					Lock writeLock = readClearLock.writeLock();
-						writeLock.lock();
+						clearLock.lock();
 						try{
 								for(int i=0;i<numRegisters;i++){
 										registers.set(i,0); //reset the counter
 								}
 						}finally{
-								writeLock.unlock();
+								clearLock.unlock();
 						}
 				}
 

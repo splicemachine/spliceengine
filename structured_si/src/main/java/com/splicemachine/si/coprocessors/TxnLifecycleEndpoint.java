@@ -35,8 +35,7 @@ public class TxnLifecycleEndpoint extends BaseEndpointCoprocessor implements Txn
 
 		private static final Logger LOG = Logger.getLogger(TxnLifecycleEndpoint.class);
 
-		private LongStripedSynchronizer<ReadWriteLock> lockStriper
-						= LongStripedSynchronizer.stripedReadWriteLock(SIConstants.transactionlockStripes,false);
+		private LongStripedSynchronizer<ReadWriteLock> lockStriper;
 
 		private RegionTxnStore regionStore;
 		private HRegion region;
@@ -48,6 +47,7 @@ public class TxnLifecycleEndpoint extends BaseEndpointCoprocessor implements Txn
 				region = ((RegionCoprocessorEnvironment)env).getRegion();
         SpliceConstants.TableEnv table = EnvUtils.getTableEnv((RegionCoprocessorEnvironment)env);
         if(table.equals(SpliceConstants.TableEnv.TRANSACTION_TABLE)){
+            lockStriper = LongStripedSynchronizer.stripedReadWriteLock(SIConstants.transactionlockStripes,false);
             TransactionResolver resolver = txnResolver;
             if(resolver==null){
                 synchronized (LOG){
