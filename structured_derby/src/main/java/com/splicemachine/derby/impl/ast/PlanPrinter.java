@@ -1,21 +1,37 @@
 package com.splicemachine.derby.impl.ast;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import com.google.common.base.Function;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.splicemachine.derby.impl.sql.compile.SortState;
-
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.compile.Visitable;
 import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
-import org.apache.derby.impl.sql.compile.*;
+import org.apache.derby.impl.sql.compile.DMLStatementNode;
+import org.apache.derby.impl.sql.compile.ExplainNode;
+import org.apache.derby.impl.sql.compile.FromBaseTable;
+import org.apache.derby.impl.sql.compile.IndexToBaseRowNode;
+import org.apache.derby.impl.sql.compile.JoinNode;
+import org.apache.derby.impl.sql.compile.ProjectRestrictNode;
+import org.apache.derby.impl.sql.compile.ResultColumn;
+import org.apache.derby.impl.sql.compile.ResultColumnList;
+import org.apache.derby.impl.sql.compile.ResultSetNode;
+import org.apache.derby.impl.sql.compile.SubqueryNode;
+import org.apache.derby.impl.sql.compile.WindowResultSetNode;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
-import java.util.*;
+import com.splicemachine.derby.impl.sql.compile.SortState;
 
 
 /**
@@ -176,7 +192,29 @@ public class PlanPrinter extends AbstractSpliceVisitor {
             info.put("quals", Lists.transform(JoinSelector.preds(rsn),
                                                 PredicateUtils.predToString));
         }
+        if (rsn instanceof WindowResultSetNode) {
+            info.put("functions",((WindowResultSetNode)rsn).getFunctionNames());
+            info.put("results", getResultColumnInfo(rsn));
+        }
         return info;
+    }
+
+    public static List<Map<String, Object>> getResultColumnInfo(ResultSetNode rsn) throws StandardException {
+        List<Map<String, Object>> resultColumns = new ArrayList<Map<String, Object>>();
+        ResultColumnList resultColumnList = rsn.getResultColumns();
+        if (resultColumnList != null && resultColumnList.size() > 0) {
+            for (int i=1; i<=resultColumnList.size(); i++) {
+                ResultColumn resultColumn = resultColumnList.getResultColumn(i);
+                Map<String, Object> columnInfo = new LinkedHashMap<String, Object>();
+                if (resultColumn != null) {
+                    columnInfo.put("column", resultColumn.getName());
+                    columnInfo.put("position", resultColumn.getColumnPosition());
+                    columnInfo.put("type", resultColumn.getType());
+                }
+                resultColumns.add(columnInfo);
+            }
+        }
+        return resultColumns;
     }
 
     public static List<Map<String,Object>> linearizeNodeInfoTree(Map<String, Object> info)
