@@ -11,6 +11,7 @@ import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
@@ -41,7 +42,7 @@ public class SQLUtil {
 				
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				throw new RuntimeException(e);
 			}
 		  finally{
 			  return sqlUtil;
@@ -76,8 +77,8 @@ public class SQLUtil {
 	   **/
 	  public HashMap<List, List> getPrimaryKey(String tableName){
 		  HashMap<List, List> pks = new HashMap<List, List>();
-		  ArrayList names = new ArrayList();
-		  ArrayList types = new ArrayList();
+		  ArrayList<String> names = new ArrayList<String>();
+		  ArrayList<Integer> types = new ArrayList<Integer>();
 		  try{
 			  
 			  String   catalog           = null;
@@ -127,29 +128,33 @@ public class SQLUtil {
 	   * */
 	  public HashMap<List, List> getTableStructure(String tableName){
 		  HashMap<List, List> colType = new HashMap<List, List>();
-		  ArrayList names = new ArrayList();
-		  ArrayList types = new ArrayList();
+		  ArrayList<String> names = new ArrayList<String>();
+		  ArrayList<Integer> types = new ArrayList<Integer>();
 		  try{
 			 
 			  String   catalog           = null;
 		      String   schemaPattern     = null;
 		      String   tableNamePattern  = tableName;
 		      String   columnNamePattern = null;
-		      
-			  DatabaseMetaData databaseMetaData = connect.getMetaData();
+		      HashMap<String, String> schema_tblName = parseTableName(tableName);
+			  
+			  if (schema_tblName != null){
+				  Map.Entry pairs = (Map.Entry)schema_tblName.entrySet().iterator().next();
+				  schemaPattern = (String) pairs.getKey();
+				  tableNamePattern = (String) pairs.getValue();
+			  }
+			  else
+				  throw new SQLException("Splice table not known, please specify Splice tableName. "
+				  							+ "pattern: schemaName.tableName");
+			  DatabaseMetaData databaseMetaData = connect.getMetaData(); 
 
 		      ResultSet result = databaseMetaData.getColumns(
 		          catalog, schemaPattern,  tableNamePattern, columnNamePattern);
-		      
-		      String prevColumnName = "";
+		     
 		      while(result.next()){
 		          String columnName = result.getString(4);
-		          if(prevColumnName.equals(columnName))
-		        	  continue;
 		          int    columnType = result.getInt(5);
-		          prevColumnName = columnName;
-		          names.add(columnName);
-		          
+		          names.add(columnName); 
 		          types.add(columnType);
 		          
 		      }

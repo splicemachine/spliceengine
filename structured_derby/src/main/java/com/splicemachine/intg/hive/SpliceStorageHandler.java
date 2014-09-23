@@ -1,8 +1,12 @@
 package com.splicemachine.intg.hive;
 
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.sql.SQLException;
 import java.util.Map;
 import java.util.Properties;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hive.metastore.HiveMetaHook;
@@ -69,6 +73,20 @@ implements HiveMetaHook, HiveStoragePredicateHandler{
 	    }
 	   
 	    jobProperties.put(SpliceSerDe.SPLICE_TABLE_NAME, tableName);
+	    
+	    PrintWriter writer;
+		try {
+			writer = new PrintWriter("/Users/yanan/SpliceStorageHandler_log.txt", "UTF-8");
+			writer.println("ConfigureTableJobProperties, jdbc string:"+jobProperties.get(SpliceMRConstants.SPLICE_JDBC_STR));
+		    writer.close();
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	    
 	}
 	
 	@Override

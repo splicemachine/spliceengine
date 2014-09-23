@@ -3,24 +3,29 @@ package com.splicemachine.mrio.api;
 import java.io.IOException;
 
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
-import org.apache.hadoop.hbase.mapreduce.TableRecordReaderImpl;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-
 /**
  * Iterate over an HBase table data, return (ImmutableBytesWritable, Result)
  * pairs.
  */
-public class SpliceTableRecordReaderBase
+public class SpliceTableRecordReader
 extends RecordReader<ImmutableBytesWritable, ExecRow> {
 
-  private TableRecordReaderImpl recordReaderImpl = new TableRecordReaderImpl();
-
+  private SpliceTableRecordReaderImp recordReaderImpl = null;
+  Configuration conf = null;
+  
+  public SpliceTableRecordReader(Configuration conf){
+	  super();
+	  this.conf = conf;
+	  this.recordReaderImpl = new SpliceTableRecordReaderImp(conf);
+  }
   
   /**
    * Restart from survivable exceptions by creating a new scanner.
@@ -30,6 +35,7 @@ extends RecordReader<ImmutableBytesWritable, ExecRow> {
    */
   public void restart(byte[] firstRow) throws IOException {
     this.recordReaderImpl.restart(firstRow);
+    System.out.println("after restart....");
   }
 
 
@@ -85,8 +91,7 @@ extends RecordReader<ImmutableBytesWritable, ExecRow> {
    */
   @Override
   public ExecRow getCurrentValue() throws IOException, InterruptedException {
-    //return this.recordReaderImpl.getCurrentValue();
-	  return null;
+    return this.recordReaderImpl.getCurrentValue();
   }
 
   /**
@@ -120,6 +125,10 @@ extends RecordReader<ImmutableBytesWritable, ExecRow> {
     return this.recordReaderImpl.nextKeyValue();
   }
 
+  	public void init() throws IOException {
+	    this.recordReaderImpl.init();
+	  }
+  
   /**
    * The current progress of the record reader through its data.
    *
@@ -130,4 +139,5 @@ extends RecordReader<ImmutableBytesWritable, ExecRow> {
   public float getProgress() {
     return this.recordReaderImpl.getProgress();
   }
+  
 }

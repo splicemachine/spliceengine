@@ -89,7 +89,7 @@ public class HiveSpliceTableInputFormat extends SpliceTableInputFormatBase
 		HTable table;
 		try {
 			String spliceTableName = conf.get(SpliceSerDe.SPLICE_TABLE_NAME).trim();
-			LOG.error("-------------createRecordReader, spliceTableName:"+spliceTableName);
+			
 			if(sqlUtil == null)
 				//sqlUtil = SQLUtil.getInstance(conf.get(SpliceMRConstants.SPLICE_JDBC_STR));
 				sqlUtil = SQLUtil.getInstance("jdbc:splice://localhost:1527/splicedb;user=splice;password=admin");
@@ -140,7 +140,7 @@ public class HiveSpliceTableInputFormat extends SpliceTableInputFormatBase
 	@Override
 	public org.apache.hadoop.mapred.InputSplit[] getSplits(JobConf jobConf,
 			int numSplits) throws IOException {
-
+			this.conf = jobConf;
 			String spliceTableName = jobConf.get(SpliceSerDe.SPLICE_TABLE_NAME);
 			if(sqlUtil == null)
 				sqlUtil = SQLUtil.getInstance(jobConf.get(SpliceMRConstants.SPLICE_JDBC_STR));

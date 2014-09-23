@@ -24,16 +24,19 @@ public class SpliceJob extends Job{
 
 	 private static SQLUtil sqlUtil = null;
 	 private static Connection conn = null;
+	 private Configuration conf = null;
 	 public SpliceJob() throws IOException {
 		super();
 	}
 	
 	 public SpliceJob(Configuration conf) throws IOException {
 	    super(conf, null);
+	    this.conf = conf;
 	  }
 
 	 public SpliceJob(Configuration conf, String jobName) throws IOException {
 	    super(conf,jobName);
+	    this.conf = conf;
 	  }
 	 
 	 /**
@@ -45,7 +48,8 @@ public class SpliceJob extends Job{
 	 public void submit() throws IOException, InterruptedException, ClassNotFoundException 
 	 {	
 		 if(sqlUtil == null)
-			 sqlUtil = SQLUtil.getInstance(conf.get(SpliceMRConstants.SPLICE_JDBC_STR));
+			 sqlUtil = SQLUtil.getInstance(super.getConfiguration().get(SpliceMRConstants.SPLICE_JDBC_STR));
+			 //sqlUtil = SQLUtil.getInstance("jdbc:derby://localhost:1527/splicedb;user=splice;password=admin");
 		 if (conn == null)
 			try {
 				conn = sqlUtil.createConn();
