@@ -47,7 +47,7 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.impl.sql.execute.ValueRow;
 
 
-public class SpliceRecordReader extends SpliceTableRecordReaderBase{
+public class SpliceTableRecordReaderImp{
 
 	private HTable htable = null;
 	private ImmutableBytesWritable rowkey = null;
@@ -65,27 +65,18 @@ public class SpliceRecordReader extends SpliceTableRecordReaderBase{
     private SpliceTableScanner tableScanner = null;
     private Configuration conf = null;
     
-    public SpliceRecordReader(Configuration conf)
-    {
-    	super();
+    public SpliceTableRecordReaderImp(Configuration conf){
     	this.conf = conf;
-    	//System.out.println("SpliceRecordReader, Conf"+conf.get(SpliceMRConstants.SPLICE_JDBC_STR));
     }
-    
-	@Override
+   
 	public void initialize(final InputSplit inputSplit, final TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
-       
-		System.out.println("Initializing SpliceRecordReader....");
 		sqlUtil = SQLUtil.getInstance(conf.get(SpliceMRConstants.SPLICE_JDBC_STR));
     }
-	
-	@Override
+
 	public void close() {
 		try {
 			this.tableScanner.close();
 			this.scanner.close();
-			
-			
 		} catch (StandardException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
@@ -93,32 +84,31 @@ public class SpliceRecordReader extends SpliceTableRecordReaderBase{
 		}
 	}
 
-	
-	@Override
-	public void restart(byte[] firstRow) {
-		scan = new Scan();
+	public void restart(byte[] firstRow) throws IOException {
+		Scan newscan = new Scan(scan);
 		
-		scan.setStartRow(firstRow);
-		scan.setMaxVersions();
-		scan.setAttribute(SIConstants.SI_EXEMPT, Bytes.toBytes(true));
+		newscan.setStartRow(firstRow);
+		//newscan.setMaxVersions();
+		newscan.setAttribute(SIConstants.SI_EXEMPT, Bytes.toBytes(true));
 		if(htable != null)
 			try {
-				this.scanner = this.htable.getScanner(scan);
+				this.scanner = this.htable.getScanner(newscan);
 			} catch (IOException e1) {
 				// TODO Auto-generated catch block
-				e1.printStackTrace();
+				throw e1;
 			}
 		
 		try {
 			String transaction_id = conf.get(SpliceMRConstants.SPLICE_TRANSACTION_ID);
 			buildTableScannerBuilder(transaction_id);
 			tableScanner = this.builder.build();
+			
 			//tableScanner.setColumnTypes(colTypes);
 			
 		} catch (NumberFormatException e) {
-			e.printStackTrace();
+			throw new IOException(e);
 		} catch (StandardException e) {
-			e.printStackTrace();
+			throw new IOException(e);
 		}
 		
 	}
@@ -127,18 +117,19 @@ public class SpliceRecordReader extends SpliceTableRecordReaderBase{
 		restart(scan.getStartRow());
 	}
 	
-	@Override
     public ImmutableBytesWritable getCurrentKey(){
 	
         return rowkey;
     }
 	
+	public void setScan(Scan scan){
+		this.scan = scan;
+	}
 	/**
 	 * @return ExecRow (represents a row in Splice)
 	 * It will keep on searching the next row until it finds a not-NULL row and then return.
 	 * 
 	 */
-    @Override
     public ExecRow getCurrentValue() throws IOException, InterruptedException{
     	DataValueDescriptor dvds[] = value.getRowArray();
     	boolean invalid = true;
@@ -253,7 +244,6 @@ public class SpliceRecordReader extends SpliceTableRecordReaderBase{
     	.accessedKeyColumns(accessedKeyCols);
     }
     
-    @Override
 	public boolean nextKeyValue() throws IOException, InterruptedException { 
 		if (rowkey == null)
 			rowkey = new ImmutableBytesWritable();
@@ -300,8 +290,11 @@ public class SpliceRecordReader extends SpliceTableRecordReaderBase{
 	    	pkColNames = (ArrayList<String>)kv2.getKey();
 	    	pkColIds = (ArrayList<Integer>)kv2.getValue();
 	    }
-	    
-	    
-	    
+   
+	}
+
+	public float getProgress() {
+		// TODO Auto-generated method stub
+		return 0;
 	}
 }

@@ -49,8 +49,9 @@ public class SpliceInputFormat extends InputFormat<ImmutableBytesWritable, ExecR
     private  String tableID = null;
     private  String tableName = null;
    
-    private  SpliceRecordReader trr = null;
+    private  SpliceTableRecordReader trr = null;
 	private  TableInputFormat tableInputFormat = new TableInputFormat();
+	private  HTable hTable = null;
 	
 	private SpliceInputFormat(){
 		
@@ -67,36 +68,25 @@ public class SpliceInputFormat extends InputFormat<ImmutableBytesWritable, ExecR
 											createRecordReader(InputSplit split, 
 											TaskAttemptContext context) 
 											throws IOException{
-		if (trr == null) {
-			
-			trr = new SpliceRecordReader(this.conf);
-		}
 		
-		HTable table;
-		try {
-			System.out.println("create RecordReader, tableID:"+String.valueOf(tableID));
-			table = new HTable(HBaseConfiguration.create(conf), tableID);
-			TableSplit tSplit = (TableSplit)split;
-			trr.setHTable(table);
-			trr.restart(tSplit.getStartRow());
-			System.out.println("finished creating RecordReader");
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		SpliceTableRecordReader trr = this.trr;
+		if(trr == null)
+			trr = new SpliceTableRecordReader(conf);
+		if(hTable == null)
+			hTable = new HTable(HBaseConfiguration.create(conf), tableID);
+		TableSplit tSplit = (TableSplit)split;
+		Scan sc = new Scan(this.tableInputFormat.getScan());
+		sc.setStartRow(tSplit.getStartRow());
+		sc.setStopRow(tSplit.getEndRow());
 		
+		trr.setScan(sc);
+		trr.setHTable(hTable);
+		trr.init();
 		return trr;
 	}
 	
-	static Scan convertStringToScan(String base64) throws IOException {
-		    ByteArrayInputStream bis = new ByteArrayInputStream(Base64.decode(base64));
-		    DataInputStream dis = new DataInputStream(bis);
-		    Scan scan = new Scan();
-		    scan.readFields(dis);
-		    return scan;
-    }
-	
 	public Configuration getConf() {
-		return this.conf;
+		return this.tableInputFormat.getConf();
 	}
 	
 	

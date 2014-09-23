@@ -44,12 +44,14 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.iapi.types.SQLBlob;
 import org.apache.derby.iapi.types.SQLBoolean;
+import org.apache.derby.iapi.types.SQLDecimal;
 import org.apache.derby.iapi.types.SQLDouble;
 import org.apache.derby.iapi.types.SQLInteger;
 import org.apache.derby.iapi.types.SQLLongint;
 import org.apache.derby.iapi.types.SQLReal;
 import org.apache.derby.iapi.types.SQLSmallint;
 import org.apache.derby.iapi.types.SQLVarchar;
+import org.apache.derby.iapi.types.TypeId;
 import org.apache.derby.impl.sql.execute.ValueRow;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
@@ -61,6 +63,7 @@ import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
+import java.sql.Types;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -68,6 +71,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.apache.hadoop.hbase.client.Result;
+import org.apache.hive.service.cli.Type;
 
 public class SpliceTableScanner implements StandardIterator<ExecRow>{
 	
@@ -179,7 +183,6 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 				this.scanFilters = scan.getFilter();
 			else
 				this.scanFilters = null;
-			
 			if(filterFactory==null){
 				
 					this.filterFactory = new SIFilterFactory() {
@@ -189,11 +192,12 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 													EntryDecoder rowEntryDecoder,
 													EntryAccumulator accumulator,
 													boolean isCountStar) throws IOException{
-									
+								
 									TransactionId transactionId= new TransactionId(transactionID);
 									
 									IFilterState iFilterState = null;	
 									iFilterState = HTransactorFactory.getTransactionReadController().newFilterState(null, transactionId);
+									
 									HRowAccumulator hRowAccumulator = new HRowAccumulator(predicateFilter, getRowEntryDecoder(), accumulator, isCountStar);
 									
 									return new FilterStatePacked((FilterState)iFilterState, hRowAccumulator){
@@ -201,11 +205,9 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 											public Filter.ReturnCode doAccumulate(KeyValue dataKeyValue) throws IOException {
 												
 													if (!accumulator.isFinished() && accumulator.isOfInterest(dataKeyValue)) {
-														
-																if (!accumulator.accumulate(dataKeyValue)) {
-																		return Filter.ReturnCode.NEXT_ROW;
-																}
-															
+																	if (!accumulator.accumulate(dataKeyValue)) {
+																			return Filter.ReturnCode.NEXT_ROW;
+																	}
 															return Filter.ReturnCode.INCLUDE;
 													}else return Filter.ReturnCode.INCLUDE;
 											}
@@ -261,6 +263,11 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 		DataValueDescriptor dvds[] = new DataValueDescriptor[colTypes.size()];
 		for(int pos = 0; pos < colTypes.size(); pos++)
 		{
+			if(colTypes.get(pos) == Types.DECIMAL){	
+				dvds[pos] = new SQLDecimal();
+				continue;
+			}
+			
 			dvds[pos] = DataTypeDescriptor.getBuiltInDataTypeDescriptor(colTypes.get(pos)).getNull();
 		}
 		return dvds;
@@ -284,7 +291,6 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 			
 			Result tmp = resultScanner.next();
 			
-			Result r = null;
 			if(tmp != null)
 			{
 				hasRow = true;		

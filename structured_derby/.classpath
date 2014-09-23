@@ -34,5 +34,7 @@
 		</attributes>
 	</classpathentry>
 	<classpathentry combineaccessrules="false" kind="src" path="/structured_constants"/>
+	<classpathentry kind="lib" path="/Users/yanan/workspace/spliceengine/structured_si/target/structured_si-FUJI.0-SNAPSHOT-cloudera-cdh4.5.0.jar"/>
+	<classpathentry kind="lib" path="/Users/yanan/workspace/spliceengine/structured_constants/target/structured_constants-FUJI.0-SNAPSHOT-cloudera-cdh4.5.0.jar"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>
