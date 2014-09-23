@@ -3928,11 +3928,11 @@ savepointStatement() throws StandardException :
 }
 {
 	(
-	<SAVEPOINT> savepointName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true) (savepointStatementClause(savepointStatementClauses))+
+	<SAVEPOINT> savepointName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true) (savepointStatementClause(savepointStatementClauses))*
 	{
 		//ON ROLLBACK RETAIN CURSORS is mandatory
-		if (savepointStatementClauses[2] == null)
-				throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR, "MISSING ON ROLLBACK RETAIN CURSORS");
+//		if (savepointStatementClauses[2] == null)
+//				throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR, "MISSING ON ROLLBACK RETAIN CURSORS");
 		savepointStatementType = 1;
 	}
 |	<ROLLBACK> [ <WORK> ] <TO> <SAVEPOINT> [ savepointName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true) ]
