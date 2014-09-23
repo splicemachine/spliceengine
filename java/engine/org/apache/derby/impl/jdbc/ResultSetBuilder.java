@@ -8,12 +8,29 @@ import java.util.List;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.JDBC40Translation;
+import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.sql.ResultColumnDescriptor;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.SQLBit;
+import org.apache.derby.iapi.types.SQLBlob;
+import org.apache.derby.iapi.types.SQLBoolean;
+import org.apache.derby.iapi.types.SQLChar;
+import org.apache.derby.iapi.types.SQLClob;
+import org.apache.derby.iapi.types.SQLDate;
+import org.apache.derby.iapi.types.SQLDecimal;
+import org.apache.derby.iapi.types.SQLDouble;
 import org.apache.derby.iapi.types.SQLInteger;
+import org.apache.derby.iapi.types.SQLLongVarbit;
+import org.apache.derby.iapi.types.SQLLongint;
+import org.apache.derby.iapi.types.SQLLongvarchar;
+import org.apache.derby.iapi.types.SQLReal;
 import org.apache.derby.iapi.types.SQLSmallint;
+import org.apache.derby.iapi.types.SQLTime;
+import org.apache.derby.iapi.types.SQLTimestamp;
+import org.apache.derby.iapi.types.SQLTinyint;
+import org.apache.derby.iapi.types.SQLVarbit;
 import org.apache.derby.iapi.types.SQLVarchar;
 import org.apache.derby.impl.sql.GenericColumnDescriptor;
 import org.apache.derby.impl.sql.execute.IteratorNoPutResultSet;
@@ -118,11 +135,12 @@ public class ResultSetBuilder {
 		/**
 		 * Worker method to add the corresponding DVD object for the specified JDBC type.
 		 * @param jdbcTypeId
+		 * @throws StandardException
 		 */
-		private void addRowDvd(int jdbcTypeId) {
-			// TODO: Add logic for additional DVD types.
+		private void addRowDvd(int jdbcTypeId) throws StandardException {
 			switch (jdbcTypeId) {
 			case Types.TINYINT:
+				dvdsList.add(new SQLTinyint());
 				break;
 			case Types.SMALLINT:
 				dvdsList.add(new SQLSmallint());
@@ -131,45 +149,67 @@ public class ResultSetBuilder {
 				dvdsList.add(new SQLInteger());
 				break;
 			case Types.BIGINT:
-				break;
-			case Types.REAL:
+				dvdsList.add(new SQLLongint());
 				break;
 			case Types.FLOAT:
+				dvdsList.add(new SQLReal());
+				break;
+			case Types.REAL:
+				dvdsList.add(new SQLReal());
+				break;
 			case Types.DOUBLE:
+				dvdsList.add(new SQLDouble());
 				break;
 			case Types.DECIMAL:
+				dvdsList.add(new SQLDecimal());
 				break;
 			case Types.NUMERIC:
+				dvdsList.add(new SQLDecimal());
 				break;
 			case Types.CHAR:
+				dvdsList.add(new SQLChar());
 				break;
 			case Types.VARCHAR:
 				dvdsList.add(new SQLVarchar());
+				break;
 			case Types.DATE:
+				dvdsList.add(new SQLDate());
 				break;
 			case Types.TIME:
+				dvdsList.add(new SQLTime());
 				break;
 			case Types.TIMESTAMP:
+				dvdsList.add(new SQLTimestamp());
 				break;
 			case Types.BIT:
+				dvdsList.add(new SQLBit());
+				break;
 			case Types.BOOLEAN:
+				dvdsList.add(new SQLBoolean());
 				break;
 			case Types.BINARY:
+				dvdsList.add(new SQLBit());
 				break;
 			case Types.VARBINARY:
+				dvdsList.add(new SQLVarbit());
 				break;
 			case Types.LONGVARBINARY:
+				dvdsList.add(new SQLLongVarbit());
 				break;
 			case Types.LONGVARCHAR:
+				dvdsList.add(new SQLLongvarchar());
 				break;
 			case Types.BLOB:
+				dvdsList.add(new SQLBlob());
 				break;
 			case Types.CLOB:
+				dvdsList.add(new SQLClob());
 				break;
 			case JDBC40Translation.SQLXML:
+				dvdsList.add(new SQLLongvarchar());
 				break;
 			default:
-				break;
+				throw StandardException.newException(SQLState.NET_INVALID_JDBC_TYPE_FOR_PARAM, jdbcTypeId);
 			}
 		}
 	}
