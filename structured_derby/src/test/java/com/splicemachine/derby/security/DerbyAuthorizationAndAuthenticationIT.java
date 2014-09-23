@@ -1,16 +1,14 @@
 package com.splicemachine.derby.security;
 
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.SQLNonTransientConnectionException;
-import java.sql.SQLSyntaxErrorException;
-import java.util.concurrent.Callable;
-
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.derby.utils.ErrorState;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
+
+import java.sql.SQLException;
+import java.sql.SQLNonTransientConnectionException;
+import java.util.concurrent.Callable;
 
 //@Ignore()
 public class DerbyAuthorizationAndAuthenticationIT extends SpliceUnitTest {
@@ -30,8 +28,6 @@ public class DerbyAuthorizationAndAuthenticationIT extends SpliceUnitTest {
 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     protected static SpliceSchemaWatcher spliceSchemaWatcher1 = new SpliceSchemaWatcher(SCHEMA_NAME+USER1,USER1);
-    protected static SpliceSchemaWatcher spliceSchemaWatcher2 = new SpliceSchemaWatcher(SCHEMA_NAME+USER2,USER2);
-    protected static SpliceSchemaWatcher spliceSchemaWatcher3 = new SpliceSchemaWatcher(SCHEMA_NAME+USER3,USER3);
     protected static SpliceUserWatcher spliceUserWatcher1 = new SpliceUserWatcher(USER1,PASSWORD1);
     protected static SpliceUserWatcher spliceUserWatcher2 = new SpliceUserWatcher(USER2,PASSWORD2);
     protected static SpliceUserWatcher spliceUserWatcher3 = new SpliceUserWatcher(USER3,PASSWORD3);
@@ -44,16 +40,6 @@ public class DerbyAuthorizationAndAuthenticationIT extends SpliceUnitTest {
                     "EMPNAME  VARCHAR(20), "+
                     "GRADE    DECIMAL(4), "+
                     "CITY     VARCHAR(15))", USER1, PASSWORD1);
-    protected static SpliceTableWatcher staffTableUser2 = new SpliceTableWatcher("STAFF",spliceSchemaWatcher2.schemaName,
-            "(EMPNUM   VARCHAR(3) NOT NULL, "+
-                    "EMPNAME  VARCHAR(20), "+
-                    "GRADE    DECIMAL(4), "+
-                    "CITY     VARCHAR(15))", USER2, PASSWORD2);
-    protected static SpliceTableWatcher staffTableUser3 = new SpliceTableWatcher("STAFF",spliceSchemaWatcher3.schemaName,
-            "(EMPNUM   VARCHAR(3) NOT NULL, "+
-                    "EMPNAME  VARCHAR(20), "+
-                    "GRADE    DECIMAL(4), "+
-                    "CITY     VARCHAR(15))", USER3, PASSWORD3);
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -197,6 +183,7 @@ public class DerbyAuthorizationAndAuthenticationIT extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore
     public void testCannotCreateRoleWithUserName() throws Exception {
         assertFailed(new Callable<Void>() {
             @Override
