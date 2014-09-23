@@ -36,13 +36,13 @@ import org.apache.derby.impl.sql.execute.ValueRow;
  *		;
  *		// Step 2: Add the rows.  NOTE: The columns are now frozen (no changes allowed).
  *		RowBuilder rowBuilder = rsBuilder.getRowBuilder();
- *		rowBuilder.getDvd(0).setValue("Utilities"));
+ *		rowBuilder.getDvd(0).setValue("Utilities");
  *		rowBuilder.getDvd(1).setValue(24);
  *		rowBuilder.getDvd(2).setValue(777);
  *		rowBuilder.addRow();
- *		rowBuilder.getDvd(0).setValue("Admin"));
- *		rowBuilder.getDvd(1).setValue(42);
- *		rowBuilder.getDvd(2).setValue(6502);
+ *		rowBuilder.getDvd("PROCEDURE_CAT").setValue("Admin");
+ *		rowBuilder.getDvd("COLUMN_TYPE").setValue(42);
+ *		rowBuilder.getDvd("DATA_TYPE").setValue(6502);
  *		rowBuilder.addRow();
  *		// Step 3: Build the result set and return it.
  *		ResultSet rs = rsBuilder.buildResultSet(embedConn);
