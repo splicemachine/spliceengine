@@ -25,20 +25,16 @@ public class SpliceNetConnection {
     private static boolean storedStatementsCompiled;
     private static boolean driverClassLoaded;
 
-    public static Connection getConnection() {
+    public static Connection getConnection() throws SQLException {
         return getConnectionAs(DEFAULT_USER, DEFAULT_USER_PASSWORD);
     }
 
-    public static Connection getConnectionAs(String userName, String password) {
+    public static Connection getConnectionAs(String userName, String password) throws SQLException {
         String url = String.format(DB_URL_LOCAL, userName, password);
-        try {
-            loadDriver();
-            Connection connection = DriverManager.getConnection(url, new Properties());
+        loadDriver();
+        Connection connection = DriverManager.getConnection(url, new Properties());
 //            compileAllInvalidStoredStatements(connection);
-            return connection;
-        } catch (SQLException e) {
-            throw new IllegalStateException("url=" + url, e);
-        }
+        return connection;
     }
 
     private synchronized static void loadDriver() {
