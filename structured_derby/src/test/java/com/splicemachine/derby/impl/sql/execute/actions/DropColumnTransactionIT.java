@@ -2,7 +2,9 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.derby.utils.ErrorState;
+import com.splicemachine.test.SerialTest;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -180,6 +182,7 @@ public class DropColumnTransactionIT {
     }
 
     @Test
+    @Ignore("Ignored until DB-1893 is resolved")
     public void testDropColumnBeforeInsertionWorks() throws Exception {
         /*
          * This is a test to ensure that the following sequence holds:
