@@ -15,6 +15,7 @@ import static org.junit.Assert.assertTrue;
 
 
 @Category(SlowTest.class)
+@Ignore
 public class DataTypeCheckNegIT extends SpliceUnitTest {
 
     private static boolean done;
