@@ -156,8 +156,9 @@ public class SpliceTableWatcher extends TestWatcher {
         trace("Starting");
         Statement statement = null;
         ResultSet rs;
-        Connection connection =  (userName == null)?SpliceNetConnection.getConnection():SpliceNetConnection.getConnectionAs(userName,password);
+        Connection connection;
         try {
+            connection = (userName == null)?SpliceNetConnection.getConnection():SpliceNetConnection.getConnectionAs(userName,password);
             rs = connection.getMetaData().getTables(null, schemaName, tableName, null);
         }catch(Exception e){
             error("Error when fetching metadata",e);
