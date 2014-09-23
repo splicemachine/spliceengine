@@ -85,49 +85,53 @@ public class SIConstants extends SpliceConstants {
 		@SpliceConstants.DefaultValue(COMMITTING_PAUSE) public static final int DEFAULT_COMMITTING_PAUSE=1000;
 		public static int committingPause;
 
-		@Parameter public static final String TRANSACTION_LOCK_STRIPES ="splice.txn.concurrencyLevel";
-		/*
-		 * Each transaction occupies ~50 bytes of space (guesstimate since some transactions
-		 * have more information stored than others). This means that, if we have a 1GB region,
-		 * each region is allowed up to ~21,500,000 transactions. Take that number and divide
-		 * it by the number of stripes, and that's roughly how many transactions are locked during
-		 * a given segment. This gives the rough values of:
-		 *
-		 * 512	--	~42,000 transactions/stripe
-		 * 1024	--	~21,000 transactions/stripe
-		 * 2048	--	~10,500 transactions/stripe
-		 * 4096	--	~ 5,250 transactions/stripe
-		 * 8192	--	~ 2,625 transactions/stripe
-		 * 16384	--	~ 1,320 transactions/stripe
-		 * 32768	--	~   660 transactions/stripe
-		 *
-		 * This is a balance between memory usage and concurrency. By experimentation, I've determined
-		 * that a ReadWriteLock occupies ~250 bytes each, so the total memory is ~250*STRIPES. Thus,
-		 * our usage is:
-		 *
-		 * 512	--	125 KB
-		 * 1024	--	250 KB
-		 * 2048	--	500 KB
-		 * 4096	--	~1 MB
-		 * 8192	--	~2 MB
-		 * 16384	--	~4 MB
-		 * 32768	--	~8 MB
-		 *
-		 * This is the size for each transaction region, so there are actually 16 times that number of
-		 * stripes.
-		 *
-		 * By default we choose a reasonable balance of 8192 stripes for each region. This means that
-		 * we use about 32 MB of heap, and lock only about 2K transactions at a time. If we see
-		 * a significant locking bottleneck for this, increasing the number of stripes will help increase
-		 * the concurrency, although it will take more memory. If, on the other hand, we aren't seeing
-		 * significant bottleneck, but are experiencing memory pressure (e.g. for an OLAP application),
-		 * then decreasing the number of stripes may help a slight amount.
-		 *
-		 * The Stripe count is always a power of 2. If you set it to a non-power of 2, then the striper
-		 * will choose the smallest power of 2 greater than what you set, so you may as well set it to a
-		 * power of 2.
-		 */
-		@DefaultValue(TRANSACTION_LOCK_STRIPES) public static final int DEFAULT_LOCK_STRIPES = 8192;
+
+    /*
+     * We use lock-striping to manage concurrent modifications/reads to the Transaction table. That is,
+     * each Transaction is grouped into a bucket, and in order to read or modify that transaction, you must
+     * first acquire the lock for that bucket.
+     *
+     * As a general rule, the more stripes you have, the more parallelism you can sustain. However, there are
+     * two limiting factors to this. The first is memory--each stripe requires a separate set of objects which
+     * occupy heap space. The second is threading performance.
+     *
+     * By experimentation, I've determined that (on the Oracle 6 JVM, at least) a ReadWriteLock occupies ~250 bytes,
+     * so the total memory occupied is ~250*STRIPES, where STRIPES is the number of stripes that we have. Thus,
+     * we have a table of memory usage as follows:
+     *
+     * 16       --  ~4K
+     * 32       --  ~8K
+     * 64       --  ~16K
+     * 128      --  ~32K
+     * 256      --  ~64K
+     * 512      --  ~125K
+     * 1024     --  ~250K
+     * 4096     --  ~1M
+     * 8192     --  ~2M
+     * 16384    --  ~4M
+     * 32768    --  ~8M
+     *
+     * This is the size for each transaction region, so there are actually 16 times that number of stripes (
+     * and thus 16 times the memory usage).
+     *
+     * This inclines us to choose fewer stripes. However, we want to sustain a high degree of concurrency,
+     * so we want to choose the correct number of stripes. Thankfully, we have a total limiter.
+     *
+     * All access to the transaction table occurs remotely (through the HBase client API), which means
+     * that our maximum concurrency is actually the number of concurrent network actions that can be made
+     * to a single server--in other words, the IPC threads. Any concurrency level which is higher than that
+     * will be useless concurrency, as only a maximum of that many threads will be used. Thus, a reasonable
+     * default is the number of ipc threads configured for this system.
+     *
+     * Note that the Stripe count is always a power of 2(if you set it to a non-power of 2, then the striper
+     * will choose the smallest power of 2 greater than what you set), so we will always have a concurrency level
+     * which is >= the number of ipc threads, which should allow plenty of concurrency for our applications.
+     *
+     * However, if we see bottlenecks due to this lock striping, then we may increase it manually, given the
+     * tradeoffs that we discuss in this note.
+     *
+     */
+    @Parameter public static final String TRANSACTION_LOCK_STRIPES ="splice.txn.concurrencyLevel";
 		public static int transactionlockStripes;
 
 
@@ -147,7 +151,8 @@ public class SIConstants extends SpliceConstants {
 				committingPause = config.getInt(COMMITTING_PAUSE,DEFAULT_COMMITTING_PAUSE);
 				transactionTimeout = config.getInt(TRANSACTION_TIMEOUT,DEFAULT_TRANSACTION_TIMEOUT);
 				transactionKeepAliveInterval = config.getInt(TRANSACTION_KEEP_ALIVE_INTERVAL,DEFAULT_TRANSACTION_KEEP_ALIVE_INTERVAL);
-				transactionlockStripes = config.getInt(TRANSACTION_LOCK_STRIPES,DEFAULT_LOCK_STRIPES);
+        int ipcThreads = SpliceConstants.ipcThreads;
+				transactionlockStripes = config.getInt(TRANSACTION_LOCK_STRIPES,ipcThreads);
 				activeTransactionCacheSize = config.getInt(ACTIVE_TRANSACTION_CACHE_SIZE,DEFAULT_ACTIVE_TRANSACTION_CACHE_SIZE);
         completedTransactionCacheSize = config.getInt(COMPLETED_TRANSACTION_CACHE_SIZE,DEFAULT_COMPLETED_TRANSACTION_CACHE_SIZE);
         completedTransactionConcurrency = config.getInt(COMPLETED_TRANSACTION_CACHE_CONCURRENCY,DEFAULT_COMPLETED_TRANSACTION_CONCURRENCY);
