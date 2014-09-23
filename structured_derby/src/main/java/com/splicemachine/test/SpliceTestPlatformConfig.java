@@ -68,7 +68,7 @@ class SpliceTestPlatformConfig {
         config.set("hbase.cluster.distributed", "true");
         config.setLong("hbase.balancer.period", SECONDS.toMillis(10));
         config.set("hbase.zookeeper.quorum", "127.0.0.1:2181");
-        config.set("hbase.regionserver.handler.count", "200");
+        config.set("hbase.regionserver.handler.count", "50");
         setInt(config, "hbase.master.port", masterPort);
         setInt(config, "hbase.master.info.port", masterInfoPort);
         setInt(config, "hbase.regionserver.port", regionServerPort);
