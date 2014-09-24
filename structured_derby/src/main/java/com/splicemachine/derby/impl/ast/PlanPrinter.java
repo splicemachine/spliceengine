@@ -29,6 +29,7 @@ import org.apache.derby.impl.sql.compile.ResultSetNode;
 import org.apache.derby.impl.sql.compile.SubqueryNode;
 import org.apache.derby.impl.sql.compile.WindowResultSetNode;
 import org.apache.hadoop.hbase.util.Pair;
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.derby.impl.sql.compile.SortState;
@@ -120,11 +121,33 @@ public class PlanPrinter extends AbstractSpliceVisitor {
             throws StandardException {
         Map<String,Object> copy = new HashMap<String, Object>(info);
         Object clazz = copy.get("class");
+        Object results = copy.get("results");
         int level = (Integer)copy.get("level");
-        return String.format("%s%s (%s)",
+        return String.format("%s%s (%s) %s",
                 Strings.repeat(spaces, level),
                 clazz,
-                prune(without(copy, "class", "level", "subqueries", "children")));
+                prune(without(copy, "class", "results", "level", "subqueries", "children")),
+                results != null ? printResults(level+2, (List<Map<String, Object>>) results) : "");
+    }
+
+    private static String printResults(int nTimes, List<Map<String, Object>> results)  {
+        String indent = Strings.repeat(spaces, nTimes);
+        StringBuilder buf = new StringBuilder("\n");
+        for (Map<String,Object> row : results) {
+            buf.append(indent).append('{');
+            for (Map.Entry<String,Object> entry : row.entrySet()) {
+                buf.append(entry).append(", ");
+            }
+            if (buf.length() > 2 && buf.charAt(buf.length()-2) == ',') {
+                buf.setLength(buf.length()-2);
+                buf.append("}\n");
+            }
+        }
+        if (buf.length() > 0) {
+            // remove last '\n'
+            buf.setLength(buf.length()-1);
+        }
+        return buf.toString();
     }
 
     public static Map<String,Object> nodeInfo(final ResultSetNode rsn, final int level)
@@ -137,6 +160,11 @@ public class PlanPrinter extends AbstractSpliceVisitor {
         info.put("estRowCount", rsn.getFinalCostEstimate().getEstimatedRowCount());
         info.put("estSingleScanCount", rsn.getFinalCostEstimate().singleScanRowCount());
         info.put("regions", ((SortState) rsn.getFinalCostEstimate()).getNumberOfRegions());
+        if (Level.TRACE.equals(LOG.getLevel())) {
+            // we only want to see exec row info when THIS logger is set to trace:
+            // com.splicemachine.derby.impl.ast.PlanPrinter=TRACE
+            info.put("results", getResultColumnInfo(rsn));
+        }
         List<ResultSetNode> children = RSUtils.getChildren(rsn);
         info.put("children", Lists.transform(children, new Function<ResultSetNode, Map<String,Object>>() {
             @Override
@@ -194,7 +222,6 @@ public class PlanPrinter extends AbstractSpliceVisitor {
         }
         if (rsn instanceof WindowResultSetNode) {
             info.put("functions",((WindowResultSetNode)rsn).getFunctionNames());
-            info.put("results", getResultColumnInfo(rsn));
         }
         return info;
     }
