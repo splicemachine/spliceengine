@@ -154,6 +154,9 @@ public class ByteSlice implements Externalizable {
 				if (!(o instanceof ByteSlice)) return false;
 
 				ByteSlice that = (ByteSlice) o;
+				if (buffer == null || that.buffer == null) {
+				    return (buffer == null && that.buffer == null);  // if this buffer is null, they are equal iff the other buffer is null 
+				}
 
 				if (length != that.length) return false;
 //				if (offset != that.offset) return false;

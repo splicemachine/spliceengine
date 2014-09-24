@@ -24,12 +24,14 @@ public class GroupedAggregateOperationIT extends SpliceUnitTest {
     public static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
     public static final SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("OMS_LOG",CLASS_NAME,"(swh_date date, i integer)");
     public static final SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher("T8",CLASS_NAME,"(c1 int, c2 int)");
+    public static final SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher("A1",CLASS_NAME,"(c1 varchar(10), c2 numeric(15,0))");  // JIRA 1859
 
     @ClassRule
     public static TestRule rule = RuleChain.outerRule(spliceSchemaWatcher)
             .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/employee-2table.sql", CLASS_NAME))
             .around(spliceTableWatcher)
             .around(spliceTableWatcher2)
+            .around(spliceTableWatcher3)
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
@@ -43,6 +45,10 @@ public class GroupedAggregateOperationIT extends SpliceUnitTest {
                         spliceClassWatcher.executeUpdate(format("insert into %s values (date('2012-04-01'),3)", spliceTableWatcher));
                         spliceClassWatcher.executeUpdate(format("insert into %s values (date('2012-05-01'),3)", spliceTableWatcher));
                         spliceClassWatcher.executeUpdate(format("insert into %s values (null, null), (1,1), (null, null), (2,1), (3,1),(10,10)", spliceTableWatcher2));
+                        spliceClassWatcher.executeUpdate(format("insert into %s (c1) values ('A100001')", spliceTableWatcher3));
+                        spliceClassWatcher.executeUpdate(format("insert into %s values ('A100001', 2000000503984)", spliceTableWatcher3));
+                        spliceClassWatcher.executeUpdate(format("insert into %s (c1) values ('A100001')", spliceTableWatcher3));
+                        
 
                     } catch (Exception e) {
                         throw new RuntimeException(e);
@@ -203,4 +209,16 @@ public class GroupedAggregateOperationIT extends SpliceUnitTest {
         }
         Assert.assertEquals("Should return 3 rows",3, i);
     }
+    
+    @Test()
+    // JIRA DB-1859
+    public void testAggregateWithNullValues() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(format("select c1, count(distinct c2) RESPONDERS from a1 group by c1",spliceTableWatcher3));
+        int i =0;
+        while (rs.next()) {
+        	i++;
+        }
+        Assert.assertEquals("Should return 1 row",1, i);
+    }
+
 }
