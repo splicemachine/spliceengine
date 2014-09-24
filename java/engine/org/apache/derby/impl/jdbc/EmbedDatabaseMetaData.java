@@ -1642,11 +1642,11 @@ public class EmbedDatabaseMetaData extends ConnectionChild
 										   String parameterNamePattern) 
 		throws SQLException {
 
-        return doGetProcCols(catalog, 
+        return doGetFuncColsPacked(catalog,
                              schemaPattern,
                              functionNamePattern, 
                              parameterNamePattern,	
-                             "getFunctionColumns");
+                             "getFunctionColumnsPacked");
 	}
 
 	/**
@@ -1785,6 +1785,118 @@ public class EmbedDatabaseMetaData extends ConnectionChild
 		}
 	}
 
+	/**
+	 * This is a re-implementation of the doGetProcCols method (for functions) which removes the
+	 * GetProcedureColumns VTI since VTIs are not supported in Splice yet.
+	 * The related bug is DB-1804.
+	 * @param queryName Name of the query to execute; is used
+	 *	to determine whether the result set should conform to
+	 *	JDBC or ODBC specifications.
+	 */
+	private ResultSet doGetFuncColsPacked(String catalog, String schemaPattern,
+		String functionNamePattern, String columnNamePattern,
+		String queryName) throws SQLException {
+
+		PreparedStatement s = getPreparedQuery(queryName);
+		//
+		// catalog is not part of the query
+		//
+		s.setString(1, swapNull(schemaPattern));
+		s.setString(2, swapNull(functionNamePattern));
+		ResultSet rsFuncs =  s.executeQuery();
+
+		// Define the format of the rows for the ResultSet.
+		ResultSetBuilder rsBuilder = new ResultSetBuilder();
+		try {
+			rsBuilder.getColumnBuilder()
+				.addColumn("FUNCTION_CAT", Types.VARCHAR, 128)
+				.addColumn("FUNCTION_SCHEM", Types.VARCHAR, 128)
+				.addColumn("FUNCTION_NAME", Types.VARCHAR, 128)
+				.addColumn("COLUMN_NAME", Types.VARCHAR, 128)
+				.addColumn("COLUMN_TYPE", Types.SMALLINT)
+				.addColumn("DATA_TYPE", Types.INTEGER)
+				.addColumn("TYPE_NAME", Types.VARCHAR, 128)
+				.addColumn("PRECISION", Types.INTEGER)
+				.addColumn("LENGTH", Types.INTEGER)
+				.addColumn("SCALE", Types.SMALLINT)
+				.addColumn("RADIX", Types.SMALLINT)
+				.addColumn("NULLABLE", Types.SMALLINT)
+				.addColumn("REMARKS", Types.VARCHAR, 128)
+				.addColumn("CHAR_OCTET_LENGTH", Types.INTEGER)
+				.addColumn("ORDINAL_POSITION", Types.INTEGER)
+				.addColumn("IS_NULLABLE", Types.VARCHAR, 128)
+				.addColumn("SPECIFIC_NAME", Types.VARCHAR, 128)
+				.addColumn("METHOD_ID", Types.SMALLINT)
+				.addColumn("PARAMETER_ID", Types.SMALLINT)
+			;
+			RowBuilder rowBuilder = rsBuilder.getRowBuilder();
+
+			while (rsFuncs.next()) {
+
+				// Expand the ALIASINFO packed column into the following additional fields:
+				//   COLUMN_NAME, COLUMN_TYPE, DATA_TYPE, TYPE_NAME, PRECISION,
+				//   LENGTH, SCALE, RADIX, NULLABLE, REMARKS,
+				//   CHAR_OCTET_LENGTH, ORDINAL_POSITION, IS_NULLABLE, METHOD_ID, PARAMETER_ID
+				AliasInfo aliasInfo = (AliasInfo) rsFuncs.getObject("ALIASINFO");
+				String aliasType = rsFuncs.getString("ALIASTYPE");
+				ResultSet rsFuncCols = new GetProcedureColumns(aliasInfo, aliasType);
+				while (rsFuncCols.next()) {
+					// Skip the column names that don't match the specified pattern if one is passed.
+					if (columnNamePattern != null && !likeMatch(rsFuncCols.getString("COLUMN_NAME"), columnNamePattern)) {
+						continue;
+					}
+
+					rowBuilder.getDvd(0).setValue(rsFuncs.getString("FUNCTION_CAT"));
+					rowBuilder.getDvd(1).setValue(rsFuncs.getString("FUNCTION_SCHEM"));
+					rowBuilder.getDvd(2).setValue(rsFuncs.getString("FUNCTION_NAME"));
+					rowBuilder.getDvd(3).setValue(rsFuncCols.getString("COLUMN_NAME"));
+					rowBuilder.getDvd(4).setValue(rsFuncCols.getShort("COLUMN_TYPE"));
+					rowBuilder.getDvd(5).setValue(rsFuncCols.getInt("DATA_TYPE"));
+					rowBuilder.getDvd(6).setValue(rsFuncCols.getString("TYPE_NAME"));
+					rowBuilder.getDvd(7).setValue(rsFuncCols.getInt("PRECISION"));
+					rowBuilder.getDvd(8).setValue(rsFuncCols.getInt("LENGTH"));
+					int dataType = rsFuncCols.getInt("DATA_TYPE");
+					if (dataType == Types.DECIMAL || dataType == Types.NUMERIC || dataType == Types.INTEGER ||
+						dataType == Types.SMALLINT || dataType == Types.TINYINT || dataType == Types.BIGINT ||
+						dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP) {
+						rowBuilder.getDvd(9).setValue(rsFuncCols.getShort("SCALE"));
+					} else {
+						rowBuilder.getDvd(9).setToNull();
+					}
+					if (dataType == Types.DECIMAL || dataType == Types.NUMERIC || dataType == Types.INTEGER ||
+						dataType == Types.SMALLINT || dataType == Types.TINYINT || dataType == Types.BIGINT ||
+						dataType == Types.DOUBLE || dataType == Types.FLOAT || dataType == Types.REAL ||
+						dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP) {
+						rowBuilder.getDvd(10).setValue(rsFuncCols.getShort("RADIX"));
+					} else {
+						rowBuilder.getDvd(10).setToNull();
+					}
+					rowBuilder.getDvd(11).setValue(rsFuncCols.getShort("NULLABLE"));
+					rowBuilder.getDvd(12).setValue(rsFuncCols.getString("REMARKS"));
+					if (dataType == Types.CHAR || dataType == Types.VARCHAR || dataType == Types.BINARY || dataType == Types.VARBINARY) {
+						rowBuilder.getDvd(13).setValue(rsFuncCols.getInt("LENGTH"));
+					} else {
+						rowBuilder.getDvd(13).setToNull();
+					}
+					if (rsFuncCols.getShort("COLUMN_TYPE") == 5) {
+						rowBuilder.getDvd(14).setValue((int)(rsFuncCols.getShort("PARAMETER_ID") + 1 - rsFuncCols.getShort("METHOD_ID")));
+					} else {
+						rowBuilder.getDvd(14).setValue((int)(rsFuncCols.getShort("PARAMETER_ID") + 1));
+					}
+					rowBuilder.getDvd(15).setValue(rsFuncCols.getShort("NULLABLE") == DatabaseMetaData.procedureNullable ? "YES" : "NO");
+					rowBuilder.getDvd(16).setValue(rsFuncs.getString("SPECIFIC_NAME"));
+					rowBuilder.getDvd(17).setValue(rsFuncCols.getShort("METHOD_ID"));
+					rowBuilder.getDvd(18).setValue(rsFuncCols.getShort("PARAMETER_ID"));
+					rowBuilder.addRow();
+				}
+			}
+
+			return rsBuilder.buildResultSet(getEmbedConnection());
+		} catch (StandardException se) {
+			throw PublicAPI.wrapStandardException(se);
+		}
+	}
+
     /**
      * Perform a SQL LIKE comparison.
      * PLEASE NOTE: Only the '%' wild card is supported.
@@ -1794,22 +1906,22 @@ public class EmbedDatabaseMetaData extends ConnectionChild
      * @throws StandardException if the pattern is invalid or null
      */
 	private static boolean likeMatch(String str, String sqlLikePattern) throws StandardException {
-		validateProcedureColumnNamePattern(sqlLikePattern);
+		validateColumnNamePattern(sqlLikePattern);
 		String regexPattern = convertLikePatternToRegexPattern(sqlLikePattern);
 		return (str != null && str.matches(regexPattern));
 	}
 
     /**
-     * Validate that the pattern for matching a procedure column is for a valid Java variable name
+     * Validate that the pattern for matching an alias routine column is for a valid Java variable name
      * and that the matching pattern uses the SQL LIKE syntax.
-     * @param columnNamePattern SQL LIKE matching pattern for a procedure column name (Java variable name)
+     * @param columnNamePattern SQL LIKE matching pattern for a alias routine column name (Java variable name)
      * @throws StandardException if the pattern is invalid or null
      */
-	private static void validateProcedureColumnNamePattern(String columnNamePattern) throws StandardException {
+	private static void validateColumnNamePattern(String columnNamePattern) throws StandardException {
 		// Remove the valid percentage wild cards used in the SQL LIKE matching pattern and
 		// then check that the remaining characters are valid for a Java variable name.
 		if (columnNamePattern == null || !columnNamePattern.replaceAll("%", "").matches("[a-zA-Z_\\$][a-zA-Z_0-9\\$]*")) {
-			throw StandardException.newException( SQLState.LANG_INVALID_FUNCTION_ARGUMENT, columnNamePattern, "stored procedure");
+			throw StandardException.newException(SQLState.LANG_INVALID_FUNCTION_ARGUMENT, columnNamePattern, "stored procedure or function");
 		}
 	}
 
