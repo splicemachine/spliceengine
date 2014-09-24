@@ -24,11 +24,11 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashSet;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.Vector;
 
 import org.apache.derby.iapi.error.StandardException;
@@ -737,39 +737,16 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      * @param resultColumns all result columns projected from below the window function
      * @param partition columns listed in partition clause
      * @param orderByList columns listed in order by clause
-     * @return all columns in the query
+     * @return all columns in the query in original order
      */
     private List<OrderedColumn> collectColumns(ResultColumnList resultColumns, Partition partition, OrderByList orderByList) {
         int partitionSize = (partition != null ? partition.size() : 0);
         int oderbySize = (orderByList != null? orderByList.size():0);
+        int resultSize = resultColumns.size();
 
-        // ordered list of partition and order by columns
-        List<OrderedColumn> colSet = new ArrayList<OrderedColumn>(partitionSize + oderbySize + resultColumns.size());
-        // Set of column name to quickly check containment
-        Set<String> names = new HashSet<String>(partitionSize + oderbySize);
-
-        // partition - we need all of these columns
-        if (partition != null) {
-            for (int i=0; i<partitionSize; ++i) {
-                OrderedColumn pCol = (OrderedColumn) partition.elementAt(i);
-                colSet.add(pCol);
-                names.add(pCol.getColumnExpression().getColumnName());
-            }
-        }
-
-        // order by - we add order by columns to the end so rows will be ordered by
-        // [P1,P2,..][O1,O2,...], where Pn are partition columns and On are order by.
-        if (orderByList != null) {
-            for (int i=0; i<orderByList.size(); ++i) {
-                OrderedColumn oCol = (OrderedColumn) orderByList.elementAt(i);
-                colSet.add(oCol);
-                names.add(oCol.getColumnExpression().getColumnName());
-            }
-        }
-
-        // remaining columns from select, preserve their result ordering
-        List<OrderedColumn> allColumns = new ArrayList<OrderedColumn>(partitionSize + oderbySize + resultColumns.size());
-        for (int i=0; i<resultColumns.size(); i++) {
+        // columns from select, preserve their result ordering
+        ReplaceableOrderedMap<String,OrderedColumn> allColumns = new ReplaceableOrderedMap<String,OrderedColumn>(partitionSize + oderbySize + resultSize);
+        for (int i=0; i<resultSize; i++) {
             ResultColumn aCol = (ResultColumn) resultColumns.elementAt(i);
             BaseColumnNode baseColumnNode = aCol.getBaseColumnNode();
             if (baseColumnNode != null) {
@@ -783,19 +760,87 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                         node = (ColumnReference) sourceColumn.getExpression();
                     }
                 }
-                if (node != null && ! names.contains(baseColumnNode.getColumnName())) {
+                if (node != null) {
                     // create fake OrderedColumn to fit into calling code
                     GroupByColumn gbc = new GroupByColumn();
                     gbc.init(node);
-                    allColumns.add(gbc);
+                    allColumns.put(baseColumnNode.getColumnName(), gbc);
                 }
             }
         }
 
+        // ordered list of partition and order by columns
         // add partition and order by columns to END of the list in order to preserve
         // natural result ordering from child projection
-        allColumns.addAll(colSet);
-        return allColumns;
+
+        // partition - replace any column reference added above with the same ordered column
+        // if it exists in the partition.  These are required by the calling method to use
+        // to create the function definition columns (result, input, function) in the exec row.
+        if (partition != null) {
+            for (int i=0; i<partitionSize; ++i) {
+                OrderedColumn pCol = (OrderedColumn) partition.elementAt(i);
+                allColumns.put(pCol.getColumnExpression().getColumnName(), pCol);
+            }
+        }
+
+        // order by - replace any column reference added above with the same ordered column
+        // if it exists in the order by.  These are required by the calling method to use
+        // to create the function definition columns (result, input, function) in the exec row.
+        // The partition and order by columns will form the row key so that rows will be ordered,
+        // [P1,P2,..][O1,O2,...], where Pn are partition columns and On are order by.
+        if (orderByList != null) {
+            for (int i=0; i<orderByList.size(); ++i) {
+                OrderedColumn oCol = (OrderedColumn) orderByList.elementAt(i);
+                allColumns.put(oCol.getColumnExpression().getColumnName(), oCol);
+            }
+        }
+
+        return allColumns.asList();
+    }
+
+    /**
+     * Simple map to keep input item values in original insertion order
+     * even after replacement.  That is, if an item was already in the map
+     * when another item with the same key is inserted, the new item takes
+     * the position of the original.
+     * @param <K> the key
+     * @param <V> the value
+     */
+    private static class ReplaceableOrderedMap<K,V> {
+        private final Set<K> keys;
+        private final Map<K,V> map;
+
+        public ReplaceableOrderedMap(int size) {
+            this.keys = new LinkedHashSet<K>(size);
+            this.map = new HashMap<K, V>(size);
+        }
+
+        /**
+         * The set of all keys remain in the order they were inserted
+         * even when a value with the same key is replaced by another.
+         * @param key the key - used to maintain insertion order.
+         * @param value the value - could be replaced but remains in
+         *              the same key order as when first inserted.
+         * @return the previous value associated with the key, if any.
+         */
+        V put(K key, V value) {
+            if (! keys.contains(key)) {
+                keys.add(key);
+            }
+            return map.put(key, value);
+        }
+
+        /**
+         * Get the list of values in insertion order by key.
+         * @return the list of values in the order keys were inserted.
+         */
+        List<V> asList() {
+            List<V>  values = new ArrayList<V>();
+            for (K key : keys) {
+                values.add(map.get(key));
+            }
+            return values;
+        }
     }
 
     /**
@@ -1073,24 +1118,16 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 
     /**
      * Create the zero-based column ordering for one or more ordered column lists
-     * @param orderedColumnLists using varargs ordered column list here so that we can
-     *                           add both partition and orderby lists at once.
+     * @param orderedColumnList the list of ordered columns to convert.
      * @return The holder for the column ordering array.
      */
-    private FormatableArrayHolder createColumnOrdering(OrderedColumnList... orderedColumnLists) {
+    private FormatableArrayHolder createColumnOrdering(OrderedColumnList orderedColumnList) {
         FormatableArrayHolder colOrdering = null;
-        if (orderedColumnLists != null) {
-            Map<Integer, OrderedColumn> map = new TreeMap<Integer, OrderedColumn>();
-            for (int i=0; i<orderedColumnLists.length && orderedColumnLists[i] != null; i++) {
-                int j = 0;
-                for (OrderedColumn orderedColumn : orderedColumnLists[i]) {
-                    map.put(j++, orderedColumn);
-                }
-            }
-            IndexColumnOrder[] ordering = new IndexColumnOrder[map.size()];
+        if (orderedColumnList != null) {
+            IndexColumnOrder[] ordering = new IndexColumnOrder[orderedColumnList.size()];
             int j = 0;
-            for (OrderedColumn oc : map.values()) {
-                ordering[j++] = new IndexColumnOrder(oc.getColumnPosition()-1, oc.isAscending(), oc.isNullsOrderedLow());
+            for (OrderedColumn oc : orderedColumnList) {
+                ordering[j++] = new IndexColumnOrder(getZeroBasedColumnPosition(oc), oc.isAscending(), oc.isNullsOrderedLow());
             }
             colOrdering = new FormatableArrayHolder(ordering);
         }
@@ -1099,6 +1136,10 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             colOrdering = new FormatableArrayHolder(new IndexColumnOrder[0]);
         }
         return colOrdering;
+    }
+
+    private static int getZeroBasedColumnPosition(OrderedColumn oc) {
+        return ((ColumnReference)oc.getColumnExpression()).getColumnNumber() - 1;
     }
 
     /**
