@@ -40,34 +40,34 @@ public class CreateSchemaConstantOperation extends DDLConstantAction {
 		return "CREATE SCHEMA " + schemaName;
 	}
 
-	/**
-	 *	This is the guts of the Execution-time logic for CREATE SCHEMA.
-	 *
-	 *	@see ConstantAction#executeConstantAction
-	 *
-	 * @exception StandardException		Thrown on failure
-	 */
-	@Override
-	public void executeConstantAction( Activation activation ) throws StandardException {
-		SpliceLogUtils.trace(LOG, "executeConstantAction");
-		executeConstantActionMinion(activation, 
-				activation.getLanguageConnectionContext().getTransactionExecute());
-	}
+    /**
+     *	This is the guts of the Execution-time logic for CREATE SCHEMA.
+     *
+     *	@see ConstantAction#executeConstantAction
+     *
+     * @exception StandardException		Thrown on failure
+     */
+    @Override
+    public void executeConstantAction( Activation activation ) throws StandardException {
+        SpliceLogUtils.trace(LOG, "executeConstantAction");
+        executeConstantActionMinion(activation,
+                activation.getLanguageConnectionContext().getTransactionExecute());
+    }
 
-	/**
-	 *	This is the guts of the Execution-time logic for CREATE SCHEMA.
-	 *  This is variant is used when we to pass in a tc other than the default
-	 *  used in executeConstantAction(Activation).
-	 *
-	 * @param activation current activation
-	 * @param tc transaction controller
-	 *
-	 * @exception StandardException		Thrown on failure
-	 */
-	public void executeConstantAction(Activation activation,TransactionController tc) throws StandardException {
-		SpliceLogUtils.trace(LOG, "executeConstantAction");
-		executeConstantActionMinion(activation, tc);
-	}
+    /**
+     *	This is the guts of the Execution-time logic for CREATE SCHEMA.
+     *  This is variant is used when we to pass in a tc other than the default
+     *  used in executeConstantAction(Activation).
+     *
+     * @param activation current activation
+     * @param tc transaction controller
+     *
+     * @exception StandardException		Thrown on failure
+     */
+    public void executeConstantAction(Activation activation,TransactionController tc) throws StandardException {
+        SpliceLogUtils.trace(LOG, "executeConstantAction");
+        executeConstantActionMinion(activation, tc);
+    }
 
     private void executeConstantActionMinion(Activation activation,TransactionController tc) throws StandardException {
         SpliceLogUtils.trace(LOG, "executeConstantActionMinion");
@@ -77,45 +77,52 @@ public class CreateSchemaConstantOperation extends DDLConstantAction {
 
         SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, lcc.getTransactionExecute(), false);
 
-        //if the schema descriptor is an in-memory schema, we donot throw schema already exists exception for it.
-        //This is to handle in-memory SESSION schema for temp tables
+        /*
+         * if the schema descriptor is an in-memory schema, we do not throw schema already exists exception for it.
+         * This is to handle in-memory SESSION schema for temp tables
+         */
         if ((sd != null) && (sd.getUUID() != null)) {
             throw StandardException.newException(SQLState.LANG_OBJECT_ALREADY_EXISTS, "Schema" , schemaName);
         }
         UUID tmpSchemaId = dd.getUUIDFactory().createUUID();
 
-		/*
-		** AID defaults to connection authorization if not 
-		** specified in CREATE SCHEMA (if we had module
-	 	** authorizations, that would be the first check
-		** for default, then session aid).
-		*/
+		    /*
+		     * AID defaults to connection authorization if not
+		     * specified in CREATE SCHEMA (if we had module
+	 	     * authorizations, that would be the first check
+		     * for default, then session aid).
+		     */
         String thisAid = aid;
         if (thisAid == null) {
             thisAid = lcc.getCurrentUserId(activation);
         }
 
-		/*
-		** Inform the data dictionary that we are about to write to it.
-		** There are several calls to data dictionary "get" methods here
-		** that might be done in "read" mode in the data dictionary, but
-		** it seemed safer to do this whole operation in "write" mode.
-		**
-		** We tell the data dictionary we're done writing at the end of
-		** the transaction.
-		*/
+				/*
+				 * Inform the data dictionary that we are about to write to it.
+				 * There are several calls to data dictionary "get" methods here
+				 * that might be done in "read" mode in the data dictionary, but
+				 * it seemed safer to do this whole operation in "write" mode.
+				 *
+				 * We tell the data dictionary we're done writing at the end of
+				 * the transaction.
+				 */
         dd.startWriting(lcc);
         sd = ddg.newSchemaDescriptor(schemaName,thisAid,tmpSchemaId);
-        //create a child transaction to perform the actual write
-        SpliceTransactionManager childManager = (SpliceTransactionManager)tc.startNestedUserTransaction(false,false);
-        SpliceTransaction childTransaction = (SpliceTransaction)childManager.getRawTransaction();
-        childTransaction.elevate("dictionary".getBytes()); //TODO -sf- replace with actual conglomerate number
-        try{
-            dd.addDescriptor(sd, null, DataDictionary.SYSSCHEMAS_CATALOG_NUM, false, childManager);
-        }catch(StandardException se){
-            childManager.abort();
-            throw se;
-        }
-        childTransaction.commit();
+
+        /*
+         * Note on transactional behavior:
+         *
+         * We want to ensure that Schema creation occurs within an internal transaction, so
+         * that we can either commit or rollback the entire operation (in the event of failure).
+         * In past versions of Splice, we did this by explicitly constructing a child
+         * transaction here, and then manually committing or rolling it back. However,
+         * DB-1706 implements transaction savepoints, which allows us to transparently act
+         * as if we are a direct user transaction, which in reality we are inside of a savepoint
+         * operation, so we are still safe.
+         *
+         * Therefore, it doesn't look like we are doing much in terms of transaction management
+         * here, but in fact we are fully transactional and within a savepoint context.
+         */
+        dd.addDescriptor(sd, null, DataDictionary.SYSSCHEMAS_CATALOG_NUM, false, lcc.getTransactionExecute());
     }
 }
