@@ -44,7 +44,7 @@ public class RankWindowFunctionTest extends WindowTestingFramework {
                 new DateColumnDefinition().setVariant(13)}));
 
         // create frame definition and frame buffer we'll use
-        FrameDefinition frameDefinition = DEFAULT_FRAME_DEF;
+        FrameDefinition frameDefinition = ALL_ROWS;
 
         // create the function that will generate expected results
         ExpectedResultsFunction expectedResultsFunction = new RankFunct(partitionColIDs, orderByColIDs);
@@ -57,6 +57,30 @@ public class RankWindowFunctionTest extends WindowTestingFramework {
     @Test
     public void testStringColumn() throws Exception {
         helpTestColumns(-1, new int[] {1}, new int[] {3}, DONT_PRINT_RESULTS);
+    }
+
+    @Test
+    public void testStringColumnSmall() throws Exception {
+        RankFunction function = new RankFunction();
+        function.setup(cf, "rank", DataTypeDescriptor.getBuiltInDataTypeDescriptor(java.sql.Types.BIGINT, false));
+
+        int nPartitions = 2;
+        int[] partitionColIDs = new int[] {1};
+        int[] orderByColIDs = new int[] {2};
+        int[] inputColumnIDs = new int[] {2};
+        int pSize = 3;
+        ExpectedResultsFunction expectedResultsFunction = new RankFunct(partitionColIDs, orderByColIDs);
+
+        // define the shape of the input rows
+        List<TestColumnDefinition> rowDefinition = new ArrayList<TestColumnDefinition>(
+            Arrays.asList(new TestColumnDefinition[]{
+                new IntegerColumnDefinition(),
+                new VarcharColumnDefinition(7).setVariant(5)}));
+
+        // test the config
+        helpTestWindowFunction(nPartitions, pSize, partitionColIDs, orderByColIDs, orderByColIDs, rowDefinition,
+                               DEFAULT_FRAME_DEF, expectedResultsFunction, function, PRINT_RESULTS);
+
     }
 
     @Test
