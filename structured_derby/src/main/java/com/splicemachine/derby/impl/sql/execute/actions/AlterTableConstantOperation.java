@@ -136,23 +136,11 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
     public void executeConstantAction(Activation activation) throws StandardException {
         SpliceLogUtils.trace(LOG, "executeConstantAction with activation %s",activation);
 
-        TransactionController userTxnController = activation.getTransactionController();
-        SpliceTransactionManager child = (SpliceTransactionManager)userTxnController.startNestedUserTransaction(false,false);
-        ((SpliceTransaction)child.getRawTransaction()).elevate(Long.toString(tableConglomerateId).getBytes());
-        lcc = activation.getLanguageConnectionContext();
-        tc = child;
-        lcc.pushNestedTransaction(child);
-        try {
-            //body is executing inside of a child transaction now
+        try{
             executeConstantActionBody(activation);
-        } catch(StandardException se){
-            child.abort();
-            throw se;
-        } finally {
-            lcc.popNestedTransaction();
+        }finally{
             clearState();
         }
-        child.commit();
     }
 
     /**
