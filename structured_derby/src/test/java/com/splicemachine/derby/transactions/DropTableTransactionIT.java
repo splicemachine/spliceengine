@@ -145,4 +145,26 @@ public class DropTableTransactionIT {
         conn1.commit();
         conn2.commit();
     }
+
+    @Test
+    public void testDroppingSameTableGivesWriteWriteConflict() throws Exception {
+        new SpliceTableWatcher("t3",schemaWatcher.schemaName,"(a int unique not null, b int)").start();
+        conn1.commit();
+        conn2.commit(); //roll both connections forward to ensure visibility
+
+        /*
+         * Now try and drop both tables, one table in each transaction, and make sure that they do not conflict
+         * with each other
+         */
+        conn1.createStatement().execute("drop table "+ schemaWatcher+".t3");
+        try{
+            conn2.createStatement().execute("drop table "+ schemaWatcher+".t3");
+            Assert.fail("Did not throw a Write/Write conflict");
+        }catch(SQLException se){
+           Assert.assertEquals("Incorrect error message!",ErrorState.WRITE_WRITE_CONFLICT.getSqlState(),se.getSQLState());
+        }finally{
+            //commit the two transactions to make sure that the tables no longer exist
+            conn1.commit();
+        }
+    }
 }
