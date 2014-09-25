@@ -128,20 +128,10 @@ public class SpliceTransaction extends BaseSpliceTransaction {
         }while(!savePoint.getFirst().equals(name));
 
         /*
-         * We have rolled back all the transactions up to this savepoint, now we create
-         * a new transaction to deal with future writes. This is because the following
-         * sequence has to work:
-         *
-         * create savepoint a;
-         * insert 1;
-         * insert 2;
-         * rollback to savepoint a;
-         * insert 3;
-         * insert 4;
-         * release savepoint a;
-         * --should see 3 and 4
+         * In effect, we've removed the save point (because we've rolled it back). Thus,
+         * we need to set up a new savepoint context so that future writes are observed within
+         * the proper savepoint context.
          */
-
         return setSavePoint(name,kindOfSavepoint);
     }
 
