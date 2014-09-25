@@ -117,17 +117,32 @@ public class SpliceTransaction extends BaseSpliceTransaction {
          * case--rows written with these savePoints will be immediately seen as rolled back, and
          * no navigation will be required.
          */
-        Pair<String,Txn> savePoint = txnStack.peek();
-        while(!savePoint.getFirst().equals(name)){
+        Pair<String,Txn> savePoint;
+        do{
             savePoint = txnStack.pop();
             try {
                 savePoint.getSecond().rollback(); //commit the child transaction
             } catch (IOException e) {
                 throw Exceptions.parseException(e);
             }
-        }
-        return txnStack.size();
+        }while(!savePoint.getFirst().equals(name));
 
+        /*
+         * We have rolled back all the transactions up to this savepoint, now we create
+         * a new transaction to deal with future writes. This is because the following
+         * sequence has to work:
+         *
+         * create savepoint a;
+         * insert 1;
+         * insert 2;
+         * rollback to savepoint a;
+         * insert 3;
+         * insert 4;
+         * release savepoint a;
+         * --should see 3 and 4
+         */
+
+        return setSavePoint(name,kindOfSavepoint);
     }
 
     @Override
