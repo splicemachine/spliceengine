@@ -2,6 +2,8 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.junit.Assert;
 import org.junit.ClassRule;
@@ -847,5 +849,59 @@ public class WindowFunctionIT extends SpliceUnitTest {
             i++;
         }
         rs.close();
+    }
+
+    @Test
+    public void testMaxInOrderBy() throws Exception {
+
+        int[] salaryExpected = {55000, 75000, 79000, 84000, 50000, 52000, 52000, 53000, 75000, 76000, 78000, 51000, 52000, 52000, 53000};
+        int[] maxSalExpected = {84000, 84000, 84000, 84000, 78000, 78000, 78000, 78000, 78000, 78000, 78000, 53000, 53000, 53000, 53000};
+        String sqlText =
+            "SELECT empnum, dept, salary, max(salary) over (Partition by dept) as maxsal from %s order by maxsal desc, salary";
+
+        ResultSet rs = methodWatcher.executeQuery(
+            String.format(sqlText, this.getTableReference(TABLE_NAME)));
+
+        List<Integer> salaryActual = new ArrayList<Integer>(salaryExpected.length);
+        List<Integer> maxSalActual = new ArrayList<Integer>(maxSalExpected.length);
+        while (rs.next()) {
+            salaryActual.add(rs.getInt(3));
+            maxSalActual.add(rs.getInt(4));
+        }
+        rs.close();
+
+        compareArrays(salaryExpected, salaryActual);
+        compareArrays(maxSalExpected, maxSalActual);
+    }
+
+    @Test
+    public void testRankInOrderBy() throws Exception {
+
+        int[] salaryExpected = {78000, 76000, 75000, 53000, 52000, 52000, 50000, 53000, 52000, 52000, 51000, 84000, 79000, 75000, 55000};
+        int[] maxSalExpected = {7, 6, 5, 4, 2, 2, 1, 4, 2, 2, 1, 4, 3, 2, 1};
+        String sqlText =
+            "SELECT empnum, dept, salary, rank() over (Partition by dept order by salary) as salrank from emptab order by dept, salrank desc";
+
+        ResultSet rs = methodWatcher.executeQuery(
+            String.format(sqlText, this.getTableReference(TABLE_NAME)));
+
+        List<Integer> salaryActual = new ArrayList<Integer>(salaryExpected.length);
+        List<Integer> maxSalActual = new ArrayList<Integer>(maxSalExpected.length);
+        while (rs.next()) {
+            salaryActual.add(rs.getInt(3));
+            maxSalActual.add(rs.getInt(4));
+        }
+        rs.close();
+
+        compareArrays(salaryExpected, salaryActual);
+        compareArrays(maxSalExpected, maxSalActual);
+    }
+
+    private static void compareArrays(int[] expected, List<Integer> actualList) {
+        int[] actual = new int[actualList.size()];
+        for (int i=0; i<actualList.size(); i++) {
+            actual[i] = actualList.get(i);
+        }
+        Assert.assertArrayEquals(expected, actual);
     }
 }
