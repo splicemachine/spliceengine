@@ -122,7 +122,7 @@ public class SpliceGenericConstantActionFactory extends GenericConstantActionFac
         SpliceLogUtils.trace(LOG, "getAlterTableConstantAction for {%s.%s} with columnInfo {%s}",(sd==null?"none":sd.getSchemaName()),tableName, Arrays.toString(columnInfo));
         if(truncateTable){
             return new TruncateTableConstantOperation(sd,tableName,tableId,tableConglomerateId,
-                    lockGranularity,behavior,sequential,indexNameForStatistics);
+                    lockGranularity,behavior, indexNameForStatistics);
 //        }        else if(compressTable){
 //            if(purge){
 //                return new PurgeTableConstantOperation(sd,tableName,tableId,tableConglomerateId,
