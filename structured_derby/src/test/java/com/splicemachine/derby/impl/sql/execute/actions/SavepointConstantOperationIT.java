@@ -11,8 +11,6 @@ import org.junit.rules.TestRule;
 import java.sql.Savepoint;
 
 /**
- * Test we get unsupported operation exception when trying to set
- * a Savepoint.
  *
  * @author Jeff Cunningham
  *         Date: 7/17/13
@@ -152,4 +150,26 @@ public class SavepointConstantOperationIT {
         Assert.assertEquals("Incorrect count after savepoint release!", 0l, count);
     }
 
+    @Test
+    public void testCanRollbackThenReleaseASavepointAndDataIsCorrect() throws Exception {
+        Savepoint savepoint = conn1.setSavepoint("test");
+        int value = 7;
+        conn1.execute(String.format("insert into %s (taskid) values (%d)",spliceTableWatcher1,value));
+        long count = conn1.count(String.format("select * from %s where taskid=%d",spliceTableWatcher1,value));
+        Assert.assertEquals("Incorrect count after savepoint release!",1l,count);
+
+        conn1.rollback(savepoint);
+        count = conn1.count(String.format("select * from %s where taskid=%d",spliceTableWatcher1,value));
+        Assert.assertEquals("Incorrect count after savepoint release!",0l,count);
+
+        //insert some data again
+        conn1.execute(String.format("insert into %s (taskid) values (%d)",spliceTableWatcher1,value));
+
+        //now release the savepoint
+        conn1.releaseSavepoint(savepoint);
+        count = conn1.count(String.format("select * from %s where taskid=%d",spliceTableWatcher1,value));
+        Assert.assertEquals("Incorrect count after savepoint release!",1l,count);
+
+
+    }
 }
