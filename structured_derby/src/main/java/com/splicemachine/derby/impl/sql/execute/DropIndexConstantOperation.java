@@ -3,29 +3,26 @@ package com.splicemachine.derby.impl.sql.execute;
 import com.google.common.io.Closeables;
 import com.splicemachine.derby.impl.sql.execute.actions.IndexConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.index.SpliceIndexProtocol;
-import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.utils.ErrorState;
 import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.si.api.TransactionLifecycle;
-import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.depend.DependencyManager;
-import org.apache.derby.iapi.sql.dictionary.*;
+import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
+import org.apache.derby.iapi.sql.dictionary.DataDictionary;
+import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
+import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
 
 /**
  * DDL operation to drop an index. The approach is as follows:
@@ -159,23 +156,12 @@ public class DropIndexConstantOperation extends IndexConstantOperation{
          * then throw an exception
          */
         SpliceTransactionManager userTxnManager = (SpliceTransactionManager)lcc.getTransactionExecute();
-        SpliceTransactionManager metaTxnManager = (SpliceTransactionManager)userTxnManager.startNestedUserTransaction(false,false);
-        ((SpliceTransaction)metaTxnManager.getRawTransaction()).elevate(Long.toString(td.getHeapConglomerateId()).getBytes());
-        lcc.pushNestedTransaction(metaTxnManager);
-        try{
-            DependencyManager dm = dd.getDependencyManager();
-            dm.invalidateFor(cd,DependencyManager.DROP_INDEX,lcc);
+        DependencyManager dm = dd.getDependencyManager();
+        dm.invalidateFor(cd, DependencyManager.DROP_INDEX, lcc);
 
-            dd.dropStatisticsDescriptors(td.getUUID(),cd.getUUID(),metaTxnManager);
-            dd.dropConglomerateDescriptor(cd,metaTxnManager);
+        dd.dropStatisticsDescriptors(td.getUUID(), cd.getUUID(), userTxnManager);
+        dd.dropConglomerateDescriptor(cd,userTxnManager);
 
-            td.removeConglomerateDescriptor(cd);
-        }catch(StandardException se){
-            metaTxnManager.abort();
-            throw se;
-        }finally{
-            lcc.popNestedTransaction();
-        }
-        metaTxnManager.commit();
-		}
+        td.removeConglomerateDescriptor(cd);
+    }
 }
