@@ -1607,11 +1607,11 @@ public class EmbedDatabaseMetaData extends ConnectionChild
 			String schemaPattern, String procedureNamePattern,
 			String columnNamePattern) throws SQLException {
 
-		// For ODBC we still use the transformed version of the JDBC
-		// 3.0 query, (may change in the future).
-		return doGetProcCols(catalog, schemaPattern,
+		// For ODBC we will use the "packed" version of the JDBC query which does not use VTIs
+		// since VTIs are not supported by Splice yet.
+		return doGetProcColsPackedForODBC(catalog, schemaPattern,
 			procedureNamePattern, columnNamePattern,
-			"odbc_getProcedureColumns");
+			"getProcedureColumnsPacked");
 	}
 
     /**
@@ -1775,6 +1775,128 @@ public class EmbedDatabaseMetaData extends ConnectionChild
 					rowBuilder.getDvd(19).setValue(rsProcs.getString("SPECIFIC_NAME"));
 					rowBuilder.getDvd(20).setValue(rsProcCols.getShort("METHOD_ID"));
 					rowBuilder.getDvd(21).setValue(rsProcCols.getShort("PARAMETER_ID"));
+					rowBuilder.addRow();
+				}
+			}
+
+			return rsBuilder.buildResultSet(getEmbedConnection());
+		} catch (StandardException se) {
+			throw PublicAPI.wrapStandardException(se);
+		}
+	}
+
+	/**
+	 * This is a re-implementation of the doGetProcCols method which removes the
+	 * GetProcedureColumns VTI since VTIs are not supported in Splice yet.
+	 * This version of the doGetProcCols method returns the columns required by ODBC.
+	 * The related bug is DB-1804.
+	 * @param queryName Name of the query to execute; is used
+	 *	to determine whether the result set should conform to
+	 *	JDBC or ODBC specifications.
+	 */
+	private ResultSet doGetProcColsPackedForODBC(String catalog, String schemaPattern,
+		String procedureNamePattern, String columnNamePattern,
+		String queryName) throws SQLException {
+
+		PreparedStatement s = getPreparedQuery(queryName);
+		//
+		// catalog is not part of the query
+		//
+		s.setString(1, swapNull(schemaPattern));
+		s.setString(2, swapNull(procedureNamePattern));
+		ResultSet rsProcs =  s.executeQuery();
+
+		// Define the format of the rows for the ResultSet.
+		ResultSetBuilder rsBuilder = new ResultSetBuilder();
+		try {
+			rsBuilder.getColumnBuilder()
+				.addColumn("PROCEDURE_CAT", Types.VARCHAR, 128)
+				.addColumn("PROCEDURE_SCHEM", Types.VARCHAR, 128)
+				.addColumn("PROCEDURE_NAME", Types.VARCHAR, 128)
+				.addColumn("COLUMN_NAME", Types.VARCHAR, 128)
+				.addColumn("COLUMN_TYPE", Types.SMALLINT)
+				.addColumn("DATA_TYPE", Types.SMALLINT)			// JDBC type is INTEGER.
+				.addColumn("TYPE_NAME", Types.VARCHAR, 128)
+				.addColumn("COLUMN_SIZE", Types.INTEGER)		// JDBC name is PRECISION.
+				.addColumn("BUFFER_LENGTH", Types.INTEGER)		// JDBC name is LENGTH.
+				.addColumn("DECIMAL_DIGITS", Types.SMALLINT)	// JDBC name is SCALE.
+				.addColumn("NUM_PREC_RADIX", Types.SMALLINT)	// JDBC name is RADIX.
+				.addColumn("NULLABLE", Types.SMALLINT)
+				.addColumn("REMARKS", Types.VARCHAR, 254)
+				.addColumn("COLUMN_DEF", Types.VARCHAR, 254)
+				.addColumn("SQL_DATA_TYPE", Types.SMALLINT)		// JDBC type is INTEGER.
+				.addColumn("SQL_DATETIME_SUB", Types.SMALLINT)	// JDBC type is INTEGER.
+				.addColumn("CHAR_OCTET_LENGTH", Types.INTEGER)
+				.addColumn("ORDINAL_POSITION", Types.INTEGER)
+				.addColumn("IS_NULLABLE", Types.VARCHAR, 128)
+			;
+			RowBuilder rowBuilder = rsBuilder.getRowBuilder();
+
+			while (rsProcs.next()) {
+
+				// Expand the ALIASINFO packed column into the following additional fields:
+				//   COLUMN_NAME, COLUMN_TYPE, DATA_TYPE, TYPE_NAME, COLUMN_SIZE,
+				//   BUFFER_LENGTH, DECIMAL_DIGITS, NUM_PREC_RADIX, NULLABLE, REMARKS,
+				//   SQL_DATA_TYPE, SQL_DATETIME_SUB, CHAR_OCTET_LENGTH, ORDINAL_POSITION, IS_NULLABLE
+				AliasInfo aliasInfo = (AliasInfo) rsProcs.getObject("ALIASINFO");
+				String aliasType = rsProcs.getString("ALIASTYPE");
+				ResultSet rsProcCols = new GetProcedureColumns(aliasInfo, aliasType);
+				while (rsProcCols.next()) {
+					// Skip the column names that don't match the specified pattern if one is passed.
+					if (columnNamePattern != null && !likeMatch(rsProcCols.getString("COLUMN_NAME"), columnNamePattern)) {
+						continue;
+					}
+
+					rowBuilder.getDvd(0).setValue(rsProcs.getString("PROCEDURE_CAT"));
+					rowBuilder.getDvd(1).setValue(rsProcs.getString("PROCEDURE_SCHEM"));
+					rowBuilder.getDvd(2).setValue(rsProcs.getString("PROCEDURE_NAME"));
+					rowBuilder.getDvd(3).setValue(rsProcCols.getString("COLUMN_NAME"));
+					rowBuilder.getDvd(4).setValue(rsProcCols.getShort("COLUMN_TYPE"));
+					rowBuilder.getDvd(5).setValue((short)rsProcCols.getInt("DATA_TYPE"));
+					rowBuilder.getDvd(6).setValue(rsProcCols.getString("TYPE_NAME"));
+					rowBuilder.getDvd(7).setValue(rsProcCols.getInt("PRECISION"));
+					rowBuilder.getDvd(8).setValue(rsProcCols.getInt("LENGTH"));
+					int dataType = rsProcCols.getInt("DATA_TYPE");
+					if (dataType == Types.DECIMAL || dataType == Types.NUMERIC || dataType == Types.INTEGER ||
+						dataType == Types.SMALLINT || dataType == Types.TINYINT || dataType == Types.BIGINT ||
+						dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP) {
+						rowBuilder.getDvd(9).setValue(rsProcCols.getShort("SCALE"));
+					} else {
+						rowBuilder.getDvd(9).setToNull();
+					}
+					if (dataType == Types.DECIMAL || dataType == Types.NUMERIC || dataType == Types.INTEGER ||
+						dataType == Types.SMALLINT || dataType == Types.TINYINT || dataType == Types.BIGINT ||
+						dataType == Types.DOUBLE || dataType == Types.FLOAT || dataType == Types.REAL ||
+						dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP) {
+						rowBuilder.getDvd(10).setValue(rsProcCols.getShort("RADIX"));
+					} else {
+						rowBuilder.getDvd(10).setToNull();
+					}
+					rowBuilder.getDvd(11).setValue(rsProcCols.getShort("NULLABLE"));
+					rowBuilder.getDvd(12).setValue(rsProcCols.getString("REMARKS"));
+					rowBuilder.getDvd(13).setValue(rsProcs.getString("COLUMN_DEF"));
+					if (dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP) {
+						rowBuilder.getDvd(14).setValue((short)9);
+					} else {
+						rowBuilder.getDvd(14).setValue(rsProcs.getInt("SQL_DATA_TYPE"));
+					}
+					if (dataType == Types.DATE) {
+						rowBuilder.getDvd(15).setValue((short)1);
+					} else if (dataType == Types.TIME) {
+						rowBuilder.getDvd(15).setValue((short)2);
+					} else if (dataType == Types.TIMESTAMP) {
+						rowBuilder.getDvd(15).setValue((short)3);
+					} else {
+						rowBuilder.getDvd(15).setToNull();
+					}
+					rowBuilder.getDvd(15).setValue(rsProcs.getInt("SQL_DATETIME_SUB"));	// TODO
+					if (dataType == Types.CHAR || dataType == Types.VARCHAR || dataType == Types.BINARY || dataType == Types.VARBINARY) {
+						rowBuilder.getDvd(16).setValue(rsProcCols.getInt("LENGTH"));
+					} else {
+						rowBuilder.getDvd(16).setToNull();
+					}
+					rowBuilder.getDvd(17).setValue((int)(rsProcCols.getShort("PARAMETER_ID") + 1));
+					rowBuilder.getDvd(18).setValue(rsProcCols.getShort("NULLABLE") == DatabaseMetaData.procedureNullable ? "YES" : "NO");
 					rowBuilder.addRow();
 				}
 			}
