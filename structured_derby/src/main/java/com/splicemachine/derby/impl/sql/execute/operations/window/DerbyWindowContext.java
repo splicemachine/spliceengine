@@ -16,6 +16,7 @@ import org.apache.derby.iapi.store.access.ColumnOrdering;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.derby.impl.sql.execute.WindowFunctionInfo;
 import org.apache.derby.impl.sql.execute.WindowFunctionInfoList;
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -68,6 +69,9 @@ public class DerbyWindowContext implements WindowContext {
         ColumnOrdering[] orderings = theInfo.getOrderByInfo();
 
         frameDefinition = FrameDefinition.create(theInfo.getFrameInfo());
+        if (Level.TRACE.equals(LOG.getLevel())) {
+            LOG.info(frameDefinition.toString());
+        }
 
         keyColumns = new int[partition.length + orderings.length];
         keyOrders = new boolean[partition.length + orderings.length];
@@ -93,19 +97,6 @@ public class DerbyWindowContext implements WindowContext {
         this.windowAggregators = buildWindowAggregators(windowFunctionInfos,
                                                         context.getLanguageConnectionContext().getLanguageConnectionFactory().getClassFactory());
         this.rowAllocator = (rowAllocatorMethodName==null)? null: new SpliceMethod<ExecRow>(rowAllocatorMethodName,activation);
-//        if (LOG.isTraceEnabled()) {
-//            StringBuilder buf = new StringBuilder("[");
-//            for (DataValueDescriptor col : getSourceIndexRow().getRowArray()) {
-//                buf.append(col.getTypeName()).append(',');
-//            }
-//            buf.setCharAt(buf.length()-1,']');
-//            LOG.info("ExecRow: "+buf.toString());
-//            buf.setLength(0);
-//            for (WindowAggregator winAgg : this.windowAggregators) {
-//                buf.append(winAgg.toString()).append(',');
-//            }
-//        LOG.info("Functions: "+buf.toString());
-//        }
     }
 
     @Override
