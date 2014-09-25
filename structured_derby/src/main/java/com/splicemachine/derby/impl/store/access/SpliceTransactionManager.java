@@ -1674,6 +1674,13 @@ public class SpliceTransactionManager implements XATransactionController,
         }
     }
 
+    @Override
+    public void elevate(String tableName) throws StandardException {
+        assert rawtran instanceof SpliceTransaction: "Programmer error: cannot elevate a transaction view!";
+        assert tableName !=null : "Programmer error: cannot elevate a transaction without specifying a label";
+        ((SpliceTransaction)rawtran).elevate(tableName.getBytes());
+    }
+
     public boolean anyoneBlocked() {
         if (LOG.isTraceEnabled())
             LOG.trace("anyoneBlocked ");
