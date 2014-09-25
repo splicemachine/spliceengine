@@ -1826,6 +1826,16 @@ public interface TransactionController
 	public void abort()
 		throws StandardException;
 
+    /**
+     * "Elevate" the underlying transaction to one that allows writes. This
+     * is not used by derby code proper, but it is needed for the Read/write
+     * transaction logic contained in Splice.
+     *
+     * @param tableName the name of the table to elevate
+     * @throws StandardException If something goes wrong during elevation
+     */
+    public void elevate(String tableName) throws StandardException;
+
 	/**
 	Commit this transaction.  All savepoints within this transaction are 
     released.  All non-held conglomerates and scans are closed.

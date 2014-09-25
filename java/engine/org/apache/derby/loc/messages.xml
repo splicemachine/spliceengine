@@ -989,7 +989,7 @@ Guide.
 
             <msg>
                 <name>3B001.S</name>
-                <text>SAVEPOINT, {0} does not  exist or is not active in the current transaction.</text>
+                <text>Savepoint {0} does not  exist or is not active in the current transaction.</text>
                 <arg>savepointName</arg>
             </msg>
 

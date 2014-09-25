@@ -1965,7 +1965,13 @@ public class RAMTransaction
         return;
 	}
 
-	public DatabaseInstant commitNoSync(int commitflag)
+    public void elevate(String tableName) throws StandardException {
+        /*
+         * Derby does not do elevation, so we don't need to implement this
+         */
+    }
+
+    public DatabaseInstant commitNoSync(int commitflag)
 		throws StandardException
 	{
 		this.closeControllers(false /* don't close held controllers */ );

@@ -317,6 +317,10 @@ class NoOpTransaction implements TransactionController {
 
     }
 
+    public void elevate(String tableName) throws StandardException {
+        //no-op
+    }
+
     public void commit() throws StandardException {
         // Auto-generated method stub
 
