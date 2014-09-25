@@ -119,7 +119,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 
 		@Override
 		public void init(SpliceOperationContext context) throws StandardException, IOException {
-				SpliceLogUtils.trace(LOG,"init with regionScanner %s",regionScanner);
+				SpliceLogUtils.trace(LOG, "init with regionScanner %s", regionScanner);
 				super.init(context);
 				source.init(context);
 				writeInfo.initialize(context);
@@ -186,20 +186,9 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
         final RowProvider rowProvider = getMapRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext),runtimeContext);
 
         nextTime+= System.currentTimeMillis()-start;
-        Txn childTransaction = getChildTransaction();
-        try{
-            SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),
-                    this, runtimeContext,
-                    childTransaction);
-            jobResults = rowProvider.shuffleRows(soi,OperationUtils.cleanupSubTasks(this));
-        }catch(StandardException se){
-            childTransaction.rollback();
-            throw se;
-        } catch(IOException ioe){
-            childTransaction.rollback();
-            throw ioe;
-        }
-        childTransaction.commit();
+
+        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(), this, runtimeContext);
+        jobResults = rowProvider.shuffleRows(soi,OperationUtils.cleanupSubTasks(this));
 
 				long rowsModified = 0;
 				for(TaskStats stats:jobResults.getJobStats().getTaskStats()){
@@ -289,10 +278,34 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 				private SpliceObserverInstructions spliceObserverInstructions;
 
 				@Override
-				public JobResults shuffleRows(SpliceObserverInstructions instructions, Callable<Void>... postCompleteTasks) throws StandardException, IOException {
-            Txn child = getChildTransaction();
-            instructions.setTxn(child);
-
+				public JobResults shuffleRows(SpliceObserverInstructions instructions,
+                                      Callable<Void>... postCompleteTasks) throws StandardException, IOException {
+            /*
+             * Transactional Information:
+             *
+             * When we execute a statement like this, we have a situation. Our root
+             * transaction is the transaction for the overall transaction (not a
+             * statement specific one). This means that, if anything happens here,
+             * we need to rollback the overall transaction.
+             *
+             * However, there are two problems with this. Firstly, if auto-commit
+             * is off, then a user may choose to commit that global transaction
+             * no matter what we do, which could result in data corruption. Secondly,
+             * if we automatically rollback the global transaction, then we risk
+             * rolling back many statements which were executed in parallel. This
+             * is clearly very bad in both cases, so we can't rollback the
+             * global transaction.
+             *
+             * Instead, we create a child transaction, which we can roll back
+             * safely.
+             *
+             * -sf- In past versions of Splice, we would create the child transaction
+             * directly right here, and then manually commit/rollback as needed. However,
+             * DB-1706 implements Derby savepoints, which the derby query parser automatically
+             * creates during any write operation. Thus, we no longer have to explicitly
+             * create or manage transactions here, as it is transparently managed
+             * by Derby for us.
+             */
 						JobResults jobStats = rowProvider.shuffleRows(instructions,postCompleteTasks);
 						long i = 0;
 						for (TaskStats stat: jobStats.getJobStats().getTaskStats()) {
@@ -324,75 +337,29 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 				}
 
 				@Override
-				public void open()  {
+				public void open() throws StandardException {
 						SpliceLogUtils.trace(LOG, "open");
 						this.isOpen = true;
 
             if(!getNodeTypes().contains(NodeType.REDUCE)){
-                try {
-                    if (rowProvider != null)
-                        rowProvider.open();
-                    else
+                if (rowProvider != null)
+                    rowProvider.open();
+                else if(operationInformation.isRuntimeStatisticsEnabled()) {
 										/* Cache query plan text for source, before it gets blown away */
-                        if(operationInformation.isRuntimeStatisticsEnabled()) {
 										/* savedSource nulled after run time statistics generation */
-                            savedSource = source;
-                        }
-                } catch (StandardException e) {
-                    SpliceLogUtils.logAndThrowRuntime(LOG, e);
+                    savedSource = source;
                 }
-                /*
-                 * We are executing the operation directly, because there's no need
-                 * to submit a parallel task
-                 *
-                 * Transactional Information:
-                 *
-                 * When we execute a statement like this, we have a situation. Our root
-                 * transaction is the transaction for the overall transaction (not a
-                 * statement specific one). This means that, if anything happens here,
-                 * we need to rollback the overall transaction.
-                 *
-                 * However, there are two problems with this. Firstly, if auto-commit
-                 * is off, then a user may choose to commit that global transaction
-                 * no matter what we do, which could result in data corruption. Secondly,
-                 * if we automatically rollback the global transaction, then we risk
-                 * rolling back many statements which were executed in parallel. This
-                 * is clearly very bad in both cases, so we can't rollback the
-                 * global transaction.
-                 *
-                 * Instead, we create a child transaction, which we can roll back
-                 * safely.
-                 */
-                Txn txn = getChildTransaction();
-								try {
-                    //set the child transaction
-                    spliceObserverInstructions.setTxn(txn);
-										JobResults stats = rowProvider.shuffleRows(spliceObserverInstructions);
-										long i = 0;
-										for (TaskStats stat: stats.getJobStats().getTaskStats()) {
-												i = i + stat.getTotalRowsWritten();
-										}
-										modifiedProvider.setRowsModified(i);
-                    txn.commit();
-								} catch (Exception ioe) {
-										if(ioe instanceof StandardException && ErrorState.XACT_COMMIT_EXCEPTION.getSqlState().equals(((StandardException)ioe).getSqlState())){
-												//bad news, we couldn't commit the transaction. Nothing we can do there,
-												//just propagate
-												throw new RuntimeException(ioe);
-										}
-										//we encountered some other kind of error. Try and roll back the Transaction
-										try {
-                        txn.rollback();
-										}catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                    throw new RuntimeException(ioe);
-								}
+                //delegate to shuffle, since that will do the proper thing
+                try {
+                    shuffleRows(spliceObserverInstructions);
+                } catch (IOException e) {
+                    throw Exceptions.parseException(e);
+                }
             }
 				}
 
         @Override
-				public void close() {
+				public void close() throws StandardException{
 						rowsModified = 0;
 						SpliceLogUtils.trace(LOG, "close in modifiedProvider for Delete/Insert/Update");
 						if (! this.isOpen)
@@ -407,10 +374,8 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 										rowProvider.close();
 								else
 										source.close();
-						} catch (StandardException e) {
-								SpliceLogUtils.logAndThrowRuntime(LOG, e);
 						} catch (IOException e) {
-								SpliceLogUtils.logAndThrowRuntime(LOG, e);
+                throw Exceptions.parseException(e);
 						}
 				}
 
