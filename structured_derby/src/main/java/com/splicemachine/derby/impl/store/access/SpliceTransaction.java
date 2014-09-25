@@ -117,15 +117,15 @@ public class SpliceTransaction extends BaseSpliceTransaction {
          * case--rows written with these savePoints will be immediately seen as rolled back, and
          * no navigation will be required.
          */
-        Pair<String,Txn> savePoint;
-        do{
+        Pair<String,Txn> savePoint = txnStack.peek();
+        while(!savePoint.getFirst().equals(name)){
             savePoint = txnStack.pop();
             try {
                 savePoint.getSecond().rollback(); //commit the child transaction
             } catch (IOException e) {
                 throw Exceptions.parseException(e);
             }
-        } while(!savePoint.getFirst().equals(name));
+        }
         return txnStack.size();
 
     }
