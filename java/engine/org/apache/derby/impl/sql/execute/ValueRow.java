@@ -53,6 +53,9 @@ public class ValueRow implements ExecRow, Externalizable, Comparable<ExecRow> {
 	//
 	///////////////////////////////////////////////////////////////////////
 
+    /** Empty constructor for serialization */
+    public ValueRow() {
+    }
 
 	/**
 	  *	Make a value row with a designated number of column slots.
