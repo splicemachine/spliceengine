@@ -880,7 +880,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
         int[] salaryExpected = {78000, 76000, 75000, 53000, 52000, 52000, 50000, 53000, 52000, 52000, 51000, 84000, 79000, 75000, 55000};
         int[] maxSalExpected = {7, 6, 5, 4, 2, 2, 1, 4, 2, 2, 1, 4, 3, 2, 1};
         String sqlText =
-            "SELECT empnum, dept, salary, rank() over (Partition by dept order by salary) as salrank from emptab order by dept, salrank desc";
+            "SELECT empnum, dept, salary, rank() over (Partition by dept order by salary) as salrank from %s order by dept, salrank desc";
 
         ResultSet rs = methodWatcher.executeQuery(
             String.format(sqlText, this.getTableReference(TABLE_NAME)));
