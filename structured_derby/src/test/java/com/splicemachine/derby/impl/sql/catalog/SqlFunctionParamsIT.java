@@ -6,6 +6,7 @@ import java.sql.Types;
 
 import org.junit.Assert;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -43,6 +44,7 @@ public class SqlFunctionParamsIT extends SpliceUnitTest {
 
 	// force jenkins to rebuild
 	@Test
+	@Ignore
 	public void testResultSetColumnTypes() throws Exception {
 		ResultSet rs = methodWatcher.executeQuery("CALL SYSIBM.SQLFUNCTIONPARAMS(null, null, 'TO_DATE', 'FORMAT', null)");
 		int count = 0;
