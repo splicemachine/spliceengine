@@ -41,6 +41,7 @@ public class SqlFunctionParamsIT extends SpliceUnitTest {
 		Assert.assertEquals("Incorrect rows returned!", 1, resultSetSize(rs));
 	}
 
+	// force jenkins to rebuild
 	@Test
 	public void testResultSetColumnTypes() throws Exception {
 		ResultSet rs = methodWatcher.executeQuery("CALL SYSIBM.SQLFUNCTIONPARAMS(null, null, 'TO_DATE', 'FORMAT', null)");
