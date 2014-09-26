@@ -1,4 +1,4 @@
-package com.splicemachine.derby.impl.sql.execute.actions;
+package com.splicemachine.derby.impl.sql.catalog;
 
 import java.sql.CallableStatement;
 import java.sql.ResultSet;
@@ -27,10 +27,9 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
  * @author David Winters
  *         Created on: 3/5/14
  */
-//@Category(SerialTest.class)
-public class ShowIndexesIT extends SpliceUnitTest {
-    public static final String CLASS_NAME = ShowIndexesIT.class.getSimpleName().toUpperCase();
-	private static Logger LOG = Logger.getLogger(ShowIndexesIT.class);
+public class SqlStatisticsIT extends SpliceUnitTest {
+    public static final String CLASS_NAME = SqlStatisticsIT.class.getSimpleName().toUpperCase();
+	private static Logger LOG = Logger.getLogger(SqlStatisticsIT.class);
 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
