@@ -35,11 +35,8 @@ public class SpliceXPlainTrace extends XPlainTrace{
     private TestConnection testConn;
     private PreparedStatement countStatementPs;
     private PreparedStatement countOperationPs;
-    private PreparedStatement getStatementPs;
-    private CallableStatement disableRuntimePs;
-    private CallableStatement disableStatsPs;
-    private CallableStatement enableRuntimePs;
-    private CallableStatement enableStatsPs;
+    private CallableStatement disableXPlainTracePs;
+    private CallableStatement enableXPlainTracePs;
 
     public SpliceXPlainTrace () {
     }
@@ -84,22 +81,16 @@ public class SpliceXPlainTrace extends XPlainTrace{
 
     // Turn on xplain trace
     public void turnOnTrace() throws Exception {
-        if(enableRuntimePs==null)
-            enableRuntimePs = testConn.prepareCall("call SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(1)");
-        if(enableStatsPs==null)
-            enableStatsPs = testConn.prepareCall("call SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(1)");
-        enableRuntimePs.execute();
-        enableStatsPs.execute();
+        if(enableXPlainTracePs==null)
+            enableXPlainTracePs = testConn.prepareCall("call SYSCS_UTIL.SYSCS_SET_XPLAIN_TRACE(1)");
+        enableXPlainTracePs.execute();
     }
 
     // Turn off xplain trace
     public void turnOffTrace() throws Exception {
-        if(disableStatsPs==null)
-            disableStatsPs = testConn.prepareCall("call SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(0)");
-        if(disableRuntimePs==null)
-            disableRuntimePs = testConn.prepareCall("call SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(0)");
-        disableRuntimePs.execute();
-        disableStatsPs.execute();
+        if(disableXPlainTracePs==null)
+            disableXPlainTracePs = testConn.prepareCall("call SYSCS_UTIL.SYSCS_SET_XPLAIN_TRACE(0)");
+        disableXPlainTracePs.execute();
     }
 
     public ResultSet executeQuery(String sql) throws Exception{
