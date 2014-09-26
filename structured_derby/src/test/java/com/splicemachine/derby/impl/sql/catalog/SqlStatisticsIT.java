@@ -22,7 +22,8 @@ import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 
 /**
- * Show indexes tests.
+ * Tests for the SYSIBM.SQLPROCEDURECOLS stored procedure.
+ * This stored procedure is used by the 'show indexes' command in ij.
  *
  * @author David Winters
  *         Created on: 3/5/14
