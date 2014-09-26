@@ -2040,10 +2040,10 @@ public class EmbedDatabaseMetaData extends ConnectionChild
      * @throws StandardException if the pattern is invalid or null
      */
 	private static void validateColumnNamePattern(String columnNamePattern) throws StandardException {
-		// Remove the valid percentage wild cards used in the SQL LIKE matching pattern and
-		// then check that the remaining characters are valid for a Java variable name.
-		if (columnNamePattern == null || !columnNamePattern.replaceAll("%", "").matches("[a-zA-Z_\\$][a-zA-Z_0-9\\$]*")) {
-			throw StandardException.newException(SQLState.LANG_INVALID_FUNCTION_ARGUMENT, columnNamePattern, "stored procedure or function");
+
+		// Invalid patterns: null, empty string, does not contain at least one valid character (Java valid variable names and % wild cards: [%a-zA-Z_0-9\$]+).
+		if (columnNamePattern == null || columnNamePattern.length() == 0 || !columnNamePattern.matches("[%a-zA-Z_0-9\\$]+")) {
+			throw StandardException.newException(SQLState.LANG_INVALID_FUNCTION_ARGUMENT, columnNamePattern, "validateColumnNamePattern");
 		}
 	}
 
