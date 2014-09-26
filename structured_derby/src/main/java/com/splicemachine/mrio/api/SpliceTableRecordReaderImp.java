@@ -50,7 +50,6 @@ import org.apache.derby.impl.sql.execute.ValueRow;
 public class SpliceTableRecordReaderImp{
 
 	private HTable htable = null;
-	private ImmutableBytesWritable rowkey = null;
 	private ExecRow value = null;
 	private ResultScanner scanner = null;
 	private Scan scan = null;
@@ -64,6 +63,8 @@ public class SpliceTableRecordReaderImp{
     private SpliceTableScannerBuilder builder= null;   
     private SpliceTableScanner tableScanner = null;
     private Configuration conf = null;
+    private byte[] lastRow = null;
+    private ImmutableBytesWritable rowkey = null;
     
     public SpliceTableRecordReaderImp(Configuration conf){
     	this.conf = conf;
@@ -88,11 +89,13 @@ public class SpliceTableRecordReaderImp{
 		Scan newscan = new Scan(scan);
 		
 		newscan.setStartRow(firstRow);
-		//newscan.setMaxVersions();
+		
+		newscan.setMaxVersions();
 		newscan.setAttribute(SIConstants.SI_EXEMPT, Bytes.toBytes(true));
 		if(htable != null)
 			try {
 				this.scanner = this.htable.getScanner(newscan);
+				
 			} catch (IOException e1) {
 				// TODO Auto-generated catch block
 				throw e1;
@@ -100,6 +103,7 @@ public class SpliceTableRecordReaderImp{
 		
 		try {
 			String transaction_id = conf.get(SpliceMRConstants.SPLICE_TRANSACTION_ID);
+			
 			buildTableScannerBuilder(transaction_id);
 			tableScanner = this.builder.build();
 			
@@ -117,20 +121,23 @@ public class SpliceTableRecordReaderImp{
 		restart(scan.getStartRow());
 	}
 	
-    public ImmutableBytesWritable getCurrentKey(){
-	
-        return rowkey;
-    }
-	
 	public void setScan(Scan scan){
 		this.scan = scan;
 	}
+	
+	public ImmutableBytesWritable getCurrentKey()
+	{
+		return rowkey;
+	}
+	
 	/**
 	 * @return ExecRow (represents a row in Splice)
 	 * It will keep on searching the next row until it finds a not-NULL row and then return.
+	 * @throws StandardException 
 	 * 
 	 */
-    public ExecRow getCurrentValue() throws IOException, InterruptedException{
+    public ExecRow getCurrentValue() throws IOException, InterruptedException, StandardException{
+    	
     	DataValueDescriptor dvds[] = value.getRowArray();
     	boolean invalid = true;
     	for(DataValueDescriptor d : dvds)
@@ -244,22 +251,26 @@ public class SpliceTableRecordReaderImp{
     	.accessedKeyColumns(accessedKeyCols);
     }
     
-	public boolean nextKeyValue() throws IOException, InterruptedException { 
-		if (rowkey == null)
+	public boolean nextKeyValue() throws IOException, InterruptedException, StandardException { 
+		if(rowkey == null)
 			rowkey = new ImmutableBytesWritable();
 		if (value == null)
 			value = new ValueRow(0);
 			try {
 				value = tableScanner.next(null);		
-			} catch (StandardException e) {
-				throw new IOException(e.getMessage());
+			} catch (IOException e) {
+				e.printStackTrace();
+				if(lastRow == null)
+					lastRow = scan.getStartRow();
+				restart(lastRow);
+				tableScanner.next(null);
+				value = tableScanner.next(null);
 			} 
 		if (value != null && value.getRowArray().length > 0) {
-			/*rowkey.set(value.getRow());
-			lastRow = rowkey.get();*/
+			lastRow = tableScanner.getCurrentRowLocation().getBytes();
+			rowkey.set(lastRow);	
 			return true;
 		}
-		
 		return false;
 	}
     

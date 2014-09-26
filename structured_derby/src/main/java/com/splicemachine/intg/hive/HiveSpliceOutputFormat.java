@@ -285,8 +285,9 @@ org.apache.hadoop.mapred.OutputFormat<ImmutableBytesWritable, Put>{
 
 					callBuffer = WriteCoordinator.create(conf).writeBuffer(Bytes.toBytes(tableID), 
 									childTxsID, SpliceMRConstants.SPLICE_WRITE_BUFFER_SIZE);*/	
+					int size = 1024;
 					callBuffer = WriteCoordinator.create(conf).writeBuffer(Bytes.toBytes(tableID), 
-							sqlUtil.getTransactionID(), SpliceMRConstants.SPLICE_WRITE_BUFFER_SIZE);
+							sqlUtil.getTransactionID(), size);
 				}		
 				ExecRow value = ((ExecRowWritable)valueWritable).get();
 				byte[] key = this.keyEncoder.getKey(value);

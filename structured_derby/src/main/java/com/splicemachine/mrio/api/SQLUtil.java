@@ -22,7 +22,7 @@ import java.util.Map;
 
 
 public class SQLUtil {
-	private Connection connect = null;
+	  private Connection connect = null;
 	  private Statement statement = null;
 	  private ResultSet resultSet = null;
 	  private static SQLUtil sqlUtil = null;
@@ -32,11 +32,10 @@ public class SQLUtil {
 	      Class.forName("org.apache.derby.jdbc.ClientDriver").newInstance();
 	      this.connStr = connStr;
 	      connect = DriverManager.getConnection(connStr);
-	      
 	  }
 	  
 	  public static SQLUtil getInstance(String connStr){
-		  if(sqlUtil == null)
+		  if(sqlUtil == null){
 			try {
 				sqlUtil = new SQLUtil(connStr);
 				
@@ -44,15 +43,14 @@ public class SQLUtil {
 				// TODO Auto-generated catch block
 				throw new RuntimeException(e);
 			}
-		  finally{
-			  return sqlUtil;
 		  }
-		  else
-			  return sqlUtil;
+		  
+			return sqlUtil;
 	  }
 	  
 	  
-	  public Connection createConn() throws SQLException{
+	  public Connection createConn() throws SQLException, InstantiationException, IllegalAccessException, ClassNotFoundException{
+		  Class.forName("org.apache.derby.jdbc.ClientDriver").newInstance();
 		  Connection conn = DriverManager.getConnection(connStr);
 		  return conn;
 	  }
@@ -76,6 +74,7 @@ public class SQLUtil {
 	   * 
 	   **/
 	  public HashMap<List, List> getPrimaryKey(String tableName){
+		  //System.out.println("getting pk");
 		  HashMap<List, List> pks = new HashMap<List, List>();
 		  ArrayList<String> names = new ArrayList<String>();
 		  ArrayList<Integer> types = new ArrayList<Integer>();
@@ -127,6 +126,7 @@ public class SQLUtil {
 	   * 
 	   * */
 	  public HashMap<List, List> getTableStructure(String tableName){
+		  //System.out.println("getting table structure");
 		  HashMap<List, List> colType = new HashMap<List, List>();
 		  ArrayList<String> names = new ArrayList<String>();
 		  ArrayList<Integer> types = new ArrayList<Integer>();
@@ -257,7 +257,11 @@ public class SQLUtil {
 		  return new Long(childTxsID).toString();
 	  }
 	  
-	  private void close() {
+	  public void closeConn(Connection conn) throws SQLException{
+		  conn.close();
+	  }
+	  
+	  public void close() {
 	    try {
 	      if (resultSet != null) {
 	        resultSet.close();
@@ -309,7 +313,8 @@ public class SQLUtil {
 		
 	  }
 	  
-	  public HashMap<String, String> parseTableName(String str){
+	  private HashMap<String, String> parseTableName(String str){
+		  
 		  if(str == null || str.trim().equals(""))
 			  return null;
 		  else{

@@ -49,19 +49,9 @@ public class SpliceInputFormat extends InputFormat<ImmutableBytesWritable, ExecR
     private  String tableID = null;
     private  String tableName = null;
    
-    private  SpliceTableRecordReader trr = null;
+    private  SpliceTableRecordReader spliceTableRecordReader = null;
 	private  TableInputFormat tableInputFormat = new TableInputFormat();
 	private  HTable hTable = null;
-	
-	private SpliceInputFormat(){
-		
-	}
-
-	public static SpliceInputFormat getInstance(){
-		if(inputFormat == null)
-			inputFormat = new SpliceInputFormat();
-		return inputFormat;
-	}
 	
 	@Override
 	public RecordReader<ImmutableBytesWritable, ExecRow> 
@@ -69,7 +59,7 @@ public class SpliceInputFormat extends InputFormat<ImmutableBytesWritable, ExecR
 											TaskAttemptContext context) 
 											throws IOException{
 		
-		SpliceTableRecordReader trr = this.trr;
+		SpliceTableRecordReader trr = this.spliceTableRecordReader;
 		if(trr == null)
 			trr = new SpliceTableRecordReader(conf);
 		if(hTable == null)
@@ -92,14 +82,13 @@ public class SpliceInputFormat extends InputFormat<ImmutableBytesWritable, ExecR
 	
 	
 	public void setConf(Configuration configuration) {
-		
 		tableName = configuration.get(SpliceMRConstants.SPLICE_INPUT_TABLE_NAME);	
 		this.conf = configuration;
 		try {
+			
 			if(sqlUtil == null)
 				sqlUtil = SQLUtil.getInstance(conf.get(SpliceMRConstants.SPLICE_JDBC_STR));
 			tableID = sqlUtil.getConglomID(tableName);
-			
 			conf.set(TableInputFormat.INPUT_TABLE, tableID);
 			this.tableInputFormat.setConf(conf);
 			

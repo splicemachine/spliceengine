@@ -2,6 +2,7 @@ package com.splicemachine.mrio.api;
 
 import java.io.IOException;
 
+import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.client.HTable;
@@ -35,7 +36,6 @@ extends RecordReader<ImmutableBytesWritable, ExecRow> {
    */
   public void restart(byte[] firstRow) throws IOException {
     this.recordReaderImpl.restart(firstRow);
-    System.out.println("after restart....");
   }
 
 
@@ -91,7 +91,12 @@ extends RecordReader<ImmutableBytesWritable, ExecRow> {
    */
   @Override
   public ExecRow getCurrentValue() throws IOException, InterruptedException {
-    return this.recordReaderImpl.getCurrentValue();
+    try {
+		return this.recordReaderImpl.getCurrentValue();
+	} catch (StandardException e) {
+		e.printStackTrace();
+		throw new IOException(e);
+	}
   }
 
   /**
@@ -122,7 +127,13 @@ extends RecordReader<ImmutableBytesWritable, ExecRow> {
    */
   @Override
   public boolean nextKeyValue() throws IOException, InterruptedException {
-    return this.recordReaderImpl.nextKeyValue();
+    try {
+		return this.recordReaderImpl.nextKeyValue();
+	} catch (StandardException e) {
+		e.printStackTrace();
+		throw new IOException(e);
+	}
+   
   }
 
   	public void init() throws IOException {

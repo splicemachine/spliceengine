@@ -61,7 +61,7 @@ public class WordCount2File {
 		scan.setCaching(500);        // 1 is the default in Scan, which will be bad for MapReduce jobs
 		scan.setCacheBlocks(false);  // don't set to true for MR jobs
 	    
-		String inputTableName = "MRTROLLUP.PRODUCT_DIVISION_SUMMARY2";
+		String inputTableName = "WIKIDATA";
 		
 		
 		try {
