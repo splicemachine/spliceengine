@@ -1361,4 +1361,10 @@ public class SpliceAdmin extends BaseAdminProcedures {
 
         return isAutoTraced;
     }
+
+    public static void SYSCS_SET_XPLAIN_TRACE(int enable) throws SQLException, StandardException {
+        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+        lcc.setRunTimeStatisticsMode(enable != 0 ? true : false);
+        lcc.setStatisticsTiming(enable != 0 ? true : false);
+    }
 }
