@@ -42,9 +42,7 @@ public class SqlFunctionParamsIT extends SpliceUnitTest {
 		Assert.assertEquals("Incorrect rows returned!", 1, resultSetSize(rs));
 	}
 
-	// force jenkins to rebuild
 	@Test
-	@Ignore
 	public void testResultSetColumnTypes() throws Exception {
 		ResultSet rs = methodWatcher.executeQuery("CALL SYSIBM.SQLFUNCTIONPARAMS(null, null, 'TO_DATE', 'FORMAT', null)");
 		int count = 0;
@@ -63,15 +61,10 @@ public class SqlFunctionParamsIT extends SpliceUnitTest {
 			Assert.assertEquals("Incorrect SQL type for column!", Types.SMALLINT, rsmd.getColumnType(11));
 			Assert.assertEquals("Incorrect SQL type for column!", Types.SMALLINT, rsmd.getColumnType(12));
 			Assert.assertEquals("Incorrect SQL type for column!", Types.VARCHAR, rsmd.getColumnType(13));
-			Assert.assertEquals("Incorrect SQL type for column!", Types.VARCHAR, rsmd.getColumnType(14));
+			Assert.assertEquals("Incorrect SQL type for column!", Types.INTEGER, rsmd.getColumnType(14));
 			Assert.assertEquals("Incorrect SQL type for column!", Types.INTEGER, rsmd.getColumnType(15));
-			Assert.assertEquals("Incorrect SQL type for column!", Types.INTEGER, rsmd.getColumnType(16));
-			Assert.assertEquals("Incorrect SQL type for column!", Types.INTEGER, rsmd.getColumnType(17));
-			Assert.assertEquals("Incorrect SQL type for column!", Types.INTEGER, rsmd.getColumnType(18));
-			Assert.assertEquals("Incorrect SQL type for column!", Types.VARCHAR, rsmd.getColumnType(19));
-			Assert.assertEquals("Incorrect SQL type for column!", Types.VARCHAR, rsmd.getColumnType(20));
-			Assert.assertEquals("Incorrect SQL type for column!", Types.SMALLINT, rsmd.getColumnType(21));
-			Assert.assertEquals("Incorrect SQL type for column!", Types.SMALLINT, rsmd.getColumnType(22));
+			Assert.assertEquals("Incorrect SQL type for column!", Types.VARCHAR, rsmd.getColumnType(16));
+			Assert.assertEquals("Incorrect SQL type for column!", Types.VARCHAR, rsmd.getColumnType(17));
 			count++;
 		}
 		Assert.assertEquals("Incorrect rows returned!", 1, count);
