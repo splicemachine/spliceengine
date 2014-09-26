@@ -97,16 +97,10 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 	
 	private static Configuration conf = null;
 	
-	private String tableName;
+	private String spliceTableName = null;
 	protected static String tableID;
 	private HashMap<List, List> tableStructure;
 	private HashMap<List, List> pks;
-	
-	private SpliceOutputFormat(){
-		super();
-		//sqlUtil = SQLUtil.getInstance();
-		
-	}
 	
 	public Configuration getConf() {
 		return this.conf;
@@ -137,10 +131,11 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 			throw new IOException("Error: Please set Configuration for SpliceOutputFormat");
 		if(sqlUtil == null)
 			sqlUtil = SQLUtil.getInstance(conf.get(SpliceMRConstants.SPLICE_JDBC_STR));
-		tableName = conf.get(TableOutputFormat.OUTPUT_TABLE);
+		spliceTableName = conf.get(SpliceMRConstants.SPLICE_OUTPUT_TABLE_NAME);
 		
-		tableStructure = sqlUtil.getTableStructure(tableName);
-		pks = sqlUtil.getPrimaryKey(tableName);
+		tableStructure = sqlUtil.getTableStructure(spliceTableName);
+		pks = sqlUtil.getPrimaryKey(spliceTableName);
+		
 		ArrayList<String> pkColNames = null;
 		ArrayList<String> allColNames = new ArrayList<String>();
 		ArrayList<Integer> allColTypes = new ArrayList<Integer>();
@@ -185,50 +180,53 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 		private String taskID = "";
 		private Connection conn = null;
 		private String childTxsID = "";
-		
-		
-		private void setTaskID(String taskID){
-			this.taskID = taskID;
-		}
-		
+	
 		public SpliceRecordWriter(int[]pkCols, ArrayList colTypes, String taskID) throws IOException{
-			
-			System.out.println("Initializing SpliceRecordWriter....");
 			if(conf == null)
 				throw new IOException("Error: Please set Configuration for SpliceRecordWriter");
 			try {
 				this.colTypes = colTypes;
+				
 				this.rowDesc = createDVD();
 				this.taskID = taskID;
 				this.pkCols = pkCols;
 				this.keyEncoder =  getKeyEncoder(null);
 				this.rowHash = getRowHash(null);	
-				tableID = sqlUtil.getConglomID(conf.get(TableOutputFormat.OUTPUT_TABLE));	
+				if(conf.get(SpliceMRConstants.HBASE_OUTPUT_TABLE_NAME) == null)
+					tableID = sqlUtil.getConglomID(conf.get(SpliceMRConstants.SPLICE_OUTPUT_TABLE_NAME));
+				else
+					tableID = conf.get(SpliceMRConstants.HBASE_OUTPUT_TABLE_NAME);
 				
 			} catch (StandardException e) {
 				// TODO Auto-generated catch block
-				throw new IOException(e.getCause());
+				e.printStackTrace();
+				throw new IOException(e);
 			} catch (SQLException e) {
+				e.printStackTrace();
 				// TODO Auto-generated catch block
-				throw new IOException(e.getCause());
+				throw new IOException(e);
 			} 
 		}
 		
 		@Override
-		public void close(TaskAttemptContext arg0) throws IOException,
-				InterruptedException {
+		public void close(TaskAttemptContext arg0) throws IOException
+				{
 			// TODO Auto-generated method stub
-			
+			if(callBuffer == null){
+				return;
+			}
 			try {
 				this.callBuffer.flushBuffer();
 				this.callBuffer.close();
 				sqlUtil.commit(conn);
+				sqlUtil.closeConn(conn);
 				System.out.println("Task "+arg0.getTaskAttemptID()+" succeed");
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 				try {
 					sqlUtil.rollback(conn);
+					sqlUtil.closeConn(conn);
 					System.out.println("Task "+arg0.getTaskAttemptID()+" failed");
 					throw new IOException("Exception in RecordWriter.close, "+e.getMessage());
 				} catch (SQLException e1) {
@@ -297,7 +295,7 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 		
 		@Override
 		public void write(ImmutableBytesWritable arg0, ExecRow value)
-				throws IOException, InterruptedException {
+				throws IOException{
 			// TODO Auto-generated method stub
 			try {		
 				if(callBuffer == null){
@@ -307,9 +305,13 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 					childTxsID = sqlUtil.getChildTransactionID(conn, 
 									conf.get(SpliceMRConstants.SPLICE_TRANSACTION_ID), 
 									Long.parseLong(tableID));
-
+					String strSize = conf.get(SpliceMRConstants.SPLICE_WRITE_BUFFER_SIZE);
+					int size = 1024;
+					if((strSize != null) && (!strSize.equals("")))
+						size = Integer.valueOf(strSize);
+					
 					callBuffer = WriteCoordinator.create(conf).writeBuffer(Bytes.toBytes(tableID), 
-									childTxsID, SpliceMRConstants.SPLICE_WRITE_BUFFER_SIZE);	
+									childTxsID, size);	
 				}		
 				byte[] key = this.keyEncoder.getKey(value);
 				rowHash.setRow(value);
@@ -322,11 +324,11 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 					
 			} catch (StandardException e) {
 				// TODO Auto-generated catch block
-				throw new IOException(e.getCause());
+				throw new IOException(e);
 				
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
-				throw new IOException(e.getCause());
+				throw new IOException(e);
 			} 
 		}
 	}

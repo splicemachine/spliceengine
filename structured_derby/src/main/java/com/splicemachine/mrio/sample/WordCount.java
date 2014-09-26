@@ -46,9 +46,6 @@ import com.splicemachine.mrio.api.SpliceOutputFormat;
 import com.splicemachine.mrio.api.SpliceTableMapReduceUtil;
 import com.splicemachine.mrio.api.SpliceJob;
 import com.splicemachine.mrio.api.SpliceInputFormat;
-import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.storage.EntryDecoder;
-import com.splicemachine.storage.index.BitIndex;
 
 public class WordCount {
 	static class MyMapper extends Mapper<ImmutableBytesWritable, ExecRow, Text, IntWritable>
@@ -162,7 +159,7 @@ public class WordCount {
 		scan.setCacheBlocks(false);  // don't set to true for MR jobs
 	    
 		String inputTableName = "WIKIDATA";
-		String outputTableName = "USERTEST3";
+		String outputTableName = "USERTEST";
 		
 		try {
 			SpliceTableMapReduceUtil.initTableMapperJob(
@@ -174,24 +171,26 @@ public class WordCount {
 			job,
 			true,
 			SpliceInputFormat.class);
+			//FileOutputFormat.setOutputPath(job, new Path("WIKIDATA"));
+			SpliceTableMapReduceUtil.initTableReducerJob(
+					outputTableName, 
+					MyReducer.class, 
+					job,
+					null,
+					null,
+					null,
+					null,
+					true,
+					SpliceOutputFormat.class);
 			
 			} catch (IOException e) {
 			// TODO Auto-generated catch block
 			    e.printStackTrace();
-			}
-		SpliceTableMapReduceUtil.initTableReducerJob(
-				outputTableName, 
-				MyReducer.class, 
-				job,
-				null,
-				null,
-				null,
-				null,
-				false,
-				SpliceOutputFormat.class);
+			} 
+		
 		
 		//job.setOutputFormatClass(NullOutputFormat.class);   // because we aren't emitting anything from mapper
-		
+		//job.setOutputFormatClass(SpliceOutputFormat.class);
 		boolean b = false;
 		
 			try {

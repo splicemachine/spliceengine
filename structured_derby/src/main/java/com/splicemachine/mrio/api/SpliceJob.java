@@ -58,7 +58,13 @@ public class SpliceJob extends Job{
 				super.getConfiguration().set(SpliceMRConstants.SPLICE_TRANSACTION_ID, parentTxsID);
 					
 			} catch (SQLException e1) {
-					throw new IOException(e1.getCause());
+					throw new IOException(e1);
+			} catch (InstantiationException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IllegalAccessException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
 		 System.out.println("Submitting job...");
 		 super.submit();
@@ -81,6 +87,8 @@ public class SpliceJob extends Job{
 	  public void commit() throws SQLException
 	  {
 		  sqlUtil.commit(conn);
+		  sqlUtil.closeConn(conn);
+		  sqlUtil.close();
 	  }
 	  
 	  /**
@@ -92,6 +100,8 @@ public class SpliceJob extends Job{
 	  public void rollback() throws SQLException
 	  {
 		  sqlUtil.rollback(conn);
+		  sqlUtil.closeConn(conn);
+		  sqlUtil.close();
 	  }
 
 }
