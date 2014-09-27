@@ -10,6 +10,8 @@ import com.splicemachine.encoding.Encoding;
 import com.splicemachine.hbase.table.BoundCall;
 import com.splicemachine.job.Status;
 import com.splicemachine.job.TaskStatus;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HTableInterface;
@@ -61,7 +63,6 @@ public class JobControlTest {
 
         JobMetrics throwaway = mock(JobMetrics.class);
 
-        SpliceDriver.getKryoPool(); //initialize stuff before it's needed so as not to interfere with the test
         final JobControl control = new JobControl(mockJob,"/test",mockZkManager,1,throwaway);
 
         //submit two tasks
@@ -141,7 +142,7 @@ public class JobControlTest {
 
         JobMetrics throwaway = mock(JobMetrics.class);
 
-        SpliceDriver.getKryoPool(); //initialize stuff before it's needed so as not to interfere with the test
+
         final JobControl control = new JobControl(mockJob,"/test",mockZkManager,1,throwaway);
 
         //submit two tasks
@@ -263,7 +264,7 @@ public class JobControlTest {
         doAnswer(new Answer<Void>() {
             @Override
             public Void answer(InvocationOnMock invocation) throws Throwable {
-                TaskFutureContext futureContext = new TaskFutureContext(taskNode1, Bytes.toBytes(1),Bytes.toBytes(1),0.0d);
+                TaskFutureContext futureContext = new TaskFutureContext(taskNode1, Bytes.toBytes(1),Bytes.toBytes(1l),0.0d);
                 @SuppressWarnings("unchecked") Batch.Callback<TaskFutureContext[]> o = (Batch.Callback<TaskFutureContext[]>) invocation.getArguments()[4];
                 byte[] startKey = (byte[])invocation.getArguments()[1];
 
@@ -295,6 +296,7 @@ public class JobControlTest {
         private final CountDownLatch latch;
         private volatile TaskStatus taskStatus;
         private final int pos;
+        private TxnView txn;
 
         public CountDownRegionTask(CountDownLatch latch,int pos) {
             this.latch = latch;
@@ -317,7 +319,17 @@ public class JobControlTest {
             return "/test/taskNode";
         }
 
-				@Override
+        @Override
+        public void setParentTxnInformation(TxnView txn) {
+            this.txn = txn;
+        }
+
+        @Override
+        public Txn getTxn() {
+            return null;
+        }
+
+        @Override
 				public RegionTask getClone() {
 						return this;
 				}
@@ -402,11 +414,6 @@ public class JobControlTest {
         @Override
         public int getPriority() {
             return 1;
-        }
-
-        @Override
-        public boolean isTransactional() {
-            return false;
         }
 
 				@Override

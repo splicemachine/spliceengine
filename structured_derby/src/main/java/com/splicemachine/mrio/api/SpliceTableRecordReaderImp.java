@@ -237,7 +237,7 @@ public class SpliceTableRecordReaderImp{
 		.scan(scan)
 		.scanner(scanner)	
 		.metricFactory(Metrics.basicMetricFactory())
-		.transactionID(txsId)
+		.transactionID(Long.parseLong(txsId))
 		.tableVersion("2.0") // should read table version from derby metadata table
 		.rowDecodingMap(rowDecodingMap)
 		.template(row.getNewNullRow())

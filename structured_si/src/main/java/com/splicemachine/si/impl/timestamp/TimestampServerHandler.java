@@ -48,6 +48,7 @@ public class TimestampServerHandler extends TimestampBaseHandler {
 		TimestampUtil.doServerTrace(LOG, "Received timestamp request from client. Caller id = %s", callerId);
 		long nextTimestamp = _oracle.getNextTimestamp();
 		assert nextTimestamp > 0;
+
 		
 		//
 		// Respond to the client

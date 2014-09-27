@@ -2,13 +2,17 @@ package com.splicemachine.derby.impl.sql.execute.operations.joins;
 
 import com.splicemachine.derby.test.framework.DefaultedSpliceWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_dao.*;
 import com.splicemachine.test_tools.IntegerRows;
 import com.splicemachine.test_tools.TableCreator;
+
 import org.apache.commons.lang.RandomStringUtils;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -24,6 +28,8 @@ import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
+@Category(SerialTest.class) //made sequential because of joinWithStatistics() test
+@Ignore
 public class HashNestedLoopJoinIT {
 
     private static final String CLASS_NAME = HashNestedLoopJoinIT.class.getSimpleName().toUpperCase();
@@ -177,6 +183,55 @@ public class HashNestedLoopJoinIT {
 
         assertEquals(EXPECTED, ResultFactory.toString(rs));
     }
+
+    /* DB-1794: We were creating invalid scan ranges when left table/scan had null values in join col. */
+    @Test
+    public void nullValuesInLeftJoinColumns() throws Exception {
+
+        Connection conn = watcher.getOrCreateConnection();
+
+        // DATES
+        new TableCreator(conn).withCreate("create table dates(date_id int, d1 int, primary key(date_id))")
+                .withInsert("insert into dates values(?,?)")
+                .withRows(rows(row(10, 1), row(20, 2), row(30, 3), row(40, 4), row(50, 5))).create();
+
+        // ITEMS
+        new TableCreator(conn).withCreate("create table items(item_id int, i1 int, primary key(item_id))")
+                .withInsert("insert into items values(?,?)")
+                .withRows(rows(row(100, -1), row(200, -2))).create();
+
+        // SALES
+        new TableCreator(conn).withCreate("create table sales(item_id int, b int, date_id int, primary key(item_id, b))")
+                .withInsert("insert into sales values(?,?,?)")
+                .withRows(rows(
+                        row(100, 1, 20),
+                        row(100, 2, 8),
+                        row(100, 3, null),
+                        row(100, 4, 40),
+                        row(200, 8, null),
+                        row(200, 9, null)
+                )).create();
+
+        String JOIN_SQL = "select * \n" +
+                " from  --SPLICE-PROPERTIES joinOrder=fixed\n" +
+                " sales \n" +
+                " join items " +
+                "on sales.item_id = items.item_id \n" +
+                " join dates --SPLICE-PROPERTIES joinStrategy=HASH\n" +
+                "on sales.date_id = dates.date_id \n" +
+                "";
+
+        ResultSet rs = conn.createStatement().executeQuery(JOIN_SQL);
+
+        String EXPECTED = "" +
+                "ITEM_ID | B | DATE_ID | ITEM_ID |I1 | DATE_ID |D1 |\n" +
+                "----------------------------------------------------\n" +
+                "   100   | 1 |   20    |   100   |-1 |   20    | 2 |\n" +
+                "   100   | 4 |   40    |   100   |-1 |   40    | 4 |";
+
+        assertEquals(EXPECTED, ResultFactory.toString(rs));
+    }
+
 
     @Test
     public void joinWithStatistics() throws Exception {

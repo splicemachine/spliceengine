@@ -1,5 +1,8 @@
 package com.splicemachine.derby.impl.sql.depend;
 
+import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
@@ -9,6 +12,7 @@ import org.apache.derby.iapi.sql.depend.Provider;
 import org.apache.derby.iapi.sql.depend.ProviderInfo;
 import org.apache.derby.iapi.sql.depend.ProviderList;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
+import org.apache.derby.iapi.sql.dictionary.SPSDescriptor;
 import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.impl.sql.depend.BasicDependencyManager;
 import org.apache.log4j.Logger;
@@ -88,24 +92,32 @@ public class SpliceDependencyManager extends BasicDependencyManager {
 	}
 
 	@Override
-	public void copyDependencies(Dependent copyFrom, Dependent copyTo, boolean persistentOnly, ContextManager cm, TransactionController tc) throws StandardException {
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "copyDependencies copyFrom=%s,copyTo=%s,persistentOnly=%s, contextManager=%s, transactionController=%s",copyFrom,copyTo,persistentOnly,cm,tc);
-		super.copyDependencies(copyFrom, copyTo, persistentOnly, cm, tc);
-	}
+  public void copyDependencies(Dependent copyFrom, Dependent copyTo, boolean persistentOnly, ContextManager cm, TransactionController tc) throws StandardException {
+      if (LOG.isTraceEnabled())
+          SpliceLogUtils.trace(LOG, "copyDependencies copyFrom=%s,copyTo=%s,persistentOnly=%s, contextManager=%s, transactionController=%s",copyFrom,copyTo,persistentOnly,cm,tc);
+      LanguageConnectionContext lcc = getLanguageConnectionContext(cm);
+      // tc == null means do it in the user transaction
+      TransactionController tcToUse = (tc == null) ? lcc.getTransactionExecute() : tc;
+      BaseSpliceTransaction usrTxn = ((SpliceTransactionManager)tcToUse).getRawTransaction();
+      assert usrTxn instanceof SpliceTransaction: "Programmer error: cannot elevate a non-SpliceTransaction";
+      SpliceTransaction txn = (SpliceTransaction)usrTxn;
+      if(!txn.allowsWrites())
+          txn.elevate(copyTo.getObjectName().getBytes());
+      super.copyDependencies(copyFrom, copyTo, persistentOnly, cm, tc);
+  }
 
-	@Override
-	public String getActionString(int action) {
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "getActionString %d",action);
-		return super.getActionString(action);
-	}
+    @Override
+    public String getActionString(int action) {
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "getActionString %d",action);
+        return super.getActionString(action);
+    }
 
-	@Override
-	public int countDependencies() throws StandardException {
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "countDependencies");
-		return super.countDependencies();
-	}
-	
+    @Override
+    public int countDependencies() throws StandardException {
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "countDependencies");
+        return super.countDependencies();
+    }
+
 }

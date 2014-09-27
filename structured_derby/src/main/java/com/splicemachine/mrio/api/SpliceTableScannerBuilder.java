@@ -24,7 +24,7 @@ public class SpliceTableScannerBuilder {
 		private	MetricFactory metricFactory;
 		private	Scan scan;
 		private	int[] rowColumnMap;
-		private	String transactionID;
+		private	long transactionID;
 		private	int[] keyColumnEncodingOrder;
 		private	int[] keyColumnTypes;
 		private	int[] keyDecodingMap;
@@ -62,8 +62,7 @@ public class SpliceTableScannerBuilder {
 				return this;
 		}
 
-		public SpliceTableScannerBuilder transactionID(String transactionID) {
-				assert transactionID!=null: "No transaction id specified";
+		public SpliceTableScannerBuilder transactionID(long transactionID) {
 				this.transactionID = transactionID;
 				return this;
 		}

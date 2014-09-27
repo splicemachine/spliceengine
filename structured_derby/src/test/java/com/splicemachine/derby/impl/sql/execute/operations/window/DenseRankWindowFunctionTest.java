@@ -6,11 +6,9 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.splicemachine.derby.impl.sql.execute.operations.window.function.DenseRankFunction;
@@ -59,24 +57,6 @@ public class DenseRankWindowFunctionTest extends WindowTestingFramework {
     }
 
     @Test
-    @Ignore("Generates test data inserts to copy into sqlshell")
-    public void testGenInserts() throws Exception {
-        int partitionSize = 5;
-        int[] orderByColIDs = new int[] {1};    // 1-based
-
-        List<TestColumnDefinition> rowDefinition = new ArrayList<TestColumnDefinition>(
-            Arrays.asList(new TestColumnDefinition[]{
-                new IntegerColumnDefinition(),
-                new DoubleColumnDefinition().setVariant(13)}));
-
-        List<ExecRow> inputRows = new ArrayList<ExecRow>();
-        for (int i=1; i<=2; i++) {
-            inputRows.addAll(createValueRows(i, partitionSize, orderByColIDs, rowDefinition));
-        }
-        printInputSet(inputRows, "temp1", System.out);
-    }
-
-    @Test
     public void testEmptyOrderByColumns() throws Exception {
 
         // define the shape of the input rows
@@ -85,7 +65,7 @@ public class DenseRankWindowFunctionTest extends WindowTestingFramework {
                 new IntegerColumnDefinition()}));
 
         try {
-            helpTestColumns(new int[]{1}, new int[0], rowDefinition, true);
+            helpTestColumns(5, 100, new int[]{1}, new int[0], rowDefinition, true);
             Assert.fail("Expected exception - no ranking rows.");
         } catch (IOException e) {
             // shouldn't happen
@@ -107,7 +87,7 @@ public class DenseRankWindowFunctionTest extends WindowTestingFramework {
                 new IntegerColumnDefinition(),
                 new DoubleColumnDefinition().setVariant(13)}));
 
-        helpTestColumns(new int[0], new int[] {1}, rowDefinition, DONT_PRINT_RESULTS);
+        helpTestColumns(5, 100, new int[0], new int[] {2}, rowDefinition, DONT_PRINT_RESULTS);
     }
 
     @Test
@@ -121,7 +101,7 @@ public class DenseRankWindowFunctionTest extends WindowTestingFramework {
                 new VarcharColumnDefinition(7).setVariant(5),
                 new TimestampColumnDefinition().setVariant(9),
                 new DateColumnDefinition().setVariant(13)}));
-        helpTestColumns(new int[] {1}, new int[] {4}, rowDefinition, DONT_PRINT_RESULTS);
+        helpTestColumns(5, 100, new int[] {1}, new int[] {4}, rowDefinition, DONT_PRINT_RESULTS);
     }
 
     @Test
@@ -135,7 +115,7 @@ public class DenseRankWindowFunctionTest extends WindowTestingFramework {
                 new VarcharColumnDefinition(7).setVariant(5),
                 new TimestampColumnDefinition().setVariant(9),
                 new DateColumnDefinition().setVariant(13)}));
-        helpTestColumns(new int[] {1}, new int[] {3}, rowDefinition, DONT_PRINT_RESULTS);
+        helpTestColumns(5, 100, new int[] {1}, new int[] {3}, rowDefinition, DONT_PRINT_RESULTS);
     }
 
     @Test
@@ -145,24 +125,25 @@ public class DenseRankWindowFunctionTest extends WindowTestingFramework {
         List<TestColumnDefinition> rowDefinition = new ArrayList<TestColumnDefinition>(
             Arrays.asList(new TestColumnDefinition[]{
                 new IntegerColumnDefinition(),
-                new DoubleColumnDefinition().setVariant(13),
-                new VarcharColumnDefinition(7).setVariant(5),
-                new TimestampColumnDefinition().setVariant(9),
+                new DoubleColumnDefinition().setVariant(13).setColumnName("partition_and_input1"),
+                new VarcharColumnDefinition(7).setVariant(5).setColumnName("input2"),
+                new TimestampColumnDefinition().setVariant(9).setColumnName("input3"),
                 new DateColumnDefinition().setVariant(13)}));
-        helpTestColumns(new int[] {2}, new int[] {2,3,4}, rowDefinition, DONT_PRINT_RESULTS);
+
+        printInputSet(rowDefinition, 5, new int[] {2,3,4}, "temp1", System.out);
+
+        helpTestColumns(5, 100, new int[] {2}, new int[] {2,3,4}, rowDefinition, DONT_PRINT_RESULTS);
     }
 
     //===============================================================================================
     // helpers
     //===============================================================================================
 
-    private void helpTestColumns(int[] partitionColIDs, int[] orderByColIDs, List<TestColumnDefinition> rowDefinition, boolean print)
+    private void helpTestColumns(int nPartitions, int partitionSize, int[] partitionColIDs, int[] orderByColIDs, List<TestColumnDefinition> rowDefinition, boolean print)
         throws IOException, StandardException {
         DenseRankFunction function = new DenseRankFunction();
-        function.setup(cf, "function", DataTypeDescriptor.getBuiltInDataTypeDescriptor(java.sql.Types.BIGINT, false));
+        function.setup(cf, "denseRank", DataTypeDescriptor.getBuiltInDataTypeDescriptor(java.sql.Types.BIGINT, false));
 
-        int nPartitions = 5;
-        int partitionSize = 100;
         ExpectedResultsFunction expectedResultsFunction = new DenseRankFunct(partitionColIDs, orderByColIDs);
 
         // test the config

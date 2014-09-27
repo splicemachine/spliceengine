@@ -109,13 +109,22 @@ _startSplice() {
     LOG4J_CONFIG="-Dlog4j.configuration=$LOG4J_PATH"
 
     SYS_ARGS="-Xmx5g -Xms1g \
-     -XX:MaxPermSize=256M -XX:+CMSClassUnloadingEnabled \
+     -XX:MaxPermSize=256M -XX:+CMSClassUnloadingEnabled -XX:+UseConcMarkSweepGC \
      -Djava.awt.headless=true \
      ${LOG4J_CONFIG} \
      -Djava.net.preferIPv4Stack=true \
      -Dcom.sun.management.jmxremote.ssl=false \
      -Dcom.sun.management.jmxremote.authenticate=false \
      -Dcom.sun.management.jmxremote.port=10102"
+
+#    SYS_ARGS="-Xmx5g -Xms1g \
+#     -XX:MaxPermSize=256M -XX:+CMSClassUnloadingEnabled -XX:+UseG1GC \
+#     -Djava.awt.headless=true \
+#     ${LOG4J_CONFIG} \
+#     -Djava.net.preferIPv4Stack=true \
+#     -Dcom.sun.management.jmxremote.ssl=false \
+#     -Dcom.sun.management.jmxremote.authenticate=false \
+#     -Dcom.sun.management.jmxremote.port=10102"
     if [[ -n ${SPLICE_SYS_ARGS} ]]; then
         SYS_ARGS="${SYS_ARGS} ${SPLICE_SYS_ARGS}"
     fi

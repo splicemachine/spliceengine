@@ -60,12 +60,12 @@ public class NestedLoopJoinOperation extends JoinOperation {
 								resultSetNumber,oneRowRightSide,notExistsRightSide,optimizerEstimatedRowCount,
 								optimizerEstimatedCost,userSuppliedOptimizerOverrides);
 				this.isHash = false;
-				try{
-						init(SpliceOperationContext.newContext(activation));
-				}catch(IOException ioe){
-						throw Exceptions.parseException(ioe);
-				}
-				recordConstructorTime();
+        try {
+            init(SpliceOperationContext.newContext(activation,null));
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
+        recordConstructorTime();
 		}
 
 		@Override
@@ -200,7 +200,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
                     if (operationChainInfo == null) {
                         operationChainInfo = new XplainOperationChainInfo(
                                 spliceRuntimeContext.getStatementId(),
-                                Bytes.toLong(rightResultSetUniqueSequenceID));
+                                Bytes.toLong(uniqueSequenceID));
                     }
                     List<XplainOperationChainInfo> operationChain = SpliceBaseOperation.operationChain.get();
                     if (operationChain == null) {
@@ -209,7 +209,8 @@ public class NestedLoopJoinOperation extends JoinOperation {
                     }
                     operationChain.add(operationChainInfo);
                 }
-                probeResultSet.open(hash);
+                probeResultSet.sinkOpen(spliceRuntimeContext.getTxn(),false);
+                probeResultSet.executeScan(hash,spliceRuntimeContext);
                 populated=false;
                 this.outerJoin = outerJoin;
             }

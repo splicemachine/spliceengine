@@ -8,10 +8,12 @@ import com.splicemachine.derby.utils.marshall.DataHash;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.hbase.writer.*;
-import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.TransactionManager;
-import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.hbase.writer.CallBuffer;
+import com.splicemachine.hbase.writer.CallBufferFactory;
+import com.splicemachine.hbase.writer.ConcurrentWriteBuffer;
+import com.splicemachine.si.api.TransactionLifecycle;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.storage.EntryEncoder;
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.iapi.error.StandardException;
@@ -43,12 +45,10 @@ public abstract class XplainReporter<T> {
 				ThreadFactory factory = new ThreadFactoryBuilder().setDaemon(true).build();
 				this.writers = Executors.newFixedThreadPool(numWorkers,factory);
 				this.taskQueue = new LinkedBlockingQueue<Pair<String, T>>();
-				TransactionManager transactionManager = HTransactorFactory.getTransactionManager();
-				final String txnId;
+				final Txn txn;
 				try {
-						TransactionId transactionId = transactionManager.beginTransaction();
-						txnId = transactionId.getTransactionIdString();
-						transactionManager.commit(transactionId);
+						txn = TransactionLifecycle.getLifecycleManager().beginTransaction("xplain".getBytes());
+            txn.commit();
 				} catch (IOException e) {
 						throw new RuntimeException(e); //TODO -sf- do something about this
 				}
@@ -80,7 +80,7 @@ public abstract class XplainReporter<T> {
 												CallBufferFactory<KVPair> nonThreadSafeBufferFactory = SpliceDriver.driver().getTableWriter();
 												return new ConcurrentWriteBuffer(10, nonThreadSafeBufferFactory.writeBuffer(
 																Bytes.toBytes(Long.toString(conglomId)),
-																txnId,
+																txn,
 																10));
 										}
 								});

@@ -1,11 +1,9 @@
 package com.splicemachine.derby.test.framework;
 
-import com.splicemachine.derby.management.XPlainTreeNode;
 import com.splicemachine.derby.management.XPlainTrace;
+import com.splicemachine.derby.management.XPlainTreeNode;
 
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.Statement;
+import java.sql.*;
 
 /**
  * Created by jyuan on 7/14/14.
@@ -33,81 +31,91 @@ public class SpliceXPlainTrace extends XPlainTrace{
     public static final String DELETE = "DELETE";
     public static final String POPULATEINDEX = "POPULATEINDEX";
     public static final String WINDOW = "WINDOW";
-    private SpliceWatcher methodWatcher;
-    private Connection connection = null;
-    private Statement statement = null;
+
+    private TestConnection testConn;
+    private PreparedStatement countStatementPs;
+    private PreparedStatement countOperationPs;
+    private CallableStatement disableXPlainTracePs;
+    private CallableStatement enableXPlainTracePs;
 
     public SpliceXPlainTrace () {
-        methodWatcher = new SpliceWatcher();
     }
 
     private void waitForStatement(long statementId) throws Exception{
-        String stmt = "select count(*) from " + STATEMENT_TABLE + " where statementid = " + statementId;
-        int count = 0;
+        System.out.println(statementId);
+        if(countStatementPs==null){
+            countStatementPs = testConn.prepareStatement("select count(*) from " + STATEMENT_TABLE + " where statementid = ?");
+        }
+        countStatementPs.setLong(1,statementId);
+        long count = testConn.getCount(countStatementPs);
         // Wait util statementHistory table is populated
         while (count == 0) {
-            ResultSet rs = methodWatcher.executeQuery(stmt);
-            if (rs.next()) {
-                count = rs.getInt(1);
-            }
-            Thread.sleep(400);
+            Thread.sleep(200);
+            count = testConn.getCount(countStatementPs);
         }
 
         // Wait until taskHistory table is populated
-        int count_before = -1;
-        count = -1;
-        stmt = "select count(*) from " + TASK_TABLE + " where statementid = " + statementId;
+        long count_before = -1;
+        if(countOperationPs==null)
+            countOperationPs = testConn.prepareStatement("select count(*) from " + TASK_TABLE + " where statementid = ?");
+
+        countOperationPs.setLong(1,statementId);
+        count = testConn.getCount(countOperationPs);
         while (count_before != count || count == -1) {
             count_before = count;
-            Thread.sleep(400);
-            ResultSet rs = methodWatcher.executeQuery(stmt);
-            if (rs.next()) {
-                count = rs.getInt(1);
-            }
+            Thread.sleep(200);
+            count = testConn.getCount(countOperationPs);
         }
     }
 
-    public XPlainTreeNode getOperationTree() throws Exception{
-
-        long statementId = 0;
-        ResultSet rs = executeQuery("call SYSCS_UTIL.SYSCS_GET_XPLAIN_STATEMENTID()");
-        if (rs.next()) {
-            statementId = rs.getLong(1);
-        }
+    public XPlainTreeNode getOperationTree(long statementId) throws Exception{
+        assert statementId!=-1l: "No statement id found";
         waitForStatement(statementId);
+        setStatementId(statementId);
+        setFormat("tree");
+        setMode(0);
 
-        SpliceXPlainTrace xPlainTrace = new SpliceXPlainTrace();
-        xPlainTrace.setStatementId(statementId);
-        xPlainTrace.setFormat("tree");
-        xPlainTrace.setMode(0);
-        xPlainTrace.setConnection(connection);
-
-        XPlainTreeNode operation = xPlainTrace.getTopOperation();
-        return operation;
+        return getTopOperation();
 
     }
 
     // Turn on xplain trace
     public void turnOnTrace() throws Exception {
-        connection = SpliceNetConnection.getConnection();
-        statement = connection.createStatement();
-        statement.execute("call SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(1)");
-        statement.execute("call SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(1)");
+        if(enableXPlainTracePs==null)
+            enableXPlainTracePs = testConn.prepareCall("call SYSCS_UTIL.SYSCS_SET_XPLAIN_TRACE(1)");
+        enableXPlainTracePs.execute();
     }
 
     // Turn off xplain trace
     public void turnOffTrace() throws Exception {
-        statement.execute("call SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(0)");
-        statement.execute("call SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(0)");
+        if(disableXPlainTracePs==null)
+            disableXPlainTracePs = testConn.prepareCall("call SYSCS_UTIL.SYSCS_SET_XPLAIN_TRACE(0)");
+        disableXPlainTracePs.execute();
     }
 
     public ResultSet executeQuery(String sql) throws Exception{
-        ResultSet rs = statement.executeQuery(sql);
-        return rs;
+        return testConn.query(sql);
     }
 
     public boolean execute(String sql) throws Exception{
-        boolean success = statement.execute(sql);
-        return success;
+        return testConn.execute(sql);
+    }
+
+    public long getLastStatementId(){
+        return testConn.getLastStatementId();
+    }
+
+    @Override
+    public void setConnection(Connection connection) {
+        super.setConnection(connection);
+        if(connection instanceof TestConnection)
+            this.testConn = (TestConnection)connection;
+        else{
+            try {
+                this.testConn = new TestConnection(connection);
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 }

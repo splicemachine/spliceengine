@@ -1,6 +1,8 @@
 package com.splicemachine.derby.utils;
 
 import com.google.common.collect.Lists;
+import com.google.common.io.Closeables;
+import com.splicemachine.derby.hbase.ManifestReader.SpliceMachineVersion;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceIndexEndpoint.ActiveWriteHandlersIface;
 import com.splicemachine.derby.impl.job.JobInfo;
@@ -12,32 +14,8 @@ import com.splicemachine.derby.management.XPlainTrace;
 import com.splicemachine.hbase.ThreadPoolStatus;
 import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.job.JobSchedulerManagement;
-import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.TransactionManager;
-import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.logging.Logging;
-import java.io.IOException;
-import javax.management.MBeanServerConnection;
-import javax.management.MalformedObjectNameException;
-import javax.management.ObjectName;
-import javax.management.remote.JMXConnector;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Types;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.monitor.ModuleFactory;
@@ -52,16 +30,7 @@ import org.apache.derby.iapi.sql.dictionary.SPSDescriptor;
 import org.apache.derby.iapi.sql.execute.ExecPreparedStatement;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.store.access.TransactionController;
-import org.apache.derby.iapi.types.DataTypeDescriptor;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.SQLBoolean;
-import org.apache.derby.iapi.types.SQLChar;
-import org.apache.derby.iapi.types.SQLDouble;
-import org.apache.derby.iapi.types.SQLInteger;
-import org.apache.derby.iapi.types.SQLLongint;
-import org.apache.derby.iapi.types.SQLReal;
-import org.apache.derby.iapi.types.SQLTimestamp;
-import org.apache.derby.iapi.types.SQLVarchar;
+import org.apache.derby.iapi.types.*;
 import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.derby.impl.jdbc.EmbedResultSet;
 import org.apache.derby.impl.jdbc.EmbedResultSet40;
@@ -69,17 +38,19 @@ import org.apache.derby.impl.jdbc.Util;
 import org.apache.derby.impl.sql.GenericColumnDescriptor;
 import org.apache.derby.impl.sql.execute.ValueRow;
 import org.apache.derby.jdbc.InternalDriver;
-import org.apache.hadoop.hbase.ClusterStatus;
-import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.HServerLoad;
-import org.apache.hadoop.hbase.ServerName;
+import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
-import com.splicemachine.derby.hbase.ManifestReader.SpliceMachineVersion;
-import com.splicemachine.utils.SpliceLogUtils;
+import javax.management.MBeanServerConnection;
+import javax.management.MalformedObjectNameException;
+import javax.management.ObjectName;
+import javax.management.remote.JMXConnector;
+import java.io.IOException;
+import java.sql.*;
+import java.util.*;
 
 /**
  * @author Jeff Cunningham
@@ -495,23 +466,21 @@ public class SpliceAdmin extends BaseAdminProcedures {
     }
 
     public static void SYSCS_KILL_TRANSACTION(final long transactionId) throws SQLException {
-        try {
-            HTransactorFactory.getTransactionManager().fail(new TransactionId(Long.toString(transactionId)));
-        } catch (IOException e) {
-            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
-        }
+        /*
+         * We have to leave this method in place, because Derby will actually STORE a string
+         * reference to this method in database tables--removing it will therefore break
+         * backwards compatibility. However, the logic has been moved to TransactionAdmin
+         */
+        TransactionAdmin.killTransaction(transactionId);
     }
 
     public static void SYSCS_KILL_STALE_TRANSACTIONS(final long maximumTransactionId) throws SQLException {
-        try {
-            TransactionManager transactor = HTransactorFactory.getTransactionManager();
-            List<TransactionId> active = transactor.getActiveTransactionIds(new TransactionId(Long.toString(maximumTransactionId)));
-            for (TransactionId txnId : active) {
-                transactor.fail(txnId);
-            }
-        } catch (IOException e) {
-            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
-        }
+        /*
+         * We have to leave this method in place, because Derby will actually STORE a string
+         * reference to this method in database tables--removing it will therefore break
+         * backwards compatibility. However, the logic has been moved to TransactionAdmin
+         */
+        TransactionAdmin.killAllActiveTransactions(maximumTransactionId);
     }
 
     public static void SYSCS_GET_MAX_TASKS(final int workerTier, final ResultSet[] resultSet) throws SQLException {
@@ -1284,7 +1253,8 @@ public class SpliceAdmin extends BaseAdminProcedures {
     }
 
     public static void SYSCS_GET_XPLAIN_STATEMENTID(final ResultSet[] resultSet) throws Exception{
-        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+        EmbedConnection defaultConn = (EmbedConnection) SpliceAdmin.getDefaultConn();
+        LanguageConnectionContext lcc = defaultConn.getLanguageConnection();
         long statementId = lcc.getXplainStatementId();
         List<ExecRow> rows = Lists.newArrayListWithExpectedSize(1);
 
@@ -1298,8 +1268,7 @@ public class SpliceAdmin extends BaseAdminProcedures {
         ResultColumnDescriptor[]columnInfo = new ResultColumnDescriptor[1];
         columnInfo[0] = new GenericColumnDescriptor("STATEMENTID", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
 
-        EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
-        Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
+        Activation lastActivation = lcc.getLastActivation();
         IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, columnInfo,lastActivation);
         try {
             resultsToWrap.openCore();
@@ -1370,7 +1339,7 @@ public class SpliceAdmin extends BaseAdminProcedures {
     }
 
     public static void SYSCS_PURGE_XPLAIN_TRACE() throws SQLException{
-        Connection connection = SpliceDriver.driver().getInternalConnection();
+        Connection connection = SpliceAdmin.getDefaultConn();
         PreparedStatement s = connection.prepareStatement("delete from sys.sysstatementhistory");
         s.execute();
 
@@ -1391,5 +1360,11 @@ public class SpliceAdmin extends BaseAdminProcedures {
         boolean isAutoTraced = lcc.isAutoTraced();
 
         return isAutoTraced;
+    }
+
+    public static void SYSCS_SET_XPLAIN_TRACE(int enable) throws SQLException, StandardException {
+        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+        lcc.setRunTimeStatisticsMode(enable != 0 ? true : false);
+        lcc.setStatisticsTiming(enable != 0 ? true : false);
     }
 }

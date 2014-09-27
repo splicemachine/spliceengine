@@ -1,9 +1,9 @@
 package org.apache.derby.impl.sql.execute.operations;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.List;
+
+import com.splicemachine.derby.test.framework.*;
 
 import com.splicemachine.test.SerialTest;
 import org.apache.derby.iapi.reference.ClassName;
@@ -16,17 +16,12 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import com.google.common.collect.Lists;
-import com.splicemachine.derby.test.framework.SpliceDataWatcher;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
 
 /**
  * @author Scott Fines
  *         Created on: 3/1/13
  */
-@Category(SerialTest.class)
+//@Category(SerialTest.class)
 public class PrimaryKeyIT extends SpliceUnitTest { 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	public static final String CLASS_NAME = PrimaryKeyIT.class.getSimpleName().toUpperCase();
@@ -36,7 +31,6 @@ public class PrimaryKeyIT extends SpliceUnitTest {
     protected static SpliceTableWatcher doubleKeyTableWatcher = new SpliceTableWatcher("AB",CLASS_NAME,"(name varchar(50),val int, CONSTRAINT AB_PK PRIMARY KEY(val, name))");
 	protected static String INSERT = String.format("insert into %s.%s (name, val) values (?,?)",CLASS_NAME, TABLE_NAME);
 	protected static String SELECT_BY_NAME = String.format("select * from %s.%s where name = ?",CLASS_NAME, TABLE_NAME);
-	protected static String SELECT_NAME_BY_NAME = String.format("select name from %s.%s where name = ?",CLASS_NAME, TABLE_NAME);	
 	protected static String UPDATE_NAME_BY_NAME = String.format("update %s.%s set name = ? where name = ?",CLASS_NAME, TABLE_NAME);
 	protected static String UPDATE_VALUE_BY_NAME = String.format("update %s.%s set val = ? where name = ?",CLASS_NAME, TABLE_NAME);
     protected static String INSERT_COMPOSITE_PK = String.format("insert into %s.%s (name, val) values (?,?)",CLASS_NAME, "AB");
@@ -110,62 +104,105 @@ public class PrimaryKeyIT extends SpliceUnitTest {
 
     @Test()
     public void deleteAndInsertInSameTransaction() throws Exception{
-        methodWatcher.getOrCreateConnection().setAutoCommit(false);
-        final String name = "sfines";
-        final int value = 2;
-        ResultSet rs = methodWatcher.executeQuery(format("select * from %s where name = '%s'", this.getTableReference(TABLE_NAME), name));
-        List<String> results = Lists.newArrayListWithExpectedSize(1);
-        while (rs.next()) {
-            String retName = rs.getString(1);
-            int val = rs.getInt(2);
-            results.add(String.format("name:%s,value:%d", retName, val));
+        Connection conn = methodWatcher.getOrCreateConnection();
+        boolean oldAutoCommit = conn.getAutoCommit();
+        conn.setAutoCommit(false);
+        try{
+            final String name = "sfines";
+            final int value = 2;
+            SQLClosures.SQLAction<ResultSet> sizeValidator = new SQLClosures.SQLAction<ResultSet>() {
+                @Override
+                public void execute(ResultSet rs) throws SQLException {
+                    List<String> results = Lists.newArrayListWithExpectedSize(1);
+                    while (rs.next()) {
+                        String retName = rs.getString(1);
+                        int val = rs.getInt(2);
+                        results.add(String.format("name:%s,value:%d", retName, val));
+                    }
+                    Assert.assertEquals("Incorrect number of rows returned!", 1, results.size());
+                }
+            };
+            SQLClosures.query(conn,format("select * from %s where name = '%s'",spliceTableWatcher,name),sizeValidator );
+
+            SQLClosures.execute(conn,new SQLClosures.SQLAction<Statement>(){
+                @Override
+                public void execute(Statement s) throws Exception {
+                    s.execute("delete from "+ spliceTableWatcher);
+                }
+            });
+            SQLClosures.execute(conn,new SQLClosures.SQLAction<Statement>(){
+                @Override
+                public void execute(Statement s) throws Exception {
+                    s.execute(format("insert into %s (name,val) values ('%s',%s)",spliceTableWatcher,name,value));
+                }
+            });
+
+            SQLClosures.query(conn,format("select * from %s where name = '%s'",spliceTableWatcher,name),sizeValidator);
+        }finally{
+            conn.rollback();
+            conn.setAutoCommit(oldAutoCommit);
         }
-        Assert.assertEquals("Incorrect number of rows returned!", 1, results.size());
-        methodWatcher.getStatement().execute(format("delete from %s", this.getTableReference(TABLE_NAME)));
-        methodWatcher.getStatement().execute(format("insert into %s (name, val) values ('%s', %s)", this.getTableReference(TABLE_NAME), name, value));
-        rs = methodWatcher.executeQuery(format("select * from %s where name = '%s'", this.getTableReference(TABLE_NAME), name));
-        results = Lists.newArrayListWithExpectedSize(1);
-        while (rs.next()) {
-            String retName = rs.getString(1);
-            int val = rs.getInt(2);
-            results.add(String.format("name:%s,value:%d", retName, val));
-        }
-        Assert.assertEquals("Incorrect number of rows returned!", 1, results.size());
-        methodWatcher.getOrCreateConnection().rollback();
     }
 
     @Test()
     public void insertAndDeleteInSameTransaction() throws Exception{
-        methodWatcher.getOrCreateConnection().setAutoCommit(false);
-        final String name = "other";
-        final int value = 2;
-        ResultSet rs = methodWatcher.executeQuery(format("select * from %s where name = '%s'", this.getTableReference(TABLE_NAME), name));
-        List<String> results = Lists.newArrayListWithExpectedSize(1);
-        while (rs.next()) {
-            String retName = rs.getString(1);
-            int val = rs.getInt(2);
-            results.add(String.format("name:%s,value:%d", retName, val));
+        Connection conn = methodWatcher.getOrCreateConnection();
+        boolean autoCommit = conn.getAutoCommit();
+        conn.setAutoCommit(false);
+        try{
+            final String name = "other";
+            final int value = 2;
+            String sizeQuery = format("select * from %s where name = '%s'", spliceTableWatcher, name);
+            SQLClosures.SQLAction<ResultSet> zeroSizeValidator = new SQLClosures.SQLAction<ResultSet>() {
+                @Override
+                public void execute(ResultSet rs) throws Exception {
+                    List<String> results = Lists.newArrayListWithExpectedSize(1);
+                    while (rs.next()) {
+                        String retName = rs.getString(1);
+                        int val = rs.getInt(2);
+                        results.add(String.format("name:%s,value:%d", retName, val));
+                    }
+                    Assert.assertEquals("Incorrect number of rows returned!", 0, results.size());
+                }
+            };
+            SQLClosures.query(conn, sizeQuery,zeroSizeValidator);
+
+            SQLClosures.execute(conn,new SQLClosures.SQLAction<Statement>() {
+                @Override
+                public void execute(Statement s) throws Exception {
+                    s.execute(format("insert into %s (name, val) values ('%s',%s)", spliceTableWatcher, name, value));
+                }
+            });
+
+            SQLClosures.SQLAction<ResultSet> oneSizeValidator = new SQLClosures.SQLAction<ResultSet>() {
+                @Override
+                public void execute(ResultSet rs) throws Exception {
+                    List<String> results = Lists.newArrayListWithExpectedSize(1);
+                    while (rs.next()) {
+                        String retName = rs.getString(1);
+                        int val = rs.getInt(2);
+                        results.add(String.format("name:%s,value:%d", retName, val));
+                    }
+                    Assert.assertEquals("Incorrect number of rows returned!", 1, results.size());
+                }
+            };
+
+            SQLClosures.query(conn,sizeQuery,oneSizeValidator);
+
+            SQLClosures.execute(conn,new SQLClosures.SQLAction<Statement>() {
+                @Override
+                public void execute(Statement s) throws Exception {
+                    s.execute(format("delete from %s where name = '%s'", spliceTableWatcher, name));
+                }
+            });
+
+            SQLClosures.query(conn, sizeQuery, zeroSizeValidator);
+
+
+        }finally{
+            conn.rollback();
+            conn.setAutoCommit(autoCommit);
         }
-        Assert.assertEquals("Incorrect number of rows returned!", 0, results.size());
-        methodWatcher.getStatement().execute(format("insert into %s (name, val) values ('%s', %s)", this.getTableReference(TABLE_NAME), name, value));
-        rs = methodWatcher.executeQuery(format("select * from %s where name = '%s'", this.getTableReference(TABLE_NAME), name));
-        results = Lists.newArrayListWithExpectedSize(1);
-        while (rs.next()) {
-            String retName = rs.getString(1);
-            int val = rs.getInt(2);
-            results.add(String.format("name:%s,value:%d", retName, val));
-        }
-        Assert.assertEquals("Incorrect number of rows returned!", 1, results.size());
-        methodWatcher.getStatement().execute(format("delete from %s where name = '%s'", this.getTableReference(TABLE_NAME), name));
-        rs = methodWatcher.executeQuery(format("select * from %s where name = '%s'", this.getTableReference(TABLE_NAME), name));
-        results = Lists.newArrayListWithExpectedSize(1);
-        while (rs.next()) {
-            String retName = rs.getString(1);
-            int val = rs.getInt(2);
-            results.add(String.format("name:%s,value:%d", retName, val));
-        }
-        Assert.assertEquals("Incorrect number of rows returned!", 0, results.size());
-        methodWatcher.getOrCreateConnection().rollback();
     }
 
     @Test(expected=SQLException.class,timeout= 10000)
@@ -179,87 +216,141 @@ public class PrimaryKeyIT extends SpliceUnitTest {
             Assert.assertTrue("Incorrect error returned!",sql.getSQLState().contains("23505"));
             throw sql;
         }
-
     }
 
     @Test(timeout=10000)
     public void updateKeyColumn() throws Exception{
-        PreparedStatement updateStatement = methodWatcher.prepareStatement(UPDATE_NAME_BY_NAME);
-        updateStatement.setString(1,"jzhang");
-        updateStatement.setString(2,"jleach");
-        updateStatement.executeUpdate();
-        PreparedStatement validator = methodWatcher.prepareStatement(SELECT_BY_NAME);
-        validator.setString(1, "jleach");
-        ResultSet rs = validator.executeQuery();
-        while(rs.next()){
-            Assert.fail("Should have returned nothing");
+        Connection conn = methodWatcher.getOrCreateConnection();
+        boolean oldAutoCommit = conn.getAutoCommit();
+        conn.setAutoCommit(false);
+        try{
+            SQLClosures.prepareExecute(conn,UPDATE_NAME_BY_NAME,new SQLClosures.SQLAction<PreparedStatement>() {
+                @Override
+                public void execute(PreparedStatement updateStatement) throws Exception {
+                    updateStatement.setString(1,"jzhang");
+                    updateStatement.setString(2,"jleach");
+                    updateStatement.executeUpdate();
+                }
+            });
+
+            SQLClosures.prepareExecute(conn,SELECT_BY_NAME,new SQLClosures.SQLAction<PreparedStatement>() {
+                @Override
+                public void execute(PreparedStatement validator) throws Exception {
+                    validator.setString(1,"jleach");
+                    ResultSet rs = validator.executeQuery();
+                    try{
+                        while(rs.next()){
+                            Assert.fail("Should have returned nothing");
+                        }
+                    }finally{
+                        rs.close();
+                    }
+                    validator.setString(1,"jzhang");
+                    rs = validator.executeQuery();
+                    try{
+                        int matchCount = 0;
+                        while(rs.next()){
+                            if("jzhang".equalsIgnoreCase(rs.getString(1))){
+                                matchCount++;
+                                Assert.assertEquals("Column incorrect!",2,rs.getInt(2));
+                            }
+                        }
+                        Assert.assertEquals("Incorrect number of updated rows!",1,matchCount);
+                    }finally{
+                        rs.close();
+                    }
+                }
+            });
+
+        }finally{
+            conn.rollback();
+            conn.setAutoCommit(oldAutoCommit);
         }
-        validator.setString(1,"jzhang");
-        rs = validator.executeQuery();
-        int matchCount = 0;
-        while(rs.next()){
-            if("jzhang".equalsIgnoreCase(rs.getString(1))){
-                matchCount++;
-                Assert.assertEquals("Column incorrect!",2,rs.getInt(2));
-            }
-        }
-        Assert.assertEquals("Incorrect number of updated rows!",1,matchCount);
     }
 
     @Test(timeout=10000)
     // Test for DB-1112
     public void updateKeyColumnWithSameValue() throws Exception{
-        PreparedStatement updateStatement = methodWatcher.prepareStatement(UPDATE_NAME_BY_NAME);
-        updateStatement.setString(1,"dgf");
-        updateStatement.setString(2,"dgf");
-        updateStatement.executeUpdate();
-        updateStatement.executeUpdate();
-        updateStatement.executeUpdate();
-        updateStatement.executeUpdate();
-        updateStatement.executeUpdate();
-        PreparedStatement validator = methodWatcher.prepareStatement(SELECT_BY_NAME);
-        validator.setString(1,"dgf");
-        ResultSet rs = validator.executeQuery();
-        int matchCount = 0;
-        while(rs.next()){
-            if("dgf".equalsIgnoreCase(rs.getString(1))){
-                matchCount++;
-                Assert.assertEquals("Column incorrect!", 5, rs.getInt(2));
+        Connection conn = methodWatcher.getOrCreateConnection();
+        boolean oldAutoCommit = conn.getAutoCommit();
+        conn.setAutoCommit(false);
+        try{
+
+            SQLClosures.prepareExecute(conn,UPDATE_NAME_BY_NAME,new SQLClosures.SQLAction<PreparedStatement>() {
+                @Override
+                public void execute(PreparedStatement updateStatement) throws Exception {
+                    updateStatement.setString(1,"dgf");
+                    updateStatement.setString(2,"dgf");
+                    updateStatement.executeUpdate();
+                    updateStatement.executeUpdate();
+                    updateStatement.executeUpdate();
+                    updateStatement.executeUpdate();
+                    updateStatement.executeUpdate();
+                }
+            });
+
+            PreparedStatement validator = conn.prepareStatement(SELECT_BY_NAME);
+            validator.setString(1,"dgf");
+            ResultSet rs = validator.executeQuery();
+            try{
+                int matchCount = 0;
+                while(rs.next()){
+                    if("dgf".equalsIgnoreCase(rs.getString(1))){
+                        matchCount++;
+                        Assert.assertEquals("Column incorrect!", 5, rs.getInt(2));
+                    }
+                }
+                Assert.assertEquals("Incorrect number of updated rows!",1,matchCount);
+            }finally{
+                rs.close();
+                validator.close();
             }
+        }finally{
+            conn.rollback();
+            conn.setAutoCommit(oldAutoCommit);
         }
-        Assert.assertEquals("Incorrect number of updated rows!",1,matchCount);
-    }
-
-
-    @Test(timeout=10000)
-    // Test for DB-1316
-    public void updateKeyColumnOfUnorderedPK() throws Exception{
-        PreparedStatement updateStatement = methodWatcher.prepareStatement(String.format("update %s.AB set val = 44", CLASS_NAME));
-        updateStatement.executeUpdate();
-        ResultSet rs = methodWatcher.executeQuery(String.format("select val from %s.AB", CLASS_NAME));
-        Assert.assertTrue("No values returned", rs.next());
-        Assert.assertEquals("Update unsuccessful", 44, rs.getInt(1));
     }
 
     @Test(timeout=10000)
     public void updateNonKeyColumn() throws Exception{
-        PreparedStatement updateStatement = methodWatcher.prepareStatement(UPDATE_VALUE_BY_NAME);
-        updateStatement.setInt(1,20);
-        updateStatement.setString(2,"mzweben");
-        Assert.assertEquals(1, updateStatement.executeUpdate());
+        Connection conn = methodWatcher.getOrCreateConnection();
+        boolean oldAutoCommit = conn.getAutoCommit();
+        conn.setAutoCommit(false);
+        try{
+            SQLClosures.prepareExecute(conn,UPDATE_VALUE_BY_NAME,new SQLClosures.SQLAction<PreparedStatement>() {
+                @Override
+                public void execute(PreparedStatement updateStatement) throws Exception {
+                    updateStatement.setInt(1,20);
+                    updateStatement.setString(2,"mzweben");
+                    Assert.assertEquals(1, updateStatement.executeUpdate());
+                }
+            });
 
-        PreparedStatement validator = methodWatcher.prepareStatement(SELECT_BY_NAME);
-        validator.setString(1,"mzweben");
-        ResultSet rs = validator.executeQuery();
-        int matchCount =0;
-        while(rs.next()){
-            if("mzweben".equalsIgnoreCase(rs.getString(1))){
-                matchCount++;
-                int val = rs.getInt(2);
-                Assert.assertEquals("Column incorrect!",20,val);
-            }
+            SQLClosures.prepareExecute(conn,SELECT_BY_NAME,new SQLClosures.SQLAction<PreparedStatement>() {
+                @Override
+                public void execute(PreparedStatement validator) throws Exception {
+                    validator.setString(1,"mzweben");
+                    ResultSet rs = validator.executeQuery();
+                    try{
+                        int matchCount =0;
+                        while(rs.next()){
+                            if("mzweben".equalsIgnoreCase(rs.getString(1))){
+                                matchCount++;
+                                int val = rs.getInt(2);
+                                Assert.assertEquals("Column incorrect!",20,val);
+                            }
+                        }
+                        Assert.assertEquals("Incorrect number of updated rows!",1,matchCount);
+                    }finally{
+                        rs.close();
+                    }
+
+                }
+            });
+        }finally{
+            conn.rollback();
+            conn.setAutoCommit(oldAutoCommit);
         }
-        Assert.assertEquals("Incorrect number of updated rows!",1,matchCount);
     }
 
     @Test(timeout=10000)

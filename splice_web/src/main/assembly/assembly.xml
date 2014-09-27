@@ -6,13 +6,6 @@
 		<format>tar.gz</format>
 	</formats>
 	<includeBaseDirectory>false</includeBaseDirectory>
-	<dependencySets>
-		<dependencySet>
-			<outputDirectory>spliceadmin/lib</outputDirectory>
-			<scope>runtime</scope>
-			<useProjectArtifact>false</useProjectArtifact>
-		</dependencySet>
-	</dependencySets>
 	<fileSets>
 		<fileSet>
 			<directory>target</directory>

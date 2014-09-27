@@ -2,12 +2,18 @@ package com.splicemachine.derby.iapi.sql.execute;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceOperationRegionScanner;
+import com.splicemachine.derby.impl.store.access.SpliceTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.hbase.ReadAheadRegionScanner;
+import com.splicemachine.si.api.TransactionalRegion;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
+import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
@@ -41,12 +47,17 @@ public class SpliceOperationContext {
     private boolean cacheBlocks = true;
     private SpliceRuntimeContext spliceRuntimeContext;
 
+		private TxnView txn;
+    private TransactionalRegion txnRegion;
+
     public SpliceOperationContext(HRegion region,
+                                  TransactionalRegion txnRegion,
                                   Scan scan,
                                   Activation activation,
                                   GenericStorablePreparedStatement preparedStatement,
                                   LanguageConnectionContext lcc,boolean isSink,SpliceOperation topOperation,
-                                  SpliceRuntimeContext spliceRuntimeContext){
+                                  SpliceRuntimeContext spliceRuntimeContext,
+																	TxnView txn){
         this.region= region;
         this.scan = scan;
         this.activation = activation;
@@ -55,30 +66,39 @@ public class SpliceOperationContext {
         this.isSink = isSink;
         this.topOperation = topOperation;
         this.spliceRuntimeContext = spliceRuntimeContext;
+				this.txn = txn;
+        this.txnRegion = txnRegion;
     }
 
-    public SpliceOperationContext(RegionScanner scanner,
+
+		public SpliceOperationContext(RegionScanner scanner,
                                   HRegion region,
+                                  TransactionalRegion txnRegion,
                                   Scan scan,
                                   Activation activation,
                                   GenericStorablePreparedStatement preparedStatement,
                                   LanguageConnectionContext lcc,
                                   boolean isSink,SpliceOperation topOperation,
-                                  SpliceRuntimeContext spliceRuntimeContext){
+                                  SpliceRuntimeContext spliceRuntimeContext,
+																	TxnView txn){
         this.activation = activation;
         this.preparedStatement = preparedStatement;
+
 				if(SpliceConstants.useReadAheadScanner)
 						this.scanner = new ReadAheadRegionScanner(region, scan.getCaching(), scanner,spliceRuntimeContext);
 				else
 						this.scanner = new BufferedRegionScanner(region, scanner, scan, scan.getCaching(),spliceRuntimeContext);
 
         this.region=region;
+        this.txnRegion = txnRegion;
         this.scan = scan;
         this.lcc = lcc;
         this.isSink=isSink;
         this.topOperation = topOperation;
         this.spliceRuntimeContext = spliceRuntimeContext;
+				this.txn = txn;
     }
+
 
     public void setSpliceRegionScanner(SpliceOperationRegionScanner sors){
         this.spliceRegionScanner = sors;
@@ -140,6 +160,8 @@ public class SpliceOperationContext {
         }finally{
             if(scanner!=null)
                 scanner.close();
+            if(txnRegion!=null)
+                txnRegion.discard();
         }
     }
 
@@ -162,11 +184,21 @@ public class SpliceOperationContext {
         return activation;
     }
 
-    public static SpliceOperationContext newContext(Activation a){
-        return new SpliceOperationContext(null,null,
+		public TxnView getTxn() { return txn; }
+
+		public static SpliceOperationContext newContext(Activation a){
+				return newContext(a,null);
+		}
+
+    public static SpliceOperationContext newContext(Activation a,TxnView txn){
+				if(txn==null){
+						TransactionController te = a.getLanguageConnectionContext().getTransactionExecute();
+						txn = ((SpliceTransactionManager) te).getRawTransaction().getActiveStateTxn();
+				}
+        return new SpliceOperationContext(null,null,null,
                 a,
                 (GenericStorablePreparedStatement)a.getPreparedStatement(),
-                null,false,null, new SpliceRuntimeContext());
+                null,false,null, new SpliceRuntimeContext(txn),txn);
     }
 
     public SpliceOperation getTopOperation() {
@@ -183,5 +215,9 @@ public class SpliceOperationContext {
 
     public void setCacheBlocks(boolean cacheBlocks) {
         this.cacheBlocks = cacheBlocks;
+    }
+
+    public TransactionalRegion getTransactionalRegion() {
+        return txnRegion;
     }
 }

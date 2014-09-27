@@ -7,6 +7,7 @@ import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.marshall.DataHash;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.storage.EntryEncoder;
+import org.apache.derby.iapi.error.StandardException;
 
 import java.util.Arrays;
 import java.util.Comparator;
@@ -15,9 +16,9 @@ import java.util.Comparator;
  * @author Scott Fines
  * Date: 1/22/14
  */
-public class XplainTaskReporter extends XplainReporter<OperationRuntimeStats>{
-		public XplainTaskReporter(int numWorkers) {
-				super("SYSTASKHISTORY", numWorkers);
+public class XplainTaskReporter extends TransactionalXplainReporter<OperationRuntimeStats>{
+		public XplainTaskReporter() throws StandardException {
+				super("SYSTASKHISTORY");
 		}
 
 		@Override

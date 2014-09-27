@@ -16,6 +16,7 @@ import com.splicemachine.job.JobResults;
 import com.splicemachine.job.JobStatsUtils;
 import com.splicemachine.metrics.TimeView;
 import com.splicemachine.metrics.Timer;
+import com.splicemachine.si.api.Txn;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -65,7 +66,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		protected HRegion region;
 
 		protected Activation activation;
-		protected String transactionID;
 
 		protected Timer timer;
 		protected long stopExecutionTime;
@@ -108,7 +108,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
 		protected int resultSetNumber;
 		protected OperationInformation operationInformation;
-		private transient JobResults jobResults;
+		protected transient JobResults jobResults;
 		protected long statementId = -1l; //default value if the statementId isn't set
 
 		public SpliceBaseOperation() {
@@ -156,7 +156,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 				this.optimizerEstimatedCost = in.readDouble();
 				this.optimizerEstimatedRowCount = in.readDouble();
 				this.operationInformation = (OperationInformation)in.readObject();
-				transactionID = readNullableString(in);
 				isTopResultSet = in.readBoolean();
             if (in.readBoolean()){
                uniqueSequenceID = new byte[in.readInt()];
@@ -172,7 +171,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 				out.writeDouble(optimizerEstimatedCost);
 				out.writeDouble(optimizerEstimatedRowCount);
 				out.writeObject(operationInformation);
-				writeNullableString(getTransactionID(), out);
 				out.writeBoolean(isTopResultSet);
             out.writeBoolean(uniqueSequenceID != null);
             if (uniqueSequenceID != null){
@@ -181,6 +179,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
             }
 				out.writeBoolean(statisticsTimingOn);
 				out.writeLong(statementId);
+
 		}
 
 		@Override public long getStatementId() { return statementId; }
@@ -395,7 +394,10 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 				final RowProvider rowProvider = getMapRowProvider(this, OperationUtils.getPairDecoder(this, spliceRuntimeContext),spliceRuntimeContext);
 
 				nextTime+= System.currentTimeMillis()-start;
-				SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this,spliceRuntimeContext);
+				//TODO -sf- can we remove the transaction here?
+				SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),
+								this,spliceRuntimeContext,
+								spliceRuntimeContext.getTxn());
 				jobResults = rowProvider.shuffleRows(soi,OperationUtils.cleanupSubTasks(this));
 				return jobResults;
 		}
@@ -554,23 +556,23 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 				return constructorTime + openTime + nextTime + closeTime;
 		}
 
-		protected Transaction getTrans() {
-				return (activation.getTransactionController() == null) ? null : ((SpliceTransactionManager) activation.getTransactionController()).getRawStoreXact();
-		}
+//		protected Transaction getTrans() {
+//				return (activation.getTransactionController() == null) ? null : ((SpliceTransactionManager) activation.getTransactionController()).getRawStoreXact();
+//		}
 
-		public void clearChildTransactionID() {
-				this.childTransactionID = null;
-		}
+//		public void clearChildTransactionID() {
+//				this.childTransactionID = null;
+//		}
 
-		public String getTransactionID() {
-				if (childTransactionID != null) {
-						return childTransactionID;
-				} else if (activation == null) {
-						return transactionID;
-				} else {
-						return (getTrans() == null) ? null : activation.getTransactionController().getActiveStateTxIdString();
-				}
-		}
+//		public String getTransactionID() {
+//				if (childTransactionID != null) {
+//						return childTransactionID;
+//				} else if (activation == null) {
+//						return transactionID;
+//				} else {
+//						return (getTrans() == null) ? null : activation.getTransactionController().getActiveStateTxIdString();
+//				}
+//		}
 
 		@Override
 		public RowLocation getCurrentRowLocation() {

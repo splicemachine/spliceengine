@@ -1,7 +1,5 @@
 package com.splicemachine.si;
 
-import org.junit.Test;
-
 import java.io.IOException;
 
 public class SITransactorPackedTest extends SITransactorTest {
@@ -10,8 +8,8 @@ public class SITransactorPackedTest extends SITransactorTest {
         super.setUp();
     }
 
-    @Test
-    public void writeReadViaFilterResult() throws IOException {
-        // temporarily mask test in parent class
-    }
+//    @Test
+//    public void writeReadViaFilterResult() throws IOException {
+//        // temporarily mask test in parent class
+//    }
 }

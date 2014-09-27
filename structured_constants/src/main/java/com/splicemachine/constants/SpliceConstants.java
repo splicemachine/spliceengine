@@ -18,7 +18,23 @@ import java.util.concurrent.TimeUnit;
 public class SpliceConstants {
     private static final Logger LOG = Logger.getLogger(SpliceConstants.class);
 
-		public enum AuthenticationType {NONE,LDAP,NATIVE,CUSTOM};
+    @Parameter public static final String ROLL_FORWARD_SEGMENTS = "splice.rollforward.numSegments";
+    @DefaultValue(ROLL_FORWARD_SEGMENTS) public static final int DEFAULT_ROLLFORWARD_SEGMENTS = 4;
+    public static int numRollForwardSegments;
+
+    @Parameter public static final String ROLL_FORWARD_ROW_THRESHOLD = "splice.rollforward.rowThreshold";
+    @DefaultValue(ROLL_FORWARD_ROW_THRESHOLD) public static final int DEFAULT_ROLLFOWARD_ROW_THRESHOLD=1<<14; //about 16K
+    public static int rollForwardRowThreshold;
+
+    @Parameter public static final String ROLL_FORWARD_TXN_THRESHOLD = "splice.rollforward.rowThreshold";
+    @DefaultValue(ROLL_FORWARD_TXN_THRESHOLD) public static final int DEFAULT_ROLLFOWARD_TXN_THRESHOLD=1<<10; //about 1K
+    public static int rollForwardTxnThreshold;
+
+    @Parameter public static final String MAX_DDL_WAIT = "splice.ddl.maxWaitSeconds";
+    @DefaultValue(MAX_DDL_WAIT) public static final int DEFAULT_MAX_DDL_WAIT=240;
+    public static long maxDdlWait;
+
+    public enum AuthenticationType {NONE,LDAP,NATIVE,CUSTOM};
 
 		@Parameter public static final String SEQUENTIAL_IMPORT_THREASHOLD="splice.import.sequentialFileSize";
 		@DefaultValue(SEQUENTIAL_IMPORT_THREASHOLD) public static final long DEFAULT_SEQUENTIAL_IMPORT_THRESHOLD = 1024*1024*1024; //defaults to 1GB
@@ -226,18 +242,18 @@ public class SpliceConstants {
 		/**
 		 * The number of timestamps to 'reserve' at a time in the Timestamp Server.
 		 * Defaults to 8192
-		 */
-		@Parameter public static final String TIMESTAMP_BLOCK_SIZE = "splice.timestamp_server.blocksize";
-		@DefaultValue(TIMESTAMP_BLOCK_SIZE) public static final int DEFAULT_TIMESTAMP_BLOCK_SIZE = 8192;
-		public static int timestampBlockSize;
+     */
+    @Parameter public static final String TIMESTAMP_BLOCK_SIZE = "splice.timestamp_server.blocksize";
+    @DefaultValue(TIMESTAMP_BLOCK_SIZE) public static final int DEFAULT_TIMESTAMP_BLOCK_SIZE = 8192;
+    public static int timestampBlockSize;
 
-		/**
-		 * The number of milliseconds the timestamp client should wait for the response.
-		 * Defaults to 60000 (60 seconds)
-		 */
-		@Parameter public static final String TIMESTAMP_CLIENT_WAIT_TIME = "splice.timestamp_server.clientWaitTime";
-		@DefaultValue(TIMESTAMP_CLIENT_WAIT_TIME) public static final int DEFAULT_TIMESTAMP_CLIENT_WAIT_TIME = 60000;
-		public static int timestampClientWaitTime;
+    /**
+     * The number of milliseconds the timestamp client should wait for the response.
+     * Defaults to 60000 (60 seconds)
+     */
+    @Parameter public static final String TIMESTAMP_CLIENT_WAIT_TIME = "splice.timestamp_server.clientWaitTime";
+    @DefaultValue(TIMESTAMP_CLIENT_WAIT_TIME) public static final int DEFAULT_TIMESTAMP_CLIENT_WAIT_TIME = 60000;
+    public static int timestampClientWaitTime;
 
     /*Task and Job management*/
 		/**
@@ -743,7 +759,7 @@ public class SpliceConstants {
 		 * Defaults to 50.
 		 */
 		@Parameter private static final String KRYO_POOL_SIZE = "splice.marshal.kryoPoolSize";
-		@DefaultValue(KRYO_POOL_SIZE) public static final int DEFAULT_KRYO_POOL_SIZE=2000;
+		@DefaultValue(KRYO_POOL_SIZE) public static final int DEFAULT_KRYO_POOL_SIZE=16000;
 		public static int kryoPoolSize;
 
 
@@ -917,7 +933,7 @@ public class SpliceConstants {
 		public static final String TEST_TABLE = "SPLICE_TEST";
 		public static final String TRANSACTION_TABLE = "SPLICE_TXN";
 		public static final String TENTATIVE_TABLE = "TENTATIVE_DDL";
-		public static final int TRANSACTION_TABLE_BUCKET_COUNT = 16;
+		public static final int TRANSACTION_TABLE_BUCKET_COUNT = 16; //must be a power of 2
 		public static final String CONGLOMERATE_TABLE_NAME = "SPLICE_CONGLOMERATE";
 		public static final String SEQUENCE_TABLE_NAME = "SPLICE_SEQUENCES";
 		public static final String SYSSCHEMAS_CACHE = "SYSSCHEMAS_CACHE";
@@ -1183,6 +1199,12 @@ public class SpliceConstants {
 
 				interRegionTaskSplitThresholdBytes = config.getLong(INTER_REGION_TASK_SPLIT_THRESHOLD_BYTES,DEFAULT_INTER_REGION_TASK_SPLIT_THRESHOLD_BYTES);
 				maxInterRegionTaskSplits = config.getInt(MAX_INTER_REGION_TASK_SPLITS,DEFAULT_MAX_INTER_REGION_TASK_SPLITS);
+
+        numRollForwardSegments = config.getInt(ROLL_FORWARD_SEGMENTS,DEFAULT_ROLLFORWARD_SEGMENTS);
+        rollForwardRowThreshold = config.getInt(ROLL_FORWARD_ROW_THRESHOLD,DEFAULT_ROLLFOWARD_ROW_THRESHOLD);
+        rollForwardTxnThreshold = config.getInt(ROLL_FORWARD_TXN_THRESHOLD,DEFAULT_ROLLFOWARD_TXN_THRESHOLD);
+
+        maxDdlWait = config.getInt(MAX_DDL_WAIT,DEFAULT_MAX_DDL_WAIT);
 		}
 
 		public static void reloadConfiguration(Configuration configuration) {

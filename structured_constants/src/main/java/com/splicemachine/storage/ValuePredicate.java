@@ -199,4 +199,16 @@ public class ValuePredicate implements Predicate {
     }
 
 		protected PredicateType getType() { return PredicateType.VALUE; }
+
+
+    @Override
+    public String toString() {
+        return "ValuePredicate {" +
+                "compareOp=" + compareOp +
+                ", column=" + column +
+                ", compareValue=" + Arrays.toString(compareValue) +
+                ", desc=" + desc +
+                ", removeNullEntries=" + removeNullEntries +
+                '}';
+    }
 }

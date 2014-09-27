@@ -12,6 +12,8 @@ import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.metrics.TimeView;
 import com.splicemachine.metrics.Timer;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.kryo.KryoPool;
 import com.splicemachine.uuid.UUIDGenerator;
@@ -42,21 +44,21 @@ public class SequentialImporter implements Importer{
 
 		public SequentialImporter(ImportContext importContext,
 															ExecRow templateRow,
-															String txnId, ImportErrorReporter errorReporter){
-			this(importContext, templateRow, txnId,SpliceDriver.driver().getTableWriter(),SpliceDriver.getKryoPool(),errorReporter);
+															TxnView txn, ImportErrorReporter errorReporter){
+			this(importContext, templateRow, txn,SpliceDriver.driver().getTableWriter(),SpliceDriver.getKryoPool(),errorReporter);
 		}
 
 		public SequentialImporter(ImportContext importContext,
 															ExecRow templateRow,
-															String txnId, ImportErrorReporter errorReporter,
+															TxnView txn, ImportErrorReporter errorReporter,
 															CallBufferFactory<KVPair> callBufferFactory,
 															KryoPool kryoPool){
-				this(importContext, templateRow, txnId,callBufferFactory,kryoPool,errorReporter);
+				this(importContext, templateRow, txn,callBufferFactory,kryoPool,errorReporter);
 		}
 
 		public SequentialImporter(ImportContext importContext,
 															ExecRow templateRow,
-															String txnId,
+															TxnView txn,
 															CallBufferFactory<KVPair> callBufferFactory,
 															KryoPool kryoPool,
 															final ImportErrorReporter errorReporter){
@@ -108,7 +110,7 @@ public class SequentialImporter implements Importer{
 								return metricFactory;
 						}
 				};
-				writeBuffer = callBufferFactory.writeBuffer(importContext.getTableName().getBytes(), txnId,config);
+				writeBuffer = callBufferFactory.writeBuffer(importContext.getTableName().getBytes(), txn,config);
 		}
 
 		@Override

@@ -183,11 +183,12 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
 							colMap = keyColumns;
 						StandardIterator<ExecRow> source = new TableScannerBuilder()
 										.scanner(regionScanner)
+                    .region(txnRegion)
 										.template(template)
 										.metricFactory(spliceRuntimeContext)
 										.scan(scan)
 										.rowDecodingMap(colMap)
-										.transactionID(transactionID)
+                    .transaction(operationInformation.getTransaction())
 										.keyColumnEncodingOrder(scanInformation.getColumnOrdering())
 										.keyColumnSortOrder(scanInformation.getConglomerate().getAscDescInfo())
 										.keyColumnTypes(getKeyFormatIds())
@@ -289,7 +290,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
     @Override
 		public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 				try{
-						reduceScan = Scans.buildPrefixRangeScan(uniqueSequenceID,SpliceUtils.NA_TRANSACTION_ID);
+						reduceScan = Scans.buildPrefixRangeScan(uniqueSequenceID,null);
 						/*
 						 * We do a bit of an optimization here. If top == this, then we would be doing the following:
 						 * 1. scan data out of Region as KeyValue (locally)

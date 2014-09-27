@@ -136,13 +136,13 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
 				if(columns==null && families==null){
 						newCells.addAll(t.values);
 				}
-				if(columns!=null){
+				if(columns!=null&&columns.size()>0){
 						for(KeyValue c:t.values){
 								if(columnsContain(columns,c) && c.getTimestamp()<= effectiveTimestamp)
 										newCells.add(c);
 						}
 				}
-				if(families!=null){
+				if(families!=null && families.size()>0){
 						for(KeyValue c:t.values){
 								for(byte[] family:families){
 										if(c.matchingFamily(family) && c.getTimestamp()<=effectiveTimestamp){
@@ -380,13 +380,13 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
 		public void compact(Transactor transactor, String tableName) throws IOException {
         final List<LTuple> rows = relations.get(tableName);
         final List<LTuple> newRows = new ArrayList<LTuple>(rows.size());
-        final SICompactionState compactionState = transactor.newCompactionState();
-        for (LTuple row : rows) {
-            final ArrayList<KeyValue> mutatedValues = Lists.newArrayList();
-						compactionState.mutate(row.values, mutatedValues);
-            LTuple newRow = new LTuple(row.key, mutatedValues, row.getAttributesMap());
-            newRows.add(newRow);
-        }
+//        final SICompactionState compactionState = new SICompactionState()
+//        for (LTuple row : rows) {
+//            final ArrayList<KeyValue> mutatedValues = Lists.newArrayList();
+//						compactionState.mutate(row.values, mutatedValues);
+//            LTuple newRow = new LTuple(row.key, mutatedValues, row.getAttributesMap());
+//            newRows.add(newRow);
+//        }
         relations.put(tableName, newRows);
     }
 

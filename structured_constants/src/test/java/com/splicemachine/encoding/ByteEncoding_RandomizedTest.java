@@ -62,6 +62,16 @@ public class ByteEncoding_RandomizedTest {
 
             Assert.assertArrayEquals("Incorrect encoding/decoding",datum,decoded);
         }
+
+        for(byte[] datum:data){
+            byte[] encoded = ByteEncoding.encodeUnsorted(datum,1,datum.length-1);
+            byte[] decoded = ByteEncoding.decodeUnsorted(encoded,0,encoded.length);
+
+            byte[] dCopy = new byte[datum.length-1];
+            System.arraycopy(datum,1,dCopy,0,dCopy.length);
+
+            Assert.assertArrayEquals("Incorrect encoding/decoding",dCopy,decoded);
+        }
     }
 
     @Test

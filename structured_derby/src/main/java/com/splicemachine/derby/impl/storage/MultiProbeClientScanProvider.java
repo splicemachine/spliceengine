@@ -100,7 +100,7 @@ public class MultiProbeClientScanProvider extends AbstractMultiScanProvider {
 		}
 
 		@Override
-		public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) {
+		public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) throws IOException {
 				if(regionName==null)
 						regionName = "ControlRegion";
 				OperationRuntimeStats stats = new OperationRuntimeStats(statementId,operationId,taskId,regionName,9);
@@ -116,7 +116,7 @@ public class MultiProbeClientScanProvider extends AbstractMultiScanProvider {
 				stats.addMetric(OperationMetric.STOP_TIMESTAMP,stopTimestamp);
 				stats.setHostName(SpliceUtils.getHostName());
 
-				SpliceDriver.driver().getTaskReporter().report(stats);
+				SpliceDriver.driver().getTaskReporter().report(stats,spliceRuntimeContext.getTxn());
 		}
 
 		@Override

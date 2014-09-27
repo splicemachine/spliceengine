@@ -43,7 +43,6 @@ import java.util.List;
 public class MergeSortJoinOperation extends JoinOperation implements SinkingOperation {
     private static final long serialVersionUID = 2l;
     private static Logger LOG = Logger.getLogger(MergeSortJoinOperation.class);
-    protected boolean wasRightOuterJoin;
     protected int leftHashKeyItem;
     protected int[] leftHashKeys;
     protected int rightHashKeyItem;
@@ -127,7 +126,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
             System.arraycopy(uniqueSequenceID, 0, start, 0, start.length);
             byte[] finish = BytesUtil.unsignedCopyAndIncrement(start);
             rowType = (SQLInteger) activation.getDataValueFactory().getNullInteger(null);
-            reduceScan = Scans.newScan(start, finish, getTransactionID());
+            reduceScan = Scans.newScan(start, finish,null);
         } else {
             reduceScan = context.getScan();
         }
@@ -248,7 +247,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
             byte[] finish = new byte[start.length+1];
 						System.arraycopy(start,0,finish,0,start.length);
 						finish[finish.length-1] = 0x01;
-            reduceScan = Scans.newScan(start, finish, SpliceUtils.NA_TRANSACTION_ID);
+            reduceScan = Scans.newScan(start, finish, null);
             if (failedTasks.size() > 0) {
                 reduceScan.setFilter(new SuccessFilter(failedTasks));
             }
@@ -290,7 +289,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 				RowProvider leftProvider = leftResultSet.getMapRowProvider(this, OperationUtils.getPairDecoder(this, spliceLRuntimeContext), spliceLRuntimeContext);
 				RowProvider rightProvider = rightResultSet.getMapRowProvider(this, OperationUtils.getPairDecoder(this, spliceRRuntimeContext), spliceRRuntimeContext);
 				RowProvider combined = RowProviders.combine(leftProvider, rightProvider);
-        SpliceRuntimeContext instructionContext = new SpliceRuntimeContext();
+        SpliceRuntimeContext instructionContext = new SpliceRuntimeContext(operationInformation.getTransaction());
         instructionContext.setStatementInfo(runtimeContext.getStatementInfo());
         SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(), this, instructionContext);
         JobResults stats = combined.shuffleRows(soi,OperationUtils.cleanupSubTasks(this));
@@ -431,7 +430,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 
         //ResultMergeScanner scanner;
         if (spliceRuntimeContext.isSink()) {
-            scanner = ResultMergeScanner.regionAwareScanner(reduceScan, transactionID, leftDecoder, rightDecoder, region,spliceRuntimeContext);
+            scanner = ResultMergeScanner.regionAwareScanner(reduceScan, leftDecoder, rightDecoder, region,spliceRuntimeContext);
         } else {
             scanner = ResultMergeScanner.clientScanner(reduceScan, leftDecoder, rightDecoder,spliceRuntimeContext);
         }

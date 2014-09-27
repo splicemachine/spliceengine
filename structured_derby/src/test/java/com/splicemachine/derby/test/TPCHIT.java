@@ -5,8 +5,10 @@ import java.io.FileInputStream;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 
 import com.splicemachine.test.SlowTest;
+
 import org.apache.derby.tools.ij;
 import org.junit.Assert;
 import org.junit.ClassRule;
@@ -16,6 +18,7 @@ import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
+
 import com.google.common.io.Closeables;
 import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
@@ -133,7 +136,6 @@ public class TPCHIT extends SpliceUnitTest {
 				rs.next();
 				Assert.assertEquals(5, rs.getLong(1));
 		}
-/*
 		@Test
 		public void sql1() throws Exception {
 				Assert.assertTrue(runScript(new File(getSQLFile("1.sql")),methodWatcher.getOrCreateConnection()));
@@ -242,7 +244,20 @@ public class TPCHIT extends SpliceUnitTest {
 		public void sql20() throws Exception {
 				Assert.assertTrue(runScript(new File(getSQLFile("20.sql")),methodWatcher.getOrCreateConnection()));
 		}
-*/
+		
+		@Test(expected=SQLException.class)
+		public void noMergeOverMergeSort() throws Exception {
+			String mergeOverMergeSort = "select s_name from  --SPLICE-PROPERTIES joinOrder=FIXED\n" +                                                                                                                     
+					"%s.supplier, "+
+					"%s.nation, "+
+					"%s.lineitem l3 --SPLICE-PROPERTIES joinStrategy=SORTMERGE\n "+                                                                                                       
+					" ,%s.orders --SPLICE-PROPERTIES joinStrategy=MERGE\n" +                                                                                                             
+					" where "+
+					"s_suppkey = l3.l_suppkey " +
+					"and o_orderkey = l3.l_orderkey";
+			methodWatcher.executeQuery(String.format(mergeOverMergeSort,CLASS_NAME,CLASS_NAME,CLASS_NAME,CLASS_NAME));
+		}
+		
 		public static String getResource(String name) {
 				return getResourceDirectory()+"tcph/data/"+name;
 		}

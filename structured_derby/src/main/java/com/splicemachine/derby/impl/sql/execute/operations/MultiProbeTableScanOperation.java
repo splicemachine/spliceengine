@@ -204,7 +204,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
 	@Override
 	public RowProvider getMapRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 		beginTime = System.currentTimeMillis();
-			List<Scan> scans = scanInformation.getScans(getTransactionID(), null, activation, top, spliceRuntimeContext);
+			List<Scan> scans = scanInformation.getScans(operationInformation.getTransaction(), null, activation, top, spliceRuntimeContext);
 			for(Scan scan:scans){
 					//remove SI behavior from scan to make sure that we do it ourselves
 					deSiify(scan);

@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.load;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.utils.StringUtils;
+import com.splicemachine.si.api.Txn;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.fs.Path;
 
@@ -23,7 +24,6 @@ public class ImportContext implements Externalizable{
 		protected static final String DEFAULT_COLUMN_DELIMITTER = ",";
 		protected static final String DEFAULT_STRIP_STRING = "\"";
 
-		private String transactionId;
 
 		//the path to the file to import
 		private Path filePath;
@@ -63,10 +63,9 @@ public class ImportContext implements Externalizable{
 		private Path badLogDirectory;
 		private String tableVersion;
 
-		public ImportContext(){}
+    public ImportContext(){}
 
-		private ImportContext(String transactionId,
-													Path filePath,
+		private ImportContext( Path filePath,
 													long destTableId,
 													String columnDelimiter,
 													String stripString,
@@ -81,7 +80,6 @@ public class ImportContext implements Externalizable{
 													long maxBadRecords,
 													Path badLogDirectory,
 													String tableVersion){
-				this.transactionId = transactionId;
 				this.filePath = filePath;
 				this.columnDelimiter = columnDelimiter!= null?columnDelimiter:DEFAULT_COLUMN_DELIMITTER;
 				this.stripString = stripString!=null?stripString:DEFAULT_STRIP_STRING;
@@ -124,7 +122,6 @@ public class ImportContext implements Externalizable{
 		public String getTimestampFormat() { return timestampFormat; }
 		public long getByteOffset() { return byteOffset; }
 		public int getBytesToRead() { return bytesToRead; }
-		public String getTransactionId() { return transactionId; }
 		public String getDateFormat() { return dateFormat; }
 		public String getTimeFormat() { return timeFormat; }
 		public ColumnContext[] getColumnInformation() { return columnInformation; }
@@ -132,7 +129,6 @@ public class ImportContext implements Externalizable{
 
 		@Override
 		public void writeExternal(ObjectOutput out) throws IOException {
-				out.writeUTF(transactionId);
 				out.writeUTF(filePath.toString());
 				out.writeLong(tableId);
 				out.writeUTF(columnDelimiter);
@@ -169,7 +165,6 @@ public class ImportContext implements Externalizable{
 
 		@Override
 		public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-				transactionId = in.readUTF();
 				filePath = new Path(in.readUTF());
 				tableId = in.readLong();
 				columnDelimiter = in.readUTF();
@@ -202,7 +197,6 @@ public class ImportContext implements Externalizable{
 		@Override
 		public String toString() {
 				return "ImportContext{" +
-								"transactionId=" + transactionId +
 								", filePath=" + filePath +
 								", columnDelimiter='" + columnDelimiter + '\'' +
 								", stripString='" + stripString + '\'' +
@@ -238,7 +232,7 @@ public class ImportContext implements Externalizable{
 		}
 
 		public ImportContext getCopy() {
-				return new ImportContext(transactionId,filePath,tableId,columnDelimiter,stripString,
+				return new ImportContext(filePath,tableId,columnDelimiter,stripString,
 								columnInformation,timestampFormat,
 								dateFormat,timeFormat,byteOffset,bytesToRead,
 								recordStats,xplainSchema,maxBadRecords,badLogDirectory,tableVersion);
@@ -250,14 +244,13 @@ public class ImportContext implements Externalizable{
 
 		public String getTableVersion() { return tableVersion; }
 
-		public static class Builder{
+    public static class Builder{
 				private Path filePath;
 				private Long tableId;
 				private String columnDelimiter;
 				private String stripString;
 				Map<Integer,Integer> indexToTypeMap = new HashMap<Integer, Integer>();
 				private String timestampFormat;
-				private String transactionId;
 				private long byteOffset;
 				private int bytesToRead;
 
@@ -271,8 +264,9 @@ public class ImportContext implements Externalizable{
 				private long maxBadRecords = 0l;
 				private Path badLogDirectory = null;
 				private String tableVersion;
+        private Txn txn;
 
-				public Builder maxBadRecords(long maxBadRecords){
+        public Builder maxBadRecords(long maxBadRecords){
 						this.maxBadRecords = maxBadRecords;
 						return this;
 				}
@@ -340,10 +334,10 @@ public class ImportContext implements Externalizable{
 						return this;
 				}
 
-				public Builder transactionId(String transactionId) {
-						this.transactionId = transactionId;
-						return this;
-				}
+        public Builder transaction(Txn txn) {
+            this.txn = txn;
+            return this;
+        }
 
 				public Builder byteOffset(long byteOffset){
 						this.byteOffset = byteOffset;
@@ -374,7 +368,6 @@ public class ImportContext implements Externalizable{
 						Preconditions.checkNotNull(filePath,"No File specified!");
 						Preconditions.checkNotNull(tableId,"No destination table specified!");
 //						Preconditions.checkNotNull(columnDelimiter,"No column Delimiter specified");
-						Preconditions.checkNotNull(transactionId,"No transactionId specified");
 
 
 						ColumnContext[] context = new ColumnContext[columnInformation.size()];
@@ -391,7 +384,7 @@ public class ImportContext implements Externalizable{
 								}
 						});
 						columnInformation.toArray(context);
-						return new ImportContext(transactionId, filePath,tableId,
+						return new ImportContext(filePath,tableId,
 										columnDelimiter,stripString,
 										context,
 										timestampFormat,dateFormat,timeFormat, byteOffset, bytesToRead,
@@ -401,5 +394,6 @@ public class ImportContext implements Externalizable{
 				public long getDestinationConglomerate() {
 						return this.tableId;
 				}
-		}
+
+    }
 }

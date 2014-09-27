@@ -44,6 +44,7 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.thrift2.generated.THBaseService;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -170,17 +171,17 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         }
     }
 
-    private void buildReduceScan() throws StandardException {
-        try {
-            reduceScan = Scans.buildPrefixRangeScan(uniqueSequenceID, SpliceUtils.NA_TRANSACTION_ID);
-        } catch (IOException e) {
-            throw Exceptions.parseException(e);
-        }
-        if (failedTasks.size() > 0) {
-            SuccessFilter filter = new SuccessFilter(failedTasks);
-            reduceScan.setFilter(filter);
-        }
-    }
+		private void buildReduceScan() throws StandardException {
+				try {
+						reduceScan = Scans.buildPrefixRangeScan(uniqueSequenceID, null);
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
+				if(failedTasks.size()>0){
+						SuccessFilter filter = new SuccessFilter(failedTasks);
+						reduceScan.setFilter(filter);
+				}
+		}
 
     @Override
     public void open() throws StandardException, IOException {
@@ -447,6 +448,13 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         return usedTempBuckets;
     }
 
+    @Override
+		protected int getNumMetrics() {
+				if(aggregator instanceof SinkGroupedAggregateIterator)
+						return 7;
+				else return 12;
+		}
+
     protected StandardIterator<ExecRow> getSourceIterator(SpliceRuntimeContext spliceRuntimeContext, int[] groupingKeys) throws StandardException, IOException {
         StandardIterator<ExecRow> sourceIterator;PairDecoder pairDecoder = OperationUtils.getPairDecoder(this, spliceRuntimeContext);
         if(!spliceRuntimeContext.isSink()){
@@ -460,13 +468,6 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
             sourceIterator = new ScanIterator(scanner, pairDecoder);
         }
         return sourceIterator;
-    }
-
-    @Override
-    protected int getNumMetrics() {
-        if (aggregator instanceof SinkGroupedAggregateIterator)
-            return 7;
-        else return 12;
     }
 
     @Override
@@ -527,7 +528,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                 return start;
             }
         };
-        return RegionAwareScanner.create(getTransactionID(), region, baseScan, SpliceConstants.TEMP_TABLE_BYTES, boundary, spliceRuntimeContext);
+        return RegionAwareScanner.create(null, region, baseScan, SpliceConstants.TEMP_TABLE_BYTES, boundary, spliceRuntimeContext);
     }
 
     @Override

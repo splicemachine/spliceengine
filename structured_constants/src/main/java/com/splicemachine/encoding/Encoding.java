@@ -702,4 +702,8 @@ public final class Encoding {
 		public static boolean isNullFloat(byte[] data, int offset,int length){
 				return length == DoubleEncoding.NULL_FLOAT_BYTES.length;
 		}
+
+    public static byte[] encodeBytesUnsorted(byte[] array, int offset, int length) {
+        return ByteEncoding.encodeUnsorted(array,offset,length);
+    }
 }

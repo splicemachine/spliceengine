@@ -1,6 +1,7 @@
 package com.splicemachine.hbase.writer;
 
 import com.splicemachine.metrics.MetricFactory;
+import com.splicemachine.si.api.TxnView;
 
 /**
  * @author Scott Fines
@@ -8,23 +9,24 @@ import com.splicemachine.metrics.MetricFactory;
  */
 public interface CallBufferFactory<T> {
 
-		RecordingCallBuffer<T> writeBuffer(byte[] tableName, String txnId, MetricFactory metricFactory);
+		RecordingCallBuffer<T> writeBuffer(byte[] tableName, TxnView txn, MetricFactory metricFactory);
 
-    RecordingCallBuffer<T> writeBuffer(byte[] tableName, String txnId);
+    RecordingCallBuffer<T> writeBuffer(byte[] tableName, TxnView txn);
 
-    RecordingCallBuffer<T> writeBuffer(byte[] tableName, String txnId,
+    RecordingCallBuffer<T> writeBuffer(byte[] tableName, TxnView txn,
                                             WriteCoordinator.PreFlushHook flushHook, Writer.WriteConfiguration writeConfiguration);
 
-		RecordingCallBuffer<T> writeBuffer(byte[] tableName, String txnId,Writer.WriteConfiguration writeConfiguration);
+		RecordingCallBuffer<T> writeBuffer(byte[] tableName, TxnView txn,Writer.WriteConfiguration writeConfiguration);
 
-		RecordingCallBuffer<T> writeBuffer(byte[] tableName, String txnId, int maxEntries);
+		RecordingCallBuffer<T> writeBuffer(byte[] tableName, TxnView txn, int maxEntries);
 
     RecordingCallBuffer<T> synchronousWriteBuffer(byte[] tableName,
-                                                       String txnId, WriteCoordinator.PreFlushHook flushHook,
+                                                       TxnView txn,
+																											 WriteCoordinator.PreFlushHook flushHook,
                                                        Writer.WriteConfiguration writeConfiguration);
 
     RecordingCallBuffer<T> synchronousWriteBuffer(byte[] tableName,
-                                                       String txnId,
+                                                       TxnView txn,
                                                        WriteCoordinator.PreFlushHook flushHook,
                                                        Writer.WriteConfiguration writeConfiguration,
                                                        int maxEntries);

@@ -154,6 +154,10 @@ final class ByteEncoding {
     };
 
     static byte[] encodeUnsorted(byte[] value){
+        return encodeUnsorted(value,0,value.length);
+    }
+
+    static byte[] encodeUnsorted(byte[] value, int offset, int limit) {
         /*
          * Encodes using 7-bit bytes. The first bit of every byte is always set to one (to
          * disambiguate from 0x00, which is reserved), and then the remaining bits are set
@@ -182,7 +186,7 @@ final class ByteEncoding {
          * The total size is 1 extra byte every 7 data bytes, which gives us a size to copy bytes
          * into (value.length +value.length/7 + value.length%7 (remainder bits)
          */
-        int numBits = 8*value.length;
+        int numBits = 8*limit;
         int length = numBits/7+1;
         if(numBits%8!=0)
             length++;
@@ -192,8 +196,9 @@ final class ByteEncoding {
         byte byt = output[0];
         byt |= 0x80; //set the continuation bit
         int outputPos =0;
-        for(int i=0;i<value.length;i++){
-            int[] maskAndShift = MASK_SHIFT_TABLE[i%7];
+        long end = offset+limit;
+        for(int pos=0,i=offset;i<end;pos++,i++){
+            int[] maskAndShift = MASK_SHIFT_TABLE[pos%7];
 
             //apply the byte-1 mask and shift
             byte byteToStore = value[i];
@@ -207,7 +212,7 @@ final class ByteEncoding {
             //apply the byte-2 mask and shift
             val = (byte)((byteToStore & maskAndShift[2])<<maskAndShift[3]);
             byt |= val;
-            if((i+1)%7==0){
+            if((pos+1)%7==0){
                 output[outputPos] = byt;
                 outputPos++; //we've completed this byte
                 byt = (byte)(output[outputPos] | 0x80);
@@ -253,6 +258,7 @@ final class ByteEncoding {
         }
         return output;
     }
+
 
     public static void main(String... args) throws Exception{
         byte[] data = new byte[]{1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32};

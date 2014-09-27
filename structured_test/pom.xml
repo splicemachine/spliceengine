@@ -16,43 +16,13 @@
 		<junit.version>4.11</junit.version>
 	</properties>
 	<dependencies>
-		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<version>${junit.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>com.splicemachine</groupId>
-			<artifactId>structured_constants</artifactId>
-			<version>FUJI.0-SNAPSHOT</version>
-			<classifier>${envClassifier}</classifier>
-		</dependency>
-		<dependency>
-			<groupId>com.googlecode.java-diff-utils</groupId>
-			<artifactId>diffutils</artifactId>
-			<version>1.3.0</version>
-		</dependency>
-		<dependency>
-			<groupId>com.google.guava</groupId>
-			<artifactId>guava</artifactId>
-			<version>${guava.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>commons-dbutils</groupId>
-			<artifactId>commons-dbutils</artifactId>
-			<version>1.5</version>
-		</dependency>
-		<dependency>
-			<groupId>commons-io</groupId>
-			<artifactId>commons-io</artifactId>
-			<version>2.1</version>
-		</dependency>
-		<!-- dependency>
-			<groupId>com.splicemachine</groupId>
-			<artifactId>splice_machine</artifactId>
-			<version>0.5rc10-SNAPSHOT</version>
-			<classifier>${envClassifier}</classifier>
-		</dependency -->
+		<!-- dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_machine</artifactId> <version>0.5rc10-SNAPSHOT</version> <classifier>${envClassifier}</classifier> </dependency -->
+		<dependency> <groupId>com.google.guava</groupId> <artifactId>guava</artifactId> <version>${guava.version}</version> </dependency>
+		<dependency> <groupId>com.googlecode.java-diff-utils</groupId> <artifactId>diffutils</artifactId> <version>1.3.0</version> </dependency>
+		<dependency> <groupId>com.splicemachine</groupId> <artifactId>structured_constants</artifactId> <version>FUJI.0-SNAPSHOT</version> <classifier>${envClassifier}</classifier> </dependency>
+		<dependency> <groupId>commons-dbutils</groupId> <artifactId>commons-dbutils</artifactId> <version>1.5</version> </dependency>
+		<dependency> <groupId>commons-io</groupId> <artifactId>commons-io</artifactId> <version>2.1</version> </dependency>
+		<dependency> <groupId>junit</groupId> <artifactId>junit</artifactId> <version>${junit.version}</version> </dependency>
 	</dependencies>
 	<build>
 		<resources>

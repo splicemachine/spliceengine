@@ -8,11 +8,15 @@ import java.util.Arrays;
 import java.util.List;
 
 import com.google.common.base.Strings;
+import com.splicemachine.hash.Hash32;
+import com.splicemachine.hash.HashFunctions;
+import com.splicemachine.derby.impl.sql.execute.operations.window.*;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.tools.run;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
@@ -31,10 +35,6 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.iapi.storage.ScanBoundary;
 import com.splicemachine.derby.impl.job.operation.SuccessFilter;
-import com.splicemachine.derby.impl.sql.execute.operations.window.DerbyWindowContext;
-import com.splicemachine.derby.impl.sql.execute.operations.window.FrameBuffer;
-import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
-import com.splicemachine.derby.impl.sql.execute.operations.window.WindowFunctionIterator;
 import com.splicemachine.derby.impl.storage.BaseHashAwareScanBoundary;
 import com.splicemachine.derby.impl.storage.DistributedClientScanProvider;
 import com.splicemachine.derby.impl.storage.KeyValueUtils;
@@ -198,7 +198,7 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
             byte[] range = new byte[uniqueId.length+1];
             range[0] = spliceRuntimeContext.getHashBucket();
             System.arraycopy(uniqueId,0,range,1,uniqueId.length);
-            reduceScan = Scans.buildPrefixRangeScan(uniqueId, SpliceUtils.NA_TRANSACTION_ID);
+            reduceScan = Scans.buildPrefixRangeScan(uniqueId, null);
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
@@ -245,11 +245,11 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
             // If rows from source are not sorted, sort them based on (partition, order by) columns from over clause
             // in step 1 shuffle.
             // Compute Window function in step 2 shuffle
-            SpliceRuntimeContext firstStep = SpliceRuntimeContext.generateSinkRuntimeContext(true);
+            SpliceRuntimeContext firstStep = SpliceRuntimeContext.generateSinkRuntimeContext(operationInformation.getTransaction(), true);
             firstStep.setStatementInfo(runtimeContext.getStatementInfo());
             PairDecoder firstStepDecoder = OperationUtils.getPairDecoder(this, firstStep);
 
-            SpliceRuntimeContext secondStep = SpliceRuntimeContext.generateSinkRuntimeContext(false);
+            SpliceRuntimeContext secondStep = SpliceRuntimeContext.generateSinkRuntimeContext(operationInformation.getTransaction(),false);
             secondStep.setStatementInfo(runtimeContext.getStatementInfo());
             PairDecoder secondPairDecoder = OperationUtils.getPairDecoder(this, secondStep);
 
@@ -359,18 +359,19 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
         PartitionAwarePushBackIterator<ExecRow> frameSource = new PartitionAwarePushBackIterator<ExecRow>(iterator);
 
         // test the frame source
-        FrameBuffer frameBuffer = null;
+        WindowFrameBuffer frameBuffer = null;
         if (! frameSource.test(spliceRuntimeContext)) {
             // tests false - bail
             return false;
         }
 
         // create the frame buffer that will use the frame source
-        frameBuffer =
-            new FrameBuffer(spliceRuntimeContext,
+        frameBuffer = BaseFrameBuffer.createFrameBuffer(
+                            spliceRuntimeContext,
                             windowContext.getWindowFunctions(),
                             frameSource,
                             windowContext.getFrameDefinition(),
+                            windowContext.getSortColumns(),
                             templateRow);
 
         // create the frame iterator
@@ -470,7 +471,7 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
                 return start;
             }
         };
-        return RegionAwareScanner.create(getTransactionID(),region,baseScan,SpliceConstants.TEMP_TABLE_BYTES,boundary,ctx);
+        return RegionAwareScanner.create(null,region,baseScan,SpliceConstants.TEMP_TABLE_BYTES,boundary,ctx);
     }
 
     @Override

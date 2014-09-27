@@ -21,7 +21,7 @@ import java.util.*;
  * @author Scott Fines
  * Date: 3/4/14
  */
-@Category(SerialTest.class)
+@Category(SerialTest.class) //in Serial category because of the NestedLoopIteratorClosesStatements test
 public class NestedLoopJoinIT {
 		public static final String CLASS_NAME = NestedLoopJoinIT.class.getSimpleName().toUpperCase();
 

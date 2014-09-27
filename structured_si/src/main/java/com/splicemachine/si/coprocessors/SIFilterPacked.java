@@ -1,18 +1,17 @@
 package com.splicemachine.si.coprocessors;
 
-import com.splicemachine.si.api.*;
-import com.splicemachine.si.impl.FilterStatePacked;
-import com.splicemachine.si.impl.IFilterState;
+import com.splicemachine.si.api.ReadResolver;
+import com.splicemachine.si.api.TransactionReadController;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.impl.PackedTxnFilter;
 import com.splicemachine.si.impl.RowAccumulator;
-import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.si.impl.TxnFilter;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.HasPredicateFilter;
-
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.FilterBase;
-import org.apache.log4j.Logger;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -23,29 +22,27 @@ import java.util.List;
  * An HBase filter that applies SI logic when reading data values.
  */
 public class SIFilterPacked extends FilterBase implements HasPredicateFilter {
-		private static Logger LOG = Logger.getLogger(SIFilterPacked.class);
-		private String tableName;
+    private Txn txn;
 		private TransactionReadController<Get,Scan> readController;
-		private TransactionManager transactionManager;
-		protected String transactionIdString;
-		protected RollForwardQueue rollForwardQueue;
 		private EntryPredicateFilter predicateFilter;
-		private IFilterState filterState = null;
+		private TxnFilter filterState = null;
 		private boolean countStar = false;
+		private ReadResolver readResolver;
 
 		public SIFilterPacked() {
 		}
 
-		public SIFilterPacked(String tableName,
-													TransactionId transactionId,
-													TransactionManager transactionManager,
-													RollForwardQueue rollForwardQueue,
+		public SIFilterPacked(TxnFilter filterState){
+				this.filterState = filterState;
+		}
+
+		public SIFilterPacked(Txn txn,
+													ReadResolver resolver,
 													EntryPredicateFilter predicateFilter,
-													TransactionReadController<Get, Scan> readController, boolean countStar) throws IOException {
-				this.tableName = tableName;
-				this.transactionManager = transactionManager;
-				this.transactionIdString = transactionId.getTransactionIdString();
-				this.rollForwardQueue = rollForwardQueue;
+													TransactionReadController<Get, Scan> readController,
+													boolean countStar) throws IOException {
+				this.txn = txn;
+				this.readResolver = resolver;
 				this.predicateFilter = predicateFilter;
 				this.readController = readController;
 				this.countStar = countStar;
@@ -54,7 +51,7 @@ public class SIFilterPacked extends FilterBase implements HasPredicateFilter {
 		@Override
 		public long getBytesVisited(){
 				if(filterState==null) return 0l;
-				FilterStatePacked packed = (FilterStatePacked)filterState;
+				PackedTxnFilter packed = (PackedTxnFilter)filterState;
 				@SuppressWarnings("unchecked") RowAccumulator accumulator = packed.getAccumulator();
 				return accumulator.getBytesVisited();
 		}
@@ -70,10 +67,8 @@ public class SIFilterPacked extends FilterBase implements HasPredicateFilter {
 						initFilterStateIfNeeded();
 						return filterState.filterKeyValue(keyValue);
 				} catch (IOException e) {
-					System.out.println("sdfsdfsd " + this.tableName);
 						throw new RuntimeException(e);
 				} catch (Exception e) {
-					System.out.println("sdfsdfsd " + this.tableName);
 					throw new RuntimeException(e);
 				}
 		}
@@ -81,8 +76,9 @@ public class SIFilterPacked extends FilterBase implements HasPredicateFilter {
 		@SuppressWarnings("unchecked")
 		private void initFilterStateIfNeeded() throws IOException {
 				if (filterState == null) {
-						filterState = readController.newFilterStatePacked(tableName, rollForwardQueue, predicateFilter,
-										transactionManager.transactionIdFromString(transactionIdString), countStar);
+						filterState = readController.newFilterStatePacked(readResolver, predicateFilter, txn, countStar);
+//						filterState = readController.newFilterStatePacked(tableName, rollForwardQueue, predicateFilter,
+//										Long.parseLong(transactionIdString), countStar);
 				}
 		}
 

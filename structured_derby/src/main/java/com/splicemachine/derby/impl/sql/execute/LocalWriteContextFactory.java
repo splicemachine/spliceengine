@@ -1,52 +1,45 @@
 package com.splicemachine.derby.impl.sql.execute;
 
-import java.io.IOException;
-import java.sql.SQLException;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.ReentrantLock;
-
 import com.carrotsearch.hppc.BitSet;
 import com.google.common.collect.Lists;
+import com.splicemachine.concurrent.ResettableCountDownLatch;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.ddl.*;
+import com.splicemachine.derby.impl.sql.execute.AlterTable.DropColumnHandler;
+import com.splicemachine.derby.impl.sql.execute.constraint.*;
+import com.splicemachine.derby.impl.sql.execute.index.*;
+import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.hbase.batch.*;
-import com.splicemachine.si.api.*;
+import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.api.TransactionalRegion;
+import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.impl.DDLFilter;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.catalog.IndexDescriptor;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.context.ContextService;
 import org.apache.derby.iapi.sql.dictionary.*;
+import org.apache.derby.impl.sql.execute.ColumnInfo;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.log4j.Logger;
 
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.impl.sql.execute.constraint.Constraint;
-import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintContext;
-import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintHandler;
-import com.splicemachine.derby.impl.sql.execute.constraint.PrimaryKey;
-import com.splicemachine.derby.impl.sql.execute.constraint.UniqueConstraint;
-import com.splicemachine.derby.impl.sql.execute.index.IndexDeleteWriteHandler;
-import com.splicemachine.derby.impl.sql.execute.index.IndexNotSetUpException;
-import com.splicemachine.derby.impl.sql.execute.index.IndexUpsertWriteHandler;
-import com.splicemachine.derby.impl.sql.execute.index.SnapshotIsolatedWriteHandler;
-import com.splicemachine.derby.impl.sql.execute.index.UniqueIndexUpsertWriteHandler;
-import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
-import com.splicemachine.si.impl.DDLFilter;
-import com.splicemachine.si.impl.TransactionId;
-import com.splicemachine.concurrent.ResettableCountDownLatch;
-import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.derby.impl.sql.execute.ColumnInfo;
-import com.splicemachine.derby.impl.sql.execute.AlterTable.DropColumnHandler;
+import java.io.IOException;
+import java.sql.SQLException;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReentrantLock;
 /**
  * @author Scott Fines
  * Created on: 4/30/13
  */
-public class LocalWriteContextFactory implements WriteContextFactory<RegionCoprocessorEnvironment> {
+public class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegion> {
     private static final Logger LOG = Logger.getLogger(LocalWriteContextFactory.class);
 
     private static final long STARTUP_LOCK_BACKOFF_PERIOD = SpliceConstants.startupLockWaitPeriod;
@@ -55,7 +48,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
     private static final int writeBatchSize = Integer.MAX_VALUE;
 
     private final long congomId;
-    private final Set<IndexFactory> indexFactories = new CopyOnWriteArraySet<IndexFactory>();
+    private final List<LocalWriteFactory> indexFactories = new CopyOnWriteArrayList<LocalWriteFactory>();
     private final Set<ConstraintFactory> constraintFactories = new CopyOnWriteArraySet<ConstraintFactory>();
     private final Set<DropColumnFactory> dropColumnFactories = new CopyOnWriteArraySet<DropColumnFactory>();
 
@@ -78,19 +71,19 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
     }
 
     @Override
-    public WriteContext create(String txnId,RegionCoprocessorEnvironment rce) throws IOException, InterruptedException {
-        PipelineWriteContext context = new PipelineWriteContext(txnId,rce);
-        context.addLast(new RegionWriteHandler(rce.getRegion(), tableWriteLatch, writeBatchSize, null));
+    public WriteContext create(TxnView txn, TransactionalRegion region, RegionCoprocessorEnvironment env) throws IOException, InterruptedException {
+        PipelineWriteContext context = new PipelineWriteContext(txn,region, env);
+        context.addLast(new RegionWriteHandler(region, tableWriteLatch, writeBatchSize, null));
         addIndexInformation(1000, context);
         return context;
     }
 
     @Override
-    public WriteContext create(String txnId, RegionCoprocessorEnvironment rce,
-                               RollForwardQueue queue,int expectedWrites) throws IOException, InterruptedException {
-        PipelineWriteContext context = new PipelineWriteContext(txnId,rce);
+    public WriteContext create(TxnView txn, TransactionalRegion region,
+                               int expectedWrites, RegionCoprocessorEnvironment env) throws IOException, InterruptedException {
+        PipelineWriteContext context = new PipelineWriteContext(txn,region, env);
 				BatchConstraintChecker checker = buildConstraintChecker();
-        context.addLast(new RegionWriteHandler(rce.getRegion(), tableWriteLatch, writeBatchSize, queue,checker));
+        context.addLast(new RegionWriteHandler(region, tableWriteLatch, writeBatchSize,checker));
         addIndexInformation(expectedWrites, context);
         return context;
     }
@@ -105,16 +98,16 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
 		}
 
 		private void addIndexInformation(int expectedWrites, PipelineWriteContext context) throws IOException, InterruptedException {
-        String transactionId = context.getTransactionId();
+        TxnView txn = context.getTxn();
         switch (state.get()) {
             case READY_TO_START:
                 SpliceLogUtils.trace(LOG, "Index management for conglomerate %d " +
                         "has not completed, attempting to start now", congomId);
-                start(transactionId);
+                start(txn);
                 break;
             case STARTING:
                 SpliceLogUtils.trace(LOG,"Index management is starting up");
-                start(transactionId);
+                start(txn);
                 break;
             case FAILED_SETUP:
                 //since we haven't done any writes yet, it's safe to just explore
@@ -132,37 +125,59 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
 						}
 
             //add index handlers
-            for(IndexFactory indexFactory:indexFactories){
+            for(LocalWriteFactory indexFactory:indexFactories){
                 indexFactory.addTo(context,true,expectedWrites);
             }
 
             for(DropColumnFactory dropColumnFactory:dropColumnFactories) {
-                dropColumnFactory.addTo(context);
+                dropColumnFactory.addTo(context,true,expectedWrites);
             }
         }
     }
 
     @Override
-    public WriteContext createPassThrough(String txnId,RegionCoprocessorEnvironment key,int expectedWrites) throws IOException, InterruptedException {
-        PipelineWriteContext context = new PipelineWriteContext(txnId,key);
+    public WriteContext createPassThrough(TxnView txn, TransactionalRegion region, int expectedWrites, RegionCoprocessorEnvironment env) throws IOException, InterruptedException {
+        PipelineWriteContext context = new PipelineWriteContext(txn,region, env);
         addIndexInformation(expectedWrites, context);
 
         return context;
     }
 
     @Override
-    public void dropIndex(long indexConglomId) { // XXX - TODO JLEACH - Cannot do this...
+    public void dropIndex(long indexConglomId,TxnView txn) {
         //ensure that all writes that need to be paused are paused
         synchronized (tableWriteLatch){
             tableWriteLatch.reset();
 
-            //drop the index
+            /*
+             * Drop the index. We cannot outright drop it, because
+             * existing transactions may be still using it. Instead,
+             * we replace it with a wrapped transaction
+             */
             try{
-                indexFactories.remove(IndexFactory.wrap(indexConglomId));
+                for(int i=0;i<indexFactories.size();i++){
+                    LocalWriteFactory factory = indexFactories.get(i);
+                    if(factory.getConglomerateId()==indexConglomId){
+                        DropIndexFactory wrappedFactory = new DropIndexFactory(txn,factory);
+                        indexFactories.set(i,wrappedFactory);
+                        return;
+                    }
+                }
             }finally{
                 tableWriteLatch.countDown();
             }
         }
+    }
+
+    private void replace(LocalWriteFactory newFactory) {
+        for(int i=0;i<indexFactories.size();i++){
+            LocalWriteFactory localWriteFactory = indexFactories.get(i);
+            if(localWriteFactory.equals(newFactory)){
+                indexFactories.set(i, newFactory);
+                return;
+            }
+        }
+        indexFactories.add(newFactory);
     }
 
     @Override
@@ -170,7 +185,8 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
         synchronized (tableWriteLatch){
             tableWriteLatch.reset();
             try{
-                indexFactories.add(IndexFactory.create(ddlChange,columnOrdring, formatIds));
+                IndexFactory index = IndexFactory.create(ddlChange, columnOrdring, formatIds);
+                replace(index);
             }finally{
                 tableWriteLatch.countDown();
             }
@@ -247,7 +263,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
         NOT_MANAGED
     }
 
-    private void start(String transactionId) throws IOException,InterruptedException{
+    private void start(TxnView txn) throws IOException,InterruptedException{
         /*
          * Ready to Start => switch to STARTING
          * STARTING => continue through to block on the lock
@@ -266,14 +282,13 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
             throw new IndexNotSetUpException("Unable to initialize index management for table "+ congomId
                     +" within a sufficient time frame. Please wait a bit and try again");
         }
-        boolean success = false;
         ContextManager currentCm = ContextService.getFactory().getCurrentContextManager();
-        SpliceTransactionResourceImpl transactionResource = null;
+        SpliceTransactionResourceImpl transactionResource;
         try {
             transactionResource = new SpliceTransactionResourceImpl();
             transactionResource.prepareContextManager();
             try{
-                transactionResource.marshallTransaction(transactionId);
+                transactionResource.marshallTransaction(txn);
 
                 DataDictionary dataDictionary= transactionResource.getLcc().getDataDictionary();
                 ConglomerateDescriptor conglomerateDescriptor = dataDictionary.getConglomerateDescriptor(congomId);
@@ -288,7 +303,6 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
                     }
                 }
                 state.set(State.RUNNING);
-                success=true;
             } catch (SQLException e) {
                 SpliceLogUtils.error(LOG,"Unable to acquire a database connection, aborting write, but backing" +
                         "off so that other writes can try again",e);
@@ -328,7 +342,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
         //get primary key constraint
         //-sf- Hbase scan
         int[] columnOrdering = null;
-        int[] formatIds = null;
+        int[] formatIds;
         ColumnDescriptorList cdList = td.getColumnDescriptorList();
         int size = cdList.size();
         formatIds= new int[size];
@@ -375,7 +389,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
                     indexFactories.clear(); //safe to clear here because we don't chain indices
                     break;
                 } else {
-                    indexFactories.add(buildIndex(conglomDesc,constraintDescriptors,columnOrdering,formatIds));
+                    replace(buildIndex(conglomDesc,constraintDescriptors,columnOrdering,formatIds));
                 }
             }
         }
@@ -390,26 +404,27 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
         // check tentative indexes
         for (DDLChange ddlChange : DDLCoordinationFactory.getWatcher().getTentativeDDLs()) {
             TentativeDDLDesc ddlDesc = ddlChange.getTentativeDDLDesc();
-            boolean error = false;
-            TransactionManager transactionControl = HTransactorFactory.getTransactionManager();
-            TransactionStatus status = null;
-            try {
-                status = transactionControl.getTransactionStatus(
-                        new TransactionId(ddlChange.getParentTransactionId()));
-            } catch (Exception e) {
-                // Error while checking transaction status, remove change
-                // necessary for backwards compatibility
-                error = true;
-            }
-            if (error || status.isFinished()) {
+            TxnView txn = ddlChange.getTxn();
+            if (txn.getEffectiveState().isFinal()) {
                 DDLCoordinationFactory.getController().finishMetadataChange(ddlChange.getChangeId());
-            } else if (ddlDesc.getBaseConglomerateNumber() == congomId) {
-
-                if(ddlChange.getChangeType() == DDLChangeType.CREATE_INDEX) {
-                    indexFactories.add(IndexFactory.create(ddlChange,columnOrdering,formatIds));
-                }
-                else if (ddlChange.getChangeType() == DDLChangeType.DROP_COLUMN) {
-                    dropColumnFactories.add(DropColumnFactory.create(ddlChange));
+            } else {
+                switch (ddlChange.getChangeType()){
+                    case CHANGE_PK:
+                    case ADD_CHECK:
+                    case CREATE_FK:
+                    case ADD_NOT_NULL:
+                    case ADD_COLUMN:
+                    case DROP_TABLE:
+                        break; //TODO -sf- implement
+                    case CREATE_INDEX:
+                        assert ddlDesc!=null: "Cannot have a null ddl descriptor!";
+                        if(ddlDesc.getBaseConglomerateNumber()==congomId)
+                            replace(IndexFactory.create(ddlChange,columnOrdering,formatIds));
+                        break;
+                    case DROP_COLUMN:
+                        assert ddlDesc!=null: "Cannot have a null ddl descriptor!";
+                        if(ddlDesc.getBaseConglomerateNumber()==congomId)
+                            dropColumnFactories.add(DropColumnFactory.create(ddlChange));
                 }
             }
         }
@@ -492,7 +507,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
 				}
 		}
 
-    private static class IndexFactory{
+    private static class IndexFactory implements LocalWriteFactory{
         private final long indexConglomId;
         private final byte[] indexConglomBytes;
         private final boolean isUnique;
@@ -584,6 +599,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
                     columnOrdering,formatIds);
         }
 
+        @Override
         public void addTo(PipelineWriteContext ctx,boolean keepState,int expectedWrites) throws IOException {
             IndexDeleteWriteHandler deleteHandler =
                     new IndexDeleteWriteHandler(indexedColumns, mainColToIndexPosMap, indexConglomBytes, descColumns,
@@ -601,20 +617,31 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
                 ctx.addLast(deleteHandler);
                 ctx.addLast(writeHandler);
             } else {
-                DDLFilter ddlFilter = HTransactorFactory.getTransactionReadController().newDDLFilter(ddlChange.getParentTransactionId(),ddlChange.getTransactionId());
+                DDLFilter ddlFilter = HTransactorFactory.getTransactionReadController()
+                        .newDDLFilter(ddlChange.getTxn());
                 ctx.addLast(new SnapshotIsolatedWriteHandler(deleteHandler, ddlFilter));
                 ctx.addLast(new SnapshotIsolatedWriteHandler(writeHandler, ddlFilter));
             }
         }
 
         @Override
+        public long getConglomerateId() {
+            return indexConglomId;
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
-            if (!(o instanceof IndexFactory)) return false;
+            if(o instanceof IndexFactory){
+                IndexFactory that = (IndexFactory) o;
 
-            IndexFactory that = (IndexFactory) o;
+                return indexConglomId == that.indexConglomId;
+            }else if(o instanceof DropIndexFactory){
+                DropIndexFactory that = (DropIndexFactory) o;
 
-            return indexConglomId == that.indexConglomId;
+                return indexConglomId == that.delegate.getConglomerateId();
+
+            }else return false;
         }
 
         @Override
@@ -627,22 +654,58 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
         }
     }
 
-    private static class DropColumnFactory  {
+    private static class DropIndexFactory implements LocalWriteFactory{
+        private TxnView txn;
+        private LocalWriteFactory delegate;
+
+        private DropIndexFactory(TxnView txn, LocalWriteFactory delegate) {
+            this.txn = txn;
+            this.delegate = delegate;
+        }
+
+        @Override
+        public void addTo(PipelineWriteContext ctx, boolean keepState, int expectedWrites) throws IOException {
+            /*
+             * We only want to add an entry if one of the following holds:
+             *
+             * 1. txn is not yet committed
+             * 2. ctx.txn.beginTimestamp < txn.commitTimestamp
+             */
+            long commitTs = txn.getEffectiveCommitTimestamp();
+            boolean shouldAdd = commitTs < 0 || ctx.getTxn().getBeginTimestamp() < commitTs;
+
+            if(shouldAdd) delegate.addTo(ctx,keepState,expectedWrites);
+        }
+
+        @Override public long getConglomerateId() { return delegate.getConglomerateId(); }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if(o instanceof DropIndexFactory)
+                return delegate.equals(((DropIndexFactory) o).delegate);
+            else return o instanceof IndexFactory && delegate.equals(o);
+        }
+
+        @Override public int hashCode() { return delegate.hashCode(); }
+    }
+
+    private static class DropColumnFactory implements LocalWriteFactory{
         private UUID tableId;
-        private String txnId;
+        private TxnView txn;
         private long newConglomId;
         private ColumnInfo[] columnInfos;
         private int droppedColumnPosition;
         private DDLChange ddlChange;
 
         public DropColumnFactory(UUID tableId,
-                                 String txnId,
+                                 TxnView txn,
                                  long newConglomId,
                                  ColumnInfo[] columnInfos,
                                  int droppedColumnPosition,
                                  DDLChange ddlChange) {
             this.tableId = tableId;
-            this.txnId = txnId;
+            this.txn = txn;
             this.newConglomId = newConglomId;
             this.columnInfos = columnInfos;
             this.droppedColumnPosition = droppedColumnPosition;
@@ -656,21 +719,24 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
             TentativeDropColumnDesc desc = (TentativeDropColumnDesc)ddlChange.getTentativeDDLDesc();
 
             UUID tableId = desc.getTableId();
-            String txnId = ddlChange.getTransactionId();
+            TxnView txn = ddlChange.getTxn();
             long newConglomId = desc.getConglomerateNumber();
             ColumnInfo[] columnInfos = desc.getColumnInfos();
             int droppedColumnPosition = desc.getDroppedColumnPosition();
-            return new DropColumnFactory(tableId, txnId, newConglomId, columnInfos, droppedColumnPosition, ddlChange);
+            return new DropColumnFactory(tableId, txn, newConglomId, columnInfos, droppedColumnPosition, ddlChange);
         }
 
-        public void addTo(PipelineWriteContext ctx) throws IOException{
-            DropColumnHandler handler = new DropColumnHandler(tableId, newConglomId, txnId, columnInfos, droppedColumnPosition);
+        @Override
+        public void addTo(PipelineWriteContext ctx,boolean keepState, int expectedWrites) throws IOException{
+            DropColumnHandler handler = new DropColumnHandler(tableId, newConglomId, txn, columnInfos, droppedColumnPosition);
             if (ddlChange == null) {
                 ctx.addLast(handler);
             } else {
-                DDLFilter ddlFilter = HTransactorFactory.getTransactionReadController().newDDLFilter(ddlChange.getParentTransactionId(),ddlChange.getTransactionId());
+                    DDLFilter ddlFilter = HTransactorFactory.getTransactionReadController().newDDLFilter(ddlChange.getTxn());
                 ctx.addLast(new SnapshotIsolatedWriteHandler(handler, ddlFilter));
             }
         }
+
+        @Override public long getConglomerateId() { return newConglomId; }
     }
 }

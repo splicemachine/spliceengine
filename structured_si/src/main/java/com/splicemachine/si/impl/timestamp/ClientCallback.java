@@ -8,10 +8,10 @@ import org.apache.log4j.Logger;
 import com.splicemachine.constants.SpliceConstants;
 
 public class ClientCallback implements Callback {
-	
-    private final short _callerId; 
-	private volatile long _newTimestamp = -1l;
-	private Exception _e = null;
+
+    private final short _callerId;
+    private volatile long _newTimestamp = -1l;
+    private Exception _e = null;
     private CountDownLatch _latch = new CountDownLatch(1);
     		
     public ClientCallback(short callerId) {
@@ -27,11 +27,15 @@ public class ClientCallback implements Callback {
     }
 
     protected void countDown() {
-       _latch.countDown();
+        _latch.countDown();
     }
-    
+
     public boolean await(int timeoutMillis) throws InterruptedException {
         return _latch.await(timeoutMillis, TimeUnit.MILLISECONDS);
+    }
+
+    public void await() throws InterruptedException {
+        _latch.await(SpliceConstants.timestampClientWaitTime, TimeUnit.MILLISECONDS);
     }
 
     public long getNewTimestamp() {

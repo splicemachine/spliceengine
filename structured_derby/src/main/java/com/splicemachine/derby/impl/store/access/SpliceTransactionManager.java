@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.store.access;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -7,8 +8,11 @@ import java.util.Iterator;
 import java.util.Properties;
 
 import com.splicemachine.derby.ddl.DDLChange;
-import com.splicemachine.derby.ddl.DDLController;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
+import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.si.api.ReadOnlyModificationException;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.context.ContextManager;
@@ -51,6 +55,7 @@ import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.util.ReuseFactory;
 import org.apache.derby.impl.store.access.conglomerate.ConglomerateUtil;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.derby.impl.store.access.base.SpliceScan;
@@ -228,16 +233,15 @@ public class SpliceTransactionManager implements XATransactionController,
 
 		if (!conglomerateControllers.isEmpty()) {
 			// loop from end to beginning, removing scans which are not held.
-			for (int i = conglomerateControllers.size() - 1; i >= 0; i--) {
-				ConglomerateController cc = (ConglomerateController) conglomerateControllers
-						.get(i);
+//			for (int i = conglomerateControllers.size() - 1; i >= 0; i--) {
+//				ConglomerateController cc = (ConglomerateController) conglomerateControllers .get(i);
 
-				if (cc.closeForEndTransaction(closeHeldControllers)) {
+//				if (cc.closeForEndTransaction(closeHeldControllers)) {
 					// TODO - now counting on cc's removing themselves by
 					// calling the closeMe() method.
 					/* conglomerateControllers.removeElementAt(i); */
-				}
-			}
+//				}
+//			}
 
 			if (closeHeldControllers) {
 				if (SanityManager.DEBUG) {
@@ -1098,26 +1102,7 @@ public class SpliceTransactionManager implements XATransactionController,
 		return (conglom.load(this, createConglom, rowSource));
 	}
 
-	/**
-	 * Use this for incremental load in the future.
-	 * 
-	 * @param conglomId
-	 *            the conglomerate Id
-	 * @param rowSource
-	 *            where the rows to be loaded comes from
-	 * @exception StandardException
-	 *                Standard Derby Error Policy
-	 */
-	public void loadConglomerate(long conglomId,
-			RowLocationRetRowSource rowSource) throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("loadConglomerate conglomId " + conglomId
-					+ ", rowSource " + rowSource);
-		loadConglomerate(conglomId, false, // conglomerate is not being created
-				rowSource);
-	}
-
-	/**
+		/**
 	 * Log an operation and then action it in the context of this transaction.
 	 * <p>
 	 * This simply passes the operation to the RawStore which logs and does it.
@@ -1163,9 +1148,7 @@ public class SpliceTransactionManager implements XATransactionController,
 			LOG.trace("openConglomerate conglomId " + conglomId);
 
 		return (openConglomerate(findExistingConglomerate(conglomId), hold,
-				open_mode, lock_level, isolation_level,
-				(StaticCompiledOpenConglomInfo) null,
-				(DynamicCompiledOpenConglomInfo) null));
+				open_mode, lock_level, isolation_level, null, null));
 	}
 
 	public long findConglomid(long container_id) throws StandardException {
@@ -1544,7 +1527,7 @@ public class SpliceTransactionManager implements XATransactionController,
 		if (LOG.isTraceEnabled())
 			LOG.trace("getPropertyDefault key " + key);
 		return (accessmanager.getTransactionalProperties().getPropertyDefault(
-				this, key));
+            this, key));
 	}
 
 	/**
@@ -1570,7 +1553,7 @@ public class SpliceTransactionManager implements XATransactionController,
 		if (LOG.isTraceEnabled())
 			LOG.trace("setPropertyDefault key " + key);
 		accessmanager.getTransactionalProperties().setPropertyDefault(this,
-				key, value);
+            key, value);
 	}
 
 	/**
@@ -1721,8 +1704,8 @@ public class SpliceTransactionManager implements XATransactionController,
 		return sc;
 	}
 
-	public Transaction getRawTransaction() {
-		return rawtran;
+	public BaseSpliceTransaction getRawTransaction() {
+		return (BaseSpliceTransaction)rawtran;
 	}
 
 	public void commit() throws StandardException {
@@ -2017,22 +2000,17 @@ public class SpliceTransactionManager implements XATransactionController,
 	/**
 	 * Get an Internal transaction.
 	 * <p>
-	 * Start an internal transaction. An internal transaction is a completely
-	 * separate transaction from the current user transaction. All work done in
-	 * the internal transaction must be physical (ie. it can be undone
-	 * physically by the rawstore at the page level, rather than logically
-	 * undone like btree insert/delete operations). The rawstore guarantee's
-	 * that in the case of a system failure all open Internal transactions are
-	 * first undone in reverse order, and then other transactions are undone in
-	 * reverse order.
+	 *     Derby has a distinction between a user-level transaction and an "Internal"
+	 *     transaction. An internal transaction is something that performs physical
+	 *     work (i.e. bulk loading data), but that doesn't necessarily write each
+	 *     row to their WAL.
+	 *
+	 *     This is useful for Derby, but for Splice it's meaningless--there is no
+	 *     distinction between user-level and system-level transactions for any purpose.
+	 *     As a result, this method is somewhat useless in practice. It's kept
+	 *     for compatibility with Derby's interface, but is essentially the same
+	 *     operation as getting a new user-level transaction
 	 * <p>
-	 * Internal transactions are meant to implement operations which, if
-	 * interupted before completion will cause logical operations like tree
-	 * searches to fail. This special undo order insures that the state of the
-	 * tree is restored to a consistent state before any logical undo operation
-	 * which may need to search the tree is performed.
-	 * <p>
-	 * 
 	 * @return The new internal transaction.
 	 * 
 	 * @exception StandardException
@@ -2051,16 +2029,19 @@ public class SpliceTransactionManager implements XATransactionController,
 		// above the access context, which is required for
 		// error handling assumptions to be correct.
 
-		Transaction rawtran = accessmanager.getRawStore()
-				.startInternalTransaction(cm);
-		SpliceTransactionManager rt = new SpliceTransactionManager(
-				accessmanager, rawtran, null);
-		SpliceTransactionManagerContext rtc = new SpliceTransactionManagerContext(
-				cm, AccessFactoryGlobals.RAMXACT_INTERNAL_CONTEXT_ID, rt, true /* abortAll */);
+			//TODO -sf- this behavior might not be 100% correct w.r.t error handling, although I think it is, but it probably won't be called anyway
+			return (TransactionManager)accessmanager.getTransaction(cm);
 
-		rawtran.setDefaultLockingPolicy(accessmanager.getDefaultLockingPolicy());
-
-		return (rt);
+//		Transaction rawtran = accessmanager.getRawStore()
+//				.startInternalTransaction(cm);
+//		SpliceTransactionManager rt = new SpliceTransactionManager(
+//				accessmanager, rawtran, null);
+//		SpliceTransactionManagerContext rtc = new SpliceTransactionManagerContext(
+//				cm, AccessFactoryGlobals.RAMXACT_INTERNAL_CONTEXT_ID, rt, true /* abortAll */);
+//
+//		rawtran.setDefaultLockingPolicy(accessmanager.getDefaultLockingPolicy());
+//
+//		return (rt);
 	}
 
 	/**
@@ -2130,26 +2111,28 @@ public class SpliceTransactionManager implements XATransactionController,
 		// from "this", thus the new transaction shares the compatibility space
 		// of the current transaction.
 
-		final String currentTransactionId = rawtran.getActiveStateTxIdString();
-		Transaction child_rawtran = ((readOnly) ? accessmanager.getRawStore()
-				.startNestedReadOnlyUserTransaction(getLockSpace(), cm,
-						AccessFactoryGlobals.NESTED_READONLY_USER_TRANS,
-						currentTransactionId) : accessmanager.getRawStore()
-				.startNestedUpdateUserTransaction(cm,
-						AccessFactoryGlobals.NESTED_UPDATE_USER_TRANS,
-						flush_log_on_xact_end, currentTransactionId));
+      String txnName;
+      Txn txn = ((SpliceTransaction)rawtran).getActiveStateTxn();
+      if(!readOnly){
+          txnName = AccessFactoryGlobals.NESTED_UPDATE_USER_TRANS;
+          ((SpliceTransaction) rawtran).elevate(Bytes.toBytes("unknown")); //TODO -sf- replace this with a known destination table
+          txn = ((SpliceTransaction)rawtran).getTxn();
+      }else
+        txnName = AccessFactoryGlobals.NESTED_READONLY_USER_TRANS;
 
-		SpliceTransactionManager rt = new SpliceTransactionManager(
-				accessmanager, child_rawtran, this);
+      Transaction childTxn = accessmanager.getRawStore().startNestedTransaction(getLockSpace(),cm,txnName,txn);
+      if(!readOnly)
+          ((SpliceTransaction)childTxn).elevate("unknown".getBytes()); //TODO -sf- replace this with an actual name
 
-		SpliceTransactionManagerContext rtc = new SpliceTransactionManagerContext(
-				cm, AccessFactoryGlobals.RAMXACT_CHILD_CONTEXT_ID, rt, true /* abortAll */);
+      SpliceTransactionManager rt = new SpliceTransactionManager(
+              accessmanager, childTxn, this);
 
-		child_rawtran.setDefaultLockingPolicy(accessmanager
-				.getDefaultLockingPolicy());
+      //this actually does some work, so don't remove it
+      @SuppressWarnings("UnusedDeclaration") SpliceTransactionManagerContext rtc = new SpliceTransactionManagerContext(
+              cm, AccessFactoryGlobals.RAMXACT_CHILD_CONTEXT_ID, rt, true /* abortAll */);
 
-		return (rt);
-	}
+      return (rt);
+  }
 
 	/**
 	 * Get the Transaction from the Transaction manager.
@@ -2238,7 +2221,11 @@ public class SpliceTransactionManager implements XATransactionController,
 
     @Override
     public void prepareDataDictionaryChange() throws StandardException {
-        currentDDLChangeId = DDLCoordinationFactory.getController().notifyMetadataChange(new DDLChange(getActiveStateTxIdString()));
+        TxnView txn = getActiveStateTxn();
+        if(!txn.allowsWrites())
+            throw Exceptions.parseException(new ReadOnlyModificationException("Unable to perform 2PC data dictionary change with a read-only transaction: "+ txn));
+
+        currentDDLChangeId = DDLCoordinationFactory.getController().notifyMetadataChange(new DDLChange(txn));
     }
 
     @Override
@@ -2278,4 +2265,7 @@ public class SpliceTransactionManager implements XATransactionController,
 		return spliceScan;
 	}
 
+		public TxnView getActiveStateTxn() {
+        return ((BaseSpliceTransaction)rawtran).getActiveStateTxn();
+		}
 }

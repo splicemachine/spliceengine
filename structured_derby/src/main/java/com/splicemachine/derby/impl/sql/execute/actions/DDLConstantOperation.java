@@ -2,18 +2,13 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
-import com.splicemachine.collections.CloseableIterator;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.ddl.DDLChange;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
-import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.impl.job.index.ForbidPastWritesJob;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.job.JobFuture;
-import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.TransactionManager;
-import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
+import com.splicemachine.stream.CloseableStream;
+import com.splicemachine.stream.StreamException;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.catalog.AliasInfo;
 import org.apache.derby.catalog.DependableFinder;
@@ -37,12 +32,11 @@ import org.apache.derby.iapi.sql.execute.ConstantAction;
 import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.impl.sql.execute.ColumnInfo;
-import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.log4j.Logger;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
+import javax.annotation.Nullable;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -53,8 +47,7 @@ import java.util.concurrent.ExecutionException;
 public abstract class DDLConstantOperation implements ConstantAction {
 private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
 
-    protected TransactionManager transactor = HTransactorFactory.getTransactionManager();
-	/**
+    /**
 	 * Get the schema descriptor for the schemaid.
 	 *
 	 * @param dd the data dictionary
@@ -857,36 +850,13 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
 		}
 	}
 
-    protected void forbidActiveTransactionsTableAccess(List<TransactionId> active, List<String> tables)
-            throws StandardException {
-        if (tables.isEmpty() || active.isEmpty()) {
-            return;
-        }
-        for (String tableName : tables) {
-            for (TransactionId transactionId : active) {
-                JobFuture future = null;
-                try{
-                    HTableInterface table = SpliceAccessManager.getHTable(tableName.getBytes());
-                    future = SpliceDriver.driver().getJobScheduler().submit(new ForbidPastWritesJob(table,null));
-                    future.completeAll(null);
-                } catch (Exception e) {
-                    throw Exceptions.parseException(e);
-                }finally {
-                    if (future!=null) {
-                        try {
-                            future.cleanup();
-                        } catch (ExecutionException e) {
-                            LOG.error("Couldn't cleanup future", e);
-                            throw Exceptions.parseException(e.getCause());
-                        }
-                    }
-                }
-            }
-        }
+    protected String notifyMetadataChange(DDLChange change) throws StandardException {
+	    return DDLCoordinationFactory.getController().notifyMetadataChange(change);
     }
 
-	protected String notifyMetadataChange(DDLChange change) throws StandardException {
-	    return DDLCoordinationFactory.getController().notifyMetadataChange(change);
+    protected void notifyMetadataChangeAndWait(DDLChange change) throws StandardException{
+        String changeId = notifyMetadataChange(change);
+        DDLCoordinationFactory.getController().finishMetadataChange(changeId);
     }
 
 	/**
@@ -912,41 +882,61 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
      * @return list of transactions still running after timeout
      * @throws IOException
      */
-    public long waitForConcurrentTransactions(TransactionId maximum, List<TransactionId> toIgnore,long tableConglomId) throws IOException {
+    public long waitForConcurrentTransactions(Txn maximum, List<TxnView> toIgnore,long tableConglomId) throws IOException {
         if (!waitsForConcurrentTransactions()) {
             return -1l;
         }
         byte[] conglomBytes = Long.toString(tableConglomId).getBytes();
 
-        ActiveTransactionReader transactionReader = new ActiveTransactionReader(0l,maximum.getId(),conglomBytes);
-        List<Long> ignoreIds = Lists.transform(toIgnore,new Function<TransactionId, Long>() {
+        ActiveTransactionReader transactionReader = new ActiveTransactionReader(0l,maximum.getTxnId(),conglomBytes);
+        List<Long> ignoreIds = Lists.transform(toIgnore,new Function<TxnView, Long>() {
             @Nullable
             @Override
-            public Long apply(@Nullable TransactionId input) {
-                return input.getId();
+            public Long apply(@Nullable TxnView input) {
+                return input.getTxnId();
             }
         });
-        long waitTime = SpliceConstants.ddlDrainingInitialWait;
-        long totalWait = 0;
+        long waitTime = SpliceConstants.ddlDrainingInitialWait; //the initial time to wait
+        long maxWait = SpliceConstants.ddlDrainingMaximumWait; // the maximum time to wait
+        long scale = 2; //the scale factor for the exponential backoff
+        long timeAvailable = maxWait;
         long activeTxnId = -1l;
         do{
-            CloseableIterator<Long> activeTxns = transactionReader.getActiveTransactionIds(1);
+            CloseableStream<TxnView> activeTxns = transactionReader.getActiveTransactions();
             try{
-                if(activeTxns.hasNext()){
-                    activeTxnId = activeTxns.next();
+                TxnView txn;
+                while((txn = activeTxns.next())!=null){
+                    if(!ignoreIds.contains(txn.getTxnId())){
+                        activeTxnId = txn.getTxnId();
+                        break;
+                    }
                 }
-            }finally{
+            } catch (StreamException e) {
+                throw new IOException(e.getCause());
+            } finally{
                 activeTxns.close();
             }
             if(activeTxnId<0) return activeTxnId;
+            /*
+             * It is possible for a sleep to pick up before the
+             * waitTime is expired. Therefore, we measure that actual
+             * time spent and use that for our time remaining period
+             * instead.
+             */
+            long start = System.currentTimeMillis();
             try {
                 Thread.sleep(waitTime);
             } catch (InterruptedException e) {
                 throw new IOException(e);
             }
-            totalWait += waitTime;
-            waitTime *= 10;
-        } while(totalWait < SpliceConstants.ddlDrainingMaximumWait);
+            long stop = System.currentTimeMillis();
+            timeAvailable-=(stop-start);
+            /*
+             * We want to exponentially back off, but only to the limit imposed on us. Once
+             * our backoff exceeds that limit, we want to just defer to that limit directly.
+             */
+            waitTime = Math.min(timeAvailable,scale*waitTime);
+        } while(timeAvailable>0);
 
         if (activeTxnId>=0) {
             LOG.warn(String.format("Running DDL statement %s. There are transaction still active: %d", toString(), activeTxnId));
@@ -954,10 +944,10 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
         return activeTxnId;
     }
 
-    /**
-     * Declares whether this DDL operation has to wait for the draining of concurrent transactions or not
-     * @return true if it has to wait for the draining of concurrent transactions
-     */
+	/**
+	 * Declares whether this DDL operation has to wait for the draining of concurrent transactions or not
+	 * @return true if it has to wait for the draining of concurrent transactions
+	 */
     protected boolean waitsForConcurrentTransactions() {
         return false;
     }

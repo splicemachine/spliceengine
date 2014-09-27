@@ -11,7 +11,7 @@ import com.carrotsearch.hppc.BitSet;
 public class NullPredicate implements Predicate{
     private static final long serialVersionUID = 4l;
     private boolean filterIfMissing; //when true, equivalent to filterIfMissing null
-    private boolean isNullNumericalComparision;
+    private boolean isNullNumericalComparison;
     private boolean isDoubleColumn;
     private boolean isFloatColumn;
     private int column;
@@ -19,7 +19,7 @@ public class NullPredicate implements Predicate{
     public NullPredicate(boolean filterIfMissing, boolean isNullNumericalComparison,
                          int column,boolean isDoubleColumn,boolean isFloatColumn) {
         this.filterIfMissing = filterIfMissing;
-        this.isNullNumericalComparision = isNullNumericalComparison;
+        this.isNullNumericalComparison = isNullNumericalComparison;
         this.column = column;
         this.isFloatColumn = isFloatColumn;
         this.isDoubleColumn = isDoubleColumn;
@@ -36,7 +36,7 @@ public class NullPredicate implements Predicate{
         if (filterIfMissing != that.filterIfMissing) return false;
         if (isDoubleColumn != that.isDoubleColumn) return false;
         if (isFloatColumn != that.isFloatColumn) return false;
-        if (isNullNumericalComparision != that.isNullNumericalComparision) return false;
+        if (isNullNumericalComparison != that.isNullNumericalComparison) return false;
 
         return true;
     }
@@ -44,7 +44,7 @@ public class NullPredicate implements Predicate{
     @Override
     public int hashCode() {
         int result = (filterIfMissing ? 1 : 0);
-        result = 31 * result + (isNullNumericalComparision ? 1 : 0);
+        result = 31 * result + (isNullNumericalComparison ? 1 : 0);
         result = 31 * result + (isDoubleColumn ? 1 : 0);
         result = 31 * result + (isFloatColumn ? 1 : 0);
         result = 31 * result + column;
@@ -59,7 +59,7 @@ public class NullPredicate implements Predicate{
     @Override
     public boolean match(int column,byte[] data, int offset, int length) {
         if(this.column!=column) return true; //not the right column, don't worry about it
-        if(isNullNumericalComparision){
+        if(isNullNumericalComparison){
             return false; //a numerical comparison with null will never match any columns
         }
         if(filterIfMissing){
@@ -116,7 +116,7 @@ public class NullPredicate implements Predicate{
         byte[] data = new byte[9];
         data[0] = PredicateType.NULL.byteValue();
         data[1] = filterIfMissing? (byte)0x01: 0x00;
-        data[2] = isNullNumericalComparision? (byte)0x01: 0x00;
+        data[2] = isNullNumericalComparison ? (byte)0x01: 0x00;
         data[3] = isDoubleColumn? (byte)0x01:0x00;
         data[4] = isFloatColumn? (byte)0x01:0x00;
         BytesUtil.intToBytes(column,data,5);
@@ -132,4 +132,14 @@ public class NullPredicate implements Predicate{
         return Pair.newPair(new NullPredicate(filterIfMissing,isNullNumericalComparison,column,isDoubleColumn,isFloatColumn),9);
     }
 
+    @Override
+    public String toString() {
+        return "NullPredicate{" +
+                "filterIfMissing=" + filterIfMissing +
+                ", isNullNumericalComparison=" + isNullNumericalComparison +
+                ", isDoubleColumn=" + isDoubleColumn +
+                ", isFloatColumn=" + isFloatColumn +
+                ", column=" + column +
+                '}';
+    }
 }

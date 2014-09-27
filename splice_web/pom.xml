@@ -1,63 +1,29 @@
 <?xml version="1.0"?>
-<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
-		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+		 xmlns="http://maven.apache.org/POM/4.0.0"
+		 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.splicemachine.rest</groupId>
 	<artifactId>splice_web</artifactId>
-	<version>1.0-SNAPSHOT</version>
 	<packaging>war</packaging>
-	<name>splice_web Jersey Webapp</name>
-	<properties>
-		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<jersey-version>1.8</jersey-version>
-	</properties>
+	<name>splice_web</name>
+	<description>Splice Machine Webapp</description>
+	<version>FUJI.0-SNAPSHOT</version>
+	<!--parent>
+		<artifactId>spliceengine</artifactId>
+		<groupId>com.splicemachine</groupId>
+		<version>FUJI.0-SNAPSHOT</version>
+	</parent-->
 	<dependencies>
-		<dependency>
-			<groupId>com.sun.jersey</groupId>
-			<artifactId>jersey-server</artifactId>
-			<version>${jersey-version}</version>
-		</dependency>
-		<dependency>
-			<groupId>com.sun.jersey</groupId>
-			<artifactId>jersey-json</artifactId>
-			<version>${jersey-version}</version>
-		</dependency>
-		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<version>4.8.2</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>com.sun.jersey</groupId>
-			<artifactId>jersey-client</artifactId>
-			<version>${jersey-version}</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.derby</groupId>
-			<artifactId>derbyclient</artifactId>
-			<version>10.9.1.0-splice</version>
-		</dependency>
+		<dependency> <groupId>com.sun.jersey</groupId> <artifactId>jersey-client</artifactId> <version>1.8</version> <scope>test</scope> </dependency>
+		<dependency> <groupId>com.sun.jersey</groupId> <artifactId>jersey-core</artifactId> <version>1.8</version> </dependency>
+		<dependency> <groupId>com.sun.jersey</groupId> <artifactId>jersey-json</artifactId> <version>1.8</version> <scope>runtime</scope> </dependency>
+		<dependency> <groupId>com.sun.jersey</groupId> <artifactId>jersey-server</artifactId> <version>1.8</version> <scope>runtime</scope> </dependency>
+		<dependency> <groupId>junit</groupId> <artifactId>junit</artifactId> <version>4.11</version> <scope>test</scope> </dependency>
+		<dependency> <groupId>org.apache.derby</groupId> <artifactId>derbyclient</artifactId> <version>10.9.1.0-splice</version> <scope>runtime</scope> </dependency>
+		<dependency> <groupId>org.codehaus.jackson</groupId> <artifactId>jackson-core-asl</artifactId> <version>1.8.8</version> </dependency>
+		<dependency> <groupId>org.codehaus.jackson</groupId> <artifactId>jackson-mapper-asl</artifactId> <version>1.8.8</version> </dependency>
 	</dependencies>
-	<repositories>
-		<repository>
-			<id>central</id>
-			<url>http://repo1.maven.org/maven2</url>
-		</repository>
-		<repository>
-			<id>splicemachine</id>
-			<url>http://nexus.splicemachine.com/nexus/content/repositories/releases</url>
-			<releases>
-				<enabled>true</enabled>
-			</releases>
-		</repository>
-		<repository>
-			<id>m2.java.net</id>
-			<name>Java.net Maven 2 Repository</name>
-			<url>http://download.java.net/maven/2</url>
-		</repository>
-	</repositories>
 	<pluginRepositories>
 		<pluginRepository>
 			<id>m2.java.net</id>
@@ -101,32 +67,57 @@
 				</executions>
 			</plugin>
 			<!-- NOTE: Commented out the execution of JavaScript unit tests until Node.js has been configured for Jenkins servers. -->
-			<!--<plugin>-->
-				<!--<groupId>org.codehaus.mojo</groupId>-->
-				<!--<artifactId>exec-maven-plugin</artifactId>-->
-				<!--<version>1.3.2</version>-->
-				<!--<executions>-->
-					<!--<execution>-->
-						<!--<phase>prepare-package</phase>-->
-						<!--<goals>-->
-							<!--<goal>exec</goal>-->
-						<!--</goals>-->
-					<!--</execution>-->
-				<!--</executions>-->
-				<!--<configuration>-->
-					<!--<executable>grunt</executable>-->
-					<!--<arguments>-->
-						<!--<argument>karma</argument>-->
-					<!--</arguments>-->
-				<!--</configuration>-->
-			<!--</plugin>-->
+			<!-- <plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>exec-maven-plugin</artifactId>
+				<version>1.3.2</version>
+				<executions>
+					<execution>
+						<phase>prepare-package</phase>
+						<goals>
+							<goal>exec</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<executable>grunt</executable>
+					<arguments>
+						<argument>karma</argument>
+					</arguments>
+				</configuration>
+			</plugin> -->
 			<plugin>
 				<groupId>org.mortbay.jetty</groupId>
 				<artifactId>jetty-maven-plugin</artifactId>
 				<version>8.1.15.v20140411</version>
+				<configuration>
+					<webAppSourceDirectory>${basedir}/src/main/webapp</webAppSourceDirectory>
+					<webAppConfig>
+						<contextPath>/</contextPath>
+					</webAppConfig>
+					<scanIntervalSeconds>0</scanIntervalSeconds>
+					<useTestScope>true</useTestScope>
+					<connectors>
+						<connector implementation="org.eclipse.jetty.server.nio.SelectChannelConnector">
+							<port>7020</port>
+							<maxIdleTime>60000</maxIdleTime>
+						</connector>
+					</connectors>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>
+	<repositories>
+		<!--
+		SPLICEMACHINE GROUP REPO: This is our single repo URL that proxies and caches other repos. Currently it
+		is proxying: maven central, splice releases, splice snapshots, splice 3rd party.  To view/edit configured
+		repos in the group log into nexus, select repository "Splice Developers", view Configuration tab.
+		-->
+		<repository>
+			<id>splicemachine</id>
+			<url>http://nexus.splicemachine.com/nexus/content/groups/developers</url>
+		</repository>
+	</repositories>
 	<profiles>
 		<profile>
 			<id>assemble</id>
@@ -136,6 +127,7 @@
 						<artifactId>maven-assembly-plugin</artifactId>
 						<version>2.4</version>
 						<configuration>
+							<appendAssemblyId>false</appendAssemblyId>
 							<source>6</source>
 							<archive>
 								<manifestEntries>

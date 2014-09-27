@@ -3,8 +3,10 @@ package com.splicemachine.derby.impl.sql.compile;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.sanity.SanityManager;
+import org.apache.derby.iapi.sql.compile.AccessPath;
 import org.apache.derby.iapi.sql.compile.CostEstimate;
 import org.apache.derby.iapi.sql.compile.JoinStrategy;
 import org.apache.derby.iapi.sql.compile.Optimizable;
@@ -23,6 +25,7 @@ import org.apache.derby.impl.sql.compile.HashableJoinStrategy;
 import org.apache.derby.impl.sql.compile.Predicate;
 import org.apache.derby.impl.sql.compile.RelationalOperator;
 import org.apache.log4j.Logger;
+
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -81,7 +84,7 @@ public class MergeJoinStrategy extends HashableJoinStrategy {
                              CostEstimate outerCost,
                              Optimizer optimizer,
                              CostEstimate costEstimate) {
-    	SpliceLogUtils.trace(LOG, "estimateCost innerTable=%s,predList=%s,conglomerateDescriptor=%s,outerCost=%s,optimizer=%s,costEstimate=%s",innerTable,predList,cd,outerCost,optimizer,costEstimate);
+			SpliceLogUtils.trace(LOG, "estimateCost innerTable=%s,predList=%s,conglomerateDescriptor=%s,outerCost=%s,optimizer=%s,costEstimate=%s",innerTable,predList,cd,outerCost,optimizer,costEstimate);
     }
 
 	@Override
@@ -93,13 +96,20 @@ public class MergeJoinStrategy extends HashableJoinStrategy {
 		}
 		else
 		{
+			// You cannot sit on top of a MergeSort if you are a Merge Join, it breaks your sorting...
+			for (int i = 0; i<=opt.joinPosition-1;i++) {
+				AccessPath bestAccessPathCheck = opt.optimizableList.getOptimizable(
+						opt.proposedJoinOrder[opt.joinPosition - 1]).getBestAccessPath();
+				if (bestAccessPathCheck.getJoinStrategy().equals(optimizer.getJoinStrategy(1)))
+					return false;
+			}
 			/*
 			** NOTE: This is somewhat problematic.  We assume here that the
 			** outer cost from the best access path for the outer table
 			** is OK to use even when costing the sort avoidance path for
 			** the inner table.  This is probably OK, since all we use
 			** from the outer cost is the row count.
-			*/
+			*/			
 			outerCost =
 					opt.optimizableList.getOptimizable(
 					opt.proposedJoinOrder[opt.joinPosition - 1]).

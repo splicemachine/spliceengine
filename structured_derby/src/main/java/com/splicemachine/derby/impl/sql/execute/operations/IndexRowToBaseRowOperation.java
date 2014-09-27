@@ -359,7 +359,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 										.source(source)
 										.mainTableConglomId(conglomId)
 										.outputTemplate(compactRow)
-										.transactionId(getTransactionID())
+                    .transaction(operationInformation.getTransaction())
 										.indexColumns(indexCols)
 										.mainTableKeyColumnEncodingOrder(getColumnOrdering())
 										.mainTableKeyColumnTypes(getKeyColumnTypes())
@@ -450,7 +450,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 				for(int i=0;i<keyColumnEncodingOrder.length;i++){
 						int keyColumn = keyColumnEncodingOrder[i];
 						if(heapOnlyCols.get(keyColumn))
-								accessedKeys.clear(i);
+								accessedKeys.clear(keyColumn);
 				}
 				return accessedKeys;
 		}

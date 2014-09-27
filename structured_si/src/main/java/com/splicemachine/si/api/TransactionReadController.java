@@ -1,8 +1,7 @@
 package com.splicemachine.si.api;
 
 import com.splicemachine.si.impl.DDLFilter;
-import com.splicemachine.si.impl.IFilterState;
-import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.si.impl.TxnFilter;
 import com.splicemachine.storage.EntryPredicateFilter;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
@@ -31,37 +30,35 @@ public interface TransactionReadController<Get,Scan> {
 		void preProcessGet(Get get) throws IOException;
 		void preProcessScan(Scan scan) throws IOException;
 
-		/**
-		 * Construct an object to track the stateful aspects of a scan. Each key value from the scan will be considered
-		 * in light of this state.
-		 */
-		IFilterState newFilterState(TransactionId transactionId) throws IOException;
-		IFilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId) throws IOException;
+		TxnFilter newFilterState(Txn txn) throws IOException;
 
-		IFilterState newFilterStatePacked(String tableName, RollForwardQueue rollForwardQueue,
-																			EntryPredicateFilter predicateFilter, TransactionId transactionId, boolean countStar) throws IOException;
+		TxnFilter newFilterState(ReadResolver readResolver, Txn txn) throws IOException;
+
+		TxnFilter newFilterStatePacked(ReadResolver readResolver,
+																			EntryPredicateFilter predicateFilter,
+																			Txn txn, boolean countStar) throws IOException;
 
 		/**
 		 * Consider whether to use a key value in light of a given filterState.
 		 */
-		Filter.ReturnCode filterKeyValue(IFilterState filterState, KeyValue keyValue) throws IOException;
+		Filter.ReturnCode filterKeyValue(TxnFilter filterState, KeyValue keyValue) throws IOException;
 
 		/**
 		 * Indicate that the filterState is now going to be used to process a new row.
 		 */
-		void filterNextRow(IFilterState filterState);
+		void filterNextRow(TxnFilter filterState);
 
 		/**
 		 * This is for use in code outside of a proper HBase filter that wants to apply the equivalent of SI filter logic.
 		 * Pass in an entire result object that contains all of the key values for a row. Receive back a new result that only
 		 * contains the key values that should be visible in light of the filterState.
 		 */
-		Result filterResult(IFilterState filterState, Result result) throws IOException;
+		Result filterResult(TxnFilter filterState, Result result) throws IOException;
 
 	  /**
      * Create a DDLFilter for tracking the visibility of (tentative) DDL operations for DML operations
-     * @param transactionId Transaction ID which identifies the DDL change
+     * @param txn the ddl transaction
      * @return Object that tracks visibility
      */
-    DDLFilter newDDLFilter(String parentTxnId, String transactionId) throws IOException;
+    DDLFilter newDDLFilter(TxnView txn) throws IOException;
 }

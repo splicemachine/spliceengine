@@ -279,7 +279,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 						byte[] range = new byte[uniqueSequenceID.length+1];
 						range[0] = spliceRuntimeContext.getHashBucket();
 						System.arraycopy(uniqueSequenceID,0,range,1,uniqueSequenceID.length);
-						reduceScan = Scans.buildPrefixRangeScan(range, SpliceUtils.NA_TRANSACTION_ID);
+						reduceScan = Scans.buildPrefixRangeScan(range, null);
 						if (failedTasks.size() > 0 && !distinct) {
 								//we don't need the filter when distinct is true, because we'll overwrite duplicates anyway
 								reduceScan.setFilter(new SuccessFilter(failedTasks));

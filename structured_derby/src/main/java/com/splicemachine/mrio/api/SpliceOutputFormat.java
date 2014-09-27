@@ -65,34 +65,37 @@ import com.google.common.collect.Lists;
 import com.google.gson.Gson;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
+
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.impl.load.ImportContext;
-import com.splicemachine.derby.impl.load.ImportUtils;
-import com.splicemachine.derby.utils.marshall.BareKeyHash;
-import com.splicemachine.derby.utils.marshall.DataHash;
-import com.splicemachine.derby.utils.marshall.EntryDataHash;
-import com.splicemachine.derby.utils.marshall.HashPrefix;
-import com.splicemachine.derby.utils.marshall.KeyEncoder;
-import com.splicemachine.derby.utils.marshall.KeyPostfix;
-import com.splicemachine.derby.utils.marshall.NoOpDataHash;
-import com.splicemachine.derby.utils.marshall.NoOpPostfix;
-import com.splicemachine.derby.utils.marshall.NoOpPrefix;
-import com.splicemachine.derby.utils.marshall.SaltedPrefix;
+import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.RecordingCallBuffer;
 import com.splicemachine.hbase.writer.WriteCoordinator;
-import com.splicemachine.mapreduce.HBaseBulkLoadMapper;
-import com.splicemachine.mapreduce.HBaseBulkLoadReducer;
+import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.impl.ActiveWriteTxn;
 import com.splicemachine.utils.IntArrays;
-import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.utils.kryo.KryoPool;
 import com.splicemachine.uuid.Snowflake;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.types.*;
+import org.apache.hadoop.conf.Configurable;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
+import org.apache.hadoop.hbase.mapreduce.TableOutputCommitter;
+import org.apache.hadoop.hbase.mapreduce.TableOutputFormat;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.mapreduce.*;
+
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.*;
 
 
 public class SpliceOutputFormat extends OutputFormat implements Configurable{
+
 	private static SQLUtil sqlUtil = null;
 	
 	private static Configuration conf = null;
@@ -179,7 +182,7 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 		private DataValueDescriptor[] rowDesc = null;
 		private String taskID = "";
 		private Connection conn = null;
-		private String childTxsID = "";
+		private long childTxsID;
 	
 		public SpliceRecordWriter(int[]pkCols, ArrayList colTypes, String taskID) throws IOException{
 			if(conf == null)
@@ -303,15 +306,16 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 					sqlUtil.disableAutoCommit(conn);
 					
 					childTxsID = sqlUtil.getChildTransactionID(conn, 
-									conf.get(SpliceMRConstants.SPLICE_TRANSACTION_ID), 
+									Long.parseLong(conf.get(SpliceMRConstants.SPLICE_TRANSACTION_ID)), 
 									Long.parseLong(tableID));
 					String strSize = conf.get(SpliceMRConstants.SPLICE_WRITE_BUFFER_SIZE);
 					int size = 1024;
 					if((strSize != null) && (!strSize.equals("")))
 						size = Integer.valueOf(strSize);
-					
+					TxnView txn = new ActiveWriteTxn(childTxsID,childTxsID);
 					callBuffer = WriteCoordinator.create(conf).writeBuffer(Bytes.toBytes(tableID), 
-									childTxsID, size);	
+									txn, size);	
+
 				}		
 				byte[] key = this.keyEncoder.getKey(value);
 				rowHash.setRow(value);

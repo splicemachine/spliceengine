@@ -356,7 +356,6 @@ com.splicemachine.derby.impl.ast.MSJJoinConditionVisitor
 com.splicemachine.derby.impl.ast.PlanPrinter
 com.splicemachine.derby.impl.ast.SpliceDerbyVisitorAdapter
 com.splicemachine.derby.impl.db.SpliceDatabase
-com.splicemachine.derby.impl.db.TransactionKeepAlive
 com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler
 com.splicemachine.derby.impl.job.scheduler.DistributedJobScheduler
 com.splicemachine.derby.impl.job.scheduler.WorkStealingTaskScheduler
@@ -407,10 +406,9 @@ com.splicemachine.si.coprocessors.SIFilterPacked
 com.splicemachine.si.coprocessors.SIObserver
 com.splicemachine.si.data.hbase.HbRegion
 com.splicemachine.si.impl.FilterState
-com.splicemachine.si.impl.FilterStatePacked
+com.splicemachine.si.impl.PackedTxnFilter
 com.splicemachine.si.impl.SITransactor
 com.splicemachine.si.impl.SynchronousRollForwardQueue
-com.splicemachine.si.impl.TransactionStore
 com.splicemachine.si.txn.ZooKeeperStatTimestampSource
 com.splicemachine.test.SpliceTestPlatform
 com.splicemachine.utils.SpliceUtilities

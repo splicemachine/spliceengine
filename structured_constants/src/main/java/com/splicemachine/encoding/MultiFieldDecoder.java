@@ -425,5 +425,12 @@ public class MultiFieldDecoder {
     private boolean check2ByteNull(byte[] nullValue) {
     	return nullValue[0] == data[currentOffset] && nullValue[1] == data[currentOffset+1];
     }
-    
+
+    public long readOrSkipNextLong(long defaultValue) {
+        if(nextIsNull()){
+            skip();
+            return defaultValue;
+        }
+        return decodeNextLong();
+    }
 }

@@ -11,6 +11,8 @@ import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.batch.BatchConstraintChecker;
 import com.splicemachine.hbase.batch.UniqueConstraintChecker;
 import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.KeyValue;
@@ -66,7 +68,7 @@ public class UniqueConstraint implements Constraint {
     }
 
     @Override
-    public boolean validate(KVPair mutation,String txnId, RegionCoprocessorEnvironment rce,Collection<KVPair> priorValues) throws IOException {
+    public boolean validate(KVPair mutation,TxnView txn, RegionCoprocessorEnvironment rce,Collection<KVPair> priorValues) throws IOException {
         if(!stripDeletes.apply(mutation)) return true; //no need to validate this mutation
         //if prior visited values has it, it's in the same batch mutation, so fail it
 				return !priorValues.contains(mutation);
@@ -98,11 +100,11 @@ public class UniqueConstraint implements Constraint {
     }
 
     @Override
-    public List<KVPair> validate(Collection<KVPair> mutations, String txnId,RegionCoprocessorEnvironment rce,List<KVPair> priorValues) throws IOException {
+    public List<KVPair> validate(Collection<KVPair> mutations, TxnView txn,RegionCoprocessorEnvironment rce,List<KVPair> priorValues) throws IOException {
         Collection<KVPair> changes = Collections2.filter(mutations,stripDeletes);
         List<KVPair> failedKvs = Lists.newArrayListWithExpectedSize(0);
         for(KVPair change:changes){
-            if(HRegionUtil.keyExists(rce.getRegion().getStore(SIConstants.DEFAULT_FAMILY_BYTES), change.getRow()) && !validate(change,txnId,rce,priorValues))
+            if(HRegionUtil.keyExists(rce.getRegion().getStore(SIConstants.DEFAULT_FAMILY_BYTES), change.getRow()) && !validate(change,txn,rce,priorValues))
                 failedKvs.add(change);
         }
         return failedKvs;

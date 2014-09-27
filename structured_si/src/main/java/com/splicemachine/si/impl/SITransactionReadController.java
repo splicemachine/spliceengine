@@ -1,9 +1,7 @@
 package com.splicemachine.si.impl;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.si.api.RollForwardQueue;
-import com.splicemachine.si.api.TransactionManager;
-import com.splicemachine.si.api.TransactionReadController;
+import com.splicemachine.si.api.*;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
 import com.splicemachine.storage.EntryDecoder;
@@ -28,17 +26,15 @@ public class SITransactionReadController<
 				implements TransactionReadController<Get,Scan>{
 		private final DataStore dataStore;
 		private final SDataLib dataLib;
-		private final TransactionStore transactionStore;
-		private final TransactionManager control;
+		private final TxnSupplier txnSupplier;
 
-		public SITransactionReadController(DataStore dataStore,
-																			 SDataLib dataLib,
-																			 TransactionStore transactionStore,
-																			 TransactionManager control) {
+
+    public SITransactionReadController(DataStore dataStore,
+                                       SDataLib dataLib,
+                                       TxnSupplier txnSupplier) {
 				this.dataStore = dataStore;
 				this.dataLib = dataLib;
-				this.transactionStore = transactionStore;
-				this.control = control;
+				this.txnSupplier = txnSupplier;
 		}
 
 		@Override
@@ -75,44 +71,42 @@ public class SITransactionReadController<
 		}
 
 		@Override
-		public IFilterState newFilterState(TransactionId transactionId) throws IOException {
-				return newFilterState(null, transactionId);
+		public TxnFilter newFilterState(Txn txn) throws IOException {
+				return newFilterState(null,txn);
 		}
 
 		@Override
-		public IFilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId) throws IOException {
-				return new FilterState(dataLib, dataStore, transactionStore, rollForwardQueue, 
-								transactionStore.getImmutableTransaction(transactionId));
+		public TxnFilter newFilterState(ReadResolver readResolver, Txn txn) throws IOException {
+				return new SimpleTxnFilter(txnSupplier,txn,readResolver,dataStore);
+		}
+
+		@Override
+		public TxnFilter newFilterStatePacked(ReadResolver readResolver,
+																						 EntryPredicateFilter predicateFilter, Txn txn, boolean countStar) throws IOException {
+				return new PackedTxnFilter(newFilterState(txn),
+								new HRowAccumulator(predicateFilter,new EntryDecoder(),countStar));
 		}
 
 		@Override
 		@SuppressWarnings("unchecked")
-		public IFilterState newFilterStatePacked(String tableName, RollForwardQueue rollForwardQueue, EntryPredicateFilter predicateFilter, TransactionId transactionId, boolean countStar) throws IOException {
-				return new FilterStatePacked(
-								(FilterState) newFilterState(rollForwardQueue, transactionId),
-								new HRowAccumulator(predicateFilter, new EntryDecoder(), countStar ));
-		}
-
-		@Override
-		@SuppressWarnings("unchecked")
-		public Filter.ReturnCode filterKeyValue(IFilterState filterState, KeyValue keyValue) throws IOException {
+		public Filter.ReturnCode filterKeyValue(TxnFilter filterState, KeyValue keyValue) throws IOException {
 				return filterState.filterKeyValue(keyValue);
 		}
 
 		@Override
-		public void filterNextRow(IFilterState filterState) {
+		public void filterNextRow(TxnFilter filterState) {
 				filterState.nextRow();
 		}
 
 		@Override
 		@SuppressWarnings("unchecked")
-		public Result filterResult(IFilterState filterState, Result result) throws IOException {
+		public Result filterResult(TxnFilter filterState, Result result) throws IOException {
 				//TODO -sf- this is only used in testing--ignore when production tuning
 				final SDataLib<Put, Delete, Get, Scan> dataLib = dataStore.dataLib;
 				final List<KeyValue> filteredCells = Lists.newArrayList();
 				final List<KeyValue> KVs = dataLib.listResult(result);
 				if (KVs != null) {
-						byte[] currentRowKey = null;
+//						byte[] currentRowKey = null;
 						for (KeyValue kv : KVs) {
 							filterKeyValue(filterState, kv);
 						}
@@ -127,12 +121,8 @@ public class SITransactionReadController<
 		}
 
 		@Override
-		public DDLFilter newDDLFilter(String parentTransactionId, String transactionId) throws IOException {
-				return new DDLFilter(
-								transactionStore.getTransaction(control.transactionIdFromString(transactionId)),
-								parentTransactionId == null ? null : transactionStore.getTransaction(control.transactionIdFromString(parentTransactionId)),
-								transactionStore
-				);
+		public DDLFilter newDDLFilter(TxnView txn) throws IOException {
+        return new DDLFilter(txn);
 		}
 
 

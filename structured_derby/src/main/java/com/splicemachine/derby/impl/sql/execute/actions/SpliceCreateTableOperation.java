@@ -118,6 +118,12 @@ public class SpliceCreateTableOperation extends CreateTableConstantOperation {
             throw StandardException.newException(SQLState.LANG_OBJECT_ALREADY_EXISTS_IN_OBJECT,
                     "table",tableName,"schema",schemaName);
 
+        /*
+         * The table didn't exist in a manner which is visible to us, so
+         * it should be safe to try and create it.
+         *
+         * We take the
+         */
 				//if the table doesn't exist, allow super class to create it
 				super.executeConstantAction(activation);
 

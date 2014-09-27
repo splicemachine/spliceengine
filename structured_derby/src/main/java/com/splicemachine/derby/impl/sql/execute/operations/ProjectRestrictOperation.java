@@ -154,11 +154,11 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
                 List<XplainOperationChainInfo> operationChain = SpliceBaseOperation.operationChain.get();
 
                 // Prepare XplainOperationChainInfo record for subquery
-                if (operationChain != null && operationChain.size() > 0) {
-                    // This is in a subquery and explain trace is on
-                    XplainOperationChainInfo parent = operationChain.get(operationChain.size()-1);
-                    statisticsTimingOn = true;
-                    }
+//                if (operationChain != null && operationChain.size() > 0) {
+//                    This is in a subquery and explain trace is on
+//                    XplainOperationChainInfo parent = operationChain.get(operationChain.size()-1);
+//                    statisticsTimingOn = true;
+//                    }
 
                 startExecutionTime = System.currentTimeMillis();
 		}
@@ -394,6 +394,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		@Override
 		public void	close() throws StandardException, IOException {
 				SpliceLogUtils.trace(LOG, "close in ProjectRestrict");
+        operationChain.remove(); //we are done here
 				/* Nothing to do if open was short circuited by false constant expression */
 				if (LOG.isTraceEnabled())
 						SpliceLogUtils.trace(LOG, ">>>   ProjectRestrictOp: Closing ", (source != null ? source.getClass().getSimpleName() : "null source"));

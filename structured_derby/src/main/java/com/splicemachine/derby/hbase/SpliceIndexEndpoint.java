@@ -1,48 +1,36 @@
 package com.splicemachine.derby.hbase;
 
-import com.google.common.collect.Lists;
-import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.job.scheduler.SimpleThreadedTaskScheduler;
 import com.splicemachine.derby.impl.sql.execute.LocalWriteContextFactory;
-import com.splicemachine.derby.utils.Mutations;
-import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.BatchProtocol;
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.batch.WriteContext;
 import com.splicemachine.hbase.writer.BulkWrite;
 import com.splicemachine.hbase.writer.BulkWriteResult;
-import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.WriteResult;
-import com.splicemachine.si.api.RollForwardQueue;
-import com.splicemachine.si.coprocessors.RollForwardQueueMap;
-import com.splicemachine.storage.EntryPredicateFilter;
+import com.splicemachine.si.api.TransactionStorage;
+import com.splicemachine.si.api.TransactionalRegion;
+import com.splicemachine.si.api.TxnSupplier;
+import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.impl.TransactionalRegions;
+import com.splicemachine.si.impl.rollforward.SegmentedRollForward;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.yammer.metrics.core.Meter;
 import com.yammer.metrics.core.MetricName;
 import com.yammer.metrics.core.Timer;
-
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Delete;
-import org.apache.hadoop.hbase.client.Mutation;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HRegionServer;
-import org.apache.hadoop.hbase.regionserver.OperationStatus;
-import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.regionserver.metrics.RegionServerMetrics;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 import org.cliffc.high_scale_lib.NonBlockingHashMap;
 
 import javax.management.*;
-
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
@@ -62,7 +50,6 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
     private static volatile int maxWorkers = 10;
     private static volatile int flushQueueSizeBlock = SpliceConstants.flushQueueSizeBlock; 
     private static volatile int compactionQueueSizeBlock = SpliceConstants.compactionQueueSizeBlock;
-    private RegionServerMetrics metrics;
 
     
     public static ConcurrentMap<Long,Pair<LocalWriteContextFactory,AtomicInteger>> factoryMap = new NonBlockingHashMap<Long, Pair<LocalWriteContextFactory, AtomicInteger>>();
@@ -76,54 +63,65 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
     private static MetricName rejectedMeterName = new MetricName("com.splicemachine","receiverStats","rejected");
 
     private long conglomId;
+		private TransactionalRegion region;
 
-    private RollForwardQueue queue = null;
 		private Timer timer=SpliceDriver.driver().getRegistry().newTimer(receptionName, TimeUnit.MILLISECONDS,TimeUnit.SECONDS);
-    private Meter throughputMeter = SpliceDriver.driver().getRegistry().newMeter(throughputMeterName,"successfulRows",TimeUnit.SECONDS);
+    private Meter throughputMeter = SpliceDriver.driver().getRegistry().newMeter(throughputMeterName, "successfulRows", TimeUnit.SECONDS);
     private Meter failedMeter =SpliceDriver.driver().getRegistry().newMeter(failedMeterName,"failedRows",TimeUnit.SECONDS);
     private Meter rejectedMeter =SpliceDriver.driver().getRegistry().newMeter(rejectedMeterName,"rejectedRows",TimeUnit.SECONDS);
-    
+
+    private volatile RegionServerMetrics metrics;
+    private volatile TxnSupplier txnStore;
+
     @Override
     public void start(CoprocessorEnvironment env) {
-    	RegionCoprocessorEnvironment rce = ((RegionCoprocessorEnvironment)env);
-    	HRegionServer rs = (HRegionServer) rce.getRegionServerServices();
-    	metrics = rs.getMetrics();
+        final RegionCoprocessorEnvironment rce = ((RegionCoprocessorEnvironment)env);
+        HRegionServer rs = (HRegionServer) rce.getRegionServerServices();
+        metrics = rs.getMetrics();
         String tableName = rce.getRegion().getTableDesc().getNameAsString();
         try{
             conglomId = Long.parseLong(tableName);
+            maxWorkers = env.getConfiguration().getInt("splice.task.maxWorkers",SimpleThreadedTaskScheduler.DEFAULT_MAX_WORKERS);
+            final Pair<LocalWriteContextFactory,AtomicInteger> factoryPair = Pair.newPair(new LocalWriteContextFactory(conglomId), new AtomicInteger(1));
+            Pair<LocalWriteContextFactory, AtomicInteger> originalPair = factoryMap.putIfAbsent(conglomId, factoryPair);
+            if(originalPair!=null){
+                //someone else already created the factory
+                originalPair.getSecond().incrementAndGet();
+            }else{
+                SpliceDriver.Service service = new SpliceDriver.Service() {
+                    @Override public boolean shutdown() { return true; }
+                    @Override
+                    public boolean start() {
+                        factoryPair.getFirst().prepare();
+                        SpliceDriver.driver().deregisterService(this);
+                        return true;
+                    }
+
+                };
+                SpliceDriver.driver().registerService(service);
+            }
         }catch(NumberFormatException nfe){
             SpliceLogUtils.debug(LOG, "Unable to parse conglomerate id for table %s, " +
                     "index management for batch operations will be diabled",tableName);
             conglomId=-1;
-            super.start(env);
-            return;
-        }
-        maxWorkers = env.getConfiguration().getInt("splice.task.maxWorkers",SimpleThreadedTaskScheduler.DEFAULT_MAX_WORKERS);
-        final Pair<LocalWriteContextFactory,AtomicInteger> factoryPair = Pair.newPair(new LocalWriteContextFactory(conglomId),new AtomicInteger(1));
-        Pair<LocalWriteContextFactory, AtomicInteger> originalPair = factoryMap.putIfAbsent(conglomId, factoryPair);
-        if(originalPair!=null){
-            //someone else already created the factory
-            originalPair.getSecond().incrementAndGet();
-        }else{
-            SpliceDriver.Service service = new SpliceDriver.Service(){
-
-                @Override
-                public boolean start() {
-                    factoryPair.getFirst().prepare();
-                    SpliceDriver.driver().deregisterService(this);
-                    return true;
-                }
-
-                @Override
-                public boolean shutdown() {
-                    return true;
-                }
-            };
-            SpliceDriver.driver().registerService(service);
         }
 
+        SpliceDriver.Service service = new SpliceDriver.Service() {
+            @Override public boolean shutdown() { return true; }
+            @Override
+            public boolean start() {
+                if(conglomId>=0){
+                    region = TransactionalRegions.get(rce.getRegion());
+                    txnStore = TransactionStorage.getTxnSupplier();
+                }else{
+                    region = TransactionalRegions.nonTransactionalRegion(rce.getRegion());
+                }
+                SpliceDriver.driver().deregisterService(this);
+                return true;
+            }
+        };
+        SpliceDriver.driver().registerService(service);
         super.start(env);
-
     }
 
     @Override
@@ -132,6 +130,8 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
         if(factoryPair!=null &&  factoryPair.getSecond().decrementAndGet()<=0){
             factoryMap.remove(conglomId);
         }
+        if(region!=null)
+            region.discard();
     }
 
 		@Override
@@ -143,8 +143,8 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
 						return result.toBytes();
 				}
 
-				BulkWrite bulkWrite = BulkWrite.fromBytes(bulkWriteBytes);
-				assert bulkWrite.getTxnId()!=null;
+				BulkWrite bulkWrite = BulkWrite.fromBytes(bulkWriteBytes,txnStore);
+				assert bulkWrite.getTxn()!=null;
 
 //				SpliceLogUtils.trace(LOG,"batchMutate %s",bulkWrite);
 				RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment)this.getEnvironment();
@@ -160,15 +160,11 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
 
 				try{
 						WriteContext context;
-						if(queue==null) {
-								queue = RollForwardQueueMap.lookupRollForward(((RegionCoprocessorEnvironment) this.getEnvironment()).getRegion().getRegionNameAsString());
-								if (queue == null)
-									SpliceLogUtils.warn(LOG, "Index Endpoint is not rolling forward, configuration issue");
-						}
+//						if(queue==null)
+//								queue = HTransactorFactory.getRollForward(region);
+//								queue = RollForwardQueueMap.lookupRollForwardQueue(((RegionCoprocessorEnvironment) this.getEnvironment()).getRegion().getTableDesc().getNameAsString());
 						try {
-								context = getWriteContext(bulkWrite.getTxnId(),rce,
-										SIConstants.siDelayRollForwardMaxSize > bulkWrite.getSize()?queue:null // only queue when less than bulk write max size
-												,bulkWrite.getMutations().size());
+								context = getWriteContext(bulkWrite.getTxn(),bulkWrite.getMutations().size(),rce);
 						} catch (InterruptedException e) {
 								//was interrupted while trying to create a write context.
 								//we're done, someone else will have to write this batch
@@ -219,70 +215,71 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
 		}
 
 
-		private WriteContext getWriteContext(String txnId,RegionCoprocessorEnvironment rce,RollForwardQueue queue,int writeSize) throws IOException, InterruptedException {
+		private WriteContext getWriteContext(TxnView txn, int writeSize, RegionCoprocessorEnvironment env) throws IOException, InterruptedException {
         Pair<LocalWriteContextFactory, AtomicInteger> ctxFactoryPair = getContextPair(conglomId);
-        return ctxFactoryPair.getFirst().create(txnId,rce,queue,writeSize);
+        return ctxFactoryPair.getFirst().create(txn,region, writeSize, env);
     }
 
     @SuppressWarnings("unchecked")
 	@Override
     public WriteResult deleteFirstAfter(String transactionId, byte[] rowKey, byte[] limit) throws IOException {
-        RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment)this.getEnvironment();
-        final HRegion region = rce.getRegion();
-        Scan scan = SpliceUtils.createScan(transactionId);
-        scan.setStartRow(rowKey);
-        scan.setStopRow(limit);
-        //TODO -sf- make us only pull back one entry instead of everything
-        EntryPredicateFilter predicateFilter = EntryPredicateFilter.emptyPredicate();
-        scan.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
-
-        RegionScanner scanner = region.getCoprocessorHost().preScannerOpen(scan);
-        if(scanner==null)
-            scanner = region.getScanner(scan);
-
-        List<KeyValue> row = Lists.newArrayList();
-        boolean shouldContinue;
-        do{
-            shouldContinue = scanner.next(row);
-            if(row.size()<=0) continue; //nothing returned
-
-            byte[] rowBytes =  row.get(0).getRow();
-            if(Bytes.compareTo(rowBytes,limit)<0){
-                Mutation mutation = Mutations.getDeleteOp(transactionId,rowBytes);
-                mutation.setAttribute(SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME,SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_VALUE);
-                if(mutation instanceof Put){
-                    try{
-                        @SuppressWarnings("deprecation")
-                        OperationStatus[] statuses = region.put(new Pair[]{Pair.newPair((Put)mutation,null)});
-                        OperationStatus status = statuses[0];
-                        switch (status.getOperationStatusCode()) {
-                            case NOT_RUN:
-                                return WriteResult.notRun();
-                            case SUCCESS:
-                                return WriteResult.success();
-                            default:
-                                return WriteResult.failed(status.getExceptionMsg());
-                        }
-                    }catch(IOException ioe){
-                        return WriteResult.failed(ioe.getMessage());
-                    }
-                }else{
-                    try{
-                        region.delete((Delete)mutation,true);
-                        return WriteResult.success();
-                    }catch(IOException ioe){
-                        return WriteResult.failed(ioe.getMessage());
-                    }
-                }
-            }else{
-                //we've gone past our limit value without finding anything, so return notRun() to indicate
-                //no action
-                return WriteResult.notRun();
-            }
-        }while(shouldContinue);
-
-        //no rows were found, so nothing to delete
-        return WriteResult.notRun();
+        throw new UnsupportedOperationException("REMOVE");
+//        RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment)this.getEnvironment();
+//        final HRegion region = rce.getRegion();
+//        Scan scan = SpliceUtils.createScan(transactionId);
+//        scan.setStartRow(rowKey);
+//        scan.setStopRow(limit);
+//        //TODO -sf- make us only pull back one entry instead of everything
+//        EntryPredicateFilter predicateFilter = EntryPredicateFilter.emptyPredicate();
+//        scan.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
+//
+//        RegionScanner scanner = region.getCoprocessorHost().preScannerOpen(scan);
+//        if(scanner==null)
+//            scanner = region.getScanner(scan);
+//
+//        List<KeyValue> row = Lists.newArrayList();
+//        boolean shouldContinue;
+//        do{
+//            shouldContinue = scanner.next(row);
+//            if(row.size()<=0) continue; //nothing returned
+//
+//            byte[] rowBytes =  row.get(0).getRow();
+//            if(Bytes.compareTo(rowBytes,limit)<0){
+//                Mutation mutation = Mutations.getDeleteOp(transactionId,rowBytes);
+//                mutation.setAttribute(SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME,SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_VALUE);
+//                if(mutation instanceof Put){
+//                    try{
+//                        @SuppressWarnings("deprecation")
+//                        OperationStatus[] statuses = region.put(new Pair[]{Pair.newPair((Put)mutation,null)});
+//                        OperationStatus status = statuses[0];
+//                        switch (status.getOperationStatusCode()) {
+//                            case NOT_RUN:
+//                                return WriteResult.notRun();
+//                            case SUCCESS:
+//                                return WriteResult.success();
+//                            default:
+//                                return WriteResult.failed(status.getExceptionMsg());
+//                        }
+//                    }catch(IOException ioe){
+//                        return WriteResult.failed(ioe.getMessage());
+//                    }
+//                }else{
+//                    try{
+//                        region.delete((Delete)mutation,true);
+//                        return WriteResult.success();
+//                    }catch(IOException ioe){
+//                        return WriteResult.failed(ioe.getMessage());
+//                    }
+//                }
+//            }else{
+//                //we've gone past our limit value without finding anything, so return notRun() to indicate
+//                //no action
+//                return WriteResult.notRun();
+//            }
+//        }while(shouldContinue);
+//
+//        //no rows were found, so nothing to delete
+//        return WriteResult.notRun();
     }
 
     private static Pair<LocalWriteContextFactory, AtomicInteger> getContextPair(long conglomId) {

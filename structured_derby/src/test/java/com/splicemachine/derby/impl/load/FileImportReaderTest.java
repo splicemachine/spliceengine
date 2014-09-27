@@ -23,7 +23,6 @@ public class FileImportReaderTest {
 								path("/Users/scottfines/workspace/customer/radiumone/data/PROBLEM/download/data/radiumone/small/019220_0.gz")
 								.destinationTable(1184l)
 								.colDelimiter(",")
-								.transactionId("12")
 								.recordStats().build();
 
 				reader.setup(FileSystem.get(SpliceConstants.config),ctx);

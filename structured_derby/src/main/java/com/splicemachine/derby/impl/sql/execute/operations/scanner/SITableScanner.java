@@ -17,22 +17,18 @@ import com.splicemachine.derby.utils.marshall.dvd.TypeProvider;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.hbase.MeasuredRegionScanner;
-import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.RollForwardQueue;
-import com.splicemachine.si.api.SIFilter;
-import com.splicemachine.si.coprocessors.RollForwardQueueMap;
-import com.splicemachine.si.data.hbase.HRowAccumulator;
-import com.splicemachine.si.impl.FilterState;
-import com.splicemachine.si.impl.FilterStatePacked;
-import com.splicemachine.si.impl.IFilterState;
-import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.metrics.Counter;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.TimeView;
 import com.splicemachine.metrics.Timer;
+import com.splicemachine.si.api.SIFilter;
+import com.splicemachine.si.api.TransactionalRegion;
+import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.data.hbase.HRowAccumulator;
+import com.splicemachine.si.impl.PackedTxnFilter;
+import com.splicemachine.si.impl.TxnFilter;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.ByteSlice;
-import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
@@ -41,6 +37,8 @@ import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.hbase.filter.FilterList;
+import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -58,6 +56,7 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 		private final Counter filterCounter;
 
 		private MeasuredRegionScanner regionScanner;
+		private final TransactionalRegion region;
 		private final Scan scan;
         private ScopedPredicates scopedPredicates;
 		private final ExecRow template;
@@ -86,40 +85,13 @@ public class SITableScanner implements StandardIterator<ExecRow>{
     private ExecRowAccumulator accumulator;
 
 
-    SITableScanner(MeasuredRegionScanner scanner,
-													ExecRow template,
-													MetricFactory metricFactory,
-													Scan scan,
-													int[] rowDecodingMap,
-													String transactionID,
-													int[] allPkColumns,
-													boolean[] keyColumnSortOrder,
-													int[] keyColumnTypes,
-													int[] keyDecodingMap,
-													FormatableBitSet accessedPks,
-													String indexName,
-													String tableVersion) {
-			this(scanner,
-							template,
-							metricFactory,
-							scan,
-							rowDecodingMap,
-							transactionID,
-							allPkColumns,
-							keyColumnSortOrder,
-							keyColumnTypes,
-							keyDecodingMap,
-							accessedPks,
-							indexName,
-							tableVersion,null);
-		}
-
 		SITableScanner(MeasuredRegionScanner scanner,
+									 final TransactionalRegion region,
 													final ExecRow template,
 													MetricFactory metricFactory,
 													Scan scan,
 													final int[] rowDecodingMap,
-													final String transactionID,
+													final TxnView txn,
 													int[] keyColumnEncodingOrder,
 													boolean[] keyColumnSortOrder,
 													int[] keyColumnTypes,
@@ -128,6 +100,7 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 													String indexName,
 													final String tableVersion,
 													SIFilterFactory filterFactory) {
+				this.region = region;
 				this.scan = scan;
 				this.template = template;
 				this.rowDecodingMap = rowDecodingMap;
@@ -148,16 +121,11 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 																					EntryDecoder rowEntryDecoder,
 																					EntryAccumulator accumulator,
 																					boolean isCountStar) throws IOException {
-										TransactionId transactionId= new TransactionId(transactionID);
-										RollForwardQueue queue = RollForwardQueueMap.lookupRollForward(regionScanner.getRegionInfo().getRegionNameAsString());
-										if (queue == null)
-											SpliceLogUtils.warn(LOG, "SI Table Scanner is not rolling forward, configuration issue");
-
-										IFilterState iFilterState = HTransactorFactory.getTransactionReadController().newFilterState(queue, transactionId);
+										TxnFilter txnFilter = region.unpackedFilter(txn);
 
 										HRowAccumulator hRowAccumulator = new HRowAccumulator(predicateFilter, getRowEntryDecoder(), accumulator, isCountStar);
 										//noinspection unchecked
-										return new FilterStatePacked((FilterState)iFilterState, hRowAccumulator){
+										return new PackedTxnFilter(txnFilter, hRowAccumulator){
 												@Override
 												public Filter.ReturnCode doAccumulate(KeyValue dataKeyValue) throws IOException {
 														if (!accumulator.isFinished() && accumulator.isOfInterest(dataKeyValue)) {

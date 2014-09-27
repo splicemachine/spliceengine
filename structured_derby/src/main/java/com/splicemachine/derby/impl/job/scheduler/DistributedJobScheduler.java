@@ -1,12 +1,15 @@
 package com.splicemachine.derby.impl.job.scheduler;
 
-import com.google.common.base.Throwables;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobScheduler;
 import com.splicemachine.job.JobSchedulerManagement;
+import com.splicemachine.si.api.TransactionLifecycle;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnLifecycleManager;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import com.splicemachine.utils.ZkUtils;
@@ -107,24 +110,47 @@ public class DistributedJobScheduler implements JobScheduler<CoprocessorJob>{
 		/********************************************************************************************/
     /*Private helper methods*/
 
-    private JobFuture submitTasks(CoprocessorJob job,String jobPath) throws ExecutionException{
-        JobControl control = new JobControl(job,jobPath,zkManager,maxResubmissionAttempts, jobMetrics);
-        Map<? extends RegionTask, Pair<byte[], byte[]>> tasks;
-        try {
-            tasks = job.getTasks();
-        } catch (Exception e) {
-            throw new ExecutionException("Unable to get tasks for submission",e);
-        }
+		private JobFuture submitTasks(CoprocessorJob job,String jobPath) throws ExecutionException{
+				JobControl control = new JobControl(job,jobPath,zkManager,maxResubmissionAttempts, jobMetrics);
+				Map<? extends RegionTask, Pair<byte[], byte[]>> tasks;
+				try {
+						tasks = job.getTasks();
+				} catch (Exception e) {
+						throw new ExecutionException("Unable to get tasks for submission",e);
+				}
 
-        jobMetrics.numRunningJobs.incrementAndGet();
-        HTableInterface table = job.getTable();
-        for(Map.Entry<? extends RegionTask,Pair<byte[],byte[]>> taskEntry:tasks.entrySet()){
-            control.submit(taskEntry.getKey(),taskEntry.getValue(),table,0);
-        }
-        return control;
+				jobMetrics.numRunningJobs.incrementAndGet();
+				HTableInterface table = job.getTable();
+				TxnView jobTxn = job.getTxn();
+				byte[] destTable = job.getDestinationTable();
+				//tasks which write to TEMP are not writeable transactions--they are read-only
+//				if(jobTxn!=null)
+						submitTransactionalTasks(jobTxn,control,tasks,table,destTable);
+//				else
+//						submitNonTransactionalTasks(control,tasks,table);
+				return control;
     }
 
-    private String createJobNode(CoprocessorJob job) throws KeeperException, InterruptedException {
+
+		private void submitTransactionalTasks(TxnView parentTxn,
+																					JobControl control,
+																					Map<? extends RegionTask, Pair<byte[], byte[]>> tasks,
+																					HTableInterface table,
+																					byte[] destTable) throws ExecutionException {
+				for(Map.Entry<? extends RegionTask,Pair<byte[],byte[]>> taskEntry:tasks.entrySet()){
+						RegionTask task = taskEntry.getKey();
+            task.setParentTxnInformation(parentTxn);
+						control.submit(task,taskEntry.getValue(),table,0);
+				}
+		}
+
+		private void submitNonTransactionalTasks(JobControl control, Map<? extends RegionTask, Pair<byte[], byte[]>> tasks, HTableInterface table) throws ExecutionException {
+				for(Map.Entry<? extends RegionTask,Pair<byte[],byte[]>> taskEntry:tasks.entrySet()){
+						control.submit(taskEntry.getKey(),taskEntry.getValue(),table,0);
+				}
+		}
+
+		private String createJobNode(CoprocessorJob job) throws KeeperException, InterruptedException {
         String jobId = job.getJobId();
         jobId = jobId.replaceAll("/","_");
         String path = CoprocessorTaskScheduler.getJobPath()+"/"+jobId;

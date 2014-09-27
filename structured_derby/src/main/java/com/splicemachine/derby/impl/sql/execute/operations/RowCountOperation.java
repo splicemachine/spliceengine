@@ -304,7 +304,7 @@ public class RowCountOperation extends SpliceBaseOperation{
 								}
 
 								@Override
-								public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) {
+								public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) throws IOException {
 									scanProvider.reportStats(statementId,operationId,taskId,xplainSchema,regionName);
 								}
 
@@ -415,7 +415,8 @@ public class RowCountOperation extends SpliceBaseOperation{
 												}
 										}
 								}
-								SpliceUtils.setInstructions(next,operation.getActivation(),operation, new SpliceRuntimeContext());
+								SpliceUtils.setInstructions(next,operation.getActivation(),operation,
+                        new SpliceRuntimeContext(RowCountOperation.this.operationInformation.getTransaction()));
 								//set the offset that this scan needs to roll from
 								try {
 										currentScan = table.getScanner(next);
@@ -546,10 +547,10 @@ public class RowCountOperation extends SpliceBaseOperation{
 				}
 
 				@Override
-				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) {
+				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) throws IOException {
 						OperationRuntimeStats metrics = RowCountOperation.this.getMetrics(statementId, operationId, true);
 						metrics.setHostName(SpliceUtils.getHostName());
-						SpliceDriver.driver().getTaskReporter().report(metrics);
+						SpliceDriver.driver().getTaskReporter().report(metrics,operationInformation.getTransaction());
 				}
 
 				@Override
@@ -609,7 +610,7 @@ public class RowCountOperation extends SpliceBaseOperation{
 				}
 
 				@Override
-				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) {
+				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) throws IOException {
 					provider.reportStats(statementId,operationId,taskId,xplainSchema,regionName);
 				}
 

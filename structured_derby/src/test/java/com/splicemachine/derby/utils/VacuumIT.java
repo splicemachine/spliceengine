@@ -2,12 +2,14 @@ package com.splicemachine.derby.utils;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.test.SerialTest;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.TestRule;
 
 import java.sql.CallableStatement;
@@ -17,7 +19,8 @@ import java.util.Arrays;
  * @author Scott Fines
  * Date: 3/19/14
  */
-@Ignore("-sf- This can take forever, and it doesn't really test anything. Until it does, leave it ignored")
+//@Ignore("-sf- This can take forever, and it doesn't really test anything. Until it does, leave it ignored")
+@Category(SerialTest.class)
 public class VacuumIT {
 		private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 		@ClassRule

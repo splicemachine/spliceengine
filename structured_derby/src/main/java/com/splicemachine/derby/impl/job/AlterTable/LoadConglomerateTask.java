@@ -21,6 +21,9 @@ import com.splicemachine.metrics.Metrics;
 import com.splicemachine.metrics.TimeView;
 import com.splicemachine.metrics.Timer;
 import com.splicemachine.hbase.writer.WriteStats;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnLifecycleManager;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.KeyValue;
@@ -60,6 +63,7 @@ public class LoadConglomerateTask extends ZkTask {
     private KVPair newPair;
     private boolean initialized = false;
     private Timer writeTimer;
+    private long demarcationPoint;
 
 		private byte[] scanStart;
 		private byte[] scanStop;
@@ -71,22 +75,22 @@ public class LoadConglomerateTask extends ZkTask {
                                  long toConglomId,
                                  ColumnInfo[] columnInfo,
                                  int droppedColumnPosition,
-                                 String txnId,
                                  String jobId,
                                  boolean isTraced,
                                  long statementId,
-                                 long operationId) {
+                                 long operationId,
+                                 long demarcationPoint) {
 
-        super(jobId, OperationJob.operationTaskPriority, txnId, false);
+        super(jobId, OperationJob.operationTaskPriority, null);
         this.tableId = tableId;
         this.fromConglomId = fromConglomId;
         this.toConglomId = toConglomId;
         this.columnInfo = columnInfo;
         this.droppedColumnPosition = droppedColumnPosition;
-        this.txnId = txnId;
         this.isTraced = isTraced;
         this.statementId = statementId;
         this.operationId = operationId;
+        this.demarcationPoint = demarcationPoint;
     }
 
 		@Override
@@ -94,7 +98,7 @@ public class LoadConglomerateTask extends ZkTask {
 				return new LoadConglomerateTask(tableId,
 								fromConglomId,toConglomId,
 								columnInfo,droppedColumnPosition,
-								txnId,jobId,isTraced,statementId,operationId);
+				jobId,isTraced,statementId,operationId,demarcationPoint);
 		}
 
 		@Override public boolean isSplittable() { return false; }
@@ -107,9 +111,10 @@ public class LoadConglomerateTask extends ZkTask {
 		}
 
 		private void initialize() throws StandardException{
-        scanner = new ConglomerateScanner(columnInfo, region, txnId, isTraced,scanStart,scanStop);
-        transformer = new RowTransformer(tableId, txnId, columnInfo, droppedColumnPosition);
-        loader = new ConglomerateLoader(toConglomId, txnId, isTraced);
+        Txn txn = getTxn();
+        scanner = new ConglomerateScanner(region, txn,demarcationPoint, isTraced,scanStart,scanStop);
+        transformer = new RowTransformer(tableId, txn, columnInfo, droppedColumnPosition);
+        loader = new ConglomerateLoader(toConglomId, txn, isTraced);
         initialized = true;
     }
     @Override
@@ -163,10 +168,19 @@ public class LoadConglomerateTask extends ZkTask {
                 stats.addMetric(OperationMetric.WRITE_ROWS, writeStats.getRowsWritten());
                 stats.addMetric(OperationMetric.WRITE_TOTAL_WALL_TIME, time.getWallClockTime());
 
-                SpliceDriver.driver().getTaskReporter().report(stats);
+                try{
+                    SpliceDriver.driver().getTaskReporter().report(stats,getTxn());
+                }catch(IOException ioe){
+                    throw new ExecutionException(ioe);
+                }
             }
         }
 
+    }
+
+    @Override
+    protected Txn beginChildTransaction(TxnView parentTxn, TxnLifecycleManager tc) throws IOException {
+        return tc.beginChildTransaction(parentTxn,Long.toString(toConglomId).getBytes());
     }
 
     @Override
@@ -179,8 +193,7 @@ public class LoadConglomerateTask extends ZkTask {
         return true;
     }
 
-
-		@Override
+    @Override
     public int getPriority() {
         return SchedulerPriorities.INSTANCE.getBasePriority(LoadConglomerateTask.class);
     }
@@ -199,12 +212,12 @@ public class LoadConglomerateTask extends ZkTask {
             }
         }
         droppedColumnPosition = in.readInt();
-        txnId = in.readUTF();
 
         if(isTraced = in.readBoolean()){
             statementId = in.readLong();
             operationId = in.readLong();
         }
+        demarcationPoint = in.readLong();
     }
 
     @Override
@@ -220,12 +233,12 @@ public class LoadConglomerateTask extends ZkTask {
             out.writeObject(columnInfo[i]);
         }
         out.writeInt(droppedColumnPosition);
-        out.writeUTF(txnId);
         out.writeBoolean(isTraced);
 
         if(isTraced){
             out.writeLong(statementId);
             out.writeLong(operationId);
         }
+        out.writeLong(demarcationPoint);
     }
 }

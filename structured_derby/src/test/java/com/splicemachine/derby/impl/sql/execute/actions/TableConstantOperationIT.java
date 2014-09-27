@@ -7,6 +7,8 @@ import java.sql.Statement;
 import java.util.Arrays;
 import java.util.List;
 
+import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.derby.utils.ErrorState;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -14,13 +16,6 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
-
-import com.splicemachine.derby.test.framework.SpliceDataWatcher;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceViewWatcher;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
 
 /**
  * @author Jeff Cunningham
@@ -130,244 +125,162 @@ public class TableConstantOperationIT extends SpliceUnitTest {
         }
     }
 
-    @Test
+    @Test(expected=SQLException.class)
     public void testCreateDropTable() throws Exception {
         Connection connection = methodWatcher.createConnection();
-        Statement statement = methodWatcher.createConnection().createStatement();
-        statement.execute(String.format("create table %s.%s %s",tableSchema.schemaName,EMP_NAME_TABLE2,eNameDef));
-        loadTable(statement, tableSchema.schemaName + "." + EMP_NAME_TABLE2, empNameVals);
-        connection.commit();
-        ResultSet resultSet = connection.createStatement().executeQuery(String.format("select * from %s.%s", tableSchema.schemaName, EMP_NAME_TABLE2));
-        Assert.assertEquals(5, resultSetSize(resultSet));
+        try{
+            SQLClosures.execute(connection, new SQLClosures.SQLAction<Statement>() {
+                @Override
+                public void execute(Statement statement) throws Exception {
+                    statement.execute(String.format("create table %s.%s %s", tableSchema.schemaName, EMP_NAME_TABLE2, eNameDef));
+                    loadTable(statement, tableSchema.schemaName + "." + EMP_NAME_TABLE2, empNameVals);
+                }
+            });
+            connection.commit();
+            SQLClosures.query(connection,String.format("select * from %s.%s",tableSchema.schemaName,EMP_NAME_TABLE2),new SQLClosures.SQLAction<ResultSet>() {
+                @Override
+                public void execute(ResultSet resultSet) throws Exception {
+                    Assert.assertEquals(5, resultSetSize(resultSet));
+                }
+            });
 
-        statement.execute(String.format("drop table %s",tableSchema.schemaName + "." + EMP_NAME_TABLE2));
-        connection.commit();
+            SQLClosures.execute(connection,new SQLClosures.SQLAction<Statement>() {
+                @Override
+                public void execute(Statement statement) throws Exception {
+                    statement.execute(String.format("drop table %s",tableSchema.schemaName + "." + EMP_NAME_TABLE2));
+                }
+            });
+            connection.commit();
 
-        try {
-            connection.createStatement().executeQuery(String.format("select * from %s", tableSchema.schemaName + "." + EMP_NAME_TABLE2));
-            Assert.fail("Expected exception but didn't get one.");
-        } catch (SQLException e) {
-            // expected
+            SQLClosures.execute(connection, new SQLClosures.SQLAction<Statement>() {
+                @Override
+                public void execute(Statement statement) throws Exception {
+                    statement.executeQuery(String.format("select * from %s", tableSchema.schemaName + "." + EMP_NAME_TABLE2));
+                }
+            });
+        }finally{
+            connection.close();
         }
     }
 
-    @Test
+    @Test(expected = SQLException.class)
     public void testCreateDropTableIfExist() throws Exception {
         String tableName = "R";
-        methodWatcher.getStatement().execute(String.format("create table %s.%s (i int)", tableSchema.schemaName, tableName));
-        methodWatcher.getStatement().execute(String.format("drop table %s", tableSchema.schemaName + "." + tableName));
+        Statement statement = methodWatcher.getStatement();
+        statement.execute(String.format("create table %s.%s (i int)", tableSchema.schemaName, tableName));
+        statement.execute(String.format("drop table %s", tableSchema.schemaName + "." + tableName));
 
         try {
-            methodWatcher.getStatement().execute(String.format("drop table %s", tableSchema.schemaName + "." + tableName));
-            Assert.fail("Expected exception but didn't get one.");
-        } catch (SQLException e) {
-            // expected - no "if exists"
+            statement.execute(String.format("drop table %s", tableSchema.schemaName + "." + tableName));
+        }finally{
+            // we should not get an exception here because we've used "if exists"
+            statement.execute(String.format("drop table if exists %s", tableSchema.schemaName + "." + tableName));
         }
-
-        // we should not get an exception here because we've used "if exists"
-        methodWatcher.getStatement().execute(String.format("drop table if exists %s", tableSchema.schemaName + "." + tableName));
     }
 
-    @Test
+    @Test(expected = SQLException.class)
     public void testRenameTable() throws Exception {
         Connection connection = methodWatcher.createConnection();
-        Statement statement = methodWatcher.createConnection().createStatement();
-        ResultSet resultSet = connection.createStatement().executeQuery(String.format("select * from %s.%s", tableSchema.schemaName, EMP_PRIV_TABLE1));
-        Assert.assertEquals(5, resultSetSize(resultSet));
+        try{
+            SQLClosures.query(connection,String.format("select * from %s.%s",tableSchema.schemaName,EMP_PRIV_TABLE1),new SQLClosures.SQLAction<ResultSet>() {
+                @Override
+                public void execute(ResultSet resultSet) throws Exception {
+                    Assert.assertEquals(5, resultSetSize(resultSet));
+                }
+            });
 
-        statement.execute(String.format("rename table %s.%s to %s",tableSchema.schemaName,EMP_PRIV_TABLE1,"real_private"));
-        connection.commit();
+            SQLClosures.execute(connection,new SQLClosures.SQLAction<Statement>() {
+                @Override
+                public void execute(Statement statement) throws Exception {
+                    statement.execute(String.format("rename table %s.%s to %s",tableSchema.schemaName,EMP_PRIV_TABLE1,"real_private"));
+                }
+            });
+            connection.commit();
 
-        try {
-            connection.createStatement().executeQuery(String.format("select * from %s.%s", tableSchema.schemaName, EMP_PRIV_TABLE1));
-            Assert.fail("Expected exception but didn't get one.");
-        } catch (SQLException e) {
-            // expected
+            try{
+                SQLClosures.execute(connection,new SQLClosures.SQLAction<Statement>() {
+                    @Override
+                    public void execute(Statement statement) throws Exception {
+                        statement.executeQuery(String.format("select * from %s.%s", tableSchema.schemaName, EMP_PRIV_TABLE1));
+                        Assert.fail("Expected exception but didn't get one.");
+                    }
+                });
+            }finally{
+                SQLClosures.query(connection,String.format("select * from %s.%s",tableSchema.schemaName,"real_private"),new SQLClosures.SQLAction<ResultSet>() {
+                    @Override
+                    public void execute(ResultSet resultSet) throws Exception {
+                        Assert.assertEquals(5, resultSetSize(resultSet));
+                    }
+                });
+            }
+        }finally{
+            connection.close();
         }
-
-        resultSet = connection.createStatement().executeQuery(String.format("select * from %s.%s", tableSchema.schemaName, "real_private"));
-        Assert.assertEquals(5, resultSetSize(resultSet));
     }
 
-    @Test
+    @Test(expected = SQLException.class)
     public void testDropTableWithView() throws Exception {
         Connection connection = methodWatcher.createConnection();
         connection.setAutoCommit(false);
-        connection.createStatement().execute(String.format("delete from %s where id = 1", empPrivTable3.toString()));
-        ResultSet resultSet = connection.createStatement().executeQuery(String.format("select * from %s", empNamePrivView2.toString()));
-        Assert.assertEquals(4, resultSetSize(resultSet));
+        try{
+            SQLClosures.execute(connection, new SQLClosures.SQLAction<Statement>() {
+                @Override
+                public void execute(Statement statement) throws Exception {
+                    statement.execute(String.format("delete from %s where id = 1", empPrivTable3.toString()));
+                }
+            }); 
+            SQLClosures.query(connection, String.format("select * from %s", empNamePrivView2.toString()), new SQLClosures.SQLAction<ResultSet>() {
+                @Override
+                public void execute(ResultSet resultSet) throws Exception {
+                    Assert.assertEquals(4, resultSetSize(resultSet));
+                }
+            });
 
-        try {
-            connection.createStatement().execute(String.format("drop table %s.%s", tableSchema.schemaName, EMP_PRIV_TABLE3));
-            Assert.fail("Expected exception but didn't get one.");
-        } catch (SQLException e) {
-            // expected
+            try{
+                SQLClosures.execute(connection, new SQLClosures.SQLAction<Statement>() {
+                    @Override
+                    public void execute(Statement statement) throws Exception {
+                        statement.execute(String.format("drop table %s.%s", tableSchema.schemaName, EMP_PRIV_TABLE3));
+                        Assert.fail("Expected exception but didn't get one.");
+                    }
+                });
+            }finally{
+                SQLClosures.query(connection, String.format("select * from %s", empNamePrivView2.toString()), new SQLClosures.SQLAction<ResultSet>() {
+                    @Override
+                    public void execute(ResultSet resultSet) throws Exception {
+                        Assert.assertEquals(4, resultSetSize(resultSet));
+                    }
+                });
+            }
+
+            connection.rollback();
+        }finally{
+            connection.close();
         }
-
-        resultSet = connection.createStatement().executeQuery(String.format("select * from %s", empNamePrivView2.toString()));
-        Assert.assertEquals(4, resultSetSize(resultSet));
-        connection.commit();
     }
 
-    @Test
+    @Test(expected=SQLException.class)
      public void testRenameTableWithView() throws Exception {
         Connection connection = methodWatcher.createConnection();
-        ResultSet resultSet = connection.createStatement().executeQuery(String.format("select * from %s", empNamePrivView.toString()));
-        Assert.assertEquals(5, resultSetSize(resultSet));
+        try{
+            connection.setAutoCommit(false);
+            SQLClosures.query(connection, String.format("select * from %s", empNamePrivView.toString()), new SQLClosures.SQLAction<ResultSet>() {
+                @Override
+                public void execute(ResultSet resultSet) throws Exception {
+                    Assert.assertEquals(5, resultSetSize(resultSet));
+                }
+            });
 
-        try {
-            connection.createStatement().execute(String.format("rename table %s.%s to %s", tableSchema.schemaName, EMP_PRIV_TABLE2, "real_private"));
-            Assert.fail("Expected exception but didn't get one.");
-        } catch (SQLException e) {
-            // expected
+            SQLClosures.execute(connection, new SQLClosures.SQLAction<Statement>() {
+                @Override
+                public void execute(Statement statement) throws Exception {
+                    statement.execute(String.format("rename table %s.%s to %s", tableSchema.schemaName, EMP_PRIV_TABLE2, "real_private"));
+                }
+            });
+
+            connection.rollback();
+        }finally{
+            connection.close();
         }
     }
-
-    @Test
-    public void testTableCreationIsolation() throws Exception {
-        String create = String.format("create table %s.%s %s",tableSchema.schemaName,EMP_NAME_TABLE3,ePrivDef);
-        String query = String.format("select * from %s.%s", tableSchema.schemaName, EMP_NAME_TABLE3);
-
-        Connection connection1 = methodWatcher.createConnection();
-        Statement statement1 = connection1.createStatement();
-        Connection connection2 = methodWatcher.createConnection();
-        try {
-            connection1.setAutoCommit(false);
-            connection2.setAutoCommit(false);
-            statement1.execute(create);
-            loadTable(statement1, tableSchema.schemaName + "." + EMP_NAME_TABLE3, empNameVals);
-
-            ResultSet resultSet;
-            try {
-                resultSet = connection2.createStatement().executeQuery(query);
-                Assert.fail("Read committed violated, access to non committed table didn't raise exception");
-            } catch (SQLException e) {
-                Assert.assertTrue("Unknown exception", e.getMessage().contains("does not exist"));
-            }
-
-            resultSet = connection1.createStatement().executeQuery(query);
-            Assert.assertTrue("Connection should see its own writes",resultSet.next());
-
-            connection1.commit();
-            try {
-                resultSet = connection2.createStatement().executeQuery(query);
-                Assert.fail("Read committed violated, access to not-in-snapshot table didn't raise exception");
-            } catch (SQLException e) {
-                Assert.assertTrue("Unknown exception", e.getMessage().contains("does not exist"));
-            }
-
-            connection2.commit();
-            resultSet = connection2.createStatement().executeQuery(query);
-            Assert.assertTrue("New Transaction cannot see created object",resultSet.next());
-        } finally {
-            // drop/delete the damn thing
-            try {
-                connection1.createStatement().execute(String.format("drop table %s.%s", tableSchema.schemaName, EMP_NAME_TABLE3));
-                connection1.commit();
-            } catch (SQLException e) {
-                // ignore
-            }
-        }
-    }
-
-    @Test
-    public void testTableDropIsolation() throws Exception {
-        String create = String.format("create table %s.%s %s",tableSchema.schemaName,EMP_NAME_TABLE4,ePrivDef);
-        String query = String.format("select * from %s.%s", tableSchema.schemaName, EMP_NAME_TABLE4);
-
-        Connection connection1 = methodWatcher.createConnection();
-        Statement statement1 = connection1.createStatement();
-        Connection connection2 = methodWatcher.createConnection();
-        try {
-            connection1.setAutoCommit(false);
-            connection2.setAutoCommit(false);
-            statement1.execute(create);
-            loadTable(statement1, tableSchema.schemaName + "." + EMP_NAME_TABLE4, empNameVals);
-
-            ResultSet resultSet;
-            try {
-                resultSet = connection2.createStatement().executeQuery(query);
-                Assert.fail("Read committed violated, access to non committed table didn't raise exception");
-            } catch (SQLException e) {
-                Assert.assertTrue("Unknown exception", e.getMessage().contains("does not exist"));
-            }
-
-            resultSet = connection1.createStatement().executeQuery(query);
-            Assert.assertTrue("Connection should see its own writes",resultSet.next());
-
-            connection1.rollback();
-            try {
-                resultSet = connection2.createStatement().executeQuery(query);
-                Assert.fail("Read committed violated, access to non committed table didn't raise exception");
-            } catch (SQLException e) {
-                Assert.assertTrue("Unknown exception", e.getMessage().contains("does not exist"));
-            }
-
-            connection2.commit();
-            try {
-                resultSet = connection2.createStatement().executeQuery(query);
-                Assert.fail("Read committed violated, access to non committed table didn't raise exception");
-            } catch (SQLException e) {
-                Assert.assertTrue("Unknown exception", e.getMessage().contains("does not exist"));
-            }
-        } finally {
-            // drop/delete the damn thing
-            try {
-                connection1.createStatement().execute(String.format("drop table %s.%s", tableSchema.schemaName, EMP_NAME_TABLE4));
-                connection1.commit();
-            } catch (SQLException e) {
-                // ignore
-            }
-        }
-    }
-
-    @Test
-    public void testTableCreationConflict() throws Exception {
-        String create = String.format("create table %s.%s %s",tableSchema.schemaName,EMP_NAME_TABLE5,ePrivDef);
-        String query = String.format("select * from %s.%s", tableSchema.schemaName, EMP_NAME_TABLE5);
-
-        Connection connection1 = methodWatcher.createConnection();
-        Connection connection2 = methodWatcher.createConnection();
-        try {
-            connection1.setAutoCommit(false);
-            connection2.setAutoCommit(false);
-            connection1.createStatement().execute(create);
-            loadTable(connection1.createStatement(), tableSchema.schemaName + "." + EMP_NAME_TABLE5, empNameVals);
-
-            ResultSet resultSet;
-            try {
-                connection2.createStatement().execute(create);
-                Assert.fail("Isolation violated, write conflict undetected");
-            } catch (SQLException e) {
-                Assert.assertTrue("Unknown exception", e.getCause().getMessage().contains("serializable"));
-            }
-            connection2.rollback();
-            try {
-                resultSet = connection2.createStatement().executeQuery(query);
-                Assert.fail("Read committed violated, access to not-in-snapshot table didn't raise exception");
-            } catch (SQLException e) {
-                Assert.assertTrue("Unknown exception", e.getMessage().contains("does not exist"));
-            }
-
-            resultSet = connection1.createStatement().executeQuery(query);
-            Assert.assertTrue("Connection should see its own writes",resultSet.next());
-
-            connection1.rollback();
-
-            connection2.createStatement().execute(create);
-            loadTable(connection2.createStatement(), tableSchema.schemaName + "." + EMP_NAME_TABLE5, empNameVals);
-            connection2.commit();
-            resultSet = connection2.createStatement().executeQuery(query);
-            Assert.assertTrue("New Transaction cannot see created object",resultSet.next());
-        } finally {
-            // drop/delete the damn thing
-            try {
-                connection1.createStatement().execute(String.format("drop table %s.%s", tableSchema.schemaName, EMP_NAME_TABLE5));
-                connection1.commit();
-            } catch (SQLException e) {
-                // ignore
-            }
-        }
-    }
-
 }

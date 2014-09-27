@@ -1,5 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import com.splicemachine.derby.impl.store.access.SpliceTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
@@ -67,20 +69,20 @@ public class CreateSchemaConstantOperation extends DDLConstantAction {
 		executeConstantActionMinion(activation, tc);
 	}
 
-	private void executeConstantActionMinion(Activation activation,TransactionController tc) throws StandardException {
-		SpliceLogUtils.trace(LOG, "executeConstantActionMinion");
-		LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
-		DataDictionary dd = lcc.getDataDictionary();
-		DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
+    private void executeConstantActionMinion(Activation activation,TransactionController tc) throws StandardException {
+        SpliceLogUtils.trace(LOG, "executeConstantActionMinion");
+        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+        DataDictionary dd = lcc.getDataDictionary();
+        DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
 
-		SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, lcc.getTransactionExecute(), false);
+        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, lcc.getTransactionExecute(), false);
 
-		//if the schema descriptor is an in-memory schema, we donot throw schema already exists exception for it.
-		//This is to handle in-memory SESSION schema for temp tables
-		if ((sd != null) && (sd.getUUID() != null)) {
-			throw StandardException.newException(SQLState.LANG_OBJECT_ALREADY_EXISTS, "Schema" , schemaName);
-		}
-		UUID tmpSchemaId = dd.getUUIDFactory().createUUID();
+        //if the schema descriptor is an in-memory schema, we donot throw schema already exists exception for it.
+        //This is to handle in-memory SESSION schema for temp tables
+        if ((sd != null) && (sd.getUUID() != null)) {
+            throw StandardException.newException(SQLState.LANG_OBJECT_ALREADY_EXISTS, "Schema" , schemaName);
+        }
+        UUID tmpSchemaId = dd.getUUIDFactory().createUUID();
 
 		/*
 		** AID defaults to connection authorization if not 
@@ -88,10 +90,10 @@ public class CreateSchemaConstantOperation extends DDLConstantAction {
 	 	** authorizations, that would be the first check
 		** for default, then session aid).
 		*/
-		String thisAid = aid;
-		if (thisAid == null) {
+        String thisAid = aid;
+        if (thisAid == null) {
             thisAid = lcc.getCurrentUserId(activation);
-		}
+        }
 
 		/*
 		** Inform the data dictionary that we are about to write to it.
@@ -102,9 +104,18 @@ public class CreateSchemaConstantOperation extends DDLConstantAction {
 		** We tell the data dictionary we're done writing at the end of
 		** the transaction.
 		*/
-		dd.startWriting(lcc);
-		sd = ddg.newSchemaDescriptor(schemaName,thisAid,tmpSchemaId);
-
-		dd.addDescriptor(sd, null, DataDictionary.SYSSCHEMAS_CATALOG_NUM, false, tc);
-	}
+        dd.startWriting(lcc);
+        sd = ddg.newSchemaDescriptor(schemaName,thisAid,tmpSchemaId);
+        //create a child transaction to perform the actual write
+        SpliceTransactionManager childManager = (SpliceTransactionManager)tc.startNestedUserTransaction(false,false);
+        SpliceTransaction childTransaction = (SpliceTransaction)childManager.getRawTransaction();
+        childTransaction.elevate("dictionary".getBytes()); //TODO -sf- replace with actual conglomerate number
+        try{
+            dd.addDescriptor(sd, null, DataDictionary.SYSSCHEMAS_CATALOG_NUM, false, childManager);
+        }catch(StandardException se){
+            childManager.abort();
+            throw se;
+        }
+        childTransaction.commit();
+    }
 }

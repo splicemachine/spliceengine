@@ -167,7 +167,7 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 		@Override
 		public RowProvider getMapRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 				try{
-						Scan scan = Scans.buildPrefixRangeScan(uniqueSequenceID,SpliceUtils.NA_TRANSACTION_ID);
+						Scan scan = Scans.buildPrefixRangeScan(uniqueSequenceID,null);
 						return new ClientScanProvider("hashScanMap",SpliceOperationCoprocessor.TEMP_TABLE,scan,
 										OperationUtils.getPairDecoder(this,spliceRuntimeContext), spliceRuntimeContext);
 				} catch (IOException e) {
@@ -194,7 +194,7 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 				try {
 						sequence = new DataValueDescriptor[1];
 						sequence[0] = activation.getDataValueFactory().getBitDataValue(uniqueSequenceID);
-						SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
+						SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext(operationInformation.getTransaction());
 						return new SpliceNoPutResultSet(activation,this,getReduceRowProvider(this,OperationUtils.getPairDecoder(this,spliceRuntimeContext), spliceRuntimeContext, true));
 				} catch (Exception e) {
 						SpliceLogUtils.logAndThrowRuntime(LOG, "executeProbeScan failed!", e);

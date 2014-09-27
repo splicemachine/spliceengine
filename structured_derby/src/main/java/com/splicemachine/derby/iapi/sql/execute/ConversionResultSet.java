@@ -2,7 +2,9 @@ package com.splicemachine.derby.iapi.sql.execute;
 
 import com.splicemachine.derby.impl.sql.execute.operations.NoRowsOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.UpdateOperation;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.si.api.TxnView;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.Activation;
@@ -34,8 +36,7 @@ public class ConversionResultSet implements NoPutResultSet,CursorResultSet,Exter
     }
 
     public ConversionResultSet(SpliceOperation topOperation) {
-        this.topOperation = topOperation;
-        this.spliceRuntimeContext = new SpliceRuntimeContext();
+        this(topOperation,null);
     }
 
     public ConversionResultSet(SpliceOperation topOperation, Activation activation) {
@@ -61,6 +62,9 @@ public class ConversionResultSet implements NoPutResultSet,CursorResultSet,Exter
 
     @Override
     public void openCore() throws StandardException {
+        TxnView txn = spliceRuntimeContext.getTxn();
+        if(txn ==null)
+            spliceRuntimeContext.setTxn(((SpliceTransactionManager)activation.getTransactionController()).getActiveStateTxn());
         try {
             topOperation.open();
         } catch (IOException e) {

@@ -163,8 +163,9 @@ public class LastIndexKeyOperation extends ScanOperation {
 								MeasuredRegionScanner scanner = tentativeScanner!=null? tentativeScanner: regionScanner;
 								tableScanner = new TableScannerBuilder()
 												.scanner(scanner)
+                        .region(txnRegion)
 												.scan(contextScan)
-												.transactionID(transactionID)
+                        .transaction(operationInformation.getTransaction())
 												.template(currentRow)
 												.metricFactory(spliceRuntimeContext)
 												.rowDecodingMap(baseColumnMap)

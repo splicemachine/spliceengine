@@ -17,7 +17,10 @@ import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.RecordingCallBuffer;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.metrics.Timer;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.uuid.Snowflake;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.impl.ActiveWriteTxn;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -42,30 +45,32 @@ public class OperationSink {
     private final CallBufferFactory<KVPair> tableWriter;
     private final SinkingOperation operation;
     private final byte[] taskId;
-    private final String transactionId;
 
     private final Timer totalTimer;
     private final long waitTimeNs;
     private long statementId;
+		private TxnView txn;
 
-    public OperationSink(byte[] taskId,
+		public OperationSink(byte[] taskId,
                          SinkingOperation operation,
                          CallBufferFactory<KVPair> tableWriter,
-                         String transactionId,
+												 TxnView txn,
                          long statementId,
                          long waitTimeNs) {
         this.tableWriter = tableWriter;
         this.taskId = taskId;
         this.operation = operation;
-        this.transactionId = transactionId;
+				this.txn = txn;
         //we always record this time information, because it's cheap relative to the per-row timing
         this.totalTimer = Metrics.newTimer();
         this.statementId = statementId;
         this.waitTimeNs = waitTimeNs;
     }
 
-    public static OperationSink create(SinkingOperation operation, byte[] taskId, String transactionId,long statementId,long waitTimeNs) throws IOException {
-        return new OperationSink(taskId,operation,SpliceDriver.driver().getTableWriter(), transactionId,statementId,waitTimeNs);
+    public static OperationSink create(SinkingOperation operation,
+																			 byte[] taskId, TxnView txn,
+																			 long statementId,long waitTimeNs) throws IOException {
+        return new OperationSink(taskId,operation,SpliceDriver.driver().getTableWriter(), txn,statementId,waitTimeNs);
     }
 
     public TaskStats sink(byte[] destinationTable, SpliceRuntimeContext spliceRuntimeContext) throws Exception {
@@ -107,8 +112,8 @@ public class OperationSink {
 				    encoder = new PairEncoder(keyEncoder,rowHash,dataType);
         }
         try{
-            String txnId = getTransactionId(spliceRuntimeContext, destinationTable);
-						writeBuffer = operation.transformWriteBuffer(tableWriter.writeBuffer(destinationTable, txnId,spliceRuntimeContext));
+            TxnView txn = getTxn(spliceRuntimeContext, destinationTable);
+						writeBuffer = operation.transformWriteBuffer(tableWriter.writeBuffer(destinationTable, txn,spliceRuntimeContext));
 
             ExecRow row;
 
@@ -145,7 +150,7 @@ public class OperationSink {
 										operationStat.addMetric(OperationMetric.TASK_QUEUE_WAIT_WALL_TIME,waitTimeNs);
 										operationStat.setHostName(hostName);
 
-										reporter.report(operationStat);
+										reporter.report(operationStat,this.txn);
 								}
 						}
         } catch (Exception e) {
@@ -176,8 +181,8 @@ public class OperationSink {
         return Bytes.equals(destinationTable,context.getTempTable().getTempTableName());
     }
 
-		private String getTransactionId(SpliceRuntimeContext context, byte[] destinationTable) {
-				byte[] tempTableBytes = context.getTempTable().getTempTableName();
+		private TxnView getTxn(SpliceRuntimeContext spliceRuntimeContext, byte[] destinationTable) {
+				byte[] tempTableBytes = spliceRuntimeContext.getTempTable().getTempTableName();
 				if(Bytes.equals(destinationTable, tempTableBytes)){
 						/*
 						 * We are writing to the TEMP Table.
@@ -189,9 +194,28 @@ public class OperationSink {
 						 * However, timestamps can't be negative, so we just take the time portion of the
 						 * uuid out and stringify that
 						 */
-						return Long.toString(Snowflake.timestampFromUUID(Bytes.toLong(operation.getUniqueSequenceId())));
+						long l = Snowflake.timestampFromUUID(Bytes.toLong(operation.getUniqueSequenceId()));
+						return new ActiveWriteTxn(l,l,Txn.ROOT_TRANSACTION);
 				}
-				return transactionId == null ? operation.getTransactionID() : transactionId;
+        return txn;
 		}
+
+//		private String getTransactionId(SpliceRuntimeContext context, byte[] destinationTable) {
+//				byte[] tempTableBytes = context.getTempTable().getTempTableName();
+//				if(Bytes.equals(destinationTable, tempTableBytes)){
+//						/*
+//						 * We are writing to the TEMP Table.
+//						 *
+//						 * The timestamp has a useful meaning in the TEMP table, which is that
+//						 * it should be the longified version of the job id (to facilitate dropping
+//						 * data from TEMP efficiently--See TempTablecompactionScanner for more information).
+//						 *
+//						 * However, timestamps can't be negative, so we just take the time portion of the
+//						 * uuid out and stringify that
+//						 */
+//						return Long.toString(Snowflake.timestampFromUUID(Bytes.toLong(operation.getUniqueSequenceId())));
+//				}
+//				return txn == null ? operation.getTxn() : txn;
+//		}
 
 }

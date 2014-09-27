@@ -280,7 +280,7 @@ public class SpliceTableScannerTest {
 								.scan(scan)
 								.scanner(scanner)
 								.metricFactory(Metrics.noOpMetricFactory())
-								.transactionID("1") //reader transaction ID
+								.transactionID(1l) //reader transaction ID
 								.tableVersion("2.0")
 								.rowDecodingMap(rowDecodingMap)
 								.filterFactory(

@@ -214,7 +214,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
          */
         try{
             byte[] row = mutation.getRow();
-            Get oldGet = SpliceUtils.createGet(ctx.getTransactionId(), row);
+            Get oldGet = SpliceUtils.createGet(ctx.getTxn(), row);
             //TODO -sf- when it comes time to add additional (non-indexed data) to the index, you'll need to add more fields than just what's in indexedColumns
             EntryPredicateFilter filter = new EntryPredicateFilter(indexedColumns, new ObjectArrayList<Predicate>(),true);
             oldGet.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,filter.toBytes());

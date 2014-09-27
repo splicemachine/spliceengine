@@ -1,5 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import com.splicemachine.derby.utils.WarningState;
+import org.apache.derby.iapi.store.access.ColumnOrdering;
 import com.splicemachine.derby.ddl.DDLChange;
 import com.splicemachine.derby.ddl.TentativeIndexDesc;
 import com.splicemachine.derby.hbase.SpliceDriver;
@@ -10,25 +12,24 @@ import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.management.OperationInfo;
 import com.splicemachine.derby.management.StatementInfo;
+import com.splicemachine.derby.utils.ErrorState;
 import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.JobFuture;
-import com.splicemachine.si.api.TransactionManager;
-import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.si.api.TransactionLifecycle;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
+import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.uuid.Snowflake;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.dictionary.*;
 import org.apache.derby.iapi.store.access.TransactionController;
-import org.apache.derby.iapi.store.raw.Transaction;
+import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.log4j.Logger;
-
-import com.splicemachine.utils.SpliceLogUtils;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -91,36 +92,61 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 		this.indexName = indexName;
 	}
 
-    protected TransactionId getIndexTransaction(TransactionController parent, TransactionController tc, TransactionId tentativeTransaction, TransactionManager transactor, long tableConglomId) throws StandardException {
-        final TransactionId parentTransactionId =  new TransactionId(getTransactionId(parent));
-        final TransactionId wrapperTransactionId =  new TransactionId(getTransactionId(tc));
-        TransactionId indexTransaction;
-        try {
-            indexTransaction = transactor.beginChildTransaction(wrapperTransactionId, true, true, false, false, true, tentativeTransaction);
-        } catch (IOException e) {
-            LOG.error("Couldn't commit transaction for tentative DDL operation");
-            // TODO must cleanup tentative DDL change
-            throw Exceptions.parseException(e);
+    protected Txn getIndexTransaction(TransactionController parent,
+                                      TransactionController tc, Txn tentativeTransaction, long tableConglomId) throws StandardException {
+        final TxnView parentTxn = ((SpliceTransactionManager)parent).getActiveStateTxn();
+        final TxnView wrapperTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
+
+        /*
+         * We have an additional waiting transaction that we use to ensure that all elements
+         * which commit after the demarcation point are committed BEFORE the populate part.
+         */
+        byte[] tableBytes = Long.toString(tableConglomId).getBytes();
+        Txn waitTxn;
+        try{
+            waitTxn = TransactionLifecycle.getLifecycleManager().chainTransaction(wrapperTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION,false,tableBytes,tentativeTransaction);
+        }catch(IOException ioe){
+            LOG.error("Could not create a wait transaction",ioe);
+            throw Exceptions.parseException(ioe);
         }
 
         // Wait for past transactions to die
+        List<TxnView> toIgnore = Arrays.asList(parentTxn,wrapperTxn,tentativeTransaction,waitTxn);
         long oldestActiveTxn;
-        List<TransactionId> toIgnore = Arrays.asList(parentTransactionId, wrapperTransactionId, indexTransaction);
         try {
-            oldestActiveTxn = waitForConcurrentTransactions(indexTransaction, toIgnore,tableConglomId);
+            oldestActiveTxn = waitForConcurrentTransactions(waitTxn, toIgnore,tableConglomId);
         } catch (IOException e) {
             LOG.error("Unexpected error while waiting for past transactions to complete", e);
             throw Exceptions.parseException(e);
         }
         if (oldestActiveTxn>=0) {
-            throw StandardException.newException(SQLState.LANG_SERIALIZABLE,
-                    new RuntimeException(String.format("Transaction %d is still active.", oldestActiveTxn)));
+            throw ErrorState.DDL_ACTIVE_TRANSACTIONS.newException("CreateIndex("+indexName+")",oldestActiveTxn);
         }
-        return indexTransaction;
+        Txn indexTxn;
+        try{
+            /*
+             * We need to make the indexTxn a child of the wrapper, so that we can be sure
+             * that the write pipeline is able to see the conglomerate descriptor. However,
+             * this makes the SI logic more complex during the populate phase.
+             */
+            indexTxn = TransactionLifecycle.getLifecycleManager().chainTransaction(
+                    wrapperTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION, true, tableBytes,waitTxn);
+        } catch (IOException e) {
+            LOG.error("Couldn't commit transaction for tentative DDL operation");
+            // TODO must cleanup tentative DDL change
+            throw Exceptions.parseException(e);
+        }
+        return indexTxn;
     }
 
-    protected void populateIndex(Activation activation, int[] baseColumnPositions, boolean[] descColumns,
-                                 long tableConglomId, HTableInterface table, TransactionId indexTransaction,
+    protected void populateIndex(Activation activation,
+                                 int[] baseColumnPositions,
+                                 boolean[] descColumns,
+                                 long tableConglomId,
+                                 HTableInterface table,
+                                 TransactionController txnControl,
+                                 Txn indexTransaction,
+                                 long demarcationPoint,
                                  TentativeIndexDesc tentativeIndexDesc) throws StandardException {
         String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
 				/*
@@ -136,7 +162,7 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
             activation.getLanguageConnectionContext().setXplainStatementId(sId);
         }
         StatementInfo statementInfo = new StatementInfo(String.format("populate index on %s",tableName),userId,
-                activation.getTransactionController().getActiveStateTxIdString(),1, sId);
+                ((SpliceTransactionManager)activation.getTransactionController()).getActiveStateTxn(),1, SpliceDriver.driver().getUUIDGenerator());
         OperationInfo populateIndexOp = new OperationInfo(SpliceDriver.driver().getUUIDGenerator().nextUUID(),
                 statementInfo.getStatementUuid(), "PopulateIndex", null, false,-1l);
         statementInfo.setOperationInfo(Arrays.asList(populateIndexOp));
@@ -146,11 +172,18 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
         boolean uniqueWithDuplicateNulls = tentativeIndexDesc.isUniqueWithDuplicateNulls();
         long conglomId = tentativeIndexDesc.getConglomerateNumber();
         try{
-            SpliceConglomerate conglomerate = (SpliceConglomerate)((SpliceTransactionManager)activation.getTransactionController()).findConglomerate(tableConglomId);
-            PopulateIndexJob job = new PopulateIndexJob(table, indexTransaction.getTransactionIdString(),
+            SpliceConglomerate conglomerate = (SpliceConglomerate)((SpliceTransactionManager)txnControl).findConglomerate(tableConglomId);
+            long statementUuid = statementInfo.getStatementUuid();
+            long operationUuid = populateIndexOp.getOperationUuid();
+
+            int[] formatIds = conglomerate.getFormat_ids();
+            int[] columnOrder = conglomerate.getColumnOrdering();
+
+            PopulateIndexJob job = new PopulateIndexJob(table, indexTransaction,
                     conglomId, tableConglomId, baseColumnPositions, unique, uniqueWithDuplicateNulls, descColumns,
-                    statementInfo.getStatementUuid(),populateIndexOp.getOperationUuid(),
-                    activation.isTraced(), conglomerate.getColumnOrdering(), conglomerate.getFormat_ids());
+                    statementUuid, operationUuid,
+                    activation.isTraced(), columnOrder, formatIds,
+                    demarcationPoint);
 
             long start = System.currentTimeMillis();
             future = SpliceDriver.driver().getJobScheduler().submit(job);
@@ -171,14 +204,22 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
         } catch (InterruptedException e) {
             throw Exceptions.parseException(e);
         } finally {
-            SpliceDriver.driver().getStatementManager().completedStatement(statementInfo, activation.isTraced());
             cleanupFuture(future);
+            if(activation.isTraced()){
+                GenericStorablePreparedStatement preparedStatement = (GenericStorablePreparedStatement) activation.getPreparedStatement();
+                preparedStatement.clearWarnings();
+                preparedStatement.addWarning(StandardException.newWarning(WarningState.XPLAIN_STATEMENT_ID.getSqlState(),statementInfo.getStatementUuid()));
+            }
+            try {
+                SpliceDriver.driver().getStatementManager().completedStatement(statementInfo, activation.isTraced(),((SpliceTransactionManager) txnControl).getActiveStateTxn());
+            } catch (IOException e) {
+                throw Exceptions.parseException(e);
+            }
         }
     }
 
     protected void createIndex(Activation activation, DDLChange ddlChange,
                                HTableInterface table, TableDescriptor td) throws StandardException {
-        String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
         JobFuture future = null;
         JobInfo info = null;
         /*StatementInfo statementInfo = new StatementInfo(String.format("create index on %s",tableName),userId,
@@ -187,7 +228,7 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();
         int[] columnOrdering = null;
-        int[] formatIds= null;
+        int[] formatIds;
         ColumnDescriptorList cdList = td.getColumnDescriptorList();
         int numCols =  cdList.size();
         formatIds = new int[numCols];
@@ -234,14 +275,8 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
             }
             throw Exceptions.parseException(e);
         }finally {
-            //SpliceDriver.driver().getStatementManager().completedStatement(statementInfo, activation.isTraced());
             cleanupFuture(future);
         }
-    }
-
-    protected String getTransactionId(TransactionController tc) {
-        Transaction td = ((SpliceTransactionManager)tc).getRawTransaction();
-        return SpliceUtils.getTransID(td);
     }
 
     private void cleanupFuture(JobFuture future) throws StandardException {
@@ -254,5 +289,13 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
                 throw Exceptions.parseException(e.getCause());
             }
         }
+    }
+
+    private int[] transformColumnOrdering(ColumnOrdering[] columnOrdering) {
+        int[] columnOrder = new int[columnOrdering.length];
+        for(int i=0;i<columnOrdering.length;i++){
+            columnOrder[i] = columnOrdering[i].getColumnId();
+        }
+        return columnOrder;
     }
 }

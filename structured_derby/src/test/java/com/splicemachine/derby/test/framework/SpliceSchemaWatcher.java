@@ -85,6 +85,10 @@ public class SpliceSchemaWatcher extends TestWatcher {
 		}
 	}
 
+    @Override
+    public String toString() {
+        return schemaName;
+    }
 
     //-----------------------------------------------------------------------------------------
     // The following methods are for tagging the log messages with additional information

@@ -9,8 +9,6 @@ _retryAdmin() {
     JETTY_RUNNER_JAR="${4}"
     ADMIN_MAIN_WAR="${5}"
     CONFIG_FILE="${6}"
-    PORT="${7}"
-    JDBC_ARGS="${8}"
 
     # Number of seconds we should allow for isReady to return 0
     # Jetty takes very little time to start up...
@@ -32,7 +30,7 @@ _retryAdmin() {
     RETURN_CODE=0
     ERROR_CODE=0
     for (( RETRY=1; RETRY<=MAXRETRY; RETRY++ )); do
-        _startAdmin "${ROOT_DIR}" "${ADMINLOGFILE}" "${LOG4J_PATH}" "${CONFIG_FILE}" "${PORT}" "${JDBC_ARGS}"
+        _startAdmin "${ROOT_DIR}" "${ADMINLOGFILE}" "${LOG4J_PATH}" "${CONFIG_FILE}"
         _waitfor "${ADMINLOGFILE}" "${ADMIN_TIMEOUT}" 'oejs.AbstractConnector:Started SelectChannelConnector'
         RETURN_CODE=$?
         if [[ ${RETURN_CODE} -eq 0 ]]; then
@@ -59,7 +57,7 @@ _retryAdmin() {
     else
         echo
         echo "Splice Admin Server is ready"
-        echo "The Admin URI is http://${HOSTNAME}:${PORT}/app"
+        echo "The Admin URI is http://${HOSTNAME}:${SUCCESS_PORT}/"
         return 0;
     fi
 }
@@ -69,15 +67,13 @@ _startAdmin() {
     LOGFILE="${2}"
     LOG4J_PATH="${3}"
     CONFIG_FILE="${4}"
-    PORT="${5}"
-    JDBC_ARGS="${6}"
 
     ADMIN_PID_FILE="${ROOT_DIR}"/admin_pid
     export CLASSPATH
     LOG4J_CONFIG="-Dlog4j.configuration=$LOG4J_PATH"
 
     SYS_ARGS=" -Xmx512m -Xms256m -Djava.awt.headless=true ${LOG4J_CONFIG} -Djava.net.preferIPv4Stack=true"
-    (java ${SYS_ARGS} -jar "${JETTY_RUNNER_JAR}" --config "${CONFIG_FILE}" --port "${PORT}" --jdbc "${JDBC_ARGS}" --path / "${ADMIN_MAIN_WAR}" > "${LOGFILE}" 2>&1 ) &
+    (java ${SYS_ARGS} -jar "${JETTY_RUNNER_JAR}" --config "${CONFIG_FILE}" --path / "${ADMIN_MAIN_WAR}" > "${LOGFILE}" 2>&1 ) &
     echo "$!" > ${ADMIN_PID_FILE}
 }
 
@@ -173,9 +169,12 @@ _waitfor() {
         fi
 
         # Ready
-		SUCCESS=$(grep "${LOG_SUCCESS}" "${LOGFILE}")
+        SUCCESS=$(grep "${LOG_SUCCESS}" "${LOGFILE}")
         IFS=${OLDIFS}
         if [ -n "${SUCCESS}" ]; then
+            # Grep the log for the port of the successfully running process.
+            # Save it in a variable for later reporting to the user.
+            SUCCESS_PORT=$(grep "${LOG_SUCCESS}" "${LOGFILE}" | cut -d':' -f 7)
             # Started, ready - success
             return 0;
         fi

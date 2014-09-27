@@ -64,11 +64,9 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 		}
 
 		public InsertOperation(SpliceOperation source,
-													 OperationInformation opInfo,
-													 DMLWriteInfo writeInfo,
-													 String txnId) throws StandardException {
+                           OperationInformation opInfo,
+                           DMLWriteInfo writeInfo) throws StandardException {
 				super(source, opInfo, writeInfo);
-				transactionID = txnId;
 				autoIncrementRowLocationArray = writeInfo.getConstantAction() != null &&
 						((InsertConstantOperation) writeInfo.getConstantAction()).getAutoincRowLocation() != null?
 								((InsertConstantOperation) writeInfo.getConstantAction()).getAutoincRowLocation():new RowLocation[0];

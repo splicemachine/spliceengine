@@ -1,17 +1,23 @@
 package com.splicemachine.derby.utils;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
+import javax.management.MBeanServerConnection;
 import javax.management.MalformedObjectNameException;
 import javax.management.remote.JMXConnector;
+import javax.management.remote.JMXConnectorFactory;
+import javax.management.remote.JMXServiceURL;
 
+import com.splicemachine.constants.SpliceConstants;
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.impl.jdbc.Util;
 import org.apache.derby.jdbc.InternalDriver;
@@ -82,11 +88,21 @@ public abstract class BaseAdminProcedures {
     }
 
     protected static void operateOnMaster(JMXServerOperation operation) throws SQLException {
-    	if (operation == null) throwNullArgError("operation");
+        if (operation == null) throwNullArgError("operation");
+
         ServerName masterServer = SpliceUtils.getMasterServer();
-        List<ServerName> serverNames = new ArrayList<ServerName>(1);
-        serverNames.add(masterServer);
-        operate(operation, serverNames);
+
+        String serverName = masterServer.getHostname();
+        String port = SpliceConstants.config.get("hbase.master.jmx.port","10101");
+        try {
+            JMXServiceURL url = new JMXServiceURL(String.format("service:jmx:rmi://%1$s/jndi/rmi://%1$s:%2$s/jmxrmi",serverName,port));
+            JMXConnector jmxc = JMXConnectorFactory.connect(url, null);
+            operation.operate(Arrays.asList(Pair.newPair(serverName,jmxc)));
+        } catch (IOException e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        } catch (MalformedObjectNameException e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
     }
 
     public static Connection getDefaultConn() throws SQLException {

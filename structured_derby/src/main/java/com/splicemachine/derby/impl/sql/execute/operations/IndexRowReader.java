@@ -2,16 +2,19 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.collect.Lists;
 import com.google.common.io.Closeables;
-import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.KeyDecoder;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
+import com.splicemachine.si.api.Txn;
 import com.splicemachine.metrics.*;
 import com.splicemachine.hbase.HBaseStatUtils;
+import com.splicemachine.metrics.*;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.storage.EntryDecoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -47,7 +50,6 @@ class IndexRowReader {
     private final int batchSize;
 		private final int numBlocks;
     private final ExecRow outputTemplate;
-    private final String txnId;
     private final long mainTableConglomId;
 		private final byte[] predicateFilterBytes;
 		private final MetricFactory metricFactory;
@@ -56,6 +58,7 @@ class IndexRowReader {
 		private final KeyDecoder keyDecoder;
 		private final int[] indexCols;
 		private final KeyHashDecoder rowDecoder;
+    private final TxnView txn;
 
     private List<Pair<RowAndLocation,Result>> currentResults;
     private RowAndLocation toReturn = new RowAndLocation();
@@ -69,7 +72,7 @@ class IndexRowReader {
 		IndexRowReader(ExecutorService lookupService,
 									 SpliceOperation sourceOperation,
 									 ExecRow outputTemplate,
-									 String txnId,
+									 TxnView txn,
 									 int lookupBatchSize,
 									 int numConcurrentLookups,
 									 long mainTableConglomId,
@@ -82,7 +85,7 @@ class IndexRowReader {
 				this.lookupService = lookupService;
 				this.sourceOperation = sourceOperation;
 				this.outputTemplate = outputTemplate;
-				this.txnId = txnId;
+        this.txn = txn;
 				batchSize = lookupBatchSize;
 				this.numBlocks = numConcurrentLookups;
 				this.mainTableConglomId = mainTableConglomId;
@@ -401,9 +404,9 @@ class IndexRowReader {
 						List<Get> gets = Lists.newArrayListWithCapacity(sourceRows.size());
 						for(RowAndLocation sourceRow:sourceRows){
 								byte[] row = sourceRow.rowLocation;
-								Get get = new Get(row);
-								get.setAttribute(SIConstants.SI_NEEDED,SIConstants.TRUE_BYTES);
-								get.setAttribute(SIConstants.SI_TRANSACTION_ID_KEY,Bytes.toBytes(txnId));
+								Get get = SpliceUtils.createGet(txn,row);
+//								get.setAttribute(SIConstants.SI_NEEDED,SIConstants.TRUE_BYTES);
+//								get.setAttribute(SIConstants.SI_TRANSACTION_ID_KEY,Bytes.toBytes(tx));
 								get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilterBytes);
 								gets.add(get);
 						}

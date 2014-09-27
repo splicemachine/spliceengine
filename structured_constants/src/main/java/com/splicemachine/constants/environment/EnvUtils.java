@@ -31,7 +31,7 @@ public class EnvUtils {
 				if (tableNumber < FIRST_USER_TABLE_NUMBER) 
 					return TableEnv.DERBY_SYS_TABLE;
 			} catch (Exception e) {
-                SpliceLogUtils.info(LOG,tableName+" is not a number");
+                SpliceLogUtils.debug(LOG,tableName+" is not a number");
 			}
 			
 			return TableEnv.USER_TABLE;

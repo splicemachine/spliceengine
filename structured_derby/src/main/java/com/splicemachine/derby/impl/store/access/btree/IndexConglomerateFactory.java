@@ -23,6 +23,7 @@ package com.splicemachine.derby.impl.store.access.btree;
 
 import java.util.Properties;
 
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.utils.ConglomerateUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.store.access.ColumnOrdering;
@@ -107,7 +108,7 @@ public class IndexConglomerateFactory extends SpliceConglomerateFactory {
 	 * FIXME: need to 
      **/
     public Conglomerate readConglomerate(TransactionManager xact_mgr,ContainerKey container_key) throws StandardException {
-    	return ConglomerateUtils.readConglomerate(container_key.getContainerId(), IndexConglomerate.class, xact_mgr.getActiveStateTxIdString());
+    	return ConglomerateUtils.readConglomerate(container_key.getContainerId(), IndexConglomerate.class, ((SpliceTransactionManager)xact_mgr).getActiveStateTxn());
     }
 	
 }

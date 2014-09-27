@@ -3,9 +3,16 @@ package com.splicemachine.job;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
+import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.si.api.TransactionStorage;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.impl.InheritingTxnView;
+import com.splicemachine.si.impl.LazyTxnView;
+import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.log4j.Logger;
 
 import java.io.Externalizable;
@@ -26,23 +33,24 @@ public class TaskStatus implements Externalizable{
     private AtomicReference<Status> status;
     private final Set<StatusListener> listeners;
     private volatile TaskStats stats;
-    private volatile String txnId;
 
 //    private volatile boolean shouldRetry;
 //    private volatile String errorCode;
 //    private volatile String errorMessage;
     private volatile ErrorTransport errorTransport;
 
+    private TxnView txn;
+
     public static TaskStatus failed(String s) {
         return new TaskStatus(Status.FAILED,new IOException(s));
     }
 
-    public String getTransactionId() {
-        return txnId;
+		public Throwable getError() {
+        return errorTransport.getError();
     }
 
-    public Throwable getError() {
-        return errorTransport.getError();
+    public TxnView getTxnInformation() {
+        return txn;
     }
 
 
@@ -60,13 +68,11 @@ public class TaskStatus implements Externalizable{
         if(error!=null){
             error = Exceptions.getRootCause(error);
             errorTransport = ErrorTransport.newTransport(error);
-//            this.shouldRetry = Exceptions.shouldRetry(error);
-//            this.errorMessage = error.getMessage();
         }
     }
 
-    public void setTxnId(String txnId){
-        this.txnId = txnId;
+    public void setTxn(TxnView txn) {
+        this.txn = txn;
     }
 
     public boolean shouldRetry(){
@@ -88,25 +94,26 @@ public class TaskStatus implements Externalizable{
     public byte[] toBytes() throws IOException {
     	Kryo kryo = null;
     	try {
-    		kryo = SpliceDriver.getKryoPool().get();
+    		kryo = SpliceKryoRegistry.getInstance().get();
     		Output output = new Output(100,-1);
     		kryo.writeObject(output,this);
     		return output.toBytes();
     	} finally {
     		if (kryo != null)	
-    			SpliceDriver.getKryoPool().returnInstance(kryo);
+    			SpliceKryoRegistry.getInstance().returnInstance(kryo);
     	}
     }
 
     public static TaskStatus fromBytes(byte[] bytes) throws IOException, ClassNotFoundException {
         Input input = new Input(bytes);
         Kryo kryo = null;
+        KryoPool kryoPool = SpliceKryoRegistry.getInstance();
         try {
-        	kryo = SpliceDriver.getKryoPool().get();
-        return kryo.readObject(input,TaskStatus.class);
+            kryo = kryoPool.get();
+            return kryo.readObject(input,TaskStatus.class);
         } finally {
-        	if (kryo != null)
-        		SpliceDriver.getKryoPool().returnInstance(kryo);
+            if (kryo != null)
+                kryoPool.returnInstance(kryo);
         }
     }
 
@@ -127,18 +134,6 @@ public class TaskStatus implements Externalizable{
     public void setError(Throwable error) {
         error = Exceptions.getRootCause(error);
         this.errorTransport = ErrorTransport.newTransport(error);
-//        this.errorMessage = error.getMessage();
-//        this.errorCode = Exceptions.getErrorCode(error);
-//        if (error instanceof DoNotRetryIOException) {
-//            final String message = error.getMessage();
-//            if (message != null && message.contains("transaction") && message.contains("is not ACTIVE. State is ERROR")) {
-//                this.shouldRetry = true;
-//            } else {
-//                this.shouldRetry = Exceptions.shouldRetry(error);
-//            }
-//        } else {
-//            this.shouldRetry = Exceptions.shouldRetry(error);
-//        }
     }
 
     public void setStats(TaskStats stats){
@@ -155,9 +150,16 @@ public class TaskStatus implements Externalizable{
         out.writeBoolean(stats!=null);
         if(stats!=null)
             out.writeObject(stats);
-        out.writeBoolean(txnId !=null);
-        if(txnId !=null)
-            out.writeUTF(txnId);
+        out.writeBoolean(txn!=null);
+        if(txn!=null){
+            encodeTxn(out);
+        }
+    }
+
+    private void encodeTxn(ObjectOutput out) throws IOException {
+        out.writeLong(txn.getTxnId());
+        out.writeLong(txn.getParentTxnId());
+        out.writeBoolean(txn.allowsWrites());
     }
 
     @Override
@@ -169,9 +171,18 @@ public class TaskStatus implements Externalizable{
         if(in.readBoolean()){
             stats = (TaskStats)in.readObject();
         }
-
-        if(in.readBoolean())
-            txnId = in.readUTF();
+        if(in.readBoolean()){
+            long txnId = in.readLong();
+            long parentTxn = in.readLong();
+            boolean allowsWrites = in.readBoolean();
+            /*
+             * If the parent transaction id is the same as ours, and we don't allow writes,then
+             * we treat this as a read-only transaction. Since commits and rollbacks don't do anything
+             * for read only operations, it's fine to just inherit from the root transaction.
+             */
+            TxnView pView = !allowsWrites? Txn.ROOT_TRANSACTION: new LazyTxnView(parentTxn,TransactionStorage.getTxnSupplier());
+            txn = new InheritingTxnView(pView,txnId,txnId,allowsWrites, null, null);
+        }
     }
 
     public void attachListener(StatusListener listener) {

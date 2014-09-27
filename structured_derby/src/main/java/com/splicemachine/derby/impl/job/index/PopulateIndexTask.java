@@ -27,6 +27,15 @@ import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.metrics.TimeView;
 import com.splicemachine.metrics.Timer;
+import com.splicemachine.si.api.TransactionalRegion;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnLifecycleManager;
+import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.coprocessors.SIFilterPacked;
+import com.splicemachine.si.impl.DDLTxnView;
+import com.splicemachine.si.impl.TransactionalRegions;
+import com.splicemachine.si.impl.TxnFilter;
+import com.splicemachine.si.impl.rollforward.SegmentedRollForward;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -54,7 +63,6 @@ public class PopulateIndexTask extends ZkTask {
     private static final long serialVersionUID = 5l;
 		private long operationId;
 		private long statementId;
-		private String transactionId;
     private long indexConglomId;
     private long baseConglomId;
     private int[] mainColToIndexPosMap;
@@ -64,13 +72,13 @@ public class PopulateIndexTask extends ZkTask {
     private BitSet descColumns;
     private int[] columnOrdering;
     private int[] format_ids;
+    private long demarcationPoint;
 
     private HRegion region;
 
     //performance improvement
     private KVPair mainPair;
 
-		private String xplainSchema; //could be null, if no stats are to be collected
 		private byte[] scanStart;
 		private byte[] scanStop;
         boolean isTraced; //could be null, if no stats are to be collected
@@ -78,7 +86,7 @@ public class PopulateIndexTask extends ZkTask {
 		@SuppressWarnings("UnusedDeclaration")
 		public PopulateIndexTask() { }
 
-    public PopulateIndexTask(String transactionId,
+    public PopulateIndexTask(
                              long indexConglomId,
                              long baseConglomId,
                              int[] mainColToIndexPosMap,
@@ -91,9 +99,9 @@ public class PopulateIndexTask extends ZkTask {
                              long statementId,
                              long operationId,
                              int[] columnOrdering,
-                             int[] format_ids) {
-        super(jobId, OperationJob.operationTaskPriority,transactionId,false);
-        this.transactionId = transactionId;
+                             int[] format_ids,
+                             long demarcationPoint) {
+        super(jobId, OperationJob.operationTaskPriority,null);
         this.indexConglomId = indexConglomId;
         this.baseConglomId = baseConglomId;
         this.mainColToIndexPosMap = mainColToIndexPosMap;
@@ -106,12 +114,13 @@ public class PopulateIndexTask extends ZkTask {
         this.operationId = operationId;
         this.columnOrdering = columnOrdering;
         this.format_ids = format_ids;
+        this.demarcationPoint = demarcationPoint;
     }
 
 		@Override
 		public RegionTask getClone() {
-				return new PopulateIndexTask(transactionId,indexConglomId,baseConglomId,mainColToIndexPosMap,indexedColumns,isUnique,
-								isUniqueWithDuplicateNulls,jobId,descColumns,isTraced,statementId,operationId,columnOrdering,format_ids);
+				return new PopulateIndexTask(indexConglomId,baseConglomId,mainColToIndexPosMap,indexedColumns,isUnique,
+								isUniqueWithDuplicateNulls,jobId,descColumns,isTraced,statementId,operationId,columnOrdering,format_ids,demarcationPoint);
 		}
 
 		@Override
@@ -135,7 +144,6 @@ public class PopulateIndexTask extends ZkTask {
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
-        out.writeUTF(transactionId);
         out.writeLong(indexConglomId);
         out.writeLong(baseConglomId);
         out.writeInt(indexedColumns.wlen);
@@ -152,12 +160,12 @@ public class PopulateIndexTask extends ZkTask {
         }
         ArrayUtil.writeIntArray(out, columnOrdering);
         ArrayUtil.writeIntArray(out, format_ids);
+        out.writeLong(demarcationPoint);
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.readExternal(in);
-        transactionId = in.readUTF();
         indexConglomId = in.readLong();
         baseConglomId = in.readLong();
         int numWords = in.readInt();
@@ -173,6 +181,7 @@ public class PopulateIndexTask extends ZkTask {
         }
         columnOrdering = ArrayUtil.readIntArray(in);
         format_ids = ArrayUtil.readIntArray(in);
+        demarcationPoint = in.readLong();
     }
 
     @Override
@@ -183,15 +192,11 @@ public class PopulateIndexTask extends ZkTask {
 
 		@Override
     public void doExecute() throws ExecutionException, InterruptedException {
-        Scan regionScan = SpliceUtils.createScan(transactionId);
+        Scan regionScan = SpliceUtils.createScan(getTxn());
         regionScan.setCaching(SpliceConstants.DEFAULT_CACHE_SIZE);
         regionScan.setStartRow(scanStart);
         regionScan.setStopRow(scanStop);
         regionScan.setCacheBlocks(false);
-        regionScan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES);
-        //need to manually add the SIFilter, because it doesn't get added by region.getScanner(
-        EntryPredicateFilter predicateFilter = new EntryPredicateFilter(indexedColumns, ObjectArrayList.<Predicate>newInstance() ,true);
-        regionScan.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
 
 				//TODO -sf- disable when stats tracking is disabled
 				MetricFactory metricFactory = isTraced? Metrics.samplingMetricFactory(SpliceConstants.sampleTimingSize): Metrics.noOpMetricFactory();
@@ -201,14 +206,11 @@ public class PopulateIndexTask extends ZkTask {
 				Timer transformationTimer = metricFactory.newTimer();
 				try{
 						//backfill the index with previously committed data
-						RegionScanner sourceScanner = region.getCoprocessorHost().preScannerOpen(regionScan);
-						if(sourceScanner==null)
-								sourceScanner = region.getScanner(regionScan);
 
-						MeasuredRegionScanner brs = SpliceConstants.useReadAheadScanner? new ReadAheadRegionScanner(region, SpliceConstants.DEFAULT_CACHE_SIZE, sourceScanner,metricFactory)
-										: new BufferedRegionScanner(region,sourceScanner,regionScan,SpliceConstants.DEFAULT_CACHE_SIZE,SpliceConstants.DEFAULT_CACHE_SIZE,metricFactory);
+            EntryPredicateFilter predicateFilter = new EntryPredicateFilter(indexedColumns, ObjectArrayList.<Predicate>newInstance() ,true);
+            MeasuredRegionScanner brs = getRegionScanner(predicateFilter,regionScan, metricFactory);
 
-						RecordingCallBuffer<KVPair> writeBuffer = null;
+            RecordingCallBuffer<KVPair> writeBuffer = null;
 						try{
 								List<KeyValue> nextRow = Lists.newArrayListWithExpectedSize(mainColToIndexPosMap.length);
 								boolean shouldContinue = true;
@@ -228,12 +230,9 @@ public class PopulateIndexTask extends ZkTask {
 												null,
 												keyEncodingMap,
 												ascDescInfo);
-//								IndexTransformer transformer =
-//                                        IndexTransformer.newTransformer(indexedColumns,mainColToIndexPosMap,descColumns,
-//                                                isUnique,isUniqueWithDuplicateNulls,columnOrdering,format_ids);
 
 								byte[] indexTableLocation = Bytes.toBytes(Long.toString(indexConglomId));
-								writeBuffer = SpliceDriver.driver().getTableWriter().writeBuffer(indexTableLocation,getTaskStatus().getTransactionId(),metricFactory);
+								writeBuffer = SpliceDriver.driver().getTableWriter().writeBuffer(indexTableLocation,getTxn(),metricFactory);
 								try{
 										while(shouldContinue){
 												SpliceBaseOperation.checkInterrupt(numRecordsRead, SpliceConstants.interruptLoopCheck);
@@ -263,7 +262,19 @@ public class PopulateIndexTask extends ZkTask {
         }
     }
 
-		protected void reportStats(long startTime, MeasuredRegionScanner brs, RecordingCallBuffer<KVPair> writeBuffer,TimeView manipulationTime) {
+    protected MeasuredRegionScanner getRegionScanner(EntryPredicateFilter predicateFilter,Scan regionScan, MetricFactory metricFactory) throws IOException {
+        //manually create the SIFilter
+        DDLTxnView demarcationPoint = new DDLTxnView(getTxn(), this.demarcationPoint);
+        TransactionalRegion transactionalRegion = TransactionalRegions.get(region);
+        TxnFilter packed = transactionalRegion.packedFilter(demarcationPoint, predicateFilter, false);
+        transactionalRegion.discard();
+        regionScan.setFilter(new SIFilterPacked(packed));
+        RegionScanner sourceScanner = region.getScanner(regionScan);
+        return SpliceConstants.useReadAheadScanner? new ReadAheadRegionScanner(region, SpliceConstants.DEFAULT_CACHE_SIZE, sourceScanner,metricFactory)
+                        : new BufferedRegionScanner(region,sourceScanner,regionScan,SpliceConstants.DEFAULT_CACHE_SIZE,SpliceConstants.DEFAULT_CACHE_SIZE,metricFactory);
+    }
+
+    protected void reportStats(long startTime, MeasuredRegionScanner brs, RecordingCallBuffer<KVPair> writeBuffer,TimeView manipulationTime) throws IOException {
 				if(isTraced){
 						//record some stats
 						OperationRuntimeStats stats = new OperationRuntimeStats(statementId,operationId, Bytes.toLong(taskId),region.getRegionNameAsString(),12);
@@ -290,7 +301,7 @@ public class PopulateIndexTask extends ZkTask {
 
 						OperationRuntimeStats.addWriteStats(writeStats,stats);
 
-						SpliceDriver.driver().getTaskReporter().report(stats);
+						SpliceDriver.driver().getTaskReporter().report(stats,getTxn());
 				}
 		}
 
@@ -322,4 +333,8 @@ public class PopulateIndexTask extends ZkTask {
         return SchedulerPriorities.INSTANCE.getBasePriority(PopulateIndexTask.class);
     }
 
+    @Override
+    protected Txn beginChildTransaction(TxnView parentTxn, TxnLifecycleManager tc) throws IOException {
+        return tc.beginChildTransaction(parentTxn, Long.toString(this.indexConglomId).getBytes());
+    }
 }

@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 
 
+
 public class SQLUtil {
 	  private Connection connect = null;
 	  private Statement statement = null;
@@ -244,17 +245,14 @@ public class SQLUtil {
 		  return trxId;
 	  }
 	  
-	  public String getChildTransactionID(Connection conn, 
-			  								String parentTxsID, 
-			  								long conglomId) throws SQLException{
-		  PreparedStatement ps = conn.prepareStatement("call SYSCS_UTIL.SYSCS_START_CHILD_TRANSACTION(?, ?)");
-		  long ptxsID = Long.parseLong(parentTxsID);
-		  ps.setLong(1, ptxsID);
-		  ps.setLong(2, conglomId);
+	  public long getChildTransactionID(Connection conn, long parentTxsID, long conglomId) throws SQLException {
+		  PreparedStatement ps = conn.prepareStatement("call SYSCS_UTIL.SYSCS_START_CHILD_TRANSACTION(?)");
+		  ps.setLong(1, parentTxsID);
+		  //ps.setLong(2, conglomId);
 		  ResultSet rs3 = ps.executeQuery();
 		  rs3.next();
 		  long childTxsID = rs3.getLong(1);
-		  return new Long(childTxsID).toString();
+		  return childTxsID;
 	  }
 	  
 	  public void closeConn(Connection conn) throws SQLException{

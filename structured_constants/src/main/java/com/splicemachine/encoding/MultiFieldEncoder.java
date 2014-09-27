@@ -1,6 +1,7 @@
 package com.splicemachine.encoding;
 
 import com.google.common.base.Preconditions;
+import com.splicemachine.utils.ByteSlice;
 
 import java.math.BigDecimal;
 
@@ -180,24 +181,6 @@ public class MultiFieldEncoder {
         return this;
     }
 
-    /**
-     * WARNING: This encoding is <em>not</em> sortable, and will <em>not</em> retain
-     * the sort order of the original byte[]. Only use this if sorting that byte[] is unnecessary.
-     *
-     * @param value the value to be encoded
-     * @return a MultiFieldEncoder with {@code value} set in the next available
-     * position.
-     */
-    public MultiFieldEncoder encodeNextUnsorted(byte[] value){
-//        assert currentPos<fields.length;
-        //append a length field
-        byte[] total = Encoding.encodeBytesUnsorted(value);
-
-        currentSize+=total.length;
-        fields[currentPos] = total;
-        currentPos++;
-        return this;
-    }
 
     public MultiFieldEncoder encodeNext(byte[] value){
         return encodeNext(value,false);
@@ -331,4 +314,34 @@ public class MultiFieldEncoder {
 		public int getNumFields() {
 				return fields.length;
 		}
+
+		public MultiFieldEncoder setRawBytes(ByteSlice slice) {
+				return setRawBytes(slice.array(),slice.offset(),slice.length());
+		}
+
+    public MultiFieldEncoder encodeNextUnsorted(ByteSlice destTable) {
+        return encodeNextUnsorted(destTable.array(),destTable.offset(),destTable.length());
+    }
+
+    public MultiFieldEncoder encodeNextUnsorted(byte[] array, int offset, int length) {
+        //append a length field
+        byte[] total = Encoding.encodeBytesUnsorted(array,offset,length);
+
+        currentSize+=total.length;
+        fields[currentPos] = total;
+        currentPos++;
+        return this;
+    }
+
+    /**
+     * WARNING: This encoding is <em>not</em> sortable, and will <em>not</em> retain
+     * the sort order of the original byte[]. Only use this if sorting that byte[] is unnecessary.
+     *
+     * @param value the value to be encoded
+     * @return a MultiFieldEncoder with {@code value} set in the next available
+     * position.
+     */
+    public MultiFieldEncoder encodeNextUnsorted(byte[] value){
+        return encodeNextUnsorted(value,0,value.length);
+    }
 }
