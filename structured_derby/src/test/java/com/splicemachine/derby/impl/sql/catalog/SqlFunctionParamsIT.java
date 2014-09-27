@@ -37,13 +37,97 @@ public class SqlFunctionParamsIT extends SpliceUnitTest {
 	public SpliceWatcher methodWatcher = new SpliceWatcher();
 
 	@Test
-	public void testLikeComparison() throws Exception {
-		ResultSet rs = methodWatcher.executeQuery("CALL SYSIBM.SQLFUNCTIONPARAMS(null, null, 'TO_DATE', '%MAT', null)");
+	public void testCatalogNameLikeComparison() throws Exception {
+		ResultSet rs = null;
+		rs = methodWatcher.executeQuery("CALL SYSIBM.SQLFUNCTIONPARAMS(null, null, 'TO_DATE', null, null)");
+		Assert.assertEquals("Incorrect rows returned!", 3, resultSetSize(rs));
+		rs = methodWatcher.executeQuery("CALL SYSIBM.SQLFUNCTIONPARAMS('%', null, 'TO_DATE', null, null)");
+		Assert.assertEquals("Incorrect rows returned!", 3, resultSetSize(rs));
+		rs = methodWatcher.executeQuery("CALL SYSIBM.SQLFUNCTIONPARAMS('%FUN', null, 'TO_DATE', null, null)");
+		Assert.assertEquals("Incorrect rows returned!", 3, resultSetSize(rs));
+		rs = methodWatcher.executeQuery("CALL SYSIBM.SQLFUNCTIONPARAMS('SYS%', null, 'TO_DATE', null, null)");
+		Assert.assertEquals("Incorrect rows returned!", 3, resultSetSize(rs));
+		rs = methodWatcher.executeQuery("CALL SYSIBM.SQLFUNCTIONPARAMS('SYSFUN', null, 'TO_DATE', null, null)");
+		Assert.assertEquals("Incorrect rows returned!", 3, resultSetSize(rs));
+		rs = methodWatcher.executeQuery("CALL SYSIBM.SQLFUNCTIONPARAMS('SY%UN', null, 'TO_DATE', null, null)");
+		Assert.assertEquals("Incorrect rows returned!", 3, resultSetSize(rs));
+		rs = methodWatcher.executeQuery("CALL SYSIBM.SQLFUNCTIONPARAMS('S%S%UN', null, 'TO_DATE', null, null)");
+		Assert.assertEquals("Incorrect rows returned!", 3, resultSetSize(rs));
+		rs = methodWatcher.executeQuery("CALL SYSIBM.SQLFUNCTIONPARAMS('S%S%U%', null, 'TO_DATE', null, null)");
+		Assert.assertEquals("Incorrect rows returned!", 3, resultSetSize(rs));
+		rs = methodWatcher.executeQuery("CALL SYSIBM.SQLFUNCTIONPARAMS('%Y%%U%', null, 'TO_DATE', null, null)");
+		Assert.assertEquals("Incorrect rows returned!", 3, resultSetSize(rs));
+	}
+
+	@Test
+	public void testSchemaNameLikeComparison() throws Exception {
+		ResultSet rs = null;
+		rs = methodWatcher.executeQuery("CALL SYSIBM.SQLFUNCTIONPARAMS(null, null, 'TO_DATE', null, null)");
+		Assert.assertEquals("Incorrect rows returned!", 3, resultSetSize(rs));
+		rs = methodWatcher.executeQuery("CALL SYSIBM.SQLFUNCTIONPARAMS(null, '%', 'TO_DATE', null, null)");
+		Assert.assertEquals("Incorrect rows returned!", 3, resultSetSize(rs));
+		rs = methodWatcher.executeQuery("CALL SYSIBM.SQLFUNCTIONPARAMS(null, '%FUN', 'TO_DATE', null, null)");
+		Assert.assertEquals("Incorrect rows returned!", 3, resultSetSize(rs));
+		rs = methodWatcher.executeQuery("CALL SYSIBM.SQLFUNCTIONPARAMS(null, 'SYS%', 'TO_DATE', null, null)");
+		Assert.assertEquals("Incorrect rows returned!", 3, resultSetSize(rs));
+		rs = methodWatcher.executeQuery("CALL SYSIBM.SQLFUNCTIONPARAMS(null, 'SYSFUN', 'TO_DATE', null, null)");
+		Assert.assertEquals("Incorrect rows returned!", 3, resultSetSize(rs));
+		rs = methodWatcher.executeQuery("CALL SYSIBM.SQLFUNCTIONPARAMS(null, 'SY%UN', 'TO_DATE', null, null)");
+		Assert.assertEquals("Incorrect rows returned!", 3, resultSetSize(rs));
+		rs = methodWatcher.executeQuery("CALL SYSIBM.SQLFUNCTIONPARAMS(null, 'S%S%UN', 'TO_DATE', null, null)");
+		Assert.assertEquals("Incorrect rows returned!", 3, resultSetSize(rs));
+		rs = methodWatcher.executeQuery("CALL SYSIBM.SQLFUNCTIONPARAMS(null, 'S%S%U%', 'TO_DATE', null, null)");
+		Assert.assertEquals("Incorrect rows returned!", 3, resultSetSize(rs));
+		rs = methodWatcher.executeQuery("CALL SYSIBM.SQLFUNCTIONPARAMS(null, '%Y%%U%', 'TO_DATE', null, null)");
+		Assert.assertEquals("Incorrect rows returned!", 3, resultSetSize(rs));
+	}
+
+	@Test
+	public void testFuncNameLikeComparison() throws Exception {
+		ResultSet rs = null;
+		rs = methodWatcher.executeQuery("CALL SYSIBM.SQLFUNCTIONPARAMS(null, null, null, null, null)");
+		Assert.assertTrue("Incorrect rows returned!", resultSetSize(rs) > 50);
+		rs = methodWatcher.executeQuery("CALL SYSIBM.SQLFUNCTIONPARAMS(null, null, '%', null, null)");
+		Assert.assertTrue("Incorrect rows returned!", resultSetSize(rs) > 50);
+		rs = methodWatcher.executeQuery("CALL SYSIBM.SQLFUNCTIONPARAMS(null, null, '%_DATE', null, null)");
+		Assert.assertEquals("Incorrect rows returned!", 6, resultSetSize(rs));
+		rs = methodWatcher.executeQuery("CALL SYSIBM.SQLFUNCTIONPARAMS(null, null, 'TO_DA%', null, null)");
+		Assert.assertEquals("Incorrect rows returned!", 3, resultSetSize(rs));
+		rs = methodWatcher.executeQuery("CALL SYSIBM.SQLFUNCTIONPARAMS(null, null, 'TO_DATE', null, null)");
+		Assert.assertEquals("Incorrect rows returned!", 3, resultSetSize(rs));
+		rs = methodWatcher.executeQuery("CALL SYSIBM.SQLFUNCTIONPARAMS(null, null, 'TO%DATE', null, null)");
+		Assert.assertEquals("Incorrect rows returned!", 3, resultSetSize(rs));
+		rs = methodWatcher.executeQuery("CALL SYSIBM.SQLFUNCTIONPARAMS(null, null, 'T%_D%TE', null, null)");
+		Assert.assertEquals("Incorrect rows returned!", 6, resultSetSize(rs));
+		rs = methodWatcher.executeQuery("CALL SYSIBM.SQLFUNCTIONPARAMS(null, null, 'T%_D%T%', null, null)");
+		Assert.assertEquals("Incorrect rows returned!", 6, resultSetSize(rs));
+	}
+
+	@Test
+	public void testParamNameLikeComparison() throws Exception {
+		ResultSet rs = null;
+		rs = methodWatcher.executeQuery("CALL SYSIBM.SQLFUNCTIONPARAMS(null, null, 'TO_DATE', null, null)");
+		Assert.assertEquals("Incorrect rows returned!", 3, resultSetSize(rs));
+		rs = methodWatcher.executeQuery("CALL SYSIBM.SQLFUNCTIONPARAMS(null, null, 'TO_DATE', '%', null)");
+		Assert.assertEquals("Incorrect rows returned!", 3, resultSetSize(rs));
+		rs = methodWatcher.executeQuery("CALL SYSIBM.SQLFUNCTIONPARAMS(null, null, 'TO_DATE', '%MAT', null)");
+		Assert.assertEquals("Incorrect rows returned!", 1, resultSetSize(rs));
+		rs = methodWatcher.executeQuery("CALL SYSIBM.SQLFUNCTIONPARAMS(null, null, 'TO_DATE', 'FOR%', null)");
+		Assert.assertEquals("Incorrect rows returned!", 1, resultSetSize(rs));
+		rs = methodWatcher.executeQuery("CALL SYSIBM.SQLFUNCTIONPARAMS(null, null, 'TO_DATE', 'FORMAT', null)");
+		Assert.assertEquals("Incorrect rows returned!", 1, resultSetSize(rs));
+		rs = methodWatcher.executeQuery("CALL SYSIBM.SQLFUNCTIONPARAMS(null, null, 'TO_DATE', 'FOR%MAT', null)");
+		Assert.assertEquals("Incorrect rows returned!", 1, resultSetSize(rs));
+		rs = methodWatcher.executeQuery("CALL SYSIBM.SQLFUNCTIONPARAMS(null, null, 'TO_DATE', 'F%RM%T', null)");
+		Assert.assertEquals("Incorrect rows returned!", 1, resultSetSize(rs));
+		rs = methodWatcher.executeQuery("CALL SYSIBM.SQLFUNCTIONPARAMS(null, null, 'TO_DATE', 'FOR%M%T%', null)");
+		Assert.assertEquals("Incorrect rows returned!", 1, resultSetSize(rs));
+		rs = methodWatcher.executeQuery("CALL SYSIBM.SQLFUNCTIONPARAMS(null, null, 'TO_DATE', '%O%MA%', null)");
 		Assert.assertEquals("Incorrect rows returned!", 1, resultSetSize(rs));
 	}
 
 	@Test
-	public void testResultSetColumnTypes() throws Exception {
+	public void testResultSetColumnTypesForJDBC() throws Exception {
 		ResultSet rs = methodWatcher.executeQuery("CALL SYSIBM.SQLFUNCTIONPARAMS(null, null, 'TO_DATE', 'FORMAT', null)");
 		int count = 0;
 		while (rs.next()) {
