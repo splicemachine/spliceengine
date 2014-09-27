@@ -1,10 +1,9 @@
 package com.splicemachine.derby.hbase;
 
-import java.io.IOException;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.si.api.TransactionalRegion;
+import com.splicemachine.si.impl.TransactionalRegions;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
@@ -17,37 +16,60 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.log4j.Logger;
-
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.utils.SpliceLogUtils;
-
 import org.hbase.async.HbaseAttributeHolder;
+
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Region Observer looking for a scan with <i>SpliceServerInstructions</i> set on the attribute map of the scan.
- * 
+ *
  * @author johnleach
  *
  */
 public class SpliceOperationRegionObserver extends BaseRegionObserver {
-	private static Logger LOG = Logger.getLogger(SpliceOperationRegionObserver.class);
-	public static String SPLICE_OBSERVER_INSTRUCTIONS = "Z"; // Reducing this so the amount of network traffic will be reduced...
-	/**
-	 * Logs the start of the observer.
-	 */
-	@Override
-	public void start(CoprocessorEnvironment e) throws IOException {
-		SpliceLogUtils.info(LOG, "Starting TransactionalManagerRegionObserver CoProcessor %s", SpliceOperationRegionObserver.class);
-		super.start(e);
-	}
-	/**
-	 * Logs the stop of the observer.
-	 */
-	@Override
-	public void stop(CoprocessorEnvironment e) throws IOException {
-		SpliceLogUtils.info(LOG, "Stopping the CoProcessor %s",SpliceOperationRegionObserver.class);
-		super.stop(e);
-	}
+    private static Logger LOG = Logger.getLogger(SpliceOperationRegionObserver.class);
+    public static String SPLICE_OBSERVER_INSTRUCTIONS = "Z"; // Reducing this so the amount of network traffic will be reduced...
+
+    private TransactionalRegion txnRegion;
+
+    /**
+     * Logs the start of the observer.
+     */
+    @Override
+    public void start(final CoprocessorEnvironment e) throws IOException {
+        SpliceLogUtils.info(LOG, "Starting TransactionalManagerRegionObserver CoProcessor %s", SpliceOperationRegionObserver.class);
+
+        SpliceDriver.driver().registerService(new SpliceDriver.Service() {
+            @Override
+            public boolean start() {
+                //TODO -sf- implement RollForward
+                HRegion region = ((RegionCoprocessorEnvironment) e).getRegion();
+                SpliceOperationRegionObserver.this.txnRegion = TransactionalRegions.get(region);
+                return true;
+            }
+
+            @Override
+            public boolean shutdown() {
+                return false;
+            }
+        });
+        SpliceLogUtils.info(LOG, "Started CoProcessor %s", SpliceOperationRegionObserver.class);
+        super.start(e);
+    }
+
+    /**
+     * Logs the stop of the observer.
+     */
+    @Override
+    public void stop(CoprocessorEnvironment e) throws IOException {
+        SpliceLogUtils.info(LOG, "Stopping the CoProcessor %s",SpliceOperationRegionObserver.class);
+        super.stop(e);
+        if(txnRegion!=null)
+            txnRegion.discard();
+    }
 
     @Override
     public RegionScanner preScannerOpen(ObserverContext<RegionCoprocessorEnvironment> e, Scan scan, RegionScanner s) throws IOException {
@@ -58,6 +80,7 @@ public class SpliceOperationRegionObserver extends BaseRegionObserver {
         if(filter instanceof HbaseAttributeHolder){
             setAttributesFromFilter(scan, (HbaseAttributeHolder) filter);
             scan.setFilter(null); //clear the filter
+//            scan.setMaxVersions();
         }else if (filter instanceof FilterList){
             FilterList fl = (FilterList)filter;
             List<Filter> filters = fl.getFilters();
@@ -67,6 +90,7 @@ public class SpliceOperationRegionObserver extends BaseRegionObserver {
                 if(next instanceof HbaseAttributeHolder){
                     setAttributesFromFilter(scan,(HbaseAttributeHolder)next);
                     fIter.remove();
+//                    scan.setMaxVersions();
                 }
             }
         }
@@ -91,7 +115,7 @@ public class SpliceOperationRegionObserver extends BaseRegionObserver {
 			SpliceLogUtils.trace(LOG, "postScannerOpen called, wrapping SpliceOperationRegionScanner");
 			if (scan.getCaching() < 0) // Async Scanner is corrupting this value..
 				scan.setCaching(SpliceConstants.DEFAULT_CACHE_SIZE);
-			return super.postScannerOpen(e, scan, new SpliceOperationRegionScanner(s,scan,e.getEnvironment().getRegion()));
+			return super.postScannerOpen(e, scan, new SpliceOperationRegionScanner(s,scan,e.getEnvironment().getRegion(),txnRegion));
 		}
 //		SpliceLogUtils.trace(LOG, "postScannerOpen called, but no instructions specified");
 		return super.postScannerOpen(e, scan, s);

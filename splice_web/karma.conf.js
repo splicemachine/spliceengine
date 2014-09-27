@@ -11,14 +11,14 @@ module.exports = function(config) {
 
 		// list of files / patterns to load in the browser
 		files: [
-			'src/main/webapp/app/bower_components/angular/angular.js',
-			'src/main/webapp/app/bower_components/angular-mocks/angular-mocks.js',
-			'src/main/webapp/app/bower_components/angular-resource/angular-resource.js',
-			'src/main/webapp/app/bower_components/angular-cookies/angular-cookies.js',
-			'src/main/webapp/app/bower_components/angular-sanitize/angular-sanitize.js',
-			'src/main/webapp/app/bower_components/angular-route/angular-route.js',
-			'src/main/webapp/app/scripts/*.js',
-			'src/main/webapp/app/scripts/**/*.js',
+			'src/main/webapp/bower_components/angular/angular.js',
+			'src/main/webapp/bower_components/angular-mocks/angular-mocks.js',
+			'src/main/webapp/bower_components/angular-resource/angular-resource.js',
+			'src/main/webapp/bower_components/angular-cookies/angular-cookies.js',
+			'src/main/webapp/bower_components/angular-sanitize/angular-sanitize.js',
+			'src/main/webapp/bower_components/angular-route/angular-route.js',
+			'src/main/webapp/scripts/*.js',
+			'src/main/webapp/scripts/**/*.js',
 			'src/test/webapp/test/mock/**/*.js',
 			'src/test/webapp/test/unit/**/*.js'
 		],
@@ -27,7 +27,7 @@ module.exports = function(config) {
 		exclude: [],
 
 		// web server port
-		port: 8080,
+		port: 7020,
 
 		// level of logging
 		// possible values: LOG_DISABLE || LOG_ERROR || LOG_WARN || LOG_INFO || LOG_DEBUG

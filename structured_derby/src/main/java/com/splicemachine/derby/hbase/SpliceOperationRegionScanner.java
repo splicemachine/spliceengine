@@ -18,6 +18,7 @@ import com.splicemachine.derby.utils.marshall.DataHash;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.hbase.writer.WriteStats;
+import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -58,24 +59,8 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 		private byte[] rowKey = new byte[1];
         private int rowsRead = 0;
 
-		public SpliceOperationRegionScanner(SpliceOperation topOperation,
-																				SpliceOperationContext context) throws StandardException, IOException {
-				this.topOperation = topOperation;
-				this.statement = context.getPreparedStatement();
-				this.context = context;
-				this.context.setSpliceRegionScanner(this);
-				try {
-						this.regionScanner = context.getScanner();
-						activation = context.getActivation();//((GenericActivationHolder) statement.getActivation(lcc, false)).ac;
-						topOperation.init(context);
-				}catch (IOException e) {
-						ErrorReporter.get().reportError(SpliceOperationRegionScanner.class,e);
-						throw e;
-//						SpliceLogUtils.logAndThrowRuntime(LOG, e);
-				}
-		}
-
-		public SpliceOperationRegionScanner(final RegionScanner regionScanner, final Scan scan, final HRegion region) throws IOException {
+    public SpliceOperationRegionScanner(final RegionScanner regionScanner, final Scan scan, final HRegion region,
+                                        TransactionalRegion txnRegion) throws IOException {
 				SpliceLogUtils.trace(LOG, "instantiated with %s, and scan %s",regionScanner,scan);
 				this.regionScanner = regionScanner;
 				boolean prepared = false;
@@ -86,30 +71,26 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 						SpliceObserverInstructions soi = SpliceUtils.getSpliceObserverInstructions(scan);
 						statement = soi.getStatement();
 						topOperation = soi.getTopOperation();
-						impl.marshallTransaction(soi);
+						impl.marshallTransaction(soi.getTxn(),soi);
 						activation = soi.getActivation(impl.getLcc());
 						spliceRuntimeContext = soi.getSpliceRuntimeContext();
 						if(topOperation.shouldRecordStats()){
 								spliceRuntimeContext.recordTraceMetrics();
 						}
-						context = new SpliceOperationContext(regionScanner,region,scan, activation, statement, impl.getLcc(),false,topOperation,spliceRuntimeContext);
+						context = new SpliceOperationContext(regionScanner,
+										region,txnRegion,scan, activation, statement, impl.getLcc(),false,topOperation,spliceRuntimeContext,
+										soi.getTxn());
 						context.setSpliceRegionScanner(this);
 
 						topOperation.init(context);
-//						List<SpliceOperation> opStack = new ArrayList<SpliceOperation>();
-//						topOperation.generateLeftOperationStack(opStack);
-//						SpliceLogUtils.trace(LOG, "Ready to execute stack %s", opStack);
 				} catch (Exception e) {
 						ErrorReporter.get().reportError(SpliceOperationRegionScanner.class,e);
 						throw Exceptions.getIOException(e);
-//						SpliceLogUtils.logAndThrowRuntime(LOG, "Issues reading serialized data",e);
 				}finally{
 						if(prepared)
 								impl.resetContextManager();
 				}
 		}
-
-
 
 		@Override
 		public boolean next(final List<KeyValue> results) throws IOException {
@@ -137,10 +118,8 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 										slice.get(rowKey,0,rowKey.length);
 								}else
 									rowKey[0] = 0x00;
-//								byte[] row = location!=null? location.getBytes():SpliceUtils.getUniqueKey();
 
 								if(rowEncoder==null){
-//										int[] rowColumns = IntArrays.count(nextRow.nColumns());
 										DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(nextRow);
 										rowEncoder = BareKeyHash.encoder(null,null,serializers);
 								}
@@ -178,31 +157,31 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 										}
 								}
 								//record statistics info
-								if(spliceRuntimeContext.shouldRecordTraceMetrics() && !metricsReported && rowsRead > 0){
-										String hostName = InetAddress.getLocalHost().getHostName(); //TODO -sf- this may not be correct
-										List<OperationRuntimeStats> stats = OperationRuntimeStats.getOperationStats(
-														topOperation,SpliceDriver.driver().getUUIDGenerator().nextUUID(),
-														topOperation.getStatementId(), WriteStats.NOOP_WRITE_STATS,
-														Metrics.noOpTimeView(),spliceRuntimeContext);
-										XplainTaskReporter reporter = SpliceDriver.driver().getTaskReporter();
-										for(OperationRuntimeStats opStats:stats){
-												opStats.setHostName(hostName);
+                if(spliceRuntimeContext.shouldRecordTraceMetrics() && !metricsReported && rowsRead > 0){
+                    String hostName = InetAddress.getLocalHost().getHostName(); //TODO -sf- this may not be correct
+                    List<OperationRuntimeStats> stats = OperationRuntimeStats.getOperationStats(
+                            topOperation,SpliceDriver.driver().getUUIDGenerator().nextUUID(),
+                            topOperation.getStatementId(), WriteStats.NOOP_WRITE_STATS,
+                            Metrics.noOpTimeView(),spliceRuntimeContext);
+                    XplainTaskReporter reporter = SpliceDriver.driver().getTaskReporter();
+                    for(OperationRuntimeStats opStats:stats){
+                        opStats.setHostName(hostName);
 
-												reporter.report(opStats);
-										}
-                                        metricsReported = true;
-								}
-						}
-						return !results.isEmpty();
-				}catch(Exception e){
-						ErrorReporter.get().reportError(SpliceOperationRegionScanner.class,e);
-						cleanupBatch(); // if we throw an exception the postScanner() hook won't be called, so cleanup here
-                    LOG.error(String.format("Original SpliceOperationRegionScanner error, region %s",
-                                               regionScanner.getRegionInfo().getRegionNameAsString()), e);
-						SpliceLogUtils.logAndThrow(LOG,"Unable to get next row",Exceptions.getIOException(e));
-						return false; //won't happen since logAndThrow will throw an exception
+                        reporter.report(opStats,spliceRuntimeContext.getTxn());
+                    }
+                    metricsReported = true;
                 }
-		}
+            }
+            return !results.isEmpty();
+        }catch(Exception e){
+            ErrorReporter.get().reportError(SpliceOperationRegionScanner.class,e);
+            cleanupBatch(); // if we throw an exception the postScanner() hook won't be called, so cleanup here
+            LOG.error(String.format("Original SpliceOperationRegionScanner error, region %s",
+                    regionScanner.getRegionInfo().getRegionNameAsString()), e);
+            SpliceLogUtils.logAndThrow(LOG,"Unable to get next row",Exceptions.getIOException(e));
+            return false; //won't happen since logAndThrow will throw an exception
+        }
+    }
 
 
 
@@ -214,57 +193,55 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 		@Override
 		public void close() throws IOException {
 				SpliceLogUtils.trace(LOG, "close");
-//				if(rowEncoder!=null)
-//						rowEncoder.close();
-                //record statistics info
-                if(spliceRuntimeContext.shouldRecordTraceMetrics() && !metricsReported){
-                    String hostName = InetAddress.getLocalHost().getHostName(); //TODO -sf- this may not be correct
-                    List<OperationRuntimeStats> stats = OperationRuntimeStats.getOperationStats(
-                            topOperation,SpliceDriver.driver().getUUIDGenerator().nextUUID(),
-                            topOperation.getStatementId(), WriteStats.NOOP_WRITE_STATS,
-                            Metrics.noOpTimeView(),spliceRuntimeContext);
-                    XplainTaskReporter reporter = SpliceDriver.driver().getTaskReporter();
-                    for(OperationRuntimeStats opStats:stats){
-                        opStats.setHostName(hostName);
+        //record statistics info
+        if(spliceRuntimeContext.shouldRecordTraceMetrics() && !metricsReported){
+            String hostName = InetAddress.getLocalHost().getHostName(); //TODO -sf- this may not be correct
+            List<OperationRuntimeStats> stats = OperationRuntimeStats.getOperationStats(
+                    topOperation,SpliceDriver.driver().getUUIDGenerator().nextUUID(),
+                    topOperation.getStatementId(), WriteStats.NOOP_WRITE_STATS,
+                    Metrics.noOpTimeView(),spliceRuntimeContext);
+            XplainTaskReporter reporter = SpliceDriver.driver().getTaskReporter();
+            for(OperationRuntimeStats opStats:stats){
+                opStats.setHostName(hostName);
 
-                        reporter.report(opStats);
-                    }
-                    metricsReported = true;
+                reporter.report(opStats,spliceRuntimeContext.getTxn());
+            }
+            metricsReported = true;
+        }
+        try {
+            try {
+                topOperation.close();
+            } catch (StandardException e) {
+                ErrorReporter.get().reportError(SpliceOperationRegionScanner.class,e);
+                SpliceLogUtils.logAndThrow(LOG, "close direct failed", Exceptions.getIOException(e));
+            }finally{
+                if (regionScanner != null) {
+                    regionScanner.close();
                 }
                 try {
-						try {
-								topOperation.close();
-						} catch (StandardException e) {
-								ErrorReporter.get().reportError(SpliceOperationRegionScanner.class,e);
-								SpliceLogUtils.logAndThrow(LOG, "close direct failed", Exceptions.getIOException(e));
-						}finally{
-								if (regionScanner != null) {
-										regionScanner.close();
-								}
-								try {
-										context.close();
-								} catch (StandardException e) {
-										throw Exceptions.getIOException(e);
-								}
-						}
-				} finally {
-						if (impl != null) {
-								impl.cleanup();
-						}
-				}
-		}
+                    context.close();
+                } catch (StandardException e) {
+                    throw Exceptions.getIOException(e);
+                }
+            }
+        } finally {
+            if (impl != null) {
+                impl.cleanup();
+            }
+        }
+    }
 
-		@Override
-		public HRegionInfo getRegionInfo() {
-				SpliceLogUtils.trace(LOG,"getRegionInfo");
-				return regionScanner.getRegionInfo();
-		}
+    @Override
+    public HRegionInfo getRegionInfo() {
+        SpliceLogUtils.trace(LOG,"getRegionInfo");
+        return regionScanner.getRegionInfo();
+    }
 
-		@Override
-		public boolean isFilterDone() {
-				SpliceLogUtils.trace(LOG,"isFilterDone");
-				return regionScanner.isFilterDone();
-		}
+    @Override
+    public boolean isFilterDone() {
+        SpliceLogUtils.trace(LOG,"isFilterDone");
+        return regionScanner.isFilterDone();
+    }
 
 		public TaskStats sink() throws IOException{
 				SpliceLogUtils.trace(LOG,"sink");

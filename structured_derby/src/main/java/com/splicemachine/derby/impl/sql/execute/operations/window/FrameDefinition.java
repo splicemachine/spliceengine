@@ -41,6 +41,11 @@ public class FrameDefinition {
         public Frame getFrame() {
             return frame;
         }
+
+        @Override
+        public String toString() {
+            return value + " " + frame;
+        }
     }
 
     private final FrameMode frameMode;
@@ -113,5 +118,12 @@ public class FrameDefinition {
                                (Integer)data.get("START_FRAME_ROWS"),
                                (Integer)data.get("END_FRAME"),
                                (Integer)data.get("END_FRAME_ROWS"));
+    }
+
+    @Override
+    public String toString() {
+        return frameMode +
+            " BETWEEN " + frameStart +
+            " AND " + frameEnd;
     }
 }

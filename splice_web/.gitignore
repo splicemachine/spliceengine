@@ -2,4 +2,4 @@ node_modules
 #dist
 .tmp
 .sass-cache
-#src/main/webapp/app/bower_components
+#src/main/webapp/bower_components

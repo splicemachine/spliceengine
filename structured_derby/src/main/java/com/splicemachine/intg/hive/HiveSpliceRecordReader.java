@@ -113,8 +113,8 @@ public class HiveSpliceRecordReader extends HiveSpliceRecordReaderBase{
 			}
 		
 		try {
-			//String transaction_id = conf.get(SpliceMRConstants.SPLICE_TRANSACTION_ID);
-			String transaction_id = sqlUtil.getTransactionID();
+			long transaction_id = Long.parseLong(sqlUtil.getTransactionID());
+
 			buildTableScannerBuilder(transaction_id);
 			tableScanner = this.builder.build();
 			//tableScanner.setColumnTypes(colTypes);
@@ -192,7 +192,7 @@ public class HiveSpliceRecordReader extends HiveSpliceRecordReaderBase{
      * rowEncodingMap and rowDecodingMap are set within this function 
      * in order to parse primary key correctly
      */
-    private void buildTableScannerBuilder(String txsId) throws NumberFormatException, StandardException
+    private void buildTableScannerBuilder(long txsId) throws NumberFormatException, StandardException
     {  	
 		int[] rowEncodingMap;
 		

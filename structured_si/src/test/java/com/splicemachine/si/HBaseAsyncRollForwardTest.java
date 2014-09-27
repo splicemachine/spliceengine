@@ -4,7 +4,6 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import java.util.concurrent.Executors;
 
 /**
  * HBase version of AsyncRollForwardTest

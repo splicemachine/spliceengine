@@ -25,7 +25,7 @@ public abstract class DebugTask extends ZkTask {
 		public DebugTask() { }
 
     protected DebugTask(String jobId, String destinationDirectory) {
-        super(jobId, 1,null,true);
+        super(jobId, 1,null);
         this.destinationDirectory = destinationDirectory;
     }
 
@@ -67,9 +67,4 @@ public abstract class DebugTask extends ZkTask {
 		public int getPriority() {
 				return SchedulerPriorities.INSTANCE.getMaxPriority();
 		}
-
-		@Override
-    public boolean isTransactional() {
-        return false;
-    }
 }

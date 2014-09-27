@@ -66,7 +66,9 @@ public class HBaseBulkLoadMapper extends Mapper<LongWritable, Text,
 						ExecRow row = ImportTask.getExecRow(importContext);
 						entryEncoder = newEntryEncoder(importContext.getTableVersion(), row);
 						rowParser = new RowParser(row,importContext, FailAlwaysReporter.INSTANCE);
-						txnId = Long.parseLong(importContext.getTransactionId());
+            if(true)
+                throw new UnsupportedOperationException("IMPLEMENT");
+//						txnId = Long.parseLong(importContext.getTransactionId());
 				} catch (StandardException e) {
 						throw new IOException(e);
 				}

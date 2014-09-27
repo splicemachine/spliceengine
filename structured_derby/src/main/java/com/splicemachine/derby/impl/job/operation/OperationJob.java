@@ -6,12 +6,13 @@ import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
+import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.job.Task;
-import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.si.api.TxnView;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Pair;
+
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -39,7 +40,6 @@ public class OperationJob extends SpliceConstants implements CoprocessorJob,Exte
     public OperationJob(Scan scan,
 												SpliceObserverInstructions instructions,
 												HTableInterface table,
-												boolean readOnly,
 												boolean recordStats,
 												long statementId,
 												String xplainSchema) {
@@ -47,7 +47,6 @@ public class OperationJob extends SpliceConstants implements CoprocessorJob,Exte
         this.instructions = instructions;
         this.table = table;
         this.taskPriority = operationTaskPriority;
-        this.readOnly = readOnly;
 				this.recordStats = recordStats;
 				this.statementId = statementId;
 				this.xplainSchema = xplainSchema;
@@ -75,9 +74,8 @@ public class OperationJob extends SpliceConstants implements CoprocessorJob,Exte
     @Override
     public Map<? extends RegionTask, Pair<byte[], byte[]>> getTasks() {
         return Collections.singletonMap(new SinkTask(getJobId(),scan,
-                                                        instructions.getTransactionId(),
                                                         instructions.getSpliceRuntimeContext().getParentTaskId(),
-                                                        readOnly, taskPriority),
+                                                        taskPriority),
                 Pair.newPair(scan.getStartRow(),scan.getStopRow()));
     }
 
@@ -86,13 +84,16 @@ public class OperationJob extends SpliceConstants implements CoprocessorJob,Exte
     }
 
     @Override
-    public TransactionId getParentTransaction() {
-        return HTransactorFactory.getTransactionManager().transactionIdFromString(instructions.getTransactionId());
+    public byte[] getDestinationTable() {
+        SpliceOperation topOperation = instructions.getTopOperation();
+        if(topOperation instanceof DMLWriteOperation)
+            return ((DMLWriteOperation)topOperation).getDestinationTable();
+        return null;
     }
 
     @Override
-    public boolean isReadOnly() {
-        return readOnly;
+    public TxnView getTxn() {
+        return instructions.getTxn();
     }
 
     @Override

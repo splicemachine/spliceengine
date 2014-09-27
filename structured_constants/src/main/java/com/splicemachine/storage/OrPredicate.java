@@ -160,4 +160,13 @@ public class OrPredicate implements Predicate {
         Pair<ObjectArrayList<Predicate>,Integer> predicates = Predicates.fromBytes(data,offset+4,size);
         return Pair.newPair(new OrPredicate(predicates.getFirst()),predicates.getSecond()-offset+1);
     }
+
+    @Override
+    public String toString() {
+        return "OrPredicate{" +
+                "ors=" + ors +
+                ", matched=" + matched +
+                ", visitedCount=" + visitedCount +
+                '}';
+    }
 }

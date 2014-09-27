@@ -4,6 +4,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.environment.EnvUtils;
+import com.splicemachine.si.impl.TransactionalRegions;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
@@ -25,11 +26,11 @@ public class SpliceDerbyCoprocessor extends BaseEndpointCoprocessor {
      */
     @Override
     public void start(CoprocessorEnvironment e) {
-        tableEnvMatch = EnvUtils.getTableEnv((RegionCoprocessorEnvironment) e).equals(SpliceConstants.TableEnv.USER_TABLE)
-                || EnvUtils.getTableEnv((RegionCoprocessorEnvironment) e).equals(SpliceConstants.TableEnv.USER_INDEX_TABLE)
-                || EnvUtils.getTableEnv((RegionCoprocessorEnvironment) e).equals(SpliceConstants.TableEnv.DERBY_SYS_TABLE)
-                || EnvUtils.getTableEnv((RegionCoprocessorEnvironment) e).equals(SpliceConstants.TableEnv.META_TABLE);
+        SpliceConstants.TableEnv tableEvn = EnvUtils.getTableEnv((RegionCoprocessorEnvironment)e);
+        tableEnvMatch = !SpliceConstants.TableEnv.ROOT_TABLE.equals(tableEvn);
 
+        //make sure the factory is correct
+        TransactionalRegions.setActionFactory(RollForwardAction.FACTORY);
         if (tableEnvMatch) {
             SpliceDriver.driver().start();
             runningCoprocessors.incrementAndGet();
@@ -45,11 +46,11 @@ public class SpliceDerbyCoprocessor extends BaseEndpointCoprocessor {
      */
     @Override
     public void stop(CoprocessorEnvironment e) {
-        if (tableEnvMatch) {
+//        if (tableEnvMatch) {
             if (runningCoprocessors.decrementAndGet() <= 0l) {
                 SpliceDriver.driver().shutdown();
             }
-        }
+//        }
     }
 
 }

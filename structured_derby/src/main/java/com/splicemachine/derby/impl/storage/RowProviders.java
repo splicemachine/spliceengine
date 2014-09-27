@@ -223,13 +223,13 @@ public class RowProviders {
 						if (scan.getAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS) == null)
 								SpliceUtils.setInstructions(scan, instructions);
 				}
-				boolean readOnly = !(instructions.getTopOperation() instanceof DMLWriteOperation);
+//				boolean readOnly = !(instructions.getTopOperation() instanceof DMLWriteOperation);
 //				StatementInfo info = instructions.getSpliceRuntimeContext().getStatementInfo();
 
 //				long statementId = info!=null? info.getStatementUuid(): -1l;
 //				Activation activation = instructions.getTopOperation().getActivation();
 //				LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
-				return new MultiScanOperationJob(scans, instructions, table, SpliceConstants.operationTaskPriority,readOnly);
+				return new MultiScanOperationJob(scans, instructions, table,instructions.getTxn(), SpliceConstants.operationTaskPriority);
 		}
 
 //		private static OperationJob getJob(HTableInterface table, SpliceObserverInstructions instructions, Scan scan) {
@@ -282,7 +282,7 @@ public class RowProviders {
 				@Override public String toString() { return String.format("DelegatingRowProvider { provider=%s } ",provider); }
 
 				@Override
-				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema, String regionName) {
+				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema, String regionName) throws IOException {
 					provider.reportStats(statementId,operationId,taskId,xplainSchema,regionName);
 				}
 				@Override public IOStats getIOStats() { return provider.getIOStats(); }
@@ -328,7 +328,7 @@ public class RowProviders {
 						SpliceOperation op = instructions.getTopOperation();
 						op.init(SpliceOperationContext.newContext(op.getActivation()));
 						try {
-								OperationSink opSink = OperationSink.create((SinkingOperation) op, null, instructions.getTransactionId(),
+								OperationSink opSink = OperationSink.create((SinkingOperation) op, null, instructions.getTxn(),
 												spliceRuntimeContext.getStatementInfo().getStatementUuid(),0l);
 
 								JobStats stats;
@@ -398,7 +398,7 @@ public class RowProviders {
 				}
 
 				@Override
-				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) {
+				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) throws IOException {
 						if(taskId==-1l) taskId = SpliceDriver.driver().getUUIDGenerator().nextUUID();
 						List<OperationRuntimeStats> opStats = OperationRuntimeStats.getOperationStats(
 										source, taskId, statementId, WriteStats.NOOP_WRITE_STATS, Metrics.noOpTimeView(), spliceRuntimeContext);
@@ -406,7 +406,7 @@ public class RowProviders {
 						String hostName = SpliceUtils.getHostName();
 						for(OperationRuntimeStats opStat:opStats){
 								opStat.setHostName(hostName);
-								taskReporter.report(opStat);
+								taskReporter.report(opStat,spliceRuntimeContext.getTxn());
 						}
 				}
 
@@ -512,7 +512,7 @@ public class RowProviders {
 				}
 
 				@Override
-				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) {
+				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) throws IOException {
 						firstRowProvider.reportStats(statementId,operationId,taskId,xplainSchema,regionName);
 						secondRowProvider.reportStats(statementId,operationId,taskId,xplainSchema,regionName);
 				}

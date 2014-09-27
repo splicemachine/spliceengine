@@ -1,6 +1,9 @@
 package com.splicemachine.derby.management;
 
 import com.splicemachine.derby.impl.job.JobInfo;
+import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.api.Txn;
+import org.apache.derby.iapi.tools.run;
 
 import java.beans.ConstructorProperties;
 import java.io.IOException;
@@ -9,6 +12,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -36,7 +40,7 @@ public class StatementInfo {
 		private final Set<JobInfo> completedJobIds;
 
 		private final long startTimeMs;
-		private final String txnId;
+		private final long txn;
 		private volatile long stopTimeMs = -1l;
 		private volatile boolean isCancelled;
 
@@ -44,21 +48,32 @@ public class StatementInfo {
 
 		public StatementInfo(String sql,
 												 String user,
-												 String txnId,
+												 TxnView txn,
 												 int numSinks,
 												 com.splicemachine.uuid.Snowflake uuidGenerator) {
 				this.numSinks = numSinks;
 				this.user = user;
 				this.sql = sql;
-				this.txnId = txnId;
+        this.txn = txn.getTxnId();
 
-				if(numSinks>0){
-						runningJobIds = Collections.newSetFromMap(new ConcurrentHashMap<JobInfo, Boolean>());
-						completedJobIds = Collections.newSetFromMap(new ConcurrentHashMap<JobInfo, Boolean>());
-				}else{
-						runningJobIds = completedJobIds = null;
-				}
-				this.operationInfo = Collections.newSetFromMap(new ConcurrentHashMap<OperationInfo, Boolean>());
+        if(numSinks>0){
+            runningJobIds = new CopyOnWriteArraySet<JobInfo>();
+            completedJobIds = new CopyOnWriteArraySet<JobInfo>();
+//            runningJobIds = Collections.newSetFromMap(new ConcurrentHashMap<JobInfo, Boolean>());
+//            completedJobIds = Collections.newSetFromMap(new ConcurrentHashMap<JobInfo, Boolean>());
+        }else{
+            runningJobIds = completedJobIds = null;
+        }
+        this.operationInfo = new CopyOnWriteArraySet<OperationInfo>();
+//        this.operationInfo = Collections.newSetFromMap(new ConcurrentHashMap<OperationInfo, Boolean>());
+
+//				if(numSinks>0){
+//						runningJobIds = Collections.newSetFromMap(new ConcurrentHashMap<JobInfo, Boolean>());
+//						completedJobIds = Collections.newSetFromMap(new ConcurrentHashMap<JobInfo, Boolean>());
+//				}else{
+//						runningJobIds = completedJobIds = null;
+//				}
+//				this.operationInfo = Collections.newSetFromMap(new ConcurrentHashMap<OperationInfo, Boolean>());
 
 				this.statementUuid = uuidGenerator.nextUUID();
 				this.startTimeMs = System.currentTimeMillis();
@@ -66,13 +81,13 @@ public class StatementInfo {
 
         public StatementInfo(String sql,
                              String user,
-                             String txnId,
+                             TxnView txn,
                              int numSinks,
                              long statementUuid) {
             this.numSinks = numSinks;
             this.user = user;
             this.sql = sql;
-            this.txnId = txnId;
+            this.txn = txn.getTxnId();
 
             if(numSinks>0){
                 runningJobIds = Collections.newSetFromMap(new ConcurrentHashMap<JobInfo, Boolean>());
@@ -89,7 +104,7 @@ public class StatementInfo {
 		@ConstructorProperties({"sql","user","txnId","numJobs",
 						"statementUuid","runningJobs","completedJobs",
 						"startTimeMs","stopTimeMs","operationInfo"})
-		public StatementInfo(String sql,String user,String txnId,
+		public StatementInfo(String sql,String user,long txnId,
 												 int numSinks,long statementUuid,
 												 Set<JobInfo> runningJobs,
 												 Set<JobInfo> completedJobs,
@@ -97,7 +112,7 @@ public class StatementInfo {
 												 Set<OperationInfo> operationInfo){
 				this.sql = sql;
 				this.user = user;
-				this.txnId = txnId;
+				this.txn = txnId;
 				this.statementUuid = statementUuid;
 				this.numSinks = numSinks;
 				this.runningJobIds = runningJobs;
@@ -124,7 +139,7 @@ public class StatementInfo {
 				runningJobIds.remove(jobInfo);
 		}
 
-		public String getTxnId() { return txnId; }
+		public long getTxnId() { return txn; }
 		public int getNumJobs(){ return numSinks;}
 		public String getSql() { return sql; }
 		public long getStatementUuid() { return statementUuid; }

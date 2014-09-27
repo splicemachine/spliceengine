@@ -87,6 +87,8 @@ import com.splicemachine.hbase.writer.RecordingCallBuffer;
 import com.splicemachine.hbase.writer.WriteCoordinator;
 import com.splicemachine.mapreduce.HBaseBulkLoadMapper;
 import com.splicemachine.mapreduce.HBaseBulkLoadReducer;
+import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.impl.ActiveWriteTxn;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.kryo.KryoPool;
@@ -183,7 +185,7 @@ org.apache.hadoop.mapred.OutputFormat<ImmutableBytesWritable, Put>{
 		private DataValueDescriptor[] rowDesc = null;
 		private String taskID = "";
 		private Connection conn = null;
-		private String childTxsID = "";
+		private long childTxsID;
 		
 		
 		private void setTaskID(String taskID){
@@ -285,9 +287,17 @@ org.apache.hadoop.mapred.OutputFormat<ImmutableBytesWritable, Put>{
 
 					callBuffer = WriteCoordinator.create(conf).writeBuffer(Bytes.toBytes(tableID), 
 									childTxsID, SpliceMRConstants.SPLICE_WRITE_BUFFER_SIZE);*/	
+					childTxsID = sqlUtil.getChildTransactionID(conn, 
+							Long.parseLong(conf.get(SpliceMRConstants.SPLICE_TRANSACTION_ID)), 
+							Long.parseLong(tableID));
+					String strSize = conf.get(SpliceMRConstants.SPLICE_WRITE_BUFFER_SIZE);
 					int size = 1024;
+					if((strSize != null) && (!strSize.equals("")))
+						size = Integer.valueOf(strSize);
+					TxnView txn = new ActiveWriteTxn(childTxsID,childTxsID);
 					callBuffer = WriteCoordinator.create(conf).writeBuffer(Bytes.toBytes(tableID), 
-							sqlUtil.getTransactionID(), size);
+																			txn, size);	
+
 				}		
 				ExecRow value = ((ExecRowWritable)valueWritable).get();
 				byte[] key = this.keyEncoder.getKey(value);

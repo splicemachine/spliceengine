@@ -7,6 +7,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.RegionCache;
+import com.splicemachine.si.impl.ActiveWriteTxn;
 import com.splicemachine.metrics.Metrics;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
@@ -62,7 +63,7 @@ public class PipingWriteBufferTest{
 						@Override public int getMaxEntries() { return 100; }
 						@Override public int getMaxFlushesPerRegion() { return 2; }
 						@Override public void writeRejected() {  } };
-				PipingWriteBuffer buffer = new PipingWriteBuffer(tableName,"txnId",fakedWriter,fakedWriter,regionCache,
+				PipingWriteBuffer buffer = new PipingWriteBuffer(tableName,new ActiveWriteTxn(1l,1l),fakedWriter,fakedWriter,regionCache,
 								WriteCoordinator.noOpFlushHook,config,bufferConfig);
 
 				byte[] column = Encoding.encode("value");
@@ -124,7 +125,7 @@ public class PipingWriteBufferTest{
 						@Override public int getMaxEntries() { return 100; }
 						@Override public int getMaxFlushesPerRegion() { return 2; }
 						@Override public void writeRejected() {  } };
-				PipingWriteBuffer buffer = new PipingWriteBuffer(tableName,"txnId",fakedWriter,fakedWriter,regionCache,
+				PipingWriteBuffer buffer = new PipingWriteBuffer(tableName,new ActiveWriteTxn(1l,1l),fakedWriter,fakedWriter,regionCache,
 								WriteCoordinator.noOpFlushHook,config,bufferConfig);
 
 				byte[] column = Encoding.encode("value");
@@ -186,7 +187,7 @@ public class PipingWriteBufferTest{
 						@Override public int getMaxEntries() { return 0; }
 						@Override public int getMaxFlushesPerRegion() { return 2; }
 						@Override public void writeRejected() {  } };
-				PipingWriteBuffer buffer = new PipingWriteBuffer(tableName,"txnId",fakedWriter,fakedWriter,regionCache,
+				PipingWriteBuffer buffer = new PipingWriteBuffer(tableName,new ActiveWriteTxn(1l,1l),fakedWriter,fakedWriter,regionCache,
 								WriteCoordinator.noOpFlushHook,config,bufferConfig);
 
 				//add an entry at the middle of the region
@@ -232,7 +233,7 @@ public class PipingWriteBufferTest{
 						@Override public int getMaxEntries() { return 10; }
 						@Override public int getMaxFlushesPerRegion() { return 2; }
 						@Override public void writeRejected() {  } };
-				PipingWriteBuffer buffer = new PipingWriteBuffer(tableName,"txnId",fakedWriter,fakedWriter,regionCache,
+				PipingWriteBuffer buffer = new PipingWriteBuffer(tableName,new ActiveWriteTxn(1l,1l),fakedWriter,fakedWriter,regionCache,
 								WriteCoordinator.noOpFlushHook,config,bufferConfig);
 
 				//add some entries at the borders of the region
@@ -271,7 +272,7 @@ public class PipingWriteBufferTest{
 						@Override public int getMaxEntries() { return 10; }
 						@Override public int getMaxFlushesPerRegion() { return 2; }
 						@Override public void writeRejected() {  } };
-				PipingWriteBuffer buffer = new PipingWriteBuffer(tableName,"txnId",fakedWriter,fakedWriter,regionCache,
+				PipingWriteBuffer buffer = new PipingWriteBuffer(tableName,new ActiveWriteTxn(1l,1l),fakedWriter,fakedWriter,regionCache,
 								WriteCoordinator.noOpFlushHook,config,bufferConfig);
 
 				//add some entries at the borders of the region
@@ -323,7 +324,7 @@ public class PipingWriteBufferTest{
 
 				Writer.WriteConfiguration config = mock(Writer.WriteConfiguration.class);
 				when(config.getMetricFactory()).thenReturn(Metrics.noOpMetricFactory());
-        PipingWriteBuffer buffer = new PipingWriteBuffer(tableName, "100", null, null, regionCache, null, config, monitor);
+        PipingWriteBuffer buffer = new PipingWriteBuffer(tableName, new ActiveWriteTxn(100,100), null, null, regionCache, null, config, monitor);
 
         KVPair kv = new KVPair(Bytes.toBytes("aaaa"), Bytes.toBytes("1"));
         buffer.add(kv);

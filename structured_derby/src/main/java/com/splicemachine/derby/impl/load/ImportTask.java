@@ -12,12 +12,13 @@ import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.hbase.writer.WriteStats;
-import com.splicemachine.si.api.TransactionManager;
-import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.metrics.IOStats;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.metrics.TimeView;
 import com.splicemachine.metrics.Timer;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnLifecycleManager;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import com.splicemachine.uuid.UUIDGenerator;
@@ -65,10 +66,9 @@ public class ImportTask extends ZkTask{
 											ImportContext importContext,
 											ImportReader reader,
 											int priority,
-											String parentTxnId,
 											long statementId,
 											long operationId){
-				super(jobId,priority,parentTxnId,false);
+				super(jobId,priority);
 				this.importContext = importContext;
 				this.reader = reader;
 				this.statementId = statementId;
@@ -80,19 +80,12 @@ public class ImportTask extends ZkTask{
 											ImportReader reader,
 											Importer importer,
 											int priority,
-											String parentTxnId,
 											byte[] taskId){
-				super(jobId, priority, parentTxnId, false);
+				super(jobId, priority);
 				this.importContext = importContext;
 				this.reader = reader;
 				this.importer = importer;
 				this.taskId = taskId;
-		}
-
-		@Override
-		protected TransactionId beginChildTransaction(TransactionManager transactor, TransactionId parent) throws IOException {
-				byte[] table = Long.toString(importContext.getTableId()).getBytes();
-				return transactor.beginChildTransaction(parent,!readOnly,table);
 		}
 
 		@Override
@@ -215,7 +208,7 @@ public class ImportTask extends ZkTask{
 				return new FileErrorLogger(fileSystem,badLogFile,128);
 		}
 
-		protected void reportStats(long startTimeMs, long stopTimeMs,TimeView processTime,TimeView totalTimeView) {
+		protected void reportStats(long startTimeMs, long stopTimeMs,TimeView processTime,TimeView totalTimeView) throws IOException {
 				if(importContext.shouldRecordStats()){
 						OperationRuntimeStats runtimeStats = new OperationRuntimeStats(statementId, operationId,
 										Bytes.toLong(getTaskId()),region.getRegionNameAsString(),12);
@@ -242,7 +235,7 @@ public class ImportTask extends ZkTask{
 						WriteStats writeStats = importer.getWriteStats();
 						OperationRuntimeStats.addWriteStats(writeStats, runtimeStats);
 
-						SpliceDriver.driver().getTaskReporter().report(runtimeStats);
+						SpliceDriver.driver().getTaskReporter().report(runtimeStats,getTxn());
 				}
 		}
 
@@ -253,18 +246,31 @@ public class ImportTask extends ZkTask{
 				} catch (IOException e) {
 						throw new ExecutionException(e);
 				}
-				String transactionId = getTaskStatus().getTransactionId();
+
+				TxnView txn = status.getTxnInformation();
+
 				if(LOG.isInfoEnabled())
 						SpliceLogUtils.info(LOG,"Importing %s using transaction %s, which is a child of transaction %s",
-										reader.toString(),transactionId,parentTxnId);
+										reader.toString(),txn,txn.getParentTxnView());
 				if(shouldParallelize) {
-						return  new ParallelImporter(importContext,row, transactionId,errorReporter);
+						return new ParallelImporter(importContext,row, txn,errorReporter);
 				} else
-//						return new SequentialImporter(importContext,row,transactionId,errorReporter);
-						return new ParallelImporter(importContext,row,1,SpliceConstants.maxImportReadBufferSize,transactionId,errorReporter);
+						return new ParallelImporter(importContext,row,SpliceConstants.maxImportProcessingThreads,SpliceConstants.maxImportReadBufferSize,txn,errorReporter);
 		}
 
-		@Override
+    @Override
+    protected Txn beginChildTransaction(TxnView parentTxn, TxnLifecycleManager tc) throws IOException {
+        byte[] table = importContext.getTableName().getBytes();
+        /*
+         * We use an additive transaction structure here so that two separate files
+         * in the same import process will not throw Write/Write conflicts with one another,
+         * but will instead by passed through to the underlying constraint (that way, we'll
+         * get UniqueConstraint violations instead of Write/Write conflicts).
+         */
+        return tc.beginChildTransaction(parentTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION,true,table);
+    }
+
+    @Override
 		public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
 				super.readExternal(in);
 				importContext = (ImportContext)in.readObject();

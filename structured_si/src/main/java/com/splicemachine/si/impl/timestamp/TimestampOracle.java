@@ -114,20 +114,20 @@ public class TimestampOracle implements TimestampMasterManagement {
 		return nextTS;
 	}
 
-	private void reserveNextBlock(long priorMaxReservedTimestamp) throws TimestampIOException {
-		synchronized(this)  {
-			if (_maxReservedTimestamp > priorMaxReservedTimestamp) return; // some other thread got there first
-			long nextMax = _maxReservedTimestamp + _blockSize;
-			byte[] data = Bytes.toBytes(nextMax);
-			try {
-				_zooKeeper.setData(_blockNode, data, -1 /* version */); // durably reserve the next block
-				_maxReservedTimestamp = nextMax;
-				_numBlocksReserved.incrementAndGet(); // JMX metric
-				TimestampUtil.doServerDebug(LOG, "Next timestamp block reserved with max = %s", _maxReservedTimestamp);
-			} catch (KeeperException e) {
-				throw new TimestampIOException(e);
-			} catch (InterruptedException e) {
-				throw new TimestampIOException(e);
+    private void reserveNextBlock(long priorMaxReservedTimestamp) throws TimestampIOException {
+        synchronized(this)  {
+            if (_maxReservedTimestamp > priorMaxReservedTimestamp) return; // some other thread got there first
+            long nextMax = _maxReservedTimestamp + _blockSize;
+            byte[] data = Bytes.toBytes(nextMax);
+            try {
+                _zooKeeper.setData(_blockNode, data, -1 /* version */); // durably reserve the next block
+                _maxReservedTimestamp = nextMax;
+                _numBlocksReserved.incrementAndGet(); // JMX metric
+                TimestampUtil.doServerDebug(LOG, "Next timestamp block reserved with max = %s", _maxReservedTimestamp);
+            } catch (KeeperException e) {
+                throw new TimestampIOException(e);
+            } catch (InterruptedException e) {
+                throw new TimestampIOException(e);
 			}
 		}
 	}
@@ -137,7 +137,7 @@ public class TimestampOracle implements TimestampMasterManagement {
         registerJMX(mbs);
         TimestampUtil.doServerInfo(LOG, "Timestamp Generator on master successfully registered with JMX");
 	}
-	
+
     private void registerJMX(MBeanServer mbs) throws MalformedObjectNameException, NotCompliantMBeanException, InstanceAlreadyExistsException, MBeanRegistrationException {
         ObjectName name = new ObjectName("com.splicemachine.si.impl.timestamp.generator:type=TimestampMasterManagement");  // Same string is in JMXUtils
         mbs.registerMBean(this, name);

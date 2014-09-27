@@ -2,6 +2,10 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.impl.store.access.SpliceTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.uuid.UUIDGenerator;
 import org.apache.derby.iapi.error.StandardException;
@@ -10,6 +14,7 @@ import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.ExecutionFactory;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
+import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 
 import java.io.Externalizable;
@@ -35,6 +40,24 @@ public class DerbyOperationInformation implements OperationInformation,Externali
     private NoPutResultSet[] subQueryTrackingArray;
     private UUIDGenerator generator;
 
+		/*
+		 * Represents the transaction that this operation acts under.
+		 *
+		 * if the operation is serialized, then it's expected that the transaction
+		 * is serialized along with it. If it should be operating under a child transaction,
+		 * then the child transaction should be here
+		 *
+		 * Note that we do NOT serialize the transaction here. Instead, we rely on initialization
+		 * to provide us with the correct transaction information.
+		 *
+		 * There are two points of serialization: SpliceOperationRegionScanner, and the task framework. If
+		 * the task framework is used, then the task is responsible for creating and presenting the proper child
+		 * transaction to the operation during initialization. If the SpliceOperationRegionScanner is used, the
+		 * transaction information is serialized over in the SpliceObserverInstructions object, which will construct
+		 * the proper transaction for our use here.
+		 */
+		private transient TxnView txn;
+
     @Deprecated
     public DerbyOperationInformation() { }
 
@@ -51,9 +74,22 @@ public class DerbyOperationInformation implements OperationInformation,Externali
     @Override
     public void initialize(SpliceOperationContext operationContext) throws StandardException {
         this.activation = operationContext.getActivation();
+				this.txn = operationContext.getTxn();
     }
 
-    @Override
+		@Override
+		public TxnView getTransaction() {
+				if(txn==null) {
+						assert activation!=null: "No transaction available!";
+
+						TransactionController transactionController = activation.getTransactionController();
+						if(transactionController==null) return null;
+						txn = ((SpliceTransactionManager) transactionController).getActiveStateTxn();
+				}
+				return txn;
+		}
+
+		@Override
     public double getEstimatedRowCount() {
         return optimizerEstimatedRowCount;
     }

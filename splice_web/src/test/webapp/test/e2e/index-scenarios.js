@@ -6,14 +6,14 @@
 
 describe('View: index.html', function() {
 
-	browser.get('/app/');
+	browser.get('/');
 	it('should automatically redirect to /traced-statements when location hash/fragment is empty', function() {
 		expect(browser.getLocationAbsUrl()).toMatch("/traced-statements");
 	});
 
 	describe('home', function() {
 		beforeEach(function() {
-			browser.get('/app/#/home');
+			browser.get('/#/home');
 		});
 		it('should render traced-statements when user navigates to /home', function() {
 			expect(element.all(by.css('[ng-view] h4')).first().getText()).
@@ -23,7 +23,7 @@ describe('View: index.html', function() {
 
 	describe('traced-statements', function() {
 		beforeEach(function() {
-			browser.get('/app/#/traced-statements');
+			browser.get('/#/traced-statements');
 		});
 		it('should render traced-statements when user navigates to /traced-statements', function() {
 			expect(element.all(by.css('[ng-view] h4')).first().getText()).
@@ -33,7 +33,7 @@ describe('View: index.html', function() {
 
 	describe('contact', function() {
 		beforeEach(function() {
-			browser.get('/app/#/contact');
+			browser.get('/#/contact');
 		});
 		it('should render contact when user navigates to /contact', function() {
 			expect(element.all(by.css('[ng-view] h4')).first().getText()).

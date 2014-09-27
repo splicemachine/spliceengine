@@ -1,5 +1,8 @@
 package com.splicemachine.job;
 
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
+
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 
@@ -36,9 +39,10 @@ public interface Task {
     int getPriority();
 
     /**
-     * @return true if this task should be treated as transactional
+     * @return the transaction that this task is operating under, or {@code null} if
+		 * the task is non-transactional
      */
-    boolean isTransactional();
+		Txn getTxn();
 
 		/**
 		 * @return the parent task id (if this is a child task), or {@code null}

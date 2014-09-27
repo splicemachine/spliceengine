@@ -279,7 +279,6 @@ public class FixedSITableScannerTest {
 								.scan(scan)
 								.scanner(scanner)
 								.metricFactory(Metrics.noOpMetricFactory())
-								.transactionID("1")
 								.tableVersion("2.0")
 								.rowDecodingMap(rowDecodingMap)
 								.filterFactory(

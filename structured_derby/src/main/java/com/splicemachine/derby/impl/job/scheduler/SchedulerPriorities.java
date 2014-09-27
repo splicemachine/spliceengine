@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.job.scheduler;
 
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.hbase.RollForwardTask;
 import com.splicemachine.derby.impl.job.index.CreateIndexTask;
 import com.splicemachine.derby.impl.job.index.PopulateIndexTask;
 import com.splicemachine.derby.impl.load.ImportTask;
@@ -130,6 +131,10 @@ public class SchedulerPriorities {
 				priority = config.getInt(BASE_PRIORITY_PREFIX + "index.create", defaultDdlWritePriority);
                 basePriorityMap.put(CreateIndexTask.class,priority);
                 basePriorityMap.put(PopulateIndexTask.class,priority);
+
+        //maintenance operations
+        priority = config.getInt(BASE_PRIORITY_PREFIX+"maintenance",maxPriority);
+        basePriorityMap.put(RollForwardTask.class,priority);
 		}
 
 		public int getMaxPriority() {

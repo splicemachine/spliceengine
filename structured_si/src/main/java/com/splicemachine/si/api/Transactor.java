@@ -1,9 +1,7 @@
 package com.splicemachine.si.api;
 
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.si.data.hbase.HbRegion;
 import com.splicemachine.si.impl.SICompactionState;
-import com.splicemachine.si.impl.TransactionId;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 
@@ -19,23 +17,21 @@ public interface Transactor<Table, Mutation extends OperationWithAttributes,Put 
 		/**
      * Execute the put operation (with SI treatment) on the table. Send roll-forward notifications to the rollForwardQueue.
      */
-    boolean processPut(Table table, RollForwardQueue rollForwardQueue, Put put) throws IOException;
-    OperationStatus[] processPutBatch(Table table, RollForwardQueue rollForwardQueue, Put[] mutations)
+    boolean processPut(Table table, RollForward rollForwardQueue, Put put) throws IOException;
+
+    OperationStatus[] processPutBatch(Table table, RollForward rollForwardQueue, Put[] mutations)
             throws IOException;
 
-		OperationStatus[] processKvBatch(Table table, RollForwardQueue rollForwardQueue, byte[] family, byte[] qualifier, Collection<KVPair> mutations, String txnId) throws IOException;
+		OperationStatus[] processKvBatch(Table table,
+																		 RollForward rollForward,
+																		 byte[] defaultFamilyBytes,
+																		 byte[] packedColumnBytes,
+																		 Collection<KVPair> toProcess,
+																		 long transactionId,
+																		 ConstraintChecker constraintChecker ) throws IOException;
 
-		OperationStatus[] processKvBatch(Table table, RollForwardQueue queue, byte[] defaultFamilyBytes, byte[] packedColumnBytes, Collection<KVPair> toProcess, String transactionId, ConstraintChecker constraintChecker,boolean ignoreWriteWrite) throws IOException;
-
-		OperationStatus[] processKvBatch(Table table, RollForwardQueue rollForwardQueue, TransactionId txnId, byte[] family, byte[] qualifier, Collection<KVPair> mutations) throws IOException;
-
-		OperationStatus[] processKvBatch(Table table, RollForwardQueue rollForwardQueue, TransactionId txnId,
+		OperationStatus[] processKvBatch(Table table, RollForward rollForwardQueue, TxnView txnId,
 																		 byte[] family, byte[] qualifier,
-																		 Collection<KVPair> mutations,ConstraintChecker constraintChecker,boolean ignoreWriteWrite) throws IOException;
-
-    /**
-     * Create an object to keep track of the state of an HBase table compaction operation.
-     */
-    SICompactionState newCompactionState();
+																		 Collection<KVPair> mutations,ConstraintChecker constraintChecker) throws IOException;
 
 }

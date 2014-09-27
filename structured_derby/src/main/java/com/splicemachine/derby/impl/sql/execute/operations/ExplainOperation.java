@@ -50,9 +50,10 @@ public class ExplainOperation extends SpliceBaseOperation {
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException {
         super.init(context);
+        activation.setTraced(false);
         currentTemplate = new ValueRow(1);
         currentTemplate.setRowArray(new DataValueDescriptor[]{new SQLVarchar()});
-        HashMap<String, String[]> m = PlanPrinter.planMap.get();
+        HashMap<String, String[]> m = PlanPrinter.planMap;
         String sql = activation.getPreparedStatement().getSource();
         plan = m.get(sql);
         //rows = new ArrayList<ExecRow>(INIT_SIZE);

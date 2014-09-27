@@ -117,7 +117,6 @@ public class PairEncoderTest {
 		private final DataValueDescriptor[] row;
 
 		public PairEncoderTest(TestingDataType[] dataTypes, DataValueDescriptor[] row) {
-				System.out.println(Arrays.toString(dataTypes));
 				this.dataTypes = dataTypes;
 				this.row = row;
 		}
@@ -204,7 +203,8 @@ public class PairEncoderTest {
         private static final Snowflake.Generator snowGen = new Snowflake((short)0xFAFF).newGenerator(64);
         private static final byte[] uniquePostBytes = Bytes.toBytes((long)0x7FFF7833FFAB7833l);
         private static final byte[] prefixBytes = Bytes.toBytes((long)0x7FAF7933FFA07853l);
-        {
+
+        static {
             // generate some Snowflake ids to make sure first byte is not 0x00
             for (int i = 0; i < 10; i++) {
                 snowGen.next();

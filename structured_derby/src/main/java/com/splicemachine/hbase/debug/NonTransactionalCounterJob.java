@@ -6,10 +6,9 @@ import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.hbase.HBaseRegionCache;
 import com.splicemachine.hbase.table.SpliceHTable;
 import com.splicemachine.job.Task;
-import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.si.api.Txn;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HConnectionManager;
-import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
@@ -37,8 +36,6 @@ public class NonTransactionalCounterJob implements CoprocessorJob{
     @Override
     public Map<? extends RegionTask, Pair<byte[], byte[]>> getTasks() throws Exception {
         return Collections.singletonMap(new NonTransactionalCounterTask(operationId,
-                1,
-                true,
                 destinationDirectory),
                 Pair.newPair(HConstants.EMPTY_START_ROW,HConstants.EMPTY_END_ROW));
     }
@@ -52,20 +49,14 @@ public class NonTransactionalCounterJob implements CoprocessorJob{
         }
     }
 
-    @Override
-    public TransactionId getParentTransaction() {
-        return null;
-    }
-
-    @Override
-    public boolean isReadOnly() {
-        return true;
-    }
+    @Override public byte[] getDestinationTable() { return null; }
 
     @Override
     public String getJobId() {
         return operationId;
     }
+
+    @Override public Txn getTxn() { return null; }
 
     @Override
     public <T extends Task> Pair<T, Pair<byte[], byte[]>> resubmitTask(T originalTask, byte[] taskStartKey, byte[] taskEndKey) throws IOException {

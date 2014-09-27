@@ -2,64 +2,63 @@ package com.splicemachine.si.impl;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.splicemachine.si.api.TransactionStatus;
-import java.util.HashMap;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
+
 import java.io.IOException;
-import java.util.Map;
-import java.util.concurrent.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 public class DDLFilter implements Comparable<DDLFilter> {
-    private final Transaction myTransaction;
-	private final Transaction myParentTransaction;
-    private final TransactionStore transactionStore;
-		private Cache<String,Boolean> visibilityMap;
-//    private ConcurrentMap<String, Boolean> visibilityMap;
+    private final TxnView myTransaction;
+    private Cache<Long,Boolean> visibilityMap;
 
-		public DDLFilter(
-						Transaction myTransaction,
-						Transaction myParentTransaction,
-						TransactionStore transactionStore) {
-				super();
+		public DDLFilter(TxnView myTransaction) {
 				this.myTransaction = myTransaction;
-				this.transactionStore = transactionStore;
-				this.myParentTransaction = myParentTransaction;
 				visibilityMap = CacheBuilder.newBuilder().expireAfterWrite(60, TimeUnit.SECONDS).maximumSize(10000).build();
 		}
 
-		public boolean isVisibleBy(final String transactionId) throws IOException {
-				Boolean visible = visibilityMap.getIfPresent(transactionId);
-				if (visible != null) {
-						return visible;
-				}
-				//if I didn't succeed, don't do anything
-				if(myTransaction.getEffectiveStatus()!= TransactionStatus.COMMITTED) return false;
-				//if I have a parent, and he was rolled back, don't do anything
-				if(myParentTransaction!=null && myParentTransaction.getEffectiveStatus()==TransactionStatus.ROLLED_BACK) return false;
-				try {
-						return visibilityMap.get(transactionId,new Callable<Boolean>() {
-								@Override
-								public Boolean call() throws Exception {
-										Transaction transaction = transactionStore.getTransaction(new TransactionId(transactionId));
-										/*
-										 * For the purposes of DDL, we intercept any writes which occur AFTER us, regardless of
-										 * my status.
-										 *
-										 * The reason for this is because the READ of us will not see those writes, which means
-										 * that we need to intercept them and deal with them as if we were committed. If we rollback,
-										 * then it shouldn't matter to the other operation (except for performance), and if we commit,
-										 * then we should see properly constructed data.
-										 */
-										long otherTxnId = transaction.getLongTransactionId();
-										visibilityMap.put(transactionId, myTransaction.getLongTransactionId() <= otherTxnId);
-										return myTransaction.getLongTransactionId()<=otherTxnId;
-								}
-						});
-				} catch (ExecutionException e) {
-						throw new IOException(e.getCause());
-				}
+		public boolean isVisibleBy(final TxnView txn) throws IOException {
+        Boolean visible = visibilityMap.getIfPresent(txn.getTxnId());
+        if(visible!=null) return visible;
+
+        //if I haven't succeeded yet, don't do anything
+        if(myTransaction.getState()!= Txn.State.COMMITTED) return false;
+        //if my parent was rolled back, do nothing
+        if(myTransaction.getParentTxnView().getEffectiveState()== Txn.State.ROLLEDBACK) return false;
+
+//        if I have a parent, and he was rolled back, don't do anything
+//        if(myParenTxn!=null && myParenTxn.getEffectiveState()== Txn.State.ROLLEDBACK) return false;
+        try{
+            return visibilityMap.get(txn.getTxnId(),new Callable<Boolean>() {
+                @Override
+                public Boolean call() throws Exception {
+                    return isVisible(txn);
+                }
+            });
+        }catch(ExecutionException ee){
+            throw new IOException(ee.getCause());
+        }
+
 		}
 
-		public Transaction getTransaction() {
+    private Boolean isVisible(TxnView txn) {
+        /*
+         * The Commit timestamp of myTransaction serves as the DDL
+         * "demarcation point"--that is, the firm separator of
+         * responsibilities. Any transaction which *begins before*
+         * the demarcation point must be dealt with during a
+         * second "populate" phase (e.g. Populate index, etc.), while
+         * any transaction which *begins after* the demarcation point
+         * is dealt with by our
+         *
+         */
+        long otherTxnId = txn.getTxnId();
+        return myTransaction.getCommitTimestamp()<=otherTxnId;
+    }
+
+    public TxnView getTransaction() {
 				return myTransaction;
 		}
 
@@ -68,14 +67,14 @@ public class DDLFilter implements Comparable<DDLFilter> {
         if (o == null) {
             return 1;
         }
-        if (myTransaction.getStatus().isCommitted()) {
-            if (o.getTransaction().getStatus().isCommitted()) {
-                return compare(myTransaction.getCommitTimestampDirect(), o.getTransaction().getCommitTimestampDirect());
+        if (myTransaction.getState()== Txn.State.COMMITTED) {
+            if (o.getTransaction().getState() == Txn.State.COMMITTED) {
+                return compare(myTransaction.getCommitTimestamp(), o.getTransaction().getCommitTimestamp());
             } else {
                 return 1;
             }
         } else {
-            if (o.getTransaction().getStatus().isCommitted()) {
+            if (o.getTransaction().getState()== Txn.State.COMMITTED) {
                 return -1;
             } else {
                 return compare(myTransaction.getEffectiveBeginTimestamp(), o.getTransaction().getEffectiveBeginTimestamp());

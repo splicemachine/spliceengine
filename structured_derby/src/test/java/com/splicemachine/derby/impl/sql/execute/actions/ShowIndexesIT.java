@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 import java.sql.CallableStatement;
 import java.sql.ResultSet;
 
+import com.splicemachine.test.SerialTest;
 import org.apache.commons.dbutils.DbUtils;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
@@ -10,6 +11,7 @@ import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
@@ -25,6 +27,7 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
  * @author David Winters
  *         Created on: 3/5/14
  */
+//@Category(SerialTest.class)
 public class ShowIndexesIT extends SpliceUnitTest {
     public static final String CLASS_NAME = ShowIndexesIT.class.getSimpleName().toUpperCase();
 	private static Logger LOG = Logger.getLogger(ShowIndexesIT.class);

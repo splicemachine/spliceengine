@@ -84,7 +84,7 @@ public class TimestampUtil {
 	public static void doClientError(Logger logger, String message, Throwable t, Object... args) {
 		SpliceLogUtils.error(logger, message, t, args);		
 	}
-	
+
 	public static void doClientErrorThrow(Logger logger, String message, Throwable t, Object... args)
 		throws TimestampIOException {
 		if (message == null) message = "";

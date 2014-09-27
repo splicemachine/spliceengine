@@ -6,6 +6,7 @@ import java.io.ObjectInput;
 import java.io.IOException;
 import java.util.Properties;
 
+import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.reference.SQLState;
@@ -40,6 +41,7 @@ import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceScan;
 import org.apache.derby.impl.store.access.conglomerate.ConglomerateUtil;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 /**
@@ -137,11 +139,12 @@ public class IndexConglomerate extends SpliceConglomerate {
 
         if (SanityManager.DEBUG) {
             SanityManager.ASSERT((nUniqueColumns == nKeyFields) || (nUniqueColumns == (nKeyFields - 1)));
-        }    	
+        }
         try {
-        	ConglomerateUtils.createConglomerate(containerId, this,rawtran.getActiveStateTxIdString());
+//            ((SpliceTransaction)rawtran).elevate(Bytes.toBytes(Long.toString(containerId)));
+            ConglomerateUtils.createConglomerate(containerId, this, ((SpliceTransaction)rawtran).getTxn());
         } catch (Exception e) {
-        	LOG.error(e.getMessage(), e);
+            LOG.error(e.getMessage(), e);
         }
         this.getContainerid();
 	}

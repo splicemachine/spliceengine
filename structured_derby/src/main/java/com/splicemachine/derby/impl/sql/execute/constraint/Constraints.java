@@ -4,6 +4,8 @@ import com.splicemachine.derby.utils.ErrorState;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.batch.BatchConstraintChecker;
 import com.splicemachine.hbase.writer.WriteResult;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 
 import java.io.IOException;
@@ -29,12 +31,12 @@ public class Constraints {
         }
 
         @Override
-        public boolean validate(KVPair mutation, String txnId,RegionCoprocessorEnvironment rce,Collection<KVPair> priorValues) throws IOException {
+        public boolean validate(KVPair mutation, TxnView txn,RegionCoprocessorEnvironment rce,Collection<KVPair> priorValues) throws IOException {
             return true;
         }
 
         @Override
-        public Collection<KVPair> validate(Collection<KVPair> mutations,String txnId, RegionCoprocessorEnvironment rce,List<KVPair> priorValues) throws IOException {
+        public Collection<KVPair> validate(Collection<KVPair> mutations,TxnView txn, RegionCoprocessorEnvironment rce,List<KVPair> priorValues) throws IOException {
             return Collections.emptyList();
         }
 

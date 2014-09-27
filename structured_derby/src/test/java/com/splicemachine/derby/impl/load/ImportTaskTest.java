@@ -8,6 +8,8 @@ import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.CallBufferFactory;
 import com.splicemachine.hbase.writer.RecordingCallBuffer;
 import com.splicemachine.hbase.writer.Writer;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.impl.ActiveWriteTxn;
 import com.splicemachine.utils.kryo.KryoPool;
 import com.splicemachine.uuid.Snowflake;
 import com.splicemachine.uuid.UUIDGenerator;
@@ -497,7 +499,6 @@ public class ImportTaskTest {
                 .path("/testPath")
                 .destinationTable(1184l)
                 .colDelimiter(",")
-                .transactionId("TEST_TXN")
                 .build();
 
         final List<KVPair> importedRows = Lists.newArrayListWithCapacity(lines.size());
@@ -511,18 +512,18 @@ public class ImportTaskTest {
         }).when(testingBuffer).add(any(KVPair.class));
 
         @SuppressWarnings("unchecked") CallBufferFactory<KVPair> fakeBufferFactory = mock(CallBufferFactory.class);
-        when(fakeBufferFactory.writeBuffer(any(byte[].class),any(String.class))).thenReturn(testingBuffer);
-				when(fakeBufferFactory.writeBuffer(any(byte[].class),any(String.class),any(Writer.WriteConfiguration.class))).thenReturn(testingBuffer);
+        when(fakeBufferFactory.writeBuffer(any(byte[].class),any(Txn.class))).thenReturn(testingBuffer);
+				when(fakeBufferFactory.writeBuffer(any(byte[].class),any(Txn.class),any(Writer.WriteConfiguration.class))).thenReturn(testingBuffer);
         final Snowflake snowflake = new Snowflake((short)1);
 				KryoPool kryoPool = KryoPool.defaultPool();
-				Importer importer = new SequentialImporter(ctx,template,"TEXT_TXN",fakeBufferFactory, kryoPool,FailAlwaysReporter.INSTANCE){
+				Importer importer = new SequentialImporter(ctx,template,new ActiveWriteTxn(1l,1l),fakeBufferFactory, kryoPool,FailAlwaysReporter.INSTANCE){
 						@Override
 						protected UUIDGenerator getRandomGenerator() {
 								return snowflake.newGenerator(lines.size());
 						}
 				};
 
-        ImportTask importTask = new ImportTask("TEST_JOB",ctx,reader,importer,1,"TEST_TXN", Bytes.toBytes(-1l)){
+        ImportTask importTask = new ImportTask("TEST_JOB",ctx,reader,importer,1, Bytes.toBytes(-1l)){
 						@Override
 						protected RowErrorLogger getErrorLogger() {
 								return NoopErrorLogger.INSTANCE;
@@ -540,6 +541,7 @@ public class ImportTaskTest {
 
 						@Override public boolean isSplittable() { return false; }
 				};
+        importTask.setParentTxnInformation(new ActiveWriteTxn(1l, 1l));
         importTask.doExecute();
 
         /*

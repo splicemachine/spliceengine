@@ -5,7 +5,8 @@ source ${ROOT_DIR}/bin/functions.sh
 
 # Start with debug logging by passing this script the "-debug" argument
 
-LOGFILE="${ROOT_DIR}"/splice.log
+SPLICELOGFILE="${ROOT_DIR}"/splice.log
+ZOOLOGFILE="${ROOT_DIR}"/zoo.log
 DEBUG=false
 
 usage() {
@@ -107,4 +108,4 @@ fi
 # Start server with retry logic
 ZOO_WAIT_TIME=60
 SPLICE_MAIN_CLASS="com.splicemachine.single.SpliceSinglePlatform"
-_retrySplice "${ROOT_DIR}" "${LOGFILE}" "${LOGFILE}" "${LOG4J_PATH}" "${ZOO_DIR}" ${ZOO_WAIT_TIME} "${HBASE_ROOT_DIR_URI}" "${CP}" ${SPLICE_MAIN_CLASS} "FALSE"
+_retrySplice "${ROOT_DIR}" "${SPLICELOGFILE}" "${ZOOLOGFILE}" "${LOG4J_PATH}" "${ZOO_DIR}" ${ZOO_WAIT_TIME} "${HBASE_ROOT_DIR_URI}" "${CP}" ${SPLICE_MAIN_CLASS} "FALSE"

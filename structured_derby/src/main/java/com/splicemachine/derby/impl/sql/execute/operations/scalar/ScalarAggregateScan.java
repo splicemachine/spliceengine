@@ -7,6 +7,7 @@ import com.splicemachine.derby.impl.storage.BaseHashAwareScanBoundary;
 import com.splicemachine.derby.impl.storage.KeyValueUtils;
 import com.splicemachine.derby.impl.storage.RegionAwareScanner;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
+import com.splicemachine.si.api.Txn;
 import com.splicemachine.metrics.MetricFactory;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
@@ -17,6 +18,8 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import java.io.IOException;
 
 /**
+ * Reads data out of temp and processes it. Because TEMP is non-transactional, there is no
+ * need for transaction information here.
  * @author Scott Fines
  * Created on: 10/8/13
  */
@@ -25,7 +28,7 @@ public class ScalarAggregateScan implements ScalarAggregateSource{
     private final PairDecoder scanDecoder;
     private final RegionAwareScanner regionScanner;
 
-    public ScalarAggregateScan(PairDecoder scanDecoder, MetricFactory metricFactory, String txnId, HRegion region, Scan localScan) throws StandardException {
+    public ScalarAggregateScan(PairDecoder scanDecoder, MetricFactory metricFactory, HRegion region, Scan localScan) throws StandardException {
         this.scanDecoder = scanDecoder;
 				//TODO -sf- is this safe?
 				final byte bucket = localScan.getStartRow()[0];
@@ -34,7 +37,7 @@ public class ScalarAggregateScan implements ScalarAggregateSource{
 				int prefixOffset = scanDecoder.getKeyPrefixOffset();
 				final byte[] prefix = new byte[prefixOffset];
 				BytesUtil.slice(prefix,0,prefixOffset);
-				this.regionScanner = RegionAwareScanner.create(txnId,region,localScan,table,
+				this.regionScanner = RegionAwareScanner.create(null,region,localScan,table,
 								new BaseHashAwareScanBoundary(SpliceConstants.DEFAULT_FAMILY_BYTES) {
 						@Override
 						public byte[] getStartKey(Result result) {

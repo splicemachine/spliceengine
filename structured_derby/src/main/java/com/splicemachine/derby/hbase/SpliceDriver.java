@@ -1,31 +1,39 @@
 package com.splicemachine.derby.hbase;
 
-import javax.annotation.Nullable;
-import javax.management.InstanceAlreadyExistsException;
-import javax.management.MBeanRegistrationException;
-import javax.management.MBeanServer;
-import javax.management.MalformedObjectNameException;
-import javax.management.NotCompliantMBeanException;
-import javax.management.ObjectName;
-import java.io.IOException;
-import java.lang.management.ManagementFactory;
-import java.net.InetAddress;
-import java.sql.Connection;
-import java.util.List;
-import java.util.Properties;
-import java.util.Random;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-
-import com.google.common.base.Function;
 import com.google.common.io.Closeables;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.splicemachine.SpliceKryoRegistry;
+import com.splicemachine.constants.SIConstants;
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.cache.SpliceCache;
+import com.splicemachine.derby.ddl.DDLCoordinationFactory;
+import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
+import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
+import com.splicemachine.derby.impl.job.scheduler.*;
+import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
+import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequenceKey;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.impl.temp.TempTable;
+import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
+import com.splicemachine.derby.management.StatementManager;
+import com.splicemachine.derby.management.XplainTaskReporter;
+import com.splicemachine.derby.utils.ErrorReporter;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.hbase.SpliceMetrics;
+import com.splicemachine.hbase.writer.WriteCoordinator;
+import com.splicemachine.job.*;
+import com.splicemachine.si.api.TransactionStorage;
+import com.splicemachine.si.impl.TransactionalRegions;
+import com.splicemachine.si.impl.txnclient.CoprocessorTxnStore;
+import com.splicemachine.tools.CachedResourcePool;
+import com.splicemachine.tools.EmbedConnectionMaker;
+import com.splicemachine.tools.ResourcePool;
+import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.utils.SpliceUtilities;
+import com.splicemachine.utils.ZkUtils;
+import com.splicemachine.utils.kryo.KryoPool;
+import com.splicemachine.utils.logging.LogManager;
+import com.splicemachine.utils.logging.Logging;
 import com.splicemachine.uuid.Snowflake;
 import com.yammer.metrics.core.MetricsRegistry;
 import com.yammer.metrics.reporting.JmxReporter;
@@ -39,48 +47,16 @@ import org.apache.hadoop.hbase.PleaseHoldException;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.log4j.Logger;
 
-import com.splicemachine.SpliceKryoRegistry;
-import com.splicemachine.constants.SIConstants;
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.cache.SpliceCache;
-import com.splicemachine.derby.ddl.DDLCoordinationFactory;
-import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
-import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
-import com.splicemachine.derby.impl.job.scheduler.DistributedJobScheduler;
-import com.splicemachine.derby.impl.job.scheduler.ExpandingTaskScheduler;
-import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
-import com.splicemachine.derby.impl.job.scheduler.SchedulerTracer;
-import com.splicemachine.derby.impl.job.scheduler.StealableTaskScheduler;
-import com.splicemachine.derby.impl.job.scheduler.TieredTaskScheduler;
-import com.splicemachine.derby.impl.job.scheduler.TieredTaskSchedulerSetup;
-import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
-import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequenceKey;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.impl.temp.TempTable;
-import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
-import com.splicemachine.derby.management.StatementManager;
-import com.splicemachine.derby.management.XplainTaskReporter;
-import com.splicemachine.derby.utils.ErrorReporter;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.hbase.SpliceMetrics;
-import com.splicemachine.hbase.writer.WriteCoordinator;
-import com.splicemachine.job.JobScheduler;
-import com.splicemachine.job.Task;
-import com.splicemachine.job.TaskMonitor;
-import com.splicemachine.job.TaskScheduler;
-import com.splicemachine.job.TaskSchedulerManagement;
-import com.splicemachine.job.ZkTaskMonitor;
-import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.TransactionManager;
-import com.splicemachine.si.impl.TransactionId;
-import com.splicemachine.tools.CachedResourcePool;
-import com.splicemachine.tools.EmbedConnectionMaker;
-import com.splicemachine.tools.ResourcePool;
-import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.utils.ZkUtils;
-import com.splicemachine.utils.kryo.KryoPool;
-import com.splicemachine.utils.logging.LogManager;
-import com.splicemachine.utils.logging.Logging;
+import javax.management.*;
+import java.io.IOException;
+import java.lang.management.ManagementFactory;
+import java.net.InetAddress;
+import java.sql.Connection;
+import java.util.List;
+import java.util.Properties;
+import java.util.Random;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * @author Scott Fines
@@ -239,9 +215,8 @@ public class SpliceDriver extends SIConstants {
                         	return null;
                         }
 
+                        taskReporter = new XplainTaskReporter();
                         statementManager = new StatementManager();
-                        taskReporter = new XplainTaskReporter(1);
-                        taskReporter.start(1);
                         logging = new LogManager();
                         SpliceLogUtils.debug(LOG, "Finished Booting Database");
 
@@ -293,21 +268,7 @@ public class SpliceDriver extends SIConstants {
                 return null;
             }
         });
-        Function<TransactionId,Object> transactionFailer = new Function<TransactionId, Object>() {
-            @Override
-            public Object apply(@Nullable TransactionId input) {
-                if(random.nextDouble()>=testTaskFailureRate) return null;
-
-                TransactionManager txnControl = HTransactorFactory.getTransactionManager();
-                try{
-                    txnControl.fail(input);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-                return null;
-            }
-        };
-//        SchedulerTracer.registerTaskCommit(transactionFailer);
+        //        SchedulerTracer.registerTaskCommit(transactionFailer);
 //        SchedulerTracer.registerTaskRollback(transactionFailer);
     }
 
@@ -316,7 +277,7 @@ public class SpliceDriver extends SIConstants {
     	connection = null;
         try{
         	// The HBaseAdmin creates a connection to the ZooKeeper ensemble and thereafter into the HBase cluster.
-        	admin = SpliceAccessManager.getAdmin(config);
+        	admin = SpliceUtilities.getAdmin(config);
         	HTableDescriptor desc = new HTableDescriptor(SpliceMasterObserver.INIT_TABLE);
         	// Create the special "SPLICE_INIT" table which triggers the creation of the SpliceMasterObserver and ultimately
         	// triggers the creation of the "SPLICE_*" HBase tables.  This is an asynchronous call and so we "loop" via a
@@ -421,14 +382,11 @@ public class SpliceDriver extends SIConstants {
             mbs.registerMBean(jobScheduler.getJobMetrics(),jobSchedulerName);
 
             //register transaction stuff
-//            ObjectName transactorName = new ObjectName("com.splicemachine.txn:type=TransactorStatus");
-//            mbs.registerMBean(HTransactorFactory.getTransactorStatus(), transactorName);
+            ObjectName rollForwardName = new ObjectName("com.splicemachine.txn:type=RollForwardManagement");
+            mbs.registerMBean(TransactionalRegions.getRollForwardManagement(),rollForwardName);
 
-            // These two (DelayedRollForwardQueue and PushForwardQueue) fail to register
-            // when using obfuscation. They are in SI.
-            // JPC - Commenting out for now until we can figure out how to register given their obfuscation.
-//            DelayedRollForwardQueue.registerJMX(mbs);
-//            PushForwardQueue.registerJMX(mbs);
+            ObjectName txnStoreName = new ObjectName("com.splicemachine.txn:type=TxnStoreManagement");
+            mbs.registerMBean(TransactionStorage.getTxnStoreManagement(),txnStoreName);
 
         } catch (MalformedObjectNameException e) {
             //we want to log the message, but this shouldn't affect startup

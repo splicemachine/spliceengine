@@ -8,9 +8,9 @@ import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
+import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.job.Task;
-import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.si.api.TxnView;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Pair;
@@ -30,8 +30,8 @@ public class MultiScanOperationJob implements CoprocessorJob,Externalizable {
 		private List<Scan> scans;
 		private SpliceObserverInstructions instructions;
 		private HTableInterface table;
-		private int taskPriority;
-		private boolean readOnly;
+    private TxnView txn;
+    private int taskPriority;
 		private String jobId;
 
 		public MultiScanOperationJob() {
@@ -40,13 +40,13 @@ public class MultiScanOperationJob implements CoprocessorJob,Externalizable {
 		public MultiScanOperationJob(List<Scan> scans,
 																 SpliceObserverInstructions instructions,
 																 HTableInterface table,
-																 int taskPriority,
-																 boolean readOnly) {
+                                 TxnView txn,
+																 int taskPriority) {
 				this.scans = scans;
 				this.instructions = instructions;
 				this.table = table;
-				this.taskPriority = taskPriority;
-				this.readOnly = readOnly;
+        this.txn = txn;
+        this.taskPriority = taskPriority;
 				this.jobId = String.format("%s-%s", operationString(instructions.getTopOperation()),
 								SpliceDriver.driver().getUUIDGenerator().nextUUID());
 		}
@@ -59,10 +59,9 @@ public class MultiScanOperationJob implements CoprocessorJob,Externalizable {
 		public Map<? extends RegionTask, Pair<byte[], byte[]>> getTasks() throws Exception {
 				Map<SinkTask,Pair<byte[],byte[]>> taskMap = Maps.newHashMap();
 				for(Scan scan:scans){
-						SinkTask task = new SinkTask(getJobId(),scan,
-                                                        instructions.getTransactionId(),
-                                                        instructions.getSpliceRuntimeContext().getParentTaskId(),
-                                                        readOnly, taskPriority);
+						SinkTask task = new SinkTask(getJobId(),scan, instructions.getSpliceRuntimeContext().getParentTaskId(),
+                                                         taskPriority);
+            task.setParentTxnInformation(instructions.getTxn());
 						taskMap.put(task,Pair.newPair(scan.getStartRow(),scan.getStopRow()));
 				}
 				return taskMap;
@@ -73,17 +72,20 @@ public class MultiScanOperationJob implements CoprocessorJob,Externalizable {
 				return table;
 		}
 
-		@Override
-		public TransactionId getParentTransaction() {
-				return HTransactorFactory.getTransactionManager().transactionIdFromString(instructions.getTransactionId());
-		}
+    @Override
+    public byte[] getDestinationTable() {
+        SpliceOperation topOperation = instructions.getTopOperation();
+        if(topOperation instanceof DMLWriteOperation)
+            return ((DMLWriteOperation)topOperation).getDestinationTable();
+        return null;
+    }
 
-		@Override
-		public boolean isReadOnly() {
-				return readOnly;
-		}
+    @Override
+    public TxnView getTxn() {
+        return txn;
+    }
 
-		@Override
+    @Override
 		public void writeExternal(ObjectOutput out) throws IOException {
 				out.writeObject(jobId);
 				out.writeInt(scans.size());

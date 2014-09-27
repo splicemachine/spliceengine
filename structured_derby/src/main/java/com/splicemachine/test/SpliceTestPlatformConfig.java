@@ -6,8 +6,10 @@ import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.*;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
+import com.splicemachine.si.api.TxnLifecycleManager;
 import com.splicemachine.si.coprocessors.SIObserver;
 import com.splicemachine.si.coprocessors.TimestampMasterObserver;
+import com.splicemachine.si.coprocessors.TxnLifecycleEndpoint;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HConstants;
@@ -31,6 +33,7 @@ class SpliceTestPlatformConfig {
             SpliceIndexManagementEndpoint.class,
             SpliceIndexEndpoint.class,
             CoprocessorTaskScheduler.class,
+            TxnLifecycleEndpoint.class,
             SIObserver.class);
 
     private static final List<Class<?>> MASTER_COPROCESSORS = Arrays.<Class<?>>asList(
@@ -65,7 +68,7 @@ class SpliceTestPlatformConfig {
         config.set("hbase.cluster.distributed", "true");
         config.setLong("hbase.balancer.period", SECONDS.toMillis(10));
         config.set("hbase.zookeeper.quorum", "127.0.0.1:2181");
-        config.set("hbase.regionserver.handler.count", "200");
+        config.set("hbase.regionserver.handler.count", "50");
         setInt(config, "hbase.master.port", masterPort);
         setInt(config, "hbase.master.info.port", masterInfoPort);
         setInt(config, "hbase.regionserver.port", regionServerPort);
@@ -93,7 +96,9 @@ class SpliceTestPlatformConfig {
         config.set("hbase.zookeeper.dns.interface", interfaceName);
         config.set("hbase.regionserver.dns.interface", interfaceName);
         config.set("hbase.master.dns.interface", interfaceName);
+        config.setLong("splice.ddl.drainingWait.maximum",15000l); //wait 15 sseconds before bailing on bad ddl statements
         config.setLong(HConstants.HREGION_MAX_FILESIZE, 1024 * 1024 * 1024L); // 128?
+        config.set("hbase.master.jmx.port","10102");
 
         //set a low value threshold for gz file size on import
         config.setLong(SpliceConstants.SEQUENTIAL_IMPORT_FILESIZE_THREASHOLD, 1024 * 1024L);

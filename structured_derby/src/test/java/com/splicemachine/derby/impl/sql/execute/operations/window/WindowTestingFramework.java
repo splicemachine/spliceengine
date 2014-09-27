@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -21,6 +22,8 @@ import org.apache.derby.iapi.types.NumberDataValue;
 import org.apache.derby.impl.sql.execute.ValueRow;
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
+import org.junit.Test;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.services.reflect.SpliceReflectClasses;
@@ -68,6 +71,10 @@ public class WindowTestingFramework {
                                                                                        FrameDefinition.Frame.PRECEDING.ordinal(), 1,
                                                                                        FrameDefinition.Frame.CURRENT_ROW.ordinal(), -1);
 
+    public static final FrameDefinition ALL_ROWS = new FrameDefinition(FrameDefinition.FrameMode.RANGE.ordinal(),
+                                                                       FrameDefinition.Frame.UNBOUNDED_PRECEDING.ordinal(), -1,
+                                                                       FrameDefinition.Frame.UNBOUNDED_FOLLOWING.ordinal(), -1);
+
     protected static LazyDataValueFactory dvf = new LazyDataValueFactory();
     protected static SpliceReflectClasses cf = new SpliceReflectClasses();
     protected static SpliceExecutionFactory ef = new SpliceExecutionFactory();
@@ -85,6 +92,20 @@ public class WindowTestingFramework {
     }
 
     /**
+     * Demonstrates generation of test data creates/inserts to copy into sqlfiddle or sqlshell
+     */
+    @Test
+    @Ignore("Just for demo purposes. Can be run manually.")
+    public void testGenInserts() throws Exception {
+        List<TestColumnDefinition> rowDefinition = new ArrayList<TestColumnDefinition>(
+            Arrays.asList(new TestColumnDefinition[]{
+                new IntegerColumnDefinition().setColumnName("intCol"),
+                new DoubleColumnDefinition().setVariant(4).setColumnConstraint("not null"),
+                new DecimalColumnDefinition().setVariant(3).setColumnName("dadecimal").setColumnConstraint("(6,2)")}));
+        printInputSet(rowDefinition, 5, new int[]{1}, "temp1", System.out);
+    }
+
+    /**
      * Convenience method to run the test on the window function provided by this configuration and perform verification.<br/>
      * Your test can run some or all of the segments executed here.
      *
@@ -95,11 +116,11 @@ public class WindowTestingFramework {
      * @param orderByColIDs the 1-based column identifiers to include in the order by clause.
      *                      Cannot be empty for ranking functions, since these are what are ranked.
      * @param inputColumnIDs the 1-based column indexes which are to provide window function input. Must have at least one
-     *                       value. <b>NOTE: derby/splice window function infra only handles one input column like a general
-     *                       aggregator column. See <a href="https://splicemachine.atlassian.net/browse/DB-1645">DB-1645</a>.
+     *                       value.
      * @param inputRowDefinition the width and type for the input columns.
      * @param frameDefinition the window frame clause. Pass <code>null</code> to use the {@link #DEFAULT_FRAME_DEF}
-     * @param expectedResultsFunction a function provided by the caller that implements {@link com.splicemachine.derby.impl.sql.execute.operations.window.WindowTestingFramework.ExpectedResultsFunction}
+     * @param expectedResultsFunction a function provided by the caller that implements
+     * {@link com.splicemachine.derby.impl.sql.execute.operations.window.WindowTestingFramework.ExpectedResultsFunction}
      *                          that is used to generate expected results to verify window function results.
      * @param function the window function to test
      * @param printResults passing <code>true</code> will print out window function output plus expected results.
@@ -108,9 +129,10 @@ public class WindowTestingFramework {
      * @throws StandardException for test setup failure or window function application failure.
      */
     public void helpTestWindowFunction(int nPartitions, int partitionSize, int[] partitionColIDs, int[] orderByColIDs,
-                                       int[] inputColumnIDs, List<TestColumnDefinition> inputRowDefinition, FrameDefinition frameDefinition,
-                                       ExpectedResultsFunction expectedResultsFunction,
-                                       SpliceGenericWindowFunction function, boolean printResults) throws StandardException, IOException {
+                                       int[] inputColumnIDs, List<TestColumnDefinition> inputRowDefinition,
+                                       FrameDefinition frameDefinition, ExpectedResultsFunction expectedResultsFunction,
+                                       SpliceGenericWindowFunction function, boolean printResults)
+        throws StandardException, IOException {
         // defaults
         FrameDefinition theFrame = frameDefinition;
         if (theFrame == null) {
@@ -155,7 +177,6 @@ public class WindowTestingFramework {
             }
 
             // calc expected results for partition
-            // TODO jpc: respect frame definition when generating expected results
             expectedRows.addAll(calculateExpectedResults(inputRows, expectedResultsFunction));
         }
 
@@ -169,10 +190,11 @@ public class WindowTestingFramework {
         // iterate thru the partitions creating a frame buffer for each
         List<ExecRow> results = new ArrayList<ExecRow>();
         for (PartitionAwarePushBackIterator<ExecRow> frameSource : frameSources) {
-            FrameBuffer frameBuffer = new FrameBuffer(null,
+            WindowFrameBuffer frameBuffer = BaseFrameBuffer.createFrameBuffer(null,
                                                       functions,
                                                       frameSource,
                                                       theFrame,
+                                                      convertToZeroBased(inputColumnIDs),
                                                       templateRow);
 
             // process each frame buffer
@@ -183,7 +205,7 @@ public class WindowTestingFramework {
             }
         }
         // assert successful function application over rows
-        assertExecRowsEqual(expectedRows, results);
+        assertExecRowsEqual(expectedRows, results, inputColumnIDs);
         if (printResults) {
             System.out.println(printResults(expectedRows, results, -1, new StringBuilder()));
         }
@@ -194,20 +216,23 @@ public class WindowTestingFramework {
      * to produce realistic data over a range of datatypes but deterministic enough to allow generation of
      * expected results.  I'm sure this can be made better.
      *
+     * @param partitionValue the <i>value</i> to use in generating partition values.
      * @param nRows the number of rows to generate
+     * @param sortColIDs the 1-based set of column IDs over which to sort the resulting exec row.
+     *                   This is used to mimic the way window function rows are sorted by row key.
      * @param columnDefinitions the column types.
      * @return the list of generated rows.  The rows are sorted to simulate the way rows from TEMP are
      * sorted on partition and order by columns.
      * @throws StandardException if the data value factory has trouble creating a data value for a
      */
-    public static List<ExecRow> createValueRows(int partitionNumber, int nRows, int[] sortColIDs,
+    public static List<ExecRow> createValueRows(int partitionValue, int nRows, int[] sortColIDs,
                                                 List<TestColumnDefinition> columnDefinitions) throws StandardException {
         List<ExecRow> rows = new ArrayList<ExecRow>(nRows);
         for (int j=0; j<nRows; j++) {
             ValueRow valueRow = new ValueRow(columnDefinitions.size());
             int i=1; // valueRow.setColumn() is 1-based
             for (TestColumnDefinition columnDefinition : columnDefinitions) {
-                valueRow.setColumn(i++, columnDefinition.getDVD(partitionNumber));
+                valueRow.setColumn(i++, columnDefinition.getDVD(partitionValue));
             }
             rows.add(valueRow);
         }
@@ -285,7 +310,8 @@ public class WindowTestingFramework {
     }
 
     /**
-     * Used by {@link #printDVDAssertionDetails(java.util.List, java.util.List, org.apache.derby.iapi.types.DataValueDescriptor, org.apache.derby.iapi.types.DataValueDescriptor, int, int)}
+     * Used by {@link #printDVDAssertionDetails(java.util.List, java.util.List,
+     * org.apache.derby.iapi.types.DataValueDescriptor, org.apache.derby.iapi.types.DataValueDescriptor, int, int, int[])}
      * to print detailed error message about the diff between expected and actual results of function application over
      * all rows.
      * <p/>
@@ -328,9 +354,10 @@ public class WindowTestingFramework {
      * If comparison fails, a detailed error message is printed to STDERR.
      * @param expectedRows result we expect.
      * @param actualRows actual result.
+     * @param inputColumnIDs the set of one or more, 1-based column IDs that were used for function input.
      * @throws StandardException if an error happens during DVD comparison.
      */
-    public static void assertExecRowsEqual(List<ExecRow> expectedRows, List<ExecRow> actualRows) throws
+    public static void assertExecRowsEqual(List<ExecRow> expectedRows, List<ExecRow> actualRows, int[] inputColumnIDs) throws
         StandardException {
         Assert.assertEquals("Result sizes are different.", expectedRows.size(), actualRows.size());
         for (int i=0; i<expectedRows.size(); i++) {
@@ -344,15 +371,20 @@ public class WindowTestingFramework {
                 if (expectedDVD != null && actualDVD != null) {
                     comp = expectedDVD.compare(actualDVD);
                 }
-                Assert.assertTrue(printDVDAssertionDetails(expectedRows, actualRows, expectedDVD, actualDVD, i, j),comp == 0);
+                Assert.assertTrue(printDVDAssertionDetails(expectedRows, actualRows, expectedDVD, actualDVD,
+                                                           i, j, inputColumnIDs),comp == 0);
             }
         }
     }
 
-    private static String printDVDAssertionDetails(List<ExecRow> expectedRows, List<ExecRow> actualRows, DataValueDescriptor expectedDVD, DataValueDescriptor actualDVD, int firstDiffRow, int diffCol) {
+    private static String printDVDAssertionDetails(List<ExecRow> expectedRows, List<ExecRow> actualRows,
+                                                   DataValueDescriptor expectedDVD, DataValueDescriptor actualDVD,
+                                                   int firstDiffRow, int diffCol, int[] inputColumnIDs) {
         StringBuilder buf = new StringBuilder("\nColumn contents differ at row ");
         buf.append(firstDiffRow+1).append(", col ").append(diffCol+1).append('\n').append(expectedRows.get(firstDiffRow))
-           .append(" expected: ").append(expectedDVD).append('\n').append(actualRows.get(firstDiffRow)).append(" got: ").append(actualDVD).append('\n');
+           .append(" expected: ").append(expectedDVD).append('\n').append(actualRows.get(firstDiffRow)).append(" got: ")
+           .append(actualDVD).append('\n').append("(Comparing column").append((inputColumnIDs.length > 1 ? "s: " : ": "))
+           .append(Arrays.toString(inputColumnIDs)).append(")\n");
         return printResults(expectedRows, actualRows, firstDiffRow, buf);
     }
 
@@ -408,11 +440,28 @@ public class WindowTestingFramework {
         }
     }
 
-    public static void printInputSet(List<ExecRow> rows, String tableName, PrintStream out) {
+    /**
+     * Print a set of SQL statements that can be used in tools (sqlfiddle or sqlshell) to create a table and
+     * insert generated row values.
+     * @param rowDefinition the column definitions that describe the table.
+     * @param nRows the number of rows to generate
+     * @param sortColIDs the 1-based set of column IDs over which to sort the resulting exec row.
+     *                   This is used to mimic the way window function rows are sorted by row key.
+     * @param tableName the name of the new table.
+     * @param out output target.
+     * @throws StandardException if an error occurs generating DVD values.
+     */
+    public static void printInputSet(List<TestColumnDefinition> rowDefinition, int nRows, int[] sortColIDs,
+                                     String tableName, PrintStream out) throws StandardException {
+        List<ExecRow> rows = new ArrayList<ExecRow>();
+        for (int i=1; i<=2; i++) {
+            rows.addAll(createValueRows(i, nRows, sortColIDs, rowDefinition));
+        }
+        out.println(generateCreateTable(tableName.toUpperCase(), rowDefinition));
         StringBuilder buf = new StringBuilder();
         for (ExecRow row : rows) {
             buf.setLength(0);
-            buf.append("INSERT INTO ").append(tableName).append(" VALUES (");
+            buf.append("INSERT INTO ").append(tableName.toUpperCase()).append(" VALUES (");
             for (DataValueDescriptor dvd : row.getRowArray()) {
                 if (dvd instanceof NumberDataValue) {
                     buf.append(dvd.toString()).append(",");
@@ -426,6 +475,25 @@ public class WindowTestingFramework {
         }
     }
 
+    private static String generateCreateTable(String tableName, List<TestColumnDefinition> rowDefinition) {
+        StringBuilder buf = new StringBuilder("CREATE TABLE ").append(tableName).append(" (");
+        int i=0;
+        for (TestColumnDefinition columnDefinition : rowDefinition) {
+            ++i;
+            String columnName = columnDefinition.getColumnName();
+            if (columnName == null || columnName.isEmpty()) {
+                columnName = "col_"+(i);
+            }
+            buf.append(columnName.toUpperCase()).append(' ').append(columnDefinition.getSQLType())
+               .append(' ').append(columnDefinition.getColumnConstraint().toUpperCase()).append(", ");
+        }
+        if (buf.length() > 2) {
+            buf.setLength(buf.length()-2);
+        }
+        buf.append(");");
+        return buf.toString();
+    }
+
     //===========================================================================================================
     // Test Column Definition API
     // Data-drive input row generation from a template row definition
@@ -435,6 +503,12 @@ public class WindowTestingFramework {
         DataValueDescriptor getNullDVD();
         DataValueDescriptor getDVD(int rowIndex) throws StandardException;
         TestColumnDefinition setVariant(int repeatPeriod);
+        TestColumnDefinition setColumnName(String columName);
+        String getColumnName();
+        TestColumnDefinition setColumnConstraint(String columnConstraint);
+        String getColumnConstraint();
+        String getDefaultColumnConstraint();
+        String getSQLType();
     }
 
     public abstract static class TestColumnDefinitionBase implements TestColumnDefinition {
@@ -448,6 +522,8 @@ public class WindowTestingFramework {
         protected static final int DEFAULT_RANDOM_MIN = 1;
 
         protected boolean isVariant;
+        protected String columName;
+        protected String columnConstraint;
 
         private static Random random = new Random();
 
@@ -458,6 +534,36 @@ public class WindowTestingFramework {
             this.maxDuplicates = DUPLICATE_SET_SIZE_MULTIPLIER *this.repeatPeriod;
             this.duplicateSet = new ArrayList<DataValueDescriptor>(maxDuplicates);
             return this;
+        }
+
+        @Override
+        public TestColumnDefinition setColumnName(String columName) {
+            this.columName = columName;
+            return this;
+        }
+
+        @Override
+        public String getColumnName() {
+            if (this.columName == null) return "";
+            return this.columName;
+        }
+
+        @Override
+        public TestColumnDefinition setColumnConstraint(String columnConstraint) {
+            this.columnConstraint = columnConstraint;
+            return this;
+        }
+
+        @Override
+        public String getColumnConstraint() {
+            if (this.columnConstraint == null) return getDefaultColumnConstraint();
+            return this.columnConstraint;
+        }
+
+        @Override
+        public String getDefaultColumnConstraint() {
+            // default is empty. override to provide meaningful default.
+            return "";
         }
 
         public DataValueDescriptor getNextDVD(DataValueDescriptor newDVD) {
@@ -477,12 +583,18 @@ public class WindowTestingFramework {
 
         public static long nextRand(long max, long min) {
             random = new Random();
-            return random.nextInt((int) ((max - min) + 1)) + min;
+            return random.nextInt((int) Math.abs(((max - min) + 1))) + min;
+        }
+
+        @Override
+        public String getSQLType() {
+            return getNullDVD().getTypeName();
         }
     }
 
     public static class TimestampColumnDefinition extends TestColumnDefinitionBase implements TestColumnDefinition {
         // milli/sec * sec/min * sec/hr * hr/day * days/year
+        // FIXME: imnprove random timestamp calculation; overflow, not random enough
         private static final long MILLISECONDS_IN_YEAR = 1000 * 60 * 60 * 24 * 365;
         private static final long MILLISECONDS_IN_3_YEAR = MILLISECONDS_IN_YEAR * 3;
 
@@ -503,7 +615,8 @@ public class WindowTestingFramework {
             if (! isVariant) {
                 return dvf.getDataValue(new Timestamp(now), (DateTimeDataValue)null);
             }
-            return getNextDVD(dvf.getDataValue(new Timestamp(nextRand(MILLISECONDS_IN_YEAR, now - MILLISECONDS_IN_3_YEAR)),
+            return getNextDVD(dvf.getDataValue(new Timestamp(nextRand(MILLISECONDS_IN_YEAR,
+                                                                      now - MILLISECONDS_IN_3_YEAR)),
                                                (DateTimeDataValue) null));
         }
     }
@@ -569,6 +682,29 @@ public class WindowTestingFramework {
 
     }
 
+    public static class DecimalColumnDefinition extends TestColumnDefinitionBase implements TestColumnDefinition {
+
+        @Override
+        public DataValueDescriptor getDVD(int rowIndex) throws StandardException {
+            if (! isVariant) {
+                return dvf.getDataValue((double)rowIndex, null);
+            }
+            return getNextDVD(dvf.getDataValue((double) nextRand(DEFAULT_RANDOM_MAX, DEFAULT_RANDOM_MIN), null));
+        }
+
+
+        public DataValueDescriptor getNullDVD() {
+            DataValueDescriptor retVal = null;
+            try {
+                retVal = LazyDataValueFactory.getLazyNull(StoredFormatIds.SQL_DECIMAL_ID);
+            } catch (StandardException e) {
+                // never happen
+            }
+            return retVal;
+        }
+
+    }
+
     public static class VarcharColumnDefinition extends TestColumnDefinitionBase implements TestColumnDefinition {
         // ascii upper-case char range
         private static final int MAX_ASCII_CHAR = 90;
@@ -599,6 +735,12 @@ public class WindowTestingFramework {
                 // never happen
             }
             return retVal;
+        }
+
+        @Override
+        public String getDefaultColumnConstraint() {
+            // arbitrary default.
+            return "(25)";
         }
     }
 
@@ -643,8 +785,8 @@ public class WindowTestingFramework {
          * @throws RuntimeException if subtracting 1 from any col value produces a negative value.
          */
         protected RankingFunct(int[] partitionColIDs, int[] orderByColIDs) {
-            this.partitionColIDs = subtractOne(partitionColIDs);
-            this.orderByColIDs = subtractOne(orderByColIDs);
+            this.partitionColIDs = convertToZeroBased(partitionColIDs);
+            this.orderByColIDs = convertToZeroBased(orderByColIDs);
         }
 
         public DataValueDescriptor getNullReturnValue() throws StandardException {
@@ -674,7 +816,8 @@ public class WindowTestingFramework {
          * @throws RuntimeException if either array does not contain a DVD value at one of the indexes in
          * <code>colIDs</code> or the index is out of range.
          */
-        protected static boolean dvdArraysDiffer(DataValueDescriptor[] expected, DataValueDescriptor[] actual, int[] colIDs) throws StandardException {
+        protected static boolean dvdArraysDiffer(DataValueDescriptor[] expected, DataValueDescriptor[] actual,
+                                                 int[] colIDs) throws StandardException {
             if (expected == null || actual == null) {
                 return true;
             }
@@ -691,16 +834,6 @@ public class WindowTestingFramework {
                 }
             }
             return false;
-        }
-
-        private static int[] subtractOne(int[] oneBased) {
-            int[] zeroBased = new int[oneBased.length];
-            for (int i=0; i<oneBased.length; i++) {
-                int newIndex = oneBased[i] - 1;
-                if (newIndex < 0) throw new RuntimeException("Column IDs should be one based, not zero based.");
-                zeroBased[i] = newIndex;
-            }
-            return zeroBased;
         }
     }
 
@@ -778,4 +911,16 @@ public class WindowTestingFramework {
             return lBuf.toString().compareTo(rBuf.toString());
         }
     }
+
+
+    public static int[] convertToZeroBased(int[] oneBased) {
+        int[] zeroBased = new int[oneBased.length];
+        for (int i=0; i<oneBased.length; i++) {
+            int newIndex = oneBased[i] - 1;
+            if (newIndex < 0) throw new RuntimeException("Column IDs should be one based, not zero based.");
+            zeroBased[i] = newIndex;
+        }
+        return zeroBased;
+    }
+
 }

@@ -174,15 +174,15 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
 				long start = System.currentTimeMillis();
 				RowProvider provider;
 				if (!isInSortedOrder) {
-						SpliceRuntimeContext firstStep = SpliceRuntimeContext.generateSinkRuntimeContext(true);
+						SpliceRuntimeContext firstStep = SpliceRuntimeContext.generateSinkRuntimeContext(operationInformation.getTransaction(),true);
 						firstStep.setStatementInfo(runtimeContext.getStatementInfo());
-						SpliceRuntimeContext secondStep = SpliceRuntimeContext.generateSinkRuntimeContext(false);
+						SpliceRuntimeContext secondStep = SpliceRuntimeContext.generateSinkRuntimeContext(operationInformation.getTransaction(),false);
 						secondStep.setStatementInfo(runtimeContext.getStatementInfo());
 						final RowProvider step1 = source.getMapRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext), firstStep); // Step 1
 						final RowProvider step2 = getMapRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext), secondStep); // Step 2
 						provider = RowProviders.combineInSeries(step1, step2);
 				} else {
-						SpliceRuntimeContext secondStep = SpliceRuntimeContext.generateSinkRuntimeContext(false);
+						SpliceRuntimeContext secondStep = SpliceRuntimeContext.generateSinkRuntimeContext(operationInformation.getTransaction(),false);
 						secondStep.setStatementInfo(runtimeContext.getStatementInfo());
 						provider = source.getMapRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext), secondStep); // Step 1
 				}
@@ -193,7 +193,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
 
 		private void buildReduceScan(byte[] uniqueSequenceID) throws StandardException {
 				try{
-						reduceScan = Scans.buildPrefixRangeScan(uniqueSequenceID, SpliceUtils.NA_TRANSACTION_ID);
+						reduceScan = Scans.buildPrefixRangeScan(uniqueSequenceID, null); //no transaction needed
 						//make sure that we filter out failed tasks
 						if (failedTasks.size() > 0) {
 								SuccessFilter filter = new SuccessFilter(failedTasks);
@@ -486,7 +486,8 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
 								return start;
 						}
 				};
-				return RegionAwareScanner.create(getTransactionID(),region,baseScan,SpliceConstants.TEMP_TABLE_BYTES,boundary,spliceRuntimeContext);
+				//don't use a transaction for this, since we are reading from temp
+				return RegionAwareScanner.create(null,region,baseScan,SpliceConstants.TEMP_TABLE_BYTES,boundary,spliceRuntimeContext);
 		}
 
 }

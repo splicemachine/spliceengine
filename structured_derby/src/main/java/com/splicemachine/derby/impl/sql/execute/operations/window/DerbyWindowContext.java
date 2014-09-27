@@ -16,6 +16,8 @@ import org.apache.derby.iapi.store.access.ColumnOrdering;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.derby.impl.sql.execute.WindowFunctionInfo;
 import org.apache.derby.impl.sql.execute.WindowFunctionInfoList;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
@@ -28,6 +30,9 @@ import com.splicemachine.derby.impl.SpliceMethod;
  *         Date: 7/8/14
  */
 public class DerbyWindowContext implements WindowContext {
+    private static Logger LOG = Logger.getLogger(DerbyWindowContext.class);
+
+
     private String rowAllocatorMethodName;
     private int aggregateItem;
     private Activation activation;
@@ -56,8 +61,7 @@ public class DerbyWindowContext implements WindowContext {
 
         GenericStorablePreparedStatement statement = context.getPreparedStatement();
         WindowFunctionInfoList windowFunctionInfos = (WindowFunctionInfoList)statement.getSavedObject(aggregateItem);
-        // TODO: this will have to change when we support > 1 window function per query
-        // (now using one partition/orderby/frame for all functions in array)
+        // we're batching WFuncts buy over() clause defn so there will only ever be one element in this array
         WindowFunctionInfo theInfo = windowFunctionInfos.firstElement();
 
         ColumnOrdering[] partition = theInfo.getPartitionInfo();
@@ -65,6 +69,9 @@ public class DerbyWindowContext implements WindowContext {
         ColumnOrdering[] orderings = theInfo.getOrderByInfo();
 
         frameDefinition = FrameDefinition.create(theInfo.getFrameInfo());
+        if (Level.TRACE.equals(LOG.getLevel())) {
+            LOG.info(frameDefinition.toString());
+        }
 
         keyColumns = new int[partition.length + orderings.length];
         keyOrders = new boolean[partition.length + orderings.length];

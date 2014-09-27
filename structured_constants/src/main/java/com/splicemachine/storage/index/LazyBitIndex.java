@@ -191,6 +191,7 @@ public abstract class LazyBitIndex implements BitIndex{
         return decodedDoubleFields;
     }
 
+
     protected void setScalarField(int pos) {
         if(decodedScalarFields==null)
             decodedScalarFields = new BitSet(pos);

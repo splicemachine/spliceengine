@@ -1,8 +1,10 @@
 package com.splicemachine.hbase.batch;
 
 import com.splicemachine.derby.ddl.DDLChange;
-import com.splicemachine.si.api.RollForwardQueue;
-import org.apache.derby.iapi.types.DataValueDescriptor;
+import com.splicemachine.si.api.RollForward;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
+import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 
 import java.io.IOException;
 
@@ -12,22 +14,23 @@ import java.io.IOException;
  */
 public interface WriteContextFactory<T> {
 
-    WriteContext create(String txnId,T key) throws IOException, InterruptedException;
+    WriteContext create(TxnView txn, T key, RegionCoprocessorEnvironment env) throws IOException, InterruptedException;
 
-    WriteContext create(String txnId,T key,
-                        RollForwardQueue queue,
-                        int expectedWrites) throws IOException, InterruptedException;
+    WriteContext create(TxnView txn, T key,
+                        int expectedWrites, RegionCoprocessorEnvironment env) throws IOException, InterruptedException;
 
     /**
      * Creates a context that only updates side effects.
+     *
      * @param key
+     * @param env
      * @return
      * @throws IOException
      * @throws InterruptedException
      */
-    WriteContext createPassThrough(String txnid,T key,int expectedWrites) throws IOException,InterruptedException;
+    WriteContext createPassThrough(TxnView txn, T key, int expectedWrites, RegionCoprocessorEnvironment env) throws IOException,InterruptedException;
 
-    void dropIndex(long indexConglomId);
+    void dropIndex(long indexConglomId,TxnView txn);
 
     void addIndex(DDLChange ddlChange, int[] columnOrdring, int[] typeIds);
 

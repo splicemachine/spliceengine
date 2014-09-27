@@ -2,6 +2,8 @@ package com.splicemachine.utils;
 
 import com.splicemachine.constants.bytes.BytesUtil;
 
+import com.splicemachine.encoding.Encoding;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.lucene.util.ArrayUtil;
 
 import java.io.Externalizable;
@@ -152,10 +154,18 @@ public class ByteSlice implements Externalizable {
 				if (!(o instanceof ByteSlice)) return false;
 
 				ByteSlice that = (ByteSlice) o;
+				if (buffer == null || that.buffer == null) {
+				    return (buffer == null && that.buffer == null);  // if this buffer is null, they are equal iff the other buffer is null 
+				}
 
 				if (length != that.length) return false;
 //				if (offset != that.offset) return false;
 				return ArrayUtil.equals(buffer, offset, that.buffer, that.offset, length);
+		}
+
+		public int compareTo(byte[] bytes,int offset, int length) {
+				//we need comparisons to occur in an unsigned manner
+				return Bytes.compareTo(buffer,this.offset,this.length,bytes,offset,length);
 		}
 
 		public boolean equals(byte[] data, int offset, int length) {
@@ -217,4 +227,12 @@ public class ByteSlice implements Externalizable {
 				set(newData.buffer,newData.offset,newData.length);
 		}
 
+    public String toHexString() {
+        if(this.length<=0) return "";
+       return BytesUtil.toHex(buffer,offset,length);
+    }
+
+    public static void main(String...args) throws Exception{
+        System.out.println(Encoding.decodeLong(BytesUtil.fromHex("008185909DCBC7A2A080C0")));
+    }
 }

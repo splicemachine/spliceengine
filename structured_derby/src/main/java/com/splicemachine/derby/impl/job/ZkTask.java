@@ -7,9 +7,11 @@ import com.splicemachine.derby.utils.ErrorReporter;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.Status;
 import com.splicemachine.job.TaskStatus;
-import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.TransactionManager;
-import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.si.api.*;
+import com.splicemachine.si.impl.ActiveWriteTxn;
+import com.splicemachine.si.impl.InheritingTxnView;
+import com.splicemachine.si.impl.LazyTxnView;
+import com.splicemachine.si.impl.ReadOnlyTxn;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
@@ -17,11 +19,7 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.WatchedEvent;
-import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.ZooDefs;
+import org.apache.zookeeper.*;
 import org.apache.zookeeper.data.Stat;
 
 import java.io.Externalizable;
@@ -45,17 +43,19 @@ public abstract class ZkTask implements RegionTask,Externalizable {
     protected String jobId;
     protected SpliceZooKeeperManager zkManager;
     private int priority;
-    protected String parentTxnId;
-    protected boolean readOnly;
-    private String taskPath;
+
+		private String taskPath;
 
 		protected byte[] parentTaskId = null;
-		private TaskWatcher taskWatcher;
+		protected TaskWatcher taskWatcher;
 
 		private volatile Thread executionThread;
-		private long prepareTimestamp;
+		protected long prepareTimestamp;
 		protected long waitTimeNs;
 		protected HRegion region;
+
+    private TxnView parentTxn;
+		private transient Txn txn; //the child transaction that we operate against
 
 		protected ZkTask() {
         this.LOG = Logger.getLogger(this.getClass());
@@ -65,23 +65,17 @@ public abstract class ZkTask implements RegionTask,Externalizable {
     /**
      * @param jobId
      * @param priority
-     * @param parentTxnId the parent Transaction id, or {@code null} if
-     *                    the task is non-transactional.
-     * @param readOnly
      */
-    protected ZkTask(String jobId, int priority,String parentTxnId,boolean readOnly) {
-				this(jobId,priority,parentTxnId,readOnly,null);
+    protected ZkTask(String jobId, int priority) {
+				this(jobId,priority,null);
     }
 
 		protected ZkTask(String jobId, int priority,
-										 String parentTxnId,
-										 boolean readOnly,byte[] parentTaskId) {
+										 byte[] parentTaskId) {
 				this.LOG = Logger.getLogger(this.getClass());
 				this.jobId = jobId;
 				this.priority = priority;
 				this.status = new TaskStatus(Status.PENDING,null);
-				this.parentTxnId = parentTxnId;
-				this.readOnly = readOnly;
 				this.parentTaskId = parentTaskId;
 		}
 
@@ -90,8 +84,7 @@ public abstract class ZkTask implements RegionTask,Externalizable {
         jobId = in.readUTF();
         priority = in.readInt();
         if(in.readBoolean())
-            parentTxnId = in.readUTF();
-        readOnly = in.readBoolean();
+						parentTxn = TransactionOperations.getOperationFactory().readTxn(in);
         int taskIdSize = in.readInt();
         if(taskIdSize>0){
             taskId = new byte[taskIdSize];
@@ -103,14 +96,14 @@ public abstract class ZkTask implements RegionTask,Externalizable {
 				}
     }
 
-    @Override
+
+		@Override
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeUTF(jobId);
         out.writeInt(priority);
-        out.writeBoolean(parentTxnId!=null);
-        if(parentTxnId!=null)
-            out.writeUTF(parentTxnId);
-        out.writeBoolean(readOnly);
+        out.writeBoolean(parentTxn!=null);
+        if(parentTxn!=null)
+            TransactionOperations.getOperationFactory().writeTxn(parentTxn,out);
         if(taskId!=null){
             out.writeInt(taskId.length);
             out.write(taskId);
@@ -123,27 +116,12 @@ public abstract class ZkTask implements RegionTask,Externalizable {
 				}
     }
 
-    @Override
-    public void execute() throws ExecutionException, InterruptedException {
-        /*
-         * Create the Child transaction.
-         *
-         * We do this here rather than elsewhere (like inside the JobScheduler) so
-         * that we avoid timing out the transaction when we have to sit around and
-         * wait for a long time.
-         */
-        if(parentTxnId!=null){
-            TransactionManager transactor = HTransactorFactory.getTransactionManager();
-            TransactionId parent = transactor.transactionIdFromString(parentTxnId);
-            try {
-                TransactionId childTxnId  = beginChildTransaction(transactor, parent);
-                status.setTxnId(childTxnId.getTransactionIdString());
-            } catch (IOException e) {
-                throw new ExecutionException("Unable to acquire child transaction",e);
-            }
-        }
 
-				waitTimeNs = System.nanoTime()-prepareTimestamp;
+		@Override
+    public void execute() throws ExecutionException, InterruptedException {
+        setupTransaction();
+
+        waitTimeNs = System.nanoTime()-prepareTimestamp;
 				try{
 						doExecute();
 				}finally{
@@ -151,8 +129,37 @@ public abstract class ZkTask implements RegionTask,Externalizable {
 				}
     }
 
-		protected TransactionId beginChildTransaction(TransactionManager transactor, TransactionId parent) throws IOException {
-				return transactor.beginChildTransaction(parent, !readOnly, !readOnly);
+    protected TxnView getParentTxn() {
+        return parentTxn;
+    }
+
+    protected void setupTransaction() throws ExecutionException {
+    /*
+     * Create the Child transaction.
+     *
+     * We do this here rather than elsewhere (like inside the JobScheduler) so
+     * that we avoid timing out the transaction when we have to sit around and
+     * wait for a long time.
+     */
+        if(parentTxn!=null){
+						TxnLifecycleManager tc = TransactionLifecycle.getLifecycleManager();
+            try {
+                txn  = beginChildTransaction(parentTxn, tc);
+                status.setTxn(txn);
+            } catch (IOException e) {
+                throw new ExecutionException("Unable to acquire child transaction",e);
+            }
+        }
+    }
+
+    protected void elevateTransaction(byte[] table) throws IOException{
+        txn = txn.elevateToWritable(table);
+        status.setTxn(txn);
+    }
+
+		protected Txn beginChildTransaction(TxnView parentTxn,TxnLifecycleManager tc) throws IOException {
+				return tc.beginChildTransaction(parentTxn,null);
+//				return transactor.beginChildTransaction(parent, !readOnly, !readOnly);
 		}
 
 		protected abstract void doExecute() throws ExecutionException, InterruptedException;
@@ -171,8 +178,17 @@ public abstract class ZkTask implements RegionTask,Externalizable {
             taskPath= zooKeeper.execute(new SpliceZooKeeperManager.Command<String>() {
                 @Override
                 public String execute(RecoverableZooKeeper zooKeeper) throws InterruptedException, KeeperException {
-                    return zooKeeper.create(SpliceConstants.zkSpliceTaskPath+"/"+taskPath,
-                            statusData, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
+                    String path = SpliceConstants.zkSpliceTaskPath + "/" + taskPath;
+                    zooKeeper.getZooKeeper().create(path,statusData,ZooDefs.Ids.OPEN_ACL_UNSAFE,CreateMode.EPHEMERAL,new AsyncCallback.StringCallback() {
+                        @Override
+                        public void processResult(int rc, String path, Object ctx, String name) {
+                            if(LOG.isTraceEnabled())
+                                LOG.trace("Task path created");
+                        }
+                    },this);
+//                    return zooKeeper.create(path,
+//                            statusData, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
+                    return path;
                 }
             });
         } catch (InterruptedException e) {
@@ -189,8 +205,12 @@ public abstract class ZkTask implements RegionTask,Externalizable {
 				prepareTimestamp = System.nanoTime();
     }
 
+		@Override
+		public void setParentTxnInformation(TxnView parentTxn) {
+        this.parentTxn = parentTxn;
+		}
 
-    protected abstract String getTaskType();
+		protected abstract String getTaskType();
 
     private void checkNotCancelled() throws ExecutionException{
         Stat stat;
@@ -267,7 +287,7 @@ public abstract class ZkTask implements RegionTask,Externalizable {
 				TaskStatus taskStatus = getTaskStatus();
 				//if task has already been cancelled, then throw it away
 				if(taskStatus.getStatus()==Status.CANCELLED) throw new CancellationException();
-				setStatus(Status.EXECUTING,true);
+				setStatus(Status.EXECUTING, true);
     }
 
     private void setStatus(Status newStatus, boolean cancelOnError) throws ExecutionException{
@@ -293,7 +313,7 @@ public abstract class ZkTask implements RegionTask,Externalizable {
                 return;
         }
         status.setError(error);
-        setStatus(Status.FAILED,false);
+        setStatus(Status.FAILED, false);
     }
 
     @Override
@@ -346,59 +366,94 @@ public abstract class ZkTask implements RegionTask,Externalizable {
 		@Override public boolean isSplittable() { return false; }
 
 		@Override
-    public boolean isTransactional() {
-        return true;
-    }
+		public Txn getTxn() {
+				return txn;
+		}
 
-    @Override
+		@Override
     public byte[] getParentTaskId() {
         return parentTaskId;
     }
 
-    @Override
-    public String getJobId() {
-        return jobId;
-    }
+		@Override
+		public String getJobId() {
+				return jobId;
+		}
 
-    private static class TaskWatcher implements Watcher {
-        private volatile ZkTask task;
+		protected static class TaskWatcher implements Watcher {
+				private volatile ZkTask task;
 
-        private TaskWatcher(ZkTask task) {
+				private TaskWatcher(ZkTask task) {
+						this.task = task;
+				}
+
+        public void setTask(ZkTask task) {
             this.task = task;
         }
 
         @Override
-        public void process(WatchedEvent event) {
-            if (event.getType() != Event.EventType.NodeDeleted)
-                return;
+				public void process(WatchedEvent event) {
+						if (event.getType() != Event.EventType.NodeDeleted)
+								return;
 
 
 						/*
                          * If the watch was triggered after
 						 * dereferencing us, then we don't care about it
 						 */
-            if (task == null) return;
+						if (task == null) return;
 
-            if (task.LOG.isTraceEnabled())
-                task.LOG.trace("Received node deleted notice from ZooKeeper, attempting cancellation");
+						if (task.LOG.isTraceEnabled())
+								task.LOG.trace("Received node deleted notice from ZooKeeper, attempting cancellation");
 
-            switch (task.status.getStatus()) {
-                case FAILED:
-                case COMPLETED:
-                case CANCELLED:
-                    if (task.LOG.isTraceEnabled())
-                        task.LOG.trace("Node is already in a finalize state, ignoring cancellation attempt");
-                    task = null;
-                    return;
-            }
+						switch (task.status.getStatus()) {
+								case FAILED:
+								case COMPLETED:
+								case CANCELLED:
+										if (task.LOG.isTraceEnabled())
+												task.LOG.trace("Node is already in a finalize state, ignoring cancellation attempt");
+										task = null;
+										return;
+						}
 
-            try {
-                task.markCancelled(false);
-            } catch (ExecutionException ee) {
-                SpliceLogUtils.error(task.LOG, "Unable to cancel task with id " + Bytes.toLong(task.getTaskId()), ee.getCause());
-            } finally {
-                task = null;
-            }
+						try {
+								task.markCancelled(false);
+						} catch (ExecutionException ee) {
+								SpliceLogUtils.error(task.LOG, "Unable to cancel task with id " + Bytes.toLong(task.getTaskId()), ee.getCause());
+						} finally {
+								task = null;
+						}
+				}
+		}
+
+		private void encodeParentTxn(ObjectOutput out) throws IOException {
+				out.writeLong(parentTxn.getTxnId());
+				out.writeLong(parentTxn.getParentTxnId());
+				out.writeByte(parentTxn.getIsolationLevel().encode());
+				out.writeBoolean(parentTxn.allowsWrites());
+				out.writeBoolean(parentTxn.isAdditive());
+		}
+
+		private TxnView decodeTxn(ObjectInput in) throws IOException {
+				long parentTxnId = in.readLong();
+				long pParentTxnId = in.readLong();
+				Txn.IsolationLevel level = Txn.IsolationLevel.fromByte(in.readByte());
+				boolean allowWrites = in.readBoolean();
+				boolean additive = in.readBoolean();
+
+        TxnView ppParent;
+        if(pParentTxnId<0)
+            ppParent = Txn.ROOT_TRANSACTION;
+        else{
+            /*
+             *TransactionStorage.getTxnSupplier() will most likely return a lazy parent transaction,
+             * which is good since the grandparent is unlikely to be accessed very often.
+             */
+            ppParent = new LazyTxnView(pParentTxnId,TransactionStorage.getTxnSupplier());
         }
-    }
+
+        return new InheritingTxnView(ppParent,parentTxnId,parentTxnId,level,
+                true,additive,true,allowWrites,
+                -1l,-1l, Txn.State.ACTIVE);
+		}
 }

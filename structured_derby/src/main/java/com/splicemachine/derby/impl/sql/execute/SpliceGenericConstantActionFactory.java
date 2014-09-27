@@ -1,69 +1,24 @@
 package com.splicemachine.derby.impl.sql.execute;
 
-import com.splicemachine.derby.impl.sql.execute.actions.AlterTableConstantOperation;
-import com.splicemachine.derby.impl.sql.execute.actions.CreateAliasConstantOperation;
-import com.splicemachine.derby.impl.sql.execute.actions.CreateConstraintConstantOperation;
-import com.splicemachine.derby.impl.sql.execute.actions.CreateIndexConstantOperation;
-import com.splicemachine.derby.impl.sql.execute.actions.CreateRoleConstantOperation;
-import com.splicemachine.derby.impl.sql.execute.actions.CreateSchemaConstantOperation;
-import com.splicemachine.derby.impl.sql.execute.actions.CreateSequenceConstantOperation;
-import com.splicemachine.derby.impl.sql.execute.actions.CreateTriggerConstantOperation;
-import com.splicemachine.derby.impl.sql.execute.actions.CreateViewConstantOperation;
-import com.splicemachine.derby.impl.sql.execute.actions.DeleteConstantOperation;
-import com.splicemachine.derby.impl.sql.execute.actions.DropAliasConstantOperation;
-import com.splicemachine.derby.impl.sql.execute.actions.DropConstraintConstantOperation;
-import com.splicemachine.derby.impl.sql.execute.actions.DropIndexConstantAction;
-import com.splicemachine.derby.impl.sql.execute.actions.DropRoleConstantOperation;
-import com.splicemachine.derby.impl.sql.execute.actions.DropSchemaConstantOperation;
-import com.splicemachine.derby.impl.sql.execute.actions.DropSequenceConstantOperation;
-import com.splicemachine.derby.impl.sql.execute.actions.DropStatisticsConstantOperation;
-import com.splicemachine.derby.impl.sql.execute.actions.DropTableConstantOperation;
-import com.splicemachine.derby.impl.sql.execute.actions.DropTriggerConstantOperation;
-import com.splicemachine.derby.impl.sql.execute.actions.DropViewConstantOperation;
-import com.splicemachine.derby.impl.sql.execute.actions.GrantRevokeConstantOperation;
-import com.splicemachine.derby.impl.sql.execute.actions.GrantRoleConstantOperation;
-import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
-import com.splicemachine.derby.impl.sql.execute.actions.LockTableConstantOperation;
-import com.splicemachine.derby.impl.sql.execute.actions.RenameConstantOperation;
-import com.splicemachine.derby.impl.sql.execute.actions.RevokeRoleConstantOperation;
-import com.splicemachine.derby.impl.sql.execute.actions.SavepointConstantOperation;
-import com.splicemachine.derby.impl.sql.execute.actions.SetConstraintsConstantOperation;
-import com.splicemachine.derby.impl.sql.execute.actions.SetRoleConstantOperation;
-import com.splicemachine.derby.impl.sql.execute.actions.SetSchemaConstantOperation;
-import com.splicemachine.derby.impl.sql.execute.actions.SetTransactionIsolationConstantOperation;
-import com.splicemachine.derby.impl.sql.execute.actions.SpliceCreateTableOperation;
-import com.splicemachine.derby.impl.sql.execute.actions.UpdatableVTIConstantOperation;
-import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
-
+import com.splicemachine.derby.impl.sql.execute.actions.*;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.catalog.AliasInfo;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.ResultDescription;
 import org.apache.derby.iapi.sql.depend.ProviderInfo;
-import org.apache.derby.iapi.sql.dictionary.ConstraintDescriptorList;
-import org.apache.derby.iapi.sql.dictionary.DataDictionary;
-import org.apache.derby.iapi.sql.dictionary.IndexRowGenerator;
-import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
-import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
+import org.apache.derby.iapi.sql.dictionary.*;
 import org.apache.derby.iapi.sql.execute.ConstantAction;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
-import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.derby.impl.sql.compile.StatementNode;
 import org.apache.derby.impl.sql.compile.TableName;
-import org.apache.derby.impl.sql.execute.ColumnInfo;
-import org.apache.derby.impl.sql.execute.ConstraintInfo;
-import org.apache.derby.impl.sql.execute.CreateConstraintConstantAction;
-import org.apache.derby.impl.sql.execute.FKInfo;
-import org.apache.derby.impl.sql.execute.GenericConstantActionFactory;
-import org.apache.derby.impl.sql.execute.PrivilegeInfo;
-import org.apache.derby.impl.sql.execute.TriggerInfo;
-import org.apache.derby.impl.sql.execute.UpdatableVTIConstantAction;
+import org.apache.derby.impl.sql.execute.*;
 import org.apache.log4j.Logger;
-import com.splicemachine.utils.SpliceLogUtils;
+
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.List;
@@ -143,39 +98,60 @@ public class SpliceGenericConstantActionFactory extends GenericConstantActionFac
                                                      UUID tableId,
                                                      long tableConglomerateId) {
     	SpliceLogUtils.trace(LOG, "getDropIndexConstantAction for index {%s} on {%s.%s}",fullIndexName, schemaName, tableName);
-        return new DropIndexConstantOperation2(fullIndexName,indexName,
+        return new DropIndexConstantOperation(fullIndexName,indexName,
                 tableName,schemaName,tableId,tableConglomerateId);
     }
 
-	@Override
-	public ConstantAction getSetConstraintsConstantAction(ConstraintDescriptorList cdl, boolean enable,boolean unconditionallyEnforce, Object[] ddlList) {
-    	SpliceLogUtils.trace(LOG, "getSetConstraintsConstantAction for {%s} on ddlList {%s}",cdl,Arrays.toString(ddlList));
-		return new SetConstraintsConstantOperation(cdl, enable, unconditionallyEnforce);
-	}
-	
-	
-	@Override
-	public ConstantAction getAlterTableConstantAction(SchemaDescriptor sd,
-			String tableName, UUID tableId, long tableConglomerateId,
-			int tableType, ColumnInfo[] columnInfo,
-			ConstantAction[] constraintActions, char lockGranularity,
-			boolean compressTable, int behavior, boolean sequential,
-			boolean truncateTable, boolean purge, boolean defragment,
-			boolean truncateEndOfTable, boolean updateStatistics,
-			boolean updateStatisticsAll, boolean dropStatistics,
-			boolean dropStatisticsAll, String indexNameForStatistics) {
-    	SpliceLogUtils.trace(LOG, "getAlterTableConstantAction for {%s.%s} with columnInfo {%s}",(sd==null?"none":sd.getSchemaName()),tableName, Arrays.toString(columnInfo));
-    	return new	AlterTableConstantOperation( sd, tableName, tableId, tableConglomerateId, 
-				  tableType, columnInfo, constraintActions, 
-				  lockGranularity, compressTable,
-				  behavior, sequential, truncateTable,
-				  purge, defragment, truncateEndOfTable,
-				  updateStatistics, 
-				  updateStatisticsAll,
-				  dropStatistics, 
-				  dropStatisticsAll,
-				  indexNameForStatistics);
-	}
+    @Override
+    public ConstantAction getSetConstraintsConstantAction(ConstraintDescriptorList cdl, boolean enable,boolean unconditionallyEnforce, Object[] ddlList) {
+        SpliceLogUtils.trace(LOG, "getSetConstraintsConstantAction for {%s} on ddlList {%s}",cdl,Arrays.toString(ddlList));
+        return new SetConstraintsConstantOperation(cdl, enable, unconditionallyEnforce);
+    }
+
+
+    @Override
+    public ConstantAction getAlterTableConstantAction(SchemaDescriptor sd,
+                                                      String tableName, UUID tableId, long tableConglomerateId,
+                                                      int tableType, ColumnInfo[] columnInfo,
+                                                      ConstantAction[] constraintActions, char lockGranularity,
+                                                      boolean compressTable, int behavior, boolean sequential,
+                                                      boolean truncateTable, boolean purge, boolean defragment,
+                                                      boolean truncateEndOfTable, boolean updateStatistics,
+                                                      boolean updateStatisticsAll, boolean dropStatistics,
+                                                      boolean dropStatisticsAll, String indexNameForStatistics) {
+        SpliceLogUtils.trace(LOG, "getAlterTableConstantAction for {%s.%s} with columnInfo {%s}",(sd==null?"none":sd.getSchemaName()),tableName, Arrays.toString(columnInfo));
+        if(truncateTable){
+            return new TruncateTableConstantOperation(sd,tableName,tableId,tableConglomerateId,
+                    lockGranularity,behavior,sequential,indexNameForStatistics);
+//        }        else if(compressTable){
+//            if(purge){
+//                return new PurgeTableConstantOperation(sd,tableName,tableId,tableConglomerateId,
+//                        lockGranularity,
+//                        behavior,
+//                        sequential,
+//                        indexNameForStatistics);
+//            }else
+//                return new CompressTableConstantOperation(sd,tableName,tableId,tableConglomerateId,
+//                        lockGranularity,behavior,sequential,
+//                        indexNameForStatistics);
+//
+//        }else if(updateStatistics||dropStatistics){
+//            return new UpdateStatisticsConstantOperation(sd,tableName,tableId,tableConglomerateId,
+//                    columnInfo,constraintActions,lockGranularity,
+//                    behavior,sequential,
+//                    updateStatistics,updateStatisticsAll,dropStatistics,dropStatisticsAll,indexNameForStatistics);
+        }else if(columnInfo!=null){
+            return new ModifyColumnConstantOperation(sd,tableName,tableId,
+                    tableConglomerateId,columnInfo,constraintActions,
+                    lockGranularity,behavior, indexNameForStatistics);
+        } else{
+            return new	AlterTableConstantOperation( sd, tableName, tableId, tableConglomerateId,
+                    columnInfo, constraintActions,
+                    lockGranularity,
+                    behavior,
+                    indexNameForStatistics);
+        }
+    }
 
 	@Override
 	public ConstantAction getCreateAliasConstantAction(String aliasName,String schemaName, String javaClassName, AliasInfo aliasInfo, char aliasType) {

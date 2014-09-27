@@ -13,6 +13,9 @@ import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.job.Status;
 import com.splicemachine.job.TaskFuture;
+import com.splicemachine.si.api.TransactionLifecycle;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.hadoop.hbase.HConstants;
@@ -115,7 +118,7 @@ class JobControl implements JobFuture {
                     if (statusHook != null)
                         statusHook.invalidated(changedFuture.getTaskId());
 
-                    if (changedFuture.rollback(maxResubmissionAttempts)) {
+                    if (changedFuture.rollback()) {
                         resubmit(changedFuture, changedFuture.tryNumber());
                     } else {
                         //we were unable to roll back, so we have to bomb out
@@ -140,7 +143,7 @@ class JobControl implements JobFuture {
                 case COMPLETED:
                     SpliceLogUtils.trace(LOG, "[%s] Task %s completed successfully", job.getJobId(), changedFuture.getTaskNode());
                     changedFuture.cleanup();
-                    if (changedFuture.commit(maxResubmissionAttempts)) {
+                    if (changedFuture.commit()) {
                         TaskStats taskStats = changedFuture.getTaskStats();
                         if (taskStats != null)
                             this.stats.addTaskStatus(changedFuture.getTaskNode(), taskStats);
@@ -161,7 +164,7 @@ class JobControl implements JobFuture {
                     if (statusHook != null)
                         statusHook.cancelled(changedFuture.getTaskId());
                     changedFuture.cleanup();
-										changedFuture.rollback(maxResubmissionAttempts);
+										changedFuture.rollback();
                     cancelledTasks.add(changedFuture);
                     throw new CancellationException();
                 default:
@@ -320,7 +323,7 @@ class JobControl implements JobFuture {
      */
     void resubmit(RegionTaskControl task,
                   int tryCount) throws ExecutionException {
-        //only submit so many times
+				//only submit so many times
         if(tryCount>=maxResubmissionAttempts){
             Throwable lastError = task.getError();
             if(lastError!=null)
@@ -362,10 +365,14 @@ class JobControl implements JobFuture {
             if (LOG.isTraceEnabled())
                 SpliceLogUtils.trace(LOG, "executing submit on resubmitted job %s", job.getJobId());
 
+						TxnView parentTxn = job.getTxn();
+						byte[] destTable = job.getDestinationTable();
+						if(parentTxn!=null){
+								//set a new transaction on the entry
+                newTaskData.getFirst().setParentTxnInformation(parentTxn);
+						}
             //submit the task again
             submit(newTaskData.getFirst(), newTaskData.getSecond(), job.getTable(), tryCount + 1);
-
-
         }catch(IOException ioe){
             throw new ExecutionException(ioe);
         }

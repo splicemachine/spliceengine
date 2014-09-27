@@ -37,7 +37,7 @@ public class ConstraintHandler implements WriteHandler {
 						return;
         }
         try {
-            if(!localConstraint.validate(mutation,ctx.getTransactionId(),ctx.getCoprocessorEnvironment(),visitedRows)){
+            if(!localConstraint.validate(mutation,ctx.getTxn(),ctx.getCoprocessorEnvironment(),visitedRows)){
 								ctx.result(mutation, invalidResult);
             }else{
                 ctx.sendUpstream(mutation);

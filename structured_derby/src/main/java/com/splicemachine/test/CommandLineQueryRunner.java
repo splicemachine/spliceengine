@@ -32,12 +32,17 @@ public class CommandLineQueryRunner extends BaseQueryRunner{
         return new Runner(jdbcConn,numIterations,outputDir,threadId,startLatch) {
             @Override
             protected void executeIteration(int iteration,PreparedStatement ps) throws SQLException, IOException {
-                ResultSet rs = ps.executeQuery();
-                long size = 0;
-                while(rs.next()){
-                    size++;
+                ps.execute();
+                ResultSet rs = ps.getResultSet();
+                if(rs!=null){
+                    long size = 0;
+                    while(rs.next()){
+                        size++;
+                    }
+                    reportSize(iteration,size);
+                }else{
+                    reportSize(iteration,ps.getUpdateCount());
                 }
-                reportSize(iteration,size);
             }
 
             @Override

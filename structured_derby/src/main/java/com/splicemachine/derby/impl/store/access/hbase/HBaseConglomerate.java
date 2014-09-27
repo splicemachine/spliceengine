@@ -5,7 +5,13 @@ import java.io.ObjectInput;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.util.Properties;
+
+import com.google.common.io.Closeables;
+import com.splicemachine.derby.impl.store.access.SpliceTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.utils.ConglomerateUtils;
+import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.si.api.Txn;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
@@ -35,6 +41,7 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.impl.store.access.conglomerate.ConglomerateUtil;
 import org.apache.derby.impl.store.access.conglomerate.OpenConglomerateScratchSpace;
 import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
@@ -65,7 +72,9 @@ public class HBaseConglomerate extends SpliceConglomerate {
 						int                     conglom_format_id,
 						int                     tmpFlag) throws StandardException {
 				super.create(rawtran, segmentId, input_containerid, template, columnOrder, collationIds, properties, conglom_format_id, tmpFlag);
-				ConglomerateUtils.createConglomerate(containerId,this, rawtran.getActiveStateTxIdString());
+        //elevate the transaction
+//        ((SpliceTransaction)rawtran).elevate(Bytes.toBytes(Long.toString(containerId)));
+        ConglomerateUtils.createConglomerate(containerId,this, ((SpliceTransaction)rawtran).getTxn());
 		}
 
 	/*
@@ -103,11 +112,11 @@ public class HBaseConglomerate extends SpliceConglomerate {
 						System.arraycopy(old_collation_ids, 0, collation_ids, 0, old_collation_ids.length);
 						// add the new column's collation id.
 						collation_ids[old_collation_ids.length] =  collation_id;
-						ConglomerateUtils.updateConglomerate(this, xact_manager.getActiveStateTxIdString());
+						ConglomerateUtils.updateConglomerate(this, (Txn)((SpliceTransactionManager)xact_manager).getActiveStateTxn());
 				} catch (StandardException e) {
 						SpliceLogUtils.logAndThrow(LOG,"exception in HBaseConglomerate#addColumn",e);
 				} finally {
-						SpliceAccessManager.closeHTableQuietly(htable);
+            Closeables.closeQuietly(htable);
 				}
 		}
 

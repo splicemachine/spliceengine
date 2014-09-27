@@ -5,6 +5,7 @@ import java.io.IOException;
 
 import com.google.common.io.Closeables;
 import com.splicemachine.derby.impl.storage.KeyValueUtils;
+import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceController;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
@@ -35,10 +36,6 @@ public class IndexController  extends SpliceController  {
 		private static Logger LOG = Logger.getLogger(IndexController.class);
 		private int nKeyFields;
 
-		public IndexController() {
-				super();
-		}
-
 		public IndexController(OpenSpliceConglomerate openSpliceConglomerate, Transaction trans, int nKeyFields) {
 				super(openSpliceConglomerate, trans);
 				this.nKeyFields = nKeyFields;
@@ -53,59 +50,59 @@ public class IndexController  extends SpliceController  {
 				return DerbyBytesUtil.generateIndexKey(uniqueRow,order,"1.0");
 		}
 
+    public int nKeyFields(){
+        return nKeyFields;
+    }
+
 		@Override
 		public int insert(DataValueDescriptor[] row) throws StandardException {
 				SpliceLogUtils.trace(LOG,"insert row");
-				HTableInterface htable = getHTable();
+				HTableInterface htable = getTable();
 				try {
 						boolean[] order = ((IndexConglomerate)this.openSpliceConglomerate.getConglomerate()).getAscDescInfo();
 						byte[] rowKey = generateIndexKey(row, order);
-						Put put = SpliceUtils.createPut(rowKey,transID);
+//            elevateTransaction();
+						Put put = SpliceUtils.createPut(rowKey,((SpliceTransaction)trans).getTxn());
 						encodeRow(row, put,null,null);
 						htable.put(put);
 						return 0;
 				} catch (Exception e) {
 						LOG.error(e.getMessage(),e);
 						throw Exceptions.parseException(e);
-				}finally{
-						closeHTable(htable);
 				}
 		}
 
 		@Override
 		public void insertAndFetchLocation(DataValueDescriptor[] row,RowLocation destRowLocation) throws StandardException {
 				SpliceLogUtils.trace(LOG, "insertAndFetchLocation rowLocation %s",destRowLocation);
-				HTableInterface htable = getHTable();
+				HTableInterface htable = getTable();
 				try {
 						boolean[] order = ((IndexConglomerate)this.openSpliceConglomerate.getConglomerate()).getAscDescInfo();
 						byte[] rowKey = generateIndexKey(row, order);
-
-						Put put = SpliceUtils.createPut(rowKey,transID);
+						Put put = SpliceUtils.createPut(rowKey,((SpliceTransaction)trans).getTxn());
 						encodeRow(row, put,null,null);
 
 						destRowLocation.setValue(put.getRow());
 						htable.put(put);
 				} catch (Exception e) {
 						throw StandardException.newException("insert and fetch location error",e);
-				} finally{
-						closeHTable(htable);
 				}
 		}
 
 		@Override
 		public boolean replace(RowLocation loc, DataValueDescriptor[] row, FormatableBitSet validColumns) throws StandardException {
 				SpliceLogUtils.trace(LOG, "replace rowlocation %s, destRow %s, validColumns ", loc, row, validColumns);
-				HTableInterface htable = getHTable();
+				HTableInterface htable = getTable();
 				try {
 						boolean[] sortOrder = ((IndexConglomerate) this.openSpliceConglomerate.getConglomerate()).getAscDescInfo();
 						Put put;
 						int[] validCols;
 						if (openSpliceConglomerate.cloneRowTemplate().length == row.length && validColumns == null) {
-								put = SpliceUtils.createPut(DerbyBytesUtil.generateIndexKey(row,sortOrder,"1.0"),transID);
+								put = SpliceUtils.createPut(DerbyBytesUtil.generateIndexKey(row,sortOrder,"1.0"),((SpliceTransaction)trans).getTxn());
 								validCols = null;
 						} else {
 								DataValueDescriptor[] oldValues = openSpliceConglomerate.cloneRowTemplate();
-								Get get = SpliceUtils.createGet(loc, oldValues, null, transID);
+								Get get = SpliceUtils.createGet(loc, oldValues, null, trans.getTxnInformation());
 								Result result = htable.get(get);
 								ExecRow execRow = new ValueRow(oldValues.length);
 								execRow.setRowArray(oldValues);
@@ -122,7 +119,7 @@ public class IndexController  extends SpliceController  {
 												validCols[pos] = i;
 										}
 										byte[] rowKey = generateIndexKey(row,sortOrder);
-										put = SpliceUtils.createPut(rowKey,transID);
+										put = SpliceUtils.createPut(rowKey,((SpliceTransaction)trans).getTxn());
 								}finally{
 										Closeables.closeQuietly(decoder);
 								}
@@ -134,10 +131,7 @@ public class IndexController  extends SpliceController  {
 						return true;
 				} catch (Exception e) {
 						throw StandardException.newException("Error during replace " + e);
-				} finally{
-						closeHTable(htable);
 				}
-
 		}
 
 		@Override

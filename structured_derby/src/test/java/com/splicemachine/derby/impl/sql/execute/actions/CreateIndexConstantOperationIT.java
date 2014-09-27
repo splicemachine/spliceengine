@@ -8,6 +8,7 @@ import java.sql.SQLIntegrityConstraintViolationException;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.splicemachine.derby.utils.ErrorState;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -133,7 +134,7 @@ public class CreateIndexConstantOperationIT extends SpliceUnitTest {
             c3.createStatement().execute("insert into"+this.getPaddedTableReference(TABLE_NAME_6)+"(TaskId, empId, StartedAt, FinishedAt) values (1236,'JC',0500,0630)");
             Assert.fail("Didn't raise write-conflict exception");
         } catch (SQLException e) {
-            Assert.assertTrue("Didn't detect write-write conflict", e.getCause().getMessage().contains("serializable"));
+            Assert.assertEquals("Didn't detect write-write conflict", ErrorState.WRITE_WRITE_CONFLICT.getSqlState(),e.getSQLState());
         }
     }
 

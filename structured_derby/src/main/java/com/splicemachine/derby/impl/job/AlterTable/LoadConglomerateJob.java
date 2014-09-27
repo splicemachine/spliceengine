@@ -3,13 +3,13 @@ package com.splicemachine.derby.impl.job.AlterTable;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.job.Task;
-import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.si.api.TxnView;
 import org.apache.derby.catalog.UUID;
+import org.apache.derby.impl.sql.execute.ColumnInfo;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Pair;
-import org.apache.derby.impl.sql.execute.ColumnInfo;
+
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
@@ -29,10 +29,11 @@ public class LoadConglomerateJob implements CoprocessorJob {
     private final long toConglomId;
     private final ColumnInfo[] columnInfo;
     private final int droppedColumnPosition;
-    private final String txnId;
+    private final TxnView txn;
     private final long statementId;
     private final long operationId;
     private final boolean isTraced;
+    private long demarcationPoint;
 
     public LoadConglomerateJob(HTableInterface table,
                                UUID tableId,
@@ -40,25 +41,31 @@ public class LoadConglomerateJob implements CoprocessorJob {
                                long conglomId,
                                ColumnInfo[] columnInfo,
                                int droppedColumnPosition,
-                               String txnId,
+                               TxnView txn,
                                long statementId,
                                long operationId,
-                               boolean isTraced) {
+                               boolean isTraced, long demarcationPoint) {
         this.table = table;
         this.tableId = tableId;
         this.fromConglomId = fromConglomId;
         this.toConglomId =  conglomId;
         this.columnInfo = columnInfo;
         this.droppedColumnPosition = droppedColumnPosition;
-        this.txnId = txnId;
+        this.txn = txn;
         this.statementId = statementId;
         this.operationId = operationId;
         this.isTraced = isTraced;
+        this.demarcationPoint = demarcationPoint;
     }
 
     @Override
     public Map<? extends RegionTask, Pair<byte[], byte[]>> getTasks() throws Exception {
-        LoadConglomerateTask task = new LoadConglomerateTask(tableId, fromConglomId, toConglomId, columnInfo, droppedColumnPosition, txnId, getJobId(), isTraced, statementId, operationId);
+        LoadConglomerateTask task = new LoadConglomerateTask(tableId,
+                fromConglomId, toConglomId,
+                columnInfo,
+                droppedColumnPosition,
+                getJobId(),
+                isTraced, statementId, operationId,demarcationPoint);
         return Collections.singletonMap(task, Pair.newPair(HConstants.EMPTY_START_ROW, HConstants.EMPTY_END_ROW));
     }
     @Override
@@ -68,7 +75,7 @@ public class LoadConglomerateJob implements CoprocessorJob {
 
     @Override
     public String getJobId() {
-        return "loadConglomerateJob-"+txnId.substring(txnId.lastIndexOf('/')+1);
+        return "loadConglomerateJob-"+txn.getTxnId();
     }
 
     @Override
@@ -77,12 +84,12 @@ public class LoadConglomerateJob implements CoprocessorJob {
     }
 
     @Override
-    public TransactionId getParentTransaction() {
-        return HTransactorFactory.getTransactionManager().transactionIdFromString(txnId);
+    public byte[] getDestinationTable() {
+        return null;
     }
 
     @Override
-    public boolean isReadOnly() {
-        return false;
+    public TxnView getTxn() {
+        return txn;
     }
 }

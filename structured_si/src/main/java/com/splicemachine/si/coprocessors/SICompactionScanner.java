@@ -17,15 +17,13 @@ import java.util.List;
  * SICompactionState.
  */
 public class SICompactionScanner implements InternalScanner {
-    private final Transactor<IHTable, Mutation,Put> transactor;
     private final  SICompactionState compactionState;
     private final InternalScanner delegate;
     List<KeyValue> rawList = new ArrayList<KeyValue>();
 
-    public SICompactionScanner(Transactor<IHTable, Mutation,Put> transactor,
+    public SICompactionScanner(SICompactionState compactionState,
                                InternalScanner scanner) {
-        this.transactor = transactor;
-        this.compactionState = transactor.newCompactionState();
+        this.compactionState = compactionState;
         this.delegate = scanner;
     }
 
@@ -62,7 +60,7 @@ public class SICompactionScanner implements InternalScanner {
 
     @Override
     public void close() throws IOException {
-    	compactionState.close();
+//    	compactionState.close();
         delegate.close();
     }
 }

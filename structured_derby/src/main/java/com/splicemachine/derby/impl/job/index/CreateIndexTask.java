@@ -35,7 +35,7 @@ public class CreateIndexTask extends ZkTask {
                            DDLChange ddlChange,
                            int[] columnOrdering,
                            int[] formatIds) {
-        super(jobId, OperationJob.operationTaskPriority,ddlChange.getTransactionId(),false);
+        super(jobId, OperationJob.operationTaskPriority,null);
         this.ddlChange = ddlChange;
         this.columnOrdering = columnOrdering;
         this.formatIds = formatIds;

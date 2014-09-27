@@ -5,6 +5,8 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.si.impl.TransactionalRegions;
+import com.splicemachine.si.impl.rollforward.SegmentedRollForward;
 import com.splicemachine.utils.SpliceLogUtils;
 import java.io.IOException;
 import java.sql.SQLException;
@@ -76,15 +78,17 @@ public class SpliceOperationCoprocessor extends BaseEndpointCoprocessor implemen
                         instructions.getStatement(),instructions.getTopOperation(), scan);
                 SpliceLogUtils.trace(LOG,"Creating RegionScanner");
                 imp = new SpliceTransactionResourceImpl();
-                imp.marshallTransaction(instructions);
+//                imp.marshallTransaction(instructions);
                 Activation activation = instructions.getActivation(imp.getLcc());
-                SpliceOperationContext context = new SpliceOperationContext(region,scan,activation, instructions.getStatement(),imp.getLcc(),true,instructions.getTopOperation(),instructions.getSpliceRuntimeContext());
-                SpliceOperationRegionScanner spliceScanner = new SpliceOperationRegionScanner(instructions.getTopOperation(),context);
-                SpliceLogUtils.trace(LOG,"performing sink");
-                TaskStats out = spliceScanner.sink();
-                SpliceLogUtils.trace(LOG, "Coprocessor sunk %d records",out.getTotalRowsWritten());
-                spliceScanner.close();
-                return out;
+                SpliceOperationContext context = new SpliceOperationContext(region, TransactionalRegions.get(region),scan,activation,
+                        instructions.getStatement(),imp.getLcc(),true,instructions.getTopOperation(),instructions.getSpliceRuntimeContext(),instructions.getTxn());
+//                SpliceOperationRegionScanner spliceScanner = new SpliceOperationRegionScanner(instructions.getTopOperation(),context);
+//                SpliceLogUtils.trace(LOG,"performing sink");
+//                TaskStats out = spliceScanner.sink();
+//                SpliceLogUtils.trace(LOG, "Coprocessor sunk %d records",out.getTotalRowsWritten());
+//                spliceScanner.close();
+//                return out;
+                return null;
             } catch (SQLException e) {
                 exception = new IOException(e);
                 throw exception;

@@ -112,7 +112,7 @@ public class DropColumnIT extends SpliceUnitTest {
         // Drop PK column
         methodWatcher.prepareStatement("alter table DropColumnIT.customer drop column c_id").execute();
         int n = rowCount(SCHEMA_NAME, CustomerTable.TABLE_NAME);
-        Assert.assertEquals(n, nRows);
+        Assert.assertEquals(nRows,n);
 
         nCols -= 1;
         n = columnCount(SCHEMA_NAME, CustomerTable.TABLE_NAME);

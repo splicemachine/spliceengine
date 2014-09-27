@@ -1,5 +1,8 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import com.splicemachine.derby.ddl.DDLCoordinationFactory;
+import com.splicemachine.derby.impl.store.access.SpliceTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.ddl.DDLChange;
 import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.ddl.DropTableDDLChangeDesc;
@@ -81,7 +84,9 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
 		LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
 		DataDictionary dd = lcc.getDataDictionary();
 		DependencyManager dm = dd.getDependencyManager();
-		TransactionController tc = lcc.getTransactionExecute().startNestedUserTransaction(false, true);
+		SpliceTransactionManager tc = (SpliceTransactionManager)lcc.getTransactionExecute().startNestedUserTransaction(false, true);
+      ((SpliceTransaction)tc.getRawTransaction()).elevate("dictionary".getBytes()); //TODO -sf- resolve proper conglomerate id
+      lcc.pushNestedTransaction(tc);
 
         try {
 
@@ -211,11 +216,10 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
             dm.invalidateFor(td, DependencyManager.DROP_TABLE, lcc);
 
             /* Invalidate dependencies remotely.  */
-            DDLChange ddlChange = new DDLChange(tc.getTransactionIdString(), DDLChangeType.DROP_TABLE);
-            ddlChange.setParentTransactionId(tc.getActiveStateTxIdString());
+            DDLChange ddlChange = new DDLChange(tc.getActiveStateTxn(), DDLChangeType.DROP_TABLE);
             ddlChange.setTentativeDDLDesc(new DropTableDDLChangeDesc(this.conglomerateNumber, this.tableId));
 
-            notifyMetadataChange(ddlChange);
+            notifyMetadataChangeAndWait(ddlChange);
 
             //
             // The table itself can depend on the user defined types of its columns.
@@ -240,6 +244,8 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
         } catch (Throwable t) {
             tc.abort();
             throw Exceptions.parseException(t);
+        }finally {
+            lcc.popNestedTransaction();
         }
 
         tc.commit();

@@ -18,6 +18,7 @@ import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
+import java.io.IOException;
 import java.sql.SQLWarning;
 import java.sql.Timestamp;
 
@@ -189,8 +190,12 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 						long statementId = topOperation.getStatementId();
 						if(scrollId==-1l) scrollId = Bytes.toLong(topOperation.getUniqueSequenceID());
 						if(taskId==-1l) taskId = SpliceDriver.driver().getUUIDGenerator().nextUUID();
-						rowProvider.reportStats(statementId,scrollId,taskId,xplainSchema,regionName);
-				}
+            try {
+                rowProvider.reportStats(statementId,scrollId,taskId,xplainSchema,regionName);
+            } catch (IOException e) {
+                throw Exceptions.parseException(e);
+            }
+        }
 				closed =true;
 		}
 
@@ -265,7 +270,9 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 
 		@Override
 		public SQLWarning getWarnings() {
-				return null;
+        SQLWarning warnings = activation.getWarnings();
+        activation.clearWarnings();
+        return warnings;
 		}
 
 		@Override

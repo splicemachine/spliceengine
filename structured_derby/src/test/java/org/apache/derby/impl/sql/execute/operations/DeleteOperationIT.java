@@ -13,10 +13,8 @@ import org.apache.derby.iapi.reference.SQLState;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -33,7 +31,7 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
  * @author Scott Fines
  *         Created: 2/5/13 12:24 PM
  */
-@Category(SerialTest.class)
+//@Category(SerialTest.class)
 public class DeleteOperationIT extends SpliceUnitTest {
 	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	public static final String CLASS_NAME = DeleteOperationIT.class.getSimpleName().toUpperCase();

@@ -1,6 +1,8 @@
 package com.splicemachine.derby.utils;
 
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
@@ -18,10 +20,10 @@ import java.sql.SQLException;
  */
 public class DataDictionaryUtils {
 
-		public static String getTableVersion(String txnId, UUID tableId) throws StandardException{
+		public static String getTableVersion(TxnView txn, UUID tableId) throws StandardException{
 				try {
 						SpliceTransactionResourceImpl impl = new SpliceTransactionResourceImpl();
-						impl.marshallTransaction(txnId);
+						impl.marshallTransaction(txn);
 						LanguageConnectionContext lcc = impl.getLcc();
 
 						DataDictionary dd = lcc.getDataDictionary();
@@ -33,12 +35,12 @@ public class DataDictionaryUtils {
 		}
 
     // Get 0-based columnOrdering from a table with primary key
-    public static int[] getColumnOrdering(String txnId, UUID tableId) {
+    public static int[] getColumnOrdering(TxnView txn, UUID tableId) {
 
         int[] columnOrdering = null;
         try {
             SpliceTransactionResourceImpl impl = new SpliceTransactionResourceImpl();
-            impl.marshallTransaction(txnId);
+            impl.marshallTransaction(txn);
             LanguageConnectionContext lcc = impl.getLcc();
 
             DataDictionary dd = lcc.getDataDictionary();
@@ -81,11 +83,11 @@ public class DataDictionaryUtils {
         return newColumnOrdering;
     }
 
-    public static int[] getFormatIds(String txnId, UUID tableId) throws SQLException, StandardException{
+    public static int[] getFormatIds(TxnView txn, UUID tableId) throws SQLException, StandardException{
         int[] formatIds;
 
         SpliceTransactionResourceImpl impl = new SpliceTransactionResourceImpl();
-        impl.marshallTransaction(txnId);
+        impl.marshallTransaction(txn);
         LanguageConnectionContext lcc = impl.getLcc();
 
         DataDictionary dd = lcc.getDataDictionary();

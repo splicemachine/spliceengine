@@ -31,8 +31,9 @@ import com.splicemachine.utils.SpliceLogUtils;
 
 /**
  * @author Scott Fines
- *         Created on: 3/7/13
+ * Created on: 3/7/13
  */
+//@Category(SerialTest.class) //left serial until DB-1777 is resolved
 public class UniqueIndexIT extends SpliceUnitTest {
 
     private static final String CLASS_NAME = UniqueIndexIT.class.getSimpleName().toUpperCase();
@@ -110,7 +111,7 @@ public class UniqueIndexIT extends SpliceUnitTest {
      * then perform a lookup on that same data via the index to ensure
      * that the index will find those values.
      */
-    @Test(timeout=10000)
+    @Test(timeout=20000)
     public void testCanCreateIndexFromExistingData() throws Exception{
         String name = "sfines";
         int value =2;

@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.job.coprocessor;
 
 import com.google.common.base.Throwables;
+import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -47,7 +48,8 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
 						//make sure we only split around SI regions
 						Long.parseLong(tableName);
 
-						splitter = new BytesCopyTaskSplitter(region);
+//						splitter = new BytesCopyTaskSplitter(region);
+            splitter = NoOpTaskSplitter.INSTANCE; //don't split me!
 				}catch(NumberFormatException nfe){
 						splitter = NoOpTaskSplitter.INSTANCE;
 				}
@@ -110,6 +112,9 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
 						}
 						return null; //can't happen
 				}else{
+            if(LOG.isTraceEnabled()){
+                SpliceLogUtils.trace(LOG,"Creating %d splits",splitPoints.size());
+            }
 						TaskFutureContext[] all = new TaskFutureContext[splitPoints.size()];
 						int i=0;
 						for(SizedInterval split:splitPoints){

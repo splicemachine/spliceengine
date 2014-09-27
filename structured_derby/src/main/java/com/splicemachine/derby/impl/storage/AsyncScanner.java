@@ -3,8 +3,11 @@ package com.splicemachine.derby.impl.storage;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.utils.AsyncScanIterator;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.metrics.*;
+import com.splicemachine.metrics.Counter;
+import com.splicemachine.metrics.Timer;
 import com.stumbleupon.async.Callback;
 import com.stumbleupon.async.Deferred;
 import org.apache.derby.iapi.error.StandardException;
@@ -12,47 +15,59 @@ import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.log4j.ConsoleAppender;
-import org.apache.log4j.Logger;
-import org.apache.log4j.SimpleLayout;
-import org.hbase.async.HBaseClient;
-import org.hbase.async.KeyValue;
+import org.apache.log4j.*;
+import org.hbase.async.*;
 import org.hbase.async.Scanner;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 /**
  * @author Scott Fines
  * Date: 7/14/14
  */
-public class AsyncScanner implements SpliceResultScanner {
+public class AsyncScanner implements SpliceResultScanner, Callback<ArrayList<ArrayList<KeyValue>>, ArrayList<ArrayList<KeyValue>>> {
     static final HBaseClient HBASE_CLIENT;
     static{
         String zkQuorumStr = SpliceConstants.config.get(HConstants.ZOOKEEPER_QUORUM);
         HBASE_CLIENT = new HBaseClient(zkQuorumStr);
     }
-    private final Scanner scanner;
+
     private final Timer timer;
     private final Counter remoteBytesCounter;
 
-    private final List<List<KeyValue>> cache = Lists.newArrayList();
+    private final Scanner scanner;
+    private final Queue<List<KeyValue>> resultQueue;
+    private final int batchSize;
 
-    public AsyncScanner(byte[] table,Scan scan,MetricFactory metricFactory) {
+    private volatile Deferred<ArrayList<ArrayList<KeyValue>>> outstandingRequest;
+    private volatile Deferred<ArrayList<ArrayList<KeyValue>>> finishedRequest;
+
+
+    public AsyncScanner(byte[] table, Scan scan, MetricFactory metricFactory) {
+       this(table,scan,metricFactory,128);
+    }
+
+    public AsyncScanner(byte[] table, Scan scan, MetricFactory metricFactory, int batchSize) {
+       this(table,scan,metricFactory,batchSize,true);
+    }
+
+    public AsyncScanner(byte[] table, Scan scan, MetricFactory metricFactory, int batchSize,boolean populateBlockCache) {
+        this.batchSize = batchSize;
         this.timer = metricFactory.newTimer();
         this.remoteBytesCounter = metricFactory.newCounter();
 
-        this.scanner = HBASE_CLIENT.newScanner(table);
-        scanner.setStartKey(scan.getStartRow());
-        scanner.setStopKey(scan.getStopRow());
-        //TODO -sf- set scan filters
-//        scanner.setFilter(scan.getFilter());
+        //TODO -sf- use a different HBaseClient singleton pattern so it can be shutdown easily
+        this.scanner = AsyncScannerUtils.convertScanner(scan,table,HBASE_CLIENT,populateBlockCache);
+        this.resultQueue = new LinkedList<List<KeyValue>>();
     }
 
-    @Override public void open() throws IOException, StandardException {  }
+    @Override
+    public void open() throws IOException, StandardException {
+       //initiate the first scan
+        outstandingRequest = scanner.nextRows().addCallback(this);
+    }
 
     @Override public TimeView getRemoteReadTime() { return timer.getTime(); }
     @Override public long getRemoteBytesRead() { return remoteBytesCounter.getTotal(); }
@@ -62,36 +77,40 @@ public class AsyncScanner implements SpliceResultScanner {
     @Override public long getLocalBytesRead() { return 0; }
     @Override public long getLocalRowsRead() { return 0; }
 
-    @Override
-    public Result next() throws IOException {
-        if(cache.size()>0){
-            return newResult(cache.remove(0));
+    public List<org.hbase.async.KeyValue> nextKeyValues() throws Exception{
+        List<KeyValue> row = resultQueue.poll();
+        if(row!=null) return row;
+
+        Deferred<ArrayList<ArrayList<KeyValue>>> deferred = finishedRequest;
+        if(deferred==null)
+            deferred = outstandingRequest;
+
+        if(deferred==null) return null; //scanner is exhausted
+
+        ArrayList<ArrayList<KeyValue>> kvs = deferred.join();
+        finishedRequest=null;
+
+        if(kvs==null||kvs.size()<=0) return null;
+        //issue the next request
+        outstandingRequest = scanner.nextRows().addCallback(this);
+
+        List<KeyValue> first = kvs.get(0);
+        for(int i=1;i<kvs.size();i++){
+            resultQueue.offer(kvs.get(i));
         }
-        Deferred<ArrayList<ArrayList<KeyValue>>> arrayListDeferred = scanner.nextRows();
-        if(arrayListDeferred==null){
-            scanner.close();
-            return null;
-        }
-        try {
-            ArrayList<ArrayList<KeyValue>> join = arrayListDeferred.join();
-            cache.addAll(join);
-            return next();
-        } catch (Exception e) {
-            scanner.close();
-            throw Exceptions.getIOException(e);
-        }
+        return first;
     }
 
-    private static final Function<org.hbase.async.KeyValue,org.apache.hadoop.hbase.KeyValue> toHbaseFunction= new Function<KeyValue, org.apache.hadoop.hbase.KeyValue>() {
-        @Override
-        public org.apache.hadoop.hbase.KeyValue apply(@Nullable KeyValue input) {
-            return new org.apache.hadoop.hbase.KeyValue(input.key(),input.family(),input.qualifier(),input.timestamp(),input.value());
+    @Override
+    public Result next() throws IOException {
+        try {
+            List<KeyValue> kvs = nextKeyValues();
+            if(kvs!=null && kvs.size()>0)
+                return new Result(AsyncScannerUtils.convertFromAsync(kvs));
+            return null;
+        } catch (Exception e) {
+            throw new IOException(e);
         }
-    };
-
-    private Result newResult(List<KeyValue> keyValues) {
-        List<org.apache.hadoop.hbase.KeyValue> hbaseKvs = Lists.transform(keyValues,toHbaseFunction);
-        return new Result(hbaseKvs);
     }
 
     @Override
@@ -108,7 +127,7 @@ public class AsyncScanner implements SpliceResultScanner {
 
     @Override
     public void close() {
-
+        scanner.close();
     }
 
     @Override
@@ -116,23 +135,10 @@ public class AsyncScanner implements SpliceResultScanner {
         throw new UnsupportedOperationException("IMPLEMENT");
     }
 
-    public static void main(String...args) throws Exception {
-        Logger.getRootLogger().addAppender(new ConsoleAppender(new SimpleLayout()));
-        byte[] table = Bytes.toBytes(Long.toString(16));
-        HBaseClient client = new HBaseClient("localhost","/hbase");
-        client.ensureTableExists(table).join();
-        System.out.println("Client constructed, opening scanner");
-        Scanner scanner = client.newScanner(table);
-        Deferred<ArrayList<ArrayList<KeyValue>>> arrayListDeferred = scanner.nextRows();
-        System.out.println(arrayListDeferred);
-        arrayListDeferred.addErrback(new Callback<Object, Object>() {
-            @Override
-            public Object call(Object arg) throws Exception {
-                System.out.println("Error!"+arg);
-                return null;
-            }
-        });
-        ArrayList<ArrayList<KeyValue>> join = arrayListDeferred.join();
-        System.out.println("Received rows");
+    @Override
+    public ArrayList<ArrayList<KeyValue>> call(ArrayList<ArrayList<KeyValue>> arg) throws Exception {
+        finishedRequest = outstandingRequest;
+        outstandingRequest = null;
+        return arg;
     }
 }

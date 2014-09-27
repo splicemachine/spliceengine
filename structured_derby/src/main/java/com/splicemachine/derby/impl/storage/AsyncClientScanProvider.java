@@ -85,7 +85,7 @@ public class AsyncClientScanProvider extends AbstractAsyncScanProvider {
     }
 
     @Override
-    public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) {
+    public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) throws IOException {
         if(regionName==null)
             regionName="ControlRegion";
         OperationRuntimeStats stats = new OperationRuntimeStats(statementId,operationId,taskId,regionName,8);
@@ -103,7 +103,7 @@ public class AsyncClientScanProvider extends AbstractAsyncScanProvider {
         stats.addMetric(OperationMetric.START_TIMESTAMP,startExecutionTime);
         stats.addMetric(OperationMetric.STOP_TIMESTAMP,stopExecutionTime);
 
-        SpliceDriver.driver().getTaskReporter().report(stats);
+        SpliceDriver.driver().getTaskReporter().report(stats,spliceRuntimeContext.getTxn());
     }
 
     @Override

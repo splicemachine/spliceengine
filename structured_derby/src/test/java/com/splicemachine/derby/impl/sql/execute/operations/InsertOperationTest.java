@@ -11,30 +11,27 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.temp.TempTable;
 import com.splicemachine.derby.stats.TaskStats;
-import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.derby.utils.marshall.BareKeyHash;
+import com.splicemachine.derby.utils.marshall.DataHash;
+import com.splicemachine.derby.utils.marshall.EntryDataHash;
+import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.derby.utils.test.TestingDataType;
 import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.hbase.writer.CallBufferFactory;
 import com.splicemachine.hbase.KVPair;
+import com.splicemachine.hbase.writer.CallBufferFactory;
 import com.splicemachine.hbase.writer.RecordingCallBuffer;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.job.SimpleJobResults;
-import com.splicemachine.si.api.ClientTransactor;
-import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.TransactionManager;
-import com.splicemachine.si.api.Transactor;
-import com.splicemachine.si.impl.TransactionId;
-import com.splicemachine.si.jmx.ManagedTransactor;
 import com.splicemachine.metrics.MetricFactory;
+import com.splicemachine.si.api.Txn;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.storage.index.BitIndexing;
 import com.splicemachine.utils.kryo.KryoPool;
-
 import com.splicemachine.uuid.Snowflake;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -49,7 +46,6 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import javax.annotation.Nullable;
-
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
@@ -89,7 +85,7 @@ public class InsertOperationTest {
 
 
 //        data.add(new Object[]{new TestingDataType[]{TestingDataType.TIMESTAMP},
-//                new int[]{}
+//                new int[]{1}
 //        });
         for(TestingDataType dataType:TestingDataType.values()){
             data.add(new Object[]{new TestingDataType[]{dataType},
@@ -119,8 +115,6 @@ public class InsertOperationTest {
 
 		@Before
 		public void setUp() throws Exception {
-				ClientTransactor transactor = mock(ClientTransactor.class);
-				HTransactorFactory.setClientTransactor(transactor);
 
 		}
 
@@ -161,7 +155,7 @@ public class InsertOperationTest {
         final List<KVPair> output = Lists.newArrayListWithExpectedSize(rowsToWrite.size());
 
         SpliceObserverInstructions mockInstructions = mock(SpliceObserverInstructions.class);
-        doNothing().when(mockInstructions).setTransactionId(any(String.class));
+        doNothing().when(mockInstructions).setTxn(any(Txn.class));
 
         when(writeInfo.buildInstructions(any(SpliceOperation.class))).thenReturn(mockInstructions);
 
@@ -176,10 +170,16 @@ public class InsertOperationTest {
 
         mockOperationSink(sourceOperation, output);
 
-        InsertOperation operation = new InsertOperation(sourceOperation, opInfo,writeInfo,"10");
+        InsertOperation operation = new InsertOperation(sourceOperation, opInfo,writeInfo);
         operation.init(mock(SpliceOperationContext.class));
 				InsertOperation spy = spy(operation);
-				doReturn(new TransactionId("12")).when(spy).getChildTransaction();
+        Txn txn = mock(Txn.class);
+        when(txn.getBeginTimestamp()).thenReturn(12l);
+        when(txn.getTxnId()).thenReturn(12l);
+        when(txn.allowsWrites()).thenReturn(true);
+        doNothing().when(txn).commit();
+        doNothing().when(txn).rollback();
+				doReturn(txn).when(spy).getChildTransaction();
 				doReturn(TestingDataType.getTemplateOutput(dataTypes)).when(spy).getExecRowDefinition();
 				operation = spy;
 
@@ -195,27 +195,27 @@ public class InsertOperationTest {
 
     @SuppressWarnings("unchecked")
     private void mockTransactions() throws IOException {
-        ManagedTransactor mockTransactor = mock(ManagedTransactor.class);
-        doNothing().when(mockTransactor).beginTransaction(any(Boolean.class));
-
-        TransactionManager mockControl = mock(TransactionManager.class);
-        when(mockControl.transactionIdFromString(any(String.class))).thenAnswer(new Answer<TransactionId>() {
-						@Override
-						public TransactionId answer(InvocationOnMock invocation) throws Throwable {
-								return new TransactionId((String) invocation.getArguments()[0]);
-						}
-				});
-				Transactor mockT = mock(Transactor.class);
-        when(mockTransactor.getTransactor()).thenReturn(mockT);
-        when(mockControl.beginChildTransaction(any(TransactionId.class),any(Boolean.class))).thenAnswer(new Answer<TransactionId>() {
-						@Override
-						public TransactionId answer(InvocationOnMock invocation) throws Throwable {
-								return (TransactionId) invocation.getArguments()[0];
-						}
-				});
-
-        HTransactorFactory.setTransactor(mockTransactor);
-				HTransactorFactory.setTransactionManager(mockControl);
+//        ManagedTransactor mockTransactor = mock(ManagedTransactor.class);
+//        doNothing().when(mockTransactor).beginTransaction(any(Boolean.class));
+//
+//        TransactionManager mockControl = mock(TransactionManager.class);
+//        when(mockControl.transactionIdFromString(any(String.class))).thenAnswer(new Answer<TransactionId>() {
+//						@Override
+//						public TransactionId answer(InvocationOnMock invocation) throws Throwable {
+//								return new TransactionId((String) invocation.getArguments()[0]);
+//						}
+//				});
+//				Transactor mockT = mock(Transactor.class);
+//        when(mockTransactor.getTransactor()).thenReturn(mockT);
+//        when(mockControl.beginChildTransaction(any(TransactionId.class),any(Boolean.class))).thenAnswer(new Answer<TransactionId>() {
+//						@Override
+//						public TransactionId answer(InvocationOnMock invocation) throws Throwable {
+//								return (TransactionId) invocation.getArguments()[0];
+//						}
+//				});
+//
+//        HTransactorFactory.setTransactor(mockTransactor);
+//				HTransactorFactory.setTransactionManager(mockControl);
     }
 
     private void assertRowDataMatches(List<KVPair> correctOutput,List<KVPair> output){
@@ -329,8 +329,8 @@ public class InsertOperationTest {
             }
         }).when(outputBuffer).add(any(KVPair.class));
         final CallBufferFactory<KVPair> bufferFactory = mock(CallBufferFactory.class);
-        when(bufferFactory.writeBuffer(any(byte[].class), any(String.class))).thenReturn(outputBuffer);
-				when(bufferFactory.writeBuffer(any(byte[].class), any(String.class),any(MetricFactory.class))).thenReturn(outputBuffer);
+        when(bufferFactory.writeBuffer(any(byte[].class), any(Txn.class))).thenReturn(outputBuffer);
+				when(bufferFactory.writeBuffer(any(byte[].class), any(Txn.class),any(MetricFactory.class))).thenReturn(outputBuffer);
 
         RowProvider mockProvider = mock(RowProvider.class);
         when(mockProvider.shuffleRows(any(SpliceObserverInstructions.class))).thenAnswer(new Answer<JobResults>(){
@@ -341,7 +341,8 @@ public class InsertOperationTest {
 
                 SpliceOperation op = observerInstructions.getTopOperation();
 
-                OperationSink opSink = new OperationSink(Bytes.toBytes("TEST_TASK"),(DMLWriteOperation)op,bufferFactory,"TEST_TXN",-1l,0l);
+								Txn mockTxn = Txn.ROOT_TRANSACTION;
+                OperationSink opSink = new OperationSink(Bytes.toBytes("TEST_TASK"),(DMLWriteOperation)op,bufferFactory,mockTxn,-1l,0l);
 
                 TaskStats sink = opSink.sink(Bytes.toBytes("1184"), new SpliceRuntimeContext(table,kryoPool));
                 JobStats stats = mock(JobStats.class);

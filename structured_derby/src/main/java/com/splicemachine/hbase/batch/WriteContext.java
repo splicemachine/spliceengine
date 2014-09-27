@@ -3,6 +3,8 @@ package com.splicemachine.hbase.batch;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.*;
 
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
@@ -43,7 +45,7 @@ public interface WriteContext {
 
     boolean canRun(KVPair input);
 
-    String getTransactionId();
-
 		long getTransactionTimestamp();
+
+		TxnView getTxn();
 }

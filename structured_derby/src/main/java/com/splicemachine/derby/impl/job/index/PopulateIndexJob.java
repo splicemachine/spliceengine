@@ -1,19 +1,17 @@
 package com.splicemachine.derby.impl.job.index;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Map;
-
 import com.carrotsearch.hppc.BitSet;
+import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
+import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
+import com.splicemachine.job.Task;
+import com.splicemachine.si.api.Txn;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Pair;
 
-import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
-import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
-import com.splicemachine.job.Task;
-import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.impl.TransactionId;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.Map;
 
 /**
  * @author Scott Fines
@@ -21,7 +19,7 @@ import com.splicemachine.si.impl.TransactionId;
  */
 public class PopulateIndexJob implements CoprocessorJob{
     private final HTableInterface table;
-    private final String transactionId;
+    private final Txn txn;
     private final long indexConglomId;
     private final long baseConglomId;
     private final int[] mainColToIndexPosMap;
@@ -32,11 +30,12 @@ public class PopulateIndexJob implements CoprocessorJob{
     private final long statementId;
     private final long operationId;
     private final boolean isTraced;
+    private final long demarcationPoint;
     private final int[] columnOrdering;
     private final int[] format_ids;
 
 		public PopulateIndexJob(HTableInterface table,
-                                String transactionId,
+                            Txn txn,
                                 long indexConglomId,
                                 long baseConglomId,
                                 int[] indexColToMainColPosMap,
@@ -47,9 +46,11 @@ public class PopulateIndexJob implements CoprocessorJob{
                                 long operationId,
                                 boolean isTraced,
                                 int[] columnOrdering,
-                                int[] format_ids) {
+                                int[] format_ids,
+                                long demarcationPoint
+                                ) {
         this.table = table;
-        this.transactionId = transactionId;
+        this.txn = txn;
         this.indexConglomId = indexConglomId;
         this.baseConglomId = baseConglomId;
         this.isUnique = unique;
@@ -57,6 +58,7 @@ public class PopulateIndexJob implements CoprocessorJob{
         this.statementId = statementId;
         this.operationId = operationId;
         this.isTraced = isTraced;
+        this.demarcationPoint = demarcationPoint;
 
 
         this.indexedColumns = new BitSet();
@@ -79,10 +81,11 @@ public class PopulateIndexJob implements CoprocessorJob{
 
     @Override
     public Map<? extends RegionTask, Pair<byte[], byte[]>> getTasks() throws Exception {
-        PopulateIndexTask task = new PopulateIndexTask(transactionId, indexConglomId,baseConglomId,
+        PopulateIndexTask task = new PopulateIndexTask(indexConglomId,baseConglomId,
                                                        mainColToIndexPosMap, indexedColumns,
                                                        isUnique,isUniqueWithDuplicateNulls,
-                                                       getJobId(), descColumns, isTraced, statementId, operationId, columnOrdering, format_ids);
+                                                       getJobId(), descColumns, isTraced, statementId, operationId, columnOrdering, format_ids,
+                demarcationPoint);
         return Collections.singletonMap(task,Pair.newPair(HConstants.EMPTY_START_ROW,HConstants.EMPTY_END_ROW));
     }
 
@@ -93,7 +96,7 @@ public class PopulateIndexJob implements CoprocessorJob{
 
     @Override
     public String getJobId() {
-        return "indexJob-"+transactionId.substring(transactionId.lastIndexOf('/')+1);
+        return "indexJob-"+txn.getTxnId();
     }
 
     @Override
@@ -102,12 +105,12 @@ public class PopulateIndexJob implements CoprocessorJob{
     }
 
     @Override
-    public TransactionId getParentTransaction() {
-        return HTransactorFactory.getTransactionManager().transactionIdFromString(transactionId);
+    public byte[] getDestinationTable() {
+        return null;
     }
 
     @Override
-    public boolean isReadOnly() {
-        return false;
+    public Txn getTxn() {
+        return txn;
     }
 }

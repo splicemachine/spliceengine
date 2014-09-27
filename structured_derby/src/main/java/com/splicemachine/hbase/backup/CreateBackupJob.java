@@ -1,16 +1,16 @@
 package com.splicemachine.hbase.backup;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Map;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.util.Pair;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.job.Task;
-import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.si.api.Txn;
+import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.util.Pair;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.Map;
 
 public class CreateBackupJob implements CoprocessorJob {
 	    private final BackupItem backupItem;
@@ -34,7 +34,7 @@ public class CreateBackupJob implements CoprocessorJob {
 
 	    @Override
 	    public String getJobId() {
-	        return "backupJob-"+backupItem.getBackupTransactionIDAsString();
+	        return "backupJob-"+backupItem.getBackupTransaction().getTxnId();
 	    }
 
 	    @Override
@@ -42,13 +42,13 @@ public class CreateBackupJob implements CoprocessorJob {
 	        return Pair.newPair(originalTask,Pair.newPair(taskStartKey,taskEndKey));
 	    }
 
-	    @Override
-	    public TransactionId getParentTransaction() {
-	        return HTransactorFactory.getTransactionManager().transactionIdFromString(backupItem.getBackupTransactionIDAsString());
-	    }
+    @Override
+    public byte[] getDestinationTable() {
+        return table.getTableName();
+    }
 
-	    @Override
-	    public boolean isReadOnly() {
-	        return false;
-	    }
+    @Override
+    public Txn getTxn() {
+        return backupItem.getBackupTransaction();
+    }
 	}

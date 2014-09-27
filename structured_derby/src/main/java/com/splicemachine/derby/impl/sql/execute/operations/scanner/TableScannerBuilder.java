@@ -1,10 +1,14 @@
 package com.splicemachine.derby.impl.sql.execute.operations.scanner;
 
 import com.splicemachine.hbase.MeasuredRegionScanner;
+import com.splicemachine.si.api.TransactionalRegion;
+import com.splicemachine.si.api.Txn;
 import com.splicemachine.metrics.MetricFactory;
+import com.splicemachine.si.api.TxnView;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.regionserver.HRegion;
 
 /**
  * Companion Builder class for SITableScanner
@@ -17,7 +21,7 @@ public class TableScannerBuilder {
 		private	MetricFactory metricFactory;
 		private	Scan scan;
 		private	int[] rowColumnMap;
-		private	String transactionID;
+		private TxnView txn;
 		private	int[] keyColumnEncodingOrder;
 		private	int[] keyColumnTypes;
 		private	int[] keyDecodingMap;
@@ -27,6 +31,7 @@ public class TableScannerBuilder {
 
 		private SIFilterFactory filterFactory;
 		private boolean[] keyColumnSortOrder;
+		private TransactionalRegion region;
 
 		public TableScannerBuilder scanner(MeasuredRegionScanner scanner) {
 				assert scanner !=null :"Null scanners are not allowed!";
@@ -52,8 +57,15 @@ public class TableScannerBuilder {
 		}
 
 		public TableScannerBuilder transactionID(String transactionID) {
-				assert transactionID!=null: "No transaction id specified";
-				this.transactionID = transactionID;
+				throw new UnsupportedOperationException("REMOVE");
+//				assert transactionID!=null: "No transaction id specified";
+//				this.transactionID = transactionID;
+//				return this;
+		}
+
+		public TableScannerBuilder transaction(TxnView txn){
+				assert txn!=null: "No Transaction specified";
+				this.txn = txn;
 				return this;
 		}
 
@@ -184,13 +196,19 @@ public class TableScannerBuilder {
 				return this;
 		}
 
+		public TableScannerBuilder region(TransactionalRegion region){
+				this.region = region;
+				return this;
+		}
+
 		public SITableScanner build(){
 				return new SITableScanner(scanner,
+								region,
 								template,
 								metricFactory,
 								scan,
 								rowColumnMap,
-								transactionID,
+								txn,
 								keyColumnEncodingOrder,
 								keyColumnSortOrder,
 								keyColumnTypes,

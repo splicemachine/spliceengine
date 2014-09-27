@@ -51,7 +51,7 @@ public class EntryEncoderDecoderTest {
 
         MultiFieldEncoder entryEncoder = encoder.getEntryEncoder();
         entryEncoder.encodeNext(1);
-        entryEncoder.setRawBytes(null);
+        entryEncoder.setRawBytes((byte[])null);
         entryEncoder.encodeNext(2);
         byte[] encode = encoder.encode();
 
@@ -76,7 +76,7 @@ public class EntryEncoderDecoderTest {
         EntryEncoder encoder = EntryEncoder.create(KryoPool.defaultPool(),3,setCols,scalarFields,null,null);
 
         MultiFieldEncoder entryEncoder = encoder.getEntryEncoder();
-        entryEncoder.setRawBytes(null);
+        entryEncoder.setRawBytes((byte[])null);
         entryEncoder.encodeNext(1);
         entryEncoder.encodeNext(2);
         byte[] encode = encoder.encode();
@@ -104,7 +104,7 @@ public class EntryEncoderDecoderTest {
         MultiFieldEncoder entryEncoder = encoder.getEntryEncoder();
         entryEncoder.encodeNext(1);
         entryEncoder.encodeNext(2);
-        entryEncoder.setRawBytes(null);
+        entryEncoder.setRawBytes((byte[])null);
         byte[] encode = encoder.encode();
 
         EntryDecoder decoder = new EntryDecoder();

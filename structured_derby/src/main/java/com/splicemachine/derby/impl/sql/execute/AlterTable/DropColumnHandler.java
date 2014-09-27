@@ -14,6 +14,8 @@ import com.splicemachine.hbase.batch.WriteHandler;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.RecordingCallBuffer;
 import com.splicemachine.hbase.writer.WriteResult;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import org.apache.derby.impl.sql.execute.ColumnInfo;
 import org.apache.log4j.Logger;
 import org.apache.derby.catalog.UUID;
@@ -28,7 +30,7 @@ public class DropColumnHandler implements WriteHandler {
     private RecordingCallBuffer<KVPair> writeBuffer;
     private UUID tableId;
     private long toConglomId;
-    private String txnId;
+		private TxnView txn;
     private ColumnInfo[] columnInfos;
     private int droppedColumnPosition;
     private RowTransformer rowTransformer;
@@ -37,16 +39,16 @@ public class DropColumnHandler implements WriteHandler {
 
     public DropColumnHandler(UUID tableId,
                              long toConglomId,
-                             String txnId,
+														 TxnView txn,
                              ColumnInfo[] columnInfos,
                              int droppedColumnPosition) {
         this.tableId = tableId;
         this.toConglomId = toConglomId;
-        this.txnId = txnId;
+        this.txn = txn;
         this.columnInfos = columnInfos;
         this.droppedColumnPosition = droppedColumnPosition;
-        rowTransformer = new RowTransformer(tableId, txnId, columnInfos, droppedColumnPosition);
-        loader = new ConglomerateLoader(toConglomId, txnId, false);
+        rowTransformer = new RowTransformer(tableId, txn, columnInfos, droppedColumnPosition);
+        loader = new ConglomerateLoader(toConglomId, txn,false);
     }
 
     @Override

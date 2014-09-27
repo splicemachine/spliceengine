@@ -5,15 +5,16 @@ import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.marshall.DataHash;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.storage.EntryEncoder;
+import org.apache.derby.iapi.error.StandardException;
 
 
 /**
  * @author Scott Fines
  *         Date: 1/22/14
  */
-public class XplainOperationReporter extends XplainReporter<OperationInfo> {
-		public XplainOperationReporter(int numWorkers) {
-				super("SYSOPERATIONHISTORY",numWorkers);
+public class XplainOperationReporter extends TransactionalXplainReporter<OperationInfo> {
+		public XplainOperationReporter() throws StandardException {
+				super("SYSOPERATIONHISTORY");
 		}
 
 		@Override

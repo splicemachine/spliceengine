@@ -113,13 +113,13 @@ public class ResultMergeScanner implements StandardIterator<JoinSideExecRow> {
     }
 
     public static ResultMergeScanner regionAwareScanner(Scan scan,
-                                                  String txnId,
-                                                  PairDecoder leftDecoder,
-                                                  PairDecoder rightDecoder,
-                                                  HRegion region,
-																									MetricFactory metricFactory) {
+                                                        PairDecoder leftDecoder,
+                                                        PairDecoder rightDecoder,
+                                                        HRegion region,
+                                                        MetricFactory metricFactory) {
 				byte[] tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
-        RegionAwareScanner ras = RegionAwareScanner.create(txnId,region,scan, tempTableBytes,
+        //we don't want to have a transaction id here, because we are reading from TEMP
+        RegionAwareScanner ras = RegionAwareScanner.create(null,region,scan, tempTableBytes,
                 new MergeSortScanBoundary(SpliceConstants.DEFAULT_FAMILY_BYTES, rightDecoder.getKeyPrefixOffset()),metricFactory);
         return new ResultMergeScanner(ras,leftDecoder,rightDecoder);
     }

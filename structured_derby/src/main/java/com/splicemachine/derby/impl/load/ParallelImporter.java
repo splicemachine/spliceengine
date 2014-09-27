@@ -13,6 +13,7 @@ import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.metrics.TimeView;
 import com.splicemachine.metrics.Timer;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -42,11 +43,11 @@ public class ParallelImporter implements Importer{
 		private Timer processTimer;
 
 
-		public ParallelImporter(ImportContext importContext,ExecRow template,String txnId,
+		public ParallelImporter(ImportContext importContext,ExecRow template,TxnView txn,
 														ImportErrorReporter errorReporter) {
         this(importContext,
 												template,
-												txnId,
+												txn,
 												SpliceConstants.maxImportProcessingThreads,
 												SpliceConstants.maxImportReadBufferSize,
 												SpliceDriver.driver().getTableWriter(),
@@ -58,10 +59,10 @@ public class ParallelImporter implements Importer{
 														ExecRow template,
 														int numProcessingThread,
 														int maxImportReadBufferSize,
-														String txnId,ImportErrorReporter errorReporter) {
+														TxnView txn,ImportErrorReporter errorReporter) {
 				this(importContext,
 								template,
-								txnId,
+								txn,
 								numProcessingThread,
 								maxImportReadBufferSize,
 								SpliceDriver.driver().getTableWriter(),
@@ -70,7 +71,7 @@ public class ParallelImporter implements Importer{
 
     public ParallelImporter(ImportContext importCtx,
                             ExecRow template,
-                            String txnId,
+                            TxnView txn,
                             int numProcessingThreads,
                             int maxImportReadBufferSize,
                             CallBufferFactory<KVPair> factory,
@@ -93,7 +94,7 @@ public class ParallelImporter implements Importer{
 
         futures = Lists.newArrayList();
         for(int i=0;i<numProcessingThreads;i++){
-						SequentialImporter importer = new SequentialImporter(importCtx,template.getClone(),txnId,errorReporter,
+						SequentialImporter importer = new SequentialImporter(importCtx,template.getClone(),txn,errorReporter,
 										factory,kryoPool){
 								@Override
 								protected boolean isFailed() {

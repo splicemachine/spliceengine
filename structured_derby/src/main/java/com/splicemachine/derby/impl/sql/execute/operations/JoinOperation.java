@@ -179,10 +179,8 @@ public abstract class JoinOperation extends SpliceBaseOperation {
                     String restrictionToStringMethodName = restrictionMethodName + "ToString";
                     try {
                         Method method = activation.getClass().getMethod(restrictionToStringMethodName, null);
-                        String joinClause = "Join Condition:" + (String) method.invoke(activation, null);
-                        if (joinClause != null) {
-                            info = (info == null) ? joinClause : info + joinClause;
-                        }
+                        String joinClause = "Join Condition:" + method.invoke(activation, null);
+                        info = (info == null) ? joinClause : info + joinClause;
                     }catch (Exception e) {
                         SpliceLogUtils.logAndThrow(LOG, "error during JoinOperation init",
                                 StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e));

@@ -26,7 +26,7 @@ public class ForbidPastWritesTask extends ZkTask {
 
     public ForbidPastWritesTask(String jobId,
                                 DDLChange ddlChange) {
-        super(jobId, OperationJob.operationTaskPriority,ddlChange.getTransactionId(),false);
+        super(jobId, OperationJob.operationTaskPriority,null);
         this.ddlChange = ddlChange;
     }
 

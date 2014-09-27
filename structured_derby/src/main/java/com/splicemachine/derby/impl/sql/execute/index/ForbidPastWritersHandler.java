@@ -23,7 +23,7 @@ public class ForbidPastWritersHandler implements WriteHandler {
     @Override
     public void next(KVPair mutation, WriteContext ctx) {
         try {
-            if (!ddlFilter.isVisibleBy(ctx.getTransactionId())) {
+            if (!ddlFilter.isVisibleBy(ctx.getTxn())) {
                 ctx.failed(mutation, WriteResult.failed("Writes forbidden by transaction " + ddlFilter.getTransaction()));
             }
         } catch (IOException e) {
@@ -35,7 +35,7 @@ public class ForbidPastWritersHandler implements WriteHandler {
     @Override
     public void next(List<KVPair> mutations, WriteContext ctx) {
         try {
-            if (!ddlFilter.isVisibleBy(ctx.getTransactionId())) {
+            if (!ddlFilter.isVisibleBy(ctx.getTxn())) {
                 for (KVPair mutation : mutations) {
                     ctx.failed(mutation, WriteResult.failed("Writes forbidden by transaction " + ddlFilter.getTransaction()));
                 }

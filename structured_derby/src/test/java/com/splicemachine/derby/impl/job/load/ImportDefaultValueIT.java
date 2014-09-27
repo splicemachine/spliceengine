@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.job.load;
 
+import com.google.common.collect.Lists;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
@@ -15,6 +16,9 @@ import org.junit.rules.TestRule;
 import java.io.PrintWriter;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Created by yifu on 6/13/14.
@@ -43,13 +47,17 @@ public class ImportDefaultValueIT {
         PreparedStatement ps = methodWatcher.prepareStatement("call SYSCS_UTIL.IMPORT_DATA('"+spliceSchemaWatcher.schemaName+"','"+TABLE_1+"',null,'/tmp/Test.txt',',',null,null,null,null,0,null)");
         ps.execute();
         PreparedStatement s = methodWatcher.prepareStatement("select * from "+spliceSchemaWatcher.schemaName+"."+TABLE_1);
+        List<String> expected  = Arrays.asList("abc","abc","ab");
+        Collections.sort(expected);
+
+        List<String> actual = Lists.newArrayListWithExpectedSize(expected.size());
+
         ResultSet rs = s.executeQuery();
-        rs.next();
-        Assert.assertEquals("abc", rs.getString(2));
-        rs.next();
-        Assert.assertEquals("abc", rs.getString(2));
-        rs.next();
-        Assert.assertEquals("ab", rs.getString(2));
+        while(rs.next()){
+            actual.add(rs.getString(2));
+        }
+        Collections.sort(actual);
+        Assert.assertEquals("Incorrect results!",expected,actual);
     }
 
 }

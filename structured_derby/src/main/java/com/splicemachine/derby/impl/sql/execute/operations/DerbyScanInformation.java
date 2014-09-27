@@ -13,6 +13,8 @@ import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SerializationUtils;
 
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
@@ -76,7 +78,12 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
 		public static final Cache<Long,String> tableVersionCache = CacheBuilder.newBuilder()
 						.maximumSize(4096)
 						.build();
-		@SuppressWarnings("UnusedDeclaration")
+    public static final Cache<Long,String> tableNameCache = CacheBuilder.newBuilder()
+            .maximumSize(4096)
+            .build();
+    private String tableName;
+
+    @SuppressWarnings("UnusedDeclaration")
     @Deprecated
     public DerbyScanInformation() { }
 
@@ -142,7 +149,27 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
 
 		@Override public String getTableVersion() throws StandardException { return tableVersion; }
 
-		@Override
+    @Override
+    public String getTableName() throws StandardException {
+        if(tableName==null){
+            try {
+                tableName = tableNameCache.get(conglomId,new Callable<String>() {
+                    @Override
+                    public String call() throws Exception {
+                        DataDictionary dataDictionary = activation.getLanguageConnectionContext().getDataDictionary();
+                        UUID tableID = dataDictionary.getConglomerateDescriptor(conglomId).getTableID();
+                        TableDescriptor td = dataDictionary.getTableDescriptor(tableID);
+                        return td.getSchemaName()+"."+td.getName();
+                    }
+                });
+            } catch (ExecutionException e) {
+                throw Exceptions.parseException(e);
+            }
+        }
+        return tableName;
+    }
+
+    @Override
     public FormatableBitSet getAccessedColumns() throws StandardException {
         if(accessedCols==null){
             if(colRefItem==-1) {
@@ -254,12 +281,12 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
     }
 
     @Override
-    public Scan getScan(String txnId) throws StandardException {
-        return getScan(txnId, null,null);
+    public Scan getScan(TxnView txn) throws StandardException {
+        return getScan(txn, null,null);
     }
 
     @Override
-    public Scan getScan(String txnId, ExecRow startKeyOverride,int[] keyDecodingMap) throws StandardException {
+    public Scan getScan(TxnView txn, ExecRow startKeyOverride,int[] keyDecodingMap) throws StandardException {
         boolean sameStartStop = startKeyOverride == null && sameStartStopPosition;
         ExecIndexRow startPosition = getStartPosition();
         ExecIndexRow stopPosition = sameStartStop ? startPosition : getStopPosition();
@@ -292,7 +319,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
                 qualifiers,
                 conglomerate.getAscDescInfo(),
                 getAccessedNonPkColumns(),
-                txnId,sameStartStop,
+                txn,sameStartStop,
                 conglomerate.getFormat_ids(),
 								keyDecodingMap,
 								getColumnOrdering(),
@@ -477,7 +504,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
     }
 
 	@Override
-	public List<Scan> getScans(String txnId, ExecRow startKeyOverride, Activation activation, SpliceOperation top,SpliceRuntimeContext spliceRuntimeContext) throws StandardException  {
+	public List<Scan> getScans(TxnView txn, ExecRow startKeyOverride, Activation activation, SpliceOperation top,SpliceRuntimeContext spliceRuntimeContext) throws StandardException  {
 		throw new RuntimeException("getScans is not supported");
 	}
 

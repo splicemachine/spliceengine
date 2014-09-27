@@ -13,10 +13,21 @@ import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.BufferedRegionScanner;
+import com.splicemachine.hbase.MeasuredRegionScanner;
+import com.splicemachine.hbase.MeasuredResultScanner;
+import com.splicemachine.hbase.ReadAheadRegionScanner;
+import com.splicemachine.si.api.TransactionalRegion;
+import com.splicemachine.si.api.Txn;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.metrics.TimeView;
+import com.splicemachine.si.coprocessors.SIFilterPacked;
+import com.splicemachine.si.impl.DDLTxnView;
+import com.splicemachine.si.impl.TransactionalRegions;
+import com.splicemachine.si.impl.TxnFilter;
+import com.splicemachine.si.impl.rollforward.SegmentedRollForward;
 import com.splicemachine.storage.EntryDecoder;
+import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -36,46 +47,35 @@ import java.util.concurrent.ExecutionException;
 public class ConglomerateScanner {
 
     private static Logger LOG = Logger.getLogger(ConglomerateScanner.class);
-    private ColumnInfo[] columnInfo;
-    private String txnId;
+    private Txn txn;
     private boolean isTraced;
 
-    private ExecRow row;
     private HRegion region;
     private final byte[] scanStart;
     private final byte[] scanFinish;
-    private BufferedRegionScanner brs;
+    private MeasuredRegionScanner brs;
     private EntryDecoder entryDecoder;
+    private final long demarcationTimestamp;
+    private List<KeyValue> values;
 
-    public ConglomerateScanner(ColumnInfo[] columnInfo,
-                               HRegion region,
-                               String txnId,
+    public ConglomerateScanner(HRegion region,
+                               Txn txn,
+                               long demarcationTimestamp,
                                boolean isTraced,
                                byte[] scanStart,
                                byte[] scanFinish) throws StandardException{
-        this.columnInfo = columnInfo;
+        this.txn = txn;
         this.isTraced = isTraced;
-        this.txnId = txnId;
         this.region = region;
         this.scanStart = scanStart;
         this.scanFinish = scanFinish;
-        initExecRow();
-    }
-
-    private void initExecRow() throws StandardException{
-
-        // initialize ExecRow
-        row = new ValueRow(columnInfo.length);
-        for (int i = 0; i < columnInfo.length; ++i){
-            DataValueDescriptor dataValue = columnInfo[i].dataType.getNull();
-            row.setColumn(i+1 ,dataValue);
-        }
+        this.demarcationTimestamp = demarcationTimestamp;
     }
 
     private void initScanner() throws ExecutionException{
 
         // initialize a region scanner
-        Scan regionScan = SpliceUtils.createScan(txnId);
+        Scan regionScan = SpliceUtils.createScan(txn);
         regionScan.setCaching(SpliceConstants.DEFAULT_CACHE_SIZE);
         regionScan.setStartRow(scanStart);
         regionScan.setStopRow(scanFinish);
@@ -84,11 +84,7 @@ public class ConglomerateScanner {
         MetricFactory metricFactory = isTraced? Metrics.basicMetricFactory(): Metrics.noOpMetricFactory();
         try{
             //Scan previously committed data
-            RegionScanner sourceScanner = region.getCoprocessorHost().preScannerOpen(regionScan);
-            if(sourceScanner==null)
-                sourceScanner = region.getScanner(regionScan);
-            Scan scan = SpliceUtils.createScan(txnId);
-            brs = new BufferedRegionScanner(region,sourceScanner,scan,SpliceConstants.DEFAULT_CACHE_SIZE,metricFactory);
+            brs = getRegionScanner(txn,demarcationTimestamp,regionScan,metricFactory);
         } catch (IOException e) {
             SpliceLogUtils.error(LOG, e);
             throw new ExecutionException(e);
@@ -96,6 +92,18 @@ public class ConglomerateScanner {
             SpliceLogUtils.error(LOG, e);
             throw new ExecutionException(Throwables.getRootCause(e));
         }
+    }
+
+    private MeasuredRegionScanner getRegionScanner(Txn txn, long demarcationTimestamp,Scan regionScan, MetricFactory metricFactory) throws IOException {
+        //manually create the SIFilter
+        DDLTxnView demarcationPoint = new DDLTxnView(txn, demarcationTimestamp);
+        TransactionalRegion transactionalRegion = TransactionalRegions.get(region);
+        TxnFilter packed = transactionalRegion.packedFilter(demarcationPoint, EntryPredicateFilter.emptyPredicate(), false);
+        transactionalRegion.discard();
+        regionScan.setFilter(new SIFilterPacked(packed));
+        RegionScanner sourceScanner = region.getScanner(regionScan);
+        return SpliceConstants.useReadAheadScanner? new ReadAheadRegionScanner(region, SpliceConstants.DEFAULT_CACHE_SIZE, sourceScanner,metricFactory)
+                : new BufferedRegionScanner(region,sourceScanner,regionScan,SpliceConstants.DEFAULT_CACHE_SIZE,SpliceConstants.DEFAULT_CACHE_SIZE,metricFactory);
     }
 
     public List<KeyValue> next() throws ExecutionException, IOException{
@@ -107,14 +115,16 @@ public class ConglomerateScanner {
             entryDecoder = new EntryDecoder();
         }
 
-        List<KeyValue> nextRow = Lists.newArrayListWithExpectedSize(16);
-        boolean more = true;
+        if(values==null)
+            values = Lists.newArrayListWithCapacity(4);
 
-        nextRow.clear();
-        more = brs.nextRaw(nextRow, null);
+        boolean more;
+
+        values.clear();
+        more = brs.nextRaw(values, null);
         if (!more) return null;
 
-        return nextRow;
+        return values;
     }
 
     public TimeView getReadTime() {

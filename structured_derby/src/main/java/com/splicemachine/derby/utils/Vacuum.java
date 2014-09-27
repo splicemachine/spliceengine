@@ -2,11 +2,14 @@ package com.splicemachine.derby.utils;
 
 import com.carrotsearch.hppc.LongOpenHashSet;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.TransactionManager;
-import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.derby.impl.sql.execute.actions.ActiveTransactionReader;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.si.api.TxnView;
+import com.splicemachine.stream.CloseableStream;
+import com.splicemachine.stream.StreamException;
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.MasterNotRunningException;
@@ -19,7 +22,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.List;
 
 /**
  * Utility for Vacuuming Splice.
@@ -97,15 +99,17 @@ public class Vacuum {
 		private void ensurePriorTransactionsComplete() throws SQLException {
 				EmbedConnection embedConnection = (EmbedConnection)connection;
 
-				TransactionId txnId = new TransactionId(embedConnection.getLanguageConnection().getTransactionExecute().getActiveStateTxIdString());
+        TransactionController transactionExecute = embedConnection.getLanguageConnection().getTransactionExecute();
+        TxnView activeStateTxn = ((SpliceTransactionManager) transactionExecute).getActiveStateTxn();
+
 
 				//wait for all transactions prior to us to complete, but only wait for so long
 				try{
-						List<TransactionId> stillActiveTransactions = waitForConcurrentTransactions(txnId);
-						if(stillActiveTransactions.size()>0){
+						long activeTxn = waitForConcurrentTransactions(activeStateTxn);
+						if(activeTxn>0){
 								//we can't do anything, blow up
 								throw PublicAPI.wrapStandardException(
-												ErrorState.DDL_ACTIVE_TRANSACTIONS.newException("VACUUM", stillActiveTransactions.toString()));
+												ErrorState.DDL_ACTIVE_TRANSACTIONS.newException("VACUUM", activeTxn));
 						}
 
 				}catch(StandardException se){
@@ -113,18 +117,26 @@ public class Vacuum {
 				}
 		}
 
-		private List<TransactionId> waitForConcurrentTransactions(TransactionId txnId) throws StandardException {
-				List<TransactionId> active;
-				TransactionManager tm = HTransactorFactory.getTransactionManager();
-
+		private long waitForConcurrentTransactions(TxnView txn) throws StandardException {
+        ActiveTransactionReader reader = new ActiveTransactionReader(0l,txn.getTxnId(),null);
 				long timeRemaining = SpliceConstants.ddlDrainingMaximumWait;
 				long pollPeriod = SpliceConstants.pause;
 				int tryNum = 1;
+        long activeTxn;
 				try {
 						do{
-								active = tm.getActiveTransactionIds(txnId);
-								active.remove(txnId);
-								if(active.size()<=0) return active;
+                activeTxn = -1l;
+                CloseableStream<TxnView> activeTransactions = reader.getActiveTransactions(10);
+                TxnView next;
+                while((next = activeTransactions.next())!=null){
+                    long txnId = next.getTxnId();
+                    if(txnId!=txn.getTxnId()){
+                        activeTxn = txnId;
+                        break;
+                    }
+                }
+                if(activeTxn<0) return activeTxn; //no active transactions
+
 								long time = System.currentTimeMillis();
 
 								try {
@@ -137,9 +149,11 @@ public class Vacuum {
 						}while(timeRemaining>0);
 				} catch (IOException e) {
 						throw Exceptions.parseException(e);
-				}
+				} catch (StreamException e) {
+            throw Exceptions.parseException(e);
+        }
 
-				return active;
+        return activeTxn;
 		}
 
 		public void shutdown() throws SQLException {

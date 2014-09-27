@@ -36,7 +36,7 @@ public class XPlainTrace {
     /* operations are hashed into the map to construct a tree */
     private HashMap<Long, XPlainTreeNode> xPlainTreeNodeMap;
 
-    private Connection connection;
+    protected Connection connection;
     private int sequenceId;
     private XPlainTracePrinter printer;
 
@@ -56,37 +56,29 @@ public class XPlainTrace {
     }
 
     public ResultSet getXPlainTraceOutput() throws Exception {
+        if (!populateTreeNodeMap()) return null;
 
-        try {
-            if (!populateTreeNodeMap()) return null;
+        constructOperationTree();
 
-            constructOperationTree();
+        populateMetrics();
 
-            populateMetrics();
+        aggregateSubqueries();
 
-            aggregateSubqueries();
+        aggregateLoops();
 
-            aggregateLoops();
+        aggregateTableScan();
 
-            aggregateTableScan();
-
-            populateSequenceId(topOperation);
-           if (format.toUpperCase().compareTo("TREE") == 0) {
-                printer = new XPlainTraceTreePrinter(mode, connection, topOperation);
-            }
-            else if (format.toUpperCase().compareTo("JSON") == 0) {
-                printer = new XPlainTraceJsonPrinter(mode, connection, topOperation);
-            }
-            else {
-                throw new Exception("Wrong value \"" + format + "\" for parameter \"format\"");
-            }
-            return printer.print();
-        } catch (Exception e) {
-            connection.rollback();
-            throw e;
-        } finally {
-            connection.close();
+        populateSequenceId(topOperation);
+        if (format.toUpperCase().compareTo("TREE") == 0) {
+            printer = new XPlainTraceTreePrinter(mode, connection, topOperation);
         }
+        else if (format.toUpperCase().compareTo("JSON") == 0) {
+            printer = new XPlainTraceJsonPrinter(mode, connection, topOperation);
+        }
+        else {
+            throw new Exception("Wrong value \"" + format + "\" for parameter \"format\"");
+        }
+        return printer.print();
     }
 
     private void aggregateSubqueries() throws IllegalAccessException{
@@ -220,26 +212,28 @@ public class XPlainTrace {
 
     private void populateMetrics() throws SQLException, IllegalAccessException{
         ResultSet rs = getTaskHistory();
-        HashMap<String, XPlainTreeNode> regionMap = new HashMap<String, XPlainTreeNode>();
-        while (rs.next()) {
-            int index = rs.findColumn("OPERATIONID");
-            Long operationId = rs.getLong(index);
-            XPlainTreeNode node = xPlainTreeNodeMap.get(operationId);
-            if (node != null) {
-                // For detailed view of the execution plan, show metrics for each region
-                if (mode == 1) {
-                    if (node.isTableScanOperation()) {
-                        XPlainTreeNode child = new XPlainTreeNode(statementId, operationId);
-                        child.setOperationType("RegionScan");
-                        node.addLastChild(child);
-                        node = child;
+        try{
+            HashMap<String, XPlainTreeNode> regionMap = new HashMap<String, XPlainTreeNode>();
+            while (rs.next()) {
+                int index = rs.findColumn("OPERATIONID");
+                Long operationId = rs.getLong(index);
+                XPlainTreeNode node = xPlainTreeNodeMap.get(operationId);
+                if (node != null) {
+                    // For detailed view of the execution plan, show metrics for each region
+                    if (mode == 1) {
+                        if (node.isTableScanOperation()) {
+                            XPlainTreeNode child = new XPlainTreeNode(statementId, operationId);
+                            child.setOperationType("RegionScan");
+                            node.addLastChild(child);
+                            node = child;
+                        }
                     }
+                    node.setAttributes(rs);
                 }
-                node.setAttributes(rs);
             }
+        }finally{
+            rs.close();
         }
-
-        rs.close();
     }
 
     private ResultSet getTaskHistory() throws SQLException{
@@ -291,19 +285,23 @@ public class XPlainTrace {
      * hash tree node for operation tree construction
      */
     private boolean populateTreeNodeMap() throws SQLException {
-        ResultSet rs = getOperationHistory();
+        System.out.println(statementId);
         int count = 0;
-        while (rs.next()) {
-            count++;
-            Long operationId = rs.getLong(1);
-            XPlainTreeNode node = new XPlainTreeNode(statementId, operationId);
-            node.setParentOperationId(rs.getLong(2));
-            node.setOperationType(rs.getString(3));
-            node.setRightChildOp(rs.getBoolean(4));
-            node.setInfo(rs.getString(5));
-            xPlainTreeNodeMap.put(operationId, node);
+        ResultSet rs = getOperationHistory();
+        try{
+            while (rs.next()) {
+                count++;
+                Long operationId = rs.getLong(1);
+                XPlainTreeNode node = new XPlainTreeNode(statementId, operationId);
+                node.setParentOperationId(rs.getLong(2));
+                node.setOperationType(rs.getString(3));
+                node.setRightChildOp(rs.getBoolean(4));
+                node.setInfo(rs.getString(5));
+                xPlainTreeNodeMap.put(operationId, node);
+            }
+        }finally{
+            rs.close();
         }
-        rs.close();
         return count != 0;
     }
 
@@ -346,6 +344,8 @@ public class XPlainTrace {
 
     protected void setStatementId(long sId) {
         this.statementId = sId;
+        this.topOperation = null;
+        this.xPlainTreeNodeMap.clear();
     }
 
     protected void setMode (int mode) {
@@ -356,7 +356,7 @@ public class XPlainTrace {
         this.format = format;
     }
 
-    protected void setConnection (Connection connection) {
+    public void setConnection(Connection connection) {
         this.connection = connection;
     }
 }
