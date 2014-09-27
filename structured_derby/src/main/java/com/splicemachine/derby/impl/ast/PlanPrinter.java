@@ -29,7 +29,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
 
     public static final String spaces = "  ";
     private boolean explain = false;
-    public static HashMap<String, String[]> planMap = new HashMap<String, String[]>();
+    public static ThreadLocal<HashMap<String, String[]>> planMap = new ThreadLocal<HashMap<String, String[]>>();
 
     // Only visit root node
 
@@ -56,7 +56,13 @@ public class PlanPrinter extends AbstractSpliceVisitor {
                 (rsn = ((DMLStatementNode) node).getResultSetNode()) != null) {
 
             String plan = treeToString(rsn);
-//            planMap.put(query, plan.split("\n"));
+            HashMap<String, String[]> m = planMap.get();
+            if (m == null) {
+                m = new HashMap<String, String[]>();
+                planMap.set(m);
+            }
+            m.put(query, plan.split("\n"));
+
             if (LOG.isInfoEnabled()){
                 LOG.info(String.format("Plan nodes for query <<\n\t%s\n>>\n%s",
                         query, plan));

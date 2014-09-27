@@ -53,51 +53,10 @@ public class ExplainOperation extends SpliceBaseOperation {
         activation.setTraced(false);
         currentTemplate = new ValueRow(1);
         currentTemplate.setRowArray(new DataValueDescriptor[]{new SQLVarchar()});
-        HashMap<String, String[]> m = PlanPrinter.planMap;
+        HashMap<String, String[]> m = PlanPrinter.planMap.get();
         String sql = activation.getPreparedStatement().getSource();
         plan = m.get(sql);
-        //rows = new ArrayList<ExecRow>(INIT_SIZE);
-        //xPlainPlanMap = new HashMap<SpliceOperation, XPlainPlanNode>(INIT_SIZE);
-        //pos = 0;
-        //constructExplainPlan();
-        //printExplainPlan(root);
-    }
 
-    private void printExplainPlan(XPlainPlanNode n) throws StandardException{
-        currentTemplate.resetRowArray();
-        DataValueDescriptor[] dvds = currentTemplate.getRowArray();
-        dvds[0].setValue(n.toString());
-        rows.add(currentTemplate.getClone());
-
-        List<XPlainPlanNode> children = n.getChildren();
-        for (int i = 0; i < children.size(); ++i) {
-            printExplainPlan(children.get(i));
-        }
-    }
-
-    private void constructExplainPlan() {
-        Queue<SpliceOperation> operationQueue = new LinkedList<SpliceOperation>();
-        operationQueue.add(source);
-        XPlainPlanNode node = new XPlainPlanNode(source.getName(),
-                source.getEstimatedRowCount(), source.getEstimatedCost(), 0);
-        xPlainPlanMap.put(source, node);
-        root = node;
-        while(!operationQueue.isEmpty()) {
-            SpliceOperation op = operationQueue.remove();
-            XPlainPlanNode parent = xPlainPlanMap.get(op);
-            int level = parent.getLevel();
-
-            List<SpliceOperation> subOperations = op.getSubOperations();
-            for (int i = 0; i < subOperations.size(); ++i) {
-                SpliceOperation subOperation = subOperations.get(i);
-                node = new XPlainPlanNode(subOperation.getName(),
-                        subOperation.getEstimatedRowCount(), subOperation.getEstimatedCost(), level + 1);
-
-                parent.addChild(node);
-                xPlainPlanMap.put(subOperation, node);
-                operationQueue.add(subOperation);
-            }
-        }
     }
 
     @Override
@@ -113,6 +72,9 @@ public class ExplainOperation extends SpliceBaseOperation {
     public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 
         if (plan == null || pos >= plan.length) {
+            HashMap<String, String[]> m = PlanPrinter.planMap.get();
+            String sql = activation.getPreparedStatement().getSource();
+            m.remove(sql);
             return null;
         }
 
