@@ -201,9 +201,10 @@ public class GenericStatement implements Statement {
 		 * relevant Derby property) then the value of cacheMe is irrelevant.
 		 */ 
 		boolean foundInCache = false;
+        boolean isExplain = statementText.toUpperCase().startsWith("EXPLAIN ");
 		if (preparedStmt == null) 
 		{
-			if (cacheMe)
+			if (cacheMe && !isExplain)
 				preparedStmt = (GenericStorablePreparedStatement)((GenericLanguageConnectionContext)lcc).lookupStatement(this);
 
 			if (preparedStmt == null) 
