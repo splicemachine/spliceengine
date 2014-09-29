@@ -21,7 +21,7 @@ public class TransactionAdminTest {
     		PreparedStatement ps;
     		
 			System.out.println("Starting parent transaction...");
-			conn1 = DriverManager.getConnection(DB_CONNECTION, null, null);
+			conn1 = DriverManager.getConnection(DB_CONNECTION, "splice", "admin");
 			System.out.println("Connection class: " + conn1.getClass().getName());
 			conn1.setAutoCommit(false);
 
