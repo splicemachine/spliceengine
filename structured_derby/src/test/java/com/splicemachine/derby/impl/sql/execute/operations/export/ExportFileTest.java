@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations.export;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.RandomStringUtils;
+import org.apache.derby.iapi.error.StandardException;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -62,7 +63,7 @@ public class ExportFileTest {
     }
 
     @Test
-    public void localFile() throws IOException {
+    public void localFile() throws IOException, StandardException {
         // given
         ExportParams exportParams = new ExportParams(temporaryFolder.getRoot().getAbsolutePath(), "local", -1, null, null, null);
         ExportFile exportFile = new ExportFile(exportParams, testTaskId());

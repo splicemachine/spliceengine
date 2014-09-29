@@ -1,9 +1,11 @@
 package com.splicemachine.derby.impl.sql.execute.operations.export;
 
 import com.google.common.base.Charsets;
-import com.google.common.base.Joiner;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.reference.SQLState;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import java.nio.charset.Charset;
+import java.nio.charset.UnsupportedCharsetException;
 
 /**
  * Represents the user provided parameters of a given export.
@@ -30,7 +32,7 @@ public class ExportParams {
     }
 
     public ExportParams(String directory, String fileSystemType, int replicationCount, String characterEncoding,
-                        String fieldDelimiter, String quoteChar) {
+                        String fieldDelimiter, String quoteChar) throws StandardException {
         setDirectory(directory);
         setFileSystemType(fileSystemType);
         setReplicationCount((short) replicationCount);
@@ -80,16 +82,14 @@ public class ExportParams {
     // private setters
     // - - - - - - - - - - -
 
-    private void setDirectory(String directory) {
-        checkArgument(!isNullOrEmpty(directory), " export directory is required");
+    private void setDirectory(String directory) throws StandardException {
+        checkArgument(!isNullOrEmpty(directory), "export path", directory);
         this.directory = directory;
     }
 
-    private void setFileSystemType(String fileSystemType) {
+    private void setFileSystemType(String fileSystemType) throws StandardException {
         if (!isNullOrEmpty(fileSystemType)) {
-            checkArgument(ExportFileSystemType.isValid(fileSystemType.toUpperCase()),
-                    " invalid file system type '%s', valid values are: %s", fileSystemType,
-                    Joiner.on(", ").join(ExportFileSystemType.values()));
+            checkArgument(ExportFileSystemType.isValid(fileSystemType.toUpperCase()), "file system type", fileSystemType);
             this.fileSystemType = ExportFileSystemType.valueOf(fileSystemType.toUpperCase());
         }
     }
@@ -100,27 +100,42 @@ public class ExportParams {
         }
     }
 
-    public void setCharacterEncoding(String characterEncoding) {
+    public void setCharacterEncoding(String characterEncoding) throws StandardException {
         if (!isNullOrEmpty(characterEncoding)) {
+            checkArgument(isValidCharacterSet(characterEncoding), "encoding", characterEncoding);
             this.characterEncoding = characterEncoding;
         }
     }
 
-    public void setDefaultFieldDelimiter(String fieldDelimiter) {
+    public void setDefaultFieldDelimiter(String fieldDelimiter) throws StandardException {
         if (!isNullOrEmpty(fieldDelimiter)) {
-            checkArgument(fieldDelimiter.length() == 1, " field delimiter must be a single character");
+            checkArgument(fieldDelimiter.length() == 1, "field delimiter", fieldDelimiter);
             this.fieldDelimiter = fieldDelimiter.charAt(0);
         }
     }
 
-    public void setQuoteChar(String quoteChar) {
+    public void setQuoteChar(String quoteChar) throws StandardException {
         if (!isNullOrEmpty(quoteChar)) {
-            checkArgument(quoteChar.length() == 1, " quote character must be a single character");
+            checkArgument(quoteChar.length() == 1, "quote character", quoteChar);
             this.quoteChar = quoteChar.charAt(0);
         }
     }
 
-    private boolean isNullOrEmpty(String directory) {
+    private static void checkArgument(boolean isOk, String parameter, String value) throws StandardException {
+        if (!isOk) {
+            throw StandardException.newException(SQLState.UU_INVALID_PARAMETER, parameter, value);
+        }
+    }
+
+    public static boolean isValidCharacterSet(String charSet) {
+        try {
+            return Charset.forName(charSet) != null;
+        } catch (UnsupportedCharsetException e) {
+            return false;
+        }
+    }
+
+    private static boolean isNullOrEmpty(String directory) {
         return directory == null || directory.trim().length() == 0;
     }
 

@@ -1,14 +1,16 @@
 package com.splicemachine.derby.impl.sql.execute.operations.export;
 
 import com.google.common.base.Charsets;
+import org.apache.derby.iapi.error.StandardException;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 public class ExportParamsTest {
 
     @Test
-    public void constructor() {
+    public void constructor() throws StandardException {
 
         ExportParams exportParams = new ExportParams("/dir", "local", 42, "ascii", "F", "Q");
 
@@ -21,7 +23,7 @@ public class ExportParamsTest {
     }
 
     @Test
-    public void constructor_testDefaults() {
+    public void constructor_testDefaults() throws StandardException {
 
         ExportParams exportParams = new ExportParams("/dir", null, -1, null, null, null);
 
@@ -37,8 +39,9 @@ public class ExportParamsTest {
     public void constructor_badExportDirectory() {
         try {
             new ExportParams(null, "local", 1, "UTF-8", ",", null);
+            fail();
         } catch (Exception e) {
-            assertEquals(" export directory is required", e.getMessage());
+            assertEquals("Invalid parameter 'export path'='null'.", e.getMessage());
         }
     }
 
@@ -46,8 +49,19 @@ public class ExportParamsTest {
     public void constructor_badFileSystemType() {
         try {
             new ExportParams("/dir", "badFileSystemType", 1, "UTF-8", ",", null);
-        } catch (Exception e) {
-            assertEquals(" invalid file system type 'badFileSystemType', valid values are: HDFS, LOCAL", e.getMessage());
+            fail();
+        } catch (StandardException e) {
+            assertEquals("Invalid parameter 'file system type'='badFileSystemType'.", e.getMessage());
+        }
+    }
+
+    @Test
+    public void constructor_badCharacterEncoding() {
+        try {
+            new ExportParams("/dir", "local", 1, "NON_EXISTING_CHARSET", ",", null);
+            fail();
+        } catch (StandardException e) {
+            assertEquals("Invalid parameter 'encoding'='NON_EXISTING_CHARSET'.", e.getMessage());
         }
     }
 
@@ -55,8 +69,9 @@ public class ExportParamsTest {
     public void constructor_badFieldDelimiter() {
         try {
             new ExportParams("/dir", "LOCAL", 1, "UTF-8", ",,,", null);
+            fail();
         } catch (Exception e) {
-            assertEquals(" field delimiter must be a single character", e.getMessage());
+            assertEquals("Invalid parameter 'field delimiter'=',,,'.", e.getMessage());
         }
     }
 
@@ -65,8 +80,9 @@ public class ExportParamsTest {
     public void constructor_badQuoteCharacter() {
         try {
             new ExportParams("/dir", "LOCAL", 1, "UTF-8", ",", "||||");
+            fail();
         } catch (Exception e) {
-            assertEquals(" quote character must be a single character", e.getMessage());
+            assertEquals("Invalid parameter 'quote character'='||||'.", e.getMessage());
         }
     }
 
