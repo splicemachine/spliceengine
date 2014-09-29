@@ -78,6 +78,7 @@ public class Types {
 
     public final static int JAVA_OBJECT = java.sql.Types.JAVA_OBJECT;          // 2000;
 
+    public final static int ROWID = java.sql.Types.ROWID;
     // hide the default constructor
     private Types() {
    }

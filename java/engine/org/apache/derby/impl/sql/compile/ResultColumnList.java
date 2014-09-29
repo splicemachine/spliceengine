@@ -1325,7 +1325,9 @@ public class ResultColumnList extends QueryTreeNodeVector
 					continue;
 				}
 
-				if (sourceExpr instanceof ColumnReference && ! ( ((ColumnReference) sourceExpr).getCorrelated()))
+				if (sourceExpr instanceof ColumnReference &&
+                    ! ( ((ColumnReference) sourceExpr).getCorrelated()) &&
+                    sourceExpr.getColumnName().compareToIgnoreCase("ROWID") != 0)
 				{
 					continue;
 				}
@@ -3736,6 +3738,10 @@ public class ResultColumnList extends QueryTreeNodeVector
 				{
 					return false;
 				}
+
+                if (cr.getColumnName().compareToIgnoreCase("ROWID") == 0) {
+                    return false;
+                }
 			}
 		}
 		return true;

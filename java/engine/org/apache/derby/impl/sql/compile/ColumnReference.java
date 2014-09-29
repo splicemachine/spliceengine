@@ -31,8 +31,10 @@ import org.apache.derby.impl.sql.compile.ExpressionClassBuilder;
 import org.apache.derby.iapi.services.compiler.MethodBuilder;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.store.access.Qualifier;
+import org.apache.derby.iapi.types.TypeId;
 import org.apache.derby.iapi.util.JBitSet;
 
+import java.sql.Types;
 import java.util.Collections;
 import java.util.List;
 import java.util.Vector;
@@ -394,7 +396,20 @@ public class ColumnReference extends ValueNode
 			throw StandardException.newException(SQLState.LANG_ILLEGAL_COLUMN_REFERENCE, columnName);
 		}
 
-		matchingRC = fromList.bindColumnReference(this);
+        if (this.columnName.compareTo("ROWID") == 0) {
+
+            fromList.bindRowIdReference(this);
+
+            ValueNode rowLocationNode = (ValueNode) getNodeFactory().getNode(
+                    C_NodeTypes.CURRENT_ROW_LOCATION_NODE,
+                    getContextManager());
+
+            rowLocationNode.bindExpression(fromList,subqueryList, aggregateVector);
+            return rowLocationNode;
+        }
+        else {
+            matchingRC = fromList.bindColumnReference(this);
+        }
 
 		/* Error if no match found in fromList */
 		if (matchingRC == null)
@@ -1013,7 +1028,7 @@ public class ColumnReference extends ValueNode
 
 		if (SanityManager.DEBUG)
 		{
-			if (sourceResultSetNumber < 0)
+			if (sourceResultSetNumber < 0 && columnName.compareToIgnoreCase("ROWID") != 0)
 			{
 				SanityManager.THROWASSERT("sourceResultSetNumber expected to be >= 0 for " + getTableName() + "." + getColumnName());
 			}

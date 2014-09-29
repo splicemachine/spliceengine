@@ -522,6 +522,52 @@ public class FromList extends QueryTreeNodeVector implements OptimizableList
 		return resultColumnList;
 	}
 
+    public void bindRowIdReference(ColumnReference columnReference) throws StandardException {
+
+        FromTable fromTable;
+        String crTableName = columnReference.getTableName();
+        int size = size();
+
+        if (crTableName == null) {
+            if (size == 1) {
+                fromTable = (FromTable) elementAt(0);
+                if (fromTable instanceof FromBaseTable) {
+                    FromBaseTable baseTable = (FromBaseTable) fromTable;
+                    baseTable.setFetchRowId(true);
+                }
+            }
+            else {
+                throw StandardException.newException(SQLState.LANG_AMBIGUOUS_COLUMN_NAME,
+                        columnReference.getSQLColumnName());
+            }
+        }
+        else {
+            boolean found = false;
+            for (int index = 0; index < size; index++) {
+                fromTable = (FromTable) elementAt(index);
+                if (fromTable instanceof FromBaseTable) {
+                    FromBaseTable baseTable = (FromBaseTable) fromTable;
+                    String name = fromTable.getCorrelationName();
+                    if (name == null) {
+                        name = fromTable.getBaseTableName();
+                    }
+
+                    if (crTableName.compareToIgnoreCase(name) == 0) {
+                        if (found) {
+                            throw StandardException.newException(SQLState.LANG_AMBIGUOUS_COLUMN_NAME,
+                                    columnReference.getSQLColumnName());
+                        }
+                        found = true;
+                        baseTable.setFetchRowId(true);
+                    }
+                }
+            }
+            if (!found) {
+                throw StandardException.newException(SQLState.LANG_COLUMN_NOT_FOUND,
+                        columnReference.getSQLColumnName());
+            }
+        }
+    }
 	/**
 	 * Bind a column reference to one of the tables in this FromList.  The column name
 	 * must be unique within the tables in the FromList.  An exception is thrown

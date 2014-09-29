@@ -201,6 +201,7 @@ public class TypeCompilerFactoryImpl implements TypeCompilerFactory
                                                       typeId);
 
                   case Types.JAVA_OBJECT:
+                  case Types.REF:
                   case Types.OTHER:
                         if (typeId.isRefTypeId())
                         {

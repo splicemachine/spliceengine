@@ -399,7 +399,7 @@ public class BaseTypeIdImpl implements Formatable
           case StoredFormatIds.REF_TYPE_ID_IMPL:
               schemaName = null;
               unqualifiedName = TypeId.REF_NAME;
-              JDBCTypeId = Types.OTHER;
+              JDBCTypeId = Types.REF;
               break;
 
           case StoredFormatIds.CHAR_TYPE_ID_IMPL:

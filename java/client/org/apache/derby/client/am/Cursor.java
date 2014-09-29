@@ -726,6 +726,9 @@ public abstract class Cursor {
                                         boolean toBePublished)
             throws SqlException;
 
+    public abstract RowId getRowIdColumn_(int column, Agent agent,
+                                        boolean toBePublished)
+            throws SqlException;
     //------- the following getters perform any necessary cross-conversion _------
 
     final boolean getBoolean(int column) throws SqlException {
@@ -1068,6 +1071,8 @@ public abstract class Cursor {
                 Clob c = getClobColumn_(column, agent_, false);
                 tempString = c.getSubString(1, (int) c.length());
                 return tempString;
+            case java.sql.Types.ROWID:
+                return getRowId(column).toString();
             default:
                 throw coercionError( "String", column );
             }
@@ -1288,6 +1293,15 @@ public abstract class Cursor {
             new ClientMessageId (SQLState.NOT_IMPLEMENTED), "getRef(int)");
     }
 
+    public final java.sql.RowId getRowId(int column) throws SqlException {
+        switch (jdbcTypes_[column - 1]) {
+            case Types.ROWID:
+                return getRowIdColumn_(column, agent_, true);
+            default:
+                throw coercionError( "java.sql.RowId", column );
+        }
+    }
+
     public final Object getObject(int column) throws SqlException {
         switch (jdbcTypes_[column - 1]) {
         case java.sql.Types.BOOLEAN:
@@ -1326,6 +1340,8 @@ public abstract class Cursor {
             return getBlobColumn_(column, agent_, true);
         case java.sql.Types.CLOB:
             return getClobColumn_(column, agent_, true);
+        case java.sql.Types.ROWID:
+            return getRowIdColumn_(column, agent_, true);
         default:
             throw coercionError( "Object", column );
         }

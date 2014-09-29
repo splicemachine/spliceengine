@@ -245,11 +245,14 @@ class FdocaConstants
 				outlen[0] = 0x8004;
 				break;
 				// blob end
+            case java.sql.Types.REF:
+                drdaType = DRDAConstants.DRDA_TYPE_NROWID;
+                outlen[0] = -1;
+                break;
 			case java.sql.Types.ARRAY:
 			case java.sql.Types.DISTINCT:
 			case java.sql.Types.NULL:
 			case java.sql.Types.OTHER:
-			case java.sql.Types.REF:
 			case java.sql.Types.STRUCT:
 				throw new SQLException("Jdbc type" + jdbcType + "not Supported yet");
 			default:

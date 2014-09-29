@@ -148,6 +148,11 @@ public class Types {
     public static final int REF = 2006;
 
     /**
+     * The type code that identifies the SQL type ROWID.
+     */
+    public  static   final  int ROWID   = -8;
+
+    /**
      * The type code that identifies the SQL type SMALLINT.
      */
     public static final int SMALLINT = 5;

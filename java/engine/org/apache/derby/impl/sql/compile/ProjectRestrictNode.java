@@ -1548,6 +1548,12 @@ public class ProjectRestrictNode extends SingleChildResultSetNode
    			acb.pushMethodReference(mb, userExprFun);
 		}
 
+        // if the result column list contains a row id column
+        /*if (hasRowIdColumn()) {
+            acb.newFieldDeclaration(Modifier.PRIVATE,
+                    ClassName.CursorResultSet,
+                    acb.newRowLocationScanResultSetName());
+        }*/
 		/* Determine whether or not reflection is needed for the projection.
 		 * Reflection is not needed if all of the columns map directly to source
 		 * columns.
@@ -1622,6 +1628,19 @@ public class ProjectRestrictNode extends SingleChildResultSetNode
                     ClassName.NoPutResultSet, 11);
 	}
 
+    private boolean hasRowIdColumn() {
+        boolean ret = false;
+
+        for (int i = 0; i < resultColumns.size(); ++i) {
+            ResultColumn column = (ResultColumn)resultColumns.elementAt(i);
+            if (column.columnNameMatches("ROWID")) {
+                ret = true;
+                break;
+            }
+        }
+
+        return ret;
+    }
 	/**
 	 * Determine whether this ProjectRestrict does anything.  If it doesn't
 	 * filter out any rows or columns, it's a No-Op.

@@ -32,6 +32,7 @@ import org.apache.derby.client.am.ClientMessageId;
 import org.apache.derby.client.am.SqlWarning;
 import org.apache.derby.client.am.Types;
 import org.apache.derby.client.am.SqlCode;
+import org.apache.derby.client.am.RowId;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.derby.shared.common.sanity.SanityManager;
 
@@ -995,6 +996,17 @@ public class NetCursor extends org.apache.derby.client.am.Cursor {
         return clob;
     }
 
+    /**
+     * @see org.apache.derby.client.am.Cursor#getRowIdColumn_
+     */
+    public RowId getRowIdColumn_(int column, Agent agent, boolean toBePublished) {
+        int length = columnDataComputedLength_[column - 1] - 2;
+        byte[] bytes = new byte[length];
+
+        System.arraycopy(dataBuffer_, columnDataPosition_[column - 1] + 2, bytes, 0, length);
+
+        return new RowId(bytes);
+    }
     // this is really an event-callback from NetStatementReply.parseSQLDTARDarray()
     void initializeColumnInfoArrays(Typdef typdef,
                                     int columnCount, int targetSqlamForTypdef) throws DisconnectException {

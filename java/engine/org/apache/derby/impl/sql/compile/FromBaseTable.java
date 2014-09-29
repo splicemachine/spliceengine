@@ -65,6 +65,8 @@ import org.apache.derby.impl.services.daemon.IndexStatisticsDaemonImpl;
 import org.apache.derby.impl.sql.catalog.SYSUSERSRowFactory;
 import org.apache.log4j.Logger;
 
+import java.lang.reflect.Modifier;
+
 /**
  * A FromBaseTable represents a table in the FROM list of a DML statement,
  * as distinguished from a FromSubquery, which represents a subquery in the
@@ -183,6 +185,9 @@ public class FromBaseTable extends FromTable {
 
     // true if we are running with sql authorization and this is the SYSUSERS table
     private boolean authorizeSYSUSERS;
+
+    // true if rowid is requested for this table
+    private boolean fetchRowId;
 
     @Override
     public boolean isParallelizable() {
@@ -3068,6 +3073,11 @@ public class FromBaseTable extends FromTable {
 				(bulkFetch != UNSET), multiProbing),
 			ClassName.NoPutResultSet, nargs);
 
+        if (fetchRowId) {
+            acb.newFieldDeclaration(Modifier.PRIVATE,
+                    ClassName.CursorResultSet,
+                    acb.newRowLocationScanResultSetName());
+        }
 		/* If this table is the target of an update or a delete, then we must 
 		 * wrap the Expression up in an assignment expression before 
 		 * returning.
@@ -3080,7 +3090,7 @@ public class FromBaseTable extends FromTable {
 		 * we invoke the appropriate method.
 		 *										(call to the ResultSetFactory)
 		 */
-		if ((updateOrDelete == UPDATE) || (updateOrDelete == DELETE))
+		if ((updateOrDelete == UPDATE) || (updateOrDelete == DELETE) || fetchRowId)
 		{
 			mb.cast(ClassName.CursorResultSet);
 			mb.putField(acb.getRowLocationScanResultSetName(), ClassName.CursorResultSet);
@@ -4530,6 +4540,10 @@ public class FromBaseTable extends FromTable {
             }
         }
         return (qualifiedIndexes > 0);
+    }
+
+    public void setFetchRowId(boolean fetch) {
+        fetchRowId = fetch;
     }
 /*
     public ConstantAction makeConstantAction() throws StandardException {

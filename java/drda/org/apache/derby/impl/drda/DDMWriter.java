@@ -36,11 +36,13 @@ import java.sql.DataTruncation;
 import java.sql.SQLException;
 import java.util.Arrays;
 
+import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.DRDAConstants;
 import org.apache.derby.iapi.reference.Property;
 import org.apache.derby.iapi.services.property.PropertyUtil;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.services.io.DynamicByteArrayOutputStream;
+import org.apache.derby.iapi.types.RowLocation;
 
 /**
 	The DDMWriter is used to write DRDA protocol.   The DRDA Protocol is
@@ -1340,6 +1342,21 @@ class DDMWriter
 		}
 	}
 
+    protected void writeRowId(Object obj, int index) throws DRDAProtocolException{
+
+        try {
+            RowLocation rowLocation = (RowLocation) obj;
+            byte[] buf = rowLocation.getBytes();
+            int writeLen = buf.length;
+
+            writeShort(writeLen);
+
+            writeBytes(buf, 0, writeLen);
+        } catch (Exception e) {
+            agent.markCommunicationsFailure
+                    ( e,"DDMWriter.writeRowId()", "", e.getMessage(), "" );
+        }
+    }
 	/**
 	 * Write pad bytes using spaceChar
 	 *

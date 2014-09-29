@@ -8061,6 +8061,9 @@ class DRDAConnThread extends Thread {
 				case DRDAConstants.DRDA_TYPE_NUDT:
 					writer.writeUDT( val, index );
 					break;
+                case DRDAConstants.DRDA_TYPE_NROWID:
+                    writer.writeRowId(val, index);
+                    break;
 				default:
 					if (SanityManager.DEBUG) 
 						trace("ndrdaType is: "+ndrdaType);

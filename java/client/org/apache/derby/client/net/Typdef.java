@@ -714,8 +714,8 @@ public class Typdef implements java.lang.Cloneable {
         0x00,
         0x00,
         0x00,
-        0x00,
-        0x00,
+        java.sql.Types.ROWID,
+        java.sql.Types.ROWID,
         java.sql.Types.DATE, // 0x20 Date
         java.sql.Types.DATE, // 0x21 null Date
         java.sql.Types.TIME, // 0x22 Time

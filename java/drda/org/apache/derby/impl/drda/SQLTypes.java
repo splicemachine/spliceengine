@@ -199,11 +199,13 @@ class SQLTypes {
 			  return DRDAConstants.DB2_SQLTYPE_CLOB + nullAddVal;
 		  case java.sql.Types.LONGVARCHAR:
 			  return DRDAConstants.DB2_SQLTYPE_LONG + nullAddVal;
+
+          case java.sql.Types.REF:
+              return DRDAConstants.DB2_SQLTYPE_LONG + nullAddVal;
 		  case java.sql.Types.ARRAY:
 		  case java.sql.Types.DISTINCT:
 		  case java.sql.Types.NULL:
 		  case java.sql.Types.OTHER:
-		  case java.sql.Types.REF:
 		  case java.sql.Types.STRUCT:
 			  throw new SQLException("Jdbc type" + jdbctype + "not Supported yet");
 			default:
