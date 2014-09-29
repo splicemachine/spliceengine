@@ -44,8 +44,8 @@ public class ExportNode extends DMLStatementNode {
         List argsList = (List) argumentsVector;
         this.node = (StatementNode) statementNode;
         try {
-            this.fileSystem = stringValue(argsList.get(0));
-            this.exportPath = stringValue(argsList.get(1));
+            this.exportPath = stringValue(argsList.get(0));
+            this.fileSystem = stringValue(argsList.get(1));
             this.replicationCount = intValue(argsList.get(2));
             this.encoding = stringValue(argsList.get(3));
             this.fieldSeparator = stringValue(argsList.get(4));
