@@ -686,6 +686,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             /*
 			** Create an aggregator result expression
              */
+            // FIXME: this result column... See aggRCL below...
             ResultColumn aggResultRC = (ResultColumn) getNodeFactory().getNode(
                 C_NodeTypes.RESULT_COLUMN,
                 "##WindowExpression",
@@ -707,7 +708,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             ResultColumnList aggRCL = (ResultColumnList) getNodeFactory().getNode(
                 C_NodeTypes.RESULT_COLUMN_LIST,
                 getContextManager());
-            aggRCL.addElement(aggResultRC);
+                aggRCL.addElement(tmpRC);
 
 			/*
 			** Note that the column ids in the row are 1-based

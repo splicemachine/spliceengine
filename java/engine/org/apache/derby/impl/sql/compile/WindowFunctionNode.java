@@ -163,7 +163,7 @@ public abstract class WindowFunctionNode extends AggregateNode {
 
             resultColumns[i] = (ResultColumn) getNodeFactory().getNode(
                 C_NodeTypes.RESULT_COLUMN,
-                "##aggregate expression",
+                "##WindowExpression",
                 node,
                 getContextManager());
         }
