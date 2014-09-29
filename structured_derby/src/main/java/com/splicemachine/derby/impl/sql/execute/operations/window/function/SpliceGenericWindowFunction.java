@@ -93,25 +93,15 @@ public abstract class SpliceGenericWindowFunction implements WindowFunction {
             // left is larger
             return 1;
         }
-        int largest = findLargestSize(left, right);
-        int comp = 0;
-        int previous = 0;
-        for (int i=0; i<largest; i++) {
-            if (left.length < largest) {
-                // order empty left side smaller
-                comp = -1;
-                break;
-            } else if (right.length < largest) {
-                // order empty right side larger
-                comp = 1;
-                break;
-            } else {
-                comp = left[i].compare(right[i]);
-                if (previous != comp) {
-                    break;
-                }
+        if (left.length != right.length) {
+            return left.length - right.length;
+        }
+        int comp =0;
+        for (int i=0; i<left.length; i++) {
+            comp = left[i].compare(right[i]);
+            if (comp != 0) {
+                return comp;
             }
-            previous = comp;
         }
         return comp;
     }
