@@ -176,7 +176,7 @@ public class ExportOperationIT {
 
     private String buildExportSQL(String selectQuery, ExportFileSystemType fileSystemType, String fieldDelimiter) {
         String exportPath = temporaryFolder.getRoot().getAbsolutePath();
-        return String.format("EXPORT('%s', '%s', 3, NULL, '%s', NULL)", fileSystemType, exportPath, fieldDelimiter) + " " + selectQuery;
+        return String.format("EXPORT('%s', '%s', 3, NULL, '%s', NULL)", exportPath, fileSystemType, fieldDelimiter) + " " + selectQuery;
     }
 
     private void exportAndAssertExportResults(String exportSQL, long expectedExportRowCount) throws Exception {

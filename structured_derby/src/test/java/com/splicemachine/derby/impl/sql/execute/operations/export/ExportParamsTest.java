@@ -33,4 +33,42 @@ public class ExportParamsTest {
         assertEquals('"', exportParams.getQuoteChar());
     }
 
+    @Test
+    public void constructor_badExportDirectory() {
+        try {
+            new ExportParams(null, "local", 1, "UTF-8", ",", null);
+        } catch (Exception e) {
+            assertEquals(" export directory is required", e.getMessage());
+        }
+    }
+
+    @Test
+    public void constructor_badFileSystemType() {
+        try {
+            new ExportParams("/dir", "badFileSystemType", 1, "UTF-8", ",", null);
+        } catch (Exception e) {
+            assertEquals(" invalid file system type 'badFileSystemType', valid values are: HDFS, LOCAL", e.getMessage());
+        }
+    }
+
+    @Test
+    public void constructor_badFieldDelimiter() {
+        try {
+            new ExportParams("/dir", "LOCAL", 1, "UTF-8", ",,,", null);
+        } catch (Exception e) {
+            assertEquals(" field delimiter must be a single character", e.getMessage());
+        }
+    }
+
+
+    @Test
+    public void constructor_badQuoteCharacter() {
+        try {
+            new ExportParams("/dir", "LOCAL", 1, "UTF-8", ",", "||||");
+        } catch (Exception e) {
+            assertEquals(" quote character must be a single character", e.getMessage());
+        }
+    }
+
+
 }

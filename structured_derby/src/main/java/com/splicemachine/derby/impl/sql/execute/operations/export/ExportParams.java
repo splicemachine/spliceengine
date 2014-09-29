@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations.export;
 
 import com.google.common.base.Charsets;
+import com.google.common.base.Joiner;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -87,7 +88,8 @@ public class ExportParams {
     private void setFileSystemType(String fileSystemType) {
         if (!isNullOrEmpty(fileSystemType)) {
             checkArgument(ExportFileSystemType.isValid(fileSystemType.toUpperCase()),
-                    " invalid file system type '%s', valid values are '%s'", fileSystemType, ExportFileSystemType.values());
+                    " invalid file system type '%s', valid values are: %s", fileSystemType,
+                    Joiner.on(", ").join(ExportFileSystemType.values()));
             this.fileSystemType = ExportFileSystemType.valueOf(fileSystemType.toUpperCase());
         }
     }
