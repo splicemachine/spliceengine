@@ -2,6 +2,7 @@ package org.apache.derby.impl.sql.compile;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.ClassName;
+import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.classfile.VMOpcode;
 import org.apache.derby.iapi.services.compiler.MethodBuilder;
 import org.apache.derby.iapi.sql.ResultColumnDescriptor;
@@ -15,10 +16,14 @@ import java.util.List;
 
 /**
  * Export Node
- * <p/>
- * EXAMPLE: export select a, b, sqrt(c) from table1 where a > 100;
+ *
+ * EXAMPLE:
+ *
+ * EXPORT('/dir', 'hdfs', 3, 'utf-8', ',', '"') select a, b, sqrt(c) from table1 where a > 100;
  */
 public class ExportNode extends DMLStatementNode {
+
+    private static final int EXPECTED_ARGUMENT_COUNT = 6;
 
     private StatementNode node;
     /* HDFS, local, etc */
@@ -40,7 +45,10 @@ public class ExportNode extends DMLStatementNode {
     }
 
     @Override
-    public void init(Object statementNode, Object argumentsVector) {
+    public void init(Object statementNode, Object argumentsVector) throws StandardException {
+        if (!(argumentsVector instanceof List) || ((List) argumentsVector).size() != EXPECTED_ARGUMENT_COUNT) {
+            throw StandardException.newException(SQLState.LANG_DB2_NUMBER_OF_ARGS_INVALID, "EXPORT");
+        }
         List argsList = (List) argumentsVector;
         this.node = (StatementNode) statementNode;
         try {
