@@ -1,11 +1,15 @@
 package com.splicemachine.derby.impl.sql.execute.operations.export;
 
 import com.google.common.base.Charsets;
+import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 
 import java.nio.charset.Charset;
 import java.nio.charset.UnsupportedCharsetException;
+
+import static org.apache.commons.lang.StringUtils.isBlank;
+import static org.apache.commons.lang.StringUtils.isEmpty;
 
 /**
  * Represents the user provided parameters of a given export.
@@ -37,8 +41,8 @@ public class ExportParams {
         setFileSystemType(fileSystemType);
         setReplicationCount((short) replicationCount);
         setCharacterEncoding(characterEncoding);
-        setDefaultFieldDelimiter(fieldDelimiter);
-        setQuoteChar(quoteChar);
+        setDefaultFieldDelimiter(StringEscapeUtils.unescapeJava(fieldDelimiter));
+        setQuoteChar(StringEscapeUtils.unescapeJava(quoteChar));
     }
 
     /**
@@ -83,12 +87,12 @@ public class ExportParams {
     // - - - - - - - - - - -
 
     private void setDirectory(String directory) throws StandardException {
-        checkArgument(!isNullOrEmpty(directory), "export path", directory);
+        checkArgument(!isBlank(directory), "export path", directory);
         this.directory = directory;
     }
 
     private void setFileSystemType(String fileSystemType) throws StandardException {
-        if (!isNullOrEmpty(fileSystemType)) {
+        if (!isBlank(fileSystemType)) {
             checkArgument(ExportFileSystemType.isValid(fileSystemType.toUpperCase()), "file system type", fileSystemType);
             this.fileSystemType = ExportFileSystemType.valueOf(fileSystemType.toUpperCase());
         }
@@ -101,21 +105,21 @@ public class ExportParams {
     }
 
     public void setCharacterEncoding(String characterEncoding) throws StandardException {
-        if (!isNullOrEmpty(characterEncoding)) {
+        if (!isBlank(characterEncoding)) {
             checkArgument(isValidCharacterSet(characterEncoding), "encoding", characterEncoding);
             this.characterEncoding = characterEncoding;
         }
     }
 
     public void setDefaultFieldDelimiter(String fieldDelimiter) throws StandardException {
-        if (!isNullOrEmpty(fieldDelimiter)) {
+        if (!isEmpty(fieldDelimiter)) {
             checkArgument(fieldDelimiter.length() == 1, "field delimiter", fieldDelimiter);
             this.fieldDelimiter = fieldDelimiter.charAt(0);
         }
     }
 
     public void setQuoteChar(String quoteChar) throws StandardException {
-        if (!isNullOrEmpty(quoteChar)) {
+        if (!isEmpty(quoteChar)) {
             checkArgument(quoteChar.length() == 1, "quote character", quoteChar);
             this.quoteChar = quoteChar.charAt(0);
         }
@@ -129,14 +133,11 @@ public class ExportParams {
 
     public static boolean isValidCharacterSet(String charSet) {
         try {
-            return Charset.forName(charSet) != null;
+            Charset.forName(charSet);
         } catch (UnsupportedCharsetException e) {
             return false;
         }
-    }
-
-    private static boolean isNullOrEmpty(String directory) {
-        return directory == null || directory.trim().length() == 0;
+        return true;
     }
 
 }

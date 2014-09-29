@@ -36,6 +36,25 @@ public class ExportParamsTest {
     }
 
     @Test
+    public void constructor_whileSpaceDelimitersAreAllowed() throws StandardException {
+        ExportParams exportParams = new ExportParams("/dir", null, -1, null, " ", " ");
+        assertEquals(' ', exportParams.getFieldDelimiter());
+        assertEquals(' ', exportParams.getQuoteChar());
+    }
+
+    @Test
+    public void constructor_usingJavaEscapeSequencesToDesignateArbitraryUnicodeCharactersForDelimiters() throws StandardException {
+
+        ExportParams params1 = new ExportParams("/dir", null, -1, null, "\\t", "\\n");
+        assertEquals("\t".charAt(0), params1.getFieldDelimiter());
+        assertEquals("\n".charAt(0), params1.getQuoteChar());
+
+        ExportParams params2 = new ExportParams("/dir", null, -1, null, "\\u0300", "\\u0400");
+        assertEquals('\u0300', params2.getFieldDelimiter());
+        assertEquals('\u0400', params2.getQuoteChar());
+    }
+
+    @Test
     public void constructor_badExportDirectory() {
         try {
             new ExportParams(null, "local", 1, "UTF-8", ",", null);
