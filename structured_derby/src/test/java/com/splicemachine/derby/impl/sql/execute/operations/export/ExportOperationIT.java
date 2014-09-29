@@ -114,6 +114,29 @@ public class ExportOperationIT {
     }
 
     @Test
+    public void exportToLocalFileSystem_withTabs() throws Exception {
+
+        new TableCreator(methodWatcher.getOrCreateConnection())
+                .withCreate("create table tabs(a smallint,b double, c time,d varchar(20))")
+                .withInsert("insert into tabs values(?,?,?,?)")
+                .withRows(getTestRows()).create();
+
+        String exportSQL = buildExportSQL("select * from tabs", ExportFileSystemType.LOCAL, "\\t");
+
+        exportAndAssertExportResults(exportSQL, 6);
+        File[] files = temporaryFolder.getRoot().listFiles(new PatternFilenameFilter(".*csv"));
+        assertEquals(1, files.length);
+        assertEquals("" +
+                        "25\t3.14159\t14:31:20\tvarchar1\n" +
+                        "26\t3.14159\t14:31:20\tvarchar1\n" +
+                        "27\t3.14159\t14:31:20\tvarchar1 space\n" +
+                        "28\t3.14159\t14:31:20\tvarchar1 , comma\n" +
+                        "29\t3.14159\t14:31:20\t\"varchar1 \"\" quote\"\n" +
+                        "30\t3.14159\t14:31:20\tvarchar1\n",
+                Files.toString(files[0], Charsets.UTF_8));
+    }
+
+    @Test
     public void exportEmptyTableDoesNotBlowup() throws Exception {
         methodWatcher.executeUpdate("create table empty (a int)");
         String exportSQL = buildExportSQL("select * from empty");
