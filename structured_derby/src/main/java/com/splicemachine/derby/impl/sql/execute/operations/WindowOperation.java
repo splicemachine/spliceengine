@@ -194,6 +194,7 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
         Scan reduceScan;
 
         try {
+            // FIXME: in order to use "range" array we need to actually write to bucketed TEMP
             byte[] range = new byte[uniqueId.length+1];
             range[0] = spliceRuntimeContext.getHashBucket();
             System.arraycopy(uniqueId,0,range,1,uniqueId.length);
