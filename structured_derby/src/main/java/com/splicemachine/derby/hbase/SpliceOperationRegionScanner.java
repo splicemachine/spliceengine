@@ -193,21 +193,21 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 		@Override
 		public void close() throws IOException {
 				SpliceLogUtils.trace(LOG, "close");
-        //record statistics info
-        if(spliceRuntimeContext.shouldRecordTraceMetrics() && !metricsReported){
-            String hostName = InetAddress.getLocalHost().getHostName(); //TODO -sf- this may not be correct
-            List<OperationRuntimeStats> stats = OperationRuntimeStats.getOperationStats(
-                    topOperation,SpliceDriver.driver().getUUIDGenerator().nextUUID(),
-                    topOperation.getStatementId(), WriteStats.NOOP_WRITE_STATS,
-                    Metrics.noOpTimeView(),spliceRuntimeContext);
-            XplainTaskReporter reporter = SpliceDriver.driver().getTaskReporter();
-            for(OperationRuntimeStats opStats:stats){
-                opStats.setHostName(hostName);
-
-                reporter.report(opStats,spliceRuntimeContext.getTxn());
-            }
-            metricsReported = true;
-        }
+//        //record statistics info
+//        if(spliceRuntimeContext.shouldRecordTraceMetrics() && !metricsReported){
+//            String hostName = InetAddress.getLocalHost().getHostName(); //TODO -sf- this may not be correct
+//            List<OperationRuntimeStats> stats = OperationRuntimeStats.getOperationStats(
+//                    topOperation,SpliceDriver.driver().getUUIDGenerator().nextUUID(),
+//                    topOperation.getStatementId(), WriteStats.NOOP_WRITE_STATS,
+//                    Metrics.noOpTimeView(),spliceRuntimeContext);
+//            XplainTaskReporter reporter = SpliceDriver.driver().getTaskReporter();
+//            for(OperationRuntimeStats opStats:stats){
+//                opStats.setHostName(hostName);
+//
+//                reporter.report(opStats,spliceRuntimeContext.getTxn());
+//            }
+//            metricsReported = true;
+//        }
         try {
             try {
                 topOperation.close();
