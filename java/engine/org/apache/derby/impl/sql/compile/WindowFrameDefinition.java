@@ -189,5 +189,27 @@ public class WindowFrameDefinition extends QueryTreeNode implements Serializable
     public void setFrameMode(FrameMode mode) {
         frameMode = mode;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        WindowFrameDefinition that = (WindowFrameDefinition) o;
+
+        if (frameEnd != null ? !frameEnd.equals(that.frameEnd) : that.frameEnd != null) return false;
+        if (frameMode != that.frameMode) return false;
+        if (frameStart != null ? !frameStart.equals(that.frameStart) : that.frameStart != null) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = frameMode != null ? frameMode.hashCode() : 0;
+        result = 31 * result + (frameStart != null ? frameStart.hashCode() : 0);
+        result = 31 * result + (frameEnd != null ? frameEnd.hashCode() : 0);
+        return result;
+    }
 }
 

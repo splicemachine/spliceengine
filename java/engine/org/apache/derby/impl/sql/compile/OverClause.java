@@ -95,11 +95,12 @@ public class OverClause extends QueryTreeNode {
 
         OverClause that = (OverClause) o;
 
-        if (!frameDefinition.equals(that.frameDefinition)) return false;
-        if (orderByClause != null ? !orderByClause.equals(that.orderByClause) : that.orderByClause != null) return false;
-        if (partition != null ? !partition.equals(that.partition) : that.partition != null) return false;
-
-        return true;
+        try {
+            return isEquivalent(that);
+        } catch (StandardException e) {
+            // ignore
+        }
+        return false;
     }
 
     @Override
@@ -109,8 +110,18 @@ public class OverClause extends QueryTreeNode {
 
     private int calculateHashCode() {
         int result = partition != null ? partition.hashCode() : 0;
-        result = 31 * result + (orderByClause != null ? orderByClause.hashCode() : 0);
+        result = 31 * result + (orderByClause != null ? orderByHashcode() : 0);
         result = 31 * result + frameDefinition.hashCode();
+        return result;
+    }
+
+    private int orderByHashcode() {
+        int result = 31;
+        for (int i=0; i<orderByClause.size(); i++) {
+            result = 31 * result +
+                (this.orderByClause.getOrderByColumn(i).getColumnExpression().getColumnName() == null ? 0 :
+                    this. orderByClause.getOrderByColumn(i).getColumnExpression().getColumnName().hashCode());
+        }
         return result;
     }
 
@@ -137,8 +148,8 @@ public class OverClause extends QueryTreeNode {
         if (thisOne.size() != thatOne.size()) return false;
 
         for (int i=0; i<thatOne.size(); i++) {
-            ResultColumn thisResultCol = thisOne.getOrderByColumn(i).getResultColumn();
-            ResultColumn thatResultCol = thatOne.getOrderByColumn(i).getResultColumn();
+            ValueNode thisResultCol = thisOne.getOrderByColumn(i).getColumnExpression();
+            ValueNode thatResultCol = thatOne.getOrderByColumn(i).getColumnExpression();
             if (thisResultCol != null) {
                 if (thatResultCol != null) {
                     if (!thisResultCol.isEquivalent(thatResultCol)) {

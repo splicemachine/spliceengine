@@ -683,22 +683,21 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             newRC.setVirtualColumnId(bottomRCL.size());
             int aggregatorVColId = newRC.getVirtualColumnId();
 
-            /*
-			** Create an aggregator result expression
-             */
-            // FIXME: this result column... See aggRCL below...
-            ResultColumn aggResultRC = (ResultColumn) getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN,
-                "##WindowExpression",
-                windowFunctionNode.getNewNullResultExpression(),
-                getContextManager());
-
 			/*
 			** Add a reference to this column in the partition RCL.
 			*/
             tmpRC = getColumnReference(newRC, dd);
             windowingRCL.addElement(tmpRC);
             tmpRC.setVirtualColumnId(windowingRCL.size());
+
+            /*
+			** Create an aggregator result expression
+             */
+            ResultColumn aggResultRC = (ResultColumn) getNodeFactory().getNode(
+                C_NodeTypes.RESULT_COLUMN,
+                "##WindowAggregatorResult",
+                windowFunctionNode.getNewNullResultExpression(),
+                getContextManager());
 
 			/*
 			** Piece together a fake one column rcl that we will use
@@ -708,7 +707,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             ResultColumnList aggRCL = (ResultColumnList) getNodeFactory().getNode(
                 C_NodeTypes.RESULT_COLUMN_LIST,
                 getContextManager());
-                aggRCL.addElement(tmpRC);
+            aggRCL.addElement(aggResultRC);
 
 			/*
 			** Note that the column ids in the row are 1-based

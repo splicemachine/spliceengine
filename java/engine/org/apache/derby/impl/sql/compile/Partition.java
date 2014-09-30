@@ -44,6 +44,28 @@ public class Partition extends GroupByList {
     }
 
     @Override
+    public int hashCode() {
+        int result = 31;
+        for (int i=0; i<size(); i++) {
+            result = 31 * result +
+                (this.getGroupByColumn(i).getColumnExpression().getColumnName() == null ? 0 :
+                    this.getGroupByColumn(i).getColumnExpression().getColumnName().hashCode());
+        }
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        try {
+            return isEquivalent((Partition) o);
+        } catch (StandardException e) {
+            // ignore
+        }
+        return false;
+    }
+
+    @Override
     public String toString() {
         StringBuilder buf = new StringBuilder("\n");
         for (int i=0; i<size(); ++i) {
