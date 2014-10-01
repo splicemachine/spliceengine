@@ -298,8 +298,10 @@ public class LongKeyedCache<T> {
 				     *  remains accurate by decrementing the size element by one.
 				     */
             clear();
-            next.prev = prev;
-            prev.next = next;
+            if(next!=null)
+                next.prev = prev;
+            if(prev!=null)
+                prev.next = next;
             size--;
             evictedCounter.increment(); //maintain eviction stats for memory evictions
         }
