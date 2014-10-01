@@ -2,17 +2,14 @@ How to Build Derby For Splice Machine.
 
 1.  Build the code.
 	ant clean buildsource testing buildjars
-4.  Go into maven2 directory.
+2.  Go into maven2 directory.
 	cd maven2
-5.  Install Locally to your own Maven Repo
-	./SpliceBuild.sh 'gpg passphrase'
-6.  Push to nexus
-	./SpliceDeploy.sh 'gpg passphrase'
+3.  Install Locally to your own Maven Repo
+	mvn clean install
 
 SpliceDeploy2.sh on build server...	
 	
 GPG Explanation
-
 http://www.sonatype.com/people/2010/01/how-to-generate-pgp-signatures-with-maven/
 
 

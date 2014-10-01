@@ -1,33 +1,40 @@
 #!/bin/sh
 
-if [ "$#" -eq 1 ]; then
-  echo "Running Splice Derby Build"
-else
-  echo "You did not enter the passphrase for gpg signing" && exit 1	
-fi
+# REPO_URL="http://nexus.splicemachine.com/nexus/content/repositories/releases/"
+REPO_URL="scp://nexus.splicemachine.com/usr/local/sonatype-work/nexus/storage/snapshots/"
+REPO_ID="splicemachine"
+VER="10.9.1.0-splice-SNAPSHOT"
+GROUPID="org.apache.derby"
 
-mvn clean
-mvn -Dgpg.passphrase="$1" install
-mvn deploy:deploy-file -Dfile=client/target/derbyclient-10.9.1.0-splice.jar -Durl=scp://nexus.splicemachine.com/usr/local/sonatype-work/nexus/storage/snapshots/ -DgroupId=org.apache.derby -DartifactId=derbyclient -Dversion=10.9.1.0-splice -Dpackaging=jar -DrepositoryId=splicemachine -DuniqueVersion=true
-mvn deploy:deploy-file -Dfile=client/target/derbyclient-10.9.1.0-splice-sources.jar -Durl=scp://nexus.splicemachine.com/usr/local/sonatype-work/nexus/storage/snapshots/ -DgroupId=org.apache.derby -DartifactId=derbyclient -Dversion=10.9.1.0-splice -Dclassifier=sources -Dpackaging=jar -DrepositoryId=splicemachine -DuniqueVersion=true
-mvn deploy:deploy-file -Dfile=derbyLocale_cs/target/derbyLocale_cs-10.9.1.0-splice.jar -Durl=scp://nexus.splicemachine.com/usr/local/sonatype-work/nexus/storage/snapshots/ -DgroupId=org.apache.derby -DartifactId=derbyLocale_cs -Dversion=10.9.1.0-splice -Dpackaging=jar -DrepositoryId=splicemachine -DuniqueVersion=true
-mvn deploy:deploy-file -Dfile=derbyLocale_de_DE/target/derbyLocale_de_DE-10.9.1.0-splice.jar -Durl=scp://nexus.splicemachine.com/usr/local/sonatype-work/nexus/storage/snapshots/ -DgroupId=org.apache.derby -DartifactId=derbyLocale_de_DE -Dversion=10.9.1.0-splice -Dpackaging=jar -DrepositoryId=splicemachine -DuniqueVersion=true
-mvn deploy:deploy-file -Dfile=derbyLocale_es/target/derbyLocale_es-10.9.1.0-splice.jar -Durl=scp://nexus.splicemachine.com/usr/local/sonatype-work/nexus/storage/snapshots/ -DgroupId=org.apache.derby -DartifactId=derbyLocale_es -Dversion=10.9.1.0-splice -Dpackaging=jar -DrepositoryId=splicemachine -DuniqueVersion=true
-mvn deploy:deploy-file -Dfile=derbyLocale_fr/target/derbyLocale_fr-10.9.1.0-splice.jar -Durl=scp://nexus.splicemachine.com/usr/local/sonatype-work/nexus/storage/snapshots/ -DgroupId=org.apache.derby -DartifactId=derbyLocale_fr -Dversion=10.9.1.0-splice -Dpackaging=jar -DrepositoryId=splicemachine -DuniqueVersion=true
-mvn deploy:deploy-file -Dfile=derbyLocale_hu/target/derbyLocale_hu-10.9.1.0-splice.jar -Durl=scp://nexus.splicemachine.com/usr/local/sonatype-work/nexus/storage/snapshots/ -DgroupId=org.apache.derby -DartifactId=derbyLocale_hu -Dversion=10.9.1.0-splice -Dpackaging=jar -DrepositoryId=splicemachine -DuniqueVersion=true
-mvn deploy:deploy-file -Dfile=derbyLocale_it/target/derbyLocale_it-10.9.1.0-splice.jar -Durl=scp://nexus.splicemachine.com/usr/local/sonatype-work/nexus/storage/snapshots/ -DgroupId=org.apache.derby -DartifactId=derbyLocale_it -Dversion=10.9.1.0-splice -Dpackaging=jar -DrepositoryId=splicemachine -DuniqueVersion=true
-mvn deploy:deploy-file -Dfile=derbyLocale_ja_JP/target/derbyLocale_ja_JP-10.9.1.0-splice.jar -Durl=scp://nexus.splicemachine.com/usr/local/sonatype-work/nexus/storage/snapshots/ -DgroupId=org.apache.derby -DartifactId=derbyLocale_ja_JP -Dversion=10.9.1.0-splice -Dpackaging=jar -DrepositoryId=splicemachine -DuniqueVersion=true
-mvn deploy:deploy-file -Dfile=derbyLocale_ko_KR/target/derbyLocale_ko_KR-10.9.1.0-splice.jar -Durl=scp://nexus.splicemachine.com/usr/local/sonatype-work/nexus/storage/snapshots/ -DgroupId=org.apache.derby -DartifactId=derbyLocale_ko_KR -Dversion=10.9.1.0-splice -Dpackaging=jar -DrepositoryId=splicemachine -DuniqueVersion=true
-mvn deploy:deploy-file -Dfile=derbyLocale_pl/target/derbyLocale_pl-10.9.1.0-splice.jar -Durl=scp://nexus.splicemachine.com/usr/local/sonatype-work/nexus/storage/snapshots/ -DgroupId=org.apache.derby -DartifactId=derbyLocale_pl -Dversion=10.9.1.0-splice -Dpackaging=jar -DrepositoryId=splicemachine -DuniqueVersion=true
-mvn deploy:deploy-file -Dfile=derbyLocale_pt_BR/target/derbyLocale_pt_BR-10.9.1.0-splice.jar -Durl=scp://nexus.splicemachine.com/usr/local/sonatype-work/nexus/storage/snapshots/ -DgroupId=org.apache.derby -DartifactId=derbyLocale_pt_BR -Dversion=10.9.1.0-splice -Dpackaging=jar -DrepositoryId=splicemachine -DuniqueVersion=true
-mvn deploy:deploy-file -Dfile=derbyLocale_ru/target/derbyLocale_ru-10.9.1.0-splice.jar -Durl=scp://nexus.splicemachine.com/usr/local/sonatype-work/nexus/storage/snapshots/ -DgroupId=org.apache.derby -DartifactId=derbyLocale_ru -Dversion=10.9.1.0-splice -Dpackaging=jar -DrepositoryId=splicemachine -DuniqueVersion=true
-mvn deploy:deploy-file -Dfile=derbyLocale_zh_CN/target/derbyLocale_zh_CN-10.9.1.0-splice.jar -Durl=scp://nexus.splicemachine.com/usr/local/sonatype-work/nexus/storage/snapshots/ -DgroupId=org.apache.derby -DartifactId=derbyLocale_zh_CN -Dversion=10.9.1.0-splice -Dpackaging=jar -DrepositoryId=splicemachine -DuniqueVersion=true
-mvn deploy:deploy-file -Dfile=derbyLocale_zh_TW/target/derbyLocale_zh_TW-10.9.1.0-splice.jar -Durl=scp://nexus.splicemachine.com/usr/local/sonatype-work/nexus/storage/snapshots/ -DgroupId=org.apache.derby -DartifactId=derbyLocale_zh_TW -Dversion=10.9.1.0-splice -Dpackaging=jar -DrepositoryId=splicemachine -DuniqueVersion=true
-mvn deploy:deploy-file -Dfile=engine/target/derby-10.9.1.0-splice.jar -Durl=scp://nexus.splicemachine.com/usr/local/sonatype-work/nexus/storage/snapshots/ -DgroupId=org.apache.derby -DartifactId=derby -Dversion=10.9.1.0-splice -Dpackaging=jar -DrepositoryId=splicemachine -DuniqueVersion=true
-mvn deploy:deploy-file -Dfile=engine/target/derby-10.9.1.0-splice-sources.jar -Durl=scp://nexus.splicemachine.com/usr/local/sonatype-work/nexus/storage/snapshots/ -DgroupId=org.apache.derby -DartifactId=derby -Dversion=10.9.1.0-splice -Dclassifier=sources -Dpackaging=jar -DrepositoryId=splicemachine -DuniqueVersion=true
-mvn deploy:deploy-file -Dfile=net/target/derbynet-10.9.1.0-splice.jar -Durl=scp://nexus.splicemachine.com/usr/local/sonatype-work/nexus/storage/snapshots/ -DgroupId=org.apache.derby -DartifactId=derbynet -Dversion=10.9.1.0-splice -Dpackaging=jar -DrepositoryId=splicemachine -DuniqueVersion=true
-mvn deploy:deploy-file -Dfile=net/target/derbynet-10.9.1.0-splice-sources.jar -Durl=scp://nexus.splicemachine.com/usr/local/sonatype-work/nexus/storage/snapshots/ -DgroupId=org.apache.derby -DartifactId=derbynet -Dversion=10.9.1.0-splice -Dclassifier=sources -Dpackaging=jar -DrepositoryId=splicemachine -DuniqueVersion=true
-mvn deploy:deploy-file -Dfile=run/target/derbyrun-10.9.1.0-splice.jar -Durl=scp://nexus.splicemachine.com/usr/local/sonatype-work/nexus/storage/snapshots/ -DgroupId=org.apache.derby -DartifactId=derbyrun -Dversion=10.9.1.0-splice -Dpackaging=jar -DrepositoryId=splicemachine -DuniqueVersion=true
-mvn deploy:deploy-file -Dfile=testing/target/derbyTesting-10.9.1.0-splice.jar -Durl=scp://nexus.splicemachine.com/usr/local/sonatype-work/nexus/storage/snapshots/ -DgroupId=org.apache.derby -DartifactId=derbyTesting -Dversion=10.9.1.0-splice -Dpackaging=jar -DrepositoryId=splicemachine -DuniqueVersion=true
-mvn deploy:deploy-file -Dfile=tools/target/derbytools-10.9.1.0-splice.jar -Durl=scp://nexus.splicemachine.com/usr/local/sonatype-work/nexus/storage/snapshots/ -DgroupId=org.apache.derby -DartifactId=derbytools -Dversion=10.9.1.0-splice -Dpackaging=jar -DrepositoryId=splicemachine -DuniqueVersion=true
-mvn deploy:deploy-file -Dfile=tools/target/derbytools-10.9.1.0-splice-sources.jar -Durl=scp://nexus.splicemachine.com/usr/local/sonatype-work/nexus/storage/snapshots/ -DgroupId=org.apache.derby -DartifactId=derbytools -Dversion=10.9.1.0-splice -Dclassifier=sources -Dpackaging=jar -DrepositoryId=splicemachine -DuniqueVersion=true
+CMD_PREFIX="mvn -B deploy:deploy-file -Durl=${REPO_URL} -DgroupId=${GROUPID} -Dversion=${VER} -Dpackaging=jar -DrepositoryId=${REPO_ID} -DuniqueVersion=true"
+
+mvn -B clean install
+
+${CMD_PREFIX} -Dfile=client/target/derbyclient-${VER}.jar                   -DartifactId=derbyclient
+${CMD_PREFIX} -Dfile=client/target/derbyclient-${VER}-sources.jar           -DartifactId=derbyclient -Dclassifier=sources
+
+${CMD_PREFIX} -Dfile=engine/target/derby-${VER}.jar                         -DartifactId=derby
+${CMD_PREFIX} -Dfile=engine/target/derby-${VER}-sources.jar                 -DartifactId=derby -Dclassifier=sources
+
+${CMD_PREFIX} -Dfile=net/target/derbynet-${VER}.jar                         -DartifactId=derbynet
+${CMD_PREFIX} -Dfile=net/target/derbynet-${VER}-sources.jar                 -DartifactId=derbynet -Dclassifier=sources
+
+${CMD_PREFIX} -Dfile=tools/target/derbytools-${VER}.jar                     -DartifactId=derbytools
+${CMD_PREFIX} -Dfile=tools/target/derbytools-${VER}-sources.jar             -DartifactId=derbytools -Dclassifier=sources
+
+${CMD_PREFIX} -Dfile=run/target/derbyrun-${VER}.jar                         -DartifactId=derbyrun
+${CMD_PREFIX} -Dfile=testing/target/derbyTesting-${VER}.jar                 -DartifactId=derbyTesting
+
+${CMD_PREFIX} -Dfile=derbyLocale_cs/target/derbyLocale_cs-${VER}.jar        -DartifactId=derbyLocale_cs
+${CMD_PREFIX} -Dfile=derbyLocale_de_DE/target/derbyLocale_de_DE-${VER}.jar  -DartifactId=derbyLocale_de_DE
+${CMD_PREFIX} -Dfile=derbyLocale_es/target/derbyLocale_es-${VER}.jar        -DartifactId=derbyLocale_es
+${CMD_PREFIX} -Dfile=derbyLocale_fr/target/derbyLocale_fr-${VER}.jar        -DartifactId=derbyLocale_fr
+${CMD_PREFIX} -Dfile=derbyLocale_hu/target/derbyLocale_hu-${VER}.jar        -DartifactId=derbyLocale_hu
+${CMD_PREFIX} -Dfile=derbyLocale_it/target/derbyLocale_it-${VER}.jar        -DartifactId=derbyLocale_it
+${CMD_PREFIX} -Dfile=derbyLocale_ja_JP/target/derbyLocale_ja_JP-${VER}.jar  -DartifactId=derbyLocale_ja_JP
+${CMD_PREFIX} -Dfile=derbyLocale_ko_KR/target/derbyLocale_ko_KR-${VER}.jar  -DartifactId=derbyLocale_ko_KR
+${CMD_PREFIX} -Dfile=derbyLocale_pl/target/derbyLocale_pl-${VER}.jar        -DartifactId=derbyLocale_pl
+${CMD_PREFIX} -Dfile=derbyLocale_pt_BR/target/derbyLocale_pt_BR-${VER}.jar  -DartifactId=derbyLocale_pt_BR
+${CMD_PREFIX} -Dfile=derbyLocale_ru/target/derbyLocale_ru-${VER}.jar        -DartifactId=derbyLocale_ru
+${CMD_PREFIX} -Dfile=derbyLocale_zh_CN/target/derbyLocale_zh_CN-${VER}.jar  -DartifactId=derbyLocale_zh_CN
+${CMD_PREFIX} -Dfile=derbyLocale_zh_TW/target/derbyLocale_zh_TW-${VER}.jar  -DartifactId=derbyLocale_zh_TW
