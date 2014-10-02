@@ -7,6 +7,7 @@ makes a 1 master + 1 region-server cluster available.
 TAR structure:
 
    splicemachine/
+       conf/
        lib/
        bin/
        demodata/
@@ -103,10 +104,15 @@ TAR structure:
 			<includes>
 				<include>info-log4j.properties</include>
 				<include>hbase-log4j.properties</include>
-				<include>splice-site.xml</include>
 			</includes>
 		</fileSet>
-
+                <fileSet>
+                        <directory>conf</directory>
+                        <outputDirectory>splicemachine/conf</outputDirectory>
+                        <includes>
+                                <include>splice-site.xml</include>
+                        </includes>
+		</fileSet>
 		<!-- splice_web project -->
 		<fileSet>
 			<directory>../splice_web/target</directory>

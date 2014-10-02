@@ -89,7 +89,10 @@ fi
 
 currentDateTime=$(date +'%m-%d-%Y:%H:%M:%S')
 echo "=== Running with hbase profile ${PROFILE} at $currentDateTime ${BUILD_TAG} === " > ${SPLICELOG}
-
+spliceJar=`ls ${ROOT_DIR}/target/splicemachine/lib/splice_machine-*-${PROFILE}.jar`
+cp "${ROOT_DIR}/conf/splice-site.xml" ./
+jar -uf $spliceJar splice-site.xml
+rm splice-site.xml
 export SPLICE_SYS_ARGS="-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4000"
 ZOO_WAIT_TIME=45
 # This is the class we start in dev env

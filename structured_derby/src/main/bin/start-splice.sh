@@ -104,6 +104,11 @@ if [[ ${UNAME} == CYGWIN* ]]; then
 		LOG4J_PATH="file:///$(cygpath --path --windows ${ROOT_DIR}/lib/hbase-log4j.properties)"
     fi
 fi
+# inject splice-site
+spliceJar=$(ls ${ROOT_DIR}/lib | grep splice_machine)
+cp "${ROOT_DIR}/conf/splice-site.xml" ./
+jar -uf ${ROOT_DIR}/lib/$spliceJar splice-site.xml
+rm splice-site.xml
 
 # Start server with retry logic
 ZOO_WAIT_TIME=60
