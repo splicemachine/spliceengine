@@ -37,6 +37,7 @@ import org.apache.derby.iapi.types.*;
 import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.derby.impl.jdbc.EmbedResultSet40;
 import org.apache.derby.impl.sql.GenericColumnDescriptor;
+import org.apache.derby.impl.sql.execute.IteratorNoPutResultSet;
 import org.apache.derby.impl.sql.execute.ValueRow;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;

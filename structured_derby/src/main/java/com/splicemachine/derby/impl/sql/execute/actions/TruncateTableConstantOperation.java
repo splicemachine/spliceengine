@@ -38,10 +38,7 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
      * @param tableConglomerateId    heap conglomerate number of table
      * @param lockGranularity        The lock granularity.
      * @param behavior               drop behavior for dropping column
-     * @param sequential             If compress table/drop column,
-*                               whether or not sequential
      * @param indexNameForStatistics Will name the index whose statistics
-*                               will be updated/dropped. This param is looked at only if
      */
     public TruncateTableConstantOperation(SchemaDescriptor sd,
                                           String tableName,
@@ -49,7 +46,6 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
                                           long tableConglomerateId,
                                           char lockGranularity,
                                           int behavior,
-                                          boolean sequential,
                                           String indexNameForStatistics) {
         super(sd,tableName,tableId,tableConglomerateId,null,null,lockGranularity,behavior,indexNameForStatistics);
     }
@@ -57,26 +53,14 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
 
     @Override
     public void executeConstantAction(Activation activation) throws StandardException {
-        TransactionController userTxnController = activation.getTransactionController();
-        SpliceTransactionManager child = (SpliceTransactionManager)userTxnController.startNestedUserTransaction(false,false);
-        ((SpliceTransaction)child.getRawTransaction()).elevate(Long.toString(tableConglomerateId).getBytes());
-        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
-        lcc.pushNestedTransaction(child);
-        try {
-            //body is executing inside of a child transaction now
-            doTruncate(activation);
-        } catch(StandardException se){
-            child.abort();
-            throw se;
-        }finally{
-            lcc.popNestedTransaction();
-        }
-        child.commit();
+        doTruncate(activation);
     }
 
     private void doTruncate(Activation activation) throws StandardException{
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();
+        //tell the data dictionary that we are going to be writing some data
+        dd.startWriting(lcc);
 
         TableDescriptor td = getTableDescriptor(dd);
         dd.getDependencyManager().invalidateFor(td, DependencyManager.TRUNCATE_TABLE,lcc);
