@@ -1,21 +1,38 @@
 package com.splicemachine.derby.impl.ast;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import com.google.common.base.Function;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.splicemachine.derby.impl.sql.compile.SortState;
-
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.compile.Visitable;
 import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
-import org.apache.derby.impl.sql.compile.*;
+import org.apache.derby.impl.sql.compile.DMLStatementNode;
+import org.apache.derby.impl.sql.compile.ExplainNode;
+import org.apache.derby.impl.sql.compile.FromBaseTable;
+import org.apache.derby.impl.sql.compile.IndexToBaseRowNode;
+import org.apache.derby.impl.sql.compile.JoinNode;
+import org.apache.derby.impl.sql.compile.ProjectRestrictNode;
+import org.apache.derby.impl.sql.compile.ResultColumn;
+import org.apache.derby.impl.sql.compile.ResultColumnList;
+import org.apache.derby.impl.sql.compile.ResultSetNode;
+import org.apache.derby.impl.sql.compile.SubqueryNode;
+import org.apache.derby.impl.sql.compile.WindowResultSetNode;
 import org.apache.hadoop.hbase.util.Pair;
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
-import java.util.*;
+import com.splicemachine.derby.impl.sql.compile.SortState;
 
 
 /**
@@ -29,7 +46,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
 
     public static final String spaces = "  ";
     private boolean explain = false;
-    public static HashMap<String, String[]> planMap = new HashMap<String, String[]>();
+    public static ThreadLocal<HashMap<String, String[]>> planMap = new ThreadLocal<HashMap<String, String[]>>();
 
     // Only visit root node
 
@@ -56,7 +73,13 @@ public class PlanPrinter extends AbstractSpliceVisitor {
                 (rsn = ((DMLStatementNode) node).getResultSetNode()) != null) {
 
             String plan = treeToString(rsn);
-//            planMap.put(query, plan.split("\n"));
+            HashMap<String, String[]> m = planMap.get();
+            if (m == null) {
+                m = new HashMap<String, String[]>();
+                planMap.set(m);
+            }
+            m.put(query, plan.split("\n"));
+
             if (LOG.isInfoEnabled()){
                 LOG.info(String.format("Plan nodes for query <<\n\t%s\n>>\n%s",
                         query, plan));
@@ -98,11 +121,33 @@ public class PlanPrinter extends AbstractSpliceVisitor {
             throws StandardException {
         Map<String,Object> copy = new HashMap<String, Object>(info);
         Object clazz = copy.get("class");
+        Object results = copy.get("results");
         int level = (Integer)copy.get("level");
-        return String.format("%s%s (%s)",
+        return String.format("%s%s (%s) %s",
                 Strings.repeat(spaces, level),
                 clazz,
-                prune(without(copy, "class", "level", "subqueries", "children")));
+                prune(without(copy, "class", "results", "level", "subqueries", "children")),
+                results != null ? printResults(level+2, (List<Map<String, Object>>) results) : "");
+    }
+
+    private static String printResults(int nTimes, List<Map<String, Object>> results)  {
+        String indent = Strings.repeat(spaces, nTimes);
+        StringBuilder buf = new StringBuilder("\n");
+        for (Map<String,Object> row : results) {
+            buf.append(indent).append('{');
+            for (Map.Entry<String,Object> entry : row.entrySet()) {
+                buf.append(entry).append(", ");
+            }
+            if (buf.length() > 2 && buf.charAt(buf.length()-2) == ',') {
+                buf.setLength(buf.length()-2);
+                buf.append("}\n");
+            }
+        }
+        if (buf.length() > 0) {
+            // remove last '\n'
+            buf.setLength(buf.length()-1);
+        }
+        return buf.toString();
     }
 
     public static Map<String,Object> nodeInfo(final ResultSetNode rsn, final int level)
@@ -115,6 +160,11 @@ public class PlanPrinter extends AbstractSpliceVisitor {
         info.put("estRowCount", rsn.getFinalCostEstimate().getEstimatedRowCount());
         info.put("estSingleScanCount", rsn.getFinalCostEstimate().singleScanRowCount());
         info.put("regions", ((SortState) rsn.getFinalCostEstimate()).getNumberOfRegions());
+        if (Level.TRACE.equals(LOG.getLevel())) {
+            // we only want to see exec row info when THIS logger is set to trace:
+            // com.splicemachine.derby.impl.ast.PlanPrinter=TRACE
+            info.put("results", getResultColumnInfo(rsn));
+        }
         List<ResultSetNode> children = RSUtils.getChildren(rsn);
         info.put("children", Lists.transform(children, new Function<ResultSetNode, Map<String,Object>>() {
             @Override
@@ -170,7 +220,28 @@ public class PlanPrinter extends AbstractSpliceVisitor {
             info.put("quals", Lists.transform(JoinSelector.preds(rsn),
                                                 PredicateUtils.predToString));
         }
+        if (rsn instanceof WindowResultSetNode) {
+            info.put("functions",((WindowResultSetNode)rsn).getFunctionNames());
+        }
         return info;
+    }
+
+    public static List<Map<String, Object>> getResultColumnInfo(ResultSetNode rsn) throws StandardException {
+        List<Map<String, Object>> resultColumns = new ArrayList<Map<String, Object>>();
+        ResultColumnList resultColumnList = rsn.getResultColumns();
+        if (resultColumnList != null && resultColumnList.size() > 0) {
+            for (int i=1; i<=resultColumnList.size(); i++) {
+                ResultColumn resultColumn = resultColumnList.getResultColumn(i);
+                Map<String, Object> columnInfo = new LinkedHashMap<String, Object>();
+                if (resultColumn != null) {
+                    columnInfo.put("column", resultColumn.getName());
+                    columnInfo.put("position", resultColumn.getColumnPosition());
+                    columnInfo.put("type", resultColumn.getType());
+                }
+                resultColumns.add(columnInfo);
+            }
+        }
+        return resultColumns;
     }
 
     public static List<Map<String,Object>> linearizeNodeInfoTree(Map<String, Object> info)

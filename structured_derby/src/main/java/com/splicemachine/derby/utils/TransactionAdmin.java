@@ -192,7 +192,8 @@ public class TransactionAdmin {
             new GenericColumnDescriptor("childTxnId", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT))
     };
 
-    public static void SYSCS_START_CHILD_TRANSACTION(long parentTransactionId, ResultSet[] resultSet) throws IOException, SQLException {
+    public static void SYSCS_START_CHILD_TRANSACTION(long parentTransactionId, long conglomId, ResultSet[] resultSet) throws IOException, SQLException {
+
         // Verify the parentTransactionId passed in
         TxnSupplier store = TransactionStorage.getTxnStore();
         TxnView parentTxn = store.getTransaction(parentTransactionId);
@@ -200,10 +201,9 @@ public class TransactionAdmin {
             throw new IllegalArgumentException(String.format("Specified parent transaction id %s not found. Unable to create child transaction.", parentTransactionId));
         }
 
-        //TODO -sf- this needs to add a destination table
         Txn childTxn;
         try {
-            childTxn = TransactionLifecycle.getLifecycleManager().beginChildTransaction(parentTxn,null);
+            childTxn = TransactionLifecycle.getLifecycleManager().beginChildTransaction(parentTxn, Bytes.toBytes(conglomId));
         } catch (IOException e) {
             throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
         }
@@ -220,7 +220,7 @@ public class TransactionAdmin {
         }
         resultSet[0] = new EmbedResultSet40(defaultConn, rs, false, null, true);
     }
-
+    
     /******************************************************************************************************************/
     /*private helper methods*/
     private static void setLong(DataValueDescriptor dvd, Long value) throws StandardException{

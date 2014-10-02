@@ -2,20 +2,13 @@ package com.splicemachine.derby.iapi.sql.execute;
 
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.RecordingCallBuffer;
-import com.splicemachine.si.api.Txn;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 
 import java.io.IOException;
 
 /**
- * User: pjt
- * Date: 6/18/13
- */
-
-/**
- * Interface for SpliceOperations that need to sink rows from their children
- * before computing result rows.
+ * Interface for SpliceOperations that need to sink rows from their children before computing result rows.
  */
 public interface SinkingOperation extends SpliceOperation {
 
@@ -24,15 +17,8 @@ public interface SinkingOperation extends SpliceOperation {
      */
     ExecRow getNextSinkRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException;
 
+    RecordingCallBuffer<KVPair> transformWriteBuffer(RecordingCallBuffer<KVPair> bufferToTransform) throws StandardException;
 
-//		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException;
-
-//		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException;
-
-		RecordingCallBuffer<KVPair> transformWriteBuffer(RecordingCallBuffer<KVPair> bufferToTransform) throws StandardException;
-
-//		void close() throws IOException,StandardException;
-
-		byte[] getUniqueSequenceId();
+    byte[] getUniqueSequenceId();
 
 }

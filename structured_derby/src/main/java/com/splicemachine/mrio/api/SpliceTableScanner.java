@@ -5,14 +5,18 @@
  */
 package com.splicemachine.mrio.api;
 
+import com.carrotsearch.hppc.BitSet;
+import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SIFilterFactory;
+//import com.splicemachine.derby.impl.sql.execute.operations.scanner.ScopedPredicates;
 //import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner.KeyIndex;
 import com.splicemachine.derby.impl.store.ExecRowAccumulator;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
+import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.derby.utils.marshall.dvd.TypeProvider;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
@@ -26,12 +30,13 @@ import com.splicemachine.si.api.SIFilter;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
 import com.splicemachine.si.impl.*;
+import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.storage.EntryAccumulator;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.HasPredicateFilter;
 import com.splicemachine.storage.Indexed;
-import com.splicemachine.storage.index.BitIndex;
+import com.splicemachine.storage.Predicate;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.splicemachine.utils.ByteSlice;
@@ -40,6 +45,7 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.types.BigIntegerDecimal;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
@@ -72,7 +78,6 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.apache.hadoop.hbase.client.Result;
-import org.apache.hive.service.cli.Type;
 
 public class SpliceTableScanner implements StandardIterator<ExecRow>{
 	
@@ -185,7 +190,6 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 			else
 				this.scanFilters = null;
 			if(filterFactory==null){
-				
 					this.filterFactory = new SIFilterFactory() {
 							
 							@SuppressWarnings("unchecked")
@@ -194,22 +198,30 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 													EntryAccumulator accumulator,
 													boolean isCountStar) throws IOException{
 
-
 									Txn baseTxn = ReadOnlyTxn.create(transactionID, Txn.IsolationLevel.SNAPSHOT_ISOLATION,null);
-									TxnFilter iFilterState = HTransactorFactory.getTransactionReadController().newFilterState(null, baseTxn);
-
+									
+									//TxnFilter iFilterState = HTransactorFactory.getTransactionReadController().newFilterState(null, baseTxn);
+									TxnFilter iFilterState = HTransactorFactory.getTransactionReadController().newFilterState(NoOpReadResolver.INSTANCE, baseTxn);
+								
 									HRowAccumulator hRowAccumulator = new HRowAccumulator(predicateFilter, getRowEntryDecoder(), accumulator, isCountStar);
 									
 									return new PackedTxnFilter(iFilterState, hRowAccumulator){
 											@Override
 											public Filter.ReturnCode doAccumulate(KeyValue dataKeyValue) throws IOException {
-												
+													if(!com.splicemachine.hbase.KeyValueUtils.singleMatchingQualifier(dataKeyValue,SpliceConstants.PACKED_COLUMN_BYTES))
+														return Filter.ReturnCode.SKIP;
 													if (!accumulator.isFinished() && accumulator.isOfInterest(dataKeyValue)) {
 																	if (!accumulator.accumulate(dataKeyValue)) {
+																		
 																			return Filter.ReturnCode.NEXT_ROW;
 																	}
-															return Filter.ReturnCode.INCLUDE;
-													}else return Filter.ReturnCode.INCLUDE;
+																	else	
+																		return Filter.ReturnCode.INCLUDE;
+													}else {
+														
+														return Filter.ReturnCode.INCLUDE;
+													
+													}
 											}
 									};
 							}
@@ -224,10 +236,12 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 			this.pkColIds = pkColIds;
 			
 			boolean allNullFlag = true;
+			
 			if(this.template == null){
 				try {
 					data = createDVD();
 					template.setRowArray(data);
+					
 				} catch (StandardException e) {
 					// TODO Auto-generated catch block
 					throw new RuntimeException("Cannot create DataValueDescriptor:"+e);
@@ -243,18 +257,25 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 						break;
 					}
 				}
+				
 			}
 			if(allNullFlag){
+				
 				try {
 					data = createDVD();
+					
 					template.setRowArray(data);
+					
 				} catch (StandardException e) {
 					// TODO Auto-generated catch block
 					throw new RuntimeException("Cannot create DataValueDescriptor:"+e);
 				}
 			}
-			else
+			else{
 				data = template.getRowArray();	
+				
+			}
+			
 			
 	}
 
@@ -267,7 +288,10 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 				dvds[pos] = new SQLDecimal();
 				continue;
 			}
-			
+			if(colTypes.get(pos) == Types.NUMERIC){
+				dvds[pos] = new BigIntegerDecimal();
+				continue;
+			}
 			dvds[pos] = DataTypeDescriptor.getBuiltInDataTypeDescriptor(colTypes.get(pos)).getNull();
 		}
 		return dvds;
@@ -430,12 +454,14 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 	private SIFilter getSIFilter() throws IOException {
 			if(siFilter==null){
 					boolean isCountStar = scan.getAttribute(SIConstants.SI_COUNT_STAR)!=null;
+					// Can I use buildInitialPredicateFilter() like SITableFilter? 
+					// What is ScopedPredicates?
 					predicateFilter= decodePredicateFilter();
 					
 					ExecRowAccumulator accumulator = ExecRowAccumulator.newAccumulator(predicateFilter, false, template, rowDecodingMap, tableVersion);
-					
 					siFilter = filterFactory.newFilter(predicateFilter,getRowEntryDecoder(),accumulator,isCountStar);
 			}
+			
 			return siFilter;
 	}
 
@@ -446,7 +472,7 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 	private EntryPredicateFilter decodePredicateFilter() throws IOException {
 			return EntryPredicateFilter.fromBytes(scan.getAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL));
 	}
-
+	
 	protected void setRowLocation(KeyValue sampleKv) throws StandardException {
 			if(indexName!=null && template.nColumns() > 0 && template.getColumn(template.nColumns()).getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID){
 				 /*
@@ -472,9 +498,7 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 			while(kvIter.hasNext()){
 				
 					KeyValue kv = kvIter.next();
-					
 					Filter.ReturnCode returnCode = filter.filterKeyValue(kv);
-					
 					switch(returnCode){
 							case NEXT_COL:
 							case NEXT_ROW:
@@ -492,8 +516,7 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 	}
 
 	private boolean filterRowKey(KeyValue keyValue) throws IOException {
-			if(!isKeyed) 
-			{
+			if(!isKeyed) {
 				return true;
 			}
 

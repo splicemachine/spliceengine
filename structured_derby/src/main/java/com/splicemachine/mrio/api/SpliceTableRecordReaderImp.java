@@ -103,7 +103,7 @@ public class SpliceTableRecordReaderImp{
 		
 		try {
 			String transaction_id = conf.get(SpliceMRConstants.SPLICE_TRANSACTION_ID);
-			
+			//System.out.println("transaction_id:"+transaction_id);
 			buildTableScannerBuilder(transaction_id);
 			tableScanner = this.builder.build();
 			
@@ -152,6 +152,7 @@ public class SpliceTableRecordReaderImp{
     	{
     		this.nextKeyValue();
     	}
+    	//System.out.println("invalid?"+String.valueOf(invalid));
     	if(invalid)
     		value = null;
         return value;
@@ -269,8 +270,10 @@ public class SpliceTableRecordReaderImp{
 		if (value != null && value.getRowArray().length > 0) {
 			lastRow = tableScanner.getCurrentRowLocation().getBytes();
 			rowkey.set(lastRow);	
+			
 			return true;
 		}
+		
 		return false;
 	}
     

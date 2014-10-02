@@ -148,16 +148,6 @@ public class WindowTestingFramework {
             throw new RuntimeException("Must have at least one input column ID.");
         }
 
-        // create agg function array
-        int aggregatorColID = inputRowDefinition.size()+3;
-        int resultColID = inputRowDefinition.size()+1;
-        WindowAggregator[] functions = new WindowAggregator[] {
-            new WindowAggregator(function,aggregatorColID, inputColumnIDs,resultColID)};
-
-        // create template row given
-        ExecRow templateRow = createTemplateRow(inputRowDefinition, function, resultColID,
-                                                inputColumnIDs, aggregatorColID, expectedResultsFunction.getNullReturnValue());
-
         // foreach partition, create a frameSource
         List<PartitionAwarePushBackIterator<ExecRow>> frameSources = new ArrayList<PartitionAwarePushBackIterator<ExecRow>>(nPartitions);
         List<ExecRow> expectedRows = new ArrayList<ExecRow>(nPartitions*partitionSize);
@@ -186,6 +176,16 @@ public class WindowTestingFramework {
                 new PartitionAwarePushBackIterator<ExecRow>(new TestPartitionAwareIterator(allInputRows, partitionColIDs));
             frameSources.add(frameSource);
         }
+
+        // create agg function array
+        int aggregatorColID = inputRowDefinition.size()+3;
+        int resultColID = inputRowDefinition.size()+1;
+
+        // create template row given
+        ExecRow templateRow = createTemplateRow(inputRowDefinition, function, resultColID,
+                                                inputColumnIDs, aggregatorColID, expectedResultsFunction.getNullReturnValue());
+        List<WindowAggregator> functions = Arrays.asList(new WindowAggregator[] {
+            new WindowAggregatorImpl(function,aggregatorColID, inputColumnIDs,resultColID, frameDefinition)});
 
         // iterate thru the partitions creating a frame buffer for each
         List<ExecRow> results = new ArrayList<ExecRow>();
@@ -593,13 +593,12 @@ public class WindowTestingFramework {
     }
 
     public static class TimestampColumnDefinition extends TestColumnDefinitionBase implements TestColumnDefinition {
-        // milli/sec * sec/min * sec/hr * hr/day * days/year
-        // FIXME: imnprove random timestamp calculation; overflow, not random enough
-        private static final long MILLISECONDS_IN_YEAR = 1000 * 60 * 60 * 24 * 365;
-        private static final long MILLISECONDS_IN_3_YEAR = MILLISECONDS_IN_YEAR * 3;
+        long offset = Timestamp.valueOf("2010-01-01 00:00:00").getTime();
+        long end = Timestamp.valueOf("2014-09-28 00:00:00").getTime();
+        long diff = end - offset + 1;
 
         @Override
-         public DataValueDescriptor getNullDVD() {
+        public DataValueDescriptor getNullDVD() {
             DataValueDescriptor retVal = null;
             try {
                 retVal = LazyDataValueFactory.getLazyNull(StoredFormatIds.SQL_TIMESTAMP_ID);
@@ -610,13 +609,12 @@ public class WindowTestingFramework {
         }
 
         @Override
-        public DataValueDescriptor getDVD(int rowIndex) throws StandardException {
+        public DataValueDescriptor getDVD(int nonVariantColumnValue) throws StandardException {
             long now = System.currentTimeMillis();
             if (! isVariant) {
                 return dvf.getDataValue(new Timestamp(now), (DateTimeDataValue)null);
             }
-            return getNextDVD(dvf.getDataValue(new Timestamp(nextRand(MILLISECONDS_IN_YEAR,
-                                                                      now - MILLISECONDS_IN_3_YEAR)),
+            return getNextDVD(dvf.getDataValue(new Timestamp(offset + (long)(Math.random() * diff)),
                                                (DateTimeDataValue) null));
         }
     }
@@ -634,16 +632,16 @@ public class WindowTestingFramework {
         }
 
         @Override
-        public DataValueDescriptor getDVD(int rowIndex) throws StandardException {
-            return dvf.getDate(super.getDVD(rowIndex));
+        public DataValueDescriptor getDVD(int nonVariantColumnValue) throws StandardException {
+            return dvf.getDate(super.getDVD(nonVariantColumnValue));
         }
     }
 
     public static class IntegerColumnDefinition extends TestColumnDefinitionBase implements TestColumnDefinition {
         @Override
-        public DataValueDescriptor getDVD(int rowIndex) throws StandardException {
+        public DataValueDescriptor getDVD(int nonVariantColumnValue) throws StandardException {
             if (! isVariant) {
-                return dvf.getDataValue(rowIndex, null);
+                return dvf.getDataValue(nonVariantColumnValue, null);
             }
             return getNextDVD(dvf.getDataValue(nextRand(DEFAULT_RANDOM_MAX, DEFAULT_RANDOM_MIN), null));
         }
@@ -662,9 +660,9 @@ public class WindowTestingFramework {
     public static class DoubleColumnDefinition extends TestColumnDefinitionBase implements TestColumnDefinition {
 
         @Override
-        public DataValueDescriptor getDVD(int rowIndex) throws StandardException {
+        public DataValueDescriptor getDVD(int nonVariantColumnValue) throws StandardException {
             if (! isVariant) {
-                return dvf.getDataValue((double)rowIndex, null);
+                return dvf.getDataValue((double) nonVariantColumnValue, null);
             }
             return getNextDVD(dvf.getDataValue((double) nextRand(DEFAULT_RANDOM_MAX, DEFAULT_RANDOM_MIN), null));
         }
@@ -682,16 +680,7 @@ public class WindowTestingFramework {
 
     }
 
-    public static class DecimalColumnDefinition extends TestColumnDefinitionBase implements TestColumnDefinition {
-
-        @Override
-        public DataValueDescriptor getDVD(int rowIndex) throws StandardException {
-            if (! isVariant) {
-                return dvf.getDataValue((double)rowIndex, null);
-            }
-            return getNextDVD(dvf.getDataValue((double) nextRand(DEFAULT_RANDOM_MAX, DEFAULT_RANDOM_MIN), null));
-        }
-
+    public static class DecimalColumnDefinition extends DoubleColumnDefinition implements TestColumnDefinition {
 
         public DataValueDescriptor getNullDVD() {
             DataValueDescriptor retVal = null;

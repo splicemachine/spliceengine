@@ -777,6 +777,12 @@ public abstract class AbstractSpliceVisitor implements ISpliceVisitor {
     public Visitable visit(ExplainNode node) throws StandardException {
         return defaultVisit(node);
     }
+
+    @Override
+    public Visitable visit(ExportNode node) throws StandardException {
+        return defaultVisit(node);
+    }
+
 	@Override
 	public Visitable visit(com.splicemachine.derby.impl.sql.compile.OrderByNode node) throws StandardException {
         return defaultVisit(node);

@@ -587,6 +587,9 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
           case C_NodeTypes.EXPLAIN_NODE:
                 return C_NodeNames.EXPLAIN_NODE_NAME;
 
+          case C_NodeTypes.EXPORT_NODE:
+                return C_NodeNames.EXPORT_NODE_NAME;
+
           // WARNING: WHEN ADDING NODE TYPES HERE, YOU MUST ALSO ADD
 		  // THEM TO tools/jar/DBMSnodes.properties
 
