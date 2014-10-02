@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.job.operation;
 
 import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -10,10 +9,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
-import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.InsertOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.OperationSink;
-import com.splicemachine.derby.impl.temp.TempTable;
+import com.splicemachine.derby.impl.sql.execute.operations.*;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -23,7 +19,6 @@ import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnLifecycleManager;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.TransactionalRegions;
-import com.splicemachine.si.impl.rollforward.SegmentedRollForward;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.derby.iapi.error.StandardException;
@@ -41,6 +36,9 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 /**
+ * Common remote "task" logic for all SinkingOperations.  Operation-specific sinking logic is implemented in OperationSink
+ * instances, which are invoked by this class.
+ *
  * @author Scott Fines
  * Created on: 4/3/13
  */
@@ -203,20 +201,13 @@ public class SinkTask extends ZkTask {
 		@Override
     public void doExecute() throws ExecutionException, InterruptedException {
         try {
-						SpliceOperation op = instructions.getTopOperation();
+			SpliceOperation op = instructions.getTopOperation();
             Txn txn = getTxn();
-            if(LOG.isTraceEnabled())
-                SpliceLogUtils.trace(LOG,"Sink[%s]: %s over [%s,%s)",Bytes.toLong(getTaskId()),txn, BytesUtil.toHex(scan.getStartRow()),BytesUtil.toHex(scan.getStopRow()));
-            OperationSink opSink = OperationSink.create((SinkingOperation) op, getTaskId(),
-                    txn, op.getStatementId(),waitTimeNs);
-
-            TaskStats stats;
-            if(op instanceof DMLWriteOperation)
-                stats = opSink.sink(((DMLWriteOperation)op).getDestinationTable(), spliceRuntimeContext);
-            else{
-								TempTable table = SpliceDriver.driver().getTempTable();
-                stats = opSink.sink(table.getTempTableName(), spliceRuntimeContext);
-						}
+            if(LOG.isTraceEnabled()) {
+                SpliceLogUtils.trace(LOG, "Sink[%s]: %s over [%s,%s)", Bytes.toLong(getTaskId()), txn, BytesUtil.toHex(scan.getStartRow()), BytesUtil.toHex(scan.getStopRow()));
+            }
+            OperationSink opSink = OperationSinkFactory.create((SinkingOperation) op, getTaskId(), txn, op.getStatementId(), waitTimeNs);
+            TaskStats stats = opSink.sink(spliceRuntimeContext);
             status.setStats(stats);
 
             if(LOG.isTraceEnabled())

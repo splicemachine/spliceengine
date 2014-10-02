@@ -69,6 +69,7 @@
 		<dependency> <groupId>org.apache.hive</groupId> <artifactId>hive-hwi</artifactId> <version>${hive.version}</version> </dependency>
 		<dependency> <groupId>org.apache.hive</groupId> <artifactId>hive-jdbc</artifactId> <version>${hive.version}</version> </dependency>
 
+        <dependency> <groupId>net.sf.supercsv</groupId> <artifactId>super-csv</artifactId> </dependency>
 	</dependencies>
 	<build>
 		<resources>

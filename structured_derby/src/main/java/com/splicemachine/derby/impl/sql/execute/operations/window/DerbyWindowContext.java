@@ -12,7 +12,6 @@ import org.apache.derby.iapi.services.loader.ClassFactory;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.store.access.ColumnOrdering;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.derby.impl.sql.execute.WindowFunctionInfo;
 import org.apache.derby.impl.sql.execute.WindowFunctionInfoList;
@@ -36,13 +35,7 @@ public class DerbyWindowContext implements WindowContext {
     private String rowAllocatorMethodName;
     private int aggregateItem;
     private Activation activation;
-    private int[] partitionColumns;
-    private int[] sortColumns;
-    private boolean[] sortOrders;
-    private int[] keyColumns;
-    private boolean[] keyOrders;
-    private FrameDefinition frameDefinition;
-    private WindowAggregator[] windowAggregators;
+    private List<WindowAggregator> windowAggregators;
     private SpliceMethod<ExecRow> rowAllocator;
     private ExecIndexRow sortTemplateRow;
     private ExecIndexRow sourceExecIndexRow;
@@ -60,60 +53,11 @@ public class DerbyWindowContext implements WindowContext {
         this.activation = context.getActivation();
 
         GenericStorablePreparedStatement statement = context.getPreparedStatement();
-        WindowFunctionInfoList windowFunctionInfos = (WindowFunctionInfoList)statement.getSavedObject(aggregateItem);
-        // we're batching WFuncts buy over() clause defn so there will only ever be one element in this array
-        WindowFunctionInfo theInfo = windowFunctionInfos.firstElement();
 
-        ColumnOrdering[] partition = theInfo.getPartitionInfo();
-
-        ColumnOrdering[] orderings = theInfo.getOrderByInfo();
-
-        frameDefinition = FrameDefinition.create(theInfo.getFrameInfo());
-        if (Level.TRACE.equals(LOG.getLevel())) {
-            LOG.info(frameDefinition.toString());
-        }
-
-        keyColumns = new int[partition.length + orderings.length];
-        keyOrders = new boolean[partition.length + orderings.length];
-
-        partitionColumns = new int[partition.length];
-        sortColumns = new int[orderings.length];
-
-        int pos=0;
-        for(ColumnOrdering partCol:partition){
-            partitionColumns[pos] = partCol.getColumnId();
-            keyColumns[pos] = partCol.getColumnId();
-            keyOrders[pos] = partCol.getIsAscending();
-            pos++;
-        }
-        pos = 0;
-        for(ColumnOrdering order:orderings){
-            sortColumns[pos] = order.getColumnId();
-            keyColumns[partition.length + pos] = order.getColumnId();
-            keyOrders[partition.length + pos] = order.getIsAscending();
-            pos++;
-        }
-
-        this.windowAggregators = buildWindowAggregators(windowFunctionInfos,
+        this.windowAggregators = buildWindowAggregators((WindowFunctionInfoList)statement.getSavedObject(aggregateItem),
                                                         context.getLanguageConnectionContext().getLanguageConnectionFactory().getClassFactory());
         this.rowAllocator = (rowAllocatorMethodName==null)? null: new SpliceMethod<ExecRow>(rowAllocatorMethodName,activation);
     }
-
-    @Override
-    public int[] getPartitionColumns() {
-        return partitionColumns;
-    }
-
-    @Override
-    public int[] getSortColumns() {
-        return sortColumns;
-    }
-
-    @Override
-    public boolean[] getSortOrders() {
-        return sortOrders;
-    }
-
 
     @Override
     public void addWarning(String warningState) throws StandardException {
@@ -121,22 +65,7 @@ public class DerbyWindowContext implements WindowContext {
     }
 
     @Override
-    public int[] getKeyColumns() {
-        return keyColumns;
-    }
-
-    @Override
-    public boolean[] getKeyOrders() {
-        return keyOrders;
-    }
-
-    @Override
-    public FrameDefinition getFrameDefinition() {
-        return frameDefinition;
-    }
-
-    @Override
-    public WindowAggregator[] getWindowFunctions() {
+    public List<WindowAggregator> getWindowFunctions() {
         return windowAggregators;
     }
 
@@ -154,6 +83,34 @@ public class DerbyWindowContext implements WindowContext {
             sourceExecIndexRow = activation.getExecutionFactory().getIndexableRow(sortTemplateRow);
         }
         return sourceExecIndexRow;
+    }
+
+    @Override
+    public int[] getKeyColumns() {
+        // Any and all aggregators in a window context share the same over() clause
+        return this.windowAggregators.get(0).getKeyColumns();
+    }
+
+    @Override
+    public boolean[] getKeyOrders() {
+        // Any and all aggregators in a window context share the same over() clause
+        return this.windowAggregators.get(0).getKeyOrders();
+    }
+
+    @Override
+    public int[] getPartitionColumns() {
+        // Any and all aggregators in a window context share the same over() clause
+        return this.windowAggregators.get(0).getPartitionColumns();
+    }
+
+    @Override
+    public FrameDefinition getFrameDefinition() {
+        return this.windowAggregators.get(0).getFrameDefinition();
+    }
+
+    @Override
+    public int[] getSortColumns() {
+        return this.windowAggregators.get(0).getSortColumns();
     }
 
     @Override
@@ -175,14 +132,14 @@ public class DerbyWindowContext implements WindowContext {
         this.aggregateItem = in.readInt();
     }
 
-    private static WindowAggregator[] buildWindowAggregators(WindowFunctionInfoList infos, ClassFactory cf) {
-        List<WindowAggregator> tmpAggregators = Lists.newArrayList();
+    private static List<WindowAggregator> buildWindowAggregators(WindowFunctionInfoList infos, ClassFactory cf) {
+        List<WindowAggregator> windowAggregators = Lists.newArrayList();
         for (WindowFunctionInfo info : infos){
-            tmpAggregators.add(new WindowAggregator(info, cf));
+            // WindowFunctionInfos batched into same context only differ by
+            // their functions implementations; all over() clauses are identical
+            windowAggregators.add(new WindowAggregatorImpl(info, cf));
         }
-        WindowAggregator[] aggregators = new WindowAggregator[tmpAggregators.size()];
-        tmpAggregators.toArray(aggregators);
-        return aggregators;
 
+        return windowAggregators;
     }
 }

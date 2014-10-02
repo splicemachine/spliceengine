@@ -342,9 +342,9 @@ public class InsertOperationTest {
                 SpliceOperation op = observerInstructions.getTopOperation();
 
 								Txn mockTxn = Txn.ROOT_TRANSACTION;
-                OperationSink opSink = new OperationSink(Bytes.toBytes("TEST_TASK"),(DMLWriteOperation)op,bufferFactory,mockTxn,-1l,0l);
+                TableOperationSink opSink = new TableOperationSink(Bytes.toBytes("TEST_TASK"),(DMLWriteOperation)op,bufferFactory,mockTxn,-1l,0l, Bytes.toBytes("1184"));
 
-                TaskStats sink = opSink.sink(Bytes.toBytes("1184"), new SpliceRuntimeContext(table,kryoPool));
+                TaskStats sink = opSink.sink(new SpliceRuntimeContext(table,kryoPool));
                 JobStats stats = mock(JobStats.class);
                 when(stats.getTaskStats()).thenReturn(Arrays.asList(sink));
 

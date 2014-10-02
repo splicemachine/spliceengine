@@ -103,11 +103,10 @@ public class WordCount {
 				{
 					Text key = new Text(word.charAt(0)+"");
 					IntWritable val = new IntWritable(1);
+					System.out.print(key+","+val);
 					context.write(key, val);
 				}
-			}
-			
-			
+			}	
 		}
 	}
 	
@@ -158,7 +157,7 @@ public class WordCount {
 		scan.setCaching(500);        // 1 is the default in Scan, which will be bad for MapReduce jobs
 		scan.setCacheBlocks(false);  // don't set to true for MR jobs
 	    
-		String inputTableName = "WIKIDATA";
+		String inputTableName = "TEST";
 		String outputTableName = "USERTEST";
 		
 		try {

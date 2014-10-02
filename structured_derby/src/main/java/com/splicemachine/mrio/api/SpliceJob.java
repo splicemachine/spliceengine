@@ -55,6 +55,8 @@ public class SpliceJob extends Job{
 				conn = sqlUtil.createConn();
 				sqlUtil.disableAutoCommit(conn);
 				String parentTxsID = sqlUtil.getTransactionID(conn);
+				System.out.println("PARENT txnID: "+parentTxsID);
+				//Thread.sleep(40000000);
 				super.getConfiguration().set(SpliceMRConstants.SPLICE_TRANSACTION_ID, parentTxsID);
 					
 			} catch (SQLException e1) {

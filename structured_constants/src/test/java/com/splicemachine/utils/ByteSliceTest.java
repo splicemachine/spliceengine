@@ -30,4 +30,11 @@ public class ByteSliceTest {
         assertEquals(5, byteSlice.offset());
     }
 
+    @Test
+    public void toHexString() {
+        ByteSlice byteSlice = new ByteSlice();
+        byteSlice.set(new byte[]{18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0});
+        assertEquals("1211100F0E0D0C0B0A09080706050403020100", byteSlice.toHexString());
+    }
+
 }

@@ -1,12 +1,14 @@
 package com.splicemachine.derby.impl.sql.execute.operations.window;
 
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.utils.PartitionAwarePushBackIterator;
+import java.io.IOException;
+import java.util.List;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.util.Bytes;
 
-import java.io.IOException;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.utils.PartitionAwarePushBackIterator;
 
 /**
  * Created by jyuan on 9/15/14.
@@ -14,7 +16,7 @@ import java.io.IOException;
 public class PhysicalGroupFrameBuffer extends BaseFrameBuffer{
 
     public PhysicalGroupFrameBuffer (SpliceRuntimeContext runtimeContext,
-                                     WindowAggregator[] aggregators,
+                                     List<WindowAggregator> aggregators,
                                      PartitionAwarePushBackIterator<ExecRow> source,
                                      FrameDefinition frameDefinition,
                                      int[] sortColumns,
@@ -24,8 +26,6 @@ public class PhysicalGroupFrameBuffer extends BaseFrameBuffer{
 
     @Override
     protected void loadFrame() throws IOException, StandardException {
-        long frameStart = frameDefinition.getFrameStart().getValue();
-        long frameEnd = frameDefinition.getFrameEnd().getValue();
         start = end = 0;
         if (frameStart > 0) {
             start = (int) frameStart;
@@ -60,10 +60,6 @@ public class PhysicalGroupFrameBuffer extends BaseFrameBuffer{
 
     @Override
     public void move() throws StandardException, IOException{
-        FrameDefinition.FrameMode frameMode = frameDefinition.getFrameMode();
-        long frameStart = frameDefinition.getFrameStart().getValue();
-        long frameEnd = frameDefinition.getFrameEnd().getValue();
-
         // Increment the current index first
         current++;
 
