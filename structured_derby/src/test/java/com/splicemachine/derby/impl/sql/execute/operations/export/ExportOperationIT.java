@@ -14,11 +14,11 @@ import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class ExportOperationIT {
 
@@ -114,6 +114,29 @@ public class ExportOperationIT {
     }
 
     @Test
+    public void exportToLocalFileSystem_withTabs() throws Exception {
+
+        new TableCreator(methodWatcher.getOrCreateConnection())
+                .withCreate("create table tabs(a smallint,b double, c time,d varchar(20))")
+                .withInsert("insert into tabs values(?,?,?,?)")
+                .withRows(getTestRows()).create();
+
+        String exportSQL = buildExportSQL("select * from tabs", ExportFileSystemType.LOCAL, "\\t");
+
+        exportAndAssertExportResults(exportSQL, 6);
+        File[] files = temporaryFolder.getRoot().listFiles(new PatternFilenameFilter(".*csv"));
+        assertEquals(1, files.length);
+        assertEquals("" +
+                        "25\t3.14159\t14:31:20\tvarchar1\n" +
+                        "26\t3.14159\t14:31:20\tvarchar1\n" +
+                        "27\t3.14159\t14:31:20\tvarchar1 space\n" +
+                        "28\t3.14159\t14:31:20\tvarchar1 , comma\n" +
+                        "29\t3.14159\t14:31:20\t\"varchar1 \"\" quote\"\n" +
+                        "30\t3.14159\t14:31:20\tvarchar1\n",
+                Files.toString(files[0], Charsets.UTF_8));
+    }
+
+    @Test
     public void exportEmptyTableDoesNotBlowup() throws Exception {
         methodWatcher.executeUpdate("create table empty (a int)");
         String exportSQL = buildExportSQL("select * from empty");
@@ -159,6 +182,50 @@ public class ExportOperationIT {
                 "where bb.c3 > 2");
 
         exportAndAssertExportResults(exportSQL, 3);
+    }
+
+    /* It is important that we throw SQLException, given invalid parameters, rather than other exceptions which cause IJ to drop the connection.  */
+    @Test
+    public void export_throwsSQLException_givenBadArguments() throws Exception {
+        // export path
+        try {
+            methodWatcher.executeQuery("export('', 'local', null,null,null, null) select 1 from sys.sysaliases ");
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Invalid parameter 'export path'=''.", e.getMessage());
+        }
+
+        // file system
+        try {
+            methodWatcher.executeQuery("export('/tmp/', 'BAD_FILE_SYSTEM_ARG', null,null,null, null) select 1 from sys.sysaliases ");
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Invalid parameter 'file system type'='BAD_FILE_SYSTEM_ARG'.", e.getMessage());
+        }
+
+        // encoding
+        try {
+            methodWatcher.executeQuery("export('/tmp/', 'LOCAL', 1,'BAD_ENCODING',null, null) select 1 from sys.sysaliases ");
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Invalid parameter 'encoding'='BAD_ENCODING'.", e.getMessage());
+        }
+
+        // field delimiter
+        try {
+            methodWatcher.executeQuery("export('/tmp/', 'LOCAL', 1,'utf-8','AAA', null) select 1 from sys.sysaliases ");
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Invalid parameter 'field delimiter'='AAA'.", e.getMessage());
+        }
+
+        // quote character
+        try {
+            methodWatcher.executeQuery("export('/tmp/', 'LOCAL', 1,'utf-8',',', 'BBB') select 1 from sys.sysaliases ");
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Invalid parameter 'quote character'='BBB'.", e.getMessage());
+        }
     }
 
 

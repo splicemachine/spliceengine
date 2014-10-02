@@ -1,31 +1,12 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Properties;
-
-import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
-import com.splicemachine.derby.impl.store.access.SpliceTransaction;
-import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.si.api.TransactionLifecycle;
-import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.api.TxnView;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
-import org.apache.derby.iapi.sql.depend.DependencyManager;
-import org.apache.derby.iapi.sql.dictionary.ColumnDescriptor;
-import org.apache.derby.iapi.sql.dictionary.ColumnDescriptorList;
-import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
-import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptorList;
-import org.apache.derby.iapi.sql.dictionary.DataDescriptorGenerator;
-import org.apache.derby.iapi.sql.dictionary.DataDictionary;
-import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
-import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
+import org.apache.derby.iapi.sql.dictionary.*;
 import org.apache.derby.iapi.sql.execute.ConstantAction;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.store.access.ColumnOrdering;
@@ -35,7 +16,10 @@ import org.apache.derby.impl.sql.execute.IndexColumnOrder;
 import org.apache.derby.impl.sql.execute.RowUtil;
 import org.apache.log4j.Logger;
 
-import com.splicemachine.utils.SpliceLogUtils;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Properties;
 
 public class CreateTableConstantOperation extends DDLConstantOperation {
     private static final Logger LOG = Logger.getLogger(CreateTableConstantOperation.class);
@@ -87,12 +71,10 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         if (SanityManager.DEBUG) {
             if (tableType == TableDescriptor.BASE_TABLE_TYPE && lockGranularity != TableDescriptor.TABLE_LOCK_GRANULARITY &&
                     lockGranularity != TableDescriptor.ROW_LOCK_GRANULARITY) {
-                SanityManager.THROWASSERT(
-                        "Unexpected value for lockGranularity = " + lockGranularity);
+                SanityManager.THROWASSERT("Unexpected value for lockGranularity = " + lockGranularity);
             }
-            if (tableType == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE && onRollbackDeleteRows == false) {
-                SanityManager.THROWASSERT(
-                        "Unexpected value for onRollbackDeleteRows = " + onRollbackDeleteRows);
+            if (tableType == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE && !onRollbackDeleteRows) {
+                SanityManager.THROWASSERT("Unexpected value for onRollbackDeleteRows = false");
             }
             SanityManager.ASSERT(schemaName != null, "SchemaName is null");
         }
@@ -115,12 +97,8 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
      */
     public void executeConstantAction( Activation activation ) throws StandardException {
         SpliceLogUtils.trace(LOG, "executeConstantAction");
-        TableDescriptor 			td;
-        ColumnDescriptor			columnDescriptor;
-        ExecRow						template;
 
-
-		/* Mark the activation as being for create table */
+		    /* Mark the activation as being for create table */
         activation.setForCreateTable();
 
         createTable(activation);
@@ -139,247 +117,237 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
          */
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();
-        TransactionController parent = lcc.getTransactionExecute();
-        //get the child transaction
-        SpliceTransactionManager tc = (SpliceTransactionManager)parent.startNestedUserTransaction(false,false);
-        ((SpliceTransaction)tc.getRawTransaction()).elevate("dictionary".getBytes()); //TODO -sf- replace with actual conglomerate id
-        lcc.pushNestedTransaction(tc);
-        try{
-            ExecRow template;TableDescriptor td;ColumnDescriptor columnDescriptor;// setup for create conglomerate call:
-            //   o create row template to tell the store what type of rows this
-            //     table holds.
-            //   o create array of collation id's to tell collation id of each
-            //     column in table.
-            template = RowUtil.getEmptyValueRow(columnInfo.length, lcc);
+        /*
+         * Note on transactional behavior:
+         *
+         * We want to ensure that CreateTable occurs within an internal transaction, so
+         * that we can either commit or rollback the entire operation (in the event of failure).
+         * In some past versions of Splice, we did this by explicitly constructing a child
+         * transaction here, and then manually committing or rolling it back. However,
+         * DB-1706 implements transaction savepoints, which allows us to transparently act
+         * as if we are a direct user transaction, which in reality we are inside of a savepoint
+         * operation, so we are still safe.
+         *
+         * Therefore, it doesn't look like we are doing much in terms of transaction management
+         * here, but in fact we are fully transactional and within a savepoint context.
+         */
+        TransactionController tc = lcc.getTransactionExecute();
+
+        ExecRow template;TableDescriptor td;ColumnDescriptor columnDescriptor;// setup for create conglomerate call:
+        //   o create row template to tell the store what type of rows this
+        //     table holds.
+        //   o create array of collation id's to tell collation id of each
+        //     column in table.
+        template = RowUtil.getEmptyValueRow(columnInfo.length, lcc);
 
 
-            int[] collation_ids = new int[columnInfo.length];
+        int[] collation_ids = new int[columnInfo.length];
 
-            List<String> pkColumnNames = null;
-            ColumnOrdering[] columnOrdering = null;
-            if (constraintActions != null) {
-                for(CreateConstraintConstantOperation constantAction:constraintActions){
-                    if(constantAction.getConstraintType()== DataDictionary.PRIMARYKEY_CONSTRAINT){
-                        pkColumnNames = Arrays.asList(constantAction.columnNames);
-                        columnOrdering = new IndexColumnOrder[pkColumnNames.size()];
-                    }
+        List<String> pkColumnNames = null;
+        ColumnOrdering[] columnOrdering = null;
+        if (constraintActions != null) {
+            for(CreateConstraintConstantOperation constantAction:constraintActions){
+                if(constantAction.getConstraintType()== DataDictionary.PRIMARYKEY_CONSTRAINT){
+                    pkColumnNames = Arrays.asList(constantAction.columnNames);
+                    columnOrdering = new IndexColumnOrder[pkColumnNames.size()];
                 }
             }
-
-            for (int ix = 0; ix < columnInfo.length; ix++) {
-                ColumnInfo col_info = columnInfo[ix];
-                if (pkColumnNames != null && pkColumnNames.contains(col_info.name)) {
-                    columnOrdering[pkColumnNames.indexOf(col_info.name)] = new IndexColumnOrder(ix);
-                }
-                // Get a template value for each column
-                if (col_info.defaultValue != null) {
-            /* If there is a default value, use it, otherwise use null */
-                    template.setColumn(ix + 1, col_info.defaultValue);
-                }
-                else {
-                    template.setColumn(ix + 1, col_info.dataType.getNull());
-                }
-                // get collation info for each column.
-                collation_ids[ix] = col_info.dataType.getCollationType();
-            }
-
-		/* create the conglomerate to hold the table's rows
-		 * RESOLVE - If we ever have a conglomerate creator
-		 * that lets us specify the conglomerate number then
-		 * we will need to handle it here.
-		 */
-            long conglomId = tc.createConglomerate(
-                    "heap", // we're requesting a heap conglomerate
-                    template.getRowArray(), // row template
-                    columnOrdering, //column sort order - not required for heap
-                    collation_ids,
-                    properties, // properties
-                    tableType == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE ?
-                            (TransactionController.IS_TEMPORARY |
-                                    TransactionController.IS_KEPT) :
-                            TransactionController.IS_DEFAULT);
-
-		/*
-		** Inform the data dictionary that we are about to write to it.
-		** There are several calls to data dictionary "get" methods here
-		** that might be done in "read" mode in the data dictionary, but
-		** it seemed safer to do this whole operation in "write" mode.
-		**
-		** We tell the data dictionary we're done writing at the end of
-		** the transaction.
-		*/
-            if ( tableType != TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE )
-                dd.startWriting(lcc);
-
-            SchemaDescriptor sd;
-            if (tableType == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE)
-                sd = dd.getSchemaDescriptor(schemaName, tc, true);
-            else
-                sd = DDLConstantOperation.getSchemaDescriptorForCreate(dd, activation, schemaName);
-
-            //
-            // Create a new table descriptor.
-            //
-            DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
-
-            if ( tableType != TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE )
-            {
-                td = ddg.newTableDescriptor(tableName, sd, tableType, lockGranularity);
-                dd.addDescriptor(td, sd, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc);
-            } else
-            {
-                td = ddg.newTableDescriptor(tableName, sd, tableType, onCommitDeleteRows, onRollbackDeleteRows);
-                td.setUUID(dd.getUUIDFactory().createUUID());
-            }
-
-            // Save the TableDescriptor off in the Activation
-            activation.setDDLTableDescriptor(td);
-
-		/* NOTE: We must write the columns out to the system
-		 * tables before any of the conglomerates, including
-		 * the heap, since we read the columns before the
-		 * conglomerates when building a TableDescriptor.
-		 * This will hopefully reduce the probability of
-		 * a deadlock involving those system tables.
-		 */
-
-            // for each column, stuff system.column
-            int index = 1;
-
-            ColumnDescriptor[] cdlArray = new ColumnDescriptor[columnInfo.length];
-            for (int ix = 0; ix < columnInfo.length; ix++) {
-                UUID defaultUUID = columnInfo[ix].newDefaultUUID;
-/* Generate a UUID for the default, if one exists
- * and there is no default id yet.
- */
-                if (columnInfo[ix].defaultInfo != null && defaultUUID == null) {
-                    defaultUUID = dd.getUUIDFactory().createUUID();
-                }
-
-                if (columnInfo[ix].autoincInc != 0)//dealing with autoinc column
-                    columnDescriptor = new ColumnDescriptor(
-                            columnInfo[ix].name,
-                            index++,
-                            columnInfo[ix].dataType,
-                            columnInfo[ix].defaultValue,
-                            columnInfo[ix].defaultInfo,
-                            td,
-                            defaultUUID,
-                            columnInfo[ix].autoincStart,
-                            columnInfo[ix].autoincInc,
-                            columnInfo[ix].autoinc_create_or_modify_Start_Increment
-                    );
-                else
-                    columnDescriptor = new ColumnDescriptor(
-                            columnInfo[ix].name,
-                            index++,
-                            columnInfo[ix].dataType,
-                            columnInfo[ix].defaultValue,
-                            columnInfo[ix].defaultInfo,
-                            td,
-                            defaultUUID,
-                            columnInfo[ix].autoincStart,
-                            columnInfo[ix].autoincInc
-                    );
-
-                cdlArray[ix] = columnDescriptor;
-            }
-
-            if ( tableType != TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE ) {
-                dd.addDescriptorArray(cdlArray, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM,
-                        false, tc);
-            }
-
-            // now add the column descriptors to the table.
-            ColumnDescriptorList cdl = td.getColumnDescriptorList();
-            for (int i = 0; i < cdlArray.length; i++)
-                cdl.add(cdlArray[i]);
-
-            //
-            // Create a conglomerate desciptor with the conglomId filled in and
-            // add it.
-            //
-            // RESOLVE: Get information from the conglomerate descriptor which
-            //          was provided.
-            //
-            ConglomerateDescriptor cgd = getTableConglomerateDescriptor(td, conglomId, sd, ddg);
-            if ( tableType != TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE )
-            {
-                dd.addDescriptor(cgd, sd, DataDictionary.SYSCONGLOMERATES_CATALOG_NUM,
-                        false, tc);
-            }
-
-            // add the newly added conglomerate to the table descriptor
-            ConglomerateDescriptorList conglomList = td.getConglomerateDescriptorList();
-            conglomList.add(cgd);
-
-		/* Create any constraints */
-            if (constraintActions != null)
-            {
-/*
-** Do everything but FK constraints first,
-** then FK constraints on 2nd pass.
-*/
-                for (int conIndex = 0; conIndex < constraintActions.length; conIndex++)
-                {
-                    // skip fks
-                    if (!constraintActions[conIndex].isForeignKeyConstraint())
-                    {
-                        constraintActions[conIndex].executeConstantAction(activation);
-                    }
-                }
-
-                for (int conIndex = 0; conIndex < constraintActions.length; conIndex++)
-                {
-                    // only foreign keys
-                    if (constraintActions[conIndex].isForeignKeyConstraint())
-                    {
-                        constraintActions[conIndex].executeConstantAction(activation);
-                    }
-                }
-            }
-
-            //
-            // Add dependencies. These can arise if a generated column depends
-            // on a user created function.
-            //
-            for (int ix = 0; ix < columnInfo.length; ix++)
-            {
-                addColumnDependencies( lcc, dd, td, columnInfo[ ix ] );
-            }
-
-            //
-            // The table itself can depend on the user defined types of its columns.
-            //
-            adjustUDTDependencies( lcc, dd, td, columnInfo, false );
-
-            if ( tableType == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE )
-            {
-                lcc.addDeclaredGlobalTempTable(td);
-            }
-
-            // Indicate that the CREATE TABLE statement itself depends on the
-            // table it is creating. Normally such statement dependencies are
-            // added during compilation, but here we have a bootstrapping issue
-            // because the table doesn't exist until the CREATE TABLE statement
-            // has been executed, so we had to defer the creation of this
-            // dependency until now. (DERBY-4479)
-            dd.getDependencyManager().addDependency(
-                    activation.getPreparedStatement(), td, lcc.getContextManager());
-        }catch(StandardException se){
-            tc.abort();
-            throw se;
-        }finally{
-            lcc.popNestedTransaction();
         }
-        tc.commit();
+
+        for (int ix = 0; ix < columnInfo.length; ix++) {
+            ColumnInfo col_info = columnInfo[ix];
+            if (pkColumnNames != null && pkColumnNames.contains(col_info.name)) {
+                columnOrdering[pkColumnNames.indexOf(col_info.name)] = new IndexColumnOrder(ix);
+            }
+            // Get a template value for each column
+            if (col_info.defaultValue != null) {
+            /* If there is a default value, use it, otherwise use null */
+                template.setColumn(ix + 1, col_info.defaultValue);
+            }
+            else {
+                template.setColumn(ix + 1, col_info.dataType.getNull());
+            }
+            // get collation info for each column.
+            collation_ids[ix] = col_info.dataType.getCollationType();
+        }
+
+		    /*
+		     * Inform the data dictionary that we are about to write to it.
+				 * There are several calls to data dictionary "get" methods here
+				 * that might be done in "read" mode in the data dictionary, but
+				 * it seemed safer to do this whole operation in "write" mode.
+				 *
+				 * We tell the data dictionary we're done writing at the end of
+				 * the transaction.
+				 */
+        if ( tableType != TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE )
+            dd.startWriting(lcc);
+
+		    /* create the conglomerate to hold the table's rows
+		     * RESOLVE - If we ever have a conglomerate creator
+		     * that lets us specify the conglomerate number then
+		     * we will need to handle it here.
+		     */
+        long conglomId = tc.createConglomerate(
+                "heap", // we're requesting a heap conglomerate
+                template.getRowArray(), // row template
+                columnOrdering, //column sort order - not required for heap
+                collation_ids,
+                properties, // properties
+                tableType == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE ?
+                        (TransactionController.IS_TEMPORARY | TransactionController.IS_KEPT) :
+                        TransactionController.IS_DEFAULT);
+
+        SchemaDescriptor sd;
+        if (tableType == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE)
+            sd = dd.getSchemaDescriptor(schemaName, tc, true);
+        else
+            sd = DDLConstantOperation.getSchemaDescriptorForCreate(dd, activation, schemaName);
+
+        //
+        // Create a new table descriptor.
+        //
+        DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
+
+        if ( tableType != TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE ) {
+            td = ddg.newTableDescriptor(tableName, sd, tableType, lockGranularity);
+            dd.addDescriptor(td, sd, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc);
+        } else {
+            td = ddg.newTableDescriptor(tableName, sd, tableType, onCommitDeleteRows, onRollbackDeleteRows);
+            td.setUUID(dd.getUUIDFactory().createUUID());
+        }
+
+        // Save the TableDescriptor off in the Activation
+        activation.setDDLTableDescriptor(td);
+
+				/*
+				 * NOTE: We must write the columns out to the system
+				 * tables before any of the conglomerates, including
+				 * the heap, since we read the columns before the
+				 * conglomerates when building a TableDescriptor.
+				 * This will hopefully reduce the probability of
+				 * a deadlock involving those system tables.
+				 */
+
+        // for each column, stuff system.column
+        int index = 1;
+
+        ColumnDescriptor[] cdlArray = new ColumnDescriptor[columnInfo.length];
+        for (int ix = 0; ix < columnInfo.length; ix++) {
+            UUID defaultUUID = columnInfo[ix].newDefaultUUID;
+						/*
+						 * Generate a UUID for the default, if one exists
+						 * and there is no default id yet.
+						 */
+            if (columnInfo[ix].defaultInfo != null && defaultUUID == null) {
+                defaultUUID = dd.getUUIDFactory().createUUID();
+            }
+
+            if (columnInfo[ix].autoincInc != 0)//dealing with autoinc column
+                columnDescriptor = new ColumnDescriptor(
+                        columnInfo[ix].name,
+                        index++,
+                        columnInfo[ix].dataType,
+                        columnInfo[ix].defaultValue,
+                        columnInfo[ix].defaultInfo,
+                        td,
+                        defaultUUID,
+                        columnInfo[ix].autoincStart,
+                        columnInfo[ix].autoincInc,
+                        columnInfo[ix].autoinc_create_or_modify_Start_Increment
+                );
+            else
+                columnDescriptor = new ColumnDescriptor(
+                        columnInfo[ix].name,
+                        index++,
+                        columnInfo[ix].dataType,
+                        columnInfo[ix].defaultValue,
+                        columnInfo[ix].defaultInfo,
+                        td,
+                        defaultUUID,
+                        columnInfo[ix].autoincStart,
+                        columnInfo[ix].autoincInc
+                );
+
+            cdlArray[ix] = columnDescriptor;
+        }
+
+        if ( tableType != TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE ) {
+            dd.addDescriptorArray(cdlArray, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM,
+                    false, tc);
+        }
+
+        // now add the column descriptors to the table.
+        ColumnDescriptorList cdl = td.getColumnDescriptorList();
+        Collections.addAll(cdl, cdlArray);
+
+        /*
+         * Create a conglomerate desciptor with the conglomId filled in and
+         * add it.
+         *
+         * RESOLVE: Get information from the conglomerate descriptor which
+         *          was provided.
+         */
+        ConglomerateDescriptor cgd = getTableConglomerateDescriptor(td, conglomId, sd, ddg);
+        if ( tableType != TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE ) {
+            dd.addDescriptor(cgd, sd, DataDictionary.SYSCONGLOMERATES_CATALOG_NUM, false, tc);
+        }
+
+        // add the newly added conglomerate to the table descriptor
+        ConglomerateDescriptorList conglomList = td.getConglomerateDescriptorList();
+        conglomList.add(cgd);
+
+		    /* Create any constraints */
+        if (constraintActions != null) {
+            /*
+             * Do everything but FK constraints first,
+             * then FK constraints on 2nd pass.
+             */
+            for (CreateConstraintConstantOperation constraintAction : constraintActions) {
+                // skip fks
+                if (!constraintAction.isForeignKeyConstraint()) {
+                    constraintAction.executeConstantAction(activation);
+                }
+            }
+
+            for (CreateConstraintConstantOperation constraintAction : constraintActions) {
+                // only foreign keys
+                if (constraintAction.isForeignKeyConstraint()) {
+                    constraintAction.executeConstantAction(activation);
+                }
+            }
+        }
+
+        /*
+         * Add dependencies. These can arise if a generated column depends
+         * on a user created function.
+         */
+        for (ColumnInfo aColumnInfo : columnInfo) {
+            addColumnDependencies(lcc, dd, td, aColumnInfo);
+        }
+
+        // The table itself can depend on the user defined types of its columns.
+        adjustUDTDependencies( lcc, dd, td, columnInfo, false );
+
+        if ( tableType == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE ) {
+            lcc.addDeclaredGlobalTempTable(td);
+        }
+
+        /*
+         * Indicate that the CREATE TABLE statement itself depends on the
+         * table it is creating. Normally such statement dependencies are
+         * added during compilation, but here we have a bootstrapping issue
+         * because the table doesn't exist until the CREATE TABLE statement
+         * has been executed, so we had to defer the creation of this
+         * dependency until now. (DERBY-4479)
+         */
+        dd.getDependencyManager().addDependency(activation.getPreparedStatement(), td, lcc.getContextManager());
     }
 
     protected ConglomerateDescriptor getTableConglomerateDescriptor(TableDescriptor td,
                                                                     long conglomId, SchemaDescriptor sd,
                                                                     DataDescriptorGenerator ddg) throws StandardException{
-        return ddg.newConglomerateDescriptor(conglomId, null, false, null, false, null, td.getUUID(),
-                sd.getUUID());
+        return ddg.newConglomerateDescriptor(conglomId, null, false, null, false, null, td.getUUID(), sd.getUUID());
     }
 
 

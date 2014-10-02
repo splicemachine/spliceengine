@@ -175,7 +175,7 @@ public class InsertInsertTransactionIT {
 
         try{
             ps.execute();
-            Assert.fail("Unique exeption not thrown!");
+            Assert.fail("Unique exception not thrown!");
         }catch(SQLException se){
             System.out.printf("%s:%s",se.getSQLState(),se.getMessage());
             Assert.assertEquals("Incorrect error message",ErrorState.LANG_DUPLICATE_KEY_CONSTRAINT.getSqlState(),se.getSQLState());

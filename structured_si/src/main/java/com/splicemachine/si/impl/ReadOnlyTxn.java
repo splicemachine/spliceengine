@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * Date: 6/18/14
  */
 public class ReadOnlyTxn extends AbstractTxn {
-		private final TxnView parentTxn;
+		private volatile TxnView parentTxn;
 		private AtomicReference<State> state = new AtomicReference<State>(State.ACTIVE);
 
 		private final TxnLifecycleManager tc;
@@ -140,5 +140,10 @@ public class ReadOnlyTxn extends AbstractTxn {
     @Override
     public String toString() {
         return "ReadOnlyTxn("+txnId+","+getState()+")";
+    }
+
+    public void parentWritable(TxnView newParentTxn){
+        if(newParentTxn==parentTxn) return;
+        this.parentTxn = newParentTxn;
     }
 }

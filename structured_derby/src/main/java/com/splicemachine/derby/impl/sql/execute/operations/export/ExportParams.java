@@ -1,9 +1,15 @@
 package com.splicemachine.derby.impl.sql.execute.operations.export;
 
 import com.google.common.base.Charsets;
-import com.google.common.base.Joiner;
+import org.apache.commons.lang.StringEscapeUtils;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.reference.SQLState;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import java.nio.charset.Charset;
+import java.nio.charset.UnsupportedCharsetException;
+
+import static org.apache.commons.lang.StringUtils.isBlank;
+import static org.apache.commons.lang.StringUtils.isEmpty;
 
 /**
  * Represents the user provided parameters of a given export.
@@ -30,13 +36,13 @@ public class ExportParams {
     }
 
     public ExportParams(String directory, String fileSystemType, int replicationCount, String characterEncoding,
-                        String fieldDelimiter, String quoteChar) {
+                        String fieldDelimiter, String quoteChar) throws StandardException {
         setDirectory(directory);
         setFileSystemType(fileSystemType);
         setReplicationCount((short) replicationCount);
         setCharacterEncoding(characterEncoding);
-        setDefaultFieldDelimiter(fieldDelimiter);
-        setQuoteChar(quoteChar);
+        setDefaultFieldDelimiter(StringEscapeUtils.unescapeJava(fieldDelimiter));
+        setQuoteChar(StringEscapeUtils.unescapeJava(quoteChar));
     }
 
     /**
@@ -80,16 +86,14 @@ public class ExportParams {
     // private setters
     // - - - - - - - - - - -
 
-    private void setDirectory(String directory) {
-        checkArgument(!isNullOrEmpty(directory), " export directory is required");
+    private void setDirectory(String directory) throws StandardException {
+        checkArgument(!isBlank(directory), "export path", directory);
         this.directory = directory;
     }
 
-    private void setFileSystemType(String fileSystemType) {
-        if (!isNullOrEmpty(fileSystemType)) {
-            checkArgument(ExportFileSystemType.isValid(fileSystemType.toUpperCase()),
-                    " invalid file system type '%s', valid values are: %s", fileSystemType,
-                    Joiner.on(", ").join(ExportFileSystemType.values()));
+    private void setFileSystemType(String fileSystemType) throws StandardException {
+        if (!isBlank(fileSystemType)) {
+            checkArgument(ExportFileSystemType.isValid(fileSystemType.toUpperCase()), "file system type", fileSystemType);
             this.fileSystemType = ExportFileSystemType.valueOf(fileSystemType.toUpperCase());
         }
     }
@@ -100,28 +104,40 @@ public class ExportParams {
         }
     }
 
-    public void setCharacterEncoding(String characterEncoding) {
-        if (!isNullOrEmpty(characterEncoding)) {
+    public void setCharacterEncoding(String characterEncoding) throws StandardException {
+        if (!isBlank(characterEncoding)) {
+            checkArgument(isValidCharacterSet(characterEncoding), "encoding", characterEncoding);
             this.characterEncoding = characterEncoding;
         }
     }
 
-    public void setDefaultFieldDelimiter(String fieldDelimiter) {
-        if (!isNullOrEmpty(fieldDelimiter)) {
-            checkArgument(fieldDelimiter.length() == 1, " field delimiter must be a single character");
+    public void setDefaultFieldDelimiter(String fieldDelimiter) throws StandardException {
+        if (!isEmpty(fieldDelimiter)) {
+            checkArgument(fieldDelimiter.length() == 1, "field delimiter", fieldDelimiter);
             this.fieldDelimiter = fieldDelimiter.charAt(0);
         }
     }
 
-    public void setQuoteChar(String quoteChar) {
-        if (!isNullOrEmpty(quoteChar)) {
-            checkArgument(quoteChar.length() == 1, " quote character must be a single character");
+    public void setQuoteChar(String quoteChar) throws StandardException {
+        if (!isEmpty(quoteChar)) {
+            checkArgument(quoteChar.length() == 1, "quote character", quoteChar);
             this.quoteChar = quoteChar.charAt(0);
         }
     }
 
-    private boolean isNullOrEmpty(String directory) {
-        return directory == null || directory.trim().length() == 0;
+    private static void checkArgument(boolean isOk, String parameter, String value) throws StandardException {
+        if (!isOk) {
+            throw StandardException.newException(SQLState.UU_INVALID_PARAMETER, parameter, value);
+        }
+    }
+
+    public static boolean isValidCharacterSet(String charSet) {
+        try {
+            Charset.forName(charSet);
+        } catch (UnsupportedCharsetException e) {
+            return false;
+        }
+        return true;
     }
 
 }

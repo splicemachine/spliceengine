@@ -83,7 +83,7 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
 		TransactionController tc = activation.getLanguageConnectionContext().getTransactionExecute();
 		SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, false);
 		if (sd == null || sd.getUUID() == null) {
-			CreateSchemaConstantOperation csca = new CreateSchemaConstantOperation(schemaName, (String) null);
+			CreateSchemaConstantOperation csca = new CreateSchemaConstantOperation(schemaName, null);
 			try {
 				csca.executeConstantAction(activation);
 			} catch (StandardException se) {
