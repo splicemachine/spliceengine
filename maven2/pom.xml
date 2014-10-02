@@ -82,24 +82,20 @@
     <developerConnection>scm:svn:https://svn.apache.org/repos/asf/db/derby/code/trunk</developerConnection>
     <url>http://svn.apache.org/viewcvs.cgi/db/derby/code/trunk/?root=Apache-SVN</url>
   </scm>
-
-	<distributionManagement>
-	<repository>
-	<uniqueVersion>false</uniqueVersion>
-	<id>structured-hbase-release</id>
-	<name>Structured HBase Release</name>
-	<url>scp://nexus.splicemachine.com/usr/local/sonatype-work/nexus/storage/releases/</url>
-	</repository>
-	
-	<snapshotRepository>
-	<uniqueVersion>true</uniqueVersion>
-	<id>structured-hbase-snapshot</id>
-	<name>Structured HBase Snapshot</name>
-	<url>scp://nexus.splicemachine.com/usr/local/sonatype-work/nexus/storage/snapshots/</url>
-	</snapshotRepository>
-	</distributionManagement>
-
-
+  <distributionManagement>
+    <repository>
+      <id>splicemachine</id>
+      <name>Splice Machine Releases</name>
+      <url>http://nexus.splicemachine.com/nexus/content/repositories/releases</url>
+      <uniqueVersion>false</uniqueVersion>
+    </repository>
+    <snapshotRepository>
+      <id>splicemachine</id>
+      <name>Splice Machine Snapshots</name>
+      <url>http://nexus.splicemachine.com/nexus/content/repositories/snapshots</url>
+      <uniqueVersion>true</uniqueVersion>
+    </snapshotRepository>
+  </distributionManagement>
   <modules>
     <module>engine</module>
     <module>net</module>
