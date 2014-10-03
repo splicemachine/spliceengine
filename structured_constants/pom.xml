@@ -7,7 +7,7 @@
 	<parent>
 		<artifactId>spliceengine</artifactId>
 		<groupId>com.splicemachine</groupId>
-		<version>FUJI.0-SNAPSHOT</version>
+		<version>1.0.0RC1-SNAPSHOT</version>
 	</parent>
 	<dependencies>
 		<dependency> <groupId>com.carrotsearch</groupId> <artifactId>hppc</artifactId> </dependency>
@@ -16,6 +16,7 @@
 		<dependency> <groupId>com.google.code.findbugs</groupId> <artifactId>jsr305</artifactId> </dependency>
 		<dependency> <groupId>com.google.guava</groupId> <artifactId>guava</artifactId> </dependency>
 		<dependency> <groupId>com.lmax</groupId> <artifactId>disruptor</artifactId> </dependency>
+		<dependency> <groupId>com.splicemachine</groupId> <artifactId>asynchbase</artifactId> </dependency>
 		<dependency> <groupId>com.splicemachine</groupId> <artifactId>utilities</artifactId> </dependency>
 		<dependency> <groupId>com.stumbleupon</groupId> <artifactId>async</artifactId> </dependency>
 		<dependency> <groupId>commons-lang</groupId> <artifactId>commons-lang</artifactId> </dependency>
@@ -24,7 +25,6 @@
 		<dependency> <groupId>log4j</groupId> <artifactId>log4j</artifactId> </dependency>
 		<dependency> <groupId>org.apache.lucene</groupId> <artifactId>lucene-core</artifactId> </dependency>
 		<dependency> <groupId>org.apache.zookeeper</groupId> <artifactId>zookeeper</artifactId> </dependency>
-		<dependency> <groupId>org.hbase</groupId> <artifactId>asynchbase</artifactId> </dependency>
 		<dependency> <groupId>org.mockito</groupId> <artifactId>mockito-all</artifactId> </dependency>
 	</dependencies>
 	<build>
