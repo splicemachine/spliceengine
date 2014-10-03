@@ -1,4 +1,4 @@
-package org.hbase.async;
+package com.splicemachine.async;
 
 import com.splicemachine.derby.impl.job.operation.SuccessFilter;
 import org.jboss.netty.buffer.ChannelBuffer;

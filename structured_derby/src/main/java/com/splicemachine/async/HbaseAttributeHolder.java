@@ -1,4 +1,4 @@
-package org.hbase.async;
+package com.splicemachine.async;
 
 import com.google.common.collect.Maps;
 import org.apache.hadoop.hbase.filter.FilterBase;

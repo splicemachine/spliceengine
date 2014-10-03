@@ -1,10 +1,7 @@
-package com.splicemachine.hbase.async;
+package com.splicemachine.async;
 
 import com.splicemachine.hbase.MeasuredResultScanner;
 import com.splicemachine.stream.CloseableStream;
-import com.splicemachine.stream.Stream;
-import com.splicemachine.utils.Source;
-import org.hbase.async.KeyValue;
 
 import java.io.IOException;
 import java.util.List;

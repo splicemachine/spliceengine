@@ -1,4 +1,4 @@
-package com.splicemachine.hbase.async;
+package com.splicemachine.async;
 
 import com.splicemachine.collections.NullStopIterator;
 import com.splicemachine.constants.SpliceConstants;
@@ -8,14 +8,10 @@ import com.splicemachine.metrics.Metrics;
 import com.splicemachine.metrics.TimeView;
 import com.splicemachine.metrics.Timer;
 import com.splicemachine.stream.*;
-import com.splicemachine.utils.Source;
 import com.stumbleupon.async.Callback;
 import com.stumbleupon.async.Deferred;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.Result;
-import org.hbase.async.HBaseClient;
-import org.hbase.async.KeyValue;
-import org.hbase.async.Scanner;
 
 import java.io.IOException;
 import java.util.*;
@@ -87,7 +83,7 @@ public class SimpleAsyncScanner implements AsyncScanner,Callback<ArrayList<Array
     @Override public long getLocalRowsRead() { return 0; }
 
     @Override
-    public List<org.hbase.async.KeyValue> nextKeyValues() throws Exception{
+    public List<com.splicemachine.async.KeyValue> nextKeyValues() throws Exception{
         List<KeyValue> row = resultQueue.poll();
         if(row!=null) return row;
 

@@ -1,10 +1,8 @@
 package com.splicemachine.derby.impl.storage;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Lists;
+import com.splicemachine.async.HBaseClient;
+import com.splicemachine.async.KeyValue;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.utils.AsyncScanIterator;
-import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.metrics.*;
 import com.splicemachine.metrics.Counter;
 import com.splicemachine.metrics.Timer;
@@ -14,12 +12,8 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.log4j.*;
-import org.hbase.async.*;
-import org.hbase.async.Scanner;
+import com.splicemachine.async.Scanner;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
 
@@ -77,7 +71,7 @@ public class AsyncScanner implements SpliceResultScanner, Callback<ArrayList<Arr
     @Override public long getLocalBytesRead() { return 0; }
     @Override public long getLocalRowsRead() { return 0; }
 
-    public List<org.hbase.async.KeyValue> nextKeyValues() throws Exception{
+    public List<KeyValue> nextKeyValues() throws Exception{
         List<KeyValue> row = resultQueue.poll();
         if(row!=null) return row;
 

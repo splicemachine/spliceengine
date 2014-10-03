@@ -1,9 +1,9 @@
 package com.splicemachine.si.impl;
 
-import com.splicemachine.hbase.async.SimpleAsyncScanner;
+import com.splicemachine.async.SimpleAsyncScanner;
 import com.stumbleupon.async.Deferred;
-import org.hbase.async.KeyValue;
-import org.hbase.async.Scanner;
+import com.splicemachine.async.KeyValue;
+import com.splicemachine.async.Scanner;
 
 import java.util.ArrayList;
 import java.util.Arrays;

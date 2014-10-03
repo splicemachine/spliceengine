@@ -16,7 +16,7 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.log4j.Logger;
-import org.hbase.async.HbaseAttributeHolder;
+import com.splicemachine.async.HbaseAttributeHolder;
 
 import java.io.IOException;
 import java.util.Iterator;

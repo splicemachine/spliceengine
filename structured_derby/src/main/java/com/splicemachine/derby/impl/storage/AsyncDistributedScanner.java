@@ -1,8 +1,8 @@
 package com.splicemachine.derby.impl.storage;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.hbase.async.AsyncScannerUtils;
-import com.splicemachine.hbase.async.SimpleAsyncScanner;
+import com.splicemachine.async.AsyncScannerUtils;
+import com.splicemachine.async.SimpleAsyncScanner;
 import com.splicemachine.metrics.*;
 import com.splicemachine.metrics.Timer;
 import com.stumbleupon.async.Callback;
@@ -10,8 +10,8 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
-import org.hbase.async.HBaseClient;
-import org.hbase.async.KeyValue;
+import com.splicemachine.async.HBaseClient;
+import com.splicemachine.async.KeyValue;
 
 import java.io.IOException;
 import java.util.*;
@@ -105,7 +105,7 @@ public class AsyncDistributedScanner implements SpliceResultScanner{
 
     @Override
     public Result next() throws IOException {
-        List<org.hbase.async.KeyValue> kvs = nextKvs();
+        List<com.splicemachine.async.KeyValue> kvs = nextKvs();
         if(kvs!=null)
             return new Result(AsyncScannerUtils.convertFromAsync(kvs));
         return null;
@@ -131,7 +131,7 @@ public class AsyncDistributedScanner implements SpliceResultScanner{
      * Direct access method to avoid the cost of converting between an async KeyValue object
      * and an hbase one
      */
-    public List<org.hbase.async.KeyValue> nextKvs() throws IOException {
+    public List<com.splicemachine.async.KeyValue> nextKvs() throws IOException {
         if(error!=null)
             throw new IOException(error);
 
@@ -141,7 +141,7 @@ public class AsyncDistributedScanner implements SpliceResultScanner{
             readPosition = (readPosition+1)%scanners.length;
             if(!activeScanners[readPosition]) continue; //skip known exhausted scanners
             try {
-                List<org.hbase.async.KeyValue> r = scanners[readPosition].nextKeyValues();
+                List<com.splicemachine.async.KeyValue> r = scanners[readPosition].nextKeyValues();
                 if(r==null){
                     activeScanners[readPosition] = false;
                 }else {

@@ -1,4 +1,4 @@
-package com.splicemachine.hbase.async;
+package com.splicemachine.async;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
@@ -8,6 +8,7 @@ import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.hbase.RowKeyDistributor;
 import com.splicemachine.hbase.RowKeyDistributorByHashPrefix;
 import com.splicemachine.metrics.*;
+import com.splicemachine.metrics.Counter;
 import com.splicemachine.metrics.Timer;
 import com.splicemachine.stream.BaseCloseableStream;
 import com.splicemachine.stream.CloseableStream;
@@ -21,9 +22,6 @@ import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.SimpleLayout;
-import org.hbase.async.HBaseClient;
-import org.hbase.async.KeyValue;
-import org.hbase.async.Scanner;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
