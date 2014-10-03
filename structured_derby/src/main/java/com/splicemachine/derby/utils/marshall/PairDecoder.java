@@ -24,7 +24,7 @@ public class PairDecoder {
 				this.templateRow = templateRow;
 		}
 
-    public ExecRow decode(org.hbase.async.KeyValue data) throws StandardException{
+    public ExecRow decode(com.splicemachine.async.KeyValue data) throws StandardException{
         templateRow.resetRowArray();
         byte[] key = data.key();
         keyDecoder.decode(key,0,key.length,templateRow);

@@ -2,7 +2,7 @@ package com.splicemachine.si.data.hbase;
 
 import com.splicemachine.collections.CloseableIterator;
 import com.splicemachine.constants.SIConstants;
-import com.splicemachine.hbase.async.SimpleAsyncScanner;
+import com.splicemachine.async.SimpleAsyncScanner;
 import com.splicemachine.si.data.api.STableReader;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;

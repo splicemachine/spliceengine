@@ -1,4 +1,4 @@
-package org.hbase.async;
+package com.splicemachine.async;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 
@@ -9,7 +9,7 @@ import java.util.Map;
  *         Date: 7/15/14
  */
 public class AsyncAttributeHolder extends ScanFilter {
-    private static final byte[] NAME = Bytes.ISO88591(HbaseAttributeHolder.class.getName());
+    private static final byte[] NAME = Bytes.ISO88591(com.splicemachine.async.HbaseAttributeHolder.class.getName());
     private final Map<String,byte[]> attributes;
 
     public AsyncAttributeHolder(Map<String, byte[]> attributes) {

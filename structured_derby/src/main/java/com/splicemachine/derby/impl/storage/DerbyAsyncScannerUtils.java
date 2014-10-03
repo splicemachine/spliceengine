@@ -1,16 +1,13 @@
 package com.splicemachine.derby.impl.storage;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Lists;
+import com.splicemachine.async.*;
 import com.splicemachine.derby.impl.job.operation.SuccessFilter;
 import com.splicemachine.derby.impl.sql.execute.operations.SkippingScanFilter;
-import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
-import org.hbase.async.*;
 
-import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 
@@ -62,7 +59,7 @@ public class DerbyAsyncScannerUtils {
                 scanner.setFilter(scanFilters.get(0));
                 break;
             default:
-                scanner.setFilter(new org.hbase.async.FilterList(scanFilters));
+                scanner.setFilter(new com.splicemachine.async.FilterList(scanFilters));
         }
 
         return scanner;

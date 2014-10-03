@@ -1,4 +1,4 @@
-package com.splicemachine.hbase.async;
+package com.splicemachine.async;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
@@ -13,15 +13,15 @@ import java.util.List;
  */
 public class AsyncScannerUtils {
 
-    private static final Function<? super org.hbase.async.KeyValue, ? extends KeyValue> toHBaseKvFunction
-            = new Function<org.hbase.async.KeyValue, org.apache.hadoop.hbase.KeyValue>() {
+    private static final Function<? super com.splicemachine.async.KeyValue, ? extends KeyValue> toHBaseKvFunction
+            = new Function<com.splicemachine.async.KeyValue, org.apache.hadoop.hbase.KeyValue>() {
         @Override
-        public org.apache.hadoop.hbase.KeyValue apply(@Nullable org.hbase.async.KeyValue input) {
+        public org.apache.hadoop.hbase.KeyValue apply(@Nullable com.splicemachine.async.KeyValue input) {
             return new org.apache.hadoop.hbase.KeyValue(input.key(),input.family(),input.qualifier(),input.timestamp(),input.value());
         }
     };
 
-    public static List<KeyValue> convertFromAsync(List<org.hbase.async.KeyValue> kvs){
+    public static List<KeyValue> convertFromAsync(List<com.splicemachine.async.KeyValue> kvs){
         return Lists.transform(kvs, toHBaseKvFunction);
     }
 }

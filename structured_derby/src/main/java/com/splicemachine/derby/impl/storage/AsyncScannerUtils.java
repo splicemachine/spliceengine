@@ -2,12 +2,12 @@ package com.splicemachine.derby.impl.storage;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
+import com.splicemachine.async.*;
 import com.splicemachine.derby.impl.job.operation.SuccessFilter;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
-import org.hbase.async.*;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -21,10 +21,10 @@ import java.util.Map;
  */
 public class AsyncScannerUtils {
 
-    private static final Function<? super org.hbase.async.KeyValue, ? extends org.apache.hadoop.hbase.KeyValue> toHBaseKvFunction
-            = new Function<org.hbase.async.KeyValue, org.apache.hadoop.hbase.KeyValue>() {
+    private static final Function<? super com.splicemachine.async.KeyValue, ? extends org.apache.hadoop.hbase.KeyValue> toHBaseKvFunction
+            = new Function<com.splicemachine.async.KeyValue, org.apache.hadoop.hbase.KeyValue>() {
         @Override
-        public org.apache.hadoop.hbase.KeyValue apply(@Nullable org.hbase.async.KeyValue input) {
+        public org.apache.hadoop.hbase.KeyValue apply(@Nullable com.splicemachine.async.KeyValue input) {
             return new org.apache.hadoop.hbase.KeyValue(input.key(),input.family(),input.qualifier(),input.timestamp(),input.value());
         }
     };
@@ -64,7 +64,7 @@ public class AsyncScannerUtils {
                 scanner.setFilter(scanFilters.get(0));
                 break;
             default:
-                scanner.setFilter(new org.hbase.async.FilterList(scanFilters));
+                scanner.setFilter(new com.splicemachine.async.FilterList(scanFilters));
         }
 
         return scanner;
@@ -79,7 +79,7 @@ public class AsyncScannerUtils {
         throw new IllegalArgumentException("Unknown Filter of type "+ filter.getClass());
     }
 
-    public static List<KeyValue> convertFromAsync(List<org.hbase.async.KeyValue> kvs){
+    public static List<KeyValue> convertFromAsync(List<com.splicemachine.async.KeyValue> kvs){
         return Lists.transform(kvs,toHBaseKvFunction);
     }
 }

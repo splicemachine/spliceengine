@@ -14,25 +14,25 @@
                 </excludes>
             </unpackOptions>
             <includes>
+                <include>com.carrotsearch:hppc</include>
+                <include>com.esotericsoftware.kryo:kryo</include>
+                <include>com.google.code.gson:gson</include>
+                <include>com.google.protobuf:protobuf-java</include>
+                <include>com.lmax:disruptor</include>
+                <include>com.splicemachine:asynchbase</include>
+                <include>com.splicemachine:splice_machine</include>
+                <include>com.splicemachine:structured_constants</include>
+                <include>com.splicemachine:structured_si</include>
+                <include>com.splicemachine:utilities</include>
+                <include>com.stumbleupon:async</include>
+                <include>de.javakaffee:kryo-serializers</include>
+                <include>net.sf.ehcache:ehcache-core</include>
+                <include>net.sf.opencsv:opencsv</include>
+                <include>net.sf.supercsv:super-csv</include>
                 <include>org.apache.derby:derby</include>
                 <include>org.apache.derby:derbyclient</include>
-                <include>com.splicemachine:structured_si</include>
-                <include>com.splicemachine:structured_constants</include>
-                <include>com.splicemachine:splice_machine</include>
-                <include>net.sf.opencsv:opencsv</include>
-                <include>com.google.code.gson:gson</include>
-                <include>net.sf.ehcache:ehcache-core</include>
-                <include>com.esotericsoftware.kryo:kryo</include>
-                <include>com.carrotsearch:hppc</include>
                 <include>org.apache.lucene:lucene-core</include>
-                <include>de.javakaffee:kryo-serializers</include>
-                <include>com.lmax:disruptor</include>
                 <include>org.codehaus.jsr166-mirror:jsr166y</include>
-                <include>org.hbase:asynchbase</include>
-                <include>com.stumbleupon:async</include>
-                <include>com.google.protobuf:protobuf-java</include>
-                <include>com.splicemachine:utilities</include>
-                <include>net.sf.supercsv:super-csv</include>
             </includes>
         </dependencySet>
     </dependencySets>

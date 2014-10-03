@@ -5,13 +5,13 @@ import com.splicemachine.collections.ForwardingCloseableIterator;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.hbase.RowKeyDistributor;
 import com.splicemachine.hbase.RowKeyDistributorByHashPrefix;
-import com.splicemachine.hbase.async.AsyncScanner;
-import com.splicemachine.hbase.async.SimpleAsyncScanner;
+import com.splicemachine.async.AsyncScanner;
+import com.splicemachine.async.SimpleAsyncScanner;
 import com.splicemachine.metrics.Metrics;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
-import org.hbase.async.HBaseClient;
+import com.splicemachine.async.HBaseClient;
 
 import java.io.IOException;
 

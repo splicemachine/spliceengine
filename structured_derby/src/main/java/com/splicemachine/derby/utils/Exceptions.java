@@ -58,8 +58,8 @@ public class Exceptions {
         }else if(rootCause instanceof ConstraintViolation.PrimaryKeyViolation
                 || rootCause instanceof ConstraintViolation.UniqueConstraintViolation){
             return createStandardExceptionForConstraintError(SQLState.LANG_DUPLICATE_KEY_CONSTRAINT, (ConstraintViolation.ConstraintViolationException) e);
-        }else if (rootCause instanceof org.hbase.async.RemoteException){
-            org.hbase.async.RemoteException re = (org.hbase.async.RemoteException)rootCause;
+        }else if (rootCause instanceof com.splicemachine.async.RemoteException){
+            com.splicemachine.async.RemoteException re = (com.splicemachine.async.RemoteException)rootCause;
             String fullMessage = re.getMessage();
             String type = re.getType();
             try{
@@ -108,8 +108,8 @@ public class Exceptions {
 						}
         } else if(rootCause instanceof SpliceStandardException){
             return ((SpliceStandardException)rootCause).generateStandardException();
-        } else if(rootCause instanceof org.hbase.async.RemoteException){
-            return parseException(getRemoteIOException((org.hbase.async.RemoteException)rootCause));
+        } else if(rootCause instanceof com.splicemachine.async.RemoteException){
+            return parseException(getRemoteIOException((com.splicemachine.async.RemoteException)rootCause));
         }else if(rootCause instanceof RemoteException){
             rootCause = ((RemoteException)rootCause).unwrapRemoteException();
         }
@@ -160,14 +160,14 @@ public class Exceptions {
     public static IOException getIOException(Throwable t){
         t = Throwables.getRootCause(t);
         if(t instanceof StandardException) return getIOException((StandardException)t);
-        else if(t instanceof org.hbase.async.RemoteException){
-            return getRemoteIOException((org.hbase.async.RemoteException)t);
+        else if(t instanceof com.splicemachine.async.RemoteException){
+            return getRemoteIOException((com.splicemachine.async.RemoteException)t);
         }
         else if(t instanceof IOException) return (IOException)t;
         else return new IOException(t);
     }
 
-    protected static IOException getRemoteIOException(org.hbase.async.RemoteException t) {
+    protected static IOException getRemoteIOException(com.splicemachine.async.RemoteException t) {
         String text = t.getMessage();
         String type = t.getType();
         try{

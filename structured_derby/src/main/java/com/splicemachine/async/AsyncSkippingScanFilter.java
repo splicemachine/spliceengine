@@ -1,4 +1,4 @@
-package org.hbase.async;
+package com.splicemachine.async;
 
 import com.splicemachine.derby.impl.sql.execute.operations.SkippingScanFilter;
 import org.apache.hadoop.hbase.util.Pair;

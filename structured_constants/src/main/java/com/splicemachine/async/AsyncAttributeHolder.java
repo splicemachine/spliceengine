@@ -1,4 +1,4 @@
-package org.hbase.async;
+package com.splicemachine.async;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 
@@ -28,7 +28,7 @@ public class AsyncAttributeHolder extends ScanFilter {
         buf.writeByte((byte)NAME.length);
         buf.writeBytes(NAME);
 
-        HBaseRpc.writeVLong(buf,attributes.size());
+        HBaseRpc.writeVLong(buf, attributes.size());
         for(Map.Entry<String,byte[]> entry:attributes.entrySet()){
             byte[] keyStr = entry.getKey().getBytes();
             HBaseRpc.writeByteArray(buf, keyStr);

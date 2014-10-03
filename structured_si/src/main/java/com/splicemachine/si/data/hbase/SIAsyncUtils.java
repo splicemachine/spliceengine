@@ -9,7 +9,7 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
-import org.hbase.async.*;
+import com.splicemachine.async.*;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -68,7 +68,7 @@ public class SIAsyncUtils {
                 scanner.setFilter(scanFilters.get(0));
                 break;
             default:
-                scanner.setFilter(new org.hbase.async.FilterList(scanFilters));
+                scanner.setFilter(new com.splicemachine.async.FilterList(scanFilters));
         }
 
         return scanner;
