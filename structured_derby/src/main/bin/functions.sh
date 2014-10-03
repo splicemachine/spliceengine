@@ -43,8 +43,9 @@ _retrySplice() {
         else
             if [[ ${RETRY} -lt ${MAXRETRY} ]]; then
                 if [[ -e "${ROOT_DIR}"/zoo_pid ]]; then
-                    _stop "${ROOT_DIR}"/zoo_pid 45
+                    _stop "${ROOT_DIR}"/zoo_pid 60 
                 fi
+                ERROR_CODE=1
             else
                 ERROR_CODE=1
             fi
@@ -69,8 +70,9 @@ _retrySplice() {
             else
                 if [[ ${RETRY} -lt ${MAXRETRY} ]]; then
                     if [[ -e "${ROOT_DIR}"/splice_pid ]]; then
-                        _stop "${ROOT_DIR}"/splice_pid 45
+                        _stop "${ROOT_DIR}"/splice_pid 60 
                     fi
+                    ERROR_CODE=1
                 else
                     ERROR_CODE=1
                 fi
@@ -162,18 +164,6 @@ _stop() {
 
     if [[ ! -e "${PID_FILE}" ]]; then
         echo "${PID_FILE} is not running."
-        #echo "Double check and kill any straggler"
-        if [[ "$PID_FILE" = *"splice_pid"* ]]; then
-            S=$(ps -ef | awk '/SpliceTestPlatform|SpliceSinglePlatform/ && !/awk/ {print $2}')
-        fi
-        if [[ "$PID_FILE" = *"zoo_pid"* ]]; then
-            S=$(ps -ef | awk '/ZooKeeperServerMain/ && !/awk/ {print $2}')
-        fi
-        if [[ -n ${S} ]]; then
-            for pid in ${S}; do
-                kill -15 ${pid}
-            done
-        fi
         return 0;
     fi
 
@@ -189,14 +179,6 @@ _stop() {
 				/bin/rm -f "$(cygpath --path --unix ${PID_FILE})"
             else
                 /bin/rm -f "${PID_FILE}"
-            fi
-            #echo "Double check and kill any straggler"
-            S=$(ps -ef | awk '/splice/ && !/awk/ {print $2}')
-            if [[ -n ${S} ]]; then
-                echo "Found splice straggler. Killing..."
-                for pid in ${S}; do
-                    kill -15 ${pid}
-                done
             fi
             return 1;
         fi
@@ -236,7 +218,7 @@ _stopServer() {
 
     echo "Shutting down Splice..."
     # shut down splice/hbase, timeout value is hardcoded
-    _stop "${PID_DIR}"/splice_pid 45
+    _stop "${PID_DIR}"/splice_pid 60 
 
     echo "Shutting down Zookeeper..."
     # shut down zookeeper, timeout value is hardcoded
