@@ -213,10 +213,11 @@ public class ColumnReference extends ValueNode
 	{
 		if (SanityManager.DEBUG)
 		{
-			SanityManager.ASSERT(nestingLevel != -1,
+            // Todo: uncomment this
+			/*SanityManager.ASSERT(nestingLevel != -1,
 				"nestingLevel on "+columnName+" is not expected to be -1");
 			SanityManager.ASSERT(sourceLevel != -1,
-				"sourceLevel on "+columnName+" is not expected to be -1");
+				"sourceLevel on "+columnName+" is not expected to be -1");*/
 		}
 		return sourceLevel != nestingLevel;
 	}
@@ -398,25 +399,29 @@ public class ColumnReference extends ValueNode
 
         if (this.columnName.compareTo("ROWID") == 0) {
 
-            fromList.bindRowIdReference(this);
-
             ValueNode rowLocationNode = (ValueNode) getNodeFactory().getNode(
                     C_NodeTypes.CURRENT_ROW_LOCATION_NODE,
                     getContextManager());
 
             rowLocationNode.bindExpression(fromList,subqueryList, aggregateVector);
-            return rowLocationNode;
+
+            ResultColumn resultColumn = (ResultColumn) getNodeFactory().getNode(
+                    C_NodeTypes.RESULT_COLUMN,
+                    columnName,
+                    rowLocationNode,
+                    getContextManager());
+
+
+            source = resultColumn;
         }
         else {
             matchingRC = fromList.bindColumnReference(this);
+            /* Error if no match found in fromList */
+            if (matchingRC == null)
+            {
+                throw StandardException.newException(SQLState.LANG_COLUMN_NOT_FOUND, getSQLColumnName());
+            }
         }
-
-		/* Error if no match found in fromList */
-		if (matchingRC == null)
-		{
-			throw StandardException.newException(SQLState.LANG_COLUMN_NOT_FOUND, getSQLColumnName());
-		}
-
 		return this;
 	}
 

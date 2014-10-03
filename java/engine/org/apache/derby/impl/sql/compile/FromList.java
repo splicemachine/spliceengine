@@ -522,18 +522,29 @@ public class FromList extends QueryTreeNodeVector implements OptimizableList
 		return resultColumnList;
 	}
 
-    public void bindRowIdReference(ColumnReference columnReference) throws StandardException {
+    public ValueNode bindRowIdReference(ColumnReference columnReference, ResultColumn resultColumn)
+            throws StandardException {
 
         FromTable fromTable;
         String crTableName = columnReference.getTableName();
         int size = size();
 
+        ResultColumn newRC = null;
+        FromBaseTable candidateBaseTable = null;
         if (crTableName == null) {
             if (size == 1) {
                 fromTable = (FromTable) elementAt(0);
                 if (fromTable instanceof FromBaseTable) {
-                    FromBaseTable baseTable = (FromBaseTable) fromTable;
-                    baseTable.setFetchRowId(true);
+                    candidateBaseTable = (FromBaseTable) fromTable;
+                    candidateBaseTable.setFetchRowId(true);
+                    /*newRC = (ResultColumn) getNodeFactory().getNode(
+                            C_NodeTypes.RESULT_COLUMN,
+                            "##RowId",
+                            rowLocationNode,
+                            getContextManager());
+                    newRC.markGenerated();
+                    candidateBaseTable.setRowIdColumn(newRC);*/
+                    candidateBaseTable.setRowIdColumn(resultColumn);
                 }
             }
             else {
@@ -559,6 +570,15 @@ public class FromList extends QueryTreeNodeVector implements OptimizableList
                         }
                         found = true;
                         baseTable.setFetchRowId(true);
+                        /*newRC = (ResultColumn) getNodeFactory().getNode(
+                                C_NodeTypes.RESULT_COLUMN,
+                                "##RowId",
+                                rowLocationNode,
+                                getContextManager());
+                        newRC.markGenerated();
+                        baseTable.setRowIdColumn(newRC);*/
+                        baseTable.setRowIdColumn(resultColumn);
+                        candidateBaseTable = baseTable;
                     }
                 }
             }
@@ -567,6 +587,8 @@ public class FromList extends QueryTreeNodeVector implements OptimizableList
                         columnReference.getSQLColumnName());
             }
         }
+
+        return candidateBaseTable.getRowIdColumn();
     }
 	/**
 	 * Bind a column reference to one of the tables in this FromList.  The column name

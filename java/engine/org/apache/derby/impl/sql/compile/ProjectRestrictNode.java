@@ -1548,12 +1548,6 @@ public class ProjectRestrictNode extends SingleChildResultSetNode
    			acb.pushMethodReference(mb, userExprFun);
 		}
 
-        // if the result column list contains a row id column
-        /*if (hasRowIdColumn()) {
-            acb.newFieldDeclaration(Modifier.PRIVATE,
-                    ClassName.CursorResultSet,
-                    acb.newRowLocationScanResultSetName());
-        }*/
 		/* Determine whether or not reflection is needed for the projection.
 		 * Reflection is not needed if all of the columns map directly to source
 		 * columns.

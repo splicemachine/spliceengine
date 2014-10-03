@@ -1182,6 +1182,21 @@ public class ResultColumnList extends QueryTreeNodeVector
 		generateCore(acb, mb, true);
 	}
 
+    private boolean codeGenerateForRowId(ValueNode sourceExpr) {
+        if (sourceExpr == null) {
+            return false;
+        }
+        else if (sourceExpr instanceof CurrentRowLocationNode) {
+            return ((CurrentRowLocationNode) sourceExpr).isGenerated();
+        }
+        else if (sourceExpr instanceof ResultColumn) {
+            return codeGenerateForRowId(((ResultColumn) sourceExpr).getExpression());
+        }
+        else if (sourceExpr instanceof VirtualColumnNode) {
+            return codeGenerateForRowId(((VirtualColumnNode) sourceExpr).getSourceColumn());
+        }
+        return false;
+    }
 	/**
 	 * Generate the code to place the columns' values into
 	 * a row variable named "r". This wrapper is here
@@ -1240,6 +1255,11 @@ public class ResultColumnList extends QueryTreeNodeVector
 					continue;
 				}
 
+                //if (sourceExpr instanceof CurrentRowLocationNode && ((CurrentRowLocationNode) sourceExpr).isGenerated())
+                if (codeGenerateForRowId(sourceExpr))
+                {
+                    continue;
+                }
 				//DERBY-4631 - For INNER JOINs and LEFT OUTER
 				// JOINs, Derby retrieves the join column values 
 				// from the left table's join column. But for 
@@ -2142,6 +2162,18 @@ public class ResultColumnList extends QueryTreeNodeVector
 			}
 		}
 	}
+
+    public void addRowIdResultColumn(ResultSetNode sourceResultSet,
+                                     ResultColumn rowIdColumn) throws StandardException {
+
+        rowIdColumn.expression = (ValueNode) getNodeFactory().getNode(
+                C_NodeTypes.VIRTUAL_COLUMN_NODE,
+                sourceResultSet,
+                rowIdColumn.cloneMe(),
+                ReuseFactory.getInteger(size()),
+                getContextManager());
+        addResultColumn(rowIdColumn);
+    }
 
 	/**
 	 * Walk the list and adjust the virtualColumnIds in the ResultColumns

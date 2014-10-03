@@ -189,6 +189,8 @@ public class FromBaseTable extends FromTable {
     // true if rowid is requested for this table
     private boolean fetchRowId;
 
+    private ResultColumn rowIdColumn;
+
     @Override
     public boolean isParallelizable() {
         return false;
@@ -2542,6 +2544,15 @@ public class FromBaseTable extends FromTable {
 		 */
 		prRCList.doProjection();
 
+        // Add rowId column if it is requested
+        if (fetchRowId) {
+            //prRCList.addRowIdResultColumn(this, rowIdColumn);
+            //VirtualColumnNode vc = (VirtualColumnNode)rowIdColumn.expression;
+            //ResultColumn rc = vc.getSourceColumn();
+            //rc.setVirtualColumnId(prRCList.size());
+            prRCList.addResultColumn(rowIdColumn);
+        }
+
 		/* Finally, we create the new ProjectRestrictNode */
 		return (ResultSetNode) getNodeFactory().getNode(
 								C_NodeTypes.PROJECT_RESTRICT_NODE,
@@ -4544,6 +4555,21 @@ public class FromBaseTable extends FromTable {
 
     public void setFetchRowId(boolean fetch) {
         fetchRowId = fetch;
+    }
+
+    public void setRowIdColumn(ResultColumn resultColumn) throws StandardException{
+        this.rowIdColumn = resultColumn;
+        /* this.rowIdColumn.expression = (ValueNode) getNodeFactory().getNode(
+                C_NodeTypes.VIRTUAL_COLUMN_NODE,
+                this,
+                rowIdColumn.cloneMe(),
+                ReuseFactory.getInteger(-1),
+                getContextManager());
+        resultColumns.addResultColumn(rowIdColumn); */
+    }
+
+    public ResultColumn getRowIdColumn() {
+        return this.rowIdColumn;
     }
 /*
     public ConstantAction makeConstantAction() throws StandardException {
