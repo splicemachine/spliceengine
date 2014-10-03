@@ -43,7 +43,7 @@ _retrySplice() {
         else
             if [[ ${RETRY} -lt ${MAXRETRY} ]]; then
                 if [[ -e "${ROOT_DIR}"/zoo_pid ]]; then
-                    _stop "${ROOT_DIR}"/zoo_pid 60 
+                    _stop "${ROOT_DIR}"/zoo_pid 45 
                 fi
                 ERROR_CODE=1
             else
@@ -70,7 +70,7 @@ _retrySplice() {
             else
                 if [[ ${RETRY} -lt ${MAXRETRY} ]]; then
                     if [[ -e "${ROOT_DIR}"/splice_pid ]]; then
-                        _stop "${ROOT_DIR}"/splice_pid 60 
+                        _stop "${ROOT_DIR}"/splice_pid 45 
                     fi
                     ERROR_CODE=1
                 else
@@ -230,7 +230,7 @@ _stopServer() {
 
     echo "Shutting down Splice..."
     # shut down splice/hbase, timeout value is hardcoded
-    _stop "${PID_DIR}"/splice_pid 60 
+    _stop "${PID_DIR}"/splice_pid 45 
 
     echo "Shutting down Zookeeper..."
     # shut down zookeeper, timeout value is hardcoded
