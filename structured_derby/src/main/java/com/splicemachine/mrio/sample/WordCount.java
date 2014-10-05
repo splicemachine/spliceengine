@@ -53,11 +53,6 @@ public class WordCount {
 		
 		private String word = "";
 		
-	    public MyMapper()
-	    {
-	    	super();   	
-	    }
-	    
 	    public void decode(ExecRow row) throws StandardException
 	    {
 	    	DataValueDescriptor dvd[]  = row.getRowArray();
@@ -103,7 +98,6 @@ public class WordCount {
 				{
 					Text key = new Text(word.charAt(0)+"");
 					IntWritable val = new IntWritable(1);
-					System.out.print(key+","+val);
 					context.write(key, val);
 				}
 			}	
@@ -148,7 +142,7 @@ public class WordCount {
 		
 		// TODO Auto-generated method stub
 		Configuration config = HBaseConfiguration.create();
-		config.set(SpliceMRConstants.SPLICE_JDBC_STR, "jdbc:splice://localhost:1527/splicedb;user=splice;password=admin");
+		config.set(SpliceMRConstants.SPLICE_JDBC_STR, "jdbc:derby://localhost:1527/splicedb;user=splice;password=admin");
 		SpliceJob job = new SpliceJob(config, NAME);
 		
 		job.setJarByClass(WordCount.class);     // class that contains mapper
@@ -157,7 +151,7 @@ public class WordCount {
 		scan.setCaching(500);        // 1 is the default in Scan, which will be bad for MapReduce jobs
 		scan.setCacheBlocks(false);  // don't set to true for MR jobs
 	    
-		String inputTableName = "TEST";
+		String inputTableName = "WIKIDATA";
 		String outputTableName = "USERTEST";
 		
 		try {
@@ -179,7 +173,7 @@ public class WordCount {
 					null,
 					null,
 					null,
-					true,
+					false,
 					SpliceOutputFormat.class);
 			
 			} catch (IOException e) {
@@ -199,8 +193,11 @@ public class WordCount {
 					System.out.println("Job Failed");
 					job.rollback();
 					}
-				else
+				else{
 					job.commit();
+					System.out.println("Job Succeed");
+					
+				}
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
