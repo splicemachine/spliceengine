@@ -448,12 +448,15 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 				else
 						op = getLeftOperation();
 				if(op !=null && !op.getNodeTypes().contains(NodeType.REDUCE)){
-						op.generateRightOperationStack(false,operations);
+						op.generateRightOperationStack(initial,operations);
 				}else if(op!=null)
 						operations.add(op);
 				operations.add(this);
 		}
 
+        public void generateAllOperationStack(List<SpliceOperation> operations) {
+            OperationUtils.generateAllOperationStack(this, operations);
+        }
 		@Override
 		public SpliceOperation getRightOperation() {
 				return null;

@@ -54,7 +54,7 @@ public class OperationUtils {
 				}
 		}
 
-		public static void generateLeftOperationStack(SpliceOperation op,List<SpliceOperation> opAccumulator){
+	public static void generateLeftOperationStack(SpliceOperation op,List<SpliceOperation> opAccumulator){
 		SpliceOperation leftOp = op.getLeftOperation();
 		if(leftOp !=null && !leftOp.getNodeTypes().contains(NodeType.REDUCE)){
 			//recursively generateLeftOperationStack
@@ -63,7 +63,24 @@ public class OperationUtils {
 			opAccumulator.add(leftOp);
 		opAccumulator.add(op);
 	}
-	
+
+    public static void generateAllOperationStack(SpliceOperation op, List<SpliceOperation> opAccumulator){
+        SpliceOperation leftOp = op.getLeftOperation();
+        if(leftOp !=null && !leftOp.getNodeTypes().contains(NodeType.REDUCE)){
+            //recursively generateLeftOperationStack
+            generateAllOperationStack(leftOp,opAccumulator);
+        }else if(leftOp!=null)
+            opAccumulator.add(leftOp);
+
+        SpliceOperation rightOp = op.getRightOperation();
+        if(rightOp !=null && !rightOp.getNodeTypes().contains(NodeType.REDUCE)){
+            //recursively generateLeftOperationStack
+            generateAllOperationStack(rightOp,opAccumulator);
+        }else if(rightOp!=null)
+            opAccumulator.add(rightOp);
+        opAccumulator.add(op);
+    }
+
 	public static List<SpliceOperation> getOperationStack(SpliceOperation op){
 		List<SpliceOperation> ops = new LinkedList<SpliceOperation>();
 		generateLeftOperationStack(op,ops);

@@ -169,6 +169,8 @@ public interface SpliceOperation extends StandardCloseable {
 	 * @return
 	 */
 	public void generateRightOperationStack(boolean initial, List<SpliceOperation> operations);
+
+    public void generateAllOperationStack(List<SpliceOperation> operations);
 	/**
 	 * 
 	 * The outgoing field definition of the record.  Do we need incoming as well?
