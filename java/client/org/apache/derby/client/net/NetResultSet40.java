@@ -95,7 +95,11 @@ public class NetResultSet40 extends NetResultSet{
     
     
     public RowId getRowId(String columnName) throws SQLException {
-        throw SQLExceptionFactory.notImplemented ("getRowId (String)");
+        try {
+            return getRowId(findColumnX(columnName, "getRowId"));
+        } catch(SqlException se) {
+            throw se.getSQLException();
+        }
     }
     
     public void updateRowId(int columnIndex, RowId x) throws SQLException {

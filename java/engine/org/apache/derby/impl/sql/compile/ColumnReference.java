@@ -31,10 +31,8 @@ import org.apache.derby.impl.sql.compile.ExpressionClassBuilder;
 import org.apache.derby.iapi.services.compiler.MethodBuilder;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.store.access.Qualifier;
-import org.apache.derby.iapi.types.TypeId;
 import org.apache.derby.iapi.util.JBitSet;
 
-import java.sql.Types;
 import java.util.Collections;
 import java.util.List;
 import java.util.Vector;
@@ -213,11 +211,10 @@ public class ColumnReference extends ValueNode
 	{
 		if (SanityManager.DEBUG)
 		{
-            // Todo: uncomment this
-			/*SanityManager.ASSERT(nestingLevel != -1,
+			SanityManager.ASSERT(nestingLevel != -1,
 				"nestingLevel on "+columnName+" is not expected to be -1");
 			SanityManager.ASSERT(sourceLevel != -1,
-				"sourceLevel on "+columnName+" is not expected to be -1");*/
+				"sourceLevel on "+columnName+" is not expected to be -1");
 		}
 		return sourceLevel != nestingLevel;
 	}
@@ -397,32 +394,14 @@ public class ColumnReference extends ValueNode
 			throw StandardException.newException(SQLState.LANG_ILLEGAL_COLUMN_REFERENCE, columnName);
 		}
 
-        if (this.columnName.compareTo("ROWID") == 0) {
-
-            ValueNode rowLocationNode = (ValueNode) getNodeFactory().getNode(
-                    C_NodeTypes.CURRENT_ROW_LOCATION_NODE,
-                    getContextManager());
-
-            rowLocationNode.bindExpression(fromList,subqueryList, aggregateVector);
-
-            ResultColumn resultColumn = (ResultColumn) getNodeFactory().getNode(
-                    C_NodeTypes.RESULT_COLUMN,
-                    columnName,
-                    rowLocationNode,
-                    getContextManager());
-
-
-            source = resultColumn;
-        }
-        else {
-            matchingRC = fromList.bindColumnReference(this);
+        matchingRC = fromList.bindColumnReference(this);
             /* Error if no match found in fromList */
-            if (matchingRC == null)
-            {
-                throw StandardException.newException(SQLState.LANG_COLUMN_NOT_FOUND, getSQLColumnName());
-            }
+        if (matchingRC == null)
+        {
+            throw StandardException.newException(SQLState.LANG_COLUMN_NOT_FOUND, getSQLColumnName());
         }
-		return this;
+
+        return this;
 	}
 
 	/**
@@ -1033,7 +1012,7 @@ public class ColumnReference extends ValueNode
 
 		if (SanityManager.DEBUG)
 		{
-			if (sourceResultSetNumber < 0 && columnName.compareToIgnoreCase("ROWID") != 0)
+			if (sourceResultSetNumber < 0)
 			{
 				SanityManager.THROWASSERT("sourceResultSetNumber expected to be >= 0 for " + getTableName() + "." + getColumnName());
 			}

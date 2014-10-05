@@ -737,11 +737,6 @@ public class ResultColumn extends ValueNode
 			fromList.isJoinColumnForRightOuterJoin(this);
 		}
 
-        ColumnReference oldExpression
-                = null;
-        if (columnNameMatches("ROWID")) {
-            oldExpression = (ColumnReference)expression;
-        }
 		setExpression( expression.bindExpression(fromList, subqueryList,
                                                  aggregateVector) );
 
@@ -749,10 +744,6 @@ public class ResultColumn extends ValueNode
 		{
 			autoincrement = ((ColumnReference)expression).getSource().isAutoincrement();
 		}
-
-        if (columnNameMatches("ROWID")) {
-            fromList.bindRowIdReference(oldExpression, ((ColumnReference)expression).getSource());
-        }
 		
 		return this;
 	}

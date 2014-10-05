@@ -120,8 +120,6 @@ public class CurrentRowLocationNode extends ValueNode
 											MethodBuilder mbex)
 									throws StandardException
 	{
-        if (generated) return;
-
 		/* Generate a new method */
 		/* only used within the other exprFuns, so can be private */
 		MethodBuilder mb = acb.newGeneratedFun(ClassName.DataValueDescriptor, Modifier.PROTECTED);
@@ -162,7 +160,6 @@ public class CurrentRowLocationNode extends ValueNode
 		/* Generate the call to the new method */
 		mbex.pushThis();
 		mbex.callMethod(VMOpcode.INVOKEVIRTUAL, (String) null, mb.getName(), ClassName.DataValueDescriptor, 0);
-        generated = true;
 	}
 	
 	protected boolean isEquivalent(ValueNode o)
@@ -173,8 +170,4 @@ public class CurrentRowLocationNode extends ValueNode
 	public List getChildren() {
 		return Collections.EMPTY_LIST;
 	}
-
-    public boolean isGenerated() {
-        return generated;
-    }
 }

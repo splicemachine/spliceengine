@@ -26,6 +26,8 @@ import java.util.*;
 import org.apache.derby.catalog.IndexDescriptor;
 import org.apache.derby.iapi.sql.dictionary.*;
 import org.apache.derby.iapi.sql.execute.ConstantAction;
+import org.apache.derby.iapi.types.DataTypeDescriptor;
+import org.apache.derby.iapi.types.TypeId;
 import org.apache.derby.iapi.util.StringUtil;
 import org.apache.derby.iapi.reference.ClassName;
 import org.apache.derby.iapi.reference.SQLState;
@@ -185,9 +187,6 @@ public class FromBaseTable extends FromTable {
 
     // true if we are running with sql authorization and this is the SYSUSERS table
     private boolean authorizeSYSUSERS;
-
-    // true if rowid is requested for this table
-    private boolean fetchRowId;
 
     private ResultColumn rowIdColumn;
 
@@ -2463,6 +2462,25 @@ public class FromBaseTable extends FromTable {
 					tableDescriptor.setReferencedColumnMap(referencedColumnMap);
 				}
 			}
+            else if (columnReference.columnName.compareTo("ROWID") == 0) {
+                if (rowIdColumn == null) {
+                    ValueNode rowLocationNode = (ValueNode) getNodeFactory().getNode(
+                            C_NodeTypes.CURRENT_ROW_LOCATION_NODE,
+                            getContextManager());
+
+                    rowLocationNode.setType(new DataTypeDescriptor(TypeId.getBuiltInTypeId(TypeId.REF_NAME),
+                                    false		/* Not nullable */
+                            )
+                    );
+
+                    rowIdColumn = (ResultColumn) getNodeFactory().getNode(
+                            C_NodeTypes.RESULT_COLUMN,
+                            columnReference.columnName,
+                            rowLocationNode,
+                            getContextManager());
+                }
+                resultColumn = rowIdColumn;
+            }
 		}
 
 		return resultColumn;
@@ -2544,12 +2562,8 @@ public class FromBaseTable extends FromTable {
 		 */
 		prRCList.doProjection();
 
-        // Add rowId column if it is requested
-        if (fetchRowId) {
-            //prRCList.addRowIdResultColumn(this, rowIdColumn);
-            //VirtualColumnNode vc = (VirtualColumnNode)rowIdColumn.expression;
-            //ResultColumn rc = vc.getSourceColumn();
-            //rc.setVirtualColumnId(prRCList.size());
+        // Add rowId column to prRCList
+        if (rowIdColumn != null) {
             prRCList.addResultColumn(rowIdColumn);
         }
 
@@ -3084,7 +3098,7 @@ public class FromBaseTable extends FromTable {
 				(bulkFetch != UNSET), multiProbing),
 			ClassName.NoPutResultSet, nargs);
 
-        if (fetchRowId) {
+        if (rowIdColumn != null) {
             acb.newFieldDeclaration(Modifier.PRIVATE,
                     ClassName.CursorResultSet,
                     acb.newRowLocationScanResultSetName());
@@ -3101,7 +3115,7 @@ public class FromBaseTable extends FromTable {
 		 * we invoke the appropriate method.
 		 *										(call to the ResultSetFactory)
 		 */
-		if ((updateOrDelete == UPDATE) || (updateOrDelete == DELETE) || fetchRowId)
+		if ((updateOrDelete == UPDATE) || (updateOrDelete == DELETE) || rowIdColumn != null)
 		{
 			mb.cast(ClassName.CursorResultSet);
 			mb.putField(acb.getRowLocationScanResultSetName(), ClassName.CursorResultSet);
@@ -4553,24 +4567,6 @@ public class FromBaseTable extends FromTable {
         return (qualifiedIndexes > 0);
     }
 
-    public void setFetchRowId(boolean fetch) {
-        fetchRowId = fetch;
-    }
-
-    public void setRowIdColumn(ResultColumn resultColumn) throws StandardException{
-        this.rowIdColumn = resultColumn;
-        /* this.rowIdColumn.expression = (ValueNode) getNodeFactory().getNode(
-                C_NodeTypes.VIRTUAL_COLUMN_NODE,
-                this,
-                rowIdColumn.cloneMe(),
-                ReuseFactory.getInteger(-1),
-                getContextManager());
-        resultColumns.addResultColumn(rowIdColumn); */
-    }
-
-    public ResultColumn getRowIdColumn() {
-        return this.rowIdColumn;
-    }
 /*
     public ConstantAction makeConstantAction() throws StandardException {
         ConglomerateDescriptorList cdl = tableDescriptor.getConglomerateDescriptorList();
