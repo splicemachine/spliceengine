@@ -219,8 +219,8 @@ public class SpliceObserverInstructions implements Externalizable {
 				public static ActivationContext create(Activation activation,SpliceOperation topOperation){
 						List<SpliceOperation> operations = new ArrayList<SpliceOperation>();
 						Map<String,Integer> setOps = new HashMap<String,Integer>(operations.size());
-						topOperation.generateLeftOperationStack(operations);
-						for(Field field:activation.getClass().getDeclaredFields()){
+						topOperation.generateAllOperationStack(operations);
+                        for(Field field:activation.getClass().getDeclaredFields()){
 								if(!field.isAccessible())field.setAccessible(true); //make it accessible to me
 								try{
 										if(ResultSet.class.isAssignableFrom(field.getType())){
@@ -317,7 +317,7 @@ public class SpliceObserverInstructions implements Externalizable {
 			 * Set the populated operations with their comparable operation
 			 */
 								List<SpliceOperation> ops = new ArrayList<SpliceOperation>();
-								topOperation.generateLeftOperationStack(ops);
+								topOperation.generateAllOperationStack(ops);
 								for(String setField:setOps.keySet()){
 										SpliceOperation op = ops.get(setOps.get(setField));
 										Field fieldToSet = activation.getClass().getDeclaredField(setField);
