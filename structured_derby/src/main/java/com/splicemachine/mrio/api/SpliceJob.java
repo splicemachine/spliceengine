@@ -11,6 +11,8 @@ package com.splicemachine.mrio.api;
 
 import java.io.IOException;
 import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
 import org.apache.hadoop.conf.Configuration;
@@ -19,6 +21,8 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobStatus;
 import org.apache.hadoop.mapreduce.Job.JobState;
+
+import java.sql.ResultSet;
 
 public class SpliceJob extends Job{
 
@@ -49,14 +53,19 @@ public class SpliceJob extends Job{
 	 {	
 		 if(sqlUtil == null)
 			 sqlUtil = SQLUtil.getInstance(super.getConfiguration().get(SpliceMRConstants.SPLICE_JDBC_STR));
-			 //sqlUtil = SQLUtil.getInstance("jdbc:derby://localhost:1527/splicedb;user=splice;password=admin");
+			 
 		 if (conn == null)
 			try {
 				conn = sqlUtil.createConn();
+				
 				sqlUtil.disableAutoCommit(conn);
 				String parentTxsID = sqlUtil.getTransactionID(conn);
-				System.out.println("PARENT txnID: "+parentTxsID);
-				//Thread.sleep(40000000);
+				
+				PreparedStatement ps = conn.prepareStatement("call SYSCS_UTIL.SYSCS_ELEVATE_TRANSACTION(?)");
+				System.out.println(super.getConfiguration().get(SpliceMRConstants.SPLICE_OUTPUT_TABLE_NAME));
+				ps.setString(1, super.getConfiguration().get(SpliceMRConstants.SPLICE_OUTPUT_TABLE_NAME));	
+				ps.executeUpdate();
+				
 				super.getConfiguration().set(SpliceMRConstants.SPLICE_TRANSACTION_ID, parentTxsID);
 					
 			} catch (SQLException e1) {
@@ -67,12 +76,14 @@ public class SpliceJob extends Job{
 			} catch (IllegalAccessException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
-			}
+			} 
 		 System.out.println("Submitting job...");
 		 super.submit();
 		 System.out.println("Submitted job...");
+		 
+		
 	 }
-	  
+	 
 	  @Override
 	  public boolean waitForCompletion(boolean verbose
               ) throws IOException, InterruptedException,

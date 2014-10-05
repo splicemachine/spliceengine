@@ -224,6 +224,7 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 				sqlUtil.commit(conn);
 				sqlUtil.closeConn(conn);
 				System.out.println("Task "+arg0.getTaskAttemptID()+" succeed");
+				
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -304,8 +305,7 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 				if(callBuffer == null){
 					conn = sqlUtil.createConn();
 					sqlUtil.disableAutoCommit(conn);
-					System.out.println("TABLEID: "+tableID+", PARENT TXNID:"+conf.get(SpliceMRConstants.SPLICE_TRANSACTION_ID));
-					//Thread.sleep(400000000);
+					
 					childTxsID = sqlUtil.getChildTransactionID(conn, 
 									Long.parseLong(conf.get(SpliceMRConstants.SPLICE_TRANSACTION_ID)), 
 									Long.parseLong(tableID));
@@ -316,8 +316,7 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 						size = Integer.valueOf(strSize);
 					TxnView txn = new ActiveWriteTxn(childTxsID,childTxsID);
 					callBuffer = WriteCoordinator.create(conf).writeBuffer(Bytes.toBytes(tableID), 
-									txn, size);	
-
+									txn, size);			
 				}		
 				byte[] key = this.keyEncoder.getKey(value);
 				rowHash.setRow(value);
@@ -326,6 +325,7 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 				KVPair kv = new KVPair();
 				kv.setKey(key);
 				kv.setValue(bdata);	
+				//System.out.println("key:"+new String(key)+" value:"+new String(bdata));
 				callBuffer.add(kv);
 					
 			} catch (StandardException e) {

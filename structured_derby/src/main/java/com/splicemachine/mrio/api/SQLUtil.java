@@ -52,6 +52,7 @@ public class SQLUtil {
 	  
 	  public Connection createConn() throws SQLException, InstantiationException, IllegalAccessException, ClassNotFoundException{
 		  Class.forName("org.apache.derby.jdbc.ClientDriver").newInstance();
+		  
 		  Connection conn = DriverManager.getConnection(connStr);
 		  return conn;
 	  }
@@ -226,7 +227,7 @@ public class SQLUtil {
 			
 			resultSet = connect.createStatement().executeQuery("call SYSCS_UTIL.SYSCS_GET_CURRENT_TRANSACTION()");
 			while(resultSet.next()){
-				trxId = String.valueOf(resultSet.getInt(1));
+				trxId = String.valueOf(resultSet.getLong(1));
 			}
 			
 		  } catch (SQLException e) {
@@ -240,7 +241,8 @@ public class SQLUtil {
 		  String trxId = null;
 		  resultSet = conn.createStatement().executeQuery("call SYSCS_UTIL.SYSCS_GET_CURRENT_TRANSACTION()");
 			while(resultSet.next()){
-				trxId = String.valueOf(resultSet.getInt(1));
+				long txnID = resultSet.getLong(1);
+				trxId = String.valueOf(txnID);
 			}
 		  return trxId;
 	  }

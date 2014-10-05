@@ -62,7 +62,7 @@ public class ImportData {
 	            {
 	            	String query = "insert into "+  
 							tableName +" values('"+line+"')";
-	            	System.out.println(query);
+	            	//System.out.println(query);
 	            	stmt.executeUpdate(query);
 	            }
 	            line = br.readLine();

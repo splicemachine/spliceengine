@@ -193,11 +193,25 @@ public class TransactionAdmin {
             new GenericColumnDescriptor("childTxnId", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT))
     };
 
+    public static void SYSCS_ELEVATE_TRANSACTION(String tableName) throws IOException, SQLException {
+    	 //TxnSupplier store = TransactionStorage.getTxnStore();
+    	 EmbedConnection defaultConn = (EmbedConnection) SpliceAdmin.getDefaultConn();
+         try {
+			defaultConn.getLanguageConnection().getTransactionExecute().elevate(tableName);
+		} catch (StandardException e) {
+			// TODO Auto-generated catch block
+			throw new IllegalArgumentException(String.format("Specified tableName %s cannot be elevated. ", tableName));
+		}
+         
+        ((SpliceTransactionManager)defaultConn.getLanguageConnection().getTransactionExecute()).getActiveStateTxn();
+         
+    }
+
     public static void SYSCS_START_CHILD_TRANSACTION(long parentTransactionId, long conglomId, ResultSet[] resultSet) throws IOException, SQLException {
 
         // Verify the parentTransactionId passed in
         TxnSupplier store = TransactionStorage.getTxnStore();
-        TxnView parentTxn = store.getTransaction(parentTransactionId);
+        TxnView parentTxn = ((TxnStore)store).getTransaction(parentTransactionId);
         if (parentTxn == null) {
             throw new IllegalArgumentException(String.format("Specified parent transaction id %s not found. Unable to create child transaction.", parentTransactionId));
         }
