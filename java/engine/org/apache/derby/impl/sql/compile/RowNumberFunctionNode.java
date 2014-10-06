@@ -28,19 +28,20 @@ import org.apache.derby.iapi.types.TypeId;
 /**
  * Class that represents a call to the ROW_NUMBER() window function.
  */
-public class RowNumberFunctionNode extends AggregateWindowFunctionNode {
-
+public class RowNumberFunctionNode extends WindowFunctionNode {
+    private ValueNode[] operands;
     /**
      * Initializer. QueryTreeNode override.
      *
-     * @param arg1 null (Operand)
-     * @param arg2 The window definition or reference
-     *
-     * @exception StandardException
+     * @param arg1 operands
+     * @param arg2 The function's definition class
+     * @param arg3 The window definition or reference
+     * @param arg4 null
+     * @throws org.apache.derby.iapi.error.StandardException
      */
-    public void init(Object arg1, Object arg2)  throws StandardException  {
-//        super.init(arg1, "ROW_NUMBER", arg2);
-        super.init(arg1, arg2);
+    public void init(Object arg1, Object arg2, Object arg3, Object arg4) throws StandardException {
+        super.init(((ValueNode[])arg1)[0], arg2, Boolean.FALSE, "ROW_NUMBER", arg3);
+        this.operands = (ValueNode[])arg1;
         setType( TypeId.getBuiltInTypeId( Types.BIGINT ),
                  TypeId.LONGINT_PRECISION,
                  TypeId.LONGINT_SCALE,
@@ -49,7 +50,17 @@ public class RowNumberFunctionNode extends AggregateWindowFunctionNode {
     }
 
     @Override
+    public String getName() {
+        return getAggregateName();
+    }
+
+    @Override
     public boolean isScalarAggregate() {
         return false;
+    }
+
+    @Override
+    public ValueNode[] getOperands() {
+        return operands;
     }
 }

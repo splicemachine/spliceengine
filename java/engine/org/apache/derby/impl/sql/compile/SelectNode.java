@@ -1564,8 +1564,6 @@ public class SelectNode extends ResultSetNode
                         prnRSN,
                         defnToFunctions.getKey(),
                         defnToFunctions.getValue(),
-                        groupByList,
-                        aggregateResultColumns,
                         null,   // table properties
                         nestingLevel,
                         getContextManager());

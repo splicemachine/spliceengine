@@ -45,15 +45,15 @@ import org.apache.derby.iapi.types.DataTypeDescriptor;
 
 public class AggregateNode extends UnaryOperatorNode
 {
-	private boolean					distinct;
+	protected boolean					distinct;
 
-	private AggregateDefinition		uad;
-	private TableName           userAggregateName;
-	private StringBuffer			aggregatorClassName;
+	protected AggregateDefinition		uad;
+	protected TableName           userAggregateName;
+	protected StringBuffer			aggregatorClassName;
 	private String					aggregateDefinitionClassName;
 	private Class					aggregateDefinitionClass;
-	private ClassInspector			classInspector;
-	private String					aggregateName;
+    protected ClassInspector			classInspector;
+	protected String					aggregateName;
 
 	/*
 	** We wind up pushing all aggregates into a different
@@ -62,8 +62,8 @@ public class AggregateNode extends UnaryOperatorNode
 	** column reference and create a new result column.
 	** This is used to store that result column.
 	*/
-	private ResultColumn			generatedRC;
-	private ColumnReference			generatedRef;
+	protected ResultColumn			generatedRC;
+	protected ColumnReference		generatedRef;
 
     private boolean                 isWindowFunction;
 	/**
@@ -115,7 +115,7 @@ public class AggregateNode extends UnaryOperatorNode
 		}
 	}
 	/** initialize fields for user defined aggregate */
-	private void setUserDefinedAggregate( UserAggregateDefinition userAgg )
+	protected void setUserDefinedAggregate( UserAggregateDefinition userAgg )
 	{
 	    this.uad = userAgg;
 	    this.aggregateDefinitionClass = uad.getClass();
@@ -439,7 +439,7 @@ public class AggregateNode extends UnaryOperatorNode
 	/*
 	** Make sure the aggregator class is ok
 	*/
-	private void checkAggregatorClassName(String className) throws StandardException
+    protected void checkAggregatorClassName(String className) throws StandardException
 	{
 		verifyClassExist(className);
 
@@ -456,7 +456,7 @@ public class AggregateNode extends UnaryOperatorNode
 	/*
 	** Instantiate the aggregate definition.
 	*/
-	private void instantiateAggDef() throws StandardException
+    protected void instantiateAggDef() throws StandardException
 	{
 		if ( uad == null )
 	    {
@@ -716,7 +716,7 @@ public class AggregateNode extends UnaryOperatorNode
 	}
 	    
 	/** Return true if this is a user-defined aggregate */
-	private boolean isUserDefinedAggregate()
+    protected boolean isUserDefinedAggregate()
 	{
 		return uad instanceof UserAggregateDefinition;
 	}

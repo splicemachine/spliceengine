@@ -302,7 +302,7 @@ public interface C_NodeNames
 	static final String SAVEPOINT_NODE_NAME = "org.apache.derby.impl.sql.compile.SavepointNode";
 
 	static final String XML_CONSTANT_NODE_NAME = "org.apache.derby.impl.sql.compile.XMLConstantNode";
-	static final String AGGREGATE_WINDOW_FUNCTION_NAME = "org.apache.derby.impl.sql.compile.AggregateWindowFunctionNode";
+	static final String WRAPPED_AGGREGATE_FUNCTION_NODE = "org.apache.derby.impl.sql.compile.WrappedAggregateFunctionNode";
 	static final String ROW_NUMBER_FUNCTION_NAME = "org.apache.derby.impl.sql.compile.RowNumberFunctionNode";
 	static final String RANK_FUNCTION_NAME = "org.apache.derby.impl.sql.compile.RankFunctionNode";
 	static final String DENSE_RANK_FUNCTION_NAME = "org.apache.derby.impl.sql.compile.DenseRankFunctionNode";

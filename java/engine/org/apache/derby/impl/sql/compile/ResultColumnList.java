@@ -24,10 +24,10 @@ package	org.apache.derby.impl.sql.compile;
 import java.lang.reflect.Modifier;
 import java.sql.ResultSetMetaData;
 import java.sql.Types;
-import java.util.Hashtable;
-import java.util.Vector;
-import java.util.Map;
 import java.util.HashMap;
+import java.util.Hashtable;
+import java.util.Map;
+import java.util.Vector;
 
 import org.apache.derby.catalog.types.DefaultInfoImpl;
 import org.apache.derby.iapi.error.StandardException;
@@ -42,8 +42,6 @@ import org.apache.derby.iapi.services.loader.ClassFactory;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.sql.ResultColumnDescriptor;
 import org.apache.derby.iapi.sql.compile.C_NodeTypes;
-import org.apache.derby.iapi.sql.compile.CompilerContext;
-import org.apache.derby.iapi.sql.compile.Parser;
 import org.apache.derby.iapi.sql.compile.NodeFactory;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.dictionary.ColumnDescriptor;
@@ -4142,6 +4140,15 @@ public class ResultColumnList extends QueryTreeNodeVector
 		}
 		return strings;
 	}
+
+    public ResultColumn[] getColumnsAsArray() {
+        int size = size();
+        ResultColumn[] array = new ResultColumn[size];
+        for (int index = 0; index < size; index++) {
+            array[index] = (ResultColumn) elementAt(index);
+        }
+        return array;
+    }
 
 	/**
 	 * Replace any DEFAULTs with the associated tree for the default if

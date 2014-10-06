@@ -28,18 +28,20 @@ import org.apache.derby.iapi.types.TypeId;
 /**
  * Class that represents a call to the RANK() window function.
  */
-public final class RankFunctionNode extends AggregateWindowFunctionNode  {
-
+public final class RankFunctionNode extends WindowFunctionNode  {
+    private ValueNode[] operands;
     /**
      * Initializer. QueryTreeNode override.
      *
-     * @param arg1 null (Operand)
-     * @param arg2 The window definition or reference
+     * @param arg1 operands
+     * @param arg2 The function's definition class
+     * @param arg3 The window definition or reference
+     * @param arg4 null
      * @throws org.apache.derby.iapi.error.StandardException
      */
-    public void init(Object arg1, Object arg2) throws StandardException {
-//        super.init(arg1, "RANK", arg2);
-        super.init(arg1, arg2);
+    public void init(Object arg1, Object arg2, Object arg3, Object arg4) throws StandardException {
+        super.init(((ValueNode[])arg1)[0], arg2, Boolean.FALSE, "RANK", arg3);
+        this.operands = (ValueNode[])arg1;
         setType(TypeId.getBuiltInTypeId(Types.BIGINT),
                 TypeId.LONGINT_PRECISION,
                 TypeId.LONGINT_SCALE,
@@ -48,7 +50,17 @@ public final class RankFunctionNode extends AggregateWindowFunctionNode  {
     }
 
     @Override
+    public String getName() {
+        return getAggregateName();
+    }
+
+    @Override
     public boolean isScalarAggregate() {
         return false;
+    }
+
+    @Override
+    public ValueNode[] getOperands() {
+        return operands;
     }
 }

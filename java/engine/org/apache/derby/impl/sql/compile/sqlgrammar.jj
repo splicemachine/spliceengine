@@ -9975,118 +9975,103 @@ datetimeValueFunction() throws StandardException :
 	}
 }
 
-/*
-** Note that set function and aggregate are used
-** interchangeably in the parser.  The tree has
-** aggregate nodes.
-*/
-ValueNode
-windowOrAggregateFunctionNode() throws StandardException :
-{
-	ValueNode winOrAgg;
-	QueryTreeNode window = null;
-	ValueNode[] rankColsRef = null;
-}
-{
-	<COUNT> <LEFT_PAREN>
-	( <ASTERISK>
-	{
-			winOrAgg = (ValueNode) nodeFactory.getNode(
-								C_NodeTypes.AGGREGATE_NODE,
-								null,
-								CountAggregateDefinition.class, 
-								Boolean.FALSE,
-								"COUNT(*)",
-								getContextManager());
-	}
-	|
-		winOrAgg = aggregateExpression("COUNT", CountAggregateDefinition.class)
-	)
-		<RIGHT_PAREN> [ window = overClause() ]
-	{
-		if (window != null) {
-		    ((AggregateNode)winOrAgg).setWindowFunction(true);
-			winOrAgg =  (ValueNode) nodeFactory.getNode(
-				C_NodeTypes.AGGREGATE_WINDOW_FUNCTION_NODE,
-				window,
-				winOrAgg,
-				getContextManager());
-		}
+   /*
+   ** Note that set function and aggregate are used
+   ** interchangeably in the parser.  The tree has
+   ** aggregate nodes.
+   */
+   ValueNode
+   windowOrAggregateFunctionNode() throws StandardException :
+   {
+       ValueNode winOrAgg;
+       QueryTreeNode window = null;
+       ValueNode[] rankColsRef = null;
+   }
+   {
+       <COUNT> <LEFT_PAREN>
+       ( <ASTERISK>
+       {
+               winOrAgg = (ValueNode) nodeFactory.getNode(
+                                   C_NodeTypes.AGGREGATE_NODE,
+                                   null,
+                                   CountAggregateDefinition.class,
+                                   Boolean.FALSE,
+                                   "COUNT(*)",
+                                   getContextManager());
+       }
+       |
+           winOrAgg = aggregateExpression("COUNT", CountAggregateDefinition.class)
+       )
+           <RIGHT_PAREN> [ window = overClause() ]
+       {
+           if (window != null) {
+               ((AggregateNode)winOrAgg).setWindowFunction(true);
+               winOrAgg =  (ValueNode) nodeFactory.getNode(
+                   C_NodeTypes.WRAPPED_AGGREGATE_FUNCTION_NODE,
+                   window,
+                   winOrAgg,
+                   getContextManager());
+           }
 
-		return winOrAgg;
-	}
-|
-	winOrAgg = generalAggregate() [ window = overClause() ]
-	{
-		if (window != null) {
-            ((AggregateNode)winOrAgg).setWindowFunction(true);
-			winOrAgg =  (ValueNode) nodeFactory.getNode(
-				C_NodeTypes.AGGREGATE_WINDOW_FUNCTION_NODE,
-				window,
-				winOrAgg,
-				getContextManager());
-		}
+           return winOrAgg;
+       }
+   |
+       winOrAgg = generalAggregate() [ window = overClause() ]
+       {
+           if (window != null) {
+               ((AggregateNode)winOrAgg).setWindowFunction(true);
+               winOrAgg =  (ValueNode) nodeFactory.getNode(
+                   C_NodeTypes.WRAPPED_AGGREGATE_FUNCTION_NODE,
+                   window,
+                   winOrAgg,
+                   getContextManager());
+           }
 
-		return winOrAgg;
-	}
-|
-	<DENSERANK> <LEFT_PAREN> <RIGHT_PAREN> window = overClause()
-	{
-	    rankColsRef = columnsRefForRankFunct(window);
-	    setWindowFrameMode(window, WindowFrameDefinition.FrameMode.ROWS);
-        winOrAgg = (ValueNode) nodeFactory.getNode(C_NodeTypes.AGGREGATE_NODE,
-                            (rankColsRef.length == 0 ? null : rankColsRef[0]),
-                            DenseRankFunctionDefinition.class,
-                            Boolean.FALSE,
-                            "DENSE_RANK",
-                            getContextManager());
-        ((AggregateNode)winOrAgg).setWindowFunction(true);
-		winOrAgg = (ValueNode) nodeFactory.getNode(
-			C_NodeTypes.DENSERANK_FUNCTION_NODE,
-			window,
-			winOrAgg,
-			getContextManager());
-		return winOrAgg;
-	}
-|
-	<RANK> <LEFT_PAREN> <RIGHT_PAREN> window = overClause()
-	{
-	    rankColsRef = columnsRefForRankFunct(window);
-	    setWindowFrameMode(window, WindowFrameDefinition.FrameMode.ROWS);
-        winOrAgg = (ValueNode) nodeFactory.getNode(C_NodeTypes.AGGREGATE_NODE,
-                            (rankColsRef.length == 0 ? null : rankColsRef[0]),
-                            RankFunctionDefinition.class,
-                            Boolean.FALSE,
-                            "RANK",
-                            getContextManager());
-        ((AggregateNode)winOrAgg).setWindowFunction(true);
-		winOrAgg = (ValueNode) nodeFactory.getNode(
-			C_NodeTypes.RANK_FUNCTION_NODE,
-			window,
-			winOrAgg,
-			getContextManager());
-		return winOrAgg;
-	}
-|
-	<ROWNUMBER> <LEFT_PAREN> <RIGHT_PAREN> window = overClause()
-	{
-	    rankColsRef = columnsRefForRankFunct(window);
-	    setWindowFrameMode(window, WindowFrameDefinition.FrameMode.ROWS);
-        winOrAgg = (ValueNode) nodeFactory.getNode(C_NodeTypes.AGGREGATE_NODE,
-                            (rankColsRef.length == 0 ? null : rankColsRef[0]),
-                            RowNumberFunctionDefinition.class,
-                            Boolean.FALSE,
-                            "ROW_NUMBER",
-                            getContextManager());
-        ((AggregateNode)winOrAgg).setWindowFunction(true);
-		winOrAgg = (ValueNode) nodeFactory.getNode(
-			C_NodeTypes.ROW_NUMBER_FUNCTION_NODE,
-			window,
-			winOrAgg,
-			getContextManager());
-		return winOrAgg;
-	}
-}
+           return winOrAgg;
+       }
+   |
+       <DENSERANK> <LEFT_PAREN> <RIGHT_PAREN> window = overClause()
+       {
+           rankColsRef = columnsRefForRankFunct(window);
+           setWindowFrameMode(window, WindowFrameDefinition.FrameMode.ROWS);
+           winOrAgg = (ValueNode) nodeFactory.getNode(
+               C_NodeTypes.DENSERANK_FUNCTION_NODE,
+               rankColsRef,
+               DenseRankFunctionDefinition.class,
+               window,
+               null,
+               getContextManager());
+           return winOrAgg;
+       }
+   |
+       <RANK> <LEFT_PAREN> <RIGHT_PAREN> window = overClause()
+       {
+           rankColsRef = columnsRefForRankFunct(window);
+           setWindowFrameMode(window, WindowFrameDefinition.FrameMode.ROWS);
+           winOrAgg = (ValueNode) nodeFactory.getNode(
+               C_NodeTypes.RANK_FUNCTION_NODE,
+               rankColsRef,
+               RankFunctionDefinition.class,
+               window,
+               null,
+               getContextManager());
+           return winOrAgg;
+       }
+   |
+       <ROWNUMBER> <LEFT_PAREN> <RIGHT_PAREN> window = overClause()
+       {
+           rankColsRef = columnsRefForRankFunct(window);
+           setWindowFrameMode(window, WindowFrameDefinition.FrameMode.ROWS);
+           winOrAgg = (ValueNode) nodeFactory.getNode(
+               C_NodeTypes.ROW_NUMBER_FUNCTION_NODE,
+               rankColsRef,
+               RowNumberFunctionDefinition.class,
+               window,
+               null,
+               getContextManager());
+           return winOrAgg;
+       }
+   }
 
 
 QueryTreeNode

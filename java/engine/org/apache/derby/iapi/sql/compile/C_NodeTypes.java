@@ -239,7 +239,7 @@ public interface C_NodeTypes
     static final int NEXT_SEQUENCE_NODE = 231;
 
 	// Windowing
-	static final int AGGREGATE_WINDOW_FUNCTION_NODE = 226;
+	static final int WRAPPED_AGGREGATE_FUNCTION_NODE = 226;
 	static final int ROW_NUMBER_FUNCTION_NODE = 227;
 	static final int WINDOW_DEFINITION_NODE = 228;
 	static final int WINDOW_REFERENCE_NODE = 229;

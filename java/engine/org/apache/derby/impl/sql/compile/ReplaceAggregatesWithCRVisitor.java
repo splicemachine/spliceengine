@@ -92,7 +92,7 @@ public class ReplaceAggregatesWithCRVisitor implements Visitor
 	public Visitable visit(Visitable node)
 		throws StandardException
 	{
-		if (node instanceof AggregateNode)
+		if (node instanceof AggregateNode && ! (node instanceof WindowFunctionNode))
 		{
 			/*
 			** Let aggregateNode replace itself.
