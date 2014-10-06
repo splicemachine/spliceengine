@@ -53,6 +53,9 @@ public class SpliceInputFormat extends InputFormat<ImmutableBytesWritable, ExecR
 	private  TableInputFormat tableInputFormat = new TableInputFormat();
 	private  HTable hTable = null;
 	
+	/**
+	 * Used by InputFormat framework, do not call this method.
+	 */
 	@Override
 	public RecordReader<ImmutableBytesWritable, ExecRow> 
 											createRecordReader(InputSplit split, 
@@ -75,12 +78,22 @@ public class SpliceInputFormat extends InputFormat<ImmutableBytesWritable, ExecR
 		return trr;
 	}
 	
+	/**
+	 * get Configuration of this InputFormat
+	 * @return org.apache.hadoop.conf.Configuration
+	 */
 	public Configuration getConf() {
 		return this.tableInputFormat.getConf();
 	}
 	
 	
-	
+	/**
+	 * 
+	 * Set configuration for InputFormat
+	 * Should set SpliceMRConstants.SPLICE_INPUT_TABLE_NAME in the Configuration.
+	 * @param Configuration
+	 * 
+	 */
 	public void setConf(Configuration configuration) {
 		tableName = configuration.get(SpliceMRConstants.SPLICE_INPUT_TABLE_NAME);	
 		this.conf = configuration;
@@ -99,6 +112,11 @@ public class SpliceInputFormat extends InputFormat<ImmutableBytesWritable, ExecR
 		
 	}
 
+	/**
+	 * Used by InputFormat framework, get List of Map Reduce InputSplit
+	 * @param org.apache.hadoop.mapreduce.JobContext
+	 * @return List<org.apache.hadoop.mapreduce.InputSplit>
+	 */
 	@Override
 	public List<InputSplit> getSplits(JobContext context) throws IOException {
 		// TODO Auto-generated method stub

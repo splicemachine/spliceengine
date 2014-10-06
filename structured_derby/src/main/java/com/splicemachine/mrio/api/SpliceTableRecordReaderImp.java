@@ -66,15 +66,15 @@ public class SpliceTableRecordReaderImp{
     private byte[] lastRow = null;
     private ImmutableBytesWritable rowkey = null;
     
-    public SpliceTableRecordReaderImp(Configuration conf){
+    protected SpliceTableRecordReaderImp(Configuration conf){
     	this.conf = conf;
     }
    
-	public void initialize(final InputSplit inputSplit, final TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
+	protected void initialize(final InputSplit inputSplit, final TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
 		sqlUtil = SQLUtil.getInstance(conf.get(SpliceMRConstants.SPLICE_JDBC_STR));
     }
 
-	public void close() {
+	protected void close() {
 		try {
 			this.tableScanner.close();
 			this.scanner.close();
@@ -85,7 +85,7 @@ public class SpliceTableRecordReaderImp{
 		}
 	}
 
-	public void restart(byte[] firstRow) throws IOException {
+	protected void restart(byte[] firstRow) throws IOException {
 		Scan newscan = new Scan(scan);
 		
 		newscan.setStartRow(firstRow);
@@ -117,15 +117,15 @@ public class SpliceTableRecordReaderImp{
 		
 	}
 
-	public void init() throws IOException {
+	protected void init() throws IOException {
 		restart(scan.getStartRow());
 	}
 	
-	public void setScan(Scan scan){
+	protected void setScan(Scan scan){
 		this.scan = scan;
 	}
 	
-	public ImmutableBytesWritable getCurrentKey()
+	protected ImmutableBytesWritable getCurrentKey()
 	{
 		return rowkey;
 	}
@@ -136,7 +136,7 @@ public class SpliceTableRecordReaderImp{
 	 * @throws StandardException 
 	 * 
 	 */
-    public ExecRow getCurrentValue() throws IOException, InterruptedException, StandardException{
+    protected ExecRow getCurrentValue() throws IOException, InterruptedException, StandardException{
     	
     	DataValueDescriptor dvds[] = value.getRowArray();
     	boolean invalid = true;
@@ -252,7 +252,7 @@ public class SpliceTableRecordReaderImp{
     	.accessedKeyColumns(accessedKeyCols);
     }
     
-	public boolean nextKeyValue() throws IOException, InterruptedException, StandardException { 
+	protected boolean nextKeyValue() throws IOException, InterruptedException, StandardException { 
 		if(rowkey == null)
 			rowkey = new ImmutableBytesWritable();
 		if (value == null)
@@ -277,7 +277,7 @@ public class SpliceTableRecordReaderImp{
 		return false;
 	}
     
-    public void setHTable(HTable htable) {
+    protected void setHTable(HTable htable) {
 		this.htable = htable;
 		Configuration conf = htable.getConfiguration();
 		//String tableName = conf.get(TableInputFormat.INPUT_TABLE);
@@ -307,7 +307,7 @@ public class SpliceTableRecordReaderImp{
    
 	}
 
-	public float getProgress() {
+	protected float getProgress() {
 		// TODO Auto-generated method stub
 		return 0;
 	}

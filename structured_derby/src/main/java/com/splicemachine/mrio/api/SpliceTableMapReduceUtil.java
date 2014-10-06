@@ -60,7 +60,7 @@ public class SpliceTableMapReduceUtil {
    * Use this before submitting a TableMap job. It will appropriately set up
    * the job.
    *
-   * @param table  The table name to read from.
+   * @param table  The Splice table name to read from.
    * @param scan  The scan instance with the columns, time range etc.
    * @param mapper  The mapper class to use.
    * @param outputKeyClass  The class of the output key.
@@ -83,7 +83,7 @@ public class SpliceTableMapReduceUtil {
    * Use this before submitting a TableMap job. It will appropriately set up
    * the job.
    *
-   * @param table Binary representation of the table name to read from.
+   * @param table Binary representation of the Splice table name to read from.
    * @param scan  The scan instance with the columns, time range etc.
    * @param mapper  The mapper class to use.
    * @param outputKeyClass  The class of the output key.
@@ -105,7 +105,7 @@ public class SpliceTableMapReduceUtil {
    * Use this before submitting a TableMap job. It will appropriately set up
    * the job.
    *
-   * @param table  The table name to read from.
+   * @param table  The Splice table name to read from.
    * @param scan  The scan instance with the columns, time range etc.
    * @param mapper  The mapper class to use.
    * @param outputKeyClass  The class of the output key.
@@ -131,14 +131,14 @@ public class SpliceTableMapReduceUtil {
     if (addDependencyJars) {
       addDependencyJars(job);
     }
-    //initCredentials(job);
+   
   }
   
   /**
    * Use this before submitting a TableMap job. It will appropriately set up
    * the job.
    *
-   * @param table Binary representation of the table name to read from.
+   * @param table Binary representation of the Splice table name to read from.
    * @param scan  The scan instance with the columns, time range etc.
    * @param mapper  The mapper class to use.
    * @param outputKeyClass  The class of the output key.
@@ -164,7 +164,7 @@ public class SpliceTableMapReduceUtil {
    * Use this before submitting a TableMap job. It will appropriately set up
    * the job.
    *
-   * @param table Binary representation of the table name to read from.
+   * @param table Binary representation of the Splice table name to read from.
    * @param scan  The scan instance with the columns, time range etc.
    * @param mapper  The mapper class to use.
    * @param outputKeyClass  The class of the output key.
@@ -189,7 +189,7 @@ public class SpliceTableMapReduceUtil {
    * Use this before submitting a TableMap job. It will appropriately set up
    * the job.
    *
-   * @param table The table name to read from.
+   * @param table The Splice table name to read from.
    * @param scan  The scan instance with the columns, time range etc.
    * @param mapper  The mapper class to use.
    * @param outputKeyClass  The class of the output key.
@@ -210,91 +210,6 @@ public class SpliceTableMapReduceUtil {
               outputValueClass, job, addDependencyJars, TableInputFormat.class);
   }
   
-  /**
-   * Use this before submitting a Multi TableMap job. It will appropriately set
-   * up the job.
-   *
-   * @param scans The list of {@link Scan} objects to read from.
-   * @param mapper The mapper class to use.
-   * @param outputKeyClass The class of the output key.
-   * @param outputValueClass The class of the output value.
-   * @param job The current job to adjust. Make sure the passed job is carrying
-   *          all necessary HBase configuration.
-   * @throws IOException When setting up the details fails.
-   */
-  /*public static void initTableMapperJob(List<Scan> scans,
-      Class<? extends Mapper> mapper,
-      Class<? extends WritableComparable> outputKeyClass,
-      Class<? extends Object> outputValueClass, Job job) throws IOException {
-    initTableMapperJob(scans, mapper, outputKeyClass, outputValueClass, job,
-        true);
-  }*/
-
-  /**
-   * Use this before submitting a Multi TableMap job. It will appropriately set
-   * up the job.
-   *
-   * @param scans The list of {@link Scan} objects to read from.
-   * @param mapper The mapper class to use.
-   * @param outputKeyClass The class of the output key.
-   * @param outputValueClass The class of the output value.
-   * @param job The current job to adjust. Make sure the passed job is carrying
-   *          all necessary HBase configuration.
-   * @param addDependencyJars upload HBase jars and jars for any of the
-   *          configured job classes via the distributed cache (tmpjars).
-   * @throws IOException When setting up the details fails.
-   */
-  /*public static void initTableMapperJob(List<Scan> scans,
-      Class<? extends Mapper> mapper,
-      Class<? extends WritableComparable> outputKeyClass,
-      Class<? extends Object> outputValueClass, Job job,
-      boolean addDependencyJars) throws IOException {
-    job.setInputFormatClass(MultiTableInputFormat.class);
-    if (outputValueClass != null) {
-      job.setMapOutputValueClass(outputValueClass);
-    }
-    if (outputKeyClass != null) {
-      job.setMapOutputKeyClass(outputKeyClass);
-    }
-    job.setMapperClass(mapper);
-    HBaseConfiguration.addHbaseResources(job.getConfiguration());
-    List<String> scanStrings = new ArrayList<String>();
-
-    for (Scan scan : scans) {
-      scanStrings.add(convertScanToString(scan));
-    }
-    job.getConfiguration().setStrings(MultiTableInputFormat.SCANS,
-      scanStrings.toArray(new String[scanStrings.size()]));
-
-    if (addDependencyJars) {
-      addDependencyJars(job);
-    }
-  }*/
-/*
-  public static void initCredentials(Job job) throws IOException {
-    if (User.isHBaseSecurityEnabled(job.getConfiguration())) {
-      try {
-        // init credentials for remote cluster
-        String quorumAddress = job.getConfiguration().get(
-            TableOutputFormat.QUORUM_ADDRESS);
-        if (quorumAddress != null) {
-          String[] parts = ZKUtil.transformClusterKey(quorumAddress);
-          Configuration peerConf = HBaseConfiguration.create(job
-              .getConfiguration());
-          peerConf.set(HConstants.ZOOKEEPER_QUORUM, parts[0]);
-          peerConf.set("hbase.zookeeper.client.port", parts[1]);
-          peerConf.set(HConstants.ZOOKEEPER_ZNODE_PARENT, parts[2]);
-          User.getCurrent().obtainAuthTokenForJob(peerConf, job);
-        }
-        
-        User.getCurrent().obtainAuthTokenForJob(job.getConfiguration(), job);
-      } catch (InterruptedException ie) {
-        LOG.info("Interrupted obtaining user authentication token");
-        Thread.interrupted();
-      }
-    }
-  }*/
-
   /**
    * Writes the given scan into a Base64 encoded string.
    *
@@ -328,7 +243,7 @@ public class SpliceTableMapReduceUtil {
    * Use this before submitting a TableReduce job. It will
    * appropriately set up the JobConf.
    *
-   * @param table  The output table.
+   * @param table  The Splice output table.
    * @param reducer  The reducer class to use.
    * @param job  The current job to adjust.
    * @throws IOException When determining the region count fails.
@@ -344,7 +259,7 @@ public class SpliceTableMapReduceUtil {
    * Use this before submitting a TableReduce job. It will
    * appropriately set up the JobConf.
    *
-   * @param table  The output table.
+   * @param table  The Splice output table.
    * @param reducer  The reducer class to use.
    * @param job  The current job to adjust.
    * @param partitioner  Partitioner to use. Pass <code>null</code> to use
@@ -362,7 +277,7 @@ public class SpliceTableMapReduceUtil {
    * Use this before submitting a TableReduce job. It will
    * appropriately set up the JobConf.
    *
-   * @param table  The output table.
+   * @param table  The Splice output table.
    * @param reducer  The reducer class to use.
    * @param job  The current job to adjust.  Make sure the passed job is
    * carrying all necessary HBase configuration.
@@ -394,10 +309,10 @@ public class SpliceTableMapReduceUtil {
    * Use this before submitting a TableReduce job. It will
    * appropriately set up the JobConf.
    *
-   * @param table  The output table.
+   * @param table  The output Splice table name, The format should be Schema.tableName.
    * @param reducer  The reducer class to use.
    * @param job  The current job to adjust.  Make sure the passed job is
-   * carrying all necessary HBase configuration.
+   * carrying all necessary configuration.
    * @param partitioner  Partitioner to use. Pass <code>null</code> to use
    * default partitioner.
    * @param quorumAddress Distant cluster to write to; default is null for
@@ -472,10 +387,10 @@ public class SpliceTableMapReduceUtil {
    * Ensures that the given number of reduce tasks for the given job
    * configuration does not exceed the number of regions for the given table.
    *
-   * @param table  The table to get the region count for.
+   * @param table  The Splice table to get the region count for.
    * @param job  The current job to adjust.
    * @throws IOException When retrieving the table details fails.
- * @throws SQLException 
+   * @throws SQLException When Splice retrieving conglom ID fails.
    */
   public static void limitNumReduceTasks(String table, Job job)
   throws IOException, SQLException {
@@ -494,10 +409,10 @@ public class SpliceTableMapReduceUtil {
    * Sets the number of reduce tasks for the given job configuration to the
    * number of regions the given table has.
    *
-   * @param table  The table to get the region count for.
+   * @param table  The Splice table to get the region count for.
    * @param job  The current job to adjust.
    * @throws IOException When retrieving the table details fails.
- * @throws SQLException 
+   * @throws SQLException When Splice retrieving conglom ID fails.
    */
   public static void setNumReduceTasks(String table, Job job)
   throws IOException, SQLException {
@@ -525,7 +440,7 @@ public class SpliceTableMapReduceUtil {
   }
 
   /**
-   * Add the HBase dependency jars as well as jars for any of the configured
+   * Add the dependency jars as well as jars for any of the configured
    * job classes to the job configuration, so that JobClient will ship them
    * to the cluster and add them to the DistributedCache.
    */
