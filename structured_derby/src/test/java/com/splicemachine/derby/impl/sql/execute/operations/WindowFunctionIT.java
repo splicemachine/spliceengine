@@ -21,9 +21,9 @@ import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.SpliceXPlainTrace;
-import com.splicemachine.homeless.TestUtils;
 
 /**
+ *
  * Created by jyuan on 7/30/14.
  */
 public class WindowFunctionIT extends SpliceUnitTest {
@@ -585,8 +585,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
 
         ResultSet rs = methodWatcher.executeQuery(
             String.format(sqlText, this.getTableReference(TABLE_NAME)));
-        // DEBUG
-        TestUtils.printResult(sqlText,rs, System.out);
+
         int i = 0;
         while (rs.next()) {
             Assert.assertEquals(colVal[i],rs.getInt(3));

@@ -549,7 +549,7 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
             return C_NodeNames.TABLE_PRIVILEGES_NAME;
 
 		  case C_NodeTypes.WRAPPED_AGGREGATE_FUNCTION_NODE:
-			return C_NodeNames.WRAPPED_AGGREGATE_FUNCTION_NODE;
+			return C_NodeNames.WRAPPED_AGGREGATE_FUNCTION_NODE_NAME;
 
 		  case C_NodeTypes.ROW_NUMBER_FUNCTION_NODE:
 			return C_NodeNames.ROW_NUMBER_FUNCTION_NAME;

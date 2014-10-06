@@ -1,14 +1,8 @@
 package com.splicemachine.derby.impl.ast;
 
-import com.sun.org.apache.xerces.internal.impl.xs.opti.DefaultNode;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.compile.Visitable;
-import org.codehaus.jackson.node.ValueNode;
-import org.jruby.ast.AndNode;
-import org.jruby.ast.BinaryOperatorNode;
-import org.jruby.ast.NotNode;
-import org.jruby.ast.OrNode;
-import org.jruby.ast.java_signature.ParameterNode;
+import org.apache.derby.impl.sql.compile.*;
 
 /**
  * Default ISpliceVisitor implementation, which provides identity behavior for each of Derby's Visitable nodes.
