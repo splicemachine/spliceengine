@@ -52,32 +52,6 @@ public class WordCount {
 	{
 		
 		private String word = "";
-		
-	    public void decode(ExecRow row) throws StandardException
-	    {
-	    	DataValueDescriptor dvd[]  = row.getRowArray();
-	    	for(DataValueDescriptor data : dvd)
-	    	{
-	    	
-	    		String tp = data.getTypeName();
-	    		if (data.isNull())
-	    		{
-	    			System.out.println("Column Value NULL");
-	    			continue;
-	    		}
-	    		
-	    		if(tp.equals("INTEGER"))
-	    			System.out.println(data.getInt());
-	    		else if(tp.equals("VARCHAR"))
-	    			System.out.println(data.getString());
-	    		else if(tp.equals("FLOAT"))
-	    			System.out.println(data.getFloat());
-	    		else if(tp.equals("DOUBLE"))
-	    			System.out.println(data.getDouble());
-	    		else
-	    			System.out.println(tp);
-	    	}
-	    }
 	    
 		public void map(ImmutableBytesWritable row, ExecRow value, Context context) throws InterruptedException, IOException {
 			
@@ -164,7 +138,7 @@ public class WordCount {
 			job,
 			true,
 			SpliceInputFormat.class);
-			//FileOutputFormat.setOutputPath(job, new Path("WIKIDATA"));
+			
 			SpliceTableMapReduceUtil.initTableReducerJob(
 					outputTableName, 
 					MyReducer.class, 
@@ -181,9 +155,6 @@ public class WordCount {
 			    e.printStackTrace();
 			} 
 		
-		
-		//job.setOutputFormatClass(NullOutputFormat.class);   // because we aren't emitting anything from mapper
-		//job.setOutputFormatClass(SpliceOutputFormat.class);
 		boolean b = false;
 		
 			try {

@@ -65,7 +65,6 @@ import com.google.common.collect.Lists;
 import com.google.gson.Gson;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
-
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
@@ -77,6 +76,7 @@ import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.ActiveWriteTxn;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.uuid.Snowflake;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.*;
@@ -97,9 +97,7 @@ import java.util.*;
 public class SpliceOutputFormat extends OutputFormat implements Configurable{
 
 	private static SQLUtil sqlUtil = null;
-	
 	private static Configuration conf = null;
-	
 	private String spliceTableName = null;
 	protected static String tableID;
 	private HashMap<List, List> tableStructure;
@@ -297,6 +295,11 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 			return dvds;			
 		}
 		
+		
+		 /**
+		  * Do not override this function! 
+		  * write() writes to a Splice buffer which transactionally write to SpliceDB
+		  */
 		@Override
 		public void write(ImmutableBytesWritable arg0, ExecRow value)
 				throws IOException{
@@ -309,6 +312,11 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 					childTxsID = sqlUtil.getChildTransactionID(conn, 
 									Long.parseLong(conf.get(SpliceMRConstants.SPLICE_TRANSACTION_ID)), 
 									Long.parseLong(tableID));
+					//childTxsID = Long.parseLong(sqlUtil.getTransactionID(conn));
+					
+					/*PreparedStatement ps = conn.prepareStatement("call SYSCS_UTIL.SYSCS_ELEVATE_TRANSACTION(?)");
+					ps.setString(1, conf.get(SpliceMRConstants.SPLICE_OUTPUT_TABLE_NAME));	
+					ps.executeUpdate();*/
 
 					String strSize = conf.get(SpliceMRConstants.SPLICE_WRITE_BUFFER_SIZE);
 					int size = 1024;
@@ -316,7 +324,8 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 						size = Integer.valueOf(strSize);
 					TxnView txn = new ActiveWriteTxn(childTxsID,childTxsID);
 					callBuffer = WriteCoordinator.create(conf).writeBuffer(Bytes.toBytes(tableID), 
-									txn, size);			
+									txn, size);
+					
 				}		
 				byte[] key = this.keyEncoder.getKey(value);
 				rowHash.setRow(value);

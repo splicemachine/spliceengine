@@ -202,7 +202,8 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 									
 									//TxnFilter iFilterState = HTransactorFactory.getTransactionReadController().newFilterState(null, baseTxn);
 									TxnFilter iFilterState = HTransactorFactory.getTransactionReadController().newFilterState(NoOpReadResolver.INSTANCE, baseTxn);
-								
+									//TxnFilter iFilterState = null;
+									
 									HRowAccumulator hRowAccumulator = new HRowAccumulator(predicateFilter, getRowEntryDecoder(), accumulator, isCountStar);
 									
 									return new PackedTxnFilter(iFilterState, hRowAccumulator){

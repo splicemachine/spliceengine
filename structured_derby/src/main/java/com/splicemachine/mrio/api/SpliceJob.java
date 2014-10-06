@@ -33,11 +33,22 @@ public class SpliceJob extends Job{
 		super();
 	}
 	
+	 /**
+	  * Construct SpliceJob
+	  * @param conf
+	  * @throws IOException
+	  */
 	 public SpliceJob(Configuration conf) throws IOException {
 	    super(conf, null);
 	    this.conf = conf;
 	  }
-
+	 
+	 /**
+	  * Construct SpliceJob
+	  * @param conf
+	  * @param jobName
+	  * @throws IOException
+	  */
 	 public SpliceJob(Configuration conf, String jobName) throws IOException {
 	    super(conf,jobName);
 	    this.conf = conf;
@@ -62,8 +73,8 @@ public class SpliceJob extends Job{
 				String parentTxsID = sqlUtil.getTransactionID(conn);
 				
 				PreparedStatement ps = conn.prepareStatement("call SYSCS_UTIL.SYSCS_ELEVATE_TRANSACTION(?)");
-				System.out.println(super.getConfiguration().get(SpliceMRConstants.SPLICE_OUTPUT_TABLE_NAME));
-				ps.setString(1, super.getConfiguration().get(SpliceMRConstants.SPLICE_OUTPUT_TABLE_NAME));	
+				System.out.println(super.getConfiguration().get(SpliceMRConstants.SPLICE_INPUT_TABLE_NAME));
+				ps.setString(1, super.getConfiguration().get(SpliceMRConstants.SPLICE_INPUT_TABLE_NAME));	
 				ps.executeUpdate();
 				
 				super.getConfiguration().set(SpliceMRConstants.SPLICE_TRANSACTION_ID, parentTxsID);
