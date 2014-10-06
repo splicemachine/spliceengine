@@ -71,7 +71,6 @@ public class ClientResultScanner extends ReopenableScanner implements SpliceResu
         if(keyDistributor==null)
             scanner = new MeasuredResultScanner(table,scan,table.getScanner(scan),metricFactory);
         else{
-            Scan[] scans = keyDistributor.getDistributedScans(scan);
             scanner = DistributedScanner.create(table,scan,keyDistributor,metricFactory);
         }
         scanner.open();
