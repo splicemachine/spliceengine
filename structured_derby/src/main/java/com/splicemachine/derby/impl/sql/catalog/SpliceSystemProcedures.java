@@ -285,6 +285,17 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                     procedures.add(activeTxn);
 
                     /*
+                     * Procedure to elevate a transaction
+                     */
+                    Procedure elevProc = Procedure.newBuilder().name("SYSCS_ELEVATE_TRANSACTION")
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .varchar("tableName", 128) // input
+                            .ownerClass(TransactionAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(elevProc);
+
+                    /*
                      * Procedure to start a child transaction
                      */
                     Procedure childTxnProc = Procedure.newBuilder().name("SYSCS_START_CHILD_TRANSACTION")
