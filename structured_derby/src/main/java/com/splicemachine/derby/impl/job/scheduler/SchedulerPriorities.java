@@ -6,6 +6,8 @@ import com.splicemachine.derby.impl.job.index.CreateIndexTask;
 import com.splicemachine.derby.impl.job.index.PopulateIndexTask;
 import com.splicemachine.derby.impl.load.ImportTask;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
+import com.splicemachine.hbase.backup.CreateBackupTask;
+import com.splicemachine.hbase.backup.RestoreBackupTask;
 import org.apache.hadoop.conf.Configuration;
 import org.cliffc.high_scale_lib.NonBlockingHashMap;
 
@@ -85,6 +87,7 @@ public class SchedulerPriorities {
 				int defaultDmlReadPriority = config.getInt(BASE_PRIORITY_PREFIX+"dmlRead.default", baseDefaultPriority);
 				int defaultDmlWritePriority = config.getInt(BASE_PRIORITY_PREFIX+"dmlWrite.default",2*baseDefaultPriority);
 				int defaultDdlWritePriority = config.getInt(BASE_PRIORITY_PREFIX+"ddl.default",3*baseDefaultPriority);
+                int defaultBackupPriority = config.getInt(BASE_PRIORITY_PREFIX+"backup.default",4*baseDefaultPriority);
 
 				/*
 				 * Manual Registry of default values as defined by me(Scott Fines).
@@ -135,6 +138,12 @@ public class SchedulerPriorities {
         //maintenance operations
         priority = config.getInt(BASE_PRIORITY_PREFIX+"maintenance",maxPriority);
         basePriorityMap.put(RollForwardTask.class,priority);
+
+                //Backup operations
+            priority = config.getInt(BASE_PRIORITY_PREFIX+"backup",defaultBackupPriority);
+            basePriorityMap.put(CreateBackupTask.class,priority);
+            priority = config.getInt(BASE_PRIORITY_PREFIX+"restore",defaultBackupPriority);
+            basePriorityMap.put(RestoreBackupTask.class,priority);
 		}
 
 		public int getMaxPriority() {
