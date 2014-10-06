@@ -1,3 +1,8 @@
+/**
+ * SpliceTableMapReduceUtil which wraps up params for Map Reduce Job.
+ * @author Yanan Jian
+ * Created on: 08/14/14
+ */
 package com.splicemachine.mrio.api;
 
 import java.io.ByteArrayInputStream;
@@ -9,6 +14,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.net.URLDecoder;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashSet;
@@ -49,12 +55,12 @@ import org.apache.hadoop.util.StringUtils;
 @SuppressWarnings("unchecked")
 public class SpliceTableMapReduceUtil {
   static Log LOG = LogFactory.getLog(SpliceTableMapReduceUtil.class);
-  private static SQLUtil sqlUtil = SQLUtil.getInstance();
+  private static SQLUtil sqlUtil = null;
   /**
    * Use this before submitting a TableMap job. It will appropriately set up
    * the job.
    *
-   * @param table  The table name to read from.
+   * @param table  The Splice table name to read from.
    * @param scan  The scan instance with the columns, time range etc.
    * @param mapper  The mapper class to use.
    * @param outputKeyClass  The class of the output key.
@@ -77,7 +83,7 @@ public class SpliceTableMapReduceUtil {
    * Use this before submitting a TableMap job. It will appropriately set up
    * the job.
    *
-   * @param table Binary representation of the table name to read from.
+   * @param table Binary representation of the Splice table name to read from.
    * @param scan  The scan instance with the columns, time range etc.
    * @param mapper  The mapper class to use.
    * @param outputKeyClass  The class of the output key.
@@ -99,7 +105,7 @@ public class SpliceTableMapReduceUtil {
    * Use this before submitting a TableMap job. It will appropriately set up
    * the job.
    *
-   * @param table  The table name to read from.
+   * @param table  The Splice table name to read from.
    * @param scan  The scan instance with the columns, time range etc.
    * @param mapper  The mapper class to use.
    * @param outputKeyClass  The class of the output key.
@@ -120,21 +126,19 @@ public class SpliceTableMapReduceUtil {
     if (outputValueClass != null) job.setMapOutputValueClass(outputValueClass);
     if (outputKeyClass != null) job.setMapOutputKeyClass(outputKeyClass);
     job.setMapperClass(mapper);
-    Configuration conf = job.getConfiguration();
-    HBaseConfiguration.merge(conf, HBaseConfiguration.create(conf));
-    conf.set(TableInputFormat.INPUT_TABLE, table);
-    conf.set(TableInputFormat.SCAN, convertScanToString(scan));
+    job.getConfiguration().set(SpliceMRConstants.SPLICE_INPUT_TABLE_NAME, table);
+    job.getConfiguration().set(TableInputFormat.SCAN, convertScanToString(scan));
     if (addDependencyJars) {
       addDependencyJars(job);
     }
-    initCredentials(job);
+   
   }
   
   /**
    * Use this before submitting a TableMap job. It will appropriately set up
    * the job.
    *
-   * @param table Binary representation of the table name to read from.
+   * @param table Binary representation of the Splice table name to read from.
    * @param scan  The scan instance with the columns, time range etc.
    * @param mapper  The mapper class to use.
    * @param outputKeyClass  The class of the output key.
@@ -160,7 +164,7 @@ public class SpliceTableMapReduceUtil {
    * Use this before submitting a TableMap job. It will appropriately set up
    * the job.
    *
-   * @param table Binary representation of the table name to read from.
+   * @param table Binary representation of the Splice table name to read from.
    * @param scan  The scan instance with the columns, time range etc.
    * @param mapper  The mapper class to use.
    * @param outputKeyClass  The class of the output key.
@@ -185,7 +189,7 @@ public class SpliceTableMapReduceUtil {
    * Use this before submitting a TableMap job. It will appropriately set up
    * the job.
    *
-   * @param table The table name to read from.
+   * @param table The Splice table name to read from.
    * @param scan  The scan instance with the columns, time range etc.
    * @param mapper  The mapper class to use.
    * @param outputKeyClass  The class of the output key.
@@ -206,91 +210,6 @@ public class SpliceTableMapReduceUtil {
               outputValueClass, job, addDependencyJars, TableInputFormat.class);
   }
   
-  /**
-   * Use this before submitting a Multi TableMap job. It will appropriately set
-   * up the job.
-   *
-   * @param scans The list of {@link Scan} objects to read from.
-   * @param mapper The mapper class to use.
-   * @param outputKeyClass The class of the output key.
-   * @param outputValueClass The class of the output value.
-   * @param job The current job to adjust. Make sure the passed job is carrying
-   *          all necessary HBase configuration.
-   * @throws IOException When setting up the details fails.
-   */
-  public static void initTableMapperJob(List<Scan> scans,
-      Class<? extends Mapper> mapper,
-      Class<? extends WritableComparable> outputKeyClass,
-      Class<? extends Object> outputValueClass, Job job) throws IOException {
-    initTableMapperJob(scans, mapper, outputKeyClass, outputValueClass, job,
-        true);
-  }
-
-  /**
-   * Use this before submitting a Multi TableMap job. It will appropriately set
-   * up the job.
-   *
-   * @param scans The list of {@link Scan} objects to read from.
-   * @param mapper The mapper class to use.
-   * @param outputKeyClass The class of the output key.
-   * @param outputValueClass The class of the output value.
-   * @param job The current job to adjust. Make sure the passed job is carrying
-   *          all necessary HBase configuration.
-   * @param addDependencyJars upload HBase jars and jars for any of the
-   *          configured job classes via the distributed cache (tmpjars).
-   * @throws IOException When setting up the details fails.
-   */
-  public static void initTableMapperJob(List<Scan> scans,
-      Class<? extends Mapper> mapper,
-      Class<? extends WritableComparable> outputKeyClass,
-      Class<? extends Object> outputValueClass, Job job,
-      boolean addDependencyJars) throws IOException {
-    job.setInputFormatClass(MultiTableInputFormat.class);
-    if (outputValueClass != null) {
-      job.setMapOutputValueClass(outputValueClass);
-    }
-    if (outputKeyClass != null) {
-      job.setMapOutputKeyClass(outputKeyClass);
-    }
-    job.setMapperClass(mapper);
-    HBaseConfiguration.addHbaseResources(job.getConfiguration());
-    List<String> scanStrings = new ArrayList<String>();
-
-    for (Scan scan : scans) {
-      scanStrings.add(convertScanToString(scan));
-    }
-    job.getConfiguration().setStrings(MultiTableInputFormat.SCANS,
-      scanStrings.toArray(new String[scanStrings.size()]));
-
-    if (addDependencyJars) {
-      addDependencyJars(job);
-    }
-  }
-
-  public static void initCredentials(Job job) throws IOException {
-    if (User.isHBaseSecurityEnabled(job.getConfiguration())) {
-      try {
-        // init credentials for remote cluster
-        String quorumAddress = job.getConfiguration().get(
-            TableOutputFormat.QUORUM_ADDRESS);
-        if (quorumAddress != null) {
-          String[] parts = ZKUtil.transformClusterKey(quorumAddress);
-          Configuration peerConf = HBaseConfiguration.create(job
-              .getConfiguration());
-          peerConf.set(HConstants.ZOOKEEPER_QUORUM, parts[0]);
-          peerConf.set("hbase.zookeeper.client.port", parts[1]);
-          peerConf.set(HConstants.ZOOKEEPER_ZNODE_PARENT, parts[2]);
-          User.getCurrent().obtainAuthTokenForJob(peerConf, job);
-        }
-        
-        User.getCurrent().obtainAuthTokenForJob(job.getConfiguration(), job);
-      } catch (InterruptedException ie) {
-        LOG.info("Interrupted obtaining user authentication token");
-        Thread.interrupted();
-      }
-    }
-  }
-
   /**
    * Writes the given scan into a Base64 encoded string.
    *
@@ -324,14 +243,15 @@ public class SpliceTableMapReduceUtil {
    * Use this before submitting a TableReduce job. It will
    * appropriately set up the JobConf.
    *
-   * @param table  The output table.
+   * @param table  The Splice output table.
    * @param reducer  The reducer class to use.
    * @param job  The current job to adjust.
    * @throws IOException When determining the region count fails.
+ * @throws SQLException 
    */
   public static void initTableReducerJob(String table,
     Class<? extends Reducer> reducer, Job job)
-  throws IOException {
+  throws IOException, SQLException {
     initTableReducerJob(table, reducer, job, null);
   }
 
@@ -339,16 +259,17 @@ public class SpliceTableMapReduceUtil {
    * Use this before submitting a TableReduce job. It will
    * appropriately set up the JobConf.
    *
-   * @param table  The output table.
+   * @param table  The Splice output table.
    * @param reducer  The reducer class to use.
    * @param job  The current job to adjust.
    * @param partitioner  Partitioner to use. Pass <code>null</code> to use
    * default partitioner.
    * @throws IOException When determining the region count fails.
+ * @throws SQLException 
    */
   public static void initTableReducerJob(String table,
     Class<? extends Reducer> reducer, Job job,
-    Class partitioner) throws IOException {
+    Class partitioner) throws IOException, SQLException {
     initTableReducerJob(table, reducer, job, partitioner, null, null, null);
   }
 
@@ -356,7 +277,7 @@ public class SpliceTableMapReduceUtil {
    * Use this before submitting a TableReduce job. It will
    * appropriately set up the JobConf.
    *
-   * @param table  The output table.
+   * @param table  The Splice output table.
    * @param reducer  The reducer class to use.
    * @param job  The current job to adjust.  Make sure the passed job is
    * carrying all necessary HBase configuration.
@@ -374,11 +295,12 @@ public class SpliceTableMapReduceUtil {
    * @param serverClass redefined hbase.regionserver.class
    * @param serverImpl redefined hbase.regionserver.impl
    * @throws IOException When determining the region count fails.
+ * @throws SQLException 
    */
   public static void initTableReducerJob(String table,
     Class<? extends Reducer> reducer, Job job,
     Class partitioner, String quorumAddress, String serverClass,
-    String serverImpl) throws IOException {
+    String serverImpl) throws IOException, SQLException {
     initTableReducerJob(table, reducer, job, partitioner, quorumAddress,
         serverClass, serverImpl, true, TableOutputFormat.class);
   }
@@ -387,10 +309,10 @@ public class SpliceTableMapReduceUtil {
    * Use this before submitting a TableReduce job. It will
    * appropriately set up the JobConf.
    *
-   * @param table  The output table.
+   * @param table  The output Splice table name, The format should be Schema.tableName.
    * @param reducer  The reducer class to use.
    * @param job  The current job to adjust.  Make sure the passed job is
-   * carrying all necessary HBase configuration.
+   * carrying all necessary configuration.
    * @param partitioner  Partitioner to use. Pass <code>null</code> to use
    * default partitioner.
    * @param quorumAddress Distant cluster to write to; default is null for
@@ -407,18 +329,30 @@ public class SpliceTableMapReduceUtil {
    * @param addDependencyJars upload HBase jars and jars for any of the configured
    *           job classes via the distributed cache (tmpjars).
    * @throws IOException When determining the region count fails.
+ * @throws SQLException 
    */
   public static void initTableReducerJob(String table,
     Class<? extends Reducer> reducer, Job job,
     Class partitioner, String quorumAddress, String serverClass,
-    String serverImpl, boolean addDependencyJars, Class<? extends OutputFormat> outputformatClass) throws IOException {
-	
-    Configuration conf = job.getConfiguration();    
-    HBaseConfiguration.merge(conf, HBaseConfiguration.create(conf));
+    String serverImpl, boolean addDependencyJars, Class<? extends OutputFormat> outputformatClass) throws IOException{
+    
+	Configuration conf = job.getConfiguration();    
     job.setOutputFormatClass(outputformatClass);
     if (reducer != null) job.setReducerClass(reducer);
-    conf.set(TableOutputFormat.OUTPUT_TABLE, table);
+    conf.set(SpliceMRConstants.SPLICE_OUTPUT_TABLE_NAME, table);
+    if(sqlUtil == null)
+    	sqlUtil = SQLUtil.getInstance(conf.get(SpliceMRConstants.SPLICE_JDBC_STR));
     // If passed a quorum/ensemble address, pass it on to TableOutputFormat.
+    String hbaseTableID = null;
+	try {
+		hbaseTableID = sqlUtil.getConglomID(table);
+	} catch (SQLException e) {
+		// TODO Auto-generated catch block
+		e.printStackTrace();
+		throw new IOException(e);
+	}
+    conf.set(SpliceMRConstants.HBASE_OUTPUT_TABLE_NAME, hbaseTableID);
+   
     if (quorumAddress != null) {
       // Calling this will validate the format
       ZKUtil.transformClusterKey(quorumAddress);
@@ -427,12 +361,13 @@ public class SpliceTableMapReduceUtil {
     if (serverClass != null && serverImpl != null) {
       conf.set(TableOutputFormat.REGION_SERVER_CLASS, serverClass);
       conf.set(TableOutputFormat.REGION_SERVER_IMPL, serverImpl);
+      
     }
     job.setOutputKeyClass(ImmutableBytesWritable.class);
-    job.setOutputValueClass(Writable.class);
+    job.setOutputValueClass(Object.class);
     if (partitioner == HRegionPartitioner.class) {
       job.setPartitionerClass(HRegionPartitioner.class);
-      HTable outputTable = new HTable(conf, table);
+      HTable outputTable = new HTable(conf, hbaseTableID);
       int regions = outputTable.getRegionsInfo().size();
       if (job.getNumReduceTasks() > regions) {
         job.setNumReduceTasks(outputTable.getRegionsInfo().size());
@@ -445,20 +380,26 @@ public class SpliceTableMapReduceUtil {
       addDependencyJars(job);
     }
 
-    initCredentials(job);
+    //initCredentials(job);
   }
 
   /**
    * Ensures that the given number of reduce tasks for the given job
    * configuration does not exceed the number of regions for the given table.
    *
-   * @param table  The table to get the region count for.
+   * @param table  The Splice table to get the region count for.
    * @param job  The current job to adjust.
    * @throws IOException When retrieving the table details fails.
+   * @throws SQLException When Splice retrieving conglom ID fails.
    */
   public static void limitNumReduceTasks(String table, Job job)
-  throws IOException {
-    HTable outputTable = new HTable(job.getConfiguration(), table);
+  throws IOException, SQLException {
+	Configuration conf = job.getConfiguration(); 
+	  if(sqlUtil == null)
+	    	sqlUtil = SQLUtil.getInstance(conf.get(SpliceMRConstants.SPLICE_JDBC_STR));
+	    // If passed a quorum/ensemble address, pass it on to TableOutputFormat.
+	String hbaseTableID = sqlUtil.getConglomID(table);
+    HTable outputTable = new HTable(job.getConfiguration(), hbaseTableID);
     int regions = outputTable.getRegionsInfo().size();
     if (job.getNumReduceTasks() > regions)
       job.setNumReduceTasks(regions);
@@ -468,13 +409,19 @@ public class SpliceTableMapReduceUtil {
    * Sets the number of reduce tasks for the given job configuration to the
    * number of regions the given table has.
    *
-   * @param table  The table to get the region count for.
+   * @param table  The Splice table to get the region count for.
    * @param job  The current job to adjust.
    * @throws IOException When retrieving the table details fails.
+   * @throws SQLException When Splice retrieving conglom ID fails.
    */
   public static void setNumReduceTasks(String table, Job job)
-  throws IOException {
-    HTable outputTable = new HTable(job.getConfiguration(), table);
+  throws IOException, SQLException {
+	Configuration conf = job.getConfiguration(); 
+	if(sqlUtil == null)
+	    sqlUtil = SQLUtil.getInstance(conf.get(SpliceMRConstants.SPLICE_JDBC_STR));
+	    // If passed a quorum/ensemble address, pass it on to TableOutputFormat.
+	String hbaseTableID = sqlUtil.getConglomID(table);
+    HTable outputTable = new HTable(job.getConfiguration(), hbaseTableID);
     int regions = outputTable.getRegionsInfo().size();
     job.setNumReduceTasks(regions);
   }
@@ -493,7 +440,7 @@ public class SpliceTableMapReduceUtil {
   }
 
   /**
-   * Add the HBase dependency jars as well as jars for any of the configured
+   * Add the dependency jars as well as jars for any of the configured
    * job classes to the job configuration, so that JobClient will ship them
    * to the cluster and add them to the DistributedCache.
    */

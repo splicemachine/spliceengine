@@ -1,13 +1,22 @@
+/**
+ * SpliceTableScanner which internally used by SpliceTableScannerBuilder
+ * @author Yanan Jian
+ * Created on: 08/14/14
+ */
 package com.splicemachine.mrio.api;
 
+import com.carrotsearch.hppc.BitSet;
+import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SIFilterFactory;
+//import com.splicemachine.derby.impl.sql.execute.operations.scanner.ScopedPredicates;
 //import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner.KeyIndex;
 import com.splicemachine.derby.impl.store.ExecRowAccumulator;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
+import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.derby.utils.marshall.dvd.TypeProvider;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
@@ -21,12 +30,13 @@ import com.splicemachine.si.api.SIFilter;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
 import com.splicemachine.si.impl.*;
+import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.storage.EntryAccumulator;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.HasPredicateFilter;
 import com.splicemachine.storage.Indexed;
-import com.splicemachine.storage.index.BitIndex;
+import com.splicemachine.storage.Predicate;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.splicemachine.utils.ByteSlice;
@@ -35,16 +45,20 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.types.BigIntegerDecimal;
+import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.iapi.types.SQLBlob;
 import org.apache.derby.iapi.types.SQLBoolean;
+import org.apache.derby.iapi.types.SQLDecimal;
 import org.apache.derby.iapi.types.SQLDouble;
 import org.apache.derby.iapi.types.SQLInteger;
 import org.apache.derby.iapi.types.SQLLongint;
 import org.apache.derby.iapi.types.SQLReal;
 import org.apache.derby.iapi.types.SQLSmallint;
 import org.apache.derby.iapi.types.SQLVarchar;
+import org.apache.derby.iapi.types.TypeId;
 import org.apache.derby.impl.sql.execute.ValueRow;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
@@ -56,6 +70,7 @@ import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
+import java.sql.Types;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -174,9 +189,7 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 				this.scanFilters = scan.getFilter();
 			else
 				this.scanFilters = null;
-			
 			if(filterFactory==null){
-				
 					this.filterFactory = new SIFilterFactory() {
 							
 							@SuppressWarnings("unchecked")
@@ -185,22 +198,31 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 													EntryAccumulator accumulator,
 													boolean isCountStar) throws IOException{
 
-                  Txn baseTxn = ReadOnlyTxn.create(transactionID, Txn.IsolationLevel.SNAPSHOT_ISOLATION,null);
-									TxnFilter iFilterState = HTransactorFactory.getTransactionReadController().newFilterState(null, baseTxn);
+									Txn baseTxn = ReadOnlyTxn.create(transactionID, Txn.IsolationLevel.SNAPSHOT_ISOLATION,null);
+									
+									//TxnFilter iFilterState = HTransactorFactory.getTransactionReadController().newFilterState(null, baseTxn);
+									TxnFilter iFilterState = HTransactorFactory.getTransactionReadController().newFilterState(NoOpReadResolver.INSTANCE, baseTxn);
+									//TxnFilter iFilterState = null;
+									
 									HRowAccumulator hRowAccumulator = new HRowAccumulator(predicateFilter, getRowEntryDecoder(), accumulator, isCountStar);
 									
 									return new PackedTxnFilter(iFilterState, hRowAccumulator){
 											@Override
 											public Filter.ReturnCode doAccumulate(KeyValue dataKeyValue) throws IOException {
-												//System.out.println("accumulating ---------");
+													if(!com.splicemachine.hbase.KeyValueUtils.singleMatchingQualifier(dataKeyValue,SpliceConstants.PACKED_COLUMN_BYTES))
+														return Filter.ReturnCode.SKIP;
 													if (!accumulator.isFinished() && accumulator.isOfInterest(dataKeyValue)) {
+																	if (!accumulator.accumulate(dataKeyValue)) {
+																		
+																			return Filter.ReturnCode.NEXT_ROW;
+																	}
+																	else	
+																		return Filter.ReturnCode.INCLUDE;
+													}else {
 														
-																if (!accumulator.accumulate(dataKeyValue)) {
-																		return Filter.ReturnCode.NEXT_ROW;
-																}
-															
-															return Filter.ReturnCode.INCLUDE;
-													}else return Filter.ReturnCode.INCLUDE;
+														return Filter.ReturnCode.INCLUDE;
+													
+													}
 											}
 									};
 							}
@@ -213,79 +235,65 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 			this.colTypes = colTypes;
 			this.pkColNames = pkColNames;
 			this.pkColIds = pkColIds;
-			System.out.println(this.template.getRowArray().length);
+			
 			boolean allNullFlag = true;
-			if(this.template == null)
-			{
-				data = createDVD();
-				template.setRowArray(data);
-				System.out.println(this.template.getRowArray().length);
+			
+			if(this.template == null){
+				try {
+					data = createDVD();
+					template.setRowArray(data);
+					
+				} catch (StandardException e) {
+					// TODO Auto-generated catch block
+					throw new RuntimeException("Cannot create DataValueDescriptor:"+e);
+				}
+				
 			}
-			else
-			{
+			else{
 				DataValueDescriptor[] dvds = this.template.getRowArray();
 				
-				for(DataValueDescriptor d:dvds)
-				{
+				for(DataValueDescriptor d:dvds){
 					if(d != null){
 						allNullFlag = false;
 						break;
 					}
 				}
+				
 			}
-			if(allNullFlag)
-			{
-				data = createDVD();
-				template.setRowArray(data);
+			if(allNullFlag){
+				
+				try {
+					data = createDVD();
+					
+					template.setRowArray(data);
+					
+				} catch (StandardException e) {
+					// TODO Auto-generated catch block
+					throw new RuntimeException("Cannot create DataValueDescriptor:"+e);
+				}
 			}
-			else
+			else{
 				data = template.getRowArray();	
+				
+			}
+			
 			
 	}
 
-	private DataValueDescriptor[] createDVD()
+	private DataValueDescriptor[] createDVD() throws StandardException
 	{
 		DataValueDescriptor dvds[] = new DataValueDescriptor[colTypes.size()];
 		for(int pos = 0; pos < colTypes.size(); pos++)
 		{
-			
-			switch(colTypes.get(pos))
-			{
-			case java.sql.Types.INTEGER:
-			
-				dvds[pos] = new SQLInteger();
-				break;
-			case java.sql.Types.BIGINT:
-				
-				dvds[pos] = new SQLLongint();
-				break;
-			case java.sql.Types.SMALLINT:
-				
-				dvds[pos] = new SQLSmallint();
-				break;
-			case java.sql.Types.BOOLEAN:
-				
-				dvds[pos] = new SQLBoolean();
-				break;
-			case java.sql.Types.DOUBLE:	
-			
-				dvds[pos] = new SQLDouble();
-				break;
-			case java.sql.Types.FLOAT:
-				
-				dvds[pos] = new SQLInteger();
-				break;
-			case java.sql.Types.CHAR:
-				
-			case java.sql.Types.VARCHAR:
-				
-				dvds[pos] = new SQLVarchar();
-				break;
-			case java.sql.Types.BINARY:	
-				
-			default:
-				dvds[pos] = new SQLBlob();
+			if(colTypes.get(pos) == Types.DECIMAL){	
+				dvds[pos] = new SQLDecimal();
+				continue;
 			}
+			if(colTypes.get(pos) == Types.NUMERIC){
+				dvds[pos] = new BigIntegerDecimal();
+				continue;
+			}
+			dvds[pos] = DataTypeDescriptor.getBuiltInDataTypeDescriptor(colTypes.get(pos)).getNull();
 		}
 		return dvds;
 		
@@ -300,7 +308,7 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 			SIFilter filter = getSIFilter();
 			
 			if(keyValues==null)
-					keyValues = Lists.newArrayListWithExpectedSize(2);
+					keyValues = Lists.newArrayListWithExpectedSize(colTypes.size());
 			boolean hasRow;
 			keyValues.clear();
 			
@@ -308,7 +316,6 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 			
 			Result tmp = resultScanner.next();
 			
-			Result r = null;
 			if(tmp != null)
 			{
 				hasRow = true;		
@@ -330,21 +337,28 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 							currentRowLocation = null;	
 							return null;
 					}else{
+						
 							if(template.nColumns()>0){
+								
 									KeyValue kv = keyValues.get(0);
 									if(!filterRowKey(kv)||!filterRow(filter)){
 											//filter the row first, then filter the row key
+											
 											filterCounter.increment();
 											setRowLocation(kv);
+											
 											return template;
 									}
 							}else if(!filterRow(filter)){
 									//still need to filter rows to deal with transactional issues
+								
 									filterCounter.increment();
 									KeyValue kv = keyValues.get(0);
-									setRowLocation(kv);								
+									setRowLocation(kv);		
+									
 									return template;
 							}
+							
 							setRowLocation(keyValues.get(0));
 							
 							return template;
@@ -441,12 +455,14 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 	private SIFilter getSIFilter() throws IOException {
 			if(siFilter==null){
 					boolean isCountStar = scan.getAttribute(SIConstants.SI_COUNT_STAR)!=null;
+					// Can I use buildInitialPredicateFilter() like SITableFilter? 
+					// What is ScopedPredicates?
 					predicateFilter= decodePredicateFilter();
 					
 					ExecRowAccumulator accumulator = ExecRowAccumulator.newAccumulator(predicateFilter, false, template, rowDecodingMap, tableVersion);
-					
 					siFilter = filterFactory.newFilter(predicateFilter,getRowEntryDecoder(),accumulator,isCountStar);
 			}
+			
 			return siFilter;
 	}
 
@@ -457,7 +473,7 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 	private EntryPredicateFilter decodePredicateFilter() throws IOException {
 			return EntryPredicateFilter.fromBytes(scan.getAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL));
 	}
-
+	
 	protected void setRowLocation(KeyValue sampleKv) throws StandardException {
 			if(indexName!=null && template.nColumns() > 0 && template.getColumn(template.nColumns()).getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID){
 				 /*
@@ -481,8 +497,8 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 			Iterator<KeyValue> kvIter = keyValues.iterator();
 			
 			while(kvIter.hasNext()){
+				
 					KeyValue kv = kvIter.next();
-					
 					Filter.ReturnCode returnCode = filter.filterKeyValue(kv);
 					switch(returnCode){
 							case NEXT_COL:
@@ -497,22 +513,18 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 					}
 					
 			}
-			
 			return keyValues.size() > 0 && filter.getAccumulator().result() != null;
 	}
 
 	private boolean filterRowKey(KeyValue keyValue) throws IOException {
-			if(!isKeyed) 
-			{
-				
+			if(!isKeyed) {
 				return true;
 			}
 
 			byte[] dataBuffer = keyValue.getBuffer();
 			int dataOffset = keyValue.getRowOffset();
 			int dataLength = keyValue.getRowLength();
-			if(keyDecoder == null)
-				System.out.println("keyDecoder null-------");
+			
 			keyDecoder.set(dataBuffer, dataOffset, dataLength);
 			if(keyAccumulator==null)
 					keyAccumulator = ExecRowAccumulator.newAccumulator(predicateFilter,false,template,
@@ -520,7 +532,6 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 
 			keyAccumulator.reset();
 			primaryKeyIndex.reset();
-
 			return predicateFilter.match(primaryKeyIndex, keyDecoderProvider, keyAccumulator);
 	}
 

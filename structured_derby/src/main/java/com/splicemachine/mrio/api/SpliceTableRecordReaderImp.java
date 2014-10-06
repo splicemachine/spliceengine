@@ -18,6 +18,7 @@ import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
+import org.apache.hadoop.hbase.mapreduce.TableInputFormat;
 import org.apache.hadoop.hbase.mapreduce.TableRecordReader;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -46,11 +47,9 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.impl.sql.execute.ValueRow;
 
 
-
-public class SpliceRecordReader extends SpliceTableRecordReaderBase{
+public class SpliceTableRecordReaderImp{
 
 	private HTable htable = null;
-	private ImmutableBytesWritable rowkey = null;
 	private ExecRow value = null;
 	private ResultScanner scanner = null;
 	private Scan scan = null;
@@ -64,27 +63,21 @@ public class SpliceRecordReader extends SpliceTableRecordReaderBase{
     private SpliceTableScannerBuilder builder= null;   
     private SpliceTableScanner tableScanner = null;
     private Configuration conf = null;
+    private byte[] lastRow = null;
+    private ImmutableBytesWritable rowkey = null;
     
-    public SpliceRecordReader(Configuration conf)
-    {
-    	super();
+    protected SpliceTableRecordReaderImp(Configuration conf){
     	this.conf = conf;
     }
-    
-	@Override
-	public void initialize(final InputSplit inputSplit, final TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
-       
-		System.out.println("Initializing....");
-		sqlUtil = SQLUtil.getInstance();
+   
+	protected void initialize(final InputSplit inputSplit, final TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
+		sqlUtil = SQLUtil.getInstance(conf.get(SpliceMRConstants.SPLICE_JDBC_STR));
     }
-	
-	@Override
-	public void close() {
+
+	protected void close() {
 		try {
 			this.tableScanner.close();
 			this.scanner.close();
-			
-			
 		} catch (StandardException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
@@ -92,53 +85,59 @@ public class SpliceRecordReader extends SpliceTableRecordReaderBase{
 		}
 	}
 
-	
-	@Override
-	public void restart(byte[] firstRow) {
-		scan = new Scan();
+	protected void restart(byte[] firstRow) throws IOException {
+		Scan newscan = new Scan(scan);
 		
-		scan.setStartRow(firstRow);
-		scan.setMaxVersions();
-		scan.setAttribute(SIConstants.SI_EXEMPT, Bytes.toBytes(true));
+		newscan.setStartRow(firstRow);
+		
+		newscan.setMaxVersions();
+		newscan.setAttribute(SIConstants.SI_EXEMPT, Bytes.toBytes(true));
 		if(htable != null)
 			try {
-				this.scanner = this.htable.getScanner(scan);
+				this.scanner = this.htable.getScanner(newscan);
+				
 			} catch (IOException e1) {
 				// TODO Auto-generated catch block
-				e1.printStackTrace();
+				throw e1;
 			}
 		
 		try {
-			long transaction_id = Long.parseLong(conf.get(SpliceConstants.SPLICE_TRANSACTION_ID));
+			String transaction_id = conf.get(SpliceMRConstants.SPLICE_TRANSACTION_ID);
+			//System.out.println("transaction_id:"+transaction_id);
 			buildTableScannerBuilder(transaction_id);
 			tableScanner = this.builder.build();
+			
 			//tableScanner.setColumnTypes(colTypes);
 			
 		} catch (NumberFormatException e) {
-			e.printStackTrace();
+			throw new IOException(e);
 		} catch (StandardException e) {
-			e.printStackTrace();
+			throw new IOException(e);
 		}
 		
 	}
 
-	public void init() throws IOException {
+	protected void init() throws IOException {
 		restart(scan.getStartRow());
 	}
 	
-	@Override
-    public ImmutableBytesWritable getCurrentKey(){
+	protected void setScan(Scan scan){
+		this.scan = scan;
+	}
 	
-        return rowkey;
-    }
+	protected ImmutableBytesWritable getCurrentKey()
+	{
+		return rowkey;
+	}
 	
 	/**
 	 * @return ExecRow (represents a row in Splice)
 	 * It will keep on searching the next row until it finds a not-NULL row and then return.
+	 * @throws StandardException 
 	 * 
 	 */
-    @Override
-    public ExecRow getCurrentValue(){
+    protected ExecRow getCurrentValue() throws IOException, InterruptedException, StandardException{
+    	
     	DataValueDescriptor dvds[] = value.getRowArray();
     	boolean invalid = true;
     	for(DataValueDescriptor d : dvds)
@@ -151,15 +150,9 @@ public class SpliceRecordReader extends SpliceTableRecordReaderBase{
     	}
     	if(invalid)
     	{
-    		try {
-    			this.nextKeyValue();
-			
-    		} catch (IOException e) {
-    			e.printStackTrace();
-    		} catch (InterruptedException e) {
-    			e.printStackTrace();
-    		}
+    		this.nextKeyValue();
     	}
+    	//System.out.println("invalid?"+String.valueOf(invalid));
     	if(invalid)
     		value = null;
         return value;
@@ -174,36 +167,11 @@ public class SpliceRecordReader extends SpliceTableRecordReaderBase{
      * 
      * @param columnType (choose from java.sql.Types.*)
      * @return typeFormatId
+     * @throws StandardException 
      */
-    private int getTypeFormatId(int columnType)
+    private int getTypeFormatId(int columnType) throws StandardException
     {
-    	switch(columnType)
-		{
-				case java.sql.Types.INTEGER:
-					return new SQLInteger(1).getTypeFormatId();
-				case java.sql.Types.BIGINT:
-					return new SQLLongint(1).getTypeFormatId();				
-				case java.sql.Types.TIMESTAMP:
-					return new SQLTimestamp().getTypeFormatId();
-				case java.sql.Types.TIME:
-					return new SQLTime().getTypeFormatId();					
-				case java.sql.Types.SMALLINT:
-					return new SQLSmallint().getTypeFormatId();
-				case java.sql.Types.BOOLEAN:
-					return new SQLBoolean().getTypeFormatId();
-				case java.sql.Types.DOUBLE:
-					return new SQLDouble().getTypeFormatId();
-				case java.sql.Types.FLOAT:
-					return new SQLReal().getTypeFormatId();
-				case java.sql.Types.CHAR:
-					return new SQLChar().getTypeFormatId();
-				case java.sql.Types.VARCHAR:
-					return new SQLVarchar().getTypeFormatId();
-				case java.sql.Types.BINARY:
-					return new SQLBlob().getTypeFormatId();
-				default:
-					return new org.apache.derby.iapi.types.SQLClob().getTypeFormatId();
-		}
+    	return DataTypeDescriptor.getBuiltInDataTypeDescriptor(1).getNull().getTypeFormatId();
     }
     
     /**
@@ -216,7 +184,7 @@ public class SpliceRecordReader extends SpliceTableRecordReaderBase{
      * rowEncodingMap and rowDecodingMap are set within this function 
      * in order to parse primary key correctly
      */
-    private void buildTableScannerBuilder(long txsId) throws NumberFormatException, StandardException
+    private void buildTableScannerBuilder(String txsId) throws NumberFormatException, StandardException
     {  	
 		int[] rowEncodingMap;
 		
@@ -270,7 +238,7 @@ public class SpliceRecordReader extends SpliceTableRecordReaderBase{
 		.scan(scan)
 		.scanner(scanner)	
 		.metricFactory(Metrics.basicMetricFactory())
-		.transactionID(txsId)
+		.transactionID(Long.parseLong(txsId))
 		.tableVersion("2.0") // should read table version from derby metadata table
 		.rowDecodingMap(rowDecodingMap)
 		.template(row.getNewNullRow())
@@ -284,35 +252,39 @@ public class SpliceRecordReader extends SpliceTableRecordReaderBase{
     	.accessedKeyColumns(accessedKeyCols);
     }
     
-    @Override
-	public boolean nextKeyValue() throws IOException, InterruptedException { 
-		if (rowkey == null)
+	protected boolean nextKeyValue() throws IOException, InterruptedException, StandardException { 
+		if(rowkey == null)
 			rowkey = new ImmutableBytesWritable();
 		if (value == null)
 			value = new ValueRow(0);
 			try {
-				value = tableScanner.next(null);
-			
-			} catch (StandardException e) {
-				e.printStackTrace();
+				value = tableScanner.next(null);		
 			} catch (IOException e) {
 				e.printStackTrace();
-			}
+				if(lastRow == null)
+					lastRow = scan.getStartRow();
+				restart(lastRow);
+				tableScanner.next(null);
+				value = tableScanner.next(null);
+			} 
 		if (value != null && value.getRowArray().length > 0) {
-			/*rowkey.set(value.getRow());
-			lastRow = rowkey.get();*/
+			lastRow = tableScanner.getCurrentRowLocation().getBytes();
+			rowkey.set(lastRow);	
+			
 			return true;
 		}
 		
 		return false;
 	}
     
-    public void setHTable(HTable htable) {
+    protected void setHTable(HTable htable) {
 		this.htable = htable;
 		Configuration conf = htable.getConfiguration();
-		String tableName = conf.get(org.apache.hadoop.hbase.mapreduce.TableInputFormat.INPUT_TABLE);
+		//String tableName = conf.get(TableInputFormat.INPUT_TABLE);
+		String tableName = conf.get(SpliceMRConstants.SPLICE_INPUT_TABLE_NAME);
+		
 		if (sqlUtil == null)
-			sqlUtil = SQLUtil.getInstance();
+			sqlUtil = SQLUtil.getInstance(conf.get(SpliceMRConstants.SPLICE_JDBC_STR));
 		tableStructure = sqlUtil.getTableStructure(tableName);
 		pks = sqlUtil.getPrimaryKey(tableName);
 		
@@ -332,8 +304,11 @@ public class SpliceRecordReader extends SpliceTableRecordReaderBase{
 	    	pkColNames = (ArrayList<String>)kv2.getKey();
 	    	pkColIds = (ArrayList<Integer>)kv2.getValue();
 	    }
-	    
-	    
-	    
+   
+	}
+
+	protected float getProgress() {
+		// TODO Auto-generated method stub
+		return 0;
 	}
 }

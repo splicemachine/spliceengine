@@ -1,3 +1,8 @@
+/**
+ * SpliceTableScannerBuilder which internally used by SpliceRecordReader
+ * @author Yanan Jian
+ * Created on: 08/14/14
+ */
 package com.splicemachine.mrio.api;
 
 import java.util.ArrayList;
@@ -13,12 +18,7 @@ import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 
-/**
- * Companion Builder class for SITableScanner
- * @author Scott Fines
- * Date: 4/9/14
- */
-public class SpliceTableScannerBuilder {
+ public class SpliceTableScannerBuilder {
 		private ResultScanner scanner;
 		private	ExecRow template;
 		private	MetricFactory metricFactory;
