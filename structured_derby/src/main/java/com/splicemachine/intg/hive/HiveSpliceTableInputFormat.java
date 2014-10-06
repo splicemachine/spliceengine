@@ -3,6 +3,7 @@ package com.splicemachine.intg.hive;
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -49,7 +50,7 @@ public class HiveSpliceTableInputFormat extends SpliceTableInputFormatBase
 	private Configuration conf = null;
 	private final Log LOG = LogFactory.getLog(HiveSpliceTableInputFormat.class);
     private  static HiveSpliceTableInputFormat inputFormat = null;
-    private  SQLUtil sqlUtil = null;
+    private  static SQLUtil sqlUtil = null;
     private  HiveSpliceRecordReader trr = null;
 	//private  TableInputFormat tableInputFormat = new TableInputFormat();
     private HashMap<List, List> tableStructure = new HashMap<List, List>();
@@ -57,15 +58,14 @@ public class HiveSpliceTableInputFormat extends SpliceTableInputFormatBase
     private ArrayList<Integer>colTypes = new ArrayList<Integer>();
 	
 	
-	public static HiveSpliceTableInputFormat getInstance()
-	{
-		if(inputFormat == null)
+	public static HiveSpliceTableInputFormat getInstance(){
+		if(inputFormat == null){
 			inputFormat = new HiveSpliceTableInputFormat();
+		}
 		return inputFormat;
 	}
 	
-	private String spliceTableName2HBaseTableName(String spliceTableName) throws IOException
-	{
+	private String spliceTableName2HBaseTableName(String spliceTableName) throws IOException{
 		String hbaseTableName = null;
 		try {
 			hbaseTableName = sqlUtil.getConglomID(spliceTableName);
@@ -92,11 +92,10 @@ public class HiveSpliceTableInputFormat extends SpliceTableInputFormatBase
 			
 			if(sqlUtil == null)
 				sqlUtil = SQLUtil.getInstance(conf.get(SpliceSerDe.SPLICE_JDBC_STR));
-				//sqlUtil = SQLUtil.getInstance("jdbc:splice://localhost:1527/splicedb;user=splice;password=admin");
+				
 			tableStructure = sqlUtil.getTableStructure(spliceTableName);
 			Iterator iter = tableStructure.entrySet().iterator();
-	    	if(iter.hasNext())
-	    	{
+	    	if(iter.hasNext()){
 	    		Map.Entry kv = (Map.Entry)iter.next();
 	    		colNames = (ArrayList<String>)kv.getKey();
 	    		colTypes = (ArrayList<Integer>)kv.getValue();
@@ -144,6 +143,9 @@ public class HiveSpliceTableInputFormat extends SpliceTableInputFormatBase
 			String spliceTableName = jobConf.get(SpliceSerDe.SPLICE_TABLE_NAME);
 			if(sqlUtil == null)
 				sqlUtil = SQLUtil.getInstance(jobConf.get(SpliceSerDe.SPLICE_JDBC_STR));
+			
+			long transaction_id = Long.parseLong(sqlUtil.getTransactionID());
+			conf.set(SpliceSerDe.SPLICE_TRANSACTION_ID, String.valueOf(transaction_id));
 			String hbaseTableName = spliceTableName2HBaseTableName(spliceTableName);
 			setHTable(new HTable(HBaseConfiguration.create(jobConf), Bytes.toBytes(hbaseTableName)));
 			Scan scan = new Scan();
@@ -227,6 +229,10 @@ public class HiveSpliceTableInputFormat extends SpliceTableInputFormatBase
 	            if (next) {
 	              //rowKey.set(recordReader.getCurrentValue().get());
 	              Writables.copyWritable(recordReader.getCurrentValue(), value);
+	            }
+	            else{
+	            	this.close();
+	            	sqlUtil.close();
 	            }
 	          } catch (InterruptedException e) {
 	            throw new IOException(e);
