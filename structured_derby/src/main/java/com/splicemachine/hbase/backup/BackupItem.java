@@ -1,24 +1,26 @@
 package com.splicemachine.hbase.backup;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.net.URI;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 import com.splicemachine.si.api.Txn;
-import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.*;
+import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.SpliceAdmin;
+import org.apache.hadoop.hbase.util.Pair;
 
 public class BackupItem implements InternalTable {
 	public static final String DEFAULT_SCHEMA = "RECOVERY";
@@ -42,7 +44,13 @@ public class BackupItem implements InternalTable {
 	private String backupItem;
 	private Timestamp backupItemBeginTimestamp;
 	private Timestamp backupItemEndTimestamp;
-	private HTableDescriptor tableDescriptor;
+    private List<RegionInfo> regionInfoList = new ArrayList<RegionInfo>();
+
+    public HTableDescriptor getTableDescriptor() {
+        return tableDescriptor;
+    }
+
+    private HTableDescriptor tableDescriptor;
 	
 	public Backup getBackup() {
 		return backup;
@@ -56,6 +64,9 @@ public class BackupItem implements InternalTable {
 	public byte[] getBackupItemBytes() {
 		return Bytes.toBytes(backupItem);
 	}
+    public List<RegionInfo> getRegionInfoList() {
+        return regionInfoList;
+    }
 
 	public void setBackupItem(String backupItem) {
 		this.backupItem = backupItem;
@@ -94,12 +105,14 @@ public class BackupItem implements InternalTable {
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeObject(backup); // TODO Needs to be replaced with protobuf
         out.writeUTF(backupItem);
+        out.writeObject(regionInfoList);
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         backup = (Backup) in.readObject(); // TODO Needs to be replaced with protobuf
         backupItem = in.readUTF();
+        regionInfoList = (List<RegionInfo>) in.readObject();
     }
 	
 	public void insertBackupItem() throws SQLException {
@@ -121,7 +134,27 @@ public class BackupItem implements InternalTable {
 		}
 	}
 
-	public static void createBackupItemTable() throws SQLException {
+    public void recreateItem(HBaseAdmin admin) throws IOException {
+        byte[][] splitKeys = computeSplitKeys();
+        admin.createTable(getTableDescriptor(), splitKeys);
+    }
+
+    private byte[][] computeSplitKeys() {
+        byte[][] splits = new byte[regionInfoList.size() - 1][]; // 1 region = no splits, 2 regions = 1 split, etc.
+        int i = 0;
+        for (RegionInfo regionInfo : regionInfoList) {
+            if (regionInfo.getHRegionInfo().getEndKey().length != 0) {
+                // add all endKeys except for the last region
+                splits[i] = regionInfo.getHRegionInfo().getEndKey();
+                i++;
+            }
+        }
+        // sort splits
+        Arrays.sort(splits, new Bytes.ByteArrayComparator());
+        return splits;
+    }
+
+    public static void createBackupItemTable() throws SQLException {
 		createBackupItemTable(DEFAULT_TABLE, DEFAULT_SCHEMA);
 	}
 	
@@ -149,5 +182,89 @@ public class BackupItem implements InternalTable {
 		out.close();
 		fs.close();
 	}
-	
+
+    public void readDescriptorFromFileSystem() throws IOException {
+        FileSystem fs = FileSystem.get(URI.create(getBackupItemFilesystem()),SpliceConstants.config);
+        FSDataInputStream in = fs.open(new Path(getBackupItemFilesystem() + "/.tableinfo"));
+        tableDescriptor = new HTableDescriptor();
+        tableDescriptor.readFields(in);
+        in.close();
+        readRegionsFromFileSystem(fs);
+        fs.close();
+    }
+
+    private void readRegionsFromFileSystem(FileSystem fs) throws IOException {
+        FileStatus[] status = fs.listStatus(new Path(getBackupItemFilesystem()));
+        for (FileStatus stat : status) {
+            if (!stat.isDirectory()) {
+                continue; // ignore non directories
+            }
+            HRegionInfo regionInfo = HRegion.loadDotRegionInfoFileContent(fs, stat.getPath());
+            addRegionInfo(new RegionInfo(regionInfo, getFamilyPaths(fs, stat.getPath())));
+        };
+        fs.close();
+    }
+
+    private List<Pair<byte[],String>> getFamilyPaths(FileSystem fs, Path root) throws IOException {
+        List<Pair<byte[], String>> famPaths = new ArrayList<Pair<byte[], String>>();
+        FileStatus[] status = fs.listStatus(root);
+        for (FileStatus stat : status) {
+            if (!stat.isDirectory() || stat.getPath().getName().equals("region.info")) {
+                continue; // ignore non directories
+            }
+            // we have a family directory, the hfile is inside it
+            byte[] family = Bytes.toBytes(stat.getPath().getName());
+
+            FileStatus[] familyStatus = fs.listStatus(stat.getPath());
+            for (FileStatus familyStat : familyStatus) {
+                if (familyStat.getPath().getName().startsWith(".")) {
+                    continue; // ignore CRCs
+                }
+                famPaths.add(new Pair<byte[], String>(family, familyStat.getPath().toString()));
+            }
+        }
+        return famPaths;
+    }
+
+    private void addRegionInfo(RegionInfo regionInfo) {
+        regionInfoList.add(regionInfo);
+    }
+
+    public static class RegionInfo implements Externalizable {
+        private HRegionInfo hRegionInfo;
+        private List<Pair<byte[], String>> famPaths;
+
+        public RegionInfo() {
+        }
+
+        public RegionInfo(HRegionInfo hRegionInfo, List<Pair<byte[], String>> famPaths) {
+            this.hRegionInfo = hRegionInfo;
+            this.famPaths = famPaths;
+        }
+
+        public HRegionInfo getHRegionInfo() {
+            return hRegionInfo;
+        }
+
+        public void setHRegionInfo(HRegionInfo hRegionInfo) {
+            this.hRegionInfo = hRegionInfo;
+        }
+
+        @Override
+        public void writeExternal(ObjectOutput out) throws IOException {
+            hRegionInfo.write(out);
+            out.writeObject(famPaths);
+        }
+
+        @Override
+        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+            hRegionInfo = new HRegionInfo();
+            hRegionInfo.readFields(in);
+            famPaths = (List<Pair<byte[], String>>) in.readObject();
+        }
+
+        public List<Pair<byte[], String>> getFamPaths() {
+            return famPaths;
+        }
+    }
 }

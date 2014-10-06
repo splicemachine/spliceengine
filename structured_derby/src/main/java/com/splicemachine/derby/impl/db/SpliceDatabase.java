@@ -12,6 +12,8 @@ import com.splicemachine.derby.ddl.DDLWatcher;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.hbase.HBaseRegionLoads;
+import com.splicemachine.hbase.backup.*;
+import com.splicemachine.si.api.Txn;
 import com.google.common.io.Closeables;
 import com.splicemachine.derby.hbase.SpliceMasterObserverRestoreAction;
 import com.splicemachine.si.api.TxnView;
@@ -32,6 +34,7 @@ import org.apache.derby.shared.common.sanity.SanityManager;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.mapreduce.LoadIncrementalHFiles;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.constants.SpliceConstants;
@@ -53,9 +56,6 @@ import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.hbase.backup.Backup;
 import com.splicemachine.hbase.backup.Backup.BackupScope;
-import com.splicemachine.hbase.backup.BackupItem;
-import com.splicemachine.hbase.backup.BackupUtils;
-import com.splicemachine.hbase.backup.CreateBackupJob;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.ZkUtils;
@@ -297,12 +297,65 @@ public class SpliceDatabase extends BasicDatabase {
     public void restore(String restoreDir, boolean wait) throws SQLException {
         HBaseAdmin admin = null;
         try {
-            HTableDescriptor desc = new HTableDescriptor(SpliceMasterObserver.RESTORE_TABLE);
-            desc.setValue(SpliceMasterObserverRestoreAction.BACKUP_PATH, restoreDir);
             admin = SpliceUtilities.getAdmin();
-            admin.createTable(desc);
-        } catch (Exception E) {
-            System.out.println("Create table exception");
+            if (!admin.tableExists(SpliceMasterObserver.RESTORE_TABLE)) {
+                HTableDescriptor desc = new HTableDescriptor(SpliceMasterObserver.RESTORE_TABLE);
+                desc.setValue(SpliceMasterObserverRestoreAction.BACKUP_PATH, restoreDir);
+                admin.createTable(desc);
+            }
+
+            // Check for ongoing backup...
+            String backupResponse = null;
+            Backup.validateBackupSchema();
+            if ( (backupResponse = BackupUtils.isBackupRunning()) != null)
+                throw new SQLException(backupResponse); // TODO i18n
+            Backup backup = Backup.readBackup(restoreDir,BackupScope.D);
+//            admin = SpliceUtilities.getAdmin();
+            backup.readBackupItems();
+
+            // recreate tables
+
+//            List<String> oldTables = new ArrayList<String>();
+            for (HTableDescriptor table : admin.listTables()) {
+                // TODO keep old tables around in case something goes wrong
+                admin.disableTable(table.getName());
+                admin.deleteTable(table.getName());
+//                String renamed = table.getNameAsString() + ".old";
+//                SpliceUtilities.renameTable(admin, table.getNameAsString(), renamed);
+//                oldTables.add(renamed);
+            }
+
+            for(BackupItem backupItem : backup.getBackupItems()) {
+                backupItem.recreateItem(admin);
+            }
+
+            JobFuture future = null;
+            JobInfo info = null;
+            long start = System.currentTimeMillis();
+            // bulk import the regions
+            for (BackupItem backupItem: backup.getBackupItems()) {
+                backupItem.createBackupItemFilesystem();
+                backupItem.writeDescriptorToFileSystem();
+                HTableInterface table = SpliceAccessManager.getHTable(backupItem.getBackupItemBytes());
+                RestoreBackupJob job = new RestoreBackupJob(backupItem,table);
+                future = SpliceDriver.driver().getJobScheduler().submit(job);
+                info = new JobInfo(job.getJobId(),future.getNumTasks(), start);
+                info.setJobFuture(future);
+                try{
+                    future.completeAll(info);
+                }catch(CancellationException ce){
+                    throw Exceptions.parseException(ce);
+                }catch(Throwable t){
+                    info.failJob();
+                    throw t;
+                }
+            }
+
+        } catch (Throwable t) {
+            // TODO error handling
+
+            SpliceLogUtils.error(LOG, "Error recovering backup", t);
+
         } finally {
             Closeables.closeQuietly(admin);
         }

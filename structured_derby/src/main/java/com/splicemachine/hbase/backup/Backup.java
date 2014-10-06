@@ -4,8 +4,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.si.api.TransactionLifecycle;
 import com.splicemachine.si.api.Txn;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.*;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 
@@ -16,6 +15,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 /**
  * 
@@ -358,6 +358,18 @@ public class Backup implements InternalTable {
 			backupItems = new ArrayList<BackupItem>();
 		backupItems.add(backupItem);
 	}
+
+    public void readBackupItems() throws IOException {
+        FileSystem fileSystem = FileSystem.get(URI.create(getBackupFilesystem()),SpliceConstants.config);
+        FileStatus[] status = fileSystem.listStatus(getBaseBackupFilesystemAsPath());
+        for (FileStatus stat : status) {
+            BackupItem item = new BackupItem();
+            item.setBackup(this);
+            item.setBackupItem(stat.getPath().getName());
+            item.readDescriptorFromFileSystem();
+            addBackupItem(item);
+        };
+    }
 	
 	public void createBackupItems(HBaseAdmin admin) throws IOException {
 		HTableDescriptor[] descriptorArray = admin.listTables();
@@ -366,10 +378,23 @@ public class Backup implements InternalTable {
 		}
 	}
 
+    public static Backup readBackup(String backupFileSystem, BackupScope backupScope) throws SQLException, IOException {
+        Txn backupTxn = TransactionLifecycle.getLifecycleManager().beginTransaction();
+        Backup backup = new Backup();
+        backup.setBeginBackupTimestamp(new Timestamp(System.currentTimeMillis()));
+        backup.setBackupScope(backupScope);
+        backup.setBackupTransaction(backupTxn);
+//            backup.setIncrementalBackup(incrementalParentBackupID >= 0);
+//            backup.setIncrementalParentBackupID(incrementalParentBackupID);
+        backup.setBackupStatus(BackupStatus.I);
+        backup.setBackupFilesystem(backupFileSystem);
+        return backup;
+    }
+
 	@Override
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-      if(true)
-          throw new UnsupportedOperationException("DECODE TRANSACTION");
+// FIXME reenable throw     if(true)
+//          throw new UnsupportedOperationException("DECODE TRANSACTION");
 		backupStatus = BackupStatus.valueOf(in.readUTF());
 		backupFilesystem = in.readUTF();
 		backupScope = BackupScope.valueOf(in.readUTF());
@@ -379,8 +404,8 @@ public class Backup implements InternalTable {
 
 	@Override
 	public void writeExternal(ObjectOutput out) throws IOException {
-      if(true)
-          throw new UnsupportedOperationException("ENCODE TRANSACTION");
+// FIXME reenable throw     if(true)
+//          throw new UnsupportedOperationException("ENCODE TRANSACTION");
 		out.writeUTF(backupStatus.toString());
 		out.writeUTF(backupFilesystem);
 		out.writeUTF(backupScope.toString());
