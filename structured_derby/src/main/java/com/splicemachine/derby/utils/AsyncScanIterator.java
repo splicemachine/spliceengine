@@ -1,6 +1,5 @@
 package com.splicemachine.derby.utils;
 
-import com.google.common.base.Function;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.storage.DerbyAsyncScannerUtils;
@@ -15,9 +14,7 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import com.splicemachine.async.KeyValue;
-import com.splicemachine.async.Scanner;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
 
@@ -56,13 +53,13 @@ public class AsyncScanIterator implements StandardIterator<ExecRow> {
                                                    PairDecoder pairDecoder,
                                                    RowKeyDistributor rowKeyDistributor,
                                                    MetricFactory metricFactory) throws IOException {
-       AsyncScanner scanner = SortedGatheringScanner.newScanner(baseScan, SpliceConstants.DEFAULT_CACHE_SIZE,metricFactory, new Function<Scan, Scanner>() {
-           @Nullable
-           @Override
-           public Scanner apply(@Nullable Scan input) {
-               return DerbyAsyncScannerUtils.convertScanner(input,tableName, SimpleAsyncScanner.HBASE_CLIENT);
-           }
-       },rowKeyDistributor, Bytes.BYTES_COMPARATOR);
+        AsyncScanner scanner = SortedGatheringScanner.newScanner(
+                baseScan,
+                SpliceConstants.DEFAULT_CACHE_SIZE,
+                metricFactory,
+                DerbyAsyncScannerUtils.convertFunction(tableName, SimpleAsyncScanner.HBASE_CLIENT),
+                rowKeyDistributor,
+                Bytes.BYTES_COMPARATOR);
         return new AsyncScanIterator(scanner,pairDecoder);
     }
 }

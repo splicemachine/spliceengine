@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.storage;
 
+import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.splicemachine.async.*;
 import com.splicemachine.derby.impl.job.operation.SuccessFilter;
@@ -12,14 +13,12 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Utilities for using asyncHbase within Splice.
+ * Utilities for using asyncHbase within Splice.  See related class SIAsyncUtils.
  *
  * @author Scott Fines
  * Date: 7/15/14
  */
 public class DerbyAsyncScannerUtils {
-
-
 
     public static Scanner convertScanner(Scan scan, byte[] table, HBaseClient hbaseClient){
         return convertScanner(scan, table, hbaseClient, true);
@@ -41,7 +40,6 @@ public class DerbyAsyncScannerUtils {
         List<ScanFilter> scanFilters = Lists.newArrayListWithExpectedSize(1);
         if(f instanceof FilterList){
             FilterList oldFl = (FilterList)f;
-//            List<ScanFilter> flScanFilters = Lists.newArrayListWithCapacity(oldFl.getFilters().size());
             for(Filter subFilter:oldFl.getFilters()){
                 scanFilters.add(convertFilter(subFilter));
             }
@@ -77,5 +75,26 @@ public class DerbyAsyncScannerUtils {
         throw new IllegalArgumentException("Unknown Filter of type "+ filter.getClass());
     }
 
+    /**
+     * Returns a Function that converts Scans to Scanners using the specified table and client.
+     */
+    public static Function<Scan, Scanner> convertFunction(byte[] table, HBaseClient hbaseClient) {
+        return new ConvertFunction(table, hbaseClient);
+    }
+
+    private static class ConvertFunction implements Function<Scan, Scanner> {
+        private byte[] tableName;
+        private HBaseClient hbaseClient;
+
+        private ConvertFunction(byte[] tableName, HBaseClient hbaseClient) {
+            this.tableName = tableName;
+            this.hbaseClient = hbaseClient;
+        }
+
+        @Override
+        public Scanner apply(Scan scan) {
+            return convertScanner(scan, tableName, hbaseClient);
+        }
+    }
 
 }
