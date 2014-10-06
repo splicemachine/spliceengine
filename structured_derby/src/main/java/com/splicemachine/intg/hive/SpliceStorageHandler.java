@@ -73,19 +73,7 @@ implements HiveMetaHook, HiveStoragePredicateHandler{
 	    }
 	   
 	    jobProperties.put(SpliceSerDe.SPLICE_TABLE_NAME, tableName);
-	    
-	    PrintWriter writer;
-		try {
-			writer = new PrintWriter("/Users/yanan/SpliceStorageHandler_log.txt", "UTF-8");
-			writer.println("ConfigureTableJobProperties, jdbc string:"+jobProperties.get(SpliceMRConstants.SPLICE_JDBC_STR));
-		    writer.close();
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (UnsupportedEncodingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+	    jobProperties.put(SpliceSerDe.SPLICE_JDBC_STR, tableProperties.getProperty(SpliceSerDe.SPLICE_JDBC_STR));
 	    
 	}
 	
@@ -143,12 +131,10 @@ implements HiveMetaHook, HiveStoragePredicateHandler{
 		// We map all columns from Splice Table to Hive Table.
 		SQLUtil spliceUtil = SQLUtil.getInstance(spliceConf.get(SpliceMRConstants.SPLICE_JDBC_STR));
 		try {
-			if(spliceUtil.checkTableExists(tableName))
-			{
+			if(spliceUtil.checkTableExists(tableName)){
 				
 			}
-			else
-			{
+			else{
 				throw new MetaException("Error in preCreateTable, "
 						+ "check Table Exists in Splice. "
 						+ "Now we only support creating External Table."

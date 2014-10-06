@@ -66,7 +66,7 @@ public class SpliceSerDe implements SerDe {
 			 SpliceSerDe.class.getName());
 
 	 /**
-	  * An initialization function used to gather information about the table.
+	  * An initialization function used to gather information about the table.	
 	  * Typically, a SerDe implementation will be interested in the list of
 	  * column names and their types. That information will be used to help 
 	  * perform actual serialization and deserialization of data.
