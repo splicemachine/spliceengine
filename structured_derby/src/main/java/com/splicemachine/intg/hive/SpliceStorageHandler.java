@@ -129,7 +129,7 @@ implements HiveMetaHook, HiveStoragePredicateHandler{
 		// We can choose to support user define column mapping.
 		// But currently I don't think it is necessary
 		// We map all columns from Splice Table to Hive Table.
-		SQLUtil spliceUtil = SQLUtil.getInstance(spliceConf.get(SpliceMRConstants.SPLICE_JDBC_STR));
+		SQLUtil spliceUtil = SQLUtil.getInstance(spliceConf.get(SpliceSerDe.SPLICE_JDBC_STR));
 		try {
 			if(spliceUtil.checkTableExists(tableName)){
 				

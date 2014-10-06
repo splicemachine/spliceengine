@@ -137,7 +137,7 @@ org.apache.hadoop.mapred.OutputFormat<ImmutableBytesWritable, Put>{
 		if(conf == null)
 			throw new IOException("Error: Please set Configuration for SpliceOutputFormat");
 		if(sqlUtil == null)
-			sqlUtil = SQLUtil.getInstance(conf.get(SpliceMRConstants.SPLICE_JDBC_STR));
+			sqlUtil = SQLUtil.getInstance(conf.get(SpliceSerDe.SPLICE_JDBC_STR));
 		spliceTableName = conf.get(TableOutputFormat.OUTPUT_TABLE);
 		
 		tableStructure = sqlUtil.getTableStructure(spliceTableName);

@@ -97,18 +97,16 @@ public class SpliceTableRecordReaderImp{
 				this.scanner = this.htable.getScanner(newscan);
 				
 			} catch (IOException e1) {
-				// TODO Auto-generated catch block
+				
 				throw e1;
 			}
 		
 		try {
 			String transaction_id = conf.get(SpliceMRConstants.SPLICE_TRANSACTION_ID);
-			//System.out.println("transaction_id:"+transaction_id);
+			
 			buildTableScannerBuilder(transaction_id);
 			tableScanner = this.builder.build();
-			
-			//tableScanner.setColumnTypes(colTypes);
-			
+	
 		} catch (NumberFormatException e) {
 			throw new IOException(e);
 		} catch (StandardException e) {
@@ -125,8 +123,7 @@ public class SpliceTableRecordReaderImp{
 		this.scan = scan;
 	}
 	
-	protected ImmutableBytesWritable getCurrentKey()
-	{
+	protected ImmutableBytesWritable getCurrentKey(){
 		return rowkey;
 	}
 	
@@ -140,19 +137,16 @@ public class SpliceTableRecordReaderImp{
     	
     	DataValueDescriptor dvds[] = value.getRowArray();
     	boolean invalid = true;
-    	for(DataValueDescriptor d : dvds)
-    	{
-    		if(!d.isNull())
-    		{
+    	for(DataValueDescriptor d : dvds){
+    		if(!d.isNull()){
     			invalid = false;		
     			break;
     		}
     	}
-    	if(invalid)
-    	{
+    	if(invalid){
     		this.nextKeyValue();
     	}
-    	//System.out.println("invalid?"+String.valueOf(invalid));
+    	
     	if(invalid)
     		value = null;
         return value;
@@ -161,7 +155,7 @@ public class SpliceTableRecordReaderImp{
     
     protected EntryDecoder getRowEntryDecoder() {
 		return new EntryDecoder();
-}
+    }
     
     /**
      * 
@@ -169,8 +163,7 @@ public class SpliceTableRecordReaderImp{
      * @return typeFormatId
      * @throws StandardException 
      */
-    private int getTypeFormatId(int columnType) throws StandardException
-    {
+    private int getTypeFormatId(int columnType) throws StandardException{
     	return DataTypeDescriptor.getBuiltInDataTypeDescriptor(1).getNull().getTypeFormatId();
     }
     

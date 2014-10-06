@@ -70,6 +70,7 @@ public class HiveSpliceRecordReader extends HiveSpliceRecordReaderBase{
     private SpliceTableScannerBuilder builder= null;   
     private SpliceTableScanner tableScanner = null;
     private Configuration conf = null;
+    private byte[] lastRow = null;
     
     public HiveSpliceRecordReader(Configuration conf)
     {
@@ -81,16 +82,14 @@ public class HiveSpliceRecordReader extends HiveSpliceRecordReaderBase{
 	public void initialize(final InputSplit inputSplit, final TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
        
 		System.out.println("Initializing SpliceRecordReader....");
-		sqlUtil = SQLUtil.getInstance(conf.get(SpliceMRConstants.SPLICE_JDBC_STR));
+		sqlUtil = SQLUtil.getInstance(conf.get(SpliceSerDe.SPLICE_JDBC_STR));
     }
 	
 	@Override
 	public void close() {
 		try {
 			this.tableScanner.close();
-			this.scanner.close();
-			
-			
+			this.scanner.close();		
 		} catch (StandardException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
@@ -100,9 +99,8 @@ public class HiveSpliceRecordReader extends HiveSpliceRecordReaderBase{
 
 	
 	@Override
-	public void restart(byte[] firstRow) {
+	public void restart(byte[] firstRow) throws IOException {
 		scan = new Scan();
-		
 		scan.setStartRow(firstRow);
 		scan.setMaxVersions();
 		scan.setAttribute(SIConstants.SI_EXEMPT, Bytes.toBytes(true));
@@ -110,40 +108,30 @@ public class HiveSpliceRecordReader extends HiveSpliceRecordReaderBase{
 			try {
 				this.scanner = this.htable.getScanner(scan);
 			} catch (IOException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
+				new IOException(e1);
 			}
 		
 		try {
-			Connection conn = sqlUtil.createConn();
-			long transaction_id = Long.parseLong(sqlUtil.getTransactionID(conn));
-			sqlUtil.disableAutoCommit(conn);
+			long transaction_id = Long.parseLong(conf.get(SpliceSerDe.SPLICE_TRANSACTION_ID));
 			buildTableScannerBuilder(transaction_id);
 			tableScanner = this.builder.build();
 			//tableScanner.setColumnTypes(colTypes);
 			
 		} catch (NumberFormatException e) {
-			e.printStackTrace();
+			new IOException(e);
 		} catch (StandardException e) {
-			e.printStackTrace();
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (InstantiationException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IllegalAccessException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+			new IOException(e);
+		} 
 		
 	}
 
 	public void init() throws IOException {
 		restart(scan.getStartRow());
+	}
+	
+	@Override
+	public void setScan(Scan scan){
+		this.scan = scan;
 	}
 	
 	@Override
@@ -162,16 +150,13 @@ public class HiveSpliceRecordReader extends HiveSpliceRecordReaderBase{
     	DataValueDescriptor dvds[] = value.getRowArray();
     	
     	boolean invalid = true;
-    	for(DataValueDescriptor d : dvds)
-    	{
-    		if(!d.isNull())
-    		{
+    	for(DataValueDescriptor d : dvds){
+    		if(!d.isNull()){
     			invalid = false;		
     			break;
     		}
     	}
-    	if(invalid)
-    	{
+    	if(invalid){
     		this.nextKeyValue();
     	}
     	if(invalid)
@@ -277,18 +262,34 @@ public class HiveSpliceRecordReader extends HiveSpliceRecordReaderBase{
     
     @Override
 	public boolean nextKeyValue() throws IOException, InterruptedException { 
-		if (rowkey == null)
+		
+		if(rowkey == null)
 			rowkey = new ImmutableBytesWritable();
 		if (value == null)
 			value = new ValueRow(0);
 			try {
 				value = tableScanner.next(null);		
+			} catch (IOException e) {
+				if(lastRow == null)
+					lastRow = scan.getStartRow();
+				restart(lastRow);
+				try {
+					tableScanner.next(null);
+					value = tableScanner.next(null);
+				} catch (StandardException e1) {
+					throw new IOException(e1);
+				}
+				
 			} catch (StandardException e) {
-				throw new IOException(e.getMessage());
+				new IOException(e);
 			} 
 		if (value != null && value.getRowArray().length > 0) {
-			/*rowkey.set(value.getRow());
-			lastRow = rowkey.get();*/
+			try {
+				lastRow = tableScanner.getCurrentRowLocation().getBytes();
+				rowkey.set(lastRow);
+			} catch (StandardException e) {
+				new IOException(e);
+			}
 			return true;
 		}
 		
@@ -307,7 +308,7 @@ public class HiveSpliceRecordReader extends HiveSpliceRecordReaderBase{
 		tableName = tableName.trim();
 		
 		if (sqlUtil == null)
-			sqlUtil = SQLUtil.getInstance(conf.get(SpliceMRConstants.SPLICE_JDBC_STR));
+			sqlUtil = SQLUtil.getInstance(conf.get(SpliceSerDe.SPLICE_JDBC_STR));
 		tableStructure = sqlUtil.getTableStructure(tableName);
 		pks = sqlUtil.getPrimaryKey(tableName);
 		

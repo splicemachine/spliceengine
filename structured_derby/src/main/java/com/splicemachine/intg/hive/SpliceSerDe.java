@@ -58,6 +58,7 @@ public class SpliceSerDe implements SerDe {
 	 private List<Integer> colTypes;
 	 public static final String SPLICE_TABLE_NAME = "splice.table.name";
 	 public static final String SPLICE_JDBC_STR = "splice.jdbc";
+	 protected static final String SPLICE_TRANSACTION_ID = "splice.transaction.id";
 	 private List<Object> row = new ArrayList<Object>();
 	 private SQLUtil sqlUtil = null;
 	 private LazySimpleSerDe.SerDeParameters serdeParams;
@@ -78,7 +79,7 @@ public class SpliceSerDe implements SerDe {
 	   String spliceTableName = tbl.getProperty(SpliceSerDe.SPLICE_TABLE_NAME);
 	   spliceTableName = spliceTableName.trim();
 	   if(sqlUtil == null)
-		   sqlUtil = SQLUtil.getInstance(tbl.getProperty(SpliceMRConstants.SPLICE_JDBC_STR));
+		   sqlUtil = SQLUtil.getInstance(tbl.getProperty(SpliceSerDe.SPLICE_JDBC_STR));
 	  
 	   getSpliceTableStructure(spliceTableName);
 	  
