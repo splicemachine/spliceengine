@@ -91,8 +91,8 @@ public class HiveSpliceTableInputFormat extends SpliceTableInputFormatBase
 			String spliceTableName = conf.get(SpliceSerDe.SPLICE_TABLE_NAME).trim();
 			
 			if(sqlUtil == null)
-				//sqlUtil = SQLUtil.getInstance(conf.get(SpliceMRConstants.SPLICE_JDBC_STR));
-				sqlUtil = SQLUtil.getInstance("jdbc:splice://localhost:1527/splicedb;user=splice;password=admin");
+				sqlUtil = SQLUtil.getInstance(conf.get(SpliceSerDe.SPLICE_JDBC_STR));
+				//sqlUtil = SQLUtil.getInstance("jdbc:splice://localhost:1527/splicedb;user=splice;password=admin");
 			tableStructure = sqlUtil.getTableStructure(spliceTableName);
 			Iterator iter = tableStructure.entrySet().iterator();
 	    	if(iter.hasNext())
@@ -143,7 +143,7 @@ public class HiveSpliceTableInputFormat extends SpliceTableInputFormatBase
 			this.conf = jobConf;
 			String spliceTableName = jobConf.get(SpliceSerDe.SPLICE_TABLE_NAME);
 			if(sqlUtil == null)
-				sqlUtil = SQLUtil.getInstance(jobConf.get(SpliceMRConstants.SPLICE_JDBC_STR));
+				sqlUtil = SQLUtil.getInstance(jobConf.get(SpliceSerDe.SPLICE_JDBC_STR));
 			String hbaseTableName = spliceTableName2HBaseTableName(spliceTableName);
 			setHTable(new HTable(HBaseConfiguration.create(jobConf), Bytes.toBytes(hbaseTableName)));
 			Scan scan = new Scan();

@@ -1,6 +1,8 @@
 package com.splicemachine.intg.hive;
 
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -113,8 +115,9 @@ public class HiveSpliceRecordReader extends HiveSpliceRecordReaderBase{
 			}
 		
 		try {
-			long transaction_id = Long.parseLong(sqlUtil.getTransactionID());
-
+			Connection conn = sqlUtil.createConn();
+			long transaction_id = Long.parseLong(sqlUtil.getTransactionID(conn));
+			sqlUtil.disableAutoCommit(conn);
 			buildTableScannerBuilder(transaction_id);
 			tableScanner = this.builder.build();
 			//tableScanner.setColumnTypes(colTypes);
@@ -122,6 +125,18 @@ public class HiveSpliceRecordReader extends HiveSpliceRecordReaderBase{
 		} catch (NumberFormatException e) {
 			e.printStackTrace();
 		} catch (StandardException e) {
+			e.printStackTrace();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InstantiationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalAccessException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
