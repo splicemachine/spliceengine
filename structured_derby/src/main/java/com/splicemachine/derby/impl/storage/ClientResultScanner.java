@@ -33,9 +33,6 @@ public class ClientResultScanner extends ReopenableScanner implements SpliceResu
     private final MetricFactory metricFactory;
     private HTableInterface table;
 
-//		private final Timer remoteReadTimer;
-//		private final Counter remoteBytesRead;
-
 		private long rowsRead = 0l;
 
     public ClientResultScanner(byte[] tableName,
@@ -62,8 +59,6 @@ public class ClientResultScanner extends ReopenableScanner implements SpliceResu
                 keyDistributor = distributor;
 				}else
             keyDistributor = null;
-//				this.remoteReadTimer = metricFactory.newWallTimer();
-//				this.remoteBytesRead = metricFactory.newCounter();
     }
 
     @Override
@@ -78,7 +73,6 @@ public class ClientResultScanner extends ReopenableScanner implements SpliceResu
         else{
             Scan[] scans = keyDistributor.getDistributedScans(scan);
             scanner = DistributedScanner.create(table,scan,keyDistributor,metricFactory);
-//            scanner = AsyncDistributedScanner.create(tableName,scans,metricFactory);
         }
         scanner.open();
     }
@@ -94,51 +88,18 @@ public class ClientResultScanner extends ReopenableScanner implements SpliceResu
 		@Override
         public Result next() throws IOException {
             Result r;
-//            try {
                 r = scanner.next();
                 if (r != null && r.size() > 0) {
 										rowsRead++;
-//                    setLastRow(r.getRow());
                 } else {
 										if(LOG.isTraceEnabled())
 												LOG.trace("Read "+rowsRead+" rows");
                 }
-//            } catch (IOException e) {
-//                if (Exceptions.isScannerTimeoutException(e) && getNumRetries() < MAX_RETIRES && keyDistributor==null) {
-//										if(LOG.isTraceEnabled())
-//												SpliceLogUtils.trace(LOG, "Re-create scanner with startRow = %s", BytesUtil.toHex(getLastRow()));
-//
-//                    incrementNumRetries();
-//                    scanner = reopenResultScanner(scanner, scan, table);
-//                    r = next();
-//                } else {
-//                    SpliceLogUtils.logAndThrowRuntime(LOG, e);
-//                }
-//            }
             return r;
 		}
 
     @Override public Result[] next(int nbRows) throws IOException {
 				return scanner.next(nbRows);
-//        Result[] results = null;
-////        try {
-//            results = scanner.next(nbRows);
-//            if (results != null && results.length > 0) {
-//                setLastRow(results[results.length-1].getRow());
-//            }
-//        }catch (IOException e) {
-//            if (Exceptions.isScannerTimeoutException(e) && getNumRetries() < MAX_RETIRES && keyDistributor==null) {
-//                SpliceLogUtils.trace(LOG, "Re-create scanner with startRow = %s", BytesUtil.toHex(getLastRow()));
-//                incrementNumRetries();
-//                scanner = reopenResultScanner(scanner, scan, table);
-//                results = scanner.next(nbRows);
-//            }
-//            else {
-//                SpliceLogUtils.logAndThrowRuntime(LOG, e);
-//            }
-//        }
-
-//        return results;
 	}
 
     @Override
