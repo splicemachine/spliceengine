@@ -17,6 +17,9 @@ import com.google.gson.GsonBuilder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.compile.Visitable;
 import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
+import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.impl.sql.compile.ColumnReference;
+import org.apache.derby.impl.sql.compile.ConstantNode;
 import org.apache.derby.impl.sql.compile.DMLStatementNode;
 import org.apache.derby.impl.sql.compile.ExplainNode;
 import org.apache.derby.impl.sql.compile.FromBaseTable;
@@ -27,6 +30,8 @@ import org.apache.derby.impl.sql.compile.ResultColumn;
 import org.apache.derby.impl.sql.compile.ResultColumnList;
 import org.apache.derby.impl.sql.compile.ResultSetNode;
 import org.apache.derby.impl.sql.compile.SubqueryNode;
+import org.apache.derby.impl.sql.compile.ValueNode;
+import org.apache.derby.impl.sql.compile.VirtualColumnNode;
 import org.apache.derby.impl.sql.compile.WindowResultSetNode;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Level;
@@ -230,13 +235,38 @@ public class PlanPrinter extends AbstractSpliceVisitor {
         List<Map<String, Object>> resultColumns = new ArrayList<Map<String, Object>>();
         ResultColumnList resultColumnList = rsn.getResultColumns();
         if (resultColumnList != null && resultColumnList.size() > 0) {
-            for (int i=1; i<=resultColumnList.size(); i++) {
-                ResultColumn resultColumn = resultColumnList.getResultColumn(i);
+            ResultColumn[] columns = resultColumnList.getColumnsAsArray();
+            for (ResultColumn resultColumn : columns) {
                 Map<String, Object> columnInfo = new LinkedHashMap<String, Object>();
                 if (resultColumn != null) {
                     columnInfo.put("column", resultColumn.getName());
                     columnInfo.put("position", resultColumn.getColumnPosition());
                     columnInfo.put("type", resultColumn.getType());
+                    ValueNode exp = resultColumn.getExpression();
+                    if (exp != null) {
+                        String columnName = exp.getColumnName();
+                        if (columnName != null) {
+                            columnInfo.put("pnts to", columnName);
+                        }
+                        String src = "null";
+                        if (exp instanceof VirtualColumnNode) {
+                            ResultColumn rc = ((VirtualColumnNode)exp).getSourceColumn();
+                            if (rc != null) {
+                                src = rc.getName();
+                            }
+                        } else if (exp instanceof ColumnReference) {
+                            ResultColumn rc = ((ColumnReference)exp).getSource();
+                            if (rc != null) {
+                                src = rc.getName();
+                            }
+                        } else if (exp instanceof ConstantNode) {
+                            DataValueDescriptor dvd = ((ConstantNode)exp).getValue();
+                            if (dvd != null) {
+                                src = dvd.getString();
+                            }
+                        }
+                        columnInfo.put("src", src);
+                    }
                 }
                 resultColumns.add(columnInfo);
             }

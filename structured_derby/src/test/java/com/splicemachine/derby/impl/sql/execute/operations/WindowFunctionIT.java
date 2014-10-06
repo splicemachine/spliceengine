@@ -112,38 +112,39 @@ public class WindowFunctionIT extends SpliceUnitTest {
                     throw new RuntimeException(e);
                 }
             }})
-                                            .around(spliceTableWatcher2)
-                                            .around(new SpliceDataWatcher() {
-                                                @Override
-                                                protected void starting(Description description) {
-                                                    PreparedStatement ps;
-                                                    try {
-                                                        for (String row : PURCHASED_ROWS) {
-                                                            ps = spliceClassWatcher.prepareStatement(
-                                                                String.format("insert into %s values (%s)", spliceTableWatcher2, row));
-                                                            ps.execute();
-                                                        }
-                                                    } catch (Exception e) {
-                                                        throw new RuntimeException(e);
-                                                    }
-                                                }
-                                            })
-    .around(spliceTableWatcher3)
-    .around(new SpliceDataWatcher() {
-        @Override
-        protected void starting(Description description) {
-            PreparedStatement ps;
-            try {
-                for (String row : PEOPLE_ROWS) {
-                    ps = spliceClassWatcher.prepareStatement(
-                        String.format("insert into %s values (%s)", spliceTableWatcher3, row));
-                    ps.execute();
+            .around(spliceTableWatcher2)
+            .around(new SpliceDataWatcher() {
+                @Override
+                protected void starting(Description description) {
+                    PreparedStatement ps;
+                    try {
+                        for (String row : PURCHASED_ROWS) {
+                            String sql = String.format("insert into %s values (%s)", spliceTableWatcher2, row);
+//                            System.out.println(sql+";");  // will print insert statements
+                            ps = spliceClassWatcher.prepareStatement(sql);
+                            ps.execute();
+                        }
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
                 }
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
-    });
+            })
+            .around(spliceTableWatcher3)
+            .around(new SpliceDataWatcher() {
+                @Override
+                protected void starting(Description description) {
+                    PreparedStatement ps;
+                    try {
+                        for (String row : PEOPLE_ROWS) {
+                            ps = spliceClassWatcher.prepareStatement(
+                                String.format("insert into %s values (%s)", spliceTableWatcher3, row));
+                            ps.execute();
+                        }
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            });
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
@@ -756,6 +757,26 @@ public class WindowFunctionIT extends SpliceUnitTest {
 
     @Test
     public void testRowNumberWithoutPartitionOrderby() throws Exception {
+        // DB-1683
+        int[] personID = {1, 1, 1, 2, 2, 2, 3, 3, 4, 5, 5};
+        int[] number = { 4,  5,  6,  9, 10, 11,  1,  2,  3,  7,  8};
+        String sqlText =
+            "select PersonID,FamilyID,FirstName,LastName, ROW_NUMBER() over (order by DOB) as Number, dob from %s order by PersonID";
+
+        ResultSet rs = methodWatcher.executeQuery(
+            String.format(sqlText, this.getTableReference(TABLE3_NAME)));
+
+        int i = 0;
+        while (rs.next()) {
+            Assert.assertEquals(personID[i],rs.getInt(1));
+            Assert.assertEquals(number[i],rs.getInt(5));
+            ++i;
+        }
+        rs.close();
+    }
+
+    @Test
+    public void testRowNumberWithoutPartitionOrderby_OrderbyColNotInSelect() throws Exception {
         // DB-1683
         int[] personID = {1, 1, 1, 2, 2, 2, 3, 3, 4, 5, 5};
         int[] number = { 4,  5,  6,  9, 10, 11,  1,  2,  3,  7,  8};
