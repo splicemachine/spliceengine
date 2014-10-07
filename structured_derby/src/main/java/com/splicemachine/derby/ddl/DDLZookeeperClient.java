@@ -12,6 +12,8 @@ import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooDefs;
 
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
+import java.net.InetAddress;
 import java.util.Collection;
 import java.util.List;
 
@@ -62,7 +64,13 @@ class DDLZookeeperClient {
 
     static String registerThisServer() throws StandardException {
         try {
-            String node = ZkUtils.create(SERVERS_PATH + "/", new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL_SEQUENTIAL);
+            /*
+             * This is to resolve DB-1812. Instead of using an EPHEMERAL_SEQUENTIAL node (which can allow
+             * duplicate entries, and thus problems with DDL operations), we use a normal EPHEMERAL with a unique
+             * identifier for this vm.
+             */
+            String vmName = ManagementFactory.getRuntimeMXBean().getName();
+            String node = ZkUtils.create(SERVERS_PATH + "/"+vmName, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
             return node.substring(node.lastIndexOf('/') + 1);
         } catch (KeeperException e) {
             throw Exceptions.parseException(e);
