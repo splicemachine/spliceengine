@@ -201,7 +201,7 @@ class SQLTypes {
 			  return DRDAConstants.DB2_SQLTYPE_LONG + nullAddVal;
 
           case java.sql.Types.REF:
-              return DRDAConstants.DB2_SQLTYPE_LONG + nullAddVal;
+              return DRDAConstants.DB2_SQLTYPE_ROWID + nullAddVal;
 		  case java.sql.Types.ARRAY:
 		  case java.sql.Types.DISTINCT:
 		  case java.sql.Types.NULL:

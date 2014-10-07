@@ -182,7 +182,14 @@ public class SQLRef extends DataType implements RefDataValue
 	/** @exception StandardException	Thrown on error */
 	public int compare(DataValueDescriptor other) throws StandardException
 	{
-		return value.compare(((SQLRef) other).value);
+        if (other instanceof SQLRef) {
+            return value.compare(((SQLRef) other).value);
+        } else if (other instanceof StringDataValue) {
+            return value.toString().compareToIgnoreCase(other.getString());
+        }
+        else {
+            throw StandardException.newException("cannot compare SQLRef with " + other.getClass());
+        }
 	}
 
 	/*

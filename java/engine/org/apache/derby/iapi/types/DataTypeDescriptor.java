@@ -1322,6 +1322,8 @@ public final class DataTypeDescriptor implements Formatable
 	 * @param cf		A ClassFactory
 	 * @return true if compareWithDTD is comparable to this type, else false.
 	 */
+
+
 	public boolean	comparable(DataTypeDescriptor compareWithDTD,
             boolean forEquals,
             ClassFactory cf){
@@ -1340,9 +1342,9 @@ public final class DataTypeDescriptor implements Formatable
 			return false;
 
 		// Ref types cannot be compared
-		if (typeId.isRefTypeId() || compareWithTypeID.isRefTypeId())
+		/*if (typeId.isRefTypeId() || compareWithTypeID.isRefTypeId())
 			return false;
-		
+		*/
 		//If this DTD is not user defined type but the DTD to be compared with 
 		//is user defined type, then let the other DTD decide what should be the
 		//outcome of the comparable method.
@@ -1416,6 +1418,11 @@ public final class DataTypeDescriptor implements Formatable
 		if (typeId.isUserDefinedTypeId() || typeId.getJDBCTypeId() == Types.OTHER)
 		{ return false; }
 
+        if (typeId.getJDBCTypeId() == Types.REF &&
+                (compareWithTypeID.getJDBCTypeId() == Types.REF ||
+                 compareWithTypeID.getJDBCTypeId() == Types.CHAR)) {
+            return true;
+        }
 		return false;
 	}
 	

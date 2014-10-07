@@ -21,21 +21,13 @@
 
 package org.apache.derby.impl.sql.compile;
 
+import java.sql.Types;
+
 import org.apache.derby.iapi.services.loader.ClassFactory;
-
-import org.apache.derby.iapi.error.StandardException;
-
 import org.apache.derby.iapi.types.TypeId;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
-import org.apache.derby.iapi.types.DataTypeDescriptor;
-import org.apache.derby.iapi.types.DataValueFactory;
-
-import org.apache.derby.iapi.types.RefDataValue;
-
 import org.apache.derby.iapi.sql.compile.TypeCompiler;
-
 import org.apache.derby.iapi.services.sanity.SanityManager;
-
 import org.apache.derby.iapi.reference.ClassName;
 
 /**
@@ -67,6 +59,9 @@ public class RefTypeCompiler extends BaseTypeCompiler
 	public boolean convertible(TypeId otherType, 
 							   boolean forDataTypeFunction)
 	{
+        if (otherType.getJDBCTypeId() == Types.VARCHAR) {
+            return true;
+        }
 		return false;
 	}
 

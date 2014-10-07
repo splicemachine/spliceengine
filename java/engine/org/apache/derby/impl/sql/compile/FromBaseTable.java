@@ -2479,6 +2479,7 @@ public class FromBaseTable extends FromTable {
                             rowLocationNode,
                             getContextManager());
                 }
+                columnReference.setTableNumber(tableNumber);
                 resultColumn = rowIdColumn;
             }
 		}
@@ -3098,7 +3099,7 @@ public class FromBaseTable extends FromTable {
 				(bulkFetch != UNSET), multiProbing),
 			ClassName.NoPutResultSet, nargs);
 
-        if (rowIdColumn != null) {
+        if (rowIdColumn != null && updateOrDelete != DELETE) {
             acb.newFieldDeclaration(Modifier.PRIVATE,
                     ClassName.CursorResultSet,
                     acb.newRowLocationScanResultSetName());
