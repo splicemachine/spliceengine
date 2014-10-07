@@ -1,15 +1,15 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import com.splicemachine.derby.impl.store.access.SpliceTransaction;
+import com.splicemachine.derby.ddl.DDLChange;
+import com.splicemachine.derby.ddl.DDLChangeType;
+import com.splicemachine.derby.ddl.DropSchemaDDLChangeDesc;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.derby.utils.Exceptions;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
 import org.apache.derby.iapi.sql.execute.ConstantAction;
-import org.apache.derby.iapi.store.access.TransactionController;
 
 /**
  *	This class  describes actions that are ALWAYS performed for a
@@ -54,7 +54,14 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
 				 * the transaction.
 				 */
         dd.startWriting(lcc);
-        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, lcc.getTransactionExecute(), true);
+        SpliceTransactionManager tc = (SpliceTransactionManager)lcc.getTransactionExecute();
+
+        DDLChange change = new DDLChange(tc.getActiveStateTxn(), DDLChangeType.DROP_SCHEMA);
+        change.setTentativeDDLDesc(new DropSchemaDDLChangeDesc(this.schemaName));
+
+        notifyMetadataChangeAndWait(change);
+
+        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, true);
         sd.drop(lcc, activation);
     }
 
