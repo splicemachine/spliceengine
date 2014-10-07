@@ -845,15 +845,34 @@ public class SpliceAdmin extends BaseAdminProcedures {
 						vacuum.shutdown();
 				}
 		}
-
+    private static ResultColumnDescriptor[] SCHEMA_INFO_COLUMNS = new GenericColumnDescriptor[]{
+            new GenericColumnDescriptor("SCHEMANAME",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
+            new GenericColumnDescriptor("TABLENAME",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
+            new GenericColumnDescriptor("REGIONNAME",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
+            new GenericColumnDescriptor("IS_INDEX",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN)),
+            new GenericColumnDescriptor("HBASEREGIONS_STORESIZE",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
+            new GenericColumnDescriptor("MEMSTORESIZE",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
+            new GenericColumnDescriptor("STOREINDEXSIZE",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
+    };
     public static void SYSCS_GET_SCHEMA_INFO(final ResultSet[] resultSet) throws SQLException {
         ResultSet allTablesInSchema = getDefaultConn().prepareStatement("SELECT S.SCHEMANAME, T.TABLENAME, C.ISINDEX, " +
                 "C.CONGLOMERATENUMBER FROM SYS.SYSCONGLOMERATES C, SYS.SYSTABLES T, SYS.SYSSCHEMAS S " +
                 "WHERE C.TABLEID = T.TABLEID AND T.SCHEMAID = S.SCHEMAID AND T.TABLENAME NOT LIKE 'SYS%' " +
                 "ORDER BY S.SCHEMANAME").executeQuery();
-        StringBuilder sb = new StringBuilder("select * from (values ");
 
-        int nCols = allTablesInSchema.getMetaData().getColumnCount();
+        ExecRow template;
+        try {
+            DataValueDescriptor[] columns = new DataValueDescriptor[SCHEMA_INFO_COLUMNS.length];
+            for(int i=0;i<SCHEMA_INFO_COLUMNS.length;i++){
+                columns[i] = SCHEMA_INFO_COLUMNS[i].getType().getNull();
+            }
+            template = new ValueRow(columns.length);
+            template.setRowArray(columns);
+        } catch (StandardException e) {
+            throw PublicAPI.wrapStandardException(e);
+        }
+        List<ExecRow> results = Lists.newArrayList();
+
         // Map<regionNameAsString,HServerLoad.RegionLoad>
         Map<String, HServerLoad.RegionLoad> regionLoadMap = getRegionLoad();
         HBaseAdmin admin = null;
@@ -865,12 +884,15 @@ public class SpliceAdmin extends BaseAdminProcedures {
                 regionBuilder.setLength(0);
                 for (HRegionInfo ri : admin.getTableRegions(Bytes.toBytes(conglom))) {
                     String regionName = Bytes.toString(ri.getRegionName());
+                    int storefileSizeMB = 0;
+                    int memStoreSizeMB = 0;
+                    int storefileIndexSizeMB = 0;
                     if (regionName != null && ! regionName.isEmpty()) {
                         HServerLoad.RegionLoad regionLoad = regionLoadMap.get(regionName);
                         if (regionLoad != null) {
-                            int storefileSizeMB = regionLoad.getStorefileSizeMB();
-                            int memStoreSizeMB = regionLoad.getMemStoreSizeMB();
-                            int storefileIndexSizeMB = regionLoad.getStorefileIndexSizeMB();
+                            storefileSizeMB = regionLoad.getStorefileSizeMB();
+                            memStoreSizeMB = regionLoad.getMemStoreSizeMB();
+                            storefileIndexSizeMB = regionLoad.getStorefileIndexSizeMB();
 
                             byte[][] parsedRegionName = HRegionInfo.parseRegionName(ri.getRegionName());
                             String tableName = "Unknown";
@@ -892,17 +914,20 @@ public class SpliceAdmin extends BaseAdminProcedures {
                                     .append(" MB) ");
                         }
                     }
+                    DataValueDescriptor[] cols = template.getRowArray();
+                    try {
+                        cols[0].setValue(allTablesInSchema.getString("SCHEMANAME"));
+                        cols[1].setValue(allTablesInSchema.getString("TABLENAME"));
+                        cols[2].setValue(regionName);
+                        cols[3].setValue(allTablesInSchema.getBoolean("ISINDEX"));
+                        cols[4].setValue(storefileSizeMB);
+                        cols[5].setValue(memStoreSizeMB);
+                        cols[6].setValue(storefileIndexSizeMB);
+                    } catch (StandardException e) {
+                        throw PublicAPI.wrapStandardException(e);
+                    }
+                    results.add(template.getClone());
                 }
-
-                sb.append(String.format("('%s','%s','%s','%s'), ",
-                        allTablesInSchema.getObject("SCHEMANAME"),
-                        allTablesInSchema.getObject("TABLENAME"),
-                        allTablesInSchema.getObject("ISINDEX"),
-                        regionBuilder.toString()));
-            }
-            if (sb.length() > 2) {
-                // trim last ', '
-                sb.setLength(sb.length()-2);
             }
         } catch (IOException e) {
             throw new SQLException(e);
@@ -922,8 +947,16 @@ public class SpliceAdmin extends BaseAdminProcedures {
                 }
             }
         }
-        sb.append(") foo (SCHEMANAME, TABLENAME, ISINDEX, HBASEREGIONS_STORESIZE_MEMSTORESIZE_STOREINDEXSIZE)");
-        resultSet[0] = executeStatement(sb);
+        EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
+        Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
+        IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(results, SCHEMA_INFO_COLUMNS, lastActivation);
+        try{
+            resultsToWrap.openCore();
+            EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap, false, null, true);
+            resultSet[0] = ers;
+        } catch (StandardException se) {
+            throw PublicAPI.wrapStandardException(se);
+        }
     }
 
     /**
