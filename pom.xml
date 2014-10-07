@@ -305,7 +305,7 @@
 				<zookeeper.version>3.4.5-cdh4.5.0.1-splice</zookeeper.version>
 				<hbase.version>0.94.6-cdh4.5.0-splice</hbase.version>
 				<hadoop.version>2.0.0-cdh4.5.0</hadoop.version>
-                <hive.version>0.10.0-cdh4.5.0</hive.version>
+				<hive.version>0.10.0-cdh4.5.0</hive.version>
 				<envClassifier>cloudera-cdh4.5.0</envClassifier>
 			</properties>
 			<dependencies>
@@ -348,6 +348,7 @@
 				<zookeeper.version>3.4.5-cdh4.3.0-splice</zookeeper.version>
 				<hbase.version>0.94.6-cdh4.3.0-splice</hbase.version>
 				<hadoop.version>2.0.0-cdh4.3.0</hadoop.version>
+				<hive.version>0.10.0-cdh4.3.0</hive.version>
 				<envClassifier>cloudera-cdh4.3.0</envClassifier>
 			</properties>
 			<dependencies>
@@ -391,7 +392,7 @@
 				<!-- hbase.version>0.94.6.1.3.7.0-2</hbase.version -->
 				<hbase.version>0.94.6-hdp1.3.7-splice</hbase.version>
 				<hadoop.version>1.2.0.1.3.7.0-2</hadoop.version>
-                <hive.version>0.11.0.1.3.2.0-111</hive.version>
+				<hive.version>0.11.0.1.3.7.0-2</hive.version>
 				<envClassifier>hdp1.3</envClassifier>
 			</properties>
 			<dependencies>
@@ -433,6 +434,7 @@
 				<zookeeper.version>3.4.5-mapr-1406</zookeeper.version>
 				<hbase.version>0.94.17-mapr-splice-2</hbase.version>
 				<hadoop.version>1.0.3-mapr-3.1.1</hadoop.version>
+				<hive.version>0.11-mapr-1406</hive.version>
 				<envClassifier>mapr3.1</envClassifier>
 			</properties>
 			<dependencies>
