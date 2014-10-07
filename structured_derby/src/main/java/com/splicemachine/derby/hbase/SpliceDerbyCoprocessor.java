@@ -5,9 +5,12 @@ import java.util.concurrent.atomic.AtomicLong;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.environment.EnvUtils;
 import com.splicemachine.si.impl.TransactionalRegions;
+import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Coprocessor for starting the derby services on top of HBase.
@@ -17,6 +20,8 @@ import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 public class SpliceDerbyCoprocessor extends BaseEndpointCoprocessor {
     private static final AtomicLong runningCoprocessors = new AtomicLong(0l);
     private boolean tableEnvMatch;
+    public static volatile String regionServerZNode;
+    public static volatile String rsZnode;
 
     /**
      * Logs the start of the observer and runs the SpliceDriver if needed...
@@ -26,6 +31,9 @@ public class SpliceDerbyCoprocessor extends BaseEndpointCoprocessor {
      */
     @Override
     public void start(CoprocessorEnvironment e) {
+        rsZnode = ((RegionCoprocessorEnvironment) e).getRegionServerServices().getZooKeeper().rsZNode;
+        regionServerZNode =((RegionCoprocessorEnvironment) e).getRegionServerServices().getServerName().getServerName();
+
         SpliceConstants.TableEnv tableEvn = EnvUtils.getTableEnv((RegionCoprocessorEnvironment)e);
         tableEnvMatch = !SpliceConstants.TableEnv.ROOT_TABLE.equals(tableEvn);
 
