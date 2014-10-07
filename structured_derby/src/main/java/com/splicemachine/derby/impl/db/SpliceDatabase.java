@@ -195,8 +195,16 @@ public class SpliceDatabase extends BasicDatabase {
                  * correctly generate new activations classes and instances of constant action classes for statements on
                  * tables dropped and re-added with the same name, but would include in them stale information from the
                  * DD caches (conglomerate ID, for example) */
-                if(change.getChangeType()== DDLChangeType.DROP_TABLE){
-                    lctx.getDataDictionary().clearCaches();
+
+                DDLChangeType changeType = change.getChangeType();
+                if(changeType==null) return;
+                switch (changeType) {
+                    case DROP_TABLE:
+                    case DROP_SCHEMA:
+                        lctx.getDataDictionary().clearCaches();
+                        break;
+                    default:
+                        break; //no-op
                 }
             }
 
