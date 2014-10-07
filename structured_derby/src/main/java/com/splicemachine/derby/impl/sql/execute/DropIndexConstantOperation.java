@@ -1,12 +1,16 @@
 package com.splicemachine.derby.impl.sql.execute;
 
 import com.google.common.io.Closeables;
+import com.splicemachine.derby.ddl.DDLChange;
+import com.splicemachine.derby.ddl.DDLChangeType;
+import com.splicemachine.derby.ddl.DropIndexDDLDesc;
 import com.splicemachine.derby.impl.sql.execute.actions.IndexConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.index.SpliceIndexProtocol;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.utils.ErrorState;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
@@ -101,43 +105,38 @@ public class DropIndexConstantOperation extends IndexConstantOperation{
 				//drop the conglomerate in a child transaction
 				drop(cd, td, dd, lcc);
         dropIndex(td,cd,(SpliceTransactionManager)lcc.getTransactionExecute());
-
-//				//create a second nested transaction
-//				TxnView parent = ((SpliceTransactionManager)tc).getActiveStateTxn();
-//				try {
-//            Txn pipelineTxn = TransactionLifecycle.getLifecycleManager().beginChildTransaction(parent, Txn.IsolationLevel.SNAPSHOT_ISOLATION, false,null);
-//						List<TxnView> toIgnore = Arrays.asList(parent, pipelineTxn);
-//						//wait to ensure that all previous transactions terminate
-//						waitForConcurrentTransactions(pipelineTxn,toIgnore,tableConglomerateId);
-//						//drop the index from the write pipeline
-//						dropIndex(td,cd,);
-//
-//						//TODO -sf- wait for all transactions to complete, then drop the
-//						//physical hbase table
-//            pipelineTxn.commit();
-//				} catch (IOException e) {
-//						throw Exceptions.parseException(e);
-//				}
 		}
 
 		private void dropIndex(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor,
                            SpliceTransactionManager userTxnManager) throws StandardException {
 				final long tableConglomId = td.getHeapConglomerateId();
 				final long indexConglomId = conglomerateDescriptor.getConglomerateNumber();
-        final TxnView userTxn = userTxnManager.getRawTransaction().getActiveStateTxn();
+        TxnView uTxn = userTxnManager.getRawTransaction().getActiveStateTxn();
+        //get the top-most transaction, that's the actual user transaction
+        TxnView t = uTxn;
+        while(t.getTxnId()!= Txn.ROOT_TRANSACTION.getTxnId()){
+            uTxn = t;
+            t = uTxn.getParentTxnView();
+        }
+
+        final TxnView userTxn = uTxn;
+        //notify the DDLChange
+        DDLChange change = new DDLChange(userTxn, DDLChangeType.DROP_INDEX);
+        change.setTentativeDDLDesc(new DropIndexDDLDesc(indexConglomId,tableConglomId));
+        notifyMetadataChangeAndWait(change);
 
 				//drop the index trigger from the main table
 				HTableInterface mainTable = SpliceAccessManager.getHTable(tableConglomId);
 				try {
 						mainTable.coprocessorExec(SpliceIndexProtocol.class,
-										HConstants.EMPTY_START_ROW,HConstants.EMPTY_END_ROW,
-										new Batch.Call<SpliceIndexProtocol, Void>() {
-												@Override
-												public Void call(SpliceIndexProtocol instance) throws IOException {
-														instance.dropIndex(indexConglomId,tableConglomId,userTxn.getTxnId());
-														return null;
-												}
-										}) ;
+                    HConstants.EMPTY_START_ROW, HConstants.EMPTY_END_ROW,
+                    new Batch.Call<SpliceIndexProtocol, Void>() {
+                        @Override
+                        public Void call(SpliceIndexProtocol instance) throws IOException {
+                            instance.dropIndex(indexConglomId, tableConglomId, userTxn.getTxnId());
+                            return null;
+                        }
+                    }) ;
 				} catch (Throwable throwable) {
 						throw Exceptions.parseException(throwable);
 				}finally{

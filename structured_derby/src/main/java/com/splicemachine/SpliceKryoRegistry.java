@@ -756,5 +756,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(ExportParams.class, 198);
         instance.register(ExportFileSystemType.class, 199);
         instance.register(DropSchemaDDLChangeDesc.class,EXTERNALIZABLE_SERIALIZER,200);
+        instance.register(DropIndexDDLDesc.class,EXTERNALIZABLE_SERIALIZER,201);
     }
 }
