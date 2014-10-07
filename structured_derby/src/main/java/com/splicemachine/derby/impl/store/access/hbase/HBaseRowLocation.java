@@ -11,6 +11,7 @@ import org.apache.derby.iapi.types.DataType;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.DataValueFactoryImpl.Format;
 import org.apache.derby.iapi.types.RowLocation;
+import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.ObjectOutput;
 import java.io.ObjectInput;
@@ -131,12 +132,8 @@ public class HBaseRowLocation extends DataType implements RowLocation {
 
 		HBaseRowLocation arg = (HBaseRowLocation) other;
 
-		if (this.slice.hashCode() < arg.slice.hashCode())
-			return -1;
-		else if (this.slice.hashCode() > arg.slice.hashCode())
-			return 1;
-		else
-			return 0;
+        return Bytes.compareTo(slice.array(), slice.offset(), slice.length(),
+                               arg.slice.array(), arg.slice.offset(), arg.slice.length());
 	}
 
 	/*
@@ -227,8 +224,8 @@ public class HBaseRowLocation extends DataType implements RowLocation {
      */
     public String toString() {
         if(slice!=null)
-            return("(row key "+this.slice.toHexString()+")");
-        else return "(row key null)";
+            return(this.slice.toHexString());
+        else return "null";
     }
 
     public Format getFormat() {
