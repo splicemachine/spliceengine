@@ -52,11 +52,12 @@ public class StatementManager implements StatementManagement{
     public void addStatementInfo(StatementInfo statementInfo){
 				executingStatements.add(statementInfo);
             if (LOG.isTraceEnabled()) {
-                LOG.trace(String.format("Adding stmt to executings, size=%s, stmtUuid=%s, txnId=%s, SQL={\n%s\n}",
-                                               executingStatements.size(),
-                                               statementInfo.getStatementUuid(),
-                                               statementInfo.getTxnId(),
-                                               statementInfo.getSql()));
+				LOG.trace(String.format("Added to executing stmts, numExecStmts=%s, stmtUuid=%s, txnId=%s, startTimeMs=%s, SQL={\n%s\n}",
+					executingStatements.size(),
+					statementInfo.getStatementUuid(),
+					statementInfo.getTxnId(),
+					statementInfo.getStartTimeMs(),
+					statementInfo.getSql()));
             }
 		}
 
@@ -67,9 +68,11 @@ public class StatementManager implements StatementManagement{
             executingStatements.remove(statementInfo);
 
             if (LOG.isTraceEnabled()) {
-                LOG.trace(String.format("Completing stmt from executings, size=%s, stmtUuid=%s",
-                                               executingStatements.size(),
-                                               statementInfo.getStatementUuid()));
+				LOG.trace(String.format("Removed from executing stmts, numExecStmts=%s, stmtUuid=%s, txnId=%s, elapsedTimeMs=%s",
+					executingStatements.size(),
+					statementInfo.getStatementUuid(),
+					statementInfo.getTxnId(),
+					statementInfo.getStopTimeMs() - statementInfo.getStartTimeMs()));
             }
 
             if (shouldTrace) {
