@@ -1,6 +1,8 @@
 package com.splicemachine.derby.ddl;
 
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.hbase.SpliceDerbyCoprocessor;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.utils.ZkUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -63,25 +65,16 @@ class DDLZookeeperClient {
     // - - - - - - - - - - - - - - - - - - - - - - -
 
     static String registerThisServer() throws StandardException {
-        try {
-            /*
-             * This is to resolve DB-1812. Instead of using an EPHEMERAL_SEQUENTIAL node (which can allow
-             * duplicate entries, and thus problems with DDL operations), we use a normal EPHEMERAL with a unique
-             * identifier for this vm.
-             */
-            String vmName = ManagementFactory.getRuntimeMXBean().getName();
-            String node = ZkUtils.create(SERVERS_PATH + "/"+vmName, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
-            return node.substring(node.lastIndexOf('/') + 1);
-        } catch (KeeperException e) {
-            throw Exceptions.parseException(e);
-        } catch (InterruptedException e) {
-            throw Exceptions.parseException(e);
-        }
+        /*
+         * See DB-1812: Instead of creating our own server registration, we merely fetch our own
+         * label from the RegionServers list which hbase maintains for us.
+         */
+        return SpliceDerbyCoprocessor.regionServerZNode;
     }
 
     static Collection<String> getActiveServers(Watcher watcher) throws StandardException {
         try {
-            return ZkUtils.getChildren(SERVERS_PATH, watcher);
+            return ZkUtils.getChildren(SpliceDerbyCoprocessor.rsZnode, watcher);
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }

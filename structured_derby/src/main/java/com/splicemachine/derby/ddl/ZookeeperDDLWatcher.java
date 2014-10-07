@@ -63,6 +63,8 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
         createRequiredZooNodes();
 
         this.id = registerThisServer();
+        if(id.startsWith("/"))
+            id = id.substring(1); //strip the leading / to make sure that we register properly
 
         // run refresh() synchronously the first time
         refresh();
