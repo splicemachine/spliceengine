@@ -7,6 +7,7 @@ import org.apache.derby.iapi.services.classfile.VMOpcode;
 import org.apache.derby.iapi.sql.ResultColumnDescriptor;
 import org.apache.derby.iapi.sql.ResultDescription;
 import org.apache.derby.iapi.sql.compile.Visitor;
+import org.apache.derby.iapi.sql.execute.ConstantAction;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.impl.sql.GenericColumnDescriptor;
 import org.apache.derby.iapi.types.TypeId;
@@ -78,6 +79,10 @@ public class ExplainNode extends DMLStatementNode {
         }
     }
 
+    public ConstantAction makeConstantAction() throws StandardException
+    {
+        return	node.makeConstantAction();
+    }
     public StatementNode getExplainPlanRoot() {
         return node;
     }

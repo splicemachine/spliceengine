@@ -1828,8 +1828,9 @@ public interface ResultSetFactory {
 		double optimizerEstimatedRowCount,
 		double optimizerEstimatedCost) throws StandardException;
 
-    public NoPutResultSet getExplainResultSet(NoPutResultSet source, Activation activation, int resultSetNumber) throws StandardException;
+    public NoPutResultSet getExplainResultSet(ResultSet source, Activation activation, int resultSetNumber) throws StandardException;
 
+    public NoPutResultSet getExplainResultSet(NoPutResultSet source, Activation activation, int resultSetNumber) throws StandardException;
     /**
      * Export
      */
