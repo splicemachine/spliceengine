@@ -3,7 +3,6 @@ package com.splicemachine.async;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.splicemachine.collections.NullStopIterator;
-import com.splicemachine.hbase.RowKeyDistributor;
 import com.splicemachine.metrics.Counter;
 import com.splicemachine.metrics.*;
 import com.splicemachine.metrics.Timer;
@@ -38,19 +37,13 @@ public class SortedGatheringScanner implements AsyncScanner{
     private List<KeyValue>[] nextAnswers;
     private boolean[] exhaustedScanners;
 
-    public static AsyncScanner newScanner(Scan baseScan,int maxQueueSize,
+    public static AsyncScanner newScanner(int maxQueueSize,
                                           MetricFactory metricFactory,
-                                          Function<Scan,Scanner> conversionFunction,
-                                          RowKeyDistributor rowKeyDistributor,
+                                          Function<Scan, Scanner> conversionFunction,
+                                          List<Scan> scans,
                                           Comparator<byte[]> sortComparator) throws IOException {
-
-        Scan[] distributedScans = rowKeyDistributor.getDistributedScans(baseScan);
-        List<Scanner> scans = Lists.newArrayListWithExpectedSize(distributedScans.length);
-        for(Scan scan:distributedScans){
-            scans.add(conversionFunction.apply(scan));
-        }
-
-        return new SortedGatheringScanner(scans,maxQueueSize,sortComparator,metricFactory);
+        List<Scanner> scanners = Lists.transform(scans, conversionFunction);
+        return new SortedGatheringScanner(scanners,maxQueueSize,sortComparator,metricFactory);
     }
 
     public SortedGatheringScanner(List<Scanner> scanners, int maxQueueSize, Comparator<byte[]> sortComparator,MetricFactory metricFactory){

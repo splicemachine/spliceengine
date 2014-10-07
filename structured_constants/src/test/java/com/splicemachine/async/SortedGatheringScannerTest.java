@@ -5,6 +5,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.hbase.RowKeyDistributor;
 import com.splicemachine.hbase.RowKeyDistributorByHashPrefix;
+import com.splicemachine.hbase.ScanDivider;
 import com.splicemachine.metrics.Metrics;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
@@ -12,8 +13,6 @@ import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.SimpleLayout;
-
-import javax.annotation.Nullable;
 
 public class SortedGatheringScannerTest {
 
@@ -50,11 +49,10 @@ public class SortedGatheringScannerTest {
 
         final HBaseClient client = SimpleAsyncScanner.HBASE_CLIENT;
         try {
-            AsyncScanner scanner = SortedGatheringScanner.newScanner(baseScan, 1024,
+            AsyncScanner scanner = SortedGatheringScanner.newScanner(1024,
                     Metrics.noOpMetricFactory(), new Function<Scan, Scanner>() {
-                        @Nullable
                         @Override
-                        public Scanner apply(@Nullable Scan scan) {
+                        public Scanner apply(Scan scan) {
                             Scanner scanner = client.newScanner(SpliceConstants.TEMP_TABLE_BYTES);
                             scanner.setStartKey(scan.getStartRow());
                             byte[] stop = scan.getStopRow();
@@ -62,7 +60,7 @@ public class SortedGatheringScannerTest {
                                 scanner.setStopKey(stop);
                             return scanner;
                         }
-                    }, keyDistributor, null);
+                    }, ScanDivider.divide(baseScan, keyDistributor), null);
             scanner.open();
 
             Result r;

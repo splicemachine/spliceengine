@@ -13,9 +13,7 @@ import com.splicemachine.derby.impl.temp.TempTable;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.BucketHasher;
-import com.splicemachine.hbase.FilteredRowKeyDistributor;
-import com.splicemachine.hbase.RowKeyDistributor;
-import com.splicemachine.hbase.RowKeyDistributorByHashPrefix;
+import com.splicemachine.hbase.*;
 import com.splicemachine.async.AsyncScanner;
 import com.splicemachine.async.SimpleAsyncScanner;
 import com.splicemachine.async.SortedGatheringScanner;
@@ -132,7 +130,8 @@ public class ActiveTransactionReader {
         scan.setStartRow(operationId);
         scan.setStopRow(BytesUtil.unsignedCopyAndIncrement(operationId));
         Function<Scan, Scanner> convertFunction = DerbyAsyncScannerUtils.convertFunction(tempTable.getTempTableName(), SimpleAsyncScanner.HBASE_CLIENT);
-        final AsyncScanner scanner = SortedGatheringScanner.newScanner(scan, queueSize, Metrics.noOpMetricFactory(), convertFunction, keyDistributor,
+        List<Scan> dividedScans = ScanDivider.divide(scan, keyDistributor);
+        final AsyncScanner scanner = SortedGatheringScanner.newScanner(queueSize, Metrics.noOpMetricFactory(), convertFunction, dividedScans,
                 new Comparator<byte[]>() {
                     @Override
                     public int compare(byte[] o1, byte[] o2) {

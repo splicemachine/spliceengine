@@ -8,6 +8,7 @@ import com.splicemachine.hbase.RowKeyDistributor;
 import com.splicemachine.async.AsyncScanner;
 import com.splicemachine.async.SimpleAsyncScanner;
 import com.splicemachine.async.SortedGatheringScanner;
+import com.splicemachine.hbase.ScanDivider;
 import com.splicemachine.metrics.MetricFactory;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -53,12 +54,12 @@ public class AsyncScanIterator implements StandardIterator<ExecRow> {
                                                    PairDecoder pairDecoder,
                                                    RowKeyDistributor rowKeyDistributor,
                                                    MetricFactory metricFactory) throws IOException {
+        List<Scan> dividedScans = ScanDivider.divide(baseScan, rowKeyDistributor);
         AsyncScanner scanner = SortedGatheringScanner.newScanner(
-                baseScan,
                 SpliceConstants.DEFAULT_CACHE_SIZE,
                 metricFactory,
                 DerbyAsyncScannerUtils.convertFunction(tableName, SimpleAsyncScanner.HBASE_CLIENT),
-                rowKeyDistributor,
+                dividedScans,
                 Bytes.BYTES_COMPARATOR);
         return new AsyncScanIterator(scanner,pairDecoder);
     }
