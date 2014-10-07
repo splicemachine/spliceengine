@@ -1,7 +1,7 @@
 package com.splicemachine.stats.util;
 
+import com.splicemachine.annotations.ThreadSafe;
 import com.splicemachine.stats.DoubleFunction;
-import com.splicemachine.utils.ThreadSafe;
 
 /**
  * Linearly interpolates between fixed points.

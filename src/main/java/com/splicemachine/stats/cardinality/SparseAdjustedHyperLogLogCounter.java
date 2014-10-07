@@ -1,8 +1,8 @@
 package com.splicemachine.stats.cardinality;
 
 import com.google.common.primitives.Ints;
+import com.splicemachine.hash.Hash64;
 import com.splicemachine.stats.DoubleFunction;
-import com.splicemachine.utils.hash.Hash64;
 
 import java.util.Arrays;
 
@@ -98,11 +98,12 @@ public class SparseAdjustedHyperLogLogCounter extends BaseBiasAdjustedHyperLogLo
 		private int maxBufferSize;
 		private int sparseSize = 0;
 
-		public SparseAdjustedHyperLogLogCounter(int precision, Hash64 hashFunction) {
-				this(precision, 2,-1,hashFunction);
-		}
+    public static SparseAdjustedHyperLogLogCounter adjustedCounter(int precision, Hash64 hashFunction){
+        return new SparseAdjustedHyperLogLogCounter(precision,hashFunction,
+                HyperLogLogBiasEstimators.biasEstimate(precision));
+    }
 
-		public SparseAdjustedHyperLogLogCounter(int precision, Hash64 hashFunction,
+    public SparseAdjustedHyperLogLogCounter(int precision, Hash64 hashFunction,
 																						DoubleFunction biasAdjuster) {
 				this(precision, 2, -1,hashFunction, biasAdjuster);
 		}

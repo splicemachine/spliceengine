@@ -1,9 +1,9 @@
 package com.splicemachine.stats.cardinality;
 
 
+import com.splicemachine.annotations.ThreadSafe;
 import com.splicemachine.stats.DoubleFunction;
 import com.splicemachine.stats.util.LinearInterpolator;
-import com.splicemachine.utils.ThreadSafe;
 
 /**
  * Utility class for storing the Bias lookup tables for HyperLogLog counters.

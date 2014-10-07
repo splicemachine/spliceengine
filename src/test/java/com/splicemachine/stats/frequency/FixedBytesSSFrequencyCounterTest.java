@@ -2,10 +2,10 @@ package com.splicemachine.stats.frequency;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
-import com.splicemachine.utils.hash.Hash32;
-import com.splicemachine.utils.hash.HashFunctions;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.util.Pair;
+import com.splicemachine.hash.Hash32;
+import com.splicemachine.hash.HashFunctions;
+import com.splicemachine.primitives.Bytes;
+import com.splicemachine.stats.LongPair;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -31,7 +31,7 @@ public class FixedBytesSSFrequencyCounterTest {
 				};
 				BytesSSFrequencyCounter spaceSaver = new BytesSSFrequencyCounter(20,10, hashes);
 
-				Map<byte[],Pair<Long,Long>> correctEstimates = new TreeMap<byte[], Pair<Long, Long>>(Bytes.BYTES_COMPARATOR);
+				Map<byte[],LongPair> correctEstimates = new TreeMap<byte[], LongPair>(Bytes.basicByteComparator());
 				for(int i=0;i<10;i++){
 						byte[] data = Bytes.toBytes(i);
 						long count = 1;
@@ -40,7 +40,7 @@ public class FixedBytesSSFrequencyCounterTest {
 								spaceSaver.update(data);
 								count++;
 						}
-						correctEstimates.put(data,Pair.newPair(count,0l));
+						correctEstimates.put(data, new LongPair(count, 0l));
 				}
 
 				Set<FrequencyEstimate<byte[]>> estimates = spaceSaver.getFrequentElements(0f);
@@ -53,10 +53,10 @@ public class FixedBytesSSFrequencyCounterTest {
 						long error = estimate.error();
 						totalCount+=count;
 
-						Pair<Long,Long> correct = correctEstimates.get(val);
+						LongPair correct = correctEstimates.get(val);
 						Assert.assertNotNull("Observed entry for "+Bytes.toInt(val)+" not found!",correct);
-						Assert.assertEquals("Incorrect count!",correct.getFirst().longValue(),count);
-						Assert.assertEquals("Incorrect error!",correct.getSecond().longValue(),error);
+						Assert.assertEquals("Incorrect count!",correct.getFirst(),count);
+						Assert.assertEquals("Incorrect error!",correct.getSecond(),error);
 				}
 				Assert.assertEquals("Total estimated count does not equal the number of elements!",15,totalCount);
 		}
@@ -87,7 +87,7 @@ public class FixedBytesSSFrequencyCounterTest {
 
 						@Override
 						public int compare(FrequencyEstimate<byte[]> o1, FrequencyEstimate<byte[]> o2) {
-								return Bytes.compareTo(o1.value(), o2.value());
+								return Bytes.basicByteComparator().compare(o1.value(), o2.value());
 						}
 				});
 

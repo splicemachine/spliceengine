@@ -1,6 +1,6 @@
 package com.splicemachine.stats.cardinality;
 
-import com.splicemachine.utils.hash.Hash64;
+import com.splicemachine.hash.Hash64;
 
 /**
  * Base implementation of the HyperLogLog Cardinality estimator.

@@ -1,7 +1,7 @@
 package com.splicemachine.stats.cardinality;
 
+import com.splicemachine.hash.Hash64;
 import com.splicemachine.stats.DoubleFunction;
-import com.splicemachine.utils.hash.Hash64;
 
 /**
  * Cardinality Estimator with automatic bias-adjustment for low-cardinality estimations.

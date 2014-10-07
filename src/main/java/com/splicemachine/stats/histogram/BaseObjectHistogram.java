@@ -1,7 +1,7 @@
 package com.splicemachine.stats.histogram;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.utils.ComparableUtils;
+import com.splicemachine.tools.Comparables;
 
 import java.util.Arrays;
 import java.util.List;
@@ -392,7 +392,7 @@ public abstract class BaseObjectHistogram<T extends Comparable<T>> implements Hi
 			  * To make sure that we have a full buffer, we do a first pass looking for nulls. If there are nulls, then
 			  * the nulls must be sorted
 			  */
-				Arrays.sort(buffer, ComparableUtils.nullsLastComparator());
+				Arrays.sort(buffer, Comparables.<T>nullsLastComparator());
 				//find the first null--that's the end of our actual buffer
 				int lastNonNull = buffer.length;
 				while(buffer[lastNonNull-1]==null){

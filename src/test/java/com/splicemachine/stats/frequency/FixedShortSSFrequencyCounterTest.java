@@ -3,9 +3,9 @@ package com.splicemachine.stats.frequency;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.Longs;
-import com.splicemachine.utils.hash.Hash32;
-import com.splicemachine.utils.hash.HashFunctions;
-import org.apache.hadoop.hbase.util.Pair;
+import com.splicemachine.hash.Hash32;
+import com.splicemachine.hash.HashFunctions;
+import com.splicemachine.stats.LongPair;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -30,7 +30,7 @@ public class FixedShortSSFrequencyCounterTest {
 				};
 				ShortFrequencyCounter spaceSaver = new ShortSSFrequencyCounter(20,10, hashes);
 
-				Map<Long,Pair<Long,Long>> correctEstimates = new HashMap<Long, Pair<Long, Long>>();
+				Map<Long,LongPair> correctEstimates = new HashMap<Long, LongPair>();
 				for(short i=0;i<10;i++){
 						long count = 1;
 						spaceSaver.update(i);
@@ -38,7 +38,7 @@ public class FixedShortSSFrequencyCounterTest {
 								spaceSaver.update(i);
 								count++;
 						}
-						correctEstimates.put((long) i,Pair.newPair(count,0l));
+						correctEstimates.put((long) i,new LongPair(count,0l));
 				}
 
 				Set<? extends FrequencyEstimate<Short>> estimates = spaceSaver.getFrequentElements(0f);
@@ -51,10 +51,10 @@ public class FixedShortSSFrequencyCounterTest {
 						long error = estimate.error();
 						totalCount+=count;
 
-						Pair<Long,Long> correct = correctEstimates.get(val);
+						LongPair correct = correctEstimates.get(val);
 						Assert.assertNotNull("Observed entry for "+val+" not found!",correct);
-						Assert.assertEquals("Incorrect count!",correct.getFirst().longValue(),count);
-						Assert.assertEquals("Incorrect error!",correct.getSecond().longValue(),error);
+						Assert.assertEquals("Incorrect count!",correct.getFirst(),count);
+						Assert.assertEquals("Incorrect error!",correct.getSecond(),error);
 				}
 				Assert.assertEquals("Total estimated count does not equal the number of elements!",15,totalCount);
 		}

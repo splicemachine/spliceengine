@@ -1,7 +1,7 @@
 package com.splicemachine.stats.cardinality;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.utils.hash.HashFunctions;
+import com.splicemachine.hash.HashFunctions;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;

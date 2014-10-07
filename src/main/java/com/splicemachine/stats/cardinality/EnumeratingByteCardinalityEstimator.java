@@ -1,47 +1,33 @@
 package com.splicemachine.stats.cardinality;
 
+
+import java.util.BitSet;
+
 /**
- * Simple cardinality estimator which enumerates all the possible values for a single byte, and determines
- * whether or not the value is present.
+ * ByteEstimator which enumerates the possible values, and therefore maintains an exact estimate.
  *
- * This class uses 256 booleans for storage, so it is highly efficient.
+ * This uses a BitSet under the hood to be as memory efficient as possible.
  *
  * @author Scott Fines
- * Date: 6/5/14
+ * Date: 10/7/14
  */
 public class EnumeratingByteCardinalityEstimator implements ByteCardinalityEstimator {
-		private boolean[] present = new boolean[256];
+    private final BitSet bitSet = new BitSet(256);
 
-		@Override
-		public void update(byte item) {
-				int pos = item & 0xff;
-				present[pos] = true;
-		}
+    @Override public void update(byte item) { bitSet.set(item & 0xff); }
+    @Override public long getEstimate() { return bitSet.cardinality(); }
 
-		@Override
-		public long getEstimate() {
-				int distinct = 0;
-				for (boolean isPresent : present) {
-						if (isPresent)
-								distinct++;
-				}
-				return distinct;
-		}
+    @Override public void update(byte item, long count) { update(item);  }//don't care about counts for cardinality estimates
 
-		@Override
-		public void update(byte item, long count) {
-			update(item); //don't care about counts for cardinality estimates
-		}
+    @Override
+    public void update(Byte item) {
+        assert item!=null: "Cannot estimate null bytes!";
+        update(item.byteValue());
+    }
 
-		@Override
-		public void update(Byte item) {
-				assert item!=null: "Cannot estimate null bytes!";
-				update(item.byteValue());
-		}
-
-		@Override
-		public void update(Byte item, long count) {
-				assert item!=null: "Cannot estimate null bytes!";
-				update(item.byteValue(),count);
-		}
+    @Override
+    public void update(Byte item, long count) {
+        assert item!=null: "Cannot estimate null bytes!";
+        update(item.byteValue(),count);
+    }
 }

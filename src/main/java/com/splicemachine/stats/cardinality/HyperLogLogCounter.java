@@ -1,6 +1,7 @@
 package com.splicemachine.stats.cardinality;
 
-import com.splicemachine.utils.hash.Hash64;
+
+import com.splicemachine.hash.Hash64;
 
 /**
  * Basic implementation of the HyperLogLog Cardinality estimator.
@@ -9,7 +10,7 @@ import com.splicemachine.utils.hash.Hash64;
  * in <a href="http://algo.inria.fr/flajolet/Publications/FlFuGaMe07.pdf" /></p>
  *
  * This class is not thread safe. For a thread-safe implementation see
- * {@link org.streamstats.cardinality.ConcurrentHyperLogLogCounter}
+ * {@link com.splicemachine.stats.cardinality.ConcurrentHyperLogLogCounter}
  *
  * @author Scott Fines
  * Date: 12/30/13

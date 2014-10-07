@@ -1,8 +1,8 @@
 package com.splicemachine.stats.cardinality;
 
 import com.carrotsearch.hppc.IntOpenHashSet;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.stats.IntUpdateable;
-import org.apache.hadoop.hbase.util.Bytes;
 
 import java.util.Random;
 

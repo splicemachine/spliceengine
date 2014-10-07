@@ -1,82 +1,84 @@
 package com.splicemachine.stats.cardinality;
 
-import com.splicemachine.utils.hash.Hash64;
-import com.splicemachine.utils.hash.HashFunctions;
+
+import com.splicemachine.hash.Hash64;
+import com.splicemachine.hash.HashFunctions;
 
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 
 /**
  * @author Scott Fines
- *         Date: 6/5/14
+ * Date: 6/5/14
  */
 public class CardinalityEstimators {
 
-		private CardinalityEstimators(){} //can't make me, I'm a utility class!
+    private static final Hash64 DEFAULT_HASH_FUNCTION = HashFunctions.murmur2_64(0);
+
+    private CardinalityEstimators(){} //can't make me, I'm a utility class!
 
 		public static ByteCardinalityEstimator byteEstimator(){ return new EnumeratingByteCardinalityEstimator(); }
 
 		public static ShortCardinalityEstimator hyperLogLogShort(int precision, Hash64 hashFunction){
-				BaseLogLogCounter counter = new SparseAdjustedHyperLogLogCounter(precision,hashFunction,HyperLogLogBiasEstimators.biasEstimate(precision));
+				BaseLogLogCounter counter = SparseAdjustedHyperLogLogCounter.adjustedCounter(precision, hashFunction);
 				return new ShortHyperLogLog(counter);
 		}
 
 		public static IntCardinalityEstimator hyperLogLogInt(int precision){
-				return hyperLogLogInt(precision, HashFunctions.murmur2_64(0));
+        return hyperLogLogInt(precision, DEFAULT_HASH_FUNCTION);
 		}
 
 		public static IntCardinalityEstimator hyperLogLogInt(int precision,Hash64 hashFunction){
-				BaseLogLogCounter counter =  new SparseAdjustedHyperLogLogCounter(precision,
-								hashFunction,HyperLogLogBiasEstimators.biasEstimate(precision));
+        BaseLogLogCounter counter = SparseAdjustedHyperLogLogCounter.adjustedCounter(precision, hashFunction);
 				return new IntHyperLogLog(counter);
 		}
 
 		public static LongCardinalityEstimator hyperLogLogLong(int precision){
-				return hyperLogLogLong(precision,HashFunctions.murmur2_64(0));
+				return hyperLogLogLong(precision, DEFAULT_HASH_FUNCTION);
 		}
 
 		public static LongCardinalityEstimator hyperLogLogLong(int precision,Hash64 hashFunction){
-				BaseLogLogCounter counter = new SparseAdjustedHyperLogLogCounter(precision,hashFunction,HyperLogLogBiasEstimators.biasEstimate(precision));
+        BaseLogLogCounter counter = SparseAdjustedHyperLogLogCounter.adjustedCounter(precision, hashFunction);
 				return new LongHyperLogLog(counter);
 		}
 
 		public static FloatCardinalityEstimator hyperLogLogFloat(int precision){
-				return hyperLogLogFloat(precision, HashFunctions.murmur2_64(0));
+				return hyperLogLogFloat(precision, DEFAULT_HASH_FUNCTION);
 		}
 
 		public static FloatCardinalityEstimator hyperLogLogFloat(int precision,Hash64 hashFunction){
-				BaseLogLogCounter counter = new SparseAdjustedHyperLogLogCounter(precision,hashFunction,HyperLogLogBiasEstimators.biasEstimate(precision));
+        BaseLogLogCounter counter = SparseAdjustedHyperLogLogCounter.adjustedCounter(precision, hashFunction);
 				return new FloatHyperLogLog(counter);
 		}
 		public static DoubleCardinalityEstimator hyperLogLogDouble(int precision){
-				return hyperLogLogDouble(precision, HashFunctions.murmur2_64(0));
+				return hyperLogLogDouble(precision, DEFAULT_HASH_FUNCTION);
 		}
 
 		public static DoubleCardinalityEstimator hyperLogLogDouble(int precision,Hash64 hashFunction){
-				BaseLogLogCounter counter = new SparseAdjustedHyperLogLogCounter(precision,hashFunction,HyperLogLogBiasEstimators.biasEstimate(precision));
+        BaseLogLogCounter counter = SparseAdjustedHyperLogLogCounter.adjustedCounter(precision, hashFunction);
 				return new DoubleHyperLogLog(counter);
 		}
 
 		public static CardinalityEstimator<String> hyperLogLogString(int precision){
-				return hyperLogLogString(precision,HashFunctions.murmur2_64(0));
+				return hyperLogLogString(precision, DEFAULT_HASH_FUNCTION);
 		}
 
 		public static CardinalityEstimator<String> hyperLogLogString(int precision,Hash64 hashFunction){
-				BaseLogLogCounter counter = new SparseAdjustedHyperLogLogCounter(precision,hashFunction,HyperLogLogBiasEstimators.biasEstimate(precision));
+        BaseLogLogCounter counter = SparseAdjustedHyperLogLogCounter.adjustedCounter(precision, hashFunction);
 				return new HyperLogLog<String>(counter);
 		}
 
 		public static CardinalityEstimator<BigDecimal> hyperLogLogBigDecimal(int precision){
-				return hyperLogLogBigDecimal(precision, HashFunctions.murmur2_64(0));
+				return hyperLogLogBigDecimal(precision, DEFAULT_HASH_FUNCTION);
 		}
 
 		public static CardinalityEstimator<BigDecimal> hyperLogLogBigDecimal(int precision,Hash64 hashFunction){
-				BaseLogLogCounter counter = new SparseAdjustedHyperLogLogCounter(precision,hashFunction,HyperLogLogBiasEstimators.biasEstimate(precision));
+        BaseLogLogCounter counter = SparseAdjustedHyperLogLogCounter.adjustedCounter(precision, hashFunction);
 				return new HyperLogLog<BigDecimal>(counter);
 		}
 
 		public static BytesCardinalityEstimator hyperLogLogBytes(int precision, Hash64 hashFunction){
-				BaseLogLogCounter counter = new SparseAdjustedHyperLogLogCounter(precision,hashFunction,HyperLogLogBiasEstimators.biasEstimate(precision));
+        BaseLogLogCounter counter = SparseAdjustedHyperLogLogCounter.adjustedCounter(precision, hashFunction);
 				return new BytesHyperLogLog(counter);
 
 		}

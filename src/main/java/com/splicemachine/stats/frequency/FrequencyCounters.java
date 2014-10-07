@@ -1,7 +1,8 @@
 package com.splicemachine.stats.frequency;
 
-import com.splicemachine.utils.hash.Hash32;
-import com.splicemachine.utils.hash.HashFunctions;
+
+import com.splicemachine.hash.Hash32;
+import com.splicemachine.hash.HashFunctions;
 
 /**
  * Utility class for constructing Frequency Counters.

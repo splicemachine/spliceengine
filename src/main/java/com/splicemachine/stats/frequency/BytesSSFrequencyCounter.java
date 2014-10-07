@@ -1,7 +1,7 @@
 package com.splicemachine.stats.frequency;
 
-import com.splicemachine.utils.hash.Hash32;
-import org.apache.hadoop.hbase.util.Bytes;
+
+import com.splicemachine.hash.Hash32;
 
 import java.nio.ByteBuffer;
 
@@ -102,7 +102,8 @@ class BytesSSFrequencyCounter extends SSFrequencyCounter<byte[]> implements Byte
 
 				@Override
 				public boolean matchingValue(byte[] item) {
-						return Bytes.equals(value,offset,length,item,0,item.length);
+            throw new UnsupportedOperationException("IMPLEMENT");
+//						return Bytes.equals(value,offset,length,item,0,item.length);
 				}
 
 				@Override public byte[] value() { return value; }
@@ -114,10 +115,11 @@ class BytesSSFrequencyCounter extends SSFrequencyCounter<byte[]> implements Byte
 
 						BytesElement that = (BytesElement) o;
 
-						return Bytes.equals(value,offset,length,that.value,that.offset,that.length);
+            throw new UnsupportedOperationException("IMPLEMENT");
+//						return Bytes.equals(value,offset,length,that.value,that.offset,that.length);
 				}
 
-				@Override public int hashCode() { return Bytes.hashCode(value,offset,length); }
+//				@Override public int hashCode() { return Bytes.hashCode(value,offset,length); }
 
 				private void set(byte[] bytes, int offset, int length){
 						this.value = bytes;
@@ -126,7 +128,8 @@ class BytesSSFrequencyCounter extends SSFrequencyCounter<byte[]> implements Byte
 				}
 
 				public boolean matchingValue(byte[] bytes, int offset, int length) {
-						return Bytes.equals(value,offset,length,bytes,offset,length);
+            throw new UnsupportedOperationException("IMPLEMENT");
+//						return Bytes.equals(value,offset,length,bytes,offset,length);
 				}
 		}
 }

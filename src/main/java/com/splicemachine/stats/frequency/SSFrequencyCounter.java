@@ -2,7 +2,7 @@ package com.splicemachine.stats.frequency;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterators;
-import com.splicemachine.utils.hash.Hash32;
+import com.splicemachine.hash.Hash32;
 
 import javax.annotation.Nullable;
 import java.lang.reflect.Array;
@@ -199,7 +199,7 @@ class SSFrequencyCounter<T> implements FrequencyCounter<T> {
 
 		/**
 		 * Hash the element using the hash function. The default implementation delegates to
-		 * {@link #hash(Object, com.splicemachine.utils.hash.Hash32)}, but subclasses are free
+		 * {@link #hash(Object, com.splicemachine.hash.Hash32)}, but subclasses are free
 		 * to override this for more efficient hashing when possible.
 		 *
 		 * @param element the element to hash

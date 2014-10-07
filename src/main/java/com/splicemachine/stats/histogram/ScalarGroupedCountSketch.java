@@ -1,8 +1,8 @@
 package com.splicemachine.stats.histogram;
 
-import com.splicemachine.utils.hash.BooleanHash;
-import com.splicemachine.utils.hash.Hash32;
-import com.splicemachine.utils.hash.HashFunctions;
+
+import com.splicemachine.hash.Hash32;
+import com.splicemachine.hash.HashFunctions;
 
 /**
  * GroupedCount Sketch for scalar-encoded values.
@@ -19,7 +19,7 @@ public class ScalarGroupedCountSketch {
 
 		private final Hash32[] h;
 		private final Hash32[] f;
-		private final BooleanHash[] eps;
+//		private final BooleanHash[] eps;
 
 
 		private final double[] possibleCoefficients;
@@ -41,7 +41,7 @@ public class ScalarGroupedCountSketch {
 				this.s = new double[t][][];
 				this.h = new Hash32[t];
 				this.f = new Hash32[t];
-				this.eps = new BooleanHash[t];
+//				this.eps = new BooleanHash[t];
 				this.possibleCoefficients = new double[t];
 
 				for(int i=0;i<t;i++){
@@ -50,10 +50,10 @@ public class ScalarGroupedCountSketch {
 								s[i][j] = new double[c];
 						}
 
-						h[i] = HashFunctions.murmur3(2*i+1);
+						h[i] = HashFunctions.murmur3(2 * i + 1);
 						f[i] = HashFunctions.murmur3(3*i+2);
 //						eps[i] = HashFunctions.booleanHash(i<<1+t);
-						eps[i] = HashFunctions.fourWiseBooleanHash(i);
+//						eps[i] = HashFunctions.fourWiseBooleanHash(i);
 				}
 		}
 
@@ -63,8 +63,8 @@ public class ScalarGroupedCountSketch {
 						int hPos = Math.abs(h[m].hash(id)) & (b-1);
 						int fPos = Math.abs(f[m].hash(i)) & (c-1);
 
-						if(eps[m].hash(i))
-								count = -count;
+//						if(eps[m].hash(i))
+//								count = -count;
 						s[m][hPos][fPos] += count;
 				}
 		}
