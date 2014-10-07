@@ -1,6 +1,6 @@
 package com.splicemachine.uuid;
 
-import com.splicemachine.utils.Bytes;
+import com.splicemachine.primitives.Bytes;
 import org.junit.Assert;
 import org.junit.Test;
 

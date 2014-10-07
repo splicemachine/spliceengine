@@ -1,6 +1,6 @@
 package com.splicemachine.uuid;
 
-import com.splicemachine.utils.Bytes;
+import com.splicemachine.primitives.Bytes;
 
 import java.util.Arrays;
 

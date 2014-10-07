@@ -1,7 +1,6 @@
 package com.splicemachine.uuid;
 
-import com.splicemachine.utils.Bytes;
-import com.splicemachine.uuid.UUIDGenerator;
+import com.splicemachine.primitives.Bytes;
 
 import java.util.UUID;
 
