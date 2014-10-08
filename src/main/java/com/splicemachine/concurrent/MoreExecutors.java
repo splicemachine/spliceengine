@@ -22,10 +22,13 @@ public class MoreExecutors {
 
     /**
      * Single thread ScheduledExecutorService with named threads.
+     *
+     * Returns an instance that will log any exception not caught by the scheduled task.  Like
+     * ScheduledThreadPoolExecutor, returned instance stops scheduled task on exception.
      */
     public static ScheduledExecutorService namedSingleThreadScheduledExecutor(String nameFormat) {
         ThreadFactory factory = new ThreadFactoryBuilder().setNameFormat(nameFormat).build();
-        return Executors.newScheduledThreadPool(1, factory);
+        return new LoggingScheduledThreadPoolExecutor(1, factory);
     }
 
     /**
