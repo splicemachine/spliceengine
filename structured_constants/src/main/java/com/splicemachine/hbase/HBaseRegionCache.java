@@ -23,10 +23,13 @@ import java.util.SortedSet;
 import java.util.concurrent.*;
 
 /**
+ * Makes HRegionInfo for out tables available in memory. Refresh rate configured in SpliceConstants.
+ *
  * @author Scott Fines
  *         Created on: 8/8/13
  */
 public class HBaseRegionCache implements RegionCache {
+
     private static final Logger CACHE_LOG = Logger.getLogger(HBaseRegionCache.class);
     private static final RegionCache INSTANCE = HBaseRegionCache.create(SpliceConstants.cacheUpdatePeriod);
 
@@ -35,9 +38,10 @@ public class HBaseRegionCache implements RegionCache {
 
     private final long cacheUpdatePeriod;
     private volatile long cacheUpdatedTimestamp;
-    private RegionCacheLoader regionCacheLoader;
+    private CacheRefreshRunnable cacheRefreshRunnable;
 
-    private RegionCacheStatus status = new RegionStatus();
+    private final RegionCacheStatus status = new RegionStatus();
+    private final RegionCacheLoader regionCacheLoader = new RegionCacheLoader(SpliceConstants.config);
 
     private HBaseRegionCache(long cacheUpdatePeriod,
                              ScheduledExecutorService cacheUpdater) {
@@ -57,8 +61,8 @@ public class HBaseRegionCache implements RegionCache {
 
     @Override
     public void start() {
-        regionCacheLoader = new RegionCacheLoader();
-        cacheUpdater.scheduleAtFixedRate(regionCacheLoader, 0l, cacheUpdatePeriod, TimeUnit.MILLISECONDS);
+        cacheRefreshRunnable = new CacheRefreshRunnable();
+        cacheUpdater.scheduleAtFixedRate(cacheRefreshRunnable, 0l, cacheUpdatePeriod, TimeUnit.MILLISECONDS);
     }
 
     @Override
@@ -66,14 +70,12 @@ public class HBaseRegionCache implements RegionCache {
         cacheUpdater.shutdownNow();
     }
 
-    private final RegionLoader regionLoader = new RegionLoader(SpliceConstants.config);
-
     @Override
     public SortedSet<HRegionInfo> getRegions(byte[] tableName) throws ExecutionException {
         SortedSet<HRegionInfo> regions = regionCache.get(tableName);
         if (regions == null) {
             try {
-                regions = regionLoader.load(tableName);
+                regions = regionCacheLoader.load(tableName);
             } catch (Exception e) {
                 throw new ExecutionException(e);
             }
@@ -126,8 +128,10 @@ public class HBaseRegionCache implements RegionCache {
         mbs.registerMBean(status, cacheName);
     }
 
-
-    private class RegionCacheLoader implements Runnable {
+    /**
+     * Task scheduled to periodically refresh cache.
+     */
+    private class CacheRefreshRunnable implements Runnable {
 
         @Override
         public void run() {
@@ -176,10 +180,13 @@ public class HBaseRegionCache implements RegionCache {
         }
     }
 
-    private static class RegionLoader extends CacheLoader<Integer, SortedSet<HRegionInfo>> {
+    /**
+     * CacheLoader instance
+     */
+    private static class RegionCacheLoader extends CacheLoader<Integer, SortedSet<HRegionInfo>> {
         private final Configuration configuration;
 
-        public RegionLoader(Configuration configuration) {
+        public RegionCacheLoader(Configuration configuration) {
             this.configuration = configuration;
         }
 
@@ -254,6 +261,9 @@ public class HBaseRegionCache implements RegionCache {
         }
     }
 
+    /**
+     * For JMX
+     */
     private class RegionStatus implements RegionCacheStatus {
 
         @Override
@@ -263,7 +273,7 @@ public class HBaseRegionCache implements RegionCache {
 
         @Override
         public void updateCache() {
-            regionCacheLoader.run();
+            cacheRefreshRunnable.run();
         }
 
         @Override
