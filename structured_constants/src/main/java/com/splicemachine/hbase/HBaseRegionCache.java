@@ -3,6 +3,7 @@ package com.splicemachine.hbase;
 import com.google.common.cache.CacheLoader;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.splicemachine.concurrent.MoreExecutors;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -29,7 +30,7 @@ import java.util.concurrent.*;
  *         Created on: 8/8/13
  */
 public class HBaseRegionCache implements RegionCache {
-    private static final RegionCache INSTANCE = HBaseRegionCache.create(SpliceConstants.cacheExpirationPeriod,SpliceConstants.cacheUpdatePeriod);
+    private static final RegionCache INSTANCE = HBaseRegionCache.create(SpliceConstants.cacheExpirationPeriod, SpliceConstants.cacheUpdatePeriod);
 
     private static final Logger CACHE_LOG = Logger.getLogger(HBaseRegionCache.class);
 //    private final LoadingCache<Integer,SortedSet<HRegionInfo>> regionCache;
@@ -55,17 +56,7 @@ public class HBaseRegionCache implements RegionCache {
     }
 
     public static RegionCache create(long cacheExpirationPeriod,long cacheUpdatePeriod){
-//        LoadingCache<Integer,SortedSet<HRegionInfo>> regionCache =
-//                CacheBuilder.newBuilder()
-//                        .expireAfterWrite(cacheExpirationPeriod,TimeUnit.SECONDS)
-//                        .build(new RegionLoader(SpliceConstants.config));
-
-        ThreadFactory cacheFactory = new ThreadFactoryBuilder()
-                .setNameFormat("tablewriter-cacheupdater-%d")
-                .setDaemon(true)
-                .setPriority(Thread.NORM_PRIORITY).build();
-        ScheduledExecutorService cacheUpdater = Executors.newSingleThreadScheduledExecutor(cacheFactory);
-
+        ScheduledExecutorService cacheUpdater = MoreExecutors.namedSingleThreadScheduledExecutor("tablewriter-cacheupdater-%d");
         return new HBaseRegionCache(cacheUpdatePeriod,cacheUpdater);
     }
 
