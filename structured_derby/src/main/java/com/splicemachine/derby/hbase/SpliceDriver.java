@@ -5,7 +5,6 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.cache.SpliceCache;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
@@ -24,7 +23,6 @@ import com.splicemachine.hbase.writer.WriteCoordinator;
 import com.splicemachine.job.*;
 import com.splicemachine.si.api.TransactionStorage;
 import com.splicemachine.si.impl.TransactionalRegions;
-import com.splicemachine.si.impl.txnclient.CoprocessorTxnStore;
 import com.splicemachine.tools.CachedResourcePool;
 import com.splicemachine.tools.EmbedConnectionMaker;
 import com.splicemachine.tools.ResourcePool;
@@ -37,7 +35,6 @@ import com.splicemachine.utils.logging.Logging;
 import com.splicemachine.uuid.Snowflake;
 import com.yammer.metrics.core.MetricsRegistry;
 import com.yammer.metrics.reporting.JmxReporter;
-import net.sf.ehcache.Cache;
 import org.apache.derby.drda.NetworkServerControl;
 import org.apache.derby.iapi.db.OptimizerTrace;
 import org.apache.derby.iapi.error.StandardException;
@@ -59,13 +56,16 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
+ * A central/important class in our application. One instance per JVM.  Starts major services including network server
+ * that listens for JDBC on port 1527, coordinates initial schema creation, etc.
+ *
  * @author Scott Fines
  *         Created on: 3/1/13
  */
 public class SpliceDriver extends SIConstants {
     private static final Logger LOG = Logger.getLogger(SpliceDriver.class);
+
     private final List<Service> services = new CopyOnWriteArrayList<Service>();
-    protected SpliceCache cache;
     private JmxReporter metricsReporter;
 	private Connection connection;
 	private XplainTaskReporter taskReporter;
@@ -197,8 +197,6 @@ public class SpliceDriver extends SIConstants {
                         SpliceLogUtils.info(LOG,"Booting the SpliceDriver");
 
                         registerDebugTools();
-                        SpliceLogUtils.info(LOG,"Starting Cache");
-                        startCache();
 
                         DDLCoordinationFactory.getWatcher().start();
 
@@ -268,8 +266,6 @@ public class SpliceDriver extends SIConstants {
                 return null;
             }
         });
-        //        SchedulerTracer.registerTaskCommit(transactionFailer);
-//        SchedulerTracer.registerTaskRollback(transactionFailer);
     }
 
     private boolean bootDatabase() throws Exception {
@@ -287,7 +283,7 @@ public class SpliceDriver extends SIConstants {
         	return false;
         }  catch (PleaseHoldException pe) {
         	Thread.sleep(5000);
-        	SpliceLogUtils.info(LOG, "Waiting for Splice Schema to Create");
+        	SpliceLogUtils.info(LOG, "Waiting for splice schema creation.");
         	return bootDatabase();
         } catch (Exception e) {
         	// The exception signaling the start of a successfully running Splice Engine will be a SpliceDoNotRetryIOException.
@@ -433,15 +429,6 @@ public class SpliceDriver extends SIConstants {
         }
     }
     
-    private boolean startCache() {
-    		//cache = new SpliceCache("Splice");
-    		return true;    	
-    }
-    
-    public Cache getCache(String cacheName) {
-    	return cache.getCacheManager().getCache(cacheName);
-    }
-
     public Snowflake getUUIDGenerator(){
         return snowflake;
     }
