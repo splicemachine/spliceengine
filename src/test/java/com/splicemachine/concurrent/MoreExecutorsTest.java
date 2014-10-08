@@ -28,7 +28,7 @@ public class MoreExecutorsTest {
         Future<Boolean> isDaemon = executorService.submit(new IsDaemonCallable());
 
         assertTrue(threadName.get().matches("testName-\\d"));
-        assertEquals(false, isDaemon.get());
+        assertEquals(true, isDaemon.get());
         executorService.shutdown();
     }
 
