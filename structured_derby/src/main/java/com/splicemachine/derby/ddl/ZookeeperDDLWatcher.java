@@ -63,6 +63,8 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
         createRequiredZooNodes();
 
         this.id = registerThisServer();
+        if(id.startsWith("/"))
+            id = id.substring(1); //strip the leading / to make sure that we register properly
 
         // run refresh() synchronously the first time
         refresh();
@@ -208,34 +210,6 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
                 }else
                     listener.finishGlobalChange();
             }
-
-//
-//            for (LanguageConnectionContext langContext : getLanguageConnectionContexts()) {
-//
-//                /*
-//                 * There is a weird situation that can theoretically occur
-//                 * here, where the collection returned by getLanguageConnectionContexts()
-//                 * can contain a null language connection context. This isn't a huge deal
-//                 * for the purposes of this method (if there's no LCC, don't bother
-//                 * trying to finish or start DDL changes), so we put in this check,
-//                 * but we probably need to figure out why and how a null LCC is being
-//                 * added to the context.
-//                 */
-//                if(langContext==null) continue;
-//                // CASE 2: We are no longer aware of any ongoing DDL changes.
-//                if (currentDDLChanges.isEmpty()) {
-//                    LOG.debug("Finishing global ddl changes ");
-//                    // we can use caches again
-//                    langContext.finishGlobalDDLChange();
-//                }
-//                // CASE 1: DDL changes have started.
-//                else {
-//                    LOG.debug("Starting global ddl changes, invalidate and disable caches");
-//                    // we have to invalidate and disable caches
-//                    langContext.startGlobalDDLChange();
-//                }
-//            }
-
         }
 
         // notify ddl operation we processed the change
@@ -339,9 +313,11 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
             case CREATE_INDEX:
             case DROP_COLUMN:
             case ADD_COLUMN:
+            case DROP_INDEX:
                 tentativeDDLs.put(changeId, ddlChange);
                 break;
             case DROP_TABLE:
+            case DROP_SCHEMA:
                 break;
             default:
                 throw StandardException.newException(SQLState.UNSUPPORTED_TYPE);

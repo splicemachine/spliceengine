@@ -26,43 +26,6 @@ public class RowKeyDistributorByHashPrefix extends RowKeyDistributor {
         int getPrefixLength(byte[] adjustedKey);
     }
 
-    public static class OneByteSimpleHash implements Hasher {
-        /**
-         * Creates a new instance of this class.
-         */
-        public OneByteSimpleHash() {
-        }
-
-        // Used to minimize # of created object instances
-        // Should not be changed. TODO: secure that
-        private static final byte[][] PREFIXES;
-
-        static {
-            PREFIXES = new byte[16][];
-            for (int i = 0; i < 16; i++) {
-                PREFIXES[i] = new byte[] { (byte) ( i * 0x10 ), (byte)0 };
-            }
-        }
-
-        @Override
-        public byte[] getHashPrefix(byte[] originalKey) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public byte[][] getAllPossiblePrefixes() {
-            return PREFIXES;
-        }
-
-        @Override
-        public int getPrefixLength(byte[] adjustedKey) {
-//            if (adjustedKey.length < 2) {
-//                return 0;
-//            }
-            return 2;
-        }
-    }
-
     @Override
     public byte[] getDistributedKey(byte[] originalKey) {
         return Bytes.add(hasher.getHashPrefix(originalKey), originalKey);
@@ -85,7 +48,6 @@ public class RowKeyDistributorByHashPrefix extends RowKeyDistributor {
         for (int i = 0; i < allPrefixes.length; i++) {
             keys[i] = Bytes.add(allPrefixes[i], originalKey);
         }
-
         return keys;
     }
 }

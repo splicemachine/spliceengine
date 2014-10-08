@@ -5,7 +5,6 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.impl.sql.catalog.SpliceXplainUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.impl.storage.AsyncClientScanProvider;
@@ -17,22 +16,16 @@ import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
-import com.splicemachine.si.api.TransactionalRegion;
-import com.splicemachine.si.impl.TransactionalRegions;
-import com.splicemachine.tools.splice;
 import com.splicemachine.metrics.TimeView;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.uuid.UUIDGenerator;
-import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.dictionary.DataDictionary;
-import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
 import org.apache.derby.iapi.types.RowLocation;
@@ -43,18 +36,17 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
-import java.util.concurrent.Callable;
 
 public class TableScanOperation extends ScanOperation {
 		private static final long serialVersionUID = 3l;
 
-		protected static Logger LOG = Logger.getLogger(TableScanOperation.class);
-		protected static List<NodeType> nodeTypes;
+		private static Logger LOG = Logger.getLogger(TableScanOperation.class);
+		private static List<NodeType> NODE_TYPES = Arrays.asList(NodeType.MAP,NodeType.SCAN);
+
 		protected int indexColItem;
 		public String userSuppliedOptimizerOverrides;
 		public int rowsPerRead;
@@ -64,7 +56,6 @@ public class TableScanOperation extends ScanOperation {
 		public String stopPositionString;
 		public ByteSlice slice;
 
-		static { nodeTypes = Arrays.asList(NodeType.MAP,NodeType.SCAN); }
 
 		private int[] baseColumnMap;
 
@@ -163,12 +154,8 @@ public class TableScanOperation extends ScanOperation {
                 if (this.indexName != null) {
                     tableNameInfo = "index:" + indexName + ")";
                 } else if (this.tableName != null) {
-                    if (activation.isTraced()) {
-                        String tname = scanInformation.getTableName();
-                        tableNameInfo = "table:" + (tname==null?tableName:tname);
-                    } else {
-                        tableNameInfo = "table:" + tableName;
-                    }
+                    String tname = scanInformation.getTableName();
+                    tableNameInfo = "table:" + (tname==null?tableName:tname);
                 }
                 if(info==null)
                     info = tableNameInfo;
@@ -193,7 +180,6 @@ public class TableScanOperation extends ScanOperation {
 
 				SpliceUtils.setInstructions(scan, activation, top,spliceRuntimeContext);
         AsyncClientScanProvider provider = new AsyncClientScanProvider("tableScan",Bytes.toBytes(tableName),scan,decoder,spliceRuntimeContext);
-//				ClientScanProvider provider = new ClientScanProvider("tableScan",Bytes.toBytes(tableName),scan, decoder,spliceRuntimeContext);
 				nextTime += System.currentTimeMillis() - beginTime;
 				return provider;
 		}
@@ -228,7 +214,7 @@ public class TableScanOperation extends ScanOperation {
 
 		@Override
 		public List<NodeType> getNodeTypes() {
-				return nodeTypes;
+				return NODE_TYPES;
 		}
 
 		@Override
@@ -242,15 +228,6 @@ public class TableScanOperation extends ScanOperation {
 		}
 
 		@Override protected int getNumMetrics() { return 5; }
-
-		/*@Override
-		public String getName() {
-				if(this.tableName!=null){
-						return "TableScan(table="+tableName+")";
-				}else if(this.indexName!=null)
-						return "TableScan(index="+indexName+")";
-				return "TableScan";
-		}*/
 
 		@Override
 		protected void updateStats(OperationRuntimeStats stats) {

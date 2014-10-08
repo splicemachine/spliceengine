@@ -20,9 +20,7 @@ import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.store.access.Qualifier;
-import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -46,14 +44,10 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 		public boolean forUpdate;
 		protected ExecRow currentTemplate;
 		protected int[] columnOrdering;
-		protected ExecRow keyTemplate;
 		protected int[] getColumnOrdering;
-		protected DataValueDescriptor[] kdvds;
-//		protected KeyMarshaller keyMarshaller;
 		protected EntryDecoder rowDecoder;
 		protected MultiFieldDecoder keyDecoder;
 		protected EntryPredicateFilter predicateFilter;
-		private boolean cachedPredicateFilter = false;
 		protected int[] keyDecodingMap;
     protected TransactionalRegion txnRegion;
         protected Scan scan;
@@ -143,9 +137,6 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 				scanInformation.initialize(context);
 				try {
 						ExecRow candidate = scanInformation.getResultRow();
-						FormatableBitSet accessedCols = scanInformation.getAccessedColumns();
-						boolean isKeyed = scanInformation.isKeyed();
-						//TODO -sf- remove this call to getLanguageConnectionContext()
 						currentRow = operationInformation.compactRow(candidate, scanInformation);
 						currentTemplate = currentRow.getClone();
 						if (currentRowLocation == null)
@@ -163,7 +154,7 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 		}
 
         private void getScanQualifiersInStringFormat() throws StandardException{
-            Qualifier[][] scanQualifiers = null;
+            Qualifier[][] scanQualifiers;
 
             try {
                 scanQualifiers = (Qualifier[][]) activation.getClass().getField(scanQualifiersField).get(activation);

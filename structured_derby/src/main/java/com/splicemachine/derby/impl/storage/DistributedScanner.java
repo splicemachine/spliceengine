@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.storage;
 
 import com.splicemachine.hbase.RowKeyDistributor;
+import com.splicemachine.hbase.ScanDivider;
 import com.splicemachine.metrics.*;
 import com.splicemachine.metrics.util.Folders;
 import org.apache.derby.iapi.error.StandardException;
@@ -105,13 +106,11 @@ public class DistributedScanner implements SpliceResultScanner {
 
     public static DistributedScanner create(HTableInterface hTable, Scan originalScan,
             RowKeyDistributor keyDistributor,MetricFactory metricFactory) throws IOException {
-        Scan[] scans = keyDistributor.getDistributedScans(originalScan);
+        List<Scan> scans = ScanDivider.divide(originalScan, keyDistributor);
 
-        SpliceResultScanner[] rss = new SpliceResultScanner[scans.length];
-        for (int i = 0; i < scans.length; i++) {
-//            SpliceResultScanner srs = new AsyncScanner(hTable.getTableName(),scans[i],metricFactory);
-//            rss[i] = srs;
-            rss[i] = new MeasuredResultScanner(hTable, scans[i], hTable.getScanner(scans[i]),metricFactory);
+        SpliceResultScanner[] rss = new SpliceResultScanner[scans.size()];
+        for (int i = 0; i < scans.size(); i++) {
+            rss[i] = new MeasuredResultScanner(hTable, scans.get(i), hTable.getScanner(scans.get(i)),metricFactory);
         }
 
         return new DistributedScanner(keyDistributor, rss);

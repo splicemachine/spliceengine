@@ -2,10 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.test.framework.*;
 import org.apache.derby.iapi.types.SQLRef;
-import org.junit.Assert;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -14,12 +11,13 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.PreparedStatement;
 import java.sql.RowId;
+//import org.apache.derby.client.am.RowId;
 /**
  * Created by jyuan on 9/28/14.
  */
 public class RowIdIT extends SpliceUnitTest {
     public static final String CLASS_NAME = RowIdIT.class.getSimpleName().toUpperCase();
-
+    public static int nRows = 3;
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     public static final String TABLE1_NAME = "A";
     public static final String TABLE2_NAME = "B";
@@ -39,7 +37,7 @@ public class RowIdIT extends SpliceUnitTest {
                     try {
                         ps = spliceClassWatcher.prepareStatement(
                                 String.format("insert into %s (i) values (?)", spliceTableWatcher1));
-                        for (int i = 0; i < 3; i++) {
+                        for (int i = 0; i < nRows; i++) {
                             ps.setInt(1, i);
                             ps.execute();
                         }
@@ -55,7 +53,7 @@ public class RowIdIT extends SpliceUnitTest {
                     try {
                         ps = spliceClassWatcher.prepareStatement(
                                 String.format("insert into %s (i) values (?)", spliceTableWatcher2));
-                        for (int i = 0; i < 3; i++) {
+                        for (int i = 0; i < nRows; i++) {
                             ps.setInt(1, i);
                             ps.execute();
                         }
@@ -100,4 +98,120 @@ public class RowIdIT extends SpliceUnitTest {
         }
     }
 
+    @Test
+    public void testStringConversion() throws Exception {
+        ResultSet rs  = methodWatcher.executeQuery(
+                String.format("select t1.rowid, t1.i from %s t1, %s t2 where cast(t1.rowid as varchar(128))=cast(t2.rowid as varchar(128))",
+                        this.getTableReference(TABLE1_NAME), this.getTableReference(TABLE1_NAME)));
+
+        int count = 0;
+        while (rs.next()) {
+            ++count;
+        }
+        Assert.assertEquals(nRows, count);
+    }
+
+    @Test
+    public void testRowIdAsPredicate() throws Exception {
+        ResultSet rs  = methodWatcher.executeQuery(
+                String.format("select t1.rowid, t1.i from %s t1, %s t2 where t1.rowid = t2.rowid",
+                        this.getTableReference(TABLE1_NAME), this.getTableReference(TABLE1_NAME)));
+
+        int count = 0;
+        while (rs.next()) {
+            ++count;
+        }
+        Assert.assertEquals(nRows, count);
+    }
+
+    @Test
+    public void testUpdate() throws Exception {
+
+        // Get rowid for a row
+        ResultSet rs  = methodWatcher.executeQuery(
+                String.format("select rowid, i from %s where i=1", this.getTableReference(TABLE1_NAME)));
+
+        String rowId = null;
+        while (rs.next()) {
+            rowId = rs.getString(1);
+        }
+        rs.close();
+
+        // Change its column value according rowid
+        methodWatcher.executeUpdate(String.format("update %s set i=10 where rowid =\'%s\'",
+                this.getTableReference(TABLE1_NAME), rowId));
+
+        // verify column value changed for the specified row
+        rs  = methodWatcher.executeQuery(
+                String.format("select rowid, i from %s where i=10", this.getTableReference(TABLE1_NAME)));
+
+        int count = 0;
+        while (rs.next()) {
+            count++;
+        }
+        rs.close();
+
+        Assert.assertEquals(1, count);
+    }
+
+    @Test
+    public void testDelete() throws Exception {
+        PreparedStatement ps = spliceClassWatcher.prepareStatement(
+                String.format("insert into %s (i) values (?)", spliceTableWatcher1));
+        ps.setInt(1, 100);
+        ps.execute();
+
+        ResultSet rs  = methodWatcher.executeQuery(
+                String.format("select rowid, i from %s where i=100", this.getTableReference(TABLE1_NAME)));
+
+        String rowId = null;
+        while (rs.next()) {
+            rowId = rs.getString(1);
+        }
+        rs.close();
+
+        // delete the row
+        methodWatcher.executeUpdate(String.format("delete from %s where rowid =\'%s\'",
+                this.getTableReference(TABLE1_NAME), rowId));
+
+        // verify column value changed for the specified row
+        rs  = methodWatcher.executeQuery(
+                String.format("select rowid, i from %s where i=100", this.getTableReference(TABLE1_NAME)));
+
+        int count = 0;
+        while (rs.next()) {
+            count++;
+        }
+        rs.close();
+
+        Assert.assertEquals(0, count);
+    }
+
+
+    @Ignore
+    @Test
+    public void testPreparedStatement() throws Exception {
+        ResultSet rs  = methodWatcher.executeQuery(
+                String.format("select rowid, i from %s where i=0", this.getTableReference(TABLE1_NAME)));
+
+        RowId rId = null;
+        while (rs.next()) {
+            rId = rs.getRowId("rowid");
+            String s = rs.getString(1);
+            Assert.assertTrue(s.compareToIgnoreCase(rId.toString()) == 0);
+        }
+
+        org.apache.derby.client.am.RowId rowId = new org.apache.derby.client.am.RowId(rId.getBytes());
+
+        PreparedStatement ps = spliceClassWatcher.prepareStatement(
+                String.format("select i, rowid from %s where rowid = ?", spliceTableWatcher1));
+        ps.setRowId(1, rowId);
+        rs = ps.executeQuery();
+
+        while (rs.next()) {
+            rId = rs.getRowId("rowid");
+            String s = rs.getString(1);
+            Assert.assertTrue(s.compareToIgnoreCase(rId.toString()) == 0);
+        }
+    }
 }

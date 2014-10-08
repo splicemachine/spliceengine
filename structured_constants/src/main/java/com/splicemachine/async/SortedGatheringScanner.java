@@ -3,12 +3,8 @@ package com.splicemachine.async;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.splicemachine.collections.NullStopIterator;
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.hbase.RowKeyDistributor;
-import com.splicemachine.hbase.RowKeyDistributorByHashPrefix;
-import com.splicemachine.metrics.*;
 import com.splicemachine.metrics.Counter;
+import com.splicemachine.metrics.*;
 import com.splicemachine.metrics.Timer;
 import com.splicemachine.stream.BaseCloseableStream;
 import com.splicemachine.stream.CloseableStream;
@@ -18,12 +14,8 @@ import com.stumbleupon.async.Deferred;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.log4j.ConsoleAppender;
-import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.apache.log4j.SimpleLayout;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
@@ -45,23 +37,13 @@ public class SortedGatheringScanner implements AsyncScanner{
     private List<KeyValue>[] nextAnswers;
     private boolean[] exhaustedScanners;
 
-    public static AsyncScanner newScanner(Scan baseScan,int maxQueueSize,
+    public static AsyncScanner newScanner(int maxQueueSize,
                                           MetricFactory metricFactory,
-                                          Function<Scan,Scanner> conversionFunction,
-                                          RowKeyDistributor rowKeyDistributor,
+                                          Function<Scan, Scanner> conversionFunction,
+                                          List<Scan> scans,
                                           Comparator<byte[]> sortComparator) throws IOException {
-
-        Scan[] distributedScans = rowKeyDistributor.getDistributedScans(baseScan);
-//        if(distributedScans.length<=1){
-//            return new QueuedAsyncScanner(conversionFunction.apply(distributedScans[0]),metricFactory,maxQueueSize);
-//        }
-
-        List<Scanner> scans = Lists.newArrayListWithExpectedSize(distributedScans.length);
-        for(Scan scan:distributedScans){
-            scans.add(conversionFunction.apply(scan));
-        }
-
-        return new SortedGatheringScanner(scans,maxQueueSize,sortComparator,metricFactory);
+        List<Scanner> scanners = Lists.transform(scans, conversionFunction);
+        return new SortedGatheringScanner(scanners,maxQueueSize,sortComparator,metricFactory);
     }
 
     public SortedGatheringScanner(List<Scanner> scanners, int maxQueueSize, Comparator<byte[]> sortComparator,MetricFactory metricFactory){
@@ -272,60 +254,4 @@ public class SortedGatheringScanner implements AsyncScanner{
         }
     }
 
-    public static void main(String...args) throws Exception{
-        Logger.getRootLogger().addAppender(new ConsoleAppender(new SimpleLayout()));
-        Logger.getRootLogger().setLevel(Level.INFO);
-        Scan baseScan = new Scan();
-        byte[] startRow = Bytes.toBytesBinary("\\x90\\xF4y\\x1D\\xBF\\xE9\\xF0\\x01");
-        baseScan.setStartRow(startRow);
-        baseScan.setStopRow(BytesUtil.unsignedCopyAndIncrement(startRow));
-
-        RowKeyDistributorByHashPrefix.Hasher hasher = new RowKeyDistributorByHashPrefix.Hasher(){
-
-            @Override
-            public byte[] getHashPrefix(byte[] originalKey) {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public byte[][] getAllPossiblePrefixes() {
-                byte[][] buckets = new byte[16][];
-                for(int i=0;i<buckets.length;i++){
-                    buckets[i] = new byte[]{(byte)(i*0xF0)};
-                }
-                return buckets;
-            }
-
-            @Override
-            public int getPrefixLength(byte[] adjustedKey) {
-                return 1;
-            }
-        };
-        RowKeyDistributor keyDistributor = new RowKeyDistributorByHashPrefix(hasher);
-
-        final HBaseClient client = SimpleAsyncScanner.HBASE_CLIENT;
-        try{
-            AsyncScanner scanner = SortedGatheringScanner.newScanner(baseScan,1024,
-                    Metrics.noOpMetricFactory(), new Function<Scan, Scanner>() {
-                @Nullable
-                @Override
-                public Scanner apply(@Nullable Scan scan) {
-                    Scanner scanner = client.newScanner(SpliceConstants.TEMP_TABLE_BYTES);
-                    scanner.setStartKey(scan.getStartRow());
-                    byte[] stop = scan.getStopRow();
-                    if(stop.length>0)
-                        scanner.setStopKey(stop);
-                    return scanner;
-                }
-            },keyDistributor,null);
-            scanner.open();
-
-            Result r;
-            while((r = scanner.next())!=null){
-                System.out.println(Bytes.toStringBinary(r.getRow()));
-            }
-        }finally{
-            client.shutdown().join();
-        }
-    }
 }

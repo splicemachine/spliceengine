@@ -9,6 +9,7 @@ import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.BucketHasher;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
+import com.splicemachine.hbase.ScanDivider;
 import com.splicemachine.metrics.BaseIOStats;
 import com.splicemachine.metrics.IOStats;
 import com.splicemachine.metrics.TimeView;
@@ -21,7 +22,6 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -121,7 +121,7 @@ public class DistributedClientScanProvider extends AbstractMultiScanProvider {
 		@Override
 		public List<Scan> getScans() throws StandardException {
 				try {
-						return Arrays.asList(keyDistributor.getDistributedScans(scan));
+						return ScanDivider.divide(scan, keyDistributor);
 				} catch (IOException e) {
 						throw Exceptions.parseException(e);
 				}
