@@ -150,10 +150,12 @@ public class MapReduceIT {
 		
 		try {
 			b = job.waitForCompletion(true);
+			Assert.assertEquals(b, true);
 			if (!b)
 				{			
 				System.out.println("Job Failed");
 				job.rollback();
+				
 				}
 			else
 				job.commit();
@@ -168,11 +170,6 @@ public class MapReduceIT {
 			e.printStackTrace();
 		}
     
-    	/*ResultSet rs;
-    	rs = methodWatcher.executeQuery("SELECT TO_DATE(col1, col2), col3 from " + tableWatcherA);
-    	while(rs.next()){
-    		Assert.assertEquals(rs.getDate(2), rs.getDate(1));
-    	}*/
     }
 
    
