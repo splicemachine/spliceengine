@@ -19,7 +19,7 @@ class ExportFile {
     private final byte[] taskId;
 
     ExportFile(ExportParams exportParams, byte[] taskId) throws IOException {
-        this.fileSystem = exportParams.getFileSystemType().isLocal() ? FileSystem.getLocal(SpliceUtils.config) : FileSystem.get(SpliceUtils.config);
+        this.fileSystem = FileSystem.get(SpliceUtils.config);
         this.exportParams = exportParams;
         this.taskId = taskId;
     }
