@@ -2,8 +2,8 @@ package com.splicemachine.hbase;
 
 import com.google.common.collect.Maps;
 import com.google.common.io.Closeables;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.concurrent.DynamicScheduledRunnable;
+import com.splicemachine.concurrent.MoreExecutors;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceUtilities;
 import org.apache.hadoop.hbase.*;
@@ -17,7 +17,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -56,10 +55,7 @@ public class HBaseRegionLoads {
     };
 
     private static ScheduledExecutorService updateService =
-        Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
-                                                       .setNameFormat("hbase-region-load-updater-%d")
-                                                       .setDaemon(true)
-                                                       .build());
+            MoreExecutors.namedSingleThreadScheduledExecutor("hbase-region-load-updater-%d");
 
     /**
      * Start updating in background every UPDATE_MULTIPLE multiples
@@ -177,9 +173,6 @@ public class HBaseRegionLoads {
     }
     /**
      * Region Size in MB
-     * 
-     * @param load
-     * @return
      */
     public static int memstoreAndStorefileSize(HServerLoad.RegionLoad load){
         return load.getStorefileSizeMB() + load.getMemStoreSizeMB();

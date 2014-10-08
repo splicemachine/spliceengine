@@ -1,6 +1,7 @@
 package com.splicemachine.hbase.table;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.concurrent.MoreExecutors;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -52,7 +53,6 @@ public class BetterHTablePool {
     private static final Logger LOG = Logger.getLogger(BetterHTablePool.class);
     private final ConcurrentMap<String,TablePool> tablePool;
     private final HTableInterfaceFactory tableFactory;
-    private final ScheduledExecutorService closer;
     private final int maxSize;
     private final int coreSize;
 
@@ -64,15 +64,7 @@ public class BetterHTablePool {
         this.coreSize = coreSize;
         this.maxSize = maxSize;
         this.tableFactory = tableFactory;
-        this.closer = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
-            @Override
-            public Thread newThread(Runnable r) {
-                Thread t = new Thread(r);
-                t.setName("htablePool-cleaner");
-                t.setDaemon(true);
-                return t;
-            }
-        });
+        ScheduledExecutorService closer = MoreExecutors.namedSingleThreadScheduledExecutor("htablePool-cleaner");
         closer.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
