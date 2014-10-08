@@ -66,6 +66,11 @@ public final class WindowDefinitionNode extends WindowNode
         }
     }
 
+    /**
+     * Bind partition and order by columns, since they may not be in select clause.
+     * @param target this select node
+     * @throws StandardException
+     */
     public void bind(SelectNode target) throws StandardException {
         // bind partition
         Partition partition = overClause.getPartition();

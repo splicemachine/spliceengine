@@ -38,7 +38,7 @@ public class WrappedAggregateFunctionNode extends WindowFunctionNode {
 
     @Override
     public ValueNode[] getOperands() {
-        return new ValueNode[] {operand};
+        return new ValueNode[] {aggregateFunction.operand};
     }
 
     @Override

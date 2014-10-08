@@ -157,27 +157,17 @@ public abstract class WindowFunctionNode extends AggregateNode {
         }
     }
 
-    @Override
-    public ResultColumn getNewExpressionResultColumn(DataDictionary dd) throws StandardException {
-        return super.getNewExpressionResultColumn(dd);
-    }
-
     public ResultColumn[] getNewExpressionResultColumns(DataDictionary dd) throws StandardException {
-        OrderByList orderByList = this.window.getOrderByList();
-        // return value intended for scalar aggregate function
-        if (isScalarAggregate() || orderByList == null) {
-            ResultColumn[] resultColumns = new ResultColumn[1];
-            resultColumns[0] = getNewExpressionResultColumn(dd);
-            return resultColumns;
-        }
-        // return value intended for ranking function
-        ResultColumn[] resultColumns = new ResultColumn[orderByList.size()];
-        for (int i=0; i<orderByList.size(); i++) {
-            ValueNode node = orderByList.getOrderByColumn(i).getColumnExpression();
-
-            resultColumns[i] = (ResultColumn) getNodeFactory().getNode(
+        ValueNode[] operands = getOperands();
+        ResultColumn[] resultColumns = new ResultColumn[operands.length];
+        int i = 0;
+        for (ValueNode node : operands) {
+            if (node == null) {
+                node = getNewNullResultExpression();
+            }
+            resultColumns[i++] = (ResultColumn) getNodeFactory().getNode(
                 C_NodeTypes.RESULT_COLUMN,
-                "##WindowExpression",
+                "##WindowOperand",
                 node,
                 getContextManager());
         }

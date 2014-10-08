@@ -71,6 +71,7 @@ public class WindowFunctionInfo implements Formatable
 	ResultDescription	rd;
     FormatableArrayHolder partitionInfo;
     FormatableArrayHolder orderByInfo;
+    FormatableArrayHolder keyInfo;
     FormatableHashtable frameInfo;
 
     /**
@@ -78,7 +79,7 @@ public class WindowFunctionInfo implements Formatable
 	 */
 	public WindowFunctionInfo() {}
 
-	/**
+    /**
 	 * Consructor
 	 *
 	 * @param functionName	the name of the window function.  Not
@@ -103,6 +104,7 @@ public class WindowFunctionInfo implements Formatable
                               ResultDescription rd,
                               FormatableArrayHolder partitionInfo,
                               FormatableArrayHolder orderByInfo,
+                              FormatableArrayHolder keyInfo,
                               FormatableHashtable frameInfo) {
 		this.functionName	= functionName;
 		this.functionClassName = functionClassName;
@@ -112,6 +114,7 @@ public class WindowFunctionInfo implements Formatable
 		this.rd 			= rd;
         this.partitionInfo = partitionInfo;
         this.orderByInfo = orderByInfo;
+        this.keyInfo = keyInfo;
         this.frameInfo = frameInfo;
 	}
 
@@ -205,6 +208,18 @@ public class WindowFunctionInfo implements Formatable
         this.orderByInfo = orderByInfo;
     }
 
+
+    public ColumnOrdering[] getKeyInfo() {
+        ColumnOrdering[] keys = null;
+        if (keyInfo != null) {
+            keys = (ColumnOrdering[]) keyInfo.getArray(ColumnOrdering.class);
+        }
+        return keys;
+    }
+
+    public void setKeyInfo(FormatableArrayHolder keyInfo) {
+        this.keyInfo = keyInfo;
+    }
     public FormatableHashtable getFrameInfo() {
         return frameInfo;
     }
@@ -224,8 +239,11 @@ public class WindowFunctionInfo implements Formatable
 		{
 			return "WindowFunctionInfo = Name: "+ functionName +
 				"\n\tClass: " + functionClassName +
-				"\n\tInputColNums: " + arrayToString(inputColumns) +
-				"\n\tOutputColNum: " + outputColumn +
+				"\n\tInputCols: " + arrayToString(inputColumns) +
+				"\n\tOutputCol: " + outputColumn +
+				"\n\tPartCols: " + partitionInfo +
+				"\n\tOrderByCols: " + orderByInfo +
+				"\n\tKeyCols: " + keyInfo +
 				"\n\tWindowFunctionColNum: " + aggregatorColumn +
 				"\n\tResultDescription: " + rd;
 		}
@@ -274,6 +292,7 @@ public class WindowFunctionInfo implements Formatable
 		out.writeObject(rd);
         out.writeObject(partitionInfo);
         out.writeObject(orderByInfo);
+        out.writeObject(keyInfo);
         out.writeObject(frameInfo);
 	}
 
@@ -300,6 +319,7 @@ public class WindowFunctionInfo implements Formatable
 		rd = (ResultDescription)in.readObject();
         partitionInfo = (FormatableArrayHolder) in.readObject();
         orderByInfo = (FormatableArrayHolder) in.readObject();
+        keyInfo = (FormatableArrayHolder) in.readObject();
         frameInfo = (FormatableHashtable) in.readObject();
 	}
 	
