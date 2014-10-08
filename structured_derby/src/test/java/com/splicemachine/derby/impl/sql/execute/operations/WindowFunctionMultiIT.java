@@ -133,7 +133,7 @@ public class WindowFunctionMultiIT extends SpliceUnitTest {
             String.format(sqlText, this.getTableReference(TABLE_NAME)));
 
         // DEBUG
-        TestUtils.printResult(sqlText,rs,System.out);
+//        TestUtils.printResult(sqlText,rs,System.out);
 
         int i = 0;
         while (rs.next()) {
@@ -149,15 +149,17 @@ public class WindowFunctionMultiIT extends SpliceUnitTest {
     @Ignore("multiple functions with different over() do not work")
     public void testMultiFunctionSamePartitionDifferentOrderBy_WO_hiredate() throws Exception {
         // DB-1647 (multiple functions with different over() do not work)
-        int[] denseRank = {1, 2, 3, 4, 5, 6, 6, 7, 1, 2, 2, 3, 1, 2, 3, 4, 5};
-        int[] ruwNum = {1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 1, 2, 3, 4, 5};
-        String sqlText = "SELECT empnum, salary, DENSE_RANK() OVER (PARTITION BY dept ORDER BY salary) AS DenseRank, dept, ROW_NUMBER() OVER (PARTITION BY dept ORDER BY dept) AS RowNumber FROM %s";
+        // these arrays were verified on sqlfiddle, PostgreSQL 9.3.1 for query
+        // SELECT empnum, salary, DENSE_RANK() OVER (PARTITION BY dept ORDER BY salary) AS DenseRank, dept, ROW_NUMBER() OVER (PARTITION BY dept ORDER BY dept) AS RowNumber FROM emptab;
+        int[] denseRank = {1, 2, 2, 3, 4, 5, 6, 7, 1, 2, 2, 3, 1, 2, 3, 4, 5};
+        int[] ruwNum    = {1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 1, 2, 3, 4, 5};
+        String sqlText = "SELECT empnum, salary, DENSE_RANK() OVER (PARTITION BY dept ORDER BY salary) AS DenseRank, dept, ROW_NUMBER() OVER (PARTITION BY dept ORDER BY dept) AS RowNumber FROM %s order by dept";
 
         ResultSet rs = methodWatcher.executeQuery(
             String.format(sqlText, this.getTableReference(TABLE_NAME)));
 
         // DEBUG
-        TestUtils.printResult(sqlText,rs,System.out);
+//        TestUtils.printResult(sqlText,rs,System.out);
 
         int i = 0;
         while (rs.next()) {
@@ -172,11 +174,12 @@ public class WindowFunctionMultiIT extends SpliceUnitTest {
     @Ignore("multiple functions with different over() do not work")
     public void testMultiFunctionInQueryDiffAndSameOverClause() throws Exception {
         // DB-1647 (partial; multiple functions with same over() work)
-        // TODO: these arrays are not correct
-        int[] dept = {1, 3, 1, 2, 1, 2, 2, 1, 2, 1, 3, 3, 1, 1, 1, 3, 3};
-        int[] rowNumber = {1, 1, 2, 3, 4, 4, 4, 4, 5, 5, 6, 7, 7, 8, 9,  10,  11};
-        int[] rank = {1, 1, 2, 3, 4, 4, 4, 4, 5, 5, 6, 7, 7, 8, 9, 10, 11};
-        int[] denseRank = {1, 1, 2, 3, 4, 4, 4, 4, 5, 5, 6, 7, 7, 8, 9, 10, 11};
+        // these arrays were verified on sqlfiddle, PostgreSQL 9.3.1 for this query
+        // SELECT dept, salary, ROW_NUMBER() OVER (ORDER BY salary desc) AS RowNumber, RANK() OVER (ORDER BY salary desc) AS Rank, DENSE_RANK() OVER (ORDER BY salary) AS DenseRank FROM emptab order by salary desc;
+        int[] dept = {3, 1, 3, 3, 1, 1, 1, 3, 3, 1, 2, 2, 2, 1, 1, 2, 1};
+        int[] rowNumber = { 1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17};
+        int[] rank = { 1,  1,  3,  4,  5,  6,  7,  7,  9, 10, 10, 12, 12, 12, 12, 16, 17};
+        int[] denseRank = {11, 11, 10,  9,  8,  7,  6,  6,  5,  4,  4,  3,  3,  3,  3,  2,  1};
         String sqlText =
             "SELECT dept, salary, ROW_NUMBER() OVER (ORDER BY salary desc) AS RowNumber, RANK() OVER (ORDER BY salary desc) AS Rank, DENSE_RANK() OVER (ORDER BY salary) AS DenseRank FROM %s order by salary desc";
 
@@ -184,10 +187,10 @@ public class WindowFunctionMultiIT extends SpliceUnitTest {
             String.format(sqlText, this.getTableReference(TABLE_NAME)));
 
         // DEBUG
-        TestUtils.printResult(sqlText, rs, System.out);
+//        TestUtils.printResult(sqlText, rs, System.out);
         int i = 0;
         while (rs.next()) {
-            Assert.assertEquals(dept[i],rs.getInt(1));
+//            Assert.assertEquals(dept[i],rs.getInt(1));
             Assert.assertEquals(denseRank[i],rs.getInt(3));
             Assert.assertEquals(rank[i],rs.getInt(4));
             Assert.assertEquals(rowNumber[i],rs.getInt(5));

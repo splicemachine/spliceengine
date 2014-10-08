@@ -195,31 +195,37 @@ public class WindowAggregatorImpl implements WindowAggregator {
     }
 
     private void createDefinition(WindowFunctionInfo windowInfo) {
-        // coming from Derby, these are 0-based column IDs
-        ColumnOrdering[] partition = windowInfo.getPartitionInfo();
-        ColumnOrdering[] orderings = windowInfo.getOrderByInfo();
-
+        // create the frame from passed in frame info
         frameDefinition = FrameDefinition.create(windowInfo.getFrameInfo());
 
-        keyColumns = new int[partition.length + orderings.length];
-        keyOrders = new boolean[partition.length + orderings.length];
-
+        ColumnOrdering[] partition = windowInfo.getPartitionInfo();
         partitionColumns = new int[partition.length];
-        int pos=0;
+        int index=0;
         for(ColumnOrdering partCol : partition){
-            partitionColumns[pos] = partCol.getColumnId();
-            keyColumns[pos] = partCol.getColumnId();
-            keyOrders[pos] = partCol.getIsAscending();
-            pos++;
-        }
-        sortColumns = new int[orderings.length];
-        pos = 0;
-        for(ColumnOrdering order : orderings){
-            sortColumns[pos] = order.getColumnId();
-            keyColumns[partition.length + pos] = order.getColumnId();
-            keyOrders[partition.length + pos] = order.getIsAscending();
-            pos++;
+            // coming from Derby, these are 1-based column positions
+            // convert to 0-based
+            partitionColumns[index++] = partCol.getColumnId() -1;
         }
 
+        ColumnOrdering[] orderings = windowInfo.getOrderByInfo();
+        sortColumns = new int[orderings.length];
+        index = 0;
+        for(ColumnOrdering order : orderings){
+            // coming from Derby, these are 1-based column positions
+            // convert to 0-based
+            sortColumns[index++] = order.getColumnId() -1;
+        }
+
+        ColumnOrdering[] keys = windowInfo.getKeyInfo();
+
+        keyColumns = new int[keys.length];
+        keyOrders = new boolean[keys.length];
+        index = 0;
+        for (ColumnOrdering key : keys) {
+            // coming from Derby, these are 1-based column positions
+            // convert to 0-based
+            keyColumns[index] = key.getColumnId() -1;
+            keyOrders[index++] = key.getIsAscending();
+        }
     }
 }
