@@ -1627,10 +1627,15 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         }
 
         // Wait for past transactions to die
-        List<TxnView> toIgnore = Arrays.asList(parentTransaction, waitTxn,tentativeTransaction);
+        TxnView uTxn = parentTransaction;
+        TxnView n = parentTransaction.getParentTxnView();
+        while(n.getTxnId()>=0){
+            uTxn = n;
+            n = n.getParentTxnView();
+        }
         long activeTxnId;
         try {
-            activeTxnId = waitForConcurrentTransactions(waitTxn, toIgnore,tableConglomId);
+            activeTxnId = waitForConcurrentTransactions(waitTxn, uTxn,tableConglomId);
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }

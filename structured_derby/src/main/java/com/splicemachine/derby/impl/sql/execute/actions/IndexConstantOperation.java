@@ -92,9 +92,7 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 		this.indexName = indexName;
 	}
 
-    protected Txn getIndexTransaction(TransactionController parent,
-                                      TransactionController tc, Txn tentativeTransaction, long tableConglomId) throws StandardException {
-        final TxnView parentTxn = ((SpliceTransactionManager)parent).getActiveStateTxn();
+    protected Txn getIndexTransaction(TransactionController tc, Txn tentativeTransaction, long tableConglomId) throws StandardException {
         final TxnView wrapperTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
 
         /*
@@ -110,11 +108,17 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
             throw Exceptions.parseException(ioe);
         }
 
+        //get the absolute user transaction
+        TxnView uTxn = wrapperTxn;
+        TxnView n = uTxn.getParentTxnView();
+        while(n.getTxnId()>=0){
+            uTxn = n;
+            n = n.getParentTxnView();
+        }
         // Wait for past transactions to die
-        List<TxnView> toIgnore = Arrays.asList(parentTxn,wrapperTxn,tentativeTransaction,waitTxn);
         long oldestActiveTxn;
         try {
-            oldestActiveTxn = waitForConcurrentTransactions(waitTxn, toIgnore,tableConglomId);
+            oldestActiveTxn = waitForConcurrentTransactions(waitTxn, uTxn,tableConglomId);
         } catch (IOException e) {
             LOG.error("Unexpected error while waiting for past transactions to complete", e);
             throw Exceptions.parseException(e);
