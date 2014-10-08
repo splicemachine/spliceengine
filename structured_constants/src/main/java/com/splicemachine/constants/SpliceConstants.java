@@ -382,7 +382,6 @@ public class SpliceConstants {
 		@DefaultValue(POOL_CLEANER_INTERVAL) public static final long DEFAULT_POOL_CLEANER_INTERVAL = 60;
 
 		public static final long DEFAULT_CACHE_UPDATE_PERIOD = 120000;
-		public static final long DEFAULT_CACHE_EXPIRATION = 180;
 
 		/**
 		 * The maximum size(in bytes) that an individual write buffer will keep in memory before automatically
@@ -778,7 +777,6 @@ public class SpliceConstants {
 		 * This is a performance killer, but is useful when debugging issues.
 		 */
 		public static final String CACHE_UPDATE_PERIOD = "hbase.htable.regioncache.updateinterval";
-		public static final String CACHE_EXPIRATION = "hbase.htable.regioncache.expiration";
 		public static final String RMI_REMOTE_OBJECT_PORT = "splice.rmi_remote_object_port";
 
 		//debug options
@@ -851,8 +849,6 @@ public class SpliceConstants {
 		public static int maxTreeThreads; //max number of threads for concurrent stack execution
 
 		public static long threadKeepAlive;
-		public static boolean enableRegionCache;
-		public static long cacheExpirationPeriod;
 		public static int rmiRemoteObjectPort;
 		public static int startupLockWaitPeriod;
 
@@ -1118,8 +1114,6 @@ public class SpliceConstants {
 				threadKeepAlive = config.getLong(HBASE_HTABLE_THREADS_KEEPALIVETIME, DEFAULT_HBASE_HTABLE_THREADS_KEEPALIVETIME);
 				numRetries = config.getInt(HBASE_CLIENT_RETRIES_NUMBER, DEFAULT_HBASE_CLIENT_RETRIES_NUMBER);
 				cacheUpdatePeriod = config.getLong(CACHE_UPDATE_PERIOD, DEFAULT_CACHE_UPDATE_PERIOD);
-				enableRegionCache = cacheUpdatePeriod>0l;
-				cacheExpirationPeriod = config.getLong(CACHE_EXPIRATION,DEFAULT_CACHE_EXPIRATION);
 				compression = config.get(COMPRESSION, DEFAULT_COMPRESSION);
 				authentication = config.get(AUTHENTICATION, DEFAULT_AUTHENTICATION);
 				authenticationNativeAlgorithm = config.get(AUTHENTICATION_NATIVE_ALGORITHM, DEFAULT_AUTHENTICATION_NATIVE_ALGORITHM);
