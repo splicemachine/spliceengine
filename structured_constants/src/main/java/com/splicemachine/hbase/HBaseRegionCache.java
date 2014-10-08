@@ -28,7 +28,7 @@ import java.util.concurrent.*;
  */
 public class HBaseRegionCache implements RegionCache {
     private static final Logger CACHE_LOG = Logger.getLogger(HBaseRegionCache.class);
-    private static final RegionCache INSTANCE = HBaseRegionCache.create(SpliceConstants.cacheExpirationPeriod, SpliceConstants.cacheUpdatePeriod);
+    private static final RegionCache INSTANCE = HBaseRegionCache.create(SpliceConstants.cacheUpdatePeriod);
 
     private final ConcurrentSkipListMap<byte[], SortedSet<HRegionInfo>> regionCache;
     private final ScheduledExecutorService cacheUpdater;
@@ -50,7 +50,7 @@ public class HBaseRegionCache implements RegionCache {
         return INSTANCE;
     }
 
-    public static RegionCache create(long cacheExpirationPeriod, long cacheUpdatePeriod) {
+    public static RegionCache create(long cacheUpdatePeriod) {
         ScheduledExecutorService cacheUpdater = MoreExecutors.namedSingleThreadScheduledExecutor("tablewriter-cacheupdater-%d");
         return new HBaseRegionCache(cacheUpdatePeriod, cacheUpdater);
     }
