@@ -62,25 +62,6 @@ public class ExportFileTest {
         assertTrue("export file should be deleted", temporaryFolder.getRoot().list().length == 0);
     }
 
-    @Test
-    public void localFile() throws IOException, StandardException {
-        // given
-        ExportParams exportParams = new ExportParams(temporaryFolder.getRoot().getAbsolutePath(), "local", -1, null, null, null);
-        ExportFile exportFile = new ExportFile(exportParams, testTaskId());
-        final byte[] EXPECTED_CONTENT = ("splice for the win" + RandomStringUtils.randomAlphanumeric(1000)).getBytes("utf-8");
-
-        // when
-        OutputStream outputStream = exportFile.getOutputStream();
-        outputStream.write(EXPECTED_CONTENT);
-        outputStream.close();
-
-        // then
-        File expectedFile = new File(temporaryFolder.getRoot(), "export_82010203042A060708.csv");
-        assertTrue(expectedFile.exists());
-        assertArrayEquals(EXPECTED_CONTENT, IOUtils.toByteArray(new FileInputStream(expectedFile)));
-    }
-
-
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     private static byte[] testTaskId() {
