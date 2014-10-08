@@ -161,7 +161,9 @@ public class HBaseRegionCache implements RegionCache {
 
                 @Override
                 public void close() throws IOException {
-                    regionCache.put(lastByte, regionInfos);
+                    if(lastByte != null) {
+                        regionCache.put(lastByte, regionInfos);
+                    }
                 }
             };
 
