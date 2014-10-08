@@ -3,7 +3,6 @@ package com.splicemachine.async;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.splicemachine.collections.NullStopIterator;
-import com.splicemachine.hbase.RowKeyDistributor;
 import com.splicemachine.metrics.*;
 import com.splicemachine.metrics.Counter;
 import com.splicemachine.metrics.Timer;
@@ -33,19 +32,12 @@ public class GatheringScanner implements AsyncScanner {
     private final SubScanner[] scanners;
     private final int maxQueueSize;
 
-    public static AsyncScanner newScanner(Scan baseScan,
-                                          int maxQueueSize,
+    public static AsyncScanner newScanner(int maxQueueSize,
                                           MetricFactory metricFactory,
                                           Function<Scan, Scanner> toScannerFunction,
-                                          RowKeyDistributor rowKeyDistributor) throws IOException {
-
-        Scan[] distributedScans = rowKeyDistributor.getDistributedScans(baseScan);
-        List<Scanner> scans = Lists.newArrayListWithExpectedSize(distributedScans.length);
-        for(Scan scan:distributedScans){
-            scans.add(toScannerFunction.apply(scan));
-        }
-
-        return new GatheringScanner(scans,maxQueueSize,metricFactory);
+                                          List<Scan> scans) throws IOException {
+        List<Scanner> scanners = Lists.transform(scans, toScannerFunction);
+        return new GatheringScanner(scanners,maxQueueSize,metricFactory);
     }
 
     public GatheringScanner(List<Scanner> scanners, int maxQueueSize, MetricFactory metricFactory){
@@ -283,20 +275,4 @@ public class GatheringScanner implements AsyncScanner {
         }
     }
 
-//    public static void main(String...args) throws Exception{
-//        byte[] table = Bytes.toBytes(Long.toString(1184));
-//        Scan baseScan = new Scan();
-//        try{
-//            AsyncScanner scanner = GatheringScanner.newScanner(table,baseScan,1<<16);
-//            int count =0;
-//            Result r;
-//            while((r = scanner.next())!=null){
-//                count++;
-//            }
-//            System.out.println(count);
-//        }finally{
-//            HBaseRegionCache.getInstance().shutdown();
-//            SimpleAsyncScanner.HBASE_CLIENT.shutdown().join();
-//        }
-//    }
 }

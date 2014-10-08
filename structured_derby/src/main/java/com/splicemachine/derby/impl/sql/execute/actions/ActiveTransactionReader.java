@@ -13,9 +13,7 @@ import com.splicemachine.derby.impl.temp.TempTable;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.BucketHasher;
-import com.splicemachine.hbase.FilteredRowKeyDistributor;
-import com.splicemachine.hbase.RowKeyDistributor;
-import com.splicemachine.hbase.RowKeyDistributorByHashPrefix;
+import com.splicemachine.hbase.*;
 import com.splicemachine.async.AsyncScanner;
 import com.splicemachine.async.SimpleAsyncScanner;
 import com.splicemachine.async.SortedGatheringScanner;
@@ -37,11 +35,9 @@ import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
-import com.splicemachine.async.HBaseClient;
 import com.splicemachine.async.KeyValue;
 import com.splicemachine.async.Scanner;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Comparator;
@@ -133,14 +129,9 @@ public class ActiveTransactionReader {
         Scan scan = new Scan();
         scan.setStartRow(operationId);
         scan.setStopRow(BytesUtil.unsignedCopyAndIncrement(operationId));
-        final HBaseClient hBaseClient = SimpleAsyncScanner.HBASE_CLIENT;
-        final AsyncScanner scanner = SortedGatheringScanner.newScanner(scan, queueSize, Metrics.noOpMetricFactory(), new Function<Scan, Scanner>() {
-                    @Nullable
-                    @Override
-                    public Scanner apply(@Nullable Scan input) {
-                        return DerbyAsyncScannerUtils.convertScanner(input, tempTable.getTempTableName(), hBaseClient);
-                    }
-                }, keyDistributor,
+        Function<Scan, Scanner> convertFunction = DerbyAsyncScannerUtils.convertFunction(tempTable.getTempTableName(), SimpleAsyncScanner.HBASE_CLIENT);
+        List<Scan> dividedScans = ScanDivider.divide(scan, keyDistributor);
+        final AsyncScanner scanner = SortedGatheringScanner.newScanner(queueSize, Metrics.noOpMetricFactory(), convertFunction, dividedScans,
                 new Comparator<byte[]>() {
                     @Override
                     public int compare(byte[] o1, byte[] o2) {

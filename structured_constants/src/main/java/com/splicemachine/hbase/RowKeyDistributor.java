@@ -1,17 +1,16 @@
 package com.splicemachine.hbase;
 
-import java.io.IOException;
-import java.util.Arrays;
 import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 
+import java.util.Arrays;
+
 /**
- * Defines the way row keys are distributed
- * 
+ * Defines the way row keys are distributed.
  */
 public abstract class RowKeyDistributor {
+
     public abstract byte[] getDistributedKey(byte[] originalKey);
 
     public abstract byte[] getOriginalKey(byte[] adjustedKey);
@@ -54,16 +53,4 @@ public abstract class RowKeyDistributor {
         return intervals;
     }
 
-    public final Scan[] getDistributedScans(Scan original) throws IOException {
-        Pair<byte[], byte[]>[] intervals = getDistributedIntervals(original.getStartRow(), original.getStopRow());
-
-        Scan[] scans = new Scan[intervals.length];
-        for (int i = 0; i < intervals.length; i++) {
-            scans[i] = new Scan(original);
-            scans[i].setStartRow(intervals[i].getFirst());
-            scans[i].setStopRow(intervals[i].getSecond());
-            scans[i].setFilter(original.getFilter());
-        }
-        return scans;
-    }
 }

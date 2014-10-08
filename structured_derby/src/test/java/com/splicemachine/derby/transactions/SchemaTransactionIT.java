@@ -14,7 +14,7 @@ import java.sql.SQLException;
  * @author Scott Fines
  * Date: 9/25/14
  */
-public class CreateSchemaTransactionIT {
+public class SchemaTransactionIT {
     public static final SpliceWatcher classWatcher = new SpliceWatcher();
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(classWatcher);
@@ -98,5 +98,53 @@ public class CreateSchemaTransactionIT {
             Assert.assertEquals("Incorrect error message:"+se.getMessage(),
                     ErrorState.WRITE_WRITE_CONFLICT.getSqlState(),se.getSQLState());
         }
+    }
+
+    @Test
+    public void testDropSchemaNotRecognizedUntilCommit() throws Exception {
+        String schemaName = "schema4".toUpperCase();
+        conn1.createStatement().execute(String.format("create schema %s",schemaName));
+        conn1.commit();
+        conn2.commit();
+
+        ResultSet schemas = conn2.getMetaData().getSchemas(null, schemaName);
+        Assert.assertTrue("schema is not visible after commit!", schemas.next());
+        schemas.close();
+
+        //now drop the schema
+        conn1.createStatement().execute(String.format("drop schema %s restrict",schemaName));
+
+        schemas = conn2.getMetaData().getSchemas(null, schemaName);
+        Assert.assertTrue("drop schema is visible outside of transaction!",schemas.next());
+        schemas.close();
+
+        conn1.commit();
+        conn2.commit();
+
+        schemas = conn2.getMetaData().getSchemas(null, schemaName);
+        Assert.assertFalse("drop schema is still visible after commit!", schemas.next());
+        schemas.close();
+    }
+
+    @Test
+    public void testDropSchemaRollback() throws Exception {
+        String schemaName = "schema5".toUpperCase();
+        conn1.createStatement().execute(String.format("create schema %s",schemaName));
+        conn1.commit();
+
+        ResultSet schemas = conn1.getMetaData().getSchemas(null, schemaName);
+        Assert.assertTrue("schema is not visible before drop!", schemas.next());
+
+        conn1.createStatement().execute(String.format("drop schema %s restrict",schemaName));
+        schemas = conn1.getMetaData().getSchemas(null, schemaName);
+        Assert.assertFalse("drop schema is not visible inside same transaction!",schemas.next());
+
+        conn1.rollback();
+
+        schemas = conn1.getMetaData().getSchemas(null, schemaName);
+        Assert.assertTrue("schema is not visible after rollback!",schemas.next());
+        //actually drop it to make sure it clears
+        conn1.createStatement().execute(String.format("drop schema %s restrict",schemaName));
+        conn1.commit();
     }
 }

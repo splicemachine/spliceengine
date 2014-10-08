@@ -155,13 +155,17 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
              * we replace it with a wrapped transaction
              */
             try{
-                for(int i=0;i<indexFactories.size();i++){
-                    LocalWriteFactory factory = indexFactories.get(i);
-                    if(factory.getConglomerateId()==indexConglomId){
-                        DropIndexFactory wrappedFactory = new DropIndexFactory(txn,factory);
-                        indexFactories.set(i,wrappedFactory);
-                        return;
+                synchronized (indexFactories){
+                    for(int i=0;i<indexFactories.size();i++){
+                        LocalWriteFactory factory = indexFactories.get(i);
+                        if(factory.getConglomerateId()==indexConglomId){
+                            DropIndexFactory wrappedFactory = new DropIndexFactory(txn,factory, indexConglomId);
+                            indexFactories.set(i,wrappedFactory);
+                            return;
+                        }
                     }
+                    //it hasn't been added yet, so make sure that we add the index
+                    indexFactories.add(new DropIndexFactory(txn,null, indexConglomId));
                 }
             }finally{
                 tableWriteLatch.countDown();
@@ -170,14 +174,22 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
     }
 
     private void replace(LocalWriteFactory newFactory) {
-        for(int i=0;i<indexFactories.size();i++){
-            LocalWriteFactory localWriteFactory = indexFactories.get(i);
-            if(localWriteFactory.equals(newFactory)){
-                indexFactories.set(i, newFactory);
-                return;
+        synchronized (indexFactories){
+            for(int i=0;i<indexFactories.size();i++){
+                LocalWriteFactory localWriteFactory = indexFactories.get(i);
+                if(localWriteFactory.equals(newFactory)){
+                    if(localWriteFactory instanceof DropIndexFactory){
+                        DropIndexFactory dropIndexFactory = (DropIndexFactory)localWriteFactory;
+                        if(dropIndexFactory.delegate==null)
+                           dropIndexFactory.setDelegate(newFactory);
+                    }else
+                        indexFactories.set(i, newFactory);
+
+                    return;
+                }
             }
+            indexFactories.add(newFactory);
         }
-        indexFactories.add(newFactory);
     }
 
     @Override
@@ -425,6 +437,11 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
                         assert ddlDesc!=null: "Cannot have a null ddl descriptor!";
                         if(ddlDesc.getBaseConglomerateNumber()==congomId)
                             dropColumnFactories.add(DropColumnFactory.create(ddlChange));
+                    case DROP_INDEX:
+                        assert ddlDesc!=null: "Cannot have a null ddl descriptor!";
+                        if(ddlDesc.getBaseConglomerateNumber()==congomId)
+                            dropIndex(ddlDesc.getConglomerateNumber(), txn);
+
                 }
             }
         }
@@ -656,15 +673,18 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
 
     private static class DropIndexFactory implements LocalWriteFactory{
         private TxnView txn;
-        private LocalWriteFactory delegate;
+        private volatile LocalWriteFactory delegate;
+        private long indexConglomId;
 
-        private DropIndexFactory(TxnView txn, LocalWriteFactory delegate) {
+        private DropIndexFactory(TxnView txn, LocalWriteFactory delegate, long indexConglomId) {
             this.txn = txn;
             this.delegate = delegate;
+            this.indexConglomId = indexConglomId;
         }
 
         @Override
         public void addTo(PipelineWriteContext ctx, boolean keepState, int expectedWrites) throws IOException {
+            if(delegate==null) return; //no delegate, so nothing to do just yet
             /*
              * We only want to add an entry if one of the following holds:
              *
@@ -677,14 +697,18 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
             if(shouldAdd) delegate.addTo(ctx,keepState,expectedWrites);
         }
 
+        public void setDelegate(LocalWriteFactory delegate){
+           this.delegate = delegate;
+        }
+
         @Override public long getConglomerateId() { return delegate.getConglomerateId(); }
 
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if(o instanceof DropIndexFactory)
-                return delegate.equals(((DropIndexFactory) o).delegate);
-            else return o instanceof IndexFactory && delegate.equals(o);
+                return ((DropIndexFactory)o).indexConglomId==indexConglomId;
+            else return o instanceof IndexFactory && ((IndexFactory) o).getConglomerateId() == indexConglomId;
         }
 
         @Override public int hashCode() { return delegate.hashCode(); }

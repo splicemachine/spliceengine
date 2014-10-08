@@ -227,4 +227,46 @@ public class IndexTransactionIT {
             Assert.assertEquals("Incorrect error message returned!",ErrorState.LANG_INVALID_FORCED_INDEX1.getSqlState(),se.getSQLState());
         }
     }
+
+    @Test
+    public void testDropRollbackMaintainsAConsistentIndex() throws Exception {
+        int aInt = 5;
+        int bInt =5;
+        int cInt = 5;
+
+        PreparedStatement preparedStatement = conn1.prepareStatement("create index c_idx on "+table+"(c)");
+        preparedStatement.execute();
+        conn1.commit(); //force to a new timestamp for visibility check
+        conn2.rollback(); //move other transaction forward so that index is visible
+
+        //ensure that the index can be found
+        String query = "select * from " + table + " --SPLICE-PROPERTIES index=C_IDX \n" +
+                "where c = " + cInt;
+        long count = conn2.count(query);
+        Assert.assertEquals("conn2 has incorrect index count!",0l,count);
+
+        /*
+         * now do the following:
+         *
+         * 1. conn1.dropIndex()
+         * 2. conn2.insert(a,b,c)
+         * 3. conn1.rollback()
+         * 4. conn2.commit()
+         * 5. conn1.select(c=..) using index and validate that it works
+         */
+        conn1.createStatement().execute("drop index "+schemaWatcher.schemaName+".C_IDX");
+
+        conn2.createStatement().execute("insert into "+table+" (a,b,c) values ("+aInt+","+bInt+","+cInt+")");
+        count = conn2.count(query);
+        Assert.assertEquals("conn2 has incorrect index count during operation!",1l,count);
+
+        conn1.rollback();
+        conn2.commit();
+
+        count = conn1.count(query);
+        Assert.assertEquals("conn1 has incorrect index count after rollback!",1l,count);
+        //now drop the index for real
+        conn1.createStatement().execute("drop index "+schemaWatcher.schemaName+".C_IDX");
+        conn1.commit();
+    }
 }
