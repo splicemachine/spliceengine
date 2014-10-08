@@ -29,9 +29,9 @@ import java.util.concurrent.*;
  *         Created on: 8/8/13
  */
 public class HBaseRegionCache implements RegionCache {
+    private static final Logger CACHE_LOG = Logger.getLogger(HBaseRegionCache.class);
     private static final RegionCache INSTANCE = HBaseRegionCache.create(SpliceConstants.cacheExpirationPeriod, SpliceConstants.cacheUpdatePeriod);
 
-    private static final Logger CACHE_LOG = Logger.getLogger(HBaseRegionCache.class);
     private final ConcurrentSkipListMap<byte[],SortedSet<HRegionInfo>> regionCache;
     private final ScheduledExecutorService cacheUpdater;
 
