@@ -16,6 +16,8 @@ import org.junit.rules.TestRule;
 import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.Statement;
+import java.sql.Time;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
@@ -26,43 +28,46 @@ import static org.junit.Assert.assertTrue;
  *         Created on: 3/8/13
  */
 //@Category(SerialTest.class)
-public class NonUniqueIndexIT extends SpliceUnitTest { 
+public class NonUniqueIndexIT extends SpliceUnitTest {
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 
-	public static final String CLASS_NAME = NonUniqueIndexIT.class.getSimpleName().toUpperCase();
-	public static final String TABLE_NAME_1 = "A";
-	public static final String TABLE_NAME_2 = "B";
-	public static final String TABLE_NAME_3 = "C";
-	public static final String TABLE_NAME_4 = "D";
-	public static final String TABLE_NAME_5 = "E";
-	public static final String TABLE_NAME_6 = "F";
+    public static final String CLASS_NAME = NonUniqueIndexIT.class.getSimpleName().toUpperCase();
+    public static final String TABLE_NAME_1 = "A";
+    public static final String TABLE_NAME_2 = "B";
+    public static final String TABLE_NAME_3 = "C";
+    public static final String TABLE_NAME_4 = "D";
+    public static final String TABLE_NAME_5 = "E";
+    public static final String TABLE_NAME_6 = "F";
     public static final String TABLE_NAME_7 = "G";
     public static final String TABLE_NAME_8 = "H";
     public static final String TABLE_NAME_9 = "I";
     public static final String TABLE_NAME_10 = "J";
 
-	public static final String INDEX_11 = "IDX_A1";
-	public static final String INDEX_21 = "IDX_B1";
-	public static final String INDEX_31 = "IDX_C1";
-	public static final String INDEX_41 = "IDX_D1";
-	public static final String INDEX_51 = "IDX_E1";
-	public static final String INDEX_61 = "IDX_F1";
+    public static final String INDEX_11 = "IDX_A1";
+    public static final String INDEX_21 = "IDX_B1";
+    public static final String INDEX_31 = "IDX_C1";
+    public static final String INDEX_41 = "IDX_D1";
+    public static final String INDEX_51 = "IDX_E1";
+    public static final String INDEX_61 = "IDX_F1";
     public static final String INDEX_62 = "IDX_F2";
     public static final String INDEX_81 = "IDX_H2";
     public static final String INDEX_91 = "IDX_I1";
     public static final String INDEX_J = "IDX_J1";
 
-	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
-	protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE_NAME_1,spliceSchemaWatcher.schemaName,"(name varchar(40), val int)");
-	protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE_NAME_2,spliceSchemaWatcher.schemaName,"(n_1 varchar(40),n_2 varchar(30),val int)");
-	protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher(TABLE_NAME_3,spliceSchemaWatcher.schemaName,"(name varchar(40), val int)");
-	protected static SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher(TABLE_NAME_4,spliceSchemaWatcher.schemaName,"(name varchar(40), val int)");
-	protected static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher(TABLE_NAME_5,spliceSchemaWatcher.schemaName,"(name varchar(40), val int)");
-	protected static SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher(TABLE_NAME_6,spliceSchemaWatcher.schemaName,"(name varchar(40), val int)");
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE_NAME_1,spliceSchemaWatcher.schemaName,"(name varchar(40), val int)");
+    protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE_NAME_2,spliceSchemaWatcher.schemaName,"(n_1 varchar(40),n_2 varchar(30),val int)");
+    protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher(TABLE_NAME_3,spliceSchemaWatcher.schemaName,"(name varchar(40), val int)");
+    protected static SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher(TABLE_NAME_4,spliceSchemaWatcher.schemaName,"(name varchar(40), val int)");
+    protected static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher(TABLE_NAME_5,spliceSchemaWatcher.schemaName,"(name varchar(40), val int)");
+    protected static SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher(TABLE_NAME_6,spliceSchemaWatcher.schemaName,"(name varchar(40), val int)");
     protected static SpliceTableWatcher spliceTableWatcher7 = new SpliceTableWatcher(TABLE_NAME_7,spliceSchemaWatcher.schemaName,"(name varchar(40), val int)");
     protected static SpliceTableWatcher spliceTableWatcher8 = new SpliceTableWatcher(TABLE_NAME_8,spliceSchemaWatcher.schemaName,"(oid decimal(5),name varchar(40))");
     protected static SpliceTableWatcher spliceTableWatcher9 = new SpliceTableWatcher(TABLE_NAME_9,spliceSchemaWatcher.schemaName,"(c1 int, c2 int, c3 int)");
     protected static SpliceTableWatcher spliceTableWatcher10 = new SpliceTableWatcher(TABLE_NAME_10,spliceSchemaWatcher.schemaName,"(i int, j int)");
+    //table for DB-1315 regression test
+    private static SpliceTableWatcher toUpdateWatcher = new SpliceTableWatcher("DB_1315",spliceSchemaWatcher.schemaName,
+            "(cint int, cchar char(10),ctime time, cdec dec(6,2), ccharForBitData char(1) for bit data, unindexed int)");
 
     @Override
     public String getSchemaName() {
@@ -70,21 +75,22 @@ public class NonUniqueIndexIT extends SpliceUnitTest {
     }
 
     @ClassRule
-	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
-		.around(spliceSchemaWatcher)
-		.around(spliceTableWatcher1)
-		.around(spliceTableWatcher2)
-		.around(spliceTableWatcher3)
-		.around(spliceTableWatcher4)
-		.around(spliceTableWatcher5)
-		.around(spliceTableWatcher6)
-        .around(spliceTableWatcher7)
+    public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
+            .around(spliceSchemaWatcher)
+            .around(spliceTableWatcher1)
+            .around(spliceTableWatcher2)
+            .around(spliceTableWatcher3)
+            .around(spliceTableWatcher4)
+            .around(spliceTableWatcher5)
+            .around(spliceTableWatcher6)
+            .around(spliceTableWatcher7)
             .around(spliceTableWatcher8)
             .around(spliceTableWatcher9)
-    .around(spliceTableWatcher10);
+            .around(toUpdateWatcher)
+            .around(spliceTableWatcher10);
 
-	
-	@Rule public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
+
+    @Rule public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
 
     @Test(timeout=10000)
     public void testCanCreateIndexWithMultipleEntries() throws Exception{
@@ -199,7 +205,7 @@ public class NonUniqueIndexIT extends SpliceUnitTest {
         preparedStatement.setBigDecimal(1,oid);
         preparedStatement.setString(2,name);
         preparedStatement.execute();
-    	new SpliceIndexWatcher(TABLE_NAME_8,spliceSchemaWatcher.schemaName,INDEX_81,spliceSchemaWatcher.schemaName,"(name)").starting(null);
+        new SpliceIndexWatcher(TABLE_NAME_8,spliceSchemaWatcher.schemaName,INDEX_81,spliceSchemaWatcher.schemaName,"(name)").starting(null);
         //now check that we can get data out for the proper key
         preparedStatement = methodWatcher.prepareStatement("select * from "+ spliceTableWatcher8+" where oid = ?");
         preparedStatement.setBigDecimal(1,oid);
@@ -230,7 +236,7 @@ public class NonUniqueIndexIT extends SpliceUnitTest {
     @Test(timeout=10000)
     public void testCanCreateIndexFromExistingDataAndThenAddData() throws Exception{
         methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('sfines',2)",this.getTableReference(TABLE_NAME_4)));
-    	new SpliceIndexWatcher(TABLE_NAME_4,spliceSchemaWatcher.schemaName,INDEX_41,spliceSchemaWatcher.schemaName,"(name)").starting(null);
+        new SpliceIndexWatcher(TABLE_NAME_4,spliceSchemaWatcher.schemaName,INDEX_41,spliceSchemaWatcher.schemaName,"(name)").starting(null);
         //add some more data
         String name = "jzhang";
         int value =2;
@@ -248,8 +254,8 @@ public class NonUniqueIndexIT extends SpliceUnitTest {
         }
         Assert.assertEquals("Incorrect number of rows returned!",1,results.size());
     }
-    
-//    @Test(timeout=10000))
+
+    //    @Test(timeout=10000))
     @Test
     public void testCanAddDuplicateAndDelete() throws Exception{
     	new SpliceIndexWatcher(TABLE_NAME_5,spliceSchemaWatcher.schemaName,INDEX_51,spliceSchemaWatcher.schemaName,"(name)").starting(null);
@@ -311,7 +317,7 @@ public class NonUniqueIndexIT extends SpliceUnitTest {
     @Test
     public void testCanUpdateEntryIndexChanges() throws Exception{
         methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('sfines',2)",this.getTableReference(TABLE_NAME_6)));
-    	new SpliceIndexWatcher(TABLE_NAME_6,spliceSchemaWatcher.schemaName,INDEX_61,spliceSchemaWatcher.schemaName,"(name)").starting(null);
+        new SpliceIndexWatcher(TABLE_NAME_6,spliceSchemaWatcher.schemaName,INDEX_61,spliceSchemaWatcher.schemaName,"(name)").starting(null);
 
         String oldName = "sfines";
         String newName = "jzhang";
@@ -389,6 +395,52 @@ public class NonUniqueIndexIT extends SpliceUnitTest {
         assertTrue(rows.contains(new Pair<Integer,Integer>(null, 1)));
         assertTrue(rows.contains(new Pair<Integer,Integer>(null, 4)));
         assertTrue(rows.contains(new Pair<Integer,Integer>(3, 2)));
+    }
+
+    @Test
+    @Ignore("Ignored until DB-1315 is resolved")
+    public void testUpdateBitDataReturnsCorrectRowCount() throws Exception {
+        /*
+         * Regression test for DB-1315. This adds a bunch of indices,
+         * then performs a bunch of basic updates to make sure that the updates
+         * report the correct number of updated rows.
+         *
+         */
+        TestConnection connection = methodWatcher.getOrCreateConnection();
+        String indexBaseFormat = "create index %s on %s (%s)";
+        Statement statement = connection.createStatement();
+        statement.execute(String.format(indexBaseFormat,"b1",toUpdateWatcher,"cchar,ccharForBitData,cint"));
+        statement.execute(String.format(indexBaseFormat,"b2",toUpdateWatcher,"ctime"));
+        statement.execute(String.format(indexBaseFormat,"b3",toUpdateWatcher,"ctime,cint"));
+        statement.execute(String.format(indexBaseFormat,"b4",toUpdateWatcher,"cint"));
+
+        //insert some data into the data
+        int numRows = 1;
+        PreparedStatement ps = connection.prepareStatement(String.format("insert into %s values (?,?,?,?,?,?)",toUpdateWatcher));
+        ps.setInt(1,11);ps.setString(2, "11");ps.setTime(3, new Time(11,11,11)); ps.setBigDecimal(4, new BigDecimal("1.1")); ps.setBytes(5, new byte[]{0x11});ps.setInt(6,11);ps.executeUpdate();
+        //now do some update statements and make sure that they report the correct values
+
+        String updateBaseFormat = "update %1$s set %2$s = %2$s";
+        int count = statement.executeUpdate(String.format(updateBaseFormat,toUpdateWatcher,"cint"));
+        Assert.assertEquals("Incorrect modified count",numRows,count);
+        count = statement.executeUpdate(String.format(updateBaseFormat,toUpdateWatcher,"cchar"));
+        Assert.assertEquals("Incorrect modified count", numRows, count);
+        count = statement.executeUpdate(String.format(updateBaseFormat,toUpdateWatcher,"ctime"));
+        Assert.assertEquals("Incorrect modified count", numRows, count);
+        count = statement.executeUpdate(String.format(updateBaseFormat,toUpdateWatcher,"cdec"));
+        Assert.assertEquals("Incorrect modified count", numRows, count);
+        count = statement.executeUpdate(String.format(updateBaseFormat,toUpdateWatcher,"ccharForBitData"));
+        Assert.assertEquals("Incorrect modified count", numRows, count);
+        count = statement.executeUpdate(String.format(updateBaseFormat,toUpdateWatcher,"cint"));
+        Assert.assertEquals("Incorrect modified count", numRows, count);
+        count = statement.executeUpdate(String.format(updateBaseFormat,toUpdateWatcher,"cchar"));
+        Assert.assertEquals("Incorrect modified count", numRows, count);
+        count = statement.executeUpdate(String.format(updateBaseFormat,toUpdateWatcher,"time"));
+        Assert.assertEquals("Incorrect modified count", numRows, count);
+        count = statement.executeUpdate(String.format(updateBaseFormat,toUpdateWatcher,"cdec"));
+        Assert.assertEquals("Incorrect modified count", numRows, count);
+        count = statement.executeUpdate(String.format(updateBaseFormat,toUpdateWatcher,"ccharForBitData"));
+        Assert.assertEquals("Incorrect modified count", numRows, count);
     }
 
     private void assertSelectCorrect(String schemaName, String tableName, String name, int size) throws Exception{
