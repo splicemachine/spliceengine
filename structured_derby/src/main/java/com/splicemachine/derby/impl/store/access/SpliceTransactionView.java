@@ -4,6 +4,7 @@ import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.si.api.CannotCommitException;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.locks.CompatibilitySpace;
 import org.apache.derby.iapi.store.raw.log.LogInstant;
@@ -27,10 +28,13 @@ public class SpliceTransactionView extends BaseSpliceTransaction {
 
     private TxnView txn;
 
-    public SpliceTransactionView(CompatibilitySpace compatibilitySpace, DataValueFactory dataValueFactory,
+    public SpliceTransactionView(CompatibilitySpace compatibilitySpace,
+    						 SpliceTransactionFactory spliceTransactionFactory,
+    						 DataValueFactory dataValueFactory,
                              String transName, TxnView txn) {
         SpliceLogUtils.trace(LOG, "Instantiating Splice transaction");
         this.compatibilitySpace = compatibilitySpace;
+		this.spliceTransactionFactory = spliceTransactionFactory;
         this.dataValueFactory = dataValueFactory;
         this.transName = transName;
         this.state = SpliceTransaction.ACTIVE;

@@ -23,6 +23,7 @@ import java.util.Properties;
 public abstract class BaseSpliceTransaction implements Transaction {
     private static Logger LOG = Logger.getLogger(BaseSpliceTransaction.class);
     protected CompatibilitySpace compatibilitySpace;
+    protected SpliceTransactionFactory spliceTransactionFactory;
     protected DataValueFactory dataValueFactory;
     protected SpliceTransactionContext transContext;
     protected String transName;
@@ -80,7 +81,7 @@ public abstract class BaseSpliceTransaction implements Transaction {
     @Override public void logAndDo(Loggable operation) throws StandardException {  }
     @Override public void addPostCommitWork(Serviceable work) {  }
     @Override public void addPostTerminationWork(Serviceable work) {  }
-    @Override public FileResource getFileHandler() { return null; }
+    @Override public FileResource getFileHandler() { return (spliceTransactionFactory == null ? null : spliceTransactionFactory.getFileHandler()); }
     @Override public boolean anyoneBlocked() { return false; }
     @Override public void createXATransactionFromLocalTransaction(int format_id, byte[] global_id, byte[] branch_id) throws StandardException {  }
     @Override public int xa_prepare() throws StandardException { return 0; }
