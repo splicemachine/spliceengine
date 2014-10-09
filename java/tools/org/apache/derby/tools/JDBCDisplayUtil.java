@@ -624,11 +624,11 @@ public class JDBCDisplayUtil {
 			}
 		}
 
-		buf.setLength(Math.min(rowLen, 1024));
+        out.println(rowLen);
 		indentedPrintLine( out, indentLevel, buf);
 
 		// now print a row of '-'s
-		for (int i=0; i<Math.min(rowLen, 1024); i++)
+		for (int i=0; i<rowLen; i++)
 			buf.setCharAt(i, '-');
 		indentedPrintLine( out, indentLevel, buf);
 
