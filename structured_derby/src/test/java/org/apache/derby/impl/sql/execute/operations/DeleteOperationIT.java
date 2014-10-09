@@ -45,7 +45,7 @@ public class DeleteOperationIT extends SpliceUnitTest {
     protected static SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher("customer1",spliceSchemaWatcher.schemaName,"(cust_id int, status boolean)");
     protected static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher("shipment",spliceSchemaWatcher.schemaName,"(cust_id int)");
     protected static SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher("customer2",spliceSchemaWatcher.schemaName,"(cust_id int, status boolean)");
-    protected static SpliceTableWatcher deleteFailWatcher = new SpliceTableWatcher("delete",spliceSchemaWatcher.schemaName,"(cust_id int, status boolean)");
+    protected static SpliceTableWatcher deleteFailWatcher = new SpliceTableWatcher("tdelete",spliceSchemaWatcher.schemaName,"(a smallint)");
 
     @ClassRule 
 	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
