@@ -242,6 +242,14 @@ public class ExportOperationIT {
         } catch (SQLException e) {
             assertEquals("Invalid parameter 'quote character'='BBB'.", e.getMessage());
         }
+
+        // no permission to create export dir
+        try {
+            methodWatcher.executeQuery("export('/ExportOperationIT/', 'HDFS', 1,'utf-8',null, null) select 1 from sys.sysaliases ");
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Invalid parameter 'cannot create export directory'='/ExportOperationIT/'.", e.getMessage());
+        }
     }
 
 

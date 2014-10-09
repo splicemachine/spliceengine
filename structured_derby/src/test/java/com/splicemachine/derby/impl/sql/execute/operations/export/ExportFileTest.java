@@ -62,6 +62,30 @@ public class ExportFileTest {
         assertTrue("export file should be deleted", temporaryFolder.getRoot().list().length == 0);
     }
 
+    @Test
+    public void createDirectory() throws IOException {
+        String testDir = temporaryFolder.getRoot().getAbsolutePath() + "/" + RandomStringUtils.randomAlphabetic(9);
+        ExportParams exportParams = ExportParams.withDirectory(testDir);
+        ExportFile exportFile = new ExportFile(exportParams, testTaskId());
+
+        assertTrue(exportFile.createDirectory());
+
+        assertTrue(new File(testDir).exists());
+        assertTrue(new File(testDir).isDirectory());
+    }
+
+    @Test
+    public void createDirectory_returnsFalseWhenCannotCreate() throws IOException {
+        String testDir = "/noPermissionToCreateFolderInRoot";
+        ExportParams exportParams = ExportParams.withDirectory(testDir);
+        ExportFile exportFile = new ExportFile(exportParams, testTaskId());
+
+        assertFalse(exportFile.createDirectory());
+
+        assertFalse(new File(testDir).exists());
+        assertFalse(new File(testDir).isDirectory());
+    }
+
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     private static byte[] testTaskId() {
