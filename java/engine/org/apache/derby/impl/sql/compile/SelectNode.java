@@ -2655,11 +2655,17 @@ public class SelectNode extends ResultSetNode
     }
 
     /**
-     * Creates a map of function definition (or reference) -> functions that have the
-     * same definition. Each given function has a reference to its definition.<br/>
-     * This is useful for "batching" functions that have the same over() claus.
+     * Creates a map of window definition (or reference) -> functions that have the
+     * same definition. Each given function is given a reference to its window definition
+     * at parse time.<br/>
+     * A window definition is "defined" by its OVER() - the set of columns in the PARTITION BY
+     * and ORDER BY clauses over which the function operates.
+     * <p/>
+     * This is useful for "batching" functions that have the same window definition into the
+     * same WindowResultSetNode.
+     *
      * @param functions the given functions to batch.
-     * @return the mapping [functionDefinition] -> [funct1,funct2,...]
+     * @return the mapping {windowDefinition} -> {funct1,[funct2,...]}
      */
     private static Map<WindowNode,Collection<WindowFunctionNode>> collectFunctionsForDefinitions(Vector functions) {
         // maintaining insertion order of keys (same as vector order)
@@ -2667,7 +2673,7 @@ public class SelectNode extends ResultSetNode
         for (Object node : functions) {
             // the function
             WindowFunctionNode functionNode = (WindowFunctionNode) node;
-            // the function definition or reference
+            // the function's window definition or reference
             WindowNode window = functionNode.getWindow();
 
             Collection<WindowFunctionNode> functionNodes = map.get(window);

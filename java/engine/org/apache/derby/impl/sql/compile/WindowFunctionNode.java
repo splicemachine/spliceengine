@@ -73,8 +73,7 @@ public abstract class WindowFunctionNode extends AggregateNode {
      * @see ValueNode#isConstantExpression
      */
     @Override
-    public boolean isConstantExpression()
-    {
+    public boolean isConstantExpression() {
         return false;
     }
 
@@ -83,8 +82,7 @@ public abstract class WindowFunctionNode extends AggregateNode {
      * @see ValueNode#isConstantExpression
      */
     @Override
-    public boolean constantExpression(PredicateList whereClause)
-    {
+    public boolean constantExpression(PredicateList whereClause) {
         // Without this, an ORDER by on ROW_NUMBER could get optimised away
         // if there is a restriction, e.g.
         //
@@ -157,6 +155,13 @@ public abstract class WindowFunctionNode extends AggregateNode {
         }
     }
 
+    /**
+     * Get an ResultColumn array of all operands.
+     * @param dd unused
+     * @return the array of ResultColumns each pointing to a ColumnReference to
+     * an operand of this operator.
+     * @throws StandardException
+     */
     public ResultColumn[] getNewExpressionResultColumns(DataDictionary dd) throws StandardException {
         ValueNode[] operands = getOperands();
         ResultColumn[] resultColumns = new ResultColumn[operands.length];
@@ -174,6 +179,13 @@ public abstract class WindowFunctionNode extends AggregateNode {
         return resultColumns;
     }
 
+    /**
+     * Default behavior is to return <code>true</code>. That is so that
+     * existing aggregate functions can operate "as-is".<br/>
+     * Subclasses that operate on more than one operand - like ranking
+     * functions - should return <code>false</code>.
+     * @return whether this function operates on more than one operand.
+     */
     public boolean isScalarAggregate() {
         return true;
     }
@@ -252,6 +264,31 @@ public abstract class WindowFunctionNode extends AggregateNode {
         return generatedRef;
     }
 
+    /**
+     * We have to override this method because we subclass AggregateNode. Window functions,
+     * can have more than one operand, unlike AggregateNode which subclasses UnaryOperatorNode,
+     * and one-operand behavior is buried deep in AggregateNode's hierarchy.
+     * <p/>
+     * It may seem more appropriate to create a new NaryOperatorNode and subclass that, but
+     * that would require a lot more integration with derby plan tree manipulation and subclassing
+     * AggregateNode allows us to wrap and use existing aggregate operators as window functions.
+     * <p/>
+     * <b>NOTE</b>: Although this override, which is almost a complete copy of UnaryOperatorNode#bindExpression()
+     * seems to work (because we've also overridden UnaryOperatorNode#bindOperand() - see below),
+     * there are references in this method to <code>operand</code>, which is the superclass'
+     * reference to this operator's <b>first</b> operand - I didn't want to accumulate
+     * "previousReliability", etc. This may need resolution later, esp if/when we allow user-defined
+     * window functions.
+     *
+     * @param fromList            The query's FROM list
+     * @param subqueryList        The subquery list being built as we find SubqueryNodes
+     * @param aggregateVector    The aggregate list being built as we find AggregateNodes,
+     *                           specifically, this node is added to it.
+     *
+     * @return this bound function.
+     * @throws StandardException for unenumerable reasons
+     * @see org.apache.derby.impl.sql.compile.UnaryOperatorNode#bindExpression(FromList, SubqueryList, java.util.Vector)
+     */
     @Override
     public ValueNode bindExpression(FromList fromList,
                                     SubqueryList subqueryList,
@@ -340,25 +377,6 @@ public abstract class WindowFunctionNode extends AggregateNode {
             }
 
               /*
-              ** If we have a distinct, then the value expression
-              ** MUST implement Orderable because we are going
-              ** to process it using it as part of a sort.
-              */
-            if (distinct) {
-                // FIXME: won't need distinct - always false for window function
-                  /*
-                  ** For now, we check to see if orderable() returns
-                  ** true for this type.  In the future we may need
-                  ** to check to see if the type implements Orderable
-                  **
-                  */
-                if (!operand.getTypeId().orderable(cf)) {
-                    throw StandardException.newException(SQLState.LANG_COLUMN_NOT_ORDERABLE_DURING_EXECUTION,
-                                                         dts.getTypeId().getSQLTypeName());
-                }
-            }
-
-              /*
               ** Don't allow an untyped null
               */
             if (operand instanceof UntypedNullConstantNode) {
@@ -399,14 +417,17 @@ public abstract class WindowFunctionNode extends AggregateNode {
     }
 
     /**
-     * Bind the operand for this unary operator.
-     * Binding the operator may change the operand node.
-     * Sub-classes bindExpression() methods need to call this
-     * method to bind the operand.
+     * We override this method because, unlike UnaryOperatorNode, window functions can
+     * have more than one operand (n-ary operator). But, because we have to subclass
+     * AggregateNode to fit in to the mold, we have to bind all our operands.<br/>
+     * This is called from {@link #bindExpression(FromList, SubqueryList, java.util.Vector)}
+     * above.
+     * @see org.apache.derby.impl.sql.compile.UnaryOperatorNode#bindOperand(FromList, SubqueryList, java.util.Vector)
      */
     @Override
     protected void bindOperand(FromList fromList, SubqueryList subqueryList, Vector aggregateVector)
         throws StandardException {
+        // bind all operands
         for (ValueNode node : getOperands()) {
             node = node.bindExpression(fromList, subqueryList, aggregateVector);
 

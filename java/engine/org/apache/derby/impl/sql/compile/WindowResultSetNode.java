@@ -24,12 +24,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.Vector;
 
 import org.apache.derby.iapi.error.StandardException;
@@ -350,9 +345,9 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         throws StandardException {
         windowInfoList = new WindowFunctionInfoList();
 
-        Set<ValueNode> parentCols = addUnAggColumns();
-        appendMissingKeyColumns(parentCols);
-        addAggregateColumns(parentCols);
+        WindowColumnMapping columnMapping = addUnAggColumns();
+        appendMissingKeyColumns(columnMapping);
+        addAggregateColumns(columnMapping);
     }
 
     /**
@@ -360,7 +355,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      *
      * @see #addNewColumnsForAggregation
      */
-    private Set<ValueNode> addUnAggColumns() throws StandardException {
+    private WindowColumnMapping addUnAggColumns() throws StandardException {
         // note bottomRCL is a reference to childResult resultColumns
         // setting columns on bottomRCL will also set them on childResult resultColumns
         ResultColumnList bottomRCL = childResult.getResultColumns();
@@ -373,9 +368,10 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         // and substitute references in original node to point to the Windowing
         // result set. (modelled on GroupByNode's action for addUnAggColumns)
         // VCNs happen, for example, when we have a window over a group by.
-        Set<ValueNode> parentCols = collectParentReferencedColumns(parent.getResultColumns());
+        WindowColumnMapping columnMapping = new WindowColumnMapping(parent.getResultColumns(),
+                                                                    wdn.getPartition(), wdn.getOrderByList());
 
-        for (ValueNode crOrVcn : parentCols) {
+        for (ValueNode crOrVcn : columnMapping.getParentReferenceColumns()) {
             ResultColumn newRC = (ResultColumn) getNodeFactory().getNode(
                 C_NodeTypes.RESULT_COLUMN,
                 "##UnWindowingColumn" + crOrVcn.getColumnName(),
@@ -386,11 +382,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             bottomRCL.addElement(newRC);
             newRC.markGenerated();
             newRC.bindResultColumnToExpression();
-            int columnPosition = bottomRCL.size();
-            newRC.setVirtualColumnId(columnPosition);
-
-            // if this was one of the key columns, we need to reset the key column's position
-            fixKeyColumnPosition(crOrVcn, columnPosition);
+            newRC.setVirtualColumnId(bottomRCL.size());
 
             // now add this column to the windowingRCL
             ResultColumn wRC = (ResultColumn) getNodeFactory().getNode(
@@ -401,7 +393,12 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             windowingRCL.addElement(wRC);
             wRC.markGenerated();
             wRC.bindResultColumnToExpression();
-            wRC.setVirtualColumnId(windowingRCL.size());
+            int columnPosition = windowingRCL.size();
+            wRC.setVirtualColumnId(columnPosition);
+
+            // reset the partition and/or order by column's column position in the
+            // Window result since we're rearranging here
+            columnMapping.resetOverColumnsPositionByParent(crOrVcn, columnPosition);
 
           /*
            ** Reset the original node to point to the
@@ -444,18 +441,17 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         for (SubstituteExpressionVisitor aReferencesToSubstitute : referencesToSubstitute)
             parent.getResultColumns().accept(aReferencesToSubstitute);
 
-        // Return all columns in the select clause
-        return parentCols;
+        return columnMapping;
     }
 
     /**
      * Append any columns from partition and order by to the unagg columns. These will be
      * the key columns over which we need to sort rows in order to properly apply the window
      * function.
-     * @param parentCols the columns in the original select clause, if any.
+     * @param columnMapping the map of parent result columns to OVER() clause columns
      * @throws StandardException
      */
-    private void appendMissingKeyColumns(Set<ValueNode> parentCols) throws StandardException {
+    private void appendMissingKeyColumns(WindowColumnMapping columnMapping) throws StandardException {
         // note bottomRCL is a reference to childResult resultColumns
         // setting columns on bottomRCL will also set them on childResult resultColumns
         ResultColumnList bottomRCL = childResult.getResultColumns();
@@ -463,8 +459,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         // setting columns on windowingRCL will also set them on resultColumns
         ResultColumnList windowingRCL = resultColumns;
 
-        MissingColumns missingColumns = collectOverColumnsNotPresent(parentCols);
-        for (ValueNode crOrVcn : missingColumns.asList()) {
+        for (ValueNode crOrVcn : columnMapping.getMissingKeyNodes()) {
             ResultColumn newRC = (ResultColumn) getNodeFactory().getNode(
                 C_NodeTypes.RESULT_COLUMN,
                 "##KeyColumn" + crOrVcn.getColumnName(),
@@ -491,7 +486,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             wRC.setVirtualColumnId(newColumnNumber);
 
             // reset the key column's column position in the Window result since we're rearranging here
-            missingColumns.setColumnPosition(crOrVcn, newColumnNumber);
+            columnMapping.resetOverColumnsPositionByOverColumn(crOrVcn, newColumnNumber);
         }
     }
 
@@ -501,7 +496,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      *
      * @see #addNewColumnsForAggregation
      */
-    private void addAggregateColumns(Set<ValueNode> parentCols) throws StandardException {
+    private void addAggregateColumns(WindowColumnMapping columnMapping) throws StandardException {
         LanguageFactory lf = getLanguageConnectionContext().getLanguageFactory();
         DataDictionary dd = getDataDictionary();
         // note bottomRCL is a reference to childResult resultColumns
@@ -589,15 +584,11 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 
                 /*
                 ** Add a reference to this column into the
-                ** partition RCL.
+                ** windowing RCL.
                 */
                 tmpRC = getColumnReference(resultColumn, dd);
                 windowingRCL.addElement(tmpRC);
                 tmpRC.setVirtualColumnId(windowingRCL.size());
-
-                // record input column so we know if we need to add
-                // over() columns not contained in the select clause
-                parentCols.add(resultColumn.getExpression());
             }
 
 			/*
@@ -613,7 +604,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             int aggregatorVColId = newRC.getVirtualColumnId();
 
 			/*
-			** Add a reference to this column in the partition RCL.
+			** Add a reference to this column in the windowing RCL.
 			*/
             tmpRC = getColumnReference(newRC, dd);
             windowingRCL.addElement(tmpRC);
@@ -639,11 +630,11 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             aggRCL.addElement(aggResultRC);
 
 			/*
-			** Note that the column ids in the row are 1-based
+			** Note that the column ids here are all are 1-based
 			*/
-            FormatableArrayHolder partitionCols = createColumnOrdering(windowFunctionNode.getWindow().getPartition());
-            FormatableArrayHolder orderByCols = createColumnOrdering(windowFunctionNode.getWindow().getOrderByList());
-            FormatableArrayHolder keyCols = createKeyColumns(partitionCols, orderByCols);
+            FormatableArrayHolder partitionCols = createColumnOrdering(columnMapping.getPartitionColumns());
+            FormatableArrayHolder orderByCols = createColumnOrdering(columnMapping.getOrderByColumns());
+            FormatableArrayHolder keyCols = createColumnOrdering(columnMapping.getKeyColumns());
             windowInfoList.addElement(new WindowFunctionInfo(
                 windowFunctionNode.getAggregateName(),
                 windowFunctionNode.getAggregatorClassName(),
@@ -651,9 +642,9 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                 aggResultVColId,    // the windowFunctionNode result column
                 aggregatorVColId,   // the aggregator column
                 lf.getResultDescription(aggRCL.makeResultDescriptors(), "SELECT"),
-                partitionCols,
-                orderByCols,
-                keyCols,
+                partitionCols,      // window function partition
+                orderByCols,        // window function order by
+                keyCols,            // deduplicated set of partition and order by cols that will be row key
                 windowFunctionNode.getWindow().getFrameExtent().toMap()
             ));
             this.processedAggregates.add(windowFunctionNode);
@@ -933,17 +924,6 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
     //
     ///////////////////////////////////////////////////////////////
 
-    private Set<ValueNode> collectParentReferencedColumns(ResultColumnList resultColumns) {
-        Set<ValueNode> references = new LinkedHashSet<ValueNode>(resultColumns.size());
-        for (int i=0; i<resultColumns.size(); i++) {
-            ValueNode node = resultColumns.getResultColumn(i+1).getExpression();
-            if (ColumnReference.class.isInstance(node) || VirtualColumnNode.class.isInstance(node)) {
-                references.add(node);
-            }
-        }
-        return references;
-    }
-
     private void replaceParentFunctionWithResultReference(ResultColumnList parentResultCols, WindowFunctionNode
         functionNode, ResultColumn newResultColumn) throws StandardException {
 
@@ -966,165 +946,6 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                                                     newResultColumn);
     }
 
-    private void fixKeyColumnPosition(ValueNode column, int columnPosition) throws StandardException {
-        Partition partition = wdn.getPartition();
-        // reset the column position on all key columns that match the given column
-        if (partition != null) {
-            for (int i=0; i<partition.size(); ++i) {
-                ValueNode ref = ((OrderedColumn) partition.elementAt(i)).getColumnExpression();
-                if (column.isEquivalent(ref)) {
-                    resetColumnPosition(ref, columnPosition);
-                }
-            }
-        }
-
-        OrderByList orderByList = wdn.getOrderByList();
-        if (orderByList != null) {
-            for (int i=0; i< orderByList.size(); ++i) {
-                ValueNode ref = ((OrderedColumn) orderByList.elementAt(i)).getColumnExpression();
-                if (column.isEquivalent(ref)) {
-                    resetColumnPosition(ref, columnPosition);
-                }
-            }
-        }
-    }
-
-    private static void resetColumnPosition(ValueNode node, int columnPosition) {
-        if (node instanceof ColumnReference) {
-            ((ColumnReference) node).setColumnNumber(columnPosition);
-        } else if (node instanceof VirtualColumnNode) {
-            ((VirtualColumnNode) node).columnId = columnPosition;
-        }
-    }
-
-    private MissingColumns collectOverColumnsNotPresent(Set<ValueNode> parentCols) throws StandardException {
-        Partition partition = wdn.getPartition();
-        int partitionSize = (partition != null ? partition.size() : 0);
-        OrderByList orderByList = wdn.getOrderByList();
-        int orderByListSize = (orderByList != null ? orderByList.size() : 0);
-
-        MissingColumns missingColumns = new MissingColumns(partitionSize+orderByListSize);
-        for (int i=0; i<partitionSize; ++i) {
-            ValueNode ref = ((OrderedColumn) partition.elementAt(i)).getColumnExpression();
-            if (! containsEquivalent(parentCols, ref)) {
-                missingColumns.add(ref);
-            }
-        }
-
-        for (int i=0; i<orderByListSize; ++i) {
-            ValueNode ref = ((OrderedColumn) orderByList.elementAt(i)).getColumnExpression();
-            if (! containsEquivalent(parentCols, ref)) {
-                missingColumns.add(ref);
-            }
-        }
-        return missingColumns;
-    }
-
-    private boolean containsEquivalent(Collection<ValueNode> collection, ValueNode ref) throws StandardException {
-        boolean contained = false;
-        for (ValueNode node : collection) {
-            ValueNode checkNode = node;
-            if (checkNode instanceof VirtualColumnNode) {
-                // FIXME: may have to recurs here
-                checkNode = ((VirtualColumnNode)checkNode).getSourceColumn().getExpression();
-            }
-            if (ref.isEquivalent(checkNode)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static class MissingColumns {
-
-        private final Set<String> keys;
-        private final Map<String, List<ValueNode>> map;
-
-        public MissingColumns(int size) {
-            this.keys = new LinkedHashSet<String>(size);
-            this.map = new HashMap<String, List<ValueNode>>(size);
-        }
-
-        /**
-         * The set of all keys remain in the order they were inserted
-         * even when a value with the same key is replaced by another.
-         *
-         * @param value the value - could be replaced but remains in
-         *              the same key order as when first inserted.
-         * @return the previous value associated with the key, if any.
-         */
-        List<ValueNode> add(ValueNode value) {
-            String key = createKey(value);
-
-            List<ValueNode> values = map.get(key);
-            if (values == null) {
-                values = new ArrayList<ValueNode>(3);
-            }
-            if (!keys.contains(key)) {
-                keys.add(key);
-            }
-            values.add(value);
-            return map.put(key, values);
-        }
-
-        void setColumnPosition(ValueNode value, int columnPosition) {
-            if (SanityManager.DEBUG) {
-                SanityManager.ASSERT(value instanceof ColumnReference || value instanceof VirtualColumnNode,
-                                     "unknown window partition or over by column type: " + value);
-            }
-
-            for (ValueNode node : get(createKey(value))) {
-                resetColumnPosition(node, columnPosition);
-            }
-        }
-
-        /**
-         * Get the list of values in insertion order by key. For any keys
-         * with duplicate values, only the first value for each key is returned.
-         *
-         * @return the list of values in the order keys were inserted.
-         */
-        List<ValueNode> asList() {
-            List<ValueNode> allValues = new ArrayList<ValueNode>();
-            for (String key : keys) {
-                List<ValueNode> values = map.get(key);
-                // return only first value under each key - the rest are duplicates
-                allValues.add(values.get(0));
-            }
-            return allValues;
-        }
-
-        public int size() {
-            return keys.size();
-        }
-
-        /**
-         * Get all values associated with the key
-         * @param key the key to use
-         * @return any and all values under the given key.
-         */
-        private List<ValueNode> get(String key) {
-            List<ValueNode> values = map.get(key);
-            if (values == null) {
-                values = Collections.emptyList();
-            }
-            return values;
-        }
-
-        private String createKey(ValueNode value) {
-            ResultColumn src = value.getSourceResultColumn();
-            if (src != null) {
-                String name = src.getName();
-                if (name != null) {
-                    return name;
-                }
-                // recurs until we find a non-null key
-                createKey(src);
-            }
-            throw new RuntimeException("Unable to create key for value");
-        }
-    }
-
     /**
      * Create the one-based column ordering for an ordered column list and pack
      * it for shipping.
@@ -1132,7 +953,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      * @param orderedColumnList the list of ordered columns to pack.
      * @return The holder for the column ordering array suitable for shipping.
      */
-    private FormatableArrayHolder createColumnOrdering(OrderedColumnList orderedColumnList) {
+    private FormatableArrayHolder createColumnOrdering(List<OrderedColumn> orderedColumnList) {
         FormatableArrayHolder colOrdering = null;
         if (orderedColumnList != null) {
             IndexColumnOrder[] ordering = new IndexColumnOrder[orderedColumnList.size()];
@@ -1149,52 +970,6 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             colOrdering = new FormatableArrayHolder(new IndexColumnOrder[0]);
         }
         return colOrdering;
-    }
-
-    /**
-     * Create a set of key columns from partition and order by keys. This set of key columns is the
-     * intersection of the two ordered lists, with partition being first.
-     * @param partition window's partition columns
-     * @param orderBy window's order by columns.
-     * @return The holder containing the de-duplicated, ordered intersection of <code>partition</code>
-     * and <code>orderBy</code>.
-     */
-    private FormatableArrayHolder createKeyColumns(FormatableArrayHolder partition, FormatableArrayHolder orderBy) {
-        // maintain the map in insertion order
-        Map<Integer,IndexColumnOrder> temp = new LinkedHashMap<Integer, IndexColumnOrder>();
-
-        IndexColumnOrder[] partitionArray = (IndexColumnOrder[]) partition.getArray(IndexColumnOrder.class);
-        if (partitionArray != null) {
-            // add partition columns
-            for (IndexColumnOrder ico : partitionArray) {
-                temp.put(ico.getColumnId(), new IndexColumnOrder(ico.getColumnId(),
-                                                                 ico.getIsAscending(),
-                                                                 ico.getIsNullsOrderedLow()));
-            }
-        }
-
-        IndexColumnOrder[] orderByArray = (IndexColumnOrder[]) orderBy.getArray(IndexColumnOrder.class);
-        if (orderByArray != null) {
-            // add only order by columns that aren't present
-            for (IndexColumnOrder ico : orderByArray) {
-                temp.put(ico.getColumnId(), new IndexColumnOrder(ico.getColumnId(),
-                                                                 ico.getIsAscending(),
-                                                                 ico.getIsNullsOrderedLow()));
-            }
-        }
-
-        FormatableArrayHolder deDuplicated = null;
-        if (temp.isEmpty()) {
-            deDuplicated = new FormatableArrayHolder(new IndexColumnOrder[0]);
-        } else {
-            IndexColumnOrder[] keyCols = new IndexColumnOrder[temp.size()];
-            int i = 0;
-            for (Map.Entry<Integer, IndexColumnOrder> entry : temp.entrySet()) {
-                keyCols[i++] = entry.getValue();
-            }
-            deDuplicated = new FormatableArrayHolder(keyCols);
-        }
-        return deDuplicated;
     }
 
     /**
