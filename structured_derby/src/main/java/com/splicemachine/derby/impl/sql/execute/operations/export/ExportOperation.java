@@ -33,7 +33,7 @@ public class ExportOperation extends SpliceBaseOperation implements SinkingOpera
 
     private static final long serialVersionUID = 0L;
 
-    protected static List<NodeType> PARALLEL_NODE_TYPES = ImmutableList.of(NodeType.REDUCE);
+    protected static List<NodeType> NODE_TYPES = ImmutableList.of(NodeType.REDUCE);
 
     private SpliceOperation source;
     private ExportParams exportParams;
@@ -51,13 +51,13 @@ public class ExportOperation extends SpliceBaseOperation implements SinkingOpera
                            int replicationCount,
                            String encoding,
                            String fieldSeparator,
-                           String quoteCharacter
-    ) throws StandardException {
+                           String quoteCharacter) throws StandardException {
         super(activation, rsNumber, 0d, 0d);
         this.source = source;
         this.exportParams = new ExportParams(exportPath, fileSystemType, replicationCount, encoding, fieldSeparator, quoteCharacter);
         this.activation = activation;
         try {
+            new ExportPermissionCheck(exportParams).verify();
             init(SpliceOperationContext.newContext(activation));
         } catch (IOException e) {
             throw Exceptions.parseException(e);
@@ -74,7 +74,7 @@ public class ExportOperation extends SpliceBaseOperation implements SinkingOpera
 
     @Override
     public List<NodeType> getNodeTypes() {
-        return PARALLEL_NODE_TYPES;
+        return NODE_TYPES;
     }
 
     @Override
