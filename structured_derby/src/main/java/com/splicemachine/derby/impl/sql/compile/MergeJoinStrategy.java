@@ -88,9 +88,13 @@ public class MergeJoinStrategy extends HashableJoinStrategy {
     }
 
 	@Override
-	public boolean feasible(Optimizable innerTable,OptimizablePredicateList predList, Optimizer optimizer) throws StandardException {		
+	public boolean feasible(Optimizable innerTable,OptimizablePredicateList predList, Optimizer optimizer) throws StandardException {
+		if (CostUtils.isThisBaseTable(optimizer)) {
+			SpliceLogUtils.trace(LOG, "not feasible base table innerTable=%s, predList=%s, optimizer=%s",innerTable,predList,optimizer);
+			return false;
+		}
 		SpliceLevel2OptimizerImpl opt = (SpliceLevel2OptimizerImpl) optimizer;
-		CostEstimate outerCost = null;
+		CostEstimate outerCost = null;		
 		if (opt.joinPosition == 0) {
 			outerCost = opt.outermostCostEstimate;
 		}
@@ -135,11 +139,17 @@ public class MergeJoinStrategy extends HashableJoinStrategy {
 	@Override
 	public void rightResultSetCostEstimate(OptimizablePredicateList predList, CostEstimate outerCost, CostEstimate innerCost) {
 		SpliceLogUtils.trace(LOG, "rightResultSetCostEstimate outerCost=%s, innerFullKeyCost=%s",outerCost, innerCost);
-		double cost = innerCost.getEstimatedCost()+SpliceConstants.optimizerNetworkCost;
-		innerCost.setCost(cost, innerCost.rowCount(), innerCost.singleScanRowCount());
+		// InnerCost does not change
+		SpliceCostEstimateImpl inner = (SpliceCostEstimateImpl) innerCost;
+		inner.setBaseCost((SpliceCostEstimateImpl) innerCost.cloneMe());
+		SpliceCostEstimateImpl outer = (SpliceCostEstimateImpl) outerCost;
+		double joinCost = inner.getEstimatedRowCount()*SpliceConstants.remoteRead/outer.numberOfRegions;				
+		inner.setCost(joinCost+inner.cost+outer.cost, outer.getEstimatedRowCount(), outer.getEstimatedRowCount());
+		inner.setNumberOfRegions(outer.numberOfRegions);
+		inner.setRowOrdering(outer.rowOrdering);
 		SpliceLogUtils.trace(LOG, "rightResultSetCostEstimate computed cost innerCost=%s",innerCost);
-	};	
-   
+	};		
+	
 	 public boolean hashFeasible(RowOrdering rowOrdering, Optimizable innerTable,OptimizablePredicateList predList,Optimizer optimizer) throws StandardException {
         //commented out because it's annoying -SF-
         int[] hashKeyColumns = null;

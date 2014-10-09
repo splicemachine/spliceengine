@@ -457,6 +457,10 @@ public class SpliceConstants {
 		@DefaultValue(OPTIMIZER_EXTRA_QUALIFIER_MULTIPLIER) public static final double DEFAULT_OPTIMIZER_EXTRA_QUALIFIER_MULTIPLIER = 0.9d;
         public static double extraQualifierMultiplier;
 
+
+        public static double remoteRead = 0.1;
+
+        
         /**
          * This multiplier is applied to single region tables where their is a start stop qualifier (i.e. constrained on the first column).  This is 
          * a rough estimate for cardinality (yikes).

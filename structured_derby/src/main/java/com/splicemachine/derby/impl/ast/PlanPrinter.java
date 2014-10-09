@@ -15,6 +15,7 @@ import com.google.common.collect.Lists;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.sql.compile.CostEstimate;
 import org.apache.derby.iapi.sql.compile.Visitable;
 import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
@@ -158,14 +159,15 @@ public class PlanPrinter extends AbstractSpliceVisitor {
     public static Map<String,Object> nodeInfo(final ResultSetNode rsn, final int level)
             throws StandardException {
         Map<String,Object> info = new HashMap<String, Object>();
+        CostEstimate co = rsn.getFinalCostEstimate().getBase();
         info.put("class", JoinInfo.className.apply(rsn));
         info.put("n", rsn.getResultSetNumber());
         info.put("level", level);
-        info.put("cost", rsn.getFinalCostEstimate().getEstimatedCost());
-        info.put("estRowCount", rsn.getFinalCostEstimate().getEstimatedRowCount());
-        info.put("estSingleScanCount", rsn.getFinalCostEstimate().singleScanRowCount());
-        info.put("regions", ((SortState) rsn.getFinalCostEstimate()).getNumberOfRegions());
-        if (Level.TRACE.equals(LOG.getLevel())) {
+        info.put("cost", co.getEstimatedCost());
+        info.put("estRowCount", co.getEstimatedRowCount());
+        info.put("estSingleScanCount", co.singleScanRowCount());
+        info.put("regions", ((SortState) co).getNumberOfRegions());
+        if(LOG.isTraceEnabled()){
             // we only want to see exec row info when THIS logger is set to trace:
             // com.splicemachine.derby.impl.ast.PlanPrinter=TRACE
             info.put("results", getResultColumnInfo(rsn));
