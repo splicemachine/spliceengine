@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.store.access;
 
 import com.splicemachine.derby.impl.store.access.base.SpliceLocalFileResource;
-import com.splicemachine.derby.impl.store.access.base.SpliceLocalFileResource;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.si.api.TransactionLifecycle;
 import com.splicemachine.si.api.Txn;
@@ -17,11 +16,8 @@ import org.apache.derby.iapi.services.locks.LockFactory;
 import org.apache.derby.iapi.services.monitor.ModuleControl;
 import org.apache.derby.iapi.services.monitor.ModuleSupportable;
 import org.apache.derby.iapi.store.access.FileResource;
-import org.apache.derby.iapi.store.access.TransactionInfo;
 import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.types.J2SEDataValueFactory;
-import org.apache.derby.impl.io.DirStorageFactory4;
-import org.apache.derby.io.StorageFactory;
 import org.apache.derby.impl.io.DirStorageFactory4;
 import org.apache.derby.io.StorageFactory;
 import org.apache.log4j.Logger;
@@ -64,7 +60,7 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 		 */
 		public Transaction marshalTransaction(String transName, TxnView txn) throws StandardException {
 				try {
-						return new SpliceTransactionView(NoLockSpace.INSTANCE, dataValueFactory, transName, txn);
+						return new SpliceTransactionView(NoLockSpace.INSTANCE, this, dataValueFactory, transName, txn);
 				} catch (Exception e) {
 						SpliceLogUtils.logAndThrow(LOG,"marshallTransaction failure", Exceptions.parseException(e));
 						return null; // can't happen
@@ -170,7 +166,7 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 						 * for a read-only transaction; this requires a single network call.
 						 */
             Txn txn = lifecycleManager.beginChildTransaction(parentTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION, additive,null);
-            SpliceTransaction trans = new SpliceTransaction(NoLockSpace.INSTANCE, dataValueFactory, transName,txn);
+            SpliceTransaction trans = new SpliceTransaction(NoLockSpace.INSTANCE, this, dataValueFactory, transName,txn);
             trans.setTransactionName(transName);
 
             SpliceTransactionContext context = new SpliceTransactionContext(contextMgr, contextName, trans, abortAll, hbaseStore);
@@ -203,7 +199,7 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 																										 String transName,
 																										 boolean abortAll,
 																										 String contextName) {
-        SpliceTransaction trans = new SpliceTransaction(NoLockSpace.INSTANCE,dataValueFactory,transName);
+        SpliceTransaction trans = new SpliceTransaction(NoLockSpace.INSTANCE,this,dataValueFactory,transName);
         trans.setTransactionName(transName);
 
         SpliceTransactionContext context = new SpliceTransactionContext(contextMgr, contextName, trans, abortAll, hbaseStore);
