@@ -69,9 +69,7 @@ import org.apache.derby.shared.common.reference.MessageId;
  * remains stable in JDK1.1)
  *
  */
-public final class SingleStream
-implements InfoStreams, ModuleControl, java.security.PrivilegedAction
-{
+public class SingleStream implements InfoStreams, ModuleControl, java.security.PrivilegedAction {
 
 	/*
 	** Instance fields
@@ -120,7 +118,7 @@ implements InfoStreams, ModuleControl, java.security.PrivilegedAction
 		application and system properties.
 
 	 */
-	private HeaderPrintWriter makeStream() {
+	protected HeaderPrintWriter makeStream() {
 
 		// get the header
 		PrintWriterGetHeader header = makeHeader();
