@@ -113,4 +113,9 @@ public interface CostEstimate extends StoreCostResult
 	public RowOrdering getRowOrdering();
 	
 	public void setRowOrdering(RowOrdering rowOrdering);
+	
+	public CostEstimate getBase();
+
+	public void setBase(CostEstimate baseCost);
+
 }

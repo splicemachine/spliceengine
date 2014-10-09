@@ -244,19 +244,19 @@ public class JoinNode extends TableOperatorNode {
 		** We add the costs for the inner and outer table, but the number
 		** of rows is that for the inner table only.
 		*/
-		costEstimate.setCost(
-			leftResultSet.getCostEstimate().getEstimatedCost() +
-			rightResultSet.getCostEstimate().getEstimatedCost(),
-			rightResultSet.getCostEstimate().rowCount(),
-			rightResultSet.getCostEstimate().rowCount());
-
+		costEstimate.setCost(rightResultSet.getCostEstimate());
+		costEstimate.setBase(null);
 		/*
 		** Some types of joins (e.g. outer joins) will return a different
 		** number of rows than is predicted by optimizeIt() in JoinNode.
 		** So, adjust this value now. This method does nothing for most
 		** join types.
 		*/
+
+		/* Stupid JL
 		adjustNumberOfRowsReturned(costEstimate);
+		*/
+
 
 		/*
 		** Get the cost of this result set in the context of the whole plan.
@@ -1893,10 +1893,8 @@ public class JoinNode extends TableOperatorNode {
 		CostEstimate leftCE = leftResultSet.getFinalCostEstimate();
 		CostEstimate rightCE = rightResultSet.getFinalCostEstimate();
 		finalCostEstimate = getNewCostEstimate();
-		finalCostEstimate.setCost(
-			leftCE.getEstimatedCost() + rightCE.getEstimatedCost(),
-			rightCE.rowCount(),
-			rightCE.rowCount());
+		finalCostEstimate.setCost(rightCE);
+		finalCostEstimate.setBase(null);
 		return finalCostEstimate;
 	}
 

@@ -332,4 +332,12 @@ public class CostEstimateImpl implements CostEstimate {
 	public RowOrdering getRowOrdering() {
 		throw new RuntimeException("Not Supported");		
 	}
+	public CostEstimate getBase() {
+		return this;		
+	}
+	
+	public void setBase(CostEstimate baseCost) {
+		throw new RuntimeException("Not Supported");				
+	}
+	
 }

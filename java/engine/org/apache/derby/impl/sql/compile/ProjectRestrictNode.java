@@ -306,10 +306,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode
 															outerCost,
 															rowOrdering);
 			/* Copy child cost to this node's cost */
-			costEstimate.setCost(
-							childCost.getEstimatedCost(),
-							childCost.rowCount(),
-							childCost.singleScanRowCount());
+			costEstimate.setCost(childCost);
 
 
 			// Note: we don't call "optimizer.considerCost()" here because
@@ -342,10 +339,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode
 			/* Copy child cost to this node's cost */
 			childCost = childResult.costEstimate;
 
-			costEstimate.setCost(
-							childCost.getEstimatedCost(),
-							childCost.rowCount(),
-							childCost.singleScanRowCount());
+			costEstimate.setCost(childCost);
 
 			/* Note: Prior to the fix for DERBY-781 we had calls here
 			 * to set the cost estimate for BestAccessPath and
