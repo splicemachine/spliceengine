@@ -5,11 +5,8 @@ package com.splicemachine.derby.impl.sql.execute.operations.export;
  */
 public enum ExportFileSystemType {
 
-    HDFS, LOCAL;
-
-    public boolean isLocal() {
-        return LOCAL.equals(this);
-    }
+    // Currently the only option is HDFS.
+    HDFS;
 
     public static boolean isValid(String value) {
         for (ExportFileSystemType t : values()) {

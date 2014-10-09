@@ -879,23 +879,19 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
      *            wait for all transactions started before this one. It should
      *            be the transaction created just after the tentative change
      *            committed.
+     * @param userTxn the <em>user-level</em> transaction of the ddl operation. It is important
+     *                that it be the user-level, otherwise some child transactions may be treated
+     *                as active when they are not actually active.
      * @return list of transactions still running after timeout
      * @throws IOException
      */
-    public long waitForConcurrentTransactions(Txn maximum, List<TxnView> toIgnore,long tableConglomId) throws IOException {
+    public long waitForConcurrentTransactions(Txn maximum, TxnView userTxn,long tableConglomId) throws IOException {
         if (!waitsForConcurrentTransactions()) {
             return -1l;
         }
         byte[] conglomBytes = Long.toString(tableConglomId).getBytes();
 
         ActiveTransactionReader transactionReader = new ActiveTransactionReader(0l,maximum.getTxnId(),conglomBytes);
-        List<Long> ignoreIds = Lists.transform(toIgnore,new Function<TxnView, Long>() {
-            @Nullable
-            @Override
-            public Long apply(@Nullable TxnView input) {
-                return input.getTxnId();
-            }
-        });
         long waitTime = SpliceConstants.ddlDrainingInitialWait; //the initial time to wait
         long maxWait = SpliceConstants.ddlDrainingMaximumWait; // the maximum time to wait
         long scale = 2; //the scale factor for the exponential backoff
@@ -906,9 +902,8 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
             try{
                 TxnView txn;
                 while((txn = activeTxns.next())!=null){
-                    if(!ignoreIds.contains(txn.getTxnId())){
+                    if(!txn.descendsFrom(userTxn)){
                         activeTxnId = txn.getTxnId();
-                        break;
                     }
                 }
             } catch (StreamException e) {

@@ -791,7 +791,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
             // Add the indexes to the existing regions
             createIndex(activation, ddlChange, table, td);
 
-            Txn indexTransaction = getIndexTransaction(parent, tc, tentativeTransaction, heapConglomerateId);
+            Txn indexTransaction = getIndexTransaction(tc, tentativeTransaction, heapConglomerateId);
 
             populateIndex(activation, baseColumnPositions,
                     descColumns,
