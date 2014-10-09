@@ -12,10 +12,10 @@ public class ExportParamsTest {
     @Test
     public void constructor() throws StandardException {
 
-        ExportParams exportParams = new ExportParams("/dir", "local", 42, "ascii", "F", "Q");
+        ExportParams exportParams = new ExportParams("/dir", "hDfS", 42, "ascii", "F", "Q");
 
         assertEquals("/dir", exportParams.getDirectory());
-        assertEquals(ExportFileSystemType.LOCAL, exportParams.getFileSystemType());
+        assertEquals(ExportFileSystemType.HDFS, exportParams.getFileSystemType());
         assertEquals(42, exportParams.getReplicationCount());
         assertEquals("ascii", exportParams.getCharacterEncoding());
         assertEquals('F', exportParams.getFieldDelimiter());
@@ -57,7 +57,7 @@ public class ExportParamsTest {
     @Test
     public void constructor_badExportDirectory() {
         try {
-            new ExportParams(null, "local", 1, "UTF-8", ",", null);
+            new ExportParams(null, "hdfs", 1, "UTF-8", ",", null);
             fail();
         } catch (Exception e) {
             assertEquals("Invalid parameter 'export path'='null'.", e.getMessage());
@@ -77,7 +77,7 @@ public class ExportParamsTest {
     @Test
     public void constructor_badCharacterEncoding() {
         try {
-            new ExportParams("/dir", "local", 1, "NON_EXISTING_CHARSET", ",", null);
+            new ExportParams("/dir", "hdfs", 1, "NON_EXISTING_CHARSET", ",", null);
             fail();
         } catch (StandardException e) {
             assertEquals("Invalid parameter 'encoding'='NON_EXISTING_CHARSET'.", e.getMessage());
@@ -87,7 +87,7 @@ public class ExportParamsTest {
     @Test
     public void constructor_badFieldDelimiter() {
         try {
-            new ExportParams("/dir", "LOCAL", 1, "UTF-8", ",,,", null);
+            new ExportParams("/dir", "HDFS", 1, "UTF-8", ",,,", null);
             fail();
         } catch (Exception e) {
             assertEquals("Invalid parameter 'field delimiter'=',,,'.", e.getMessage());
@@ -98,7 +98,7 @@ public class ExportParamsTest {
     @Test
     public void constructor_badQuoteCharacter() {
         try {
-            new ExportParams("/dir", "LOCAL", 1, "UTF-8", ",", "||||");
+            new ExportParams("/dir", "HDFS", 1, "UTF-8", ",", "||||");
             fail();
         } catch (Exception e) {
             assertEquals("Invalid parameter 'quote character'='||||'.", e.getMessage());

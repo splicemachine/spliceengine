@@ -20,6 +20,10 @@ import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.*;
 
+/**
+ * This IT assumes the server side writes to the local files system accessible to IT itself.  Currently true only
+ * because SpliceTestPlatform starts a cluster than uses local FS instead of HDFS, may not be in the future.
+ */
 public class ExportOperationIT {
 
     private static final String CLASS_NAME = ExportOperationIT.class.getSimpleName().toUpperCase();
@@ -65,17 +69,29 @@ public class ExportOperationIT {
         String exportSQL = buildExportSQL("select * from export_test");
 
         exportAndAssertExportResults(exportSQL, 8);
+        File[] files = temporaryFolder.getRoot().listFiles(new PatternFilenameFilter(".*csv"));
+        assertEquals(1, files.length);
+        assertEquals("" +
+                        "25,1000000000,2000000000000000,3.14159,3.14159,2,2.34,varchar,c,2014-10-01,14:30:20\n" +
+                        "26,1000000000,2000000000000000,3.14159,3.14159,2,2.34,varchar,c,2014-10-01,14:30:20\n" +
+                        "27,1000000000,2000000000000000,3.14159,3.14159,2,2.34,varchar,c,2014-10-01,14:30:20\n" +
+                        "28,1000000000,2000000000000000,3.14159,3.14159,2,2.34,varchar,c,2014-10-01,14:30:20\n" +
+                        "29,1000000000,2000000000000000,3.14159,3.14159,2,2.34,varchar,c,2014-10-01,14:30:20\n" +
+                        "30,1000000000,2000000000000000,3.14159,3.14159,2,2.34,varchar,c,2014-10-01,14:30:20\n" +
+                        "31,1000000000,2000000000000000,3.14159,3.14159,2,2.34,varchar,c,2014-10-01,14:30:20\n" +
+                        "32,1000000000,2000000000000000,3.14159,3.14159,2,2.34,varchar,c,2014-10-01,14:30:20\n",
+                Files.toString(files[0], Charsets.UTF_8));
     }
 
     @Test
-    public void exportToLocalFileSystem() throws Exception {
+    public void export_defaultDelimiter() throws Exception {
 
         new TableCreator(methodWatcher.getOrCreateConnection())
                 .withCreate("create table export_local(a smallint,b double, c time,d varchar(20))")
                 .withInsert("insert into export_local values(?,?,?,?)")
                 .withRows(getTestRows()).create();
 
-        String exportSQL = buildExportSQL("select * from export_local", ExportFileSystemType.LOCAL);
+        String exportSQL = buildExportSQL("select * from export_local", ExportFileSystemType.HDFS);
 
         exportAndAssertExportResults(exportSQL, 6);
         File[] files = temporaryFolder.getRoot().listFiles(new PatternFilenameFilter(".*csv"));
@@ -91,14 +107,14 @@ public class ExportOperationIT {
     }
 
     @Test
-    public void exportToLocalFileSystem_withAlternateRecordDelimiter() throws Exception {
+    public void export_withAlternateRecordDelimiter() throws Exception {
 
         new TableCreator(methodWatcher.getOrCreateConnection())
                 .withCreate("create table pipe(a smallint,b double, c time,d varchar(20))")
                 .withInsert("insert into pipe values(?,?,?,?)")
                 .withRows(getTestRows()).create();
 
-        String exportSQL = buildExportSQL("select * from pipe", ExportFileSystemType.LOCAL, "|");
+        String exportSQL = buildExportSQL("select * from pipe", ExportFileSystemType.HDFS, "|");
 
         exportAndAssertExportResults(exportSQL, 6);
         File[] files = temporaryFolder.getRoot().listFiles(new PatternFilenameFilter(".*csv"));
@@ -114,14 +130,14 @@ public class ExportOperationIT {
     }
 
     @Test
-    public void exportToLocalFileSystem_withTabs() throws Exception {
+    public void export_withTabs() throws Exception {
 
         new TableCreator(methodWatcher.getOrCreateConnection())
                 .withCreate("create table tabs(a smallint,b double, c time,d varchar(20))")
                 .withInsert("insert into tabs values(?,?,?,?)")
                 .withRows(getTestRows()).create();
 
-        String exportSQL = buildExportSQL("select * from tabs", ExportFileSystemType.LOCAL, "\\t");
+        String exportSQL = buildExportSQL("select * from tabs", ExportFileSystemType.HDFS, "\\t");
 
         exportAndAssertExportResults(exportSQL, 6);
         File[] files = temporaryFolder.getRoot().listFiles(new PatternFilenameFilter(".*csv"));
@@ -205,7 +221,7 @@ public class ExportOperationIT {
 
         // encoding
         try {
-            methodWatcher.executeQuery("export('/tmp/', 'LOCAL', 1,'BAD_ENCODING',null, null) select 1 from sys.sysaliases ");
+            methodWatcher.executeQuery("export('/tmp/', 'HDFS', 1,'BAD_ENCODING',null, null) select 1 from sys.sysaliases ");
             fail();
         } catch (SQLException e) {
             assertEquals("Invalid parameter 'encoding'='BAD_ENCODING'.", e.getMessage());
@@ -213,7 +229,7 @@ public class ExportOperationIT {
 
         // field delimiter
         try {
-            methodWatcher.executeQuery("export('/tmp/', 'LOCAL', 1,'utf-8','AAA', null) select 1 from sys.sysaliases ");
+            methodWatcher.executeQuery("export('/tmp/', 'HDFS', 1,'utf-8','AAA', null) select 1 from sys.sysaliases ");
             fail();
         } catch (SQLException e) {
             assertEquals("Invalid parameter 'field delimiter'='AAA'.", e.getMessage());
@@ -221,10 +237,18 @@ public class ExportOperationIT {
 
         // quote character
         try {
-            methodWatcher.executeQuery("export('/tmp/', 'LOCAL', 1,'utf-8',',', 'BBB') select 1 from sys.sysaliases ");
+            methodWatcher.executeQuery("export('/tmp/', 'HDFS', 1,'utf-8',',', 'BBB') select 1 from sys.sysaliases ");
             fail();
         } catch (SQLException e) {
             assertEquals("Invalid parameter 'quote character'='BBB'.", e.getMessage());
+        }
+
+        // no permission to create export dir
+        try {
+            methodWatcher.executeQuery("export('/ExportOperationIT/', 'HDFS', 1,'utf-8',null, null) select 1 from sys.sysaliases ");
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Invalid parameter 'cannot create export directory'='/ExportOperationIT/'.", e.getMessage());
         }
     }
 

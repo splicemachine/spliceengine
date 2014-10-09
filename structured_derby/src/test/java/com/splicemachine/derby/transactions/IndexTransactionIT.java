@@ -269,4 +269,24 @@ public class IndexTransactionIT {
         conn1.createStatement().execute("drop index "+schemaWatcher.schemaName+".C_IDX");
         conn1.commit();
     }
+
+    @Test
+    public void testCanCreateTableAndIndexInSameTransaction() throws Exception {
+        /*
+         * Regression test for DB-1836. Create a table, insert some data, then
+         * create an index before committing
+         */
+        conn1.createStatement().execute("create table "+ schemaWatcher.schemaName+".TXN_TABLE (a int, b int)");
+
+        conn1.createStatement().execute("insert into "+schemaWatcher+ ".TXN_TABLE (a,b) values (1,1)");
+
+        //this is where it broke before, make sure it doesn't now
+        conn1.createStatement().execute("create index TXN_INDEX on "+schemaWatcher.schemaName+".TXN_TABLE(a)");
+
+        //commit and verify that all is well
+        conn1.commit();
+        long count = conn1.count("select * from "+schemaWatcher+".TXN_TABLE --SPLICE-PROPERTIES index=TXN_INDEX \n" +
+                " where a = 1");
+        Assert.assertEquals("Incorrect count from index table!",1l,count);
+    }
 }

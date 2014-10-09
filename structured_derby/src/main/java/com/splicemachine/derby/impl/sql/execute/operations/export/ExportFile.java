@@ -19,22 +19,27 @@ class ExportFile {
     private final byte[] taskId;
 
     ExportFile(ExportParams exportParams, byte[] taskId) throws IOException {
-        this.fileSystem = exportParams.getFileSystemType().isLocal() ? FileSystem.getLocal(SpliceUtils.config) : FileSystem.get(SpliceUtils.config);
+        this.fileSystem = FileSystem.get(SpliceUtils.config);
         this.exportParams = exportParams;
         this.taskId = taskId;
     }
 
     public OutputStream getOutputStream() throws IOException {
-
-        // Crate the directory if it doesn't exist.
-        Path directoryPath = new Path(exportParams.getDirectory());
-        fileSystem.mkdirs(directoryPath);
-
         // Filename
         Path fullyQualifiedExportFilePath = buildOutputFilePath();
 
         // OutputStream
         return fileSystem.create(fullyQualifiedExportFilePath, exportParams.getReplicationCount());
+    }
+
+    // Create the directory if it doesn't exist.
+    public boolean createDirectory() {
+        try {
+            Path directoryPath = new Path(exportParams.getDirectory());
+            return fileSystem.mkdirs(directoryPath);
+        } catch (IOException e) {
+            return false;
+        }
     }
 
     public void delete() throws IOException {
