@@ -32,6 +32,13 @@ import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Properties;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -96,7 +103,7 @@ public class TableScanOperation extends ScanOperation {
                                    double optimizerEstimatedCost) throws StandardException {
 				super(conglomId, activation, resultSetNumber, startKeyGetter, startSearchOperator, stopKeyGetter, stopSearchOperator,
                         sameStartStopPosition, qualifiersField, resultRowAllocator, lockMode, tableLocked, isolationLevel,
-                        colRefItem, optimizerEstimatedRowCount, optimizerEstimatedCost);
+                        colRefItem,oneRowScan, optimizerEstimatedRowCount, optimizerEstimatedCost);
 				SpliceLogUtils.trace(LOG, "instantiated for tablename %s or indexName %s with conglomerateID %d",
                         tableName, indexName, conglomId);
 				this.forUpdate = forUpdate;
