@@ -440,11 +440,11 @@ public class IndexRowToBaseRowOperationIT extends SpliceUnitTest {
                 "c.columnname as column_name," +
                 "t.schemaid," +
                 "c.columnnumber as ordinal_position " +
-                "from " +
-                "sys.sysschemas s," +
-                "sys.systables t," +
-                "sys.syscolumns c " +
-                "where " +
+                "from --SPLICE-PROPERTIES joinOrder=FIXED\n" +
+                " sys.sysschemas s --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP\n" +
+                ",sys.systables t --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP\n" +
+                ",sys.syscolumns c --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP\n" +
+                " where " +
                 "c.referenceid = t.tableid " +
                 "and s.schemaid = t.schemaid " +
                 "and ((1=1) or ? is not null) " +
