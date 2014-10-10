@@ -430,6 +430,7 @@ public class IndexRowToBaseRowOperationIT extends SpliceUnitTest {
     }
 
 	@Test
+	@Ignore("DB-1993")
 	public void testJoinMultipleIndexTablesWithLikeAndSortPreparedStatement() throws Exception{
 		String correctSchemaName = "SYS";
 		String  correctTableName = "SYSSCHEMAS";
@@ -442,8 +443,8 @@ public class IndexRowToBaseRowOperationIT extends SpliceUnitTest {
                 "c.columnnumber as ordinal_position " +
                 "from --SPLICE-PROPERTIES joinOrder=FIXED\n" +
                 " sys.sysschemas s --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP\n" +
-                ",sys.systables t --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP\n" +
-                ",sys.syscolumns c --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP\n" +
+                " ,sys.systables t --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP\n" +
+                " ,sys.syscolumns c --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP\n" +
                 " where " +
                 "c.referenceid = t.tableid " +
                 "and s.schemaid = t.schemaid " +
