@@ -61,6 +61,7 @@ import org.apache.derby.iapi.types.SQLLongint;
 import org.apache.derby.iapi.types.SQLLongvarchar;
 import org.apache.derby.iapi.types.SQLReal;
 import org.apache.derby.iapi.types.SQLRef;
+import org.apache.derby.iapi.types.SQLRowId;
 import org.apache.derby.iapi.types.SQLSmallint;
 import org.apache.derby.iapi.types.SQLTime;
 import org.apache.derby.iapi.types.SQLTimestamp;
@@ -434,7 +435,8 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
             }
         },42);
         // Note that serialization of SQLRef as part of an ExecRow is handled by RefDescriptorSerializer
-        instance.register(SQLRef.class, new DataValueDescriptorSerializer<SQLRef>() {
+        instance.register(SQLRef.class, EXTERNALIZABLE_SERIALIZER,43);
+        /*instance.register(SQLRef.class, new DataValueDescriptorSerializer<SQLRef>() {
             @Override
             protected void writeValue(Kryo kryo, Output output, SQLRef object) throws StandardException {
                 kryo.writeObjectOrNull(output, object.getObject(), HBaseRowLocation.class);
@@ -444,7 +446,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
             protected void readValue(Kryo kryo, Input input, SQLRef dvd) throws StandardException {
                 dvd.setValue((RowLocation)(kryo.readObjectOrNull(input, HBaseRowLocation.class)));
             }
-        },43);
+        },43);*/
         instance.register(LazyDataValueDescriptor.class,EXTERNALIZABLE_SERIALIZER,44);
         instance.register(LazyNumberDataValueDescriptor.class,EXTERNALIZABLE_SERIALIZER,45);
         instance.register(LazyStringDataValueDescriptor.class,EXTERNALIZABLE_SERIALIZER,46);
@@ -757,5 +759,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(ExportFileSystemType.class, 199);
         instance.register(DropSchemaDDLChangeDesc.class,EXTERNALIZABLE_SERIALIZER,200);
         instance.register(DropIndexDDLDesc.class,EXTERNALIZABLE_SERIALIZER,201);
+        instance.register(SQLRowId.class, EXTERNALIZABLE_SERIALIZER,202);
     }
 }

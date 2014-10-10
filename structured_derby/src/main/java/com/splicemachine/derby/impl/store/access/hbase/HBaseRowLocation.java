@@ -11,6 +11,7 @@ import org.apache.derby.iapi.types.DataType;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.DataValueFactoryImpl.Format;
 import org.apache.derby.iapi.types.RowLocation;
+import org.apache.derby.iapi.types.SQLRowId;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.ObjectOutput;
@@ -126,14 +127,12 @@ public class HBaseRowLocation extends DataType implements RowLocation {
 
 	public int compare(DataValueDescriptor other) throws StandardException
 	{
-		// REVISIT: do we need this check?
+        /* REVISIT: do we need this check?
         if (SanityManager.DEBUG)
             SanityManager.ASSERT(other instanceof HBaseRowLocation);
+        */
 
-		HBaseRowLocation arg = (HBaseRowLocation) other;
-
-        return Bytes.compareTo(slice.array(), slice.offset(), slice.length(),
-                               arg.slice.array(), arg.slice.offset(), arg.slice.length());
+        return Bytes.compareTo(getBytes(), other.getBytes());
 	}
 
 	/*
