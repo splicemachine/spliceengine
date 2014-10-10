@@ -624,7 +624,6 @@ public class JDBCDisplayUtil {
 			}
 		}
 
-        out.println(rowLen);
 		indentedPrintLine( out, indentLevel, buf);
 
 		// now print a row of '-'s
