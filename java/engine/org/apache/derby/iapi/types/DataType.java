@@ -35,6 +35,7 @@ import java.sql.Timestamp;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.ResultSet;
+import java.sql.RowId;
 import java.util.Calendar;
 import org.apache.derby.iapi.types.DataValueFactoryImpl.Format;
 
@@ -383,6 +384,10 @@ public abstract class DataType
 		throwLangSetMismatch("java.lang.Object");
 	}
 
+    public void setValue(RowId theValue) throws StandardException
+    {
+        throwLangSetMismatch("java.lang.Object");
+    }
 	/**
 	 * Set the value of this DataValueDescriptor.
 	 * At DataType level just throws an error lower classes will override

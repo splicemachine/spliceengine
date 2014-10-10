@@ -931,6 +931,39 @@ public class PreparedStatement extends Statement
         }
     }
 
+    public void setRowId(int parameterIndex, java.sql.RowId x) throws SQLException{
+        try
+        {
+            synchronized (connection_) {
+                if (agent_.loggingEnabled()) {
+                    agent_.logWriter_.traceEntry(this, "setRowId", parameterIndex, x);
+                }
+
+                final int paramType =
+                        getColumnMetaDataX().getColumnType(parameterIndex);
+
+                /*if( paramType != java.sql.Types.ROWID ) {
+
+                    PossibleTypes.throw22005Exception(agent_.logWriter_,
+                            java.sql.Types.ROWID,
+                            paramType);
+
+                }*/
+
+                parameterMetaData_.clientParamtertype_[parameterIndex - 1] = java.sql.Types.ROWID;
+
+                if (x == null) {
+                    setNull(parameterIndex, java.sql.Types.ROWID);
+                    return;
+                }
+                setInput(parameterIndex, x);
+            }
+        }
+        catch ( SqlException se )
+        {
+            throw se.getSQLException();
+        }
+    }
     // also used by BLOB
     public void setBytesX(int parameterIndex, byte[] x) throws SqlException {
         parameterMetaData_.clientParamtertype_[parameterIndex - 1] = java.sql.Types.LONGVARBINARY;
@@ -1412,6 +1445,8 @@ public class PreparedStatement extends Statement
                     setTimestamp(parameterIndex, new Timestamp(  ((java.util.Calendar) x).getTime().getTime() ) );
                 } else if (x instanceof Byte) {
                     setByte(parameterIndex, ((Byte) x).byteValue());
+                } else if (x instanceof RowId) {
+                    setRowId(parameterIndex, (java.sql.RowId) x);
                 } else {
                     checkForClosedStatement();
                     checkForValidParameterIndex(parameterIndex);

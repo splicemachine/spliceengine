@@ -42,7 +42,14 @@ public class EmbedPreparedStatement40 extends  EmbedPreparedStatement30 {
     }
     
     public void setRowId(int parameterIndex, RowId x) throws SQLException{
-        throw Util.notImplemented();
+        checkStatus();
+        try {
+			/* JDBC is one-based, DBMS is zero-based */
+            getParms().getParameterForSet(parameterIndex - 1).setValue(x);
+
+        } catch (Throwable t) {
+            throw EmbedResultSet.noStateChangeException(t);
+        }
     }
     
     public void setNString(int index, String value) throws SQLException{

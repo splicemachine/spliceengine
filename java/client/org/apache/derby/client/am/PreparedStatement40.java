@@ -100,11 +100,6 @@ public class  PreparedStatement40 extends  org.apache.derby.client.am.PreparedSt
                 columnNames, columnIndexes, cpc);
     }
     
-    
-    public void setRowId(int parameterIndex, RowId x) throws SQLException{
-        throw SQLExceptionFactory.notImplemented ("setRowId (int, RowId)");
-    }
-    
     public void setNString(int index, String value) throws SQLException{
         throw SQLExceptionFactory.notImplemented ("setNString (int, String)");
     }

@@ -176,6 +176,8 @@ public class Types {
             return java.sql.Types.BLOB;
         case DRDAConstants.DB2_SQLTYPE_FAKE_UDT:    // user defined types
             return java.sql.Types.JAVA_OBJECT;
+        case DRDAConstants.DB2_SQLTYPE_ROWID:
+            return ROWID;
         default:
             return 0;
         }

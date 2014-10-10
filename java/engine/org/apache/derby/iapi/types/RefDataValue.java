@@ -23,7 +23,6 @@ package org.apache.derby.iapi.types;
 
 import org.apache.derby.iapi.types.RowLocation;
 
-
 public interface RefDataValue extends DataValueDescriptor
 {
 
@@ -34,4 +33,5 @@ public interface RefDataValue extends DataValueDescriptor
 	 *					to.  Null means set this RefDataValue to null.
 	 */
 	public void setValue(RowLocation theValue);
+
 }

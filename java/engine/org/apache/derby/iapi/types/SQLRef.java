@@ -51,6 +51,8 @@ import java.io.IOException;
 
 import java.sql.ResultSet;
 import java.sql.PreparedStatement;
+import java.sql.RowId;
+
 import org.apache.derby.iapi.types.DataValueFactoryImpl.Format;
 
 public class SQLRef extends DataType implements RefDataValue
@@ -129,10 +131,10 @@ public class SQLRef extends DataType implements RefDataValue
 
 	public void writeExternal(ObjectOutput out) throws IOException {
 
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT(value != null, "writeExternal() is not supposed to be called for null values.");
-
-		out.writeObject(value);
+        out.writeBoolean(value != null);
+        if (value != null) {
+            out.writeObject(value);
+        }
 	}
 
 	/**
@@ -146,7 +148,10 @@ public class SQLRef extends DataType implements RefDataValue
 	 */
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException
 	{
-		value = (RowLocation) in.readObject();
+        boolean nonNull = in.readBoolean();
+        if (nonNull) {
+            value = (RowLocation) in.readObject();
+        }
 	}
 	public void readExternalFromArray(ArrayInputStream in) throws IOException, ClassNotFoundException
 	{
@@ -253,11 +258,15 @@ public class SQLRef extends DataType implements RefDataValue
 		value = rowLocation;
 	}
 
+    @Override
 	public void setValue(RowLocation rowLocation)
 	{
 		value = rowLocation;
 	}
 
+    public void setValue(RowId rowId) {
+        value = (SQLRowId)rowId;
+    }
 	/*
 	** String display of value
 	*/

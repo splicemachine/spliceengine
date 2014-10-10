@@ -23,19 +23,9 @@ package org.apache.derby.client.net;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
+
+import org.apache.derby.client.am.*;
 import org.apache.derby.iapi.reference.DRDAConstants;
-import org.apache.derby.client.am.Lob;
-import org.apache.derby.client.am.Blob;
-import org.apache.derby.client.am.Clob;
-import org.apache.derby.client.am.ColumnMetaData;
-import org.apache.derby.client.am.DateTime;
-import org.apache.derby.client.am.ResultSet;
-import org.apache.derby.client.am.Section;
-import org.apache.derby.client.am.SqlException;
-import org.apache.derby.client.am.Types;
-import org.apache.derby.client.am.ClientMessageId;
-import org.apache.derby.client.am.DateTimeValue;
-import org.apache.derby.client.am.Utils;
 import org.apache.derby.shared.common.reference.SQLState;
 
 // For performance, should we worry about the ordering of our DDM command parameters
@@ -790,7 +780,11 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
                         }
                         break;
                     case DRDAConstants.DRDA_TYPE_NUDT:
-                        writeUDT( inputs[i] );
+                        writeLDBytes(((RowId)inputs[i]).getBytes());
+                        break;
+                    case DRDAConstants.DRDA_TYPE_NROWID:
+                        byte[] rowid = ((RowId) inputs[i]).getBytes();
+                        writeBytes(rowid, rowid.length);
                         break;
                     case DRDAConstants.DRDA_TYPE_NLOBCSBCS:
                     case DRDAConstants.DRDA_TYPE_NLOBCDBCS:
@@ -1396,6 +1390,10 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
                     break;
                 case java.sql.Types.JAVA_OBJECT:
                     lidAndLengths[i][0] = DRDAConstants.DRDA_TYPE_NUDT;
+                    lidAndLengths[i][1] = 32767;
+                    break;
+                case java.sql.Types.ROWID:
+                    lidAndLengths[i][0] = DRDAConstants.DRDA_TYPE_NROWID;
                     lidAndLengths[i][1] = 32767;
                     break;
                 case java.sql.Types.BLOB:

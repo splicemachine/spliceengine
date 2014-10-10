@@ -34,6 +34,7 @@ import java.sql.Clob;
 import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.PreparedStatement;
+import java.sql.RowId;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.SQLException;
@@ -479,6 +480,8 @@ public interface DataValueDescriptor extends Storable, Orderable
 	 * @exception StandardException		Thrown on error
 	 */
 	public void setValue(Object theValue) throws StandardException;
+
+    public void setValue(RowId theValue) throws StandardException;
 
 	/**
 	 * Set the value of this DataValueDescriptor.
