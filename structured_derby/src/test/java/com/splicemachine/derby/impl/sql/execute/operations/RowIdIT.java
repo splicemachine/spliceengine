@@ -188,7 +188,7 @@ public class RowIdIT extends SpliceUnitTest {
     }
 
 
-    @Ignore
+
     @Test
     public void testPreparedStatement() throws Exception {
         ResultSet rs  = methodWatcher.executeQuery(
@@ -209,8 +209,8 @@ public class RowIdIT extends SpliceUnitTest {
         rs = ps.executeQuery();
 
         while (rs.next()) {
-            rId = rs.getRowId("rowid");
-            String s = rs.getString(1);
+            rId = rs.getRowId(2);
+            String s = rs.getString(2);
             Assert.assertTrue(s.compareToIgnoreCase(rId.toString()) == 0);
         }
     }
