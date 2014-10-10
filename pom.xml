@@ -472,6 +472,7 @@
 								<exclude>**/SITransactorHBasePackedTest.java</exclude>
 								<exclude>**/JtaXAResourceHBaseTest.java</exclude>
 								<exclude>**/TransactionManagerHBaseTest.java</exclude>
+                                <exclude>**/ExportFileTest.java</exclude>
 								<!-- Skip Window function UIs temporarily - DB-1765 -->
 								<exclude>com/splicemachine/derby/impl/sql/execute/operations/window/**</exclude>
 							</excludes>
@@ -500,6 +501,7 @@
 								<exclude>**/OuterJoinIT.java</exclude>
 								<exclude>**/ThreeTableEquiJoinIT.java</exclude>
 								<exclude>**/DropColumnIT.java</exclude>
+                                <exclude>**/ExportOperationIT.java</exclude>
 							</excludes>
 						</configuration>
 					</plugin>
