@@ -36,7 +36,7 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 
 		public int lockMode;
 		public int isolationLevel;
-
+		protected boolean oneRowScan;
 		protected ScanInformation scanInformation;
 		protected String tableName;
 		protected String indexName;
@@ -66,11 +66,13 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 													GeneratedMethod resultRowAllocator,
 													int lockMode, boolean tableLocked, int isolationLevel,
 													int colRefItem,
+													boolean oneRowScan,
 													double optimizerEstimatedRowCount,
 													double optimizerEstimatedCost) throws StandardException {
 				super(activation, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
 				this.lockMode = lockMode;
 				this.isolationLevel = isolationLevel;
+				this.oneRowScan = oneRowScan;
                 this.scanQualifiersField = scanQualifiersField;
 
 				this.scanInformation = new DerbyScanInformation(resultRowAllocator.getMethodName(),
@@ -117,6 +119,7 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 		@Override
 		public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
 				super.readExternal(in);
+				oneRowScan = in.readBoolean();
 				lockMode = in.readInt();
 				isolationLevel = in.readInt();
 				scanInformation = (ScanInformation)in.readObject();
@@ -125,6 +128,7 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 		@Override
 		public void writeExternal(ObjectOutput out) throws IOException {
 				super.writeExternal(out);
+				out.writeBoolean(oneRowScan);
 				out.writeInt(lockMode);
 				out.writeInt(isolationLevel);
 				out.writeObject(scanInformation);
@@ -205,6 +209,9 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 				 * we are doing it ourselves).
 				 */
 				Scan scan = buildScan(spliceRuntimeContext);
+				if (oneRowScan) {
+					scan.setCaching(1); // Limit the batch size for performance
+				}
 				deSiify(scan);
 				return scan;
 		}

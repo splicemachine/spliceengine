@@ -96,7 +96,7 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 															double optimizerEstimatedRowCount,
 															double optimizerEstimatedCost) throws StandardException {
 				super(conglomId,activation,resultSetNumber,startKeyGetter,startSearchOperator,stopKeyGetter,stopSearchOperator,sameStartStopPosition,scanQualifiersField,
-								resultRowAllocator,lockMode,tableLocked,isolationLevel,colRefItem,optimizerEstimatedRowCount,optimizerEstimatedCost);
+								resultRowAllocator,lockMode,tableLocked,isolationLevel,colRefItem,false, optimizerEstimatedRowCount,optimizerEstimatedCost);
 				SpliceLogUtils.trace(LOG, "scan operation instantiated for " + tableName);
 				this.tableName = "" + conglomId;
 				this.hashKeyItem = hashKeyItem;
