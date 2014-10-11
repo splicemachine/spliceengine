@@ -1,11 +1,12 @@
 package com.splicemachine.derby.hbase;
 
-import com.splicemachine.si.impl.ActionFactory;
-import com.splicemachine.si.impl.rollforward.SegmentedRollForward;
+import java.util.concurrent.ExecutionException;
+
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.log4j.Logger;
 
-import java.util.concurrent.ExecutionException;
+import com.splicemachine.si.impl.ActionFactory;
+import com.splicemachine.si.impl.rollforward.SegmentedRollForward;
 
 /**
  * @author Scott Fines

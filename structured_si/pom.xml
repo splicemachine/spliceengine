@@ -102,8 +102,9 @@
 								<!-- ################################################# -->
 								<!-- # SourceFile and LineNumberTable are needed for useful obfuscated stack traces.  Without these, the stack traces cannot be deciphered later on. -->
 								<!-- # *Annotation* is needed to preserve @MXBean annotations for TransactionStatus. -->
+								<!-- InnerClasses is needed for SI inner classes in SegmentedRollForward -->
 								<option>-renamesourcefileattribute SourceFile</option>
-								<option>-keepattributes SourceFile,LineNumberTable,MXBean,*Annotation*</option>
+								<option>-keepattributes SourceFile,LineNumberTable,MXBean,*Annotation*,InnerClasses</option>
 								<!-- # Needed to keep enumerations working. -->
 								<option>-keepclassmembers,allowoptimization enum * {
 									public static **[] values();
@@ -191,6 +192,50 @@
 								<option>-keep public class com.splicemachine.si.api.TransactionStatus { public *; } </option>
 								<option>-keep public class com.splicemachine.si.api.TransactorListener { public *; } </option>
 								<option>-keep public class com.splicemachine.si.api.SIFilter { public *; }</option>
+								<!-- ### Needed after Scott's re-factoring of SI. ### -->
+								<option>-keep public class com.splicemachine.si.api.CannotCommitException { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.ReadOnlyModificationException { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.ReadResolver { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.RollForward { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.TransactionalRegion { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.TransactionLifecycle { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.TransactionOperations { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.TransactionStorage { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.Txn { public *; } </option>
+								<option>-keep public enum com.splicemachine.si.api.Txn$IsolationLevel { public *; } </option>
+								<option>-keep public enum com.splicemachine.si.api.Txn$State { public *; } </option>
+								<option>-keep public class com.splicemachine.si.api.TxnDataStore { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.TxnLifecycleManager { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.TxnOperationFactory { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.TxnStore { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.TxnSupplier { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.TxnView { public *; } </option>
+								<option>-keep public class com.splicemachine.si.coprocessors.SIFilterPacked { public *; }</option>
+								<option>-keep public class com.splicemachine.si.coprocessors.TxnLifecycleEndpoint { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.ActiveWriteTxn { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.ActionFactory { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.DataStore { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.DDLTxnView { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.DenseTxn { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.InheritingTxnView { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.LazyTxnView { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.ReadOnlyTxn { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.SimpleOperationFactory { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.SimpleTxnFilter { public *; protected void doResolve(org.apache.hadoop.hbase.KeyValue, long); }</option>
+								<option>-keep public class com.splicemachine.si.impl.SparseTxn { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.TransactionalRegions { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.TxnFilter { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.TxnRegion { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.TxnViewBuilder { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.UnsupportedLifecycleManager { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.WritableTxn { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.readresolve.NoOpReadResolver { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.readresolve.SynchronousReadResolver { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.region.RegionTxnStore { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.rollforward.NoopRollForward { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.rollforward.SegmentedRollForward { public *; }</option>
+								<option>-keep public interface com.splicemachine.si.impl.rollforward.SegmentedRollForward$Action { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.rollforward.SegmentedRollForward$Context { public *; }</option>
 							</options>
 							<libs>
 								<lib>${java.home}/lib/rt.jar</lib>

@@ -1,5 +1,15 @@
 package com.splicemachine.derby.hbase;
 
+import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
+
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.util.Bytes;
+
 import com.google.common.collect.Lists;
 import com.google.common.io.Closeables;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
@@ -10,7 +20,13 @@ import com.splicemachine.job.Status;
 import com.splicemachine.job.Task;
 import com.splicemachine.job.TaskStatus;
 import com.splicemachine.metrics.Metrics;
-import com.splicemachine.si.api.*;
+import com.splicemachine.si.api.ReadResolver;
+import com.splicemachine.si.api.TransactionLifecycle;
+import com.splicemachine.si.api.TransactionStorage;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnDataStore;
+import com.splicemachine.si.api.TxnSupplier;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.coprocessors.SIFilter;
 import com.splicemachine.si.impl.DataStore;
 import com.splicemachine.si.impl.SimpleTxnFilter;
@@ -18,16 +34,6 @@ import com.splicemachine.si.impl.TransactionalRegions;
 import com.splicemachine.si.impl.TxnFilter;
 import com.splicemachine.si.impl.readresolve.SynchronousReadResolver;
 import com.splicemachine.si.impl.rollforward.SegmentedRollForward;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.util.Bytes;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.ExecutionException;
 
 /**
  * Task-based structure for Rolling forward a range of data.

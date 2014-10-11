@@ -5,18 +5,37 @@
  */
 package com.splicemachine.mrio.api;
 
-import com.carrotsearch.hppc.BitSet;
-import com.carrotsearch.hppc.ObjectArrayList;
+import java.io.IOException;
+import java.sql.Types;
+import java.util.Iterator;
+import java.util.List;
+
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.io.FormatableBitSet;
+import org.apache.derby.iapi.services.io.StoredFormatIds;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.types.BigIntegerDecimal;
+import org.apache.derby.iapi.types.DataTypeDescriptor;
+import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.RowLocation;
+import org.apache.derby.iapi.types.SQLDecimal;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.HTable;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.ResultScanner;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.hbase.filter.FilterList;
+
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SIFilterFactory;
-//import com.splicemachine.derby.impl.sql.execute.operations.scanner.ScopedPredicates;
-//import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner.KeyIndex;
 import com.splicemachine.derby.impl.store.ExecRowAccumulator;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.derby.utils.marshall.dvd.TypeProvider;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
@@ -29,55 +48,16 @@ import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.SIFilter;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
-import com.splicemachine.si.impl.*;
+import com.splicemachine.si.impl.PackedTxnFilter;
+import com.splicemachine.si.impl.ReadOnlyTxn;
+import com.splicemachine.si.impl.TxnFilter;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.storage.EntryAccumulator;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.HasPredicateFilter;
 import com.splicemachine.storage.Indexed;
-import com.splicemachine.storage.Predicate;
-import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
 import com.splicemachine.utils.ByteSlice;
-
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
-import org.apache.derby.iapi.services.io.StoredFormatIds;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.types.BigIntegerDecimal;
-import org.apache.derby.iapi.types.DataTypeDescriptor;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.RowLocation;
-import org.apache.derby.iapi.types.SQLBlob;
-import org.apache.derby.iapi.types.SQLBoolean;
-import org.apache.derby.iapi.types.SQLDecimal;
-import org.apache.derby.iapi.types.SQLDouble;
-import org.apache.derby.iapi.types.SQLInteger;
-import org.apache.derby.iapi.types.SQLLongint;
-import org.apache.derby.iapi.types.SQLReal;
-import org.apache.derby.iapi.types.SQLSmallint;
-import org.apache.derby.iapi.types.SQLVarchar;
-import org.apache.derby.iapi.types.TypeId;
-import org.apache.derby.impl.sql.execute.ValueRow;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.HTable;
-import org.apache.hadoop.hbase.client.ResultScanner;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.filter.Filter;
-import org.apache.hadoop.hbase.filter.FilterList;
-import org.apache.hadoop.hbase.util.Bytes;
-
-import java.io.IOException;
-import java.sql.Types;
-import java.util.AbstractList;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-
-import org.apache.hadoop.hbase.client.Result;
 
 public class SpliceTableScanner implements StandardIterator<ExecRow>{
 	
