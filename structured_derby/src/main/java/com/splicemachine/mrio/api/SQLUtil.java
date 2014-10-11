@@ -5,6 +5,8 @@
  */
 package com.splicemachine.mrio.api;
 
+import com.splicemachine.derby.utils.SpliceAdmin;
+
 import java.lang.reflect.Array;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -182,7 +184,6 @@ public class SQLUtil {
 	   * 
 	   * */
 	  public String getConglomID(String tableName) throws SQLException{
-		  String conglom_id = null;
 		  String schema = null;
 		  String tblName = null;
 		  HashMap<String, String> schema_tblName = parseTableName(tableName);
@@ -195,23 +196,11 @@ public class SQLUtil {
 		  else
 			  throw new SQLException("Splice table not known, please specify Splice tableName. "
 			  							+ "pattern: schemaName.tableName");
-		  
-		  String query = "select s.schemaname,t.tablename,c.conglomeratenumber "+
-		                 "from sys.sysschemas s, sys.systables t, sys.sysconglomerates c "+
-				         "where s.schemaid = t.schemaid and "+
-		                 "t.tableid = c.tableid and "+
-				         "s.schemaname = '"+schema+"' and "+
-		                 "t.tablename = '"+tblName+"'";
-		  PreparedStatement statement;
-		
-			statement = connect.prepareStatement(query);
-			resultSet = statement.executeQuery();
-		    while (resultSet.next()) {
-		        conglom_id = resultSet.getString("CONGLOMERATENUMBER");   
-		        break;
-		      }
-		  
-	      return conglom_id;
+          long[] conglomIds = SpliceAdmin.getConglomids(connect, schema, tblName);
+          StringBuffer str = new StringBuffer();
+          str.append(conglomIds[0]);
+
+          return str.toString();
 	  }
 	  
 	  /**
