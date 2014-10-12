@@ -349,6 +349,12 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
     }
 
     @Override
+    public void setValue(RowId theValue) throws StandardException {
+        dvd.setValue(theValue);
+        resetForSerialization();
+    }
+
+    @Override
     public void setValue(byte[] theValue) throws StandardException {
         dvd.setValue(theValue);
         resetForSerialization();

@@ -154,11 +154,6 @@ public abstract class AbstractSpliceVisitor implements ISpliceVisitor {
     }
 
     @Override
-    public Visitable visit(AggregateWindowFunctionNode node) throws StandardException {
-        return defaultVisit(node);
-    }
-
-    @Override
     public Visitable visit(AllResultColumn node) throws StandardException {
         return defaultVisit(node);
     }

@@ -74,7 +74,7 @@ public class LastIndexKeyOperation extends ScanOperation {
             ) throws StandardException {
         super(conglomId, activation, resultSetNumber, null, -1, null, -1,
                 true, null, resultRowAllocator, lockMode, tableLocked, isolationLevel,
-                colRefItem, optimizerEstimatedRowCount, optimizerEstimatedCost);
+                colRefItem,false, optimizerEstimatedRowCount, optimizerEstimatedCost);
         this.tableName = Long.toString(scanInformation.getConglomerateId());
         this.indexName = indexName;
 				try {

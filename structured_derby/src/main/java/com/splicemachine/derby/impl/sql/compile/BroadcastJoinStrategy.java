@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.compile;
 
 import java.util.Map;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.compile.CostEstimate;
 import org.apache.derby.iapi.sql.compile.JoinStrategy;
@@ -12,6 +13,7 @@ import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.derby.impl.sql.compile.HashableJoinStrategy;
 import org.apache.hadoop.hbase.HServerLoad.RegionLoad;
 import org.apache.log4j.Logger;
+
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.HBaseRegionLoads;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -85,6 +87,9 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
      */
 	@Override
 	public boolean feasible(Optimizable innerTable,OptimizablePredicateList predList, Optimizer optimizer) throws StandardException {
+		if (CostUtils.isThisBaseTable(optimizer)) 
+			return false;
+		SpliceLevel2OptimizerImpl opt = (SpliceLevel2OptimizerImpl) optimizer;
 		boolean hashFeasible = super.feasible(innerTable, predList, optimizer);
 		SpliceLogUtils.trace(LOG, "feasible innerTable=%s, predList=%s, optimizer=%s, hashFeasible=%s",innerTable,predList,optimizer,hashFeasible);
 		TableDescriptor td;
@@ -120,8 +125,14 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
 	@Override
 	public void rightResultSetCostEstimate(OptimizablePredicateList predList, CostEstimate outerCost, CostEstimate innerCost) {
 		SpliceLogUtils.trace(LOG, "rightResultSetCostEstimate outerCost=%s, innerFullKeyCost=%s",outerCost, innerCost);
-		double cost = innerCost.getEstimatedCost()+SpliceConstants.optimizerNetworkCost+innerCost.getEstimatedRowCount()*SpliceConstants.optimizerHashCost;
-		innerCost.setCost(cost, innerCost.rowCount() * outerCost.rowCount(), innerCost.singleScanRowCount());
+		// InnerCost does not change
+		SpliceCostEstimateImpl inner = (SpliceCostEstimateImpl) innerCost;
+		inner.setBaseCost((SpliceCostEstimateImpl) innerCost.cloneMe());
+		SpliceCostEstimateImpl outer = (SpliceCostEstimateImpl) outerCost;
+		double joinCost = inner.getEstimatedRowCount()*(SpliceConstants.remoteRead+SpliceConstants.optimizerHashCost);				
+		inner.setCost(joinCost+inner.cost+outer.cost, outer.getEstimatedRowCount(), outer.getEstimatedRowCount());
+		inner.setNumberOfRegions(outer.numberOfRegions);
+		inner.setRowOrdering(outer.rowOrdering);
 		SpliceLogUtils.trace(LOG, "rightResultSetCostEstimate computed cost innerCost=%s",innerCost);
 	};	
 }
