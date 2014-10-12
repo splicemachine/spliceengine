@@ -2,6 +2,7 @@ package com.splicemachine.derby.management;
 
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.derby.utils.marshall.DataHash;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
@@ -81,7 +82,7 @@ public abstract class TransactionalXplainReporter<T> {
                 if(conglom==null){
                     try{
                     conglom = conglomIdString = fetchConglomId();
-                    }catch(StandardException se){
+                    }catch(SQLException se){
                         throw Exceptions.getIOException(se);
                     }
                 }
@@ -90,36 +91,12 @@ public abstract class TransactionalXplainReporter<T> {
         return conglom;
     }
 
-    private String fetchConglomId() throws StandardException {
+    private String fetchConglomId() throws SQLException {
         Connection dbConn = SpliceDriver.driver().getInternalConnection();
-
-        PreparedStatement s = null;
-        ResultSet resultSet = null;
-        try{
-            s = dbConn.prepareStatement("select conglomeratenumber from " +
-                    "sys.systables t, sys.sysschemas s,sys.sysconglomerates c " +
-                    "where " +
-                    "        t.schemaid = s.schemaid and s.schemaname = ?" +
-                    "        and t.tableid = c.tableid" +
-                    "        and t.tablename = ?");
-            s.setString(1,SCHEMA);
-            s.setString(2,tableName);
-            resultSet = s.executeQuery();
-            if(resultSet.next()){
-                return Long.toString(resultSet.getLong(1));
-            }else throw new IllegalStateException("Unable to find xplain table for table "+ tableName);
-        } catch (SQLException e) {
-            throw Exceptions.parseException(e);
-        } finally{
-            try{
-                if(resultSet!=null)
-                    resultSet.close();
-                if(s!=null)
-                    s.close();
-            }catch(SQLException se){
-                throw Exceptions.parseException(se);
-            }
-        }
+        StringBuffer conglomId = new StringBuffer();
+        long[] ids = SpliceAdmin.getConglomids(dbConn, SCHEMA, tableName);
+        conglomId.append(ids[0]);
+        return conglomId.toString();
     }
 
     protected static abstract class WriteableHash<T> implements DataHash<T> {

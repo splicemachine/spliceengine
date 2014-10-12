@@ -329,11 +329,21 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy {
 	 */
 	@Override
 	public void rightResultSetCostEstimate(OptimizablePredicateList predList, CostEstimate outerCost, CostEstimate innerCost) {
+		
 		SpliceLogUtils.trace(LOG, "rightResultSetCostEstimate outerCost=%s, innerFullKeyCost=%s",outerCost, innerCost);
 		if (outerCost.getEstimatedCost() == 0.0 && outerCost.getEstimatedRowCount() == 1) // I am not really a NLJ but a table scan, do not add network costs...
 			return;
-		double cost = outerCost.getEstimatedCost() + (SpliceConstants.optimizerNetworkCost+innerCost.getEstimatedCost())* (double) outerCost.getEstimatedRowCount();
-		innerCost.setCost(cost, innerCost.rowCount() * outerCost.rowCount(), innerCost.singleScanRowCount());
+		SpliceCostEstimateImpl inner = (SpliceCostEstimateImpl) innerCost;
+		inner.setBaseCost((SpliceCostEstimateImpl) innerCost.cloneMe());
+		SpliceCostEstimateImpl outer = (SpliceCostEstimateImpl) outerCost;		
+		double rightSideCost = (innerCost.getEstimatedCost()* (double) outer.getEstimatedRowCount()*(double) outer.getEstimatedRowCount()* SpliceConstants.optimizerNetworkCost)/outer.numberOfRegions;
+		inner.baseCost.setEstimatedRowCount((long)(innerCost.rowCount() * outer.rowCount()));
+		inner.baseCost.setSingleScanRowCount(innerCost.rowCount());
+		inner.baseCost.cost = rightSideCost;
+		double cost = rightSideCost + outer.getEstimatedCost();
+		innerCost.setCost(cost, innerCost.rowCount() * outer.rowCount(), innerCost.rowCount() * outer.rowCount());		
+		inner.setNumberOfRegions(outer.numberOfRegions);
+		inner.setRowOrdering(outer.rowOrdering);
 		SpliceLogUtils.trace(LOG, "rightResultSetCostEstimate computed cost innerCost=%s",innerCost);
 	};	
 	

@@ -103,12 +103,14 @@ public class AnyOperation extends SpliceBaseOperation {
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
+        out.writeObject(source);
         out.writeUTF(emptyRowFunName);
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.readExternal(in);
+        source = (SpliceOperation) in.readObject();
         emptyRowFunName = in.readUTF();
     }
 

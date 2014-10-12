@@ -73,12 +73,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		protected double optimizerEstimatedCost;
         protected String info;
 
-		/**
-		 * Used to communicate a child transaction ID down to the sink operation in a sub-class.
-		 * Since some write operations occur in sub-transactions, it is important that all do. This is so that the SI
-		 * logic can identify the order in which events occurred.
-		 */
-		private String childTransactionID;
 		protected boolean isTopResultSet = false;
 		protected volatile byte[] uniqueSequenceID;
 		protected ExecRow currentRow;

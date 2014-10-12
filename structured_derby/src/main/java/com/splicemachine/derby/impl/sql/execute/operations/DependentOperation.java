@@ -139,7 +139,7 @@ public class DependentOperation extends ScanOperation {
 				stopKeyGetter, stopSearchOperator, sameStartStopPosition, qualifiersField,
 			 resultRowAllocator,lockMode, tableLocked,
 			  TransactionController.ISOLATION_REPEATABLE_READ,
-              colRefItem,
+              colRefItem, false,
 			  optimizerEstimatedRowCount, optimizerEstimatedCost);
 
 		/* Static info created at compile time and can be shared across

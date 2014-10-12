@@ -44,7 +44,6 @@ public interface ISpliceVisitor {
 
     // Rest
     public Visitable visit(AggregateNode node) throws StandardException;
-    public Visitable visit(AggregateWindowFunctionNode node) throws StandardException;
     public Visitable visit(AllResultColumn node) throws StandardException;
     public Visitable visit(AlterTableNode node) throws StandardException;
     public Visitable visit(AndNode node) throws StandardException;

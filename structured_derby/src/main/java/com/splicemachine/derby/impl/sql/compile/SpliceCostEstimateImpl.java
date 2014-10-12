@@ -13,6 +13,7 @@ public class SpliceCostEstimateImpl extends Level2CostEstimateImpl implements So
     private static final Logger LOG = Logger.getLogger(SpliceCostEstimateImpl.class);
 	protected int numberOfRegions;
 	protected RowOrdering rowOrdering; 
+	protected SpliceCostEstimateImpl baseCost;
 	public SpliceCostEstimateImpl()  {
 		SpliceLogUtils.trace(LOG, "spliceCostEstimate created");
 	}
@@ -28,14 +29,18 @@ public class SpliceCostEstimateImpl extends Level2CostEstimateImpl implements So
 		SpliceLogUtils.trace(LOG, "spliceCostEstimate created with cost=%f, rowCount=%f, singleScanRowCount=%f, numberOfRegions=%d, rowOrdering=%s"
 				,theCost,theRowCount,theSingleScanRowCount,numberOfRegions, rowOrdering);
 	}
-	
+
+	public SpliceCostEstimateImpl(double theCost,double theRowCount,double theSingleScanRowCount,int numberOfRegions, RowOrdering rowOrdering, SpliceCostEstimateImpl baseCost)  {
+		this(theCost,theRowCount,theSingleScanRowCount,numberOfRegions,rowOrdering);
+		this.baseCost = baseCost;
+	}
+
 
 	/** @see CostEstimate#cloneMe */
-	public CostEstimate cloneMe() 
-	{
+	public CostEstimate cloneMe() {
 		return new SpliceCostEstimateImpl(cost,
 									rowCount,
-									singleScanRowCount,numberOfRegions,rowOrdering);
+									singleScanRowCount,numberOfRegions,rowOrdering, baseCost);
 	}
 
 	public String toString() {
@@ -43,7 +48,8 @@ public class SpliceCostEstimateImpl extends Level2CostEstimateImpl implements So
 				", rowCount == " + rowCount + 
 				", singleScanRowCount == " + singleScanRowCount + 
 				", numberOfRegions == " + numberOfRegions +  
-				", rowOrdering == " + rowOrdering; 		
+				", rowOrdering == " + rowOrdering + 
+				", baseCost == " + baseCost; 		
 	}
 
 	public CostEstimateImpl setState(double theCost,
@@ -161,6 +167,8 @@ public class SpliceCostEstimateImpl extends Level2CostEstimateImpl implements So
 
 	@Override
 	public void setCost(double cost, double rowCount, double singleScanRowCount) {
+//		System.out.println("setCost " + cost);
+//		Thread.dumpStack();
 		SpliceLogUtils.trace(LOG, "setCost cost=%f, rowCount=%f, singleScanRowCount=%f",cost,rowCount,singleScanRowCount);
 		super.setCost(cost, rowCount, singleScanRowCount);
 		numberOfRegions=numberOfRegions==0?1:numberOfRegions;
@@ -174,6 +182,7 @@ public class SpliceCostEstimateImpl extends Level2CostEstimateImpl implements So
 		singleScanRowCount = other.singleScanRowCount();
 		numberOfRegions = ((SortState) other).getNumberOfRegions();
 		rowOrdering = other.getRowOrdering();
+		baseCost = ((SpliceCostEstimateImpl)other).baseCost;
 	}
 
 	@Override
@@ -218,8 +227,55 @@ public class SpliceCostEstimateImpl extends Level2CostEstimateImpl implements So
 	
 	public void setRowOrdering(RowOrdering rowOrdering) {
 		this.rowOrdering = new SpliceRowOrderingImpl();
-		rowOrdering.copy(this.rowOrdering); // Have to make a copy...
-	};
+		if (rowOrdering!=null)
+			rowOrdering.copy(this.rowOrdering); // Have to make a copy...
+	}
 
+	public SpliceCostEstimateImpl getBaseCost() {
+		return baseCost==null?this:baseCost;
+	}
+
+	public void setBaseCost(SpliceCostEstimateImpl baseCost) {
+//		System.out.println("setJoinCost " + baseCost);
+//		Thread.dumpStack();
+		this.baseCost = baseCost;
+	};
+	
+	public void addBaseCost(double theCost,double theRowCount,double theSingleScanRowCount,int numberOfRegions, RowOrdering rowOrdering) {
+		if (baseCost == null) {
+			baseCost = new SpliceCostEstimateImpl(theCost,theRowCount,theSingleScanRowCount,numberOfRegions,rowOrdering);
+		} else {
+			baseCost.setCost(theCost, theRowCount, theSingleScanRowCount);
+			baseCost.numberOfRegions = numberOfRegions;
+			baseCost.rowOrdering = rowOrdering;
+		}
+//		System.out.println("addBaseCost " + baseCost);
+//		Thread.dumpStack();
+	}	
+	
+	
+	@Override
+	public CostEstimate getBase() {
+		return getBaseCost();
+	}
+
+	@Override
+	public void setBase(CostEstimate baseCost) {
+		this.baseCost = (SpliceCostEstimateImpl) baseCost;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (obj == null) return false;
+		SpliceCostEstimateImpl comp = (SpliceCostEstimateImpl) obj;
+		return (this.cost == comp.cost &&
+				this.numberOfRegions == comp.numberOfRegions &&
+				this.rowCount == comp.rowCount &&
+				this.singleScanRowCount == comp.singleScanRowCount &&
+				( (this.baseCost == null && comp.baseCost == null) ||
+						this.baseCost == comp.baseCost)
+				);
+		// TODO Add Row Ordering
+	}
 
 }

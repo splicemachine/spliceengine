@@ -103,6 +103,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
                 tableLocked,
                 isolationLevel,
                 colRefItem,
+                false,
                 optimizerEstimatedRowCount,
                 optimizerEstimatedCost);
         this.hashKeyItem = hashKeyItem;

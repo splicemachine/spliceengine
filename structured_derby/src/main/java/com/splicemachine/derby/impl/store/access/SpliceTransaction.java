@@ -24,19 +24,24 @@ public class SpliceTransaction extends BaseSpliceTransaction {
 		private Deque<Pair<String,Txn>> txnStack = new LinkedList<Pair<String, Txn>>();
 
 		public SpliceTransaction(CompatibilitySpace compatibilitySpace,
+														 SpliceTransactionFactory spliceTransactionFactory,
 														 DataValueFactory dataValueFactory,
 														 String transName) {
 				SpliceLogUtils.trace(LOG,"Instantiating Splice transaction");
 				this.compatibilitySpace = compatibilitySpace;
+				this.spliceTransactionFactory = spliceTransactionFactory;
 				this.dataValueFactory = dataValueFactory;
 				this.transName = transName;
 				this.state = IDLE;
 		}
 
-		public SpliceTransaction(CompatibilitySpace compatibilitySpace, DataValueFactory dataValueFactory,
+		public SpliceTransaction(CompatibilitySpace compatibilitySpace,
+														 SpliceTransactionFactory spliceTransactionFactory,
+														 DataValueFactory dataValueFactory,
 														 String transName, Txn txn) {
 				SpliceLogUtils.trace(LOG,"Instantiating Splice transaction");
 				this.compatibilitySpace = compatibilitySpace;
+				this.spliceTransactionFactory = spliceTransactionFactory;
 				this.dataValueFactory = dataValueFactory;
 				this.transName = transName;
 				this.state = ACTIVE;

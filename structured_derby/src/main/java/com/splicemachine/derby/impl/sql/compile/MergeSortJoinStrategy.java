@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.compile;
 
+import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.compile.CostEstimate;
 import org.apache.derby.iapi.sql.compile.JoinStrategy;
 import org.apache.derby.iapi.sql.compile.Optimizable;
@@ -18,7 +19,16 @@ public class MergeSortJoinStrategy extends HashableJoinStrategy {
     public MergeSortJoinStrategy() {
     }
 
-    /**
+    @Override
+	public boolean feasible(Optimizable innerTable,
+			OptimizablePredicateList predList, Optimizer optimizer)
+			throws StandardException {
+		if (CostUtils.isThisBaseTable(optimizer)) 
+			return false;
+		return super.feasible(innerTable, predList, optimizer);
+	}
+
+	/**
      * @see JoinStrategy#getName
      */
     public String getName() {
@@ -78,10 +88,16 @@ public class MergeSortJoinStrategy extends HashableJoinStrategy {
 	 * 
 	 */
 	@Override
-	public void rightResultSetCostEstimate(OptimizablePredicateList predList, CostEstimate outerCost, CostEstimate innerCost) {
+	public void rightResultSetCostEstimate(OptimizablePredicateList predList, CostEstimate outerCost, CostEstimate innerCost) {		
 		SpliceLogUtils.trace(LOG, "rightResultSetCostEstimate outerCost=%s, innerFullKeyCost=%s",outerCost, innerCost);
-		double cost = innerCost.getEstimatedCost()+(outerCost.getEstimatedRowCount()+innerCost.getEstimatedRowCount()*SpliceConstants.optimizerWriteCost);
-		innerCost.setCost(cost, innerCost.rowCount() * outerCost.rowCount(), innerCost.singleScanRowCount());
+		// InnerCost does not change
+		SpliceCostEstimateImpl inner = (SpliceCostEstimateImpl) innerCost;
+		inner.setBaseCost((SpliceCostEstimateImpl) innerCost.cloneMe());
+		SpliceCostEstimateImpl outer = (SpliceCostEstimateImpl) outerCost;
+		double joinCost = ((inner.getEstimatedRowCount() + outer.getEstimatedRowCount()) * SpliceConstants.optimizerWriteCost)/(inner.numberOfRegions + outer.numberOfRegions) ;				
+		inner.setCost(joinCost+inner.cost+outer.cost, outer.getEstimatedRowCount(), outer.getEstimatedRowCount());
+		inner.setNumberOfRegions(16);
+		inner.setRowOrdering(null);
 		SpliceLogUtils.trace(LOG, "rightResultSetCostEstimate computed cost innerCost=%s",innerCost);
 	};	
     

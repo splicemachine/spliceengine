@@ -7,7 +7,6 @@ import java.util.List;
 
 import org.junit.Assert;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -21,9 +20,9 @@ import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.SpliceXPlainTrace;
-import com.splicemachine.homeless.TestUtils;
 
 /**
+ *
  * Created by jyuan on 7/30/14.
  */
 public class WindowFunctionIT extends SpliceUnitTest {
@@ -112,38 +111,39 @@ public class WindowFunctionIT extends SpliceUnitTest {
                     throw new RuntimeException(e);
                 }
             }})
-                                            .around(spliceTableWatcher2)
-                                            .around(new SpliceDataWatcher() {
-                                                @Override
-                                                protected void starting(Description description) {
-                                                    PreparedStatement ps;
-                                                    try {
-                                                        for (String row : PURCHASED_ROWS) {
-                                                            ps = spliceClassWatcher.prepareStatement(
-                                                                String.format("insert into %s values (%s)", spliceTableWatcher2, row));
-                                                            ps.execute();
-                                                        }
-                                                    } catch (Exception e) {
-                                                        throw new RuntimeException(e);
-                                                    }
-                                                }
-                                            })
-    .around(spliceTableWatcher3)
-    .around(new SpliceDataWatcher() {
-        @Override
-        protected void starting(Description description) {
-            PreparedStatement ps;
-            try {
-                for (String row : PEOPLE_ROWS) {
-                    ps = spliceClassWatcher.prepareStatement(
-                        String.format("insert into %s values (%s)", spliceTableWatcher3, row));
-                    ps.execute();
+            .around(spliceTableWatcher2)
+            .around(new SpliceDataWatcher() {
+                @Override
+                protected void starting(Description description) {
+                    PreparedStatement ps;
+                    try {
+                        for (String row : PURCHASED_ROWS) {
+                            String sql = String.format("insert into %s values (%s)", spliceTableWatcher2, row);
+//                            System.out.println(sql+";");  // will print insert statements
+                            ps = spliceClassWatcher.prepareStatement(sql);
+                            ps.execute();
+                        }
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
                 }
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
-    });
+            })
+            .around(spliceTableWatcher3)
+            .around(new SpliceDataWatcher() {
+                @Override
+                protected void starting(Description description) {
+                    PreparedStatement ps;
+                    try {
+                        for (String row : PEOPLE_ROWS) {
+                            ps = spliceClassWatcher.prepareStatement(
+                                String.format("insert into %s values (%s)", spliceTableWatcher3, row));
+                            ps.execute();
+                        }
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            });
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
@@ -584,8 +584,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
 
         ResultSet rs = methodWatcher.executeQuery(
             String.format(sqlText, this.getTableReference(TABLE_NAME)));
-        // DEBUG
-        TestUtils.printResult(sqlText,rs, System.out);
+
         int i = 0;
         while (rs.next()) {
             Assert.assertEquals(colVal[i],rs.getInt(3));
@@ -717,19 +716,57 @@ public class WindowFunctionIT extends SpliceUnitTest {
     }
 
     @Test
-    public void testDenseRankWithPartition3OrderByCols() throws Exception {
-        int[] result = {1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 1, 2, 3, 4};
-        int[] colVal = {50000, 75000, 52000, 52000, 78000, 76000, 53000, 52000, 52000, 53000, 51000, 84000, 79000, 55000, 75000};
+    public void testDenseRankWithPartition3OrderByCols_duplicateKey() throws Exception {
+        int[] denseRank = {1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 1, 2, 3, 4};
+        int[] salary = {50000, 75000, 52000, 52000, 78000, 76000, 53000, 52000, 52000, 53000, 51000, 84000, 79000, 55000, 75000};
         String sqlText =
-            "SELECT empnum, dept, salary, DENSE_RANK() OVER (PARTITION BY dept ORDER BY dept, empnum, salary desc) AS Rank FROM %s";
+            "SELECT empnum, dept, salary, DENSE_RANK() OVER (PARTITION BY dept ORDER BY dept, empnum, salary desc) AS DenseRank FROM %s";
 
         ResultSet rs = methodWatcher.executeQuery(
             String.format(sqlText, this.getTableReference(TABLE_NAME)));
 
         int i = 0;
         while (rs.next()) {
-            Assert.assertEquals(colVal[i],rs.getInt(3));
-            Assert.assertEquals(result[i],rs.getInt(4));
+            Assert.assertEquals(salary[i],rs.getInt(3));
+            Assert.assertEquals(denseRank[i],rs.getInt(4));
+            ++i;
+        }
+        rs.close();
+    }
+
+    @Test
+    public void testDenseRankWithPartition2OrderByCols_duplicateKey() throws Exception {
+        int[] denseRank = {1, 2, 3, 4, 5, 5, 6, 1, 2, 2, 3, 1, 2, 3, 4};
+        int[] salary = {78000, 76000, 75000,  53000, 52000, 52000, 50000, 53000, 52000, 52000, 51000, 84000, 79000,  75000,  55000};
+        String sqlText =
+            "SELECT empnum, dept, salary, DENSE_RANK() OVER (PARTITION BY dept ORDER BY dept, salary desc) AS DenseRank FROM %s";
+
+        ResultSet rs = methodWatcher.executeQuery(
+            String.format(sqlText, this.getTableReference(TABLE_NAME)));
+
+        int i = 0;
+        while (rs.next()) {
+            Assert.assertEquals(salary[i],rs.getInt(3));
+            Assert.assertEquals(denseRank[i],rs.getInt(4));
+            ++i;
+        }
+        rs.close();
+    }
+
+    @Test
+    public void testDenseRankWithPartition3OrderByCols_KeyColMissingFromSelect() throws Exception {
+        int[] denseRank = {1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 1, 2, 3, 4};
+        int[] salary = {50000, 75000, 52000, 52000, 78000, 76000, 53000, 52000, 52000, 53000, 51000, 84000, 79000, 55000, 75000};
+        String sqlText =
+            "SELECT empnum, salary, DENSE_RANK() OVER (PARTITION BY dept ORDER BY dept, empnum, salary desc) AS DenseRank FROM %s";
+
+        ResultSet rs = methodWatcher.executeQuery(
+            String.format(sqlText, this.getTableReference(TABLE_NAME)));
+
+        int i = 0;
+        while (rs.next()) {
+            Assert.assertEquals(salary[i],rs.getInt(2));
+            Assert.assertEquals(denseRank[i],rs.getInt(3));
             ++i;
         }
         rs.close();
@@ -760,6 +797,26 @@ public class WindowFunctionIT extends SpliceUnitTest {
         int[] personID = {1, 1, 1, 2, 2, 2, 3, 3, 4, 5, 5};
         int[] number = { 4,  5,  6,  9, 10, 11,  1,  2,  3,  7,  8};
         String sqlText =
+            "select PersonID,FamilyID,FirstName,LastName, ROW_NUMBER() over (order by DOB) as Number, dob from %s order by PersonID";
+
+        ResultSet rs = methodWatcher.executeQuery(
+            String.format(sqlText, this.getTableReference(TABLE3_NAME)));
+
+        int i = 0;
+        while (rs.next()) {
+            Assert.assertEquals(personID[i],rs.getInt(1));
+            Assert.assertEquals(number[i],rs.getInt(5));
+            ++i;
+        }
+        rs.close();
+    }
+
+    @Test
+    public void testRowNumberWithoutPartitionOrderby_OrderbyColNotInSelect() throws Exception {
+        // DB-1683
+        int[] personID = {1, 1, 1, 2, 2, 2, 3, 3, 4, 5, 5};
+        int[] number = { 4,  5,  6,  9, 10, 11,  1,  2,  3,  7,  8};
+        String sqlText =
             "select PersonID,FamilyID,FirstName,LastName, ROW_NUMBER() over (order by DOB) as Number from %s order by PersonID";
 
         ResultSet rs = methodWatcher.executeQuery(
@@ -775,7 +832,6 @@ public class WindowFunctionIT extends SpliceUnitTest {
     }
 
     @Test
-    @Ignore("DB-1775 - agg function not calculating properly")
     public void testScalarAggWithOrderBy() throws Exception {
         // DB-1775
         double[] result = {1.0, 2.0, 9.0, 6.0, 11.0, 23.0, 3.0, 10.0, 20.0, 10.0, 12.0, 20.0, 11.0, 15.0, 25.0};
