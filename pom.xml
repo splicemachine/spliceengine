@@ -32,6 +32,18 @@
 			<uniqueVersion>true</uniqueVersion>
 		</snapshotRepository>
 	</distributionManagement>
+	<repositories>
+		<!--
+		SPLICEMACHINE GROUP REPO: This is our single repo URL that proxies and caches other repos.
+		Currently it is proxying: maven central, splice releases, splice snapshots, splice 3rd party,
+		Cloudera, Hortonworks, Mapr.  To view/edit configured repos in the group log into nexus,
+		select repository "Splice Developers", view Configuration tab.
+		-->
+		<repository>
+			<id>splicemachine</id>
+			<url>http://nexus.splicemachine.com/nexus/content/groups/developers</url>
+		</repository>
+	</repositories>
 	<properties>
 		<assemble>false</assemble>
 		<derby.version>10.9.1.0-splice1.0.0RC1-SNAPSHOT</derby.version>
@@ -253,17 +265,6 @@
 			</plugin>
 		</plugins>
 	</reporting>
-	<repositories>
-		<!--
-		SPLICEMACHINE GROUP REPO: This is our single repo URL that proxies and caches other repos. Currently it
-		is proxying: maven central, splice releases, splice snapshots, splice 3rd party.  To view/edit configured
-		repos in the group log into nexus, select repository "Splice Developers", view Configuration tab.
-		-->
-		<repository>
-			<id>splicemachine</id>
-			<url>http://nexus.splicemachine.com/nexus/content/groups/developers</url>
-		</repository>
-	</repositories>
 	<profiles>
 		<profile>
 			<id>no_obfuscate</id>
@@ -330,18 +331,6 @@
 				<dependency> <groupId>org.apache.hive</groupId> <artifactId>hive-service</artifactId> <version>${hive.version}</version> </dependency>
 				<dependency> <groupId>org.apache.hive</groupId> <artifactId>hive-shims</artifactId> <version>${hive.version}</version> </dependency>
 			</dependencies>
-			<repositories>
-				<repository>
-					<id>cloudera</id>
-					<url>https://repository.cloudera.com/content/repositories/releases/</url>
-					<snapshots>
-						<enabled>false</enabled>
-					</snapshots>
-					<releases>
-						<enabled>true</enabled>
-					</releases>
-				</repository>
-			</repositories>
 		</profile>
 		<profile>
 			<!-- =========================================================== -->
@@ -384,18 +373,6 @@
 				<dependency> <groupId>org.apache.hive</groupId> <artifactId>hive-service</artifactId> <version>${hive.version}</version> </dependency>
 				<dependency> <groupId>org.apache.hive</groupId> <artifactId>hive-shims</artifactId> <version>${hive.version}</version> </dependency>
 			</dependencies>
-			<repositories>
-				<repository>
-					<id>cloudera</id>
-					<url>https://repository.cloudera.com/content/repositories/releases/</url>
-					<snapshots>
-						<enabled>false</enabled>
-					</snapshots>
-					<releases>
-						<enabled>true</enabled>
-					</releases>
-				</repository>
-			</repositories>
 		</profile>
 		<profile>
 			<!-- =========================================================== -->
@@ -436,20 +413,6 @@
 				<dependency> <groupId>org.apache.hive</groupId> <artifactId>hive-service</artifactId> <version>${hive.version}</version> </dependency>
 				<dependency> <groupId>org.apache.hive</groupId> <artifactId>hive-shims</artifactId> <version>${hive.version}</version> </dependency>
 			</dependencies>
-			<repositories>
-				<repository>
-					<id>HDPReleases</id>
-					<name>HDP Releases</name>
-					<url>http://repo.hortonworks.com/content/repositories/releases</url>
-					<snapshots>
-						<enabled>false</enabled>
-					</snapshots>
-					<releases>
-						<enabled>true</enabled>
-					</releases>
-					<layout>default</layout>
-				</repository>
-			</repositories>
 		</profile>
 		<profile>
 			<!-- =========================================================== -->
@@ -489,19 +452,6 @@
 				<dependency> <groupId>org.apache.hive</groupId> <artifactId>hive-service</artifactId> <version>${hive.version}</version> </dependency>
 				<dependency> <groupId>org.apache.hive</groupId> <artifactId>hive-shims</artifactId> <version>${hive.version}</version> </dependency>
 			</dependencies>
-			<repositories>
-				<repository>
-					<id>mapr-releases</id>
-					<name>MapR Releases</name>
-					<url>http://repository.mapr.com/maven/</url>
-					<snapshots>
-						<enabled>false</enabled>
-					</snapshots>
-					<releases>
-						<enabled>true</enabled>
-					</releases>
-				</repository>
-			</repositories>
 			<build>
 				<plugins>
 					<plugin>
