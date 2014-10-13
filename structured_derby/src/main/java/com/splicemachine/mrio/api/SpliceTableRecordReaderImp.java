@@ -66,15 +66,15 @@ public class SpliceTableRecordReaderImp{
     private byte[] lastRow = null;
     private ImmutableBytesWritable rowkey = null;
     
-    protected SpliceTableRecordReaderImp(Configuration conf){
+    public SpliceTableRecordReaderImp(Configuration conf){
     	this.conf = conf;
     }
    
-	protected void initialize(final InputSplit inputSplit, final TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
+	public void initialize(final InputSplit inputSplit, final TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
 		sqlUtil = SQLUtil.getInstance(conf.get(SpliceMRConstants.SPLICE_JDBC_STR));
     }
 
-	protected void close() {
+	public void close() {
 		try {
 			this.tableScanner.close();
 			this.scanner.close();
@@ -85,7 +85,7 @@ public class SpliceTableRecordReaderImp{
 		}
 	}
 
-	protected void restart(byte[] firstRow) throws IOException {
+	public void restart(byte[] firstRow) throws IOException {
 		Scan newscan = new Scan(scan);
 		
 		newscan.setStartRow(firstRow);
@@ -103,9 +103,10 @@ public class SpliceTableRecordReaderImp{
 		
 		try {
 			String transaction_id = conf.get(SpliceMRConstants.SPLICE_TRANSACTION_ID);
-			
-			buildTableScannerBuilder(transaction_id);
-			tableScanner = this.builder.build();
+			if(this.builder == null){
+				buildTableScannerBuilder(transaction_id);
+				tableScanner = this.builder.build();
+			}
 	
 		} catch (NumberFormatException e) {
 			throw new IOException(e);
@@ -115,15 +116,15 @@ public class SpliceTableRecordReaderImp{
 		
 	}
 
-	protected void init() throws IOException {
+	public void init() throws IOException {
 		restart(scan.getStartRow());
 	}
 	
-	protected void setScan(Scan scan){
+	public void setScan(Scan scan){
 		this.scan = scan;
 	}
 	
-	protected ImmutableBytesWritable getCurrentKey(){
+	public ImmutableBytesWritable getCurrentKey(){
 		return rowkey;
 	}
 	
@@ -133,7 +134,7 @@ public class SpliceTableRecordReaderImp{
 	 * @throws StandardException 
 	 * 
 	 */
-    protected ExecRow getCurrentValue() throws IOException, InterruptedException, StandardException{
+    public ExecRow getCurrentValue() throws IOException, InterruptedException, StandardException{
     	
     	DataValueDescriptor dvds[] = value.getRowArray();
     	boolean invalid = true;
@@ -153,7 +154,7 @@ public class SpliceTableRecordReaderImp{
         
     }
     
-    protected EntryDecoder getRowEntryDecoder() {
+    public EntryDecoder getRowEntryDecoder() {
 		return new EntryDecoder();
     }
     
@@ -226,26 +227,27 @@ public class SpliceTableRecordReaderImp{
 			if(rowDecodingMap==null)
 				rowDecodingMap = rowEncodingMap;
 		}
-	
-    	builder = new SpliceTableScannerBuilder()
-		.scan(scan)
-		.scanner(scanner)	
-		.metricFactory(Metrics.basicMetricFactory())
-		.transactionID(Long.parseLong(txsId))
-		.tableVersion("2.0") // should read table version from derby metadata table
-		.rowDecodingMap(rowDecodingMap)
-		.template(row.getNewNullRow())
-		.indexName(null)
-		.setHtable(htable)
-		.setColumnTypes(colTypes)
+		
+			builder = new SpliceTableScannerBuilder()
+			.scan(scan)
+			.scanner(scanner)	
+			.metricFactory(Metrics.basicMetricFactory())
+			.transactionID(Long.parseLong(txsId))
+			.tableVersion("2.0") // should read table version from derby metadata table
+			.rowDecodingMap(rowDecodingMap)
+			.template(row.getNewNullRow())
+			.indexName(null)
+			.setHtable(htable)
+			.setColumnTypes(colTypes)
     	
-    	.keyColumnEncodingOrder(keyColumnOrder)
-    	.keyDecodingMap(keyDecodingMap)
-    	.keyColumnTypes(keyColumnTypes)	
-    	.accessedKeyColumns(accessedKeyCols);
+			.keyColumnEncodingOrder(keyColumnOrder)
+			.keyDecodingMap(keyDecodingMap)
+			.keyColumnTypes(keyColumnTypes)	
+			.accessedKeyColumns(accessedKeyCols);
+		
     }
     
-	protected boolean nextKeyValue() throws IOException, InterruptedException, StandardException { 
+	public boolean nextKeyValue() throws IOException, InterruptedException, StandardException { 
 		if(rowkey == null)
 			rowkey = new ImmutableBytesWritable();
 		if (value == null)
@@ -270,7 +272,7 @@ public class SpliceTableRecordReaderImp{
 		return false;
 	}
     
-    protected void setHTable(HTable htable) {
+    public void setHTable(HTable htable) {
 		this.htable = htable;
 		Configuration conf = htable.getConfiguration();
 		//String tableName = conf.get(TableInputFormat.INPUT_TABLE);
@@ -300,7 +302,7 @@ public class SpliceTableRecordReaderImp{
    
 	}
 
-	protected float getProgress() {
+	public float getProgress() {
 		// TODO Auto-generated method stub
 		return 0;
 	}

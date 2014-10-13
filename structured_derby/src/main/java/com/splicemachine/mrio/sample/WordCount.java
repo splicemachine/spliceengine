@@ -117,6 +117,7 @@ public class WordCount {
 		// TODO Auto-generated method stub
 		Configuration config = HBaseConfiguration.create();
 		config.set(SpliceMRConstants.SPLICE_JDBC_STR, "jdbc:derby://localhost:1527/splicedb;user=splice;password=admin");
+		
 		SpliceJob job = new SpliceJob(config, NAME);
 		
 		job.setJarByClass(WordCount.class);     // class that contains mapper
@@ -163,10 +164,12 @@ public class WordCount {
 					{
 					System.out.println("Job Failed");
 					job.rollback();
+					System.exit(1);
 					}
 				else{
 					job.commit();
 					System.out.println("Job Succeed");
+					System.exit(0);
 					
 				}
 			} catch (InterruptedException e) {
