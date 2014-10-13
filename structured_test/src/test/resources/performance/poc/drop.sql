@@ -1,9 +1,0 @@
-drop table category;
-drop table category_sub;
-drop table customer;
-drop table item;
-drop table subcategory;
-drop table order_header;
-drop table order_line;
-drop table ord_header;
-drop table ord_line;
