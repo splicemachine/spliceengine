@@ -75,6 +75,7 @@ public class SpliceInputFormat extends InputFormat<ImmutableBytesWritable, ExecR
 		trr.setScan(sc);
 		trr.setHTable(hTable);
 		trr.init();
+		
 		return trr;
 	}
 	
