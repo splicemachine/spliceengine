@@ -17,7 +17,6 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 /**
  * Tests for the SQLJ JAR file management stored procedures.
  *
- *
  * @author David Winters
  *		 Created on: 9/25/14
  */
