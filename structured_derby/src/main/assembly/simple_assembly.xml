@@ -34,8 +34,21 @@ TAR structure:
 			<excludes>
 				<exclude>tomcat:jasper-compiler</exclude>
 				<exclude>tomcat:jasper-runtime</exclude>
+				<exclude>com.splicemachine:splice_web*</exclude>
 			</excludes>
 		</dependencySet>
+
+		<dependencySet>
+			<outputDirectory>splicemachine</outputDirectory>
+			<scope>runtime</scope>
+			<useProjectArtifact>false</useProjectArtifact>
+			<unpack>true</unpack>
+			<includes>
+				<include>com.splicemachine:splice_web*</include>
+			</includes>
+		</dependencySet>
+
+
 	</dependencySets>
 
 	<!-- MISC FILES -->
@@ -106,45 +119,12 @@ TAR structure:
 				<include>hbase-log4j.properties</include>
 			</includes>
 		</fileSet>
-                <fileSet>
-                        <directory>conf</directory>
-                        <outputDirectory>splicemachine/conf</outputDirectory>
-                        <includes>
-                                <include>splice-site.xml</include>
-                        </includes>
-		</fileSet>
-		<!-- splice_web project -->
+
 		<fileSet>
-			<directory>../splice_web/target</directory>
-			<outputDirectory>splicemachine/lib</outputDirectory>
+			<directory>conf</directory>
+			<outputDirectory>splicemachine/conf</outputDirectory>
 			<includes>
-				<include>*.war</include>
-			</includes>
-		</fileSet>
-		<fileSet>
-			<directory>../splice_web/target/dependency</directory>
-			<outputDirectory>splicemachine/lib</outputDirectory>
-			<includes>
-				<include>*.jar</include>
-			</includes>
-			<excludes>
-				<exclude>*complete.jar</exclude>
-			</excludes>
-		</fileSet>
-		<fileSet>
-			<directory>../splice_web/target/classes/bin</directory>
-			<outputDirectory>splicemachine/bin</outputDirectory>
-			<fileMode>0755</fileMode>
-			<directoryMode>0755</directoryMode>
-			<includes>
-				<include>*sh</include>
-			</includes>
-		</fileSet>
-		<fileSet>
-			<directory>../splice_web/target/classes/etc</directory>
-			<outputDirectory>splicemachine/etc</outputDirectory>
-			<includes>
-				<include>*xml</include>
+				<include>splice-site.xml</include>
 			</includes>
 		</fileSet>
 	</fileSets>
