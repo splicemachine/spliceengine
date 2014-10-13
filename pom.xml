@@ -11,7 +11,6 @@
 	<modules>
 		<module>structured_constants</module>
 		<module>structured_si</module>
-		<module>splice_web</module>
 		<module>structured_derby</module>
 	</modules>
 	<scm>
@@ -32,6 +31,18 @@
 			<uniqueVersion>true</uniqueVersion>
 		</snapshotRepository>
 	</distributionManagement>
+	<repositories>
+		<!--
+		SPLICEMACHINE GROUP REPO: This is our single repo URL that proxies and caches other repos.
+		Currently it is proxying: maven central, splice releases, splice snapshots, splice 3rd party,
+		Cloudera, Hortonworks, Mapr.  To view/edit configured repos in the group log into nexus,
+		select repository "Splice Developers", view Configuration tab.
+		-->
+		<repository>
+			<id>splicemachine</id>
+			<url>http://nexus.splicemachine.com/nexus/content/groups/developers</url>
+		</repository>
+	</repositories>
 	<properties>
 		<assemble>false</assemble>
 		<derby.version>10.9.1.0-splice1.0.0RC1-SNAPSHOT</derby.version>
@@ -61,6 +72,7 @@
 			<dependency> <groupId>com.google.protobuf</groupId> <artifactId>protobuf-java</artifactId> <version>2.4.1</version> </dependency>
 			<dependency> <groupId>com.lmax</groupId> <artifactId>disruptor</artifactId> <version>3.2.1</version> </dependency>
 			<dependency> <groupId>com.splicemachine</groupId> <artifactId>asynchbase</artifactId> <version>1.5.1-SNAPSHOT</version> <exclusions> <exclusion> <groupId>org.slf4j</groupId> <artifactId>slf4j-api</artifactId> </exclusion> <exclusion> <groupId>org.slf4j</groupId> <artifactId>slf4j-log4j12</artifactId> </exclusion> <exclusion> <groupId>org.slf4j</groupId> <artifactId>log4j-over-slf4j</artifactId> </exclusion> <exclusion> <groupId>com.google.protobuf</groupId> <artifactId>protobuf-java</artifactId> </exclusion> <exclusion> <groupId>com.stumbleupon</groupId> <artifactId>async</artifactId> </exclusion> <exclusion> <groupId>org.apache.zookeeper</groupId> <artifactId>zookeeper</artifactId> </exclusion> </exclusions> </dependency>
+			<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_web</artifactId> <version>1.0.0RC1-SNAPSHOT</version> <type>tar.gz</type> </dependency>
 			<dependency> <groupId>com.splicemachine</groupId> <artifactId>structured_constants</artifactId> <version>1.0.0RC1-SNAPSHOT</version> <classifier>${envClassifier}</classifier> <type>jar</type> </dependency>
 			<dependency> <groupId>com.splicemachine</groupId> <artifactId>structured_si</artifactId> <version>1.0.0RC1-SNAPSHOT</version> <classifier>${envClassifier}${obfuscate.si}</classifier> <type>jar</type> <scope>compile</scope> </dependency>
 			<dependency> <groupId>com.splicemachine</groupId> <artifactId>utilities</artifactId> <version>1.1-SNAPSHOT</version> </dependency>
@@ -253,17 +265,6 @@
 			</plugin>
 		</plugins>
 	</reporting>
-	<repositories>
-		<!--
-		SPLICEMACHINE GROUP REPO: This is our single repo URL that proxies and caches other repos. Currently it
-		is proxying: maven central, splice releases, splice snapshots, splice 3rd party.  To view/edit configured
-		repos in the group log into nexus, select repository "Splice Developers", view Configuration tab.
-		-->
-		<repository>
-			<id>splicemachine</id>
-			<url>http://nexus.splicemachine.com/nexus/content/groups/developers</url>
-		</repository>
-	</repositories>
 	<profiles>
 		<profile>
 			<id>no_obfuscate</id>
@@ -330,18 +331,6 @@
 				<dependency> <groupId>org.apache.hive</groupId> <artifactId>hive-service</artifactId> <version>${hive.version}</version> </dependency>
 				<dependency> <groupId>org.apache.hive</groupId> <artifactId>hive-shims</artifactId> <version>${hive.version}</version> </dependency>
 			</dependencies>
-			<repositories>
-				<repository>
-					<id>cloudera</id>
-					<url>https://repository.cloudera.com/content/repositories/releases/</url>
-					<snapshots>
-						<enabled>false</enabled>
-					</snapshots>
-					<releases>
-						<enabled>true</enabled>
-					</releases>
-				</repository>
-			</repositories>
 		</profile>
 		<profile>
 			<!-- =========================================================== -->
@@ -384,18 +373,6 @@
 				<dependency> <groupId>org.apache.hive</groupId> <artifactId>hive-service</artifactId> <version>${hive.version}</version> </dependency>
 				<dependency> <groupId>org.apache.hive</groupId> <artifactId>hive-shims</artifactId> <version>${hive.version}</version> </dependency>
 			</dependencies>
-			<repositories>
-				<repository>
-					<id>cloudera</id>
-					<url>https://repository.cloudera.com/content/repositories/releases/</url>
-					<snapshots>
-						<enabled>false</enabled>
-					</snapshots>
-					<releases>
-						<enabled>true</enabled>
-					</releases>
-				</repository>
-			</repositories>
 		</profile>
 		<profile>
 			<!-- =========================================================== -->
@@ -436,20 +413,6 @@
 				<dependency> <groupId>org.apache.hive</groupId> <artifactId>hive-service</artifactId> <version>${hive.version}</version> </dependency>
 				<dependency> <groupId>org.apache.hive</groupId> <artifactId>hive-shims</artifactId> <version>${hive.version}</version> </dependency>
 			</dependencies>
-			<repositories>
-				<repository>
-					<id>HDPReleases</id>
-					<name>HDP Releases</name>
-					<url>http://repo.hortonworks.com/content/repositories/releases</url>
-					<snapshots>
-						<enabled>false</enabled>
-					</snapshots>
-					<releases>
-						<enabled>true</enabled>
-					</releases>
-					<layout>default</layout>
-				</repository>
-			</repositories>
 		</profile>
 		<profile>
 			<!-- =========================================================== -->
@@ -489,19 +452,6 @@
 				<dependency> <groupId>org.apache.hive</groupId> <artifactId>hive-service</artifactId> <version>${hive.version}</version> </dependency>
 				<dependency> <groupId>org.apache.hive</groupId> <artifactId>hive-shims</artifactId> <version>${hive.version}</version> </dependency>
 			</dependencies>
-			<repositories>
-				<repository>
-					<id>mapr-releases</id>
-					<name>MapR Releases</name>
-					<url>http://repository.mapr.com/maven/</url>
-					<snapshots>
-						<enabled>false</enabled>
-					</snapshots>
-					<releases>
-						<enabled>true</enabled>
-					</releases>
-				</repository>
-			</repositories>
 			<build>
 				<plugins>
 					<plugin>

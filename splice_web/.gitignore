@@ -1,5 +1,0 @@
-node_modules
-#dist
-.tmp
-.sass-cache
-#src/main/webapp/bower_components
