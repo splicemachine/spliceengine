@@ -89,7 +89,11 @@ fi
 
 currentDateTime=$(date +'%m-%d-%Y:%H:%M:%S')
 echo "=== Running with hbase profile ${PROFILE} at $currentDateTime ${BUILD_TAG} === " > ${SPLICELOG}
-spliceJar=`ls ${ROOT_DIR}/target/splicemachine/lib/splice_machine-*-${PROFILE}.jar`
+# Remove the '-obfuscated' classifier from the PROFILE for the Splice jar file.
+# Only the structured_si.jar file is obfuscated.
+PROFILE_SANS_OBFUSCATE=$(echo ${PROFILE} | sed 's/-obfuscated//')
+spliceJar=`ls ${ROOT_DIR}/target/splicemachine/lib/splice_machine-*-${PROFILE_SANS_OBFUSCATE}.jar`
+echo "spliceJar = ${spliceJar}"
 cp "${ROOT_DIR}/conf/splice-site.xml" ./
 jar -uf $spliceJar splice-site.xml
 rm splice-site.xml
