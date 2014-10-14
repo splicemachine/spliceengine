@@ -38,11 +38,16 @@ public class SpliceStringFunctionsIT {
     private static final SpliceTableWatcher tableWatcherC = new SpliceTableWatcher(
     	"C", schemaWatcher.schemaName, "(a varchar(30), b varchar(30))");
 
+    // Table for CONCAT testing.
+    private static final SpliceTableWatcher tableWatcherD = new SpliceTableWatcher(
+    	"D", schemaWatcher.schemaName, "(a varchar(30), b varchar(30), c varchar(30))");
+
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(classWatcher)
             .around(schemaWatcher)
             .around(tableWatcherB)
             .around(tableWatcherC)
+            .around(tableWatcherD)
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
@@ -115,6 +120,38 @@ public class SpliceStringFunctionsIT {
                         ps.setString(2, "Freddy Kruger");
                         ps.execute();
 
+                        ps = classWatcher.prepareStatement(
+                                "insert into " + tableWatcherD + " (a, b, c) values (?, ?, ?)");
+                        ps.setString(1, "AAA");
+                        ps.setString(2, "BBB");
+                        ps.setString(3, "AAABBB");
+                        ps.execute();
+
+                        ps.setString(1, "");
+                        ps.setString(2, "BBB");
+                        ps.setString(3, "BBB");
+                        ps.execute();
+
+                        ps.setString(1, "AAA");
+                        ps.setString(2, "");
+                        ps.setString(3, "AAA");
+                        ps.execute();
+
+                        ps.setString(1, "");
+                        ps.setString(2, "");
+                        ps.setString(3, "");
+                        ps.execute();
+
+                        ps.setString(1, null);
+                        ps.setString(2, "BBB");
+                        ps.setString(3, null);
+                        ps.execute();
+
+                        ps.setString(1, "AAA");
+                        ps.setString(2, null);
+                        ps.setString(3, null);
+                        ps.execute();
+
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     } finally {
@@ -153,7 +190,21 @@ public class SpliceStringFunctionsIT {
 	    while (rs.next()) {
     		sCell1 = rs.getString(1);
             sCell2 = rs.getString(2);
-            Assert.assertEquals("Wrong result value", sCell1, sCell2);
+            Assert.assertEquals("Wrong result value", sCell2, sCell1);
+	    }
+    }
+
+    @Test
+    public void testConcatFunction() throws Exception {
+	    String sCell1 = null;
+	    String sCell2 = null;
+	    ResultSet rs;
+	    
+	    rs = methodWatcher.executeQuery("SELECT CONCAT(a, b), c from " + tableWatcherD);
+	    while (rs.next()) {
+    		sCell1 = rs.getString(1);
+            sCell2 = rs.getString(2);
+            Assert.assertEquals("Wrong result value", sCell2, sCell1);
 	    }
     }
 }
