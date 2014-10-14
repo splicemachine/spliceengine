@@ -17,6 +17,28 @@ public class Murmur32 implements Hash32{
     }
 
     @Override
+    public int hash(String elem) {
+        assert elem!=null: "Cannot hash a null element!";
+        int h = seed;
+        int length = elem.length();
+        int pos = 0;
+        int visited =0;
+        char[] chars = elem.toCharArray();
+        while(length-pos>=4){
+            /*
+             * Since a char has two bytes, we create one int by packing together two chars
+             */
+            int k1 = littleEndianInt(chars,pos);
+            h = mutate(h,k1);
+            pos+=2;
+            visited+=4;
+        }
+        h = updatePartial(chars,length,pos,h,visited);
+
+        return finalize(h);
+    }
+
+    @Override
     public int hash(byte[] bytes, int offset, int length) {
         int pos = offset;
         int visited=0;
@@ -73,6 +95,28 @@ public class Murmur32 implements Hash32{
         return finalize(h);
     }
 
+    private static int littleEndianInt(CharSequence bytes, int offset) {
+        char b0 = bytes.charAt(offset);
+        char b1 = bytes.charAt(offset+1);
+        char b2 = bytes.charAt(offset+2);
+        char b3 = bytes.charAt(offset+3);
+        return (((b3       ) << 24) |
+                ((b2 & 0xff) << 16) |
+                ((b1 & 0xff) <<  8) |
+                ((b0 & 0xff)      ));
+    }
+
+
+    private static int littleEndianInt(char[] bytes, int offset) {
+        char b0 = bytes[offset];
+        char b1 = bytes[offset+1];
+        char b2 = bytes[offset+2];
+        char b3 = bytes[offset+3];
+        return (((b3       ) << 24) |
+                ((b2 & 0xff) << 16) |
+                ((b1 & 0xff) <<  8) |
+                ((b0 & 0xff)      ));
+    }
     private static int littleEndianInt(byte[] bytes, int offset) {
         byte b0 = bytes[offset];
         byte b1 = bytes[offset+1];
@@ -82,6 +126,52 @@ public class Murmur32 implements Hash32{
                 ((b2 & 0xff) << 16) |
                 ((b1 & 0xff) <<  8) |
                 ((b0 & 0xff)      ));
+    }
+
+    private int updatePartial(CharSequence bytes, int length, int pos, int h,int bytesVisited) {
+        int k1 = 0;
+        switch(length-bytesVisited){
+            case 3:
+                k1 ^= (bytes.charAt(pos+2) & 0xFF)<<16;
+                bytesVisited++;
+            case 2:
+                k1 ^= ((bytes.charAt(pos+1) & 0xFF) <<8);
+                bytesVisited++;
+            case 1:
+                k1 ^= bytes.charAt(pos) & 0xFF;
+                bytesVisited++;
+            default:
+                k1 *= c1;
+                k1 = Integer.rotateLeft(k1,15);
+                k1 *= c2;
+                h ^=k1;
+        }
+
+        h ^= bytesVisited;
+        return h;
+    }
+
+ private int updatePartial(char[] bytes, int length, int pos, int h,int bytesVisited) {
+        int k1 = 0;
+        switch(length-bytesVisited){
+            case 3:
+                k1 ^= (bytes[pos+2] & 0xFF)<<16;
+                bytesVisited++;
+            case 2:
+                k1 ^= ((bytes[pos+1] & 0xFF) <<8);
+                bytesVisited++;
+            case 1:
+                k1 ^= bytes[pos] & 0xFF;
+                bytesVisited++;
+            default:
+                k1 *= c1;
+                k1 = Integer.rotateLeft(k1,15);
+                k1 *= c2;
+                h ^=k1;
+        }
+
+        h ^= bytesVisited;
+        return h;
     }
 
     private int updatePartial(byte[] bytes, int length, int pos, int h,int bytesVisited) {

@@ -58,6 +58,12 @@ public class HashFunctions {
         private static final UtilHash INSTANCE = new UtilHash();
 
         @Override
+        public int hash(String elem) {
+            assert elem!=null: "Cannot hash a null element!";
+            return elem.hashCode();
+        }
+
+        @Override
         public int hash(byte[] bytes, int offset, int length) {
             int h = 1;
             int end = offset+length;

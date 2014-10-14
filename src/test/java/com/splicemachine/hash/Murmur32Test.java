@@ -8,6 +8,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.Random;
 
@@ -32,6 +33,7 @@ public class Murmur32Test {
     }
 
     private final byte[] sampleData;
+    private final Murmur32 murmur32 = new Murmur32(0);
 
     public Murmur32Test(byte[] sampleData) {
         this.sampleData = sampleData;
@@ -42,8 +44,18 @@ public class Murmur32Test {
         HashCode hashCode = Hashing.murmur3_32(0).hashBytes(sampleData, 0, sampleData.length);
         int actual =hashCode.asInt();
 
-        int hash = new Murmur32(0).hash(sampleData, 0, sampleData.length);
+        int hash = murmur32.hash(sampleData, 0, sampleData.length);
 
         Assert.assertEquals(actual,hash);
     }
+
+    @Test
+    public void testByteBufferSameAsByteArray() throws Exception {
+        int correct = murmur32.hash(sampleData,0,sampleData.length);
+        ByteBuffer bb = ByteBuffer.wrap(sampleData);
+        int actual = murmur32.hash(bb);
+
+        Assert.assertEquals(correct,actual);
+    }
+
 }

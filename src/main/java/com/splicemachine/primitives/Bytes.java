@@ -28,6 +28,21 @@ public class Bytes {
         }
 
         @Override
+        public boolean equals(byte[] b1, int b1Offset, int b1Length, byte[] b2, int b2Offset, int b2Length) {
+            int lLength = b1Length+b1Offset> b1.length? b1.length: b1Length;
+            int rLength = b2Length+b2Offset> b2.length? b2.length: b2Length;
+            int length = lLength<=rLength? lLength: rLength;
+            for (int i = 0; i < length; i++) {
+                byte leftByte = b1[b1Offset + i];
+                byte rightByte = b2[b2Offset + i];
+                if (leftByte != rightByte) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        @Override
         public int compare(byte[] o1, byte[] o2) {
             return compare(o1,0,o1.length,o2,0,o2.length);
         }

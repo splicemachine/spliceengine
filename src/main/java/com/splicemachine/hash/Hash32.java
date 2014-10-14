@@ -10,6 +10,8 @@ import java.nio.ByteBuffer;
  */
 public interface Hash32 {
 
+    public int hash(String elem);
+
     public int hash(byte[] bytes, int offset,int length);
 
     public int hash(ByteBuffer buffer);
