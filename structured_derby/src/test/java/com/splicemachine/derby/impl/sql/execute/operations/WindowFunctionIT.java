@@ -7,6 +7,7 @@ import java.util.List;
 
 import org.junit.Assert;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -20,6 +21,7 @@ import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.SpliceXPlainTrace;
+import com.splicemachine.homeless.TestUtils;
 
 /**
  *
@@ -93,6 +95,27 @@ public class WindowFunctionIT extends SpliceUnitTest {
         "2,1,'Jim','Johnson','2001-12-15 05:45:00'"
     };
 
+    private static String table4Def = "(EMPNO NUMERIC(4) NOT NULL, ENAME VARCHAR(10), JOB VARCHAR(9), MGR numeric(4), HIREDATE DATE, SAL NUMERIC(7, 2), COMM numeric(7, 2), DEPTNO numeric(2))";
+    public static final String TABLE4_NAME = "emp";
+    protected static SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher(TABLE4_NAME,CLASS_NAME, table4Def);
+
+    private static String[] EMP_ROWS = {
+        "7369, 'SMITH', 'CLERK',    7902, '1980-12-17', 800, NULL, 20",
+        "7499, 'ALLEN', 'SALESMAN', 7698, '1981-02-20', 1600, 300, 30",
+        "7521, 'WARD',  'SALESMAN', 7698, '1981-02-22', 1250, 500, 30",
+        "7566, 'JONES', 'MANAGER',  7839, '1981-04-02', 2975, NULL, 20",
+        "7654, 'MARTIN', 'SALESMAN', 7698,'1981-09-28', 1250, 1400, 30",
+        "7698, 'BLAKE', 'MANAGER', 7839,'1981-05-01', 2850, NULL, 30",
+        "7782, 'CLARK', 'MANAGER', 7839,'1981-06-09', 2450, NULL, 10",
+        "7788, 'SCOTT', 'ANALYST', 7566,'1982-12-09', 3000, NULL, 20",
+        "7839, 'KING', 'PRESIDENT', NULL,'1981-11-17', 5000, NULL, 10",
+        "7844, 'TURNER', 'SALESMAN', 7698,'1981-09-08', 1500, 0, 30",
+        "7876, 'ADAMS', 'CLERK', 7788,'1983-01-12', 1100, NULL, 20",
+        "7900, 'JAMES', 'CLERK', 7698,'1981-12-03', 950, NULL, 30",
+        "7902, 'FORD', 'ANALYST', 7566,'1981-12-03', 3000, NULL, 20",
+        "7934, 'MILLER', 'CLERK', 7782,'1982-01-23', 1300, NULL, 10"
+    };
+
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
                                             .around(spliceSchemaWatcher)
@@ -137,6 +160,22 @@ public class WindowFunctionIT extends SpliceUnitTest {
                         for (String row : PEOPLE_ROWS) {
                             ps = spliceClassWatcher.prepareStatement(
                                 String.format("insert into %s values (%s)", spliceTableWatcher3, row));
+                            ps.execute();
+                        }
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            })
+            .around(spliceTableWatcher4)
+            .around(new SpliceDataWatcher() {
+                @Override
+                protected void starting(Description description) {
+                    PreparedStatement ps;
+                    try {
+                        for (String row : EMP_ROWS) {
+                            ps = spliceClassWatcher.prepareStatement(
+                                String.format("insert into %s values (%s)", spliceTableWatcher4, row));
                             ps.execute();
                         }
                     } catch (Exception e) {
@@ -936,10 +975,117 @@ public class WindowFunctionIT extends SpliceUnitTest {
         compareArrays(maxSalExpected, maxSalActual);
     }
 
+    @Test
+    public void testRankWithAggAsOrderByCol() throws Exception {
+
+        double[] col1Expected = { 800,  950, 1100, 1250, 1250, 1300, 1500, 1600, 2450, 2850, 2975, 3000, 3000, 5000};
+        int[] empSalExpected = { 1,  2,  3,  4,  4,  6,  7,  8,  9, 10, 11, 12, 12, 14};
+        String[] enameExpected = { "SMITH",  "JAMES",  "ADAMS", "MARTIN",   "WARD", "MILLER", "TURNER",  "ALLEN",  "CLARK",  "BLAKE",  "JONES", "SCOTT", "FORD",   "KING"};
+        String sqlText =
+            "select sum(sal), rank() over ( order by sum(sal) ) empsal, ename from %s group by ename";
+
+        ResultSet rs = methodWatcher.executeQuery(
+            String.format(sqlText, this.getTableReference(TABLE4_NAME)));
+
+        List<Double> col1Actual = new ArrayList<Double>(col1Expected.length);
+        List<Integer> empSalActual = new ArrayList<Integer>(empSalExpected.length);
+        List<String> enameActual = new ArrayList<String>(enameExpected.length);
+        while (rs.next()) {
+            col1Actual.add(rs.getDouble(1));
+            empSalActual.add(rs.getInt(2));
+            enameActual.add(rs.getString(3));
+        }
+        rs.close();
+
+        compareArrays(col1Expected, col1Actual);
+        compareArrays(empSalExpected, empSalActual);
+        // enames, SCOTT and FORD have same salary and so rank the same and results
+        // order the names arbitrarily, therefore, we can't use ename with static comparison.
+//        compareArrays(enameExpected, enameActual);
+    }
+
+    @Test
+    @Ignore("DB-1695 - agg fn as window fn order by col expression. Fails without GROUP BY.")
+    public void testRankWithAggAsOrderByColNoGroupBy() throws Exception {
+
+        double[] col1Expected = { 800,  950, 1100, 1250, 1250, 1300, 1500, 1600, 2450, 2850, 2975, 3000, 3000, 5000};
+        int[] empSalExpected = { 1,  2,  3,  4,  4,  6,  7,  8,  9, 10, 11, 12, 12, 14};
+        String[] enameExpected = { "SMITH",  "JAMES",  "ADAMS", "MARTIN",   "WARD", "MILLER", "TURNER",  "ALLEN",  "CLARK",  "BLAKE",  "JONES", "SCOTT", "FORD",   "KING"};
+        String sqlText =
+            "select rank() over ( order by sum(sal) ) empsal, ename from %s";
+
+        ResultSet rs = methodWatcher.executeQuery(
+            String.format(sqlText, this.getTableReference(TABLE4_NAME)));
+
+        // DEBUG
+        TestUtils.printResult(sqlText, rs, System.out);
+
+        List<Double> col1Actual = new ArrayList<Double>(col1Expected.length);
+        List<Integer> empSalActual = new ArrayList<Integer>(empSalExpected.length);
+        List<String> enameActual = new ArrayList<String>(enameExpected.length);
+        while (rs.next()) {
+            col1Actual.add(rs.getDouble(1));
+            empSalActual.add(rs.getInt(2));
+            enameActual.add(rs.getString(3));
+        }
+        rs.close();
+
+        compareArrays(col1Expected, col1Actual);
+        compareArrays(empSalExpected, empSalActual);
+        // enames, SCOTT and FORD have same salary and so rank the same and results
+        // order the names arbitrarily, therefore, we can't use ename with static comparison.
+//        compareArrays(enameExpected, enameActual);
+    }
+
+    @Test
+    public void testRankWith2AggAsOrderByCol() throws Exception {
+
+        double[] col1Expected = { 800,  950, 1100, 1250, 1250, 1300, 1500, 1600, 2450, 2850, 2975, 3000, 3000, 5000};
+        int[] empSalExpected = { 1,  2,  3,  4,  4,  6,  7,  8,  9, 10, 11, 12, 12, 14};
+        String[] enameExpected = { "SMITH",  "JAMES",  "ADAMS", "MARTIN",   "WARD", "MILLER", "TURNER",  "ALLEN",  "CLARK",  "BLAKE",  "JONES", "SCOTT", "FORD",   "KING"};
+        String sqlText =
+            "select sum(sal) as sum_sal, avg(sal) as avg_sal, rank() over ( order by sum(sal), avg(sal) ) empsal, ename from %s group by ename";
+
+        ResultSet rs = methodWatcher.executeQuery(
+            String.format(sqlText, this.getTableReference(TABLE4_NAME)));
+
+        List<Double> col1Actual = new ArrayList<Double>(col1Expected.length);
+        List<Integer> empSalActual = new ArrayList<Integer>(empSalExpected.length);
+        List<String> enameActual = new ArrayList<String>(enameExpected.length);
+        while (rs.next()) {
+            col1Actual.add(rs.getDouble(1));
+            empSalActual.add(rs.getInt(3));
+            enameActual.add(rs.getString(4));
+        }
+        rs.close();
+
+        compareArrays(col1Expected, col1Actual);
+        compareArrays(empSalExpected, empSalActual);
+        // enames, SCOTT and FORD have same salary and so rank the same and results
+        // order the names arbitrarily, therefore, we can't use ename with static comparison.
+//        compareArrays(enameExpected, enameActual);
+    }
+
     private static void compareArrays(int[] expected, List<Integer> actualList) {
         int[] actual = new int[actualList.size()];
         for (int i=0; i<actualList.size(); i++) {
             actual[i] = actualList.get(i);
+        }
+        Assert.assertArrayEquals(expected, actual);
+    }
+
+    private static void compareArrays(double[] expected, List<Double> actualList) {
+        double[] actual = new double[actualList.size()];
+        for (int i=0; i<actualList.size(); i++) {
+            actual[i] = actualList.get(i);
+        }
+        Assert.assertArrayEquals(expected, actual, 0.0);
+    }
+
+    private static void compareArrays(String[] expected, List<String> actualList) {
+        String[] actual = new String[actualList.size()];
+        for (int i=0; i<actualList.size(); i++) {
+            actual[i] = (actualList.get(i));
         }
         Assert.assertArrayEquals(expected, actual);
     }
