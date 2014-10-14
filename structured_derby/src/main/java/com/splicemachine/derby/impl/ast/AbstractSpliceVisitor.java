@@ -329,6 +329,11 @@ public abstract class AbstractSpliceVisitor implements ISpliceVisitor {
     }
 
     @Override
+    public Visitable visit(DenseRankFunctionNode node) throws StandardException {
+        return defaultVisit(node);
+    }
+
+    @Override
     public Visitable visit(DropAliasNode node) throws StandardException {
         return defaultVisit(node);
     }
@@ -540,6 +545,11 @@ public abstract class AbstractSpliceVisitor implements ISpliceVisitor {
 
     @Override
     public Visitable visit(QueryTreeNode node) throws StandardException {
+        return defaultVisit(node);
+    }
+
+    @Override
+    public Visitable visit(RankFunctionNode node) throws StandardException {
         return defaultVisit(node);
     }
 
@@ -760,6 +770,11 @@ public abstract class AbstractSpliceVisitor implements ISpliceVisitor {
 
     @Override
     public Visitable visit(WindowReferenceNode node) throws StandardException {
+        return defaultVisit(node);
+    }
+
+    @Override
+    public Visitable visit(WrappedAggregateFunctionNode node) throws StandardException {
         return defaultVisit(node);
     }
 
