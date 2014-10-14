@@ -75,14 +75,25 @@
 						<artifactId>proguard-maven-plugin</artifactId>
 						<version>2.0.7</version>
 						<configuration>
-							<proguardVersion>4.11</proguardVersion>
-							<obfuscate>true</obfuscate>
 							<injar>${project.build.finalName}-${envClassifier}.jar</injar>
+							<outputDirectory>${project.build.directory}</outputDirectory>
+							<addMavenDescriptor>false</addMavenDescriptor>
+							<appendClassifier>true</appendClassifier>
+							<!-- archive></archive -->
 							<attach>true</attach>
 							<attachArtifactClassifier>${envClassifier}${obfuscate.si}</attachArtifactClassifier>
-							<injarNotExistsSkip>true</injarNotExistsSkip>
+							<attachArtifactType>jar</attachArtifactType>
+							<!-- exclusions></exclusions -->
+							<!-- inFilter></inFilter -->
 							<includeDependency>true</includeDependency>
-							<outputDirectory>${project.build.directory}</outputDirectory>
+							<injarNotExistsSkip>false</injarNotExistsSkip>
+							<libs>
+								<lib>${java.home}/lib/rt.jar</lib>
+								<lib>${java.home}/lib/jsse.jar</lib>
+								<lib>${java.home}/lib/jce.jar</lib>
+								<lib>${java.home}/lib/charsets.jar</lib>
+							</libs>
+							<!-- maxMemory></maxMemory -->
 							<options>
 								<!-- This has to be set or all generics are lost.  -->
 								<option>-keepattributes Signature</option>
@@ -237,12 +248,11 @@
 								<option>-keep public interface com.splicemachine.si.impl.rollforward.SegmentedRollForward$Action { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.rollforward.SegmentedRollForward$Context { public *; }</option>
 							</options>
-							<libs>
-								<lib>${java.home}/lib/rt.jar</lib>
-								<lib>${java.home}/lib/jsse.jar</lib>
-								<lib>${java.home}/lib/jce.jar</lib>
-								<lib>${java.home}/lib/charsets.jar</lib>
-							</libs>
+							<!-- outjar></outjar -->
+							<!-- proguardInclude></proguardInclude -->
+							<!-- proguardMainClass></proguardMainClass -->
+							<proguardVersion>4.11</proguardVersion>
+							<skip>false</skip>
 						</configuration>
 						<executions>
 							<execution>
