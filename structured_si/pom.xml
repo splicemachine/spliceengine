@@ -66,7 +66,7 @@
 				</property>
 			</activation>
 			<properties>
-				<obfuscate.si>obfuscated</obfuscate.si>
+				<obfuscate.si>-obfuscated</obfuscate.si>
 			</properties>
 			<build>
 				<plugins>
@@ -79,7 +79,7 @@
 							<obfuscate>true</obfuscate>
 							<injar>${project.build.finalName}-${envClassifier}.jar</injar>
 							<attach>true</attach>
-							<attachArtifactClassifier>${obfuscate.si}</attachArtifactClassifier>
+							<attachArtifactClassifier>${envClassifier}${obfuscate.si}</attachArtifactClassifier>
 							<injarNotExistsSkip>true</injarNotExistsSkip>
 							<includeDependency>true</includeDependency>
 							<outputDirectory>${project.build.directory}</outputDirectory>
