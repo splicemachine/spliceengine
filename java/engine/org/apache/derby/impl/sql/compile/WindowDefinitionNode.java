@@ -72,11 +72,16 @@ public final class WindowDefinitionNode extends WindowNode
      * @throws StandardException
      */
     public void bind(SelectNode target) throws StandardException {
+        Vector aggregateVector = new Vector();
         // bind partition
         Partition partition = overClause.getPartition();
         if (partition != null) {
-            Vector partitionAggregateVector = new Vector();
-            partition.bindGroupByColumns(target, partitionAggregateVector);
+            partition.bindGroupByColumns(target, aggregateVector);
+        }
+
+        if (SanityManager.DEBUG) {
+            SanityManager.ASSERT(aggregateVector.size() == 0,
+                                 "A window function partition cannot contain an aggregate.");
         }
 
         // bind order by
@@ -85,7 +90,7 @@ public final class WindowDefinitionNode extends WindowNode
             FromList fromList = target.getFromList();
             for (int i=0; i<orderByList.size(); ++i) {
                 OrderByColumn obc = orderByList.getOrderByColumn(i);
-                obc.getColumnExpression().bindExpression(fromList, null, null);
+                obc.getColumnExpression().bindExpression(fromList, null, aggregateVector);
             }
         }
     }

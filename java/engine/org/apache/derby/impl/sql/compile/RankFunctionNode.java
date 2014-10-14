@@ -23,6 +23,7 @@ package org.apache.derby.impl.sql.compile;
 import java.sql.Types;
 
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.types.TypeId;
 
 /**
@@ -33,15 +34,28 @@ public final class RankFunctionNode extends WindowFunctionNode  {
     /**
      * Initializer. QueryTreeNode override.
      *
-     * @param arg1 operands
-     * @param arg2 The function's definition class
-     * @param arg3 The window definition or reference
-     * @param arg4 null
+     * @param arg1 The function's definition class
+     * @param arg2 The window definition or reference
      * @throws org.apache.derby.iapi.error.StandardException
      */
-    public void init(Object arg1, Object arg2, Object arg3, Object arg4) throws StandardException {
-        super.init(((ValueNode[])arg1)[0], arg2, Boolean.FALSE, "RANK", arg3);
-        this.operands = (ValueNode[])arg1;
+    public void init(Object arg1, Object arg2) throws StandardException {
+
+        // Ranking window functions get their operand columns from from the ORDER BY clause.<br/>
+        // Here, we inspect and validate the window ORDER BY clause (within OVER clause) to find
+        // the columns with which to create the ranking function node.
+        OrderByList orderByList = ((WindowDefinitionNode)arg2).getOrderByList();
+        if (orderByList == null || orderByList.size() == 0) {
+            SanityManager.THROWASSERT("Missing required ORDER BY clause for ranking window function.");
+        }
+
+        this.operands = new ValueNode[orderByList.size()];
+
+        for (int i=0; i<orderByList.size(); i++) {
+            operands[i] = orderByList.getOrderByColumn(i).getColumnExpression();
+        }
+
+        super.init(operands[0], arg1, Boolean.FALSE, "RANK", arg2);
+
         setType(TypeId.getBuiltInTypeId(Types.BIGINT),
                 TypeId.LONGINT_PRECISION,
                 TypeId.LONGINT_SCALE,
@@ -62,5 +76,19 @@ public final class RankFunctionNode extends WindowFunctionNode  {
     @Override
     public ValueNode[] getOperands() {
         return operands;
+    }
+
+    @Override
+    protected void setOperands(ValueNode[] operands) {
+        if (operands != null && operands.length > 0) {
+            this.operand = operands[0];
+            this.operands = operands;
+            OrderByList orderByList = getWindow().getOrderByList();
+            if (orderByList != null && orderByList.size() > 0) {
+                for (int i=0; i<operands.length; i++) {
+                    orderByList.getOrderByColumn(i).init(operands[i]);
+                }
+            }
+        }
     }
 }

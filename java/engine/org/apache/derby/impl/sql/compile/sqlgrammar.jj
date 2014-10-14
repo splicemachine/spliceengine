@@ -2054,29 +2054,6 @@ public class SQLParser
         }
     }
 
-    /**
-     * Ranking window functions get their operand columns from from the ORDER BY clause.<br/>
-     * Here, we inspect and validate the window ORDER BY clause (within OVER clause) to find
-     * the columns with which to create the ranking function node.
-     *
-     * @param window The QueryTreeNode that represents the parsed WindowDefinitionNode.
-     * @return the column reference that is the first item in the window's OrderByList.
-     */
-    private ValueNode[] columnsRefForRankFunct(QueryTreeNode window) throws StandardException {
-        OrderByList orderByList = ((WindowDefinitionNode)window).getOrderByList();
-        if (orderByList == null || orderByList.size() == 0) {
-            SanityManager.THROWASSERT("Missing required ORDER BY clause for ranking window function.");
-        }
-
-        ValueNode[] columnRefs = new ValueNode[orderByList.size()];
-
-        for (int i=0; i<orderByList.size(); i++) {
-            columnRefs[i] = orderByList.getOrderByColumn(i).getColumnExpression();
-        }
-
-        return columnRefs;
-    }
-
     private void setWindowFrameMode(QueryTreeNode node, WindowFrameDefinition.FrameMode mode) {
         WindowDefinitionNode wdn = (WindowDefinitionNode) node;
         WindowFrameDefinition frame = wdn.getFrameExtent();
@@ -10032,42 +10009,33 @@ datetimeValueFunction() throws StandardException :
    |
        <DENSERANK> <LEFT_PAREN> <RIGHT_PAREN> window = overClause()
        {
-           rankColsRef = columnsRefForRankFunct(window);
            setWindowFrameMode(window, WindowFrameDefinition.FrameMode.ROWS);
            winOrAgg = (ValueNode) nodeFactory.getNode(
                C_NodeTypes.DENSERANK_FUNCTION_NODE,
-               rankColsRef,
                DenseRankFunctionDefinition.class,
                window,
-               null,
                getContextManager());
            return winOrAgg;
        }
    |
        <RANK> <LEFT_PAREN> <RIGHT_PAREN> window = overClause()
        {
-           rankColsRef = columnsRefForRankFunct(window);
            setWindowFrameMode(window, WindowFrameDefinition.FrameMode.ROWS);
            winOrAgg = (ValueNode) nodeFactory.getNode(
                C_NodeTypes.RANK_FUNCTION_NODE,
-               rankColsRef,
                RankFunctionDefinition.class,
                window,
-               null,
                getContextManager());
            return winOrAgg;
        }
    |
        <ROWNUMBER> <LEFT_PAREN> <RIGHT_PAREN> window = overClause()
        {
-           rankColsRef = columnsRefForRankFunct(window);
            setWindowFrameMode(window, WindowFrameDefinition.FrameMode.ROWS);
            winOrAgg = (ValueNode) nodeFactory.getNode(
                C_NodeTypes.ROW_NUMBER_FUNCTION_NODE,
-               rankColsRef,
                RowNumberFunctionDefinition.class,
                window,
-               null,
                getContextManager());
            return winOrAgg;
        }

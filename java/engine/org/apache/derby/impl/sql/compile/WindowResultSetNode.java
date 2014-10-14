@@ -31,12 +31,14 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.ClassName;
 import org.apache.derby.iapi.services.classfile.VMOpcode;
 import org.apache.derby.iapi.services.compiler.MethodBuilder;
+import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.sql.LanguageFactory;
 import org.apache.derby.iapi.sql.ResultColumnDescriptor;
 import org.apache.derby.iapi.sql.compile.C_NodeTypes;
 import org.apache.derby.iapi.sql.compile.CostEstimate;
+import org.apache.derby.iapi.sql.compile.NodeFactory;
 import org.apache.derby.iapi.sql.compile.Optimizable;
 import org.apache.derby.iapi.sql.compile.OptimizablePredicate;
 import org.apache.derby.iapi.sql.compile.OptimizablePredicateList;
@@ -542,22 +544,9 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 			** Set the windowFunctionNode result column to
 			** point to this.
 			*/
-            ColumnReference newColumnRef = (ColumnReference) getNodeFactory().getNode(
-                C_NodeTypes.COLUMN_REFERENCE,
-                "##CR ->" + newRC.getName(),
-                null,
-                getContextManager());
-            newColumnRef.setSource(newRC);
-            newColumnRef.setNestingLevel(this.getLevel());
-            newColumnRef.setSourceLevel(this.getLevel());
-
-            ResultColumn tmpRC = (ResultColumn) getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN,
-                newRC.getName(),
-                newColumnRef,
-                getContextManager());
-            tmpRC.markGenerated();
-            tmpRC.bindResultColumnToExpression();
+            ResultColumn tmpRC = createColumnReferenceWrapInResultColumn(newRC, getNodeFactory(),
+                                                                                             getContextManager(),
+                                                                                             this.getLevel());
             windowingRCL.addElement(tmpRC);
             tmpRC.setVirtualColumnId(windowingRCL.size());
 
@@ -571,7 +560,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 			** project restrict that have the expressions
 			** to be aggregated
 			*/
-            ResultColumn[] expressionResults = windowFunctionNode.getNewExpressionResultColumns(dd);
+            ResultColumn[] expressionResults = windowFunctionNode.getNewExpressionResultColumns();
             int[] inputVColIDs = new int[expressionResults.length];
             int i = 0;
             for (ResultColumn resultColumn : expressionResults) {
@@ -586,7 +575,8 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                 ** Add a reference to this column into the
                 ** windowing RCL.
                 */
-                tmpRC = getColumnReference(resultColumn, dd);
+                tmpRC = createColumnReferenceWrapInResultColumn(resultColumn, getNodeFactory(),
+                                                                getContextManager(), this.getLevel());
                 windowingRCL.addElement(tmpRC);
                 tmpRC.setVirtualColumnId(windowingRCL.size());
             }
@@ -606,7 +596,8 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 			/*
 			** Add a reference to this column in the windowing RCL.
 			*/
-            tmpRC = getColumnReference(newRC, dd);
+            tmpRC = createColumnReferenceWrapInResultColumn(newRC, getNodeFactory(),
+                                                                                getContextManager(), this.getLevel());
             windowingRCL.addElement(tmpRC);
             tmpRC.setVirtualColumnId(windowingRCL.size());
 
@@ -977,29 +968,34 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      * the one passed in.
      *
      * @param targetRC the source
-     * @param dd       the data dictionary
+     * @param nodeFactory for creating nodes
+     * @param contextManager for creating nodes
+     * @param nodeLevel the level we're at in the tree
      * @return the new result column
      * @throws StandardException on error
      */
-    private ResultColumn getColumnReference(ResultColumn targetRC,
-                                            DataDictionary dd)
+    public static ResultColumn createColumnReferenceWrapInResultColumn(ResultColumn targetRC,
+                                                                       NodeFactory nodeFactory,
+                                                                       ContextManager contextManager,
+                                                                       int nodeLevel)
         throws StandardException {
-        ColumnReference tmpColumnRef;
-        ResultColumn newRC;
 
-        tmpColumnRef = (ColumnReference) getNodeFactory().getNode(
+        // create the CR using targetRC as the source and source name
+        ColumnReference tmpColumnRef = (ColumnReference) nodeFactory.getNode(
             C_NodeTypes.COLUMN_REFERENCE,
             "##CR -> " + targetRC.getName(),
             null,
-            getContextManager());
+            contextManager);
         tmpColumnRef.setSource(targetRC);
-        tmpColumnRef.setNestingLevel(this.getLevel());
-        tmpColumnRef.setSourceLevel(this.getLevel());
-        newRC = (ResultColumn) getNodeFactory().getNode(
+        tmpColumnRef.setNestingLevel(nodeLevel);
+        tmpColumnRef.setSourceLevel(nodeLevel);
+
+        // create the RC, wrap the CR
+        ResultColumn newRC = (ResultColumn) nodeFactory.getNode(
             C_NodeTypes.RESULT_COLUMN,
             tmpColumnRef.getColumnName(),
             tmpColumnRef,
-            getContextManager());
+            contextManager);
         newRC.markGenerated();
         newRC.bindResultColumnToExpression();
         return newRC;

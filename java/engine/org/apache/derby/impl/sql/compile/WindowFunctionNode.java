@@ -29,6 +29,7 @@ import org.apache.derby.iapi.services.loader.ClassFactory;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.sql.compile.C_NodeTypes;
 import org.apache.derby.iapi.sql.compile.CompilerContext;
+import org.apache.derby.iapi.sql.compile.Visitor;
 import org.apache.derby.iapi.sql.dictionary.AliasDescriptor;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
@@ -89,6 +90,21 @@ public abstract class WindowFunctionNode extends AggregateNode {
         // SELECT -ABS(i) a, ROW_NUMBER() OVER () c FROM t
         //     WHERE i > 1 ORDER BY c DESC
         return false;
+    }
+
+    @Override
+    public void acceptChildren(Visitor v) throws StandardException {
+        super.acceptChildren(v);
+
+        ValueNode[] operands = getOperands();
+        ValueNode[] visitedNodes = new ValueNode[operands.length];
+        int i=0;
+        for (ValueNode overNode : operands) {
+            if (overNode != null) {
+                visitedNodes[i++] = (ValueNode) overNode.accept(v);
+            }
+        }
+        setOperands(visitedNodes);
     }
 
     /**
@@ -157,12 +173,11 @@ public abstract class WindowFunctionNode extends AggregateNode {
 
     /**
      * Get an ResultColumn array of all operands.
-     * @param dd unused
      * @return the array of ResultColumns each pointing to a ColumnReference to
      * an operand of this operator.
      * @throws StandardException
      */
-    public ResultColumn[] getNewExpressionResultColumns(DataDictionary dd) throws StandardException {
+    public ResultColumn[] getNewExpressionResultColumns() throws StandardException {
         ValueNode[] operands = getOperands();
         ResultColumn[] resultColumns = new ResultColumn[operands.length];
         int i = 0;
@@ -170,6 +185,7 @@ public abstract class WindowFunctionNode extends AggregateNode {
             if (node == null) {
                 node = getNewNullResultExpression();
             }
+
             resultColumns[i++] = (ResultColumn) getNodeFactory().getNode(
                 C_NodeTypes.RESULT_COLUMN,
                 "##WindowOperand",
@@ -208,17 +224,16 @@ public abstract class WindowFunctionNode extends AggregateNode {
     }
 
     /**
-     * TODO
      * Replace window function calls in the expression tree with a
-     * ColumnReference to that window function, append the aggregate to the
-     * supplied RCL (assumed to be from the child ResultSetNode) and return the
-     * ColumnReference.
+     * ColumnReference to that window function.  Use the supplied
+     * <code>newResultColumn</code> ResultColumn as the source for the new CR.
      *
-     * @param rc
+     * @param rc the RC with which to set the new CR as its expression (point
+     *           it to the new CR node).
      * @param tableNumber The tableNumber for the new ColumnReference
      * @param nestingLevel this node's nesting level
-     * @param newResultColumn
-     * @return ValueNode    The (potentially) modified tree.
+     * @param newResultColumn the source RC for the new CR
+     * @return the newly generated CR.
      * @throws StandardException
      */
     public ValueNode replaceCallWithColumnReference(ResultColumn rc,
@@ -450,4 +465,6 @@ public abstract class WindowFunctionNode extends AggregateNode {
             }
         }
     }
+
+    protected abstract void setOperands(ValueNode[] operands);
 }

@@ -17,8 +17,8 @@ public class WrappedAggregateFunctionNode extends WindowFunctionNode {
     /**
      * Initializer. QueryTreeNode override.
      *
-     * @param arg1 operands
-     * @param arg2 The function's definition class
+     * @param arg1 the window definition
+     * @param arg2 the wrapped aggregate function
      * @throws org.apache.derby.iapi.error.StandardException
      */
     public void init(Object arg1, Object arg2) throws StandardException {
@@ -32,6 +32,13 @@ public class WrappedAggregateFunctionNode extends WindowFunctionNode {
     }
 
     @Override
+    protected void setOperands(ValueNode[] operands) {
+        if (operands != null && operands.length > 0) {
+            this.operand = operands[0];
+        }
+    }
+
+    @Override
      public ValueNode getNewNullResultExpression() throws StandardException {
          return aggregateFunction.getNewNullResultExpression();
      }
@@ -41,6 +48,15 @@ public class WrappedAggregateFunctionNode extends WindowFunctionNode {
         return new ValueNode[] {aggregateFunction.operand};
     }
 
+    /**
+     * Overridden to redirect the call to the wrapped aggregate node.
+     * @param rc the result column to which to add the new ref
+     * @param tableNumber The tableNumber for the new ColumnReference
+     * @param nestingLevel this node's nesting level
+     * @param newResultColumn the source RC for the new CR
+     * @return the new CR
+     * @throws StandardException
+     */
     @Override
     public ValueNode replaceCallWithColumnReference(ResultColumn rc, int tableNumber, int nestingLevel, ResultColumn
         newResultColumn) throws StandardException {

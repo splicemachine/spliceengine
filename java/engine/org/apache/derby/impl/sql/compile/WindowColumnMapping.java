@@ -90,7 +90,7 @@ public class WindowColumnMapping {
         return missingKeys;
     }
 
-    public void resetOverColumnsPositionByParent(ValueNode parent, int columnPosition) {
+    public void resetOverColumnsPositionByParent(ValueNode parent, int columnPosition) throws StandardException {
         // there can be more than one occurrence of the same col in select
         for (ParentRef parentRef : findParentRefs(parent)) {
             if (parentRef.hasChildren()) {
@@ -101,7 +101,7 @@ public class WindowColumnMapping {
         }
     }
 
-    public void resetOverColumnsPositionByOverColumn(ValueNode overColumn, int columnPosition) {
+    public void resetOverColumnsPositionByOverColumn(ValueNode overColumn, int columnPosition) throws StandardException {
         // there can be more than one over column if, for instance, the same column
         // is listed in the partition and order by clauses
         for (OverRef overRef : findOverRefs(overColumn)) {
@@ -113,7 +113,7 @@ public class WindowColumnMapping {
     // Utilities
     //========================================
 
-    private Map<String,List<OverRef>> createOverRefs(Partition partition, OrderByList orderByList) {
+    private Map<String,List<OverRef>> createOverRefs(Partition partition, OrderByList orderByList) throws StandardException {
         int partitionSize = (partition != null ? partition.size() : 0);
         int orderByListSize = (orderByList != null ? orderByList.size() : 0);
         Map<String,List<OverRef>> oveRefMap = new LinkedHashMap<String, List<OverRef>>(partitionSize+orderByListSize);
@@ -153,7 +153,6 @@ public class WindowColumnMapping {
             ParentRef parentRef = new ParentRef(node, id);
             if (node instanceof ColumnReference || node instanceof VirtualColumnNode) {
                 // limit matching nodes to one of the types of the over columns
-                // TODO: what about arbitrary column expressions in over()? Ruling out aggregate expressions?
                 for (List<OverRef> overRefList: overRefs.values()) {
                     for (OverRef overRef : overRefList) {
                         if (equivalantToOverColumn(node, overRef.ref.getColumnExpression())) {
@@ -208,7 +207,7 @@ public class WindowColumnMapping {
         return orderedColumns;
     }
 
-    private List<ParentRef> findParentRefs(ValueNode parent) {
+    private List<ParentRef> findParentRefs(ValueNode parent) throws StandardException {
         List<ParentRef> matchingRefs = new ArrayList<ParentRef>(2);
         String id = createID(parent);
         for (ParentRef parentRef : parentRefs.get(id)) {
@@ -217,11 +216,14 @@ public class WindowColumnMapping {
         return matchingRefs;
     }
 
-    private List<OverRef> findOverRefs(ValueNode overColumn) {
+    private List<OverRef> findOverRefs(ValueNode overColumn) throws StandardException {
         List<OverRef> matchingRefs = new ArrayList<OverRef>(5);
         String id = createID(overColumn);
-        for (OverRef overRef : overRefs.get(id)) {
-            matchingRefs.add(overRef);
+        List<OverRef> overRefList = overRefs.get(id);
+        if (overRefList != null) {
+            for (OverRef overRef : overRefList) {
+                matchingRefs.add(overRef);
+            }
         }
         return matchingRefs;
     }
@@ -245,37 +247,69 @@ public class WindowColumnMapping {
      * between columns that are effectively the same.<br/>
      * Note we can't use column position because we're potentially
      * changing that during the lifetime of this object.
-     *
+     * <p/>
+     * Note that tedium abounds here!  Surprised?<br/>
+     * There are many paths and many null-named entities in the
+     * hierarchy.  Care must be taken and the paths mapped out
+     * (and WindowFuntionITs run!) when making changes to this
+     * method.
      * @param node the column to identify
      * @return the definitive column identifier.
      */
-    private String createID(ValueNode node) {
+    private String createID(ValueNode node) throws StandardException {
+        String name = null;
         if (node == null) return null;
         if (node instanceof BaseColumnNode) return node.getColumnName();
+        if (node instanceof ConstantNode) return ((ConstantNode)node).getValue().getString();
+        if (node instanceof BinaryArithmeticOperatorNode) {
+            BinaryArithmeticOperatorNode bNode = (BinaryArithmeticOperatorNode) node;
+            return bNode.methodName + "_" + createID(bNode.getLeftOperand()) + "_" +
+                createID(bNode.getRightOperand());
+        }
+        if (node instanceof TernaryOperatorNode) {
+            TernaryOperatorNode tNode = (TernaryOperatorNode) node;
+            return tNode.methodName + "_" + createID(tNode.getLeftOperand()) + "_" +
+                createID(tNode.getRightOperand());
+        }
+        if (node instanceof AggregateNode) return ((AggregateNode)node).getAggregateName();
+        if (node instanceof ColumnReference) {
+            name = node.getColumnName();
+            if (name != null && ! name.startsWith("##")) return name;
+
+            name = createID(((ColumnReference) node).getSource());
+            if (name != null && ! name.startsWith("##")) return name;
+
+            if ((((ColumnReference)node).getGeneratedToReplaceAggregate() ||
+                    ((ColumnReference)node).getGeneratedToReplaceWindowFunctionCall())) {
+                return node.getColumnName();
+            }
+        } else if (node instanceof VirtualColumnNode) {
+            return createID(((VirtualColumnNode) node).getSourceColumn());
+        }
+        // try another path
         ResultColumn src = node.getSourceResultColumn();
         if (src == null) {
             if (node instanceof ResultColumn) {
-                return ((ResultColumn)node).getName();
-            } else if (node instanceof AggregateNode) {
-                return ((AggregateNode)node).getAggregateName();
-            }
-            // resetting src to recurs
-            else if (node instanceof ColumnReference) {
-                if (((ColumnReference)node).getGeneratedToReplaceAggregate() ||
-                    ((ColumnReference)node).getGeneratedToReplaceWindowFunctionCall()) {
-                    return node.getColumnName();
+                name = ((ResultColumn)node).getName();
+
+                if (name.startsWith("##")) {
+                    ValueNode exp = ((ResultColumn) node).getExpression();
+                    if (exp instanceof ColumnReference || exp instanceof VirtualColumnNode) {
+                        return createID(((ResultColumn) node).getExpression());
+                    }
                 }
-                src = ((ColumnReference) node).getSource();
-            } else if (node instanceof VirtualColumnNode) {
-                src = ((VirtualColumnNode) node).getSourceColumn();
-            } else {
-                throw new RuntimeException("Node is of type: "+node);
+
+                return name;
             }
+        } else {
+            // recurs until we hit the bottom
+            name = createID(src);
         }
-        // recurs until we hit the bottom
-        String name = createID(src);
         if (name == null) {
-            throw new RuntimeException("Unable to create ID for node: "+node.getColumnName());
+            name = node.getColumnName();
+        }
+        if (name == null) {
+            throw new RuntimeException("Unable to create column mapping ID for node: "+node.getColumnName());
         }
         return name;
     }
