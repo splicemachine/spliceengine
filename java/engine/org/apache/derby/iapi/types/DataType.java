@@ -64,8 +64,8 @@ public abstract class DataType
 	/*
 	 * DataValueDescriptor Interface
 	 */
-	
-	
+
+    static final long serialVersionUID = -4093272419947701048L;
 	/**
 	 * Gets the value in the data value descriptor as a boolean.
 	 * Throws an exception if the data value is not receivable as a boolean.
