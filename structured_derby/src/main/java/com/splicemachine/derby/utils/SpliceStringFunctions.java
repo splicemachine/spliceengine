@@ -50,4 +50,23 @@ public class SpliceStringFunctions {
 	public static String INITCAP(String source) {
 		return WordUtils.capitalizeFully(source);
 	}
+	
+    /**
+     * Implements logic for the SQL function CONCAT.
+     * 
+     * @param arg1 first string
+     * @param arg2 second string
+     * 
+     * @return concatenation of arg1 and arg2
+     */
+    public static String CONCAT(String arg1, String arg2)
+    {
+    	// Per MySql documentation, if any argument is NULL,
+    	// function returns NULL.
+    	if (arg1 == null || arg2 == null) {
+    		return null;
+    	}
+    	return arg1.concat(arg2);
+    }
+
 }

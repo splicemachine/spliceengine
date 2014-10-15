@@ -79,6 +79,7 @@ public interface ISpliceVisitor {
     public Visitable visit(DB2LengthOperatorNode node) throws StandardException;
     public Visitable visit(DefaultNode node) throws StandardException;
     public Visitable visit(DeleteNode node) throws StandardException;
+    public Visitable visit(DenseRankFunctionNode node) throws StandardException;
     public Visitable visit(DropAliasNode node) throws StandardException;
     public Visitable visit(DropIndexNode node) throws StandardException;
     public Visitable visit(DropRoleNode node) throws StandardException;
@@ -122,6 +123,7 @@ public interface ISpliceVisitor {
     public Visitable visit(PredicateList node) throws StandardException;
     public Visitable visit(PrivilegeNode node) throws StandardException;
     public Visitable visit(QueryTreeNode node) throws StandardException;
+    public Visitable visit(RankFunctionNode node) throws StandardException;
     public Visitable visit(RenameNode node) throws StandardException;
     public Visitable visit(ResultColumn node) throws StandardException;
     public Visitable visit(ResultColumnList node) throws StandardException;
@@ -166,6 +168,7 @@ public interface ISpliceVisitor {
     public Visitable visit(WindowList node) throws StandardException;
     public Visitable visit(WindowNode node) throws StandardException;
     public Visitable visit(WindowReferenceNode node) throws StandardException;
+    public Visitable visit(WrappedAggregateFunctionNode node) throws StandardException;
     public Visitable visit(XMLConstantNode node) throws StandardException;
     public Visitable visit(ExplainNode node) throws StandardException;
     public Visitable visit(ExportNode node) throws StandardException;
