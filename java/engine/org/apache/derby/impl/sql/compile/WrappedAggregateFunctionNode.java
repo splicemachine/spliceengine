@@ -99,7 +99,13 @@ public class WrappedAggregateFunctionNode extends WindowFunctionNode {
     @Override
     public ValueNode bindExpression(FromList fromList, SubqueryList subqueryList, Vector aggregateVector) throws
         StandardException {
-        return aggregateFunction.bindExpression(fromList, subqueryList, aggregateVector);
+        ValueNode boundNode = aggregateFunction.bindExpression(fromList, subqueryList, aggregateVector);
+        // We don't want to be in this aggregateVector - remove ourselves (the wrapped aggregate)
+        // We want to bind the wrapped aggregate (and operand, etc) but we don't want to show up
+        // in this list as an aggregate. The list will be handed to GroupByNode, which we don't
+        // want doing the work.  Window function code will handle the window function aggregates
+        aggregateVector.remove(aggregateFunction);
+        return boundNode;
     }
 
     @Override

@@ -695,8 +695,7 @@ public class SelectNode extends ResultSetNode
 		 * allowed outside of an aggregate are columns in expressions in 
 		 * the group by list.
 		 */
-		if ((groupByList != null || selectAggregates.size() > 0) && ! hasWindows())
-            // FIXME: the ! hasWindows() above was added because visitor was seeing CR node and forcing a non-null groupby list
+		if ((groupByList != null || selectAggregates.size() > 0))
 		{
 
   			VerifyAggregateExpressionsVisitor visitor = 

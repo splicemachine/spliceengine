@@ -993,7 +993,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         // create the RC, wrap the CR
         ResultColumn newRC = (ResultColumn) nodeFactory.getNode(
             C_NodeTypes.RESULT_COLUMN,
-            tmpColumnRef.getColumnName(),
+            "##RC -> "+tmpColumnRef.getColumnName(),
             tmpColumnRef,
             contextManager);
         newRC.markGenerated();

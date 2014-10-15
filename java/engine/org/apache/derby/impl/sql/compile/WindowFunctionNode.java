@@ -297,8 +297,13 @@ public abstract class WindowFunctionNode extends AggregateNode {
      *
      * @param fromList            The query's FROM list
      * @param subqueryList        The subquery list being built as we find SubqueryNodes
-     * @param aggregateVector    The aggregate list being built as we find AggregateNodes,
-     *                           specifically, this node is added to it.
+     * @param aggregateVector    The aggregate list being built as we find AggregateNodes.
+     *                           <b>NOTE</b>, we <b>don't</b> add ourselves to this vector.
+     *                            We want to bind the wrapped aggregate (and operand, etc)
+     *                            but we don't want to show up in this list as an aggregate.
+     *                            The list will be handed to GroupByNode, which we don't want
+     *                            doing the work.  Window function code will handle the window
+     *                            function aggregates
      *
      * @return this bound function.
      * @throws StandardException for unenumerable reasons
@@ -346,8 +351,8 @@ public abstract class WindowFunctionNode extends AggregateNode {
                 getCompilerContext().addRequiredUsagePriv(ad);
             }
         }
-         /* Add ourselves to the aggregateVector before we do anything else */
-        aggregateVector.add(this);
+         /* DO NOT Add ourselves to the aggregateVector before we do anything else */
+//        aggregateVector.add(this);
 
         CompilerContext cc = getCompilerContext();
 
@@ -442,7 +447,7 @@ public abstract class WindowFunctionNode extends AggregateNode {
     @Override
     protected void bindOperand(FromList fromList, SubqueryList subqueryList, Vector aggregateVector)
         throws StandardException {
-        // bind all operands
+        // bind all operands - aggregate operands will be added to aggregateVector
         for (ValueNode node : getOperands()) {
             node = node.bindExpression(fromList, subqueryList, aggregateVector);
 

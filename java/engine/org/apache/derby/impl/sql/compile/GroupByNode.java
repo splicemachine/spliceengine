@@ -243,7 +243,7 @@ public class GroupByNode extends SingleChildResultSetNode
 	 * Add the extra result columns required by the aggregates
 	 * to the result list.
 	 * 
-	 * @exception standard exception
+	 * @exception StandardException
 	 */
 	private void addAggregates()
 		throws StandardException
@@ -293,7 +293,7 @@ public class GroupByNode extends SingleChildResultSetNode
 	 * Add a new PR node for aggregation.  Put the
 	 * new PR under the sort.
 	 *		
-	 * @exception standard exception
+	 * @exception StandardException
 	 */
 	private void addNewPRNode()
 		throws StandardException
@@ -478,7 +478,7 @@ public class GroupByNode extends SingleChildResultSetNode
 		return havingRefsToSubstitute;
 	}
 
-	/**
+    /**
 	 * Add a whole slew of columns needed for 
 	 * aggregation. Basically, for each aggregate we add
 	 * 3 columns: the aggregate input expression
@@ -549,7 +549,7 @@ public class GroupByNode extends SingleChildResultSetNode
 	 * Note that that addition of the GroupByNode is done after the
 	 * query is optimized (in SelectNode#modifyAccessPaths) which means a 
 	 * fair amount of patching up is needed to account for generated group by columns.
-	 * @exception standard exception
+	 * @exception StandardException
 	 */
 	private void addNewColumnsForAggregation()
 		throws StandardException
@@ -675,7 +675,7 @@ public class GroupByNode extends SingleChildResultSetNode
 			*/
 			newRC = (ResultColumn) getNodeFactory().getNode(
 					C_NodeTypes.RESULT_COLUMN,
-					"##aggregate result",
+					"##"+aggregate.getAggregateName()+"Result",
 					aggregate.getNewNullResultExpression(),
 					getContextManager());
 			newRC.markGenerated();
@@ -692,7 +692,7 @@ public class GroupByNode extends SingleChildResultSetNode
 			*/
 			newColumnRef = (ColumnReference) getNodeFactory().getNode(
 					C_NodeTypes.COLUMN_REFERENCE,
-					newRC.getName(),
+					"##CR -> "+newRC.getName(),
 					null,
 					getContextManager());
 			newColumnRef.setSource(newRC);
@@ -700,7 +700,7 @@ public class GroupByNode extends SingleChildResultSetNode
 			newColumnRef.setSourceLevel(this.getLevel());
 			tmpRC = (ResultColumn) getNodeFactory().getNode(
 					C_NodeTypes.RESULT_COLUMN,
-					newRC.getColumnName(),
+                    "##RC -> "+newColumnRef.getColumnName(),
 					newColumnRef,
 					getContextManager());
 			tmpRC.markGenerated();
@@ -724,6 +724,7 @@ public class GroupByNode extends SingleChildResultSetNode
 			newRC = aggregate.getNewExpressionResultColumn(dd);
 			newRC.markGenerated();
 			newRC.bindResultColumnToExpression();
+            newRC.setName("##" + aggregate.getAggregateName() + "Input");
 			bottomRCL.addElement(newRC);
 			newRC.setVirtualColumnId(bottomRCL.size());
 			aggInputVColId = newRC.getVirtualColumnId();
@@ -749,6 +750,7 @@ public class GroupByNode extends SingleChildResultSetNode
 			newRC = aggregate.getNewAggregatorResultColumn(dd);
 			newRC.markGenerated();
 			newRC.bindResultColumnToExpression();
+            newRC.setName("##" + aggregate.getAggregateName() + "Function");
 			bottomRCL.addElement(newRC);
 			newRC.setVirtualColumnId(bottomRCL.size());
 			aggregatorVColId = newRC.getVirtualColumnId();
@@ -1203,7 +1205,7 @@ public class GroupByNode extends SingleChildResultSetNode
 	
 		tmpColumnRef = (ColumnReference) getNodeFactory().getNode(
 											C_NodeTypes.COLUMN_REFERENCE,
-											targetRC.getName(),
+											"##CR -> "+targetRC.getName(),
 											null,
 											getContextManager());
 		tmpColumnRef.setSource(targetRC);
@@ -1211,7 +1213,7 @@ public class GroupByNode extends SingleChildResultSetNode
 		tmpColumnRef.setSourceLevel(this.getLevel());
 		newRC = (ResultColumn) getNodeFactory().getNode(
 									C_NodeTypes.RESULT_COLUMN,
-									targetRC.getColumnName(),
+									"##RC -> "+tmpColumnRef.getColumnName(),
 									tmpColumnRef,
 									getContextManager());
 		newRC.markGenerated();
