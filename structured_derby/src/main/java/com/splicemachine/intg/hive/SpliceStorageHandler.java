@@ -3,6 +3,7 @@ package com.splicemachine.intg.hive;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Map;
 import java.util.Properties;
@@ -32,6 +33,9 @@ implements HiveMetaHook, HiveStoragePredicateHandler{
 
 	private Configuration spliceConf;
 	final static public String DEFAULT_PREFIX = "default.";
+	private SQLUtil sqlUtil = null;
+	private Connection parentConn = null;
+	private String parentTxnId = null;
 	
 	private String getSpliceTableName(Table tbl)
 	{
@@ -48,6 +52,7 @@ implements HiveMetaHook, HiveStoragePredicateHandler{
 		          tableName = tableName.substring(DEFAULT_PREFIX.length());
 		        }
 		      }
+		tableName = tableName.trim();
 		return tableName;
 	}
 	
@@ -71,10 +76,17 @@ implements HiveMetaHook, HiveStoragePredicateHandler{
 					+ "tableName getting from hive metastore:"
 					+ tableName + "============");
 	    }
-	   
+	    tableName = tableName.trim();
+	    String connStr = tableProperties.getProperty(SpliceSerDe.SPLICE_JDBC_STR);
 	    jobProperties.put(SpliceSerDe.SPLICE_TABLE_NAME, tableName);
-	    jobProperties.put(SpliceSerDe.SPLICE_JDBC_STR, tableProperties.getProperty(SpliceSerDe.SPLICE_JDBC_STR));
-	    
+	    jobProperties.put(SpliceSerDe.SPLICE_JDBC_STR, connStr);
+	    if(sqlUtil == null){
+	    	sqlUtil = SQLUtil.getInstance(connStr);	
+	    }
+	    /*if(parentTxnId == null){
+	    	parentTxnId = sqlUtil.getTransactionID();
+		    jobProperties.put(SpliceSerDe.SPLICE_TRANSACTION_ID, parentTxnId);
+	    } */   
 	}
 	
 	@Override
@@ -129,9 +141,12 @@ implements HiveMetaHook, HiveStoragePredicateHandler{
 		// We can choose to support user define column mapping.
 		// But currently I don't think it is necessary
 		// We map all columns from Splice Table to Hive Table.
-		SQLUtil spliceUtil = SQLUtil.getInstance(spliceConf.get(SpliceSerDe.SPLICE_JDBC_STR));
+		String connStr = spliceConf.get(SpliceSerDe.SPLICE_JDBC_STR);
+		 if(sqlUtil == null)
+		    	sqlUtil = SQLUtil.getInstance(connStr);
+		
 		try {
-			if(spliceUtil.checkTableExists(tableName)){
+			if(sqlUtil.checkTableExists(tableName)){
 				
 			}
 			else{
