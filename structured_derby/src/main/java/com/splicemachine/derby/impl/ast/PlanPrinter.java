@@ -167,9 +167,14 @@ public class PlanPrinter extends AbstractSpliceVisitor {
         info.put("estRowCount", co.getEstimatedRowCount());
         info.put("estSingleScanCount", co.singleScanRowCount());
         info.put("regions", ((SortState) co).getNumberOfRegions());
-        if(LOG.isTraceEnabled()){
+        if (Level.TRACE.equals(LOG.getLevel())) {
+//        if(LOG.isTraceEnabled()){
+          // FIXME: FIND OUT WHY LOG.isTraceEnabled() always returns false
+
             // we only want to see exec row info when THIS logger is set to trace:
             // com.splicemachine.derby.impl.ast.PlanPrinter=TRACE
+            // or
+            // call SYSCS_UTIL.SYSCS_SET_LOGGER_LEVEL('com.splicemachine.derby.impl.ast.PlanPrinter', 'TRACE');
             info.put("results", getResultColumnInfo(rsn));
         }
         List<ResultSetNode> children = RSUtils.getChildren(rsn);
