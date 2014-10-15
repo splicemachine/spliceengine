@@ -701,7 +701,9 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
            this.delegate = delegate;
         }
 
-        @Override public long getConglomerateId() { return delegate.getConglomerateId(); }
+        @Override public long getConglomerateId() {
+            return indexConglomId;
+        }
 
         @Override
         public boolean equals(Object o) {
