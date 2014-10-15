@@ -2,12 +2,12 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.Assert;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -21,7 +21,6 @@ import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.SpliceXPlainTrace;
-import com.splicemachine.homeless.TestUtils;
 
 /**
  *
@@ -1004,37 +1003,15 @@ public class WindowFunctionIT extends SpliceUnitTest {
 //        compareArrays(enameExpected, enameActual);
     }
 
-    @Test
-    @Ignore("DB-1695 - agg fn as window fn order by col expression. Fails without GROUP BY.")
+    @Test(expected=SQLException.class)
     public void testRankWithAggAsOrderByColNoGroupBy() throws Exception {
-
-        double[] col1Expected = { 800,  950, 1100, 1250, 1250, 1300, 1500, 1600, 2450, 2850, 2975, 3000, 3000, 5000};
-        int[] empSalExpected = { 1,  2,  3,  4,  4,  6,  7,  8,  9, 10, 11, 12, 12, 14};
-        String[] enameExpected = { "SMITH",  "JAMES",  "ADAMS", "MARTIN",   "WARD", "MILLER", "TURNER",  "ALLEN",  "CLARK",  "BLAKE",  "JONES", "SCOTT", "FORD",   "KING"};
+        // expecting an exception here because there's an aggregate with no
+        // group by specified for ename column
         String sqlText =
-            "select rank() over ( order by sum(sal) ) empsal, ename from %s";
+            "select sal, rank() over ( order by sum(sal) ) empsal, ename from %s";
 
         ResultSet rs = methodWatcher.executeQuery(
             String.format(sqlText, this.getTableReference(TABLE4_NAME)));
-
-        // DEBUG
-        TestUtils.printResult(sqlText, rs, System.out);
-
-        List<Double> col1Actual = new ArrayList<Double>(col1Expected.length);
-        List<Integer> empSalActual = new ArrayList<Integer>(empSalExpected.length);
-        List<String> enameActual = new ArrayList<String>(enameExpected.length);
-        while (rs.next()) {
-            col1Actual.add(rs.getDouble(1));
-            empSalActual.add(rs.getInt(2));
-            enameActual.add(rs.getString(3));
-        }
-        rs.close();
-
-        compareArrays(col1Expected, col1Actual);
-        compareArrays(empSalExpected, empSalActual);
-        // enames, SCOTT and FORD have same salary and so rank the same and results
-        // order the names arbitrarily, therefore, we can't use ename with static comparison.
-//        compareArrays(enameExpected, enameActual);
     }
 
     @Test
