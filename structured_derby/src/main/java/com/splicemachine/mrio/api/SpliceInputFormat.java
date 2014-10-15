@@ -124,5 +124,8 @@ public class SpliceInputFormat extends InputFormat<ImmutableBytesWritable, ExecR
 		return tableInputFormat.getSplits(context);
 		
 	}
-
+	
+	public Scan getScan(){
+		return tableInputFormat.getScan();
+	}
 }

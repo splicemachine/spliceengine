@@ -56,9 +56,9 @@ public class SpliceSerDe implements SerDe {
 	 private ObjectInspector rowOI;
 	 private List<String> colNames;
 	 private List<Integer> colTypes;
-	 public static final String SPLICE_TABLE_NAME = "splice.table.name";
-	 public static final String SPLICE_JDBC_STR = "splice.jdbc";
-	 protected static final String SPLICE_TRANSACTION_ID = "splice.transaction.id";
+	 public static final String SPLICE_TABLE_NAME = "splice_input_tableName";
+	 public static final String SPLICE_JDBC_STR = "splice_jdbc";
+	 protected static final String SPLICE_TRANSACTION_ID = "transaction_id";
 	 private List<Object> row = new ArrayList<Object>();
 	 private SQLUtil sqlUtil = null;
 	 private LazySimpleSerDe.SerDeParameters serdeParams;
