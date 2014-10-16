@@ -15,13 +15,10 @@ import java.sql.PreparedStatement;
  * Created by jyuan on 7/14/14.
  */
 @Category(SerialTest.class)
-public class XPlainTrace2IT {
+public class XPlainTrace2IT extends BaseXplainIT{
 
     public static int nrows = 10;
     public static int numLoops = 3;
-
-    private static  SpliceXPlainTrace xPlainTrace = new SpliceXPlainTrace();
-    private static TestConnection baseConnection;
 
     public XPlainTrace2IT() {
 
@@ -102,27 +99,17 @@ public class XPlainTrace2IT {
                 }
             });
 
-    @BeforeClass
-    public static void setUpClass() throws Exception {
-        baseConnection = new TestConnection(SpliceNetConnection.getConnection());
-        xPlainTrace.setConnection(baseConnection);
-    }
-
-    @AfterClass
-    public static void tearDown() throws Exception {
-        baseConnection.close();
-    }
 
     @Test
     public void testIndexLookup() throws Exception {
-
+        System.out.println(txnId);
         xPlainTrace.turnOnTrace();
-        String sql = "select j from " + CLASS_NAME + "." + TABLE3 + " --splice-properties index=ti \n where i = 1";
+        String sql = "select j from " + spliceTableWatcher3 + " --SPLICE-PROPERTIES index=TI \n where i = 1";
         long count =  baseConnection.count(sql);
-        long statementId = baseConnection.getLastStatementId();
-        Assert.assertEquals(count, 1);
-
+        Assert.assertEquals("Incorrect row count with XPLAIN enabled",1,count);
         xPlainTrace.turnOffTrace();
+        long statementId = getLastStatementId();
+
 
         XPlainTreeNode operation = xPlainTrace.getOperationTree(statementId);
         operation = operation.getChildren().getFirst();
@@ -144,12 +131,12 @@ public class XPlainTrace2IT {
     @Test
     public void testOrderBy() throws Exception {
         xPlainTrace.turnOnTrace();
-        String sql = "select j from " + CLASS_NAME + "." + TABLE2 + " order by i desc";
+        String sql = "select j from " + spliceTableWatcher2 + " order by i desc";
         long count = baseConnection.count(sql);
-        long statementId = baseConnection.getLastStatementId();
-        Assert.assertEquals(count, numLoops*nrows);
+        Assert.assertEquals("Incorrect row count with XPLAIN enabled",numLoops*nrows,count);
         xPlainTrace.turnOffTrace();
 
+        long statementId = getLastStatementId();
         XPlainTreeNode operation = xPlainTrace.getOperationTree(statementId);
         if (operation != null) {
             operation = operation.getChildren().getFirst();
@@ -163,12 +150,12 @@ public class XPlainTrace2IT {
     @Test
     public void testDistinctScan() throws Exception {
         xPlainTrace.turnOnTrace();
-        String sql = "select distinct i from " + CLASS_NAME + "." + TABLE2;
+        String sql = "select distinct i from " + spliceTableWatcher2;
         long count = baseConnection.count(sql);
-        long statementId = baseConnection.getLastStatementId();
-        Assert.assertEquals(count, nrows);
+        Assert.assertEquals("Incorrect result count with XPLAIN enabled", nrows,count);
         xPlainTrace.turnOffTrace();
 
+        long statementId = getLastStatementId();
         XPlainTreeNode operation = xPlainTrace.getOperationTree(statementId);
         Assert.assertEquals(operation.getOperationType().compareToIgnoreCase(SpliceXPlainTrace.DISTINCTSCAN), 0);
         Assert.assertEquals(operation.getWriteRows(), nrows);
@@ -178,12 +165,12 @@ public class XPlainTrace2IT {
     @Test
     public void testGroupedAggregate() throws Exception {
         xPlainTrace.turnOnTrace();
-        String sql = "select i, sum(j) from " + CLASS_NAME + "." + TABLE2 + " group by i order by i";
+        String sql = "select i, sum(j) from " + spliceTableWatcher2 + " group by i order by i";
         long count = baseConnection.count(sql);
-        long statementId = baseConnection.getLastStatementId();
-        Assert.assertEquals(count, nrows);
+        Assert.assertEquals("Incorrect result count with XPLAIN enabled",nrows,count);
         xPlainTrace.turnOffTrace();
 
+        long statementId = getLastStatementId();
         XPlainTreeNode operation = xPlainTrace.getOperationTree(statementId);
         Assert.assertEquals(operation.getOperationType().compareToIgnoreCase(SpliceXPlainTrace.SORT), 0);
 
@@ -196,12 +183,12 @@ public class XPlainTrace2IT {
     @Test
     public void testOnceAndSubquery() throws Exception {
         xPlainTrace.turnOnTrace();
-        String sql = "select i from " + CLASS_NAME + "." + TABLE1 + " a where a.i>  (select min(i) from "+ CLASS_NAME + "." + TABLE1 +" b where a.i < b.i)";
+        String sql = "select i from " + spliceTableWatcher1 + " a where a.i>  (select min(i) from "+ CLASS_NAME + "." + TABLE1 +" b where a.i < b.i)";
         long count = baseConnection.count(sql);
-        long statementId = baseConnection.getLastStatementId();
-        Assert.assertEquals(count, 1);
+        Assert.assertEquals("Incorrect row count with XPLAIN enabled",1,count);
         xPlainTrace.turnOffTrace();
 
+        long statementId = getLastStatementId();
         XPlainTreeNode operation = xPlainTrace.getOperationTree(statementId);
         Assert.assertEquals(operation.getOperationType().compareToIgnoreCase(SpliceXPlainTrace.PROJECTRESTRICT), 0);
 
@@ -223,13 +210,14 @@ public class XPlainTrace2IT {
     }
 
     @Test
+    @Ignore("Ignored until DB-1755 is resolved")
     public void testDropColumn() throws Exception {
         xPlainTrace.turnOnTrace();
-        String sql = "alter table " + CLASS_NAME + "." + TABLE1 + " drop column j";
-        xPlainTrace.execute(sql);
-        long statementId = baseConnection.getLastStatementId();
+        String sql = "alter table " + spliceTableWatcher1 + " drop column j";
+        baseConnection.execute(sql);
         xPlainTrace.turnOffTrace();
 
+        long statementId = getLastStatementId();
         XPlainTreeNode operation = xPlainTrace.getOperationTree(statementId);
         //Assert.assertEquals(operation.getInfo().compareToIgnoreCase(SpliceXPlainTrace.POPULATEINDEX)
 

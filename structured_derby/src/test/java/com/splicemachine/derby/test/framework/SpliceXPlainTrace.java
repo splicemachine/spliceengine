@@ -70,7 +70,6 @@ public class SpliceXPlainTrace extends XPlainTrace{
 
     public XPlainTreeNode getOperationTree(long statementId) throws Exception{
         assert statementId!=-1l: "No statement id found";
-        waitForStatement(statementId);
         setStatementId(statementId);
         setFormat("tree");
         setMode(0);
@@ -99,10 +98,6 @@ public class SpliceXPlainTrace extends XPlainTrace{
 
     public boolean execute(String sql) throws Exception{
         return testConn.execute(sql);
-    }
-
-    public long getLastStatementId(){
-        return testConn.getLastStatementId();
     }
 
     @Override
