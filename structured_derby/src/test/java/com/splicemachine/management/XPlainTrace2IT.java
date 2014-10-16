@@ -106,7 +106,7 @@ public class XPlainTrace2IT extends BaseXplainIT{
         xPlainTrace.turnOnTrace();
         String sql = "select j from " + spliceTableWatcher3 + " --SPLICE-PROPERTIES index=TI \n where i = 1";
         long count =  baseConnection.count(sql);
-        Assert.assertEquals("Incorrect row count with XPLAIN enabled",1,count);
+        Assert.assertEquals("Incorrect row count with XPLAIN enabled", 1, count);
         xPlainTrace.turnOffTrace();
         long statementId = getLastStatementId();
 
@@ -221,5 +221,10 @@ public class XPlainTrace2IT extends BaseXplainIT{
         XPlainTreeNode operation = xPlainTrace.getOperationTree(statementId);
         //Assert.assertEquals(operation.getInfo().compareToIgnoreCase(SpliceXPlainTrace.POPULATEINDEX)
 
+    }
+
+    @Override
+    protected TestConnection getNewConnection() throws Exception {
+        return methodWatcher.getOrCreateConnection();
     }
 }
