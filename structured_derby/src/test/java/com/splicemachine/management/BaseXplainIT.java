@@ -16,13 +16,12 @@ import java.util.SortedMap;
  *         Date: 10/16/14
  */
 public abstract class BaseXplainIT {
-    protected static SpliceXPlainTrace xPlainTrace = new SpliceXPlainTrace();
+    protected SpliceXPlainTrace xPlainTrace = new SpliceXPlainTrace();
     protected static TestConnection baseConnection;
     protected long txnId;
     @BeforeClass
     public static void setUpClass() throws Exception {
         baseConnection = new TestConnection(SpliceNetConnection.getConnectionAs(SpliceNetConnection.DEFAULT_USER,SpliceNetConnection.DEFAULT_USER_PASSWORD));
-        xPlainTrace.setConnection(baseConnection);
     }
 
     @AfterClass
@@ -32,16 +31,17 @@ public abstract class BaseXplainIT {
 
     @Before
     public void setUp() throws Exception {
+        if(baseConnection==null || baseConnection.isClosed())
+            baseConnection = getNewConnection();
+
         baseConnection.setAutoCommit(false);
         txnId = baseConnection.getCurrentTransactionId();
+        xPlainTrace.setConnection(baseConnection);
     }
 
     @After
     public void tearDown() throws Exception {
-        if(baseConnection.isClosed())
-            baseConnection = getNewConnection();
-        else
-            baseConnection.rollback();
+        baseConnection.rollback();
     }
 
     protected abstract TestConnection getNewConnection() throws Exception;
