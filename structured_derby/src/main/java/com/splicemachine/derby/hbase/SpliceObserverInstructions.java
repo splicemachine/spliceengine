@@ -52,26 +52,12 @@ public class SpliceObserverInstructions implements Externalizable {
 		protected String sessionUserName;
 		protected SpliceRuntimeContext spliceRuntimeContext;
 
-		private TxnView txn;
 
 		public SpliceObserverInstructions() {
 				super();
 				SpliceLogUtils.trace(LOG, "instantiated");
 		}
 
-		public SpliceObserverInstructions(GenericStorablePreparedStatement statement,
-																			SpliceOperation topOperation,
-																			ActivationContext activationContext,
-																			TxnView txn, String sessionUserName, SchemaDescriptor defaultSchemaDescriptor,
-																			SpliceRuntimeContext spliceRuntimeContext) {
-				this.statement = statement;
-				this.topOperation = topOperation;
-				this.activationContext = activationContext;
-				this.txn = txn;
-				this.sessionUserName = sessionUserName;
-				this.defaultSchemaDescriptor = defaultSchemaDescriptor;
-				this.spliceRuntimeContext = spliceRuntimeContext;
-		}
 
 		public SpliceObserverInstructions(GenericStorablePreparedStatement statement,
                                       SpliceOperation topOperation,
@@ -88,7 +74,7 @@ public class SpliceObserverInstructions implements Externalizable {
 		}
 
 		public TxnView getTxn(){
-				return txn;
+        return spliceRuntimeContext.getTxn();
 		}
 
 		@Override
@@ -97,13 +83,6 @@ public class SpliceObserverInstructions implements Externalizable {
 				this.statement = (GenericStorablePreparedStatement) in.readObject();
 				this.topOperation = (SpliceOperation) in.readObject();
 				this.activationContext = (ActivationContext)in.readObject();
-				/*
-				 * We know that transaction information is only pulled from this class in the case
-				 * of SpliceOperationRegionScanner, which can only occur in read-only operations. Thus,
-				 * we only need to construct a read-only transaction out of the two key pieces of information:
-				 * the begin timestamp/txnId, and the isolationLevel.
-				 */
-        this.txn = TransactionOperations.getOperationFactory().readTxn(in);
 
 				this.sessionUserName = in.readUTF();
 				this.defaultSchemaDescriptor = (SchemaDescriptor) in.readObject();
@@ -116,7 +95,6 @@ public class SpliceObserverInstructions implements Externalizable {
 				out.writeObject(statement);
 				out.writeObject(topOperation);
 				out.writeObject(activationContext);
-        TransactionOperations.getOperationFactory().writeTxn(txn, out);
 				out.writeUTF(sessionUserName);
 				out.writeObject(defaultSchemaDescriptor);
 				out.writeObject(spliceRuntimeContext);
@@ -124,10 +102,6 @@ public class SpliceObserverInstructions implements Externalizable {
 
 
 		public SpliceRuntimeContext getSpliceRuntimeContext() {
-        TxnView txn = spliceRuntimeContext.getTxn();
-        if(txn==null){
-            spliceRuntimeContext.setTxn(getTxn());
-        }
 				return spliceRuntimeContext;
 		}
 
@@ -172,8 +146,8 @@ public class SpliceObserverInstructions implements Externalizable {
 
 				return new SpliceObserverInstructions(
 								(GenericStorablePreparedStatement) activation.getPreparedStatement(),
-								topOperation,activationContext, txn,
-								activation.getLanguageConnectionContext().getSessionUserId(),
+								topOperation,activationContext,
+                activation.getLanguageConnectionContext().getSessionUserId(),
 								activation.getLanguageConnectionContext().getDefaultSchema(),spliceRuntimeContext);
 		}
 
@@ -355,7 +329,7 @@ public class SpliceObserverInstructions implements Externalizable {
 		}
 
     public void setTxn(Txn txn){
-				this.txn = txn;
+        this.spliceRuntimeContext.setTxn(txn);
 		}
 
 }
