@@ -76,7 +76,8 @@ public class MultiRegionIT {
 
         conn.createStatement().execute("call SYSCS_UTIL.SYSCS_PURGE_XPLAIN_TRACE()");
         conn.commit();
-        assertTrue("need more than 3 regions to test auto trace", getNumOfRegions(SCHEMA_NAME, TABLE_NAME) > 3);
+
+        int numRegions = getNumOfRegions(SCHEMA_NAME, TABLE_NAME);
 
         Double popValue = methodWatcher.query(format("select stddev_pop(i) from %s", TABLE_NAME));
         assertEquals(2.8, popValue, .5);
@@ -84,9 +85,11 @@ public class MultiRegionIT {
         Double sampleValue = methodWatcher.query(format("select stddev_samp(i) from %s", TABLE_NAME));
         assertEquals(2.8, sampleValue, .5);
 
-        StatementHistory hist1 = statementHistoryDAO.findStatement("stddev_samp", 20, TimeUnit.SECONDS);
-        StatementHistory hist2 = statementHistoryDAO.findStatement("stddev_pop", 20, TimeUnit.SECONDS);
-        assertTrue("hist1=" + hist1 + " hist2=" + hist2, hist1 != null && hist2 != null);
+        if (numRegions > 3) {
+            StatementHistory hist1 = statementHistoryDAO.findStatement("stddev_samp", 20, TimeUnit.SECONDS);
+            StatementHistory hist2 = statementHistoryDAO.findStatement("stddev_pop", 20, TimeUnit.SECONDS);
+            assertTrue("hist1=" + hist1 + " hist2=" + hist2, hist1 != null && hist2 != null);
+        }
     }
 
     @Test
