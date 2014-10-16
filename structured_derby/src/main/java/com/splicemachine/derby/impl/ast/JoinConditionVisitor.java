@@ -56,10 +56,7 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
     	SpliceLogUtils.debug(LOG, "visit joinNode=%s",j);
         AccessPath ap = ((Optimizable) j.getRightResultSet()).getTrulyTheBestAccessPath();
         if (RSUtils.isHashableJoin(ap)){
-            if(ap.getJoinStrategy() instanceof HashNestedLoopJoinStrategy)
-            	return pullUpPreds(j,false);
-            else
-                return pullUpPreds(j,true);
+            return pullUpPreds(j, ap);
         } else if (RSUtils.isNLJ(ap)){
             return rewriteNLJColumnRefs(j);
         } else {
@@ -74,7 +71,7 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
 
     // Machinery for pulling up predicates (for hash-based joins)
 
-    public JoinNode pullUpPreds(JoinNode j, boolean ignoreIndex) throws StandardException {
+    private JoinNode pullUpPreds(JoinNode j, AccessPath ap) throws StandardException {
         List<Predicate> toPullUp = new LinkedList<Predicate>();
 
         // Collect PRs, FBTs until a binary node (Union, Join) found, or end
@@ -98,9 +95,12 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
                  * to be present on the Join node ( to ensure that the hash indices are properly found). This
                  * is a pretty ugly attempt to ensure that this works correctly.
                  */
-                toPullUp.addAll(pullPredsFromTable((FromBaseTable)rsn,shouldPull,ignoreIndex)); //avoid pulling predicates from base table when doing a hash nlj
+                boolean removeFromBaseTable = !(ap.getJoinStrategy() instanceof HashNestedLoopJoinStrategy);
+                toPullUp.addAll(pullPredsFromTable((FromBaseTable)rsn,shouldPull,removeFromBaseTable));
             }else if(rsn instanceof IndexToBaseRowNode){
-                if(!ignoreIndex){
+                /* Only pull from index if we are a HashNestedLoopJoin */
+                boolean pullFromIndex = (ap.getJoinStrategy() instanceof HashNestedLoopJoinStrategy);
+                if(pullFromIndex){
                     List<? extends Predicate> c = pullPredsFromIndex((IndexToBaseRowNode) rsn, shouldPull);
                     toPullUp.addAll(c);
                 }
@@ -189,7 +189,7 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
 
     public JoinNode rewriteNLJColumnRefs(JoinNode j) throws StandardException {
     	if (LOG.isDebugEnabled())
-    		SpliceLogUtils.debug(LOG, "rewriteNLJColumnRefs joinNode=%s" + j);
+    		SpliceLogUtils.debug(LOG, "rewriteNLJColumnRefs joinNode=%s", j);
         List<Predicate> joinPreds = new LinkedList<Predicate>();
 
         // Collect PRs, FBTs until a binary node (Union, Join) found, or end
