@@ -7,6 +7,8 @@ import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.temp.TempTable;
 import com.splicemachine.derby.management.StatementInfo;
 import com.splicemachine.metrics.*;
+import com.splicemachine.si.api.TransactionOperations;
+import com.splicemachine.si.api.TransactionStorage;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.kryo.KryoPool;
 
@@ -168,6 +170,7 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
         if (statementInfo != null) {
             out.writeLong(statementInfo.getStatementUuid());
         }
+        TransactionOperations.getOperationFactory().writeTxn(txn,out);
     }
 
     @Override
@@ -183,6 +186,7 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
         if(in.readBoolean()) {
             this.statementId = in.readLong();
         }
+        this.txn = TransactionOperations.getOperationFactory().readTxn(in);
     }
 
 
