@@ -174,6 +174,8 @@ public abstract class Connection
     // indicates if a deferred reset connection is required
     public boolean resetConnectionAtFirstSql_ = false;
 
+    public static final int TRANSACTION_SNAPSHOT_ISOLATION = 16;
+
     //---------------------constructors/finalizer---------------------------------
 
     // For jdbc 2 connections
@@ -916,6 +918,7 @@ public abstract class Connection
     private static String DERBY_TRANSACTION_SERIALIZABLE = "RR";
     private static String DERBY_TRANSACTION_READ_COMMITTED = "CS";
     private static String DERBY_TRANSACTION_READ_UNCOMMITTED = "UR";
+    private static String DERBY_TRANSACTION_SNAPSHOT_ISOLATION = "SI";
 
     synchronized public void setTransactionIsolation(int level) throws SQLException {
         if (agent_.loggingEnabled()) {
@@ -980,6 +983,9 @@ public abstract class Connection
             break;
         case java.sql.Connection.TRANSACTION_READ_UNCOMMITTED:
             levelString = DERBY_TRANSACTION_READ_UNCOMMITTED;
+            break;
+        case TRANSACTION_SNAPSHOT_ISOLATION:
+            levelString = DERBY_TRANSACTION_SNAPSHOT_ISOLATION;
             break;
             // Per javadoc:
             //   Note that Connection.TRANSACTION_NONE cannot be used because it
@@ -1200,6 +1206,8 @@ public abstract class Connection
     		return java.sql.Connection.TRANSACTION_READ_COMMITTED;
     	else if (isolationStr.compareTo(DERBY_TRANSACTION_READ_UNCOMMITTED) == 0)
     		return java.sql.Connection.TRANSACTION_READ_UNCOMMITTED;
+        else if (isolationStr.compareTo(DERBY_TRANSACTION_SNAPSHOT_ISOLATION) == 0)
+            return TRANSACTION_SNAPSHOT_ISOLATION;
     	else 
     		return java.sql.Connection.TRANSACTION_NONE;
     }
@@ -2154,7 +2162,8 @@ public abstract class Connection
                     pbIsolation ==
                         java.sql.Connection.TRANSACTION_REPEATABLE_READ ||
                     pbIsolation ==
-                        java.sql.Connection.TRANSACTION_SERIALIZABLE,
+                        java.sql.Connection.TRANSACTION_SERIALIZABLE ||
+                            pbIsolation == 16,
                     "Invalid isolation level value: " + pbIsolation);
         }
         defaultIsolation = isolation_ = pbIsolation;

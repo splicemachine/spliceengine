@@ -44,6 +44,8 @@ public interface ExecutionContext extends Context {
 	public static final int READ_COMMITTED_ISOLATION_LEVEL = 2;
 	public static final int REPEATABLE_READ_ISOLATION_LEVEL = 3;
 	public static final int SERIALIZABLE_ISOLATION_LEVEL = 4;
+    public static final int SI_ISOLATION_LEVEL = 5;
+    public static final int TRANSACTION_SNAPSHOT_ISOLATION = 16;
 
     /**
      * Map from Derby transaction isolation constants to
@@ -54,7 +56,8 @@ public interface ExecutionContext extends Context {
 		java.sql.Connection.TRANSACTION_READ_UNCOMMITTED,	// READ_UNCOMMITTED_ISOLATION_LEVEL
 		java.sql.Connection.TRANSACTION_READ_COMMITTED,		// READ_COMMITTED_ISOLATION_LEVEL
 		java.sql.Connection.TRANSACTION_REPEATABLE_READ,	// REPEATABLE_READ_ISOLATION_LEVEL		
-		java.sql.Connection.TRANSACTION_SERIALIZABLE		// SERIALIZABLE_ISOLATION_LEVEL
+		java.sql.Connection.TRANSACTION_SERIALIZABLE,		// SERIALIZABLE_ISOLATION_LEVEL
+        TRANSACTION_SNAPSHOT_ISOLATION                      // SNAPSHOT ISOLATION
 	};
 
     /**
@@ -69,7 +72,8 @@ public interface ExecutionContext extends Context {
 		{ "UR", "DIRTY READ", "READ UNCOMMITTED"},
 		{ "CS", "CURSOR STABILITY", "READ COMMITTED"},
 		{ "RS"},		// read stability	
-		{ "RR", "REPEATABLE READ", "SERIALIZABLE"}
+		{ "RR", "REPEATABLE READ", "SERIALIZABLE"},
+        { "SI", "SNAPSHOT ISOLATION"}
 	};
 
 	/**

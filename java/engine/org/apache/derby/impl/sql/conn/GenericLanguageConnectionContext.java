@@ -230,7 +230,7 @@ public class GenericLanguageConnectionContext
     private SchemaDescriptor cachedInitialDefaultSchemaDescr = null;
 
     // RESOLVE - How do we want to set the default.
-    private int defaultIsolationLevel = ExecutionContext.READ_COMMITTED_ISOLATION_LEVEL;
+    private int defaultIsolationLevel = ExecutionContext.SI_ISOLATION_LEVEL;
     protected int isolationLevel = defaultIsolationLevel;
 
     private boolean isolationLevelExplicitlySet = false;
