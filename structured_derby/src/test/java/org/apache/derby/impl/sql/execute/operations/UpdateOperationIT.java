@@ -1,18 +1,19 @@
 package org.apache.derby.impl.sql.execute.operations;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.List;
 import com.google.common.collect.Lists;
-import com.splicemachine.derby.impl.sql.execute.operations.ExplainOperation;
 import com.splicemachine.derby.test.framework.*;
-
 import org.apache.log4j.Logger;
-import org.junit.*;
+import org.junit.Assert;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
+
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.util.List;
 
 public class UpdateOperationIT extends SpliceUnitTest { 
 	private static Logger LOG = Logger.getLogger(UpdateOperationIT.class);
@@ -22,86 +23,95 @@ public class UpdateOperationIT extends SpliceUnitTest {
     protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher("b",spliceSchemaWatcher.schemaName,"(num int, addr varchar(50), zip char(5))");
     protected static SpliceTableWatcher nullTableWatcher = new SpliceTableWatcher("NULL_TABLE",spliceSchemaWatcher.schemaName,"(addr varchar(50), zip char(5))");
     protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher("c",spliceSchemaWatcher.schemaName,"(k int, l int)");
-
     protected static SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher("customer",spliceSchemaWatcher.schemaName,"(cust_id int, status boolean)");
     protected static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher("shipment",spliceSchemaWatcher.schemaName,"(cust_id int)");
-    protected static SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher("t",spliceSchemaWatcher.schemaName,"(i int, j int)");
-    @ClassRule 
-	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
-		.around(spliceSchemaWatcher)
-		.around(spliceTableWatcher)
-        .around(spliceTableWatcher2)
-        .around(spliceTableWatcher3)
-        .around(nullTableWatcher)
-        .around(spliceTableWatcher4)
-        .around(spliceTableWatcher5)
-        .around(spliceTableWatcher6)
-		.around(new SpliceDataWatcher() {
-            @Override
-            protected void starting(Description description) {
-                try {
-                    PreparedStatement insertPs = spliceClassWatcher.prepareStatement("insert into " + spliceTableWatcher + " values(?,?,?)");
-                    PreparedStatement insertPs2 = spliceClassWatcher.prepareStatement("insert into " + spliceTableWatcher2 + " values(?,?,?)");
+    protected static SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher("tab2",spliceSchemaWatcher.schemaName,"(c1 int not null primary key, c2 int, c3 int)");
+    private static final SpliceTableWatcher nullIndexedTable = new SpliceTableWatcher("nt",spliceSchemaWatcher.schemaName,"(a int, b int)");
+    private static final SpliceIndexWatcher nullIndex = new SpliceIndexWatcher(nullIndexedTable.tableName,spliceSchemaWatcher.schemaName,"nt_idx",spliceSchemaWatcher.schemaName,"(a)",true);
 
-                    insertPs.setInt(1, 100);
-                    insertPs.setString(2, "100");
-                    insertPs.setString(3, "94114");
-                    insertPs.executeUpdate();
+    @ClassRule
+    public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
+            .around(spliceSchemaWatcher)
+            .around(spliceTableWatcher)
+            .around(spliceTableWatcher2)
+            .around(spliceTableWatcher3)
+            .around(nullTableWatcher)
+            .around(spliceTableWatcher4)
+            .around(spliceTableWatcher5)
+            .around(spliceTableWatcher6)
+            .around(nullIndexedTable)
+            .around(nullIndex)
+            .around(new SpliceDataWatcher() {
+        @Override
+        protected void starting(Description description) {
+            try {
+                PreparedStatement insertPs = spliceClassWatcher.prepareStatement("insert into " + spliceTableWatcher + " values(?,?,?)");
+                PreparedStatement insertPs2 = spliceClassWatcher.prepareStatement("insert into " + spliceTableWatcher2 + " values(?,?,?)");
 
-                    insertPs2.setInt(1, 250);
-                    insertPs2.setString(2, "100");
-                    insertPs2.setString(3, "94114");
-                    insertPs2.executeUpdate();
+                insertPs.setInt(1, 100);
+                insertPs.setString(2, "100");
+                insertPs.setString(3, "94114");
+                insertPs.executeUpdate();
 
-                    insertPs.setInt(1, 200);
-                    insertPs.setString(2, "200");
-                    insertPs.setString(3, "94509");
-                    insertPs.executeUpdate();
+                insertPs2.setInt(1, 250);
+                insertPs2.setString(2, "100");
+                insertPs2.setString(3, "94114");
+                insertPs2.executeUpdate();
 
-                    insertPs.setInt(1, 300);
-                    insertPs.setString(2, "300");
-                    insertPs.setString(3, "34166");
-                    insertPs.executeUpdate();
+                insertPs.setInt(1, 200);
+                insertPs.setString(2, "200");
+                insertPs.setString(3, "94509");
+                insertPs.executeUpdate();
 
-                    // Insert into customer and shipment tables
-                    insertPs = spliceClassWatcher.prepareStatement("insert into " + spliceTableWatcher4 + " values(?,?)");
-                    insertPs.setInt(1, 1);
-                    insertPs.setBoolean(2, true);
-                    insertPs.executeUpdate();
-                    insertPs.setInt(1, 2);
-                    insertPs.setBoolean(2, true);
-                    insertPs.executeUpdate();
-                    insertPs.setInt(1, 3);
-                    insertPs.setBoolean(2, true);
-                    insertPs.executeUpdate();
-                    insertPs.setInt(1, 4);
-                    insertPs.setBoolean(2, true);
-                    insertPs.executeUpdate();
-                    insertPs.setInt(1, 5);
-                    insertPs.setBoolean(2, true);
-                    insertPs.executeUpdate();
+                insertPs.setInt(1, 300);
+                insertPs.setString(2, "300");
+                insertPs.setString(3, "34166");
+                insertPs.executeUpdate();
 
-                    insertPs = spliceClassWatcher.prepareStatement("insert into " + spliceTableWatcher5 + " values(?)");
-                    insertPs.setInt(1, 2);
-                    insertPs.executeUpdate();
-                    insertPs.setInt(1, 4);
-                    insertPs.executeUpdate();
+                // Insert into customer and shipment tables
+                insertPs = spliceClassWatcher.prepareStatement("insert into " + spliceTableWatcher4 + " values(?,?)");
+                insertPs.setInt(1, 1);
+                insertPs.setBoolean(2, true);
+                insertPs.executeUpdate();
+                insertPs.setInt(1, 2);
+                insertPs.setBoolean(2, true);
+                insertPs.executeUpdate();
+                insertPs.setInt(1, 3);
+                insertPs.setBoolean(2, true);
+                insertPs.executeUpdate();
+                insertPs.setInt(1, 4);
+                insertPs.setBoolean(2, true);
+                insertPs.executeUpdate();
+                insertPs.setInt(1, 5);
+                insertPs.setBoolean(2, true);
+                insertPs.executeUpdate();
 
-                    insertPs = spliceClassWatcher.prepareStatement("insert into " + spliceTableWatcher6 + " values(?, ?)");
-                    insertPs.setInt(1, 1);
-                    insertPs.setInt(2, 2);
-                    insertPs.executeUpdate();
+                insertPs = spliceClassWatcher.prepareStatement("insert into " + spliceTableWatcher5 + " values(?)");
+                insertPs.setInt(1, 2);
+                insertPs.executeUpdate();
+                insertPs.setInt(1, 4);
+                insertPs.executeUpdate();
 
-                    PreparedStatement createIndex = spliceClassWatcher.prepareStatement("create index ti on " + spliceTableWatcher6 + "(i,j)");
-                    createIndex.execute();
+                insertPs = spliceClassWatcher.prepareStatement("insert into "+ spliceTableWatcher6 + " values(?,?,?)");
+                insertPs.setInt(1,6);insertPs.setInt(2,2);insertPs.setInt(3,8); insertPs.execute(); //(6,2,8)
+                insertPs.setInt(1,2);insertPs.setInt(2,8);insertPs.setInt(3,5); insertPs.execute(); //(2,8,5)
+                insertPs.setInt(1,28);insertPs.setInt(2,5);insertPs.setInt(3,9); insertPs.execute(); //(28,5,9)
+                insertPs.setInt(1,3);insertPs.setInt(2,12);insertPs.setInt(3,543); insertPs.execute(); //(3,12,543)
+                insertPs.setInt(1,56);insertPs.setInt(2,2);insertPs.setInt(3,7); insertPs.execute(); //(56,2,7)
+                insertPs.setInt(1,31);insertPs.setInt(2,5);insertPs.setInt(3,7); insertPs.execute(); //(31,5,7)
+                insertPs.setInt(1,-12);insertPs.setInt(2,5);insertPs.setInt(3,2); insertPs.execute(); //(-12,5,2)
 
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                } finally {
-                    spliceClassWatcher.closeAll();
-                }
+                PreparedStatement createIndex = spliceClassWatcher.prepareStatement("create index ti on " + spliceTableWatcher6 + "(c1,c2 desc,c3)");
+                createIndex.execute();
+
+                spliceClassWatcher.getStatement().execute(String.format("insert into %s (a,b) values (null,null)",nullIndexedTable));
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            } finally {
+                spliceClassWatcher.closeAll();
             }
-        }).around(new SpliceDataWatcher() {
+        }
+    }).around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
                     try{
@@ -296,7 +306,36 @@ public class UpdateOperationIT extends SpliceUnitTest {
         Assert.assertEquals("Row was not removed from original set",originalCount-1,finalCount);
     }
 
-	// If you change one of the following 'update over join' tests,
+    @Test
+    public void testUpdateOnAllColumnIndex() throws Exception {
+        /*Regression test for DB-1481*/
+        String query = "update " + spliceTableWatcher6 + " --DERBY-PROPERTIES index=TI\n" + //force the index just to make sure
+                " set c2=11 where c3=7";
+        int rows = methodWatcher.executeUpdate(query);
+        Assert.assertEquals("incorrect num rows updated!", 2, rows);
+
+        //make sure that every row with c3=7 is updated to be 11
+        ResultSet rs = methodWatcher.executeQuery(String.format("select * from %s where c3=7", spliceTableWatcher6));
+        int count =0;
+        while(rs.next()){
+            int c2 = rs.getInt(2);
+            Assert.assertEquals("Incorrect value for c2!",11,c2);
+            count++;
+        }
+        Assert.assertEquals("Incorrect returned count!",2,count);
+    }
+
+    @Test
+    public void testUpdateOverNullIndexWorks() throws Exception {
+        /*
+         * Regression test for DB-2007. Assert that this doesn't explode, and that
+         * the NULL,NULL row isn't modified, so the number of rows modified = 0
+         */
+        int modified = methodWatcher.executeUpdate("update "+ nullIndexedTable+" set a = a+ 1.1");
+        Assert.assertEquals("Claimed to have modified a row!",0,modified);
+    }
+
+    // If you change one of the following 'update over join' tests,
     // you probably need to make a similar change to DeleteOperationIT.
 
     @Test
@@ -318,7 +357,7 @@ public class UpdateOperationIT extends SpliceUnitTest {
         boolean oldAutoCommit = conn.getAutoCommit();
         conn.setAutoCommit(false);
         try{
-            doTestUpdateOverJoin("SORTMERGE",conn);
+            doTestUpdateOverJoin("SORTMERGE", conn);
         }finally{
             conn.rollback();
             conn.setAutoCommit(oldAutoCommit);
@@ -336,18 +375,5 @@ public class UpdateOperationIT extends SpliceUnitTest {
 		String query = String.format(sb.toString(), spliceTableWatcher4, "customer", "customer", spliceTableWatcher5, "shipment", hint, "customer", "shipment");
     	int rows = connection.createStatement().executeUpdate(query);
         Assert.assertEquals("incorrect num rows updated!", 3, rows);
-    }
-
-    // Tests case for DB-1484
-    @Test
-    public void testUpdateOnAllColumnIndex() throws Exception {
-        String query = "update " + spliceTableWatcher6 + " set i=10 where j=2";
-        int rows = methodWatcher.executeUpdate(query);
-        Assert.assertEquals("incorrect num rows updated!", 1, rows);
-
-        ResultSet rs = methodWatcher.executeQuery("select * from "+ spliceTableWatcher6);
-        if (rs.next()) {
-            Assert.assertEquals(10, rs.getInt(1));
-        }
     }
 }
