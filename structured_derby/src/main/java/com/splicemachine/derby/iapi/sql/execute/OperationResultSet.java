@@ -163,10 +163,10 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
             topOperation.open();
             if(showStatementInfo){
                 statementInfo = initStatmentInfo(txn,statementInfo, operationContext);
-                if(activation.isTraced()){
-                    SQLWarning w = StandardException.newWarning(WarningState.XPLAIN_STATEMENT_ID.getSqlState(), statementInfo.getStatementUuid());
-                    ((GenericStorablePreparedStatement)activation.getPreparedStatement()).addWarning(w);
-                }
+//                if(activation.isTraced()){
+//                    SQLWarning w = StandardException.newWarning(WarningState.XPLAIN_STATEMENT_ID.getSqlState(), statementInfo.getStatementUuid());
+//                    ((GenericStorablePreparedStatement)activation.getPreparedStatement()).addWarning(w);
+//                }
             }
         } catch (IOException e) {
             throw Exceptions.parseException(e);
