@@ -58,38 +58,61 @@ import java.io.IOException;
  * @author Scott Fines
  */
 public class UpdateOperation extends DMLWriteOperation{
-		private static final Logger LOG = Logger.getLogger(UpdateOperation.class);
+    private static final Logger LOG = Logger.getLogger(UpdateOperation.class);
+    private ResultSupplier resultSupplier;
+    private DataValueDescriptor[] kdvds;
+    private int[] colPositionMap;
+    private FormatableBitSet heapList;
 
-		private ResultSupplier resultSupplier;
-
-        private DataValueDescriptor[] kdvds;
-
-		@SuppressWarnings("UnusedDeclaration")
+    @SuppressWarnings("UnusedDeclaration")
 		public UpdateOperation() {
 				super();
 		}
 
-		int[] pkCols;
-		FormatableBitSet pkColumns;
-		public UpdateOperation(SpliceOperation source, GeneratedMethod generationClauses,
-													 GeneratedMethod checkGM, Activation activation)
-						throws StandardException {
-				super(source, generationClauses, checkGM, activation);
-				try {
-						init(SpliceOperationContext.newContext(activation));
-				} catch (IOException e) {
-						throw Exceptions.parseException(e);
-				}
-				recordConstructorTime();
-		}
+    int[] pkCols;
+    FormatableBitSet     pkColumns;
+    public UpdateOperation(SpliceOperation source, GeneratedMethod generationClauses,
+                           GeneratedMethod checkGM, Activation activation)
+            throws StandardException, IOException {
+        super(source, generationClauses, checkGM, activation);
+        init(SpliceOperationContext.newContext(activation));
+        recordConstructorTime();
+    }
 
-		@Override
+    @Override
 		public ExecRow getNextSinkRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-				ExecRow nextSinkRow = super.getNextSinkRow(spliceRuntimeContext);
-				if(nextSinkRow==null&&resultSupplier!=null)
-						resultSupplier.close();
-				return nextSinkRow;
-		}
+        boolean shouldContinue;
+        ExecRow nextSinkRow;
+        do{
+            nextSinkRow = super.getNextSinkRow(spliceRuntimeContext);
+            shouldContinue = nextSinkRow!=null;
+            if(!shouldContinue) break;
+
+            /*
+             * DB-2007 occurs because we attempt to write an update where we change a value
+             * from NULL to NULL, and it explodes. A fix for that is to check for situations
+             * where we change from NULL to NULL and not write rows that do that.
+             *
+             * More generally, any time a row is not changed by the update, we don't need to write
+             * that row--there's no point. This block of code simply filters out rows where the updated
+             * value is the same as the original value. This has the added side effect of improving
+             * write performance (fewer index changes, fewer network calls, etc.)
+             */
+            shouldContinue = true;
+            DataValueDescriptor[] dvds = nextSinkRow.getRowArray();
+            for(int i=heapList.anySetBit(),oldPos=0;i>=0;i=heapList.anySetBit(i),oldPos++){
+                DataValueDescriptor old = dvds[oldPos];
+                DataValueDescriptor newVal = dvds[colPositionMap[i]];
+                if(!newVal.equals(old)){
+                    shouldContinue=false;
+                    break;
+                }
+            }
+        }while(shouldContinue);
+        if(nextSinkRow==null&&resultSupplier!=null)
+            resultSupplier.close();
+        return nextSinkRow;
+    }
 
 		@Override
 		public void init(SpliceOperationContext context) throws StandardException, IOException {
@@ -98,26 +121,54 @@ public class UpdateOperation extends DMLWriteOperation{
 				heapConglom = writeInfo.getConglomerateId();
 
 				pkCols = writeInfo.getPkColumnMap();
-				pkColumns = writeInfo.getPkColumns();
+        pkColumns = writeInfo.getPkColumns();
 
-                SpliceConglomerate conglomerate = (SpliceConglomerate)((SpliceTransactionManager)activation.getTransactionController()).findConglomerate(heapConglom);
-                int[] format_ids = conglomerate.getFormat_ids();
-                int[] columnOrdering = conglomerate.getColumnOrdering();
-                kdvds = new DataValueDescriptor[columnOrdering.length];
-                for (int i = 0; i < columnOrdering.length; ++i) {
-                    kdvds[i] = LazyDataValueFactory.getLazyNull(format_ids[columnOrdering[i]]);
-                }
+        SpliceConglomerate conglomerate = (SpliceConglomerate)((SpliceTransactionManager)activation.getTransactionController()).findConglomerate(heapConglom);
+        int[] format_ids = conglomerate.getFormat_ids();
+        int[] columnOrdering = conglomerate.getColumnOrdering();
+        kdvds = new DataValueDescriptor[columnOrdering.length];
+        for (int i = 0; i < columnOrdering.length; ++i) {
+            kdvds[i] = LazyDataValueFactory.getLazyNull(format_ids[columnOrdering[i]]);
+        }
 
 				startExecutionTime = System.currentTimeMillis();
 		}
 
-		private int[] getColumnPositionMap(FormatableBitSet heapList) {
-				final int[] colPositionMap = new int[heapList.size()];
-				for(int i = heapList.anySetBit(),pos=heapList.getNumBitsSet();i!=-1;i=heapList.anySetBit(i),pos++){
-						colPositionMap[i] = pos;
-				}
-				return colPositionMap;
-		}
+    private int[] getColumnPositionMap(FormatableBitSet heapList) {
+        if(colPositionMap==null) {
+		        /*
+			       * heapList is the position of the columns in the original row (e.g. if cols 2 and 3 are being modified,
+						 * then heapList = {2,3}). We have to take that position and convert it into the actual positions
+						 * in nextRow.
+						 *
+						 * nextRow looks like {old,old,...,old,new,new,...,new,rowLocation}, so suppose that we have
+						 * heapList = {2,3}. Then nextRow = {old2,old3,new2,new3,rowLocation}. Which makes our colPositionMap
+						 * look like
+						 *
+						 * colPositionMap[2] = 2;
+						 * colPositionMap[3] = 3;
+						 *
+						 * But if heapList = {2}, then nextRow looks like {old2,new2,rowLocation}, which makes our colPositionMap
+						 * look like
+						 *
+						 * colPositionMap[2] = 1
+						 *
+						 * in general, then
+						 *
+						 * colPositionMap[i= heapList.anySetBit()] = nextRow[heapList.numSetBits()]
+						 * colPositionMap[heapList.anySetBit(i)] = nextRow[heapList.numSetBits()+1]
+						 * ...
+						 *
+						 * and so forth
+						 */
+            colPositionMap = new int[heapList.size()];
+
+            for(int i = heapList.anySetBit(),pos=heapList.getNumBitsSet();i!=-1;i=heapList.anySetBit(i),pos++){
+                colPositionMap[i] = pos;
+            }
+        }
+        return colPositionMap;
+    }
 
 		@Override
 		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
@@ -156,31 +207,7 @@ public class UpdateOperation extends DMLWriteOperation{
 				FormatableBitSet heapList = getHeapList();
 				boolean modifiedPrimaryKeys = modifiedPrimaryKeys(heapList);
 
-        /*
-	       * heapList is the position of the columns in the original row (e.g. if cols 2 and 3 are being modified,
-				 * then heapList = {2,3}). We have to take that position and convert it into the actual positions
-				 * in nextRow.
-				 *
-				 * nextRow looks like {old,old,...,old,new,new,...,new,rowLocation}, so suppose that we have
-				 * heapList = {2,3}. Then nextRow = {old2,old3,new2,new3,rowLocation}. Which makes our colPositionMap
-				 * look like
-				 *
-				 * colPositionMap[2] = 2;
-				 * colPositionMap[3] = 3;
-				 *
-				 * But if heapList = {2}, then nextRow looks like {old2,new2,rowLocation}, which makes our colPositionMap
-				 * look like
-				 *
-				 * colPositionMap[2] = 1
-				 *
-				 * in general, then
-				 *
-				 * colPositionMap[i= heapList.anySetBit()] = nextRow[heapList.numSetBits()]
-				 * colPositionMap[heapList.anySetBit(i)] = nextRow[heapList.numSetBits()+1]
-				 * ...
-				 *
-				 * and so forth
-				 */
+
 				final int[] colPositionMap = getColumnPositionMap(heapList);
 
 				//if we haven't modified any of our primary keys, then we can just change it directly
@@ -210,17 +237,19 @@ public class UpdateOperation extends DMLWriteOperation{
 				return finalPkColumns;
 		}
 
-		private FormatableBitSet getHeapList() throws StandardException{
-				FormatableBitSet heapList = ((UpdateConstantOperation)writeInfo.getConstantAction()).getBaseRowReadList();
-				if(heapList==null){
-						ExecRow row = ((UpdateConstantOperation)writeInfo.getConstantAction()).getEmptyHeapRow(activation.getLanguageConnectionContext());
-                        int length = row.getRowArray().length;
-						heapList = new FormatableBitSet(length+1);
+    private FormatableBitSet getHeapList() throws StandardException{
+        if(heapList==null){
+            heapList = ((UpdateConstantOperation)writeInfo.getConstantAction()).getBaseRowReadList();
+            if(heapList==null){
+                ExecRow row = ((UpdateConstantOperation)writeInfo.getConstantAction()).getEmptyHeapRow(activation.getLanguageConnectionContext());
+                int length = row.getRowArray().length;
+                heapList = new FormatableBitSet(length+1);
 
-						for(int i = 1; i < length+1; ++i){
-                                heapList.set(i);
-						}
-				}
+                for(int i = 1; i < length+1; ++i){
+                    heapList.set(i);
+                }
+            }
+        }
 				return heapList;
 		}
 
