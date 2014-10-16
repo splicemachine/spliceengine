@@ -6,11 +6,7 @@ import java.sql.SQLException;
 import java.util.List;
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.impl.sql.execute.operations.ExplainOperation;
-import com.splicemachine.derby.test.framework.SpliceDataWatcher;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.test.framework.*;
 
 import org.apache.log4j.Logger;
 import org.junit.*;
@@ -305,15 +301,31 @@ public class UpdateOperationIT extends SpliceUnitTest {
 
     @Test
     public void testUpdateOverBroadcastJoin() throws Exception {
-    	doTestUpdateOverJoin("BROADCAST");
+        TestConnection conn = methodWatcher.getOrCreateConnection();
+        boolean oldAutoCommit = conn.getAutoCommit();
+        conn.setAutoCommit(false);
+        try{
+            doTestUpdateOverJoin("BROADCAST",conn);
+        }finally{
+            conn.rollback();
+            conn.setAutoCommit(oldAutoCommit);
+        }
     }
 
     @Test
     public void testUpdateOverMergeSortJoin() throws Exception {
-    	doTestUpdateOverJoin("SORTMERGE");
+        TestConnection conn = methodWatcher.getOrCreateConnection();
+        boolean oldAutoCommit = conn.getAutoCommit();
+        conn.setAutoCommit(false);
+        try{
+            doTestUpdateOverJoin("SORTMERGE",conn);
+        }finally{
+            conn.rollback();
+            conn.setAutoCommit(oldAutoCommit);
+        }
     }
 
-    private void doTestUpdateOverJoin(String hint) throws Exception {
+    private void doTestUpdateOverJoin(String hint,TestConnection connection) throws Exception {
     	StringBuffer sb = new StringBuffer(200);
     	sb.append("update %s %s set %s.status = 'false' \n");
     	sb.append("where not exists ( \n");
@@ -322,7 +334,7 @@ public class UpdateOperationIT extends SpliceUnitTest {
 		sb.append("  where %s.cust_id = %s.cust_id \n");
 		sb.append(") \n");
 		String query = String.format(sb.toString(), spliceTableWatcher4, "customer", "customer", spliceTableWatcher5, "shipment", hint, "customer", "shipment");
-    	int rows = methodWatcher.executeUpdate(query);
+    	int rows = connection.createStatement().executeUpdate(query);
         Assert.assertEquals("incorrect num rows updated!", 3, rows);
     }
 
