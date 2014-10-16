@@ -32,15 +32,19 @@ public abstract class BaseXplainIT {
 
     @Before
     public void setUp() throws Exception {
-
         baseConnection.setAutoCommit(false);
         txnId = baseConnection.getCurrentTransactionId();
     }
 
     @After
     public void tearDown() throws Exception {
-        baseConnection.rollback();
+        if(baseConnection.isClosed())
+            baseConnection = getNewConnection();
+        else
+            baseConnection.rollback();
     }
+
+    protected abstract TestConnection getNewConnection() throws Exception;
 
     protected ResultSet getStatementsForTxn() throws SQLException {
         System.out.println("getting statements for txn "+ txnId);

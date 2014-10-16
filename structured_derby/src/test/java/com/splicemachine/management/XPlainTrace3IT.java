@@ -137,4 +137,9 @@ public class XPlainTrace3IT extends BaseXplainIT{
         Assert.assertEquals(nrows, operation.getWriteRows());
         Assert.assertEquals(nrows, operation.getInputRows());
     }
-}
+
+     @Override
+     protected TestConnection getNewConnection() throws Exception {
+         return methodWatcher.getOrCreateConnection();
+     }
+ }
