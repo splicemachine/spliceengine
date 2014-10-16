@@ -140,6 +140,6 @@ public class XPlainTrace3IT extends BaseXplainIT{
 
      @Override
      protected TestConnection getNewConnection() throws Exception {
-         return methodWatcher.getOrCreateConnection();
+         return methodWatcher.createConnection();
      }
  }

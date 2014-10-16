@@ -21,7 +21,7 @@ public abstract class BaseXplainIT {
     protected long txnId;
     @BeforeClass
     public static void setUpClass() throws Exception {
-        baseConnection = new TestConnection(SpliceNetConnection.getConnection());
+        baseConnection = new TestConnection(SpliceNetConnection.getConnectionAs(SpliceNetConnection.DEFAULT_USER,SpliceNetConnection.DEFAULT_USER_PASSWORD));
         xPlainTrace.setConnection(baseConnection);
     }
 

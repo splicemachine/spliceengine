@@ -225,6 +225,6 @@ public class XPlainTrace2IT extends BaseXplainIT{
 
     @Override
     protected TestConnection getNewConnection() throws Exception {
-        return methodWatcher.getOrCreateConnection();
+        return methodWatcher.createConnection();
     }
 }
