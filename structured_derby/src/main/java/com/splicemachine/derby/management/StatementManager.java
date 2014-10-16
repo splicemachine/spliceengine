@@ -67,26 +67,25 @@ public class StatementManager implements StatementManagement{
             completedStatements.set(position, statementInfo);
             executingStatements.remove(statementInfo);
 
-            if (LOG.isTraceEnabled()) {
-				LOG.trace(String.format("Removed from executing stmts, numExecStmts=%s, stmtUuid=%s, txnId=%s, elapsedTimeMs=%s",
-					executingStatements.size(),
-					statementInfo.getStatementUuid(),
-					statementInfo.getTxnId(),
-					statementInfo.getStopTimeMs() - statementInfo.getStartTimeMs()));
-            }
+        if (LOG.isTraceEnabled()) {
+            LOG.trace(String.format("Removed from executing stmts, numExecStmts=%s, stmtUuid=%s, txnId=%s, elapsedTimeMs=%s",
+                    executingStatements.size(),
+                    statementInfo.getStatementUuid(),
+                    statementInfo.getTxnId(),
+                    statementInfo.getStopTimeMs() - statementInfo.getStartTimeMs()));
+        }
 
-            if (shouldTrace) {
-                setupXplainReporters();
-                if (statementInfo.getSql().compareTo("null") != 0) {
-                    statementReporter.report(statementInfo,txn);
-                }
-                Set<OperationInfo> operationInfo = statementInfo.getOperationInfo();
-                for (OperationInfo info : operationInfo) {
-                    operationReporter.report(info,txn);
-                }
+        if (shouldTrace) {
+            setupXplainReporters();
+            if (!"null".equalsIgnoreCase(statementInfo.getSql())){
+                statementReporter.report(statementInfo,txn);
             }
-
-		}
+            Set<OperationInfo> operationInfo = statementInfo.getOperationInfo();
+            for (OperationInfo info : operationInfo) {
+                operationReporter.report(info,txn);
+            }
+        }
+    }
 
 		@Override
 		public Set<StatementInfo> getExecutingStatementInfo() {

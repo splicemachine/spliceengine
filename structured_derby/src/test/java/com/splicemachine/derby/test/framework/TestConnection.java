@@ -23,7 +23,6 @@ public class TestConnection implements Connection{
     private final List<Statement> statements = Lists.newArrayList();
 
     private boolean oldAutoCommit;
-    private long statementId;
 
     public TestConnection(Connection delegate) throws SQLException {
         this.delegate = delegate;
@@ -33,7 +32,6 @@ public class TestConnection implements Connection{
     public ResultSet query(String sql) throws SQLException{
         Statement s = createStatement();
         ResultSet rs = s.executeQuery(sql);
-        statementId = parseWarnings(s.getWarnings());
         return rs;
     }
 
@@ -213,7 +211,6 @@ public class TestConnection implements Connection{
         Statement s = createStatement();
         ResultSet resultSet = s.executeQuery(query);
         SQLWarning warnings = s.getWarnings();
-        statementId = parseWarnings(warnings);
         while(resultSet.next()){
             accumulator.accumulate(resultSet);
         }
@@ -246,7 +243,6 @@ public class TestConnection implements Connection{
         countPs.clearWarnings();
         ResultSet rs = countPs.executeQuery();
         SQLWarning warnings = countPs.getWarnings();
-        statementId = parseWarnings(warnings);
         if(rs.next()) return rs.getLong(1);
         else return -1l;
     }
@@ -256,21 +252,17 @@ public class TestConnection implements Connection{
         Statement s = createStatement();
         ResultSet rs = s.executeQuery(countQuery);
         SQLWarning warnings = s.getWarnings();
-        statementId = parseWarnings(warnings);
         if(rs.next())
             return rs.getLong(1);
         else return -1;
-    }
-
-    public long getLastStatementId(){
-        return statementId;
     }
 
     /***********************************************************************************/
     /*private helper methods*/
     private void closeStatements() throws SQLException {
         for(Statement s:statements){
-            s.close();
+            if(s!=null)
+                s.close();
         }
     }
 
@@ -284,8 +276,6 @@ public class TestConnection implements Connection{
 
     public boolean execute(String sql) throws SQLException{
         Statement s = createStatement();
-        boolean executed = s.execute(sql);
-        statementId = parseWarnings(s.getWarnings());
-        return executed;
+        return s.execute(sql);
     }
 }

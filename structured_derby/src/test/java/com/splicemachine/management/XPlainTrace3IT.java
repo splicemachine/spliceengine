@@ -14,9 +14,7 @@ import java.sql.PreparedStatement;
  * Created by jyuan on 7/15/14.
  */
  @Category(SerialTest.class) //in serial category because it's difficult to get the statement id always
-public class XPlainTrace3IT {
-    private static SpliceXPlainTrace xPlainTrace = new SpliceXPlainTrace();
-    private static TestConnection baseConnection;
+public class XPlainTrace3IT extends BaseXplainIT{
     private static int nrows = 10;
 
     public XPlainTrace3IT() {
@@ -75,25 +73,15 @@ public class XPlainTrace3IT {
                     }
             });
 
-    @BeforeClass
-    public static void setUpClass() throws Exception {
-        baseConnection = new TestConnection(SpliceNetConnection.getConnection());
-        xPlainTrace.setConnection(baseConnection);
-    }
-
-    @AfterClass
-    public static void tearDown() throws Exception {
-        baseConnection.close();
-    }
 
     @Test
     public void testInsertAndCreateIndex() throws Exception {
         xPlainTrace.turnOnTrace();
-        String sql = "insert into " + CLASS_NAME + "." + TABLE2 + " values 1, 2";
-        boolean success = xPlainTrace.execute(sql);
-        long statementId = baseConnection.getLastStatementId();
+        String sql = "insert into " + spliceTableWatcher2 + " values 1, 2";
+        boolean success = baseConnection.execute(sql);
         xPlainTrace.turnOffTrace();
 
+        long statementId = getLastStatementId();
         XPlainTreeNode operation = xPlainTrace.getOperationTree(statementId);
         Assert.assertEquals(0,operation.getOperationType().compareToIgnoreCase(SpliceXPlainTrace.INSERT));
         Assert.assertEquals(operation.getInputRows(), 2);
@@ -108,11 +96,11 @@ public class XPlainTrace3IT {
         }
 
         xPlainTrace.turnOnTrace();
-        String ddl = "create index ti on " + CLASS_NAME + "." + TABLE2 + "(i)";
+        String ddl = "create index ti on " + spliceTableWatcher2 + "(i)";
         xPlainTrace.execute(ddl);
-        statementId = baseConnection.getLastStatementId();
         xPlainTrace.turnOffTrace();
 
+        statementId = getLastStatementId();
         operation = xPlainTrace.getOperationTree(statementId);
         String operationType = operation.getOperationType();
         System.out.println(operationType);
@@ -125,11 +113,11 @@ public class XPlainTrace3IT {
     @Test
     public void testUpdate() throws Exception {
         xPlainTrace.turnOnTrace();
-        String sql = "update " + CLASS_NAME + "." + TABLE3 + " set i=i+1";
-        boolean success = xPlainTrace.execute(sql);
-        long statementId = baseConnection.getLastStatementId();
+        String sql = "update " + spliceTableWatcher3 + " set i=i+1";
+        boolean success = baseConnection.execute(sql);
         xPlainTrace.turnOffTrace();
 
+        long statementId = getLastStatementId();
         XPlainTreeNode operation = xPlainTrace.getOperationTree(statementId);
         Assert.assertTrue(operation.getOperationType().compareToIgnoreCase(SpliceXPlainTrace.UPDATE)==0);
         Assert.assertEquals(nrows, operation.getWriteRows());
@@ -139,11 +127,11 @@ public class XPlainTrace3IT {
     @Test
     public void testDelete() throws Exception {
         xPlainTrace.turnOnTrace();
-        String sql = "delete from " + CLASS_NAME + "." + TABLE1;
-        boolean success = xPlainTrace.execute(sql);
-        long statementId = baseConnection.getLastStatementId();
+        String sql = "delete from " + spliceTableWatcher1;
+        boolean success =baseConnection.execute(sql);
         xPlainTrace.turnOffTrace();
 
+        long statementId = getLastStatementId();
         XPlainTreeNode operation = xPlainTrace.getOperationTree(statementId);
         Assert.assertTrue(operation.getOperationType().compareToIgnoreCase(SpliceXPlainTrace.DELETE)==0);
         Assert.assertEquals(nrows, operation.getWriteRows());
