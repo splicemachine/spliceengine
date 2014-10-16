@@ -19,21 +19,7 @@ import org.apache.derby.iapi.sql.compile.CostEstimate;
 import org.apache.derby.iapi.sql.compile.Visitable;
 import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.impl.sql.compile.ColumnReference;
-import org.apache.derby.impl.sql.compile.ConstantNode;
-import org.apache.derby.impl.sql.compile.DMLStatementNode;
-import org.apache.derby.impl.sql.compile.ExplainNode;
-import org.apache.derby.impl.sql.compile.FromBaseTable;
-import org.apache.derby.impl.sql.compile.IndexToBaseRowNode;
-import org.apache.derby.impl.sql.compile.JoinNode;
-import org.apache.derby.impl.sql.compile.ProjectRestrictNode;
-import org.apache.derby.impl.sql.compile.ResultColumn;
-import org.apache.derby.impl.sql.compile.ResultColumnList;
-import org.apache.derby.impl.sql.compile.ResultSetNode;
-import org.apache.derby.impl.sql.compile.SubqueryNode;
-import org.apache.derby.impl.sql.compile.ValueNode;
-import org.apache.derby.impl.sql.compile.VirtualColumnNode;
-import org.apache.derby.impl.sql.compile.WindowResultSetNode;
+import org.apache.derby.impl.sql.compile.*;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -206,7 +192,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
             }}));
         if (rsn instanceof JoinNode){
             JoinNode j = (JoinNode) rsn;
-            info.put("exe", JoinSelector.strategy(j).getName());
+            info.put("exe", RSUtils.ap(j).getJoinStrategy().getName());
             info.put("preds", Lists.transform(PredicateUtils.PLtoList(j.joinPredicates),
                                                 PredicateUtils.predToString));
         }
@@ -216,7 +202,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
             info.put("table", String.format("%s,%s",
                                 fbt.getTableDescriptor().getName(),
                                 fbt.getTableDescriptor().getHeapConglomerateId()));
-            info.put("quals", Lists.transform(JoinSelector.preds(rsn),
+            info.put("quals", Lists.transform(preds(rsn),
                                                 PredicateUtils.predToString));
             if (cd.isIndex()) {
                 info.put("using-index", String.format("%s,%s", cd.getConglomerateName(),
@@ -229,7 +215,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
             //info.put("name", idx.getName());
         }
         if (rsn instanceof ProjectRestrictNode){
-            info.put("quals", Lists.transform(JoinSelector.preds(rsn),
+            info.put("quals", Lists.transform(preds(rsn),
                                                 PredicateUtils.predToString));
         }
         if (rsn instanceof WindowResultSetNode) {
@@ -326,5 +312,19 @@ public class PlanPrinter extends AbstractSpliceVisitor {
 
     public static String treeToString(ResultSetNode rsn) throws StandardException {
         return treeToString(rsn, 0);
+    }
+
+    private static List<Predicate> preds(ResultSetNode t) throws StandardException {
+        PredicateList pl;
+        if(t instanceof FromBaseTable)
+            pl = RSUtils.getPreds((FromBaseTable)t);
+        else if(t instanceof ProjectRestrictNode)
+            pl = RSUtils.getPreds((ProjectRestrictNode)t);
+        else if(t instanceof IndexToBaseRowNode)
+            pl = RSUtils.getPreds((IndexToBaseRowNode)t);
+        else
+            throw new IllegalArgumentException("Programmer error: Unable to determine class with predicates:"+t.getClass());
+
+        return PredicateUtils.PLtoList(pl);
     }
 }

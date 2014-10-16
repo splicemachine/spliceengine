@@ -46,7 +46,6 @@ import com.splicemachine.derby.impl.ast.AssignRSNVisitor;
 import com.splicemachine.derby.impl.ast.FindHashJoinColumns;
 import com.splicemachine.derby.impl.ast.FixSubqueryColRefs;
 import com.splicemachine.derby.impl.ast.ISpliceVisitor;
-import com.splicemachine.derby.impl.ast.JoinSelector;
 import com.splicemachine.derby.impl.ast.JoinConditionVisitor;
 import com.splicemachine.derby.impl.ast.PlanPrinter;
 import com.splicemachine.derby.impl.ast.RepeatedPredicateVisitor;
