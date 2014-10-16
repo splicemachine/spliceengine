@@ -526,10 +526,10 @@ public class IndexIT extends SpliceUnitTest {
         Assert.assertEquals(1, resultSetSize(rs));
 
         int nCols = methodWatcher.getStatement().executeUpdate(String.format("update %s.%s c set c.c_credit_lim = %s where %s",
-                SCHEMA_NAME,CustomerTable.TABLE_NAME, "3000.00", "c.c_w_id = 1 and c.c_d_id = 10 and c.c_id = 2365"));
+                SCHEMA_NAME,CustomerTable.TABLE_NAME, "3001.00", "c.c_w_id = 1 and c.c_d_id = 10 and c.c_id = 2365"));
         Assert.assertEquals(1, nCols);
 
-        query = String.format("select * from %s.%s c where c.c_last = 'ESEPRIANTI' and c.c_id = 2365 and c.c_credit_lim = 3000.00",
+        query = String.format("select * from %s.%s c where c.c_last = 'ESEPRIANTI' and c.c_id = 2365 and c.c_credit_lim = 3001.00",
                 SCHEMA_NAME,CustomerTable.TABLE_NAME);
         rs = methodWatcher.executeQuery(query);
         Assert.assertEquals(1, resultSetSize(rs));
