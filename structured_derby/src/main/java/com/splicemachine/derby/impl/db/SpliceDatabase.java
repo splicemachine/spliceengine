@@ -2,26 +2,22 @@ package com.splicemachine.derby.impl.db;
 
 import javax.security.auth.login.Configuration;
 
-import java.io.IOException;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.CancellationException;
 
-import com.google.common.collect.Lists;
 import com.splicemachine.derby.ddl.DDLChange;
 import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.ddl.DDLWatcher;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.hbase.HBaseRegionLoads;
-import com.splicemachine.si.api.Txn;
 import com.google.common.io.Closeables;
 import com.splicemachine.derby.hbase.SpliceMasterObserverRestoreAction;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceUtilities;
 import org.apache.derby.iapi.error.ShutdownException;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.context.Context;
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.context.ContextService;
 import org.apache.derby.iapi.services.monitor.Monitor;
@@ -55,7 +51,6 @@ import com.splicemachine.derby.impl.ast.UnsupportedFormsDetector;
 import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.hbase.HBaseRegionLoads;
 import com.splicemachine.hbase.backup.Backup;
 import com.splicemachine.hbase.backup.Backup.BackupScope;
 import com.splicemachine.hbase.backup.BackupItem;
@@ -67,7 +62,10 @@ import com.splicemachine.utils.ZkUtils;
 import com.splicemachine.derby.impl.ast.XPlainTraceVisitor;
 
 public class SpliceDatabase extends BasicDatabase {
+
     private static Logger LOG = Logger.getLogger(SpliceDatabase.class);
+
+    @Override
     public void boot(boolean create, Properties startParams) throws StandardException {
         Configuration.setConfiguration(null);
         //System.setProperty("derby.language.logQueryPlan", Boolean.toString(true));
@@ -133,6 +131,7 @@ public class SpliceDatabase extends BasicDatabase {
         pf = (PropertyFactory) Monitor.bootServiceModule(create, this,org.apache.derby.iapi.reference.Module.PropertyFactory, startParams);
     }
 
+    @Override
     protected void bootStore(boolean create, Properties startParams) throws StandardException {
         SpliceLogUtils.trace(LOG,"bootStore create %s, startParams %s",create,startParams);
         af = (AccessFactory) Monitor.bootServiceModule(create, this, AccessFactory.MODULE, startParams);
@@ -179,6 +178,7 @@ public class SpliceDatabase extends BasicDatabase {
         });
     }
 
+    @Override
     public LanguageConnectionContext setupConnection(ContextManager cm, String user, String drdaID, String dbname)
             throws StandardException {
 
@@ -233,16 +233,6 @@ public class SpliceDatabase extends BasicDatabase {
 
     /**
      * This is the light creation of languageConnectionContext that removes 4 rpc calls per context creation.
-     *
-     * @param txn
-     * @param cm
-     * @param user
-     * @param drdaID
-     * @param dbname
-     * @param sessionUserName
-     * @param defaultSchemaDescriptor
-     * @return
-     * @throws StandardException
      */
     public LanguageConnectionContext generateLanguageConnectionContext(TxnView txn,
                                                                        ContextManager cm,
@@ -265,14 +255,6 @@ public class SpliceDatabase extends BasicDatabase {
      * This will perform a lookup of the user (index and main table) and the default schema (index and main table)
      *
      * This method should only be used by start() methods in coprocessors.  Do not use for sinks or observers.
-     *
-     * @param txn
-     * @param cm
-     * @param user
-     * @param drdaID
-     * @param dbname
-     * @return
-     * @throws StandardException
      */
     public LanguageConnectionContext generateLanguageConnectionContext(TxnView txn, ContextManager cm, String user, String drdaID, String dbname) throws StandardException {
         TransactionController tc = ((SpliceAccessManager) af).marshallTransaction(cm, txn);
@@ -285,9 +267,9 @@ public class SpliceDatabase extends BasicDatabase {
         lctx.initialize();
         return lctx;
     }
+
     @Override
-    public void startReplicationMaster(String dbmaster, String host,
-                                       int port, String replicationMode) throws SQLException {
+    public void startReplicationMaster(String dbmaster, String host, int port, String replicationMode) throws SQLException {
         throw new SQLException("Unsupported Exception");
     }
     @Override
@@ -311,6 +293,7 @@ public class SpliceDatabase extends BasicDatabase {
         throw new SQLException("Unsupported Exception");
     }
 
+    @Override
     public void restore(String restoreDir, boolean wait) throws SQLException {
         HBaseAdmin admin = null;
         try {
@@ -328,7 +311,6 @@ public class SpliceDatabase extends BasicDatabase {
     @Override
     public void backup(String backupDir, boolean wait) throws SQLException {
 
-        JobFuture future = null;
         JobInfo info = null;
         HBaseAdmin admin = null;
         Backup backup = null;
@@ -350,7 +332,7 @@ public class SpliceDatabase extends BasicDatabase {
                 backupItem.writeDescriptorToFileSystem();
                 HTableInterface table = SpliceAccessManager.getHTable(backupItem.getBackupItemBytes());
                 CreateBackupJob job = new CreateBackupJob(backupItem,table);
-                future = SpliceDriver.driver().getJobScheduler().submit(job);
+                JobFuture future = SpliceDriver.driver().getJobScheduler().submit(job);
                 info = new JobInfo(job.getJobId(),future.getNumTasks(),start);
                 info.setJobFuture(future);
                 try{
@@ -379,14 +361,11 @@ public class SpliceDatabase extends BasicDatabase {
         }
     }
     @Override
-    public void backupAndEnableLogArchiveMode(String backupDir,
-                                              boolean deleteOnlineArchivedLogFiles, boolean wait)
-            throws SQLException {
+    public void backupAndEnableLogArchiveMode(String backupDir,  boolean deleteOnlineArchivedLogFiles, boolean wait) throws SQLException {
         throw new SQLException("Unsupported Exception");
     }
     @Override
-    public void disableLogArchiveMode(boolean deleteOnlineArchivedLogFiles)
-            throws SQLException {
+    public void disableLogArchiveMode(boolean deleteOnlineArchivedLogFiles) throws SQLException {
         throw new SQLException("Unsupported Exception");
     }
     @Override
