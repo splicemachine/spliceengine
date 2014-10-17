@@ -206,6 +206,7 @@ public class WindowFunctionMultiIT extends SpliceUnitTest {
         ResultSet rs = methodWatcher.executeQuery(
             String.format(sqlText, this.getTableReference(EMPTAB)));
 
+        // DEBUG
 //        TestUtils.printResult(sqlText, rs, System.out);
         int i = 0;
         while (rs.next()) {
