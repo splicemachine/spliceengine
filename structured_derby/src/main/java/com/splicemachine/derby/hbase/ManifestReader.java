@@ -149,4 +149,11 @@ public class ManifestReader {
         return new SpliceMachineVersionImpl(readManifestOnClasspath());
     }
 
+    /**
+     * Create a Splice Machine version object from the contents of the manifest file.
+     * @return version of the Splice Machine software from the manifest file
+     */
+    public SpliceMachineVersion createVersion() {
+        return new SpliceMachineVersionImpl(readManifestOnClasspath());
+    }
 }

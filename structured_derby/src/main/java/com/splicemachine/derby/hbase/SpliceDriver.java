@@ -6,6 +6,7 @@ import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
+import com.splicemachine.derby.hbase.ManifestReader.SpliceMachineVersion;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.scheduler.*;
@@ -35,6 +36,7 @@ import com.splicemachine.utils.logging.Logging;
 import com.splicemachine.uuid.Snowflake;
 import com.yammer.metrics.core.MetricsRegistry;
 import com.yammer.metrics.reporting.JmxReporter;
+
 import org.apache.derby.drda.NetworkServerControl;
 import org.apache.derby.iapi.db.OptimizerTrace;
 import org.apache.derby.iapi.error.StandardException;
@@ -45,6 +47,7 @@ import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.log4j.Logger;
 
 import javax.management.*;
+
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
@@ -86,6 +89,7 @@ public class SpliceDriver extends SIConstants {
     }
 
     private static final SpliceDriver INSTANCE = new SpliceDriver();
+    private static SpliceMachineVersion spliceVersion;
     private AtomicReference<State> stateHolder = new AtomicReference<State>(State.NOT_STARTED);
     private volatile Properties props = new Properties();
     private volatile NetworkServerControl server;
@@ -136,9 +140,41 @@ public class SpliceDriver extends SIConstants {
             jobScheduler = new DistributedJobScheduler(ZkUtils.getZkManager(),SpliceUtils.config);
             taskMonitor = new ZkTaskMonitor(SpliceConstants.zkSpliceTaskPath,ZkUtils.getRecoverableZooKeeper());
 			tempTable = new TempTable(SpliceConstants.TEMP_TABLE_BYTES);
+			initializeVersion();
         } catch (Exception e) {
             throw new RuntimeException("Unable to boot Splice Driver",e);
         }
+    }
+
+	/**
+	 * Initialize the version of the Splice Machine software that is running.
+	 */
+	private void initializeVersion() {
+		spliceVersion = new ManifestReader().createVersion();
+		/*
+		 * ------------------
+		 * Hack alert...
+		 * ------------------
+		 * We need to get the Splice version included in most all exceptions thrown by Derby/Splice.
+		 * This will help debugging stack traces when issues are filed by customers.
+		 * And we've got our usual challenge of:
+		 *     How do we get Splice info passed into Derby without moving a dozen classes from Splice into Derby?
+		 * So we are setting the Splice version at boot time into Java system properties which will be accessed
+		 * by the StandardException class in Derby.
+		 */
+		System.setProperty("splice.software.release", spliceVersion.getRelease());
+		System.setProperty("splice.software.version", spliceVersion.getImplementationVersion());
+		System.setProperty("splice.software.buildtime", spliceVersion.getBuildTime());
+		System.setProperty("splice.software.url", spliceVersion.getURL());
+	}
+
+    /**
+     * Return the version of the Splice Machine software that is running.
+     * This is not the version of the data dictionary which may be lower than the software version if the dictionary has not been upgraded yet.
+     * @return version of the Splice Machine software
+     */
+    public SpliceMachineVersion getVersion() {
+        return spliceVersion;
     }
 
 		public StatementManager getStatementManager(){ return statementManager; }
@@ -458,5 +494,4 @@ public class SpliceDriver extends SIConstants {
     public static KryoPool getKryoPool(){
         return SpliceKryoRegistry.getInstance();
     }
-
 }
