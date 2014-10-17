@@ -733,7 +733,19 @@ public interface Property {
     String STORAGE_AUTO_INDEX_STATS_DEBUG_KEEP_DISPOSABLE_STATS =
             "derby.storage.indexStats.debug.keepDisposableStats";
 
-	/*
+    /**
+     * Software Versions
+     */
+
+    /**
+     * Properties representing the version of the Splice Machine software.
+     */
+    public static final String SPLICE_RELEASE = "splice.software.release";
+    public static final String SPLICE_VERSION_HASH = "splice.software.versionhash";
+    public static final String SPLICE_BUILD_TIME = "splice.software.buildtime";
+    public static final String SPLICE_URL = "splice.software.url";
+
+    /*
 	** Transactions
 	*/
 

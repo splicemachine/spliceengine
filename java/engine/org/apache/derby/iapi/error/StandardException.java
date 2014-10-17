@@ -24,6 +24,7 @@ package org.apache.derby.iapi.error;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 
+import org.apache.derby.iapi.reference.Property;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.i18n.MessageService;
 import org.apache.derby.iapi.services.sanity.SanityManager;
@@ -708,9 +709,9 @@ public class StandardException extends Exception
 		StringBuffer buf = new StringBuffer(256);
 		buf.append("ERROR ").append(getSQLState()).append(": ").append(msg).append("\n");
 		// Include the Splice Machine version/release information.
-		buf.append("Splice Machine Release: ").append(System.getProperty("splice.software.release")).append("\n");
-		buf.append("Splice Machine Version: ").append(System.getProperty("splice.software.version")).append("\n");
-		buf.append("Splice Machine Build Time: ").append(System.getProperty("splice.software.buildtime"));
+		buf.append("Splice Machine Release: ").append(System.getProperty(Property.SPLICE_RELEASE)).append("\n");
+		buf.append("Splice Machine Version Hash: ").append(System.getProperty(Property.SPLICE_VERSION_HASH)).append("\n");
+		buf.append("Splice Machine Build Time: ").append(System.getProperty(Property.SPLICE_BUILD_TIME));
 
 		return buf.toString();
 	}
