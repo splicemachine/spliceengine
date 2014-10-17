@@ -92,7 +92,7 @@ public class MergeSortJoinStrategy extends HashableJoinStrategy {
 		SpliceLogUtils.trace(LOG, "rightResultSetCostEstimate outerCost=%s, innerFullKeyCost=%s",outerCost, innerCost);
 		// InnerCost does not change
 		SpliceCostEstimateImpl inner = (SpliceCostEstimateImpl) innerCost;
-		inner.setBaseCost((SpliceCostEstimateImpl) innerCost.cloneMe());
+		inner.setBase(innerCost.cloneMe());
 		SpliceCostEstimateImpl outer = (SpliceCostEstimateImpl) outerCost;
 		double joinCost = ((inner.getEstimatedRowCount() + outer.getEstimatedRowCount()) * SpliceConstants.optimizerWriteCost)/(inner.numberOfRegions + outer.numberOfRegions) ;				
 		inner.setCost(joinCost+inner.cost+outer.cost, outer.getEstimatedRowCount(), outer.getEstimatedRowCount());
