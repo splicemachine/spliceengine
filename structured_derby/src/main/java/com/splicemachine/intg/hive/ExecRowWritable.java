@@ -25,6 +25,7 @@ import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.mrio.api.SQLUtil;
 
 public class ExecRowWritable implements Writable{
 
@@ -36,10 +37,12 @@ public class ExecRowWritable implements Writable{
 	byte[] bytes = null;
 	int length = 0;
 	private List<Integer> colTypes;
+	private List<Integer> keyColumns;
 	
-	public ExecRowWritable(List<Integer> colTypes)
+	public ExecRowWritable(List<Integer> colTypes, List<Integer> keyColumns)
 	{
 		this.colTypes = colTypes;
+		this.keyColumns = keyColumns;
 	}
 	
 	public byte[] translate2byte(ExecRow row) throws StandardException
@@ -51,19 +54,27 @@ public class ExecRowWritable implements Writable{
 			return null;
 		if(serializers == null)
 			serializers = VersionedSerializers.latestVersion(true).getSerializers(row);
-		if(encoder == null)
-		{
+		if(encoder == null){
 			encoder = MultiFieldEncoder.create(fields.length);
 		}
 		else{encoder.reset();}
 		
-		for(int i = 0; i < fields.length; i++)
-		{	
-			if(fields[i] == null)
-				continue;
-			serializers[i].encode(encoder, fields[i], false); //assume no primary key
+		if (keyColumns != null) {
+			for (int pos : keyColumns) {
+				if (pos == -1)
+					continue;
+				DescriptorSerializer serializer = serializers[pos];
+				DataValueDescriptor field = fields[pos];
+				serializer.encode(encoder, field, false);
+			}
 		}
-		
+		else{
+			for(int i = 0; i < fields.length; i++){	
+				if(fields[i] == null)
+					continue;
+				serializers[i].encode(encoder, fields[i], false); //assume no primary key
+			}
+		}
 		return encoder.build();
 	}
 	
@@ -88,12 +99,23 @@ public class ExecRowWritable implements Writable{
 		
 		decoder.set(row);
 		
-		for(int i = 0; i < fields.length; i++)
-		{
-			if(fields[i] == null)
-				continue;
-			serializers[i].decode(decoder, fields[i], false); //assume no primary key
+		if (keyColumns != null) {
+			for (int pos : keyColumns) {
+				if (pos == -1)
+					continue;
+				DescriptorSerializer serializer = serializers[pos];
+				DataValueDescriptor field = fields[pos];
+				serializer.decode(decoder, field, false);
+			}
 		}
+		
+        else{
+        	for(int i = 0; i < fields.length; i++){
+        		if(fields[i] == null)
+        			continue;
+        		serializers[i].decode(decoder, fields[i], false); //assume no primary key
+        	}
+        }
 		ExecRow afterDecoding = execRow.getNewNullRow();
 		afterDecoding.setRowArray(fields);
 		return afterDecoding;

@@ -9,7 +9,6 @@
 *.class
 *.jad
 .project
-.classpath
 **/.project
 **/.classpath
 *.prefs

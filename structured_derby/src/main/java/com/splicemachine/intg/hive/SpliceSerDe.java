@@ -62,6 +62,9 @@ public class SpliceSerDe implements SerDe {
 	 private List<Object> row = new ArrayList<Object>();
 	 private SQLUtil sqlUtil = null;
 	 private LazySimpleSerDe.SerDeParameters serdeParams;
+	 private int[]pkCols = null;
+	 private List<Integer>keyColumns = null;
+	 private HashMap<List, List> pks = new HashMap<List, List>();
 	 
 	 static Logger Log = Logger.getLogger(
 			 SpliceSerDe.class.getName());
@@ -80,8 +83,8 @@ public class SpliceSerDe implements SerDe {
 	   spliceTableName = spliceTableName.trim();
 	   if(sqlUtil == null)
 		   sqlUtil = SQLUtil.getInstance(tbl.getProperty(SpliceSerDe.SPLICE_JDBC_STR));
-	  
-	   getSpliceTableStructure(spliceTableName);
+	   
+	   preReadTableStructure(spliceTableName);
 	  
 	   String colNamesStr = tbl.getProperty(Constants.LIST_COLUMNS);
 	   colNames = Arrays.asList(colNamesStr.split(","));
@@ -106,20 +109,39 @@ public class SpliceSerDe implements SerDe {
 	 // temporarily use this method to read table structure of Splice, 
 	 // colTypes helps decoding ExecRow, which can be filled in the Hive Row.
 	 // this will cost the inconsistency if reading data out of Splice at the same time DDL.
-	 private void getSpliceTableStructure(String tableName)
-	 {
-		    HashMap<List, List> tableStructure = new HashMap<List, List>();
-		    
-		 	tableStructure = sqlUtil.getTableStructure(tableName);
-			
-	    	Iterator iter = tableStructure.entrySet().iterator();
-	    	if(iter.hasNext())
-	    	{
-	    		Map.Entry kv = (Map.Entry)iter.next();
-	    		colNames = (ArrayList<String>)kv.getKey();
-	    		colTypes = (ArrayList<Integer>)kv.getValue();
-	    	}
-		    	
+	
+	 
+	 private void preReadTableStructure(String tableName){
+		HashMap<List, List> tableStructure = new HashMap<List, List>();
+
+		tableStructure = sqlUtil.getTableStructure(tableName);
+
+		Iterator iter = tableStructure.entrySet().iterator();
+		if (iter.hasNext()) {
+			Map.Entry kv = (Map.Entry) iter.next();
+			colNames = (ArrayList<String>) kv.getKey();
+			colTypes = (ArrayList<Integer>) kv.getValue();
+		}
+
+		pks = sqlUtil.getPrimaryKey(tableName);
+		Iterator pkiter = pks.entrySet().iterator();
+		ArrayList<String> pkColNames = null;
+		if (pkiter.hasNext()) {
+			Map.Entry kv = (Map.Entry) pkiter.next();
+			pkColNames = (ArrayList<String>) kv.getKey();
+		}
+		if (pkColNames != null && pkColNames.size() != 0) {
+			pkCols = new int[pkColNames.size()];
+			for (int i = 0; i < pkColNames.size(); i++) {
+				pkCols[i] = colNames.indexOf(pkColNames.get(i)) + 1;
+			}
+		}
+		if(pkCols != null){
+			keyColumns = new ArrayList<Integer>();
+			for(int i=0;i<pkCols.length;i++){
+				keyColumns.add(pkCols[i] -1);	
+			}
+		}
 	 }
 	 
 	 private void fillRow(DataValueDescriptor[] dvds) throws StandardException
@@ -284,7 +306,7 @@ public class SpliceSerDe implements SerDe {
 	     
 		ExecRow row = new ValueRow(dvds.length);
 		row.setRowArray(dvds);
-		ExecRowWritable rowWritable = new ExecRowWritable(colTypes);
+		ExecRowWritable rowWritable = new ExecRowWritable(colTypes, keyColumns);
 		rowWritable.set(row);
 		return rowWritable;
 		 

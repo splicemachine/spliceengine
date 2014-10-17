@@ -42,9 +42,13 @@ ExecRowWritable>{
 	private  static SQLUtil sqlUtil = null;
     private  HiveSpliceRecordReader trr = null;
     private List<Integer> colTypes = null;
+    private List<String> allColNames = null;
     private HashMap<List, List> tableStructure = new HashMap<List, List>();
+    private HashMap<List, List> pks = new HashMap<List, List>();
 	private Connection parentConn = null;
-    
+    private int[]pkCols = null;
+    private List<Integer>keyColumns = null;
+	
 	@Override
 	public List<InputSplit> getSplits(JobContext context) throws IOException,
 			InterruptedException {
@@ -70,6 +74,7 @@ ExecRowWritable>{
 			InterruptedException {
 		String spliceTableName = conf.get(SpliceSerDe.SPLICE_TABLE_NAME);
 		HiveSpliceRecordReader trr = this.spliceTableRecordReader;
+		
 		if(sqlUtil == null)
 			sqlUtil = SQLUtil.getInstance(conf.get(SpliceSerDe.SPLICE_JDBC_STR));
 		String txnId = sqlUtil.getTransactionID();
@@ -79,11 +84,27 @@ ExecRowWritable>{
 			trr.setConf(conf);
 			
 			tableStructure = sqlUtil.getTableStructure(spliceTableName);
+			pks = sqlUtil.getPrimaryKey(spliceTableName);
+			Iterator pkiter = pks.entrySet().iterator();
+			ArrayList<String> pkColNames = null;
+			
 			Iterator iter = tableStructure.entrySet().iterator();
 	    	if(iter.hasNext())
 	    	{
 	    		Map.Entry kv = (Map.Entry)iter.next();
+	    		allColNames = (ArrayList<String>)kv.getKey(); 
 	    		colTypes = (ArrayList<Integer>)kv.getValue();
+	    	}
+	    	
+	    	if(pkiter.hasNext()){
+		    	Map.Entry kv = (Map.Entry)pkiter.next();
+		    	pkColNames = (ArrayList<String>)kv.getKey(); 	
+		    }
+	    	if(pkColNames != null && pkColNames.size() != 0){
+	    		pkCols = new int[pkColNames.size()];
+	    		for (int i = 0; i < pkColNames.size(); i++){
+	    			pkCols[i] = allColNames.indexOf(pkColNames.get(i))+1;
+	    		}
 	    	}
 		}
 		String hbaseTableName = spliceTableName2HBaseTableName(spliceTableName);
@@ -98,7 +119,7 @@ ExecRowWritable>{
 		trr.setHTable(hTable);
 		trr.init();
 		trr.setTableStructure(tableStructure);
-		
+		trr.setPrimaryKey(pkCols);
 		return trr;
 	}
 
@@ -154,7 +175,13 @@ ExecRowWritable>{
 
 	        @Override
 	        public ExecRowWritable createValue() {
-	          return new ExecRowWritable(colTypes);
+	        	if(pkCols != null){
+	    			keyColumns = new ArrayList<Integer>();
+	    			for(int i=0;i<pkCols.length;i++){
+	    				keyColumns.add(pkCols[i] -1);	
+	    			}
+	    		}
+	          return new ExecRowWritable(colTypes, keyColumns);
 	        }
 
 	        @Override

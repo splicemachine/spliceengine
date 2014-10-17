@@ -34,5 +34,6 @@
 		</attributes>
 	</classpathentry>
 	<classpathentry combineaccessrules="false" kind="src" path="/structured_constants"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/structured_si"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>
