@@ -1,12 +1,17 @@
 package com.splicemachine.hbase.backup;
 
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.impl.SpliceService;
 import com.splicemachine.derby.utils.SpliceAdmin;
+import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.si.api.TransactionLifecycle;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.utils.SpliceUtilities;
+import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.fs.*;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -14,9 +19,8 @@ import java.io.ObjectOutput;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
+
 /**
  * 
  * Top level Backup Information about the progress of a backup.
@@ -27,7 +31,11 @@ public class Backup implements InternalTable {
 	public static final String DEFAULT_SCHEMA = "RECOVERY";
 	public static final String DEFAULT_TABLE = "BACKUP";
 	public static final String BACKUP_BASE_FOLDER = "BACKUP";
-	/**
+    public static final String BACKUP_TABLE_FOLDER = "tables";
+    public static final String BACKUP_META_FOLDER = "meta";
+
+
+    /**
 	 * Backup Scope.  This allows us to understand the scope of the backup.
 	 * 
 	 * S = Schema
@@ -123,6 +131,13 @@ public class Backup implements InternalTable {
 	public Path getBaseBackupFilesystemAsPath() {
 		return new Path(backupFilesystem+"/"+BACKUP_BASE_FOLDER);
 	}
+
+    public Path getTableBackupFilesystemAsPath() {
+        return new Path(backupFilesystem+"/"+BACKUP_BASE_FOLDER+"/"+BACKUP_TABLE_FOLDER);
+    }
+    public Path getMetaBackupFilesystemAsPath() {
+        return new Path(backupFilesystem+"/"+BACKUP_BASE_FOLDER+"/"+BACKUP_META_FOLDER);
+    }
 
 	public void setBackupFilesystem(String backupFilesystem) {
 		this.backupFilesystem = backupFilesystem;
@@ -349,7 +364,11 @@ public class Backup implements InternalTable {
 	public boolean createBaseBackupDirectory() throws IOException, URISyntaxException {
 		FileSystem fileSystem = FileSystem.get(URI.create(getBackupFilesystem()),SpliceConstants.config);
 		if (!fileSystem.exists(getBaseBackupFilesystemAsPath()))
-			fileSystem.mkdirs(getBaseBackupFilesystemAsPath());		
+			fileSystem.mkdirs(getBaseBackupFilesystemAsPath());
+        if (!fileSystem.exists(getTableBackupFilesystemAsPath()))
+            fileSystem.mkdirs(getTableBackupFilesystemAsPath());
+        if (!fileSystem.exists(getMetaBackupFilesystemAsPath()))
+            fileSystem.mkdirs(getMetaBackupFilesystemAsPath());
 		return true;
 	}
 
@@ -361,7 +380,7 @@ public class Backup implements InternalTable {
 
     public void readBackupItems() throws IOException {
         FileSystem fileSystem = FileSystem.get(URI.create(getBackupFilesystem()),SpliceConstants.config);
-        FileStatus[] status = fileSystem.listStatus(getBaseBackupFilesystemAsPath());
+        FileStatus[] status = fileSystem.listStatus(getTableBackupFilesystemAsPath());
         for (FileStatus stat : status) {
             BackupItem item = new BackupItem();
             item.setBackup(this);
@@ -393,7 +412,7 @@ public class Backup implements InternalTable {
 
 	@Override
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-// FIXME reenable throw     if(true)
+//  FIXME reenable throw     if(true)
 //          throw new UnsupportedOperationException("DECODE TRANSACTION");
 		backupStatus = BackupStatus.valueOf(in.readUTF());
 		backupFilesystem = in.readUTF();
@@ -404,7 +423,7 @@ public class Backup implements InternalTable {
 
 	@Override
 	public void writeExternal(ObjectOutput out) throws IOException {
-// FIXME reenable throw     if(true)
+//  FIXME reenable throw     if(true)
 //          throw new UnsupportedOperationException("ENCODE TRANSACTION");
 		out.writeUTF(backupStatus.toString());
 		out.writeUTF(backupFilesystem);
@@ -412,4 +431,34 @@ public class Backup implements InternalTable {
 		out.writeBoolean(incrementalBackup);
 		out.writeLong(incrementalParentBackupID);
 	}
+
+    // Writes derby properties stored in ZK
+    public void createMetadata() throws StandardException, IOException {
+        FileSystem fileSystem = FileSystem.get(URI.create(getBackupFilesystem()),SpliceConstants.config);
+        for (String property : SpliceUtils.listProperties()) {
+            byte[] value = SpliceUtils.getProperty(property);
+
+            FSDataOutputStream out = fileSystem.create(new Path(getMetaBackupFilesystemAsPath(), property));
+            out.writeLong(value.length);
+            out.write(value);
+            out.close();
+        }
+        fileSystem.close();
+    }
+
+    // Restores derby properties to ZK
+    public void restoreMetadata() throws StandardException, IOException {
+        SpliceUtils.clearProperties();
+        FileSystem fileSystem = FileSystem.get(URI.create(getBackupFilesystem()),SpliceConstants.config);
+        for (FileStatus property : fileSystem.listStatus(getMetaBackupFilesystemAsPath())) {
+            FSDataInputStream in = fileSystem.open(property.getPath());
+            int length = (int) in.readLong();
+            byte[] value = new byte[length];
+            in.readFully(value, 0, length);
+
+            SpliceUtils.addProperty(property.getPath().getName(), Bytes.toString(value));
+        }
+        fileSystem.close();
+    }
+
 }

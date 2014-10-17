@@ -90,7 +90,7 @@ public class BackupItem implements InternalTable {
 	}
 
 	public String getBackupItemFilesystem() {
-		return backup.getBaseBackupFilesystemAsPath()+"/"+getBackupItem();
+		return backup.getTableBackupFilesystemAsPath()+"/"+getBackupItem();
 	}
 	
 	public void createBackupItemFilesystem() throws IOException {
