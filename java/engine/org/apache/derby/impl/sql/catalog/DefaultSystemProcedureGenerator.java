@@ -73,8 +73,10 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
     }
 
     /**
-	 * Create or update a system stored procedure.  If the system stored procedure alreadys exists in the data dictionary,
-	 * the stored procedure will be dropped and then created again.
+	 * Creates or updates a system stored procedure. If the system stored procedure
+	 * already exists in the data dictionary, the stored procedure will be dropped
+	 * and then created again. This includes functions implemented as
+	 * stored procedures.
 	 * 
 	 * @param schemaName           the schema where the procedure does and/or will reside
 	 * @param procName             the procedure to create or update
@@ -95,7 +97,14 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
     	// Delete the procedure from SYSALIASES if it already exists.
     	SchemaDescriptor sd = dictionary.getSchemaDescriptor(schemaName, tc, true);  // Throws an exception if the schema does not exist.
     	UUID schemaId = sd.getUUID();
-    	AliasDescriptor ad = dictionary.getAliasDescriptor(schemaId.toString(), procName, AliasInfo.ALIAS_NAME_SPACE_PROCEDURE_AS_CHAR);
+
+       	// Check for existing procedure
+    	String schemaIdStr = schemaId.toString();
+    	AliasDescriptor ad = dictionary.getAliasDescriptor(schemaIdStr, procName, AliasInfo.ALIAS_NAME_SPACE_PROCEDURE_AS_CHAR);
+    	if (ad == null) {
+    		// If not found check for existing function
+        	ad = dictionary.getAliasDescriptor(schemaIdStr, procName, AliasInfo.ALIAS_NAME_SPACE_FUNCTION_AS_CHAR);
+    	}
     	if (ad != null) {  // Drop the procedure if it already exists.
     		// Log a message to the debug stream (derby.log) to track what has been dropped/created.
     		SanityManager.DEBUG_PRINT("updateSystemProcs", String.format("Dropping already existing procedure: %s.%s", sd.getSchemaName(), procName));
