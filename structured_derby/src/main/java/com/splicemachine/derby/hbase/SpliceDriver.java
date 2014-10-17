@@ -1,5 +1,38 @@
 package com.splicemachine.derby.hbase;
 
+import java.io.IOException;
+import java.lang.management.ManagementFactory;
+import java.net.InetAddress;
+import java.sql.Connection;
+import java.util.List;
+import java.util.Properties;
+import java.util.Random;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+
+import javax.management.InstanceAlreadyExistsException;
+import javax.management.MBeanRegistrationException;
+import javax.management.MBeanServer;
+import javax.management.MalformedObjectNameException;
+import javax.management.NotCompliantMBeanException;
+import javax.management.ObjectName;
+
+import org.apache.derby.drda.NetworkServerControl;
+import org.apache.derby.iapi.db.OptimizerTrace;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.reference.Property;
+import org.apache.derby.impl.jdbc.EmbedConnection;
+import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.PleaseHoldException;
+import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.log4j.Logger;
+
 import com.google.common.io.Closeables;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.SpliceKryoRegistry;
@@ -9,7 +42,13 @@ import com.splicemachine.derby.ddl.DDLCoordinationFactory;
 import com.splicemachine.derby.hbase.ManifestReader.SpliceMachineVersion;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
-import com.splicemachine.derby.impl.job.scheduler.*;
+import com.splicemachine.derby.impl.job.scheduler.DistributedJobScheduler;
+import com.splicemachine.derby.impl.job.scheduler.ExpandingTaskScheduler;
+import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
+import com.splicemachine.derby.impl.job.scheduler.SchedulerTracer;
+import com.splicemachine.derby.impl.job.scheduler.StealableTaskScheduler;
+import com.splicemachine.derby.impl.job.scheduler.TieredTaskScheduler;
+import com.splicemachine.derby.impl.job.scheduler.TieredTaskSchedulerSetup;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequenceKey;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
@@ -21,7 +60,12 @@ import com.splicemachine.derby.utils.ErrorReporter;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.SpliceMetrics;
 import com.splicemachine.hbase.writer.WriteCoordinator;
-import com.splicemachine.job.*;
+import com.splicemachine.job.JobScheduler;
+import com.splicemachine.job.Task;
+import com.splicemachine.job.TaskMonitor;
+import com.splicemachine.job.TaskScheduler;
+import com.splicemachine.job.TaskSchedulerManagement;
+import com.splicemachine.job.ZkTaskMonitor;
 import com.splicemachine.si.api.TransactionStorage;
 import com.splicemachine.si.impl.TransactionalRegions;
 import com.splicemachine.tools.CachedResourcePool;
@@ -36,28 +80,6 @@ import com.splicemachine.utils.logging.Logging;
 import com.splicemachine.uuid.Snowflake;
 import com.yammer.metrics.core.MetricsRegistry;
 import com.yammer.metrics.reporting.JmxReporter;
-
-import org.apache.derby.drda.NetworkServerControl;
-import org.apache.derby.iapi.db.OptimizerTrace;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.reference.Property;
-import org.apache.derby.impl.jdbc.EmbedConnection;
-import org.apache.hadoop.hbase.HTableDescriptor;
-import org.apache.hadoop.hbase.PleaseHoldException;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.log4j.Logger;
-
-import javax.management.*;
-
-import java.io.IOException;
-import java.lang.management.ManagementFactory;
-import java.net.InetAddress;
-import java.sql.Connection;
-import java.util.List;
-import java.util.Properties;
-import java.util.Random;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * A central/important class in our application. One instance per JVM.  Starts major services including network server
