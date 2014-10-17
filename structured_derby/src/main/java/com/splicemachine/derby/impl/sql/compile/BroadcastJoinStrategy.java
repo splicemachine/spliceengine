@@ -127,7 +127,7 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
 		SpliceLogUtils.trace(LOG, "rightResultSetCostEstimate outerCost=%s, innerFullKeyCost=%s",outerCost, innerCost);
 		// InnerCost does not change
 		SpliceCostEstimateImpl inner = (SpliceCostEstimateImpl) innerCost;
-		inner.setBaseCost((SpliceCostEstimateImpl) innerCost.cloneMe());
+		inner.setBase(innerCost.cloneMe());
 		SpliceCostEstimateImpl outer = (SpliceCostEstimateImpl) outerCost;
 		double joinCost = inner.getEstimatedRowCount()*(SpliceConstants.remoteRead+SpliceConstants.optimizerHashCost);				
 		inner.setCost(joinCost+inner.cost+outer.cost, outer.getEstimatedRowCount(), outer.getEstimatedRowCount());
