@@ -44,9 +44,9 @@ public class SpliceMasterObserver extends BaseMasterObserver {
         if (Bytes.equals(desc.getName(), INIT_TABLE)) {
             initAction.execute();
         }
-        if (Bytes.equals(desc.getName(), RESTORE_TABLE)) {
-            restoreAction.restoreDatabase(desc);
-        }
+//        if (Bytes.equals(desc.getName(), RESTORE_TABLE)) {
+//            restoreAction.restoreDatabase(desc);
+//        }
     }
 
 

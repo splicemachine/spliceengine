@@ -39,6 +39,7 @@ import org.apache.zookeeper.ZooDefs;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -217,6 +218,17 @@ public class SpliceUtils extends SpliceUtilities {
         }
     }
 
+    public static List<String> listProperties() throws StandardException {
+        SpliceLogUtils.trace(LOG, "listProperties ");
+        RecoverableZooKeeper rzk = ZkUtils.getRecoverableZooKeeper();
+        try {
+            return rzk.getChildren(zkSpliceDerbyPropertyPath, false);
+        } catch (Exception e) {
+            SpliceLogUtils.logAndThrow(LOG,"listProperties Exception",Exceptions.parseException(e));
+            return null; //can't happen
+        }
+    }
+
     public static byte[] getProperty(String propertyName) throws StandardException {
         SpliceLogUtils.trace(LOG, "propertyExists %s",propertyName);
         RecoverableZooKeeper rzk = ZkUtils.getRecoverableZooKeeper();
@@ -235,6 +247,18 @@ public class SpliceUtils extends SpliceUtilities {
             rzk.create(zkSpliceDerbyPropertyPath + "/" + propertyName, Bytes.toBytes(propertyValue), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
         } catch (Exception e) {
             SpliceLogUtils.logAndThrow(LOG,"addProperty Exception",Exceptions.parseException(e));
+        }
+    }
+
+    public static void clearProperties() throws StandardException {
+        SpliceLogUtils.trace(LOG, "clearProperties name ");
+        RecoverableZooKeeper rzk = ZkUtils.getRecoverableZooKeeper();
+        try {
+            for (String child : rzk.getChildren(zkSpliceDerbyPropertyPath, false)) {
+                rzk.delete(zkSpliceDerbyPropertyPath + "/" + child, -1);
+            }
+        } catch (Exception e) {
+            SpliceLogUtils.logAndThrow(LOG,"clearProperties Exception",Exceptions.parseException(e));
         }
     }
 

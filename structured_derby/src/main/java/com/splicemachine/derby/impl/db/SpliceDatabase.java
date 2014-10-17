@@ -329,6 +329,8 @@ public class SpliceDatabase extends BasicDatabase {
                 backupItem.recreateItem(admin);
             }
 
+            backup.restoreMetadata();
+
             JobFuture future = null;
             JobInfo info = null;
             long start = System.currentTimeMillis();
@@ -380,6 +382,7 @@ public class SpliceDatabase extends BasicDatabase {
             long start = System.currentTimeMillis();
             admin = SpliceUtilities.getAdmin();
             backup.createBackupItems(admin);
+            backup.createMetadata();
             for (BackupItem backupItem: backup.getBackupItems()) {
                 backupItem.createBackupItemFilesystem();
                 backupItem.writeDescriptorToFileSystem();
