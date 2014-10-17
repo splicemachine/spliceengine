@@ -24,7 +24,8 @@ public class HiveSpliceRecordReader extends RecordReader<ImmutableBytesWritable,
 	private List<Integer> colTypes;
 	private Configuration conf = null;
 	private HashMap<List, List> tableStructure = null;
-	
+	private int[]pkCols = null;
+	List<Integer> keyColumns = null;
 	public void setConf(Configuration conf){
 		
 		this.conf = conf;
@@ -100,7 +101,8 @@ public class HiveSpliceRecordReader extends RecordReader<ImmutableBytesWritable,
 		
 		// Initialize colTypes first!
 		
-		ExecRowWritable res = new ExecRowWritable(colTypes);
+		
+		ExecRowWritable res = new ExecRowWritable(colTypes, keyColumns);
 		res.set(execRow);
 		return res;
 	}
@@ -125,6 +127,15 @@ public class HiveSpliceRecordReader extends RecordReader<ImmutableBytesWritable,
     		Map.Entry kv = (Map.Entry)iter.next();
     		colTypes = (ArrayList<Integer>)kv.getValue();
     	}
+	}
+	
+	public void setPrimaryKey(int []pkCols){
+		if(pkCols != null){
+			keyColumns = new ArrayList<Integer>();
+			for(int i=0;i<pkCols.length;i++){
+				keyColumns.add(pkCols[i] -1);	
+			}
+		}
 	}
 
 }

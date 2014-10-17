@@ -151,7 +151,7 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 	    	Map.Entry kv = (Map.Entry)pkiter.next();
 	    	pkColNames = (ArrayList<String>)kv.getKey(); 	
 	    }
-	    int[]pkCols = new int[pkColNames.size()];
+	    
 	    String taskID = arg0.getTaskAttemptID().getTaskID().toString();
 	    if(pkColNames == null || pkColNames.size() == 0){
 	    	SpliceRecordWriter spw = new SpliceRecordWriter(null, allColTypes, taskID);
@@ -159,13 +159,13 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 	    }
 	   
 	    else{
+	    	int[]pkCols = new int[pkColNames.size()];
 	    	for (int i = 0; i < pkColNames.size(); i++){
 	    		pkCols[i] = allColNames.indexOf(pkColNames.get(i))+1;
 	    	}
-	    }
-	    
-	    SpliceRecordWriter spw = new SpliceRecordWriter(pkCols, allColTypes, taskID);
-		return spw;	
+	    	SpliceRecordWriter spw = new SpliceRecordWriter(pkCols, allColTypes, taskID);
+			return spw;	
+	    }    
 	}
 	
 	protected static class SpliceRecordWriter extends RecordWriter<ImmutableBytesWritable, ExecRow> {
