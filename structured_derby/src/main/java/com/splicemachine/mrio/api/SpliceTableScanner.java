@@ -284,52 +284,50 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 	
 	public ExecRow next(SpliceRuntimeContext spliceRuntimeContext) throws StandardException,IOException {
 			
-			SIFilter filter = getSIFilter();
-			
-			if(keyValues==null)
-					keyValues = Lists.newArrayListWithExpectedSize(colTypes.size());
-			boolean hasRow;
-			
+		SIFilter filter = getSIFilter();
+
+		if (keyValues == null)
+			keyValues = Lists.newArrayListWithExpectedSize(colTypes.size());
+		boolean hasRow;
+		do {
 			keyValues.clear();
-			
 			template.resetRowArray();
-			
 			Result tmp = resultScanner.next();
-			
-		if (tmp != null) {
-			hasRow = true;
 
-			for (KeyValue kv : tmp.raw()) {
-				keyValues.add(kv);
-			}
-
-		} else {
-			hasRow = false;
-		}
-
-		if (hasRow) {
-			if (keyValues.size() <= 0) {
-				currentRowLocation = null;
-				return null;
+			if (tmp != null) {
+				hasRow = true;
+				for (KeyValue kv : tmp.raw()) {
+					keyValues.add(kv);
+				}
 			} else {
-				KeyValue kv = keyValues.get(0);
-				
-				if (template.nColumns() > 0) {		
-					if (!filterRowKey(kv) || !filterRow(filter)) {
-						// filter the row first, then filter the row key
-						filterCounter.increment();
-						
-					}
-				} else if (!filterRow(filter)) {
-					// still need to filter rows to deal with transactional
-					// issues
-					filterCounter.increment();		
-				}		
-				setRowLocation(kv);
-				return template;
+				hasRow = false;
 			}
-		}
-			
+
+			if (hasRow) {
+				if (keyValues.size() <= 0) {
+					currentRowLocation = null;
+					return null;
+				} else {
+					KeyValue kv = keyValues.get(0);
+
+					if (template.nColumns() > 0) {
+						if (!filterRowKey(kv) || !filterRow(filter)) {
+							// filter the row first, then filter the row key
+							filterCounter.increment();
+							continue;
+						}
+					} else if (!filterRow(filter)) {
+						// still need to filter rows to deal with transactional
+						// issues
+						filterCounter.increment();
+						continue;
+					}
+					setRowLocation(kv);
+					return template;
+				}
+			}
+		} while (hasRow);
+		hasRow = false;
 		currentRowLocation = null;
 		return null;
 	}
@@ -338,9 +336,6 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 			return currentRowLocation;
 	}
 
-
-
-	
 	public void close() throws StandardException, IOException {
 			if(keyAccumulator!=null)
 					keyAccumulator.close();
