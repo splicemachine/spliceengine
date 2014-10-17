@@ -110,6 +110,32 @@ public class WindowFunctionIT extends SpliceUnitTest {
         "7934, 'MILLER', 'CLERK', 7782,'1982-01-23', 1300, NULL, 10"
     };
 
+    private static String table5aDef = "(ID INT generated always as identity (START WITH 1, INCREMENT BY 1) PRIMARY KEY, Nome_Dep VARCHAR(200))";
+    public static final String TABLE5a_NAME = "Departamentos";
+    protected static SpliceTableWatcher spliceTableWatcher5a = new SpliceTableWatcher(TABLE5a_NAME,CLASS_NAME, table5aDef);
+
+    private static String[] DEPT = {
+        "'Vendas'",
+        "'IT'",
+        "'Recursos Humanos'"
+    };
+
+    private static String table5bDef = "(ID INT generated always as identity (START WITH 1, INCREMENT BY 1) PRIMARY KEY, ID_Dep INT, Nome VARCHAR(200), Salario Numeric(18,2))";
+    public static final String TABLE5b_NAME = "Funcionarios";
+    protected static SpliceTableWatcher spliceTableWatcher5b = new SpliceTableWatcher(TABLE5b_NAME,CLASS_NAME, table5bDef);
+
+    private static String[] FUNC = {
+        "1, 'Fabiano', 2000",
+        "1, 'Amorim', 2500",
+        "1, 'Diego', 9000",
+        "2, 'Felipe', 2000",
+        "2, 'Ferreira', 2500",
+        "2, 'Nogare', 11999",
+        "3, 'Laerte', 5000",
+        "3, 'Luciano', 23500",
+        "3, 'Zavaschi', 13999"
+    };
+
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
                                             .around(spliceSchemaWatcher)
@@ -170,6 +196,38 @@ public class WindowFunctionIT extends SpliceUnitTest {
                         for (String row : EMP_ROWS) {
                             ps = spliceClassWatcher.prepareStatement(
                                 String.format("insert into %s values (%s)", spliceTableWatcher4, row));
+                            ps.execute();
+                        }
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            })
+            .around(spliceTableWatcher5a)
+            .around(new SpliceDataWatcher() {
+                @Override
+                protected void starting(Description description) {
+                    PreparedStatement ps;
+                    try {
+                        for (String row : DEPT) {
+                            ps = spliceClassWatcher.prepareStatement(
+                                String.format("insert into %s (Nome_Dep) values (%s)", spliceTableWatcher5a, row));
+                            ps.execute();
+                        }
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            })
+            .around(spliceTableWatcher5b)
+            .around(new SpliceDataWatcher() {
+                @Override
+                protected void starting(Description description) {
+                    PreparedStatement ps;
+                    try {
+                        for (String row : FUNC) {
+                            ps = spliceClassWatcher.prepareStatement(
+                                String.format("insert into %s (ID_Dep, Nome, Salario) values (%s)", spliceTableWatcher5b, row));
                             ps.execute();
                         }
                     } catch (Exception e) {
@@ -1042,6 +1100,33 @@ public class WindowFunctionIT extends SpliceUnitTest {
         // enames, SCOTT and FORD have same salary and so rank the same and results
         // order the names arbitrarily, therefore, we can't use ename with static comparison.
 //        compareArrays(enameExpected, enameActual);
+    }
+
+    @Test
+    public void testMediaForDept() throws Exception {
+        // DB-1650, DB-2020
+        String[] funcionarioExpected = { "Luciano", "Zavaschi",   "Nogare",    "Diego",   "Laerte", "Ferreira", "Amorim", "Felipe",  "Fabiano"};
+        double[] mpdExpected = {14166.3333, 14166.3333, 5499.6666, 4500.0000, 14166.3333, 5499.6666, 4500.0000, 5499.6666, 4500.0000};
+
+        String sqlText = String.format("SELECT %1$s.Nome_Dep, %2$s.Nome AS Funcionario, %2$s.Salario, " +
+                "AVG(%2$s.Salario) OVER(PARTITION BY %1$s.Nome_Dep) \"Média por Departamento\", " +
+                "%2$s.Salario - AVG(%2$s.Salario) as \"Diferença de Salário\" FROM %2$s INNER" +
+                " JOIN %1$s ON %2$s.ID_Dep = %1$s.ID group by %1$s.Nome_Dep," +
+                "%2$s.Nome, %2$s.Salario ORDER BY 3 DESC",
+                                       this.getTableReference(TABLE5a_NAME), this.getTableReference(TABLE5b_NAME));
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+
+        List<String> funcionarioActual = new ArrayList<String>(funcionarioExpected.length);
+        List<Double> mpdActual = new ArrayList<Double>(mpdExpected.length);
+        while (rs.next()) {
+            funcionarioActual.add(rs.getString(2));
+            mpdActual.add(rs.getDouble(4));
+        }
+        rs.close();
+
+        compareArrays(funcionarioExpected, funcionarioActual);
+        compareArrays(mpdExpected, mpdActual);
     }
 
     private static void compareArrays(int[] expected, List<Integer> actualList) {
