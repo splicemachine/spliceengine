@@ -21,6 +21,7 @@
 		<dependency> <groupId>com.google.guava</groupId> <artifactId>guava</artifactId> </dependency>
 		<dependency> <groupId>com.google.protobuf</groupId> <artifactId>protobuf-java</artifactId> </dependency>
 		<dependency> <groupId>com.splicemachine</groupId> <artifactId>asynchbase</artifactId> </dependency>
+		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_web</artifactId> <type>tar.gz</type> </dependency>
 		<dependency> <groupId>com.splicemachine</groupId> <artifactId>structured_constants</artifactId> <classifier>${envClassifier}</classifier> <type>jar</type> </dependency>
 		<dependency> <groupId>com.splicemachine</groupId> <artifactId>structured_si</artifactId> <classifier>${envClassifier}${obfuscate.si}</classifier> <type>jar</type> </dependency>
 		<dependency> <groupId>com.splicemachine</groupId> <artifactId>utilities</artifactId> </dependency>
