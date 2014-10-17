@@ -55,7 +55,8 @@ public class KVPair implements Externalizable,Comparable<KVPair> {
         INSERT((byte)0x01),
         UPDATE((byte)0x02),
         DELETE((byte)0x03),
-				EMPTY_COLUMN((byte)0x04);
+				EMPTY_COLUMN((byte)0x04),
+        UPSERT((byte)0x05);
 
 				private final byte typeCode;
 

@@ -186,8 +186,13 @@ public abstract class AbstractTxnView implements TxnView {
             TxnView myParent = getParentTxnView();
             TxnView otherParent = otherTxn.getParentTxnView();
             if(!myParent.equals(Txn.ROOT_TRANSACTION) && myParent.equals(otherParent)){
-                //we are additive, so no conflict
-                return ConflictType.NONE;
+                /*
+                 * We are additive. Normally, we don't care about additive conflicts, and
+                 * unless special circumstances are met, we will ignore this, but
+                 * we want to inform the caller that it's an ADDITIVE_CONFLICT
+                 * so that it can do the right thing.
+                 */
+                return ConflictType.ADDITIVE;
             }
         }
         switch(otherTxn.getEffectiveState()){

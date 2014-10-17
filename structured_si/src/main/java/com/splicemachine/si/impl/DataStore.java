@@ -1,5 +1,7 @@
 package com.splicemachine.si.impl;
 
+import com.carrotsearch.hppc.LongOpenHashSet;
+import com.carrotsearch.hppc.procedures.LongProcedure;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.hbase.KeyValueUtils;
@@ -85,16 +87,21 @@ public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Ge
 			return decodeForOp(op.getAttribute(SIConstants.SI_TRANSACTION_KEY),readOnly);
 		}
 
-    public Delete copyPutToDelete(Put put, Set<Long> transactionIdsToDelete) {
-				Delete delete = dataLib.newDelete(dataLib.getPutKey(put));
-				for (Long transactionId : transactionIdsToDelete) {
-						for (KeyValue keyValue : dataLib.listPut(put)) {
-								dataLib.addKeyValueToDelete(delete, keyValue.getFamily(),
-												keyValue.getQualifier(), transactionId);
-						}
-						dataLib.addKeyValueToDelete(delete, userColumnFamily, tombstoneQualifier, transactionId);
-						dataLib.addKeyValueToDelete(delete, userColumnFamily, commitTimestampQualifier, transactionId);
-				}
+    public Delete copyPutToDelete(final Put put, LongOpenHashSet transactionIdsToDelete) {
+				final Delete delete = dataLib.newDelete(dataLib.getPutKey(put));
+        final Iterable<KeyValue> cells = dataLib.listPut(put);
+        transactionIdsToDelete.forEach(new LongProcedure() {
+            @Override
+            public void apply(long transactionId) {
+                for (KeyValue keyValue : cells) {
+                    dataLib.addKeyValueToDelete(delete, keyValue.getFamily(),
+                            keyValue.getQualifier(), transactionId);
+                }
+                dataLib.addKeyValueToDelete(delete, userColumnFamily, tombstoneQualifier, transactionId);
+                dataLib.addKeyValueToDelete(delete, userColumnFamily, commitTimestampQualifier, transactionId);
+
+            }
+        });
 				return delete;
 		}
 

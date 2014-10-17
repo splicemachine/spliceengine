@@ -131,9 +131,7 @@ public class TestTransactionSetup {
 								.dataWriter(writer)
 								.dataStore(dataStore)
 								.txnStore(txnSupplier) //use the cache for completed transactions
-								.clock(storeSetup.getClock())
-                .operationFactory(txnOperationFactory)
-								.transactionTimeout(SIConstants.transactionTimeout);
+                .operationFactory(txnOperationFactory);
 //								.control(control);
 				transactor = builder.build();
 

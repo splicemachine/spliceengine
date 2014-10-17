@@ -9,7 +9,6 @@ import com.splicemachine.si.data.hbase.IHTable;
 import com.splicemachine.si.impl.DataStore;
 import com.splicemachine.si.impl.SITransactionReadController;
 import com.splicemachine.si.impl.SITransactor;
-import com.splicemachine.si.impl.SystemClock;
 import com.splicemachine.si.jmx.ManagedTransactor;
 import com.splicemachine.si.jmx.TransactorStatus;
 import org.apache.hadoop.hbase.client.*;
@@ -70,8 +69,6 @@ public class HTransactorFactory extends SIConstants {
                     .dataLib(dataLib)
                     .dataWriter(writer)
                     .dataStore(ds)
-                    .clock(new SystemClock())
-                    .transactionTimeout(transactionTimeout)
                     .txnStore(TransactionStorage.getTxnSupplier())
                     .build();
             builderTransactor.setTransactor(transactor);
