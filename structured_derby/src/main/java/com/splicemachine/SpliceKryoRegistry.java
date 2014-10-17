@@ -19,6 +19,7 @@ import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.serializers.MapSerializer;
 import com.splicemachine.derby.ddl.*;
+import com.splicemachine.derby.impl.sql.catalog.Splice_DD_Version;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportFileSystemType;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
@@ -760,5 +761,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(DropSchemaDDLChangeDesc.class,EXTERNALIZABLE_SERIALIZER,200);
         instance.register(DropIndexDDLDesc.class,EXTERNALIZABLE_SERIALIZER,201);
         instance.register(SQLRowId.class, EXTERNALIZABLE_SERIALIZER,202);
+        instance.register(Splice_DD_Version.class, EXTERNALIZABLE_SERIALIZER,203);
     }
 }

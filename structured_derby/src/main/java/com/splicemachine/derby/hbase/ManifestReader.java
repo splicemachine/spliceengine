@@ -60,6 +60,12 @@ public class ManifestReader {
         String getBuildTime();
         /** @return the Splice Machine URL */
         String getURL();
+        /** @return the Splice major release version */
+        int getMajorVersionNumber();
+        /** @return the Splice minor release version */
+        int getMinorVersionNumber();
+        /** @return the Splice patch number */
+        int getPatchVersionNumber();
     }
 
     /**
@@ -92,6 +98,57 @@ public class ManifestReader {
         public String toString() {
             return "Release " + getRelease() + '\n' + "ImplementationVersion " + getImplementationVersion() + '\n' +
                 "BuildTime " + getBuildTime() + '\n' + "URL " + getURL() + '\n';
+        }
+
+        @Override
+        public int getMajorVersionNumber() {
+            String release = getRelease();
+
+            if (release == null) {
+                return -1;
+            }
+            String[] s = splitReleaseString(release);
+
+            return (new Integer(s[0])).intValue();
+        }
+
+        @Override
+        public int getMinorVersionNumber() {
+            String release = getRelease();
+
+            if (release == null) {
+                return -1;
+            }
+            String[] s = splitReleaseString(release);
+
+            return (new Integer(s[1])).intValue();
+        }
+
+        @Override
+        public int getPatchVersionNumber() {
+            String release = getRelease();
+
+            if (release == null) {
+                return -1;
+            }
+            String[] s = splitReleaseString(release);
+            if (s[2] == null)
+                return 0;
+            return (new Integer(s[2])).intValue();
+        }
+
+        private String[] splitReleaseString(String release) {
+            String[] s = release.split("\\.");
+            int count = 0;
+            while(Character.isDigit(s[2].charAt(count))) {
+                count++;
+            }
+            if (count == 0)
+                s[2] = null;
+            else
+                s[2] = s[2].substring(0, count);
+
+            return s;
         }
     }
 
@@ -142,11 +199,6 @@ public class ManifestReader {
             rawMap.put(entry.getKey().toString(), (String) entry.getValue());
         }
         return rawMap;
-    }
-
-    // for testing
-    SpliceMachineVersion create() {
-        return new SpliceMachineVersionImpl(readManifestOnClasspath());
     }
 
     /**
