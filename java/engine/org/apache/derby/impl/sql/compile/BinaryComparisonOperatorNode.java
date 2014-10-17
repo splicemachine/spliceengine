@@ -175,6 +175,61 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
 					getContextManager());
 			((CastNode) leftOperand).bindCastNodeOnly();
 		}
+		//
+		// Splice fork: fix for DB-1001
+		//
+		// If we have <int> <op> <decimal>, or <decimal> <op> <int>,
+		// we need to implicitly promote the int to the decimal.
+		// Ideally we could make this more broadly apply to any numeric type
+		// and compare the type precedence like this:
+		//
+		//     if (rightTypeId.typePrecedence() > leftTypeId.typePrecedence()) ...
+		//
+		// However, there are too many edge case combinations with regression risk,
+		// especially across the various floating point types, so we limit the scope
+		// to promoting numeric integer types (SMALLINT, INTEGER, BIGINT)
+		// to decimal types (DECIMAL, NUMERIC). Besides, this issue has only
+		// been reported for integer and decimal comparisons. The rest seem to be
+		// handled fine already at a lower level than here.
+		//
+		else if ((leftTypeId.isIntegerNumericTypeId() && rightTypeId.isDecimalTypeId()) ||
+				 (leftTypeId.isDecimalTypeId()        && rightTypeId.isIntegerNumericTypeId())) {
+
+			DataTypeDescriptor leftTypeServices = leftOperand.getTypeServices();
+			DataTypeDescriptor rightTypeServices = rightOperand.getTypeServices();
+
+			// If right side is the decimal then promote the left side integer
+			if (rightTypeId.isDecimalTypeId()) {
+				leftOperand =  (ValueNode)
+					getNodeFactory().getNode(
+						C_NodeTypes.CAST_NODE,
+						leftOperand,
+						new DataTypeDescriptor(
+								rightTypeId,
+								rightTypeServices.getPrecision(),
+								rightTypeServices.getScale(),
+								true, 
+								rightTypeServices.getMaximumWidth()
+						),
+						getContextManager());
+				((CastNode) leftOperand).bindCastNodeOnly();
+			} else {
+				// Otherwise, left side is the decimal so promote the right side integer
+				rightOperand =  (ValueNode)
+					getNodeFactory().getNode(
+						C_NodeTypes.CAST_NODE,
+						rightOperand,
+						new DataTypeDescriptor(
+								leftTypeId,
+								leftTypeServices.getPrecision(),
+								leftTypeServices.getScale(),
+								true, 
+								leftTypeServices.getMaximumWidth()
+						),
+						getContextManager());
+				((CastNode) rightOperand).bindCastNodeOnly();
+			}
+		}
 
 		/* Test type compatability and set type info for this node */
 		bindComparisonOperator();

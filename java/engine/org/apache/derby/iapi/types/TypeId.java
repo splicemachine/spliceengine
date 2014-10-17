@@ -1306,6 +1306,20 @@ public final class TypeId
         }
 
         /**
+         * Is this a type id for an integer numeric type?
+         *
+         * @return Whether or not this a type id for an integer numeric type.
+         */
+        public boolean isIntegerNumericTypeId()
+        {
+        		// Splice fork: Return true for SMALLINT, INTEGER, BIGINT only.
+        	    // isNumericTypeID check alone is not sufficient,
+        		// so also make sure it is not a decimal (DECIMAL, NUMERIC)
+        		// and not floating (REAL, DOUBLE, FLOAT).
+                return isNumericTypeId && (!isDecimalTypeId) && (!isFloatingPointTypeId);
+        }
+
+        /**
          * Is this a type id for a decimal type?
          *
          * @return Whether or not this a type id for a decimal type.
