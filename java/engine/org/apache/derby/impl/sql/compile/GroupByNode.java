@@ -373,7 +373,7 @@ public class GroupByNode extends SingleChildResultSetNode
 			GroupByColumn gbc = (GroupByColumn) groupingList.elementAt(i);
 			ResultColumn newRC = (ResultColumn) getNodeFactory().getNode(
 					C_NodeTypes.RESULT_COLUMN,
-					"##UnaggColumn",
+					"##UnaggColumn" + gbc.getColumnName(),
 					gbc.getColumnExpression(),
 					getContextManager());
 
@@ -386,7 +386,7 @@ public class GroupByNode extends SingleChildResultSetNode
 			// now add this column to the groupbylist
 			ResultColumn gbRC = (ResultColumn) getNodeFactory().getNode(
 					C_NodeTypes.RESULT_COLUMN,
-					"##UnaggColumn",
+					"##UnaggColumn" + gbc.getColumnName(),
 					gbc.getColumnExpression(),
 					getContextManager());
 			groupByRCL.addElement(gbRC);

@@ -1,231 +1,150 @@
 package org.apache.derby.impl.sql.compile;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 
 import org.apache.derby.iapi.error.StandardException;
 
 /**
  * Used only inside of {@link org.apache.derby.impl.sql.compile.WindowResultSetNode}, this class maps
- * columns from the SELECT clause to any matching columns in the window definition's OVER() clause.
+ * columns from the SELECT clause to any matching columns in the window definition's OVER() clause,
+ * the key columns.
  *
  * @author Jeff Cunningham
  *         Date: 10/8/14
  */
 public class WindowColumnMapping {
-    private final Map<String, List<ParentRef>> parentRefs;
-    private final Map<String, List<OverRef>> overRefs;
-    private final List<KeyRef> keyRefs;
+    private final List<ParentRef> parentRefs;
 
-    public WindowColumnMapping(ResultColumnList parentRCL, Partition partition, OrderByList orderByList) throws StandardException {
-        overRefs = createOverRefs(partition, orderByList);
-        parentRefs = createAndAssociateParentRefs(parentRCL, overRefs);
-        keyRefs = createAndAssociateKeyRefs(overRefs);
-    }
-
-    public List<ValueNode> getParentColumns() {
-        List<ValueNode> parents = new ArrayList<ValueNode>(parentRefs.size());
-        for (Map.Entry<String, List<ParentRef>> parentRefEntry : parentRefs.entrySet()) {
-            for (ParentRef parentRef : parentRefEntry.getValue()) {
-                parents.add(parentRef.ref);
-            }
-        }
-        return parents;
+    /**
+     * Create parent references and attach any key columns from the window function
+     * definition's over() clause.
+     * @param parentRCL the parent result set column list (the select clause).
+     * @param keyColumns the window function definition's over() clause columns
+     *                   (partition and over by clauses).
+     * @throws StandardException
+     */
+    public WindowColumnMapping(ResultColumnList parentRCL, List<OrderedColumn> keyColumns)
+        throws StandardException {
+        parentRefs = createAndAssociateParentRefs(parentRCL, keyColumns);
     }
 
     /**
-     * Only parent columns of type ColumnReference or VirtualColumnNode. No AggregateNodes, etc.
-     * @return reference columns
+     * Get the parent result set columns which may or may not have references to
+     * window function key columns (the over() clause columns).
+     * @return all columns from the parent result set (the select clause).
      */
-    public List<ValueNode> getParentReferenceColumns() {
-        List<ValueNode> parents = new ArrayList<ValueNode>(parentRefs.size());
-        for (Map.Entry<String, List<ParentRef>> parentRefEntry : parentRefs.entrySet()) {
-            for (ParentRef parentRef : parentRefEntry.getValue()) {
-                ValueNode node = parentRef.ref;
-                if (ColumnReference.class.isInstance(node) || VirtualColumnNode.class.isInstance(node)) {
-                    parents.add(node);
-                }
-            }
-        }
-        return parents;
+    public List<ParentRef> getParentColumns() {
+        return parentRefs;
     }
 
-    public List<OrderedColumn> getPartitionColumns() {
-        return getOrderedNodes(true);
-    }
-
-    public List<OrderedColumn> getOrderByColumns() {
-        return getOrderedNodes(false);
-    }
-
-    public List<OrderedColumn> getKeyColumns() {
-        List<OrderedColumn> keyColumns = new ArrayList<OrderedColumn>(keyRefs.size());
-        if (! keyRefs.isEmpty()) {
-            for (KeyRef keyRef : keyRefs) {
-                OverRef overRef = keyRef.getFirstOverRef();
-                if (overRef == null) {
-                    throw new RuntimeException("Key column is an orphan.");
-                }
-                keyColumns.add(overRef.ref);
-            }
-        }
-        return keyColumns;
-    }
-
-    public List<ValueNode> getMissingKeyNodes() {
-        List<ValueNode> missingKeys = new ArrayList<ValueNode>(keyRefs.size());
-        if (! keyRefs.isEmpty()) {
-            for (KeyRef keyRef : keyRefs) {
-                if (! keyRef.hasParent()) {
-                    OverRef overRef = keyRef.getFirstOverRef();
-                    if (overRef == null) {
-                        throw new RuntimeException("Key column is an orphan.");
-                    }
-                    missingKeys.add(overRef.ref.getColumnExpression());
-                }
+    /**
+     * Find any <code>keyColumns</code> that are not referenced by any <code>parentRef</code>s.
+     * <p/>
+     * These key columns will have to be added to the WindowResultSetNode's projection so
+     * that they will be available as row keys to sort rows during the WindowOperation.
+     * @param parentRefs the parent result set columns that might be carrying references
+     *                   to key columns in the window over() clause.
+     * @param keyColumns the partition and over by columns in the window over() clause.
+     * @return any over() clause key columns that are not referenced by parent columns.
+     * May be empty but not null.
+     */
+    public static List<OrderedColumn> findMissingKeyNodes(List<ParentRef> parentRefs,
+                                                      List<OrderedColumn> keyColumns) {
+        Set<OrderedColumn> parentReferencedOCs = collectChildren(parentRefs);
+        List<OrderedColumn> missingKeys = new ArrayList<OrderedColumn>(keyColumns.size());
+        for (OrderedColumn oc : keyColumns) {
+            if (! parentReferencedOCs.contains(oc)) {
+                missingKeys.add(oc);
             }
         }
         return missingKeys;
     }
 
-    public void resetOverColumnsPositionByParent(ValueNode parent, int columnPosition) throws StandardException {
-        // there can be more than one occurrence of the same col in select
-        for (ParentRef parentRef : findParentRefs(parent)) {
-            if (parentRef.hasChildren()) {
-                for (OverRef overRef : parentRef.children) {
-                    resetColumnPosition(overRef.ref, columnPosition);
-                }
-            }
+    /**
+     * Reset the the key column position numbers of the parent referenced key columns.
+     * Also reset the position numbers of the key columns in the over() clause to keep
+     * them in sync.
+     * <p/>
+     * This is done when projecting columns from the WindowResultSetNode.
+     * @param parent the parent column reference for which to reset the referenced key
+     *               columns.
+     * @param keyColumns the window definition's key columns. Any matching keys will
+     *                   have their column positions reset.
+     * @param columnPosition the new column position of the referenced keys.
+     * @throws StandardException
+     */
+    public static void resetOverColumnsPositionByParent(ParentRef parent, List<OrderedColumn> keyColumns,
+                                                        int columnPosition) throws StandardException {
+        for (OrderedColumn child : parent.children) {
+            resetColumnPosition(child, columnPosition);
+            OrderedColumn key = findMatchingKey(keyColumns, child);
+            assert key != null: "No matching key col for "+child;
+            resetColumnPosition(key, columnPosition);
         }
     }
 
-    public void resetOverColumnsPositionByOverColumn(ValueNode overColumn, int columnPosition) throws StandardException {
-        // there can be more than one over column if, for instance, the same column
-        // is listed in the partition and order by clauses
-        for (OverRef overRef : findOverRefs(overColumn)) {
-            resetColumnPosition(overRef.ref, columnPosition);
-        }
+    /**
+     * Reset the column position of the <code>keyCol</code> and synchronize any matching
+     * <code>keyColumns</code> during projection of the WindowResultSetNode.
+     * @param keyCol a key column reference to a parent column reference which we are
+     *               projecting in a different column.
+     * @param keyColumns the window definition's over() clause key columns to reset any
+     *                   matching key's position.
+     * @param columnPosition the new key columns position in the projection.
+     * @throws StandardException
+     */
+    public static void resetOverColumnsPositionByKey(OrderedColumn keyCol, List<OrderedColumn> keyColumns,
+                                                     int columnPosition) throws StandardException {
+        resetColumnPosition(keyCol, columnPosition);
+        OrderedColumn key = findMatchingKey(keyColumns, keyCol);
+        assert key != null: "No matching key col for "+keyCol;
+        resetColumnPosition(key, columnPosition);
     }
 
     //========================================
     // Utilities
     //========================================
 
-    private Map<String,List<OverRef>> createOverRefs(Partition partition, OrderByList orderByList) throws StandardException {
-        int partitionSize = (partition != null ? partition.size() : 0);
-        int orderByListSize = (orderByList != null ? orderByList.size() : 0);
-        Map<String,List<OverRef>> oveRefMap = new LinkedHashMap<String, List<OverRef>>(partitionSize+orderByListSize);
-        // partition columns
-        for (int i=0; i<partitionSize; i++) {
-            OrderedColumn column = (OrderedColumn) partition.elementAt(i);
-            String id = createID(column.getColumnExpression());
-            List<OverRef> overRefsList = oveRefMap.get(id);
-            if (overRefsList == null) {
-                overRefsList = new ArrayList<OverRef>(5);
-                oveRefMap.put(id, overRefsList);
-            }
-            overRefsList.add(new OverRef(column, id, true));
-        }
-        // order by columns
-        for (int i=0; i<orderByListSize; ++i) {
-            OrderedColumn column = (OrderedColumn) orderByList.elementAt(i);
-            String id = createID(column.getColumnExpression());
-            List<OverRef> overRefsList = oveRefMap.get(id);
-            if (overRefsList == null) {
-                overRefsList = new ArrayList<OverRef>(5);
-                oveRefMap.put(id, overRefsList);
-            }
-            overRefsList.add(new OverRef(column, id, false));
-        }
-        return oveRefMap;
-    }
-
-    private Map<String,List<ParentRef>> createAndAssociateParentRefs(ResultColumnList parentRCL,
-                                                                     Map<String,List<OverRef>> overRefs) throws StandardException {
-        // FIXME: there's gotta be a better way to match column expressions...
+    private List<ParentRef> createAndAssociateParentRefs(ResultColumnList parentRCL,
+                                                         List<OrderedColumn> keyColumns) throws StandardException {
         int parentRCLSize = (parentRCL != null ? parentRCL.size() : 0);
-        Map<String,List<ParentRef>> parentRefs1 = new LinkedHashMap<String, List<ParentRef>>(parentRCLSize);
+        List<ParentRef> parentRefList = new ArrayList<ParentRef>(parentRCLSize);
         for (int i=0; i<parentRCLSize; i++) {
-            ValueNode node = parentRCL.getResultColumn(i+1).getExpression();
-            String id = createID(node);
-            ParentRef parentRef = new ParentRef(node, id);
+            ResultColumn rc = parentRCL.getResultColumn(i+1);
+            ValueNode node = rc.getExpression();
+            String id = rc.exposedName;
+            ParentRef parentRef = new ParentRef(rc, id);
+            parentRefList.add(parentRef);
             if (node instanceof ColumnReference || node instanceof VirtualColumnNode) {
-                // limit matching nodes to one of the types of the over columns
-                for (List<OverRef> overRefList: overRefs.values()) {
-                    for (OverRef overRef : overRefList) {
-                        if (equivalantToOverColumn(node, overRef.ref.getColumnExpression())) {
-                            parentRef.children.add(overRef);
-                            overRef.parentRefs.add(parentRef);
+                // limit matching parent expressions to one of the types of the key columns
+                    for (OrderedColumn key : keyColumns) {
+                        if (equivalentToOverColumn(node, key.getColumnExpression())) {
+                            parentRef.children.add(key);
                         }
                     }
-                }
             }
-            List<ParentRef> parentRefList = parentRefs1.get(id);
-            if (parentRefList == null) {
-                parentRefList = new ArrayList<ParentRef>(5);
-                parentRefs1.put(id, parentRefList);
-            }
-            parentRefList.add(parentRef);
         }
-        return parentRefs1;
+        return parentRefList;
     }
 
-    private List<KeyRef> createAndAssociateKeyRefs(Map<String, List<OverRef>> overRefs) {
-        List<KeyRef> keyRefs1 = new ArrayList<KeyRef>(overRefs.size());
-        Map<String,List<OverRef>> keys = new LinkedHashMap<String,List<OverRef>>(overRefs.size());
-        for (List<OverRef> overRefList : overRefs.values()) {
-            for (OverRef overRef : overRefList) {
-                List<OverRef> refs = keys.get(overRef.id);
-                if (refs == null) {
-                    refs = new ArrayList<OverRef>(5);
-                    keys.put(overRef.id, refs);
-                }
-                refs.add(overRef);
-            }
+    private static Set<OrderedColumn> collectChildren(List<ParentRef> parentRefs) {
+        Set<OrderedColumn> parentReferencedOCs = new LinkedHashSet<OrderedColumn>(parentRefs.size());
+        for (ParentRef pr : parentRefs) {
+            parentReferencedOCs.addAll(pr.children);
         }
-        for (Map.Entry<String,List<OverRef>> keyEntries : keys.entrySet()) {
-            KeyRef keyRef = new KeyRef(keyEntries.getKey());
-            for (OverRef overRef : keyEntries.getValue()) {
-                keyRef.overRefs.add(overRef);
-            }
-            keyRefs1.add(keyRef);
-        }
-        return keyRefs1;
+        return parentReferencedOCs;
     }
 
-    private List<OrderedColumn> getOrderedNodes(boolean isInPartition) {
-        List<OrderedColumn> orderedColumns = new ArrayList<OrderedColumn>(overRefs.size());
-        for (List<OverRef> overRefList : overRefs.values()) {
-            for (OverRef overRef : overRefList) {
-                if (overRef.inPartition == isInPartition) {
-                    orderedColumns.add(overRef.ref);
-                }
+    private static OrderedColumn findMatchingKey(List<OrderedColumn> keyColumns, OrderedColumn child) {
+        for (OrderedColumn oc : keyColumns) {
+            if (oc.equals(child)) {
+                return oc;
             }
         }
-        return orderedColumns;
-    }
-
-    private List<ParentRef> findParentRefs(ValueNode parent) throws StandardException {
-        List<ParentRef> matchingRefs = new ArrayList<ParentRef>(2);
-        String id = createID(parent);
-        for (ParentRef parentRef : parentRefs.get(id)) {
-            matchingRefs.add(parentRef);
-        }
-        return matchingRefs;
-    }
-
-    private List<OverRef> findOverRefs(ValueNode overColumn) throws StandardException {
-        List<OverRef> matchingRefs = new ArrayList<OverRef>(5);
-        String id = createID(overColumn);
-        List<OverRef> overRefList = overRefs.get(id);
-        if (overRefList != null) {
-            for (OverRef overRef : overRefList) {
-                matchingRefs.add(overRef);
-            }
-        }
-        return matchingRefs;
+        return null;
     }
 
     private static void resetColumnPosition(OrderedColumn column, int columnPosition) {
@@ -239,79 +158,6 @@ public class WindowColumnMapping {
                 rc.setVirtualColumnId(columnPosition);
             }
         }
-    }
-
-    /**
-     * Create an ID for any given node by finding our way to the
-     * bottom of the reference tree. That should disambiguate
-     * between columns that are effectively the same.<br/>
-     * Note we can't use column position because we're potentially
-     * changing that during the lifetime of this object.
-     * <p/>
-     * Note that tedium abounds here!  Surprised?<br/>
-     * There are many paths and many null-named entities in the
-     * hierarchy.  Care must be taken and the paths mapped out
-     * (and WindowFuntionITs run!) when making changes to this
-     * method.
-     * @param node the column to identify
-     * @return the definitive column identifier.
-     */
-    private String createID(ValueNode node) throws StandardException {
-        String name = null;
-        if (node == null) return null;
-        if (node instanceof BaseColumnNode) return node.getColumnName();
-        if (node instanceof ConstantNode) return ((ConstantNode)node).getValue().getString();
-        if (node instanceof BinaryArithmeticOperatorNode) {
-            BinaryArithmeticOperatorNode bNode = (BinaryArithmeticOperatorNode) node;
-            return bNode.methodName + "_" + createID(bNode.getLeftOperand()) + "_" +
-                createID(bNode.getRightOperand());
-        }
-        if (node instanceof TernaryOperatorNode) {
-            TernaryOperatorNode tNode = (TernaryOperatorNode) node;
-            return tNode.methodName + "_" + createID(tNode.getLeftOperand()) + "_" +
-                createID(tNode.getRightOperand());
-        }
-        if (node instanceof AggregateNode) return ((AggregateNode)node).getAggregateName();
-        if (node instanceof ColumnReference) {
-            name = node.getColumnName();
-            if (name != null && ! name.startsWith("##")) return name;
-
-            name = createID(((ColumnReference) node).getSource());
-            if (name != null && ! name.startsWith("##")) return name;
-
-            if ((((ColumnReference)node).getGeneratedToReplaceAggregate() ||
-                    ((ColumnReference)node).getGeneratedToReplaceWindowFunctionCall())) {
-                return node.getColumnName();
-            }
-        } else if (node instanceof VirtualColumnNode) {
-            return createID(((VirtualColumnNode) node).getSourceColumn());
-        }
-        // try another path
-        ResultColumn src = node.getSourceResultColumn();
-        if (src == null) {
-            if (node instanceof ResultColumn) {
-                name = ((ResultColumn)node).getName();
-
-                if (name.startsWith("##")) {
-                    ValueNode exp = ((ResultColumn) node).getExpression();
-                    if (exp instanceof ColumnReference || exp instanceof VirtualColumnNode) {
-                        return createID(((ResultColumn) node).getExpression());
-                    }
-                }
-
-                return name;
-            }
-        } else {
-            // recurs until we hit the bottom
-            name = createID(src);
-        }
-        if (name == null) {
-            name = node.getColumnName();
-        }
-        if (name == null) {
-            throw new RuntimeException("Unable to create column mapping ID for node: "+node.getColumnName());
-        }
-        return name;
     }
 
     /**
@@ -332,7 +178,7 @@ public class WindowColumnMapping {
      * @return <code>true</code> if the two nodes point to the same underlying column.
      * @throws StandardException thrown by <code>node1.isEquivalent(node2)</code>.
      */
-    private boolean equivalantToOverColumn(ValueNode recursNode, ValueNode ref) throws StandardException {
+    private boolean equivalentToOverColumn(ValueNode recursNode, ValueNode ref) throws StandardException {
         if (recursNode == null) return false;
         if (ref.isEquivalent(recursNode)) return true;
 
@@ -344,83 +190,24 @@ public class WindowColumnMapping {
         }
         return rc != null &&
             ((ResultColumn) rc).getExpression() != null &&
-            equivalantToOverColumn(((ResultColumn) rc).getExpression(), ref);
+            equivalentToOverColumn(((ResultColumn) rc).getExpression(), ref);
     }
 
-    //========================================
-    // Internal classes
-    //========================================
+    //=============================================
+    // Nested class. Used in WindowResultSetNode
+    //=============================================
 
-    private static abstract class Ref {
+    public static class ParentRef {
         final String id;
-        Ref(String id) {
-            this.id = id;
-        }
-        @Override
-        public int hashCode() {
-            return this.id.hashCode();
-        }
-        @Override
-        public boolean equals(Object o) {
-            return this == o || !(o == null || getClass() != o.getClass()) && id.equals(((Ref) o).id);
-        }
-    }
-
-    private static class ParentRef extends Ref {
+        final ResultColumn col;
         final ValueNode ref;
-        final List<OverRef> children;
+        final List<OrderedColumn> children;
 
-        ParentRef(ValueNode ref, String id) {
-            super(id);
-            children = new ArrayList<OverRef>(10);
-            this.ref = ref;
-        }
-
-        boolean hasChildren() {
-            return (! children.isEmpty());
-        }
-    }
-
-    private static class OverRef extends Ref {
-        final OrderedColumn ref;
-        final boolean inPartition;
-        final List<ParentRef> parentRefs;
-
-        OverRef(OrderedColumn ref, String id, boolean inPartition) {
-            super(id);
-            parentRefs = new ArrayList<ParentRef>(10);
-            this.ref = ref;
-            this.inPartition = inPartition;
-        }
-
-        boolean hasParent() {
-            return (! parentRefs.isEmpty());
-        }
-    }
-
-    private static class KeyRef extends Ref {
-        final List<OverRef> overRefs;
-
-        KeyRef(String firstRefId) {
-            super(firstRefId);
-            overRefs = new ArrayList<OverRef>(10);
-        }
-
-        boolean hasParent() {
-            for (OverRef overRef : overRefs) {
-                if (overRef.hasParent()) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        public OverRef getFirstOverRef() {
-            OverRef overRef = null;
-            if (! overRefs.isEmpty()) {
-                overRef = overRefs.get(0);
-            }
-            return overRef;
+        ParentRef(ResultColumn col, String id) {
+            this.id = id;
+            children = new ArrayList<OrderedColumn>(10);
+            this.col = col;
+            this.ref = col.getExpression();
         }
     }
 }

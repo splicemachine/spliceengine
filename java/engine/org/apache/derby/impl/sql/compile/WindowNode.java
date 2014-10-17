@@ -21,6 +21,8 @@
 
 package org.apache.derby.impl.sql.compile;
 
+import java.util.List;
+
 import org.apache.derby.iapi.error.StandardException;
 
 /**
@@ -59,9 +61,9 @@ public abstract class WindowNode extends QueryTreeNode
     }
 
 
-    public abstract Partition getPartition();
+    public abstract List<OrderedColumn> getPartition();
 
     public abstract WindowFrameDefinition getFrameExtent();
 
-    public abstract OrderByList getOrderByList();
+    public abstract List<OrderedColumn> getOrderByList();
 }

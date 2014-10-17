@@ -21,6 +21,8 @@
 
 package org.apache.derby.impl.sql.compile;
 
+import java.util.List;
+
 import org.apache.derby.iapi.error.StandardException;
 
 /**
@@ -42,7 +44,7 @@ public final class WindowReferenceNode extends WindowNode
     }
 
     @Override
-    public Partition getPartition() {
+    public List<OrderedColumn> getPartition() {
         return null;
     }
 
@@ -52,7 +54,7 @@ public final class WindowReferenceNode extends WindowNode
     }
 
     @Override
-    public OrderByList getOrderByList() {
+    public List<OrderedColumn> getOrderByList() {
         return null;
     }
 

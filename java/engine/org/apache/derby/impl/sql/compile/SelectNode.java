@@ -22,7 +22,6 @@
 
 package	org.apache.derby.impl.sql.compile;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -213,7 +212,6 @@ public class SelectNode extends ResultSetNode
 					windowNodeList = addInlinedWindowDefinition(windowNodeList, wfn);
 				} else {
 					// a window reference, bind it later.
-                    // FIXME: when, where?
 					if (SanityManager.DEBUG) {
 						SanityManager.ASSERT(
 							wfn.getWindow() instanceof WindowReferenceNode);
@@ -1503,18 +1501,6 @@ public class SelectNode extends ResultSetNode
 		** JRESOLVE: what about correlated aggregates from another
 		** block.
 		*/
-        Vector aggregateResultColumns = null;
-        if ((selectAggregates != null) && (selectAggregates.size() > 0)) {
-            // Remove window functions from selectAggregates first
-            Collection<AggregateNode> toRemove = new ArrayList<AggregateNode>();
-            for (int i = 0; i < selectAggregates.size(); ++i) {
-                AggregateNode n = (AggregateNode)selectAggregates.get(i);
-                if (n.isWindowFunction()) {
-                    toRemove.add(n);
-                }
-            }
-            selectAggregates.removeAll(toRemove);
-        }
         if (((selectAggregates != null) && (selectAggregates.size() > 0))
                 || (groupByList != null))
         {
@@ -1542,7 +1528,6 @@ public class SelectNode extends ResultSetNode
 
             // Remember whether or not we can eliminate the sort.
             eliminateSort = eliminateSort || gbn.getIsInSortedOrder();
-            aggregateResultColumns = gbn.getAggregateResultColumns();
         }
 
         if (windowNodeList != null) {
@@ -1554,7 +1539,6 @@ public class SelectNode extends ResultSetNode
             // used to create one Window Resultset
             Map<WindowNode,Collection<WindowFunctionNode>> defnToFunctionsMap =
                                                         collectFunctionsForDefinitions(windowFuncCalls);
-            Collection<AggregateNode> toRemove = new ArrayList<AggregateNode>();
 
             for (Map.Entry<WindowNode,Collection<WindowFunctionNode>> defnToFunctions : defnToFunctionsMap.entrySet()) {
                 WindowResultSetNode wrsn =
@@ -1569,18 +1553,7 @@ public class SelectNode extends ResultSetNode
 
                 prnRSN = wrsn.getParent();
                 wrsn.assignCostEstimate(optimizer.getOptimizedCost());
-
-                // we need to remove any aggregates that were processed as window functions
-                // we do this so they're not processed again below
-                for (AggregateNode windowAgg : wrsn.getProcessedAggregates()) {
-                    for (Object aggNode : selectAggregates) {
-                        if (aggNode == windowAgg) {
-                            toRemove.add((AggregateNode)aggNode);
-                        }
-                    }
-                }
             }
-            selectAggregates.removeAll(toRemove);
         }
 
 		// if it is distinct, that must also be taken care of.

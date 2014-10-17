@@ -21,6 +21,8 @@
 
 package org.apache.derby.impl.sql.compile;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Vector;
 
 import org.apache.derby.iapi.error.StandardException;
@@ -113,8 +115,16 @@ public final class WindowDefinitionNode extends WindowNode
         return null;
     }
 
-    public Partition getPartition() {
-        return overClause.getPartition();
+    public List<OrderedColumn> getPartition() {
+        Partition partition = overClause.getPartition();
+        int partitionSize = (partition != null ? partition.size() : 0);
+        List<OrderedColumn> partitionList = new ArrayList<OrderedColumn>(partitionSize);
+        if (partition != null) {
+            for (int i=0; i<partitionSize; i++) {
+                partitionList.add((OrderedColumn) partition.elementAt(i));
+            }
+        }
+        return partitionList;
     }
 
     public WindowFrameDefinition getFrameExtent() {
@@ -124,8 +134,20 @@ public final class WindowDefinitionNode extends WindowNode
     /**
      * @return the order by list of this window definition if any, else null.
      */
-    public OrderByList getOrderByList() {
-        return overClause.getOrderByClause();
+    public List<OrderedColumn> getOrderByList() {
+        OrderByList orderByList = overClause.getOrderByClause();
+        int orderBySize = (orderByList != null ? orderByList.size() : 0);
+        List<OrderedColumn> orderedColumns = new ArrayList<OrderedColumn>(orderBySize);
+        if (orderByList != null) {
+            for (int i=0; i<orderBySize; i++) {
+                orderedColumns.add((OrderedColumn) orderByList.elementAt(i));
+            }
+        }
+        return orderedColumns;
+    }
+
+    public List<OrderedColumn> getKeyColumns() {
+        return overClause.getKeyColumns();
     }
 
     /**

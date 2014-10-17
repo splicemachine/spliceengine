@@ -20,6 +20,10 @@
 
 package org.apache.derby.impl.sql.compile;
 
+import static org.apache.derby.impl.sql.compile.WindowColumnMapping.findMissingKeyNodes;
+import static org.apache.derby.impl.sql.compile.WindowColumnMapping.resetOverColumnsPositionByKey;
+import static org.apache.derby.impl.sql.compile.WindowColumnMapping.resetOverColumnsPositionByParent;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -159,28 +163,23 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 		 * Otherwise, we check to see if the source is in sorted order on any permutation
 		 * of the grouping columns.)
 		 */
-        Partition partition = this.wdn.getPartition();
-        if (partition != null) {
-            ColumnReference[] crs =
-                new ColumnReference[partition.size()];
+        List<OrderedColumn> keyColumns = this.wdn.getKeyColumns();
+        ColumnReference[] crs = new ColumnReference[keyColumns.size()];
 
-            // Now populate the CR array and see if ordered
-            int glSize = partition.size();
-            int index;
-            for (index = 0; index < glSize; index++) {
-                GroupByColumn gc =
-                    (GroupByColumn) partition.elementAt(index);
-                if (gc.getColumnExpression() instanceof ColumnReference) {
-                    crs[index] = (ColumnReference) gc.getColumnExpression();
-                } else {
-                    isInSortedOrder = false;
-                    break;
-                }
-
+        // Now populate the CR array and see if ordered
+        int glSize = keyColumns.size();
+        int index = 0;
+        for (OrderedColumn aCol : keyColumns) {
+            if (aCol.getColumnExpression() instanceof ColumnReference) {
+                crs[index] = (ColumnReference) aCol.getColumnExpression();
+            } else {
+                isInSortedOrder = false;
+                break;
             }
-            if (index == glSize) {
-                isInSortedOrder = childResult.isOrderedOn(crs, true, null);
-            }
+            index++;
+        }
+        if (index == glSize) {
+            isInSortedOrder = childResult.isOrderedOn(crs, true, null);
         }
     }
 
@@ -371,13 +370,17 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         // result set. (modelled on GroupByNode's action for addUnAggColumns)
         // VCNs happen, for example, when we have a window over a group by.
         WindowColumnMapping columnMapping = new WindowColumnMapping(parent.getResultColumns(),
-                                                                    wdn.getPartition(), wdn.getOrderByList());
+                                                                    wdn.getKeyColumns());
 
-        for (ValueNode crOrVcn : columnMapping.getParentReferenceColumns()) {
+        for (WindowColumnMapping.ParentRef parent : columnMapping.getParentColumns()) {
+            if (parent.ref instanceof WindowFunctionNode) {
+                // we handle window functions in another method
+                continue;
+            }
             ResultColumn newRC = (ResultColumn) getNodeFactory().getNode(
                 C_NodeTypes.RESULT_COLUMN,
-                "##UnWindowingColumn" + crOrVcn.getColumnName(),
-                crOrVcn,
+                "##UnWindowingColumn" + parent.ref.getColumnName(),
+                parent.ref,
                 getContextManager());
 
             // add this result column to the bottom rcl
@@ -389,8 +392,8 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             // now add this column to the windowingRCL
             ResultColumn wRC = (ResultColumn) getNodeFactory().getNode(
                 C_NodeTypes.RESULT_COLUMN,
-                "##UnWindowingColumn" + crOrVcn.getColumnName(),
-                crOrVcn,
+                "##UnWindowingColumn" + parent.ref.getColumnName(),
+                parent.ref,
                 getContextManager());
             windowingRCL.addElement(wRC);
             wRC.markGenerated();
@@ -400,7 +403,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 
             // reset the partition and/or order by column's column position in the
             // Window result since we're rearranging here
-            columnMapping.resetOverColumnsPositionByParent(crOrVcn, columnPosition);
+            resetOverColumnsPositionByParent(parent, wdn.getKeyColumns(), columnPosition);
 
           /*
            ** Reset the original node to point to the
@@ -434,7 +437,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             // compound expression C1 * (C2 / 100). DERBY-3094.
             //
             SubstituteExpressionVisitor vis =
-                new SubstituteExpressionVisitor(crOrVcn, vc, AggregateNode.class);
+                new SubstituteExpressionVisitor(parent.ref, vc, AggregateNode.class);
             referencesToSubstitute.add(vis);
         }
 
@@ -461,11 +464,11 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         // setting columns on windowingRCL will also set them on resultColumns
         ResultColumnList windowingRCL = resultColumns;
 
-        for (ValueNode crOrVcn : columnMapping.getMissingKeyNodes()) {
+        for (OrderedColumn keyCol : findMissingKeyNodes(columnMapping.getParentColumns(), wdn.getKeyColumns())) {
             ResultColumn newRC = (ResultColumn) getNodeFactory().getNode(
                 C_NodeTypes.RESULT_COLUMN,
-                "##KeyColumn" + crOrVcn.getColumnName(),
-                crOrVcn,
+                "##KeyColumn" + keyCol.getColumnExpression().getColumnName(),
+                keyCol.getColumnExpression(),
                 getContextManager());
 
             // add this result column to the bottom rcl
@@ -478,8 +481,8 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             // now add this column to the windowingRCL
             ResultColumn wRC = (ResultColumn) getNodeFactory().getNode(
                 C_NodeTypes.RESULT_COLUMN,
-                "##KeyColumn" + crOrVcn.getColumnName(),
-                crOrVcn,
+                "##KeyColumn" + keyCol.getColumnExpression().getColumnName(),
+                keyCol.getColumnExpression(),
                 getContextManager());
             windowingRCL.addElement(wRC);
             wRC.markGenerated();
@@ -488,7 +491,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             wRC.setVirtualColumnId(newColumnNumber);
 
             // reset the key column's column position in the Window result since we're rearranging here
-            columnMapping.resetOverColumnsPositionByOverColumn(crOrVcn, newColumnNumber);
+            resetOverColumnsPositionByKey(keyCol, wdn.getKeyColumns(), newColumnNumber);
         }
     }
 
@@ -545,8 +548,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 			** point to this.
 			*/
             ResultColumn tmpRC = createColumnReferenceWrapInResultColumn(newRC, getNodeFactory(),
-                                                                                             getContextManager(),
-                                                                                             this.getLevel());
+                                                                         getContextManager(), this.getLevel());
             windowingRCL.addElement(tmpRC);
             tmpRC.setVirtualColumnId(windowingRCL.size());
 
@@ -597,7 +599,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 			** Add a reference to this column in the windowing RCL.
 			*/
             tmpRC = createColumnReferenceWrapInResultColumn(newRC, getNodeFactory(),
-                                                                                getContextManager(), this.getLevel());
+                                                            getContextManager(), this.getLevel());
             windowingRCL.addElement(tmpRC);
             tmpRC.setVirtualColumnId(windowingRCL.size());
 
@@ -623,9 +625,9 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 			/*
 			** Note that the column ids here are all are 1-based
 			*/
-            FormatableArrayHolder partitionCols = createColumnOrdering(columnMapping.getPartitionColumns());
-            FormatableArrayHolder orderByCols = createColumnOrdering(columnMapping.getOrderByColumns());
-            FormatableArrayHolder keyCols = createColumnOrdering(columnMapping.getKeyColumns());
+            FormatableArrayHolder partitionCols = createColumnOrdering(wdn.getPartition());
+            FormatableArrayHolder orderByCols = createColumnOrdering(wdn.getOrderByList());
+            FormatableArrayHolder keyCols = createColumnOrdering(wdn.getKeyColumns());
             windowInfoList.addElement(new WindowFunctionInfo(
                 windowFunctionNode.getAggregateName(),
                 windowFunctionNode.getAggregatorClassName(),
@@ -802,9 +804,8 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      * @throws StandardException Thrown on error
      */
     public boolean isOneRowResultSet() throws StandardException {
-        // Only consider scalar aggregates for now
-        Partition partition = this.wdn.getPartition();
-        return ((partition == null) || (partition.size() == 0));
+        // Window functions are not scalar aggs
+        return false;
     }
 
     /**

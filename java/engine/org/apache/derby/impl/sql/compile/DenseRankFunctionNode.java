@@ -21,6 +21,7 @@
 package org.apache.derby.impl.sql.compile;
 
 import java.sql.Types;
+import java.util.List;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.sanity.SanityManager;
@@ -30,7 +31,6 @@ import org.apache.derby.iapi.types.TypeId;
  * Class that represents a call to the DENSE_RANK() window function.
  */
 public final class DenseRankFunctionNode extends WindowFunctionNode {
-    private ValueNode[] operands;
     /**
      * Initializer. QueryTreeNode override.
      *
@@ -43,18 +43,12 @@ public final class DenseRankFunctionNode extends WindowFunctionNode {
         // Ranking window functions get their operand columns from from the ORDER BY clause.<br/>
         // Here, we inspect and validate the window ORDER BY clause (within OVER clause) to find
         // the columns with which to create the ranking function node.
-        OrderByList orderByList = ((WindowDefinitionNode)arg2).getOrderByList();
-        if (orderByList == null || orderByList.size() == 0) {
+        List<OrderedColumn> orderByList = ((WindowDefinitionNode)arg2).getOrderByList();
+        if (orderByList == null || orderByList.isEmpty()) {
             SanityManager.THROWASSERT("Missing required ORDER BY clause for ranking window function.");
         }
 
-        this.operands = new ValueNode[orderByList.size()];
-
-        for (int i=0; i<orderByList.size(); i++) {
-            operands[i] = orderByList.getOrderByColumn(i).getColumnExpression();
-        }
-
-        super.init(operands[0], arg1, Boolean.FALSE, "DENSE_RANK", arg2);
+        super.init(orderByList.get(0).getColumnExpression(), arg1, Boolean.FALSE, "DENSE_RANK", arg2);
 
         setType(TypeId.getBuiltInTypeId(Types.BIGINT),
                 TypeId.LONGINT_PRECISION,
@@ -75,18 +69,23 @@ public final class DenseRankFunctionNode extends WindowFunctionNode {
 
     @Override
     public ValueNode[] getOperands() {
+        List<OrderedColumn> orderedColumns = getWindow().getOrderByList();
+        ValueNode[] operands = new ValueNode[orderedColumns.size()];
+        int i =0;
+        for (OrderedColumn orderedColumn : orderedColumns) {
+            operands[i++] = orderedColumn.getColumnExpression();
+        }
         return operands;
     }
 
     @Override
-    protected void setOperands(ValueNode[] operands) {
+    protected void setOperands(ValueNode[] operands) throws StandardException {
         if (operands != null && operands.length > 0) {
             this.operand = operands[0];
-            this.operands = operands;
-            OrderByList orderByList = getWindow().getOrderByList();
+            List<OrderedColumn> orderByList = getWindow().getOrderByList();
             if (orderByList != null && orderByList.size() > 0) {
                 for (int i=0; i<operands.length; i++) {
-                    orderByList.getOrderByColumn(i).init(operands[i]);
+                    orderByList.get(i).init(operands[i]);
                 }
             }
         }

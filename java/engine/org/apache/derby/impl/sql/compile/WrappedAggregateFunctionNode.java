@@ -7,6 +7,7 @@ import org.apache.derby.iapi.services.compiler.MethodBuilder;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.sql.compile.C_NodeTypes;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
+import org.apache.derby.iapi.types.DataTypeDescriptor;
 
 /**
  * @author Jeff Cunningham
@@ -42,6 +43,11 @@ public class WrappedAggregateFunctionNode extends WindowFunctionNode {
      public ValueNode getNewNullResultExpression() throws StandardException {
          return aggregateFunction.getNewNullResultExpression();
      }
+
+    @Override
+    public DataTypeDescriptor getTypeServices() {
+        return aggregateFunction.getTypeServices();
+    }
 
     @Override
     public ValueNode[] getOperands() {
@@ -93,7 +99,7 @@ public class WrappedAggregateFunctionNode extends WindowFunctionNode {
      @Override
       public ValueNode replaceAggregatesWithColumnReferences(ResultColumnList rcl,
                                                              int tableNumber) throws StandardException {
-          return aggregateFunction.replaceAggregatesWithColumnReferences(rcl,tableNumber);
+          return aggregateFunction.replaceAggregatesWithColumnReferences(rcl, tableNumber);
       }
 
     @Override
@@ -105,17 +111,24 @@ public class WrappedAggregateFunctionNode extends WindowFunctionNode {
         // in this list as an aggregate. The list will be handed to GroupByNode, which we don't
         // want doing the work.  Window function code will handle the window function aggregates
         aggregateVector.remove(aggregateFunction);
-        return boundNode;
+        return this;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+
+        WrappedAggregateFunctionNode that = (WrappedAggregateFunctionNode) o;
+
+        return aggregateFunction.equals(that.aggregateFunction);
+
     }
 
     @Override
     public int hashCode() {
         return aggregateFunction.hashCode();
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        return aggregateFunction.equals(obj);
     }
 
     /**

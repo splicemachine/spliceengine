@@ -471,5 +471,5 @@ public abstract class WindowFunctionNode extends AggregateNode {
         }
     }
 
-    protected abstract void setOperands(ValueNode[] operands);
+    protected abstract void setOperands(ValueNode[] operands) throws StandardException;
 }

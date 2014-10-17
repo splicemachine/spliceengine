@@ -1,5 +1,8 @@
 package org.apache.derby.impl.sql.compile;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.sanity.SanityManager;
@@ -41,6 +44,24 @@ public class OverClause extends QueryTreeNode {
 
     public OrderByList getOrderByClause() {
         return orderByClause;
+    }
+
+    public List<OrderedColumn> getKeyColumns() {
+        int partitionSize = (partition != null ? partition.size() : 0);
+        int orderByListSize = (orderByClause != null ? orderByClause.size() : 0);
+        List<OrderedColumn> keyCols = new ArrayList<OrderedColumn>(partitionSize+orderByListSize);
+
+
+        // partition columns
+        for (int i=0; i<partitionSize; i++) {
+            keyCols.add((OrderedColumn) partition.elementAt(i));
+        }
+        // order by columns
+        for (int i=0; i<orderByListSize; ++i) {
+            keyCols.add((OrderedColumn) orderByClause.elementAt(i));
+        }
+
+        return keyCols;
     }
 
     public WindowFrameDefinition getFrameDefinition() {
