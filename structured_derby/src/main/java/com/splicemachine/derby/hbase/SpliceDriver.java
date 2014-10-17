@@ -40,6 +40,7 @@ import com.yammer.metrics.reporting.JmxReporter;
 import org.apache.derby.drda.NetworkServerControl;
 import org.apache.derby.iapi.db.OptimizerTrace;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.reference.Property;
 import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.PleaseHoldException;
@@ -162,10 +163,10 @@ public class SpliceDriver extends SIConstants {
 		 * So we are setting the Splice version at boot time into Java system properties which will be accessed
 		 * by the StandardException class in Derby.
 		 */
-		System.setProperty("splice.software.release", spliceVersion.getRelease());
-		System.setProperty("splice.software.version", spliceVersion.getImplementationVersion());
-		System.setProperty("splice.software.buildtime", spliceVersion.getBuildTime());
-		System.setProperty("splice.software.url", spliceVersion.getURL());
+		System.setProperty(Property.SPLICE_RELEASE, spliceVersion.getRelease());
+		System.setProperty(Property.SPLICE_VERSION_HASH, spliceVersion.getImplementationVersion());
+		System.setProperty(Property.SPLICE_BUILD_TIME, spliceVersion.getBuildTime());
+		System.setProperty(Property.SPLICE_URL, spliceVersion.getURL());
 	}
 
     /**
@@ -264,6 +265,12 @@ public class SpliceDriver extends SIConstants {
                             abortStartup();
                             return null;
                         }
+
+                        // Write the Splice version to the log.
+                        SpliceLogUtils.info(LOG, String.format("Splice Machine Release = %s", spliceVersion.getRelease()));
+                        SpliceLogUtils.info(LOG, String.format("Splice Machine Version Hash = %s", spliceVersion.getImplementationVersion()));
+                        SpliceLogUtils.info(LOG, String.format("Splice Machine Build Time = %s", spliceVersion.getBuildTime()));
+                        SpliceLogUtils.info(LOG, String.format("Splice Machine URL = %s", spliceVersion.getURL()));
 
                         SpliceLogUtils.debug(LOG, "Starting Server");
                         setRunning = startServer();
