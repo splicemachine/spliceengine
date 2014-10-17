@@ -66,7 +66,7 @@ public class CostEstimateImpl implements CostEstimate {
 				singleScanRowCount < 0.0)
 			{
 				SanityManager.THROWASSERT(
-					"All parameters expected to be < 0.0, " +
+					"All parameters expected to be >= 0, " +
 					"\n\tcost = " + cost +
 					"\n\trowCount = " + rowCount +
 					"\n\tsingleScanRowCount = " + singleScanRowCount 
