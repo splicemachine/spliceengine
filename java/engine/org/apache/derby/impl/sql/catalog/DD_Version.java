@@ -86,10 +86,10 @@ public	class DD_Version implements	Formatable
 	//
 	////////////////////////////////////////////////////////////////////////
 
-	private		transient	DataDictionaryImpl	bootingDictionary;
+	protected transient	DataDictionaryImpl	bootingDictionary;
 
-	int majorVersionNumber;
-	private int minorVersionNumber;
+	protected int majorVersionNumber;
+	protected int minorVersionNumber;
 
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -730,7 +730,7 @@ public	class DD_Version implements	Formatable
 	 *
 	 * @exception IOException on error
 	 */
-	public final void readExternal( ObjectInput in ) throws IOException
+	public void readExternal( ObjectInput in ) throws IOException
 	{
 		majorVersionNumber = in.readInt();
 		minorVersionNumber = in.readInt();
@@ -747,7 +747,7 @@ public	class DD_Version implements	Formatable
 	 *
 	 * @exception IOException on error
 	 */
-	public final void writeExternal( ObjectOutput out ) throws IOException
+	public void writeExternal( ObjectOutput out ) throws IOException
 	{ 
 		out.writeInt(majorVersionNumber);
 		out.writeInt(minorVersionNumber);

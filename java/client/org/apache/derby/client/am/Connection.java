@@ -2163,7 +2163,7 @@ public abstract class Connection
                         java.sql.Connection.TRANSACTION_REPEATABLE_READ ||
                     pbIsolation ==
                         java.sql.Connection.TRANSACTION_SERIALIZABLE ||
-                            pbIsolation == 16,
+                    pbIsolation == TRANSACTION_SNAPSHOT_ISOLATION,
                     "Invalid isolation level value: " + pbIsolation);
         }
         defaultIsolation = isolation_ = pbIsolation;
