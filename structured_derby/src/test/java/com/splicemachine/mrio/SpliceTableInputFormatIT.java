@@ -74,7 +74,7 @@ public class SpliceTableInputFormatIT {
 
     // Table for ADD_MONTHS testing.
     private static final SpliceTableWatcher tableWatcherA = new SpliceTableWatcher(
-    	"A", schemaWatcher.schemaName, "(col1 varchar(100), col2 varchar(100))");
+    	"A", schemaWatcher.schemaName, "(col1 varchar(100) primary key, col2 varchar(100))");
    
     
     @ClassRule
@@ -174,13 +174,13 @@ public class SpliceTableInputFormatIT {
 		assertTrue(more);
 		key = trr.getCurrentKey();
 		r = trr.getCurrentValue();
-		checkResult(r, "bbb","value bbb");
+		checkResult(r, "aaa","value aaa");
 		
 		more = trr.nextKeyValue();
 		assertTrue(more);
 		key = trr.getCurrentKey();
 		r = trr.getCurrentValue();
-		checkResult(r, "aaa","value aaa");
+		checkResult(r, "bbb","value bbb");
 		
 		more = trr.nextKeyValue();
 		assertFalse(more);
