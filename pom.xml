@@ -45,7 +45,7 @@
 	</repositories>
 	<properties>
 		<assemble>false</assemble>
-		<derby.version>10.9.1.0-splice1.0.0RC1</derby.version>
+		<derby.version>10.9.1.0-splice1.0.0RC1-SNAPSHOT</derby.version>
 		<envClassifier/>
 		<excluded.categories>com.splicemachine.test.SlowTest</excluded.categories>
 		<failTasksRandomly>true</failTasksRandomly>
