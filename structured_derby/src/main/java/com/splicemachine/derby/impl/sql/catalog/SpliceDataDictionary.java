@@ -1,11 +1,11 @@
 package com.splicemachine.derby.impl.sql.catalog;
 
-import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.hbase.ManifestReader;
+import com.splicemachine.derby.impl.sql.catalog.upgrade.SpliceCatalogUpgradeScripts;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.derby.utils.Exceptions;
 import org.apache.derby.catalog.AliasInfo;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.db.Database;
@@ -31,7 +31,6 @@ import org.apache.log4j.Logger;
 import com.splicemachine.derby.impl.sql.depend.SpliceDependencyManager;
 import com.splicemachine.utils.SpliceLogUtils;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
@@ -47,6 +46,9 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
     private volatile TabInfoImpl statementHistoryTable = null;
     private volatile TabInfoImpl operationHistoryTable = null;
     private volatile TabInfoImpl taskHistoryTable = null;
+    private Splice_DD_Version spliceSoftwareVersion;
+
+    public static final String SPLICE_DATA_DICTIONARY_VERSION = "SpliceDataDictionaryVersion";
 
     @Override
     protected SystemProcedureGenerator getSystemProcedures() {
@@ -193,6 +195,18 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
         initSystemIndexVariables(taskHistoryTable);
         return taskHistoryTable;
     }
+
+    public void createFujiTables(TransactionController tc) throws StandardException{
+        //create SYSSTATEMENTHISTORY
+        makeCatalog(getStatementHistoryTable(), getSystemSchemaDescriptor(), tc);
+
+        //create SYSOPERATIONHISTORY
+        makeCatalog(getOperationHistoryTable(), getSystemSchemaDescriptor(), tc);
+
+        //SYSTASKHISTORY
+        makeCatalog(getTaskHistoryTable(), getSystemSchemaDescriptor(), tc);
+    }
+
     @Override
     protected void createDictionaryTables(Properties params,
                                           TransactionController tc,
@@ -203,14 +217,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
         //create SYSPRIMARYKEYS
         makeCatalog(getPkTable(), getSystemSchemaDescriptor(), tc);
 
-        //create SYSSTATEMENTHISTORY
-        makeCatalog(getStatementHistoryTable(), getSystemSchemaDescriptor(), tc);
+        createFujiTables(tc);
 
-        //create SYSOPERATIONHISTORY
-        makeCatalog(getOperationHistoryTable(), getSystemSchemaDescriptor(), tc);
-
-        //SYSTASKHISTORY
-        makeCatalog(getTaskHistoryTable(), getSystemSchemaDescriptor(), tc);
     }
     
     public static void verifySetup() {
@@ -254,6 +262,49 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
 		return desc;
 	}
 
+    @Override
+    protected void loadDictionaryTables(TransactionController tc,
+                                        DataDescriptorGenerator ddg,
+                                        Properties startParams)
+            throws StandardException
+    {
+        super.loadDictionaryTables(tc, ddg, startParams);
+
+        // Check splice data dictionary verion to decide if upgrade is necessary
+        upgradeIfNecessary(tc, ddg, startParams);
+    }
+
+    private void upgradeIfNecessary (TransactionController tc,
+                                    DataDescriptorGenerator ddg,
+                                    Properties startParams) throws StandardException {
+
+        Splice_DD_Version catalogVersion = (Splice_DD_Version)tc.getProperty(SPLICE_DATA_DICTIONARY_VERSION);
+        if (needToUpgrade(catalogVersion)) {
+            tc.elevate("dictionary");
+            SpliceCatalogUpgradeScripts scripts = new SpliceCatalogUpgradeScripts(this, catalogVersion, tc);
+            scripts.run();
+            tc.setProperty(SPLICE_DATA_DICTIONARY_VERSION, spliceSoftwareVersion, true);
+            tc.commit();
+        }
+    }
+
+    private boolean needToUpgrade(Splice_DD_Version catalogVersion) {
+
+        // Not sure about the current version, do not upgrade
+        if (spliceSoftwareVersion == null)
+            return false;
+
+        // This is a pre-Fuji catalog, upgrade it.
+        if (catalogVersion == null)
+            return true;
+
+        // Compare software version and catalog version
+        if (catalogVersion.toLong() < spliceSoftwareVersion.toLong()) {
+            return true;
+        }
+        return false;
+    }
+
     /**
      * Overridden so that SQL functions implemented as system procedures
      * will be found if in the SYSFUN schema. Otherwise, the default
@@ -284,17 +335,25 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
 		this.dmgr = new SpliceDependencyManager(this);
 	}
 
-	@Override
-	public void boot(boolean create, Properties startParams) throws StandardException {
-      SpliceLogUtils.trace(LOG, "boot with create=%s,startParams=%s",create,startParams);
-      if(create){
-          SpliceAccessManager af = (SpliceAccessManager)  Monitor.findServiceModule(this, AccessFactory.MODULE);
-          SpliceTransactionManager txnManager = (SpliceTransactionManager)af.getTransaction(ContextService.getFactory().getCurrentContextManager());
-          ((SpliceTransaction)txnManager.getRawTransaction()).elevate("boot".getBytes());
-      }
+    @Override
+    public void boot(boolean create, Properties startParams) throws StandardException {
+        SpliceLogUtils.trace(LOG, "boot with create=%s,startParams=%s",create,startParams);
+        ManifestReader.SpliceMachineVersion spliceMachineVersion = (new ManifestReader()).createVersion();
+        if (spliceMachineVersion.getRelease().compareToIgnoreCase("UNKNOWN") != 0) {
+            spliceSoftwareVersion = new Splice_DD_Version(this, spliceMachineVersion.getMajorVersionNumber(),
+                    spliceMachineVersion.getMinorVersionNumber(), spliceMachineVersion.getPatchVersionNumber());
+        }
+        if(create){
+            SpliceAccessManager af = (SpliceAccessManager)  Monitor.findServiceModule(this, AccessFactory.MODULE);
+            SpliceTransactionManager txnManager = (SpliceTransactionManager)af.getTransaction(ContextService.getFactory().getCurrentContextManager());
+            ((SpliceTransaction)txnManager.getRawTransaction()).elevate("boot".getBytes());
+            if (spliceSoftwareVersion != null) {
+                txnManager.setProperty(SPLICE_DATA_DICTIONARY_VERSION, spliceSoftwareVersion, true);
+            }
+        }
 
-      super.boot(create, startParams);
-	}
+        super.boot(create, startParams);
+    }
 
 	@Override
 	public boolean canSupport(Properties startParams) {
@@ -428,6 +487,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
 	public void createOrUpdateAllSystemProcedures(TransactionController tc)
 			throws StandardException {
 		// TODO Auto-generated method stub
+        tc.elevate("dictionary");
 		super.createOrUpdateAllSystemProcedures(tc);
 	}
 
