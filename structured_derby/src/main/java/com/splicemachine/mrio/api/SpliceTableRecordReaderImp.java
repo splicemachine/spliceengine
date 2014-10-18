@@ -191,8 +191,8 @@ public class SpliceTableRecordReaderImp{
 		
 		for (int i = 0 ; i < pkColIds.size(); i++)
 		{
-			keyColumnOrder[i] = pkColIds.get(i)-1;
-			keyDecodingMap[i] = pkColIds.get(i);
+			keyColumnOrder[i] = i;
+			keyDecodingMap[i] = pkColIds.get(i)-1;
 		}
 
 		FormatableBitSet accessedKeyCols = new FormatableBitSet(colTypes.size());
@@ -203,8 +203,7 @@ public class SpliceTableRecordReaderImp{
 		}
 		int[] keyColumnTypes = null;
 		int[] keyEncodingMap = null;
-		if(keyColumnOrder!=null){
-			
+		if(keyColumnOrder!=null){			
 			if(keyEncodingMap==null){
 				keyEncodingMap = new int[keyColumnOrder.length];
 				for(int i=0;i<keyColumnOrder.length;i++){
@@ -220,7 +219,6 @@ public class SpliceTableRecordReaderImp{
 			}
 			rowEncodingMap = IntArrays.count(colTypes.size());
 			for(int pkCol:keyEncodingMap){
-				
 				rowEncodingMap[pkCol] = -1;
 			}
 			
