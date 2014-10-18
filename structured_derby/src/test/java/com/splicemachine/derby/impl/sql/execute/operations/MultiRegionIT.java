@@ -12,6 +12,7 @@ import com.splicemachine.test_dao.StatementHistoryDAO;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.junit.Ignore;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -69,6 +70,7 @@ public class MultiRegionIT {
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA_NAME);
 
+    @Ignore
     @Test
     public void testStddevAndAutoTrace() throws Exception {
         Connection conn = methodWatcher.createConnection();
