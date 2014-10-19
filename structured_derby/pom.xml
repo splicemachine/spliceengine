@@ -17,13 +17,13 @@
 		<dependency> <groupId>com.esotericsoftware.kryo</groupId> <artifactId>kryo</artifactId> </dependency>
 		<dependency> <groupId>com.github.stephenc.high-scale-lib</groupId> <artifactId>high-scale-lib</artifactId> </dependency>
 		<dependency> <groupId>com.google.code.findbugs</groupId> <artifactId>jsr305</artifactId> </dependency>
-		<dependency> <groupId>com.google.code.gson</groupId> <artifactId>gson</artifactId> <type>jar</type> </dependency>
+		<dependency> <groupId>com.google.code.gson</groupId> <artifactId>gson</artifactId> </dependency>
 		<dependency> <groupId>com.google.guava</groupId> <artifactId>guava</artifactId> </dependency>
 		<dependency> <groupId>com.google.protobuf</groupId> <artifactId>protobuf-java</artifactId> </dependency>
 		<dependency> <groupId>com.splicemachine</groupId> <artifactId>asynchbase</artifactId> </dependency>
 		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice-web</artifactId> <type>tar.gz</type> </dependency>
-		<dependency> <groupId>com.splicemachine</groupId> <artifactId>structured_constants</artifactId> <classifier>${envClassifier}</classifier> <type>jar</type> </dependency>
-		<dependency> <groupId>com.splicemachine</groupId> <artifactId>structured_si</artifactId> <classifier>${envClassifier}${obfuscate.si}</classifier> <type>jar</type> </dependency>
+		<dependency> <groupId>com.splicemachine</groupId> <artifactId>structured_constants</artifactId> <classifier>${envClassifier}</classifier> </dependency>
+		<dependency> <groupId>com.splicemachine</groupId> <artifactId>structured_si</artifactId> <classifier>${envClassifier}${obfuscate.si}</classifier> </dependency>
 		<dependency> <groupId>com.splicemachine</groupId> <artifactId>utilities</artifactId> </dependency>
 		<dependency> <groupId>com.stumbleupon</groupId> <artifactId>async</artifactId> </dependency>
 		<dependency> <groupId>com.yammer.metrics</groupId> <artifactId>metrics-core</artifactId> </dependency>
