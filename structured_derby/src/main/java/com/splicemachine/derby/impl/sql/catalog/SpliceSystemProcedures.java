@@ -598,100 +598,109 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
 
     private static final List SYSFUN_PROCEDURES = Arrays.asList(new Procedure[]{
 
-    	//
-        // String functions
-        //
-        Procedure.newBuilder().name("INSTR")
-                .numOutputParams(0)
-                .numResultSets(0)
-                .sqlControl(RoutineAliasInfo.NO_SQL)
-                .returnType(DataTypeDescriptor.getCatalogType(Types.INTEGER))
-                .isDeterministic(true).ownerClass(SpliceStringFunctions.class.getCanonicalName())
-                .varchar("SOURCE", Limits.DB2_VARCHAR_MAXWIDTH)
-                .varchar("SUBSTR", Limits.DB2_VARCHAR_MAXWIDTH)
-                .build(),
-        Procedure.newBuilder().name("INITCAP")
-                .numOutputParams(0)
-                .numResultSets(0)
-                .sqlControl(RoutineAliasInfo.NO_SQL)
-                .returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR, Limits.DB2_VARCHAR_MAXWIDTH))
-                .isDeterministic(true).ownerClass(SpliceStringFunctions.class.getCanonicalName())
-                .varchar("SOURCE", Limits.DB2_VARCHAR_MAXWIDTH)
-                .build(),
-        Procedure.newBuilder().name("CONCAT")
-                .numOutputParams(0)
-                .numResultSets(0)
-                .sqlControl(RoutineAliasInfo.NO_SQL)
-                .returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR, Limits.DB2_VARCHAR_MAXWIDTH))
-                .isDeterministic(true).ownerClass(SpliceStringFunctions.class.getCanonicalName())
-                .varchar("ARG1", Limits.DB2_VARCHAR_MAXWIDTH)
-                .varchar("ARG2", Limits.DB2_VARCHAR_MAXWIDTH)
-                .build(),
-        //
-        // Date functions
-        //
-        Procedure.newBuilder().name("ADD_MONTHS")
-                .numOutputParams(0)
-                .numResultSets(0)
-                .sqlControl(RoutineAliasInfo.NO_SQL)
-                .returnType(DataTypeDescriptor.getCatalogType(Types.DATE))
-                .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
-                .arg("SOURCE", DataTypeDescriptor.getCatalogType(Types.DATE))
-                .integer("NUMOFMONTHS")
-                .build(),
-        Procedure.newBuilder().name("LAST_DAY")
-                .numOutputParams(0)
-                .numResultSets(0)
-                .sqlControl(RoutineAliasInfo.NO_SQL)
-                .returnType(DataTypeDescriptor.getCatalogType(Types.DATE))
-                .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
-                .arg("SOURCE", DataTypeDescriptor.getCatalogType(Types.DATE))
-                .build(),
-        Procedure.newBuilder().name("TO_DATE")
-                .numOutputParams(0)
-                .numResultSets(0)
-                .sqlControl(RoutineAliasInfo.NO_SQL)
-                .returnType(DataTypeDescriptor.getCatalogType(Types.DATE))
-                .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
-                .varchar("SOURCE", Limits.DB2_VARCHAR_MAXWIDTH)
-                .varchar("FORMAT", Limits.DB2_VARCHAR_MAXWIDTH)
-                .build(),
-        Procedure.newBuilder().name("NEXT_DAY")
-                .numOutputParams(0)
-                .numResultSets(0)
-                .sqlControl(RoutineAliasInfo.NO_SQL)
-                .returnType(DataTypeDescriptor.getCatalogType(Types.DATE))
-                .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
-                .arg("SOURCE", DataTypeDescriptor.getCatalogType(Types.DATE))
-                .varchar("WEEKDAY", Limits.DB2_VARCHAR_MAXWIDTH)
-                .build(),
-        Procedure.newBuilder().name("MONTH_BETWEEN")
-                .numOutputParams(0)
-                .numResultSets(0)
-                .sqlControl(RoutineAliasInfo.NO_SQL)
-                .returnType(DataTypeDescriptor.getCatalogType(Types.DOUBLE))
-                .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
-                .arg("SOURCE1", DataTypeDescriptor.getCatalogType(Types.DATE))
-                .arg("SOURCE2", DataTypeDescriptor.getCatalogType(Types.DATE))
-                .build(),
-        Procedure.newBuilder().name("TO_CHAR")
-                .numOutputParams(0)
-                .numResultSets(0)
-                .sqlControl(RoutineAliasInfo.NO_SQL)
-                .returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR))
-                .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
-                .arg("SOURCE", DataTypeDescriptor.getCatalogType(Types.DATE))
-                .varchar("FORMAT", Limits.DB2_VARCHAR_MAXWIDTH)
-                .build(),
-        Procedure.newBuilder().name("TRUNC_DATE")
-                .numOutputParams(0)
-                .numResultSets(0)
-                .sqlControl(RoutineAliasInfo.NO_SQL)
-                .returnType(DataTypeDescriptor.getCatalogType(Types.TIMESTAMP))
-                .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
-                .arg("SOURCE", DataTypeDescriptor.getCatalogType(Types.TIMESTAMP))
-                .varchar("FIELD", Limits.DB2_VARCHAR_MAXWIDTH)
-                .build(),
+	    //
+	    // String functions
+	    //
+	    Procedure.newBuilder().name("INSTR")
+				.numOutputParams(0)
+				.numResultSets(0)
+				.sqlControl(RoutineAliasInfo.NO_SQL)
+				.returnType(DataTypeDescriptor.getCatalogType(Types.INTEGER))
+				.isDeterministic(true).ownerClass(SpliceStringFunctions.class.getCanonicalName())
+				.varchar("SOURCE", Limits.DB2_VARCHAR_MAXWIDTH)
+				.varchar("SUBSTR", Limits.DB2_VARCHAR_MAXWIDTH)
+				.build(),
+	    Procedure.newBuilder().name("INITCAP")
+	            .numOutputParams(0)
+	            .numResultSets(0)
+	            .sqlControl(RoutineAliasInfo.NO_SQL)
+	            .returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR, Limits.DB2_VARCHAR_MAXWIDTH))
+	            .isDeterministic(true).ownerClass(SpliceStringFunctions.class.getCanonicalName())
+	            .varchar("SOURCE", Limits.DB2_VARCHAR_MAXWIDTH)
+	            .build(),
+	    Procedure.newBuilder().name("CONCAT")
+	            .numOutputParams(0)
+	            .numResultSets(0)
+	            .sqlControl(RoutineAliasInfo.NO_SQL)
+	            .returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR, Limits.DB2_VARCHAR_MAXWIDTH))
+	            .isDeterministic(true).ownerClass(SpliceStringFunctions.class.getCanonicalName())
+	            .varchar("ARG1", Limits.DB2_VARCHAR_MAXWIDTH)
+	            .varchar("ARG2", Limits.DB2_VARCHAR_MAXWIDTH)
+	            .build(),
+	    //
+	    // Date functions
+	    //
+	    Procedure.newBuilder().name("ADD_MONTHS")
+	            .numOutputParams(0)
+	            .numResultSets(0)
+	            .sqlControl(RoutineAliasInfo.NO_SQL)
+	            .returnType(DataTypeDescriptor.getCatalogType(Types.DATE))
+	            .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
+	            .arg("SOURCE", DataTypeDescriptor.getCatalogType(Types.DATE))
+	            .integer("NUMOFMONTHS")
+	            .build(),
+	    Procedure.newBuilder().name("LAST_DAY")
+	            .numOutputParams(0)
+	            .numResultSets(0)
+	            .sqlControl(RoutineAliasInfo.NO_SQL)
+	            .returnType(DataTypeDescriptor.getCatalogType(Types.DATE))
+	            .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
+	            .arg("SOURCE", DataTypeDescriptor.getCatalogType(Types.DATE))
+	            .build(),
+	    Procedure.newBuilder().name("TO_DATE")
+	            .numOutputParams(0)
+	            .numResultSets(0)
+	            .sqlControl(RoutineAliasInfo.NO_SQL)
+	            .returnType(DataTypeDescriptor.getCatalogType(Types.DATE))
+	            .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
+	            .varchar("SOURCE", Limits.DB2_VARCHAR_MAXWIDTH)
+	            .varchar("FORMAT", Limits.DB2_VARCHAR_MAXWIDTH)
+	            .build(),
+	    Procedure.newBuilder().name("NEXT_DAY")
+	            .numOutputParams(0)
+	            .numResultSets(0)
+	            .sqlControl(RoutineAliasInfo.NO_SQL)
+	            .returnType(DataTypeDescriptor.getCatalogType(Types.DATE))
+	            .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
+	            .arg("SOURCE", DataTypeDescriptor.getCatalogType(Types.DATE))
+	            .varchar("WEEKDAY", Limits.DB2_VARCHAR_MAXWIDTH)
+	            .build(),
+	    Procedure.newBuilder().name("MONTH_BETWEEN")
+	            .numOutputParams(0)
+	            .numResultSets(0)
+	            .sqlControl(RoutineAliasInfo.NO_SQL)
+	            .returnType(DataTypeDescriptor.getCatalogType(Types.DOUBLE))
+	            .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
+	            .arg("SOURCE1", DataTypeDescriptor.getCatalogType(Types.DATE))
+	            .arg("SOURCE2", DataTypeDescriptor.getCatalogType(Types.DATE))
+	            .build(),
+	    Procedure.newBuilder().name("TO_CHAR")
+	            .numOutputParams(0)
+	            .numResultSets(0)
+	            .sqlControl(RoutineAliasInfo.NO_SQL)
+	            .returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR))
+	            .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
+	            .arg("SOURCE", DataTypeDescriptor.getCatalogType(Types.DATE))
+	            .varchar("FORMAT", Limits.DB2_VARCHAR_MAXWIDTH)
+	            .build(),
+	    Procedure.newBuilder().name("TIMESTAMP_TO_CHAR")
+	            .numOutputParams(0)
+	            .numResultSets(0)
+	            .sqlControl(RoutineAliasInfo.NO_SQL)
+	            .returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR))
+	            .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
+	            .arg("STAMP", DataTypeDescriptor.getCatalogType(Types.TIMESTAMP))
+	            .varchar("OUTPUT", Limits.DB2_VARCHAR_MAXWIDTH)
+	            .build(),
+	    Procedure.newBuilder().name("TRUNC_DATE")
+	            .numOutputParams(0)
+	            .numResultSets(0)
+	            .sqlControl(RoutineAliasInfo.NO_SQL)
+	            .returnType(DataTypeDescriptor.getCatalogType(Types.TIMESTAMP))
+	            .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
+	            .arg("SOURCE", DataTypeDescriptor.getCatalogType(Types.TIMESTAMP))
+	            .varchar("FIELD", Limits.DB2_VARCHAR_MAXWIDTH)
+	            .build(),
         //
         // General functions
         //
