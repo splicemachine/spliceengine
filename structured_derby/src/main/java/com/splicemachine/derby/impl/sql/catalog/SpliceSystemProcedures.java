@@ -1,11 +1,13 @@
 package com.splicemachine.derby.impl.sql.catalog;
 
 import java.sql.Types;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
 import com.splicemachine.derby.utils.*;
+
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.catalog.types.RoutineAliasInfo;
 import org.apache.derby.iapi.error.StandardException;
@@ -21,14 +23,21 @@ import com.splicemachine.derby.impl.storage.TableSplit;
 import com.splicemachine.derby.impl.storage.TempSplit;
 
 /**
+ * System procedure generator implementation class that extends
+ * base Derby implemention in order to add support for procedures
+ * specific to Splice Machine and do not belong in Derby Layer,
+ * such as those that assume the presence of HBase, and functions
+ * explicitly added to the SYSFUN schema.
+ * 
  * @author Scott Fines
- *         Created on: 2/28/13
  */
 public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
 
     private static final String IMPORT_DATA_NAME = "SYSCS_IMPORT_DATA";
     private static final String XPLAIN_SCHEMA_NAME = "SYSCS_SET_XPLAIN_SCHEMA";
-    private static volatile boolean initialized = false;  // Flag to ensure the list of procedures is only initialized once.
+ 
+    /** Flag to ensure the list of procedures is only initialized once. */   
+    private static volatile boolean initialized = false;
 
     public SpliceSystemProcedures(DataDictionary dictionary) {
         super(dictionary);
@@ -36,7 +45,8 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
 
     @Override
     protected Map/*<UUID,List<Procedure>*/ getProcedures(DataDictionary dictionary, TransactionController tc) throws StandardException {
-        Map sysProcedures =  super.getProcedures(dictionary, tc);
+        @SuppressWarnings("rawtypes")
+		Map sysProcedures = super.getProcedures(dictionary, tc);
 
         // Only initialize the list of system procedures once.
         if (initialized) {
@@ -52,7 +62,6 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 return sysProcedures;
             }
 
-            // SYS_UTIL schema
             UUID sysUUID = dictionary.getSystemUtilSchemaDescriptor().getUUID();
 
         	/*
@@ -61,6 +70,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
         	 */
             for(Object key : sysProcedures.keySet()){
                 @SuppressWarnings("unchecked") List<Procedure> procedures = (List<Procedure>)sysProcedures.get(key);
+                // Iterate through existing procedures to perform modifications
                 for(int i=0;i<procedures.size();i++){
                     Procedure sysProc = procedures.get(i);
                     if(IMPORT_DATA_NAME.equalsIgnoreCase(sysProc.getName())){
@@ -108,10 +118,16 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                                 .build();
                         procedures.set(i,newXplain);*/
                     }
-                }
-
+                } // End iteration through existing procedures
+                
+                
+                //
+                // SYS_UTIL schema
+                //
+                // Create splice utility procedures
+                //
+                
                 if (key.equals(sysUUID)) {
-                    // Create splice utility procedures
         			/*
         			 * Add a system procedure to enable splitting tables once data is loaded.
         			 *
@@ -557,134 +573,135 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                         .build());
                 }
 
-            }
-
-            // Add SYSFUN schema functions, for functions that are Splice standard
-            // but not ANSI standard. Much more convenient than adding them
-            // to the SQL grammar, and meets same requirement in most cases.
-            UUID sysFunUUID = dictionary.getSysFunSchemaDescriptor().getUUID();
-            @SuppressWarnings("unchecked")
-            List<Procedure> sysFunProcs = (List<Procedure>)sysProcedures.get(sysFunUUID);
-            if (sysFunProcs == null || sysFunProcs.size() == 0) {
-                sysFunProcs = Arrays.asList(
-                        Procedure.newBuilder().name("INSTR")
-                                .numOutputParams(0)
-                                .numResultSets(0)
-                                .sqlControl(RoutineAliasInfo.NO_SQL)
-                                .returnType(DataTypeDescriptor.getCatalogType(Types.INTEGER))
-                                .isDeterministic(true).ownerClass(SpliceStringFunctions.class.getCanonicalName())
-                                .varchar("SOURCE", Limits.DB2_VARCHAR_MAXWIDTH)
-                                .varchar("SUBSTR", Limits.DB2_VARCHAR_MAXWIDTH)
-                                .build(),
-                        Procedure.newBuilder().name("INITCAP")
-                                .numOutputParams(0)
-                                .numResultSets(0)
-                                .sqlControl(RoutineAliasInfo.NO_SQL)
-                                .returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR, Limits.DB2_VARCHAR_MAXWIDTH))
-                                .isDeterministic(true).ownerClass(SpliceStringFunctions.class.getCanonicalName())
-                                .varchar("SOURCE", Limits.DB2_VARCHAR_MAXWIDTH)
-                                .build(),
-                        Procedure.newBuilder().name("CONCAT")
-                                .numOutputParams(0)
-                                .numResultSets(0)
-                                .sqlControl(RoutineAliasInfo.NO_SQL)
-                                .returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR, Limits.DB2_VARCHAR_MAXWIDTH))
-                                .isDeterministic(true).ownerClass(SpliceStringFunctions.class.getCanonicalName())
-                                .varchar("ARG1", Limits.DB2_VARCHAR_MAXWIDTH)
-                                .varchar("ARG2", Limits.DB2_VARCHAR_MAXWIDTH)
-                                .build(),
-                        //
-                        // Date functions
-                        //
-                        Procedure.newBuilder().name("ADD_MONTHS")
-                                .numOutputParams(0)
-                                .numResultSets(0)
-                                .sqlControl(RoutineAliasInfo.NO_SQL)
-                                .returnType(DataTypeDescriptor.getCatalogType(Types.DATE))
-                                .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
-                                .arg("SOURCE", DataTypeDescriptor.getCatalogType(Types.DATE))
-                                .integer("NUMOFMONTHS")
-                                .build(),
-                        Procedure.newBuilder().name("LAST_DAY")
-                                .numOutputParams(0)
-                                .numResultSets(0)
-                                .sqlControl(RoutineAliasInfo.NO_SQL)
-                                .returnType(DataTypeDescriptor.getCatalogType(Types.DATE))
-                                .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
-                                .arg("SOURCE", DataTypeDescriptor.getCatalogType(Types.DATE))
-                                .build(),
-
-                        Procedure.newBuilder().name("TO_DATE")
-                                .numOutputParams(0)
-                                .numResultSets(0)
-                                .sqlControl(RoutineAliasInfo.NO_SQL)
-                                .returnType(DataTypeDescriptor.getCatalogType(Types.DATE))
-                                .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
-                                .varchar("SOURCE", Limits.DB2_VARCHAR_MAXWIDTH)
-                                .varchar("FORMAT", Limits.DB2_VARCHAR_MAXWIDTH)
-                                .build(),
-
-                        Procedure.newBuilder().name("NEXT_DAY")
-                                .numOutputParams(0)
-                                .numResultSets(0)
-                                .sqlControl(RoutineAliasInfo.NO_SQL)
-                                .returnType(DataTypeDescriptor.getCatalogType(Types.DATE))
-                                .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
-                                .arg("SOURCE", DataTypeDescriptor.getCatalogType(Types.DATE))
-                                .varchar("WEEKDAY", Limits.DB2_VARCHAR_MAXWIDTH)
-                                .build(),
-                        Procedure.newBuilder().name("MONTH_BETWEEN")
-                                .numOutputParams(0)
-                                .numResultSets(0)
-                                .sqlControl(RoutineAliasInfo.NO_SQL)
-                                .returnType(DataTypeDescriptor.getCatalogType(Types.DOUBLE))
-                                .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
-                                .arg("SOURCE1", DataTypeDescriptor.getCatalogType(Types.DATE))
-                                .arg("SOURCE2", DataTypeDescriptor.getCatalogType(Types.DATE))
-                                .build(),
-                        Procedure.newBuilder().name("TO_CHAR")
-                                .numOutputParams(0)
-                                .numResultSets(0)
-                                .sqlControl(RoutineAliasInfo.NO_SQL)
-                                .returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR))
-                                .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
-                                .arg("SOURCE", DataTypeDescriptor.getCatalogType(Types.DATE))
-                                .varchar("FORMAT", Limits.DB2_VARCHAR_MAXWIDTH)
-                                .build(),
-                        Procedure.newBuilder().name("TIMESTAMP_TO_CHAR")
-                                .numOutputParams(0)
-                                .numResultSets(0)
-                                .sqlControl(RoutineAliasInfo.NO_SQL)
-                                .returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR))
-                                .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
-                                .arg("STAMP", DataTypeDescriptor.getCatalogType(Types.TIMESTAMP))
-                                .varchar("OUTPUT", Limits.DB2_VARCHAR_MAXWIDTH)
-                                .build(),
-                        Procedure.newBuilder().name("TRUNC_DATE")
-                                .numOutputParams(0)
-                                .numResultSets(0)
-                                .sqlControl(RoutineAliasInfo.NO_SQL)
-                                .returnType(DataTypeDescriptor.getCatalogType(Types.TIMESTAMP))
-                                .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
-                                .arg("SOURCE", DataTypeDescriptor.getCatalogType(Types.TIMESTAMP))
-                                .varchar("FIELD", Limits.DB2_VARCHAR_MAXWIDTH)
-                                .build(),
-                        //general functions
-                        Procedure.newBuilder().name("LONG_UUID")
-                        .numOutputParams(1)
-                        .numResultSets(0)
-                        .sqlControl(RoutineAliasInfo.NO_SQL)
-                        .returnType(DataTypeDescriptor.getCatalogType(Types.BIGINT))
-                        .isDeterministic(false).ownerClass(GenericSpliceFunctions.class.getCanonicalName())
-                        .build()
-                );
-                sysProcedures.put(sysFunUUID, sysFunProcs);
-            }
-
+            } // End iteration through map keys (schema UUIDs)
+            
             // Initialization was successful.  Mark the class as initialized.
             initialized = true;
         } // end of synchronized block
 
         return sysProcedures;
     }
+
+    @SuppressWarnings("unchecked")
+	protected void augmentProcedureMap(DataDictionary dict, Map procedures) throws StandardException {
+        //
+        // SYSFUN schema
+        //
+        // Add SYSFUN schema functions, for functions that are Splice standard
+        // but not necessarily ANSI standard. More convenient than adding them
+        // to the SQL grammar. Do this in Splice, not Derby, because in Derby,
+    	// SYSFUN is not intended to actually contain anything.
+        //
+        UUID sysFunUUID = dict.getSysFunSchemaDescriptor().getUUID();
+        procedures.put(sysFunUUID, SYSFUN_PROCEDURES);
+    }
+
+    private static final List SYSFUN_PROCEDURES = Arrays.asList(new Procedure[]{
+
+    	//
+        // String functions
+        //
+        Procedure.newBuilder().name("INSTR")
+                .numOutputParams(0)
+                .numResultSets(0)
+                .sqlControl(RoutineAliasInfo.NO_SQL)
+                .returnType(DataTypeDescriptor.getCatalogType(Types.INTEGER))
+                .isDeterministic(true).ownerClass(SpliceStringFunctions.class.getCanonicalName())
+                .varchar("SOURCE", Limits.DB2_VARCHAR_MAXWIDTH)
+                .varchar("SUBSTR", Limits.DB2_VARCHAR_MAXWIDTH)
+                .build(),
+        Procedure.newBuilder().name("INITCAP")
+                .numOutputParams(0)
+                .numResultSets(0)
+                .sqlControl(RoutineAliasInfo.NO_SQL)
+                .returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR, Limits.DB2_VARCHAR_MAXWIDTH))
+                .isDeterministic(true).ownerClass(SpliceStringFunctions.class.getCanonicalName())
+                .varchar("SOURCE", Limits.DB2_VARCHAR_MAXWIDTH)
+                .build(),
+        Procedure.newBuilder().name("CONCAT")
+                .numOutputParams(0)
+                .numResultSets(0)
+                .sqlControl(RoutineAliasInfo.NO_SQL)
+                .returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR, Limits.DB2_VARCHAR_MAXWIDTH))
+                .isDeterministic(true).ownerClass(SpliceStringFunctions.class.getCanonicalName())
+                .varchar("ARG1", Limits.DB2_VARCHAR_MAXWIDTH)
+                .varchar("ARG2", Limits.DB2_VARCHAR_MAXWIDTH)
+                .build(),
+        //
+        // Date functions
+        //
+        Procedure.newBuilder().name("ADD_MONTHS")
+                .numOutputParams(0)
+                .numResultSets(0)
+                .sqlControl(RoutineAliasInfo.NO_SQL)
+                .returnType(DataTypeDescriptor.getCatalogType(Types.DATE))
+                .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
+                .arg("SOURCE", DataTypeDescriptor.getCatalogType(Types.DATE))
+                .integer("NUMOFMONTHS")
+                .build(),
+        Procedure.newBuilder().name("LAST_DAY")
+                .numOutputParams(0)
+                .numResultSets(0)
+                .sqlControl(RoutineAliasInfo.NO_SQL)
+                .returnType(DataTypeDescriptor.getCatalogType(Types.DATE))
+                .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
+                .arg("SOURCE", DataTypeDescriptor.getCatalogType(Types.DATE))
+                .build(),
+        Procedure.newBuilder().name("TO_DATE")
+                .numOutputParams(0)
+                .numResultSets(0)
+                .sqlControl(RoutineAliasInfo.NO_SQL)
+                .returnType(DataTypeDescriptor.getCatalogType(Types.DATE))
+                .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
+                .varchar("SOURCE", Limits.DB2_VARCHAR_MAXWIDTH)
+                .varchar("FORMAT", Limits.DB2_VARCHAR_MAXWIDTH)
+                .build(),
+        Procedure.newBuilder().name("NEXT_DAY")
+                .numOutputParams(0)
+                .numResultSets(0)
+                .sqlControl(RoutineAliasInfo.NO_SQL)
+                .returnType(DataTypeDescriptor.getCatalogType(Types.DATE))
+                .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
+                .arg("SOURCE", DataTypeDescriptor.getCatalogType(Types.DATE))
+                .varchar("WEEKDAY", Limits.DB2_VARCHAR_MAXWIDTH)
+                .build(),
+        Procedure.newBuilder().name("MONTH_BETWEEN")
+                .numOutputParams(0)
+                .numResultSets(0)
+                .sqlControl(RoutineAliasInfo.NO_SQL)
+                .returnType(DataTypeDescriptor.getCatalogType(Types.DOUBLE))
+                .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
+                .arg("SOURCE1", DataTypeDescriptor.getCatalogType(Types.DATE))
+                .arg("SOURCE2", DataTypeDescriptor.getCatalogType(Types.DATE))
+                .build(),
+        Procedure.newBuilder().name("TO_CHAR")
+                .numOutputParams(0)
+                .numResultSets(0)
+                .sqlControl(RoutineAliasInfo.NO_SQL)
+                .returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR))
+                .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
+                .arg("SOURCE", DataTypeDescriptor.getCatalogType(Types.DATE))
+                .varchar("FORMAT", Limits.DB2_VARCHAR_MAXWIDTH)
+                .build(),
+        Procedure.newBuilder().name("TRUNC_DATE")
+                .numOutputParams(0)
+                .numResultSets(0)
+                .sqlControl(RoutineAliasInfo.NO_SQL)
+                .returnType(DataTypeDescriptor.getCatalogType(Types.TIMESTAMP))
+                .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
+                .arg("SOURCE", DataTypeDescriptor.getCatalogType(Types.TIMESTAMP))
+                .varchar("FIELD", Limits.DB2_VARCHAR_MAXWIDTH)
+                .build(),
+        //
+        // General functions
+        //
+        Procedure.newBuilder().name("LONG_UUID")
+                .numOutputParams(1)
+                .numResultSets(0)
+                .sqlControl(RoutineAliasInfo.NO_SQL)
+                .returnType(DataTypeDescriptor.getCatalogType(Types.BIGINT))
+                .isDeterministic(false).ownerClass(GenericSpliceFunctions.class.getCanonicalName())
+                .build()
+    });
+
 }
