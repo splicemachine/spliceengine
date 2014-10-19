@@ -13962,6 +13962,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
         procedureGenerator.createOrUpdateAllProcedures(SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME, tc, newlyCreatedRoutines);
         procedureGenerator.createOrUpdateAllProcedures(SchemaDescriptor.STD_SYSTEM_UTIL_SCHEMA_NAME, tc, newlyCreatedRoutines);
         procedureGenerator.createOrUpdateAllProcedures(SchemaDescriptor.STD_SQLJ_SCHEMA_NAME, tc, newlyCreatedRoutines);
+        procedureGenerator.createOrUpdateAllProcedures(SchemaDescriptor.IBM_SYSTEM_FUN_SCHEMA_NAME, tc, newlyCreatedRoutines);
         grantPublicAccessToSystemRoutines(newlyCreatedRoutines, tc, authorizationDatabaseOwner);
 	}
 

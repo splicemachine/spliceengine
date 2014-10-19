@@ -216,25 +216,36 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
     protected Map/*<UUID,List<Procedure>>*/ getProcedures(DataDictionary dictionary,TransactionController tc) throws StandardException {
         Map/*<UUID,Procedure>*/ procedures = new HashMap/*<UUID,Procedure>*/();
 
-        //add SYSIBM
+        // SYSIBM schema
         UUID sysIbmUUID = dictionary.getSysIBMSchemaDescriptor().getUUID();
         procedures.put(sysIbmUUID,sysIbmProcedures);
 
-        //add SQLJ
+        // SQL schema
         UUID sqlJUUID = dictionary.getSchemaDescriptor(
                 SchemaDescriptor.STD_SQLJ_SCHEMA_NAME,tc,true).getUUID();
         procedures.put(sqlJUUID,sqlJProcedures);
 
-        //ADD SYSCS
+        // SYSCS schema
         UUID sysUUID = dictionary.getSystemUtilSchemaDescriptor().getUUID();
         procedures.put(sysUUID,sysCsProcedures);
 
-//        System.out.println(String.format("getProcedures: %s SYSIBM procs, %s SQLJ procs, %s SYSCS procs", sysIbmProcedures.size(), sqlJProcedures.size(), sysCsProcedures.size()));
-
-        //TODO -sf- add 10_1-10_9 procedures
+        // Splice fork: hook added for need to add SYSFUN to the set of schemas
+        // expected to have stored procedures. It would be better if this Derby
+        // method didn't create a HashMap like this every time, but we can
+        // refactor to address this later.
+        augmentProcedureMap(dictionary, procedures);
+        
         return procedures;
     }
 
+    /**
+     * Hook to be invoked only from {@link #getProcedures(DataDictionary, TransactionController)}
+     * Do not call directly.
+     */
+    protected void augmentProcedureMap(DataDictionary dictionary, Map procedures) throws StandardException {
+        // No op at Derby layer. See Splice override.
+    }
+    
     private static final List/*<Procedure>*/ sysCsProcedures = new ArrayList/*<Procedure>*/(Arrays.asList(new Procedure[]{
             Procedure.newBuilder().name("SYSCS_SET_DATABASE_PROPERTY").numOutputParams(0).numResultSets(0)
                     .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
