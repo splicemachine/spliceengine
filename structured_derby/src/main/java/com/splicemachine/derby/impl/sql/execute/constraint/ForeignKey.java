@@ -96,8 +96,8 @@ public class ForeignKey implements Constraint{
     }
 
     @Override
-    public boolean validate(KVPair mutation, TxnView txn,RegionCoprocessorEnvironment rce,Collection<KVPair> priors) throws IOException {
-        return false;  //To change body of implemented methods use File | Settings | File Templates.
+    public ValidationType validate(KVPair mutation, TxnView txn,RegionCoprocessorEnvironment rce,Collection<KVPair> priors) throws IOException {
+        throw new UnsupportedOperationException("Foreign Keys are not yet implemented");
     }
 
     @Override

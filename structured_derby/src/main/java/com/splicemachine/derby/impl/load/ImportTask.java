@@ -11,6 +11,7 @@ import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.WriteStats;
 import com.splicemachine.metrics.IOStats;
 import com.splicemachine.metrics.Metrics;
@@ -166,7 +167,8 @@ public class ImportTask extends ZkTask{
 				long maxBadRecords = importContext.getMaxBadRecords();
 				if(maxBadRecords<0) return FailAlwaysReporter.INSTANCE;
 
-				PairDecoder decoder = ImportUtils.newEntryEncoder(rowTemplate,importContext,getUuidGenerator()).getDecoder(rowTemplate);
+        KVPair.Type importType = importContext.isUpsert()? KVPair.Type.UPSERT: KVPair.Type.INSERT;
+        PairDecoder decoder = ImportUtils.newEntryEncoder(rowTemplate,importContext,getUuidGenerator(),importType).getDecoder(rowTemplate);
 
 				long queueSize = maxBadRecords;
 				if(maxBadRecords==0|| maxBadRecords > SpliceConstants.importLogQueueSize)
@@ -252,10 +254,13 @@ public class ImportTask extends ZkTask{
 				if(LOG.isInfoEnabled())
 						SpliceLogUtils.info(LOG,"Importing %s using transaction %s, which is a child of transaction %s",
 										reader.toString(),txn,txn.getParentTxnView());
-				if(shouldParallelize) {
-						return new ParallelImporter(importContext,row, txn,errorReporter);
+        KVPair.Type importType = importContext.isUpsert()? KVPair.Type.UPSERT: KVPair.Type.INSERT;
+        if(shouldParallelize) {
+						return new ParallelImporter(importContext,row, txn,errorReporter,importType);
 				} else
-						return new ParallelImporter(importContext,row,SpliceConstants.maxImportProcessingThreads,SpliceConstants.maxImportReadBufferSize,txn,errorReporter);
+						return new ParallelImporter(importContext,row,
+                    SpliceConstants.maxImportProcessingThreads,
+                    SpliceConstants.maxImportReadBufferSize,txn,errorReporter,importType);
 		}
 
     @Override

@@ -1,6 +1,10 @@
 package com.splicemachine.derby.impl.load;
 
 import com.splicemachine.homeless.SerializationUtils;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.impl.ActiveWriteTxn;
+import com.splicemachine.si.impl.UnsupportedLifecycleManager;
+import com.splicemachine.si.impl.WritableTxn;
 import org.junit.Assert;
 import org.junit.Test;
 

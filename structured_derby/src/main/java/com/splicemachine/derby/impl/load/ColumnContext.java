@@ -214,7 +214,7 @@ public class ColumnContext implements Externalizable {
 				private long autoincIncrement = -1l;
 				private byte[] sequenceRowLocation;
 
-				public Builder autoIncrementStart(long autoincStart){
+        public Builder autoIncrementStart(long autoincStart){
 						this.autoincStart = autoincStart;
 						return this;
 				}
@@ -275,10 +275,16 @@ public class ColumnContext implements Externalizable {
         	this.columnDefault = columnDefault;
         	return this;
         }
+
+        public boolean isNullable() {
+            return isNullable;
+        }
+
         public ColumnContext build(){
             return new ColumnContext(colNumber, columnType,pkPos,isNullable,colName,length, decimalDigits, columnDefault,autoincStart,autoincIncrement,sequenceRowLocation);
         }
 
 				public int getColumnNumber() { return colNumber; }
-		}
+
+    }
 }

@@ -3,7 +3,6 @@ package com.splicemachine.derby.impl.load;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.utils.StringUtils;
-import com.splicemachine.si.api.Txn;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.fs.Path;
 
@@ -63,6 +62,8 @@ public class ImportContext implements Externalizable{
 		private Path badLogDirectory;
 		private String tableVersion;
 
+    private boolean isUpsert;
+
     public ImportContext(){}
 
 		private ImportContext( Path filePath,
@@ -79,7 +80,8 @@ public class ImportContext implements Externalizable{
 													String xplainSchema,
 													long maxBadRecords,
 													Path badLogDirectory,
-													String tableVersion){
+													String tableVersion,
+                          boolean isUpsert){
 				this.filePath = filePath;
 				this.columnDelimiter = columnDelimiter!= null?columnDelimiter:DEFAULT_COLUMN_DELIMITTER;
 				this.stripString = stripString!=null?stripString:DEFAULT_STRIP_STRING;
@@ -95,6 +97,7 @@ public class ImportContext implements Externalizable{
 				this.maxBadRecords = maxBadRecords;
 				this.badLogDirectory = badLogDirectory;
 				this.tableVersion = tableVersion;
+        this.isUpsert = isUpsert;
 		}
 
 		public void setFilePath(Path filePath) {
@@ -161,6 +164,7 @@ public class ImportContext implements Externalizable{
 				out.writeBoolean(tableVersion!=null);
 				if(tableVersion!=null)
 						out.writeUTF(tableVersion);
+        out.writeBoolean(isUpsert);
 		}
 
 		@Override
@@ -192,6 +196,7 @@ public class ImportContext implements Externalizable{
 						badLogDirectory = new Path(in.readUTF());
 				if(in.readBoolean())
 						tableVersion = in.readUTF();
+        isUpsert = in.readBoolean();
 		}
 
 		@Override
@@ -206,6 +211,7 @@ public class ImportContext implements Externalizable{
 								", byteOffset=" + byteOffset +
 								", bytesToRead=" + bytesToRead +
 								", columns="+ Arrays.toString(columnInformation) +
+                ", isUpsert="+isUpsert+
 								'}';
 		}
 
@@ -235,7 +241,7 @@ public class ImportContext implements Externalizable{
 				return new ImportContext(filePath,tableId,columnDelimiter,stripString,
 								columnInformation,timestampFormat,
 								dateFormat,timeFormat,byteOffset,bytesToRead,
-								recordStats,xplainSchema,maxBadRecords,badLogDirectory,tableVersion);
+								recordStats,xplainSchema,maxBadRecords,badLogDirectory,tableVersion,isUpsert);
 		}
 
 		public long getMaxBadRecords() { return maxBadRecords; }
@@ -244,10 +250,14 @@ public class ImportContext implements Externalizable{
 
 		public String getTableVersion() { return tableVersion; }
 
+    public boolean isUpsert() {
+        return isUpsert;
+    }
+
     public static class Builder{
 				private Path filePath;
 				private Long tableId;
-				private String columnDelimiter;
+				private String columnDelimiter = null;
 				private String stripString;
 				Map<Integer,Integer> indexToTypeMap = new HashMap<Integer, Integer>();
 				private String timestampFormat;
@@ -264,7 +274,12 @@ public class ImportContext implements Externalizable{
 				private long maxBadRecords = 0l;
 				private Path badLogDirectory = null;
 				private String tableVersion;
-        private Txn txn;
+        private boolean isUpsert = false;
+
+        public Builder upsert(boolean upsert){
+            this.isUpsert = upsert;
+            return this;
+        }
 
         public Builder maxBadRecords(long maxBadRecords){
 						this.maxBadRecords = maxBadRecords;
@@ -298,7 +313,8 @@ public class ImportContext implements Externalizable{
 				}
 
 				public Builder colDelimiter(String columnDelimiter) {
-						if(columnDelimiter==null) return this; //rely on defaults
+            if(columnDelimiter==null) return this; //use the default value for column delimiter
+
 						String colDelim = StringUtils.parseControlCharacters(columnDelimiter);
 						if(System.getProperty("line.separator").equals(colDelim)){
 								throw new AssertionError("cannot use linebreaks as column separators");
@@ -334,11 +350,6 @@ public class ImportContext implements Externalizable{
 						return this;
 				}
 
-        public Builder transaction(Txn txn) {
-            this.txn = txn;
-            return this;
-        }
-
 				public Builder byteOffset(long byteOffset){
 						this.byteOffset = byteOffset;
 						return this;
@@ -367,8 +378,9 @@ public class ImportContext implements Externalizable{
 				public ImportContext build() throws StandardException {
 						Preconditions.checkNotNull(filePath,"No File specified!");
 						Preconditions.checkNotNull(tableId,"No destination table specified!");
-//						Preconditions.checkNotNull(columnDelimiter,"No column Delimiter specified");
 
+            if(columnDelimiter==null)
+                columnDelimiter = ",";
 
 						ColumnContext[] context = new ColumnContext[columnInformation.size()];
 						Collections.sort(columnInformation,new Comparator<ColumnContext>() {
@@ -388,7 +400,7 @@ public class ImportContext implements Externalizable{
 										columnDelimiter,stripString,
 										context,
 										timestampFormat,dateFormat,timeFormat, byteOffset, bytesToRead,
-										recordStats,xplainSchema,maxBadRecords,badLogDirectory,tableVersion);
+										recordStats,xplainSchema,maxBadRecords,badLogDirectory,tableVersion,isUpsert);
 				}
 
 				public long getDestinationConglomerate() {

@@ -1908,7 +1908,9 @@ public enum ErrorState {
             return StandardException.newException(getSqlState(), cce.getTxnId());
         }
     },
-    DDL_TIMEOUT("SE017")
+    DDL_TIMEOUT("SE017"),
+    UPSERT_NO_PRIMARY_KEYS("SE018"),
+    IMPORT_MISSING_NOT_NULL_KEY("SE019")
     ;
 
 		private final String sqlState;

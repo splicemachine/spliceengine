@@ -3,7 +3,6 @@ package com.splicemachine.derby.impl.load;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.derby.utils.ErrorState;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.*;
@@ -13,7 +12,6 @@ import com.splicemachine.hbase.KVPair;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.file.DefaultFileInfo;
 import com.splicemachine.utils.file.FileInfo;
-import com.splicemachine.utils.kryo.KryoPool;
 import com.splicemachine.uuid.UUIDGenerator;
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.iapi.error.StandardException;
@@ -45,11 +43,9 @@ public class ImportUtils {
 		private static final String AUTOINCREMENT_PREFIX = "AUTOINCREMENT: start ";
 
 
-		public static PairEncoder newEntryEncoder(ExecRow row,ImportContext ctx, UUIDGenerator randomGenerator){
-				return newEntryEncoder(row,ctx,randomGenerator,SpliceKryoRegistry.getInstance());
-		}
-
-		public static PairEncoder newEntryEncoder(ExecRow row,ImportContext ctx, UUIDGenerator randomGenerator,KryoPool kryoPool){
+		public static PairEncoder newEntryEncoder(ExecRow row,
+                                              ImportContext ctx,
+                                              UUIDGenerator randomGenerator,KVPair.Type importType){
 				int[] pkCols = ctx.getPrimaryKeys();
 
 				DescriptorSerializer[] serializers = VersionedSerializers.forVersion(ctx.getTableVersion(), true).getSerializers(row);
@@ -67,7 +63,7 @@ public class ImportUtils {
 				}
 				DataHash rowHash = new EntryDataHash(cols,null,serializers);
 
-				return new PairEncoder(encoder,rowHash, KVPair.Type.INSERT);
+				return new PairEncoder(encoder,rowHash, importType);
 		}
 
 		public static void buildColumnInformation(Connection connection,
@@ -75,68 +71,96 @@ public class ImportUtils {
 																							 String tableName,
 																							 String insertColumnList,
 																							 ImportContext.Builder builder,
-																							 byte[][] autoIncRowLocations) throws SQLException {
+																							 byte[][] autoIncRowLocations,boolean upsert) throws SQLException {
 				DatabaseMetaData dmd = connection.getMetaData();
 				Map<String,ColumnContext.Builder> columns = getColumns(schemaName==null?"APP":schemaName.toUpperCase(),tableName.toUpperCase(),insertColumnList,dmd);
 
 				//TODO -sf- this invokes an additional scan--is there any way that we can avoid this?
-//				DataDictionary dataDictionary = lcc.getDataDictionary();
-//				TransactionController tc = lcc.getTransactionExecute();
 				try {
-//						SchemaDescriptor sd = dataDictionary.getSchemaDescriptor(schemaName, tc,true);
-//						if(sd==null)
-//								throw PublicAPI.wrapStandardException(ErrorState.LANG_TABLE_NOT_FOUND.newException(schemaName));
-//						TableDescriptor td = dataDictionary.getTableDescriptor(tableName,sd, tc);
-//						if(td==null)
-//								throw PublicAPI.wrapStandardException(ErrorState.LANG_TABLE_NOT_FOUND.newException(tableName));
-//						long conglomerateId = td.getHeapConglomerateId();
-//						builder.destinationTable(conglomerateId);
 						computeAutoIncrementRowLocations(columns,autoIncRowLocations);
 				} catch (StandardException e) {
 						throw PublicAPI.wrapStandardException(e);
 				}
 
 				Map<String,Integer> pkCols = getPrimaryKeys(schemaName, tableName, dmd);
+        // as of 1.0.x (FUJI), Upserts are only allowed against tables which have a primary key
+        if(upsert && (pkCols==null|| pkCols.size()<=0)){
+            throw PublicAPI.wrapStandardException(ErrorState.UPSERT_NO_PRIMARY_KEYS.newException(schemaName+"."+tableName));
+        }
 				int[] pkKeyMap = new int[columns.size()];
 				Arrays.fill(pkKeyMap, -1);
 				for(String pkCol:pkCols.keySet()){
 						columns.get(pkCol).primaryKeyPos(pkCols.get(pkCol));
-				}
-				if(insertColumnList!=null) {
-	                List<String> insertCols = Lists.newArrayList(Splitter.on(",").trimResults().split(insertColumnList));
+        }
+        if(insertColumnList!=null) {
+            List<String> insertCols = Lists.newArrayList(Splitter.on(",").trimResults().split(insertColumnList));
+            validateNonNullColumnsAreIncluded(insertCols, columns);
 
-	                for (ColumnContext.Builder colBuilder : columns.values()) {
-	                    Iterator<String> colIterator = insertCols.iterator();
-	                    ColumnContext context = colBuilder.build();
-	                    int pos = 0;
-	                    while (colIterator.hasNext()) {
-	                        String insertCol = colIterator.next();
-	                        if (insertCol.equalsIgnoreCase(context.getColumnName())) {
-	                            context.setInsertPos(pos);
-	                            break;
-	                        }
-	                        pos++;
-	                    }
-	                    builder.addColumn(context);
-	                }
-	            }
-	            else{
-	                for(ColumnContext.Builder colBuilder:columns.values()){
-	                    builder.addColumn(colBuilder.build());
-	                }
-	            }
-		}
+            for (ColumnContext.Builder colBuilder : columns.values()) {
+                Iterator<String> colIterator = insertCols.iterator();
+                ColumnContext context = colBuilder.build();
+                int pos = 0;
+                boolean found = false;
+                while (colIterator.hasNext()) {
+                    String insertCol = colIterator.next();
+                    if (insertCol.equalsIgnoreCase(context.getColumnName())) {
+                        context.setInsertPos(pos);
+                        found = true;
+                        break;
+                    }
+                    pos++;
+                }
+                if(found)
+                    builder.addColumn(context);
+            }
+        } else{
+            for(ColumnContext.Builder colBuilder:columns.values()){
+                builder.addColumn(colBuilder.build());
+            }
+        }
+    }
 
-		private static void computeAutoIncrementRowLocations(Map<String, ColumnContext.Builder> columns,
-																												 byte[][] rowLocationBytes) throws StandardException {
-//				RowLocation[] rowLocations = dataDictionary.computeAutoincRowLocations(tc, td);
+    private static void validateNonNullColumnsAreIncluded(List<String> insertCols,
+                                                          Map<String,ColumnContext.Builder> columns) throws SQLException{
+        /*
+         * To ensure that non-null constraints are not violated, we must make sure that all columns which have a NOT_NULL
+         * constraint attached to them are included in the columns list.
+         *
+         * We need to require this for both the IMPORT and UPSERT_FROM_FILE commands, but for different reasons:
+         *
+         * IMPORT requires it because we are assuming that we are creating a new record, so we need to ensure
+         * that we are at the very least populating the NOT_NULL fields, and thus not violating our constraint.
+         *
+         * UPSERT_FROM_FILE could probably get away with not including the NOT_NULL fields *if it knew that all
+         * rows already existed*--that is, if UPSERT_FROM_FILE was really an UPDATE. Since we can't make that
+         * guarantee (we assume that we will perform at least some insertions), we have to ensure that
+         * we are carrying along all of our NOT_NULL fields as well
+         *
+         * However, we can safely leave auto-increment columns alone, since they will auto-magically generated.
+         */
+        for(ColumnContext.Builder column:columns.values()){
+            if(!column.isNullable() && !column.isAutoIncrement()){
+                boolean found=false;
+                for(String col:insertCols){
+                    if(col.equalsIgnoreCase(column.getColumnName())){
+                        found = true;
+                        break;
+                    }
+                }
+                if(!found)
+                    throw PublicAPI.wrapStandardException(ErrorState.IMPORT_MISSING_NOT_NULL_KEY.newException(column.getColumnName()));
+            }
+        }
+    }
 
-				for(ColumnContext.Builder cb:columns.values()){
-						if(cb.isAutoIncrement()){
-								cb.sequenceRowLocation(rowLocationBytes[cb.getColumnNumber()]);
-						}
-				}
-		}
+    private static void computeAutoIncrementRowLocations(Map<String, ColumnContext.Builder> columns,
+                                                         byte[][] rowLocationBytes) throws StandardException {
+        for(ColumnContext.Builder cb:columns.values()){
+            if(cb.isAutoIncrement()){
+                cb.sequenceRowLocation(rowLocationBytes[cb.getColumnNumber()]);
+            }
+        }
+    }
 
 		private static Map<String,ColumnContext.Builder> getColumns(String schemaName, String tableName,
 																																String insertColumnList, DatabaseMetaData dmd) throws SQLException{
@@ -144,28 +168,28 @@ public class ImportUtils {
 				Map<String,ColumnContext.Builder> columnMap = Maps.newHashMap();
 				try{
 						rs = dmd.getColumns(null,schemaName,tableName,null);
-						if(insertColumnList!=null && !insertColumnList.equalsIgnoreCase("null")){
-								List<String> insertCols = Lists.newArrayList(Splitter.on(",").trimResults().split(insertColumnList));
-								while(rs.next()){
-										ColumnContext.Builder colBuilder = buildColumn(rs);
-										String colName = colBuilder.getColumnName();
-										Iterator<String> colIterator = insertCols.iterator();
-										while(colIterator.hasNext()){
-												String insertCol = colIterator.next();
-												if(insertCol.equalsIgnoreCase(colName)){
-														columnMap.put(rs.getString(4),colBuilder);
-														colIterator.remove();
-														break;
-												}
-										}
-								}
-						}else{
+//						if(insertColumnList!=null && !insertColumnList.equalsIgnoreCase("null")){
+//								List<String> insertCols = Lists.newArrayList(Splitter.on(",").trimResults().split(insertColumnList));
+//								while(rs.next()){
+//										ColumnContext.Builder colBuilder = buildColumn(rs);
+//										String colName = colBuilder.getColumnName();
+//										Iterator<String> colIterator = insertCols.iterator();
+//										while(colIterator.hasNext()){
+//												String insertCol = colIterator.next();
+//												if(insertCol.equalsIgnoreCase(colName)){
+//														columnMap.put(rs.getString(4),colBuilder);
+//														colIterator.remove();
+//														break;
+//												}
+//										}
+//								}
+//						}else{
 								while(rs.next()){
 										ColumnContext.Builder colBuilder = buildColumn(rs);
 
 										columnMap.put(colBuilder.getColumnName(),colBuilder);
 								}
-						}
+//						}
 						return columnMap;
 				}finally{
 						if(rs!=null)rs.close();
@@ -212,7 +236,7 @@ public class ImportUtils {
 				boolean hasIncrementPrefix = colDefault!=null && colDefault.startsWith(AUTOINCREMENT_PREFIX);
 				if (!"YES".equals(isAutoIncrement) || !hasIncrementPrefix) {
 						colBuilder.columnDefault(colDefault);
-				}else if (hasIncrementPrefix){
+				}else {
 						//colDefault looks like "AUTOINCREMENT: start x increment y
 						colDefault = colDefault.substring(colDefault.indexOf('s'));
 						int endIndex = colDefault.indexOf(' ', 6);
