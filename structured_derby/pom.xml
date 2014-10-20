@@ -1,16 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
-		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	<artifactId>splice_machine</artifactId>
 	<packaging>jar</packaging>
-	<name>splice_machine</name>
-	<description>Splice Machine</description>
+	<artifactId>splice_machine</artifactId>
+	<name>${project.artifactId}-${envClassifier}</name>
+	<description>Splice Machine Database Engine</description>
+
 	<parent>
 		<artifactId>spliceengine</artifactId>
 		<groupId>com.splicemachine</groupId>
 		<version>1.0.0RC1</version>
 	</parent>
+
 	<dependencies>
 		<dependency> <groupId>com.carrotsearch</groupId> <artifactId>hppc</artifactId> </dependency>
 		<dependency> <groupId>com.carrotsearch</groupId> <artifactId>java-sizeof</artifactId> </dependency>
@@ -51,6 +53,7 @@
 		<dependency> <groupId>org.uncommons.watchmaker</groupId> <artifactId>watchmaker-framework</artifactId> </dependency>
         <dependency> <groupId>net.sf.supercsv</groupId> <artifactId>super-csv</artifactId> </dependency>
 	</dependencies>
+
 	<build>
 		<resources>
 			<resource>
@@ -86,6 +89,29 @@
 					<doUpdate>false</doUpdate>
 				</configuration>
 			</plugin>
+			<plugin>
+				<artifactId>maven-deploy-plugin</artifactId>
+				<version>2.7</version>
+				<configuration>
+					<file>${project.build.directory}/${project.artifactId}-${project.version}-${envClassifier}${obfuscate.si}_complete.jar</file>
+					<repositoryId>${project.distributionManagement.repository.id}</repositoryId>
+					<url>${project.distributionManagement.repository.url}</url>
+					<artifactId>${project.artifactId}</artifactId>
+					<classifier>${envClassifier}${obfuscate.si}_complete</classifier>
+					<generatePom>false</generatePom>
+					<groupId>${project.groupId}</groupId>
+					<version>${project.version}</version>
+				</configuration>
+				<executions>
+					<execution>
+						<id>default-deploy</id>
+						<phase>deploy</phase>
+						<goals>
+							<goal>deploy-file</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 	</build>
 	<profiles>
@@ -110,6 +136,7 @@
 								<descriptor>${project.basedir}/src/main/assembly/assembly.xml</descriptor>
 								<descriptor>${project.basedir}/src/main/assembly/simple_assembly.xml</descriptor>
 							</descriptors>
+							<attach>false</attach>
 						</configuration>
 						<executions>
 							<execution>
