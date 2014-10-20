@@ -155,6 +155,7 @@
 								<!-- ################################### -->
 								<!-- # Preserve the classes accessed externally. -->
 								<option>-keep public class com.splicemachine.si.impl.WriteConflict { public *; } </option>
+                                <option>-keep public class com.splicemachine.si.impl.AdditiveWriteConflict { public *; } </option>
 								<option>-keep public class com.splicemachine.si.impl.DDLFilter { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.PackedTxnFilter { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.PushBackIterator { public *; }</option>
