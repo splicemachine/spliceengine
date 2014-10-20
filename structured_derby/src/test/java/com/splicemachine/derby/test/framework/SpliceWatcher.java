@@ -273,26 +273,23 @@ public class SpliceWatcher extends TestWatcher {
 	        * some ugly-ass code. Good luck to you.
 	        *
 	        */
-						
-				PreparedStatement ps = prepareStatement("select c.conglomeratenumber from --SPLICE-PROPERTIES joinOrder=FIXED\n" +
-								" sys.sysschemas s --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP\n" +
-								", sys.systables t --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP\n" + 
-								", sys.sysconglomerates c --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP\n" +
-								" where t.tableid = c.tableid " +
-								"and s.schemaid = t.schemaid " +
-								"and c.isindex = false " +
-								"and t.tablename = ? " +
-								"and s.schemaname = ?");
-				ps.setString(1,tableName);
-				ps.setString(2,schemaName);
-				ResultSet rs = ps.executeQuery();
-				if(rs.next()){
-						return rs.getLong(1);
-				}else{
-						LOG.warn("Unable to find the conglom id for table  "+tableName);
-				}
-				return -1l;
-		}
+        PreparedStatement ps = prepareStatement("select c.conglomeratenumber from " +
+                "sys.systables t, sys.sysconglomerates c,sys.sysschemas s " +
+                "where t.tableid = c.tableid " +
+                "and s.schemaid = t.schemaid " +
+                "and c.isindex = false " +
+                "and t.tablename = ? " +
+                "and s.schemaname = ?");
+        ps.setString(1, tableName);
+        ps.setString(2, schemaName);
+        ResultSet rs = ps.executeQuery();
+        if (rs.next()) {
+            return rs.getLong(1);
+        } else {
+            LOG.warn("Unable to find the conglom id for table  " + tableName);
+        }
+        return -1l;
+    }
 
     public void splitTable(String tableName, String schemaName, int position) throws Exception {
         Scan scan = new Scan();
