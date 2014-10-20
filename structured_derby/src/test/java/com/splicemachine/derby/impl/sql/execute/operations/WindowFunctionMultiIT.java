@@ -179,6 +179,25 @@ public class WindowFunctionMultiIT extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore("DB-1989: An attempt was made to get a data value of type 'java.sql.Date' from a data value of type 'INTEGER'.")
+    public void testSelectDateMultiFunction() throws Exception {
+        int[] denseRank = {1, 2, 3, 4, 5, 6, 6, 7, 1, 2, 2, 3, 1, 2, 3, 4, 5};
+        int[] ruwNum = {1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 1, 2, 3, 4, 5};
+        String sqlText = "SELECT hiredate, DENSE_RANK() OVER (PARTITION BY dept ORDER BY salary) AS DenseRank, ROW_NUMBER() OVER (PARTITION BY dept ORDER BY dept) AS RowNumber FROM %s";
+
+        ResultSet rs = methodWatcher.executeQuery(
+            String.format(sqlText, this.getTableReference(EMPTAB)));
+
+        int i = 0;
+        while (rs.next()) {
+            Assert.assertEquals(denseRank[i],rs.getInt(4));
+            Assert.assertEquals(ruwNum[i],rs.getInt(6));
+            ++i;
+        }
+        rs.close();
+    }
+
+    @Test
     public void testMultiFunctionSamePartitionDifferentOrderBy_WO_hiredate() throws Exception {
         int[] denseRank = {1, 2, 2, 3, 4, 5, 6, 1, 2, 2, 3, 1, 2, 3, 4};
         int[] ruwNum    = {1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 1, 2, 3, 4};
