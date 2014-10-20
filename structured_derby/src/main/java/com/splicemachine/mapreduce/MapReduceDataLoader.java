@@ -270,7 +270,7 @@ public class MapReduceDataLoader extends Configured implements Tool {
 						byte[][] autoIncLocations = new byte[autoIncLocs.size()][];
 						autoIncLocs.toArray(autoIncLocations);
 
-						ImportUtils.buildColumnInformation(connection,schemaName,tableName,importColumnList,ctxBuilder,autoIncLocations);
+						ImportUtils.buildColumnInformation(connection,schemaName,tableName,importColumnList,ctxBuilder,autoIncLocations,false);
 				}finally{
 						if(ps!=null)
 								ps.close();

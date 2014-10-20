@@ -147,24 +147,61 @@ public class HdfsImport {
 				}
 		}
 
-		@SuppressWarnings("UnusedParameters")
-		public static void SYSCS_IMPORT_DATA(String schemaName, String tableName,
-																				 String insertColumnList,
-																				 String columnIndexes,
-																				 String fileName, String columnDelimiter,
-																				 String characterDelimiter,
-																				 String timestampFormat,
-																				 String dateFormat,
-																				 String timeFormat) throws SQLException {
-			IMPORT_DATA(schemaName,tableName,insertColumnList,fileName,columnDelimiter,characterDelimiter,timestampFormat,dateFormat,timeFormat,-1,null,new ResultSet[1]);
-		}
-
 		private static final ResultColumnDescriptor[] IMPORT_RESULT_COLUMNS = new GenericColumnDescriptor[]{
 						new GenericColumnDescriptor("numFiles",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
 						new GenericColumnDescriptor("numTasks",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
 						new GenericColumnDescriptor("numRowsImported",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
 						new GenericColumnDescriptor("numBadRecords",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT))
 		};
+
+    @SuppressWarnings("UnusedParameters")
+    public static void SYSCS_IMPORT_DATA(String schemaName, String tableName,
+                                         String insertColumnList,
+                                         String columnIndexes,
+                                         String fileName, String columnDelimiter,
+                                         String characterDelimiter,
+                                         String timestampFormat,
+                                         String dateFormat,
+                                         String timeFormat) throws SQLException {
+        IMPORT_DATA(schemaName,tableName,
+                insertColumnList,
+                fileName,
+                columnDelimiter,
+                characterDelimiter,
+                timestampFormat,
+                dateFormat,
+                timeFormat,
+                -1,
+                null,
+                new ResultSet[1]);
+    }
+
+    public static void UPSERT_DATA_FROM_FILE(String schemaName, String tableName,
+                                             String insertColumnList,
+                                             String fileName,
+                                             String columnDelimiter,
+                                             String characterDelimiter,
+                                             String timestampFormat,
+                                             String dateFormat,
+                                             String timeFormat,
+                                             long maxBadRecords,
+                                             String badRecordDirectory,
+                                             ResultSet[] results
+    ) throws SQLException {
+        doImport(schemaName,
+                tableName,
+                insertColumnList,
+                fileName,
+                columnDelimiter,
+                characterDelimiter,
+                timestampFormat,
+                dateFormat,
+                timeFormat,
+                maxBadRecords,
+                badRecordDirectory,
+                true,
+                results);
+    }
 
 		public static void IMPORT_DATA(String schemaName, String tableName,
 																				 String insertColumnList,
@@ -178,58 +215,87 @@ public class HdfsImport {
 																				 String badRecordDirectory,
 																				 ResultSet[] results
 																				 ) throws SQLException {
-				Connection conn = SpliceAdmin.getDefaultConn();
-				try {
-						LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
-						final String user = lcc.getSessionUserId();
-						Activation activation = lcc.getLastActivation();
-//						final String transactionId = activation.getTransactionController().getActiveStateTxIdString();
-            BaseSpliceTransaction txn = ((SpliceTransactionManager)activation.getTransactionController()).getRawTransaction();
-//						final String transactionId = SpliceObserverInstructions.getTransactionId(lcc);
-						try {
-								if(schemaName==null)
-										schemaName = "APP";
-								if(tableName==null)
-										throw PublicAPI.wrapStandardException(ErrorState.LANG_TABLE_NOT_FOUND.newException("NULL"));
-
-								/*
-								 * Create a child transaction to perform the import under
-								 */
-
-								EmbedConnection embedConnection = (EmbedConnection)conn;
-								ExecRow resultRow = importData(txn,user, conn, schemaName.toUpperCase(), tableName.toUpperCase(),
-												insertColumnList, fileName, columnDelimiter,
-												characterDelimiter, timestampFormat, dateFormat, timeFormat, lcc, maxBadRecords, badRecordDirectory);
-								IteratorNoPutResultSet rs = new IteratorNoPutResultSet(Arrays.asList(resultRow),IMPORT_RESULT_COLUMNS,activation);
-								if(fileName.endsWith(".gz")) {
-										considerFileSizeWarning(fileName, activation);
-								}
-								rs.open();
-								results[0] = new EmbedResultSet40(embedConnection,rs,false,null,true);
-
-						}catch (StandardException e) {
-								throw PublicAPI.wrapStandardException(e);
-						} catch (SQLException se) {
-								try {
-										conn.rollback();
-								} catch (SQLException e) {
-										se.setNextException(e);
-								}
-								throw se;
-						}
-
-				} finally {
-						try {
-								if (conn != null) {
-										conn.close();
-								}
-						} catch (SQLException e) {
-								SpliceLogUtils.error(LOG, "Unable to close index connection", e);
-						}
-				}
+        doImport(schemaName,
+                tableName,
+                insertColumnList,
+                fileName,
+                columnDelimiter,
+                characterDelimiter,
+                timestampFormat,
+                dateFormat,
+                timeFormat,
+                maxBadRecords,
+                badRecordDirectory,
+                false,
+                results);
 		}
 
-		private static void considerFileSizeWarning(String fileName, Activation activation) throws SQLException {
+    private static void doImport(String schemaName, String tableName,
+                                 String insertColumnList,
+                                 String fileName,
+                                 String columnDelimiter,
+                                 String characterDelimiter,
+                                 String timestampFormat,
+                                 String dateFormat,
+                                 String timeFormat,
+                                 long maxBadRecords,
+                                 String badRecordDirectory,
+                                 boolean isUpsert,
+                                 ResultSet[] results) throws SQLException {
+        Connection conn = SpliceAdmin.getDefaultConn();
+        try {
+            LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
+            final String user = lcc.getSessionUserId();
+            Activation activation = lcc.getLastActivation();
+            BaseSpliceTransaction txn = ((SpliceTransactionManager)activation.getTransactionController()).getRawTransaction();
+            try {
+                if(schemaName==null)
+                    schemaName = "APP";
+                if(tableName==null)
+                    throw PublicAPI.wrapStandardException(ErrorState.LANG_TABLE_NOT_FOUND.newException("NULL"));
+
+                EmbedConnection embedConnection = (EmbedConnection)conn;
+                ExecRow resultRow = importData(txn,user, conn, schemaName.toUpperCase(), tableName.toUpperCase(),
+                        insertColumnList, fileName, columnDelimiter,
+                        characterDelimiter, timestampFormat, dateFormat, timeFormat, lcc, maxBadRecords, badRecordDirectory,isUpsert);
+                IteratorNoPutResultSet rs = new IteratorNoPutResultSet(Arrays.asList(resultRow),IMPORT_RESULT_COLUMNS,activation);
+//								if(fileName.endsWith(".gz")) {
+//										considerFileSizeWarning(fileName, activation);
+//								}
+                rs.open();
+                results[0] = new EmbedResultSet40(embedConnection,rs,false,null,true);
+
+            }catch (StandardException e) {
+                throw PublicAPI.wrapStandardException(e);
+            }
+        } finally {
+            try {
+                if (conn != null) {
+                    conn.close();
+                }
+            } catch (SQLException e) {
+                SpliceLogUtils.error(LOG, "Unable to close import connection", e);
+            }
+        }
+    }
+
+    private static void considerFileSizeWarning(String fileName, Activation activation) throws SQLException {
+        /*
+         * -sf- this message is fairly useless for a number of reasons:
+         *
+         * 1. It's not contained in messages.xml, which means that it's not internationalized. This means
+         * that throwing this warning will be nonsensical in non-english environments.
+         *
+         * 2. The warning doesn't appear until AFTER the file has finished importing. Information is only
+         * useful if it's actionable, and telling someone that a file is really big and might take a while to
+         * import *after* that file has been imported is not actionable, or useful in any way shape or form.
+         *
+         * 3. SQLWarnings should only be used when we are informing the user that something *potentially* bad
+         * has occurred, but that it doesn't violate any of our internal semantics--effectively, we are warning
+         * the user that they may have screwed something up (truncation warnings, that kind of thing). This warning
+         * does not fit within that stated purpose; as a result, it falls into the category of annoying chatty
+         * nonsense.
+         */
 				long fileSizeBytes = getFileSizeBytes(fileName);
 				if(SpliceConstants.sequentialImportFileSizeThreshold < fileSizeBytes){
 						//TODO -sf- This isn't internationalized, need to put this into messages.xml
@@ -253,35 +319,37 @@ public class HdfsImport {
 
 		public static ExecRow importData(BaseSpliceTransaction txn,
                                      String user,
-																			 Connection connection,
-																			 String schemaName,
-																			 String tableName,
-																			 String insertColumnList,
-																			 String inputFileName,
-																			 String delimiter,
-																			 String charDelimiter,
-																			 String timestampFormat,
-																			 String dateFormat,
-																			 String timeFormat,
-																			 LanguageConnectionContext lcc,
-																			 long maxBadRecords,
-																			 String badRecordDirectory) throws SQLException{
-				if(connection ==null)
-						throw PublicAPI.wrapStandardException(StandardException.newException(SQLState.CONNECTION_NULL));
-				if(tableName==null)
-						throw PublicAPI.wrapStandardException(StandardException.newException(SQLState.ENTITY_NAME_MISSING));
-				ImportContext.Builder builder;
-				try{
-						builder = new ImportContext.Builder()
-										.path(inputFileName)
-										.stripCharacters(charDelimiter)
-										.colDelimiter(delimiter)
-										.timestampFormat(timestampFormat)
-										.dateFormat(dateFormat)
-										.timeFormat(timeFormat)
-										.maxBadRecords(maxBadRecords)
-										.badLogDirectory(badRecordDirectory==null?null: new Path(badRecordDirectory))
-						;
+                                     Connection connection,
+                                     String schemaName,
+                                     String tableName,
+                                     String insertColumnList,
+                                     String inputFileName,
+                                     String delimiter,
+                                     String charDelimiter,
+                                     String timestampFormat,
+                                     String dateFormat,
+                                     String timeFormat,
+                                     LanguageConnectionContext lcc,
+                                     long maxBadRecords,
+                                     String badRecordDirectory,
+                                     boolean upsert) throws SQLException{
+        if(connection ==null)
+            throw PublicAPI.wrapStandardException(StandardException.newException(SQLState.CONNECTION_NULL));
+        if(tableName==null)
+            throw PublicAPI.wrapStandardException(StandardException.newException(SQLState.ENTITY_NAME_MISSING));
+        ImportContext.Builder builder;
+        try{
+            builder = new ImportContext.Builder()
+                    .path(inputFileName)
+                    .stripCharacters(charDelimiter)
+                    .colDelimiter(delimiter)
+                    .timestampFormat(timestampFormat)
+                    .dateFormat(dateFormat)
+                    .timeFormat(timeFormat)
+                    .maxBadRecords(maxBadRecords)
+                    .badLogDirectory(badRecordDirectory==null?null: new Path(badRecordDirectory))
+                    .upsert(upsert)
+            ;
 
 						if(lcc.getRunTimeStatisticsMode()){
 								String xplainSchema = lcc.getXplainSchema();
@@ -289,7 +357,7 @@ public class HdfsImport {
 										builder = builder.recordStats().xplainSchema(xplainSchema);
 						}
 
-						buildColumnInformation(connection,schemaName,tableName,insertColumnList,builder,lcc);
+						buildColumnInformation(connection,schemaName,tableName,insertColumnList,builder,lcc,upsert);
 				}catch(AssertionError ae){
 						//the input data is bad in some way
 						throw PublicAPI.wrapStandardException(StandardException.newException(SQLState.ID_PARSE_ERROR,ae.getMessage()));
@@ -340,11 +408,9 @@ public class HdfsImport {
 						throw PublicAPI.wrapStandardException(Exceptions.parseException(ce));
 				}finally{
 						//put this stuff first to avoid a memory leak
-						String xplainSchema = lcc.getXplainSchema();
-						if(rollback){
+            if(rollback){
 								try {
                     childTransaction.rollback();
-//										TransactionUtils.rollback(HTransactorFactory.getTransactionManager(),childTransaction,0,5);
 								} catch (IOException e) {
 										/*
 										 * We were unable to rollback the transaction, which is bad.
@@ -361,7 +427,6 @@ public class HdfsImport {
                 reportStats(lcc, childTransaction, statementInfo);
                 try {
                     childTransaction.commit();
-//										TransactionUtils.commit(HTransactorFactory.getTransactionManager(), childTransaction, 0, 5);
 								} catch (IOException e) {
 										/*
 										 * We were unable to commit the transaction properly,
@@ -603,7 +668,7 @@ public class HdfsImport {
 
 		private static void buildColumnInformation(Connection connection, String schemaName, String tableName,
 																							 String insertColumnList, ImportContext.Builder builder,
-																							 LanguageConnectionContext lcc) throws SQLException {
+																							 LanguageConnectionContext lcc,boolean upsert) throws SQLException {
 				//TODO -sf- this invokes an additional scan--is there any way that we can avoid this?
 				DataDictionary dataDictionary = lcc.getDataDictionary();
 				TransactionController tc = lcc.getTransactionExecute();
@@ -628,7 +693,7 @@ public class HdfsImport {
 						}else
 							rowLocBytes = null;
 
-						ImportUtils.buildColumnInformation(connection,schemaName,tableName,insertColumnList,builder,rowLocBytes);
+						ImportUtils.buildColumnInformation(connection,schemaName,tableName,insertColumnList,builder,rowLocBytes,upsert);
 				} catch (StandardException e) {
 						throw PublicAPI.wrapStandardException(e);
 				}

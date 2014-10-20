@@ -2,7 +2,6 @@ package com.splicemachine.derby.impl.load;
 
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.hbase.KVPair;
@@ -15,7 +14,6 @@ import com.splicemachine.metrics.TimeView;
 import com.splicemachine.metrics.Timer;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.util.Pair;
@@ -44,29 +42,29 @@ public class ParallelImporter implements Importer{
 
 
 		public ParallelImporter(ImportContext importContext,ExecRow template,TxnView txn,
-														ImportErrorReporter errorReporter) {
+														ImportErrorReporter errorReporter,KVPair.Type importType) {
         this(importContext,
 												template,
 												txn,
 												SpliceConstants.maxImportProcessingThreads,
 												SpliceConstants.maxImportReadBufferSize,
 												SpliceDriver.driver().getTableWriter(),
-								errorReporter,
-								SpliceKryoRegistry.getInstance());
+								errorReporter,importType
+        );
     }
 
 		public ParallelImporter(ImportContext importContext,
 														ExecRow template,
 														int numProcessingThread,
 														int maxImportReadBufferSize,
-														TxnView txn,ImportErrorReporter errorReporter) {
+														TxnView txn,ImportErrorReporter errorReporter,KVPair.Type importType) {
 				this(importContext,
 								template,
 								txn,
 								numProcessingThread,
 								maxImportReadBufferSize,
 								SpliceDriver.driver().getTableWriter(),
-								errorReporter, SpliceKryoRegistry.getInstance());
+								errorReporter, importType);
 		}
 
     public ParallelImporter(ImportContext importCtx,
@@ -75,8 +73,7 @@ public class ParallelImporter implements Importer{
                             int numProcessingThreads,
                             int maxImportReadBufferSize,
                             CallBufferFactory<KVPair> factory,
-														final ImportErrorReporter errorReporter,
-														KryoPool kryoPool){
+                            final ImportErrorReporter errorReporter,KVPair.Type importType){
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "ThreadingCallBuffer#init called");
 				Path filePath = importCtx.getFilePath();
@@ -94,8 +91,8 @@ public class ParallelImporter implements Importer{
 
         futures = Lists.newArrayList();
         for(int i=0;i<numProcessingThreads;i++){
-						SequentialImporter importer = new SequentialImporter(importCtx,template.getClone(),txn,errorReporter,
-										factory,kryoPool){
+						SequentialImporter importer = new SequentialImporter(importCtx,template.getClone(),txn, factory,
+                    errorReporter,importType) {
 								@Override
 								protected boolean isFailed() {
 										return ParallelImporter.this.isFailed();

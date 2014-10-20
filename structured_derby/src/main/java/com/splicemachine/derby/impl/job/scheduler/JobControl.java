@@ -366,8 +366,7 @@ class JobControl implements JobFuture {
                 SpliceLogUtils.trace(LOG, "executing submit on resubmitted job %s", job.getJobId());
 
 						TxnView parentTxn = job.getTxn();
-						byte[] destTable = job.getDestinationTable();
-						if(parentTxn!=null){
+            if(parentTxn!=null){
 								//set a new transaction on the entry
                 newTaskData.getFirst().setParentTxnInformation(parentTxn);
 						}

@@ -12,10 +12,8 @@ import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.metrics.TimeView;
 import com.splicemachine.metrics.Timer;
-import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.utils.kryo.KryoPool;
 import com.splicemachine.uuid.UUIDGenerator;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.log4j.Logger;
@@ -30,7 +28,8 @@ import java.util.concurrent.ExecutionException;
 public class SequentialImporter implements Importer{
 		private static final Logger LOG = Logger.getLogger(SequentialImporter.class);
 		private final ImportContext importContext;
-		private final MetricFactory metricFactory;
+    private final KVPair.Type importType;
+    private final MetricFactory metricFactory;
 
 		private volatile boolean closed;
 		private final RecordingCallBuffer<KVPair> writeBuffer;
@@ -39,32 +38,16 @@ public class SequentialImporter implements Importer{
 
 		private Timer writeTimer;
 		private PairEncoder entryEncoder;
-		private KryoPool kryoPool;
 
-
-		public SequentialImporter(ImportContext importContext,
-															ExecRow templateRow,
-															TxnView txn, ImportErrorReporter errorReporter){
-			this(importContext, templateRow, txn,SpliceDriver.driver().getTableWriter(),SpliceDriver.getKryoPool(),errorReporter);
-		}
-
-		public SequentialImporter(ImportContext importContext,
-															ExecRow templateRow,
-															TxnView txn, ImportErrorReporter errorReporter,
-															CallBufferFactory<KVPair> callBufferFactory,
-															KryoPool kryoPool){
-				this(importContext, templateRow, txn,callBufferFactory,kryoPool,errorReporter);
-		}
-
-		public SequentialImporter(ImportContext importContext,
-															ExecRow templateRow,
-															TxnView txn,
-															CallBufferFactory<KVPair> callBufferFactory,
-															KryoPool kryoPool,
-															final ImportErrorReporter errorReporter){
+    public SequentialImporter(ImportContext importContext,
+                              ExecRow templateRow,
+                              TxnView txn,
+                              CallBufferFactory<KVPair> callBufferFactory,
+                              final ImportErrorReporter errorReporter,
+                              KVPair.Type importType){
 				this.importContext = importContext;
-				this.rowParser = new RowParser(templateRow,importContext,errorReporter);
-				this.kryoPool = kryoPool;
+        this.importType = importType;
+        this.rowParser = new RowParser(templateRow,importContext,errorReporter);
 
 				if(importContext.shouldRecordStats()){
 						metricFactory = Metrics.basicMetricFactory();
@@ -139,7 +122,7 @@ public class SequentialImporter implements Importer{
 						ExecRow row = rowParser.process(line,importContext.getColumnInformation());
 						if(row==null) continue; //unable to parse the row, so skip it.
 						if(entryEncoder==null)
-								entryEncoder = ImportUtils.newEntryEncoder(row,importContext,getRandomGenerator(),kryoPool);
+								entryEncoder = ImportUtils.newEntryEncoder(row,importContext,getRandomGenerator(),importType);
 						writeBuffer.add(entryEncoder.encode(row));
 						count++;
 				}

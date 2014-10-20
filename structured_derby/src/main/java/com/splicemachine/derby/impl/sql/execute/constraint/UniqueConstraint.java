@@ -46,7 +46,8 @@ public class UniqueConstraint implements Constraint {
         @Override
         public boolean apply(@Nullable KVPair input) {
 						//noinspection ConstantConditions
-						return input.getType()==KVPair.Type.INSERT;
+            KVPair.Type type = input.getType();
+            return type ==KVPair.Type.INSERT||type== KVPair.Type.UPSERT;
         }
     };
 
@@ -68,35 +69,13 @@ public class UniqueConstraint implements Constraint {
     }
 
     @Override
-    public boolean validate(KVPair mutation,TxnView txn, RegionCoprocessorEnvironment rce,Collection<KVPair> priorValues) throws IOException {
-        if(!stripDeletes.apply(mutation)) return true; //no need to validate this mutation
+    public ValidationType validate(KVPair mutation,TxnView txn, RegionCoprocessorEnvironment rce,Collection<KVPair> priorValues) throws IOException {
+        if(!stripDeletes.apply(mutation)) return ValidationType.SUCCESS; //no need to validate this mutation
         //if prior visited values has it, it's in the same batch mutation, so fail it
-				return !priorValues.contains(mutation);
-//        if(priorValues.contains(mutation)){
-//						if (logger.isTraceEnabled())
-//								SpliceLogUtils.trace(logger, "row %s",BytesUtil.toHex(mutation.getRow()));
-//            return false;
-//				}
-//        Get get = createGet(mutation,txnId);
-//
-//        HRegion region = rce.getRegion();
-//        //check the Bloom Filter first--if it's not present, then we know we're good
-//        if (!HRegionUtil.keyExists(region.getStore(SIConstants.DEFAULT_FAMILY_BYTES), mutation.getRow()))
-//        		return true;
-//
-//        Result result = region.get(get);
-//        boolean rowPresent = result!=null && !result.isEmpty();
-//        if(rowPresent){
-//            KeyValue[] raw = result.raw();
-//            rowPresent=false;
-//            for(KeyValue kv:raw){
-//                    rowPresent=true;
-//                    if (logger.isTraceEnabled())
-//                    	SpliceLogUtils.trace(logger, "row %s,CF %s present",BytesUtil.toHex(mutation.getRow()),BytesUtil.toHex(kv.getFamily()));
-//                    break;
-//            }
-//        }
-//        return !rowPresent;
+				if(!priorValues.contains(mutation)) return  ValidationType.SUCCESS;
+
+        if(mutation.getType()== KVPair.Type.UPSERT) return ValidationType.ADDITIVE_WRITE_CONFLICT;
+        return ValidationType.FAILURE;
     }
 
     @Override
@@ -104,7 +83,7 @@ public class UniqueConstraint implements Constraint {
         Collection<KVPair> changes = Collections2.filter(mutations,stripDeletes);
         List<KVPair> failedKvs = Lists.newArrayListWithExpectedSize(0);
         for(KVPair change:changes){
-            if(HRegionUtil.keyExists(rce.getRegion().getStore(SIConstants.DEFAULT_FAMILY_BYTES), change.getRow()) && !validate(change,txn,rce,priorValues))
+            if(HRegionUtil.keyExists(rce.getRegion().getStore(SIConstants.DEFAULT_FAMILY_BYTES), change.getRow()) && validate(change,txn,rce,priorValues)!=ValidationType.SUCCESS)
                 failedKvs.add(change);
         }
         return failedKvs;

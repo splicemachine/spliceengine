@@ -5,6 +5,7 @@ import com.splicemachine.hbase.batch.WriteContext;
 import com.splicemachine.hbase.batch.WriteHandler;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.WriteResult;
+import com.splicemachine.si.impl.AdditiveWriteConflict;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import java.io.IOException;
@@ -16,6 +17,7 @@ import java.util.List;
  *         Created on: 4/30/13
  */
 public class ConstraintHandler implements WriteHandler {
+    private static final WriteResult additiveWriteConflict = WriteResult.failed("Additive WriteConflict");
     private final Constraint localConstraint;
     private boolean failed=false;
     private Collection<KVPair> visitedRows;
@@ -23,7 +25,7 @@ public class ConstraintHandler implements WriteHandler {
 
     public ConstraintHandler(Constraint localConstraint) {
         this.localConstraint = localConstraint;
-				 invalidResult = new WriteResult(WriteResult.convertType(localConstraint.getType()), localConstraint.getConstraintContext());
+        invalidResult = new WriteResult(WriteResult.convertType(localConstraint.getType()), localConstraint.getConstraintContext());
     }
 
     @Override
@@ -37,10 +39,16 @@ public class ConstraintHandler implements WriteHandler {
 						return;
         }
         try {
-            if(!localConstraint.validate(mutation,ctx.getTxn(),ctx.getCoprocessorEnvironment(),visitedRows)){
-								ctx.result(mutation, invalidResult);
-            }else{
-                ctx.sendUpstream(mutation);
+            Constraint.ValidationType validate = localConstraint.validate(mutation, ctx.getTxn(), ctx.getCoprocessorEnvironment(), visitedRows);
+            switch(validate){
+                case FAILURE:
+                    ctx.result(mutation, invalidResult);
+                    break;
+                case ADDITIVE_WRITE_CONFLICT:
+                    ctx.result(mutation, additiveWriteConflict);
+                    break;
+                default:
+                    ctx.sendUpstream(mutation);
             }
 						visitedRows.add(mutation);
         }catch(NotServingRegionException nsre){

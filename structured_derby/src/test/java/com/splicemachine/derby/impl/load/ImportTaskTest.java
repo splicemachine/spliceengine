@@ -516,7 +516,7 @@ public class ImportTaskTest {
 				when(fakeBufferFactory.writeBuffer(any(byte[].class),any(Txn.class),any(Writer.WriteConfiguration.class))).thenReturn(testingBuffer);
         final Snowflake snowflake = new Snowflake((short)1);
 				KryoPool kryoPool = KryoPool.defaultPool();
-				Importer importer = new SequentialImporter(ctx,template,new ActiveWriteTxn(1l,1l),fakeBufferFactory, kryoPool,FailAlwaysReporter.INSTANCE){
+				Importer importer = new SequentialImporter(ctx,template,new ActiveWriteTxn(1l,1l),fakeBufferFactory, FailAlwaysReporter.INSTANCE, KVPair.Type.INSERT){
 						@Override
 						protected UUIDGenerator getRandomGenerator() {
 								return snowflake.newGenerator(lines.size());

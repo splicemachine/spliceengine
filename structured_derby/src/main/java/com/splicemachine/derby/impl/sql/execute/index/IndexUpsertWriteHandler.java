@@ -178,9 +178,16 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
     }
     private KVPair update(KVPair mutation, WriteContext ctx) {
         //TODO -sf- move this logic into IndexTransformer
-        if(mutation.getType()!= KVPair.Type.UPDATE)
-            return mutation; //not an update, nothing to do here
+        switch(mutation.getType()){
+            case UPDATE:
+            case UPSERT:
+                return doUpdate(mutation,ctx);
+            default:
+                return mutation;
+        }
+    }
 
+    private KVPair doUpdate(KVPair mutation, WriteContext ctx) {
         if(newPutDecoder==null)
             newPutDecoder = new EntryDecoder();
 
@@ -194,7 +201,16 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
                 break;
             }
         }
-        if(!needsIndexUpdating){
+        /*
+         * We would normally love to say that the index hasn't changed--however,
+         * we can't do that in the case of an upsert, because the record may not
+         * exist. In that case, we'll do a local check--if the record already
+         * exists locally, THEN we can say that the index hasn't changed.
+         *
+         * If we are an UPDATE, then we know that the record MUST exist, so
+         * we can skip even the local fetch.
+         */
+        if(mutation.getType()!= KVPair.Type.UPSERT && !needsIndexUpdating){
             //nothing in the index has changed, whoo!
             ctx.sendUpstream(mutation);
             return null;
@@ -225,13 +241,13 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
                  * There is no entry in the main table, so this is an insert, regardless of what it THINKS it is
                  */
                 return mutation;
+            }else if(mutation.getType()== KVPair.Type.UPSERT && !needsIndexUpdating){
+                //we didn't change the index, and the row exists, we can skip!
+                return null;
             }
 
             ByteEntryAccumulator newKeyAccumulator = transformer.getKeyAccumulator();
-//            ByteEntryAccumulator newRowAccumulator = transformer.getRowAccumulator();
-
             newKeyAccumulator.reset();
-//            newRowAccumulator.reset();
 
             if(newPutDecoder==null)
                 newPutDecoder = new EntryDecoder();

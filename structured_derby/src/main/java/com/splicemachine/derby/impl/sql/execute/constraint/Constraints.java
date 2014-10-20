@@ -31,8 +31,8 @@ public class Constraints {
         }
 
         @Override
-        public boolean validate(KVPair mutation, TxnView txn,RegionCoprocessorEnvironment rce,Collection<KVPair> priorValues) throws IOException {
-            return true;
+        public ValidationType validate(KVPair mutation, TxnView txn,RegionCoprocessorEnvironment rce,Collection<KVPair> priorValues) throws IOException {
+            return ValidationType.SUCCESS;
         }
 
         @Override
