@@ -6,10 +6,8 @@ import java.sql.Statement;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
@@ -18,7 +16,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
-
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
@@ -369,7 +366,7 @@ public class IndexRowToBaseRowOperationIT extends SpliceUnitTest {
 		Assert.assertTrue("incorrect rows returned!",rows.size()>0);
 
 	}
-	
+
     @Test
     public void testRestrictSortedColumns() throws Exception{
         PreparedStatement ps = methodWatcher.prepareStatement("select " +
@@ -377,11 +374,11 @@ public class IndexRowToBaseRowOperationIT extends SpliceUnitTest {
                 "t.tablename as table_name," +
                 "c.columnname as column_name," +
                 "c.columnnumber as ordinal_position " +
-                "from --SPLICE-PROPERTIES joinOrder=FIXED\n" +
-                " sys.sysschemas s --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP\n"
-                + " , sys.systables t --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP\n" +
-                " , sys.syscolumns c --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP\n" +
-                " where " +
+                "from " +
+                "sys.sysschemas s, " +
+                "sys.systables t," +
+                "sys.syscolumns c " +
+                "where " +
                 "c.referenceid = t.tableid " +
                 "and s.schemaid = t.schemaid " +
                 "and ((1=1) or '%' is not null)" +
@@ -430,7 +427,6 @@ public class IndexRowToBaseRowOperationIT extends SpliceUnitTest {
     }
 
 	@Test
-	@Ignore("DB-1993")
 	public void testJoinMultipleIndexTablesWithLikeAndSortPreparedStatement() throws Exception{
 		String correctSchemaName = "SYS";
 		String  correctTableName = "SYSSCHEMAS";
@@ -441,10 +437,10 @@ public class IndexRowToBaseRowOperationIT extends SpliceUnitTest {
                 "c.columnname as column_name," +
                 "t.schemaid," +
                 "c.columnnumber as ordinal_position " +
-                "from --SPLICE-PROPERTIES joinOrder=FIXED\n" +
-                " sys.sysschemas s --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP\n" +
-                " ,sys.systables t --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP\n" +
-                " ,sys.syscolumns c --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP\n" +
+                "from" +
+                " sys.sysschemas s" +
+                " ,sys.systables t" +
+                " ,sys.syscolumns c" +
                 " where " +
                 "c.referenceid = t.tableid " +
                 "and s.schemaid = t.schemaid " +

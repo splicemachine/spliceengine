@@ -1165,18 +1165,12 @@ public class SpliceAdmin extends BaseAdminProcedures {
         if (schemaName == null)
             // default schema
             schemaName = "APP";
-        
-        String allTablesInSchema =  "SELECT C.CONGLOMERATENUMBER FROM --SPLICE-PROPERTIES joinOrder=FIXED\n"
-        		+ " SYS.SYSCONGLOMERATES C --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP\n"
-        		+ ", SYS.SYSTABLES T --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP\n"
-        		+ ", SYS.SYSSCHEMAS S --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP\n" +
-                " WHERE T.TABLEID = C.TABLEID AND T.SCHEMAID = S.SCHEMAID AND S.SCHEMANAME = ?";
 
-        String query =  "SELECT C.CONGLOMERATENUMBER FROM --SPLICE-PROPERTIES joinOrder=FIXED\n"
-        		+ " SYS.SYSCONGLOMERATES C --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP\n"
-        		+ ", SYS.SYSTABLES T --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP\n"
-        		+ ", SYS.SYSSCHEMAS S --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP\n" +
-                " WHERE T.TABLEID = C.TABLEID AND T.SCHEMAID = S.SCHEMAID AND S.SCHEMANAME = ? AND T.TABLENAME = ?";
+        String allTablesInSchema =  "SELECT C.CONGLOMERATENUMBER FROM SYS.SYSCONGLOMERATES C, SYS.SYSTABLES T, SYS.SYSSCHEMAS S " +
+                "WHERE T.TABLEID = C.TABLEID AND T.SCHEMAID = S.SCHEMAID AND S.SCHEMANAME = ?";
+
+        String query =  "SELECT C.CONGLOMERATENUMBER FROM SYS.SYSCONGLOMERATES C, SYS.SYSTABLES T, SYS.SYSSCHEMAS S " +
+                "WHERE T.TABLEID = C.TABLEID AND T.SCHEMAID = S.SCHEMAID AND S.SCHEMANAME = ? AND T.TABLENAME = ?";
 
         if (tableName == null)
             // all tables in schema
