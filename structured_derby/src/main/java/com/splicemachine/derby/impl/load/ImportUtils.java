@@ -92,17 +92,15 @@ public class ImportUtils {
 				for(String pkCol:pkCols.keySet()){
 						columns.get(pkCol).primaryKeyPos(pkCols.get(pkCol));
         }
-        if(insertColumnList!=null) {
+        if(insertColumnList!=null && !insertColumnList.equalsIgnoreCase("null")) {
             List<String> insertCols = Lists.newArrayList(Splitter.on(",").trimResults().split(insertColumnList));
             validateNonNullColumnsAreIncluded(insertCols, columns);
 
             for (ColumnContext.Builder colBuilder : columns.values()) {
-                Iterator<String> colIterator = insertCols.iterator();
                 ColumnContext context = colBuilder.build();
-                int pos = 0;
                 boolean found = false;
-                while (colIterator.hasNext()) {
-                    String insertCol = colIterator.next();
+                int pos = 0;
+                for(String insertCol:insertCols){
                     if (insertCol.equalsIgnoreCase(context.getColumnName())) {
                         context.setInsertPos(pos);
                         found = true;
