@@ -370,7 +370,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         // result set. (modelled on GroupByNode's action for addUnAggColumns)
         // VCNs happen, for example, when we have a window over a group by.
         WindowColumnMapping columnMapping = new WindowColumnMapping(parent.getResultColumns(),
-                                                                    wdn.getKeyColumns());
+                                                                    wdn.getOverColumns());
 
         for (WindowColumnMapping.ParentRef parent : columnMapping.getParentColumns()) {
             if (parent.ref instanceof WindowFunctionNode) {
@@ -403,7 +403,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 
             // reset the partition and/or order by column's column position in the
             // Window result since we're rearranging here
-            resetOverColumnsPositionByParent(parent, wdn.getKeyColumns(), columnPosition);
+            resetOverColumnsPositionByParent(parent, wdn.getOverColumns(), columnPosition);
 
           /*
            ** Reset the original node to point to the
@@ -491,7 +491,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             wRC.setVirtualColumnId(newColumnNumber);
 
             // reset the key column's column position in the Window result since we're rearranging here
-            resetOverColumnsPositionByKey(keyCol, wdn.getKeyColumns(), newColumnNumber);
+            resetOverColumnsPositionByKey(keyCol, wdn.getOverColumns(), newColumnNumber);
         }
     }
 

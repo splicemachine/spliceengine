@@ -146,6 +146,18 @@ public final class WindowDefinitionNode extends WindowNode
         return orderedColumns;
     }
 
+    /**
+     * See {@link OverClause#getOverColumns()}
+     * @return the list of column keys that make up the over() clause, partition and order by.
+     */
+    public List<OrderedColumn> getOverColumns() {
+        return overClause.getOverColumns();
+    }
+
+    /**
+     * See {@link OverClause#getKeyColumns()}
+     * @return the de-duplicated set of column keys
+     */
     public List<OrderedColumn> getKeyColumns() {
         return overClause.getKeyColumns();
     }

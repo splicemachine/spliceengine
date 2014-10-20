@@ -1,7 +1,9 @@
 package org.apache.derby.impl.sql.compile;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
@@ -46,16 +48,61 @@ public class OverClause extends QueryTreeNode {
         return orderByClause;
     }
 
+    /**
+     * Use this method exclusively to get the key columns for a given window
+     * definition. These key columns will be used to build a row key to sort
+     * rows incoming to the window function.
+     * <p/>
+     * Key columns are comprised of the concatenation of Partition columns and
+     * OrderBy columns, in the form of this <b>set</b> {[P1,P2,...][O1,O2,...]}, where Pn
+     * is Partition element n and On is OrderBy element n. As a set, duplicate columns are
+     * not included.  This is fine since we don't need to "re-sort" rows on a column.
+     *
+     * @return the ordered set of de-duplicated key columns.
+     */
     public List<OrderedColumn> getKeyColumns() {
         int partitionSize = (partition != null ? partition.size() : 0);
         int orderByListSize = (orderByClause != null ? orderByClause.size() : 0);
         List<OrderedColumn> keyCols = new ArrayList<OrderedColumn>(partitionSize+orderByListSize);
+        Set<ValueNode> addedNodes = new HashSet<ValueNode>(partitionSize+orderByListSize);
 
+        // partition columns
+        for (int i=0; i<partitionSize; i++) {
+            OrderedColumn oc = (OrderedColumn) partition.elementAt(i);
+            if (! addedNodes.contains(oc.getColumnExpression())) {
+                keyCols.add(oc);
+                addedNodes.add(oc.getColumnExpression());
+            }
+        }
+
+        // order by columns
+        for (int i=0; i<orderByListSize; ++i) {
+            OrderedColumn oc = (OrderedColumn) orderByClause.elementAt(i);
+            if (! addedNodes.contains(oc.getColumnExpression())) {
+                keyCols.add(oc);
+                addedNodes.add(oc.getColumnExpression());
+            }
+        }
+
+        return keyCols;
+    }
+
+    /**
+     * Use this method to get all columns, with possible duplicates,
+     *
+     * @return the list of all over() columns in order {[P1,P2,...][O1,O2,...]},
+     * where Pn is a Partition column and On is an OrderBy column.
+     */
+    public List<OrderedColumn> getOverColumns() {
+        int partitionSize = (partition != null ? partition.size() : 0);
+        int orderByListSize = (orderByClause != null ? orderByClause.size() : 0);
+        List<OrderedColumn> keyCols = new ArrayList<OrderedColumn>(partitionSize+orderByListSize);
 
         // partition columns
         for (int i=0; i<partitionSize; i++) {
             keyCols.add((OrderedColumn) partition.elementAt(i));
         }
+
         // order by columns
         for (int i=0; i<orderByListSize; ++i) {
             keyCols.add((OrderedColumn) orderByClause.elementAt(i));

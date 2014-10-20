@@ -22,13 +22,13 @@ public class WindowColumnMapping {
      * Create parent references and attach any key columns from the window function
      * definition's over() clause.
      * @param parentRCL the parent result set column list (the select clause).
-     * @param keyColumns the window function definition's over() clause columns
+     * @param overColumns the window function definition's over() clause columns
      *                   (partition and over by clauses).
      * @throws StandardException
      */
-    public WindowColumnMapping(ResultColumnList parentRCL, List<OrderedColumn> keyColumns)
+    public WindowColumnMapping(ResultColumnList parentRCL, List<OrderedColumn> overColumns)
         throws StandardException {
-        parentRefs = createAndAssociateParentRefs(parentRCL, keyColumns);
+        parentRefs = createAndAssociateParentRefs(parentRCL, overColumns);
     }
 
     /**
@@ -47,7 +47,8 @@ public class WindowColumnMapping {
      * that they will be available as row keys to sort rows during the WindowOperation.
      * @param parentRefs the parent result set columns that might be carrying references
      *                   to key columns in the window over() clause.
-     * @param keyColumns the partition and over by columns in the window over() clause.
+     * @param keyColumns the de-duplicated partition and over by columns (the key columns)
+     *                   in the window over() clause.
      * @return any over() clause key columns that are not referenced by parent columns.
      * May be empty but not null.
      */
@@ -71,37 +72,38 @@ public class WindowColumnMapping {
      * This is done when projecting columns from the WindowResultSetNode.
      * @param parent the parent column reference for which to reset the referenced key
      *               columns.
-     * @param keyColumns the window definition's key columns. Any matching keys will
-     *                   have their column positions reset.
+     * @param overColumns the window definition's over() clause columns (all). All matching
+     *                   column instances will have their column positions reset.
      * @param columnPosition the new column position of the referenced keys.
      * @throws StandardException
      */
-    public static void resetOverColumnsPositionByParent(ParentRef parent, List<OrderedColumn> keyColumns,
+    public static void resetOverColumnsPositionByParent(ParentRef parent, List<OrderedColumn> overColumns,
                                                         int columnPosition) throws StandardException {
         for (OrderedColumn child : parent.children) {
             resetColumnPosition(child, columnPosition);
-            OrderedColumn key = findMatchingKey(keyColumns, child);
-            assert key != null: "No matching key col for "+child;
-            resetColumnPosition(key, columnPosition);
+            // keep over clause columns in sync
+            resetOverColumnsPositionByKey(child, overColumns, columnPosition);
         }
     }
 
     /**
      * Reset the column position of the <code>keyCol</code> and synchronize any matching
-     * <code>keyColumns</code> during projection of the WindowResultSetNode.
+     * <code>overColumns</code> during projection of the WindowResultSetNode.
      * @param keyCol a key column reference to a parent column reference which we are
      *               projecting in a different column.
-     * @param keyColumns the window definition's over() clause key columns to reset any
-     *                   matching key's position.
+     * @param overColumns the window definition's over() clause columns (all). All matching
+     *                   column instances will have their column positions reset.
      * @param columnPosition the new key columns position in the projection.
      * @throws StandardException
      */
-    public static void resetOverColumnsPositionByKey(OrderedColumn keyCol, List<OrderedColumn> keyColumns,
+    public static void resetOverColumnsPositionByKey(OrderedColumn keyCol, List<OrderedColumn> overColumns,
                                                      int columnPosition) throws StandardException {
         resetColumnPosition(keyCol, columnPosition);
-        OrderedColumn key = findMatchingKey(keyColumns, keyCol);
-        assert key != null: "No matching key col for "+keyCol;
-        resetColumnPosition(key, columnPosition);
+        List<OrderedColumn> keys = findMatchingKeys(keyCol, overColumns);
+        assert ! keys.isEmpty(): "No matching key col for "+keyCol;
+        for (OrderedColumn key : keys) {
+            resetColumnPosition(key, columnPosition);
+        }
     }
 
     //========================================
@@ -109,7 +111,7 @@ public class WindowColumnMapping {
     //========================================
 
     private List<ParentRef> createAndAssociateParentRefs(ResultColumnList parentRCL,
-                                                         List<OrderedColumn> keyColumns) throws StandardException {
+                                                         List<OrderedColumn> overColumn) throws StandardException {
         int parentRCLSize = (parentRCL != null ? parentRCL.size() : 0);
         List<ParentRef> parentRefList = new ArrayList<ParentRef>(parentRCLSize);
         for (int i=0; i<parentRCLSize; i++) {
@@ -120,11 +122,11 @@ public class WindowColumnMapping {
             parentRefList.add(parentRef);
             if (node instanceof ColumnReference || node instanceof VirtualColumnNode) {
                 // limit matching parent expressions to one of the types of the key columns
-                    for (OrderedColumn key : keyColumns) {
-                        if (equivalentToOverColumn(node, key.getColumnExpression())) {
-                            parentRef.children.add(key);
-                        }
+                for (OrderedColumn key : overColumn) {
+                    if (equivalentToOverColumn(node, key.getColumnExpression())) {
+                        parentRef.children.add(key);
                     }
+                }
             }
         }
         return parentRefList;
@@ -138,13 +140,26 @@ public class WindowColumnMapping {
         return parentReferencedOCs;
     }
 
-    private static OrderedColumn findMatchingKey(List<OrderedColumn> keyColumns, OrderedColumn child) {
+    private static List<OrderedColumn> findMatchingKeys(OrderedColumn child, List<OrderedColumn> keyColumns) {
+        List<OrderedColumn> canContainDuplicates = new ArrayList<OrderedColumn>(keyColumns.size());
         for (OrderedColumn oc : keyColumns) {
-            if (oc.equals(child)) {
-                return oc;
+            boolean equiv = false;
+
+            // OrderedColumns can either be instances of GroupByColumn or OrderByColumn
+            // Either both are the same type, compare directly, ...
+            if ((child instanceof GroupByColumn && oc instanceof GroupByColumn) ||
+                (child instanceof OrderByColumn && oc instanceof OrderByColumn)) {
+                    equiv = oc.equals(child);
+            } else {
+                // or one of each, compare their expressions
+                equiv = child.getColumnExpression().equals(oc.getColumnExpression());
+            }
+
+            if (equiv) {
+                canContainDuplicates.add(oc);
             }
         }
-        return null;
+        return canContainDuplicates;
     }
 
     private static void resetColumnPosition(OrderedColumn column, int columnPosition) {
