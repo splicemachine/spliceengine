@@ -99,7 +99,7 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
 	        Map<String,RegionLoad> regionLoads = HBaseRegionLoads.getCachedRegionLoadsMapForTable(cd[0].getConglomerateNumber()+"");
 			if (regionLoads == null)
 				return false;
-			int cost = 0;
+			long cost = 0;
 	        for (RegionLoad regionLoad: regionLoads.values()) {
 	        	cost += HBaseRegionLoads.memstoreAndStorefileSize(regionLoad);
 	        }
