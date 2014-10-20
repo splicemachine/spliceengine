@@ -72,24 +72,6 @@
 		  section below. These settings can be overwritten here. -->
 		<plugins>
 			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>buildnumber-maven-plugin</artifactId>
-				<version>1.2</version>
-				<executions>
-					<execution>
-						<phase>validate</phase>
-						<goals>
-							<goal>create</goal>
-						</goals>
-					</execution>
-				</executions>
-				<configuration>
-					<shortRevisionLength>10</shortRevisionLength>
-					<doCheck>false</doCheck>
-					<doUpdate>false</doUpdate>
-				</configuration>
-			</plugin>
-			<plugin>
 				<artifactId>maven-deploy-plugin</artifactId>
 				<version>2.7</version>
 				<configuration>
@@ -114,6 +96,7 @@
 			</plugin>
 		</plugins>
 	</build>
+
 	<profiles>
 		<profile>
 			<id>assemble</id>
@@ -123,7 +106,6 @@
 						<artifactId>maven-assembly-plugin</artifactId>
 						<version>2.4.1</version>
 						<configuration>
-							<source>6</source>
 							<archive>
 								<manifestEntries>
 									<Implementation-Version>${buildNumber}</Implementation-Version>
@@ -269,9 +251,7 @@
 								<argument>-Xdebug</argument>
 								<argument>-Djava.awt.headless=true</argument>
 								<argument>-Djava.net.preferIPv4Stack=true</argument>
-								<argument>
-									-Dlog4j.configuration=file:${basedir}/src/main/resources/trace-log4j.properties
-								</argument>
+								<argument>-Dlog4j.configuration=file:${basedir}/src/main/resources/trace-log4j.properties</argument>
 								<argument>-Xmx4g</argument>
 								<argument>-Xms1g</argument>
 								<argument>-Xmn128m</argument>
@@ -287,9 +267,7 @@
 								<argument>-XX:MaxDirectMemorySize=1g</argument>
 								<argument>-enableassertions</argument>
 								<argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4000</argument>
-								<argument>
-									-Dderby.debug.true=DumpClassFile,DumpParseTree,DumpBindTree,DumpOptimizedTree,ByteCodeGenInstr
-								</argument>
+								<argument>-Dderby.debug.true=DumpClassFile,DumpParseTree,DumpBindTree,DumpOptimizedTree,ByteCodeGenInstr</argument>
 								<argument>-Dderby.language.logQueryPlan=true</argument>
 								<argument>-Dderby.language.logStatementText=true</argument>
 								<argument>-Dderby.language.useStatistics=true</argument>
@@ -358,9 +336,7 @@
 								<argument>-cp</argument>
 								<classpath>${maven.runtime.classpath}</classpath>
 								<argument>-Djava.awt.headless=true</argument>
-								<argument>
-									-Dlog4j.configuration=file:${basedir}/src/main/resources/info-log4j.properties
-								</argument>
+								<argument>-Dlog4j.configuration=file:${basedir}/src/main/resources/info-log4j.properties</argument>
 								<argument>-Djava.net.preferIPv4Stack=true</argument>
 								<argument>-Dzookeeper.sasl.client=false</argument>
 								<argument>-Xmx2g</argument>
@@ -411,9 +387,7 @@
 								<argument>-Dcom.sun.management.jmxremote.authenticate=false</argument>
 								<argument>-Dcom.sun.management.jmxremote.port=10102</argument>
 								<argument>-Djava.awt.headless=true</argument>
-								<argument>
-									-Dlog4j.configuration=file:${basedir}/src/main/resources/hbase-log4j.properties
-								</argument>
+								<argument>-Dlog4j.configuration=file:${basedir}/src/main/resources/hbase-log4j.properties</argument>
 								<argument>-Djava.net.preferIPv4Stack=true</argument>
 								<argument>-Xmx4g</argument>
 								<argument>-Xms1g</argument>
@@ -620,9 +594,7 @@
 							<systemProperties>
 								<systemProperty>
 									<key>ij.connection.splice</key>
-									<value>
-										jdbc:splice://localhost:${ij.connection.port}/splicedb;user=splice;password=admin
-									</value>
+									<value>jdbc:splice://localhost:${ij.connection.port}/splicedb;user=splice;password=admin</value>
 								</systemProperty>
 							</systemProperties>
 							<mainClass>org.apache.derby.tools.ij</mainClass>
