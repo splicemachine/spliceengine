@@ -1,16 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
-		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	<artifactId>structured_si</artifactId>
 	<packaging>jar</packaging>
-	<name>structured_si</name>
-	<description>Splice Machine Snapshot Isolation</description>
+	<artifactId>structured_si</artifactId>
+	<name>${project.artifactId}-${envClassifier}</name>
+	<description>Splice Engine Snapshot Isolation</description>
+
 	<parent>
 		<artifactId>spliceengine</artifactId>
 		<groupId>com.splicemachine</groupId>
 		<version>1.0.0RC1</version>
 	</parent>
+
 	<dependencies>
 		<dependency> <groupId>com.carrotsearch</groupId> <artifactId>hppc</artifactId> </dependency>
 		<dependency> <groupId>com.github.stephenc.high-scale-lib</groupId> <artifactId>high-scale-lib</artifactId> </dependency>
@@ -28,6 +30,7 @@
 		<dependency> <groupId>org.apache.zookeeper</groupId> <artifactId>zookeeper</artifactId> </dependency>
 		<dependency> <groupId>org.mockito</groupId> <artifactId>mockito-all</artifactId> </dependency>
 	</dependencies>
+
 	<build>
 		<resources>
 			<resource>

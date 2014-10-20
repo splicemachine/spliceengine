@@ -34,7 +34,7 @@ TAR structure:
 			<excludes>
 				<exclude>tomcat:jasper-compiler</exclude>
 				<exclude>tomcat:jasper-runtime</exclude>
-				<exclude>com.splicemachine:splice_web*</exclude>
+				<exclude>com.splicemachine:splice-web*</exclude>
 			</excludes>
 		</dependencySet>
 
@@ -44,7 +44,7 @@ TAR structure:
 			<useProjectArtifact>false</useProjectArtifact>
 			<unpack>true</unpack>
 			<includes>
-				<include>com.splicemachine:splice_web*</include>
+				<include>com.splicemachine:splice-web*</include>
 			</includes>
 		</dependencySet>
 
