@@ -265,7 +265,7 @@ public class AutoloadedDriver implements Driver
 	/*
 	** Return true if the engine has been booted.
 	*/
-	private	static	boolean	isBooted()
+	public static	boolean	isBooted()
 	{
 		return ( _driverModule != null );
 	}

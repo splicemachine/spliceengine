@@ -21,6 +21,7 @@
 
 package org.apache.derby.impl.tools.ij;
                 
+import org.apache.derby.jdbc.AutoloadedDriver;
 import org.apache.derby.tools.JDBCDisplayUtil;
 import org.apache.derby.iapi.tools.i18n.*;
 
@@ -425,6 +426,7 @@ public class utilMain implements java.security.PrivilegedAction {
 			If an exit was requested, then we will be shutting down.
 		 */
 		if (ijParser.exit || (initialFileInput && !mtUse)) {
+        if(!AutoloadedDriver.isBooted()) return; //no reason to try booting the db if we are just going to shut it down
 			Driver d = null;
 			try {
 			    d = DriverManager.getDriver("jdbc:derby:");
