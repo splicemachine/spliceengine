@@ -77,7 +77,8 @@
 				<configuration>
 					<file>${project.build.directory}/${project.artifactId}-${project.version}-${envClassifier}${obfuscate.si}_complete.jar</file>
 					<repositoryId>${project.distributionManagement.repository.id}</repositoryId>
-					<url>${project.distributionManagement.repository.url}</url>
+					<url>${project.distributionManagement.snapshotRepository.url}</url>
+					<!-- url>${project.distributionManagement.repository.url}</url -->
 					<artifactId>${project.artifactId}</artifactId>
 					<classifier>${envClassifier}${obfuscate.si}_complete</classifier>
 					<generatePom>false</generatePom>
