@@ -26,7 +26,7 @@
   <parent>
     <groupId>org.apache.derby</groupId>
     <artifactId>derby-project</artifactId>
-    <version>10.9.1.0-splice1.0.0RC1</version>
+    <version>10.9.1.0-splice1.0.0RC2-SNAPSHOT</version>
   </parent>
   <artifactId>derbyLocale_ru</artifactId>
   <name>Apache Derby messages: Russian</name>
@@ -36,7 +36,7 @@
     <dependency>
       <groupId>org.apache.derby</groupId>
       <artifactId>derby</artifactId>
-      <version>10.9.1.0-splice1.0.0RC1</version>
+      <version>10.9.1.0-splice1.0.0RC2-SNAPSHOT</version>
       <optional>false</optional>
     </dependency>
   </dependencies>
