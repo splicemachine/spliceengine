@@ -1,8 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
+
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.utils.Exceptions;
@@ -114,7 +113,7 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 				private boolean seenRow = false;
 
 				NestedLoopLeftOuterIterator(ExecRow leftRow, boolean hash,SpliceRuntimeContext context) throws StandardException, IOException {
-						super(leftRow, hash, true, rightResultSetUniqueSequenceID, context);
+						super(leftRow, hash, true, context);
 				}
 
 				@Override

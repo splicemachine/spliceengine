@@ -425,14 +425,8 @@ public class SpliceDriver extends SIConstants {
             metricsReporter = new JmxReporter(spliceMetricsRegistry);
             metricsReporter.start();
 
-            //register error reporter
-//            ObjectName errorReporterName = new ObjectName("com.splicemachine.error:type=ErrorReport");
-//            mbs.registerMBean(ErrorReporter.get(), errorReporterName);
-
             //register TaskScheduler
-						((TieredTaskScheduler)threadTaskScheduler).registerJMX(mbs);
-//            ObjectName taskSchedulerName = new ObjectName("com.splicemachine.job:type=TaskSchedulerManagement");
-//            mbs.registerMBean(threadTaskScheduler,taskSchedulerName);
+            ((TieredTaskScheduler) threadTaskScheduler).registerJMX(mbs);
 
             //register TaskMonitor
             ObjectName taskMonitorName = new ObjectName("com.splicemachine.job:type=TaskMonitor");
