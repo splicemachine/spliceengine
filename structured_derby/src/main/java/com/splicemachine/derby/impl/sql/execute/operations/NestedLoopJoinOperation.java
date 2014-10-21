@@ -185,36 +185,39 @@ public class NestedLoopJoinOperation extends JoinOperation {
             super.updateStats(stats);
 		}
 
-		protected class NestedLoopIterator implements Iterator<ExecRow> {
-				protected ExecRow leftRow;
-				protected OperationResultSet probeResultSet;
-				private boolean populated;
-				private boolean returnedRight=false;
-				private boolean outerJoin = false;
+    protected class NestedLoopIterator implements Iterator<ExecRow> {
+        protected ExecRow leftRow;
+        protected OperationResultSet probeResultSet;
+        private boolean populated;
+        private boolean returnedRight=false;
+        private boolean outerJoin = false;
 
-            NestedLoopIterator(ExecRow leftRow, boolean hash, boolean outerJoin, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-                SpliceLogUtils.trace(LOG, "NestedLoopIterator instantiated with leftRow %s",leftRow);
-                this.leftRow = leftRow;
-                probeResultSet = getRightResultSet();
 
-                if (shouldRecordStats()) {
-                    if (operationChainInfo == null) {
-                        operationChainInfo = new XplainOperationChainInfo(
-                                spliceRuntimeContext.getStatementId(),
-                                Bytes.toLong(uniqueSequenceID));
-                    }
-                    List<XplainOperationChainInfo> operationChain = SpliceBaseOperation.operationChain.get();
-                    if (operationChain == null) {
-                        operationChain = Lists.newLinkedList();
-                        SpliceBaseOperation.operationChain.set(operationChain);
-                    }
-                    operationChain.add(operationChainInfo);
+        NestedLoopIterator(ExecRow leftRow, boolean hash, boolean outerJoin, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+            SpliceLogUtils.trace(LOG, "NestedLoopIterator instantiated with leftRow %s",leftRow);
+            this.leftRow = leftRow;
+            probeResultSet = getRightResultSet();
+            if (shouldRecordStats()) {
+                if (operationChainInfo == null) {
+                    operationChainInfo = new XplainOperationChainInfo(
+                            spliceRuntimeContext.getStatementId(),
+                            Bytes.toLong(uniqueSequenceID));
                 }
-                probeResultSet.sinkOpen(spliceRuntimeContext.getTxn(),false);
-                probeResultSet.executeScan(hash,spliceRuntimeContext);
-                populated=false;
-                this.outerJoin = outerJoin;
+                List<XplainOperationChainInfo> operationChain = SpliceBaseOperation.operationChain.get();
+                if (operationChain == null) {
+                    operationChain = Lists.newLinkedList();
+                    SpliceBaseOperation.operationChain.set(operationChain);
+                }
+                operationChain.add(operationChainInfo);
             }
+            SpliceRuntimeContext ctxNoSink = spliceRuntimeContext.copy();
+            ctxNoSink.unMarkAsSink();
+            probeResultSet.setParentOperationID(Bytes.toLong(getUniqueSequenceID()));
+            probeResultSet.sinkOpen(spliceRuntimeContext.getTxn(),true);
+            probeResultSet.executeScan(hash,ctxNoSink);
+            populated=false;
+            this.outerJoin = outerJoin;
+        }
 
 				@Override
 				public boolean hasNext() {
