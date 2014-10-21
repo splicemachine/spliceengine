@@ -37,12 +37,10 @@ public class ExecRowWritable implements Writable{
 	byte[] bytes = null;
 	int length = 0;
 	private List<Integer> colTypes;
-	private List<Integer> keyColumns;
 	
-	public ExecRowWritable(List<Integer> colTypes, List<Integer> keyColumns)
+	public ExecRowWritable(List<Integer> colTypes)
 	{
 		this.colTypes = colTypes;
-		this.keyColumns = keyColumns;
 	}
 	
 	public byte[] translate2byte(ExecRow row) throws StandardException
@@ -58,30 +56,19 @@ public class ExecRowWritable implements Writable{
 			encoder = MultiFieldEncoder.create(fields.length);
 		}
 		else{encoder.reset();}
+		for (int i = 0; i < fields.length; i++) {
+			if (fields[i] == null)
+				continue;
+			serializers[i].encode(encoder, fields[i], false);
+																
+		}
 		
-		if (keyColumns != null) {
-			for (int pos : keyColumns) {
-				if (pos == -1)
-					continue;
-				DescriptorSerializer serializer = serializers[pos];
-				DataValueDescriptor field = fields[pos];
-				serializer.encode(encoder, field, false);
-			}
-		}
-		else{
-			for(int i = 0; i < fields.length; i++){	
-				if(fields[i] == null)
-					continue;
-				serializers[i].encode(encoder, fields[i], false); //assume no primary key
-			}
-		}
 		return encoder.build();
 	}
 	
 	private ExecRow constructEmptyExecRow() throws StandardException
 	{
 		ExecRow row = new ValueRow(colTypes.size());
-		System.out.println("Constructing EmptyExecRow, colTypes.size:"+String.valueOf(colTypes.size()));
 		DataValueDescriptor[] data = createDVD();
 		row.setRowArray(data);
 		return row;
@@ -99,23 +86,12 @@ public class ExecRowWritable implements Writable{
 		
 		decoder.set(row);
 		
-		if (keyColumns != null) {
-			for (int pos : keyColumns) {
-				if (pos == -1)
-					continue;
-				DescriptorSerializer serializer = serializers[pos];
-				DataValueDescriptor field = fields[pos];
-				serializer.decode(decoder, field, false);
-			}
-		}
-		
-        else{
-        	for(int i = 0; i < fields.length; i++){
+        for(int i = 0; i < fields.length; i++){
         		if(fields[i] == null)
         			continue;
-        		serializers[i].decode(decoder, fields[i], false); //assume no primary key
-        	}
+        		serializers[i].decode(decoder, fields[i], false); 
         }
+    
 		ExecRow afterDecoding = execRow.getNewNullRow();
 		afterDecoding.setRowArray(fields);
 		return afterDecoding;

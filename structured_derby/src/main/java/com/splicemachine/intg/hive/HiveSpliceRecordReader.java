@@ -25,7 +25,7 @@ public class HiveSpliceRecordReader extends RecordReader<ImmutableBytesWritable,
 	private Configuration conf = null;
 	private HashMap<List, List> tableStructure = null;
 	private int[]pkCols = null;
-	List<Integer> keyColumns = null;
+	
 	public void setConf(Configuration conf){
 		
 		this.conf = conf;
@@ -47,7 +47,7 @@ public class HiveSpliceRecordReader extends RecordReader<ImmutableBytesWritable,
 			if(conf != null)
 				recordReader = new SpliceTableRecordReader(conf);
 			else
-				throw new IOException("Haven't set Conf for HiveSpliceRecordReader2, "
+				throw new IOException("Haven't set Conf for HiveSpliceRecordReader, "
 										+ "can't initialize RecordReader");
 		}
 	    this.recordReader.setHTable(htable);
@@ -58,7 +58,7 @@ public class HiveSpliceRecordReader extends RecordReader<ImmutableBytesWritable,
 			if(conf != null)
 				recordReader = new SpliceTableRecordReader(conf);
 			else
-				throw new IOException("Haven't set Conf for HiveSpliceRecordReader2, "
+				throw new IOException("Haven't set Conf for HiveSpliceRecordReader, "
 										+ "can't initialize RecordReader");
 		}
 		this.recordReader.init();
@@ -72,7 +72,7 @@ public class HiveSpliceRecordReader extends RecordReader<ImmutableBytesWritable,
 			if(conf != null)
 				recordReader = new SpliceTableRecordReader(conf);
 			else
-				throw new IOException("Haven't set Conf for HiveSpliceRecordReader2, "
+				throw new IOException("Haven't set Conf for HiveSpliceRecordReader, "
 										+ "can't initialize RecordReader");
 		}
 			
@@ -102,7 +102,7 @@ public class HiveSpliceRecordReader extends RecordReader<ImmutableBytesWritable,
 		// Initialize colTypes first!
 		
 		
-		ExecRowWritable res = new ExecRowWritable(colTypes, keyColumns);
+		ExecRowWritable res = new ExecRowWritable(colTypes);
 		res.set(execRow);
 		return res;
 	}
@@ -127,15 +127,6 @@ public class HiveSpliceRecordReader extends RecordReader<ImmutableBytesWritable,
     		Map.Entry kv = (Map.Entry)iter.next();
     		colTypes = (ArrayList<Integer>)kv.getValue();
     	}
-	}
-	
-	public void setPrimaryKey(int []pkCols){
-		if(pkCols != null){
-			keyColumns = new ArrayList<Integer>();
-			for(int i=0;i<pkCols.length;i++){
-				keyColumns.add(pkCols[i] -1);	
-			}
-		}
 	}
 
 }

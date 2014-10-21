@@ -44,10 +44,8 @@ ExecRowWritable>{
     private List<Integer> colTypes = null;
     private List<String> allColNames = null;
     private HashMap<List, List> tableStructure = new HashMap<List, List>();
-    private HashMap<List, List> pks = new HashMap<List, List>();
 	private Connection parentConn = null;
-    private int[]pkCols = null;
-    private List<Integer>keyColumns = null;
+ 
 	
 	@Override
 	public List<InputSplit> getSplits(JobContext context) throws IOException,
@@ -84,9 +82,6 @@ ExecRowWritable>{
 			trr.setConf(conf);
 			
 			tableStructure = sqlUtil.getTableStructure(spliceTableName);
-			pks = sqlUtil.getPrimaryKey(spliceTableName);
-			Iterator pkiter = pks.entrySet().iterator();
-			ArrayList<String> pkColNames = null;
 			
 			Iterator iter = tableStructure.entrySet().iterator();
 	    	if(iter.hasNext())
@@ -96,16 +91,6 @@ ExecRowWritable>{
 	    		colTypes = (ArrayList<Integer>)kv.getValue();
 	    	}
 	    	
-	    	if(pkiter.hasNext()){
-		    	Map.Entry kv = (Map.Entry)pkiter.next();
-		    	pkColNames = (ArrayList<String>)kv.getKey(); 	
-		    }
-	    	if(pkColNames != null && pkColNames.size() != 0){
-	    		pkCols = new int[pkColNames.size()];
-	    		for (int i = 0; i < pkColNames.size(); i++){
-	    			pkCols[i] = allColNames.indexOf(pkColNames.get(i))+1;
-	    		}
-	    	}
 		}
 		String hbaseTableName = spliceTableName2HBaseTableName(spliceTableName);
 		HTable hTable = new HTable(HBaseConfiguration.create(conf), hbaseTableName);
@@ -119,7 +104,7 @@ ExecRowWritable>{
 		trr.setHTable(hTable);
 		trr.init();
 		trr.setTableStructure(tableStructure);
-		trr.setPrimaryKey(pkCols);
+		
 		return trr;
 	}
 
@@ -175,13 +160,7 @@ ExecRowWritable>{
 
 	        @Override
 	        public ExecRowWritable createValue() {
-	        	if(pkCols != null){
-	    			keyColumns = new ArrayList<Integer>();
-	    			for(int i=0;i<pkCols.length;i++){
-	    				keyColumns.add(pkCols[i] -1);	
-	    			}
-	    		}
-	          return new ExecRowWritable(colTypes, keyColumns);
+	          return new ExecRowWritable(colTypes);
 	        }
 
 	        @Override
