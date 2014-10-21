@@ -47,7 +47,6 @@ public abstract class BaseXplainIT {
     protected abstract TestConnection getNewConnection() throws Exception;
 
     protected ResultSet getStatementsForTxn() throws SQLException {
-        System.out.println("getting statements for txn "+ txnId);
         return baseConnection.query("select * from SYS.SYSSTATEMENTHISTORY where transactionid >= "+txnId);
     }
 

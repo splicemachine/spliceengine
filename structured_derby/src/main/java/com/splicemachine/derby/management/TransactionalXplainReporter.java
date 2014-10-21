@@ -13,6 +13,11 @@ import com.splicemachine.si.api.ReadOnlyModificationException;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.storage.EntryEncoder;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
+import org.apache.derby.iapi.sql.dictionary.DataDictionary;
+import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
+import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
+import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.hadoop.hbase.util.Pair;
 
 import java.io.IOException;
@@ -28,7 +33,7 @@ import java.sql.SQLException;
 public abstract class TransactionalXplainReporter<T> {
     private static final String SCHEMA = "SYS";
     private final String tableName;
-    private String conglomIdString;
+    private volatile String conglomIdString;
 
     private final ThreadLocal<Pair<DataHash<T>,DataHash<T>>> hashLocals;
 
@@ -40,6 +45,10 @@ public abstract class TransactionalXplainReporter<T> {
                 return Pair.newPair(getKeyHash(), getDataHash());
             }
         };
+    }
+
+    public void initialize(LanguageConnectionContext lcc) throws IOException {
+        getConglomIdString();
     }
 
     protected abstract DataHash<T> getDataHash();
@@ -84,6 +93,8 @@ public abstract class TransactionalXplainReporter<T> {
                     conglom = conglomIdString = fetchConglomId();
                     }catch(SQLException se){
                         throw Exceptions.getIOException(se);
+                    } catch (StandardException e) {
+                        throw Exceptions.getIOException(e);
                     }
                 }
             }
@@ -91,12 +102,13 @@ public abstract class TransactionalXplainReporter<T> {
         return conglom;
     }
 
-    private String fetchConglomId() throws SQLException {
-        Connection dbConn = SpliceDriver.driver().getInternalConnection();
-        StringBuffer conglomId = new StringBuffer();
-        long[] ids = SpliceAdmin.getConglomids(dbConn, SCHEMA, tableName);
-        conglomId.append(ids[0]);
-        return conglomId.toString();
+    private String fetchConglomId() throws StandardException,SQLException {
+        EmbedConnection dbConn = (EmbedConnection)SpliceDriver.driver().getInternalConnection();
+        LanguageConnectionContext lcc = dbConn.getLanguageConnection();
+        DataDictionary dd = lcc.getDataDictionary();
+        SchemaDescriptor systemSchemaDescriptor = dd.getSystemSchemaDescriptor();
+        TableDescriptor td = dd.getTableDescriptor(tableName,systemSchemaDescriptor,lcc.getTransactionExecute());
+        return Long.toString(td.getHeapConglomerateId());
     }
 
     protected static abstract class WriteableHash<T> implements DataHash<T> {

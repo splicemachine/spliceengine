@@ -9,6 +9,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.metrics.IOStats;
 import com.splicemachine.metrics.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -131,7 +132,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
 						leftResultSet.setCurrentRow(leftRow);
 						rowsSeenLeft++;
 						SpliceLogUtils.debug(LOG, ">>>  NestdLoopJoin: new NLIterator");
-						nestedLoopIterator = new NestedLoopIterator(leftRow, isHash, outerJoin,rightResultSetUniqueSequenceID,spliceRuntimeContext);
+						nestedLoopIterator = new NestedLoopIterator(leftRow, isHash, outerJoin, spliceRuntimeContext);
 				}
 				if (leftRow == null){
 						if(nestedLoopIterator!=null){
@@ -191,7 +192,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
 				private boolean returnedRight=false;
 				private boolean outerJoin = false;
 
-            NestedLoopIterator(ExecRow leftRow, boolean hash, boolean outerJoin,byte[] rightResultSetUniqueSequenceID, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+            NestedLoopIterator(ExecRow leftRow, boolean hash, boolean outerJoin, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
                 SpliceLogUtils.trace(LOG, "NestedLoopIterator instantiated with leftRow %s",leftRow);
                 this.leftRow = leftRow;
                 probeResultSet = getRightResultSet();
