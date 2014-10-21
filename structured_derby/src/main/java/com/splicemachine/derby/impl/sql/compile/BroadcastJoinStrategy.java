@@ -117,23 +117,25 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
 		rightResultSetCostEstimate(predList,outerCost,innerFullKeyCost);
 	};
 
-	/**
-	 * 
-	 * Right Side Cost + Network Cost + RightSideRows*Hash Cost 
-	 * 
-	 */
-	@Override
-	public void rightResultSetCostEstimate(OptimizablePredicateList predList, CostEstimate outerCost, CostEstimate innerCost) {
-		SpliceLogUtils.trace(LOG, "rightResultSetCostEstimate outerCost=%s, innerFullKeyCost=%s",outerCost, innerCost);
-		// InnerCost does not change
-		SpliceCostEstimateImpl inner = (SpliceCostEstimateImpl) innerCost;
-		inner.setBase(innerCost.cloneMe());
-		SpliceCostEstimateImpl outer = (SpliceCostEstimateImpl) outerCost;
-		double joinCost = inner.getEstimatedRowCount()*(SpliceConstants.remoteRead+SpliceConstants.optimizerHashCost);				
-		inner.setCost(joinCost+inner.cost+outer.cost, outer.getEstimatedRowCount(), outer.getEstimatedRowCount());
-		inner.setNumberOfRegions(outer.numberOfRegions);
-		inner.setRowOrdering(outer.rowOrdering);
-		SpliceLogUtils.trace(LOG, "rightResultSetCostEstimate computed cost innerCost=%s",innerCost);
-	};	
+    @Override
+    public void rightResultSetCostEstimate(OptimizablePredicateList predList, CostEstimate outerCost, CostEstimate innerCost) {
+        SpliceLogUtils.trace(LOG, "rightResultSetCostEstimate outerCost=%s, innerFullKeyCost=%s", outerCost, innerCost);
+
+        SpliceCostEstimateImpl inner = (SpliceCostEstimateImpl) innerCost;
+        SpliceCostEstimateImpl outer = (SpliceCostEstimateImpl) outerCost;
+
+        inner.setBase(innerCost.cloneMe());
+
+        double cost = inner.getEstimatedRowCount() * (SpliceConstants.remoteRead + SpliceConstants.optimizerHashCost) + inner.cost + outer.cost;
+        double rowCount = innerCost.rowCount() * outerCost.rowCount();
+        double singleScanRowCount = outer.getEstimatedRowCount();
+
+        inner.setCost(cost, rowCount, singleScanRowCount);
+
+        inner.setNumberOfRegions(outer.numberOfRegions);
+        inner.setRowOrdering(outer.rowOrdering);
+
+        SpliceLogUtils.trace(LOG, "rightResultSetCostEstimate computed cost innerCost=%s", innerCost);
+    }
 }
 
