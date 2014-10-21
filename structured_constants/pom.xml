@@ -10,7 +10,7 @@
 	<parent>
 		<artifactId>spliceengine</artifactId>
 		<groupId>com.splicemachine</groupId>
-		<version>1.0.0RC1</version>
+		<version>1.0.0RC2-SNAPSHOT</version>
 	</parent>
 
 	<dependencies>
