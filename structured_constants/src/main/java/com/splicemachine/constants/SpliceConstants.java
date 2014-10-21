@@ -272,7 +272,7 @@ public class SpliceConstants {
 
 		
 		@SpliceConstants.Parameter public static final String TOTAL_WORKERS = "splice.task.maxWorkers";
-		@SpliceConstants.DefaultValue(TOTAL_WORKERS) public static final int DEFAULT_TOTAL_WORKERS=Runtime.getRuntime().availableProcessors()*2;
+		@SpliceConstants.DefaultValue(TOTAL_WORKERS) public static final int DEFAULT_TOTAL_WORKERS=Runtime.getRuntime().availableProcessors();
 		public static int taskWorkers;
 
 		@SpliceConstants.Parameter public static final String NUM_PRIORITY_TIERS = "splice.task.numPriorities";
