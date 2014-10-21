@@ -24,6 +24,15 @@ public class ReadOnlyTxn extends AbstractTxn {
 				return new ReadOnlyTxn(txnId,txnId,isolationLevel,Txn.ROOT_TRANSACTION,tc,false);
 		}
 
+    public static Txn wrapReadOnlyInformation(TxnView myInformation, TxnLifecycleManager control){
+        return new ReadOnlyTxn(myInformation.getTxnId(),
+                myInformation.getBeginTimestamp(),
+                myInformation.getIsolationLevel(),
+                myInformation.getParentTxnView(),
+                control,
+                myInformation.isAdditive());
+    }
+
 		public static Txn createReadOnlyTransaction(long txnId,
                                                 TxnView parentTxn,
                                                 long beginTs,
