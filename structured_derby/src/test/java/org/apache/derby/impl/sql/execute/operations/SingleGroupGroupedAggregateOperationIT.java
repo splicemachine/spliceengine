@@ -26,52 +26,57 @@ import com.splicemachine.utils.SpliceLogUtils;
  * @author Scott Fines
  *
  */
-public class SingleGroupGroupedAggregateOperationIT extends SpliceUnitTest { 
+public class SingleGroupGroupedAggregateOperationIT extends SpliceUnitTest {
     private static Logger LOG = Logger.getLogger(SingleGroupGroupedAggregateOperationIT.class);
-	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
+    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     public static final String CLASS_NAME = SingleGroupGroupedAggregateOperationIT.class.getSimpleName().toUpperCase();
-	public static final String TABLE_NAME_1 = "T";
-	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
-	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE_NAME_1,CLASS_NAME,"(username varchar(40),i int)");
-		
-	@ClassRule 
-	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
-		.around(spliceSchemaWatcher)
-		.around(spliceTableWatcher)
-		.around(new SpliceDataWatcher(){
-			@Override
-			protected void starting(Description description) {
-				try {
-					spliceClassWatcher.setAutoCommit(false);
-			        PreparedStatement ps = spliceClassWatcher.prepareStatement(format("insert into %s.%s (username, i) values (?,?)",CLASS_NAME,TABLE_NAME_1));
-			        List<String> users = Arrays.asList("jzhang","sfines","jleach","steve","george","tompson","alabama","tweak","schnoz","poster","melissa","van","emiko","caution","coco","mack","simba","quinn","zoey","danni");
-			        for(int i=0;i< size;i++){
-			            for(String user:users){
-			                int value = i*10;
+    public static final String TABLE_NAME_1 = "T";
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE_NAME_1,CLASS_NAME,"(username varchar(40),i int)");
 
-				            if(!unameStats.containsKey(user))
-				                unameStats.put(user,new Stats());
-				            unameStats.get(user).add(value);
+    @ClassRule
+    public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
+            .around(spliceSchemaWatcher)
+            .around(spliceTableWatcher)
+            .around(new SpliceDataWatcher(){
+                @Override
+                protected void starting(Description description) {
+                    try {
+                        spliceClassWatcher.setAutoCommit(false);
+                        PreparedStatement ps = spliceClassWatcher.prepareStatement(format("insert into %s.%s (username, i) values (?,?)",CLASS_NAME,TABLE_NAME_1));
+                        List<String> users = Arrays.asList("jzhang","sfines",
+                                "jleach","steve","george","tompson",
+                                "alabama","tweak","schnoz","poster",
+                                "melissa","van","emiko","caution",
+                                "coco","mack","simba","quinn",
+                                "zoey","danni");
+                        for(int i=0;i< size;i++){
+                            for(String user:users){
+                                int value = i*10;
 
-				            ps.setString(1, user);
-				            ps.setInt(2, value);
-				            SpliceLogUtils.trace(LOG,"user="+user+",value="+value);
-				            ps.executeUpdate();
-			            }
-			        }
-			        spliceClassWatcher.commit();
+                                if(!unameStats.containsKey(user))
+                                    unameStats.put(user,new Stats());
+                                unameStats.get(user).add(value);
+
+                                ps.setString(1, user);
+                                ps.setInt(2, value);
+                                SpliceLogUtils.trace(LOG,"user="+user+",value="+value);
+                                ps.executeUpdate();
+                            }
+                        }
+                        spliceClassWatcher.commit();
 //			        spliceClassWatcher.splitTable(TABLE_NAME_1,CLASS_NAME,size/3);
-				} catch (Exception e) {
-					throw new RuntimeException(e);
-				}
-				finally {
-					spliceClassWatcher.closeAll();
-				}
-			}
-			
-		});
-	
-	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                    finally {
+                        spliceClassWatcher.closeAll();
+                    }
+                }
+
+            });
+
+    @Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
     private static Map<String,Stats> unameStats = new HashMap<String,Stats>();
     private static final int size = 10;
 
@@ -97,9 +102,9 @@ public class SingleGroupGroupedAggregateOperationIT extends SpliceUnitTest {
     }
 
     @Test
-	public void testGroupedCountOperation() throws Exception{
-			ResultSet rs = methodWatcher.executeQuery(format("select username,count(i) from %s group by username",this.getTableReference(TABLE_NAME_1)));
-			int row =0;
+    public void testGroupedCountOperation() throws Exception{
+        ResultSet rs = methodWatcher.executeQuery(format("select username,count(i) from %s group by username",this.getTableReference(TABLE_NAME_1)));
+        int row =0;
         List<String> results = Lists.newArrayList();
         while(rs.next()){
             String uname = rs.getString(1);
@@ -111,18 +116,12 @@ public class SingleGroupGroupedAggregateOperationIT extends SpliceUnitTest {
                     System.out.println(result);
                 }
             }
-//                int correctCount = stats.getCount();
-//				Assert.assertEquals("Incorrect count for uname "+ uname,correctCount,count);
             row++;
         }
-//        for(String result:results){
-//            System.out.println(result);
-//        }
         Assert.assertEquals("Not all groups found!", unameStats.size(),row);
     }
 
     @Test
-//    @Ignore
     public void testRepeatedGroupedCount() throws Exception {
         /* Regression test for Bug 306 */
         for(int i=0;i<1000;i++){
@@ -132,59 +131,86 @@ public class SingleGroupGroupedAggregateOperationIT extends SpliceUnitTest {
     }
 
     @Test
-	public void testGroupedMinOperation() throws Exception{
-			ResultSet rs = methodWatcher.executeQuery(format("select username,min(i) from %s group by username",this.getTableReference(TABLE_NAME_1)));
-			int row =0;
-			while(rs.next()){
-				String uname = rs.getString(1);
-				int min = rs.getInt(2);
-				int correctMin = unameStats.get(uname).getMin();
-				Assert.assertEquals("Incorrect min for uname "+ uname,correctMin,min);
-				row++;
-			}
-			Assert.assertEquals("Not all groups found!", unameStats.size(),row);
-	}
+    public void testGroupedMinOperation() throws Exception{
+        ResultSet rs = methodWatcher.executeQuery(format("select username,min(i) from %s group by username",this.getTableReference(TABLE_NAME_1)));
+        int row =0;
+        while(rs.next()){
+            String uname = rs.getString(1);
+            int min = rs.getInt(2);
+            int correctMin = unameStats.get(uname).getMin();
+            Assert.assertEquals("Incorrect min for uname "+ uname,correctMin,min);
+            row++;
+        }
+        Assert.assertEquals("Not all groups found!", unameStats.size(),row);
+    }
 
-	@Test
-	public void testGroupedMaxOperation() throws Exception{
-			ResultSet rs = methodWatcher.executeQuery(format("select username,max(i) from %s group by username",this.getTableReference(TABLE_NAME_1)));
-			int row =0;
-			while(rs.next()){
-				String uname = rs.getString(1);
-				Assert.assertTrue("Uname "+ uname+" is unexpected",unameStats.containsKey(uname));
-				int max = rs.getInt(2);
-				int correctMax = unameStats.get(uname).getMax();
-				Assert.assertEquals("Incorrect max for uname "+ uname,correctMax,max);
-				row++;
-			}
-			Assert.assertEquals("Not all groups found!", unameStats.size(),row);
-	}
-	
-	@Test
-	public void testGroupedAvgOperation() throws Exception{
-			ResultSet rs = methodWatcher.executeQuery(format("select username,avg(i) from %s group by username",this.getTableReference(TABLE_NAME_1)));
-			int row =0;
-			while(rs.next()){
-				String uname = rs.getString(1);
-				int avg = rs.getInt(2);
-				int correctAvg = unameStats.get(uname).getAvg();
-				Assert.assertEquals("Incorrect count for uname "+ uname,correctAvg,avg);
-				row++;
-			}
-			Assert.assertEquals("Not all groups found!", unameStats.size(),row);
-	}
-	
-	@Test
-	public void testGroupedSumOperation() throws Exception{
-			ResultSet rs = methodWatcher.executeQuery(format("select username,sum(i) from %s group by username",this.getTableReference(TABLE_NAME_1)));
-			int row =0;
-			while(rs.next()){
-				String uname = rs.getString(1);
-				int sum = rs.getInt(2);
-				long correctSum = unameStats.get(uname).getSum();
-				Assert.assertEquals("Incorrect count for uname "+ uname,correctSum,sum);
-				row++;
-			}
-			Assert.assertEquals("Not all groups found!", unameStats.size(),row);
-	}
+    @Test
+    public void testGroupedMaxOperation() throws Exception{
+        ResultSet rs = methodWatcher.executeQuery(format("select username,max(i) from %s group by username",this.getTableReference(TABLE_NAME_1)));
+        int row =0;
+        while(rs.next()){
+            String uname = rs.getString(1);
+            Assert.assertTrue("Uname "+ uname+" is unexpected",unameStats.containsKey(uname));
+            int max = rs.getInt(2);
+            int correctMax = unameStats.get(uname).getMax();
+            Assert.assertEquals("Incorrect max for uname "+ uname,correctMax,max);
+            row++;
+        }
+        Assert.assertEquals("Not all groups found!", unameStats.size(),row);
+    }
+
+    @Test
+    public void testGroupedAvgOperation() throws Exception{
+        ResultSet rs = methodWatcher.executeQuery(format("select username,avg(i) from %s group by username",this.getTableReference(TABLE_NAME_1)));
+        int row =0;
+        while(rs.next()){
+            String uname = rs.getString(1);
+            int avg = rs.getInt(2);
+            int correctAvg = unameStats.get(uname).getAvg();
+            Assert.assertEquals("Incorrect count for uname "+ uname,correctAvg,avg);
+            row++;
+        }
+        Assert.assertEquals("Not all groups found!", unameStats.size(),row);
+    }
+
+    @Test
+    public void testGroupedSumOperation() throws Exception{
+        ResultSet rs = methodWatcher.executeQuery(format("select username,sum(i) from %s group by username",this.getTableReference(TABLE_NAME_1)));
+        int row =0;
+        while(rs.next()){
+            String uname = rs.getString(1);
+            int sum = rs.getInt(2);
+            long correctSum = unameStats.get(uname).getSum();
+            Assert.assertEquals("Incorrect count for uname "+ uname,correctSum,sum);
+            row++;
+        }
+        Assert.assertEquals("Not all groups found!", unameStats.size(),row);
+    }
+
+    @Test
+    public void testGroupBySubselects() throws Exception {
+        /*Regression test for DB-2014*/
+        String query = String.format(
+                        "select\n" +
+                        "        t.username\n" +
+                        "        ,sum(ts.\"Sum\")\n" +
+                        "        ,avg(ta.\"Avg\")\n" +
+                        "from\n" +
+                        "        %1$s t\n" +
+                        "        inner join (select username, sum(i) as \"Sum\" from %1$s group by username) as ts on ts.username = t.username\n" +
+                        "        inner join (select username, avg(i) as \"Avg\" from %1$s group by username) as ta on ta.username = t.username\n" +
+                        "group by t.username"
+        ,spliceTableWatcher);
+        ResultSet rs = methodWatcher.executeQuery(query);
+        int rowCount =0;
+        //TODO -sf- make this more flexible
+        while(rs.next()){
+            String uname = rs.getString(1);
+            Assert.assertEquals("Incorrect sum!",4500,rs.getInt(2));
+            Assert.assertEquals("Incorrect avg!",45,rs.getInt(3));
+            rowCount++;
+        }
+        Assert.assertEquals("Not all groups fetched!",unameStats.size(),rowCount);
+
+    }
 }
