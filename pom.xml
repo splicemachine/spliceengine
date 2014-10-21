@@ -1,14 +1,19 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.splicemachine</groupId>
-	<artifactId>utilities</artifactId>
 	<version>1.1.1-SNAPSHOT</version>
 	<packaging>jar</packaging>
-	<name>utilities</name>
+	<artifactId>utilities</artifactId>
+	<name>${project.artifactId}</name>
+	<description>Splice Machine Common Utilities</description>
+
 	<scm>
 		<connection>scm:git:git@github.com:splicemachine/utilities.git</connection>
 		<developerConnection>scm:git:git@github.com:splicemachine/utilities.git</developerConnection>
-  </scm>
+	</scm>
+
 	<distributionManagement>
 		<repository>
 			<id>splicemachine</id>
@@ -20,31 +25,28 @@
 			<id>splicemachine</id>
 			<name>Splice Machine Snapshots</name>
 			<url>http://nexus.splicemachine.com/nexus/content/repositories/snapshots</url>
-			<uniqueVersion>true</uniqueVersion>
+			<uniqueVersion>false</uniqueVersion>
 		</snapshotRepository>
 	</distributionManagement>
+	
+	<repositories>
+		<repository>
+			<id>splicemachine</id>
+			<url>http://nexus.splicemachine.com/nexus/content/groups/developers</url>
+		</repository>
+	</repositories>
+
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
+
 	<dependencies>
-		<dependency>
-			<groupId>com.google.guava</groupId>
-			<artifactId>guava</artifactId>
-			<version>11.0.2</version>
-		</dependency>
-        <dependency>
-            <groupId>log4j</groupId>
-            <artifactId>log4j</artifactId>
-            <version>1.2.17</version>
-        </dependency>
+		<dependency> <groupId>com.google.guava</groupId> <artifactId>guava</artifactId> <version>11.0.2</version> </dependency>
+        <dependency> <groupId>log4j</groupId> <artifactId>log4j</artifactId> <version>1.2.17</version> </dependency>
         <!-- = = = = = = = = = = = = = = = = = TEST dependencies -->
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>4.11</version>
-            <scope>test</scope>
-        </dependency>
+        <dependency> <groupId>junit</groupId> <artifactId>junit</artifactId> <version>4.11</version> <scope>test</scope> </dependency>
 	</dependencies>
+
 	<build>
 		<plugins>
 			<plugin>
