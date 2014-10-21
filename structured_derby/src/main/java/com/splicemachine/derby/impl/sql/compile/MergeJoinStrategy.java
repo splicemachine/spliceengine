@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
 
+import com.google.common.base.Preconditions;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.sql.compile.AccessPath;
@@ -67,7 +68,7 @@ public class MergeJoinStrategy extends HashableJoinStrategy {
 	public boolean multiplyBaseCostByOuterRows() {
 		return true;
 	}
-	
+
     /**
      * @see JoinStrategy#halfOuterJoinResultSetMethodName
      */
@@ -94,7 +95,7 @@ public class MergeJoinStrategy extends HashableJoinStrategy {
 			return false;
 		}
 		SpliceLevel2OptimizerImpl opt = (SpliceLevel2OptimizerImpl) optimizer;
-		CostEstimate outerCost = null;		
+		CostEstimate outerCost = null;
 		if (opt.joinPosition == 0) {
 			outerCost = opt.outermostCostEstimate;
 		}
@@ -113,15 +114,15 @@ public class MergeJoinStrategy extends HashableJoinStrategy {
 			** is OK to use even when costing the sort avoidance path for
 			** the inner table.  This is probably OK, since all we use
 			** from the outer cost is the row count.
-			*/			
+			*/
 			outerCost =
 					opt.optimizableList.getOptimizable(
 					opt.proposedJoinOrder[opt.joinPosition - 1]).
 						getBestAccessPath().getCostEstimate();
 		}
 		if (outerCost.getRowOrdering() == null) // not feasible
-			return false;		
-		boolean hashFeasible = hashFeasible(outerCost.getRowOrdering(),innerTable, predList, optimizer);		
+			return false;
+		boolean hashFeasible = hashFeasible(outerCost.getRowOrdering(),innerTable, predList, optimizer);
 		SpliceLogUtils.trace(LOG, "feasible innerTable=%s, predList=%s, optimizer=%s, hashFeasible=%s, outerCost=%s",innerTable,predList,optimizer,hashFeasible, outerCost);
 		return hashFeasible;
 	}
@@ -132,9 +133,9 @@ public class MergeJoinStrategy extends HashableJoinStrategy {
 	};
 
 	/**
-	 * 
-	 * Right Side Cost + NetworkCost 
-	 * 
+	 *
+	 * Right Side Cost + NetworkCost
+	 *
 	 */
 	@Override
 	public void rightResultSetCostEstimate(OptimizablePredicateList predList, CostEstimate outerCost, CostEstimate innerCost) {
@@ -143,13 +144,14 @@ public class MergeJoinStrategy extends HashableJoinStrategy {
 		SpliceCostEstimateImpl inner = (SpliceCostEstimateImpl) innerCost;
 		inner.setBase(innerCost.cloneMe());
 		SpliceCostEstimateImpl outer = (SpliceCostEstimateImpl) outerCost;
-		double joinCost = inner.getEstimatedRowCount()*SpliceConstants.remoteRead/outer.numberOfRegions;				
+        Preconditions.checkState(outer.numberOfRegions > 0);
+		double joinCost = inner.getEstimatedRowCount()*SpliceConstants.remoteRead/outer.numberOfRegions;
 		inner.setCost(joinCost+inner.cost+outer.cost, outer.getEstimatedRowCount(), outer.getEstimatedRowCount());
 		inner.setNumberOfRegions(outer.numberOfRegions);
 		inner.setRowOrdering(outer.rowOrdering);
 		SpliceLogUtils.trace(LOG, "rightResultSetCostEstimate computed cost innerCost=%s",innerCost);
-	};		
-	
+	};
+
 	 public boolean hashFeasible(RowOrdering rowOrdering, Optimizable innerTable,OptimizablePredicateList predList,Optimizer optimizer) throws StandardException {
         //commented out because it's annoying -SF-
         int[] hashKeyColumns = null;
@@ -251,9 +253,9 @@ public class MergeJoinStrategy extends HashableJoinStrategy {
     		        }
     			}
         }
-        
+
         if (irg == null) // Not Sorted...
-        	return false;        
+        	return false;
         
 		/* Look for equijoins in the predicate list */
         hashKeyColumns = findHashKeyColumns(innerTable,cd,predList);
@@ -269,13 +271,13 @@ public class MergeJoinStrategy extends HashableJoinStrategy {
 
         if (hashKeyColumns == null) {
             return false;
-        }        
-        
-        
-        
+        }
+
+
+
         return isMergeable(innerTable, predList,irg,(SpliceRowOrderingImpl) rowOrdering);
     }
-	    
+
 	 public boolean isMergeable(Optimizable innerTable, OptimizablePredicateList predicateList, IndexRowGenerator irg, SpliceRowOrderingImpl rowOrdering) throws StandardException {
 		 int[] baseColumnPositionsRightSide = irg.baseColumnPositions();
 		 Vector leftSideOrdering = rowOrdering.getVector();
@@ -296,8 +298,8 @@ public class MergeJoinStrategy extends HashableJoinStrategy {
 		 int removalSize = joinOperators.size();
 		 int testSize = Math.min(orderedSize, removalSize);
 		 for (int j = 0; j< testSize; j++) {
-			 ColumnOrdering co = (ColumnOrdering) leftSideOrdering.get(j);			 
-			 if ( (co.direction() == RowOrdering.ASCENDING && irg.isAscending(j+1)) || 
+			 ColumnOrdering co = (ColumnOrdering) leftSideOrdering.get(j);
+			 if ( (co.direction() == RowOrdering.ASCENDING && irg.isAscending(j+1)) ||
 					 co.direction() == RowOrdering.DESCENDING && irg.isDescending(j+1)) {
 				 for (BinaryRelationalOperatorNode brelop: joinOperators) {
 					  int[] colTab = co.get(0);
@@ -309,10 +311,10 @@ public class MergeJoinStrategy extends HashableJoinStrategy {
 
 			 } else {
 				 break;
-			 } 
+			 }
 		 }
 		 if (removalSize == 0 ) {
-			 return true;		 
+			 return true;
 		 }
 		 return false;
 	 }

@@ -23,6 +23,8 @@ import org.apache.log4j.Logger;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.utils.SpliceLogUtils;
 
+import static com.google.common.base.Preconditions.checkState;
+
 public class NestedLoopJoinStrategy extends BaseJoinStrategy {
     private static final Logger LOG = Logger.getLogger(NestedLoopJoinStrategy.class);
 	public NestedLoopJoinStrategy() {
@@ -335,8 +337,9 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy {
 			return;
 		SpliceCostEstimateImpl inner = (SpliceCostEstimateImpl) innerCost;
 		inner.setBase(innerCost.cloneMe());
-		SpliceCostEstimateImpl outer = (SpliceCostEstimateImpl) outerCost;		
-		double rightSideCost = (innerCost.getEstimatedCost()* (double) outer.getEstimatedRowCount()*(double) outer.getEstimatedRowCount()* SpliceConstants.optimizerNetworkCost)/outer.numberOfRegions;
+		SpliceCostEstimateImpl outer = (SpliceCostEstimateImpl) outerCost;
+        checkState(outer.numberOfRegions > 0);
+        double rightSideCost = (innerCost.getEstimatedCost()* (double) outer.getEstimatedRowCount()*(double) outer.getEstimatedRowCount()* SpliceConstants.optimizerNetworkCost)/outer.numberOfRegions;
 		inner.baseCost.setEstimatedRowCount((long)(innerCost.rowCount() * outer.rowCount()));
 		inner.baseCost.setSingleScanRowCount(innerCost.rowCount());
 		inner.baseCost.cost = rightSideCost;
