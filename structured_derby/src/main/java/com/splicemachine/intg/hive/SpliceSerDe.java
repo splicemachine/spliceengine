@@ -63,8 +63,6 @@ public class SpliceSerDe implements SerDe {
 	 private SQLUtil sqlUtil = null;
 	 private LazySimpleSerDe.SerDeParameters serdeParams;
 	 private int[]pkCols = null;
-	 private List<Integer>keyColumns = null;
-	 private HashMap<List, List> pks = new HashMap<List, List>();
 	 
 	 static Logger Log = Logger.getLogger(
 			 SpliceSerDe.class.getName());
@@ -121,26 +119,6 @@ public class SpliceSerDe implements SerDe {
 			Map.Entry kv = (Map.Entry) iter.next();
 			colNames = (ArrayList<String>) kv.getKey();
 			colTypes = (ArrayList<Integer>) kv.getValue();
-		}
-
-		pks = sqlUtil.getPrimaryKey(tableName);
-		Iterator pkiter = pks.entrySet().iterator();
-		ArrayList<String> pkColNames = null;
-		if (pkiter.hasNext()) {
-			Map.Entry kv = (Map.Entry) pkiter.next();
-			pkColNames = (ArrayList<String>) kv.getKey();
-		}
-		if (pkColNames != null && pkColNames.size() != 0) {
-			pkCols = new int[pkColNames.size()];
-			for (int i = 0; i < pkColNames.size(); i++) {
-				pkCols[i] = colNames.indexOf(pkColNames.get(i)) + 1;
-			}
-		}
-		if(pkCols != null){
-			keyColumns = new ArrayList<Integer>();
-			for(int i=0;i<pkCols.length;i++){
-				keyColumns.add(pkCols[i] -1);	
-			}
 		}
 	 }
 	 
@@ -306,7 +284,7 @@ public class SpliceSerDe implements SerDe {
 	     
 		ExecRow row = new ValueRow(dvds.length);
 		row.setRowArray(dvds);
-		ExecRowWritable rowWritable = new ExecRowWritable(colTypes, keyColumns);
+		ExecRowWritable rowWritable = new ExecRowWritable(colTypes);
 		rowWritable.set(row);
 		return rowWritable;
 		 
