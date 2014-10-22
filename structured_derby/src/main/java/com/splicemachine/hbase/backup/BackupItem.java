@@ -196,7 +196,7 @@ public class BackupItem implements InternalTable {
     private void readRegionsFromFileSystem(FileSystem fs) throws IOException {
         FileStatus[] status = fs.listStatus(new Path(getBackupItemFilesystem()));
         for (FileStatus stat : status) {
-            if (!stat.isDirectory()) {
+            if (!stat.isDir()) {
                 continue; // ignore non directories
             }
             HRegionInfo regionInfo = HRegion.loadDotRegionInfoFileContent(fs, stat.getPath());
@@ -209,7 +209,7 @@ public class BackupItem implements InternalTable {
         List<Pair<byte[], String>> famPaths = new ArrayList<Pair<byte[], String>>();
         FileStatus[] status = fs.listStatus(root);
         for (FileStatus stat : status) {
-            if (!stat.isDirectory() || stat.getPath().getName().equals("region.info")) {
+            if (!stat.isDir() || stat.getPath().getName().equals("region.info")) {
                 continue; // ignore non directories
             }
             // we have a family directory, the hfile is inside it
