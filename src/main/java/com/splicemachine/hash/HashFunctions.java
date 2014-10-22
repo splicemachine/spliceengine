@@ -46,13 +46,19 @@ public class HashFunctions {
         return new Murmur64(seed);
     }
 
-//    public static BooleanHash booleanHash(int seed) {
-//        return new DelegatingBooleanHash(murmur3(seed));
-//    }
-//
-//    public static BooleanHash fourWiseBooleanHash(int seed){
-//        return new FourWiseBooleanHash(seed,2*seed,3*seed,seed>>1);
-//    }
+    public static BooleanHash booleanHash(int seed){
+        final Hash32 hash = new Murmur32(seed);
+        return new BooleanHash() {
+            @Override
+            public boolean hash(byte[] value, int offset, int length) {
+                return hash.hash(value,offset,length)%2==0;
+            }
+
+            @Override public boolean hash(ByteBuffer bytes) { return hash.hash(bytes)%2==0; }
+            @Override public boolean hash(long value) { return hash.hash(value)%2==0; }
+            @Override public boolean hash(int value) { return hash.hash(value)%2==0; }
+        };
+    }
 
     private static class UtilHash implements Hash32{
         private static final UtilHash INSTANCE = new UtilHash();

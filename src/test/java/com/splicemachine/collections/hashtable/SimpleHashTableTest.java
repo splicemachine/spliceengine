@@ -7,6 +7,7 @@ import com.splicemachine.metrics.Metrics;
 import com.splicemachine.metrics.Timer;
 import com.splicemachine.primitives.Bytes;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.nio.ByteBuffer;
@@ -18,7 +19,20 @@ import java.util.Random;
  * @author Scott Fines
  *         Date: 10/8/14
  */
+@Ignore
 public class SimpleHashTableTest {
+
+    @Test
+    public void testCanAddEntryAndFindItAgainStringHashMap() throws Exception {
+        Map<String,Long> table = new HashMap<String, Long>();
+        int size = (int)(0.85f*(1<<20));
+        assertCorrect(table,new Generator<String>() {
+            @Override
+            public String generateKey(long iteration) {
+                return Long.toString(iteration);
+            }
+        },size);
+    }
 
     @Test
     public void testCanAddEntryAndFindItAgainString() throws Exception {
@@ -27,7 +41,7 @@ public class SimpleHashTableTest {
             @Override protected int hash(String key) { return hashFunction.hash(key); }
             @Override protected Long merge(Long newValue, Long existing) { return newValue; }
         };
-        int size = (int)(0.85f*131072);
+        int size = (int)(0.85f*(1<<20));
         assertCorrect(table,new Generator<String>() {
             @Override
             public String generateKey(long iteration) {
@@ -52,7 +66,7 @@ public class SimpleHashTableTest {
         },size);
     }
 
-    private static <K> void assertCorrect(HashTable<K, Long> table,Generator<K> dataGen,int size) {
+    private static <K> void assertCorrect(Map<K, Long> table,Generator<K> dataGen,int size) {
 //        int size = 12;
         for(long i=0;i< size;i++){
             table.put(dataGen.generateKey(i),i);
@@ -64,14 +78,14 @@ public class SimpleHashTableTest {
                 while(n<=i){
                     n<<=1;
                 }
-                System.out.printf("size=%d, nextPowOf2=%d,loadFactor=%f%n",table.size(),n,table.load());
+//                System.out.printf("size=%d, nextPowOf2=%d,loadFactor=%f%n",table.size(),n,table.load());
             }
         }
         int n = 1;
         while(n<=size){
             n<<=1;
         }
-        System.out.printf("size=%d, nextPowOf2=%d,loadFactor=%f%n",table.size(),n,table.load());
+//        System.out.printf("size=%d, nextPowOf2=%d,loadFactor=%f%n",table.size(),n,table.load());
         Assert.assertEquals("Incorrect size!",size,table.size());
 
         long val = 150414l;
@@ -160,15 +174,19 @@ public class SimpleHashTableTest {
 //        int numIterations = Integer.MAX_VALUE;
 //        System.out.printf("Testing with RobinHood table%n");
         Generator<String> generator = new Generator<String>() {
+
             @Override
             public String generateKey(long iteration) {
                 return Long.toString(iteration);
             }
         };
-        performanceAnalysis(new BaseRobinHoodHashTable<String, Long>(16,0.9f) {
-            @Override protected int hash(String key) { return sun.misc.Hashing.stringHash32(key); }
+
+        final Hash32 hashFunction = HashFunctions.murmur3(0);
+        HashTable<String,Long> table = new BaseRobinHoodHashTable<String, Long>(16,0.9f) {
+            @Override protected int hash(String key) { return hashFunction.hash(key); }
             @Override protected Long merge(Long newValue, Long existing) { return newValue; }
-        }, size, numIterations,generator);
+        };
+        performanceAnalysis(table, size, numIterations,generator);
         System.out.printf("----------%n");
         System.out.printf("Testing with java.util.HashMap%n");
         performanceAnalysis(new HashMap<String, Long>(16,0.9f),size,numIterations,generator);
