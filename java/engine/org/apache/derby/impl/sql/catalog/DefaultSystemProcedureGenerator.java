@@ -487,6 +487,20 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
                 .returnType(null).isDeterministic(false)
                 .ownerClass(SYSTEM_PROCEDURES)
                 .build()
+            ,
+            Procedure.newBuilder().name("SYSCS_BACKUP_DATABASE")
+                    .numOutputParams(0).numResultSets(0).modifiesSql()
+                    .returnType(null).isDeterministic(false)
+                    .ownerClass(SYSTEM_PROCEDURES)
+                    .varchar("directory",32672)
+                    .build()
+            ,
+            Procedure.newBuilder().name("SYSCS_RESTORE_DATABASE")
+                    .numOutputParams(0).numResultSets(0).modifiesSql()
+                    .returnType(null).isDeterministic(false)
+                    .ownerClass(SYSTEM_PROCEDURES)
+                    .varchar("directory",32672)
+                    .build()
     }));
 
     private static final List/*<Procedure>*/ sqlJProcedures = Arrays.asList(new Procedure[]{
