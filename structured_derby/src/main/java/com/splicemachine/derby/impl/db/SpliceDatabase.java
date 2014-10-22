@@ -13,7 +13,6 @@ import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.hbase.HBaseRegionLoads;
 import com.splicemachine.hbase.backup.*;
-import com.splicemachine.si.api.Txn;
 import com.google.common.io.Closeables;
 import com.splicemachine.derby.hbase.SpliceMasterObserverRestoreAction;
 import com.splicemachine.si.api.TxnView;
@@ -34,7 +33,6 @@ import org.apache.derby.shared.common.sanity.SanityManager;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.mapreduce.LoadIncrementalHFiles;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.constants.SpliceConstants;
@@ -310,8 +308,6 @@ public class SpliceDatabase extends BasicDatabase {
             if ( (backupResponse = BackupUtils.isBackupRunning()) != null)
                 throw new SQLException(backupResponse); // TODO i18n
             Backup backup = Backup.readBackup(restoreDir,BackupScope.D);
-//            admin = SpliceUtilities.getAdmin();
-            backup.readBackupItems();
 
             // recreate tables
 
@@ -328,8 +324,6 @@ public class SpliceDatabase extends BasicDatabase {
             for(BackupItem backupItem : backup.getBackupItems()) {
                 backupItem.recreateItem(admin);
             }
-
-            backup.restoreMetadata();
 
             JobFuture future = null;
             JobInfo info = null;
@@ -353,9 +347,25 @@ public class SpliceDatabase extends BasicDatabase {
                 }
             }
 
+            // purge transactions
+            PurgeTransactionsJob job = new PurgeTransactionsJob(backup.getBackupTransaction(),
+                    backup.getBackupTimestamp(),
+                    SpliceAccessManager.getHTable(SpliceConstants.TRANSACTION_TABLE_BYTES) );
+            future = SpliceDriver.driver().getJobScheduler().submit(job);
+            info = new JobInfo(job.getJobId(),future.getNumTasks(), start);
+            info.setJobFuture(future);
+            try{
+                future.completeAll(info);
+            }catch(CancellationException ce){
+                throw Exceptions.parseException(ce);
+            }catch(Throwable t){
+                info.failJob();
+                throw t;
+            }
+
+
         } catch (Throwable t) {
             // TODO error handling
-
             SpliceLogUtils.error(LOG, "Error recovering backup", t);
 
         } finally {
@@ -382,6 +392,7 @@ public class SpliceDatabase extends BasicDatabase {
             long start = System.currentTimeMillis();
             admin = SpliceUtilities.getAdmin();
             backup.createBackupItems(admin);
+            backup.createProperties();
             backup.createMetadata();
             for (BackupItem backupItem: backup.getBackupItems()) {
                 backupItem.createBackupItemFilesystem();
