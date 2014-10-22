@@ -70,7 +70,7 @@ _retrySplice() {
             else
                 if [[ ${RETRY} -lt ${MAXRETRY} ]]; then
                     if [[ -e "${ROOT_DIR}"/splice_pid ]]; then
-                        _stop "${ROOT_DIR}"/splice_pid 45 
+                        _stop "${ROOT_DIR}"/splice_pid 65
                     fi
                     ERROR_CODE=1
                 else
@@ -197,7 +197,7 @@ _stop() {
 
         if [[ -n "$KILL_PID" ]]; then
             kill -15 ${KILL_PID}
-            sleep ${TIMEOUT}
+            _sleep ${TIMEOUT}
         fi
 
         ALIVE_PID=$(ps -p ${KILL_PID} | awk ' !/PID/ { print $1 }')
@@ -230,7 +230,7 @@ _stopServer() {
 
     echo "Shutting down Splice..."
     # shut down splice/hbase, timeout value is hardcoded
-    _stop "${PID_DIR}"/splice_pid 45 
+    _stop "${PID_DIR}"/splice_pid 65
 
     echo "Shutting down Zookeeper..."
     # shut down zookeeper, timeout value is hardcoded
@@ -307,4 +307,25 @@ _waitfor() {
     done
     # did not start in allotted timeout - error
     return 1;
+}
+
+_sleep() {
+    TIMEOUT="${1}"
+
+    NUM_INTERVALS=10
+    # Number of seconds we should wait between printing status.
+    INTERVAL=$(( TIMEOUT / NUM_INTERVALS ))
+    if [[ ${INTERVAL} -eq 0 ]]; then
+		INTERVAL=1
+    fi
+    # Total number of seconds we should wait.
+    (( t = TIMEOUT ))
+    while (( t > 0 )); do
+        # Show something while we wait.
+        echo -ne "\r$(( ( ( TIMEOUT - t ) * 100 / TIMEOUT ) ))%"
+                sleep ${INTERVAL}
+        # Time left...
+        (( t -= INTERVAL ))
+    done
+    echo -e "\r100%"
 }
