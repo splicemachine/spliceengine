@@ -1,26 +1,23 @@
 package com.splicemachine.hbase.backup;
 
-import com.splicemachine.constants.SIConstants;
-import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.hbase.BufferedRegionScanner;
-import com.splicemachine.hbase.RegionScanIterator;
-import com.splicemachine.metrics.Metrics;
-import com.splicemachine.si.api.TxnSupplier;
-import com.splicemachine.si.impl.DenseTxn;
-import com.splicemachine.si.impl.SparseTxn;
-import com.splicemachine.si.impl.region.*;
-import com.splicemachine.utils.Source;
+import java.io.IOException;
+import java.util.List;
+
+import javax.annotation.Nullable;
+
 import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
-import org.apache.hadoop.hbase.util.Bytes;
 
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
+import com.splicemachine.hbase.BufferedRegionScanner;
+import com.splicemachine.hbase.RegionScanIterator;
+import com.splicemachine.metrics.Metrics;
+import com.splicemachine.si.impl.DenseTxn;
+import com.splicemachine.si.impl.region.RegionTxnStore;
+import com.splicemachine.si.impl.region.V1TxnDecoder;
+import com.splicemachine.si.impl.region.V2TxnDecoder;
+import com.splicemachine.utils.Source;
 
 /**
  * Purges unneeded transactions from a Transaction table region.

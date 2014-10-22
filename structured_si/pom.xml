@@ -229,6 +229,8 @@
 								<option>-keep public class com.splicemachine.si.impl.readresolve.NoOpReadResolver { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.readresolve.SynchronousReadResolver { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.region.RegionTxnStore { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.region.V1TxnDecoder { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.region.V2TxnDecoder { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.rollforward.NoopRollForward { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.rollforward.SegmentedRollForward { public *; }</option>
 								<option>-keep public interface com.splicemachine.si.impl.rollforward.SegmentedRollForward$Action { public *; }</option>
