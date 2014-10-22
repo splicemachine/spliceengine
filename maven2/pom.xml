@@ -93,7 +93,7 @@
       <id>splicemachine</id>
       <name>Splice Machine Snapshots</name>
       <url>http://nexus.splicemachine.com/nexus/content/repositories/snapshots</url>
-      <uniqueVersion>true</uniqueVersion>
+      <uniqueVersion>false</uniqueVersion>
     </snapshotRepository>
   </distributionManagement>
   <modules>
