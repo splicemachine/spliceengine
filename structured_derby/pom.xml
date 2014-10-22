@@ -84,6 +84,7 @@
 					<generatePom>false</generatePom>
 					<groupId>${project.groupId}</groupId>
 					<version>${project.version}</version>
+					<skip>true</skip>
 				</configuration>
 				<executions>
 					<execution>
@@ -119,7 +120,7 @@
 								<descriptor>${project.basedir}/src/main/assembly/assembly.xml</descriptor>
 								<descriptor>${project.basedir}/src/main/assembly/simple_assembly.xml</descriptor>
 							</descriptors>
-							<attach>false</attach>
+							<attach>true</attach>
 						</configuration>
 						<executions>
 							<execution>
