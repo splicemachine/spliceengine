@@ -69,7 +69,8 @@ public class Murmur32 implements Hash32{
     @Override
     public int hash(int element) {
         int h = seed;
-        h = mutate(h,element)^8;
+        int k1 = Integer.reverseBytes(element);
+        h = mutate(h,k1)^4;
         return finalize(h);
     }
 
@@ -151,7 +152,7 @@ public class Murmur32 implements Hash32{
         return h;
     }
 
- private int updatePartial(char[] bytes, int length, int pos, int h,int bytesVisited) {
+    private int updatePartial(char[] bytes, int length, int pos, int h,int bytesVisited) {
         int k1 = 0;
         switch(length-bytesVisited){
             case 3:

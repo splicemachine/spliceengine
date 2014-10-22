@@ -3,6 +3,7 @@ package com.splicemachine.hash;
 import com.google.common.collect.Lists;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
+import com.splicemachine.primitives.Bytes;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -27,16 +28,20 @@ public class Murmur32Test {
         for(int i=0;i<maxRuns;i++){
             byte[] dataPoint = new byte[i];
             random.nextBytes(dataPoint);
-            data.add(new Object[]{dataPoint});
+            data.add(new Object[]{dataPoint,random.nextInt(),random.nextLong()});
         }
         return data;
     }
 
     private final byte[] sampleData;
+    private final int sampleValue;
+    private final long sampleLong;
     private final Murmur32 murmur32 = new Murmur32(0);
 
-    public Murmur32Test(byte[] sampleData) {
+    public Murmur32Test(byte[] sampleData,int sampleValue,long sampleLong) {
         this.sampleData = sampleData;
+        this.sampleValue = sampleValue;
+        this.sampleLong = sampleLong;
     }
 
     @Test
@@ -58,4 +63,23 @@ public class Murmur32Test {
         Assert.assertEquals(correct,actual);
     }
 
+    @Test
+    public void testIntSameAsByteArray() throws Exception {
+        byte[] bytes = Bytes.toBytes(sampleValue);
+        int correct = murmur32.hash(bytes,0,bytes.length);
+
+        int actual = murmur32.hash(sampleValue);
+
+        Assert.assertEquals("Incorrect int hash!",correct,actual);
+    }
+
+    @Test
+    public void testLongSameAsByteArray() throws Exception {
+        byte[] bytes = Bytes.toBytes(sampleLong);
+        int correct = murmur32.hash(bytes,0,bytes.length);
+
+        int actual = murmur32.hash(sampleLong);
+
+        Assert.assertEquals("Incorrect int hash!",correct,actual);
+    }
 }
