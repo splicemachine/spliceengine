@@ -33,6 +33,7 @@ public class Backup implements InternalTable {
 	public static final String BACKUP_BASE_FOLDER = "BACKUP";
     public static final String BACKUP_TABLE_FOLDER = "tables";
     public static final String BACKUP_META_FOLDER = "meta";
+    public static final String BACKUP_PROPERTIES_FOLDER = "properties";
 
 
     /**
@@ -74,6 +75,25 @@ public class Backup implements InternalTable {
 	private boolean incrementalBackup;
 	private long incrementalParentBackupID;
 	private List<BackupItem> backupItems;
+    private long backupTimestamp;
+
+    public String getBackupVersion() {
+        return backupVersion;
+    }
+
+    public void setBackupVersion(String backupVersion) {
+        this.backupVersion = backupVersion;
+    }
+
+    public long getBackupTimestamp() {
+        return backupTimestamp;
+    }
+
+    public void setBackupTimestamp(long backupTimestamp) {
+        this.backupTimestamp = backupTimestamp;
+    }
+
+    private String backupVersion;
 
 	public List<BackupItem> getBackupItems() {
 		return backupItems;
@@ -137,6 +157,9 @@ public class Backup implements InternalTable {
     }
     public Path getMetaBackupFilesystemAsPath() {
         return new Path(backupFilesystem+"/"+BACKUP_BASE_FOLDER+"/"+BACKUP_META_FOLDER);
+    }
+    public Path getPropertiesBackupFilesystemAsPath() {
+        return new Path(backupFilesystem+"/"+BACKUP_BASE_FOLDER+"/"+BACKUP_PROPERTIES_FOLDER);
     }
 
 	public void setBackupFilesystem(String backupFilesystem) {
@@ -240,6 +263,8 @@ public class Backup implements InternalTable {
           backup.setIncrementalParentBackupID(incrementalParentBackupID);
           backup.setBackupStatus(BackupStatus.I);
           backup.setBackupFilesystem(backupFileSystem);
+          backup.setBackupTimestamp(backupTxn.getBeginTimestamp());
+          backup.setBackupVersion("1");
           return backup;
       }
       catch (IOException ioe) {
@@ -369,6 +394,8 @@ public class Backup implements InternalTable {
             fileSystem.mkdirs(getTableBackupFilesystemAsPath());
         if (!fileSystem.exists(getMetaBackupFilesystemAsPath()))
             fileSystem.mkdirs(getMetaBackupFilesystemAsPath());
+        if (!fileSystem.exists(getPropertiesBackupFilesystemAsPath()))
+            fileSystem.mkdirs(getPropertiesBackupFilesystemAsPath());
 		return true;
 	}
 
@@ -397,7 +424,7 @@ public class Backup implements InternalTable {
 		}
 	}
 
-    public static Backup readBackup(String backupFileSystem, BackupScope backupScope) throws SQLException, IOException {
+    public static Backup readBackup(String backupFileSystem, BackupScope backupScope) throws SQLException, IOException, StandardException {
         Txn backupTxn = TransactionLifecycle.getLifecycleManager().beginTransaction();
         Backup backup = new Backup();
         backup.setBeginBackupTimestamp(new Timestamp(System.currentTimeMillis()));
@@ -407,6 +434,9 @@ public class Backup implements InternalTable {
 //            backup.setIncrementalParentBackupID(incrementalParentBackupID);
         backup.setBackupStatus(BackupStatus.I);
         backup.setBackupFilesystem(backupFileSystem);
+        backup.readBackupItems();
+        backup.restoreProperties();
+        backup.restoreMetadata();
         return backup;
     }
 
@@ -418,7 +448,8 @@ public class Backup implements InternalTable {
 		backupFilesystem = in.readUTF();
 		backupScope = BackupScope.valueOf(in.readUTF());
 		incrementalBackup = in.readBoolean();
-		incrementalParentBackupID = in.readLong();		
+		incrementalParentBackupID = in.readLong();
+        backupTimestamp = in.readLong();
 	}
 
 	@Override
@@ -430,29 +461,65 @@ public class Backup implements InternalTable {
 		out.writeUTF(backupScope.toString());
 		out.writeBoolean(incrementalBackup);
 		out.writeLong(incrementalParentBackupID);
+        out.writeLong(backupTimestamp);
 	}
 
     // Writes derby properties stored in ZK
-    public void createMetadata() throws StandardException, IOException {
+    public void createProperties() throws StandardException, IOException {
         FileSystem fileSystem = FileSystem.get(URI.create(getBackupFilesystem()),SpliceConstants.config);
         for (String property : SpliceUtils.listProperties()) {
             byte[] value = SpliceUtils.getProperty(property);
 
-            FSDataOutputStream out = fileSystem.create(new Path(getMetaBackupFilesystemAsPath(), property));
-            out.writeLong(value.length);
+            FSDataOutputStream out = fileSystem.create(new Path(getPropertiesBackupFilesystemAsPath(), property));
+            out.writeInt(value.length);
             out.write(value);
             out.close();
         }
         fileSystem.close();
     }
 
-    // Restores derby properties to ZK
+    public void createMetadata() throws StandardException, IOException {
+        FileSystem fileSystem = FileSystem.get(URI.create(getBackupFilesystem()),SpliceConstants.config);
+        byte[] version = Bytes.toBytes(backupVersion);
+
+        FSDataOutputStream out = fileSystem.create(new Path(getMetaBackupFilesystemAsPath(), "version"));
+        out.writeInt(version.length);
+        out.write(version);
+        out.close();
+
+        byte[] value = Bytes.toBytes(backupTimestamp);
+        out = fileSystem.create(new Path(getMetaBackupFilesystemAsPath(), "backupTimestamp"));
+        out.writeInt(value.length);
+        out.write(value);
+        out.close();
+    }
+
+
     public void restoreMetadata() throws StandardException, IOException {
+        FileSystem fileSystem = FileSystem.get(URI.create(getBackupFilesystem()),SpliceConstants.config);
+
+        FSDataInputStream in = fileSystem.open(new Path(getMetaBackupFilesystemAsPath(), "version"));
+        int len = in.readInt();
+        byte[] value = new byte[len];
+        in.readFully(value);
+        backupVersion = Bytes.toString(value);
+        in.close();
+
+        in = fileSystem.open(new Path(getMetaBackupFilesystemAsPath(), "backupTimestamp"));
+        len = in.readInt();
+        value = new byte[len];
+        in.readFully(value);
+        backupTimestamp = Bytes.toLong(value);
+        in.close();
+    }
+
+    // Restores derby properties to ZK
+    public void restoreProperties() throws StandardException, IOException {
         SpliceUtils.clearProperties();
         FileSystem fileSystem = FileSystem.get(URI.create(getBackupFilesystem()),SpliceConstants.config);
-        for (FileStatus property : fileSystem.listStatus(getMetaBackupFilesystemAsPath())) {
+        for (FileStatus property : fileSystem.listStatus(getPropertiesBackupFilesystemAsPath())) {
             FSDataInputStream in = fileSystem.open(property.getPath());
-            int length = (int) in.readLong();
+            int length = in.readInt();
             byte[] value = new byte[length];
             in.readFully(value, 0, length);
 

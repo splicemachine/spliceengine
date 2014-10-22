@@ -24,7 +24,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import java.io.IOException;
 import java.util.List;
 
-class V2TxnDecoder extends TxnDecoder{
+public class V2TxnDecoder extends TxnDecoder{
     private static final byte[] FAMILY = SIConstants.DEFAULT_FAMILY_BYTES;
     static final byte[] DATA_QUALIFIER_BYTES = Bytes.toBytes("d");
     static final byte[] COUNTER_QUALIFIER_BYTES = Bytes.toBytes("c");
