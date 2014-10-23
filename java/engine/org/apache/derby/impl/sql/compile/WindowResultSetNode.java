@@ -463,6 +463,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         // note windowingRCL is a reference to resultColumns
         // setting columns on windowingRCL will also set them on resultColumns
         ResultColumnList windowingRCL = resultColumns;
+        List<SubstituteExpressionVisitor> referencesToSubstitute = new ArrayList<SubstituteExpressionVisitor>();
 
         for (OrderedColumn keyCol : findMissingKeyNodes(columnMapping.getParentColumns(), wdn.getKeyColumns())) {
             ResultColumn newRC = (ResultColumn) getNodeFactory().getNode(
@@ -492,7 +493,47 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 
             // reset the key column's column position in the Window result since we're rearranging here
             resetOverColumnsPositionByKey(keyCol, wdn.getOverColumns(), newColumnNumber);
+
+          /*
+           ** Reset the original node to point to the
+           ** Group By result set.
+           */
+            VirtualColumnNode vc = (VirtualColumnNode) getNodeFactory().getNode(
+                C_NodeTypes.VIRTUAL_COLUMN_NODE,
+                this, // source result set.
+                wRC,
+                windowingRCL.size(),
+                getContextManager());
+
+            // we replace each group by expression
+            // in the projection list with a virtual column node
+            // that effectively points to a result column
+            // in the result set doing the group by
+            //
+            // Note that we don't perform the replacements
+            // immediately, but instead we accumulate them
+            // until the end of the loop. This allows us to
+            // sort the expressions and process them in
+            // descending order of complexity, necessary
+            // because a compound expression may contain a
+            // reference to a simple grouped column, but in
+            // such a case we want to process the expression
+            // as an expression, not as individual column
+            // references. E.g., if the statement was:
+            //   SELECT ... GROUP BY C1, C1 * (C2 / 100), C3
+            // then we don't want the replacement of the
+            // simple column reference C1 to affect the
+            // compound expression C1 * (C2 / 100). DERBY-3094.
+            //
+            SubstituteExpressionVisitor vis =
+                new SubstituteExpressionVisitor(keyCol.getColumnExpression(), vc, AggregateNode.class);
+            referencesToSubstitute.add(vis);
         }
+
+        Comparator<SubstituteExpressionVisitor> sorter = new ExpressionSorter();
+        Collections.sort(referencesToSubstitute, sorter);
+        for (SubstituteExpressionVisitor aReferencesToSubstitute : referencesToSubstitute)
+            windowingRCL.accept(aReferencesToSubstitute);
     }
 
     /**
