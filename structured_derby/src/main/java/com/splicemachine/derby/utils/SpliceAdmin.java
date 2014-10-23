@@ -1067,12 +1067,13 @@ public class SpliceAdmin extends BaseAdminProcedures {
     		ExecRow dataTemplate = new ValueRow(numCols);
     		dataTemplate.setRowArray(dvds);
 
-    		// Transform the properties into rows.
-    		for (Iterator iter = appProps.entrySet().iterator(); iter.hasNext(); )
+    		// Transform the properties into rows.  Sort the properties by key first.
+    		ArrayList<String> keyList = new ArrayList(appProps.keySet());
+    		Collections.sort(keyList);
+    		for (Iterator<String> iter = keyList.iterator(); iter.hasNext(); )
     		{
-    			Map.Entry prop = (Map.Entry) iter.next();
-    			String key = (String) prop.getKey();
-    			String[] typedValue = (String[]) prop.getValue();
+    			String key = (String) iter.next();
+    			String[] typedValue = (String[]) appProps.get(key);
     			dvds[0].setValue(key);
     			dvds[1].setValue(typedValue[0]);
     			dvds[2].setValue(typedValue[1]);
