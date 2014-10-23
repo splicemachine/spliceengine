@@ -23,7 +23,6 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
-import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -61,7 +60,6 @@ import com.splicemachine.derby.utils.marshall.KeyPostfix;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.derby.utils.marshall.UniquePostfix;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
-import com.splicemachine.derby.utils.marshall.dvd.SerializerMap;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.job.JobResults;
@@ -100,6 +98,8 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
     private WindowFunctionIterator windowFunctionIterator;
     private SpliceResultScanner step2Scanner;
     private boolean serializeSource = true;
+    private DescriptorSerializer[] serializers;
+    private DataHash keyHash;
 
     static {
         nodeTypes = Arrays.asList(NodeType.REDUCE, NodeType.SINK);
@@ -175,6 +175,7 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
         sortTemplateRow = windowContext.getSortTemplateRow();
         sourceExecIndexRow = windowContext.getSourceIndexRow();
         templateRow = getExecRowDefinition();
+        serializers = VersionedSerializers.latestVersion(false).getSerializers(templateRow);
         startExecutionTime = System.currentTimeMillis();
     }
 
@@ -186,7 +187,8 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
         serializeSource = false;
         SpliceUtils.setInstructions(reduceScan, activation, top, spliceRuntimeContext);
         serializeSource = true;
-        return new DistributedClientScanProvider("windowReduce", SpliceOperationCoprocessor.TEMP_TABLE,
+        byte[] tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
+        return new DistributedClientScanProvider("windowReduce", tempTableBytes,
                                                  reduceScan,decoder, spliceRuntimeContext);
     }
 
@@ -194,18 +196,14 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
         Scan reduceScan;
 
         try {
-            // FIXME: in order to use "range" array we need to actually write to bucketed TEMP
-            byte[] range = new byte[uniqueId.length+1];
-            range[0] = spliceRuntimeContext.getHashBucket();
-            System.arraycopy(uniqueId,0,range,1,uniqueId.length);
             reduceScan = Scans.buildPrefixRangeScan(uniqueId, null);
+            //make sure that we filter out failed tasks
+            if (failedTasks.size() > 0) {
+                SuccessFilter filter = new SuccessFilter(failedTasks);
+                reduceScan.setFilter(filter);
+            }
         } catch (IOException e) {
             throw Exceptions.parseException(e);
-        }
-
-        if(failedTasks.size()>0){
-            SuccessFilter filter = new SuccessFilter(failedTasks);
-            reduceScan.setFilter(filter);
         }
         return reduceScan;
     }
@@ -278,16 +276,23 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
          */
         byte[] uuid = spliceRuntimeContext.isFirstStepInMultistep() ? extraUniqueSequenceID : uniqueSequenceID;
         HashPrefix prefix = new FixedBucketPrefix(spliceRuntimeContext.getHashBucket(), new FixedPrefix(uuid));
+        // FIXME: we need to bucket across TEMP because performance sucks. Code below breaks us tho.
+//        HashPrefix prefix = new BucketingPrefix(new FixedPrefix(uuid), HashFunctions.murmur3(0),
+//                                                SpliceDriver.driver().getTempTable().getCurrentSpread());
 
         byte[] taskId = spliceRuntimeContext.getCurrentTaskId();
         KeyPostfix keyPostfix = new UniquePostfix(taskId, operationInformation.getUUIDGenerator());
 
-        SerializerMap serializerMap = VersionedSerializers.latestVersion(false);
-        DataHash hash = BareKeyHash.encoder(windowContext.getKeyColumns(),
-                                            windowContext.getKeyOrders(),
-                                            serializerMap.getSerializers(templateRow));
+        return new KeyEncoder(prefix, getKeyHash(), keyPostfix);
+    }
 
-        return new KeyEncoder(prefix, hash, keyPostfix);
+    private DataHash getKeyHash() {
+        if (keyHash == null) {
+            keyHash = BareKeyHash.encoder(windowContext.getKeyColumns(),
+                                          windowContext.getKeyOrders(),
+                                          serializers);
+        }
+        return keyHash;
     }
 
     @Override
@@ -295,9 +300,8 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
 		/*
 		 * Only encode columns that do not appear in over clause
 		 */
-        ExecRow templateRow = getExecRowDefinition();
-        int[] fields = IntArrays.complementMap(windowContext.getKeyColumns(), templateRow.nColumns());
-        DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(templateRow);
+        ExecRow execRowDefinition = getExecRowDefinition();
+        int[] fields = IntArrays.complementMap(windowContext.getKeyColumns(), execRowDefinition.nColumns());
         return BareKeyHash.encoder(fields, null, serializers);
     }
 
@@ -325,7 +329,8 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
 
         if (windowFunctionIterator == null) {
             timer = ctx.newTimer();
-            if (! createFrameIterator(ctx)) return null;
+            windowFunctionIterator = createFrameIterator(ctx);
+            if (windowFunctionIterator == null) return null;
         }
 
         timer.startTiming();
@@ -334,7 +339,6 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
         if (row == null) {
             timer.stopTiming();
             windowFunctionIterator.close();
-            // TODO jc: set windowFunctionIterator to null here so that it will be recreated/reinitialized above?
             return null;
         }
         else {
@@ -345,14 +349,14 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
         return row;
     }
 
-    private boolean createFrameIterator(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+    private WindowFunctionIterator createFrameIterator(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
         // Pass in a region aware scanner to make sure the region scanner handles rows of one partition that
         // "overflow" to another region
         step2Scanner = getResultScanner(windowContext.getPartitionColumns(), spliceRuntimeContext, extraUniqueSequenceID);
 
         // create the frame source for the frame buffer
         spliceRuntimeContext.setFirstStepInMultistep(true);
-        rowDecoder = OperationUtils.getPairDecoder(this, spliceRuntimeContext);
+        rowDecoder = getTempDecoder(spliceRuntimeContext);
         spliceRuntimeContext.setFirstStepInMultistep(false);
 
         PartitionAwareIterator<ExecRow> iterator =
@@ -362,7 +366,7 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
         // test the frame source
         if (! frameSource.test(spliceRuntimeContext)) {
             // tests false - bail
-            return false;
+            return null;
         }
 
         // create the frame buffer that will use the frame source
@@ -374,9 +378,8 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
                         windowContext.getSortColumns(),
                         templateRow);
 
-        // create the frame iterator
-        windowFunctionIterator = new WindowFunctionIterator(frameBuffer);
-        return true;
+        // create and return the frame iterator
+        return new WindowFunctionIterator(frameBuffer);
     }
 
     @Override
@@ -420,10 +423,10 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
     }
 
     protected PairDecoder getTempDecoder(SpliceRuntimeContext ctx) throws StandardException {
-        if (rowDecoder != null) {
-            return rowDecoder;
+        if (rowDecoder == null) {
+            rowDecoder = OperationUtils.getPairDecoder(this, ctx);
         }
-        return OperationUtils.getPairDecoder(this, ctx);
+        return rowDecoder;
     }
 
     @Override

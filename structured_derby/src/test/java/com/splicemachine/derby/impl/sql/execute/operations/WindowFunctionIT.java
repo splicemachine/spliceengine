@@ -6,7 +6,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.splicemachine.derby.test.framework.*;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -16,6 +15,13 @@ import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
 import com.splicemachine.derby.management.XPlainTreeNode;
+import com.splicemachine.derby.test.framework.SpliceDataWatcher;
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceTableWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.test.framework.SpliceXPlainTrace;
+import com.splicemachine.derby.test.framework.TestConnection;
 
 /**
  *
@@ -1134,7 +1140,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
         for (int i=0; i<actualList.size(); i++) {
             actual[i] = actualList.get(i);
         }
-        Assert.assertArrayEquals(expected, actual);
+        Assert.assertArrayEquals(printExpectedVActual(expected,actual),expected, actual);
     }
 
     private static void compareArrays(double[] expected, List<Double> actualList) {
@@ -1142,7 +1148,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
         for (int i=0; i<actualList.size(); i++) {
             actual[i] = actualList.get(i);
         }
-        Assert.assertArrayEquals(expected, actual, 0.0);
+        Assert.assertArrayEquals(printExpectedVActual(expected,actual),expected, actual, 0.0);
     }
 
     private static void compareArrays(String[] expected, List<String> actualList) {
@@ -1150,6 +1156,66 @@ public class WindowFunctionIT extends SpliceUnitTest {
         for (int i=0; i<actualList.size(); i++) {
             actual[i] = (actualList.get(i));
         }
-        Assert.assertArrayEquals(expected, actual);
+        Assert.assertArrayEquals(printExpectedVActual(expected,actual), expected, actual);
+    }
+
+    private static String printExpectedVActual(int[] expected, int[] actual) {
+        StringBuilder buf = new StringBuilder();
+        for (int anExpected : expected) {
+            buf.append(anExpected).append(", ");
+        }
+        int eSize = buf.length();
+        if (eSize > 2) {
+            buf.setLength(buf.length()-2);
+            buf.append('\n');
+            eSize = buf.length();
+        }
+        for (int anActual : actual) {
+            buf.append(anActual).append(", ");
+        }
+        if (buf.length() - eSize > 2) {
+            buf.setCharAt(buf.length()-2,'\n');
+        }
+        return buf.toString();
+    }
+
+    private static String printExpectedVActual(double[] expected, double[] actual) {
+        StringBuilder buf = new StringBuilder();
+        for (double anExpected : expected) {
+            buf.append(anExpected).append(", ");
+        }
+        int eSize = buf.length();
+        if (eSize > 2) {
+            buf.setLength(buf.length()-2);
+            buf.append('\n');
+            eSize = buf.length();
+        }
+        for (double anActual : actual) {
+            buf.append(anActual).append(", ");
+        }
+        if (buf.length() - eSize > 2) {
+            buf.setCharAt(buf.length()-2,'\n');
+        }
+        return buf.toString();
+    }
+
+    private static String printExpectedVActual(String[] expected, String[] actual) {
+        StringBuilder buf = new StringBuilder();
+        for (String anExpected : expected) {
+            buf.append(anExpected).append(", ");
+        }
+        int eSize = buf.length();
+        if (eSize > 2) {
+            buf.setLength(buf.length()-2);
+            buf.append('\n');
+            eSize = buf.length();
+        }
+        for (String anActual : actual) {
+            buf.append(anActual).append(", ");
+        }
+        if (buf.length() - eSize > 2) {
+            buf.setCharAt(buf.length()-2,'\n');
+        }
+        return buf.toString();
     }
 }
