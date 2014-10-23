@@ -73,7 +73,7 @@ tar xvf ${TARBALL} -C "${ROOT_DIR}"/target splicemachine/lib &>/dev/null
 # Config
 SPLICELOG="${ROOT_DIR}"/splice.log
 ZOOLOG="${ROOT_DIR}"/zoo.log
-CLASSPATH="${ROOT_DIR}"/target/splicemachine/lib/*
+CLASSPATH="${ROOT_DIR}"/conf:"${ROOT_DIR}"/target/splicemachine/lib/*
 ZOO_DIR="${ROOT_DIR}"/target/zookeeper
 HBASE_ROOT_DIR_URI="file://${ROOT_DIR}/target/hbase"
 LOG4J_PATH="file:${ROOT_DIR}/target/classes/hbase-log4j.properties"
@@ -89,14 +89,6 @@ fi
 
 currentDateTime=$(date +'%m-%d-%Y:%H:%M:%S')
 echo "=== Running with hbase profile ${PROFILE} at $currentDateTime ${BUILD_TAG} === " > ${SPLICELOG}
-# Remove the '-obfuscated' classifier from the PROFILE for the Splice jar file.
-# Only the structured_si.jar file is obfuscated.
-PROFILE_SANS_OBFUSCATE=$(echo ${PROFILE} | sed 's/-obfuscated//')
-spliceJar=`ls ${ROOT_DIR}/target/splicemachine/lib/splice_machine-*-${PROFILE_SANS_OBFUSCATE}.jar`
-echo "spliceJar = ${spliceJar}"
-cp "${ROOT_DIR}/conf/splice-site.xml" ./
-jar -uf $spliceJar splice-site.xml
-rm splice-site.xml
 export SPLICE_SYS_ARGS="-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4000"
 ZOO_WAIT_TIME=45
 # This is the class we start in dev env
