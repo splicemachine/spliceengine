@@ -15,10 +15,10 @@ mvn clean install -DskipTests=true
 mvn clean install
 
 #### Building the Default profile and running unit and fast integration tests
-mvn clean install -PITs
+mvn clean install -Passemble,ITs
 
 #### Building the Default profile and running all tests
-mvn clean install -PITs -Dexcluded.categories=
+mvn clean install -Passemble,ITs -Dexcluded.categories=
 
 #### Building alternate profiles
 *to be certain inspect the top level pom.xml in this project*
