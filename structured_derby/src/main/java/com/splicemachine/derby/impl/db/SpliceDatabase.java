@@ -112,9 +112,9 @@ public class SpliceDatabase extends BasicDatabase {
         }
 
         if (create){
-            SpliceLogUtils.info(LOG,"Creating the Splice Machine");
+            SpliceLogUtils.info(LOG,"Creating the Splice Machine database");
         }else {
-            SpliceLogUtils.info(LOG,"Booting the Splice Machine");
+            SpliceLogUtils.info(LOG,"Booting the Splice Machine database");
         }
         super.boot(create, startParams);
         if (!create) {
