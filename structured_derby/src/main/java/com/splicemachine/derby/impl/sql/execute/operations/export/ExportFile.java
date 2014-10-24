@@ -46,8 +46,8 @@ class ExportFile {
         }
     }
 
-    public void delete() throws IOException {
-        fileSystem.delete(buildOutputFilePath(), false);
+    public boolean delete() throws IOException {
+        return fileSystem.delete(buildOutputFilePath(), false);
     }
 
     protected Path buildOutputFilePath() {

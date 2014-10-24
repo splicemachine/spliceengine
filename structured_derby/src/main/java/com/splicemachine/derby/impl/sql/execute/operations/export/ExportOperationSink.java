@@ -10,6 +10,7 @@ import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.metrics.Timer;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.log4j.Logger;
 import org.supercsv.io.CsvListWriter;
 
 import java.io.IOException;
@@ -19,6 +20,8 @@ import java.io.OutputStream;
  * Invoked by SinkTask to perform the export on each node.
  */
 public class ExportOperationSink implements OperationSink {
+
+    private static final Logger LOG = Logger.getLogger(ExportOperationSink.class);
 
     private final ExportOperation operation;
     private final Timer totalTimer;
@@ -47,8 +50,10 @@ public class ExportOperationSink implements OperationSink {
             }
             totalTimer.stopTiming();
         } catch (Exception e) {
+            LOG.error("task side export error", e);
             /* This task failed, delete any partial export file. */
-            exportFile.delete();
+            boolean deleteResult = exportFile.delete();
+            LOG.error("attempted to delete partial export file with result = " + deleteResult);
             return handleException(e);
         } finally {
             operation.close();
