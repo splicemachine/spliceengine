@@ -10,8 +10,8 @@ import com.splicemachine.hash.Hash32;
 class ShortSSFrequencyCounter extends SSFrequencyCounter<Short> implements ShortFrequencyCounter {
 		public ShortSSFrequencyCounter(int maxSize,
 																	 int initialCapacity,
-																	 Hash32[] hashFunctions) {
-				super(maxSize, initialCapacity, hashFunctions);
+																	 Hash32 hashFunction) {
+				super(maxSize, initialCapacity, hashFunction);
 		}
 
 		@Override protected Element newElement() { return new ShortElement(); }
@@ -32,46 +32,78 @@ class ShortSSFrequencyCounter extends SSFrequencyCounter<Short> implements Short
 			update(item,1l);
 		}
 
-		@Override
-		public void update(short item,long count) {
-				ShortElement staleElement = null;
-				int visitedCount = 0;
-				HASH_LOOP:for (Hash32 hashFunction : hashFunctions) {
-						int pos = hashFunction.hash(item) & (capacity - 1);
-						for(int i=0;i<3 && visitedCount<capacity;i++){
-								int newPos = (pos+i) & (capacity-1);
-								ShortElement existing = (ShortElement)hashtable[newPos];
-								if (existing == null) {
-										if(staleElement==null){
-												existing = new ShortElement();
-												hashtable[newPos] = existing;
-												staleElement = existing;
-										}
-										break HASH_LOOP;
-								}if (existing.stale) {
-										if(staleElement==null)
-												staleElement = existing;
-								}else if (existing.value == item) {
-										elementsSeen++;
-										increment(existing,count);
-										return;
-								}
-								visitedCount++;
-						}
-				}
-				if(staleElement!=null){
-						//adding a new element. If necessary, evict an old
-						size++;
-						staleElement.epsilon = evictAndSet(staleElement);
-						staleElement.value = item;
-						increment(staleElement,count);
-						staleElement.stale = false;
-						elementsSeen++;
-				}else{
-						expandCapacity();
-						update(item);
-				}
-		}
+
+    @Override
+    public void update(short item,long count) {
+        ShortElement staleElement = doPut(item,count);
+        if(staleElement!=null){
+            //adding a new element. If necessary, evict an old
+            size++;
+            staleElement.epsilon = evictAndSet(staleElement);
+            staleElement.value = item;
+            increment(staleElement,count);
+            staleElement.stale = false;
+            elementsSeen++;
+        }
+        if(size>=expansionLimit){
+            //make sure we are big enough for the next one
+            expandCapacity();
+        }
+    }
+
+    /*****************************************************************************************************************/
+    /*private helper methods*/
+    private ShortElement doPut(short item, long count){
+        int hashCode = hash(item,hashFunction);
+        int pos = hashCode & (capacity - 1);
+        int probeLength=0;
+        ShortElement staleElement = null;
+        ShortElement toPlace = null;
+        while(true){
+            int hC = hashCodes[pos];
+            if(hC==hashCode){
+                ShortElement e = (ShortElement)hashtable[pos];
+                if(e==null){
+                    if(toPlace==null) toPlace= staleElement= (ShortElement)newElement();
+
+                    hashtable[pos] = toPlace;
+                    break;
+                }else if(e.stale){
+                    staleElement = e;
+                    break;
+                }else if(e.matchingValue(item)){
+                    elementsSeen++;
+                    increment(e,count);
+                    return null;
+                }
+            }else if(hC==0){
+                //we have an empty slot, so place it directly
+                hashCodes[pos] = hashCode;
+                if(toPlace==null) toPlace = staleElement = (ShortElement)newElement();
+                hashtable[pos] = toPlace;
+                break;
+            }
+            int pC = getProbeDistance(pos,hC);
+            if(pC>probeLength){
+                /*
+                 * We've reached an element with a shorter probe length than us. In this case,
+                 * swap the element, and adjust the probe length
+                 */
+                ShortElement e = (ShortElement)hashtable[pos];
+                hashCodes[pos] = hashCode;
+                if(toPlace==null) toPlace = staleElement = (ShortElement)newElement();
+                hashtable[pos] = toPlace;
+                toPlace= e;
+                probeLength = pC;
+                hashCode = hC;
+            }
+            probeLength++;
+            pos = (pos+1) & (capacity-1);
+        }
+        if(longestProbeLength<probeLength)
+            longestProbeLength = probeLength;
+        return staleElement;
+    }
 
 		private class ShortElement extends Element{
 				short value;

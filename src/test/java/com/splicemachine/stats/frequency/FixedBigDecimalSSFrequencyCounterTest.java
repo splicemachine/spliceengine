@@ -21,14 +21,7 @@ public class FixedBigDecimalSSFrequencyCounterTest {
 		@Test
 		public void testWorksWithNoEviction() throws Exception {
 				//insert 10 unique elements, then pull them out
-				Hash32[] hashes = new Hash32[]{
-								HashFunctions.murmur3(0),
-								HashFunctions.murmur3(5),
-								HashFunctions.murmur3(7),
-								HashFunctions.murmur3(11),
-								HashFunctions.murmur3(13),
-				};
-				SSFrequencyCounter<BigDecimal> spaceSaver = new SSFrequencyCounter<BigDecimal>(20,10, hashes);
+				SSFrequencyCounter<BigDecimal> spaceSaver = new SSFrequencyCounter<BigDecimal>(20,10, HashFunctions.murmur3(0));
 
 				Map<BigDecimal,LongPair> correctEstimates = new HashMap<BigDecimal, LongPair>();
 				for(int i=0;i<10;i++){
@@ -62,14 +55,7 @@ public class FixedBigDecimalSSFrequencyCounterTest {
 
 		@Test
 		public void testEvictsEntry() throws Exception {
-				Hash32[] hashes = new Hash32[]{
-								HashFunctions.murmur3(0),
-								HashFunctions.murmur3(5),
-								HashFunctions.murmur3(7),
-								HashFunctions.murmur3(11),
-								HashFunctions.murmur3(13),
-				};
-				SSFrequencyCounter<BigDecimal> spaceSaver = new SSFrequencyCounter<BigDecimal>(2,10, hashes);
+				SSFrequencyCounter<BigDecimal> spaceSaver = new SSFrequencyCounter<BigDecimal>(2,10, HashFunctions.murmur3(0));
 
 				BigDecimal element = BigDecimal.valueOf(1);
 				spaceSaver.update(element);

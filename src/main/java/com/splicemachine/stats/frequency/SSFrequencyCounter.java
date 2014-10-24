@@ -68,12 +68,16 @@ class SSFrequencyCounter<T> implements FrequencyCounter<T> {
 		/* The current capacity of the hashtable. */
 		protected int capacity;
 		/* The hashtable itself */
+    protected int[] hashCodes;
 		protected Element[] hashtable;
+    protected int longestProbeLength = 0;
+    protected int expansionLimit; //the point at which we need to expand the hash table
+    private final float loadFactor; //the loadFactor
 		/*
 		 * Hash functions for multiple-hashing on the hashtable. The larger the array, the less memory is required,
 		 * but the more steps may be necessary to insert a new entry.
 		 */
-		protected final Hash32[] hashFunctions;
+		protected final Hash32 hashFunction;
 
 		/* The current number of occupied counters. */
 		protected int size;
@@ -89,10 +93,16 @@ class SSFrequencyCounter<T> implements FrequencyCounter<T> {
 		/* Keeps track of the total number of elements seen. Needed for frequent elements estimates */
 		protected int elementsSeen;
 
+    protected SSFrequencyCounter(int maxSize,
+                                 int initialCapacity,
+                                 Hash32 hashFunction) {
+        this(maxSize, initialCapacity, hashFunction,0.9f);
+    }
+
 		protected SSFrequencyCounter(int maxSize,
 																 int initialCapacity,
-																 Hash32[] hashFunctions) {
-				this.hashFunctions = hashFunctions;
+																 Hash32 hashFunction,float loadFactor) {
+				this.hashFunction = hashFunction;
 
 				this.maxSize = maxSize;
 
@@ -102,52 +112,99 @@ class SSFrequencyCounter<T> implements FrequencyCounter<T> {
 						s<<=1;
 				this.capacity = s;
 				this.hashtable = newHashArray(capacity);
+        this.hashCodes = new int[capacity];
+        this.loadFactor = loadFactor;
+        this.expansionLimit = (int)(loadFactor*capacity);
 		}
 
 		@Override
 		public void update(T item, long count) {
 				assert item!=null: "Null values are not allowed!";
 
-				Element staleElement = null;
-				HASH_LOOP: for (Hash32 hashFunction : hashFunctions) {
-						int pos = hash(item,hashFunction) & (capacity - 1);
-						for(int i=0;i<3;i++){
-								int newPos = (pos+i) & (capacity-1);
-								Element existing = hashtable[newPos];
-								if (existing == null) {
-										if(staleElement==null){
-												existing = newElement();
-												hashtable[newPos] = existing;
-												staleElement = existing;
-										}
-										break HASH_LOOP;
-								} if (existing.stale) {
-										if(staleElement==null)
-												staleElement = existing;
-								} else if (existing.matchingValue(item)) {
-										elementsSeen++;
-										increment(existing,count);
-										return;
-								}
-						}
-				}
-				if(staleElement!=null){
-						//adding a new element. If necessary, evict an old
-						size++;
-						staleElement.epsilon = evictAndSet(staleElement);
-						staleElement.setValue(item);
-						increment(staleElement,count);
+        Element staleElement = doPut(item,count);
+
+        if(staleElement!=null){
+            //adding a new element. If necessary, evict an old
+            size++;
+            staleElement.epsilon = evictAndSet(staleElement);
+            staleElement.setValue(item);
+            increment(staleElement,count);
 
 						staleElement.stale = false;
 						elementsSeen++;
-				}else{
-						expandCapacity();
-						update(item);
-				}
+        }
 
-		}
+        if(size>=expansionLimit){
+            //make sure we are big enough for the next one
+            expandCapacity();
+        }
+    }
 
-		@Override
+    protected Element doPut(T item, long count){
+        int hashCode = hash(item,hashFunction);
+        int pos = hashCode & (capacity - 1);
+        int probeLength=0;
+        Element staleElement = null;
+        Element toPlace = null;
+        while(true){
+            int hC = hashCodes[pos];
+            if(hC==hashCode){
+                Element e = hashtable[pos];
+                if(e==null){
+                    if(toPlace==null) toPlace= staleElement= newElement();
+
+                    hashtable[pos] = toPlace;
+                    break;
+                }else if(e.stale){
+                    staleElement = e;
+                    break;
+                }else if(e.matchingValue(item)){
+                    elementsSeen++;
+                    increment(e,count);
+                    return null;
+                }
+            }else if(hC==0){
+                //we have an empty slot, so place it directly
+                hashCodes[pos] = hashCode;
+                if(toPlace==null) toPlace = staleElement = newElement();
+                hashtable[pos] = toPlace;
+                break;
+            }
+            int pC = getProbeDistance(pos,hC);
+            if(pC>probeLength){
+                /*
+                 * We've reached an element with a shorter probe length than us. In this case,
+                 * swap the element, and adjust the probe length
+                 */
+                Element e = hashtable[pos];
+                hashCodes[pos] = hashCode;
+                if(toPlace==null) toPlace = staleElement = newElement();
+                hashtable[pos] = toPlace;
+                toPlace= e;
+                probeLength = pC;
+                hashCode = hC;
+            }
+            probeLength++;
+            pos = (pos+1) & (capacity-1);
+        }
+        if(longestProbeLength<probeLength)
+            longestProbeLength = probeLength;
+        return staleElement;
+    }
+
+    protected int getProbeDistance(int currentPosition, int hash) {
+        /*
+         * Get the distance from the current position to where the hashCode
+         * says it *should* be located.
+         */
+        int hc = (hash & (capacity-1));
+        int dist = currentPosition-hc;
+        if(currentPosition<hc)
+            dist+=capacity;
+        return dist;
+    }
+
+    @Override
 		public void update(T item) {
 				update(item,1l);
 		}
@@ -239,22 +296,44 @@ class SSFrequencyCounter<T> implements FrequencyCounter<T> {
 				if(capacity==MAXIMUM_CAPACITY) return;
 				int newCapacity =2*capacity;
 
-				Element[] newElements = newHashArray(newCapacity);
-				for (Element e : hashtable) {
-						if (e == null|| e.stale) continue;
-						boolean found= false;
-						for (Hash32 hashFunction : hashFunctions) {
-								int pos = hash(e,hashFunction) & (newCapacity - 1);
-								if (newElements[pos] == null) {
-										newElements[pos] = e;
-										found=true;
-										break;
-								}
-						}
-						assert found: "Unable to reposition elements!";
-				}
-				this.capacity = newCapacity;
-				this.hashtable = newElements;
+        int[] oldHashCode = hashCodes;
+        Element[] oldHashtable = hashtable;
+
+        hashCodes= new int[newCapacity];
+				hashtable = newHashArray(newCapacity);
+        capacity = newCapacity;
+        expansionLimit = (int)(loadFactor*capacity);
+        for(int i=0;i<oldHashCode.length;i++){
+            int hashCode = oldHashCode[i];
+            if(hashCode==0) continue;
+
+            int pos = hashCode & (capacity-1);
+            Element toPlace = oldHashtable[i];
+            int probeLength = 0;
+            while(true){
+                int hC = hashCodes[pos];
+                if(hC==0){
+                    hashCodes[pos] = hashCode;
+                    hashtable[pos] = toPlace;
+                    break;
+                }
+                int pC = getProbeDistance(pos,hC);
+                if(pC>probeLength){
+                /*
+                 * We've reached an element with a shorter probe length than us. In this case,
+                 * swap the element, and adjust the probe length
+                 */
+                    Element e = hashtable[pos];
+                    hashCodes[pos] = hashCode;
+                    hashtable[pos] = toPlace;
+                    toPlace= e;
+                    probeLength = pC;
+                    hashCode = hC;
+                }
+                probeLength++;
+                pos = (pos+1) & (capacity-1);
+            }
+        }
 		}
 
 		/**

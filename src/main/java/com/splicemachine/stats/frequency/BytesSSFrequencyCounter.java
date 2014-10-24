@@ -2,6 +2,7 @@ package com.splicemachine.stats.frequency;
 
 
 import com.splicemachine.hash.Hash32;
+import com.splicemachine.primitives.ByteComparator;
 
 import java.nio.ByteBuffer;
 
@@ -10,8 +11,12 @@ import java.nio.ByteBuffer;
  *         Date: 3/26/14
  */
 class BytesSSFrequencyCounter extends SSFrequencyCounter<byte[]> implements BytesFrequencyCounter {
-		protected BytesSSFrequencyCounter(int maxSize, int initialCapacity, Hash32[] hashFunctions) {
-				super(maxSize, initialCapacity, hashFunctions);
+    private final ByteComparator byteComparator;
+
+		protected BytesSSFrequencyCounter(ByteComparator byteComparator,
+                                      int maxSize, int initialCapacity, Hash32 hashFunction) {
+				super(maxSize, initialCapacity, hashFunction);
+        this.byteComparator = byteComparator;
 		}
 
 		@Override
@@ -31,31 +36,7 @@ class BytesSSFrequencyCounter extends SSFrequencyCounter<byte[]> implements Byte
 
 		@Override
 		public void update(byte[] bytes, int offset, int length, long count) {
-				BytesElement staleElement = null;
-				int visitedCount = 0;
-				HASH_LOOP:for (Hash32 hashFunction : hashFunctions) {
-						int pos = hashFunction.hash(bytes,offset,length) & (capacity - 1);
-						for(int i=0;i<3 && visitedCount<capacity;i++){
-								int newPos = (pos+i) & (capacity-1);
-								BytesElement existing = (BytesElement)hashtable[newPos];
-								if (existing == null) {
-										if(staleElement==null){
-												existing = new BytesElement();
-												hashtable[newPos] = existing;
-												staleElement = existing;
-										}
-										break HASH_LOOP;
-								}if (existing.stale) {
-										if(staleElement==null)
-												staleElement = existing;
-								}else if (existing.matchingValue(bytes,offset,length)) {
-										elementsSeen++;
-										increment(existing,count);
-										return;
-								}
-								visitedCount++;
-						}
-				}
+				BytesElement staleElement = doPut(bytes,offset,length,count);
 				if(staleElement!=null){
 						//adding a new element. If necessary, evict an old
 						size++;
@@ -64,10 +45,10 @@ class BytesSSFrequencyCounter extends SSFrequencyCounter<byte[]> implements Byte
 						increment(staleElement,count);
 						staleElement.stale = false;
 						elementsSeen++;
-				}else{
-						expandCapacity();
-						update(bytes,offset,length);
 				}
+
+        if(size>=expansionLimit)
+						expandCapacity();
 		}
 
 		@Override
@@ -93,6 +74,60 @@ class BytesSSFrequencyCounter extends SSFrequencyCounter<byte[]> implements Byte
 				update(bytes,1l);
 		}
 
+    protected BytesElement doPut(byte[] bytes, int offset, int length, long count){
+        int hashCode = hashFunction.hash(bytes,offset,length);
+        if(hashCode==0)
+            hashCode = 1;
+        int pos = hashCode & (capacity - 1);
+        int probeLength=0;
+        BytesElement staleElement = null;
+        BytesElement toPlace = null;
+        while(true){
+            int hC = hashCodes[pos];
+            if(hC==hashCode){
+                BytesElement e = (BytesElement)hashtable[pos];
+                if(e==null){
+                    if(toPlace==null) toPlace= staleElement= (BytesElement)newElement();
+
+                    hashtable[pos] = toPlace;
+                    break;
+                }else if(e.stale){
+                    staleElement = e;
+                    break;
+                }else if(e.matchingValue(bytes,offset,length)){
+                    elementsSeen++;
+                    increment(e,count);
+                    return null;
+                }
+            }else if(hC==0){
+                //we have an empty slot, so place it directly
+                hashCodes[pos] = hashCode;
+                if(toPlace==null) toPlace = staleElement = (BytesElement)newElement();
+                hashtable[pos] = toPlace;
+                break;
+            }
+            int pC = getProbeDistance(pos,hC);
+            if(pC>probeLength){
+                /*
+                 * We've reached an element with a shorter probe length than us. In this case,
+                 * swap the element, and adjust the probe length
+                 */
+                BytesElement e = (BytesElement)hashtable[pos];
+                hashCodes[pos] = hashCode;
+                if(toPlace==null) toPlace = staleElement = (BytesElement)newElement();
+                hashtable[pos] = toPlace;
+                toPlace= e;
+                probeLength = pC;
+                hashCode = hC;
+            }
+            probeLength++;
+            pos = (pos+1) & (capacity-1);
+        }
+        if(longestProbeLength<probeLength)
+            longestProbeLength = probeLength;
+        return staleElement;
+    }
+
 		private class BytesElement extends Element{
 				private byte[] value;
 				private int offset;
@@ -115,11 +150,12 @@ class BytesSSFrequencyCounter extends SSFrequencyCounter<byte[]> implements Byte
 
 						BytesElement that = (BytesElement) o;
 
-            throw new UnsupportedOperationException("IMPLEMENT");
-//						return Bytes.equals(value,offset,length,that.value,that.offset,that.length);
+            return byteComparator.equals(value,this.offset,this.length,that.value,that.offset,that.length);
 				}
 
-//				@Override public int hashCode() { return Bytes.hashCode(value,offset,length); }
+				@Override public int hashCode() {
+            return hashFunction.hash(value,offset,length);
+        }
 
 				private void set(byte[] bytes, int offset, int length){
 						this.value = bytes;
@@ -128,8 +164,7 @@ class BytesSSFrequencyCounter extends SSFrequencyCounter<byte[]> implements Byte
 				}
 
 				public boolean matchingValue(byte[] bytes, int offset, int length) {
-            throw new UnsupportedOperationException("IMPLEMENT");
-//						return Bytes.equals(value,offset,length,bytes,offset,length);
+            return byteComparator.equals(value,this.offset,this.length,bytes,offset,length);
 				}
 		}
 }

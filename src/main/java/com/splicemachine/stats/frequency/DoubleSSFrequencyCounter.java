@@ -1,6 +1,5 @@
 package com.splicemachine.stats.frequency;
 
-
 import com.splicemachine.hash.Hash32;
 
 /**
@@ -8,8 +7,8 @@ import com.splicemachine.hash.Hash32;
  *         Date: 3/26/14
  */
 class DoubleSSFrequencyCounter extends SSFrequencyCounter<Double> implements DoubleFrequencyCounter {
-		protected DoubleSSFrequencyCounter(int maxSize, int initialCapacity, Hash32[] hashFunctions) {
-				super(maxSize, initialCapacity, hashFunctions);
+		protected DoubleSSFrequencyCounter(int maxSize, int initialCapacity, Hash32 hashFunction) {
+				super(maxSize, initialCapacity, hashFunction);
 		}
 
 		@Override protected Element[] newHashArray(int size) { return new DoubleElement[size]; }
@@ -25,52 +24,82 @@ class DoubleSSFrequencyCounter extends SSFrequencyCounter<Double> implements Dou
 				update(item.doubleValue());
 		}
 
-		@Override
-		public void update(double item, long count) {
-				DoubleElement staleElement = null;
-				int visitedCount = 0;
-				HASH_LOOP:for (Hash32 hashFunction : hashFunctions) {
-						if(visitedCount>=capacity) break;
-						int pos = hash(item,hashFunction) & (capacity - 1);
-						for(int i=0;i<3 && visitedCount<capacity;i++){
-								int newPos = (pos+i) & (capacity-1);
-								DoubleElement existing = (DoubleElement)hashtable[newPos];
-								if (existing == null) {
-										if(staleElement==null){
-												existing = new DoubleElement();
-												hashtable[newPos] = existing;
-												staleElement = existing;
-										}
-										break HASH_LOOP;
-								}if (existing.stale) {
-										if(staleElement==null)
-												staleElement = existing;
-								}else if (existing.value == item) {
-										elementsSeen++;
-										increment(existing,count);
-										return;
-								}
-								visitedCount++;
-						}
-				}
-				if(staleElement!=null){
-						//adding a new element. If necessary, evict an old
-						size++;
-						staleElement.epsilon = evictAndSet(staleElement);
-						staleElement.value = item;
-						increment(staleElement,count);
-						staleElement.stale = false;
-						elementsSeen++;
-				}else{
-						expandCapacity();
-						update(item);
-				}
-		}
+    @Override
+    public void update(double item,long count) {
+        DoubleElement staleElement = doPut(item,count);
+        if(staleElement!=null){
+            //adding a new element. If necessary, evict an old
+            size++;
+            staleElement.epsilon = evictAndSet(staleElement);
+            staleElement.value = item;
+            increment(staleElement,count);
+            staleElement.stale = false;
+            elementsSeen++;
+        }
+        if(size>=expansionLimit){
+            //make sure we are big enough for the next one
+            expandCapacity();
+        }
+    }
 
 		@Override
 		public void update(double item) {
 			update(item,1l);
 		}
+
+    /*****************************************************************************************************************/
+    /*private helper methods*/
+    private DoubleElement doPut(double item, long count){
+        int hashCode = hash(item,hashFunction);
+        int pos = hashCode & (capacity - 1);
+        int probeLength=0;
+        DoubleElement staleElement = null;
+        DoubleElement toPlace = null;
+        while(true){
+            int hC = hashCodes[pos];
+            if(hC==hashCode){
+                DoubleElement e = (DoubleElement)hashtable[pos];
+                if(e==null){
+                    if(toPlace==null) toPlace= staleElement= (DoubleElement)newElement();
+
+                    hashtable[pos] = toPlace;
+                    break;
+                }else if(e.stale){
+                    staleElement = e;
+                    break;
+                }else if(e.matchingValue(item)){
+                    elementsSeen++;
+                    increment(e,count);
+                    return null;
+                }
+            }else if(hC==0){
+                //we have an empty slot, so place it directly
+                hashCodes[pos] = hashCode;
+                if(toPlace==null) toPlace = staleElement = (DoubleElement)newElement();
+                hashtable[pos] = toPlace;
+                break;
+            }
+            int pC = getProbeDistance(pos,hC);
+            if(pC>probeLength){
+                /*
+                 * We've reached an element with a shorter probe length than us. In this case,
+                 * swap the element, and adjust the probe length
+                 */
+                DoubleElement e = (DoubleElement)hashtable[pos];
+                hashCodes[pos] = hashCode;
+                if(toPlace==null) toPlace = staleElement = (DoubleElement)newElement();
+                hashtable[pos] = toPlace;
+                toPlace= e;
+                probeLength = pC;
+                hashCode = hC;
+            }
+            probeLength++;
+            pos = (pos+1) & (capacity-1);
+        }
+        if(longestProbeLength<probeLength)
+            longestProbeLength = probeLength;
+        return staleElement;
+    }
 
 		private int hash(double element, Hash32 hashFunction){
 				long val = Double.doubleToLongBits(element);

@@ -21,14 +21,7 @@ public class FixedShortSSFrequencyCounterTest {
 		@Test
 		public void testWorksWithNoEviction() throws Exception {
 				//insert 10 unique elements, then pull them out
-				Hash32[] hashes = new Hash32[]{
-								HashFunctions.murmur3(0),
-								HashFunctions.murmur3(5),
-								HashFunctions.murmur3(7),
-								HashFunctions.murmur3(11),
-								HashFunctions.murmur3(13),
-				};
-				ShortFrequencyCounter spaceSaver = new ShortSSFrequencyCounter(20,10, hashes);
+				ShortFrequencyCounter spaceSaver = new ShortSSFrequencyCounter(20,10, HashFunctions.murmur3(0));
 
 				Map<Long,LongPair> correctEstimates = new HashMap<Long, LongPair>();
 				for(short i=0;i<10;i++){
@@ -61,14 +54,7 @@ public class FixedShortSSFrequencyCounterTest {
 
 		@Test
 		public void testEvictsEntry() throws Exception {
-				Hash32[] hashes = new Hash32[]{
-								HashFunctions.murmur3(0),
-								HashFunctions.murmur3(5),
-								HashFunctions.murmur3(7),
-								HashFunctions.murmur3(11),
-								HashFunctions.murmur3(13),
-				};
-				ShortFrequencyCounter spaceSaver = new ShortSSFrequencyCounter(2,10, hashes);
+				ShortFrequencyCounter spaceSaver = new ShortSSFrequencyCounter(2,10, HashFunctions.murmur3(0));
 
 				short element = 1;
 				spaceSaver.update(element);

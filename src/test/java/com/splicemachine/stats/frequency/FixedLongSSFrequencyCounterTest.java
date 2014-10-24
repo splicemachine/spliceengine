@@ -3,7 +3,6 @@ package com.splicemachine.stats.frequency;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.Longs;
-import com.splicemachine.hash.Hash32;
 import com.splicemachine.hash.HashFunctions;
 import com.splicemachine.stats.LongPair;
 import org.junit.Assert;
@@ -23,14 +22,7 @@ public class FixedLongSSFrequencyCounterTest {
 		@Test
 		public void testWorksWithNoEviction() throws Exception {
 				//insert 10 unique elements, then pull them out
-				Hash32[] hashes = new Hash32[]{
-								HashFunctions.murmur3(0),
-								HashFunctions.murmur3(5),
-								HashFunctions.murmur3(7),
-								HashFunctions.murmur3(11),
-								HashFunctions.murmur3(13),
-				};
-				LongFrequencyCounter spaceSaver = new LongSSFrequencyCounter(20,10, hashes);
+				LongFrequencyCounter spaceSaver = new LongSSFrequencyCounter(20,10, HashFunctions.murmur3(0));
 
 				Map<Long,LongPair> correctEstimates = new HashMap<Long, LongPair>();
 				for(int i=0;i<10;i++){
@@ -63,14 +55,7 @@ public class FixedLongSSFrequencyCounterTest {
 
 		@Test
 		public void testEvictsEntry() throws Exception {
-				Hash32[] hashes = new Hash32[]{
-								HashFunctions.murmur3(0),
-								HashFunctions.murmur3(5),
-								HashFunctions.murmur3(7),
-								HashFunctions.murmur3(11),
-								HashFunctions.murmur3(13),
-				};
-				LongFrequencyCounter spaceSaver = new LongSSFrequencyCounter(2,10, hashes);
+				LongFrequencyCounter spaceSaver = new LongSSFrequencyCounter(2,10, HashFunctions.murmur3(0));
 
 				long element = 1;
 				spaceSaver.update(element);

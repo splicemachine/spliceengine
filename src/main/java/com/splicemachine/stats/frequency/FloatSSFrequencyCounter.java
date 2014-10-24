@@ -7,8 +7,8 @@ import com.splicemachine.hash.Hash32;
  *         Date: 3/26/14
  */
 class FloatSSFrequencyCounter extends SSFrequencyCounter<Float> implements FloatFrequencyCounter {
-		protected FloatSSFrequencyCounter(int maxSize, int initialCapacity, Hash32[] hashFunctions) {
-				super(maxSize, initialCapacity, hashFunctions);
+		protected FloatSSFrequencyCounter(int maxSize, int initialCapacity, Hash32 hashFunction) {
+				super(maxSize, initialCapacity, hashFunction);
 		}
 
 		@Override protected Element newElement() { return new FloatElement(); }
@@ -26,32 +26,7 @@ class FloatSSFrequencyCounter extends SSFrequencyCounter<Float> implements Float
 
 		@Override
 		public void update(float item, long count) {
-				FloatElement staleElement = null;
-				int visitedCount = 0;
-				HASH_LOOP:for (Hash32 hashFunction : hashFunctions) {
-						if(visitedCount>=capacity) break;
-						int pos = hash(item,hashFunction) & (capacity - 1);
-						for(int i=0;i<3 && visitedCount<capacity;i++){
-								int newPos = (pos+i) & (capacity-1);
-								FloatElement existing = (FloatElement)hashtable[newPos];
-								if (existing == null) {
-										if(staleElement==null){
-												existing = new FloatElement();
-												hashtable[newPos] = existing;
-												staleElement = existing;
-										}
-										break HASH_LOOP;
-								}if (existing.stale) {
-										if(staleElement==null)
-												staleElement = existing;
-								}else if (existing.value == item) {
-										elementsSeen++;
-										increment(existing,count);
-										return;
-								}
-								visitedCount++;
-						}
-				}
+				FloatElement staleElement = doPut(item,count);
 				if(staleElement!=null){
 						//adding a new element. If necessary, evict an old
 						size++;
@@ -60,9 +35,10 @@ class FloatSSFrequencyCounter extends SSFrequencyCounter<Float> implements Float
 						increment(staleElement,count);
 						staleElement.stale = false;
 						elementsSeen++;
-				}else{
+				}
+
+        if(size>=expansionLimit){
 						expandCapacity();
-						update(item);
 				}
 		}
 
@@ -71,7 +47,59 @@ class FloatSSFrequencyCounter extends SSFrequencyCounter<Float> implements Float
 			update(item,1l);
 		}
 
+    /**************************************************************************************************************/
+    /*private helper methods*/
+    private FloatElement doPut(float item, long count){
+        int hashCode = hash(item,hashFunction);
+        int pos = hashCode & (capacity - 1);
+        int probeLength=0;
+        FloatElement staleElement = null;
+        FloatElement toPlace = null;
+        while(true){
+            int hC = hashCodes[pos];
+            if(hC==hashCode){
+                FloatElement e = (FloatElement)hashtable[pos];
+                if(e==null){
+                    if(toPlace==null) toPlace= staleElement= (FloatElement)newElement();
 
+                    hashtable[pos] = toPlace;
+                    break;
+                }else if(e.stale){
+                    staleElement = e;
+                    break;
+                }else if(e.matchingValue(item)){
+                    elementsSeen++;
+                    increment(e,count);
+                    return null;
+                }
+            }else if(hC==0){
+                //we have an empty slot, so place it directly
+                hashCodes[pos] = hashCode;
+                if(toPlace==null) toPlace = staleElement = (FloatElement)newElement();
+                hashtable[pos] = toPlace;
+                break;
+            }
+            int pC = getProbeDistance(pos,hC);
+            if(pC>probeLength){
+                /*
+                 * We've reached an element with a shorter probe length than us. In this case,
+                 * swap the element, and adjust the probe length
+                 */
+                FloatElement e = (FloatElement)hashtable[pos];
+                hashCodes[pos] = hashCode;
+                if(toPlace==null) toPlace = staleElement = (FloatElement)newElement();
+                hashtable[pos] = toPlace;
+                toPlace= e;
+                probeLength = pC;
+                hashCode = hC;
+            }
+            probeLength++;
+            pos = (pos+1) & (capacity-1);
+        }
+        if(longestProbeLength<probeLength)
+            longestProbeLength = probeLength;
+        return staleElement;
+    }
 
 		private int hash(float item, Hash32 hashFunction){
 				int rawBits = Float.floatToRawIntBits(item);

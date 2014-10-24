@@ -4,6 +4,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.splicemachine.hash.Hash32;
 import com.splicemachine.hash.HashFunctions;
+import com.splicemachine.primitives.ByteComparator;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.stats.LongPair;
 import org.junit.Assert;
@@ -22,14 +23,7 @@ public class FixedBytesSSFrequencyCounterTest {
 		@Test
 		public void testWorksWithNoEviction() throws Exception {
 				//insert 10 unique elements, then pull them out
-				Hash32[] hashes = new Hash32[]{
-								HashFunctions.murmur3(0),
-								HashFunctions.murmur3(5),
-								HashFunctions.murmur3(7),
-								HashFunctions.murmur3(11),
-								HashFunctions.murmur3(13),
-				};
-				BytesSSFrequencyCounter spaceSaver = new BytesSSFrequencyCounter(20,10, hashes);
+				BytesFrequencyCounter spaceSaver = FrequencyCounters.byteArrayCounter(20, 10);
 
 				Map<byte[],LongPair> correctEstimates = new TreeMap<byte[], LongPair>(Bytes.basicByteComparator());
 				for(int i=0;i<10;i++){
@@ -43,7 +37,7 @@ public class FixedBytesSSFrequencyCounterTest {
 						correctEstimates.put(data, new LongPair(count, 0l));
 				}
 
-				Set<FrequencyEstimate<byte[]>> estimates = spaceSaver.getFrequentElements(0f);
+				Set<? extends FrequencyEstimate<byte[]>> estimates = spaceSaver.getFrequentElements(0f);
 				Assert.assertEquals("Incorrect number of rows!", correctEstimates.size(), estimates.size());
 
 				long totalCount = 0l;
@@ -63,14 +57,7 @@ public class FixedBytesSSFrequencyCounterTest {
 
 		@Test
 		public void testEvictsEntry() throws Exception {
-				Hash32[] hashes = new Hash32[]{
-								HashFunctions.murmur3(0),
-								HashFunctions.murmur3(5),
-								HashFunctions.murmur3(7),
-								HashFunctions.murmur3(11),
-								HashFunctions.murmur3(13),
-				};
-				BytesSSFrequencyCounter spaceSaver = new BytesSSFrequencyCounter(2,10, hashes);
+        BytesFrequencyCounter spaceSaver = FrequencyCounters.byteArrayCounter(2, 10);
 
 				byte[] element = Bytes.toBytes(1);
 				spaceSaver.update(element);

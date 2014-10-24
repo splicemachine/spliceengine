@@ -23,14 +23,7 @@ public class FixedFloatSSFrequencyCounterTest {
 		@Test
 		public void testWorksWithNoEviction() throws Exception {
 				//insert 10 unique elements, then pull them out
-				Hash32[] hashes = new Hash32[]{
-								HashFunctions.murmur3(0),
-								HashFunctions.murmur3(5),
-								HashFunctions.murmur3(7),
-								HashFunctions.murmur3(11),
-								HashFunctions.murmur3(13),
-				};
-				FloatFrequencyCounter spaceSaver = new FloatSSFrequencyCounter(20,10, hashes);
+				FloatFrequencyCounter spaceSaver = new FloatSSFrequencyCounter(20,10, HashFunctions.murmur3(0));
 
 				Map<Float,LongPair> correctEstimates = new HashMap<Float, LongPair>();
 				for(int i=0;i<10;i++){
@@ -63,14 +56,7 @@ public class FixedFloatSSFrequencyCounterTest {
 
 		@Test
 		public void testEvictsEntry() throws Exception {
-				Hash32[] hashes = new Hash32[]{
-								HashFunctions.murmur3(0),
-								HashFunctions.murmur3(5),
-								HashFunctions.murmur3(7),
-								HashFunctions.murmur3(11),
-								HashFunctions.murmur3(13),
-				};
-				FloatFrequencyCounter spaceSaver = new FloatSSFrequencyCounter(2,10, hashes);
+				FloatFrequencyCounter spaceSaver = new FloatSSFrequencyCounter(2,10, HashFunctions.murmur3(0));
 
 				long element = 1;
 				spaceSaver.update(element);
