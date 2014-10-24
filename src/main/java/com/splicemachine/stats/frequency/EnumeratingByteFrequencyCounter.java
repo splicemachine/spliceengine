@@ -4,10 +4,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Longs;
 
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @author Scott Fines
@@ -55,10 +52,7 @@ public class EnumeratingByteFrequencyCounter implements ByteFrequencyCounter {
 				return Sets.newTreeSet(freqs.subList(0,k));
 		}
 
-		@Override
-		public Iterator<FrequencyEstimate<Byte>> iterator() {
-				return null;
-		}
+		@Override public Iterator<FrequencyEstimate<Byte>> iterator() { return new Iter(); }
 
 		private static class Freq implements FrequencyEstimate<Byte>,Comparable<Freq>{
 				private byte value;
@@ -81,4 +75,20 @@ public class EnumeratingByteFrequencyCounter implements ByteFrequencyCounter {
 				}
 		}
 
+    private class Iter implements Iterator<FrequencyEstimate<Byte>> {
+        private int position = 0;
+
+        @Override public boolean hasNext() { return position< counts.length; }
+        @Override public void remove() { throw new UnsupportedOperationException("Cannot remove entries"); }
+
+        @Override
+        public FrequencyEstimate<Byte> next() {
+            if(!hasNext()) throw new NoSuchElementException();
+            int pos = position;
+            long count = counts[pos];
+            position++;
+            return new Freq((byte)pos,count);
+        }
+
+    }
 }

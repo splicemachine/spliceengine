@@ -23,6 +23,10 @@ public class IntGroupedCountBuilder implements IntUpdateable {
 
 		public static IntGroupedCountBuilder build(float epsilon, int maxDomainElement){
 				int n = 2*maxDomainElement;
+        if(n<maxDomainElement){
+            //integer overflow, so just make the max Integer.MAX_VALUE
+            n = Integer.MAX_VALUE>>1;
+        }
 				int s = 1;
 				int t =0;
 				while(s<n){
@@ -127,27 +131,5 @@ public class IntGroupedCountBuilder implements IntUpdateable {
 				count+=instanceCount;
 		}
 
-		public static void main(String...args) throws Exception{
-//				int[] a = new int[]{2,2,0,2,3,5,4,4};
-//				IntGroupedCountBuilder builder = new IntGroupedCountBuilder(0.25f,4,16);
-//				for(int elem:a){
-//						builder.update(elem);
-//				}
-//
-//				IntRangeQuerySolver querySolver = builder.build(0.0d);
-//				for(int val=0;val<8;val++){
-//						System.out.printf("equals: %d:%d%n",val,querySolver.equal(val));
-//						System.out.printf("before: %d:%d%n",val,querySolver.before(val,false));
-//						System.out.printf("after: %d:%d%n",val,querySolver.after(val,false));
-//				}
-//				System.out.println("--------");
-
-				double d = Math.pow(Long.MAX_VALUE,2);
-				System.out.println(d);
-				System.out.println(Math.floor(d));
-				double decimal = d-Math.floor(d);
-				System.out.println(decimal);
-
-		}
 
 }

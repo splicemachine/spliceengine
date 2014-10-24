@@ -2,6 +2,7 @@ package com.splicemachine.stats.histogram;
 
 import com.carrotsearch.hppc.IntIntOpenHashMap;
 import com.carrotsearch.hppc.cursors.IntIntCursor;
+import com.splicemachine.testutils.GaussianRandom;
 
 import java.util.Arrays;
 import java.util.Iterator;
@@ -14,24 +15,37 @@ import java.util.Random;
 public class IntWaveletQuerySolverDistortionMeasure {
 
 		public static void main(String...args){
-//				int max = 8;
+				int max = 4;
+//        int max = 8;
+//        int max = 64;
 //				int max = 128;
 //				int max = 256;
-				int max = 512;
+//				int max = 512;
 //				int max = 65536;
-//				int max = 131072;
-				int numElements = 100000;
+//				int max = 1<<30;
+				int numElements = 10;
 
 //				List<Integer> ints = Arrays.asList(2,2,0,2,3,5,4,4);
 //				List<Integer> ints = Arrays.asList(0,0,2,2,2,2,2,3,3);
 //				List<Integer> ints = Arrays.asList(-8,-7,-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7);
 //				performAnalysis(new FixedGenerator(ints.iterator()),max);
 
-				performAnalysis(new RandomGenerator(numElements,max,new Random()),max);
+//        performAnalysis(new EnergyGenerator(numElements,new Random(0l),10,new int[]{20,15,10,17,24,30,50,80,112,90,85,95,100,105,120,133,127,110,95,85,50,44,35,27}),max);
+//				performAnalysis(new UniformGenerator(numElements,max,new Random(0l)),max);
+        GaussianGenerator generator = new GaussianGenerator(numElements,max,new Random(0l));
+        while(generator.hasNext()){
+            System.out.println(generator.next().key);
+        }
+//        performAnalysis(new GaussianGenerator(numElements,max,new Random(0l)),max);
 		}
 
 		protected static void performAnalysis(Iterator<IntIntPair> dataGenerator,int maxInteger) {
-				IntIntOpenHashMap actualDistribution = new IntIntOpenHashMap(2*maxInteger);
+        int max = 2*maxInteger;
+        if(max<maxInteger){
+            //integer overflow
+            max = Integer.MAX_VALUE;
+        }
+				IntIntOpenHashMap actualDistribution = new IntIntOpenHashMap();
 
 				IntGroupedCountBuilder builder = IntGroupedCountBuilder.build(0.1f,maxInteger);
 
@@ -41,12 +55,12 @@ public class IntWaveletQuerySolverDistortionMeasure {
 						builder.update(pair.key,pair.count);
 				}
 
-				IntWaveletQuerySolver querySolver = (IntWaveletQuerySolver)builder.build(0.2d);//build the full thingy
+				IntWaveletQuerySolver querySolver = (IntWaveletQuerySolver)builder.build(0.0d);//build the full thingy
 
-				long[] estimated = new long[2*maxInteger];
-				double[] rawEstimates = new double[2*maxInteger];
-				long[] diffs = new long[2*maxInteger];
-				double[] relDiffs = new double[2*maxInteger];
+				long[] estimated = new long[max];
+				double[] rawEstimates = new double[max];
+				long[] diffs = new long[max];
+				double[] relDiffs = new double[max];
 				for(IntIntCursor entry:actualDistribution){
 						int value = entry.key;
 						int count = entry.value;
@@ -78,7 +92,7 @@ public class IntWaveletQuerySolverDistortionMeasure {
 						double rawEstimate = rawEstimates[i];
 						long diff = diffs[i];
 						double relDiff = relDiffs[i];
-						if((i&127)==0)
+//						if((i&127)==0)
 								System.out.printf("%-10d\t%10d\t%10d\t%10f\t%10d%10f%n",pos,actual,estimate,rawEstimate,diff,relDiff);
 
 						if(diff>maxAbsError){
@@ -122,17 +136,78 @@ public class IntWaveletQuerySolverDistortionMeasure {
 				private int count;
 		}
 
-		private static class RandomGenerator implements Iterator<IntIntPair>{
+    private static class GaussianGenerator implements Iterator<IntIntPair>{
+        private final GaussianRandom random;
+        private final int maxInt;
+        private final int numIterations;
+        private int iterationCount = 0;
+        private final int boundary;
+
+        private IntIntPair retPair = new IntIntPair();
+        private GaussianGenerator(int numIterations, int maxInt, Random random) {
+            this.random = new GaussianRandom(random);
+            this.numIterations = numIterations;
+            int s = 2*maxInt;
+            if(s<maxInt){
+                boundary = Integer.MAX_VALUE;
+                maxInt = boundary>>1;
+            }else
+                boundary = s;
+            this.maxInt = maxInt;
+
+        }
+
+        @Override
+        public boolean hasNext() {
+            return (iterationCount++)<=numIterations;
+        }
+
+        @Override
+        public IntIntPair next() {
+            /*
+             * random.nextDouble() generates a gaussian which is centered on 0
+             * and has unit std. deviation. We want to ensure that we NEVER
+             * generate numbers outside of the range (-maxInt,maxInt), so
+             * we first truncate any number which >=1 (forcing us to generate
+             * within the bounds [0,1). Then we scale by 2*maxInt to get to
+             * [0,2*maxInt); finally, we shift down by maxInt to get to [-maxInt,maxInt)
+             */
+            while(true){
+                double d = random.nextDouble();
+                if(d>=1) continue;
+
+                d = d*(boundary);
+                if(d<0)
+                    retPair.key = (int)(d)+maxInt;
+                else
+                    retPair.key = (int)(d)-maxInt;
+                retPair.count=1;
+                return retPair;
+            }
+        }
+
+        @Override public void remove() { throw new UnsupportedOperationException(); }
+
+    }
+		private static class UniformGenerator implements Iterator<IntIntPair>{
 				private final Random random;
 				private final int maxInt;
 				private final int numIterations;
 				private int iterationCount = 0;
+        private final int boundary;
 
 				private IntIntPair retPair = new IntIntPair();
-				private RandomGenerator(int numIterations,int maxInt, Random random) {
+				private UniformGenerator(int numIterations, int maxInt, Random random) {
 						this.random = random;
 						this.numIterations = numIterations;
-						this.maxInt = maxInt;
+            int s = 2*maxInt;
+            if(s<maxInt){
+                boundary = Integer.MAX_VALUE;
+                maxInt = boundary>>1;
+            }else
+                boundary = s;
+            this.maxInt = maxInt;
+
 				}
 
 				@Override
@@ -149,6 +224,41 @@ public class IntWaveletQuerySolverDistortionMeasure {
 
 				@Override public void remove() { throw new UnsupportedOperationException(); }
 		}
+
+    private static class EnergyGenerator implements Iterator<IntIntPair>{
+        private final int numIterations;
+        private int iterationCount = 0;
+        private final Random jitter;
+        private final int magnitude;
+        private final int[] baseValues;
+
+        private IntIntPair retPair = new IntIntPair();
+        private EnergyGenerator(int numIterations, Random jitter, int magnitude, int[] baseValues) {
+            this.numIterations = numIterations;
+            this.jitter = jitter;
+            this.magnitude = magnitude;
+            this.baseValues = baseValues;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return (iterationCount++)<=numIterations;
+        }
+
+        @Override
+        public IntIntPair next() {
+            int v = baseValues[iterationCount%baseValues.length];
+            if(jitter.nextBoolean()){
+                v-=jitter.nextInt(magnitude);
+            }else
+                v+=jitter.nextInt(magnitude);
+            retPair.key=v;
+            retPair.count=1;
+            return retPair;
+        }
+
+        @Override public void remove() { throw new UnsupportedOperationException(); }
+    }
 
 		private static class FixedGenerator implements Iterator<IntIntPair>{
 				private final Iterator<Integer> valuesIterator;
