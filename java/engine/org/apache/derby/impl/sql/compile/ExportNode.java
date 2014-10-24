@@ -16,10 +16,10 @@ import java.util.List;
 
 /**
  * Export Node
- *
+ * <p/>
  * EXAMPLE:
- *
- * EXPORT('/dir', 'hdfs', 3, 'utf-8', ',', '"') select a, b, sqrt(c) from table1 where a > 100;
+ * <p/>
+ * EXPORT('/dir', true, 3, 'utf-8', ',', '"') select a, b, sqrt(c) from table1 where a > 100;
  */
 public class ExportNode extends DMLStatementNode {
 
@@ -28,7 +28,7 @@ public class ExportNode extends DMLStatementNode {
     private StatementNode node;
     /* HDFS, local, etc */
     private String exportPath;
-    private String fileSystem;
+    private boolean compression;
     private int replicationCount;
     private String encoding;
     private String fieldSeparator;
@@ -53,7 +53,7 @@ public class ExportNode extends DMLStatementNode {
         this.node = (StatementNode) statementNode;
         try {
             this.exportPath = stringValue(argsList.get(0));
-            this.fileSystem = stringValue(argsList.get(1));
+            this.compression = booleanValue(argsList.get(1));
             this.replicationCount = intValue(argsList.get(2));
             this.encoding = stringValue(argsList.get(3));
             this.fieldSeparator = stringValue(argsList.get(4));
@@ -82,7 +82,7 @@ public class ExportNode extends DMLStatementNode {
         int resultSetNumber = getCompilerContext().getNextResultSetNumber();
         mb.push(resultSetNumber);
         mb.push(exportPath);
-        mb.push(fileSystem);
+        mb.push(compression);
         mb.push(replicationCount);
         mb.push(encoding);
         mb.push(fieldSeparator);
@@ -120,6 +120,10 @@ public class ExportNode extends DMLStatementNode {
 
     private static int intValue(Object object) throws StandardException {
         return isNullConstant(object) ? -1 : ((NumericConstantNode) object).getValue().getInt();
+    }
+
+    private static boolean booleanValue(Object object) throws StandardException {
+        return isNullConstant(object) ? true : ((BooleanConstantNode) object).isBooleanTrue();
     }
 
 }

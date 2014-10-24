@@ -1838,7 +1838,7 @@ public interface ResultSetFactory {
                                              Activation activation,
                                              int resultSetNumber,
                                              String exportPath,
-                                             String fileSystemType,
+                                             boolean compression,
                                              int replicationCount,
                                              String encoding,
                                              String fieldSeparator,
