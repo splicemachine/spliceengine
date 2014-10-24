@@ -18,14 +18,13 @@ public class ExportParams {
 
     private static final String DEFAULT_ENCODING = Charsets.UTF_8.name();
     private static final short DEFAULT_REPLICATION_COUNT = 1;
-    private static final ExportFileSystemType DEFAULT_FILE_SYSTEM = ExportFileSystemType.HDFS;
     private static final char DEFAULT_FIELD_DELIMITER = ',';
     private static final char DEFAULT_QUOTE_CHAR = '"';
     private static final String DEFAULT_RECORD_DELIMITER = "\n";
 
     private String directory;
-    private ExportFileSystemType fileSystemType = DEFAULT_FILE_SYSTEM;
     private short replicationCount = DEFAULT_REPLICATION_COUNT;
+    private boolean compression;
     private String characterEncoding = DEFAULT_ENCODING;
 
     private char fieldDelimiter = DEFAULT_FIELD_DELIMITER;
@@ -35,10 +34,10 @@ public class ExportParams {
     public ExportParams() {
     }
 
-    public ExportParams(String directory, String fileSystemType, int replicationCount, String characterEncoding,
+    public ExportParams(String directory, boolean compression, int replicationCount, String characterEncoding,
                         String fieldDelimiter, String quoteChar) throws StandardException {
         setDirectory(directory);
-        setFileSystemType(fileSystemType);
+        setCompression(compression);
         setReplicationCount((short) replicationCount);
         setCharacterEncoding(characterEncoding);
         setDefaultFieldDelimiter(StringEscapeUtils.unescapeJava(fieldDelimiter));
@@ -74,8 +73,8 @@ public class ExportParams {
         return characterEncoding;
     }
 
-    public ExportFileSystemType getFileSystemType() {
-        return fileSystemType;
+    public boolean isCompression() {
+        return compression;
     }
 
     public short getReplicationCount() {
@@ -91,11 +90,8 @@ public class ExportParams {
         this.directory = directory;
     }
 
-    private void setFileSystemType(String fileSystemType) throws StandardException {
-        if (!isBlank(fileSystemType)) {
-            checkArgument(ExportFileSystemType.isValid(fileSystemType.toUpperCase()), "file system type", fileSystemType);
-            this.fileSystemType = ExportFileSystemType.valueOf(fileSystemType.toUpperCase());
-        }
+    private void setCompression(Boolean compression) throws StandardException {
+        this.compression = compression;
     }
 
     private void setReplicationCount(short replicationCount) {

@@ -47,14 +47,14 @@ public class ExportOperation extends SpliceBaseOperation implements SinkingOpera
                            Activation activation,
                            int rsNumber,
                            String exportPath,
-                           String fileSystemType,
+                           boolean compression,
                            int replicationCount,
                            String encoding,
                            String fieldSeparator,
                            String quoteCharacter) throws StandardException {
         super(activation, rsNumber, 0d, 0d);
         this.source = source;
-        this.exportParams = new ExportParams(exportPath, fileSystemType, replicationCount, encoding, fieldSeparator, quoteCharacter);
+        this.exportParams = new ExportParams(exportPath, compression, replicationCount, encoding, fieldSeparator, quoteCharacter);
         this.activation = activation;
         try {
             new ExportPermissionCheck(exportParams).verify();
