@@ -28,7 +28,7 @@ public class SimpleHashTable<K,V> extends BaseRobinHoodHashTable<K,V> {
     }
 
     @Override
-    protected int hash(K key) {
+    protected int hashCode(K key) {
         int h = key.hashCode();
         /*
          * Taken from java.util.HashMap. This smears out the hashCode in an attempt

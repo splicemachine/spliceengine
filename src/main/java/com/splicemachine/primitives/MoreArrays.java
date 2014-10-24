@@ -43,12 +43,14 @@ public class MoreArrays {
     }
 
     public static long median(long[] elements, int offset,int length){
+        if(length==1)
+            return elements[offset];
         int from = offset;
         int to = offset+length;
         int k = elements.length/2;
         while(from < to){
             int r = from;
-            int w = to;
+            int w = to-1;
             long mid = elements[(r+w)>>1];
             while(r<w){
                 if(elements[r] >=mid){
@@ -68,6 +70,19 @@ public class MoreArrays {
                 from = r+1;
         }
         return elements[k];
+    }
+
+    public static long min(long[] elements){
+        return min(elements,0,elements.length);
+    }
+
+    public static long min(long[] elements ,int offset,int length){
+        long min=Long.MAX_VALUE;
+        for(int i=offset;i<length;i++){
+            if(min>elements[i])
+                min = elements[i];
+        }
+        return min;
     }
 
     public static int median(int[] elements){

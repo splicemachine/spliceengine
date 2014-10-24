@@ -38,7 +38,7 @@ public class SimpleHashTableTest {
     public void testCanAddEntryAndFindItAgainString() throws Exception {
         final Hash32 hashFunction = HashFunctions.murmur3(0);
         HashTable<String,Long> table = new BaseRobinHoodHashTable<String, Long>(16,0.9f) {
-            @Override protected int hash(String key) { return hashFunction.hash(key); }
+            @Override protected int hashCode(String key) { return hashFunction.hash(key); }
             @Override protected Long merge(Long newValue, Long existing) { return newValue; }
         };
         int size = (int)(0.85f*(1<<20));
@@ -54,7 +54,7 @@ public class SimpleHashTableTest {
     public void testCanAddEntryAndFindItAgainByteBuffer() throws Exception {
         final Hash32 hashFunction = HashFunctions.murmur3(0);
         HashTable<ByteBuffer,Long> table = new BaseRobinHoodHashTable<ByteBuffer, Long>(16,0.9f) {
-            @Override protected int hash(ByteBuffer key) { return hashFunction.hash(key); }
+            @Override protected int hashCode(ByteBuffer key) { return hashFunction.hash(key); }
             @Override protected Long merge(Long newValue, Long existing) { return newValue; }
         };
         int size = (int)(0.85f*131072);
@@ -98,12 +98,13 @@ public class SimpleHashTableTest {
     @Test
     public void testCanAddEntryAndFindItAgain() throws Exception {
         HashTable<Long,Long> table = new SimpleHashTable<Long, Long>();
-        int size = (int)(0.85f*131072);
+//        int size = (int)(0.85f*131072);
+        int size = 16;
         for(long i=0;i< size;i++){
-            table.put(i,i);
+            table.put(i,i+1);
             Long value = table.get(i);
             Assert.assertNotNull("Could not find element after put!",value);
-            Assert.assertEquals("Incorrect returned value!",i,value.longValue());
+            Assert.assertEquals("Incorrect returned value!",i+1,value.longValue());
             if((i & (i - 1)) == 0){
                 int n = 1;
                 while(n<=i){
@@ -116,6 +117,9 @@ public class SimpleHashTableTest {
         while(n<=size){
             n<<=1;
         }
+        Long val = table.get(0l);
+        Assert.assertNotNull("Could not find element after put!",val);
+        Assert.assertEquals("Incorrect returned value!",1l,val.longValue());
         System.out.printf("size=%d, nextPowOf2=%d,loadFactor=%f%n",table.size(),n,table.load());
         Assert.assertEquals("Incorrect size!",size,table.size());
     }
@@ -159,7 +163,7 @@ public class SimpleHashTableTest {
         final Hash32 murmur = HashFunctions.murmur3(0);
         performanceAnalysis(new BaseRobinHoodHashTable<ByteBuffer, Long>(16,0.9f) {
 //            @Override protected int hash(ByteBuffer key) { return key.hashCode(); }
-            @Override protected int hash(ByteBuffer key) { return murmur.hash(key); }
+            @Override protected int hashCode(ByteBuffer key) { return murmur.hash(key); }
             @Override protected Long merge(Long newValue, Long existing) { return newValue; }
         }, size, numIterations,generator);
         System.out.printf("----------%n");
@@ -183,7 +187,7 @@ public class SimpleHashTableTest {
 
         final Hash32 hashFunction = HashFunctions.murmur3(0);
         HashTable<String,Long> table = new BaseRobinHoodHashTable<String, Long>(16,0.9f) {
-            @Override protected int hash(String key) { return hashFunction.hash(key); }
+            @Override protected int hashCode(String key) { return hashFunction.hash(key); }
             @Override protected Long merge(Long newValue, Long existing) { return newValue; }
         };
         performanceAnalysis(table, size, numIterations,generator);

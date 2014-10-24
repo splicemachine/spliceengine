@@ -172,12 +172,26 @@ public abstract class BaseRobinHoodHashTable<K,V> implements HashTable<K,V> {
     @Override public Collection<V> values() { return new Values(); }
     @Override public Set<Entry<K, V>> entrySet() { return new EntrySet(); }
 
-    protected abstract int hash(K key);
+
+    protected abstract int hashCode(K key);
 
     protected abstract V merge(V newValue, V existing);
 
    /******************************************************************************************************************/
     /*private helper methods*/
+
+   private int hash(K key){
+       int hashCode = hashCode(key);
+        /*
+         * 0 is a reserved hash code in our system, because it is used to indicate that there
+         * is no entry at that position. As a result, our hash codes can't be zero. We avoid this
+         * issue by moving them to the 1 position. This may cause more conflicts than otherwise would
+         * happen, but it maintains correctness
+         */
+       if(hashCode==0)
+           hashCode=1;
+       return hashCode;
+   }
 
     @SuppressWarnings("unchecked")
     private void expandCapacity() {
@@ -214,7 +228,15 @@ public abstract class BaseRobinHoodHashTable<K,V> implements HashTable<K,V> {
         V valueToReturn = null;
         while(true){
             int hC = hashCodes[pos];
-            if(hC==hashCode){
+            if(hC==0){
+                /*
+                 * We have an empty slot, so place it directly
+                 */
+                keys[pos] = keyToPlace;
+                values[pos] = valueToPlace;
+                hashCodes[pos] = hashCode;
+                break;
+            }else if(hC==hashCode){
                 /*
                  * it's possible that someone else with that key already exists, in which case we replace
                  */
@@ -233,17 +255,9 @@ public abstract class BaseRobinHoodHashTable<K,V> implements HashTable<K,V> {
                     values[pos] = merge(valueToPlace,(V)values[pos]);
                     break;
                 }
-            }else if(hC==0){
-                /*
-                 * We have an empty slot, so place it directly
-                 */
-                keys[pos] = keyToPlace;
-                values[pos] = valueToPlace;
-                hashCodes[pos] = hashCode;
-                break;
             }
             int probeLengthCode = getProbeDistance(pos,hC);
-            if(probeLengthCode>probeLength){
+            if(probeLengthCode<probeLength){
                    /*
                     * We've reached an element with a shorter probe length than us. In this case,
                     * we swap the element, and adjust the probe length accordingly
