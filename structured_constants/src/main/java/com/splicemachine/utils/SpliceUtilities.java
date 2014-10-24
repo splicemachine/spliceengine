@@ -200,18 +200,18 @@ public class SpliceUtilities extends SIConstants {
             if(!admin.tableExists(SpliceConstants.TRANSACTION_TABLE_BYTES)){
                 HTableDescriptor td = generateTransactionTable();
                 admin.createTable(td, generateTransactionSplits());
-                SpliceLogUtils.info(LOG, SpliceConstants.TRANSACTION_TABLE_BYTES+" created");
+                SpliceLogUtils.info(LOG, SpliceConstants.TRANSACTION_TABLE+" created");
             }
             if(!admin.tableExists(SpliceConstants.TENTATIVE_TABLE_BYTES)){
                 HTableDescriptor td = generateDefaultSIGovernedTable(SpliceConstants.TENTATIVE_TABLE);
                 admin.createTable(td);
-                SpliceLogUtils.info(LOG, SpliceConstants.TENTATIVE_TABLE_BYTES+" created");
+                SpliceLogUtils.info(LOG, SpliceConstants.TENTATIVE_TABLE+" created");
             }
 
             if(!admin.tableExists(SpliceConstants.CONGLOMERATE_TABLE_NAME_BYTES)){
                 HTableDescriptor td = generateDefaultSIGovernedTable(CONGLOMERATE_TABLE_NAME);
                 admin.createTable(td);
-                SpliceLogUtils.info(LOG, SpliceConstants.CONGLOMERATE_TABLE_NAME_BYTES+" created");
+                SpliceLogUtils.info(LOG, SpliceConstants.CONGLOMERATE_TABLE_NAME+" created");
             }
 
             /*
@@ -221,7 +221,7 @@ public class SpliceUtilities extends SIConstants {
             if(!admin.tableExists(SpliceConstants.SEQUENCE_TABLE_NAME_BYTES)){
                 HTableDescriptor td = generateNonSITable(SEQUENCE_TABLE_NAME);
                 admin.createTable(td);
-                SpliceLogUtils.info(LOG,SpliceConstants.SEQUENCE_TABLE_NAME_BYTES+" created");
+                SpliceLogUtils.info(LOG,SpliceConstants.SEQUENCE_TABLE_NAME+" created");
             }
 
             

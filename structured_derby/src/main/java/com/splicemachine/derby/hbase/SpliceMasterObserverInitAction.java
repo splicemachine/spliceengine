@@ -85,11 +85,11 @@ class SpliceMasterObserverInitAction {
                 Connection connection = null;
                 try {
                     if (ZkUtils.isSpliceLoaded()) {
-                        SpliceLogUtils.info(LOG, "Splice Already Loaded");
+                        SpliceLogUtils.info(LOG, "Splice Machine has already been initialized");
                         state.set(State.RUNNING);
                         return null;
                     } else {
-                        SpliceLogUtils.info(LOG, "Booting Splice");
+                        SpliceLogUtils.info(LOG, "Initializing Splice Machine for first time");
                         ZkUtils.refreshZookeeper();
                         SpliceUtilities.refreshHbase();
                         SpliceUtilities.createSpliceHBaseTables();
