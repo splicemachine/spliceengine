@@ -94,7 +94,13 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
 		SpliceLogUtils.trace(LOG, "feasible innerTable=%s, predList=%s, optimizer=%s, hashFeasible=%s",innerTable,predList,optimizer,hashFeasible);
 		TableDescriptor td;
 		ConglomerateDescriptor[] cd;
-		if (hashFeasible && innerTable != null && innerTable.isBaseTable() && (td = innerTable.getTableDescriptor())!= null && 
+
+        /* Currently BroadcastJoin does not work with a right side IndexRowToBaseRowOperation */
+        if(JoinStrategyUtil.isNonCoveringIndex(innerTable)) {
+            return false;
+        }
+
+		if (hashFeasible && innerTable != null && innerTable.isBaseTable() && (td = innerTable.getTableDescriptor())!= null &&
 				(cd = td.getConglomerateDescriptors()) != null && cd.length >= 1) {
 	        Map<String,RegionLoad> regionLoads = HBaseRegionLoads.getCachedRegionLoadsMapForTable(cd[0].getConglomerateNumber()+"");
 			if (regionLoads == null)
@@ -112,6 +118,7 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
         SpliceLogUtils.trace(LOG, "broadcast join is not feasible");
 		return false;
 	}
+
 	@Override
 	public void oneRowRightResultSetCostEstimate(OptimizablePredicateList predList, CostEstimate outerCost, CostEstimate innerFullKeyCost) {
 		rightResultSetCostEstimate(predList,outerCost,innerFullKeyCost);
