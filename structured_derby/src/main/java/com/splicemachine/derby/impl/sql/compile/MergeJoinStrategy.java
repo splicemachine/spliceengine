@@ -95,7 +95,13 @@ public class MergeJoinStrategy extends HashableJoinStrategy {
 			return false;
 		}
 		SpliceLevel2OptimizerImpl opt = (SpliceLevel2OptimizerImpl) optimizer;
-		CostEstimate outerCost = null;
+
+        /* Currently MergeJoin does not work with a right side IndexRowToBaseRowOperation */
+        if(JoinStrategyUtil.isNonCoveringIndex(innerTable)) {
+            return false;
+        }
+
+		CostEstimate outerCost;
 		if (opt.joinPosition == 0) {
 			outerCost = opt.outermostCostEstimate;
 		}

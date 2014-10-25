@@ -279,6 +279,7 @@ public class MergeJoinIT extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore("No longer valid since plan is not feasible")
     public void testThrowIfNonCoveringIndex() throws Exception {
         methodWatcher.executeUpdate("create index staff_ordered on staff (empnum)");
         methodWatcher.executeUpdate("create index works_ordered on works (empnum)");
