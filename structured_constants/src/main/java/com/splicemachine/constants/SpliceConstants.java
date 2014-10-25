@@ -678,7 +678,15 @@ public class SpliceConstants {
 		@Parameter public static final String AUTHENTICATION_NATIVE_ALGORITHM = "splice.authentication.native.algorithm";
 		@DefaultValue(AUTHENTICATION_NATIVE_ALGORITHM) public static final String DEFAULT_AUTHENTICATION_NATIVE_ALGORITHM = "SHA-512";
 		public static String authenticationNativeAlgorithm;
-		
+
+	    // Property to force the creation of the native credentials database.
+	    // Generally, this is only done at the time of the creation of the whole Splice/Derby database.
+	    // In this particular instance, there are Splice beta customers with AnA disabled and they want to
+	    // switch to using native AnA.  So we allow a manual override here.  See DB-2088 for more details.
+		@Parameter public static final String AUTHENTICATION_NATIVE_CREATE_CREDENTIALS_DATABASE = "splice.authentication.native.create.credentials.database";
+		@DefaultValue(AUTHENTICATION_NATIVE_CREATE_CREDENTIALS_DATABASE) public static final boolean DEFAULT_AUTHENTICATION_NATIVE_CREATE_CREDENTIALS_DATABASE = false;
+		public static boolean authenticationNativeCreateCredentialsDatabase;
+
 		@Parameter public static final String AUTHENTICATION_CUSTOM_PROVIDER = "splice.authentication.custom.provider";
 		@DefaultValue(AUTHENTICATION_CUSTOM_PROVIDER) public static final String DEFAULT_AUTHENTICATION_CUSTOM_PROVIDER = "com.splicemachine.derby.authentication.SpliceUserAuthentication";
 		public static String authenticationCustomProvider;					
@@ -1121,7 +1129,8 @@ public class SpliceConstants {
 				compression = config.get(COMPRESSION, DEFAULT_COMPRESSION);
 				authentication = config.get(AUTHENTICATION, DEFAULT_AUTHENTICATION);
 				authenticationNativeAlgorithm = config.get(AUTHENTICATION_NATIVE_ALGORITHM, DEFAULT_AUTHENTICATION_NATIVE_ALGORITHM);
-				
+				authenticationNativeCreateCredentialsDatabase = config.getBoolean(AUTHENTICATION_NATIVE_CREATE_CREDENTIALS_DATABASE, DEFAULT_AUTHENTICATION_NATIVE_CREATE_CREDENTIALS_DATABASE);
+
 				authenticationCustomProvider = config.get(AUTHENTICATION_CUSTOM_PROVIDER,DEFAULT_AUTHENTICATION_CUSTOM_PROVIDER);
 				
 				authenticationLDAPServer = config.get(AUTHENTICATION_LDAP_SERVER,DEFAULT_AUTHENTICATION_LDAP_SERVER);
