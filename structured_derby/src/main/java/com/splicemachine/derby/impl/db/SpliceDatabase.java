@@ -17,8 +17,10 @@ import com.google.common.io.Closeables;
 import com.splicemachine.derby.hbase.SpliceMasterObserverRestoreAction;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceUtilities;
+
 import org.apache.derby.iapi.error.ShutdownException;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.reference.Property;
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.context.ContextService;
 import org.apache.derby.iapi.services.monitor.Monitor;
@@ -69,6 +71,9 @@ public class SpliceDatabase extends BasicDatabase {
         //System.setProperty("derby.language.logQueryPlan", Boolean.toString(true));
         if (SpliceConstants.logStatementContext)
             System.setProperty("derby.language.logStatementText", Boolean.toString(true));
+        if (SpliceConstants.authenticationNativeCreateCredentialsDatabase) {
+            System.setProperty(Property.AUTHENTICATION_NATIVE_CREATE_CREDENTIALS_DATABASE, Boolean.toString(true));
+        }
         if (SpliceConstants.AuthenticationType.NONE.toString().equals(SpliceConstants.authentication)) {
             SpliceLogUtils.warn(LOG, "using no auth for Splice Machine",SpliceConstants.authentication);
             System.setProperty("derby.connection.requireAuthentication","false");
@@ -100,7 +105,6 @@ public class SpliceDatabase extends BasicDatabase {
                 System.setProperty("derby.authentication.builtin.algorithm",SpliceConstants.authenticationNativeAlgorithm);
             }
         }
-		
         //SanityManager.DEBUG_SET("ByteCodeGenInstr");
         if(SpliceConstants.dumpClassFile)
             SanityManager.DEBUG_SET("DumpClassFile");
