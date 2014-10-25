@@ -1,5 +1,15 @@
 package org.apache.derby.impl.sql.catalog;
 
+import java.sql.Types;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+
 import org.apache.derby.catalog.AliasInfo;
 import org.apache.derby.catalog.TypeDescriptor;
 import org.apache.derby.catalog.UUID;
@@ -14,16 +24,14 @@ import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
 import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
-import org.apache.derby.shared.common.sanity.SanityManager;
-
-import java.sql.Types;
-import java.util.*;
+import org.apache.log4j.Logger;
 
 /**
  * @author Scott Fines
  *         Created on: 2/22/13
  */
 public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator,ModuleControl {
+    private static final Logger LOG = Logger.getLogger(DefaultSystemProcedureGenerator.class);
     private static final String SYSTEM_PROCEDURES = "org.apache.derby.catalog.SystemProcedures";
     private static final String LOB_STORED_PROCEDURE = "org.apache.derby.impl.jdbc.LOBStoredProcedure";
 
@@ -106,8 +114,9 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
         	ad = dictionary.getAliasDescriptor(schemaIdStr, procName, AliasInfo.ALIAS_NAME_SPACE_FUNCTION_AS_CHAR);
     	}
     	if (ad != null) {  // Drop the procedure if it already exists.
-    		// Log a message to the debug stream (derby.log) to track what has been dropped/created.
-    		SanityManager.DEBUG_PRINT("updateSystemProcs", String.format("Dropping already existing procedure: %s.%s", sd.getSchemaName(), procName));
+            if (LOG.isInfoEnabled()) {
+                LOG.info(String.format("Dropping already existing procedure: %s.%s", sd.getSchemaName(), procName));
+            }
     		dictionary.dropAliasDescriptor(ad, tc);
     	}
 
@@ -116,8 +125,9 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
     	if (procedure == null) {
     		throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND_DURING_EXECUTION, "PROCEDURE", (schemaName + "." + procName));
     	} else {
-    		// Log a message to the debug stream (derby.log) to track what has been dropped/created.
-    		SanityManager.DEBUG_PRINT("updateSystemProcs", String.format("Creating procedure: %s.%s", sd.getSchemaName(), procName));
+            if (LOG.isInfoEnabled()) {
+                LOG.info(String.format("Creating procedure: %s.%s", sd.getSchemaName(), procName));
+            }
     		newlyCreatedRoutines.add(procedure.createSystemProcedure(schemaId, dictionary, tc));
     	}
     }

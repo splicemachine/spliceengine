@@ -38,8 +38,8 @@
 
   <target name="compile_jsr169">
 	    <javac
-	      source="1.4"
-	      target="1.4"
+	      source="1.5"
+	      target="1.5"
       bootclasspath="${empty}"
       nowarn="on"
       debug="${debug}"
@@ -51,7 +51,7 @@
       srcdir="${derby.engine.src.dir}"
       destdir="${out.dir}">
       <classpath>
-        <pathelement path="${joda-time};${compile.classpath}"/>
+        <pathelement path="${log4j};${joda-time};${compile.classpath}"/>
       </classpath>
       <include name="${derby.dir}/impl/jdbc/*.java"/>
 	  <exclude name="${derby.dir}/impl/jdbc/*169.java"/>
@@ -68,8 +68,8 @@
     </target>
   	<target name="compile_jsr169_opt">
   	    <javac
-  	      source="1.4"
-  	      target="1.4"
+  	      source="1.5"
+  	      target="1.5"
         bootclasspath="${empty}"
         nowarn="on"
         debug="${debug}"
@@ -81,15 +81,15 @@
         srcdir="${derby.engine.src.dir}"
         destdir="${out.dir}">
         <classpath>
-          <pathelement path="${joda-time};${jsr169compile.classpath}"/>
+          <pathelement path="${log4j};${joda-time};${jsr169compile.classpath}"/>
         </classpath>
         <include name="${derby.dir}/impl/jdbc/*169.java"/>
     </javac>
   	</target>
   <target name="compile_jdbc3" depends="compile_jsr169">
     <javac
-      source="1.4"
-      target="1.4"
+      source="1.5"
+      target="1.5"
       bootclasspath="${empty}"
       nowarn="on"
       debug="${debug}"
@@ -101,7 +101,7 @@
       srcdir="${derby.engine.src.dir}"
       destdir="${out.dir}">
       <classpath>
-        <pathelement path="${joda-time};${java15compile.classpath}"/>
+        <pathelement path="${log4j};${joda-time};${java15compile.classpath}"/>
       </classpath>
 	  <include name="${derby.dir}/impl/jdbc/*20.java"/>
   	  <include name="${derby.dir}/impl/jdbc/*30.java"/>
@@ -126,7 +126,7 @@
         srcdir="${derby.engine.src.dir}"
         destdir="${out.dir}">
         <classpath>
-            <pathelement path="${joda-time};${java16compile.classpath}"/>
+            <pathelement path="${log4j};${joda-time};${java16compile.classpath}"/>
         </classpath>
         <include name="${derby.dir}/impl/jdbc/*40.java"/>
     </javac>

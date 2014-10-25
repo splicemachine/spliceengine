@@ -623,6 +623,13 @@ public class PropertyUtil {
             ( Property.AUTHENTICATION_PROVIDER_LOCAL_SUFFIX );
 	}
 
+	/**
+	 * Return true if the passed-in properties specify that the NATIVE authentication credentials database will be created.
+	 */
+	public static boolean createNativeAuthenticationCredentialsDatabaseEnabled(Properties properties)
+	{
+        return "true".equals(getPropertyFromSet(properties, Property.AUTHENTICATION_NATIVE_CREATE_CREDENTIALS_DATABASE));
+	}
 
 	/**
 	 * Return true if username is defined as a system property

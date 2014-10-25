@@ -833,7 +833,14 @@ public interface Property {
     // when local native authentication is enabled, we store this value for derby.authentication.provider
     public static final String AUTHENTICATION_PROVIDER_NATIVE_LOCAL =
         AUTHENTICATION_PROVIDER_NATIVE + AUTHENTICATION_PROVIDER_LOCAL_SUFFIX;
-    
+
+    // Property to force the creation of the native credentials database.
+    // Generally, this is only done at the time of the creation of the whole Splice/Derby database.
+    // In this particular instance, there are Splice beta customers with AnA disabled and they want to
+    // switch to using native AnA.  So we allow a manual override here.  See DB-2088 for more details.
+    public static final String AUTHENTICATION_NATIVE_CREATE_CREDENTIALS_DATABASE =
+        "derby.authentication.native.create.credentials.database";
+
     // lifetime (in milliseconds) of a NATIVE password. if <= 0, then the password never expires
     public static final String AUTHENTICATION_NATIVE_PASSWORD_LIFETIME =
         "derby.authentication.native.passwordLifetimeMillis";

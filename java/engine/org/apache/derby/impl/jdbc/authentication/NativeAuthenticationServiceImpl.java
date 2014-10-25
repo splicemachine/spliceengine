@@ -21,35 +21,33 @@
 
 package org.apache.derby.impl.jdbc.authentication;
 
-import java.util.Properties;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.util.Arrays;
+import java.util.Properties;
+
 import javax.sql.DataSource;
 
+import org.apache.derby.authentication.UserAuthenticator;
 import org.apache.derby.catalog.SystemProcedures;
-import org.apache.derby.iapi.db.Database;
+import org.apache.derby.iapi.error.SQLWarningFactory;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.reference.Attribute;
 import org.apache.derby.iapi.reference.Property;
-import org.apache.derby.iapi.services.info.JVMInfo;
+import org.apache.derby.iapi.reference.SQLState;
+import org.apache.derby.iapi.services.monitor.Monitor;
+import org.apache.derby.iapi.services.property.PropertyUtil;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.sql.dictionary.PasswordHasher;
 import org.apache.derby.iapi.sql.dictionary.UserDescriptor;
-import org.apache.derby.iapi.reference.Attribute;
-import org.apache.derby.iapi.reference.SQLState;
-import org.apache.derby.authentication.UserAuthenticator;
-import org.apache.derby.iapi.error.SQLWarningFactory;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.monitor.Monitor;
-import org.apache.derby.iapi.services.property.PropertyUtil;
-import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.util.IdUtil;
-import org.apache.derby.iapi.util.StringUtil;
 import org.apache.derby.impl.jdbc.Util;
 import org.apache.derby.jdbc.InternalDriver;
+import org.apache.log4j.Logger;
 
 /**
  * <p>
@@ -78,6 +76,7 @@ public final class NativeAuthenticationServiceImpl
     // CONSTANTS
     //
     ///////////////////////////////////////////////////////////////////////////////////
+    private static final Logger LOG = Logger.getLogger(NativeAuthenticationServiceImpl.class);
 
     ///////////////////////////////////////////////////////////////////////////////////
     //
@@ -254,8 +253,18 @@ public final class NativeAuthenticationServiceImpl
 		}
 
         // bootstrap the creation of the initial username/password when the dbo creates a credentials db
-        if ( create && authenticatingInThisService( getCanonicalServiceName() ) ) { _creatingCredentialsDB = true; }
-        else { _creatingCredentialsDB = false; }
+		/*
+		 * DB-2088: Below, there is a manual override that can be enabled to force the creation of the
+		 * native credentials database after the Splice/Derby database has been created.
+		 * This is useful for beta Splice customers that wish to enable AnA.
+		 */
+		if ((create || PropertyUtil.createNativeAuthenticationCredentialsDatabaseEnabled(properties)) &&
+			authenticatingInThisService( getCanonicalServiceName()))
+		{
+			_creatingCredentialsDB = true;
+		} else {
+			_creatingCredentialsDB = false;
+		}
 
 		// Set ourselves as being ready, having loaded the proper
 		// authentication scheme for this service
@@ -491,6 +500,9 @@ public final class NativeAuthenticationServiceImpl
             
             TransactionController   tc = getTransaction();
             
+            if (LOG.isInfoEnabled()) {
+                LOG.info(String.format("Saving DBO's initial credentials to SYSUSERS table: username=%s", userName));
+            }
             SystemProcedures.addUser( userName, userPassword, tc );
             
             tc.commit();
