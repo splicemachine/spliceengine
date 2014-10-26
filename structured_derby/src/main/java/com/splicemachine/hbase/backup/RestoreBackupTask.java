@@ -1,17 +1,23 @@
 package com.splicemachine.hbase.backup;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FileUtil;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -67,11 +73,26 @@ public class RestoreBackupTask extends ZkTask {
                 return;
             }
             List<Pair<byte[], String>> famPaths = regionInfo.getFamPaths();
-            region.bulkLoadHFiles(famPaths);
+            List<Pair<byte[], String>> copyPaths = copyStoreFiles(famPaths);
+            region.bulkLoadHFiles(copyPaths);
         } catch (IOException e) {
             SpliceLogUtils.error(LOG, "Couldn't recover region " + region, e);
             throw new ExecutionException("Failed recovery of region " + region, e);
         }
+    }
+
+    private List<Pair<byte[], String>> copyStoreFiles(List<Pair<byte[], String>> famPaths) throws IOException {
+        List<Pair<byte[], String>> copy = new ArrayList<Pair<byte[], String>>(famPaths.size());
+        FileSystem fs = region.getFilesystem();
+        for (Pair<byte[], String> pair : famPaths) {
+            Path srcPath = new Path(pair.getSecond());
+            FileSystem srcFs = srcPath.getFileSystem(SpliceConstants.config);
+            Path localDir = region.getRegionDir();
+            Path tmpPath = getRandomFilename(fs, localDir);
+            FileUtil.copy(srcFs, srcPath, fs, tmpPath, false, SpliceConstants.config);
+            copy.add(new Pair<byte[], String>(pair.getFirst(), tmpPath.toString()));
+        }
+        return copy;
     }
 
     private BackupItem.RegionInfo getRegionInfo() {
@@ -88,6 +109,12 @@ public class RestoreBackupTask extends ZkTask {
     @Override
     public int getPriority() {
         return SchedulerPriorities.INSTANCE.getBasePriority(RestoreBackupTask.class);
+    }
+
+    static Path getRandomFilename(final FileSystem fs,
+                                  final Path dir)
+            throws IOException {
+        return new Path(dir, UUID.randomUUID().toString().replaceAll("-", ""));
     }
 }
 
