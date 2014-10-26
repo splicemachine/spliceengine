@@ -216,8 +216,8 @@ public class WindowFunctionMultiIT extends SpliceUnitTest {
     }
 
     @Test
-    @Ignore("DB-1988 Key column missing from select causes invalid output")
     public void testMultiFunctionSamePartitionDifferentOrderBy_MissingKeyColumn() throws Exception {
+        // DB-1988 Key column missing from select causes invalid output
         int[] denseRank = {1, 2, 2, 3, 4, 5, 6, 1, 2, 2, 3, 1, 2, 3, 4};
         int[] ruwNum    = {1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 1, 2, 3, 4};
         String sqlText = "SELECT empnum, salary, DENSE_RANK() OVER (PARTITION BY dept ORDER BY salary) AS DenseRank, ROW_NUMBER() OVER (PARTITION BY dept ORDER BY dept) AS RowNumber FROM %s";
@@ -225,8 +225,6 @@ public class WindowFunctionMultiIT extends SpliceUnitTest {
         ResultSet rs = methodWatcher.executeQuery(
             String.format(sqlText, this.getTableReference(EMPTAB)));
 
-        // DEBUG
-//        TestUtils.printResult(sqlText, rs, System.out);
         int i = 0;
         while (rs.next()) {
             Assert.assertEquals(denseRank[i],rs.getInt(3));
