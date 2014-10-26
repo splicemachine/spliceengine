@@ -64,6 +64,15 @@ public class WindowColumnMapping {
         return missingKeys;
     }
 
+    public static void replaceColumnExpression(OrderedColumn keyCol, ValueNode vn,
+                                               List<OrderedColumn> overColumns) throws StandardException {
+        List<OrderedColumn> keys = findMatchingKeys(keyCol, overColumns);
+        assert ! keys.isEmpty(): "No matching key col for "+keyCol;
+        for (OrderedColumn key : keys) {
+            key.init(vn);
+        }
+    }
+
     /**
      * Reset the the key column position numbers of the parent referenced key columns.
      * Also reset the position numbers of the key columns in the over() clause to keep
@@ -173,6 +182,7 @@ public class WindowColumnMapping {
                 rc.setVirtualColumnId(columnPosition);
             }
         }
+        column.setColumnPosition(columnPosition);
     }
 
     /**
