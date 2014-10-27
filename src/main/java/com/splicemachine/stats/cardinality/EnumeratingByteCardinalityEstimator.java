@@ -30,4 +30,13 @@ public class EnumeratingByteCardinalityEstimator implements ByteCardinalityEstim
         assert item!=null: "Cannot estimate null bytes!";
         update(item.byteValue(),count);
     }
+
+    @Override
+    public CardinalityEstimator<Byte> merge(CardinalityEstimator<Byte> other) {
+        assert other instanceof EnumeratingByteCardinalityEstimator:
+                "Cannot merge byte estimator that is not of type EnumeratingByteCardinalityEstimator";
+        BitSet otherBits = ((EnumeratingByteCardinalityEstimator)other).bitSet;
+        bitSet.or(otherBits);
+        return this;
+    }
 }

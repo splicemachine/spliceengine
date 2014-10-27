@@ -119,8 +119,21 @@ public abstract class BaseLogLogCounter{
 
 				double E = alphaM*z;
 				return (long)E;
-
 		}
+
+    /**
+     * Merge this counter with another BaseLogLog counter.
+     *
+     * @param otherCounter the other counter to merge.
+     */
+    public void merge(BaseLogLogCounter otherCounter){
+        assert otherCounter.numRegisters <= numRegisters: "Cannot merge counters unless the incoming has fewer registers than we do";
+        for(int i=0;i<otherCounter.numRegisters;i++){
+            updateRegister(i,otherCounter.getRegister(i));
+        }
+    }
+
+    public abstract byte[] encode();
 
 		/**
 		 * Compute the multiplicative scale factor {@code alpha}. Generally,

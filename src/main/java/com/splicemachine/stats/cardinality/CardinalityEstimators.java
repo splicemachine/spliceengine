@@ -65,7 +65,11 @@ public class CardinalityEstimators {
 
 		public static CardinalityEstimator<String> hyperLogLogString(int precision,Hash64 hashFunction){
         BaseLogLogCounter counter = SparseAdjustedHyperLogLogCounter.adjustedCounter(precision, hashFunction);
-				return new HyperLogLog<String>(counter);
+				return new HyperLogLog<String>(counter){
+            @Override
+            public void update(String item, long count) {
+            }
+        };
 		}
 
 		public static CardinalityEstimator<BigDecimal> hyperLogLogBigDecimal(int precision){
@@ -94,6 +98,20 @@ public class CardinalityEstimators {
 				@Override public void update(ByteBuffer bytes, long count) { counter.update(bytes); }
 				@Override public void update(byte[] item) { counter.update(item,0,item.length); }
 				@Override public void update(byte[] item, long count) { counter.update(item,0,item.length);  }
+
+        @Override
+        public CardinalityEstimator<byte[]> merge(CardinalityEstimator<byte[]> otherEstimator) {
+            assert otherEstimator instanceof BaseLogLogCounter: "Cannot merge with a non-loglog cardinality estimator";
+            counter.merge((BaseLogLogCounter)otherEstimator);
+            return this;
+        }
+
+        @Override
+        public BytesCardinalityEstimator merge(BytesCardinalityEstimator otherEstimator) {
+            assert otherEstimator instanceof BaseLogLogCounter: "Cannot merge with a non-loglog cardinality estimator";
+            counter.merge((BaseLogLogCounter)otherEstimator);
+            return this;
+        }
 		}
 
 		private static class DoubleHyperLogLog implements DoubleCardinalityEstimator {
@@ -115,6 +133,20 @@ public class CardinalityEstimators {
 						assert item!=null: "Cannot estimate the cardinality of null values";
 						update(item.floatValue());
 				}
+
+        @Override
+        public CardinalityEstimator<Double> merge(CardinalityEstimator<Double> otherEstimator) {
+            assert otherEstimator instanceof BaseLogLogCounter: "Cannot merge with a non-loglog cardinality estimator";
+            counter.merge((BaseLogLogCounter)otherEstimator);
+            return this;
+        }
+
+        @Override
+        public DoubleCardinalityEstimator merge(DoubleCardinalityEstimator otherEstimator) {
+            assert otherEstimator instanceof BaseLogLogCounter: "Cannot merge with a non-loglog cardinality estimator";
+            counter.merge((BaseLogLogCounter)otherEstimator);
+            return this;
+        }
 		}
 
 		private static class FloatHyperLogLog implements FloatCardinalityEstimator {
@@ -136,6 +168,20 @@ public class CardinalityEstimators {
 						assert item!=null: "Cannot estimate the cardinality of null values";
 						update(item.floatValue());
 				}
+
+        @Override
+        public CardinalityEstimator<Float> merge(CardinalityEstimator<Float> otherEstimator) {
+            assert otherEstimator instanceof BaseLogLogCounter: "Cannot merge with a non-loglog cardinality estimator";
+            counter.merge((BaseLogLogCounter)otherEstimator);
+            return this;
+        }
+
+        @Override
+        public FloatCardinalityEstimator merge(FloatCardinalityEstimator otherEstimator) {
+            assert otherEstimator instanceof BaseLogLogCounter: "Cannot merge with a non-loglog cardinality estimator";
+            counter.merge((BaseLogLogCounter)otherEstimator);
+            return this;
+        }
 		}
 
 		private static class LongHyperLogLog implements LongCardinalityEstimator {
@@ -157,6 +203,20 @@ public class CardinalityEstimators {
 						assert item!=null: "Cannot estimate the cardinality of null values";
 						update(item.shortValue(),count);
 				}
+
+        @Override
+        public CardinalityEstimator<Long> merge(CardinalityEstimator<Long> otherEstimator) {
+            assert otherEstimator instanceof BaseLogLogCounter: "Cannot merge with a non-loglog cardinality estimator";
+            counter.merge((BaseLogLogCounter)otherEstimator);
+            return this;
+        }
+
+        @Override
+        public LongCardinalityEstimator merge(LongCardinalityEstimator otherEstimator) {
+            assert otherEstimator instanceof BaseLogLogCounter: "Cannot merge with a non-loglog cardinality estimator";
+            counter.merge((BaseLogLogCounter)otherEstimator);
+            return this;
+        }
 		}
 
 		private static class IntHyperLogLog implements IntCardinalityEstimator{
@@ -178,7 +238,21 @@ public class CardinalityEstimators {
 						assert item!=null: "Cannot estimate the cardinality of null values";
 						update(item.shortValue(),count);
 				}
-		}
+
+        @Override
+        public CardinalityEstimator<Integer> merge(CardinalityEstimator<Integer> other) {
+            assert other instanceof BaseLogLogCounter: "Cannot merge with a non-loglog cardinality estimator";
+            counter.merge((BaseLogLogCounter)other);
+            return this;
+        }
+
+        @Override
+        public IntCardinalityEstimator merge(IntCardinalityEstimator other) {
+            assert other instanceof BaseLogLogCounter: "Cannot merge with a non-loglog cardinality estimator";
+            counter.merge((BaseLogLogCounter)other);
+            return this;
+        }
+    }
 
 		private static class ShortHyperLogLog implements ShortCardinalityEstimator{
 				private final BaseLogLogCounter counter;
@@ -199,7 +273,21 @@ public class CardinalityEstimators {
 						assert item!=null: "Cannot estimate the cardinality of null values";
 						update(item.shortValue());
 				}
-		}
+
+        @Override
+        public CardinalityEstimator<Short> merge(CardinalityEstimator<Short> otherEstimator) {
+            assert otherEstimator instanceof BaseLogLogCounter: "Cannot merge with a non-loglog cardinality estimator";
+            counter.merge((BaseLogLogCounter)otherEstimator);
+            return this;
+        }
+
+        @Override
+        public ShortCardinalityEstimator merge(ShortCardinalityEstimator otherEstimator) {
+            assert otherEstimator instanceof BaseLogLogCounter: "Cannot merge with a non-loglog cardinality estimator";
+            counter.merge((BaseLogLogCounter)otherEstimator);
+            return this;
+        }
+    }
 
 		private static class HyperLogLog<T> implements CardinalityEstimator<T> {
 				private final BaseLogLogCounter counter;
@@ -209,14 +297,20 @@ public class CardinalityEstimators {
 
 				@Override
 				public void update(T item) {
-						assert item!=null: "Cannot collect cardinality estimates for null values";
-						counter.update(item.hashCode()); //TODO -sf- is this correct?
+            update(item,1l);
 				}
 
 				@Override
 				public void update(T item, long count) {
 						assert item!=null: "Cannot collect cardinality estimates for null values";
-						counter.update(item.hashCode()); //TODO -sf- is this correct?
+						counter.update(item.hashCode());
 				}
+
+        @Override
+        public CardinalityEstimator<T> merge(CardinalityEstimator<T> otherEstimator) {
+            assert otherEstimator instanceof BaseLogLogCounter: "Cannot merge with a non-loglog cardinality estimator";
+            counter.merge((BaseLogLogCounter)otherEstimator);
+            return this;
+        }
 		}
 }

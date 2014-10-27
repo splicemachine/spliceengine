@@ -43,7 +43,7 @@ class GroupedCounter implements IntUpdateable{
             N<<=1;
             lg++;
         }
-        this.levels = new Level[lg];
+        this.levels = new Level[lg-1];
         for(int i=0;i<levels.length;i++){
             levels[i] = newLevel(i,lg);
         }
@@ -216,9 +216,9 @@ class GroupedCounter implements IntUpdateable{
 
     public static void main(String... args) throws Exception{
         int numIterations =1000;
-        int max=16;
+        int max=8;
         Random random = new Random();
-        GroupedCounter counter = GroupedCounter.newCounter(max,0.01f,3);
+        GroupedCounter counter = GroupedCounter.newCounter(max,0.1f,3);
         GroupedCounter correctCounter = new GroupedCounter(max);
         long correctEnergy = 0l;
         for(int i=0;i<numIterations;i++){

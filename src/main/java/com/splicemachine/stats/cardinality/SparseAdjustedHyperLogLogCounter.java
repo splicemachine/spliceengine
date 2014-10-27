@@ -2,6 +2,7 @@ package com.splicemachine.stats.cardinality;
 
 import com.google.common.primitives.Ints;
 import com.splicemachine.hash.Hash64;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.stats.DoubleFunction;
 
 import java.util.Arrays;
@@ -125,6 +126,29 @@ public class SparseAdjustedHyperLogLogCounter extends BaseBiasAdjustedHyperLogLo
 				initialize(initialSize, maxBufferSize);
 		}
 
+    private SparseAdjustedHyperLogLogCounter(int precision,
+                                             int sparseSize,
+                                             int[] sparse,
+                                             Hash64 hashFunction,
+                                             DoubleFunction biasAdjuster){
+        super(precision, hashFunction, biasAdjuster);
+        this.sparseSize =sparseSize;
+        maxSparseSize=3*(1<<precision-6);
+        this.sparse = sparse;
+        this.maxBufferSize = maxSparseSize/4;
+        this.buffer = new int[maxBufferSize];
+    }
+
+    private SparseAdjustedHyperLogLogCounter(int precision,
+                                             byte[] denseRegisters,
+                                             Hash64 hashFunction,
+                                             DoubleFunction biasAdjuster){
+        super(precision, hashFunction, biasAdjuster);
+        this.isSparse=false;
+        this.denseRegisters = denseRegisters;
+        maxSparseSize = 3*(1<<precision-6);
+    }
+
 		@Override
 		protected void doUpdate(long hash) {
 				int p;
@@ -183,7 +207,28 @@ public class SparseAdjustedHyperLogLogCounter extends BaseBiasAdjustedHyperLogLo
 				return denseRegisters[register];
 		}
 
-		/***********************************************************************************************************/
+    @Override
+    public byte[] encode() {
+        if(isSparse){
+            merge();
+            if(isSparse){
+                return encodeSparse();
+            }
+        }
+        return encodeDense();
+    }
+
+    public static SparseAdjustedHyperLogLogCounter decode(DoubleFunction biasAdjuster,
+                                                          Hash64 newHash,
+                                                          byte[] data, int offset){
+        boolean isSparse = data[offset]==0x01;
+        if(isSparse){
+           return decodeSparse(biasAdjuster,newHash,data,offset+1);
+        }else
+            return decodeDense(biasAdjuster,newHash, data,offset+1);
+    }
+
+    /*****************************************************************************************************************/
 		/*private helper functions*/
 		private void initialize(int initialSize, int maxBufferSize) {
 				if(maxBufferSize<0)
@@ -322,4 +367,56 @@ public class SparseAdjustedHyperLogLogCounter extends BaseBiasAdjustedHyperLogLo
 				}
 		}
 
+    private static SparseAdjustedHyperLogLogCounter decodeSparse(DoubleFunction biasAdjuster,Hash64 newHashFunction,byte[] data, int offset) {
+        int pos = offset;
+        int precision = Bytes.toInt(data,pos);
+        pos+=4;
+        int size = Bytes.toInt(data,pos);
+        pos+=4;
+        int c = 1;
+        while(c<size){
+            c<<=1;
+        }
+        int[] sparse = new int[c];
+        for(int i=0;i<size;i++){
+            sparse[i] = Bytes.toInt(data,pos);
+            pos+=4;
+        }
+        return new SparseAdjustedHyperLogLogCounter(precision,size,sparse,newHashFunction,biasAdjuster);
+    }
+
+    private static SparseAdjustedHyperLogLogCounter decodeDense(DoubleFunction biasAdjuster,Hash64 newHash,byte[] data, int offset) {
+        int pos = offset;
+        int precision = Bytes.toInt(data,pos);
+        pos+=4;
+        int size = Bytes.toInt(data,pos);
+        pos+=4;
+        byte[] denseRegisters = new byte[size];
+        System.arraycopy(data,pos,denseRegisters,0,size);
+        return new SparseAdjustedHyperLogLogCounter(precision,denseRegisters,newHash,biasAdjuster);
+    }
+
+    private byte[] encodeSparse() {
+        int size = 9+sparseSize*4;
+        byte[] bytes = new byte[size];
+        bytes[0] = 0x01; //indicate that we are in a sparse representation
+        Bytes.toBytes(precision,bytes,1);
+        Bytes.toBytes(sparseSize,bytes,5);
+        int pos=9;
+        for(int i=0;i<sparseSize;i++){
+            Bytes.toBytes(sparse[i],bytes,pos);
+            pos+=4;
+        }
+        return bytes;
+    }
+
+    private byte[] encodeDense() {
+        int size = 9+denseRegisters.length;
+        byte[] bytes = new byte[size];
+        bytes[4] = 0x00;
+        Bytes.toBytes(precision,bytes,1);
+        Bytes.toBytes(denseRegisters.length,bytes,5);
+        System.arraycopy(denseRegisters,0,bytes,9,denseRegisters.length);
+        return bytes;
+    }
 }

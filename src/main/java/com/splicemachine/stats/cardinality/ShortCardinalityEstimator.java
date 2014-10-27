@@ -6,4 +6,7 @@ import com.splicemachine.stats.ShortUpdateable;
  * @author Scott Fines
  * Date: 6/5/14
  */
-public interface ShortCardinalityEstimator extends CardinalityEstimator<Short>,ShortUpdateable{ }
+public interface ShortCardinalityEstimator extends CardinalityEstimator<Short>,ShortUpdateable{
+
+    ShortCardinalityEstimator merge(ShortCardinalityEstimator other);
+}
