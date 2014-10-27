@@ -31,6 +31,7 @@ public class SpliceXPlainTrace extends XPlainTrace{
     public static final String DELETE = "DELETE";
     public static final String POPULATEINDEX = "POPULATEINDEX";
     public static final String WINDOW = "WINDOW";
+    public static final String IMPORT = "IMPORT";
 
     private TestConnection testConn;
     private PreparedStatement countStatementPs;

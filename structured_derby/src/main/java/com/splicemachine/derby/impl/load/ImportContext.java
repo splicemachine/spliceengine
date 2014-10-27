@@ -51,7 +51,6 @@ public class ImportContext implements Externalizable{
 		private long byteOffset;
 		private int bytesToRead;
 
-		private String xplainSchema;
 		private boolean recordStats;
 
 		/*
@@ -77,7 +76,6 @@ public class ImportContext implements Externalizable{
 													long byteOffset,
 													int bytesToRead,
 													boolean recordStats,
-													String xplainSchema,
 													long maxBadRecords,
 													Path badLogDirectory,
 													String tableVersion,
@@ -93,7 +91,6 @@ public class ImportContext implements Externalizable{
 				this.bytesToRead = bytesToRead;
 				this.columnInformation = columnInformation;
 				this.recordStats = recordStats;
-				this.xplainSchema = xplainSchema;
 				this.maxBadRecords = maxBadRecords;
 				this.badLogDirectory = badLogDirectory;
 				this.tableVersion = tableVersion;
@@ -154,8 +151,6 @@ public class ImportContext implements Externalizable{
 				out.writeLong(byteOffset);
 				out.writeInt(bytesToRead);
 				out.writeBoolean(recordStats);
-				if(recordStats)
-						out.writeUTF(xplainSchema);
 				out.writeLong(maxBadRecords);
 				out.writeBoolean(badLogDirectory!=null);
 				if(badLogDirectory!=null)
@@ -187,10 +182,6 @@ public class ImportContext implements Externalizable{
 				byteOffset = in.readLong();
 				bytesToRead = in.readInt();
 				recordStats = in.readBoolean();
-				if(recordStats)
-						xplainSchema = in.readUTF();
-				else
-						xplainSchema = null;
 				maxBadRecords = in.readLong();
 				if(in.readBoolean())
 						badLogDirectory = new Path(in.readUTF());
@@ -233,15 +224,12 @@ public class ImportContext implements Externalizable{
 				return finalPks;
 		}
 
-		public String getXplainSchema() {
-				return xplainSchema;
-		}
 
 		public ImportContext getCopy() {
 				return new ImportContext(filePath,tableId,columnDelimiter,stripString,
 								columnInformation,timestampFormat,
 								dateFormat,timeFormat,byteOffset,bytesToRead,
-								recordStats,xplainSchema,maxBadRecords,badLogDirectory,tableVersion,isUpsert);
+								recordStats,maxBadRecords,badLogDirectory,tableVersion,isUpsert);
 		}
 
 		public long getMaxBadRecords() { return maxBadRecords; }
@@ -269,7 +257,6 @@ public class ImportContext implements Externalizable{
 
 				private List<ColumnContext> columnInformation = Lists.newArrayList();
 				private boolean recordStats = false;
-				private String xplainSchema = null;
 
 				private long maxBadRecords = 0l;
 				private Path badLogDirectory = null;
@@ -365,11 +352,6 @@ public class ImportContext implements Externalizable{
 						return this;
 				}
 
-				public Builder xplainSchema(String xplainSchema){
-						this.xplainSchema = xplainSchema;
-						return this;
-				}
-
 				public Builder tableVersion(String tableVersion){
 						this.tableVersion = tableVersion;
 						return this;
@@ -400,7 +382,7 @@ public class ImportContext implements Externalizable{
 										columnDelimiter,stripString,
 										context,
 										timestampFormat,dateFormat,timeFormat, byteOffset, bytesToRead,
-										recordStats,xplainSchema,maxBadRecords,badLogDirectory,tableVersion,isUpsert);
+										recordStats,maxBadRecords,badLogDirectory,tableVersion,isUpsert);
 				}
 
 				public long getDestinationConglomerate() {
