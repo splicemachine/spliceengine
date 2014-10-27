@@ -117,6 +117,7 @@ public class HiveSpliceRecordReader extends RecordReader<ImmutableBytesWritable,
 	public void close() throws IOException {
 		// TODO Auto-generated method stub
 		recordReader.close();
+		recordReader = null;
 	}
 	
 	public void setTableStructure(HashMap<List, List> tableStructure){

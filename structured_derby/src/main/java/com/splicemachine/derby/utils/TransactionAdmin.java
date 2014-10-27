@@ -207,7 +207,7 @@ public class TransactionAdmin {
          
     }
 
-    public static void SYSCS_START_CHILD_TRANSACTION(long parentTransactionId, long conglomId, ResultSet[] resultSet) throws IOException, SQLException {
+    public static void SYSCS_START_CHILD_TRANSACTION(long parentTransactionId, String spliceTableName, ResultSet[] resultSet) throws IOException, SQLException {
 
         // Verify the parentTransactionId passed in
         TxnSupplier store = TransactionStorage.getTxnStore();
@@ -218,7 +218,7 @@ public class TransactionAdmin {
 
         Txn childTxn;
         try {
-            childTxn = TransactionLifecycle.getLifecycleManager().beginChildTransaction(parentTxn, Bytes.toBytes(conglomId));
+            childTxn = TransactionLifecycle.getLifecycleManager().beginChildTransaction(parentTxn, Bytes.toBytes(spliceTableName));
         } catch (IOException e) {
             throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
         }

@@ -73,11 +73,11 @@ ExecRowWritable>{
 		String spliceTableName = conf.get(SpliceSerDe.SPLICE_TABLE_NAME);
 		HiveSpliceRecordReader trr = this.spliceTableRecordReader;
 		
-		if(sqlUtil == null)
-			sqlUtil = SQLUtil.getInstance(conf.get(SpliceSerDe.SPLICE_JDBC_STR));
+		//if(sqlUtil == null)
+		sqlUtil = SQLUtil.getInstance(conf.get(SpliceSerDe.SPLICE_JDBC_STR));
 		String txnId = sqlUtil.getTransactionID();
 	    conf.set(SpliceSerDe.SPLICE_TRANSACTION_ID, txnId);
-		if(trr == null){
+		//if(trr == null){
 			trr = new HiveSpliceRecordReader();
 			trr.setConf(conf);
 			
@@ -91,7 +91,7 @@ ExecRowWritable>{
 	    		colTypes = (ArrayList<Integer>)kv.getValue();
 	    	}
 	    	
-		}
+		//}
 		String hbaseTableName = spliceTableName2HBaseTableName(spliceTableName);
 		HTable hTable = new HTable(HBaseConfiguration.create(conf), hbaseTableName);
 		TableSplit tSplit = (TableSplit)split;
@@ -112,8 +112,8 @@ ExecRowWritable>{
 	public org.apache.hadoop.mapred.InputSplit[] getSplits(JobConf jobConf,
 			int numSplits) throws IOException {
 		Job job = new Job(jobConf);
-		if(this.conf == null)
-			this.conf = jobConf;
+		//if(this.conf == null)
+		this.conf = jobConf;
 	    JobContext jobContext = ShimLoader.getHadoopShims().newJobContext(job);
 	    inputFormat.setConf(conf);
 	    List<InputSplit> splits = inputFormat.getSplits(jobContext);
@@ -133,9 +133,9 @@ ExecRowWritable>{
 			Reporter reporter) throws IOException {
 		// TODO Auto-generated method stub
 		Job job = new Job(jobConf);
-		if(this.conf == null){
-			this.conf = jobConf;
-		}
+		//if(this.conf == null){
+		this.conf = jobConf;
+		//}
 			
 		SpliceSplit hbaseSplit = (SpliceSplit) split;
 		 TableSplit tableSplit = hbaseSplit.getSplit();
