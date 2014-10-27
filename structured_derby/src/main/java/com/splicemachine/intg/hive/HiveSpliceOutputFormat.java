@@ -289,7 +289,7 @@ org.apache.hadoop.mapred.OutputFormat<ImmutableBytesWritable, Put>{
 									childTxsID, SpliceMRConstants.SPLICE_WRITE_BUFFER_SIZE);*/	
 					childTxsID = sqlUtil.getChildTransactionID(conn, 
 							Long.parseLong(conf.get(SpliceMRConstants.SPLICE_TRANSACTION_ID)), 
-							Long.parseLong(tableID));
+							conf.get(TableOutputFormat.OUTPUT_TABLE));
 					String strSize = conf.get(SpliceMRConstants.SPLICE_WRITE_BUFFER_SIZE);
 					int size = 1024;
 					if((strSize != null) && (!strSize.equals("")))

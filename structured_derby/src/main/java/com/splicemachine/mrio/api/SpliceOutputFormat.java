@@ -181,6 +181,7 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 		private String taskID = "";
 		private Connection conn = null;
 		private long childTxsID;
+		TxnView txn = null;
 	
 		public SpliceRecordWriter(int[]pkCols, ArrayList colTypes, String taskID) throws IOException{
 			if(conf == null)
@@ -220,6 +221,7 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 				this.callBuffer.flushBuffer();
 				this.callBuffer.close();
 				sqlUtil.commit(conn);
+				System.out.println("child conn committed");
 				sqlUtil.closeConn(conn);
 				System.out.println("Task "+arg0.getTaskAttemptID()+" succeed");
 				
@@ -308,21 +310,24 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 				if(callBuffer == null){
 					conn = sqlUtil.createConn();
 					sqlUtil.disableAutoCommit(conn);
-					
+					long parentTxnID = Long.parseLong(conf.get(SpliceMRConstants.SPLICE_TRANSACTION_ID));
 					childTxsID = sqlUtil.getChildTransactionID(conn, 
-									Long.parseLong(conf.get(SpliceMRConstants.SPLICE_TRANSACTION_ID)), 
-									Long.parseLong(tableID));
+									parentTxnID, 
+									conf.get(SpliceMRConstants.SPLICE_OUTPUT_TABLE_NAME));
+					System.out.println("parentTxsID:"+parentTxnID);
 					//childTxsID = Long.parseLong(sqlUtil.getTransactionID(conn));
 					
 					/*PreparedStatement ps = conn.prepareStatement("call SYSCS_UTIL.SYSCS_ELEVATE_TRANSACTION(?)");
-					ps.setString(1, conf.get(SpliceMRConstants.SPLICE_OUTPUT_TABLE_NAME));	
+					ps.setString(1, "USERTEST");	
 					ps.executeUpdate();*/
 
 					String strSize = conf.get(SpliceMRConstants.SPLICE_WRITE_BUFFER_SIZE);
 					int size = 1024;
 					if((strSize != null) && (!strSize.equals("")))
 						size = Integer.valueOf(strSize);
-					TxnView txn = new ActiveWriteTxn(childTxsID,childTxsID);
+					txn = new ActiveWriteTxn(childTxsID,childTxsID);
+					
+					//TxnView txn = new ActiveWriteTxn(parentTxnID,parentTxnID);
 					callBuffer = WriteCoordinator.create(conf).writeBuffer(Bytes.toBytes(tableID), 
 									txn, size);
 					
