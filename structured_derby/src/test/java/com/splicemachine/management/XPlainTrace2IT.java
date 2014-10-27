@@ -9,6 +9,7 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
+import java.io.PrintWriter;
 import java.sql.PreparedStatement;
 
 /**
@@ -29,12 +30,15 @@ public class XPlainTrace2IT extends BaseXplainIT{
     public static final String TABLE1 = "T1";
     public static final String TABLE2 = "T2";
     public static final String TABLE3 = "T3";
+    public static final String TABLE4 = "T4";
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
-    private static String tableDef = "(I INT, J INT)";
-    protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE1,CLASS_NAME, tableDef);
-    protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE2,CLASS_NAME, tableDef);
-    protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher(TABLE3,CLASS_NAME, tableDef);
+    private static String tableDef1 = "(I INT, J INT)";
+    private static String tableDef2 = "(COL1 INT, COL2 VARCHAR(10))";
+    protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE1,CLASS_NAME, tableDef1);
+    protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE2,CLASS_NAME, tableDef1);
+    protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher(TABLE3,CLASS_NAME, tableDef1);
+    protected static SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher(TABLE4,CLASS_NAME, tableDef2);
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
 
@@ -97,7 +101,8 @@ public class XPlainTrace2IT extends BaseXplainIT{
                         throw new RuntimeException(e);
                     }
                 }
-            });
+            })
+            .around(spliceTableWatcher4);
 
 
     @Test
@@ -221,6 +226,25 @@ public class XPlainTrace2IT extends BaseXplainIT{
         XPlainTreeNode operation = xPlainTrace.getOperationTree(statementId);
         //Assert.assertEquals(operation.getInfo().compareToIgnoreCase(SpliceXPlainTrace.POPULATEINDEX)
 
+    }
+
+    @Test
+    public void testImport() throws Exception {
+
+        PrintWriter writer1 = new PrintWriter("/tmp/Test1.txt","UTF-8");
+        writer1.println("yuas,123");
+        writer1.println("YifuMa,52");
+        writer1.println("PeaceNLove,214");
+        writer1.close();
+
+        String sql = "call SYSCS_UTIL.IMPORT_DATA('"+CLASS_NAME+"','"+TABLE4+"','COL2,COL1','/tmp/Test1.txt',',',null,null,null,null,0,null)";
+        xPlainTrace.turnOnTrace();
+        baseConnection.execute(sql);
+        xPlainTrace.turnOffTrace();
+        long statementId = getLastStatementId();
+        XPlainTreeNode operation = xPlainTrace.getOperationTree(statementId);
+        Assert.assertEquals(operation.getOperationType().compareToIgnoreCase(SpliceXPlainTrace.IMPORT), 0);
+        Assert.assertEquals(3, operation.getWriteRows());
     }
 
     @Override

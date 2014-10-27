@@ -352,9 +352,7 @@ public class HdfsImport {
             ;
 
 						if(lcc.getRunTimeStatisticsMode()){
-								String xplainSchema = lcc.getXplainSchema();
-								if(xplainSchema!=null)
-										builder = builder.recordStats().xplainSchema(xplainSchema);
+						    builder = builder.recordStats();
 						}
 
 						buildColumnInformation(connection,schemaName,tableName,insertColumnList,builder,lcc,upsert);
