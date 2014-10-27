@@ -17,8 +17,6 @@ import com.splicemachine.primitives.Bytes;
  * Date: 12/30/13
  */
 public class HyperLogLogCounter extends BaseHyperLogLogCounter{
-
-
 		protected final byte[] buckets;
 
 		public HyperLogLogCounter(int size, Hash64 hashFunction) {

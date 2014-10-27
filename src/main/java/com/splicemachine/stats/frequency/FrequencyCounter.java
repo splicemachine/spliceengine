@@ -1,5 +1,6 @@
 package com.splicemachine.stats.frequency;
 
+import com.splicemachine.stats.Mergeable;
 import com.splicemachine.stats.Updateable;
 
 import java.util.Set;
