@@ -77,6 +77,6 @@ if [[ -z ${BUILD_NUMBER} ]]; then
 fi
 cp ${SPLICELOG} logs/${BUILD_NUMBER}$( basename "${SPLICELOG}")
 cp ${ZOOLOG} logs/${BUILD_NUMBER}$( basename "${ZOOLOG}")
-cp ${DERBYLOG} logs/${BUILD_NUMBER}$( basename "${DERBYLOG}")
+cp ${DERBYLOG} logs/${BUILD_NUMBER}$( basename "${DERBYLOG}") &>/dev/null
 
 popd &>/dev/null

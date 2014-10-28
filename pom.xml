@@ -172,6 +172,7 @@
 						</archive>
 						<excludes>
 							<exclude>**/*log4j.properties</exclude>
+							<exclude>**/splice-site.xml</exclude>
 						</excludes>
 					</configuration>
 					<executions>
