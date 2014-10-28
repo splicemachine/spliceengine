@@ -1,16 +1,17 @@
 package com.splicemachine.derby.impl.job.index;
 
 import com.google.common.base.Throwables;
-import com.splicemachine.derby.ddl.DDLChange;
 import com.splicemachine.derby.ddl.TentativeIndexDesc;
 import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
-import com.splicemachine.derby.impl.sql.execute.LocalWriteContextFactory;
+import com.splicemachine.pipeline.api.WriteContextFactory;
+import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
+
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 
 import java.io.IOException;
@@ -105,7 +106,7 @@ public class CreateIndexTask extends ZkTask {
         try{
             //add index to table watcher
             TentativeIndexDesc tentativeIndexDesc = (TentativeIndexDesc)ddlChange.getTentativeDDLDesc();
-            LocalWriteContextFactory contextFactory = SpliceIndexEndpoint.getContextFactory(tentativeIndexDesc.getBaseConglomerateNumber());
+            WriteContextFactory contextFactory = SpliceIndexEndpoint.getContextFactory(tentativeIndexDesc.getBaseConglomerateNumber());
             contextFactory.addIndex(ddlChange, columnOrdering, formatIds);
         } catch (Exception e) {
         	SpliceLogUtils.error(LOG, e);

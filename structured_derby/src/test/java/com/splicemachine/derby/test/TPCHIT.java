@@ -12,6 +12,7 @@ import com.splicemachine.test.SlowTest;
 import org.apache.derby.tools.ij;
 import org.junit.Assert;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -21,6 +22,7 @@ import org.junit.runner.Description;
 
 import com.google.common.io.Closeables;
 import com.splicemachine.derby.test.framework.SpliceDataWatcher;
+import com.splicemachine.derby.test.framework.SpliceIndexWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
@@ -66,6 +68,12 @@ public class TPCHIT extends SpliceUnitTest {
 		protected static SpliceTableWatcher regionTable = new SpliceTableWatcher(REGION,CLASS_NAME,
 						"(R_REGIONKEY INTEGER NOT NULL PRIMARY KEY, R_NAME VARCHAR(25), R_COMMENT VARCHAR(152))");
 
+		protected static SpliceIndexWatcher partkey = new SpliceIndexWatcher(LINEITEM,CLASS_NAME,"partkey",CLASS_NAME,
+				"(l_partkey, l_quantity, l_extendedprice)");
+
+		protected static SpliceIndexWatcher lineItemQ20 = new SpliceIndexWatcher(LINEITEM,CLASS_NAME,"lineItemq20",CLASS_NAME,
+				"(l_partkey, l_suppkey)");
+		
 		@ClassRule
 		public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 						.around(spliceSchemaWatcher)
@@ -77,6 +85,8 @@ public class TPCHIT extends SpliceUnitTest {
 						.around(partTable)
 						.around(nationTable)
 						.around(regionTable)
+						.around(partkey)
+						.around(lineItemQ20)
 						.around(new SpliceDataWatcher(){
 								@Override
 								protected void starting(Description description) {
@@ -177,11 +187,13 @@ public class TPCHIT extends SpliceUnitTest {
 		}
 
 		@Test
+		@Ignore
 		public void sql9() throws Exception {
 				Assert.assertTrue(runScript(new File(getSQLFile("9.sql")),methodWatcher.getOrCreateConnection()));
 		}
 
 		@Test
+		@Ignore
 		@Category(SlowTest.class)
 		public void testRepeatedSql9() throws Exception {
 				for(int i=0;i<100;i++){
@@ -226,6 +238,7 @@ public class TPCHIT extends SpliceUnitTest {
 		}
 
 		@Test
+		@Ignore
 		public void sql17() throws Exception {
 				Assert.assertTrue(runScript(new File(getSQLFile("17.sql")),methodWatcher.getOrCreateConnection()));
 		}

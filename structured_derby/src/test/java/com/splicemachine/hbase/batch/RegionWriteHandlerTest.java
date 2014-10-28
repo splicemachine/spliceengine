@@ -3,7 +3,6 @@ package com.splicemachine.hbase.batch;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.impl.ActiveWriteTxn;
@@ -13,6 +12,11 @@ import com.splicemachine.si.impl.DataStore;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.rollforward.NoopRollForward;
 import com.splicemachine.concurrent.ResettableCountDownLatch;
+import com.splicemachine.pipeline.api.Code;
+import com.splicemachine.pipeline.impl.WriteResult;
+import com.splicemachine.pipeline.writecontext.PipelineWriteContext;
+import com.splicemachine.pipeline.writehandler.IndexSharedCallBuffer;
+import com.splicemachine.pipeline.writehandler.RegionWriteHandler;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
@@ -42,7 +46,7 @@ public class RegionWriteHandlerTest {
         when(env.getRegion()).thenReturn(testRegion);
 				TransactionalRegion txnRegion = new TxnRegion(testRegion, NoopRollForward.INSTANCE, NoOpReadResolver.INSTANCE,
 								supplier,mock(DataStore.class), mock(Transactor.class));
-        PipelineWriteContext testContext = new PipelineWriteContext(new ActiveWriteTxn(1l,1l),txnRegion, env);
+        PipelineWriteContext testContext = new PipelineWriteContext(new IndexSharedCallBuffer(),new ActiveWriteTxn(1l,1l),txnRegion, env);
         testContext.addLast(new RegionWriteHandler(txnRegion,new ResettableCountDownLatch(0),100,null));
 
         ObjectArrayList<KVPair> pairs = ObjectArrayList.newInstance();
@@ -56,11 +60,12 @@ public class RegionWriteHandlerTest {
         Assert.assertEquals("Writes have made it to the region!", 0, successfulPuts.size());
 
         //finish
-        Map<KVPair,WriteResult> finish = testContext.finish();
+        testContext.flush();
+        Map<KVPair,WriteResult> finish = testContext.close();
 
         //make sure that the finish has the correct (successful) WriteResult
         for(WriteResult result:finish.values()){
-            Assert.assertEquals("Incorrect result!",WriteResult.Code.SUCCESS,result.getCode());
+            Assert.assertEquals("Incorrect result!",Code.SUCCESS,result.getCode());
         }
 
         //make sure that all the KVs made it to the region
@@ -110,7 +115,7 @@ public class RegionWriteHandlerTest {
 
         RegionCoprocessorEnvironment env = mock(RegionCoprocessorEnvironment.class);
         when(env.getRegion()).thenReturn(testRegion);
-        PipelineWriteContext testContext = new PipelineWriteContext(new ActiveWriteTxn(1l,1l),txnRegion, env);
+        PipelineWriteContext testContext = new PipelineWriteContext(new IndexSharedCallBuffer(),new ActiveWriteTxn(1l,1l),txnRegion, env);
         testContext.addLast(new RegionWriteHandler(txnRegion,new ResettableCountDownLatch(0),100,null));
 
         ObjectArrayList<KVPair> pairs = ObjectArrayList.newInstance();
@@ -120,12 +125,12 @@ public class RegionWriteHandlerTest {
             testContext.sendUpstream(next);
         }
 
-        Map<KVPair, WriteResult> finish = testContext.finish();
+        Map<KVPair, WriteResult> finish = testContext.close();
 
         //make sure no one got written
         Assert.assertEquals("Some rows got written, even though the region is closed!",0,results.size());
         for(WriteResult result:finish.values()){
-            Assert.assertEquals("Row did not return correct code!", WriteResult.Code.NOT_SERVING_REGION,result.getCode());
+            Assert.assertEquals("Row did not return correct code!", Code.NOT_SERVING_REGION,result.getCode());
         }
     }
 
@@ -143,7 +148,7 @@ public class RegionWriteHandlerTest {
 
         RegionCoprocessorEnvironment env = mock(RegionCoprocessorEnvironment.class);
         when(env.getRegion()).thenReturn(testRegion);
-        PipelineWriteContext testContext = new PipelineWriteContext(new ActiveWriteTxn(1l,1l),txnRegion, env);
+        PipelineWriteContext testContext = new PipelineWriteContext(new IndexSharedCallBuffer(),new ActiveWriteTxn(1l,1l),txnRegion, env);
         testContext.addLast(new RegionWriteHandler(txnRegion,new ResettableCountDownLatch(0),100,null));
 
         ObjectArrayList<KVPair> pairs = ObjectArrayList.newInstance();
@@ -153,12 +158,12 @@ public class RegionWriteHandlerTest {
             testContext.sendUpstream(next);
         }
 
-        Map<KVPair, WriteResult> finish = testContext.finish();
+        Map<KVPair, WriteResult> finish = testContext.close();
 
         //make sure no one got written
         Assert.assertEquals("Some rows got written, even though the region is closed!",0,results.size());
         for(WriteResult result:finish.values()){
-            Assert.assertEquals("Row did not return correct code!", WriteResult.Code.NOT_SERVING_REGION,result.getCode());
+            Assert.assertEquals("Row did not return correct code!", Code.NOT_SERVING_REGION,result.getCode());
         }
     }
 
@@ -178,7 +183,7 @@ public class RegionWriteHandlerTest {
 
         RegionCoprocessorEnvironment env = mock(RegionCoprocessorEnvironment.class);
         when(env.getRegion()).thenReturn(testRegion);
-        PipelineWriteContext testContext = new PipelineWriteContext(new ActiveWriteTxn(1l,1l),txnRegion, env);
+        PipelineWriteContext testContext = new PipelineWriteContext(new IndexSharedCallBuffer(),new ActiveWriteTxn(1l,1l),txnRegion, env);
         testContext.addLast(new RegionWriteHandler(txnRegion,new ResettableCountDownLatch(0),100,null));
 
         ObjectArrayList<KVPair> successfulPairs = ObjectArrayList.newInstance();
@@ -195,8 +200,8 @@ public class RegionWriteHandlerTest {
             failedPairs.add(next);
             testContext.sendUpstream(next);
         }
-
-        Map<KVPair, WriteResult> finish = testContext.finish();
+        testContext.flush();
+        Map<KVPair, WriteResult> finish = testContext.close();
 
         //make sure the correct number of rows got written
         Assert.assertEquals("Incorrect number of rows written!",successfulPairs.size(),results.size());
@@ -205,7 +210,7 @@ public class RegionWriteHandlerTest {
         Object[] buffer = successfulPairs.buffer;
         for (int i =0 ; i<successfulPairs.size(); i++) {
         	KVPair success = (KVPair)buffer[i];
-            Assert.assertEquals("Incorrect return code!", WriteResult.Code.SUCCESS,finish.get(success).getCode());
+            Assert.assertEquals("Incorrect return code!", Code.SUCCESS,finish.get(success).getCode());
             boolean found = false;
             
             Object[] buffer2 = results.buffer;
@@ -224,7 +229,7 @@ public class RegionWriteHandlerTest {
         buffer = failedPairs.buffer;
         for (int i =0 ; i<failedPairs.size(); i++) {
         	KVPair failure = (KVPair)buffer[i];
-            Assert.assertEquals("Incorrect return code!", WriteResult.Code.WRONG_REGION,finish.get(failure).getCode());
+            Assert.assertEquals("Incorrect return code!", Code.WRONG_REGION,finish.get(failure).getCode());
             boolean found = false;
             Object[] buffer2 = results.buffer;
             for (int j =0 ; j<results.size(); j++) {
@@ -249,7 +254,7 @@ public class RegionWriteHandlerTest {
 								supplier,mock(DataStore.class), mock(Transactor.class));
         RegionCoprocessorEnvironment env = mock(RegionCoprocessorEnvironment.class);
         when(env.getRegion()).thenReturn(testRegion);
-        PipelineWriteContext testContext = new PipelineWriteContext(new ActiveWriteTxn(1l,1l),txnRegion, env);
+        PipelineWriteContext testContext = new PipelineWriteContext(new IndexSharedCallBuffer(),new ActiveWriteTxn(1l,1l),txnRegion, env);
         testContext.addLast(new RegionWriteHandler(txnRegion,new ResettableCountDownLatch(0),100,null));
 
         ObjectArrayList<KVPair> successfulPairs = ObjectArrayList.newInstance();
@@ -267,8 +272,8 @@ public class RegionWriteHandlerTest {
             failedPairs.add(next);
             testContext.sendUpstream(next);
         }
-
-        Map<KVPair, WriteResult> finish = testContext.finish();
+        testContext.flush();
+        Map<KVPair, WriteResult> finish = testContext.close();
 
         //make sure the correct number of rows got written
         Assert.assertEquals("Incorrect number of rows written!",successfulPairs.size(),results.size());
@@ -278,7 +283,7 @@ public class RegionWriteHandlerTest {
         Object[] buffer = successfulPairs.buffer;
         for (int i =0 ; i<successfulPairs.size(); i++) {
         	KVPair success = (KVPair)buffer[i];
-            Assert.assertEquals("Incorrect return code!", WriteResult.Code.SUCCESS,finish.get(success).getCode());
+            Assert.assertEquals("Incorrect return code!", Code.SUCCESS,finish.get(success).getCode());
             boolean found = false;
 
             Object[] buffer2 = results.buffer;
@@ -296,7 +301,7 @@ public class RegionWriteHandlerTest {
         buffer = failedPairs.buffer;
         for (int i =0 ; i<failedPairs.size(); i++) {
         	KVPair failure = (KVPair)buffer[i];
-            Assert.assertEquals("Incorrect return code!", WriteResult.Code.NOT_SERVING_REGION,finish.get(failure).getCode());
+            Assert.assertEquals("Incorrect return code!", Code.NOT_SERVING_REGION,finish.get(failure).getCode());
             boolean found = false;
             Object[] buffer2 = results.buffer;
             for (int j =0 ; j<results.size(); j++) {

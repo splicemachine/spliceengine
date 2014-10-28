@@ -36,6 +36,7 @@ public class ExternalizableSerializer extends Serializer<Externalizable> {
         } catch (ClassNotFoundException e1) {
             throw new RuntimeException(e1);
         } catch (InstantiationException e) {
+        	e.printStackTrace();
             throw new RuntimeException(e);
         } catch (IllegalAccessException e) {
             throw new RuntimeException(e);

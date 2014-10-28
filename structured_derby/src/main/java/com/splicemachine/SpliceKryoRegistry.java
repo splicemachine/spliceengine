@@ -23,7 +23,9 @@ import com.splicemachine.derby.impl.sql.catalog.Splice_DD_Version;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportParams;
+
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
+
 import org.apache.derby.catalog.types.AggregateAliasInfo;
 import org.apache.derby.catalog.types.BaseTypeIdImpl;
 import org.apache.derby.catalog.types.DecimalTypeIdImpl;
@@ -104,9 +106,17 @@ import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.kryo.DataValueDescriptorSerializer;
 import com.splicemachine.derby.utils.kryo.ValueRowSerializer;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.hbase.writer.BulkWrite;
 import com.splicemachine.job.ErrorTransport;
 import com.splicemachine.job.TaskStatus;
+import com.splicemachine.pipeline.constraint.ConstraintContext;
+import com.splicemachine.pipeline.ddl.DDLChange;
+import com.splicemachine.pipeline.impl.BulkWrite;
+import com.splicemachine.pipeline.impl.BulkWriteResult;
+import com.splicemachine.pipeline.impl.BulkWrites;
+import com.splicemachine.pipeline.impl.BulkWritesResult;
+import com.splicemachine.pipeline.impl.WriteResult;
+import com.splicemachine.si.impl.ActiveWriteTxn;
+import com.splicemachine.si.impl.RootTransaction;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.kryo.ExternalizableSerializer;
 import com.splicemachine.utils.kryo.KryoObjectInput;
@@ -759,5 +769,12 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(DropIndexDDLDesc.class,EXTERNALIZABLE_SERIALIZER,201);
         instance.register(SQLRowId.class, EXTERNALIZABLE_SERIALIZER,202);
         instance.register(Splice_DD_Version.class, EXTERNALIZABLE_SERIALIZER,203);
+        instance.register(BulkWriteResult.class, EXTERNALIZABLE_SERIALIZER,204);
+        instance.register(BulkWritesResult.class, EXTERNALIZABLE_SERIALIZER,205);
+        instance.register(BulkWrites.class, EXTERNALIZABLE_SERIALIZER,206);
+        instance.register(ActiveWriteTxn.class, EXTERNALIZABLE_SERIALIZER,207);
+        instance.register(RootTransaction.class, EXTERNALIZABLE_SERIALIZER,208);        
+        instance.register(WriteResult.class, EXTERNALIZABLE_SERIALIZER,209);                
+        instance.register(ConstraintContext.class, EXTERNALIZABLE_SERIALIZER,210);                
     }
 }

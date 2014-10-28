@@ -40,14 +40,12 @@ public class FileImportReader implements ImportReader{
         path = ctx.getFilePath();
         CompressionCodecFactory cdF = new CompressionCodecFactory(SpliceUtils.config);
         CompressionCodec codec = cdF.getCodec(path);
-
         stream = codec!=null? codec.createInputStream(fileSystem.open(path)):fileSystem.open(path);
-
         reader = new MeasuredReader(new InputStreamReader(stream));
-				timer = ctx.shouldRecordStats() ? Metrics.samplingTimer(SpliceConstants.sampleTimingSize,SpliceConstants.sampleTimingSize) : Metrics.noOpTimer();
+		timer = ctx.shouldRecordStats() ? Metrics.samplingTimer(SpliceConstants.sampleTimingSize,SpliceConstants.sampleTimingSize) : Metrics.noOpTimer();
         csvReader = getCsvReader(reader,ctx);
-				this.lines = new String[lineBatchSize][];
-		}
+		this.lines = new String[lineBatchSize][];
+	}
 
     @Override
     public String[] nextRow() throws IOException {

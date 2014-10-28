@@ -11,7 +11,6 @@ import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
-import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.*;
 
 import org.apache.derby.catalog.types.ReferencedColumnsDescriptorImpl;
@@ -32,6 +31,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 
 public class ProjectRestrictOperation extends SpliceBaseOperation {

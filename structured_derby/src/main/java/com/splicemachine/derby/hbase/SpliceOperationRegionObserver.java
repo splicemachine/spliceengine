@@ -1,9 +1,11 @@
 package com.splicemachine.derby.hbase;
 
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.pipeline.api.Service;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.impl.TransactionalRegions;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
@@ -16,6 +18,7 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.log4j.Logger;
+
 import com.splicemachine.async.HbaseAttributeHolder;
 
 import java.io.IOException;
@@ -42,7 +45,7 @@ public class SpliceOperationRegionObserver extends BaseRegionObserver {
     public void start(final CoprocessorEnvironment e) throws IOException {
         SpliceLogUtils.info(LOG, "Starting TransactionalManagerRegionObserver CoProcessor %s", SpliceOperationRegionObserver.class);
 
-        SpliceDriver.driver().registerService(new SpliceDriver.Service() {
+        SpliceDriver.driver().registerService(new Service() {
             @Override
             public boolean start() {
                 //TODO -sf- implement RollForward

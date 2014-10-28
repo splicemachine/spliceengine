@@ -10,12 +10,12 @@ import com.splicemachine.async.SimpleAsyncScanner;
 import com.splicemachine.async.SortedGatheringScanner;
 import com.splicemachine.hbase.ScanDivider;
 import com.splicemachine.metrics.MetricFactory;
+import com.splicemachine.pipeline.exception.Exceptions;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import com.splicemachine.async.KeyValue;
-
 import java.io.IOException;
 import java.util.List;
 

@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.sql.compile;
 import java.util.Map;
 
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.sql.compile.AccessPath;
 import org.apache.derby.iapi.sql.compile.CostEstimate;
 import org.apache.derby.iapi.sql.compile.JoinStrategy;
 import org.apache.derby.iapi.sql.compile.Optimizable;

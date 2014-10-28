@@ -3,15 +3,13 @@ package com.splicemachine.derby.impl.job.load;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.derby.utils.ErrorState;
-import com.splicemachine.test.SerialTest;
+import com.splicemachine.pipeline.exception.ErrorState;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
-
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;

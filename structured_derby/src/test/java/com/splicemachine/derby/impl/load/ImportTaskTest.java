@@ -5,11 +5,11 @@ import com.google.common.collect.Lists;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.hbase.writer.CallBufferFactory;
-import com.splicemachine.hbase.writer.RecordingCallBuffer;
-import com.splicemachine.hbase.writer.Writer;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.impl.ActiveWriteTxn;
+import com.splicemachine.pipeline.api.CallBufferFactory;
+import com.splicemachine.pipeline.api.RecordingCallBuffer;
+import com.splicemachine.pipeline.api.WriteConfiguration;
 import com.splicemachine.utils.kryo.KryoPool;
 import com.splicemachine.uuid.Snowflake;
 import com.splicemachine.uuid.UUIDGenerator;
@@ -22,13 +22,11 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-
 import javax.annotation.Nullable;
 import java.sql.Date;
 import java.sql.Types;
 import java.text.SimpleDateFormat;
 import java.util.*;
-
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 
@@ -513,7 +511,7 @@ public class ImportTaskTest {
 
         @SuppressWarnings("unchecked") CallBufferFactory<KVPair> fakeBufferFactory = mock(CallBufferFactory.class);
         when(fakeBufferFactory.writeBuffer(any(byte[].class),any(Txn.class))).thenReturn(testingBuffer);
-				when(fakeBufferFactory.writeBuffer(any(byte[].class),any(Txn.class),any(Writer.WriteConfiguration.class))).thenReturn(testingBuffer);
+				when(fakeBufferFactory.writeBuffer(any(byte[].class),any(Txn.class),any(WriteConfiguration.class))).thenReturn(testingBuffer);
         final Snowflake snowflake = new Snowflake((short)1);
 				KryoPool kryoPool = KryoPool.defaultPool();
 				Importer importer = new SequentialImporter(ctx,template,new ActiveWriteTxn(1l,1l),fakeBufferFactory, FailAlwaysReporter.INSTANCE, KVPair.Type.INSERT){

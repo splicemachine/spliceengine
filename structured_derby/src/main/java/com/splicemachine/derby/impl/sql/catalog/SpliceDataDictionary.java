@@ -27,10 +27,8 @@ import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.iapi.types.SQLVarchar;
 import org.apache.derby.impl.sql.catalog.*;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.derby.impl.sql.depend.SpliceDependencyManager;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;

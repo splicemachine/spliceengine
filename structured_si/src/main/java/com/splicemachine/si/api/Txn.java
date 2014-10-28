@@ -2,11 +2,15 @@ package com.splicemachine.si.api;
 
 import com.google.common.collect.Iterators;
 import com.splicemachine.si.impl.ConflictType;
+import com.splicemachine.si.impl.RootTransaction;
 import com.splicemachine.utils.ByteSlice;
+
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.Iterator;
 
 /**
@@ -16,52 +20,7 @@ import java.util.Iterator;
 public interface Txn extends TxnView{
 		static final Logger TXN_LOGGER = Logger.getLogger(Txn.class);
 
-    static final Txn ROOT_TRANSACTION = new Txn() {
-        @Override public String toString(){ return "ROOT"; }
-        @Override public Iterator<ByteSlice> getDestinationTables() { return Iterators.emptyIterator();}
-        @Override public boolean descendsFrom(TxnView potentialParent) { return false; }
-        @Override public State getEffectiveState() { return State.ACTIVE; }
-        @Override public IsolationLevel getIsolationLevel() { return IsolationLevel.SNAPSHOT_ISOLATION; }
-        @Override public long getTxnId() { return -1l; }
-        @Override public long getBeginTimestamp() { return 0; }
-        @Override public long getCommitTimestamp() { return -1l; }
-        @Override public long getEffectiveCommitTimestamp() { return -1l; }
-        @Override public long getEffectiveBeginTimestamp() { return 0; }
-
-        @Override public long getLastKeepAliveTimestamp() { return -1l; }
-
-        @Override public TxnView getParentTxnView() { return null; }
-        @Override public long getParentTxnId() { return -1l; }
-
-        @Override public State getState() { return State.ACTIVE; }
-        @Override public boolean allowsWrites() { return true; }
-
-        @Override
-        public void commit() throws IOException {
-            throw new UnsupportedOperationException("Cannot commit the root transaction");
-        }
-
-        @Override
-        public void rollback() throws IOException {
-            throw new UnsupportedOperationException("Cannot rollback the root transaction");
-        }
-
-        @Override
-        public Txn elevateToWritable(byte[] writeTable) throws IOException {
-            throw new UnsupportedOperationException("Cannot elevate the root transaction");
-        }
-
-        @Override public boolean canSee(TxnView otherTxn) { return false; }
-
-        @Override public boolean isAdditive() { return false; }
-
-        @Override public long getGlobalCommitTimestamp() { return -1l; }
-
-        @Override
-        public ConflictType conflicts(TxnView otherTxn) {
-            return ConflictType.CHILD; //every transaction is a child of this
-        }
-    };
+    static final Txn ROOT_TRANSACTION = new RootTransaction(); 
 
     public enum State{
         ACTIVE((byte)0x00), //represents an Active transaction that has not timed out
@@ -167,11 +126,6 @@ public interface Txn extends TxnView{
 						@Override
 						public boolean canSee(long beginTimestamp, TxnView otherTxn,boolean isParent) {
                 return otherTxn.getState()==State.COMMITTED;
-//								if(otherTxn.getState() !=State.COMMITTED) return false; //if itself hasn't been committed, it can't be seen
-//								State effectiveState = otherTxn.getEffectiveState();
-//								if(effectiveState==State.ROLLEDBACK) return false; //if it's been effectively rolled back, it can't be seen
-//								//if we are a parent situation, then the effective state is active, but we can still see it.
-//								return isParent || effectiveState == State.COMMITTED;
 						}
 
             @Override public String toHumanFriendlyString() { return "READ COMMITTED"; }

@@ -6,26 +6,22 @@ import javax.management.ObjectName;
 import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-
 import com.google.common.collect.Lists;
-
 import com.splicemachine.constants.SpliceConstants;
 import org.apache.hadoop.hbase.util.Pair;
-
 import com.splicemachine.derby.hbase.ManifestReader.SpliceMachineVersion;
 import com.splicemachine.derby.hbase.SpliceIndexEndpoint.ActiveWriteHandlersIface;
 import com.splicemachine.derby.impl.job.scheduler.StealableTaskSchedulerManagement;
 import com.splicemachine.derby.impl.job.scheduler.TieredSchedulerManagement;
 import com.splicemachine.derby.management.StatementManagement;
-import com.splicemachine.hbase.ThreadPoolStatus;
 import com.splicemachine.job.JobSchedulerManagement;
 import com.splicemachine.si.impl.timestamp.TimestampMasterManagement;
 import com.splicemachine.si.impl.timestamp.TimestampRegionManagement;
+import com.splicemachine.pipeline.threadpool.ThreadPoolStatus;
 import com.splicemachine.utils.logging.Logging;
 
 public class JMXUtils {

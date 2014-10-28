@@ -23,15 +23,10 @@ public class WritableTxn extends AbstractTxn {
 		private final TxnView parent;
 		private volatile long commitTimestamp = -1l;
 		private volatile long globalCommitTimestamp = -1l;
-
 		private final TxnLifecycleManager tc;
-
 		private final boolean isAdditive;
-
 		private volatile State state = State.ACTIVE;
-
 		private Set<byte[]> tableWrites = new CopyOnWriteArraySet<byte[]>();
-
 
 		public WritableTxn(long txnId,
                        long beginTimestamp,

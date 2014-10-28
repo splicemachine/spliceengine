@@ -2,11 +2,11 @@ package com.splicemachine.derby.hbase;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.impl.sql.execute.constraint.Constraint;
-import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintViolation;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.hbase.batch.WriteContext;
-import com.splicemachine.hbase.writer.WriteResult;
+import com.splicemachine.pipeline.api.WriteContext;
+import com.splicemachine.pipeline.constraint.ConstraintViolation;
+import com.splicemachine.pipeline.impl.WriteResult;
+import com.splicemachine.pipeline.constraint.Constraint;
 import com.splicemachine.si.api.*;
 import com.splicemachine.si.impl.SimpleOperationFactory;
 import com.splicemachine.si.impl.TransactionalRegions;
@@ -24,7 +24,6 @@ import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -200,12 +199,13 @@ public class SpliceIndexObserver extends BaseRegionObserver {
         //we've already done our write path, so just pass it through
         WriteContext context;
         try{
-						context = SpliceIndexEndpoint.factoryMap.get(conglomId).getFirst().createPassThrough(txn,region,1, null);
+            context = SpliceIndexEndpoint.factoryMap.get(conglomId).getFirst().createPassThrough(null,txn,region,1,null);
         }catch(InterruptedException e){
             throw new IOException(e);
         }
         context.sendUpstream(mutation);
-        WriteResult mutationResult = context.finish().get(mutation);
+        context.flush();
+        WriteResult mutationResult = context.close().get(mutation);
         if(mutationResult==null) return; //we didn't actually do anything, so no worries
         switch (mutationResult.getCode()) {
             case FAILED:

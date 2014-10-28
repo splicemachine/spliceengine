@@ -1,0 +1,13 @@
+package com.splicemachine.pipeline.api;
+
+import com.carrotsearch.hppc.ObjectArrayList;
+import com.splicemachine.hbase.KVPair;
+/**
+ * Before flush, this hook will modify the buffer.  Since some operations will be local, it is 
+ * important that a new ObjectArrayList be created.
+ *
+ */
+public interface PreFlushHook{
+    public ObjectArrayList<KVPair> transform(ObjectArrayList<KVPair> buffer) throws Exception;
+}
+

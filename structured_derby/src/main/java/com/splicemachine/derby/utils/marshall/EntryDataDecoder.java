@@ -1,12 +1,13 @@
 package com.splicemachine.derby.utils.marshall;
 
 import com.splicemachine.SpliceKryoRegistry;
-import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.utils.kryo.KryoPool;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;

@@ -1,9 +1,14 @@
 package com.splicemachine.derby.hbase;
 
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
+import com.splicemachine.derby.stats.TaskStats;
+import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.utils.SpliceLogUtils;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Properties;
-
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.monitor.Monitor;
 import org.apache.derby.iapi.sql.Activation;
@@ -13,14 +18,7 @@ import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.log4j.Logger;
-
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
-import com.splicemachine.derby.stats.TaskStats;
-import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.si.impl.TransactionalRegions;
-import com.splicemachine.utils.SpliceLogUtils;
 
 /**
  * 

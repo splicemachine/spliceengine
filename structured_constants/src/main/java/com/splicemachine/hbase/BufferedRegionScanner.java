@@ -170,6 +170,7 @@ public class BufferedRegionScanner implements MeasuredRegionScanner{
 				List<KeyValue> next = buffer[bufferPosition];
 				if(next!=null){
 						results.addAll(next);
+						next.clear(); // Remove Reference?
 						bufferPosition = (bufferPosition+1)&(buffer.length-1);
 						return true;
 				}else return false;
@@ -178,7 +179,10 @@ public class BufferedRegionScanner implements MeasuredRegionScanner{
 		@Override public boolean next(List<KeyValue> results, String metric) throws IOException { return next(results); }
 		@Override public boolean next(List<KeyValue> result, int limit) throws IOException { return next(result); }
 		@Override public boolean next(List<KeyValue> result, int limit, String metric) throws IOException { return next(result); }
-		@Override public void close() throws IOException { delegate.close(); }
+		@Override public void close() throws IOException { 
+			delegate.close();
+			buffer = null;
+		}
 
 		private void refill() throws IOException{
 				region.startRegionOperation();

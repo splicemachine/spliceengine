@@ -20,14 +20,14 @@ import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.derby.utils.test.TestingDataType;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.hbase.writer.CallBufferFactory;
-import com.splicemachine.hbase.writer.RecordingCallBuffer;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.job.SimpleJobResults;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.pipeline.api.CallBufferFactory;
+import com.splicemachine.pipeline.api.RecordingCallBuffer;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.storage.index.BitIndexing;
@@ -44,14 +44,12 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Random;
-
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 

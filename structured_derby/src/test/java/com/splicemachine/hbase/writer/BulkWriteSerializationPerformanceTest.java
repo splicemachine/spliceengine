@@ -1,10 +1,9 @@
 package com.splicemachine.hbase.writer;
 
 import com.carrotsearch.hppc.ObjectArrayList;
-import com.esotericsoftware.kryo.Kryo;
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.si.api.Txn;
+import com.splicemachine.pipeline.impl.BulkWrite;
+import com.splicemachine.pipeline.utils.PipelineUtils;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.ActiveWriteTxn;
 import com.splicemachine.utils.ByteDataOutput;
@@ -13,7 +12,6 @@ import com.yammer.metrics.core.Histogram;
 import com.yammer.metrics.core.MetricName;
 import com.yammer.metrics.core.Timer;
 import com.yammer.metrics.reporting.ConsoleReporter;
-
 import java.io.IOException;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
@@ -26,7 +24,7 @@ import java.util.concurrent.TimeUnit;
  * Date: 12/10/13
  */
 public class BulkWriteSerializationPerformanceTest {
-
+/*
 		public static void main(String...args) throws Exception{
 				System.out.println("Java Serialization");
 				timeJavaSerialization(1000, 1000, 10, 100, 0f, 0f);
@@ -42,8 +40,6 @@ public class BulkWriteSerializationPerformanceTest {
 																							float percentDeletes,
 																							float percentUpdates) throws IOException {
 				Random random = new Random(System.currentTimeMillis());
-
-				Kryo kryo = SpliceDriver.getKryoPool().get(); //initialize kryo to avoid the timing cost
 				Histogram sizeHistogram =Metrics.newHistogram(new MetricName("com.splicemachine", "test", "kryoByteSize"));
 				sizeHistogram.clear();
 				Timer timer = Metrics.newTimer(BulkWrite.class, "javaSerializationTime");
@@ -51,7 +47,7 @@ public class BulkWriteSerializationPerformanceTest {
 				for(int i=0;i<numIterations;i++){
 						BulkWrite write = buildBulkWrite(rowsPerIteration, keySize, rowSize, random, percentDeletes, percentUpdates);
 						long start = System.nanoTime();
-						byte[] bytes = write.toBytes();
+						byte[] bytes = PipelineUtils.toCompressedBytes(write);
 						long end = System.nanoTime();
 						timer.update(end-start,TimeUnit.NANOSECONDS);
 						sizeHistogram.update(bytes.length);
@@ -118,8 +114,8 @@ public class BulkWriteSerializationPerformanceTest {
 
 						kvPairs.add(new KVPair(nextKey,nextRow,type));
 				}
-//				String txnId = Integer.toString(random.nextInt(2000000000));
         TxnView txn = new ActiveWriteTxn(20000000,20000000);
-				return new BulkWrite(kvPairs,txn,new byte[]{});
+		return new BulkWrite(kvPairs,txn,new byte[]{},"sdafdsfasdfasdfsadfasdfasdsfs");
 		}
+		*/
 }

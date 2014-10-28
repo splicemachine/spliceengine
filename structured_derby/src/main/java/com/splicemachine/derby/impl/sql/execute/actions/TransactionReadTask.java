@@ -12,7 +12,7 @@ import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hash.Hash32;
 import com.splicemachine.hash.HashFunctions;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.hbase.writer.CallBuffer;
+import com.splicemachine.pipeline.api.CallBuffer;
 import com.splicemachine.si.api.*;
 import com.splicemachine.si.coprocessors.TxnLifecycleEndpoint;
 import com.splicemachine.si.impl.*;
@@ -20,6 +20,7 @@ import com.splicemachine.si.impl.region.RegionTxnStore;
 import com.splicemachine.utils.Source;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import com.splicemachine.uuid.Snowflake;
+
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
@@ -74,7 +75,6 @@ public class TransactionReadTask extends ZkTask {
 
     @Override
     protected void doExecute() throws ExecutionException, InterruptedException {
-
         TempTable tempTable = SpliceDriver.driver().getTempTable();
         SpreadBucket currentSpread = tempTable.getCurrentSpread();
         long l = Snowflake.timestampFromUUID(Bytes.toLong(operationUUID));

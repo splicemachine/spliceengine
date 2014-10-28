@@ -9,9 +9,9 @@ import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
-import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SerializationUtils;
+import com.splicemachine.pipeline.exception.Exceptions;
 
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;

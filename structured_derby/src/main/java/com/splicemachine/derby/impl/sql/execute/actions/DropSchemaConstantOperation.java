@@ -1,9 +1,10 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import com.splicemachine.derby.ddl.DDLChange;
 import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.ddl.DropSchemaDDLChangeDesc;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.pipeline.ddl.DDLChange;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;

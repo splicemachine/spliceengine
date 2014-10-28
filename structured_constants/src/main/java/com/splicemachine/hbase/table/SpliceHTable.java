@@ -9,9 +9,11 @@ import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.hbase.NoRetryExecRPCInvoker;
 import com.splicemachine.hbase.RegionCache;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.hadoop.hbase.NotServingRegionException;
+import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.ipc.CoprocessorProtocol;
@@ -51,13 +53,13 @@ public class SpliceHTable extends HTable {
     @Override
     public Pair<byte[][], byte[][]> getStartEndKeys() throws IOException {
         try {
-            SortedSet<HRegionInfo> regions = regionCache.getRegions(tableName);
+            SortedSet<Pair<HRegionInfo,ServerName>> regions = regionCache.getRegions(tableName);
             byte[][] startKeys = new byte[regions.size()][];
             byte[][] endKeys = new byte[regions.size()][];
             int regionPos=0;
-            for(HRegionInfo regionInfo:regions){
-                startKeys[regionPos] = regionInfo.getStartKey();
-                endKeys[regionPos] = regionInfo.getEndKey();
+            for(Pair<HRegionInfo,ServerName> info:regions){
+                startKeys[regionPos] = info.getFirst().getStartKey();
+                endKeys[regionPos] = info.getFirst().getEndKey();
                 regionPos++;
             }
             return Pair.newPair(startKeys,endKeys);

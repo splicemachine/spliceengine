@@ -4,6 +4,9 @@ import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.ByteSlice;
 
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.Iterator;
 
 /**
@@ -22,8 +25,8 @@ import java.util.Iterator;
  * Date: 8/27/14
  */
 public class DDLTxnView extends AbstractTxnView {
-    private final TxnView txn;
-    private final long demarcationPoint;
+    private TxnView txn;
+    private long demarcationPoint;
 
     public DDLTxnView(TxnView delegate, long demarcationPoint) {
         super(delegate.getTxnId(),delegate.getBeginTimestamp(),delegate.getIsolationLevel());
@@ -146,4 +149,21 @@ public class DDLTxnView extends AbstractTxnView {
         return txn.conflicts(otherTxn);
     }
 
+	@Override
+	public void readExternal(ObjectInput input) throws IOException,
+			ClassNotFoundException {
+		super.readExternal(input);
+		demarcationPoint = input.readLong();
+		txn = (TxnView) input.readObject();
+	}
+
+	@Override
+	public void writeExternal(ObjectOutput output) throws IOException {
+		super.writeExternal(output);
+		output.writeLong(demarcationPoint);
+		output.writeObject(txn);
+	}
+
+    
+    
 }

@@ -338,7 +338,7 @@ public class SpliceConstants {
 		 * Defaults to 1000
 		 */
 		@Parameter private static final String IMPORT_MAX_READ_BUFFER_SIZE = "splice.import.maxReadBufferSize";
-		@DefaultValue(IMPORT_MAX_READ_BUFFER_SIZE) private static final int DEFAULT_IMPORT_MAX_READ_BUFFER_SIZE= 2048;
+		@DefaultValue(IMPORT_MAX_READ_BUFFER_SIZE) private static final int DEFAULT_IMPORT_MAX_READ_BUFFER_SIZE= 1024;
 		public static int maxImportReadBufferSize;
 
 		//common SI fields
@@ -395,9 +395,28 @@ public class SpliceConstants {
 		 *
 		 * Default is 2MB
 		 */
-		@Parameter private static final String WRITE_BUFFER_SIZE = "hbase.client.write.buffer";
-		@DefaultValue(WRITE_BUFFER_SIZE) public static final long DEFAULT_WRITE_BUFFER_SIZE = 2097152;
+		@Parameter private static final String WRITE_BUFFER_SIZE = "splice.client.write.buffer";
+		@DefaultValue(WRITE_BUFFER_SIZE) public static final long DEFAULT_WRITE_BUFFER_SIZE = 3*1024*1024;
 		public static long writeBufferSize;
+
+		
+		@Parameter private static final String MAX_DEPENDENT_WRITES = "splice.client.write.maxDependentWrites";
+		@DefaultValue(MAX_DEPENDENT_WRITES) public static final int DEFAULT_MAX_DEPENDENT_WRITES = 200000;
+		public static int maxDependentWrites;
+
+		
+		@Parameter private static final String MAX_INDEPENDENT_WRITES = "splice.client.write.maxIndependentWrites";
+		@DefaultValue(MAX_INDEPENDENT_WRITES) public static final int DEFAULT_MAX_INDEPENDENT_WRITES = 200000;
+		public static int maxIndependentWrites;
+
+		
+		/**
+		 * The maximum number of concurrent writes accepted in the write pipeline.
+		 * 
+		 */
+		@Parameter public static final String MAX_CONCURRENT_WRITES = "hbase.client.write.maxConcurrentWrites";
+		@DefaultValue(MAX_CONCURRENT_WRITES) public static final int DEFAULT_MAX_CONCURRENT_WRITES = 100000;
+		public static int maxConcurrentWrites;
 
 		/**
 		 * The maximum number of rows that an individual write buffer will keep in memory before automatically
@@ -409,10 +428,10 @@ public class SpliceConstants {
 		 *
 		 * This parameter may be adjusted in real time using JMX.
 		 *
-		 * Default is 1000
+		 * Default is 20000
 		 */
-		@Parameter private static final String BUFFER_ENTRIES = "hbase.client.write.buffer.maxentries";
-		@DefaultValue(BUFFER_ENTRIES)public static final int DEFAULT_MAX_BUFFER_ENTRIES = 1024;
+		@Parameter private static final String BUFFER_ENTRIES = "splice.client.write.buffer.maxentries";
+		@DefaultValue(BUFFER_ENTRIES)public static final int DEFAULT_MAX_BUFFER_ENTRIES = 20000;
 		public static int maxBufferEntries;
 
 		/**
@@ -1069,6 +1088,9 @@ public class SpliceConstants {
 				tablePoolCoreSize = config.getInt(POOL_CORE_SIZE, DEFAULT_POOL_CORE_SIZE);
 				tablePoolCleanerInterval = config.getLong(POOL_CLEANER_INTERVAL, DEFAULT_POOL_CLEANER_INTERVAL);
 				writeBufferSize = config.getLong(WRITE_BUFFER_SIZE, DEFAULT_WRITE_BUFFER_SIZE);
+				maxDependentWrites = config.getInt(MAX_DEPENDENT_WRITES, DEFAULT_MAX_DEPENDENT_WRITES);
+				maxIndependentWrites = config.getInt(MAX_INDEPENDENT_WRITES, DEFAULT_MAX_INDEPENDENT_WRITES);
+				maxConcurrentWrites = config.getInt(MAX_CONCURRENT_WRITES, DEFAULT_MAX_CONCURRENT_WRITES);
 				maxBufferEntries = config.getInt(BUFFER_ENTRIES, DEFAULT_MAX_BUFFER_ENTRIES);
 				maxThreads = config.getInt(WRITE_THREADS_MAX,DEFAULT_WRITE_THREADS_MAX);
 				maxTreeThreads = config.getInt(MAX_CONCURRENT_OPERATIONS,DEFAULT_MAX_CONCURRENT_OPERATIONS);

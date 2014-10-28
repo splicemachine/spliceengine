@@ -4,17 +4,14 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.splicemachine.SpliceKryoRegistry;
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.stats.TaskStats;
-import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.si.api.TransactionStorage;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.InheritingTxnView;
 import com.splicemachine.si.impl.LazyTxnView;
 import com.splicemachine.utils.kryo.KryoPool;
-import org.apache.log4j.Logger;
-
+import com.splicemachine.pipeline.exception.Exceptions;
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;

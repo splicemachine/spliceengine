@@ -1,8 +1,7 @@
 package com.splicemachine.derby.ddl;
 
 import org.apache.derby.catalog.UUID;
-
-import java.io.Externalizable;
+import com.splicemachine.pipeline.ddl.TentativeDDLDesc;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;

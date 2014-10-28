@@ -82,9 +82,6 @@ import com.splicemachine.derby.utils.marshall.SaltedPrefix;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.hbase.writer.CallBuffer;
-import com.splicemachine.hbase.writer.RecordingCallBuffer;
-import com.splicemachine.hbase.writer.WriteCoordinator;
 import com.splicemachine.mapreduce.HBaseBulkLoadMapper;
 import com.splicemachine.mapreduce.HBaseBulkLoadReducer;
 import com.splicemachine.si.api.TxnView;
@@ -95,6 +92,8 @@ import com.splicemachine.utils.kryo.KryoPool;
 import com.splicemachine.uuid.Snowflake;
 import com.splicemachine.mrio.api.SQLUtil;
 import com.splicemachine.mrio.api.SpliceMRConstants;
+import com.splicemachine.pipeline.api.RecordingCallBuffer;
+import com.splicemachine.pipeline.impl.WriteCoordinator;
 
 import org.apache.hadoop.hive.ql.exec.FileSinkOperator.RecordWriter;
 

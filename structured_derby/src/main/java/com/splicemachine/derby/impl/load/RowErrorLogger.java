@@ -5,10 +5,11 @@ package com.splicemachine.derby.impl.load;
  *         Date: 3/7/14
  */
 
-import com.splicemachine.hbase.writer.WriteResult;
 
 import java.io.Closeable;
 import java.io.IOException;
+
+import com.splicemachine.pipeline.impl.WriteResult;
 
 /**
  * Mechanism for reporting a row (using the ExecRow interface) as erroneous.

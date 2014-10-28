@@ -1,9 +1,10 @@
 package com.splicemachine.derby.impl.load;
 
-import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.hbase.writer.WriteResult;
+import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.pipeline.impl.WriteResult;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.log4j.Logger;

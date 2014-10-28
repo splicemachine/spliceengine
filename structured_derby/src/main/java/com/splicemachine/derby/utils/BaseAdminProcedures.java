@@ -18,6 +18,7 @@ import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
 
 import com.splicemachine.constants.SpliceConstants;
+
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.impl.jdbc.Util;
 import org.apache.derby.jdbc.InternalDriver;
@@ -26,6 +27,7 @@ import org.apache.hadoop.hbase.util.Pair;
 
 import com.google.common.io.Closeables;
 import com.splicemachine.hbase.jmx.JMXUtils;
+import com.splicemachine.pipeline.exception.Exceptions;
 
 /**
  * Common static utility functions for subclasses which provide

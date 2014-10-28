@@ -2,7 +2,7 @@ package com.splicemachine.si.api;
 
 import com.splicemachine.si.impl.ConflictType;
 import com.splicemachine.utils.ByteSlice;
-
+import java.io.Externalizable;
 import java.util.Iterator;
 
 /**
@@ -16,7 +16,7 @@ import java.util.Iterator;
  * @author Scott Fines
  * Date: 8/14/14
  */
-public interface TxnView {
+public interface TxnView extends Externalizable {
 
     public Txn.State getEffectiveState();
 
@@ -166,4 +166,5 @@ public interface TxnView {
      * @throws  java.lang.NullPointerException if {@code potentialParent==null}.
      */
     boolean descendsFrom(TxnView potentialParent);
+    
 }

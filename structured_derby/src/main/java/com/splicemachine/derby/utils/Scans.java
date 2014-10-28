@@ -8,10 +8,12 @@ import com.splicemachine.derby.impl.sql.execute.operations.QualifierUtils;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.derby.impl.sql.execute.operations.SkippingScanFilter;
+import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.storage.AndPredicate;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.OrPredicate;
 import com.splicemachine.storage.Predicate;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.store.access.Qualifier;

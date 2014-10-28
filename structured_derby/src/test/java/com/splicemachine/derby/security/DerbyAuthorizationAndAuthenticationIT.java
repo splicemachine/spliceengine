@@ -1,7 +1,8 @@
 package com.splicemachine.derby.security;
 
 import com.splicemachine.derby.test.framework.*;
-import com.splicemachine.derby.utils.ErrorState;
+import com.splicemachine.pipeline.exception.ErrorState;
+
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;

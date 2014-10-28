@@ -1,12 +1,10 @@
 package com.splicemachine.test;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.derby.utils.ErrorState;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.hbase.util.Pair;
-
 import java.io.File;
 import java.io.IOException;
 import java.sql.Connection;

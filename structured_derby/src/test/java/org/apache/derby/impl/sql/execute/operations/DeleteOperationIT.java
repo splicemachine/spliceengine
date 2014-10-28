@@ -7,7 +7,7 @@ import java.sql.Statement;
 import java.util.List;
 import java.util.Map;
 
-import com.splicemachine.derby.utils.ErrorState;
+import com.splicemachine.pipeline.exception.ErrorState;
 import com.splicemachine.test.SerialTest;
 
 import org.apache.derby.iapi.reference.SQLState;

@@ -6,7 +6,10 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+
 import org.apache.derby.catalog.UUID;
+
+import com.splicemachine.pipeline.ddl.TentativeDDLDesc;
 
 /**
  * Drop column.

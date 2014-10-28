@@ -10,7 +10,6 @@ import com.splicemachine.si.api.*;
 import com.splicemachine.si.impl.*;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
@@ -28,7 +27,6 @@ import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
@@ -41,14 +39,10 @@ import static com.splicemachine.constants.SpliceConstants.SUPPRESS_INDEXING_ATTR
  */
 public class SIObserver extends BaseRegionObserver {
 		private static Logger LOG = Logger.getLogger(SIObserver.class);
-//		protected HRegion region;
 		private boolean tableEnvMatch = false;
-//		private String tableName;
 		private static final int S = 1000;
-
 		private TxnOperationFactory txnOperationFactory;
 		private TransactionalRegion region;
-
 		@Override
 		public void start(CoprocessorEnvironment e) throws IOException {
 				SpliceLogUtils.trace(LOG, "starting %s", SIObserver.class);
@@ -59,6 +53,7 @@ public class SIObserver extends BaseRegionObserver {
             Tracer.traceRegion(region.getTableName(), ((RegionCoprocessorEnvironment)e).getRegion());
         }
 				super.start(e);
+
     }
 
 
@@ -137,11 +132,6 @@ public class SIObserver extends BaseRegionObserver {
     private Filter makeSIFilter(TxnView txn, Filter currentFilter, EntryPredicateFilter predicateFilter, boolean countStar) throws IOException {
 				TxnFilter txnFilter = region.packedFilter(txn, predicateFilter, countStar);
 				SIFilterPacked siFilter = new SIFilterPacked(txnFilter);
-
-//				final SIFilterPacked siFilter = new SIFilterPacked(txn,
-//								readResolver,
-//								predicateFilter,
-//								HTransactorFactory.getTransactionReadController(),countStar);
         if (needsCompositeFilter(currentFilter)) {
             return composeFilters(orderFilters(currentFilter, siFilter));
         } else {
@@ -233,6 +223,7 @@ public class SIObserver extends BaseRegionObserver {
 						e.complete();
 				}
 		}
+
 
     @Override
     public void preDelete(ObserverContext<RegionCoprocessorEnvironment> e, Delete delete, WALEdit edit,

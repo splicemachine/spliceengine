@@ -20,11 +20,12 @@ import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.metrics.TimeView;
 import com.splicemachine.metrics.Timer;
-import com.splicemachine.hbase.writer.WriteStats;
+import com.splicemachine.pipeline.api.WriteStats;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnLifecycleManager;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceZooKeeperManager;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;

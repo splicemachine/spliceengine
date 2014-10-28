@@ -1,15 +1,13 @@
 package com.splicemachine.derby.impl.job.index;
 
-import com.splicemachine.derby.ddl.DDLChange;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.job.Task;
-import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
+import com.splicemachine.pipeline.ddl.DDLChange;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Pair;
-
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;

@@ -1,6 +1,7 @@
 package com.splicemachine.job;
 
-import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.pipeline.exception.Exceptions;
+
 import org.apache.derby.iapi.error.StandardException;
 
 import java.util.concurrent.ExecutionException;

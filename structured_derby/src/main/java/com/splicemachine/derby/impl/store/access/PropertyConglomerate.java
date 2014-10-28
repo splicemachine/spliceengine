@@ -7,8 +7,9 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Properties;
 
-import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.Attribute;
 import org.apache.derby.iapi.reference.Property;
@@ -36,6 +37,7 @@ import org.apache.derby.impl.sql.execute.GenericScanQualifier;
 import org.apache.derby.impl.store.access.PC_XenaVersion;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.ZkUtils;

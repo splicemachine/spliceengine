@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.google.common.io.Closeables;
-import com.splicemachine.derby.ddl.DDLChange;
 import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.ddl.TentativeDropColumnDesc;
 import com.splicemachine.derby.hbase.SpliceDriver;
@@ -13,13 +12,15 @@ import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.management.OperationInfo;
 import com.splicemachine.derby.management.StatementInfo;
 import com.splicemachine.derby.utils.DataDictionaryUtils;
-import com.splicemachine.derby.utils.ErrorState;
-import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.job.JobFuture;
+import com.splicemachine.pipeline.ddl.DDLChange;
+import com.splicemachine.pipeline.exception.ErrorState;
+import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.TransactionLifecycle;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.uuid.Snowflake;
+
 import org.apache.derby.catalog.DefaultInfo;
 import org.apache.derby.catalog.Dependable;
 import org.apache.derby.catalog.DependableFinder;

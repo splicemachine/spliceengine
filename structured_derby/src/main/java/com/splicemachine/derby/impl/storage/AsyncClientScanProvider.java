@@ -6,7 +6,6 @@ import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
-import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.async.AsyncScanner;
 import com.splicemachine.async.SimpleAsyncScanner;
@@ -16,12 +15,17 @@ import com.splicemachine.hbase.ScanDivider;
 import com.splicemachine.metrics.BaseIOStats;
 import com.splicemachine.metrics.IOStats;
 import com.splicemachine.metrics.TimeView;
+import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
+
 import com.splicemachine.async.KeyValue;
 import com.splicemachine.async.HBaseClient;
 
@@ -70,7 +74,7 @@ public class AsyncClientScanProvider extends AbstractAsyncScanProvider {
         SpliceLogUtils.trace(LOG, "open");
         try {
             final int PARALLEL_SCAN_REGION_THRESHOLD = 2;
-            SortedSet<HRegionInfo> regions = regionCache.getRegionsInRange(tableName, scan.getStartRow(), scan.getStopRow());
+            SortedSet<Pair<HRegionInfo,ServerName>> regions = regionCache.getRegionsInRange(tableName, scan.getStartRow(), scan.getStopRow());
             if (regions.size() < PARALLEL_SCAN_REGION_THRESHOLD) {
                 scanner = new SimpleAsyncScanner(DerbyAsyncScannerUtils.convertScanner(scan, tableName, hbaseClient), spliceRuntimeContext);
             } else {

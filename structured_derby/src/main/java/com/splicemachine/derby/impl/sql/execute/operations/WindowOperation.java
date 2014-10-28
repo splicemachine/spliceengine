@@ -6,7 +6,6 @@ import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
 import com.google.common.base.Strings;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -44,7 +43,6 @@ import com.splicemachine.derby.impl.storage.SpliceResultScanner;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
-import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.PartitionAwareIterator;
 import com.splicemachine.derby.utils.PartitionAwarePushBackIterator;
 import com.splicemachine.derby.utils.Scans;
@@ -65,6 +63,7 @@ import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.metrics.TimeView;
 import com.splicemachine.utils.IntArrays;
+import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 
 /**

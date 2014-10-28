@@ -5,20 +5,19 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.hbase.writer.CallBufferFactory;
-import com.splicemachine.hbase.writer.MergingWriteStats;
-import com.splicemachine.hbase.writer.WriteStats;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.metrics.TimeView;
 import com.splicemachine.metrics.Timer;
 import com.splicemachine.si.api.TxnView;
+import com.splicemachine.pipeline.api.CallBufferFactory;
+import com.splicemachine.pipeline.api.WriteStats;
+import com.splicemachine.pipeline.impl.MergingWriteStats;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
@@ -34,7 +33,7 @@ public class ParallelImporter implements Importer{
     private final BlockingQueue<String[]> processingQueue;
 		private volatile boolean closed;
 		private final List<Future<Pair<WriteStats,TimeView>>> futures;
-    private volatile Exception error;
+		private volatile Exception error;
 		private final MetricFactory metricFactory;
 		private List<Pair<WriteStats,TimeView>> stats;
 
@@ -80,7 +79,7 @@ public class ParallelImporter implements Importer{
         ThreadFactory processingFactory = new ThreadFactoryBuilder()
                 .setNameFormat("import-"+filePath.getName()+"-processor-%d")
                 .build();
-        processingPool = Executors.newFixedThreadPool(numProcessingThreads, processingFactory);
+        	processingPool = Executors.newFixedThreadPool(numProcessingThreads, processingFactory);
 
 				processingQueue = new BoundedConcurrentLinkedQueue<String[]>(maxImportReadBufferSize);
 
@@ -94,7 +93,7 @@ public class ParallelImporter implements Importer{
 						SequentialImporter importer = new SequentialImporter(importCtx,template.getClone(),txn, factory,
                     errorReporter,importType) {
 								@Override
-								protected boolean isFailed() {
+								public boolean isFailed() {
 										return ParallelImporter.this.isFailed();
 								}
 						};
@@ -194,36 +193,15 @@ public class ParallelImporter implements Importer{
 		void markFailed(Exception e){ this.error = e; }
     boolean isFailed(){ return error!=null; }
 
-
-//		protected UUIDGenerator getRandomGenerator(){
-//				return SpliceDriver.driver().getUUIDGenerator().newGenerator(100);
-//		}
-
     private class Processor implements Callable<Pair<WriteStats,TimeView>>{
         private final BlockingQueue<String[]> queue;
 				private final SequentialImporter importer;
-//        private final RecordingCallBuffer<KVPair> writeDestination;
-//        private final PairEncoder entryEncoder;
-
-//        private RowParser importProcessor;
-
-//				private Timer writeTimer;
 
 				private Processor( BlockingQueue<String[]> queue,SequentialImporter importer){
 						this.importer = importer;
 						this.queue = queue;
 
 				}
-
-//        private Processor(ExecRow row,
-//                          BlockingQueue<String[]> queue,
-//                          RecordingCallBuffer<KVPair> writeDestination ){
-//            this.queue = queue;
-//            this.writeDestination = writeDestination;
-//            this.entryEncoder = ImportUtils.newEntryEncoder(row, importContext, getRandomGenerator());
-//            this.importProcessor = new RowParser(row, importContext,errorReporter);
-//						this.writeTimer = metricFactory.newTimer();
-//        }
 
         @Override
         public Pair<WriteStats,TimeView> call() throws Exception {
@@ -250,13 +228,12 @@ public class ParallelImporter implements Importer{
                 while(!isClosed()&&!isFailed()){
                     String[] next = queue.poll(200,TimeUnit.MILLISECONDS);
                     if(next==null)continue; //try again
-										elements[position] = next;
-										position = (position+1) & mask;
-										if(position==0){
-												importer.processBatch(elements);
-//												doImportRow(elements);
-										}
-								}
+					elements[position] = next;
+					position = (position+1) & mask;
+					if(position==0){
+						importer.processBatch(elements);
+					}
+				}
 								//source is closed, poll until the queue is empty
 								String[] next;
 								while(!isFailed() && (next = queue.poll())!=null){
@@ -264,13 +241,11 @@ public class ParallelImporter implements Importer{
 										position = (position+1) & mask;
 										if(position==0){
 												importer.processBatch(elements);
-//												doImportRow(elements);
 										}
 								}
 								if(position!=0){
 										Arrays.fill(elements,position,elements.length,null);
 										importer.processBatch(elements);
-//										doImportRow(elements);
 								}
 						}
             catch(Exception e){
@@ -280,29 +255,9 @@ public class ParallelImporter implements Importer{
                 if (LOG.isTraceEnabled())
                     SpliceLogUtils.trace(LOG, "Closing Call Buffer");
 								importer.close();
-//                writeDestination.close(); //ensure your writes happen
             }
 						return Pair.newPair(importer.getWriteStats(), importer.getTotalTime());
         }
 
-//        protected void doImportRow(String[][] lines) throws Exception {
-//						if(lines==null) return;
-//						writeTimer.startTiming();
-//						int count=0;
-//						for(String[] line:lines){
-//								if(line==null) break;
-//								ExecRow newRow = importProcessor.process(line, importContext.getColumnInformation());
-//								/*
-//								 * If newRow is null, then the processor was unable to parse the line into a row
-//								 */
-//								if(newRow!=null)
-//										writeDestination.add(entryEncoder.encode(newRow));
-//								count++;
-//						}
-//						if(count>0)
-//								writeTimer.tick(0);
-//						else
-//								writeTimer.stopTiming();
-//        }
     }
 }

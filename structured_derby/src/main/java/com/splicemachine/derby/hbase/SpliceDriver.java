@@ -15,14 +15,12 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-
 import javax.management.InstanceAlreadyExistsException;
 import javax.management.MBeanRegistrationException;
 import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.NotCompliantMBeanException;
 import javax.management.ObjectName;
-
 import org.apache.derby.drda.NetworkServerControl;
 import org.apache.derby.iapi.db.OptimizerTrace;
 import org.apache.derby.iapi.error.StandardException;
@@ -32,9 +30,15 @@ import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.PleaseHoldException;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.log4j.Logger;
-
 import com.google.common.io.Closeables;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.yammer.metrics.core.MetricsRegistry;
+import com.yammer.metrics.reporting.JmxReporter;
+import org.apache.hadoop.hbase.CoprocessorEnvironment;
+import org.apache.hadoop.hbase.ServerName;
+import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.RegionCoprocessorHost;
+import org.apache.hadoop.hbase.regionserver.RegionServerServices;
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
@@ -59,7 +63,6 @@ import com.splicemachine.derby.management.XplainTaskReporter;
 import com.splicemachine.derby.utils.ErrorReporter;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.SpliceMetrics;
-import com.splicemachine.hbase.writer.WriteCoordinator;
 import com.splicemachine.job.JobScheduler;
 import com.splicemachine.job.Task;
 import com.splicemachine.job.TaskMonitor;
@@ -68,6 +71,8 @@ import com.splicemachine.job.TaskSchedulerManagement;
 import com.splicemachine.job.ZkTaskMonitor;
 import com.splicemachine.si.api.TransactionStorage;
 import com.splicemachine.si.impl.TransactionalRegions;
+import com.splicemachine.pipeline.api.Service;
+import com.splicemachine.pipeline.impl.WriteCoordinator;
 import com.splicemachine.tools.CachedResourcePool;
 import com.splicemachine.tools.EmbedConnectionMaker;
 import com.splicemachine.tools.ResourcePool;
@@ -78,8 +83,6 @@ import com.splicemachine.utils.kryo.KryoPool;
 import com.splicemachine.utils.logging.LogManager;
 import com.splicemachine.utils.logging.Logging;
 import com.splicemachine.uuid.Snowflake;
-import com.yammer.metrics.core.MetricsRegistry;
-import com.yammer.metrics.reporting.JmxReporter;
 
 /**
  * A central/important class in our application. One instance per JVM.  Starts major services including network server
@@ -92,9 +95,11 @@ public class SpliceDriver extends SIConstants {
     private static final Logger LOG = Logger.getLogger(SpliceDriver.class);
 
     private final List<Service> services = new CopyOnWriteArrayList<Service>();
+    protected RegionServerServices regionServerServices;
     private JmxReporter metricsReporter;
 	private Connection connection;
 	private XplainTaskReporter taskReporter;
+	public static String ENDPOINT_CLASS_NAME = SpliceIndexEndpoint.class.getCanonicalName();
 	public XplainTaskReporter getTaskReporter() {
 		return taskReporter;
 	}
@@ -104,11 +109,6 @@ public class SpliceDriver extends SIConstants {
         INITIALIZING,
         RUNNING,
         STARTUP_FAILED, SHUTDOWN
-    }
-
-    public static interface Service{
-    	boolean start();
-    	boolean shutdown();
     }
 
     private static final SpliceDriver INSTANCE = new SpliceDriver();
@@ -246,8 +246,36 @@ public class SpliceDriver extends SIConstants {
     public State getCurrentState(){
         return stateHolder.get();
     }
+    
+    public ServerName getServerName() {
+    	return regionServerServices.getServerName();
+    }
+    
+    public List<HRegion> getOnlineRegionsForTable(byte[] tableName) throws IOException {
+    	return regionServerServices.getOnlineRegions(tableName);
+    }
 
-    public void start(){
+    public HRegion getOnlineRegion(String encodedRegionName)  {
+    	return regionServerServices.getFromOnlineRegions(encodedRegionName);
+    }
+
+    public RegionCoprocessorHost getCoprocessorHost(String encodedRegionName) {
+    	HRegion region = getOnlineRegion(encodedRegionName);
+    	return region==null?null:region.getCoprocessorHost();    	
+    }
+    
+    public CoprocessorEnvironment getSpliceIndexEndpointEnvironment(String encodedRegionName) {
+    	RegionCoprocessorHost host = getCoprocessorHost(encodedRegionName);
+    	return host==null?null:host.findCoprocessorEnvironment(ENDPOINT_CLASS_NAME);
+    }
+
+    public SpliceIndexEndpoint getSpliceIndexEndpoint(String encodedRegionName) {
+    	CoprocessorEnvironment ce = getSpliceIndexEndpointEnvironment(encodedRegionName);
+    	return ce == null?null:(SpliceIndexEndpoint) ce.getInstance();
+    }
+    
+    public void start(RegionServerServices regionServerServices){
+    	this.regionServerServices = regionServerServices;
         if(stateHolder.compareAndSet(State.NOT_STARTED,State.INITIALIZING)){
             executor.submit(new Callable<Void>(){
                 @Override
@@ -516,5 +544,10 @@ public class SpliceDriver extends SIConstants {
 
     public static KryoPool getKryoPool(){
         return SpliceKryoRegistry.getInstance();
-    }
+    }    
+    
+	public WriteCoordinator getWriterPool() {
+		return writerPool;
+	}
+
 }

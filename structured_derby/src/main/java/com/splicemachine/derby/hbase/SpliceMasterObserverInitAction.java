@@ -1,13 +1,14 @@
 package com.splicemachine.derby.hbase;
 
 import com.splicemachine.concurrent.MoreExecutors;
-import com.splicemachine.derby.error.SpliceDoNotRetryIOException;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.pipeline.exception.SpliceDoNotRetryIOException;
 import com.splicemachine.tools.EmbedConnectionMaker;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceUtilities;
 import com.splicemachine.utils.ZkUtils;
+
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.PleaseHoldException;
 import org.apache.log4j.Logger;

@@ -1,8 +1,7 @@
 package com.splicemachine.derby.ddl;
 
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
-
+import com.splicemachine.pipeline.ddl.DDLChange;
 import java.util.Set;
 
 public interface DDLWatcher {
