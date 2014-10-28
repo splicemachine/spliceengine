@@ -7,7 +7,6 @@ makes a 1 master + 1 region-server cluster available.
 TAR structure:
 
    splicemachine/
-       conf/
        lib/
        bin/
        demodata/
@@ -111,6 +110,9 @@ TAR structure:
 		</fileSet>
 
 		<!-- CONFIG: for some reason we currently put it in lib/ -->
+		<!-- NOTE: I am pretty sure that the properties files were put into lib/ so that they would be in the CLASSPATH -->
+		<!--       and thus "load-able" as resources at runtime. In the future, we could move the properties file to an -->
+		<!--       etc/ directory that would be added to the CLASSPATH. -->
 		<fileSet>
 			<directory>target/classes</directory>
 			<outputDirectory>splicemachine/lib</outputDirectory>
@@ -120,9 +122,10 @@ TAR structure:
 			</includes>
 		</fileSet>
 
+		<!-- CONFIG: Custom HBase config to put in lib/. -->
 		<fileSet>
-			<directory>conf</directory>
-			<outputDirectory>splicemachine/conf</outputDirectory>
+			<directory>src/main/resources</directory>
+			<outputDirectory>splicemachine/lib</outputDirectory>
 			<includes>
 				<include>splice-site.xml</include>
 			</includes>

@@ -67,13 +67,15 @@ if [[ ! -f "${TARBALL}" ]]; then
     exit 1
 fi
 
-# Extract package libs for sever dependencies in classpath
+# Extract package libs for server dependencies in classpath
 tar xvf ${TARBALL} -C "${ROOT_DIR}"/target splicemachine/lib &>/dev/null
 
 # Config
 SPLICELOG="${ROOT_DIR}"/splice.log
 ZOOLOG="${ROOT_DIR}"/zoo.log
-CLASSPATH="${ROOT_DIR}"/conf:"${ROOT_DIR}"/target/splicemachine/lib/*
+# Add in the lib directory where splice-site.xml resides.
+CLASSPATH="${ROOT_DIR}"/target/splicemachine/lib:"${ROOT_DIR}"/target/splicemachine/lib/*
+echo "CLASSPATH=${CLASSPATH}"
 ZOO_DIR="${ROOT_DIR}"/target/zookeeper
 HBASE_ROOT_DIR_URI="file://${ROOT_DIR}/target/hbase"
 LOG4J_PATH="file:${ROOT_DIR}/target/classes/hbase-log4j.properties"

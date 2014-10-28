@@ -10,7 +10,6 @@ import java.sql.SQLException;
 import java.sql.SQLNonTransientConnectionException;
 import java.util.concurrent.Callable;
 
-//@Ignore()
 public class DerbyAuthorizationAndAuthenticationIT extends SpliceUnitTest {
     private static final String SCHEMA_NAME = DerbyAuthorizationAndAuthenticationIT.class.getSimpleName().toUpperCase();
     protected static final String USER1 = "john";

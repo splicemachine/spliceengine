@@ -68,7 +68,8 @@ if [[ "${ROOT_DIR}" = *[[:space:]]* ]]; then
 fi
 
 # Config server
-CP="${ROOT_DIR}/conf":"${ROOT_DIR}/lib/*"
+# Add in the lib directory where splice-site.xml resides.
+CP="${ROOT_DIR}/lib":"${ROOT_DIR}/lib/*"
 ZOO_DIR="${ROOT_DIR}"/db/zookeeper
 HBASE_ROOT_DIR_URI="file://${ROOT_DIR}/db/hbase"
 
@@ -96,7 +97,8 @@ if [[ ${UNAME} == CYGWIN* ]]; then
     fi
 
     # cygwin paths look a little different
-	CP=$(cygpath --path --windows "${ROOT_DIR}/lib/*")
+	# Add in the lib directory where splice-site.xml resides.
+	CP=$(cygpath --path --windows "${ROOT_DIR}/lib":"${ROOT_DIR}/lib/*")
 	ZOO_DIR=$(cygpath --path --windows "${ROOT_DIR}/db/zookeeper")
     HBASE_ROOT_DIR_URI="CYGWIN"
 	LOG4J_PATH="file:///$(cygpath --path --windows ${ROOT_DIR}/lib/info-log4j.properties)"
