@@ -16,6 +16,7 @@ import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnOperationFactory;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.SimpleOperationFactory;
+import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
 import com.splicemachine.utils.SpliceLogUtils;

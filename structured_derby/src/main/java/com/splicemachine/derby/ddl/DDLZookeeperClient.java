@@ -3,8 +3,10 @@ package com.splicemachine.derby.ddl;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDerbyCoprocessor;
 import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.pipeline.ddl.DDLChange;
+import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.ZkUtils;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;

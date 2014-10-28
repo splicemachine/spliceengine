@@ -1,16 +1,16 @@
 package com.splicemachine.hbase;
 
-import com.google.common.collect.Sets;
 import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.KeyOnlyFilter;
+import org.apache.hadoop.hbase.util.Pair;
 import org.junit.Test;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.SortedSet;
-
+import java.util.TreeSet;
 import static org.apache.hadoop.hbase.util.Bytes.toBytes;
 import static org.apache.hadoop.hbase.util.Bytes.toInt;
 import static org.junit.Assert.assertEquals;
@@ -31,7 +31,7 @@ public class ScanDividerTest {
         originalScan.setFilter(originalFilter);
 
         // [10, 20], [20, 30]
-        SortedSet<HRegionInfo> regions = getTestRegions(2);
+        SortedSet<Pair<HRegionInfo,ServerName>> regions = getTestRegions(2);
 
         List<Scan> scanList = ScanDivider.divide(originalScan, regions);
 
@@ -59,7 +59,7 @@ public class ScanDividerTest {
         originalScan.setFilter(originalFilter);
 
         // [10, 20], [20, 30], [30, 40]
-        SortedSet<HRegionInfo> regions = getTestRegions(3);
+        SortedSet<Pair<HRegionInfo,ServerName>> regions = getTestRegions(3);
 
         List<Scan> scanList = ScanDivider.divide(originalScan, regions);
 
@@ -92,7 +92,7 @@ public class ScanDividerTest {
         originalScan.setFilter(originalFilter);
 
         // [10, 20], [20, 30], [30, 40] ... [9990, 10000]
-        SortedSet<HRegionInfo> regions = getTestRegions(1000);  // one thousand regions!
+        SortedSet<Pair<HRegionInfo,ServerName>> regions = getTestRegions(1000);  // one thousand regions!
 
         List<Scan> scanList = ScanDivider.divide(originalScan, regions);
 
@@ -127,8 +127,8 @@ public class ScanDividerTest {
         assertEquals(9500, toInt(scanList.get(15).getStopRow()));
     }
 
-    private static SortedSet<HRegionInfo> getTestRegions(int count) {
-        SortedSet<HRegionInfo> regions = Sets.newTreeSet();
+    private static SortedSet<Pair<HRegionInfo,ServerName>> getTestRegions(int count) {
+    	SortedSet<Pair<HRegionInfo,ServerName>> regions = new TreeSet<Pair<HRegionInfo,ServerName>>();
         int startKey = 10;
         int endKey = 20;
         for (int i = 0; i < count; i++) {
@@ -140,8 +140,8 @@ public class ScanDividerTest {
     }
 
 
-    private static HRegionInfo testRegion(byte[] tableName, byte[] startKey, byte[] endKey) {
-        return new HRegionInfo(tableName, startKey, endKey);
+    private static Pair<HRegionInfo,ServerName> testRegion(byte[] tableName, byte[] startKey, byte[] endKey) {
+        return Pair.newPair(new HRegionInfo(tableName, startKey, endKey),new ServerName("foo"));
     }
 
 

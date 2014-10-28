@@ -529,6 +529,7 @@
 							<classpathScope>compile</classpathScope>
 							<executable>java</executable>
 							<arguments>
+<!--  								<argument>-verbose:gc</argument> -->
 								<argument>-cp</argument>
 								<classpath>${maven.runtime.classpath}</classpath>
 								<argument>-Xdebug</argument>
@@ -539,6 +540,7 @@
 								<argument>-Dcom.sun.management.jmxremote.ssl=false</argument>
 								<argument>-Dcom.sun.management.jmxremote.authenticate=false</argument>
 								<argument>-Dcom.sun.management.jmxremote.port=10102</argument>
+								<argument>-Dsplice.authentication=NATIVE</argument>
 								<argument>-Xmx8g</argument>
 								<argument>-Xms1g</argument>
 								<argument>-Xmn128m</argument>

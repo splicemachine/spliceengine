@@ -14,11 +14,13 @@ import java.util.Set;
 
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
+import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.KeyValue;
@@ -36,13 +38,14 @@ import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.hbase.batch.PipelineWriteContext;
-import com.splicemachine.hbase.writer.BufferConfiguration;
-import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.hbase.writer.UnsafeCallBuffer;
-import com.splicemachine.hbase.writer.WriteCoordinator;
-import com.splicemachine.hbase.writer.Writer;
+import com.splicemachine.pipeline.api.BufferConfiguration;
+import com.splicemachine.pipeline.api.CallBuffer;
+import com.splicemachine.pipeline.callbuffer.UnsafeCallBuffer;
+import com.splicemachine.pipeline.writecontext.PipelineWriteContext;
+import com.splicemachine.pipeline.writehandler.IndexDeleteWriteHandler;
+import com.splicemachine.pipeline.writehandler.IndexUpsertWriteHandler;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.storage.index.BitIndexing;
@@ -131,7 +134,7 @@ public class IndexUpsertWriteHandlerTest {
         //make sure that the index pairs size hasn't been changed until finish is called
         Assert.assertEquals("Incorrect row size before finish is called!",pairs.size(),indexPairs.size());
 
-        deleteHandler.finish(context);
+        deleteHandler.close(context);
 
         Assert.assertEquals("Incorrect row size after finish is called!",pairs.size()-deletedPairs.size(),indexPairs.size());
 
@@ -194,7 +197,7 @@ public class IndexUpsertWriteHandlerTest {
         Assert.assertEquals("Rows are written before being finalized!", 0, indexPairs.size());
 
         //finalize
-        writeHandler.finish(testCtx);
+        writeHandler.close(testCtx);
 
         //make sure everything got written through
         Assert.assertEquals("Incorrect number of rows have been written!",pairs.size(),indexPairs.size());
@@ -221,7 +224,7 @@ public class IndexUpsertWriteHandlerTest {
     private PipelineWriteContext getWriteContext(final List<KVPair> indexPairs) throws Exception {
         PipelineWriteContext testCtx = mock(PipelineWriteContext.class);
         doCallRealMethod().when(testCtx).sendUpstream(any(KVPair.class));
-        when(testCtx.finish()).thenCallRealMethod();
+        when(testCtx.close()).thenCallRealMethod();
 
 
         BufferConfiguration bufferConfiguration = getConstantBufferConfiguration();
@@ -253,10 +256,11 @@ public class IndexUpsertWriteHandlerTest {
             }
         });
 
-        when(testCtx.getWriteBuffer(
+        
+        when(testCtx.getSharedWriteBuffer(
                 any(byte[].class),
-                any(WriteCoordinator.PreFlushHook.class),
-                any(Writer.WriteConfiguration.class),any(int.class))).thenReturn(writingBuffer);
+                any(ObjectObjectOpenHashMap.class),
+                any(int.class), any(boolean.class), any(TxnView.class))).thenReturn(writingBuffer);
         return testCtx;
     }
 

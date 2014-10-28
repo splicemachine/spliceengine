@@ -3,8 +3,8 @@ package com.splicemachine.derby.iapi.sql.execute;
 import com.splicemachine.derby.impl.sql.execute.operations.NoRowsOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.UpdateOperation;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.si.api.TxnView;
+import com.splicemachine.pipeline.exception.Exceptions;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.Activation;
@@ -13,7 +13,6 @@ import org.apache.derby.iapi.sql.ResultSet;
 import org.apache.derby.iapi.sql.execute.*;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
-
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;

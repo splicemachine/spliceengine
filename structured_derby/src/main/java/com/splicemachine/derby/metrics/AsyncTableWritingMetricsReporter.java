@@ -7,11 +7,10 @@ import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.hbase.writer.*;
+import com.splicemachine.pipeline.api.CallBuffer;
 import com.splicemachine.storage.EntryEncoder;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.log4j.Logger;
-
 import java.util.concurrent.*;
 
 /**

@@ -1,9 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.ddl.DDLChange;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
@@ -33,11 +30,9 @@ import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.impl.sql.execute.ColumnInfo;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.util.*;
-import javax.annotation.Nullable;
-import java.util.concurrent.ExecutionException;
+import com.splicemachine.pipeline.ddl.DDLChange;
 
 /**
  * Abstract class that has actions that are across

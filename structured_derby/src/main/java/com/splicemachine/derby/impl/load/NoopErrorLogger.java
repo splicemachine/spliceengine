@@ -1,8 +1,8 @@
 package com.splicemachine.derby.impl.load;
 
-import com.splicemachine.hbase.writer.WriteResult;
-
 import java.io.IOException;
+
+import com.splicemachine.pipeline.impl.WriteResult;
 
 /**
  * @author Scott Fines

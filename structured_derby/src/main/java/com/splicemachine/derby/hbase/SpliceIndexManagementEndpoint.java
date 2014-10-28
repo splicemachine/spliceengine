@@ -5,7 +5,6 @@ import com.splicemachine.si.api.TransactionStorage;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.LazyTxnView;
 import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;
-
 import java.io.IOException;
 
 /**

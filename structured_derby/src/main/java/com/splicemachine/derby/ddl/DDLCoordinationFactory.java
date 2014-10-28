@@ -5,11 +5,16 @@ import com.google.gson.GsonBuilder;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.db.SpliceDatabase;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.Property;
 import org.apache.derby.iapi.services.monitor.Monitor;
 import org.apache.derby.iapi.store.access.AccessFactory;
+
+import com.splicemachine.derby.ddl.ZookeeperDDLWatcher;
+import com.splicemachine.pipeline.ddl.DDLChange;
+import com.splicemachine.pipeline.ddl.TentativeDDLDesc;
 
 public class DDLCoordinationFactory {
 

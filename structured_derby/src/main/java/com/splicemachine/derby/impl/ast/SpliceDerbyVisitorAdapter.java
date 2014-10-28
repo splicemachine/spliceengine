@@ -2,7 +2,7 @@ package com.splicemachine.derby.impl.ast;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 
 import org.apache.derby.iapi.error.StandardException;

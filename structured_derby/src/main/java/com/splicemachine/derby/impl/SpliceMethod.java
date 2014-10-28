@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl;
 
-import com.splicemachine.derby.utils.Exceptions;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 
@@ -10,8 +9,7 @@ import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.impl.sql.execute.BaseActivation;
 import org.apache.log4j.Logger;
 
-import java.lang.reflect.Method;
-import java.util.HashMap;
+import com.splicemachine.pipeline.exception.Exceptions;
 
 public class SpliceMethod<T> {
     private static Logger LOG = Logger.getLogger(SpliceMethod.class);

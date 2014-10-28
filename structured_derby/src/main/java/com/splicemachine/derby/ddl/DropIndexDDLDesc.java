@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
+import com.splicemachine.pipeline.ddl.TentativeDDLDesc;
+
 /**
  * @author Scott Fines
  *         Date: 10/7/14

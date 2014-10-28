@@ -20,7 +20,6 @@ import com.splicemachine.derby.impl.storage.SingleScanRowProvider;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
-import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.encoding.Encoding;
@@ -28,6 +27,9 @@ import com.splicemachine.hbase.table.SpliceHTableUtil;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.metrics.IOStats;
+import com.splicemachine.metrics.Metrics;
+import com.splicemachine.pipeline.exception.Exceptions;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -49,7 +51,6 @@ import java.io.ObjectOutput;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
-import com.splicemachine.metrics.Metrics;
 /**
  * @author Scott Fines
  *         Created on: 5/15/13

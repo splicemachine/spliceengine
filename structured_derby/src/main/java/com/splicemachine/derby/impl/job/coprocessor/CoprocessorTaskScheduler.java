@@ -3,15 +3,16 @@ package com.splicemachine.derby.impl.job.coprocessor;
 import com.google.common.base.Throwables;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.table.IncorrectRegionException;
 import com.splicemachine.job.Status;
 import com.splicemachine.job.TaskFuture;
 import com.splicemachine.job.TaskScheduler;
 import com.splicemachine.job.TaskStatus;
+import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.ZkUtils;
+
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;

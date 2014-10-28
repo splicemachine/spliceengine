@@ -1,14 +1,13 @@
 package com.splicemachine.derby.utils;
 
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
-import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
+import com.splicemachine.pipeline.exception.Exceptions;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.dictionary.*;
 import org.apache.derby.impl.sql.execute.ColumnInfo;
-
 import java.sql.SQLException;
 
 /**

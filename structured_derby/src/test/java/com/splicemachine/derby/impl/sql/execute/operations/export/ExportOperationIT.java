@@ -7,8 +7,10 @@ import com.splicemachine.derby.test.framework.DefaultedSpliceWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.test_tools.TableCreator;
+
 import org.apache.commons.io.IOUtils;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -27,6 +29,7 @@ import static org.junit.Assert.*;
  * This IT assumes the server side writes to the local files system accessible to IT itself.  Currently true only
  * because SpliceTestPlatform starts a cluster than uses local FS instead of HDFS, may not be in the future.
  */
+@Ignore
 public class ExportOperationIT {
 
     private static final String CLASS_NAME = ExportOperationIT.class.getSimpleName().toUpperCase();

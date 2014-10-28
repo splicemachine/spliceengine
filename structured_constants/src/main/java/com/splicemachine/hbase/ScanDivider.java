@@ -1,7 +1,9 @@
 package com.splicemachine.hbase;
 
 import com.google.common.collect.Lists;
+
 import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Pair;
 
@@ -37,7 +39,7 @@ public class ScanDivider {
      * user table and we want to perform multiple parts in parallel.  The HRegionInfo collection may be a bit stale, but
      * this is ok (correctness wise) as long the union of our divided scans equals the original scan.
      */
-    public static List<Scan> divide(Scan original, SortedSet<HRegionInfo> regions) throws IOException {
+    public static List<Scan> divide(Scan original, SortedSet<Pair<HRegionInfo,ServerName>> regions) throws IOException {
         checkArgument(regions.size() > 1, "expected more than one region");
 
         final int MAX_SCAN_COUNT = 16;
@@ -45,11 +47,12 @@ public class ScanDivider {
         final int REGION_COUNT = regions.size();
 
         List<Scan> newScans = Lists.newLinkedList();
-        List<HRegionInfo> sortedRegionList = Lists.newArrayList(regions);
+        List<Pair<HRegionInfo,ServerName>> sortedRegionList = Lists.newArrayList(regions);
         HRegionInfo lastRegion = null;
 
         for (int i = STEP - 1; i < REGION_COUNT; i = i + STEP) {
-            HRegionInfo currentRegion = sortedRegionList.get(i);
+        	Pair<HRegionInfo,ServerName> pair = sortedRegionList.get(i);
+            HRegionInfo currentRegion = pair.getFirst();
             Scan newScan = new Scan(original);
             newScans.add(newScan);
 

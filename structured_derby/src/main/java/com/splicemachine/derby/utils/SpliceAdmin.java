@@ -1,9 +1,7 @@
 package com.splicemachine.derby.utils;
 
 import com.google.common.collect.Lists;
-import com.google.common.io.Closeables;
 import com.splicemachine.derby.hbase.ManifestReader.SpliceMachineVersion;
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceIndexEndpoint.ActiveWriteHandlersIface;
 import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.job.scheduler.StealableTaskSchedulerManagement;
@@ -11,7 +9,6 @@ import com.splicemachine.derby.impl.job.scheduler.TieredSchedulerManagement;
 import com.splicemachine.derby.management.StatementInfo;
 import com.splicemachine.derby.management.StatementManagement;
 import com.splicemachine.derby.management.XPlainTrace;
-import com.splicemachine.hbase.ThreadPoolStatus;
 import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.job.JobSchedulerManagement;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -58,17 +55,18 @@ import org.apache.derby.iapi.types.*;
 import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.derby.impl.jdbc.EmbedResultSet;
 import org.apache.derby.impl.jdbc.EmbedResultSet40;
-import org.apache.derby.impl.jdbc.Util;
 import org.apache.derby.impl.sql.GenericColumnDescriptor;
 import org.apache.derby.impl.sql.execute.IteratorNoPutResultSet;
 import org.apache.derby.impl.sql.execute.ValueRow;
-import org.apache.derby.jdbc.InternalDriver;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
+import com.splicemachine.pipeline.exception.ErrorState;
+import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.pipeline.threadpool.ThreadPoolStatus;
 /**
  * @author Jeff Cunningham
  *
@@ -156,14 +154,17 @@ public class SpliceAdmin extends BaseAdminProcedures {
                     if (i != 0) {
                         sb.append(", ");
                     }
-                    sb.append(String.format("('%s',%d,%d,%d,%d)", connections.get(i).getFirst(),
-                                            activeWrite.getActiveWriteThreads(),
+                    sb.append(String.format("('%s',%d,%d,%d,%d,%d,%d,%d)", connections.get(i).getFirst(),
+                                            activeWrite.getDependentWriteThreads(),
+                                            activeWrite.getDependentWriteCount(),                                            
+                                            activeWrite.getIndependentWriteThreads(),
+                                            activeWrite.getIndependentWriteCount(),                                            
                                             activeWrite.getCompactionQueueSizeLimit(),
                                             activeWrite.getFlushQueueSizeLimit(),
                                             activeWrite.getIpcReservedPool()));
                     i++;
                 }
-                sb.append(") foo (hostname, activeWriteThreads, compactionQueueSizeLimit, flushQueueSizeLimit, ipcReserverdPool)");
+                sb.append(") foo (hostname, dependentWriteThreads, dependentWriteCount, independentWriteThreads, independentWriteCount, compactionQueueSizeLimit, flushQueueSizeLimit, ipcReserverdPool)");
                 resultSet[0] = executeStatement(sb);
             }
         });

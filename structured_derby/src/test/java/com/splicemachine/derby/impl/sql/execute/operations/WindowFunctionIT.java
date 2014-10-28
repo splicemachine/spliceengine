@@ -8,6 +8,7 @@ import java.util.List;
 
 import org.junit.Assert;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -711,6 +712,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore
     public void testXPlainTrace() throws Exception {
         SpliceXPlainTrace xPlainTrace = new SpliceXPlainTrace();
         TestConnection conn = methodWatcher.getOrCreateConnection();
@@ -737,7 +739,12 @@ public class WindowFunctionIT extends SpliceUnitTest {
             Assert.assertEquals(EMPTAB_ROWS.length, operation.getInputRows());
             Assert.assertEquals(EMPTAB_ROWS.length, operation.getOutputRows());
             Assert.assertEquals(EMPTAB_ROWS.length * 2, operation.getWriteRows());
-        }finally{
+        }
+        catch (Exception e) {
+        	e.printStackTrace();
+        	throw e;
+        }
+        finally{
             conn.rollback();
         }
     }

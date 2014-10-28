@@ -6,6 +6,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
 import com.carrotsearch.hppc.BitSet;
+import com.splicemachine.pipeline.ddl.TentativeDDLDesc;
 
 /**
  * Index

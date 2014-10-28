@@ -11,12 +11,13 @@ import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
-import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.metrics.IOStats;
+import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.storage.AndPredicate;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.OrPredicate;
 import com.splicemachine.storage.Predicate;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -27,6 +28,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 
 import javax.annotation.Nullable;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;

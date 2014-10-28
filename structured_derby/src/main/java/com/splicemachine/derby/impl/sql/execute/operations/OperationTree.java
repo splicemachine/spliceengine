@@ -6,22 +6,18 @@ import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.management.StatementInfo;
-import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.si.api.Txn;
+import com.splicemachine.pipeline.exception.Exceptions;
 import jsr166y.ForkJoinPool;
 import jsr166y.ForkJoinTask;
 import jsr166y.RecursiveAction;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.Future;
 
 
 /**

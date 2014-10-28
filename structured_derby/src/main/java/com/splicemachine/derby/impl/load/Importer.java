@@ -1,8 +1,7 @@
 package com.splicemachine.derby.impl.load;
 
-import com.splicemachine.hbase.writer.WriteStats;
 import com.splicemachine.metrics.TimeView;
-
+import com.splicemachine.pipeline.api.WriteStats;
 import java.io.Closeable;
 
 /**

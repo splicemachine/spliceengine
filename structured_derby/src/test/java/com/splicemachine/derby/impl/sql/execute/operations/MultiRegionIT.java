@@ -95,6 +95,7 @@ public class MultiRegionIT {
     }
 
     @Test
+    @Ignore
     public void testDistinctCount() throws Exception {
         Long count = methodWatcher.query(format("select count(distinct i) from %s", TABLE_NAME));
         assertEquals(10, count.intValue());

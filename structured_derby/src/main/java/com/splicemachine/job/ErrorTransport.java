@@ -1,14 +1,10 @@
 package com.splicemachine.job;
 
-import com.splicemachine.derby.impl.sql.execute.operations.NestedLoopLeftOuterJoinOperation;
-import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
-import org.apache.hadoop.ipc.RemoteException;
 import org.apache.log4j.Logger;
-
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;

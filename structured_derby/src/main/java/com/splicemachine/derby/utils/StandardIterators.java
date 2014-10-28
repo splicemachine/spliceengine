@@ -4,6 +4,12 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.concurrent.Callable;
 
+import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.iapi.sql.execute.StandardCloseable;
+import com.splicemachine.pipeline.exception.Exceptions;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
@@ -12,10 +18,6 @@ import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 
-import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.iapi.sql.execute.StandardCloseable;
 import com.splicemachine.derby.impl.storage.KeyValueUtils;
 import com.splicemachine.derby.impl.storage.SpliceResultScanner;
 import com.splicemachine.derby.utils.marshall.PairDecoder;

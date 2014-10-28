@@ -6,9 +6,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
 import java.util.List;
-
 import com.splicemachine.derby.test.framework.*;
-import com.splicemachine.derby.utils.ErrorState;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;

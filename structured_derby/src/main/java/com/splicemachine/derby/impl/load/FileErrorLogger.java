@@ -1,10 +1,9 @@
 package com.splicemachine.derby.impl.load;
 
-import com.splicemachine.hbase.writer.WriteResult;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-
+import com.splicemachine.pipeline.impl.WriteResult;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;

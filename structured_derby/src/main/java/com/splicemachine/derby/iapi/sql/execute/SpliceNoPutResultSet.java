@@ -2,10 +2,10 @@ package com.splicemachine.derby.iapi.sql.execute;
 
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.metrics.IOStats;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.pipeline.exception.Exceptions;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.Activation;
@@ -17,7 +17,6 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.sql.SQLWarning;
 import java.sql.Timestamp;

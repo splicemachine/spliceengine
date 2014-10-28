@@ -24,6 +24,7 @@ package com.splicemachine.derby.impl.store.access.btree;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.SortedSet;
+
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.error.StandardException; 
 import org.apache.derby.iapi.sql.compile.CostEstimate;
@@ -33,6 +34,8 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HServerLoad.RegionLoad;
+import org.apache.hadoop.hbase.ServerName;
+import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.constants.SpliceConstants;
@@ -298,7 +301,7 @@ public class IndexCostController extends SpliceGenericCostController implements 
 		spliceScan.setupScan();
     	if (LOG.isTraceEnabled())
     		SpliceLogUtils.trace(LOG, "getScanCost generated Scan %s",spliceScan.getScan());				
-        SortedSet<HRegionInfo> baseRegions = getRegions(baseConglomerate.getContainerid());
+        SortedSet<Pair<HRegionInfo,ServerName>> baseRegions = getRegions(baseConglomerate.getContainerid());
         Map<String,RegionLoad> baseRegionLoads = HBaseRegionLoads.getCachedRegionLoadsMapForTable(baseConglomerate.getContainerid()+"");
     	((SortState) costResult).setNumberOfRegions(baseRegions==null?0:baseRegions.size());
         long estimatedRowCount = computeRowCount(baseRegions,baseRegionLoads,SpliceConstants.hbaseRegionRowEstimate,SpliceConstants.regionMaxFileSize,spliceScan.getScan()); 

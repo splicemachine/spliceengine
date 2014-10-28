@@ -1,8 +1,10 @@
 package com.splicemachine.management;
 
+import com.google.gson.Gson;
 import com.splicemachine.derby.management.XPlainTreeNode;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.test.SerialTest;
+
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;

@@ -1,6 +1,6 @@
 package com.splicemachine.derby.impl.load;
 
-import com.splicemachine.derby.utils.ErrorState;
+import com.splicemachine.pipeline.exception.ErrorState;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.types.DataValueDescriptor;

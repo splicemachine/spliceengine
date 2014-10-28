@@ -1,7 +1,7 @@
 package com.splicemachine.derby.impl.store.access;
 
-import com.splicemachine.derby.utils.ErrorState;
-import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.pipeline.exception.ErrorState;
+import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.*;
 import com.splicemachine.si.impl.ReadOnlyTxn;
 import com.splicemachine.utils.SpliceLogUtils;

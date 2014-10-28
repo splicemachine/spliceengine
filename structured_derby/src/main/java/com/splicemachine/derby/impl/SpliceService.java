@@ -6,7 +6,6 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.Properties;
 
-import com.splicemachine.derby.utils.Exceptions;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.EngineType;
 import org.apache.derby.iapi.reference.Property;
@@ -15,8 +14,10 @@ import org.apache.derby.io.StorageFactory;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.ZkUtils;
 

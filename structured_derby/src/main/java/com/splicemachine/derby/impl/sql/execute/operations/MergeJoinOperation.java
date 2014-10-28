@@ -13,13 +13,12 @@ import com.splicemachine.metrics.IOStats;
 import com.splicemachine.derby.utils.StandardIterators;
 import com.splicemachine.derby.utils.StandardPushBackIterator;
 import com.splicemachine.derby.utils.StandardSupplier;
-import com.splicemachine.metrics.*;
+import com.splicemachine.pipeline.exception.Exceptions;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -81,34 +80,39 @@ public class MergeJoinOperation extends JoinOperation {
         return nodeTypes;
     }
 
+    public static SpliceConglomerate getSpliceConglomerate(SpliceOperation resultSetOperation) throws StandardException {
+    	if (resultSetOperation instanceof TableScanOperation)
+    		return ((TableScanOperation) resultSetOperation).scanInformation.getConglomerate();
+    	SpliceOperation leftOperation = resultSetOperation.getLeftOperation();
+    	if (leftOperation != null)
+    		return getSpliceConglomerate(leftOperation);
+    	else
+    		return null;
+    }
+    
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException {
-        super.init(context);
+    	super.init(context);
         leftHashKeys = generateHashKeys(leftHashKeyItem);
         rightHashKeys = generateHashKeys(rightHashKeyItem);
-        if (rightResultSet instanceof TableScanOperation || ( (rightResultSet instanceof ProjectRestrictOperation) && ((ProjectRestrictOperation) rightResultSet).getSource() instanceof TableScanOperation) ) {
-        	TableScanOperation scan;
-        	if (rightResultSet instanceof TableScanOperation)
-        		scan = (TableScanOperation) rightResultSet;
-        	else {
-        		scan = (TableScanOperation) ((ProjectRestrictOperation)rightResultSet).getSource();
-        	}
-            SpliceConglomerate conglomerate = scan.scanInformation.getConglomerate();
-            int[] columnOrdering = conglomerate.getColumnOrdering();
-            List<Integer> keySortIndexes = Lists.newLinkedList();
-            for (int i = 0; i < rightHashKeys.length; i++) {
-                int col = columnOrdering[i];
-                boolean found = false;
-                for (int j = 0; j < rightHashKeys.length; j++) {
-                    if (col == rightHashKeys[j]) {
-                        found = true;
-                        keySortIndexes.add(j);
-                    }
-                }
-                if (!found) {
-                    break;
+        SpliceConglomerate conglomerate = getSpliceConglomerate(rightResultSet);
+        if (conglomerate == null)
+        	throw new RuntimeException("Could not find the base table under the result set");
+        int[] columnOrdering = conglomerate.getColumnOrdering();
+        List<Integer> keySortIndexes = Lists.newLinkedList();
+        for (int i = 0; i < rightHashKeys.length; i++) {
+        	int col = columnOrdering[i];
+            boolean found = false;
+            for (int j = 0; j < rightHashKeys.length; j++) {
+            	if (col == rightHashKeys[j]) {
+            		found = true;
+                    keySortIndexes.add(j);
                 }
             }
+            if (!found) {
+            	break;
+            }
+        }
             if (keySortIndexes.size() == 0) {
                 throw new RuntimeException("Equijoin predicates for join do not contain" +
                                                " a reference to the primary sort column for the" +
@@ -123,12 +127,6 @@ public class MergeJoinOperation extends JoinOperation {
             }
             leftHashKeys = leftSortedHashKeys;
             rightHashKeys = rightSortedHashKeys;
-
-        } else if (rightResultSet instanceof IndexRowToBaseRowOperation) {
-            throw new RuntimeException("MergeJoin cannot currently be used with a non-covering index on its right side.");
-        } else {
-            throw new RuntimeException("MergeJoin currently can be used only with a simple table scan on its right side.");
-        }
         startExecutionTime = System.currentTimeMillis();
     }
 

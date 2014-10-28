@@ -2,8 +2,7 @@ package com.splicemachine.derby.impl.load;
 
 import com.splicemachine.annotations.ThreadSafe;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.hbase.writer.WriteResult;
-
+import com.splicemachine.pipeline.impl.WriteResult;
 import java.io.Closeable;
 
 /**

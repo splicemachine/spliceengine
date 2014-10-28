@@ -6,16 +6,16 @@ import com.splicemachine.concurrent.MoreExecutors;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.catalog.MetaReader;
 import org.apache.hadoop.hbase.client.MetaScanner;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.regionserver.HRegionUtil;
 import org.apache.hadoop.hbase.regionserver.RegionServerStoppedException;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
-
 import javax.management.*;
 import java.io.IOException;
 import java.util.Arrays;
@@ -29,23 +29,19 @@ import java.util.concurrent.*;
  *         Created on: 8/8/13
  */
 public class HBaseRegionCache implements RegionCache {
-
     private static final Logger CACHE_LOG = Logger.getLogger(HBaseRegionCache.class);
     private static final RegionCache INSTANCE = HBaseRegionCache.create(SpliceConstants.cacheUpdatePeriod);
-
-    private final ConcurrentSkipListMap<byte[], SortedSet<HRegionInfo>> regionCache;
+    private final ConcurrentSkipListMap<byte[],SortedSet<Pair<HRegionInfo,ServerName>>> regionCache;
     private final ScheduledExecutorService cacheUpdater;
-
     private final long cacheUpdatePeriod;
     private volatile long cacheUpdatedTimestamp;
     private CacheRefreshRunnable cacheRefreshRunnable;
-
     private final RegionCacheStatus status = new RegionStatus();
     private final RegionCacheLoader regionCacheLoader = new RegionCacheLoader(SpliceConstants.config);
 
     private HBaseRegionCache(long cacheUpdatePeriod,
                              ScheduledExecutorService cacheUpdater) {
-        this.regionCache = new ConcurrentSkipListMap<byte[], SortedSet<HRegionInfo>>(Bytes.BYTES_COMPARATOR);
+        this.regionCache = new ConcurrentSkipListMap<byte[], SortedSet<Pair<HRegionInfo,ServerName>>>(Bytes.BYTES_COMPARATOR);
         this.cacheUpdater = cacheUpdater;
         this.cacheUpdatePeriod = cacheUpdatePeriod;
     }
@@ -71,12 +67,13 @@ public class HBaseRegionCache implements RegionCache {
     }
 
     @Override
-    public SortedSet<HRegionInfo> getRegions(byte[] tableName) throws ExecutionException {
-        SortedSet<HRegionInfo> regions = regionCache.get(tableName);
-        if (regions == null) {
+    public SortedSet<Pair<HRegionInfo,ServerName>> getRegions(byte[] tableName) throws ExecutionException {
+        SortedSet<Pair<HRegionInfo,ServerName>> regions = regionCache.get(tableName);
+        if(regions==null){
             try {
                 regions = regionCacheLoader.load(tableName);
             } catch (Exception e) {
+            	e.printStackTrace();
                 throw new ExecutionException(e);
             }
             regionCache.putIfAbsent(tableName, regions);
@@ -85,23 +82,24 @@ public class HBaseRegionCache implements RegionCache {
     }
 
     @Override
-    public SortedSet<HRegionInfo> getRegionsInRange(byte[] tableName, byte[] startRow, byte[] stopRow) throws ExecutionException {
-        SortedSet<HRegionInfo> regions = getRegions(tableName);
-        if (startRow.length <= 0 && stopRow.length <= 0) {
+
+    public SortedSet<Pair<HRegionInfo,ServerName>> getRegionsInRange(byte[] tableName,byte[] startRow, byte[] stopRow) throws ExecutionException {
+        SortedSet<Pair<HRegionInfo,ServerName>> regions = getRegions(tableName);
+        if(startRow.length<=0 && stopRow.length<=0){
             //short circuit in the case where all regions are contained
             return regions;
         }
-        SortedSet<HRegionInfo> containedRegions = Sets.newTreeSet();
-        if (Bytes.equals(startRow, stopRow)) {
-            for (HRegionInfo info : regions) {
-                if (info.containsRow(startRow)) {
+        SortedSet<Pair<HRegionInfo,ServerName>> containedRegions = Sets.newTreeSet(new RegionCacheComparator());
+        if(Bytes.equals(startRow,stopRow)){
+            for(Pair<HRegionInfo,ServerName> info:regions){
+                if(info.getFirst().containsRow(startRow)){
                     containedRegions.add(info);
                     return containedRegions;
                 }
             }
         }
-        for (HRegionInfo info : regions) {
-            if (HRegionUtil.containsRange(info, startRow, stopRow))
+        for(Pair<HRegionInfo,ServerName> info:regions){
+            if(HRegionUtil.containsRange(info.getFirst(),startRow,stopRow))
                 containedRegions.add(info);
         }
         return containedRegions;
@@ -138,23 +136,23 @@ public class HBaseRegionCache implements RegionCache {
             SpliceLogUtils.debug(CACHE_LOG, "Refreshing Region cache for all tables");
             MetaScanner.MetaScannerVisitor visitor = new MetaScanner.MetaScannerVisitor() {
                 private byte[] lastByte;
-                private SortedSet<HRegionInfo> regionInfos = new ConcurrentSkipListSet<HRegionInfo>();
-
+                private SortedSet<Pair<HRegionInfo,ServerName>> regionInfos = new ConcurrentSkipListSet<Pair<HRegionInfo,ServerName>>(new RegionCacheComparator());            	
                 @Override
                 public boolean processRow(Result rowResult) throws IOException {
-                    HRegionInfo info = MetaReader.parseHRegionInfoFromCatalogResult(rowResult, HConstants.REGIONINFO_QUALIFIER);
-                    if (lastByte == null) {
-                        lastByte = info.getTableName();
-                        regionInfos.add(info);
-                    } else if (Arrays.equals(lastByte, info.getTableName())) {
-                        if (!info.isOffline() && !info.isSplitParent() && !info.isSplit())
-                            regionInfos.add(info);
+                	Pair<HRegionInfo,ServerName> info = MetaReader.parseCatalogResult(rowResult);
+                    if (lastByte==null) {
+                    	lastByte = info.getFirst().getTableName();
+                    	regionInfos.add(info);
+                    }	
+                    else if (Arrays.equals(lastByte,info.getFirst().getTableName())) {
+							if (isRegionAvailable(info.getFirst()))
+								regionInfos.add(info);
                     } else {
-                        regionCache.put(lastByte, regionInfos);
-                        lastByte = info.getTableName();
-                        regionInfos = new ConcurrentSkipListSet<HRegionInfo>();
-                        if (!info.isOffline() && !info.isSplitParent() && !info.isSplit())
-                            regionInfos.add(info);
+                    	regionCache.put(lastByte, regionInfos);
+                    	lastByte = info.getFirst().getTableName();
+                    	regionInfos = new ConcurrentSkipListSet<Pair<HRegionInfo,ServerName>>(new RegionCacheComparator());
+							if(isRegionAvailable(info.getFirst()))
+								regionInfos.add(info);
                     }
                     return true;
                 }
@@ -185,25 +183,28 @@ public class HBaseRegionCache implements RegionCache {
     /**
      * CacheLoader instance
      */
-    private static class RegionCacheLoader extends CacheLoader<Integer, SortedSet<HRegionInfo>> {
+    private static class RegionCacheLoader extends CacheLoader<Integer, SortedSet<Pair<HRegionInfo,ServerName>>> {
         private final Configuration configuration;
 
         public RegionCacheLoader(Configuration configuration) {
             this.configuration = configuration;
         }
 
-        public SortedSet<HRegionInfo> load(final byte[] data) throws Exception {
-            final SortedSet<HRegionInfo> regionInfos = new ConcurrentSkipListSet<HRegionInfo>();
+
+        public SortedSet<Pair<HRegionInfo,ServerName>> load(final byte[] data) throws Exception{
+            final SortedSet<Pair<HRegionInfo,ServerName>> regionInfos = new ConcurrentSkipListSet<Pair<HRegionInfo,ServerName>>(new RegionCacheComparator());
             final MetaScanner.MetaScannerVisitor visitor = new MetaScanner.MetaScannerVisitor() {
                 @Override
                 public boolean processRow(Result rowResult) throws IOException {
-                    HRegionInfo info = MetaReader.parseHRegionInfoFromCatalogResult(rowResult, HConstants.REGIONINFO_QUALIFIER);
-                    if (Bytes.equals(data, info.getTableName())
-                            && !info.isOffline()
-                            && !info.isSplit()
-                            && !info.isSplitParent()) {
-                        regionInfos.add(info);
-                    }
+                	try {
+	                	Pair<HRegionInfo,ServerName> info = MetaReader.parseCatalogResult(rowResult);
+	                    if(Bytes.equals(data,info.getFirst().getTableName()) && isRegionAvailable(info.getFirst())) {
+	                        regionInfos.add(info);
+	                    }
+                	} catch (IOException ioe) {
+                		ioe.printStackTrace();
+                		SpliceLogUtils.error(CACHE_LOG, ioe);
+                	}
                     return true;
                 }
 
@@ -223,18 +224,15 @@ public class HBaseRegionCache implements RegionCache {
         }
 
         @Override
-        public SortedSet<HRegionInfo> load(final Integer key) throws Exception {
-            SpliceLogUtils.trace(CACHE_LOG, "Loading regions for key %d", key);
-            final SortedSet<HRegionInfo> regionInfos = new ConcurrentSkipListSet<HRegionInfo>();
+        public SortedSet<Pair<HRegionInfo,ServerName>> load(final Integer key) throws Exception {
+            SpliceLogUtils.trace(CACHE_LOG,"Loading regions for key %d",key);
+            final SortedSet<Pair<HRegionInfo,ServerName>> regionInfos = new ConcurrentSkipListSet<Pair<HRegionInfo,ServerName>>(new RegionCacheComparator());
             final MetaScanner.MetaScannerVisitor visitor = new MetaScanner.MetaScannerVisitor() {
                 @Override
                 public boolean processRow(Result rowResult) throws IOException {
-                    HRegionInfo info = MetaReader.parseHRegionInfoFromCatalogResult(rowResult, HConstants.REGIONINFO_QUALIFIER);
-                    Integer tableKey = Bytes.mapKey(info.getTableName());
-                    if (key.equals(tableKey)
-                            && !info.isOffline()
-                            && !info.isSplit()
-                            && !info.isSplitParent()) {
+					Pair<HRegionInfo,ServerName> info = MetaReader.parseCatalogResult(rowResult);
+                    Integer tableKey = Bytes.mapKey(info.getFirst().getTableName());
+                    if(key.equals(tableKey) && isRegionAvailable(info.getFirst())) {
                         regionInfos.add(info);
                     }
 
@@ -280,8 +278,8 @@ public class HBaseRegionCache implements RegionCache {
 
         @Override
         public int getNumCachedRegions(String tableName) {
-            SortedSet<HRegionInfo> regions = regionCache.get(tableName.getBytes());
-            if (regions == null) return 0;
+            SortedSet<Pair<HRegionInfo,ServerName>> regions = regionCache.get(tableName.getBytes());
+            if(regions==null) return 0;
             return regions.size();
         }
 
@@ -295,5 +293,14 @@ public class HBaseRegionCache implements RegionCache {
             return cacheUpdatePeriod;
         }
     }
-
+    /**
+     * Checks for split and offline states to determine suitability of adding to the region cache.
+     * 
+     * @param info
+     * @return
+     */
+    public static boolean isRegionAvailable(HRegionInfo info) {
+    	return !info.isOffline() &&!info.isSplit() &&!info.isSplitParent();
+    }
+    
 }

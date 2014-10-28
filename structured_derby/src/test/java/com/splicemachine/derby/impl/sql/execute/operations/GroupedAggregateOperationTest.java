@@ -11,9 +11,8 @@ import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.Grou
 import com.splicemachine.derby.utils.marshall.DataHash;
 import com.splicemachine.derby.utils.marshall.KeyEncoder;
 import com.splicemachine.derby.utils.marshall.PairEncoder;
-import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.KVPair;
-
+import com.splicemachine.pipeline.api.CallBuffer;
 import com.splicemachine.uuid.Snowflake;
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
 import org.apache.derby.iapi.sql.execute.ExecRow;

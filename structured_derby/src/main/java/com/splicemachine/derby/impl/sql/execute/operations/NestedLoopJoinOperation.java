@@ -8,8 +8,8 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
-import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.metrics.IOStats;
+import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.metrics.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -19,7 +19,6 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -221,7 +220,8 @@ public class NestedLoopJoinOperation extends JoinOperation {
 
 				@Override
 				public boolean hasNext() {
-						SpliceLogUtils.debug(LOG, ">>> NestdLoopJoin hasNext() ",(restriction != null?"with ":"without "),"restriction");
+					if (LOG.isDebugEnabled())
+							SpliceLogUtils.debug(LOG, ">>> NestdLoopJoin hasNext() ",(restriction != null?"with ":"without "),"restriction");
 						if(populated)return true;
 						rightResultSet.clearCurrentRow();
 						try {
@@ -234,8 +234,8 @@ public class NestedLoopJoinOperation extends JoinOperation {
 										rightRow = (rightRow == null) ? getEmptyRow() : null;
 								}
 								if (outerJoin && rightRow == null){
+									if (LOG.isDebugEnabled())
 										SpliceLogUtils.debug(LOG, ">>> NestdLoopJoin: Outer join with empty right row");
-
 										rightRow = getEmptyRightRow();
 								}
 								if(rightRow!=null){

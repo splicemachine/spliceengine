@@ -8,7 +8,6 @@ import java.sql.SQLIntegrityConstraintViolationException;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.splicemachine.derby.utils.ErrorState;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -20,6 +19,7 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.pipeline.exception.ErrorState;
 
 /**
  * Index tests. Using more manual SQL, rather than SpliceIndexWatcher.

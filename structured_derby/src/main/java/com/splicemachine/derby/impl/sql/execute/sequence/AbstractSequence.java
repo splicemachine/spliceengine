@@ -7,7 +7,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.derby.iapi.error.StandardException;
 
-import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.pipeline.exception.Exceptions;
 
 public abstract class AbstractSequence implements Sequence {
 	protected final AtomicLong remaining = new AtomicLong(0l);

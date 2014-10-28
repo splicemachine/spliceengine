@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.sql.execute;
 import java.util.List;
 
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -60,7 +61,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.VTIOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.WindowOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.ExplainOperation;
-import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 
 public class SpliceGenericResultSetFactory extends GenericResultSetFactory {

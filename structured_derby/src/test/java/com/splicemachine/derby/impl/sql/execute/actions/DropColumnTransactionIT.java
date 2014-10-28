@@ -1,8 +1,9 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.derby.test.framework.*;
-import com.splicemachine.derby.utils.ErrorState;
+import com.splicemachine.pipeline.exception.ErrorState;
 import com.splicemachine.test.SerialTest;
+
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;

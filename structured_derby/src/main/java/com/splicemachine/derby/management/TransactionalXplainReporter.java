@@ -1,14 +1,14 @@
 package com.splicemachine.derby.management;
 
 import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.derby.utils.marshall.DataHash;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.hbase.writer.RecordingCallBuffer;
-import com.splicemachine.hbase.writer.WriteCoordinator;
+import com.splicemachine.pipeline.api.RecordingCallBuffer;
+import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.pipeline.impl.WriteCoordinator;
 import com.splicemachine.si.api.ReadOnlyModificationException;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.storage.EntryEncoder;
@@ -19,11 +19,8 @@ import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
 import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.hadoop.hbase.util.Pair;
-
 import java.io.IOException;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 
 /**

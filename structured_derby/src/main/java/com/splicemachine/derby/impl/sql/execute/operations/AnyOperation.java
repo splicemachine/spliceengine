@@ -6,6 +6,7 @@ import java.io.ObjectOutput;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+
 import com.google.common.base.Strings;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -13,15 +14,17 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.storage.RowProviders;
-import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.metrics.IOStats;
+import com.splicemachine.pipeline.exception.Exceptions;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.conn.StatementContext;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.log4j.Logger;
+
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 
 /**

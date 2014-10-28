@@ -4,17 +4,15 @@ import com.google.common.base.Throwables;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.hbase.writer.RecordingCallBuffer;
-
-import com.splicemachine.hbase.writer.WriteStats;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
+import com.splicemachine.pipeline.api.RecordingCallBuffer;
+import com.splicemachine.pipeline.api.WriteStats;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
 import java.util.concurrent.ExecutionException;
 
 /**

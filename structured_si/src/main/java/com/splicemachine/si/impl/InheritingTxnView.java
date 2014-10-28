@@ -20,17 +20,14 @@ import java.util.Iterator;
 public class InheritingTxnView extends AbstractTxnView {
 		private final boolean hasAdditive;
 		private final boolean isAdditive;
-
 		private final TxnView parentTxn;
 		private final long commitTimestamp;
 		private final Txn.State state;
 		private final boolean allowWrites;
 		private final boolean hasAllowWrites;
 		private long globalCommitTimestamp;
-
 		private final Iterator<ByteSlice> destinationTables;
-
-    private final long lastKaTime;
+		private final long lastKaTime;
 
     public InheritingTxnView(TxnView parentTxn,
                              long txnId,long beginTimestamp,

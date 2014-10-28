@@ -4,10 +4,10 @@ import com.splicemachine.si.api.ReadOnlyModificationException;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.api.TxnView;
-import com.splicemachine.si.impl.store.ActiveTxnCacheSupplier;
 import com.splicemachine.utils.ByteSlice;
-
 import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.Iterator;
 
 /**
@@ -18,14 +18,10 @@ public class LazyTxnView implements TxnView {
     private volatile TxnView delegate;
     private volatile boolean lookedUp = false;
     private volatile  TxnSupplier store;
-
     private final long txnId;
-
     private final boolean hasAdditive;
     private final boolean additive;
-
     private final Txn.IsolationLevel isolationLevel;
-
     private volatile boolean inFinalState = false; //set to true if/when the lookup reveals the transaction is in the final state
 
     public LazyTxnView(long txnId, TxnSupplier store) {
@@ -209,4 +205,17 @@ public class LazyTxnView implements TxnView {
     public String toString() {
         return "LazyWritableTxn("+txnId+")";
     }
+
+	@Override
+	public void readExternal(ObjectInput in) throws IOException,
+			ClassNotFoundException {
+		throw new RuntimeException("Not Supported");
+	}
+
+	@Override
+	public void writeExternal(ObjectOutput out) throws IOException {
+		throw new RuntimeException("Not Supported");		
+	}
+
+
 }

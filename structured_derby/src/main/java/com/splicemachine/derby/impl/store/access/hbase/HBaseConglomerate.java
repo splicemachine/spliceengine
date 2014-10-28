@@ -2,15 +2,12 @@ package com.splicemachine.derby.impl.store.access.hbase;
 
 import java.io.IOException;
 import java.io.ObjectInput;
-import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.util.Properties;
-
 import com.google.common.io.Closeables;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.utils.ConglomerateUtils;
-import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -41,7 +38,6 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.impl.store.access.conglomerate.ConglomerateUtil;
 import org.apache.derby.impl.store.access.conglomerate.OpenConglomerateScratchSpace;
 import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;

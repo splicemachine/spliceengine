@@ -5,8 +5,8 @@ import com.google.gson.Gson;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.load.ImportContext;
 import com.splicemachine.derby.impl.load.ImportUtils;
-import com.splicemachine.derby.utils.ErrorState;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.pipeline.exception.ErrorState;
 import org.apache.commons.cli.*;
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.jdbc.ClientDriver;
@@ -27,7 +27,6 @@ import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
-
 import java.io.IOException;
 import java.sql.*;
 import java.text.SimpleDateFormat;

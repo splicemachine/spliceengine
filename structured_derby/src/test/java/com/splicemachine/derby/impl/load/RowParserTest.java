@@ -3,11 +3,9 @@ package com.splicemachine.derby.impl.load;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.splicemachine.derby.utils.ErrorState;
 import com.splicemachine.derby.utils.test.TestingDataType;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.hbase.writer.WriteResult;
-
+import com.splicemachine.pipeline.exception.ErrorState;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.impl.sql.execute.ValueRow;
@@ -15,11 +13,10 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-
 import javax.annotation.Nullable;
-
 import java.io.IOException;
 import java.util.*;
+import com.splicemachine.pipeline.impl.WriteResult;
 
 /**
  * @author Scott Fines

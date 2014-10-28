@@ -20,6 +20,8 @@ import com.splicemachine.derby.impl.store.access.base.SpliceScan;
 
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HServerLoad.RegionLoad;
+import org.apache.hadoop.hbase.ServerName;
+import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.util.Map;
@@ -76,7 +78,7 @@ public class HBaseCostController extends SpliceGenericCostController implements 
 		// Splice approach: scale Derby's calculation by the number of regions for
         // table in HBase
 
-        SortedSet<HRegionInfo> regions = getRegions(open_conglom.getConglomerate().getContainerid());
+        SortedSet<Pair<HRegionInfo,ServerName>> regions = getRegions(open_conglom.getConglomerate().getContainerid());
         Map<String,RegionLoad> regionLoads = HBaseRegionLoads.getCachedRegionLoadsMapForTable(open_conglom.getConglomerate().getContainerid()+"");
     	((SortState) cost_result).setNumberOfRegions(regions==null?0:regions.size());
         long estimatedRowCount = computeRowCount(regions,regionLoads,SpliceConstants.hbaseRegionRowEstimate,SpliceConstants.regionMaxFileSize,spliceScan.getScan());

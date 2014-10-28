@@ -8,11 +8,12 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import com.google.common.base.Preconditions;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.ddl.DDLChange;
 import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.hbase.table.BetterHTablePool;
 import com.splicemachine.hbase.table.SpliceHTableFactory;
 import com.splicemachine.si.api.*;
+import com.splicemachine.pipeline.ddl.DDLChange;
+import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.impl.DDLFilter;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
@@ -46,10 +47,8 @@ import org.apache.derby.iapi.store.raw.LockingPolicy;
 import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.shared.common.reference.Attribute;
 import org.apache.hadoop.hbase.client.*;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.utils.SpliceUtilities;
 
 
 public class SpliceAccessManager implements AccessFactory, CacheableFactory, ModuleControl, PropertySetCallback {

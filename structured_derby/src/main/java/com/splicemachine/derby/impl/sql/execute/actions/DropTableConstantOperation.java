@@ -1,20 +1,22 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import com.splicemachine.derby.ddl.DDLChange;
 import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.ddl.DropTableDDLChangeDesc;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import org.apache.derby.catalog.UUID;
+import com.splicemachine.pipeline.ddl.DDLChange;
+import com.splicemachine.pipeline.exception.Exceptions;
+import org.apache.derby.iapi.sql.execute.ConstantAction;
+import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
-import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.StatementType;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.depend.DependencyManager;
 import org.apache.derby.iapi.sql.dictionary.*;
-import org.apache.derby.iapi.sql.execute.ConstantAction;
 import org.apache.derby.iapi.store.access.TransactionController;
+
 
 /**
  *	This class  describes actions that are ALWAYS performed for a

@@ -4,9 +4,10 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
 import com.splicemachine.derby.test.framework.*;
-import com.splicemachine.derby.utils.ErrorState;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.perf.runner.qualifiers.Result;
+import com.splicemachine.pipeline.exception.ErrorState;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.junit.*;
 import org.junit.rules.RuleChain;

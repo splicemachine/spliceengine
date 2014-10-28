@@ -15,13 +15,12 @@ import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
-import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.metrics.TimeView;
+import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.yammer.metrics.core.MetricName;
 import com.yammer.metrics.core.Timer;
-
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.catalog.types.ReferencedColumnsDescriptorImpl;
 import org.apache.derby.iapi.error.StandardException;
@@ -124,7 +123,6 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 						throw Exceptions.parseException(e);
 				}
 				recordConstructorTime();
-//                getKeyColumnDVDs();
 		}
 
 		@Override
@@ -281,33 +279,6 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 				return source.getReduceRowProvider(top, decoder, spliceRuntimeContext, returnDefaultValue);
 		}
 
-		//		@Override
-//		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-//            int[] keyColumns = new int[getColumnOrdering().length];
-//            int[] baseColumnMap = operationInformation.getBaseColumnMap();
-//            for (int i = 0; i <keyColumns.length; ++i)
-//                keyColumns[i] = -1;
-//            for (int i = 0; i < keyColumns.length && columnOrdering[i] < baseColumnMap.length; ++i) {
-//                keyColumns[i] = baseColumnMap[columnOrdering[i]];
-//            }
-//			/*
-//			 * We only ask for this KeyEncoder if we are the top of a RegionScan.
-//			 * In this case, we encode with either the current row location or a
-//			 * random UUID (if the current row location is null).
-//			 */
-//            DataHash hash = new SuppliedDataHash(new StandardSupplier<byte[]>() {
-//                @Override
-//                public byte[] get() throws StandardException {
-//                    if(currentRowLocation!=null)
-//                        return currentRowLocation.getBytes();
-//                    return SpliceDriver.driver().getUUIDGenerator().nextUUIDBytes();
-//                }
-//            });
-//
-//            return new KeyEncoder(NoOpPrefix.INSTANCE,hash,NoOpPostfix.INSTANCE);
-//		}
-
-
 		@Override
 		public SpliceOperation getLeftOperation() {
 				return this.source;
@@ -374,11 +345,6 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 										.lookupBatchSize(SpliceConstants.indexBatchSize)
 										.build();
 
-//						reader = IndexRowReader.create(source,conglomId,compactRow,
-//										getTransactionID(),
-//										indexCols,
-//										operationInformation.getBaseColumnMap(),heapOnlyCols,
-//										spliceRuntimeContext, getColumnOrdering(), getFormatIds(), mainTableVersion);
 				}
 
 				timer.startTiming();

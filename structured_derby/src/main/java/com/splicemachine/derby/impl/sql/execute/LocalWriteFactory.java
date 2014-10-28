@@ -1,8 +1,8 @@
 package com.splicemachine.derby.impl.sql.execute;
 
-import com.splicemachine.hbase.batch.PipelineWriteContext;
-
 import java.io.IOException;
+
+import com.splicemachine.pipeline.writecontext.PipelineWriteContext;
 
 /**
  * @author Scott Fines

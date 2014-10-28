@@ -1,13 +1,12 @@
 package com.splicemachine.derby.impl.storage;
 
 import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.metrics.*;
 import com.splicemachine.hbase.HBaseStatUtils;
+import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.client.*;
-
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.NoSuchElementException;

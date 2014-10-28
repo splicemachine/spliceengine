@@ -5,6 +5,8 @@ import org.apache.derby.shared.common.reference.SQLState;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.splicemachine.pipeline.exception.Exceptions;
+
 import java.io.IOException;
 
 /**

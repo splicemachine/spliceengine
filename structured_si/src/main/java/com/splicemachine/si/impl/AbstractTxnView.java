@@ -2,9 +2,12 @@ package com.splicemachine.si.impl;
 
 import com.google.common.collect.Iterators;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.Txn.IsolationLevel;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.ByteSlice;
-
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.Iterator;
 
 /**
@@ -12,11 +15,15 @@ import java.util.Iterator;
  *         Date: 8/14/14
  */
 public abstract class AbstractTxnView implements TxnView {
-    protected final long txnId;
-    protected final long beginTimestamp;
-    protected final Txn.IsolationLevel isolationLevel;
+    protected long txnId;
+    protected long beginTimestamp;
+    protected Txn.IsolationLevel isolationLevel;
 
-    protected AbstractTxnView(long txnId,
+    public AbstractTxnView() {
+    	
+    }
+    
+    public AbstractTxnView(long txnId,
                               long beginTimestamp,
                               Txn.IsolationLevel isolationLevel) {
         this.txnId = txnId;
@@ -66,7 +73,9 @@ public abstract class AbstractTxnView implements TxnView {
         return null;
     }
 
-    @Override public long getParentTxnId() { return getParentTxnView().getTxnId(); }
+    @Override public long getParentTxnId() { 
+    	return getParentTxnView().getTxnId(); 
+    }
 
     @Override
     public Txn.State getState() {
@@ -294,4 +303,20 @@ public abstract class AbstractTxnView implements TxnView {
         }
         return b;
     }
+
+	@Override
+	public void readExternal(ObjectInput input) throws IOException, ClassNotFoundException {
+		txnId = input.readLong();
+		beginTimestamp = input.readLong();
+    	isolationLevel = IsolationLevel.fromByte(input.readByte());		
+	}
+
+	@Override
+	public void writeExternal(ObjectOutput output) throws IOException {
+    	output.writeLong(txnId);
+    	output.writeLong(beginTimestamp);
+    	output.writeByte(isolationLevel.encode());    			
+	}
+    
+    
 }

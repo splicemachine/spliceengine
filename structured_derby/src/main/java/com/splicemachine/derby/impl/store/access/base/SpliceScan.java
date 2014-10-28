@@ -10,7 +10,6 @@ import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.EntryDataDecoder;
@@ -18,8 +17,10 @@ import com.splicemachine.derby.utils.marshall.EntryDataHash;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
+import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -192,8 +193,6 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 				if (currentResult == null)
 						throw StandardException.newException("Attempting to delete with a null current result");
 				try {
-//            assert trans instanceof SpliceTransaction: "Programmer error: attempted a delete without the proper Transaction";
-//            ((SpliceTransaction) trans).elevate(table.getTableName());
             SpliceUtils.doDelete(table, trans.getActiveStateTxn(), this.currentResult.getRow());
 						currentRowDeleted = true;
 						return true;
