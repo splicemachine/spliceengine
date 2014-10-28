@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import static com.splicemachine.constants.SpliceConstants.*;
 
@@ -35,7 +34,7 @@ public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Ge
 		private final STableReader<IHTable, Get, Scan> reader;
 		private final STableWriter<IHTable, Mutation, Put, Delete> writer;
 		private final String siNeededAttribute;
-    private final String deletePutAttribute;
+		private final String deletePutAttribute;
 		private final byte[] commitTimestampQualifier;
 		private final byte[] tombstoneQualifier;
 		private final byte[] siNull;
@@ -44,6 +43,7 @@ public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Ge
 		private final byte[] userColumnFamily;
 		private final TxnSupplier txnSupplier;
 		private TxnLifecycleManager control;
+        private final List<List<byte[]>> columns;
 
 		public DataStore(SDataLib<Put, Delete, Get, Scan> dataLib,
                      STableReader reader,
@@ -71,6 +71,11 @@ public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Ge
 				this.userColumnFamily = dataLib.encode(userColumnFamily);
 				this.txnSupplier = txnSupplier;
 				this.control = control;
+
+                this.columns =  Arrays.asList(
+                        Arrays.asList(this.userColumnFamily, tombstoneQualifier),
+                        Arrays.asList(this.userColumnFamily, commitTimestampQualifier),
+                        Arrays.asList(this.userColumnFamily, SIConstants.PACKED_COLUMN_BYTES));
 		}
 
     public byte[] getSINeededAttribute(OperationWithAttributes operation) {
@@ -106,12 +111,7 @@ public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Ge
 		}
 
 
-		Result getCommitTimestampsAndTombstonesSingle(IHTable table, byte[] rowKey) throws IOException {
-				// XXX TODO JLeach.
-				@SuppressWarnings("unchecked") final List<List<byte[]>> columns = Arrays.asList(
-								Arrays.asList(userColumnFamily, tombstoneQualifier),
-								Arrays.asList(userColumnFamily, commitTimestampQualifier),
-								Arrays.asList(userColumnFamily, SIConstants.PACKED_COLUMN_BYTES)); // This needs to be static : why create this each time?
+    Result getCommitTimestampsAndTombstonesSingle(IHTable table, byte[] rowKey) throws IOException {
 				Get get = dataLib.newGet(rowKey, null, columns, null,1); // Just Retrieve one per...
 				suppressIndexing(get);
 				checkBloom(get);
@@ -197,14 +197,6 @@ public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Ge
 		public OperationStatus[] writeBatch(IHTable table, Pair<Mutation, Integer>[] mutationsAndLocks) throws IOException {
 				return writer.writeBatch(table, mutationsAndLocks);
 		}
-
-//		public void closeLowLevelOperation(IHTable table) throws IOException {
-//				reader.closeOperation(table);
-//		}
-//
-//		public void startLowLevelOperation(IHTable table) throws IOException {
-//				reader.openOperation(table);
-//		}
 
 		public String getTableName(IHTable table) {
 				return reader.getTableName(table);

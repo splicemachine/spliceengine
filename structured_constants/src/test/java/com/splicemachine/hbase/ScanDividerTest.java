@@ -6,7 +6,6 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.KeyOnlyFilter;
 import org.apache.hadoop.hbase.util.Pair;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -18,7 +17,7 @@ import static org.apache.hadoop.hbase.util.Bytes.toBytes;
 import static org.apache.hadoop.hbase.util.Bytes.toInt;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
-@Ignore
+
 public class ScanDividerTest {
 
     private static final byte[] TABLE = toBytes("TABLE");
@@ -131,7 +130,7 @@ public class ScanDividerTest {
     }
 
     private static SortedSet<Pair<HRegionInfo,ServerName>> getTestRegions(int count) {
-    	SortedSet<Pair<HRegionInfo,ServerName>> regions = new TreeSet<Pair<HRegionInfo,ServerName>>();
+    	SortedSet<Pair<HRegionInfo,ServerName>> regions = new TreeSet<Pair<HRegionInfo,ServerName>>(new RegionCacheComparator());
         int startKey = 10;
         int endKey = 20;
         for (int i = 0; i < count; i++) {
