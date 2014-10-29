@@ -13,6 +13,7 @@ import com.splicemachine.hbase.HBaseRegionLoads;
 import com.splicemachine.hbase.backup.*;
 import com.google.common.io.Closeables;
 import com.splicemachine.derby.hbase.SpliceMasterObserverRestoreAction;
+import com.splicemachine.si.api.TransactionTimestamps;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceUtilities;
 
@@ -395,7 +396,6 @@ public class SpliceDatabase extends BasicDatabase {
             admin = SpliceUtilities.getAdmin();
             backup.createBackupItems(admin);
             backup.createProperties();
-            backup.createMetadata();
             for (BackupItem backupItem: backup.getBackupItems()) {
                 backupItem.createBackupItemFilesystem();
                 backupItem.writeDescriptorToFileSystem();
@@ -413,6 +413,10 @@ public class SpliceDatabase extends BasicDatabase {
                     throw t;
                 }
             }
+
+            // create metadata, including timestamp source's timestamp
+            // this has to be called after all tables have been dumped.
+            backup.createMetadata();
         } catch (Throwable e) {
             if(info!=null) info.failJob();
             if (backup != null) {

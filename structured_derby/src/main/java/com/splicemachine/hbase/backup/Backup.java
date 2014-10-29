@@ -4,14 +4,19 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.SpliceService;
 import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.TransactionLifecycle;
+import com.splicemachine.si.api.TransactionTimestamps;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.utils.SpliceUtilities;
+import com.splicemachine.utils.ZkUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.fs.*;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
+import org.apache.zookeeper.KeeperException;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -34,6 +39,7 @@ public class Backup implements InternalTable {
     public static final String BACKUP_TABLE_FOLDER = "tables";
     public static final String BACKUP_META_FOLDER = "meta";
     public static final String BACKUP_PROPERTIES_FOLDER = "properties";
+    private long timestampSource;
 
 
     /**
@@ -65,6 +71,10 @@ public class Backup implements InternalTable {
 	public static final String SCHEMA_CHECK = "select schemaid from sys.sysschemas where schemaname = ?";
 	public static final String TABLE_CHECK = "select tablename from sys.systables where tablename = ? and schemaid = ?";
 
+
+    public static final String VERSION_FILE = "version";
+    public static final String BACKUP_TIMESTAMP_FILE = "backupTimestamp";
+    public static final String TIMESTAMP_SOURCE_FILE = "timestampSource";
 	
 	private Txn backupTransaction;
 	private Timestamp beginBackupTimestamp;
@@ -478,17 +488,26 @@ public class Backup implements InternalTable {
         fileSystem.close();
     }
 
+    // Write metadata, including timestamp source's last timestamp
+    // this has to be called after all tables have been dumped.
     public void createMetadata() throws StandardException, IOException {
         FileSystem fileSystem = FileSystem.get(URI.create(getBackupFilesystem()),SpliceConstants.config);
         byte[] version = Bytes.toBytes(backupVersion);
 
-        FSDataOutputStream out = fileSystem.create(new Path(getMetaBackupFilesystemAsPath(), "version"));
+        FSDataOutputStream out = fileSystem.create(new Path(getMetaBackupFilesystemAsPath(), VERSION_FILE));
         out.writeInt(version.length);
         out.write(version);
         out.close();
 
         byte[] value = Bytes.toBytes(backupTimestamp);
-        out = fileSystem.create(new Path(getMetaBackupFilesystemAsPath(), "backupTimestamp"));
+        out = fileSystem.create(new Path(getMetaBackupFilesystemAsPath(), BACKUP_TIMESTAMP_FILE));
+        out.writeInt(value.length);
+        out.write(value);
+        out.close();
+
+        long timestampSource = TransactionTimestamps.getTimestampSource().nextTimestamp();
+        value = Bytes.toBytes(timestampSource);
+        out = fileSystem.create(new Path(getMetaBackupFilesystemAsPath(), TIMESTAMP_SOURCE_FILE));
         out.writeInt(value.length);
         out.write(value);
         out.close();
@@ -498,19 +517,40 @@ public class Backup implements InternalTable {
     public void restoreMetadata() throws StandardException, IOException {
         FileSystem fileSystem = FileSystem.get(URI.create(getBackupFilesystem()),SpliceConstants.config);
 
-        FSDataInputStream in = fileSystem.open(new Path(getMetaBackupFilesystemAsPath(), "version"));
+        FSDataInputStream in = fileSystem.open(new Path(getMetaBackupFilesystemAsPath(), VERSION_FILE));
         int len = in.readInt();
         byte[] value = new byte[len];
         in.readFully(value);
         backupVersion = Bytes.toString(value);
         in.close();
 
-        in = fileSystem.open(new Path(getMetaBackupFilesystemAsPath(), "backupTimestamp"));
+        in = fileSystem.open(new Path(getMetaBackupFilesystemAsPath(), BACKUP_TIMESTAMP_FILE));
         len = in.readInt();
         value = new byte[len];
         in.readFully(value);
         backupTimestamp = Bytes.toLong(value);
         in.close();
+
+        in = fileSystem.open(new Path(getMetaBackupFilesystemAsPath(), TIMESTAMP_SOURCE_FILE));
+        len = in.readInt();
+        value = new byte[len];
+        in.readFully(value);
+        timestampSource = Bytes.toLong(value);
+        in.close();
+
+        setTimestampSource(timestampSource);
+    }
+
+    // TODO This is hardcoded to the current implementation of Timestamp Source, should be moved to the appropriate class
+    private void setTimestampSource(long timestampSource) throws StandardException {
+        RecoverableZooKeeper rzk = ZkUtils.getRecoverableZooKeeper();
+        String node = SpliceConstants.zkSpliceMaxReservedTimestampPath;
+        byte[] data = Bytes.toBytes(timestampSource);
+        try {
+            rzk.setData(node, data, -1 /* version */);
+        } catch (Exception e) {
+            throw Exceptions.parseException(e);
+        }
     }
 
     // Restores derby properties to ZK
