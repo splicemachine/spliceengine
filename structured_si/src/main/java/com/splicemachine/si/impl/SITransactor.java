@@ -19,7 +19,6 @@ import com.splicemachine.utils.SpliceLogUtils;
 
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.MutationUtils;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.filter.Filter;
@@ -28,9 +27,7 @@ import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
-
 import javax.annotation.Nullable;
-
 import java.io.IOException;
 import java.lang.reflect.Array;
 import java.util.Arrays;
