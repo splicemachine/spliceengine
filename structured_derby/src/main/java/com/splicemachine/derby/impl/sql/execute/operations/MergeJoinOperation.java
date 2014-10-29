@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.google.common.collect.Lists;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
@@ -8,8 +7,8 @@ import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.*;
-import com.splicemachine.metrics.TimeView;
 import com.splicemachine.metrics.IOStats;
+import com.splicemachine.metrics.TimeView;
 import com.splicemachine.derby.utils.StandardIterators;
 import com.splicemachine.derby.utils.StandardPushBackIterator;
 import com.splicemachine.derby.utils.StandardSupplier;
@@ -95,7 +94,9 @@ public class MergeJoinOperation extends JoinOperation {
     	super.init(context);
         leftHashKeys = generateHashKeys(leftHashKeyItem);
         rightHashKeys = generateHashKeys(rightHashKeyItem);
+/*
         SpliceConglomerate conglomerate = getSpliceConglomerate(rightResultSet);
+        conglomerate.get
         if (conglomerate == null)
         	throw new RuntimeException("Could not find the base table under the result set");
         int[] columnOrdering = conglomerate.getColumnOrdering();
@@ -127,6 +128,7 @@ public class MergeJoinOperation extends JoinOperation {
             }
             leftHashKeys = leftSortedHashKeys;
             rightHashKeys = rightSortedHashKeys;
+            */
         startExecutionTime = System.currentTimeMillis();
     }
 
