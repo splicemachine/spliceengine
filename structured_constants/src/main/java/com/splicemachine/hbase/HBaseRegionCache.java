@@ -199,6 +199,8 @@ public class HBaseRegionCache implements RegionCache {
                 	try {
 	                	Pair<HRegionInfo,ServerName> info = MetaReader.parseCatalogResult(rowResult);
 	                    if(Bytes.equals(data,info.getFirst().getTableName()) && isRegionAvailable(info.getFirst())) {
+	                    	assert info.getFirst() !=null;
+	                    	assert info.getSecond() !=null;	                    			
 	                        regionInfos.add(info);
 	                    }
                 	} catch (IOException ioe) {
