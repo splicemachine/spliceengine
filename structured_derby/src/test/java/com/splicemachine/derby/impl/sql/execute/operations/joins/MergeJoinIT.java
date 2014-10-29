@@ -39,11 +39,6 @@ public class MergeJoinIT extends SpliceUnitTest {
 
     protected static final String LINEITEM = "LINEITEM";
     protected static final String ORDERS = "ORDERS";
-    protected static final String FOO = "FOO";
-    protected static final String FOO2 = "FOO2";
-    protected static final String FOO2_IDX = "FOO2_IDX";
-    
-    
 
     protected static SpliceTableWatcher lineItemTable = new SpliceTableWatcher(LINEITEM, CLASS_NAME,
             "( L_ORDERKEY INTEGER NOT NULL,L_PARTKEY INTEGER NOT NULL, L_SUPPKEY INTEGER NOT NULL, " +
@@ -56,41 +51,11 @@ public class MergeJoinIT extends SpliceUnitTest {
                     "O_TOTALPRICE DECIMAL(15,2),O_ORDERDATE DATE, O_ORDERPRIORITY  CHAR(15), " +
                     "O_CLERK CHAR(15), O_SHIPPRIORITY INTEGER, O_COMMENT VARCHAR(79))");
 
-
-    protected static SpliceTableWatcher fooTable = new SpliceTableWatcher(FOO, CLASS_NAME,
-            "(col1 int, col2 int, primary key (col1))");
-
-    protected static SpliceTableWatcher foo2Table = new SpliceTableWatcher(FOO2, CLASS_NAME,
-            "(col1 int, col2 int, col3 int)");
-
-    protected static SpliceIndexWatcher foo2Index = new SpliceIndexWatcher(FOO2,CLASS_NAME,FOO2_IDX,CLASS_NAME,"(col3, col2, col1)");
-
-    protected static String MERGE_INDEX_RIGHT_SIDE_TEST = format("select * from --SPLICE-PROPERTIES joinOrder=fixed\n" +
-    						" %s.%s inner join %s.%s --SPLICE-PROPERTIES index=%s, joinStrategy=MERGE\n" + 
-    						" on foo.col1 = foo2.col3",CLASS_NAME,FOO,CLASS_NAME,FOO2,FOO2_IDX);
-   
-    
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceSchemaWatcher)
         .around(spliceClassWatcher)
         .around(lineItemTable)
         .around(orderTable)
-        .around(fooTable)
-        .around(foo2Table)
-        .around(foo2Index)
-        .around(new SpliceDataWatcher() {
-        	  @Override
-              protected void starting(Description description) {
-                  try {
-                	  spliceClassWatcher.executeUpdate(format("insert into %s.%s values (1,2)",CLASS_NAME,FOO));
-                	  spliceClassWatcher.executeUpdate(format("insert into %s.%s values (3,2,1)",CLASS_NAME,FOO2));                	  
-                  } catch (Exception e) {
-                      throw new RuntimeException(e);
-                  } finally {
-                      spliceClassWatcher.closeAll();
-                  }
-              }
-        })
         .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/employee.sql", CLASS_NAME))
         .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/basic_join_dataset.sql", CLASS_NAME))
         .around(new SpliceDataWatcher() {
@@ -347,11 +312,5 @@ public class MergeJoinIT extends SpliceUnitTest {
                            "where o_orderkey = l_orderkey" +
                                "  and l_shipmode = s.mode";
         Assert.assertEquals(8954L, TestUtils.resultSetToArrays(methodWatcher.executeQuery(query)).get(0)[0]);
-    }
-    
-    @Test
-    public void testMergeWithRightCoveringIndex() throws Exception {
-    	List<Object[]> data = TestUtils.resultSetToArrays(methodWatcher.executeQuery(MERGE_INDEX_RIGHT_SIDE_TEST));
-    	Assert.assertTrue("does not return 1 row for merge, position problems in MergeSortJoinStrategy/Operation?",data.size()==1);
     }
 }
