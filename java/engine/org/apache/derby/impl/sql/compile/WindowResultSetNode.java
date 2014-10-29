@@ -21,6 +21,7 @@
 package org.apache.derby.impl.sql.compile;
 
 import static org.apache.derby.impl.sql.compile.WindowColumnMapping.findMissingKeyNodes;
+import static org.apache.derby.impl.sql.compile.WindowColumnMapping.operandMissing;
 import static org.apache.derby.impl.sql.compile.WindowColumnMapping.replaceColumnExpression;
 import static org.apache.derby.impl.sql.compile.WindowColumnMapping.resetOverColumnsPositionByKey;
 import static org.apache.derby.impl.sql.compile.WindowColumnMapping.resetOverColumnsPositionByParent;
@@ -350,7 +351,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 
         WindowColumnMapping columnMapping = addUnAggColumns();
         appendMissingKeyColumns(columnMapping);
-        addAggregateColumns();
+        addAggregateColumns(columnMapping);
     }
 
     /**
@@ -445,11 +446,40 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         // Make RC -> VC substitutions in parent
         Comparator<SubstituteExpressionVisitor> sorter = new ExpressionSorter();
         Collections.sort(referencesToSubstitute, sorter);
-        for (SubstituteExpressionVisitor aReferencesToSubstitute : referencesToSubstitute)
+        for (SubstituteExpressionVisitor aReferencesToSubstitute : referencesToSubstitute) {
             parent.getResultColumns().accept(aReferencesToSubstitute);
-
+        }
 
         return columnMapping;
+    }
+
+    private boolean inSourceResult(ValueNode expression, ResultSetNode resultSetNode) {
+        if (! (expression instanceof ColumnReference || expression instanceof VirtualColumnNode)) {
+            // we can only find these instances
+            return false;
+        }
+        ResultColumnList childResultList = resultSetNode.getResultColumns();
+        // Check for match with all RCs of this result set node's RCL
+        for (int i = 0; i < childResultList.size(); i++) {
+            ResultColumn rc = (ResultColumn) childResultList.elementAt(i);
+            if (!rc.isGenerated()) {
+                // generated nodes are ones we've already created
+                ColumnDescriptor rcDescriptor = rc.getTableColumnDescriptor();
+                if (rcDescriptor == null) {
+                    ValueNode exp = rc.getExpression();
+                    if (exp instanceof ResultColumn) {
+                        rcDescriptor = ((ResultColumn) exp).getTableColumnDescriptor();
+                    } else {
+                        rcDescriptor = exp.getSourceResultColumn().getTableColumnDescriptor();
+                    }
+                }
+                if (rcDescriptor.equals(expression.getSourceResultColumn().getTableColumnDescriptor())) {
+                    // Found a match
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**
@@ -475,74 +505,57 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         // setting columns on windowingRCL will also set them on resultColumns
         ResultColumnList windowingRCL = resultColumns;
 
-        // Now, add any over() (key) columns that were missing from the select
+        // Add any over() (key) columns that were missing from the select
         for (OrderedColumn keyCol : findMissingKeyNodes(columnMapping.getParentColumns(), wdn.getKeyColumns())) {
-            // Find the source of the missing column in a result node below us
-            ValueNode source = keyCol.getColumnExpression();
-            if (source instanceof ColumnReference && !(((ColumnReference) source).getGeneratedToReplaceAggregate())) {
+            ResultColumn source = null;
+            boolean isAggReplacement = keyCol.getColumnExpression() instanceof ColumnReference &&
+                                (((ColumnReference) keyCol.getColumnExpression()).getGeneratedToReplaceAggregate());
+            if (! isAggReplacement) {
                 // Don't look down for agg function results -- "source" is already pointing to the right place.
-                ResultColumnList grandChildRCL = ((SingleChildResultSetNode) childResult).getChildResult()
-                                                                                         .getResultColumns();
-                for (int i = 0; i < grandChildRCL.size(); i++) {
-                    ResultColumn rc = (ResultColumn) grandChildRCL.elementAt(i);
-                    if (!rc.isGenerated()) {
-                        ColumnDescriptor rcDescriptor = rc.getTableColumnDescriptor();
-                        if (rcDescriptor == null) {
-                            ValueNode exp = rc.getExpression();
-                            if (exp instanceof ResultColumn) {
-                                rcDescriptor = ((ResultColumn) exp).getTableColumnDescriptor();
-                            } else {
-                                rcDescriptor = exp.getSourceResultColumn().getTableColumnDescriptor();
-                            }
-                        }
-                        if (rcDescriptor.equals(keyCol.getColumnExpression().getSourceResultColumn()
-                                                      .getTableColumnDescriptor())) {
-                            source = rc.getExpression();
-                            break;
-                        }
-                    }
-                }
+                source = recursiveSourcePuller(childResult, keyCol.getColumnExpression());
             }
+            if (source == null) {
+                // Create and add result column to the bottom rcl
+                ResultColumn newRC = (ResultColumn) getNodeFactory().getNode(
+                    C_NodeTypes.RESULT_COLUMN,
+                    "##KeyPR_RC" + keyCol.getColumnExpression().getColumnName(),
+                    keyCol.getColumnExpression(),
+                    getContextManager());
+                bottomRCL.addElement(newRC);
+                newRC.bindResultColumnToExpression();
+                newRC.setVirtualColumnId(bottomRCL.size());
 
-            // Create and add result column to the bottom rcl
-            ResultColumn newRC = (ResultColumn) getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN,
-                "##KeyColumn" + keyCol.getColumnExpression().getColumnName(),
-                source,
-                getContextManager());
-            bottomRCL.addElement(newRC);
-            newRC.bindResultColumnToExpression();
-            int newColumnNumber = bottomRCL.size();
-            newRC.setVirtualColumnId(newColumnNumber);
+                source = newRC;
+            }
 
             // Create an RC that we'll add to the windowing RCL
             ColumnReference tmpColumnRef = (ColumnReference) getNodeFactory().getNode(
                 C_NodeTypes.COLUMN_REFERENCE,
-                "##KeyColumn -> " + newRC.getName(),
+                "##KeyCR -> " + source.getName(),
                 null,
                 getContextManager());
-            tmpColumnRef.setSource(newRC);
+            tmpColumnRef.setSource(source);
             tmpColumnRef.setNestingLevel(this.getLevel());
             tmpColumnRef.setSourceLevel(this.getLevel());
 
             // Create a CR and wrap it in just created RC
             ResultColumn wRC = (ResultColumn) getNodeFactory().getNode(
                 C_NodeTypes.RESULT_COLUMN,
-                "##KeyColumnRC -> " + tmpColumnRef.getColumnName(),
+                "##KeyWR_RC -> " + tmpColumnRef.getColumnName(),
                 tmpColumnRef,
                 getContextManager());
+            wRC.bindResultColumnToExpression();
 
             // Add the RC (that wraps the CR) to the windowing RCL
-            wRC.bindResultColumnToExpression();
             windowingRCL.addElement(wRC);
-            newColumnNumber = windowingRCL.size();
+            int newColumnNumber = windowingRCL.size();
             wRC.setVirtualColumnId(newColumnNumber);
 
             // Reset the key column's column position in the Window result since we're rearranging here
             // This will change the function's operand column position so the function pulls its input
             // from the rearranged column
             resetOverColumnsPositionByKey(keyCol, wdn.getOverColumns(), newColumnNumber);
-            if (source instanceof ColumnReference && !(((ColumnReference) source).getGeneratedToReplaceAggregate())) {
+            if (! isAggReplacement) {
                 // Since we're creating new column references here, we need to reset the reference to
                 // any matching operand so that the function references the new column.
                 // Note, we don't do this for CRs that have been generated to replace an agg function
@@ -550,9 +563,77 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                 // ref.
                 replaceColumnExpression(keyCol, wRC.getExpression(), wdn.getOverColumns());
             }
+
+        }
+    }
+
+    int counter = 0;
+    private ResultColumn recursiveSourcePuller(ResultSetNode resultSetNode, ValueNode expression) throws StandardException {
+        if (resultSetNode instanceof FromBaseTable) {
+            // we've gone too far
+            return null;
+        }
+        if (! (expression instanceof ColumnReference || expression instanceof VirtualColumnNode)) {
+            // we can only find these instances
+            return null;
+        }
+        counter = 0;
+        ResultColumnList childResultList = resultSetNode.getResultColumns();
+        // Check for match with all RCs of this result set node's RCL
+        for (int i = 0; i < childResultList.size(); i++) {
+            ResultColumn rc = (ResultColumn) childResultList.elementAt(i);
+            if (!rc.isGenerated()) {
+                // generated nodes are ones we've already created
+                ColumnDescriptor rcDescriptor = rc.getTableColumnDescriptor();
+                if (rcDescriptor == null) {
+                    ValueNode exp = rc.getExpression();
+                    if (exp instanceof ResultColumn) {
+                        rcDescriptor = ((ResultColumn) exp).getTableColumnDescriptor();
+                    } else {
+                        rcDescriptor = exp.getSourceResultColumn().getTableColumnDescriptor();
+        }
+                }
+                if (rcDescriptor.equals(expression.getSourceResultColumn().getTableColumnDescriptor())) {
+                    // Found a match
+                    return rc;
+                }
+            }
+        }
+        ResultColumn childRC = recursiveSourcePuller(((SingleChildResultSetNode)resultSetNode).getChildResult(), expression);
+
+        ResultColumn source = null;
+        if (childRC != null) {
+            // Create an RC->CR for matching column that we'll add to the parent RCL upon return
+            ColumnReference tmpColumnRef = (ColumnReference) getNodeFactory().getNode(
+                C_NodeTypes.COLUMN_REFERENCE,
+                // FIXME: these names get too verbose CR->RC->CR->RC->...
+                "#"+childRC.getName()+"_CR"+counter,
+                null,
+                getContextManager());
+            tmpColumnRef.setSource(childRC);
+            tmpColumnRef.setNestingLevel(((FromTable) resultSetNode).getLevel());
+            tmpColumnRef.setSourceLevel(((FromTable)resultSetNode).getLevel());
+
+            // Create a CR and wrap it in just created RC and return it so that parent
+            // can add it to its RCL
+            ResultColumn parentRC = (ResultColumn) getNodeFactory().getNode(
+                C_NodeTypes.RESULT_COLUMN,
+                // FIXME: these names get too verbose RC->CR->RC->...
+                "#"+childRC.getName()+"_RC"+counter++,
+                tmpColumnRef,
+                getContextManager());
+            parentRC.bindResultColumnToExpression();
+
+            // Add the RC (that wraps the CR) to the this child's RCL
+            childResultList.addElement(parentRC);
+            parentRC.setVirtualColumnId(childResultList.size());
+
+            source = parentRC;
         }
 
+        return source;
     }
+
 
     /**
      * In the query rewrite involving aggregates, add the columns for
@@ -560,7 +641,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      *
      * @see #addNewColumnsForAggregation
      */
-    private void addAggregateColumns() throws StandardException {
+    private void addAggregateColumns(WindowColumnMapping columnMapping) throws StandardException {
         LanguageFactory lf = getLanguageConnectionContext().getLanguageFactory();
         DataDictionary dd = getDataDictionary();
         // note bottomRCL is a reference to childResult resultColumns
@@ -570,14 +651,9 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         // setting columns on windowingRCL will also set them on resultColumns
         ResultColumnList windowingRCL = resultColumns;
 
-		/*
-		 ** Now process all of the functions.  As we process each windowFunctionNode replace
-		 ** the corresponding windowFunctionNode in parent RCL with an RC
-		 * whose expression resolves to the function's result column.
-		 */
-		/*
-		** For each windowFunctionNode
-		*/
+		// Now process all of the functions.  As we process each windowFunctionNode replace the corresponding
+		// windowFunctionNode in parent RCL with an RC whose expression resolves to the function's result column.
+		// For each windowFunctionNode...
         for (WindowFunctionNode windowFunctionNode : windowFunctions) {
             // We don't handle window references here
             if (SanityManager.DEBUG) {
@@ -606,7 +682,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 			** Set the windowFunctionNode result column to
 			** point to this.
 			*/
-            ResultColumn tmpRC = createColumnReferenceWrapInResultColumn(newRC, "##CR -> ", getNodeFactory(),
+            ResultColumn tmpRC = createColumnReferenceWrapInResultColumn(newRC, getNodeFactory(),
                                                                          getContextManager(), this.getLevel());
             windowingRCL.addElement(tmpRC);
             tmpRC.setVirtualColumnId(windowingRCL.size());
@@ -621,10 +697,21 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 			** project restrict that have the expressions
 			** to be aggregated
 			*/
+            // Create function references for all input operands
             ResultColumn[] expressionResults = windowFunctionNode.getNewExpressionResultColumns();
             int[] inputVColIDs = new int[expressionResults.length];
             int i = 0;
             for (ResultColumn resultColumn : expressionResults) {
+                ValueNode exp = resultColumn.getExpression();
+                if ((exp instanceof ColumnReference || exp instanceof VirtualColumnNode) &&
+                    ! inSourceResult(exp, ((SingleChildResultSetNode)childResult).childResult) &&
+                    operandMissing(exp, columnMapping.getParentColumns(), wdn.getKeyColumns())) {
+                    // if operand is not below us and is missing from select list and keys,
+                    // which have already been remapped, pull up column reference and replace operand
+                    ResultColumn source = recursiveSourcePuller(((SingleChildResultSetNode)childResult).childResult,
+                                                                exp);
+                    resultColumn.setExpression(source.getExpression());
+                }
                 resultColumn.markGenerated();
                 resultColumn.bindResultColumnToExpression();
                 resultColumn.setName("##" + windowFunctionNode.getAggregateName() + "Input");
@@ -636,7 +723,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                 ** Add a reference to this column into the
                 ** windowing RCL.
                 */
-                tmpRC = createColumnReferenceWrapInResultColumn(resultColumn, "##CR -> ", getNodeFactory(),
+                tmpRC = createColumnReferenceWrapInResultColumn(resultColumn, getNodeFactory(),
                                                                 getContextManager(), this.getLevel());
                 windowingRCL.addElement(tmpRC);
                 tmpRC.setVirtualColumnId(windowingRCL.size());
@@ -657,7 +744,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 			/*
 			** Add a reference to this column in the windowing RCL.
 			*/
-            tmpRC = createColumnReferenceWrapInResultColumn(newRC, "##CR -> ", getNodeFactory(),
+            tmpRC = createColumnReferenceWrapInResultColumn(newRC, getNodeFactory(),
                                                             getContextManager(), this.getLevel());
             windowingRCL.addElement(tmpRC);
             tmpRC.setVirtualColumnId(windowingRCL.size());
@@ -1029,14 +1116,13 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      * the one passed in.
      *
      * @param targetRC the source
-     * @param namePrefix a name prefix so that the new RC can be distinguished.
      * @param nodeFactory for creating nodes
      * @param contextManager for creating nodes
      * @param nodeLevel the level we're at in the tree    @return the new result column
      * @throws StandardException on error
      */
     public static ResultColumn createColumnReferenceWrapInResultColumn(ResultColumn targetRC,
-                                                                       String namePrefix, NodeFactory nodeFactory,
+                                                                       NodeFactory nodeFactory,
                                                                        ContextManager contextManager,
                                                                        int nodeLevel)
         throws StandardException {
@@ -1044,7 +1130,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         // create the CR using targetRC as the source and source name
         ColumnReference tmpColumnRef = (ColumnReference) nodeFactory.getNode(
             C_NodeTypes.COLUMN_REFERENCE,
-            namePrefix + targetRC.getName(),
+            targetRC.getName(),
             null,
             contextManager);
         tmpColumnRef.setSource(targetRC);
@@ -1054,7 +1140,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         // create the RC, wrap the CR
         ResultColumn newRC = (ResultColumn) nodeFactory.getNode(
             C_NodeTypes.RESULT_COLUMN,
-            "##RC -> "+tmpColumnRef.getColumnName(),
+            tmpColumnRef.getColumnName(),
             tmpColumnRef,
             contextManager);
         newRC.markGenerated();

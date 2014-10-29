@@ -64,12 +64,42 @@ public class WindowColumnMapping {
         return missingKeys;
     }
 
-    public static void replaceColumnExpression(OrderedColumn keyCol, ValueNode vn,
+    /**
+     * Determine if an operand column is not present in either the children of the
+     * <code>parentRefs</code> or in the <code>keyColumns</code>.
+     * @param expression the column expression for which we're searching.
+     * @param parentRefs the parent result set columns that might be carrying references
+     *                   to operand columns.
+     * @param keyColumns the de-duplicated partition and over by columns (the key columns)
+     *                   in the window over() clause.
+     * @return <code>true</code> if the given <code>expression</code> is not present in
+     * either <code>parentRefs</code> or <code>keyColumns</code>.
+     */
+    public static boolean operandMissing(ValueNode expression, List<ParentRef> parentRefs,
+                                         List<OrderedColumn> keyColumns) {
+        Set<ValueNode> referencedNodes = collectChildExpressions(parentRefs);
+        for (OrderedColumn oc : keyColumns) {
+            // TODO: this will not find RC->CR-RC->... columns. We don't search for these presently.
+            referencedNodes.add(oc.getColumnExpression());
+        }
+        return ! referencedNodes.contains(expression);
+    }
+
+    /**
+     * Find <code>keyCol</code> in <code>overColumns</code> and replace its expression
+     * with the given expression.
+     * @param keyCol the column for which we want to replace its expression.
+     * @param expression the expression we want to use for replacement.
+     * @param overColumns the window function definition's over() clause columns
+     *                   (partition and over by clauses).
+     * @throws StandardException
+     */
+    public static void replaceColumnExpression(OrderedColumn keyCol, ValueNode expression,
                                                List<OrderedColumn> overColumns) throws StandardException {
         List<OrderedColumn> keys = findMatchingKeys(keyCol, overColumns);
         assert ! keys.isEmpty(): "No matching key col for "+keyCol;
         for (OrderedColumn key : keys) {
-            key.init(vn);
+            key.init(expression);
         }
     }
 
@@ -102,7 +132,7 @@ public class WindowColumnMapping {
      *               projecting in a different column.
      * @param overColumns the window definition's over() clause columns (all). All matching
      *                   column instances will have their column positions reset.
-     * @param columnPosition the new key columns position in the projection.
+     * @param columnPosition the new key column position in the projection.
      * @throws StandardException
      */
     public static void resetOverColumnsPositionByKey(OrderedColumn keyCol, List<OrderedColumn> overColumns,
@@ -112,6 +142,26 @@ public class WindowColumnMapping {
         assert ! keys.isEmpty(): "No matching key col for "+keyCol;
         for (OrderedColumn key : keys) {
             resetColumnPosition(key, columnPosition);
+        }
+    }
+
+    /**
+     * Reset the column position of the <code>operand</code> and synchronize any matching
+     * <code>operands</code> during projection of the WindowResultSetNode.
+     * @param operand a function operand column reference to a parent column reference which we are
+     *               projecting in a different column.
+     * @param operands the window definition's operand columns (all). All matching
+     *                   column instances will have their column positions reset.
+     * @param columnPosition the new column position in the projection.
+     * @throws StandardException
+     */
+    public static void resetOverColumnsPositionByKey(ValueNode operand, ValueNode[] operands,
+                                                     int columnPosition) throws StandardException {
+        resetColumnPosition(operand, columnPosition);
+        List<ValueNode> missingOperands = findMatchingKeys(operand, operands);
+        assert ! missingOperands.isEmpty(): "No matching operands col for "+operand;
+        for (ValueNode missingOperand : missingOperands) {
+            resetColumnPosition(missingOperand, columnPosition);
         }
     }
 
@@ -149,6 +199,14 @@ public class WindowColumnMapping {
         return parentReferencedOCs;
     }
 
+    private static Set<ValueNode> collectChildExpressions(List<ParentRef> parentRefs) {
+        Set<ValueNode> parentReferencedOCs = new LinkedHashSet<ValueNode>(parentRefs.size());
+        for (ParentRef pr : parentRefs) {
+            parentReferencedOCs.addAll(pr.getChildExpressions());
+        }
+        return parentReferencedOCs;
+    }
+
     private static List<OrderedColumn> findMatchingKeys(OrderedColumn child, List<OrderedColumn> keyColumns) {
         List<OrderedColumn> canContainDuplicates = new ArrayList<OrderedColumn>(keyColumns.size());
         for (OrderedColumn oc : keyColumns) {
@@ -171,8 +229,22 @@ public class WindowColumnMapping {
         return canContainDuplicates;
     }
 
+    private static List<ValueNode> findMatchingKeys(ValueNode child, ValueNode[] keyColumns) {
+        List<ValueNode> canContainDuplicates = new ArrayList<ValueNode>(keyColumns.length);
+        for (ValueNode oc : keyColumns) {
+            if (child.equals(oc)) {
+                canContainDuplicates.add(oc);
+            }
+        }
+        return canContainDuplicates;
+    }
+
     private static void resetColumnPosition(OrderedColumn column, int columnPosition) {
-        ValueNode node = column.getColumnExpression();
+        resetColumnPosition(column.getColumnExpression(), columnPosition);
+        column.setColumnPosition(columnPosition);
+    }
+
+    private static void resetColumnPosition(ValueNode node, int columnPosition) {
         if (node instanceof ColumnReference) {
             ((ColumnReference) node).setColumnNumber(columnPosition);
         } else if (node instanceof VirtualColumnNode) {
@@ -182,7 +254,6 @@ public class WindowColumnMapping {
                 rc.setVirtualColumnId(columnPosition);
             }
         }
-        column.setColumnPosition(columnPosition);
     }
 
     /**
@@ -233,6 +304,14 @@ public class WindowColumnMapping {
             children = new ArrayList<OrderedColumn>(10);
             this.col = col;
             this.ref = col.getExpression();
+        }
+
+        public List<ValueNode> getChildExpressions() {
+            List<ValueNode> childrenExps = new ArrayList<ValueNode>(10);
+            for (OrderedColumn oc : children) {
+                childrenExps.add(oc.getColumnExpression());
+            }
+            return childrenExps;
         }
     }
 }
