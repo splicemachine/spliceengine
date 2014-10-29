@@ -4819,9 +4819,9 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 			}
 		}
 
-		CollectNodesVisitor visitor = new CollectNodesVisitor(ColumnReference.class);
+		CollectNodesVisitor<ColumnReference> visitor = CollectNodesVisitor.newVisitor(ColumnReference.class);
 		actionStmt.accept(visitor);
-		Vector refs = visitor.getList();
+		List<ColumnReference> refs = visitor.getList();
 		/* we need to sort on position in string, beetle 4324
 		 */
 		Collections.sort(refs, OFFSET_COMPARATOR);

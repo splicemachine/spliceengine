@@ -21,16 +21,14 @@
 
 package	org.apache.derby.impl.sql.compile;
 
-import org.apache.commons.lang.builder.HashCodeBuilder;
-import org.apache.derby.iapi.sql.compile.C_NodeTypes;
-import org.apache.derby.iapi.sql.compile.NodeFactory;
-import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
-import org.apache.derby.impl.sql.compile.ExpressionClassBuilder;
 import org.apache.derby.iapi.services.compiler.MethodBuilder;
 import org.apache.derby.iapi.services.sanity.SanityManager;
+import org.apache.derby.iapi.sql.compile.C_NodeTypes;
+import org.apache.derby.iapi.sql.compile.NodeFactory;
 import org.apache.derby.iapi.store.access.Qualifier;
+import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.util.JBitSet;
 
 import java.util.Collections;
@@ -1203,15 +1201,27 @@ public class ColumnReference extends ValueNode
 		return (tableNumber == other.tableNumber 
 				&& columnName.equals(other.getColumnName()));
 	}
-	
-	public int hashCode(){
-		
-		HashCodeBuilder hcBuilder = new HashCodeBuilder(33, 197);
-		hcBuilder.append(tableNumber)
-				.append(columnName);
-		
-		return hcBuilder.toHashCode();
-	}
+
+    @Override
+    public int hashCode() {
+        int result = columnName.hashCode();
+        result = 31 * result + tableNumber;
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+
+        ColumnReference that = (ColumnReference) o;
+
+        if (tableNumber != that.tableNumber) return false;
+        if (!columnName.equals(that.columnName)) return false;
+
+        return true;
+    }
 
     /**
 	 * Mark this column reference as "scoped", which means that it

@@ -22,12 +22,7 @@
 
 package	org.apache.derby.impl.sql.compile;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Vector;
+import java.util.*;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.Limits;
@@ -91,7 +86,7 @@ public class SelectNode extends ResultSetNode
 	/**
 	 * List of window function calls (e.g. ROW_NUMBER, AVG(i), DENSE_RANK).
 	 */
-	private Vector windowFuncCalls;
+	private List<WindowFunctionNode> windowFuncCalls;
 
 	/** User specified a group by without aggregates and we turned 
 	 * it into a select distinct 
@@ -192,15 +187,14 @@ public class SelectNode extends ResultSetNode
             // any inside nested SELECTs) used in result columns, and
             // check them for any <in-line window specification>s.
 
-			CollectNodesVisitor cnvw =
-                new CollectNodesVisitor(WindowFunctionNode.class,
+			CollectNodesVisitor<WindowFunctionNode> cnvw =
+                new CollectNodesVisitor<WindowFunctionNode>(WindowFunctionNode.class,
                                         SelectNode.class);
 			resultColumns.accept(cnvw);
 			windowFuncCalls = cnvw.getList();
 
 			for (int i=0; i < windowFuncCalls.size(); i++) {
-				WindowFunctionNode wfn =
-					(WindowFunctionNode)windowFuncCalls.elementAt(i);
+				WindowFunctionNode wfn = windowFuncCalls.get(i);
 
 				// Some window function, e.g. ROW_NUMBER() contains an inline
 				// window specification, so we add it to our list of window
@@ -866,11 +860,10 @@ public class SelectNode extends ResultSetNode
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public void verifySelectStarSubquery(FromList outerFromList, int subqueryType) 
-					throws StandardException
-	{
+  @Override
+	public void verifySelectStarSubquery(FromList outerFromList, SubqueryNode.Type subqueryType)  throws StandardException {
         for (int i = 0; i < resultColumns.size(); i++) {
-            if (!((ResultColumn)resultColumns.elementAt(i)
+            if (!(resultColumns.elementAt(i)
                      instanceof AllResultColumn) ) {
                 continue;
             }
@@ -878,18 +871,15 @@ public class SelectNode extends ResultSetNode
             /* Select * currently only valid for EXISTS/NOT EXISTS.  NOT EXISTS
              * does not appear prior to preprocessing.
              */
-            if (subqueryType != SubqueryNode.EXISTS_SUBQUERY) {
-                throw StandardException.newException(
-                    SQLState.LANG_CANT_SELECT_STAR_SUBQUERY);
+            if (subqueryType != SubqueryNode.Type.EXISTS) {
+                throw StandardException.newException(SQLState.LANG_CANT_SELECT_STAR_SUBQUERY);
             }
 
             /* If the AllResultColumn is qualified, then we have to verify that
              * the qualification is a valid exposed name.  NOTE: The exposed
              * name can come from an outer query block.
              */
-            String fullTableName =
-                ((AllResultColumn)resultColumns.elementAt(i)).
-                getFullTableName();
+            String fullTableName = ((AllResultColumn)resultColumns.elementAt(i)). getFullTableName();
 
             if (fullTableName != null) {
                 if (fromList.getFromTableByName
@@ -1270,14 +1260,12 @@ public class SelectNode extends ResultSetNode
 			// Collect window function calls and in-lined window definitions
 			// contained in them from the orderByList.
 
-			CollectNodesVisitor cnvw =
-				new CollectNodesVisitor(WindowFunctionNode.class);
+			CollectNodesVisitor<WindowFunctionNode> cnvw = CollectNodesVisitor.newVisitor(WindowFunctionNode.class);
 			orderByList.accept(cnvw);
-			Vector wfcInOrderBy = cnvw.getList();
+			List<WindowFunctionNode> wfcInOrderBy = cnvw.getList();
 
 			for (int i=0; i < wfcInOrderBy.size(); i++) {
-				WindowFunctionNode wfn =
-					(WindowFunctionNode)wfcInOrderBy.elementAt(i);
+				WindowFunctionNode wfn = wfcInOrderBy.get(i);
 				windowFuncCalls.add(wfn);
 
 
@@ -2639,7 +2627,7 @@ public class SelectNode extends ResultSetNode
      * @param functions the given functions to batch.
      * @return the mapping {windowDefinition} -> {funct1,[funct2,...]}
      */
-    private static Map<WindowNode,Collection<WindowFunctionNode>> collectFunctionsForDefinitions(Vector functions) {
+    private static Map<WindowNode,Collection<WindowFunctionNode>> collectFunctionsForDefinitions(List<WindowFunctionNode> functions) {
         // maintaining insertion order of keys (same as vector order)
         Map<WindowNode,Collection<WindowFunctionNode>> map = new LinkedHashMap<WindowNode,Collection<WindowFunctionNode>>();
         for (Object node : functions) {

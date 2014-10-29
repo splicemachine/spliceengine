@@ -1074,33 +1074,34 @@ public class FromList extends QueryTreeNodeVector implements OptimizableList
 		}
 	}
 
-	/**
-	 * Decrement (query block) level (0-based) for
-	 * all of the tables in this from list.
-	 * This is useful when flattening a subquery.
-	 *
-	 * @param decrement	The amount to decrement by.
-	 */
-	void decrementLevel(int decrement)
-	{
-		int size = size();
-		for (int index = 0; index < size; index++)
-		{
-			FromTable fromTable = (FromTable) elementAt(index);
-			fromTable.decrementLevel(decrement);
-
+    /**
+     * Decrement (query block) level (0-based) for
+     * all of the tables in this from list.
+     * This is useful when flattening a subquery.
+     *
+     * @param decrement	The amount to decrement by.
+     */
+    void decrementLevel(int decrement) {
+        int size = size();
+        for (int index = 0; index < size; index++) {
+            QueryTreeNode qtn = elementAt(index);
+            if(qtn instanceof FromTable){
+                FromTable fromTable = (FromTable) elementAt(index);
+                fromTable.decrementLevel(decrement);
 			/* Decrement the level of any CRs in single table
 			 * predicates that are interesting to transitive
 			 * closure.
 			 */
-			ProjectRestrictNode prn = (ProjectRestrictNode) fromTable;
-			PredicateList pl = prn.getRestrictionList();
-			if (pl != null)
-			{
-				pl.decrementLevel(this, decrement);
-			}
-		}
-	}
+                if(fromTable instanceof ProjectRestrictNode){
+                    ProjectRestrictNode prn = (ProjectRestrictNode) fromTable;
+                    PredicateList pl = prn.getRestrictionList();
+                    if (pl != null) {
+                        pl.decrementLevel(this, decrement);
+                    }
+                }
+            }
+        }
+    }
 
 
 	/**
@@ -1431,19 +1432,19 @@ public class FromList extends QueryTreeNodeVector implements OptimizableList
 		return satisfiesOuter;
 	}
 
-	int[] getTableNumbers()
-	{
+	int[] getTableNumbers() {
 		int size = size();
 		int[] tableNumbers = new int[size];
-		for (int index = 0; index < size; index++)
-		{
-			ProjectRestrictNode prn = (ProjectRestrictNode) elementAt(index);
-			if (! (prn.getChildResult() instanceof FromTable))
-			{
-				continue;
-			}
-			FromTable ft = (FromTable) prn.getChildResult();
-			tableNumbers[index] = ft.getTableNumber();
+		for (int index = 0; index < size; index++) {
+        QueryTreeNode qtn = elementAt(index);
+        if(qtn instanceof ProjectRestrictNode){
+            ProjectRestrictNode prn = (ProjectRestrictNode) qtn;
+            if (! (prn.getChildResult() instanceof FromTable)) {
+                continue;
+            }
+            FromTable ft = (FromTable) prn.getChildResult();
+            tableNumbers[index] = ft.getTableNumber();
+        }
 		}
 
 		return tableNumbers;
@@ -1478,13 +1479,8 @@ public class FromList extends QueryTreeNodeVector implements OptimizableList
 
 		/* Create the dependency map */
 		int size = size();
-		for (int index = 0; index < size; index++)
-		{
-			ResultSetNode ft = ((ProjectRestrictNode) elementAt(index)).getChildResult();
-			if (ft instanceof FromTable)
-			{
-				dependencyMap.clear(((FromTable) ft).getTableNumber());
-			}
+		for (int index = 0; index < size; index++) {
+        clearDependencies(dependencyMap, elementAt(index));
 		}
 
 		/* Degenerate case - If flattening a non-correlated EXISTS subquery
@@ -1496,30 +1492,44 @@ public class FromList extends QueryTreeNodeVector implements OptimizableList
 		 * returned.  If the exists table is on the left, we can return all the
 		 * qualified rows. 
 		 */
-		if (dependencyMap.getFirstSetBit() == -1)
-		{
+		if (dependencyMap.getFirstSetBit() == -1) {
 			int outerSize = outerFromList.size();
 			for (int outer = 0; outer < outerSize; outer++)
 				dependencyMap.or(((FromTable) outerFromList.elementAt(outer)).getReferencedTableMap());
 		}
 
 		/* Do the marking */
-		for (int index = 0; index < size; index++)
-		{
-			FromTable fromTable = (FromTable) elementAt(index);
-			if (fromTable instanceof ProjectRestrictNode)
-			{
-				ProjectRestrictNode prn = (ProjectRestrictNode) fromTable;
-				if (prn.getChildResult() instanceof FromBaseTable)
-				{
-					FromBaseTable fbt = (FromBaseTable) prn.getChildResult();
-					fbt.setExistsBaseTable(true, (JBitSet) dependencyMap.clone(), isNotExists);
-				}
-			}
-		}
+      for (int index = 0; index < size; index++) {
+          ResultSetNode fromTable = (ResultSetNode) elementAt(index);
+          setExistsBaseTable(isNotExists, dependencyMap, fromTable);
+      }
 	}
 
-	/**
+    private void setExistsBaseTable(boolean isNotExists, JBitSet dependencyMap, ResultSetNode fromTable) throws StandardException {
+        if(fromTable instanceof FromBaseTable)
+            ((FromBaseTable)fromTable).setExistsBaseTable(true, (JBitSet) dependencyMap.clone(), isNotExists);
+        else if (fromTable instanceof ProjectRestrictNode) {
+            ProjectRestrictNode prn = (ProjectRestrictNode) fromTable;
+            setExistsBaseTable(isNotExists, dependencyMap, prn.getChildResult());
+        }else if (fromTable instanceof UnionNode){
+            ((UnionNode)fromTable).setExistsBaseTable(true,isNotExists);
+        }
+    }
+
+    private void clearDependencies(JBitSet dependencyMap, QueryTreeNode rsn) {
+        if(rsn==null) return;
+        if(rsn instanceof FromTable)
+            dependencyMap.clear(((FromTable) rsn).getTableNumber());
+
+        if(rsn instanceof ProjectRestrictNode)
+            clearDependencies(dependencyMap, ((ProjectRestrictNode) rsn).getChildResult());
+        else if(rsn instanceof UnionNode){
+            clearDependencies(dependencyMap, ((UnionNode)rsn).getLeftResultSet());
+            clearDependencies(dependencyMap, ((UnionNode)rsn).getRightResultSet());
+        }
+    }
+
+    /**
 	 * determine whether this table is NOT EXISTS.
 	 *
 	 * This routine searches for the indicated table number in the fromlist

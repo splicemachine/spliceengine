@@ -1832,9 +1832,9 @@ class AlterTableConstantAction extends DDLSingleTableConstantAction
 		
 		try {
 			// We are interested in ColumnReference classes in the parse tree
-			CollectNodesVisitor visitor = new CollectNodesVisitor(ColumnReference.class);
-			stmtnode.accept(visitor);
-			Vector refs = visitor.getList();
+//			CollectNodesVisitor<ColumnReference> visitor = CollectNodesVisitor.newVisitor(ColumnReference.class);
+//			stmtnode.accept(visitor);
+//			List<ColumnReference> refs = visitor.getList();
 			
 			// Regenerate the internal representation for the trigger action 
 			// sql using the ColumnReference classes in the parse tree. It

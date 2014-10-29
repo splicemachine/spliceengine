@@ -99,7 +99,7 @@ public class VerifyAggregateExpressionsVisitor implements Visitor
 		{
 			SubqueryNode subq = (SubqueryNode)node;
 		
-			if ((subq.getSubqueryType() != SubqueryNode.EXPRESSION_SUBQUERY) ||
+			if ((subq.getSubqueryType() != SubqueryNode.Type.EXPRESSION) ||
 				 subq.hasCorrelatedCRs())
 			{
 				throw StandardException.newException( (groupByList == null) ?

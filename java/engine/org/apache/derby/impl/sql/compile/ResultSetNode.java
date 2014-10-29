@@ -336,9 +336,7 @@ public abstract class ResultSetNode extends QueryTreeNode {
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public void verifySelectStarSubquery(FromList outerFromList, int subqueryType)
-					throws StandardException
-{
+	public void verifySelectStarSubquery(FromList outerFromList, SubqueryNode.Type subqueryType) throws StandardException {
 		if (SanityManager.DEBUG)
 		SanityManager.ASSERT(false, 
 					"verifySelectStarSubquery() is not expected to be called for " + 
@@ -1204,16 +1202,10 @@ public abstract class ResultSetNode extends QueryTreeNode {
 	  *
 	  * @exception StandardException		Thrown on failure
 	  */
-	public	ValueNode	parseDefault
-	(
-		String				defaultText
-    )
-		throws StandardException
-	{
+	public	ValueNode	parseDefault(String defaultText) throws StandardException {
 		Parser						p;
 		ValueNode					defaultTree;
 		LanguageConnectionContext	lcc = getLanguageConnectionContext();
-		CompilerContext 			compilerContext = getCompilerContext();
 
 		/* Get a Statement to pass to the parser */
 
@@ -1268,11 +1260,8 @@ public abstract class ResultSetNode extends QueryTreeNode {
 	 *
 	 * @return	A ResultDescription for this ResultSetNode.
 	 */
-
-	public ResultDescription makeResultDescription()
-	{
+	public ResultDescription makeResultDescription() {
 	    ResultColumnDescriptor[] colDescs = makeResultDescriptors();
-
 	    return getExecutionFactory().getResultDescription(colDescs, null);
 	}
 
@@ -1283,10 +1272,9 @@ public abstract class ResultSetNode extends QueryTreeNode {
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	boolean isUpdatableCursor(DataDictionary dd) throws StandardException
-	{
+	boolean isUpdatableCursor(DataDictionary dd) throws StandardException {
 		if (SanityManager.DEBUG)
-		SanityManager.DEBUG("DumpUpdateCheck","cursor is not a select result set");
+        SanityManager.DEBUG("DumpUpdateCheck","cursor is not a select result set");
 		return false;
 	}
 
@@ -1294,8 +1282,7 @@ public abstract class ResultSetNode extends QueryTreeNode {
 		return the target table of an updatable cursor result set.
 		since this is not updatable, just return null.
 	 */
-	FromTable getCursorTargetTable()
-	{
+	FromTable getCursorTargetTable() {
 		return null;
 	}
 
@@ -1304,8 +1291,7 @@ public abstract class ResultSetNode extends QueryTreeNode {
 		cursor.  Most types of ResultSetNode can't be target tables.
 		@return true if the target table supports positioned updates.
 	 */
-	public boolean markAsCursorTargetTable()
-	{
+	public boolean markAsCursorTargetTable() {
 		return false;
 	}
 
@@ -1313,8 +1299,7 @@ public abstract class ResultSetNode extends QueryTreeNode {
 		Mark this ResultSetNode as *not* the target table of an updatable
 		cursor.
 	 */
-	void notCursorTargetTable()
-	{
+	void notCursorTargetTable() {
 		cursorTargetTable = false;
 	}
 
@@ -1340,9 +1325,7 @@ public abstract class ResultSetNode extends QueryTreeNode {
 	 * @exception StandardException		Thrown on error
 	 */
 
-	public ResultSetNode genProjectRestrict()
-				throws StandardException
-	{
+	public ResultSetNode genProjectRestrict() throws StandardException {
 		/* We get a shallow copy of the ResultColumnList and its 
 		 * ResultColumns.  (Copy maintains ResultColumn.expression for now.)
 		 */
@@ -1391,9 +1374,7 @@ public abstract class ResultSetNode extends QueryTreeNode {
 	 * @exception StandardException		Thrown on error
 	 */
 
-	protected ResultSetNode genProjectRestrict(int numTables)
-				throws StandardException
-	{
+	protected ResultSetNode genProjectRestrict(int numTables) throws StandardException {
 		return genProjectRestrict();
 	}
 
@@ -1420,8 +1401,7 @@ public abstract class ResultSetNode extends QueryTreeNode {
 						MethodBuilder mb, 
 						int resultSetNumber,
 						ResultDescription resultDescription)
-			throws StandardException
-	{
+			throws StandardException {
 		int erdNumber = acb.addItem(resultDescription);
 
 		// instance and first arg are pushed by caller
@@ -1432,7 +1412,7 @@ public abstract class ResultSetNode extends QueryTreeNode {
 		mb.push(getCostEstimate().getEstimatedCost());
 		mb.push(false);
 
-		mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getNormalizeResultSet",
+		mb.callMethod(VMOpcode.INVOKEINTERFACE, null, "getNormalizeResultSet",
 					ClassName.NoPutResultSet, 6);
 	}
 
@@ -1451,8 +1431,7 @@ public abstract class ResultSetNode extends QueryTreeNode {
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public ResultSetNode changeAccessPath() throws StandardException
-	{
+	public ResultSetNode changeAccessPath() throws StandardException {
 		return this;
 	}
 
@@ -1466,9 +1445,7 @@ public abstract class ResultSetNode extends QueryTreeNode {
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public boolean referencesTarget(String name, boolean baseTable)
-		throws StandardException
-	{
+	public boolean referencesTarget(String name, boolean baseTable) throws StandardException {
 		return false;
 	}
 
@@ -1482,9 +1459,7 @@ public abstract class ResultSetNode extends QueryTreeNode {
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	boolean subqueryReferencesTarget(String name, boolean baseTable)
-		throws StandardException
-	{
+	boolean subqueryReferencesTarget(String name, boolean baseTable) throws StandardException {
 		return false;
 	}
 
@@ -1497,20 +1472,18 @@ public abstract class ResultSetNode extends QueryTreeNode {
 	 * @return Whether or not the underlying ResultSet tree will return a single row.
 	 * @exception StandardException		Thrown on error
 	 */
-	public boolean isOneRowResultSet()	throws StandardException
-	{
+	public boolean isOneRowResultSet()	throws StandardException {
 		// Default is false
 		return false;
 	}
 
-	/**
+    /**
 	 * Return whether or not the underlying ResultSet tree is for a NOT EXISTS
 	 * join.
 	 *
 	 * @return Whether or not the underlying ResultSet tree if for NOT EXISTS.
 	 */
-	public boolean isNotExists()
-	{
+	public boolean isNotExists() {
 		// Default is false
 		return false;
 	}
@@ -1526,10 +1499,8 @@ public abstract class ResultSetNode extends QueryTreeNode {
 							OptimizablePredicateList predList,
 							DataDictionary dataDictionary,
 							RequiredRowOrdering requiredRowOrdering)
-			throws StandardException
-	{
-		if (optimizer == null)
-		{
+			throws StandardException {
+		if (optimizer == null) {
 			/* Get an optimizer. */
 			OptimizerFactory optimizerFactory = getLanguageConnectionContext().getOptimizerFactory();
 

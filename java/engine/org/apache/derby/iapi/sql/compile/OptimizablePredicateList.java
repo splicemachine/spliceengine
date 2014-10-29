@@ -34,8 +34,7 @@ import org.apache.derby.iapi.util.JBitSet;
  * RESOLVE - the methods for this interface need to get defined.
  */
 
-public interface OptimizablePredicateList 
-{
+public interface OptimizablePredicateList  {
 	/**
 	 *  Return the number of OptimizablePredicates in the list.
 	 *
@@ -78,8 +77,7 @@ public interface OptimizablePredicateList
 	 * @return	true if this predicate list can limit the scan
 	 * @exception StandardException		Thrown on error
 	 */
-	boolean useful(Optimizable optTable, ConglomerateDescriptor cd)
-		throws StandardException;
+	boolean useful(Optimizable optTable, ConglomerateDescriptor cd) throws StandardException;
 
 	/**
 	 * Determine which predicates in this list are useful for limiting
@@ -95,8 +93,7 @@ public interface OptimizablePredicateList
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	void pushUsefulPredicates(Optimizable optTable)
-				throws StandardException;
+	void pushUsefulPredicates(Optimizable optTable) throws StandardException;
 
 	/**
 	 * Classify the predicates in this list according to the given
@@ -112,8 +109,7 @@ public interface OptimizablePredicateList
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	void classify(Optimizable optTable, ConglomerateDescriptor cd)
-				throws StandardException;
+	void classify(Optimizable optTable, ConglomerateDescriptor cd) throws StandardException;
 
 	/**
 	 * Mark all of the predicates as Qualifiers and set the numberOfQualifiers
@@ -136,9 +132,8 @@ public interface OptimizablePredicateList
 	 * @throws StandardException
 	 */
 	public int hasEqualityPredicateOnOrderedColumn(Optimizable optTable,
-			  int columnNumber,
-			  boolean isNullOkay)
-	throws StandardException;
+                                                 int columnNumber,
+                                                 boolean isNullOkay) throws StandardException;
 
 	/**
 	 * Is there an optimizable equality predicate on the specified column?
@@ -153,9 +148,8 @@ public interface OptimizablePredicateList
 	 * @exception StandardException		Thrown on error
 	 */
 	boolean hasOptimizableEqualityPredicate(Optimizable optTable,
-											int columnNumber,
-											boolean isNullOkay)
-								throws StandardException;
+                                          int columnNumber,
+                                          boolean isNullOkay) throws StandardException;
 
 	/**
 	 * Is there an optimizable equijoin on the specified column?
@@ -167,9 +161,7 @@ public interface OptimizablePredicateList
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	boolean hasOptimizableEquijoin(Optimizable optTable,
-									int columnNumber)
-							throws StandardException;
+	boolean hasOptimizableEquijoin(Optimizable optTable, int columnNumber) throws StandardException;
 									
 
 	/**
@@ -182,9 +174,7 @@ public interface OptimizablePredicateList
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	void putOptimizableEqualityPredicateFirst(Optimizable optTable,
-												int columnNumber)
-								throws StandardException;
+	void putOptimizableEqualityPredicateFirst(Optimizable optTable, int columnNumber) throws StandardException;
 
 	/**
 	 * Transfer the predicates whose referenced set is contained by the
@@ -200,18 +190,15 @@ public interface OptimizablePredicateList
 	 * @exception StandardException		Thrown on error
 	 */
 	public void transferPredicates(OptimizablePredicateList otherList,
-									JBitSet referencedTableMap,
-									Optimizable table)
-		throws StandardException;
-
+                                 JBitSet referencedTableMap,
+                                 Optimizable table) throws StandardException;
 
 	/**
 	 * Transfer all the predicates from this list to the given list.
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public void transferAllPredicates(OptimizablePredicateList otherList)
-		throws StandardException;
+	public void transferAllPredicates(OptimizablePredicateList otherList) throws StandardException;
 
 	/**
 	 * Non-destructive copy of all of the predicates from this list to the
@@ -224,8 +211,7 @@ public interface OptimizablePredicateList
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public void copyPredicatesToOtherList(OptimizablePredicateList otherList)
-		throws StandardException;
+	public void copyPredicatesToOtherList(OptimizablePredicateList otherList) throws StandardException;
 
 	/**
 	 * Sets the given list to have the same elements as this one, and
@@ -236,8 +222,7 @@ public interface OptimizablePredicateList
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public void setPredicatesAndProperties(OptimizablePredicateList otherList)
-		throws StandardException;
+	public void setPredicatesAndProperties(OptimizablePredicateList otherList) throws StandardException;
 
 	/**
 	 * Return whether or not the specified entry in the list is a redundant
@@ -283,10 +268,9 @@ public interface OptimizablePredicateList
 	 * @exception StandardException		Thrown on error
 	 */
 	void generateQualifiers(ExpressionClassBuilderInterface acb,
-									MethodBuilder mb,
-									Optimizable optTable,
-									boolean absolute)
-							throws StandardException;
+                          MethodBuilder mb,
+                          Optimizable optTable,
+                          boolean absolute) throws StandardException;
 
 	/**
 	 * Generate the start key for a heap or index scan.
@@ -298,9 +282,8 @@ public interface OptimizablePredicateList
 	 * @exception StandardException		Thrown on error
 	 */
 	void generateStartKey(ExpressionClassBuilderInterface acb,
-								MethodBuilder mb,
-								Optimizable optTable)
-				throws StandardException;
+                        MethodBuilder mb,
+                        Optimizable optTable) throws StandardException;
 
 	/**
 	 * Generate the stop key for a heap or index scan.
@@ -311,10 +294,9 @@ public interface OptimizablePredicateList
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	void generateStopKey(ExpressionClassBuilderInterface acb,
-								MethodBuilder mb,
-								Optimizable optTable)
-				throws StandardException;
+  void generateStopKey(ExpressionClassBuilderInterface acb,
+                       MethodBuilder mb,
+                       Optimizable optTable) throws StandardException;
 
 	/**
 	 * Can we use the same key for both the start and stop key.
@@ -325,8 +307,7 @@ public interface OptimizablePredicateList
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public boolean sameStartStopPosition()
-				throws StandardException;
+	public boolean sameStartStopPosition() throws StandardException;
 	
 	/**
 	 * calculate the selectivity for a set of predicates. 
@@ -343,7 +324,5 @@ public interface OptimizablePredicateList
 	 * that are required to allow for proper handling of an ORDER BY
 	 * clause.
 	 */
-	public void adjustForSortElimination(RequiredRowOrdering ordering)
-		throws StandardException;
-
+	public void adjustForSortElimination(RequiredRowOrdering ordering) throws StandardException;
 }

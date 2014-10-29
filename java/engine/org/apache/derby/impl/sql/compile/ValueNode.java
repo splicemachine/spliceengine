@@ -954,9 +954,7 @@ public abstract class ValueNode extends QueryTreeNode
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	Object getConstantValueAsObject()
-		throws StandardException
-	{
+	Object getConstantValueAsObject() throws StandardException {
 		return null;
 	}
 

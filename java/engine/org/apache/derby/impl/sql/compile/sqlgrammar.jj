@@ -5732,9 +5732,8 @@ remainingNonNegatablePredicate(ValueNode leftOperand) throws StandardException :
 		LOOKAHEAD({(getToken(1).kind == ALL || getToken(1).kind == ANY || 
 			getToken(1).kind == SOME) && getToken(2).kind == LEFT_PAREN})
 		(
-			operator = quantifier(operator)
 			<LEFT_PAREN>
-			leftOperand = tableSubquery(operator, leftOperand)
+			leftOperand = tableSubquery(quantifier(operator), leftOperand)
 			<RIGHT_PAREN>
 		)
 		|
@@ -6975,7 +6974,7 @@ valueExpressionPrimary() throws StandardException :
 		// to be a subquery if it starts with SELECT or VALUES, which
 		// are the first tokens to come after the LEFT_PAREN in a subquery.
 		LOOKAHEAD( {getToken(1).kind == SELECT || getToken(1).kind == VALUES} )
-		value = subquery(SubqueryNode.EXPRESSION_SUBQUERY, null)
+		value = subquery(SubqueryNode.Type.EXPRESSION, null)
 		|
 		/*
 		** NOTE: The optional intervalQualfier() here makes sense only for
@@ -9036,7 +9035,7 @@ rowValueConstructorList(ResultColumnList resultColumns) throws StandardException
  * <A NAME="tableSubquery">tableSubquery</A>
  */
 SubqueryNode
-tableSubquery(int subqueryType, ValueNode leftOperand) throws StandardException :
+tableSubquery(SubqueryNode.Type subqueryType, ValueNode leftOperand) throws StandardException :
 {
 	SubqueryNode	subqueryNode;
 }
@@ -9048,11 +9047,12 @@ tableSubquery(int subqueryType, ValueNode leftOperand) throws StandardException 
 }
 
 
+
 /*
  * <A NAME="subquery">subquery</A>
  */
 SubqueryNode
-subquery(int subqueryType, ValueNode leftOperand) throws StandardException :
+subquery(SubqueryNode.Type subqueryType, ValueNode leftOperand) throws StandardException :
 {
 	ResultSetNode	queryExpression;
 	SubqueryNode	subqueryNode;
@@ -9068,7 +9068,7 @@ subquery(int subqueryType, ValueNode leftOperand) throws StandardException :
 		subqueryNode = (SubqueryNode) nodeFactory.getNode(
 										C_NodeTypes.SUBQUERY_NODE,
 										queryExpression, 
-										ReuseFactory.getInteger(subqueryType),
+										subqueryType,
 										leftOperand,
 										orderCols,
                                         offsetClauses[ OFFSET_CLAUSE ],
@@ -9097,7 +9097,7 @@ inPredicateValue(ValueNode leftOperand) throws StandardException :
 		// consider it a subquery if the first token that comes after
 		// all the LEFT_PARENS is either a SELECT or a VALUES.
 		LOOKAHEAD( { subqueryFollows() } )
-		retval = tableSubquery(SubqueryNode.IN_SUBQUERY, leftOperand)
+		retval = tableSubquery(SubqueryNode.Type.IN, leftOperand)
 	|
 		retval = inValueList(leftOperand)
 	)
@@ -9147,10 +9147,10 @@ inElement(ValueNodeList inList) throws StandardException :
 /*
  * <A NAME="quantifier">quantifier</A>
  */
-int
+SubqueryNode.Type
 quantifier(int opType) throws StandardException :
 {
-	int retval = 0;
+	SubqueryNode.Type retval = null;
 }
 {
 	<ALL> 
@@ -9158,27 +9158,27 @@ quantifier(int opType) throws StandardException :
 		switch (opType)
 		{
 			case BinaryOperatorNode.EQ:
-				retval = SubqueryNode.EQ_ALL_SUBQUERY;
+				retval = SubqueryNode.Type.EQ_ALL;
 				break;
 
 			case BinaryOperatorNode.NE:
-				retval = SubqueryNode.NE_ALL_SUBQUERY;
+				retval = SubqueryNode.Type.NE_ALL;
 				break;
 
 			case BinaryOperatorNode.LE:
-				retval = SubqueryNode.LE_ALL_SUBQUERY;
+				retval = SubqueryNode.Type.LE_ALL;
 				break;
 
 			case BinaryOperatorNode.LT:
-				retval = SubqueryNode.LT_ALL_SUBQUERY;
+				retval = SubqueryNode.Type.LT_ALL;
 				break;
 
 			case BinaryOperatorNode.GE:
-				retval = SubqueryNode.GE_ALL_SUBQUERY;
+				retval = SubqueryNode.Type.GE_ALL;
 				break;
 
 			case BinaryOperatorNode.GT:
-				retval = SubqueryNode.GT_ALL_SUBQUERY;
+				retval = SubqueryNode.Type.GT_ALL;
 				break;
 
 			default:
@@ -9195,27 +9195,27 @@ quantifier(int opType) throws StandardException :
 		switch (opType)
 		{
 			case BinaryOperatorNode.EQ:
-				retval = SubqueryNode.EQ_ANY_SUBQUERY;
+				retval = SubqueryNode.Type.EQ_ANY;
 				break;
 
 			case BinaryOperatorNode.NE:
-				retval = SubqueryNode.NE_ANY_SUBQUERY;
+				retval = SubqueryNode.Type.NE_ANY;
 				break;
 
 			case BinaryOperatorNode.LE:
-				retval = SubqueryNode.LE_ANY_SUBQUERY;
+				retval = SubqueryNode.Type.LE_ANY;
 				break;
 
 			case BinaryOperatorNode.LT:
-				retval = SubqueryNode.LT_ANY_SUBQUERY;
+				retval = SubqueryNode.Type.LT_ANY;
 				break;
 
 			case BinaryOperatorNode.GE:
-				retval = SubqueryNode.GE_ANY_SUBQUERY;
+				retval = SubqueryNode.Type.GE_ANY;
 				break;
 
 			case BinaryOperatorNode.GT:
-				retval = SubqueryNode.GT_ANY_SUBQUERY;
+				retval = SubqueryNode.Type.GT_ANY;
 				break;
 
 			default:
@@ -9249,7 +9249,7 @@ existsExpression() throws StandardException :
 }
 {
 	<EXISTS> <LEFT_PAREN>
-	subqueryNode = tableSubquery(SubqueryNode.EXISTS_SUBQUERY, null)
+	subqueryNode = tableSubquery(SubqueryNode.Type.EXISTS, null)
 	<RIGHT_PAREN>
 	{
 		return subqueryNode;
@@ -9665,7 +9665,7 @@ derivedTable() throws StandardException :
 }
 {
 	<LEFT_PAREN>
-	tableSubquery = tableSubquery(SubqueryNode.FROM_SUBQUERY, null)
+	tableSubquery = tableSubquery(SubqueryNode.Type.FROM, null)
 	<RIGHT_PAREN>
 	{
 		return tableSubquery;
@@ -10443,12 +10443,11 @@ groupingColumnReference(GroupByList groupingCols) throws StandardException :
         // inside the expression and mark them so that at bind() time
         // we can reject them if they turn out to be user-defined aggregates
         // rather than ordinary function calls.
-        CollectNodesVisitor  functionSniffer = new CollectNodesVisitor( StaticMethodCallNode.class );
-        columnExpression.accept( functionSniffer );
-        Vector    functionNodes = functionSniffer.getList();
-        for ( int i = 0; i < functionNodes.size(); i++ )
-        {
-            ((StaticMethodCallNode) functionNodes.elementAt( i )).setAppearsInGroupBy();
+        CollectNodesVisitor<StaticMethodCallNode> functionSniffer = CollectNodesVisitor.newVisitor(StaticMethodCallNode.class );
+        columnExpression.accept(functionSniffer);
+        List<StaticMethodCallNode> functionNodes = functionSniffer.getList();
+        for ( int i = 0; i < functionNodes.size(); i++ ) {
+            functionNodes.get(i).setAppearsInGroupBy();
         }
 		
 		if (columnExpression.isParameterNode()) 

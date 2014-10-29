@@ -652,164 +652,142 @@ public class ResultColumnList extends QueryTreeNodeVector
 		return retVal;
 	}
 
-	/**
-	 * Adjust virtualColumnId values due to result column removal
-	 *
-	 * This method is called when a duplicate column has been detected and
-	 * removed from the list. We iterate through each of the other columns
-	 * in the list and notify them of the column removal so they can adjust
-	 * their virtual column id if necessary.
-	 *
-	 * @param gap   id of the column which was just removed.
-	 */
-	private void collapseVirtualColumnIdGap(int gap)
-	{
-		for (int index = 0; index < size(); index++)
-			((ResultColumn) elementAt(index)).collapseVirtualColumnIdGap(gap);
-	}
+    /**
+     * Adjust virtualColumnId values due to result column removal
+     *
+     * This method is called when a duplicate column has been detected and
+     * removed from the list. We iterate through each of the other columns
+     * in the list and notify them of the column removal so they can adjust
+     * their virtual column id if necessary.
+     *
+     * @param gap   id of the column which was just removed.
+     */
+    private void collapseVirtualColumnIdGap(int gap)
+    {
+        for (int index = 0; index < size(); index++)
+            ((ResultColumn) elementAt(index)).collapseVirtualColumnIdGap(gap);
+    }
 
 
-	/**
-	 * For order by, get a ResultColumn that matches the specified 
-	 * columnName.
-	 *
-	 * This method is called during pull-up processing, at the very
-	 * start of bind processing, as part of
-	 * OrderByList.pullUpOrderByColumns. Its job is to figure out
-	 * whether the provided column (from the ORDER BY list) already
-	 * exists in the ResultColumnList or not. If the column does
-	 * not exist in the RCL, we return NULL, which signifies that
-	 * a new ResultColumn should be generated and added ("pulled up")
-	 * to the RCL by our caller.
-	 *
-	 * Note that at this point in the processing, we should never
-	 * find this column present in the RCL multiple times; if the
-	 * column is already present in the RCL, then we don't need to,
-	 * and won't, pull a new ResultColumn up into the RCL.
-	 *
-	 * If the caller specified "SELECT *", then the RCL at this
-	 * point contains a special AllResultColumn object. This object
-	 * will later be expanded and replaced by the actual set of
-	 * columns in the table, but at this point we don't know what
-	 * those columns are, so we may pull up an OrderByColumn
-	 * which duplicates a column in the *-expansion; such
-	 * duplicates will be removed at the end of bind processing
-	 * by OrderByList.bindOrderByColumns.
-	 *
-	 * @param columnName	The ResultColumn to get from the list
-	 * @param tableName	The table name on the OrderByColumn, if any
-	 *
-	 * @return	the column that matches that name, or NULL if pull-up needed
-	 * @exception StandardException thrown on ambiguity
-	 */
-	public ResultColumn findResultColumnForOrderBy(
-                            String columnName, TableName tableName)
-		throws StandardException
-	{
-		int				size = size();
-		ResultColumn	retVal = null, resultColumn;
+    /**
+     * For order by, get a ResultColumn that matches the specified
+     * columnName.
+     *
+     * This method is called during pull-up processing, at the very
+     * start of bind processing, as part of
+     * OrderByList.pullUpOrderByColumns. Its job is to figure out
+     * whether the provided column (from the ORDER BY list) already
+     * exists in the ResultColumnList or not. If the column does
+     * not exist in the RCL, we return NULL, which signifies that
+     * a new ResultColumn should be generated and added ("pulled up")
+     * to the RCL by our caller.
+     *
+     * Note that at this point in the processing, we should never
+     * find this column present in the RCL multiple times; if the
+     * column is already present in the RCL, then we don't need to,
+     * and won't, pull a new ResultColumn up into the RCL.
+     *
+     * If the caller specified "SELECT *", then the RCL at this
+     * point contains a special AllResultColumn object. This object
+     * will later be expanded and replaced by the actual set of
+     * columns in the table, but at this point we don't know what
+     * those columns are, so we may pull up an OrderByColumn
+     * which duplicates a column in the *-expansion; such
+     * duplicates will be removed at the end of bind processing
+     * by OrderByList.bindOrderByColumns.
+     *
+     * @param columnName	The ResultColumn to get from the list
+     * @param tableName	The table name on the OrderByColumn, if any
+     *
+     * @return	the column that matches that name, or NULL if pull-up needed
+     * @exception StandardException thrown on ambiguity
+     */
+    public ResultColumn findResultColumnForOrderBy( String columnName, TableName tableName) throws StandardException {
+        int	size = size();
+        ResultColumn	retVal = null, resultColumn;
+        for (int index = 0; index < size; index++) {
+            resultColumn = (ResultColumn) elementAt(index);
 
-		for (int index = 0; index < size; index++)
-		{
-			resultColumn = (ResultColumn) elementAt(index);
-
-			// We may be checking on "ORDER BY T.A" against "SELECT *".
-			// exposedName will not be null and "*" will not have an expression
-			// or tablename.
-			// We may be checking on "ORDER BY T.A" against "SELECT T.B, T.A".
-                        boolean columnNameMatches;
-			if (tableName != null)
-			{
-				ValueNode rcExpr = resultColumn.getExpression();
-				if (rcExpr == null || ! (rcExpr instanceof ColumnReference))
-                {
+            // We may be checking on "ORDER BY T.A" against "SELECT *".
+            // exposedName will not be null and "*" will not have an expression
+            // or tablename.
+            // We may be checking on "ORDER BY T.A" against "SELECT T.B, T.A".
+            boolean columnNameMatches;
+            if (tableName != null) {
+                ValueNode rcExpr = resultColumn.getExpression();
+                if (rcExpr == null || ! (rcExpr instanceof ColumnReference)) {
                     continue;
                 }
-				ColumnReference cr = (ColumnReference) rcExpr;
+                ColumnReference cr = (ColumnReference) rcExpr;
                 if( ! tableName.equals( cr.getTableNameNode()))
                     continue;
-				columnNameMatches =
-					columnName.equals( resultColumn.getSourceColumnName() );
-			}
-			else
-				columnNameMatches =
-					resultColumn.columnNameMatches(columnName);
+                columnNameMatches = columnName.equals( resultColumn.getSourceColumnName() );
+            }
+            else
+                columnNameMatches = resultColumn.columnNameMatches(columnName);
 
 			/* We finally got past the qualifiers, now see if the column
 			 * names are equal.
 			 */
-			if (columnNameMatches)
-			{
-				if (retVal == null)
-				{
-					retVal = resultColumn;
-				}
-				else if (! retVal.isEquivalent(resultColumn))
-				{
-					throw StandardException.newException(SQLState.LANG_DUPLICATE_COLUMN_FOR_ORDER_BY, columnName);
-				}
-				else if (index >= size - orderBySelect)
-				{
-					if (SanityManager.DEBUG)
-						SanityManager.THROWASSERT(
-							"Unexpectedly found ORDER BY column '" +
-							columnName + "' pulled up at position " +index);
-				}
-			}
-		}
-		return retVal;
-	}
+            if (columnNameMatches) {
+                if (retVal == null) {
+                    retVal = resultColumn;
+                } else if (! retVal.isEquivalent(resultColumn)) {
+                    throw StandardException.newException(SQLState.LANG_DUPLICATE_COLUMN_FOR_ORDER_BY, columnName);
+                } else if (index >= size - orderBySelect) {
+                    if (SanityManager.DEBUG)
+                        SanityManager.THROWASSERT(
+                                "Unexpectedly found ORDER BY column '" +
+                                        columnName + "' pulled up at position " +index);
+                }
+            }
+        }
+        return retVal;
+    }
 
-	/**
-	 * Copy the result column names from the given ResultColumnList
-	 * to this ResultColumnList.  This is useful for insert-select,
-	 * where the columns being inserted into may be different from
-	 * the columns being selected from.  The result column list for
-	 * an insert is supposed to have the column names being inserted
-	 * into.
-	 *
-	 * @param nameList	The ResultColumnList from which to copy
-	 *			the column names
-	 */
+    /**
+     * Copy the result column names from the given ResultColumnList
+     * to this ResultColumnList.  This is useful for insert-select,
+     * where the columns being inserted into may be different from
+     * the columns being selected from.  The result column list for
+     * an insert is supposed to have the column names being inserted
+     * into.
+     *
+     * @param nameList	The ResultColumnList from which to copy
+     *			the column names
+     */
 
-	void copyResultColumnNames(ResultColumnList nameList)
-	{
+    void copyResultColumnNames(ResultColumnList nameList) {
 		/* List checking is done during bind().  Lists should be the
 		 * same size when we are called.
 		 */
-		if (SanityManager.DEBUG)
-		{
-             if ( (! countMismatchAllowed) &&
-                  visibleSize() != nameList.visibleSize() )
-			 {
-				SanityManager.THROWASSERT(
-					"The size of the 2 lists is expected to be the same. " +
-					"visibleSize() = " + visibleSize() +
-                    ", nameList.visibleSize() = " + nameList.visibleSize());
-			 }
-		 }
+        if (SanityManager.DEBUG) {
+            if ( (! countMismatchAllowed) && visibleSize() != nameList.visibleSize() ) {
+                SanityManager.THROWASSERT(
+                        "The size of the 2 lists is expected to be the same. " +
+                                "visibleSize() = " + visibleSize() +
+                                ", nameList.visibleSize() = " + nameList.visibleSize());
+            }
+        }
 
-        int size =
-            (countMismatchAllowed) ? nameList.visibleSize() : visibleSize();
+        int size = (countMismatchAllowed) ? nameList.visibleSize() : visibleSize();
 
-		for (int index = 0; index < size; index++)
-		{
-			ResultColumn thisResultColumn = (ResultColumn) elementAt(index);
-			ResultColumn nameListResultColumn =
-				(ResultColumn) nameList.elementAt(index);
-			thisResultColumn.setName(nameListResultColumn.getName());
-			thisResultColumn.setNameGenerated(nameListResultColumn.isNameGenerated());
-		}
-	}
+        for (int index = 0; index < size; index++) {
+            ResultColumn thisResultColumn = (ResultColumn) elementAt(index);
+            ResultColumn nameListResultColumn = (ResultColumn) nameList.elementAt(index);
+            thisResultColumn.setName(nameListResultColumn.getName());
+            thisResultColumn.setNameGenerated(nameListResultColumn.isNameGenerated());
+        }
+    }
 
 
-	/**
-	 * Bind the expressions in this ResultColumnList.  This means binding
-	 * the expression under each ResultColumn node.
-	 *
-	 * @param fromList		The FROM list for the query this
-	 *				expression is in, for binding columns.
-	 * @param subqueryList		The subquery list being built as we find SubqueryNodes
+    /**
+     * Bind the expressions in this ResultColumnList.  This means binding
+     * the expression under each ResultColumn node.
+     *
+     * @param fromList		The FROM list for the query this
+     *				expression is in, for binding columns.
+     * @param subqueryList		The subquery list being built as we find SubqueryNodes
 	 * @param aggregateVector	The aggregate vector being built as we find AggregateNodes
 	 *
 	 * @exception StandardException		Thrown on error
@@ -1139,13 +1117,10 @@ public class ResultColumnList extends QueryTreeNodeVector
 
 		@exception StandardException	Thrown on error
 	 */
-	void checkStorableExpressions()
-			throws StandardException
-	{
+	void checkStorableExpressions() throws StandardException {
 		int size = size();
 
-		for (int index = 0; index < size; index++)
-		{
+		for (int index = 0; index < size; index++) {
 			((ResultColumn) elementAt(index) ).checkStorableExpression();
 		}
 	}
@@ -1159,13 +1134,11 @@ public class ResultColumnList extends QueryTreeNodeVector
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public void generate(ActivationClassBuilder acb, MethodBuilder mb)
-			throws StandardException
-	{
+	public void generate(ActivationClassBuilder acb, MethodBuilder mb) throws StandardException {
 		generateCore(acb, mb, false);
 	}
 
-	/**
+    /**
 	 * Generate the code to place the columns' values into
 	 * a row variable named "r". This wrapper is here
 	 * rather than in ResultColumn, because that class does
