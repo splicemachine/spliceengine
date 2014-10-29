@@ -2,6 +2,7 @@ package com.splicemachine.hbase.backup;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.SpliceService;
+import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.pipeline.exception.Exceptions;
@@ -75,6 +76,7 @@ public class Backup implements InternalTable {
     public static final String VERSION_FILE = "version";
     public static final String BACKUP_TIMESTAMP_FILE = "backupTimestamp";
     public static final String TIMESTAMP_SOURCE_FILE = "timestampSource";
+    public static final String CONGLOMERATE_SEQUENCE_FILE = "conglomerateSequence";
 	
 	private Txn backupTransaction;
 	private Timestamp beginBackupTimestamp;
@@ -511,6 +513,13 @@ public class Backup implements InternalTable {
         out.writeInt(value.length);
         out.write(value);
         out.close();
+
+        long conglomerateSequence = ConglomerateUtils.getNextConglomerateId();
+        value = Bytes.toBytes(conglomerateSequence);
+        out = fileSystem.create(new Path(getMetaBackupFilesystemAsPath(), CONGLOMERATE_SEQUENCE_FILE));
+        out.writeInt(value.length);
+        out.write(value);
+        out.close();
     }
 
 
@@ -539,6 +548,15 @@ public class Backup implements InternalTable {
         in.close();
 
         setTimestampSource(timestampSource);
+
+        in = fileSystem.open(new Path(getMetaBackupFilesystemAsPath(), CONGLOMERATE_SEQUENCE_FILE));
+        len = in.readInt();
+        value = new byte[len];
+        in.readFully(value);
+        long conglomerateId = Bytes.toLong(value);
+        in.close();
+
+        ConglomerateUtils.setNextConglomerateId(conglomerateId);
     }
 
     // TODO This is hardcoded to the current implementation of Timestamp Source, should be moved to the appropriate class

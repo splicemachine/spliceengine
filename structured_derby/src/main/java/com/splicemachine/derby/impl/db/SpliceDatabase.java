@@ -333,8 +333,6 @@ public class SpliceDatabase extends BasicDatabase {
             long start = System.currentTimeMillis();
             // bulk import the regions
             for (BackupItem backupItem: backup.getBackupItems()) {
-                backupItem.createBackupItemFilesystem();
-                backupItem.writeDescriptorToFileSystem();
                 HTableInterface table = SpliceAccessManager.getHTable(backupItem.getBackupItemBytes());
                 RestoreBackupJob job = new RestoreBackupJob(backupItem,table);
                 future = SpliceDriver.driver().getJobScheduler().submit(job);
