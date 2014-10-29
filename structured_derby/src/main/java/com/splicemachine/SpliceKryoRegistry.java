@@ -117,6 +117,7 @@ import com.splicemachine.pipeline.impl.BulkWritesResult;
 import com.splicemachine.pipeline.impl.WriteResult;
 import com.splicemachine.si.impl.ActiveWriteTxn;
 import com.splicemachine.si.impl.RootTransaction;
+import com.splicemachine.si.impl.WritableTxn;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.kryo.ExternalizableSerializer;
 import com.splicemachine.utils.kryo.KryoObjectInput;
@@ -776,5 +777,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(RootTransaction.class, EXTERNALIZABLE_SERIALIZER,208);        
         instance.register(WriteResult.class, EXTERNALIZABLE_SERIALIZER,209);                
         instance.register(ConstraintContext.class, EXTERNALIZABLE_SERIALIZER,210);                
+        instance.register(WritableTxn.class, EXTERNALIZABLE_SERIALIZER,211);               
     }
 }

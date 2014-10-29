@@ -3,8 +3,11 @@ package com.splicemachine.pipeline.impl;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.derby.hbase.SpliceWriteControl;
 import com.splicemachine.hbase.KVPair;
+import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.TxnView;
+
 import org.apache.hadoop.hbase.util.Bytes;
+
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -105,7 +108,7 @@ public class BulkWrite implements Externalizable {
     }
 		@Override
 		public void writeExternal(ObjectOutput out) throws IOException {
-				out.writeObject(txn);				
+				TransactionOperations.getOperationFactory().writeTxn(txn,out);	
 				out.writeUTF(encodedStringName);
 				out.writeInt(regionKey.length);
 				out.write(regionKey);
@@ -119,7 +122,7 @@ public class BulkWrite implements Externalizable {
 
 		@Override
 		public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-				txn = (TxnView) in.readObject();
+				txn = TransactionOperations.getOperationFactory().readTxn(in);
 				encodedStringName = in.readUTF();
 				regionKey = new byte[in.readInt()];
 				in.read(regionKey);

@@ -8,6 +8,10 @@ import com.splicemachine.si.api.Txn;
  */
 public abstract class AbstractTxn extends AbstractTxnView implements Txn {
 
+		protected AbstractTxn() {
+			
+		}
+	
 		protected AbstractTxn(long txnId,
 													long beginTimestamp,
 													IsolationLevel isolationLevel) {

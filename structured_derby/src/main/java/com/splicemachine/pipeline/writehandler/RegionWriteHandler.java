@@ -131,6 +131,8 @@ public class RegionWriteHandler implements WriteHandler {
             for (KVPair mutation : filteredMutations) {
                 ctx.result(mutation, result);
             }
+        } finally {
+        	filteredMutations.clear();
         }
     }
 

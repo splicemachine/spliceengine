@@ -10,6 +10,7 @@ import com.splicemachine.si.data.hbase.HRowAccumulator;
 import com.splicemachine.si.data.hbase.HbRegion;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
+
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.regionserver.HRegion;
@@ -19,6 +20,7 @@ import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Pair;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collection;
 
 /**
@@ -113,16 +115,22 @@ public class TxnRegion implements TransactionalRegion {
 																			 byte[] family, byte[] qualifier,
 																			 ConstraintChecker constraintChecker, //TODO -sf- can we encapsulate this as well?
 																			 Collection<KVPair> data) throws IOException {
-				if(transactionalWrites)
-						return transactor.processKvBatch(hbRegion,rollForward,txn,family,qualifier,data,constraintChecker);
-				else{
-						Pair<Mutation, Integer>[] pairsToProcess = new Pair[data.size()];
-						int i=0;
-						for(KVPair pair:data){
-								pairsToProcess[i] = new Pair<Mutation, Integer>(getMutation(pair,txn), null);
-								i++;
-						}
-						return region.batchMutate(pairsToProcess);
+			Pair<Mutation, Integer>[] pairsToProcess = null;
+			try {
+					if(transactionalWrites)
+							return transactor.processKvBatch(hbRegion,rollForward,txn,family,qualifier,data,constraintChecker);
+					else{
+							pairsToProcess = new Pair[data.size()];
+							int i=0;
+							for(KVPair pair:data){
+									pairsToProcess[i] = new Pair<Mutation, Integer>(getMutation(pair,txn), null);
+									i++;
+							}
+					return region.batchMutate(pairsToProcess);
+					}
+				} finally {
+					if (pairsToProcess != null)
+						Arrays.fill(pairsToProcess, 0, pairsToProcess.length, null); // Dereference
 				}
 		}
 

@@ -16,8 +16,10 @@ import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableWriter;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.MutationUtils;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.filter.Filter;
@@ -28,8 +30,10 @@ import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
+
 import java.io.IOException;
 import java.lang.reflect.Array;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -57,19 +61,11 @@ public class SITransactor<Table,
     private final TxnOperationFactory operationFactory;
     private final TxnSupplier transactionStore;
 
-//		private final TransactionSource transactionSource;
-
 		private SITransactor(SDataLib dataLib,
 												 STableWriter dataWriter,
 												 DataStore dataStore,
                          final TxnOperationFactory operationFactory,
 												 final TxnSupplier transactionStore) {
-//				transactionSource = new TransactionSource() {
-//            @Override
-//            public Transaction getTransaction(long timestamp) throws IOException {
-//                return transactionStore.getTransaction(timestamp);
-//            }
-//        };
 				this.dataLib = dataLib;
 				this.dataWriter = dataWriter;
 				this.dataStore = dataStore;
@@ -300,7 +296,14 @@ public class SITransactor<Table,
 								i++;
 						}
 						final OperationStatus[] status = dataStore.writeBatch(table, toWrite);
-
+						
+						for (Pair<Mutation,Integer> pair: toWrite) {
+							pair.setFirst(null);
+							pair.setSecond(null);
+							pair = null;
+						}
+					
+						
 						resolveConflictsForKvBatch(table, toWrite, conflictingChildren, status);
 
 						//convert the status back into the larger array
@@ -309,7 +312,10 @@ public class SITransactor<Table,
 								finalStatus[write.key] = status[i];
 								i++;
 						}
-
+						writes.clear();
+					    Arrays.fill(status, 0, status.length, null); // Dereference
+					    Arrays.fill(toWrite, 0, toWrite.length, null); // Dereference
+					    Arrays.fill(conflictingChildren, 0, conflictingChildren.length, null); // Dereference												
 						return finalStatus;
 				} finally {
 						releaseLocksForKvBatch(table, lockPairs);

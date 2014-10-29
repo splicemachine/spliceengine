@@ -223,6 +223,12 @@ public class SpliceOperationRegionScanner implements RegionScanner {
                 } catch (StandardException e) {
                     throw Exceptions.getIOException(e);
                 }
+				try {
+					activation.close();
+					activation = null;
+				} catch (StandardException e) {
+					// Close out activation
+				}
             }
         } finally {
             if (impl != null) {

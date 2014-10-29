@@ -143,6 +143,7 @@ public class SinkTask extends ZkTask {
 				 * 3. execute work
 				 */
 				boolean prepared = false;
+				Activation activation = null;
 				try{
 						transactionResource = new SpliceTransactionResourceImpl();
 						transactionResource.prepareContextManager();
@@ -151,7 +152,7 @@ public class SinkTask extends ZkTask {
 								instructions = SpliceUtils.getSpliceObserverInstructions(scan);
             setupTransaction();
             transactionResource.marshallTransaction(getTxn(), instructions);
-						Activation activation = instructions.getActivation(transactionResource.getLcc());
+			activation = instructions.getActivation(transactionResource.getLcc());
             if(activation.isTraced()){
                 Txn txn = getTxn();
                 if(!txn.allowsWrites()){
@@ -186,6 +187,13 @@ public class SinkTask extends ZkTask {
             doExecute();
         }finally{
             taskWatcher.setTask(null);
+            if (activation != null) {
+            	try {
+					activation.close();
+				} catch (StandardException e) {
+				}
+            	activation = null;
+            }
         }
     }
 

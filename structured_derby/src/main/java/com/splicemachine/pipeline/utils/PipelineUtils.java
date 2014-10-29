@@ -157,7 +157,7 @@ public class PipelineUtils extends PipelineConstants {
 			}
 		}
 
-		public static <T> T fromCompressedBytes(byte[] bulkWriteBytes, Class<T> clazz) throws IOException {
+		public static <T> T fromCompressedBytes(byte[] bytes, Class<T> clazz) throws IOException {
 			Input input = null;
 			ByteArrayInputStream bais = null;
 			InputStream compressedInput = null;
@@ -165,7 +165,7 @@ public class PipelineUtils extends PipelineConstants {
 			KryoPool pool = SpliceDriver.getKryoPool();
 			Kryo kryo = pool.get();
 			try {
-				bais = new ByteArrayInputStream(bulkWriteBytes);
+				bais = new ByteArrayInputStream(bytes);
 				compressedInput = PipelineUtils.getSnappyInputStream(bais);
 				input = new Input(compressedInput);
 				koi = new KryoObjectInput(input,kryo); 
