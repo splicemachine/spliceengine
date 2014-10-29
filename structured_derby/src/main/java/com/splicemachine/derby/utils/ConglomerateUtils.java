@@ -278,6 +278,11 @@ public class ConglomerateUtils extends SpliceConstants {
         return ZkUtils.nextSequenceId(zkSpliceConglomerateSequencePath);
     }
 
+    public static void setNextConglomerateId(long conglomerateId) throws IOException {
+        LOG.trace("setting next conglomerate id");
+        ZkUtils.setSequenceId(zkSpliceConglomerateSequencePath, conglomerateId);
+    }
+
     /**
      * Split a conglomerate. This is an asynchronous operation.
      *

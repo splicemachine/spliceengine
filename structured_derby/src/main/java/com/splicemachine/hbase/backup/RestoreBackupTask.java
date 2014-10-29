@@ -81,6 +81,7 @@ public class RestoreBackupTask extends ZkTask {
         }
     }
 
+    // Copy store files to preserve them since HBase's bulkload moves the files directly in place to avoid extra copies
     private List<Pair<byte[], String>> copyStoreFiles(List<Pair<byte[], String>> famPaths) throws IOException {
         List<Pair<byte[], String>> copy = new ArrayList<Pair<byte[], String>>(famPaths.size());
         FileSystem fs = region.getFilesystem();

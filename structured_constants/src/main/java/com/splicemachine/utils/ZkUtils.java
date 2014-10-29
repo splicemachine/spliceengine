@@ -294,9 +294,48 @@ public class ZkUtils {
 		 * TODO -sf- we could fix this by putting in a non-optimistic lock at this point, but
 		 * it's probably best to see if it poses a problem as written first.
 		 */
-			throw new IOException("Unable to get next conglomerate sequence, there is an issue" +
+			throw new IOException("Unable to get next conglomerate sequence, there is an issue " +
 							"speaking with ZooKeeper");
 	}
+
+    /**
+     * Sets a counter stored in ZooKeeper
+     *
+     * @param counterNode the node to store the counter in
+     * @throws IOException if something goes wrong and the counter can't be incremented.
+     */
+    public static void setSequenceId(String counterNode, long count) throws IOException {
+        RecoverableZooKeeper rzk = ZkUtils.getRecoverableZooKeeper();
+
+        int maxTries=10;
+        int tries=0;
+        while(tries<=maxTries){
+            tries++;
+            try {
+                rzk.setData(counterNode, Bytes.toBytes(count), -1 /* any version */);
+            } catch (KeeperException e) {
+                //if we timed out trying to deal with ZooKeeper, retry
+                switch (e.code()) {
+                    case CONNECTIONLOSS:
+                    case OPERATIONTIMEOUT:
+                        continue;
+                    default:
+                        throw new IOException(e);
+                }
+            } catch (InterruptedException e) {
+                throw new IOException(e);
+            }
+            return;
+        }
+		/*
+		 * We've tried to set the sequence number a whole bunch of times,
+		 * without success. That means either a problem with ZooKeeper
+		 * Need to back off and deal with it
+		 * at a higher level
+		 */
+        throw new IOException("Unable to set next conglomerate sequence, there is an issue " +
+                "speaking with ZooKeeper");
+    }
 
 		public static void cleanZookeeper() throws InterruptedException, KeeperException {
 				RecoverableZooKeeper rzk = getRecoverableZooKeeper();
