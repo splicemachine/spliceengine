@@ -591,7 +591,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                         rcDescriptor = ((ResultColumn) exp).getTableColumnDescriptor();
                     } else {
                         rcDescriptor = exp.getSourceResultColumn().getTableColumnDescriptor();
-        }
+                    }
                 }
                 if (rcDescriptor.equals(expression.getSourceResultColumn().getTableColumnDescriptor())) {
                     // Found a match
@@ -1097,7 +1097,6 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             IndexColumnOrder[] ordering = new IndexColumnOrder[orderedColumnList.size()];
             int j = 0;
             for (OrderedColumn oc : orderedColumnList) {
-//                ordering[j++] = new IndexColumnOrder(((ColumnReference) oc.getColumnExpression()).getColumnNumber(),
                 ordering[j++] = new IndexColumnOrder(oc.getColumnPosition(),
                                                      oc.isAscending(),
                                                      oc.isNullsOrderedLow());

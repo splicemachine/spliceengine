@@ -25,6 +25,8 @@ public class WrappedAggregateFunctionNode extends WindowFunctionNode {
     public void init(Object arg1, Object arg2) throws StandardException {
         super.init(arg1, null);
         aggregateFunction = (AggregateNode) arg2;
+        this.aggregateName = aggregateFunction.aggregateName;
+        this.operator = aggregateFunction.operator;
     }
 
     @Override
@@ -111,6 +113,10 @@ public class WrappedAggregateFunctionNode extends WindowFunctionNode {
         // in this list as an aggregate. The list will be handed to GroupByNode, which we don't
         // want doing the work.  Window function code will handle the window function aggregates
         aggregateVector.remove(aggregateFunction);
+
+        // Now that delegate is bound, set some required fields on this
+        // TODO: What all is required?
+        this.operator = aggregateFunction.operator;
         return this;
     }
 
