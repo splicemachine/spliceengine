@@ -8,6 +8,8 @@ import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.SliceIterator;
 
 import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -20,14 +22,18 @@ import java.util.concurrent.CopyOnWriteArraySet;
  */
 public class WritableTxn extends AbstractTxn {
 
-		private final TxnView parent;
+		private TxnView parent;
 		private volatile long commitTimestamp = -1l;
 		private volatile long globalCommitTimestamp = -1l;
-		private final TxnLifecycleManager tc;
-		private final boolean isAdditive;
+		private TxnLifecycleManager tc;
+		private boolean isAdditive;
 		private volatile State state = State.ACTIVE;
 		private Set<byte[]> tableWrites = new CopyOnWriteArraySet<byte[]>();
 
+		public WritableTxn() {
+			
+		}
+		
 		public WritableTxn(long txnId,
                        long beginTimestamp,
                        IsolationLevel isolationLevel,
@@ -153,5 +159,6 @@ public class WritableTxn extends AbstractTxn {
     @Override
     public String toString(){
         return "WritableTxn("+txnId+","+getState()+","+parent+")";
-    }
+    }    
+    
 }

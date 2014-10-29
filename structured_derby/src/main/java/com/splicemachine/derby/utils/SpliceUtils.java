@@ -2,9 +2,6 @@ package com.splicemachine.derby.utils;
 
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
@@ -17,13 +14,12 @@ import com.splicemachine.si.api.TxnOperationFactory;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.SimpleOperationFactory;
 import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.pipeline.utils.PipelineUtils;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceUtilities;
 import com.splicemachine.utils.ZkUtils;
-import com.splicemachine.utils.kryo.KryoObjectInput;
-import com.splicemachine.utils.kryo.KryoObjectOutput;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
@@ -36,7 +32,6 @@ import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.ZooDefs;
-
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -160,20 +155,14 @@ public class SpliceUtils extends SpliceUtilities {
     }
 
     public static SpliceObserverInstructions getSpliceObserverInstructions(Scan scan) {
+    	try {
         byte[] instructions = scan.getAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS);
-        if(instructions==null) return null;
-
-        Kryo kryo = SpliceDriver.getKryoPool().get();
-        try {
-            Input input = new Input(instructions);
-            KryoObjectInput koi = new KryoObjectInput(input,kryo);
-            return (SpliceObserverInstructions) koi.readObject();
-        } catch (Exception e) {
-            SpliceLogUtils.logAndThrowRuntime(LOG, "Issues reading serialized data",e);
-        }finally{
-            SpliceDriver.getKryoPool().returnInstance(kryo);
+        if(instructions==null) 
+        	return null;
+        return PipelineUtils.fromCompressedBytes(instructions, SpliceObserverInstructions.class);
+    	} catch (Exception e) {
+        	throw new RuntimeException();
         }
-        return null;
     }
 
     public static byte[] getUniqueKey(){
@@ -186,18 +175,11 @@ public class SpliceUtils extends SpliceUtilities {
     }
 
     public static byte[] generateInstructions(SpliceObserverInstructions instructions) {
-        Kryo kryo = SpliceDriver.getKryoPool().get();
-        try {
-            Output output = new Output(4096,-1);
-            KryoObjectOutput koo = new KryoObjectOutput(output,kryo);
-            koo.writeObject(instructions);
-            return output.toBytes();
-        } catch (IOException e) {
-            SpliceLogUtils.logAndThrowRuntime(LOG, "Error generating Splice instructions:" + e.getMessage(), e);
-            return null;
-        }finally{
-            SpliceDriver.getKryoPool().returnInstance(kryo);
-        }
+    	try {
+    		return PipelineUtils.toCompressedBytes(instructions);
+    	} catch (Exception e) {
+    		throw new RuntimeException(e);
+    	}
     }
 
     public static void setInstructions(Scan scan, Activation activation, SpliceOperation topOperation, SpliceRuntimeContext spliceRuntimeContext){
