@@ -2,7 +2,7 @@ package com.splicemachine.hbase.table;
 
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.hbase.HBaseRegionCache;
+import com.splicemachine.hbase.regioninfocache.HBaseRegionCache;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HConstants;

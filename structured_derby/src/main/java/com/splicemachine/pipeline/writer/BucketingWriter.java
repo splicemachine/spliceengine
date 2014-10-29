@@ -1,6 +1,6 @@
 package com.splicemachine.pipeline.writer;
 
-import com.splicemachine.hbase.RegionCache;
+import com.splicemachine.hbase.regioninfocache.RegionCache;
 import com.splicemachine.pipeline.api.Writer;
 import com.splicemachine.pipeline.utils.PipelineConstants;
 

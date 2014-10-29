@@ -1,9 +1,10 @@
-package com.splicemachine.hbase;
+package com.splicemachine.hbase.regioninfocache;
 
 import com.google.common.cache.CacheLoader;
 import com.google.common.collect.Sets;
 import com.splicemachine.concurrent.MoreExecutors;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.hbase.RegionCacheComparator;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HRegionInfo;

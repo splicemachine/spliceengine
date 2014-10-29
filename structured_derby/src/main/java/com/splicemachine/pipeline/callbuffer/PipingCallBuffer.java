@@ -2,7 +2,7 @@ package com.splicemachine.pipeline.callbuffer;
 
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.hbase.RegionCache;
+import com.splicemachine.hbase.regioninfocache.RegionCache;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.pipeline.api.CanRebuild;

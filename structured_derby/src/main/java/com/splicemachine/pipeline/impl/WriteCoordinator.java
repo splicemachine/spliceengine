@@ -1,9 +1,9 @@
 package com.splicemachine.pipeline.impl;
 
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.hbase.HBaseRegionCache;
+import com.splicemachine.hbase.regioninfocache.HBaseRegionCache;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.hbase.RegionCache;
+import com.splicemachine.hbase.regioninfocache.RegionCache;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.pipeline.api.BufferConfiguration;
 import com.splicemachine.pipeline.api.CallBufferFactory;

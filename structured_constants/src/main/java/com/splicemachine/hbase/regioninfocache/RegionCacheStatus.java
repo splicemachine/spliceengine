@@ -1,4 +1,4 @@
-package com.splicemachine.hbase;
+package com.splicemachine.hbase.regioninfocache;
 
 import javax.management.MXBean;
 
