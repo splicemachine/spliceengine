@@ -23,6 +23,7 @@ import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.SpliceXPlainTrace;
 import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.homeless.TestUtils;
 
 /**
  *
@@ -1140,6 +1141,24 @@ public class WindowFunctionIT extends SpliceUnitTest {
 
         compareArrays(funcionarioExpected, funcionarioActual);
         compareArrays(mpdExpected, mpdActual);
+    }
+
+    @Test
+    public void testAvgArithmetic() throws Exception {
+        String sqlText = String.format("SELECT %1$s.Nome_Dep, " +
+                                           "%2$s.Nome AS Funcionario, " +
+                                           "%2$s.Salario, " +
+                                           "AVG(%2$s.Salario) OVER(PARTITION BY %1$s.Nome_Dep) " +
+                                           "\"Média por Departamento\", " +
+                                           "%2$s.Salario - AVG(%2$s.Salario) OVER(PARTITION BY " +
+                                           "%1$s.Nome_Dep) \"Diferença de Salário\" FROM %2$s " +
+                                           "INNER JOIN %1$s " +
+                                           "ON %2$s.ID_Dep = %1$s.ID ORDER BY 5 DESC",
+                                       this.getTableReference(TABLE5a_NAME), this.getTableReference(TABLE5b_NAME));
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        TestUtils.printResult(sqlText, rs, System.out);
+        rs.close();
     }
 
     private static void compareArrays(int[] expected, List<Integer> actualList) {
