@@ -72,6 +72,21 @@ public class WindowFunctionMultiIT extends SpliceUnitTest {
         "33,3,null,'2010-08-09'"
     };
 
+    private static String table6Def = "(SOURCE_SALES_INSTANCE_ID BIGINT, TRANSACTION_DT DATE NOT NULL, ORIGINAL_SKU_CATEGORY_ID INTEGER, SALES_AMT DECIMAL(9,2), CUSTOMER_MASTER_ID BIGINT)";
+    public static final String TABLE6_NAME = "TXN_DETAIL";
+    protected static SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher(TABLE6_NAME,CLASS_NAME, table6Def);
+
+    private static String[] TXN_DETAIL = {
+        "0,'2013-05-12',44871,329.18,74065939",
+        "0,'2013-05-12',44199,35.46,74065939",
+        "0,'2013-05-12',44238,395.44,74065939",
+        "0,'2013-05-12',44410,1763.41,74065939",
+        "0,'2013-05-12',44797,915.97,74065939",
+        "0,'2013-05-12',44837,179.88,74065939",
+        "0,'2013-05-12',44600,0,74065939",
+        "0,'2013-05-12',44880,467.33,74065939"
+    };
+
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
                                             .around(spliceSchemaWatcher)
@@ -108,7 +123,23 @@ public class WindowFunctionMultiIT extends SpliceUnitTest {
                     throw new RuntimeException(e);
                 }
             }
-        }) ;
+        })
+    .around(spliceTableWatcher6)
+    .around(new SpliceDataWatcher() {
+        @Override
+        protected void starting(Description description) {
+            PreparedStatement ps;
+            try {
+                for (String row : TXN_DETAIL) {
+                    ps = spliceClassWatcher.prepareStatement(
+                        String.format("insert into %s values (%s)", spliceTableWatcher6, row));
+                    ps.execute();
+                }
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+    });
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
@@ -181,8 +212,9 @@ public class WindowFunctionMultiIT extends SpliceUnitTest {
     @Test
     @Ignore("DB-1989: An attempt was made to get a data value of type 'java.sql.Date' from a data value of type 'INTEGER'.")
     public void testSelectDateMultiFunction() throws Exception {
-        int[] denseRank = {1, 2, 3, 4, 5, 6, 6, 7, 1, 2, 2, 3, 1, 2, 3, 4, 5};
-        int[] ruwNum = {1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 1, 2, 3, 4, 5};
+        // DB-1988
+        int[] denseRank = {1, 2, 2, 3, 4, 5, 6, 1, 2, 2, 3, 1, 2, 3, 4};
+        int[] ruwNum    = {1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 1, 2, 3, 4};
         String sqlText = "SELECT hiredate, DENSE_RANK() OVER (PARTITION BY dept ORDER BY salary) AS DenseRank, ROW_NUMBER() OVER (PARTITION BY dept ORDER BY dept) AS RowNumber FROM %s";
 
         ResultSet rs = methodWatcher.executeQuery(
@@ -190,8 +222,8 @@ public class WindowFunctionMultiIT extends SpliceUnitTest {
 
         int i = 0;
         while (rs.next()) {
-            Assert.assertEquals(denseRank[i],rs.getInt(4));
-            Assert.assertEquals(ruwNum[i],rs.getInt(6));
+            Assert.assertEquals(denseRank[i],rs.getInt(2));
+            Assert.assertEquals(ruwNum[i],rs.getInt(3));
             ++i;
         }
         rs.close();
@@ -370,6 +402,21 @@ public class WindowFunctionMultiIT extends SpliceUnitTest {
             Assert.assertEquals(denseRank[i],rs.getInt(5));
             ++i;
         }
+        rs.close();
+    }
+
+    @Test
+    public void testPullFunctionInputColumnUp4Levels() throws Exception {
+        // DB-2087 - Kryo exception
+        String sqlText =
+            String.format("select Transaction_Detail5.SOURCE_SALES_INSTANCE_ID C0, min(Transaction_Detail5.TRANSACTION_DT) over (partition by Transaction_Detail5.ORIGINAL_SKU_CATEGORY_ID) C1, sum(Transaction_Detail5.SALES_AMT) over (partition by Transaction_Detail5.TRANSACTION_DT) C10 from %s AS Transaction_Detail5 where Transaction_Detail5.TRANSACTION_DT between DATE('2010-01-21') and DATE('2013-11-21') and Transaction_Detail5.CUSTOMER_MASTER_ID=74065939", this.getTableReference(TABLE6_NAME));
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        int i = 0;
+        while (rs.next()) {
+            ++i;
+        }
+        Assert.assertTrue(i == 8);
         rs.close();
     }
 }
