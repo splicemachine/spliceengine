@@ -1,49 +1,7 @@
 package com.splicemachine.pipeline.impl;
 
-import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.hppc.IntObjectOpenHashMap;
-import com.carrotsearch.hppc.ObjectArrayList;
-import com.carrotsearch.hppc.cursors.IntObjectCursor;
-import com.google.common.base.Throwables;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.encoding.Encoding;
-import com.splicemachine.hbase.KVPair;
-import com.splicemachine.hbase.RegionCache;
-import com.splicemachine.si.impl.ActiveWriteTxn;
-import com.splicemachine.metrics.MetricFactory;
-import com.splicemachine.metrics.Metrics;
-import com.splicemachine.metrics.TimeView;
-import com.splicemachine.hbase.RegionCacheComparator;
-import com.splicemachine.pipeline.api.BulkWritesInvoker;
-import com.splicemachine.pipeline.api.WriteConfiguration;
-import com.splicemachine.pipeline.api.WriteResponse;
-import com.splicemachine.pipeline.constraint.ConstraintContext;
-import com.splicemachine.pipeline.exception.Exceptions;
-import com.splicemachine.utils.Sleeper;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.hadoop.hbase.*;
-import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
-import org.apache.hadoop.hbase.regionserver.WrongRegionException;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.util.Pair;
-import org.junit.Assert;
-import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
-import java.util.Map;
-import java.util.NavigableMap;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /**
  * @author Scott Fines

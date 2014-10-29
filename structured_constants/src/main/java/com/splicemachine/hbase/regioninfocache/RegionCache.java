@@ -1,4 +1,4 @@
-package com.splicemachine.hbase;
+package com.splicemachine.hbase.regioninfocache;
 
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.ServerName;

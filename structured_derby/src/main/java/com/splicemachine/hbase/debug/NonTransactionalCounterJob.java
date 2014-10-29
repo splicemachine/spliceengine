@@ -3,7 +3,7 @@ package com.splicemachine.hbase.debug;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
-import com.splicemachine.hbase.HBaseRegionCache;
+import com.splicemachine.hbase.regioninfocache.HBaseRegionCache;
 import com.splicemachine.hbase.table.SpliceHTable;
 import com.splicemachine.job.Task;
 import com.splicemachine.si.api.Txn;

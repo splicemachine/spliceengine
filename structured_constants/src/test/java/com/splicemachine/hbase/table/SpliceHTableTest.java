@@ -3,7 +3,7 @@ package com.splicemachine.hbase.table;
 import com.google.common.collect.Sets;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.encoding.Encoding;
-import com.splicemachine.hbase.RegionCache;
+import com.splicemachine.hbase.regioninfocache.RegionCache;
 import com.splicemachine.hbase.RegionCacheComparator;
 
 import org.apache.hadoop.conf.Configuration;

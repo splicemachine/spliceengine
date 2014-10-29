@@ -17,7 +17,7 @@ import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.hbase.HBaseRegionCache;
+import com.splicemachine.hbase.regioninfocache.HBaseRegionCache;
 import com.splicemachine.hbase.HBaseRegionLoads;
 import com.splicemachine.utils.SpliceLogUtils;
 

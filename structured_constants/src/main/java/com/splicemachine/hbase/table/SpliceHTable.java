@@ -7,7 +7,7 @@ import com.splicemachine.concurrent.KeyedFuture;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.hbase.NoRetryExecRPCInvoker;
-import com.splicemachine.hbase.RegionCache;
+import com.splicemachine.hbase.regioninfocache.RegionCache;
 import com.splicemachine.utils.SpliceLogUtils;
 
 import org.apache.hadoop.hbase.HRegionInfo;

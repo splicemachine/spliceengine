@@ -11,7 +11,7 @@ import com.google.common.collect.Lists;
 import com.google.common.io.Closeables;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.hbase.RegionCache;
+import com.splicemachine.hbase.regioninfocache.RegionCache;
 import com.splicemachine.hbase.table.SpliceHTableUtil;
 import com.splicemachine.pipeline.impl.BulkWrite;
 import com.splicemachine.pipeline.impl.BulkWriteResult;

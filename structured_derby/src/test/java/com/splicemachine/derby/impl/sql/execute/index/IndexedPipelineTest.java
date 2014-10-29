@@ -40,7 +40,7 @@ import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.MockRegion;
-import com.splicemachine.hbase.RegionCache;
+import com.splicemachine.hbase.regioninfocache.RegionCache;
 import com.splicemachine.hbase.RegionCacheComparator;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.metrics.Metrics;
