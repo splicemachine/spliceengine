@@ -192,6 +192,7 @@
 								<!-- ### Needed after Scott's re-factoring of SI. ### -->
 								<option>-keep public class com.splicemachine.si.api.CannotCommitException { public *; }</option>
 								<option>-keep public class com.splicemachine.si.api.TransactionTimestamps { public *; }</option>								
+								<option>-keep public class com.splicemachine.si.api.TimestampSource { public *; }</option>								
 								<option>-keep public class com.splicemachine.si.api.ReadOnlyModificationException { public *; }</option>
 								<option>-keep public class com.splicemachine.si.api.ReadResolver { public *; }</option>
 								<option>-keep public class com.splicemachine.si.api.RollForward { public *; }</option>
