@@ -3374,11 +3374,22 @@ public class FromBaseTable extends FromTable {
 			colRefItem = acb.addItem(referencedCols);
 		}
 
+		// 
+		int indexColItem = -1;
+		ConglomerateDescriptor cd = getTrulyTheBestAccessPath().getConglomerateDescriptor();
+		if (cd.isIndex()) {
+			FormatableIntHolder[] fihArrayIndex = 
+					FormatableIntHolder.getFormatableIntHolders(cd.getIndexDescriptor().baseColumnPositions()); 
+			FormatableArrayHolder hashKeyHolder = new FormatableArrayHolder(fihArrayIndex);
+			indexColItem = acb.addItem(hashKeyHolder);
+		}
+
+		/*
 		// beetle entry 3865: updateable cursor using index
 		int indexColItem = -1;
 		if (cursorTargetTable || getUpdateLocks)
 		{
-			ConglomerateDescriptor cd = getTrulyTheBestAccessPath().getConglomerateDescriptor();
+			cd = getTrulyTheBestAccessPath().getConglomerateDescriptor();
 			if (cd.isIndex())
 			{
 				int[] baseColPos = cd.getIndexDescriptor().baseColumnPositions();
@@ -3389,6 +3400,7 @@ public class FromBaseTable extends FromTable {
 				indexColItem = acb.addItem(indexCols);
 			}
 		}
+		*/
 
         AccessPath ap = getTrulyTheBestAccessPath();
 		JoinStrategy trulyTheBestJoinStrategy =	ap.getJoinStrategy();
