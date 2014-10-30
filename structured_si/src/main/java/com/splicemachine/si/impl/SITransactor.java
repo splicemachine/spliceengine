@@ -292,14 +292,7 @@ public class SITransactor<Table,
 								toWrite[i] = write.value;
 								i++;
 						}
-						final OperationStatus[] status = dataStore.writeBatch(table, toWrite);
-						
-						for (Pair<Mutation,Integer> pair: toWrite) {
-							pair.setFirst(null);
-							pair.setSecond(null);
-							pair = null;
-						}
-					
+						final OperationStatus[] status = dataStore.writeBatch(table, toWrite);					
 						
 						resolveConflictsForKvBatch(table, toWrite, conflictingChildren, status);
 
@@ -309,10 +302,6 @@ public class SITransactor<Table,
 								finalStatus[write.key] = status[i];
 								i++;
 						}
-						writes.clear();
-					    Arrays.fill(status, 0, status.length, null); // Dereference
-					    Arrays.fill(toWrite, 0, toWrite.length, null); // Dereference
-					    Arrays.fill(conflictingChildren, 0, conflictingChildren.length, null); // Dereference												
 						return finalStatus;
 				} finally {
 						releaseLocksForKvBatch(table, lockPairs);
