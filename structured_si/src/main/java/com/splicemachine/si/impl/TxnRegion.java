@@ -115,12 +115,10 @@ public class TxnRegion implements TransactionalRegion {
 																			 byte[] family, byte[] qualifier,
 																			 ConstraintChecker constraintChecker, //TODO -sf- can we encapsulate this as well?
 																			 Collection<KVPair> data) throws IOException {
-			Pair<Mutation, Integer>[] pairsToProcess = null;
-			try {
 					if(transactionalWrites)
 							return transactor.processKvBatch(hbRegion,rollForward,txn,family,qualifier,data,constraintChecker);
 					else{
-							pairsToProcess = new Pair[data.size()];
+						Pair<Mutation, Integer>[] pairsToProcess = new Pair[data.size()];
 							int i=0;
 							for(KVPair pair:data){
 									pairsToProcess[i] = new Pair<Mutation, Integer>(getMutation(pair,txn), null);
@@ -128,10 +126,6 @@ public class TxnRegion implements TransactionalRegion {
 							}
 					return region.batchMutate(pairsToProcess);
 					}
-				} finally {
-					if (pairsToProcess != null)
-						Arrays.fill(pairsToProcess, 0, pairsToProcess.length, null); // Dereference
-				}
 		}
 
 		@Override public String getRegionName() { return region.getRegionNameAsString(); }
