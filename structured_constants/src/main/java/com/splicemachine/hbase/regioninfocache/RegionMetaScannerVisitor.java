@@ -38,10 +38,6 @@ class RegionMetaScannerVisitor implements MetaScanner.MetaScannerVisitor {
     @Override
     public boolean processRow(Result rowResult) throws IOException {
         Pair<HRegionInfo, ServerName> infoPair = MetaReader.parseCatalogResult(rowResult);
-
-        checkNotNull(infoPair.getFirst(), "never expect HRegionInfo object to be null");
-        checkNotNull(infoPair.getSecond(), "never expect ServerName object to be null");
-
         HRegionInfo regionInfo = infoPair.getFirst();
         byte[] currentTableName = regionInfo.getTableName();
 
@@ -53,6 +49,7 @@ class RegionMetaScannerVisitor implements MetaScanner.MetaScannerVisitor {
         }
 
         if (isRegionAvailable(regionInfo)) {
+            checkNotNull(infoPair.getSecond(), "never expect ServerName object to be null");
             SortedSet<Pair<HRegionInfo, ServerName>> regionsForTable = regionPairMap.get(currentTableName);
             if (regionsForTable == null) {
                 regionsForTable = Sets.newTreeSet(COMPARATOR);
