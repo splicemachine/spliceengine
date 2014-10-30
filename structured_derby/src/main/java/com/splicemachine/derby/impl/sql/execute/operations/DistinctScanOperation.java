@@ -104,6 +104,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
                 tableLocked,
                 isolationLevel,
                 colRefItem,
+                -1,
                 false,
                 optimizerEstimatedRowCount,
                 optimizerEstimatedCost);

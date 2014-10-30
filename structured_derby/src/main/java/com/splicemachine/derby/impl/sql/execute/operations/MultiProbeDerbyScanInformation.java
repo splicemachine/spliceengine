@@ -39,7 +39,7 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
                                           int stopSearchOperator,
                                           DataValueDescriptor[] probeValues) {
         super(resultRowAllocatorMethodName, startKeyGetterMethodName, stopKeyGetterMethodName,
-                scanQualifiersField, conglomId, colRefItem, sameStartStopPosition, startSearchOperator, stopSearchOperator);
+                scanQualifiersField, conglomId, colRefItem, -1, sameStartStopPosition, startSearchOperator, stopSearchOperator);
         this.probeValues = probeValues;
     }
 

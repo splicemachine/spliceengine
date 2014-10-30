@@ -65,6 +65,7 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 													GeneratedMethod resultRowAllocator,
 													int lockMode, boolean tableLocked, int isolationLevel,
 													int colRefItem,
+													int indexColItem,
 													boolean oneRowScan,
 													double optimizerEstimatedRowCount,
 													double optimizerEstimatedCost) throws StandardException {
@@ -80,6 +81,7 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 								scanQualifiersField!=null? scanQualifiersField : null,
 								conglomId,
 								colRefItem,
+								indexColItem,
 								sameStartStopPosition,
 								startSearchOperator,
 								stopSearchOperator

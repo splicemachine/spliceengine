@@ -9,6 +9,7 @@ import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
+import com.splicemachine.derby.utils.FormatableBitSetUtils;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SerializationUtils;
 import com.splicemachine.pipeline.exception.Exceptions;
@@ -19,7 +20,9 @@ import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.i18n.MessageService;
+import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
+import org.apache.derby.iapi.services.io.FormatableIntHolder;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
@@ -51,7 +54,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
     //fields marked transient as a documentation tool, so we know which fields aren't set
     private transient GenericStorablePreparedStatement gsps;
     private transient Activation activation;
-
+    public static int[] Empty_Array = new int[0];
     //serialized fields
     private String resultRowAllocatorMethodName;
     private String startKeyGetterMethodName;
@@ -73,7 +76,8 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
     private SpliceMethod<ExecIndexRow> stopKeyGetter;
     private SpliceConglomerate conglomerate;
     private int colRefItem;
-		private String tableVersion;
+    private int indexColItem;
+	private String tableVersion;
 
 		public static final Cache<Long,String> tableVersionCache = CacheBuilder.newBuilder()
 						.maximumSize(4096)
@@ -93,6 +97,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
                                 String scanQualifiersField,
                                 long conglomId,
                                 int colRefItem,
+                                int indexColItem,
                                 boolean sameStartStopPosition,
                                 int startSearchOperator,
                                 int stopSearchOperator){
@@ -100,6 +105,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
         this.startKeyGetterMethodName = startKeyGetterMethodName;
         this.stopKeyGetterMethodName = stopKeyGetterMethodName;
         this.colRefItem = colRefItem;
+        this.indexColItem = indexColItem;
         this.conglomId = conglomId;
         this.sameStartStopPosition = sameStartStopPosition;
         this.startSearchOperator = startSearchOperator;
@@ -258,7 +264,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
         out.writeInt(startSearchOperator);
         out.writeInt(stopSearchOperator);
         out.writeInt(colRefItem);
-
+        out.writeInt(indexColItem);
         SerializationUtils.writeNullableString(scanQualifiersField, out);
         SerializationUtils.writeNullableString(startKeyGetterMethodName, out);
         SerializationUtils.writeNullableString(stopKeyGetterMethodName, out);
@@ -273,7 +279,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
         startSearchOperator = in.readInt();
         stopSearchOperator = in.readInt();
         colRefItem = in.readInt();
-
+        indexColItem = in.readInt();
         scanQualifiersField = SerializationUtils.readNullableString(in);
         startKeyGetterMethodName = SerializationUtils.readNullableString(in);
         stopKeyGetterMethodName = SerializationUtils.readNullableString(in);
@@ -513,4 +519,18 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
         return getConglomerate().getColumnOrdering();
     }
 
+	@Override
+	public int[] getIndexToBaseColumnMap() throws StandardException {
+		if (this.indexColItem == -1)
+			return Empty_Array;		
+        FormatableArrayHolder fah = (FormatableArrayHolder)activation.getPreparedStatement().getSavedObject(indexColItem);
+        FormatableIntHolder[] fihArray = (FormatableIntHolder[])fah.getArray(FormatableIntHolder.class);
+        int[] keyColumns = new int[fihArray.length];
+        for(int index=0;index<fihArray.length;index++){
+            keyColumns[index] = fihArray[index].getInt()-1; // 1 based to 0 based
+        }
+		return keyColumns;
+		
+	}
+	
 }

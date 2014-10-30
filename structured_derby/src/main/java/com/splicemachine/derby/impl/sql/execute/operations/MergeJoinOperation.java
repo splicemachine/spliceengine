@@ -15,6 +15,7 @@ import com.splicemachine.derby.utils.StandardPushBackIterator;
 import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.pipeline.exception.Exceptions;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -89,6 +90,17 @@ public class MergeJoinOperation extends JoinOperation {
     	else
     		return null;
     }
+
+    public static ScanInformation getScanInformation(SpliceOperation resultSetOperation) throws StandardException {
+    	if (resultSetOperation instanceof TableScanOperation)
+    		return ((TableScanOperation) resultSetOperation).scanInformation;
+    	SpliceOperation leftOperation = resultSetOperation.getLeftOperation();
+    	if (leftOperation != null)
+    		return getScanInformation(leftOperation);
+    	else
+    		return null;
+    }
+
     
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException {
@@ -98,7 +110,12 @@ public class MergeJoinOperation extends JoinOperation {
         SpliceConglomerate conglomerate = getSpliceConglomerate(rightResultSet);
         if (conglomerate == null)
         	throw new RuntimeException("Could not find the base table under the result set");
-        int[] columnOrdering = conglomerate.getColumnOrdering();
+        int[] columnOrdering;
+        if (conglomerate.getTypeFormatId()== StoredFormatIds.ACCESS_B2I_V5_ID) {
+        	columnOrdering = getScanInformation(rightResultSet).getIndexToBaseColumnMap();
+        } else {
+        	columnOrdering = conglomerate.getColumnOrdering();
+        }
         List<Integer> keySortIndexes = Lists.newLinkedList();
         for (int i = 0; i < rightHashKeys.length; i++) {
         	int col = columnOrdering[i];
