@@ -102,7 +102,6 @@
 			<dependency> <groupId>org.apache.commons</groupId> <artifactId>commons-math</artifactId> <version>2.1</version> </dependency>
 			<dependency> <groupId>org.apache.derby</groupId> <artifactId>derby</artifactId> <version>${derby.version}</version> </dependency>
 			<dependency> <groupId>org.apache.derby</groupId> <artifactId>derbyclient</artifactId> <version>${derby.version}</version> </dependency>
-			<dependency> <groupId>org.apache.hadoop</groupId> <artifactId>hadoop-annotations</artifactId> <version>${hadoop.version}</version> </dependency>
 			<dependency> <groupId>org.apache.lucene</groupId> <artifactId>lucene-core</artifactId> <version>4.3.1</version> </dependency>
 			<dependency> <groupId>org.apache.mrunit</groupId> <artifactId>mrunit</artifactId> <version>1.0.0</version> <classifier>hadoop2</classifier> </dependency>
 			<dependency> <groupId>org.apache.zookeeper</groupId> <artifactId>zookeeper</artifactId> <version>${zookeeper.version}</version> </dependency>
@@ -501,16 +500,19 @@
 						<configuration>
 							<!-- Skip unit tests we don't expect to work with MapR -->
 							<excludes>
-								<exclude>**/HBaseSuite.java</exclude>
-								<exclude>**/HbasePackedAsyncRollForwardTest.java</exclude>
+								<exclude>**/ExportFailedTaskCleanupTest.java</exclude>
+								<exclude>**/ExportFileTest.java</exclude>
+								<exclude>**/ExportPermissionCheckTest.java</exclude>
+								<exclude>**/HBaseActiveTransactionTest.java</exclude>
 								<exclude>**/HBasePackedCompactionTest.java</exclude>
+								<exclude>**/HBaseSuite.java</exclude>
+								<exclude>**/HBaseTransactionInteractionTest.java</exclude>
+								<exclude>**/HbasePackedAsyncRollForwardTest.java</exclude>
+								<exclude>**/JtaXAResourceHBaseTest.java</exclude>
+								<exclude>**/JtaXAResourceTest.java</exclude>
+								<exclude>**/PackedAsyncRollForwardTest.java</exclude>
 								<exclude>**/SIFilterHBaseTest.java</exclude>
 								<exclude>**/SITransactorHBasePackedTest.java</exclude>
-								<exclude>**/JtaXAResourceHBaseTest.java</exclude>
-								<exclude>**/TransactionManagerHBaseTest.java</exclude>
-                                <exclude>**/ExportFileTest.java</exclude>
-								<exclude>**/ExportFailedTaskCleanupTest.java</exclude>
-								<exclude>**/ExportPermissionCheckTest.java</exclude>
 								<!-- Skip Window function UIs temporarily - DB-1765 -->
 								<exclude>com/splicemachine/derby/impl/sql/execute/operations/window/**</exclude>
 							</excludes>
