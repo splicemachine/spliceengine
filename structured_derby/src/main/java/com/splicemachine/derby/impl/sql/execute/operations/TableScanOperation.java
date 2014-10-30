@@ -95,7 +95,7 @@ public class TableScanOperation extends ScanOperation {
                                    double optimizerEstimatedCost) throws StandardException {
 				super(conglomId, activation, resultSetNumber, startKeyGetter, startSearchOperator, stopKeyGetter, stopSearchOperator,
                         sameStartStopPosition, qualifiersField, resultRowAllocator, lockMode, tableLocked, isolationLevel,
-                        colRefItem,oneRowScan, optimizerEstimatedRowCount, optimizerEstimatedCost);
+                        colRefItem, indexColItem, oneRowScan, optimizerEstimatedRowCount, optimizerEstimatedCost);
 				SpliceLogUtils.trace(LOG, "instantiated for tablename %s or indexName %s with conglomerateID %d",
                         tableName, indexName, conglomId);
 				this.forUpdate = forUpdate;
@@ -103,6 +103,7 @@ public class TableScanOperation extends ScanOperation {
 				this.rowsPerRead = rowsPerRead;
 				this.tableName = Long.toString(scanInformation.getConglomerateId());
 				this.indexColItem = indexColItem;
+				
 				this.indexName = indexName;
 				runTimeStatisticsOn = operationInformation.isRuntimeStatisticsEnabled();
 				if (LOG.isTraceEnabled())

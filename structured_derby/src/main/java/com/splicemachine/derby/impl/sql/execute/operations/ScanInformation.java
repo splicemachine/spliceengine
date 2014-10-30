@@ -44,6 +44,7 @@ interface ScanInformation<T> {
 		 */
     FormatableBitSet getAccessedPkColumns() throws StandardException;
 
+    int[] getIndexToBaseColumnMap() throws StandardException;
 
     Scan getScan(TxnView txn) throws StandardException;
 
