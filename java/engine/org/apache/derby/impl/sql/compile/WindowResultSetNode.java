@@ -380,68 +380,19 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                 // we handle window functions in another method
                 continue;
             }
-            ResultColumn newRC = (ResultColumn) getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN,
-                "##UnWindowingColumn" + parentRef.ref.getColumnName(),
-                parentRef.ref,
-                getContextManager());
 
-            // add this result column to the bottom rcl
-            bottomRCL.addElement(newRC);
-            newRC.markGenerated();
-            newRC.bindResultColumnToExpression();
-            newRC.setVirtualColumnId(bottomRCL.size());
-
-            // now add this column to the windowingRCL
-            ResultColumn wRC = (ResultColumn) getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN,
-                "##UnWindowingColumn" + parentRef.ref.getColumnName(),
-                parentRef.ref,
-                getContextManager());
-            windowingRCL.addElement(wRC);
-            wRC.markGenerated();
-            wRC.bindResultColumnToExpression();
-            int columnPosition = windowingRCL.size();
-            wRC.setVirtualColumnId(columnPosition);
-
-            // reset the partition and/or order by column's column position in the
-            // Window result since we're rearranging here
-            resetOverColumnsPositionByParent(parentRef, wdn.getOverColumns(), columnPosition);
-
-          /*
-           ** Reset the original node to point to the
-           ** Group By result set.
-           */
-            VirtualColumnNode vc = (VirtualColumnNode) getNodeFactory().getNode(
-                C_NodeTypes.VIRTUAL_COLUMN_NODE,
-                this, // source result set.
-                wRC,
-                windowingRCL.size(),
-                getContextManager());
-
-            // we replace each group by expression
-            // in the projection list with a virtual column node
-            // that effectively points to a result column
-            // in the result set doing the group by
-            //
-            // Note that we don't perform the replacements
-            // immediately, but instead we accumulate them
-            // until the end of the loop. This allows us to
-            // sort the expressions and process them in
-            // descending order of complexity, necessary
-            // because a compound expression may contain a
-            // reference to a simple grouped column, but in
-            // such a case we want to process the expression
-            // as an expression, not as individual column
-            // references. E.g., if the statement was:
-            //   SELECT ... GROUP BY C1, C1 * (C2 / 100), C3
-            // then we don't want the replacement of the
-            // simple column reference C1 to affect the
-            // compound expression C1 * (C2 / 100). DERBY-3094.
-            //
-            SubstituteExpressionVisitor vis =
-                new SubstituteExpressionVisitor(parentRef.ref, vc, AggregateNode.class);
-            referencesToSubstitute.add(vis);
+            if (parentRef.ref instanceof BinaryOperatorNode) {
+                if (! (((BinaryOperatorNode)parentRef.ref).getRightOperand() instanceof WindowFunctionNode)) {
+                    createUnWindowingColumn(bottomRCL, windowingRCL, referencesToSubstitute,
+                                            ((BinaryOperatorNode)parentRef.ref).getRightOperand());
+                }
+                if (! (((BinaryOperatorNode)parentRef.ref).getLeftOperand() instanceof WindowFunctionNode)) {
+                    createUnWindowingColumn(bottomRCL, windowingRCL, referencesToSubstitute,
+                                            ((BinaryOperatorNode)parentRef.ref).getLeftOperand());
+                }
+            } else {
+                createUnWindowingColumn(bottomRCL, windowingRCL, referencesToSubstitute, parentRef, parentRef.ref);
+            }
         }
         // Make RC -> VC substitutions in parent
         Comparator<SubstituteExpressionVisitor> sorter = new ExpressionSorter();
@@ -451,6 +402,85 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         }
 
         return columnMapping;
+    }
+
+    private void createUnWindowingColumn(ResultColumnList bottomRCL, ResultColumnList windowingRCL,
+                                         List<SubstituteExpressionVisitor> referencesToSubstitute,
+                                         ValueNode pRef)
+        throws StandardException {
+        createUnWindowingColumn(bottomRCL, windowingRCL, referencesToSubstitute, null, pRef);
+    }
+
+    private void createUnWindowingColumn(ResultColumnList bottomRCL, ResultColumnList windowingRCL,
+                                         List<SubstituteExpressionVisitor> referencesToSubstitute,
+                                         WindowColumnMapping.ParentRef parentRef, ValueNode pRef)
+        throws StandardException {
+        String name = (parentRef != null ? parentRef.getName() : pRef.getColumnName());
+        ResultColumn newRC = (ResultColumn) getNodeFactory().getNode(
+            C_NodeTypes.RESULT_COLUMN,
+            "##UnWinColumn_" + name,
+            pRef,
+            getContextManager());
+
+        // add this result column to the bottom rcl
+        bottomRCL.addElement(newRC);
+        newRC.markGenerated();
+        newRC.bindResultColumnToExpression();
+        newRC.setVirtualColumnId(bottomRCL.size());
+
+        // now add this column to the windowingRCL
+        ResultColumn wRC = (ResultColumn) getNodeFactory().getNode(
+            C_NodeTypes.RESULT_COLUMN,
+            "##UnWinColumn_" + name,
+            pRef,
+            getContextManager());
+        windowingRCL.addElement(wRC);
+        wRC.markGenerated();
+        wRC.bindResultColumnToExpression();
+        int columnPosition = windowingRCL.size();
+        wRC.setVirtualColumnId(columnPosition);
+
+        // reset the partition and/or order by column's column position in the
+        // Window result since we're rearranging here
+        if (parentRef != null) {
+            // if parentRef == null, we're not dealing with a column among the OVER() columns
+            resetOverColumnsPositionByParent(parentRef, wdn.getOverColumns(), columnPosition);
+        }
+
+          /*
+           ** Reset the original node to point to the
+           ** Group By result set.
+           */
+        VirtualColumnNode vc = (VirtualColumnNode) getNodeFactory().getNode(
+            C_NodeTypes.VIRTUAL_COLUMN_NODE,
+            this, // source result set.
+            wRC,
+            windowingRCL.size(),
+            getContextManager());
+
+        // we replace each group by expression
+        // in the projection list with a virtual column node
+        // that effectively points to a result column
+        // in the result set doing the group by
+        //
+        // Note that we don't perform the replacements
+        // immediately, but instead we accumulate them
+        // until the end of the loop. This allows us to
+        // sort the expressions and process them in
+        // descending order of complexity, necessary
+        // because a compound expression may contain a
+        // reference to a simple grouped column, but in
+        // such a case we want to process the expression
+        // as an expression, not as individual column
+        // references. E.g., if the statement was:
+        //   SELECT ... GROUP BY C1, C1 * (C2 / 100), C3
+        // then we don't want the replacement of the
+        // simple column reference C1 to affect the
+        // compound expression C1 * (C2 / 100). DERBY-3094.
+        //
+        SubstituteExpressionVisitor vis =
+            new SubstituteExpressionVisitor(pRef, vc, AggregateNode.class);
+        referencesToSubstitute.add(vis);
     }
 
     private boolean inSourceResult(ValueNode expression, ResultSetNode resultSetNode) {
@@ -688,7 +718,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             tmpRC.setVirtualColumnId(windowingRCL.size());
 
 			/*
-			** Set the parent result column to reference this tmpRC result column.
+			** Set the parent result column (or the appropriate node below it) to reference this tmpRC result column.
 			*/
             replaceParentFunctionWithResultReference(parent.getResultColumns(), windowFunctionNode, tmpRC);
 
@@ -1065,23 +1095,43 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
     private void replaceParentFunctionWithResultReference(ResultColumnList parentResultCols, WindowFunctionNode
         functionNode, ResultColumn newResultColumn) throws StandardException {
 
-        ResultColumn parentFunctionColumn = null;
+        ValueNode replacedNode = null;
         for (int i=0; i<parentResultCols.size(); i++) {
             ResultColumn aParentCol = parentResultCols.getResultColumn(i+1);
             if (functionNode.equals(aParentCol.getExpression())) {
-                parentFunctionColumn = aParentCol;
+                replacedNode = functionNode.replaceCallWithColumnReference(aParentCol,
+                                                            ((FromTable) childResult).getTableNumber(),
+                                                            this.level,
+                                                            newResultColumn);
                 break;
+            } else if (aParentCol.getExpression() instanceof BinaryOperatorNode) {
+                // TODO: what other skulduggery does Derby have in store in its plan trees?
+                BinaryOperatorNode aron = (BinaryOperatorNode) aParentCol.getExpression();
+                if (functionNode.equals(aron.getRightOperand())) {
+
+                    replacedNode = functionNode.replaceCallWithColumnReference(null,
+                                                                               ((FromTable) childResult).getTableNumber(),
+                                                                               this.level,
+                                                                               newResultColumn);
+                    aron.setRightOperand(replacedNode);
+                    break;
+                }
+                if (functionNode.equals(aron.getLeftOperand())) {
+
+                    replacedNode = functionNode.replaceCallWithColumnReference(null,
+                                                                               ((FromTable) childResult).getTableNumber(),
+                                                                               this.level,
+                                                                               newResultColumn);
+                    aron.setLeftOperand(replacedNode);
+                    break;
+                }
             }
         }
         if (SanityManager.DEBUG) {
-            SanityManager.ASSERT(parentFunctionColumn != null,
-                                 "unresolved window function: " + functionNode.getName());
+            SanityManager.ASSERT(replacedNode != null,
+                                 "Failed to replace parent function reference; unresolved window function: " +
+                                     functionNode.getName());
         }
-
-        functionNode.replaceCallWithColumnReference(parentFunctionColumn,
-                                                    ((FromTable) childResult).getTableNumber(),
-                                                    this.level,
-                                                    newResultColumn);
     }
 
     /**

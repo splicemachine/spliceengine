@@ -692,7 +692,7 @@ public class GroupByNode extends SingleChildResultSetNode
 			*/
 			newColumnRef = (ColumnReference) getNodeFactory().getNode(
 					C_NodeTypes.COLUMN_REFERENCE,
-					"##CR -> "+newRC.getName(),
+					newRC.getName(),
 					null,
 					getContextManager());
 			newColumnRef.setSource(newRC);
@@ -700,7 +700,7 @@ public class GroupByNode extends SingleChildResultSetNode
 			newColumnRef.setSourceLevel(this.getLevel());
 			tmpRC = (ResultColumn) getNodeFactory().getNode(
 					C_NodeTypes.RESULT_COLUMN,
-                    "##RC -> "+newColumnRef.getColumnName(),
+                    newColumnRef.getColumnName(),
 					newColumnRef,
 					getContextManager());
 			tmpRC.markGenerated();
@@ -1205,7 +1205,7 @@ public class GroupByNode extends SingleChildResultSetNode
 	
 		tmpColumnRef = (ColumnReference) getNodeFactory().getNode(
 											C_NodeTypes.COLUMN_REFERENCE,
-											"##CR -> "+targetRC.getName(),
+											targetRC.getName(),
 											null,
 											getContextManager());
 		tmpColumnRef.setSource(targetRC);
@@ -1213,7 +1213,7 @@ public class GroupByNode extends SingleChildResultSetNode
 		tmpColumnRef.setSourceLevel(this.getLevel());
 		newRC = (ResultColumn) getNodeFactory().getNode(
 									C_NodeTypes.RESULT_COLUMN,
-									"##RC -> "+tmpColumnRef.getColumnName(),
+									tmpColumnRef.getColumnName(),
 									tmpColumnRef,
 									getContextManager());
 		newRC.markGenerated();

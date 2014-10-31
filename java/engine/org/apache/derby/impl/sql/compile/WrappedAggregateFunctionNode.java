@@ -58,7 +58,7 @@ public class WrappedAggregateFunctionNode extends WindowFunctionNode {
 
     /**
      * Overridden to redirect the call to the wrapped aggregate node.
-     * @param rc the result column to which to add the new ref
+     * @param rc the result column to which to add the new ref, only used if not null.
      * @param tableNumber The tableNumber for the new ColumnReference
      * @param nestingLevel this node's nesting level
      * @param newResultColumn the source RC for the new CR
@@ -79,7 +79,9 @@ public class WrappedAggregateFunctionNode extends WindowFunctionNode {
         node.markGeneratedToReplaceWindowFunctionCall();
 
         node.setSource(newResultColumn);
-        rc.setExpression(node);
+        if (rc != null) {
+            rc.setExpression(node);
+        }
         return node;
     }
 

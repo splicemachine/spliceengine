@@ -177,7 +177,7 @@ public class WindowColumnMapping {
             ResultColumn rc = parentRCL.getResultColumn(i+1);
             ValueNode node = rc.getExpression();
             String id = rc.exposedName;
-            ParentRef parentRef = new ParentRef(rc, id);
+            ParentRef parentRef = new ParentRef(rc.getExpression(), id);
             parentRefList.add(parentRef);
             if (node instanceof ColumnReference || node instanceof VirtualColumnNode) {
                 // limit matching parent expressions to one of the types of the key columns
@@ -295,15 +295,13 @@ public class WindowColumnMapping {
 
     public static class ParentRef {
         final String id;
-        final ResultColumn col;
         final ValueNode ref;
         final List<OrderedColumn> children;
 
-        ParentRef(ResultColumn col, String id) {
+        ParentRef(ValueNode colExp, String id) {
             this.id = id;
             children = new ArrayList<OrderedColumn>(10);
-            this.col = col;
-            this.ref = col.getExpression();
+            this.ref = colExp;
         }
 
         public List<ValueNode> getChildExpressions() {
@@ -312,6 +310,19 @@ public class WindowColumnMapping {
                 childrenExps.add(oc.getColumnExpression());
             }
             return childrenExps;
+        }
+
+        public String getName() {
+            String name = ref.getColumnName();
+            if (name == null) {
+                name = id;
+            }
+            return name;
+        }
+
+        @Override
+        public String toString() {
+            return getName();
         }
     }
 }
