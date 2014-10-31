@@ -1,5 +1,6 @@
 package com.splicemachine.stats.histogram;
 
+import com.carrotsearch.hppc.IntDoubleOpenHashMap;
 import com.splicemachine.hash.BooleanHash;
 import com.splicemachine.hash.Hash32;
 import com.splicemachine.hash.HashFunctions;
@@ -23,6 +24,8 @@ class GroupedCounter implements IntUpdateable{
      * The first index is the level, the second index is the group id
      */
     private final Level[] levels;
+    private long sum = 0l;
+    private final int maxValue;
 
     public static GroupedCounter newCounter(int maxValue,final float tolerance,final int t){
           assert tolerance<1 && tolerance>0: "Tolerance must be between 0 and 1";
@@ -35,6 +38,7 @@ class GroupedCounter implements IntUpdateable{
     }
 
     private GroupedCounter(int maxValue){
+        this.maxValue = maxValue;
         //we allow positive and negative values, so we will have maxValue*2 counters,
         //and lg(maxValue) levels
         int N = 1;
@@ -60,6 +64,7 @@ class GroupedCounter implements IntUpdateable{
 
     @Override
     public void update(int item, long count) {
+        sum+=item;
         //update each interval independently
         //noinspection ForLoopReplaceableByForEach
         for(int i=0;i<levels.length;i++){
@@ -86,11 +91,33 @@ class GroupedCounter implements IntUpdateable{
         return energies;
     }
 
+    public IntDoubleOpenHashMap getCoefficients(double support){
+        IntDoubleOpenHashMap coefs = new IntDoubleOpenHashMap();
+        coefs.put(0,((double)sum)/maxValue);
+        findHighestCoefs(support,0,0,levels,coefs);
+        return coefs;
+    }
+
+    private void findHighestCoefs(double threshold,int level, int g, Level[] levels, IntDoubleOpenHashMap coefs) {
+        if(level>=levels.length) return;
+        double energy = levels[level].getEnergy(g);
+        if(energy>threshold){
+            int coef = (1<<level)+g;
+            coefs.put(coef,levels[level].getValue(g));
+            findHighestCoefs(threshold, level+1, 2*g, levels, coefs);
+            findHighestCoefs(threshold, level+1, 2*g+1, levels, coefs);
+        }
+    }
+
     private static abstract class Level{
-        private final double a;
-        private final double b;
+        protected final double a;
+        protected final double b;
         protected final int level;
         protected final int lg;
+        private final double na;
+        private final double nb;
+
+        protected final double scale;
 
         protected Level(int level, int lg) {
             this.level = level;
@@ -100,13 +127,27 @@ class GroupedCounter implements IntUpdateable{
                 this.b = 1d/2;
             else
                 this.b = (1<<(level-1));
+
+            this.na = a*2;
+            this.nb = b*2;
+
+            scale = Math.sqrt(a);
         }
 
         protected int group(int value) {
             return (int)(a*value+b);
         }
 
+        protected long signedCount(int value,long count) {
+            int ng = (int)(na*value+nb);
+            return ng%2==0?count: -count;
+        }
+
         public abstract long[] getEnergies();
+
+        public abstract double getEnergy(int group);
+
+        public abstract double getValue(int group);
 
         public abstract void update(int value, long count);
     }
@@ -122,12 +163,20 @@ class GroupedCounter implements IntUpdateable{
         @Override
         public void update(int value, long count){
             int group = group(value);
-            counters[group]+=count;
+            long cnt = signedCount(value,count);
+            counters[group]+=cnt;
+        }
+
+        @Override public long[] getEnergies(){ return counters; }
+
+        @Override
+        public double getEnergy(int group) {
+            return scale*Math.abs(counters[group]);
         }
 
         @Override
-        public long[] getEnergies(){
-            return counters;
+        public double getValue(int group) {
+            return scale*counters[group];
         }
     }
 
@@ -191,12 +240,22 @@ class GroupedCounter implements IntUpdateable{
         public long[] getEnergies() {
             long[] counters = new long[1<<level];
             for(int i=0;i<counters.length;i++){
-                counters[i] = getEnergy(i);
+                counters[i] = estimateEnergy(i);
             }
             return counters;
         }
 
-        private long getEnergy(int group) {
+        @Override
+        public double getValue(int group) {
+            throw new UnsupportedOperationException("IMPLEMENT");
+        }
+
+        @Override
+        public double getEnergy(int group) {
+            return scale*estimateEnergy(group);
+        }
+
+        public long estimateEnergy(int group) {
             long[] possibleValues = new long[t];
             for(int m=0;m<t;m++){
                 long energy = 0l;
@@ -215,32 +274,42 @@ class GroupedCounter implements IntUpdateable{
 
 
     public static void main(String... args) throws Exception{
-        int numIterations =1000;
-        int max=8;
-        Random random = new Random();
-        GroupedCounter counter = GroupedCounter.newCounter(max,0.1f,3);
-        GroupedCounter correctCounter = new GroupedCounter(max);
-        long correctEnergy = 0l;
-        for(int i=0;i<numIterations;i++){
-            int next =random.nextInt(2*max)-max;
-            counter.update(next,1l);
-            correctCounter.update(next,1l);
-            correctEnergy+=next*next;
-        }
-        long[][] energies = counter.getEnergies();
-        System.out.printf("Actual : %s%n",Arrays.deepToString(energies));
-        System.out.printf("Correct: %s%n", Arrays.deepToString(correctCounter.getEnergies()));
+//        int numIterations =1000;
+//        int max=8;
+//        Random random = new Random();
+//        GroupedCounter counter = GroupedCounter.newCounter(max,0.1f,3);
+//        GroupedCounter correctCounter = new GroupedCounter(max);
+//        long correctEnergy = 0l;
+//        for(int i=0;i<numIterations;i++){
+//            int next =random.nextInt(2*max)-max;
+//            counter.update(next,1l);
+//            correctCounter.update(next,1l);
+//            correctEnergy+=next*next;
+//        }
+//        long[][] energies = counter.getEnergies();
+//        System.out.printf("Actual : %s%n",Arrays.deepToString(energies));
+//        System.out.printf("Correct: %s%n", Arrays.deepToString(correctCounter.getEnergies()));
+//
+//        System.out.printf("Correct energy: %d%n",correctEnergy);
+//        long[] lowestLevel = energies[energies.length-1];
+//        long estEnergy = 0l;
+//        int level = energies.length-1;
+//        for(int i=0;i<lowestLevel.length;i++){
+//            long gCount = lowestLevel[i]; //the count of the "group"--must remap to original component to get actual energy
+//            int v = i-(1<<(level-1));
+//
+//            estEnergy+=(v*v)*gCount;
+//        }
+//        System.out.printf("Est. energy: %d%n",estEnergy);
 
-        System.out.printf("Correct energy: %d%n",correctEnergy);
-        long[] lowestLevel = energies[energies.length-1];
-        long estEnergy = 0l;
-        int level = energies.length-1;
-        for(int i=0;i<lowestLevel.length;i++){
-            long gCount = lowestLevel[i]; //the count of the "group"--must remap to original component to get actual energy
-            int v = i-(1<<(level-1));
-
-            estEnergy+=(v*v)*gCount;
+        int[] signal = new int[]{2,2,0,2,3,5,4,4};
+        int N = 8;
+        GroupedCounter exact = new GroupedCounter(N);
+        for(int s:signal){
+            exact.update(s);
         }
-        System.out.printf("Est. energy: %d%n",estEnergy);
+
+        System.out.println(Arrays.deepToString(exact.getEnergies()));
+        System.out.println(exact.getCoefficients(0.0d));
     }
 }

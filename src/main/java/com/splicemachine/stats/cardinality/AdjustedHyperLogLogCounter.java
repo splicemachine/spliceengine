@@ -37,4 +37,9 @@ public class AdjustedHyperLogLogCounter extends BaseBiasAdjustedHyperLogLogCount
 		protected int getRegister(int register) {
 				return buckets[register];
 		}
+
+    @Override
+    public byte[] encode() {
+        throw new UnsupportedOperationException("IMPLEMENT");
+    }
 }
