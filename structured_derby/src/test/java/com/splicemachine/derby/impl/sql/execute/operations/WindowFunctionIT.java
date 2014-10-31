@@ -1144,7 +1144,22 @@ public class WindowFunctionIT extends SpliceUnitTest {
     }
 
     @Test
-    public void testAvgArithmetic() throws Exception {
+    public void testConstMinusAvg1() throws Exception {
+        // DB-2124
+        String sqlText = String.format("SELECT %2$s.Salario - AVG(%2$s.Salario) OVER(PARTITION BY " +
+                                           "%1$s.Nome_Dep) \"Diferença de Salário\" FROM %2$s " +
+                                           "INNER JOIN %1$s " +
+                                           "ON %2$s.ID_Dep = %1$s.ID",
+                                       this.getTableReference(TABLE5a_NAME), this.getTableReference(TABLE5b_NAME));
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        TestUtils.printResult(sqlText, rs, System.out);
+        rs.close();
+    }
+
+    @Test
+    public void testConstMinusAvg2() throws Exception {
+        // DB-2124
         String sqlText = String.format("SELECT %1$s.Nome_Dep, " +
                                            "%2$s.Nome AS Funcionario, " +
                                            "%2$s.Salario, " +
@@ -1161,6 +1176,38 @@ public class WindowFunctionIT extends SpliceUnitTest {
         rs.close();
     }
 
+    @Test
+    @Ignore("DB-2086 replaceAggregateWithColumnReference() has not been called on this AggergateNode")
+    public void testSumTimesConstDivSum() throws Exception {
+        // DB-2086 - fails when agg and wrapped agg are identical. Passes when they are diff.
+        String sqlText = String.format("SELECT AVG(%2$s.Salario) * 100 / " +
+                                           "AVG(%2$s.Salario) OVER(PARTITION BY %1$s.Nome_Dep) " +
+                                           "\"Média por Departamento\" " +
+                                           "FROM %2$s, %1$s GROUP BY %1$s.Nome_Dep",
+                                       this.getTableReference(TABLE5a_NAME), this.getTableReference(TABLE5b_NAME));
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        TestUtils.printResult(sqlText, rs, System.out);
+        rs.close();
+    }
+
+    @Test
+    public void testSumTimesConstDivSumGrpBy() throws Exception {
+        // DB-2086
+        String sqlText = String.format("SELECT SUM(%2$s.Salario) * 100 / " +
+                                           "SUM(%2$s.Salario) " +
+                                           "\"Messed Up\" " +
+                                           "FROM %2$s, %1$s GROUP BY %1$s.Nome_Dep",
+                                       this.getTableReference(TABLE5a_NAME), this.getTableReference(TABLE5b_NAME));
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        TestUtils.printResult(sqlText, rs, System.out);
+        rs.close();
+    }
+
+    //============================================================================================================
+    //
+    //============================================================================================================
     private static void compareArrays(int[] expected, List<Integer> actualList) {
         int[] actual = new int[actualList.size()];
         for (int i=0; i<actualList.size(); i++) {
