@@ -109,12 +109,23 @@ public class WrappedAggregateFunctionNode extends WindowFunctionNode {
     @Override
     public ValueNode bindExpression(FromList fromList, SubqueryList subqueryList, Vector aggregateVector) throws
         StandardException {
-        ValueNode boundNode = aggregateFunction.bindExpression(fromList, subqueryList, aggregateVector);
-        // We don't want to be in this aggregateVector - remove ourselves (the wrapped aggregate)
+        // DB-2086 - Vector.remove() calls node1.isEquivalent(node2), not node1.equals(node2), which
+        // returns true for identical aggregate nodes removing the first aggregate, not necessarily
+        // this one. We need to create a tmp Vector and add all Agg nodes found but this delegate by
+        // checking for object identity (==)
+        Vector<AggregateNode> tmp = new Vector<AggregateNode>();
+        ValueNode boundNode = aggregateFunction.bindExpression(fromList, subqueryList, tmp);
+
+        // We don't want to be in this aggregateVector - we add all aggs found during bind except
+        // this delegate.
         // We want to bind the wrapped aggregate (and operand, etc) but we don't want to show up
         // in this list as an aggregate. The list will be handed to GroupByNode, which we don't
         // want doing the work.  Window function code will handle the window function aggregates
-        aggregateVector.remove(aggregateFunction);
+        for (Object aggFn : tmp) {
+            if (aggregateFunction != aggFn) {
+                aggregateVector.add(aggFn);
+            }
+        }
 
         // Now that delegate is bound, set some required fields on this
         // TODO: What all is required?
