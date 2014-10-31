@@ -42,6 +42,8 @@ public class MergeJoinIT extends SpliceUnitTest {
     protected static final String FOO = "FOO";
     protected static final String FOO2 = "FOO2";
     protected static final String FOO2_IDX = "FOO2_IDX";
+    protected static final String TEST = "TEST";
+    protected static final String TEST2 = "TEST2";
     
     
 
@@ -63,12 +65,23 @@ public class MergeJoinIT extends SpliceUnitTest {
     protected static SpliceTableWatcher foo2Table = new SpliceTableWatcher(FOO2, CLASS_NAME,
             "(col1 int, col2 int, col3 int)");
 
+    protected static SpliceTableWatcher testTable = new SpliceTableWatcher(TEST, CLASS_NAME,
+            "(col1 int, col2 int, col3 int, col4 int, col5 int, col6 int, col7 int, col8 int, primary key (col5, col7))");
+    
+    protected static SpliceTableWatcher test2Table = new SpliceTableWatcher(TEST2, CLASS_NAME,
+            "(col1 int, col2 int, col3 int, col4 int, primary key (col1, col2))");
+
     protected static SpliceIndexWatcher foo2Index = new SpliceIndexWatcher(FOO2,CLASS_NAME,FOO2_IDX,CLASS_NAME,"(col3, col2, col1)");
 
     protected static String MERGE_INDEX_RIGHT_SIDE_TEST = format("select * from --SPLICE-PROPERTIES joinOrder=fixed\n" +
     						" %s.%s inner join %s.%s --SPLICE-PROPERTIES index=%s, joinStrategy=MERGE\n" + 
     						" on foo.col1 = foo2.col3",CLASS_NAME,FOO,CLASS_NAME,FOO2,FOO2_IDX);
-   
+
+    protected static String MERGE_WITH_UNORDERED = format("select test.col1, test2.col4 from --SPLICE-PROPERTIES joinOrder=fixed\n" +
+			" %s.%s inner join %s.%s --SPLICE-PROPERTIES joinStrategy=MERGE\n" + 
+			" on test.col7 = test2.col2 and" +
+			" test.col5 = test2.col1",CLASS_NAME,TEST,CLASS_NAME,TEST2);
+
     
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceSchemaWatcher)
@@ -78,12 +91,17 @@ public class MergeJoinIT extends SpliceUnitTest {
         .around(fooTable)
         .around(foo2Table)
         .around(foo2Index)
+        .around(testTable)
+        .around(test2Table)
         .around(new SpliceDataWatcher() {
         	  @Override
               protected void starting(Description description) {
                   try {
                 	  spliceClassWatcher.executeUpdate(format("insert into %s.%s values (1,2)",CLASS_NAME,FOO));
-                	  spliceClassWatcher.executeUpdate(format("insert into %s.%s values (3,2,1)",CLASS_NAME,FOO2));                	  
+                	  spliceClassWatcher.executeUpdate(format("insert into %s.%s values (3,2,1)",CLASS_NAME,FOO2));
+                	  spliceClassWatcher.executeUpdate(format("insert into %s.%s values (1,2,3,4,1,6,2,8)",CLASS_NAME,TEST));
+                	  spliceClassWatcher.executeUpdate(format("insert into %s.%s values (1,2,3,4)",CLASS_NAME,TEST2));
+
                   } catch (Exception e) {
                       throw new RuntimeException(e);
                   } finally {
@@ -354,4 +372,11 @@ public class MergeJoinIT extends SpliceUnitTest {
     	List<Object[]> data = TestUtils.resultSetToArrays(methodWatcher.executeQuery(MERGE_INDEX_RIGHT_SIDE_TEST));
     	Assert.assertTrue("does not return 1 row for merge, position problems in MergeSortJoinStrategy/Operation?",data.size()==1);
     }
+
+    @Test
+    public void testMergeWithUnorderedPredicates() throws Exception {
+    	List<Object[]> data = TestUtils.resultSetToArrays(methodWatcher.executeQuery(MERGE_WITH_UNORDERED));
+    	Assert.assertTrue("does not return 1 row for merge, position problems in MergeSortJoinStrategy/Operation?",data.size()==1);
+    }
+
 }

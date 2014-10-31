@@ -182,6 +182,11 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
             if(!pull || !shouldRemove)
                 t.pushOptPredicate(p);
         }
+        Collections.sort(pulled, new Comparator<Predicate>() { // Sort for Hash Join Key Ordering on Execution Side
+			@Override
+			public int compare(Predicate o1, Predicate o2) {
+				return o1.getIndexPosition() - o2.getIndexPosition();
+			}});               
         return pulled;
     }
 

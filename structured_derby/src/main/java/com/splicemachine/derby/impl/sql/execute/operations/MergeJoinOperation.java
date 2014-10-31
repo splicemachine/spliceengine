@@ -1,10 +1,8 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.google.common.collect.Lists;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.*;
@@ -14,8 +12,8 @@ import com.splicemachine.derby.utils.StandardIterators;
 import com.splicemachine.derby.utils.StandardPushBackIterator;
 import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -80,70 +78,16 @@ public class MergeJoinOperation extends JoinOperation {
     public List<NodeType> getNodeTypes() {
         return nodeTypes;
     }
-
-    public static SpliceConglomerate getSpliceConglomerate(SpliceOperation resultSetOperation) throws StandardException {
-    	if (resultSetOperation instanceof TableScanOperation)
-    		return ((TableScanOperation) resultSetOperation).scanInformation.getConglomerate();
-    	SpliceOperation leftOperation = resultSetOperation.getLeftOperation();
-    	if (leftOperation != null)
-    		return getSpliceConglomerate(leftOperation);
-    	else
-    		return null;
-    }
-
-    public static ScanInformation getScanInformation(SpliceOperation resultSetOperation) throws StandardException {
-    	if (resultSetOperation instanceof TableScanOperation)
-    		return ((TableScanOperation) resultSetOperation).scanInformation;
-    	SpliceOperation leftOperation = resultSetOperation.getLeftOperation();
-    	if (leftOperation != null)
-    		return getScanInformation(leftOperation);
-    	else
-    		return null;
-    }
-
     
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException {
     	super.init(context);
         leftHashKeys = generateHashKeys(leftHashKeyItem);
         rightHashKeys = generateHashKeys(rightHashKeyItem);
-        SpliceConglomerate conglomerate = getSpliceConglomerate(rightResultSet);
-        if (conglomerate == null)
-        	throw new RuntimeException("Could not find the base table under the result set");
-        int[] columnOrdering;
-        if (conglomerate.getTypeFormatId()== StoredFormatIds.ACCESS_B2I_V5_ID) {
-        	columnOrdering = getScanInformation(rightResultSet).getIndexToBaseColumnMap();
-        } else {
-        	columnOrdering = conglomerate.getColumnOrdering();
-        }
-        List<Integer> keySortIndexes = Lists.newLinkedList();
-        for (int i = 0; i < rightHashKeys.length; i++) {
-        	int col = columnOrdering[i];
-            boolean found = false;
-            for (int j = 0; j < rightHashKeys.length; j++) {
-            	if (col == rightHashKeys[j]) {
-            		found = true;
-                    keySortIndexes.add(j);
-                }
-            }
-            if (!found) {
-            	break;
-            }
-        }
-            if (keySortIndexes.size() == 0) {
-                throw new RuntimeException("Equijoin predicates for join do not contain" +
-                                               " a reference to the primary sort column for the" +
-                                               " right-hand side of the join, so a Merge join cannot" +
-                                               " be executed.");
-            }
-            int[] leftSortedHashKeys = new int[keySortIndexes.size()];
-            int[] rightSortedHashKeys = new int[keySortIndexes.size()];
-            for (int i = 0; i < keySortIndexes.size(); i++) {
-                leftSortedHashKeys[i] = leftHashKeys[keySortIndexes.get(i)];
-                rightSortedHashKeys[i] = rightHashKeys[keySortIndexes.get(i)];
-            }
-            leftHashKeys = leftSortedHashKeys;
-            rightHashKeys = rightSortedHashKeys;
+    	if (LOG.isDebugEnabled()) {
+    		SpliceLogUtils.debug(LOG,"left hash keys {%s}",Arrays.toString(leftHashKeys));
+    		SpliceLogUtils.debug(LOG,"right hash keys {%s}",Arrays.toString(rightHashKeys));
+    	}
         startExecutionTime = System.currentTimeMillis();
     }
 
