@@ -35,7 +35,7 @@ public class FindHashJoinColumns extends AbstractSpliceVisitor {
             return node;
         }
         Set<Predicate> equiJoinPreds =
-                Sets.filter(Sets.newHashSet(PredicateUtils.PLtoList(node.joinPredicates)),
+                Sets.filter(Sets.newLinkedHashSet(PredicateUtils.PLtoList(node.joinPredicates)),
                         PredicateUtils.isEquiJoinPred);
         Pair<List<Integer>, List<Integer>> indices = findHashIndices(node, equiJoinPreds);
         LOG.info(String.format("Hash key indices found for Join n=%s: %s", node.getResultSetNumber(), indices));
