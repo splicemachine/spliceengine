@@ -23,7 +23,6 @@ import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.SpliceXPlainTrace;
 import com.splicemachine.derby.test.framework.TestConnection;
-import com.splicemachine.homeless.TestUtils;
 
 /**
  *
@@ -1146,6 +1145,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
     @Test
     public void testConstMinusAvg1() throws Exception {
         // DB-2124
+        double[] salDiffExpected = {-3499.6666, -2999.6666, 6499.3333, -9166.3333, 9333.6666, -167.3333, -2500.0000, -2000.0000, 4500.0000};
         String sqlText = String.format("SELECT %2$s.Salario - AVG(%2$s.Salario) OVER(PARTITION BY " +
                                            "%1$s.Nome_Dep) \"Diferença de Salário\" FROM %2$s " +
                                            "INNER JOIN %1$s " +
@@ -1153,13 +1153,21 @@ public class WindowFunctionIT extends SpliceUnitTest {
                                        this.getTableReference(TABLE5a_NAME), this.getTableReference(TABLE5b_NAME));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
-        TestUtils.printResult(sqlText, rs, System.out);
+        List<Double> salDiffActual = new ArrayList<Double>(salDiffExpected.length);
+        while (rs.next()) {
+            salDiffActual.add(rs.getDouble(1));
+        }
         rs.close();
+
+        compareArrays(salDiffExpected, salDiffActual);
     }
 
     @Test
     public void testConstMinusAvg2() throws Exception {
         // DB-2124
+        double[] salExpected = {23500.00, 11999.00, 9000.00, 13999.00, 2500.00, 2000.00, 2500.00, 2000.00, 5000.00};
+        double[] mediaForDeptExpected = {14166.3333, 5499.6666, 4500.0000, 14166.3333, 4500.0000, 4500.0000, 5499.6666, 5499.6666, 14166.3333};
+        double[] salDiffExpected = {9333.6666, 6499.3333, 4500.0000, -167.3333, -2000.0000, -2500.0000, -2999.6666, -3499.6666,  -9166.3333};
         String sqlText = String.format("SELECT %1$s.Nome_Dep, " +
                                            "%2$s.Nome AS Funcionario, " +
                                            "%2$s.Salario, " +
@@ -1172,37 +1180,39 @@ public class WindowFunctionIT extends SpliceUnitTest {
                                        this.getTableReference(TABLE5a_NAME), this.getTableReference(TABLE5b_NAME));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
-        TestUtils.printResult(sqlText, rs, System.out);
+        List<Double> salActual = new ArrayList<Double>(salExpected.length);
+        List<Double> mediaForDeptActual = new ArrayList<Double>(mediaForDeptExpected.length);
+        List<Double> salDiffActual = new ArrayList<Double>(salDiffExpected.length);
+        while (rs.next()) {
+            salActual.add(rs.getDouble(3));
+            mediaForDeptActual.add(rs.getDouble(4));
+            salDiffActual.add(rs.getDouble(5));
+        }
         rs.close();
+
+        compareArrays(salExpected, salActual);
+        compareArrays(mediaForDeptExpected, mediaForDeptActual);
+        compareArrays(salDiffExpected, salDiffActual);
     }
 
     @Test
-    @Ignore("DB-2086 replaceAggregateWithColumnReference() has not been called on this AggergateNode")
     public void testSumTimesConstDivSum() throws Exception {
-        // DB-2086 - fails when agg and wrapped agg are identical. Passes when they are diff.
-        String sqlText = String.format("SELECT AVG(%2$s.Salario) * 100 / " +
-                                           "AVG(%2$s.Salario) OVER(PARTITION BY %1$s.Nome_Dep) " +
+        // DB-2086 - identical agg gets removed from aggregates array
+        double[] mediaForDeptExpected = {3624.9000, 3624.9000, 3624.9000};
+        String sqlText = String.format("SELECT SUM(%2$s.Salario) * 100 / " +
+                                           "SUM(%2$s.Salario) OVER(PARTITION BY %1$s.Nome_Dep) " +
                                            "\"Média por Departamento\" " +
                                            "FROM %2$s, %1$s GROUP BY %1$s.Nome_Dep",
                                        this.getTableReference(TABLE5a_NAME), this.getTableReference(TABLE5b_NAME));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
-        TestUtils.printResult(sqlText, rs, System.out);
+        List<Double> mediaForDeptActual = new ArrayList<Double>(mediaForDeptExpected.length);
+        while (rs.next()) {
+            mediaForDeptActual.add(rs.getDouble(1));
+        }
         rs.close();
-    }
 
-    @Test
-    public void testSumTimesConstDivSumGrpBy() throws Exception {
-        // DB-2086
-        String sqlText = String.format("SELECT SUM(%2$s.Salario) * 100 / " +
-                                           "SUM(%2$s.Salario) " +
-                                           "\"Messed Up\" " +
-                                           "FROM %2$s, %1$s GROUP BY %1$s.Nome_Dep",
-                                       this.getTableReference(TABLE5a_NAME), this.getTableReference(TABLE5b_NAME));
-
-        ResultSet rs = methodWatcher.executeQuery(sqlText);
-        TestUtils.printResult(sqlText, rs, System.out);
-        rs.close();
+        compareArrays(mediaForDeptExpected, mediaForDeptActual);
     }
 
     //============================================================================================================
