@@ -1218,7 +1218,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
     //============================================================================================================
     //
     //============================================================================================================
-    private static void compareArrays(int[] expected, List<Integer> actualList) {
+    public static void compareArrays(int[] expected, List<Integer> actualList) {
         int[] actual = new int[actualList.size()];
         for (int i=0; i<actualList.size(); i++) {
             actual[i] = actualList.get(i);
@@ -1226,7 +1226,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
         Assert.assertArrayEquals(printExpectedVActual(expected,actual),expected, actual);
     }
 
-    private static void compareArrays(double[] expected, List<Double> actualList) {
+    public static void compareArrays(double[] expected, List<Double> actualList) {
         double[] actual = new double[actualList.size()];
         for (int i=0; i<actualList.size(); i++) {
             actual[i] = actualList.get(i);

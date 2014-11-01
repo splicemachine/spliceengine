@@ -2,10 +2,11 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.junit.Assert;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -189,44 +190,48 @@ public class WindowFunctionMultiIT extends SpliceUnitTest {
     }
 
     @Test
-    @Ignore("DB-1989: An attempt was made to get a data value of type 'java.sql.Date' from a data value of type 'INTEGER'.")
     public void testMultiFunctionSamePartitionDifferentOrderBy() throws Exception {
-        int[] denseRank = {1, 2, 3, 4, 5, 6, 6, 7, 1, 2, 2, 3, 1, 2, 3, 4, 5};
-        int[] rank = {1, 2, 3, 4, 5, 6, 6, 8, 1, 2, 2, 4, 1, 2, 3, 4, 5};
-        int[] ruwNum = {1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 1, 2, 3, 4, 5};
+        // DB-1989 - Attempted to encode a value that does not have a scalar type format id
+        int[] denseRankExpected = {1, 2, 3, 4, 5, 5, 6, 1, 2, 2, 3, 1, 2, 3, 4};
+        int[] rowNumExpected = {1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 1, 2, 3, 4};
         String sqlText = "SELECT empnum, hiredate, dept, salary, DENSE_RANK() OVER (PARTITION BY dept ORDER BY salary desc) AS DenseRank, dept, ROW_NUMBER() OVER (PARTITION BY dept ORDER BY dept desc) AS RowNumber FROM %s";
 
         ResultSet rs = methodWatcher.executeQuery(
             String.format(sqlText, this.getTableReference(EMPTAB)));
 
-        int i = 0;
+        List<Integer> denseRankActual = new ArrayList<Integer>(denseRankExpected.length);
+        List<Integer> rowNumActual = new ArrayList<Integer>(rowNumExpected.length);
         while (rs.next()) {
-            Assert.assertEquals(denseRank[i],rs.getInt(4));
-            Assert.assertEquals(rank[i],rs.getInt(5));
-            Assert.assertEquals(ruwNum[i],rs.getInt(6));
-            ++i;
+            denseRankActual.add(rs.getInt(5));
+            rowNumActual.add(rs.getInt(7));
         }
         rs.close();
+
+        WindowFunctionIT.compareArrays(denseRankExpected, denseRankActual);
+        WindowFunctionIT.compareArrays(rowNumExpected, rowNumActual);
+
     }
 
     @Test
-    @Ignore("DB-1989: An attempt was made to get a data value of type 'java.sql.Date' from a data value of type 'INTEGER'.")
     public void testSelectDateMultiFunction() throws Exception {
-        // DB-1988
-        int[] denseRank = {1, 2, 2, 3, 4, 5, 6, 1, 2, 2, 3, 1, 2, 3, 4};
-        int[] ruwNum    = {1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 1, 2, 3, 4};
+        // DB-1989 - Attempted to encode a value that does not have a scalar type format id
+        int[] denseRankExpected = {1, 2, 2, 3, 4, 5, 6, 1, 2, 2, 3, 1, 2, 3, 4};
+        int[] rowNumExpected = {1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 1, 2, 3, 4};
         String sqlText = "SELECT hiredate, DENSE_RANK() OVER (PARTITION BY dept ORDER BY salary) AS DenseRank, ROW_NUMBER() OVER (PARTITION BY dept ORDER BY dept) AS RowNumber FROM %s";
 
         ResultSet rs = methodWatcher.executeQuery(
             String.format(sqlText, this.getTableReference(EMPTAB)));
 
-        int i = 0;
+        List<Integer> denseRankActual = new ArrayList<Integer>(denseRankExpected.length);
+        List<Integer> rowNumActual = new ArrayList<Integer>(rowNumExpected.length);
         while (rs.next()) {
-            Assert.assertEquals(denseRank[i],rs.getInt(2));
-            Assert.assertEquals(ruwNum[i],rs.getInt(3));
-            ++i;
+            denseRankActual.add(rs.getInt(2));
+            rowNumActual.add(rs.getInt(3));
         }
         rs.close();
+
+        WindowFunctionIT.compareArrays(denseRankExpected, denseRankActual);
+        WindowFunctionIT.compareArrays(rowNumExpected, rowNumActual);
     }
 
     @Test
@@ -336,24 +341,25 @@ public class WindowFunctionMultiIT extends SpliceUnitTest {
     }
 
     @Test
-    @Ignore("DB-1989: An attempt was made to get a data value of type 'java.sql.Date' from a data value of type 'INTEGER'.")
     public void testNullsMultiFunctionSamePartitionDifferentOrderBy() throws Exception {
-        int[] denseRank = {1, 2, 3, 4, 5, 6, 6, 7, 1, 2, 2, 3, 1, 2, 3, 4, 5};
-        int[] rank = {1, 2, 3, 4, 5, 6, 6, 8, 1, 2, 2, 4, 1, 2, 3, 4, 5};
-        int[] ruwNum = {1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 1, 2, 3, 4, 5};
-        String sqlText = "SELECT empnum, hiredate, dept, salary, DENSE_RANK() OVER (PARTITION BY dept ORDER BY salary desc) AS DenseRank, dept, ROW_NUMBER() OVER (PARTITION BY dept ORDER BY dept desc) AS RowNumber FROM %s";
+        // DB-1989 - Attempted to encode a value that does not have a scalar type format id
+        int[] denseRankExpected = {1, 2, 3, 4, 5, 6, 6, 7, 1, 2, 2, 3, 1, 2, 3, 4, 5};
+        int[] rowNumExpected = {1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 1, 2, 3, 4, 5};
+        String sqlText = "SELECT empnum, hiredate, salary, DENSE_RANK() OVER (PARTITION BY dept ORDER BY salary desc) AS DenseRank, dept, ROW_NUMBER() OVER (PARTITION BY dept ORDER BY dept desc) AS RowNumber FROM %s";
 
         ResultSet rs = methodWatcher.executeQuery(
             String.format(sqlText, this.getTableReference(EMPTAB_NULLS)));
 
-        int i = 0;
+        List<Integer> denseRankActual = new ArrayList<Integer>(denseRankExpected.length);
+        List<Integer> rowNumActual = new ArrayList<Integer>(rowNumExpected.length);
         while (rs.next()) {
-            Assert.assertEquals(denseRank[i],rs.getInt(4));
-            Assert.assertEquals(rank[i],rs.getInt(5));
-            Assert.assertEquals(ruwNum[i],rs.getInt(6));
-            ++i;
+            denseRankActual.add(rs.getInt(4));
+            rowNumActual.add(rs.getInt(6));
         }
         rs.close();
+
+        WindowFunctionIT.compareArrays(denseRankExpected, denseRankActual);
+        WindowFunctionIT.compareArrays(rowNumExpected, rowNumActual);
     }
 
     @Test
@@ -408,15 +414,17 @@ public class WindowFunctionMultiIT extends SpliceUnitTest {
     @Test
     public void testPullFunctionInputColumnUp4Levels() throws Exception {
         // DB-2087 - Kryo exception
+        double[] c10Expected = new double[] {4086.67, 4086.67, 4086.67, 4086.67, 4086.67, 4086.67, 4086.67, 4086.67};
         String sqlText =
             String.format("select Transaction_Detail5.SOURCE_SALES_INSTANCE_ID C0, min(Transaction_Detail5.TRANSACTION_DT) over (partition by Transaction_Detail5.ORIGINAL_SKU_CATEGORY_ID) C1, sum(Transaction_Detail5.SALES_AMT) over (partition by Transaction_Detail5.TRANSACTION_DT) C10 from %s AS Transaction_Detail5 where Transaction_Detail5.TRANSACTION_DT between DATE('2010-01-21') and DATE('2013-11-21') and Transaction_Detail5.CUSTOMER_MASTER_ID=74065939", this.getTableReference(TABLE6_NAME));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
-        int i = 0;
+
+        List<Double> c10Actual = new ArrayList<Double>(c10Expected.length);
         while (rs.next()) {
-            ++i;
+            c10Actual.add(rs.getDouble(3));
         }
-        Assert.assertTrue(i == 8);
         rs.close();
+        WindowFunctionIT.compareArrays(c10Expected, c10Actual);
     }
 }
