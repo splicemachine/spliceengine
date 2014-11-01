@@ -84,7 +84,6 @@
 					<generatePom>false</generatePom>
 					<groupId>${project.groupId}</groupId>
 					<version>${project.version}</version>
-					<skip>true</skip>
 				</configuration>
 				<executions>
 					<execution>
