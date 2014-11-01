@@ -2,114 +2,135 @@ package com.splicemachine.job;
 
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.lang.reflect.ConstructorUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.log4j.Logger;
+
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 
 /**
- * Utility class for transporting Error information from machine to machine in
- * an efficient manner.
+ * Utility class for transporting Error information from machine to machine in an efficient manner.
  *
- * Note that a stack trace is NOT carried over, only the message itself
+ * This class is a bit weird (it handles StandardException and Throwable and the same fields have different meanings
+ * in each context) be sure to read and understand these limitations before using:
+ *
+ * <ul>
+ * <li>The a stack trace is NOT carried over, only the message itself</li>
+ * <li>Assumes String returned by getMessage() should be passed to one-arg String constructor on other side of wire.</li>
+ * <li>Assumes one-arg String constructor cannot handle null as argument, even if that was returned by getMessage(), and so transforms null to "null"</li>
+ * <li>Message string is lost if exception has no one-arg String constructor.</li>
+ * <li>Cannot be used with exception classes that are not visible (private, package private, etc)</li>
+ * </ul>
  *
  * @author Scott Fines
- * Created on: 9/19/13
+ *         Created on: 9/19/13
  */
-public class ErrorTransport implements Externalizable{
-	private static Logger LOG = Logger.getLogger(ErrorTransport.class);
+public class ErrorTransport implements Externalizable {
 
+    private static Logger LOG = Logger.getLogger(ErrorTransport.class);
+
+    /* For StandardException the normal messageId, for an arbitrary Throwable, the arg to on-arg-string constructor,
+     * if there is one. */
     private String messageId;
+
     private boolean shouldRetry;
+
     private boolean isStandard;
+
+    /* For StandardException these are the the args taken by the many factory methods of that class.  For
+       other exceptions the first element of this array holds the class name of the exception */
     private Object[] args;
 
     public ErrorTransport() {
     }
 
-    private ErrorTransport( String messageId,
-                          boolean isStandardException,
-                          boolean shouldRetry, Object[] args) {
+    private ErrorTransport(String messageId,
+                           boolean isStandardException,
+                           boolean shouldRetry, Object[] args) {
         this.shouldRetry = shouldRetry;
         this.messageId = messageId;
         this.args = args;
         this.isStandard = isStandardException;
     }
 
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-    	if (LOG.isTraceEnabled())
-    		SpliceLogUtils.trace(LOG, "writing external error message %s",messageId);
-        out.writeUTF(messageId);
-        out.writeBoolean(isStandard);
-        out.writeBoolean(shouldRetry);
-        out.writeInt(args!=null?args.length:0);
-				if(args!=null){
-						for(Object o:args){
-					    	if (LOG.isTraceEnabled())
-					    		SpliceLogUtils.trace(LOG, "writing external error message %s",o.getClass().toString());
-								out.writeBoolean(o!=null);
-								if(o!=null)
-										out.writeObject(o);
-						}
-				}
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        messageId = in.readUTF();
-        isStandard = in.readBoolean();
-				shouldRetry = in.readBoolean();
-				args = new Object[in.readInt()];
-				for(int i=0;i<args.length;i++){
-						args[i] = in.readBoolean()? in.readObject():null;
-				}
-		}
-
-    public StandardException getStandardException(){
-        return StandardException.newException(messageId,args);
-    }
-
-    public static ErrorTransport newTransport(StandardException se){
-    	if (LOG.isTraceEnabled())
-    		SpliceLogUtils.trace(LOG, "New StandardException  %s",se);
+    /**
+     * Create a transport from a StandardException.
+     */
+    public static ErrorTransport newTransport(StandardException se) {
+        if (LOG.isTraceEnabled()) {
+            SpliceLogUtils.trace(LOG, "New StandardException  %s", se);
+        }
         String mId = se.getMessageId();
         Object[] args = se.getArguments();
-        boolean shouldRetry = false;
-        return new ErrorTransport(mId,true,shouldRetry,args);
+        return new ErrorTransport(mId, true, false, args);
     }
 
-    public static ErrorTransport newTransport(Throwable t){
-    	if (LOG.isTraceEnabled())
-    		SpliceLogUtils.trace(LOG, "New Throwable  %s",t.getClass());
-    	t = Exceptions.getRootCause(t);
-        if(t instanceof StandardException)
-            return newTransport((StandardException)t);
+    /**
+     * Create a transport from an arbitrary Throwable.
+     */
+    public static ErrorTransport newTransport(Throwable t) {
+        if (LOG.isTraceEnabled()) {
+            SpliceLogUtils.trace(LOG, "New Throwable  %s", t.getClass());
+        }
+        t = Exceptions.getRootCause(t);
+        if (t instanceof StandardException) {
+            return newTransport((StandardException) t);
+        }
 
         boolean shouldRetry = Exceptions.shouldRetry(t);
-        if(!shouldRetry){
-            if(t instanceof DoNotRetryIOException){
+        if (!shouldRetry) {
+            if (t instanceof DoNotRetryIOException) {
                 String message = t.getMessage();
-                if(message!=null && message.contains("transaction") && message.contains("is not ACTIVE. State is ERROR")){
-                    shouldRetry=true;
+                if (message != null && message.contains("transaction") && message.contains("is not ACTIVE. State is ERROR")) {
+                    shouldRetry = true;
                 }
             }
         }
         String message = t.getMessage();
 
-        return new ErrorTransport(message,false,shouldRetry,new Object[]{t.getClass().getCanonicalName()});
+        return new ErrorTransport(message, false, shouldRetry, new Object[]{t.getClass().getName()});
     }
 
-    public Throwable getError(){
-        if(isStandard) return getStandardException();
+    /**
+     * Get standard exception. Call this method only if you know the transport holds/represents a StandardException.
+     */
+    public StandardException getStandardException() {
+        return StandardException.newException(messageId, args);
+    }
+
+    /**
+     * Get the original Throwable.
+     */
+    public Throwable getError() {
+        if (isStandard) {
+            return getStandardException();
+        }
 
         try {
             Class<? extends Throwable> errorClazz = (Class<? extends Throwable>) Class.forName(args[0].toString());
-            return errorClazz.getConstructor(String.class).newInstance((messageId != null ? messageId : "null"));
+
+            /* one-arg string constructor */
+            Constructor constructor = ConstructorUtils.getAccessibleConstructor(errorClazz, String.class);
+            if (constructor != null) {
+                String constructorMayNotAcceptNullArg = messageId == null ? "null" : messageId;
+                return (Throwable) ConstructorUtils.invokeConstructor(errorClazz, constructorMayNotAcceptNullArg);
+            }
+
+            /* no-arg constructor */
+            constructor = ConstructorUtils.getAccessibleConstructor(errorClazz, ArrayUtils.EMPTY_CLASS_ARRAY);
+            if (constructor != null) {
+                return (Throwable) ConstructorUtils.invokeConstructor(errorClazz, ArrayUtils.EMPTY_OBJECT_ARRAY);
+            }
+
+            throw new IllegalArgumentException("Could not find valid constructor for class = " + args[0]);
+
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
         } catch (InvocationTargetException e) {
@@ -126,4 +147,36 @@ public class ErrorTransport implements Externalizable{
     public boolean shouldRetry() {
         return shouldRetry;
     }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        if (LOG.isTraceEnabled()) {
+            SpliceLogUtils.trace(LOG, "writing external error message %s", messageId);
+        }
+        out.writeObject(messageId);
+        out.writeBoolean(isStandard);
+        out.writeBoolean(shouldRetry);
+        out.writeInt(args != null ? args.length : 0);
+        if (args != null) {
+            for (Object o : args) {
+                if (LOG.isTraceEnabled())
+                    SpliceLogUtils.trace(LOG, "writing external error message %s", o.getClass().toString());
+                out.writeBoolean(o != null);
+                if (o != null)
+                    out.writeObject(o);
+            }
+        }
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        messageId = (String) in.readObject();
+        isStandard = in.readBoolean();
+        shouldRetry = in.readBoolean();
+        args = new Object[in.readInt()];
+        for (int i = 0; i < args.length; i++) {
+            args[i] = in.readBoolean() ? in.readObject() : null;
+        }
+    }
+
 }
