@@ -239,7 +239,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
                     if (exp != null) {
                         String columnName = exp.getColumnName();
                         if (columnName != null) {
-                            columnInfo.put("pnts to", columnName);
+                            columnInfo.put("exp", columnName);
                         }
                         String src = "null";
                         if (exp instanceof VirtualColumnNode) {
