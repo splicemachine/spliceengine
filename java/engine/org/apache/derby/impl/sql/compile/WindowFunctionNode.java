@@ -172,7 +172,9 @@ public abstract class WindowFunctionNode extends AggregateNode {
     }
 
     /**
-     * Get an ResultColumn array of all operands.
+     * Get an ResultColumn array of all operand expressions. Called by WindowResultSetNode
+     * during building of function tuple ([result, operand [, operand, ...], function]).
+     *
      * @return the array of ResultColumns each pointing to a ColumnReference to
      * an operand of this operator.
      * @throws StandardException
@@ -185,11 +187,21 @@ public abstract class WindowFunctionNode extends AggregateNode {
             if (node == null) {
                 node = getNewNullResultExpression();
             }
-
+            ValueNode lower = node;
+            if (node instanceof  ColumnReference && ! ((ColumnReference)node).getGeneratedToReplaceAggregate()) {
+                // If "node" is a ColumnReference, it is a reference to the operand and
+                // lives at this level in the tree. We will need the underlying expression
+                // reference from the node below because our function will reference the
+                // "output" of the node below as its input.
+                // If it's not a ColumnReference, we may be just above a FromBaseTable or
+                // it may be a "direct" input value such as numeric for, say, count(). In
+                // that case, we leave it "as is".
+                lower = ((ColumnReference)node).getSource().getExpression();
+            }
             resultColumns[i++] = (ResultColumn) getNodeFactory().getNode(
                 C_NodeTypes.RESULT_COLUMN,
                 "##WindowOperand",
-                node,
+                lower,
                 getContextManager());
         }
         return resultColumns;
@@ -247,7 +259,7 @@ public abstract class WindowFunctionNode extends AggregateNode {
         if (generatedRef == null) {
             generatedRC = (ResultColumn) getNodeFactory().getNode(
                 C_NodeTypes.RESULT_COLUMN,
-                "##SQLColWinGen" + newResultColumn.getName(),
+                "##SQLColWinGen_" + newResultColumn.getName(),
                 this,
                 getContextManager());
             generatedRC.markGenerated();
@@ -256,7 +268,7 @@ public abstract class WindowFunctionNode extends AggregateNode {
             //
             generatedRef = (ColumnReference) getNodeFactory().getNode(
                 C_NodeTypes.COLUMN_REFERENCE,
-                "##CR -> " + generatedRC.getName(),
+                generatedRC.getName(),
                 null,
                 getContextManager());
 

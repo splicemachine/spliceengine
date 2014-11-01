@@ -548,7 +548,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                 // Create and add result column to the bottom rcl
                 ResultColumn newRC = (ResultColumn) getNodeFactory().getNode(
                     C_NodeTypes.RESULT_COLUMN,
-                    "##KeyPR_RC" + keyCol.getColumnExpression().getColumnName(),
+                    "##Key_" + keyCol.getColumnExpression().getColumnName(),
                     keyCol.getColumnExpression(),
                     getContextManager());
                 bottomRCL.addElement(newRC);
@@ -561,7 +561,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             // Create an RC that we'll add to the windowing RCL
             ColumnReference tmpColumnRef = (ColumnReference) getNodeFactory().getNode(
                 C_NodeTypes.COLUMN_REFERENCE,
-                "##KeyCR -> " + source.getName(),
+                source.getName(),
                 null,
                 getContextManager());
             tmpColumnRef.setSource(source);
@@ -571,7 +571,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             // Create a CR and wrap it in just created RC
             ResultColumn wRC = (ResultColumn) getNodeFactory().getNode(
                 C_NodeTypes.RESULT_COLUMN,
-                "##KeyWR_RC -> " + tmpColumnRef.getColumnName(),
+                "##Key_" + tmpColumnRef.getColumnName(),
                 tmpColumnRef,
                 getContextManager());
             wRC.bindResultColumnToExpression();
@@ -636,8 +636,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             // Create an RC->CR for matching column that we'll add to the parent RCL upon return
             ColumnReference tmpColumnRef = (ColumnReference) getNodeFactory().getNode(
                 C_NodeTypes.COLUMN_REFERENCE,
-                // FIXME: these names get too verbose CR->RC->CR->RC->...
-                "#"+childRC.getName()+"_CR"+counter,
+                childRC.getName(),
                 null,
                 getContextManager());
             tmpColumnRef.setSource(childRC);
@@ -648,7 +647,6 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             // can add it to its RCL
             ResultColumn parentRC = (ResultColumn) getNodeFactory().getNode(
                 C_NodeTypes.RESULT_COLUMN,
-                // FIXME: these names get too verbose RC->CR->RC->...
                 "#"+childRC.getName()+"_RC"+counter++,
                 tmpColumnRef,
                 getContextManager());
@@ -784,7 +782,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
              */
             ResultColumn aggResultRC = (ResultColumn) getNodeFactory().getNode(
                 C_NodeTypes.RESULT_COLUMN,
-                "##" + windowFunctionNode.getAggregateName() + "Result",
+                "##" + windowFunctionNode.getAggregateName() + "ResultExp",
                 windowFunctionNode.getNewNullResultExpression(),
                 getContextManager());
 
