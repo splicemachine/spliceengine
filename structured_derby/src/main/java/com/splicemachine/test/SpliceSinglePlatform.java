@@ -6,9 +6,9 @@ import org.apache.hadoop.hbase.MiniHBaseCluster;
 import static com.splicemachine.test.SpliceTestPlatformUsage.usage;
 
 /**
- * Start MiniHBaseCluster for use by ITs.
+ * Start MiniHBaseCluster for use by demo/standalone splice app.
  */
-public class SpliceTestPlatform {
+public class SpliceSinglePlatform {
 
     public static void main(String[] args) throws Exception {
         if (args.length != 7) {
@@ -24,7 +24,7 @@ public class SpliceTestPlatform {
             Integer derbyPort = Integer.valueOf(args[5]);
             boolean failTasksRandomly = Boolean.valueOf(args[6]);
 
-            Configuration config = SpliceTestPlatformConfig.createForITs(
+            Configuration config = SpliceTestPlatformConfig.createForDemoApp(
                     hbaseRootDirUri,
                     masterPort,
                     masterInfoPort,
