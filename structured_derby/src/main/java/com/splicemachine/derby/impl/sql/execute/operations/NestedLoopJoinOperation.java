@@ -212,8 +212,8 @@ public class NestedLoopJoinOperation extends JoinOperation {
             SpliceRuntimeContext ctxNoSink = spliceRuntimeContext.copy();
             ctxNoSink.unMarkAsSink();
             probeResultSet.setParentOperationID(Bytes.toLong(getUniqueSequenceID()));
-            probeResultSet.sinkOpen(spliceRuntimeContext.getTxn(),true);
-            probeResultSet.executeScan(hash,ctxNoSink);
+            SpliceRuntimeContext ctx = probeResultSet.sinkOpen(spliceRuntimeContext.getTxn(), true);
+            probeResultSet.executeScan(hash,ctx);
             populated=false;
             this.outerJoin = outerJoin;
         }
