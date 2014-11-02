@@ -50,7 +50,7 @@ public class SpliceTestClusterParticipant {
         int regionServerInfoPort = REGION_SERVER_WEB_PORT + memberNumber;
         int derbyPort = SpliceConstants.DEFAULT_DERBY_BIND_PORT + memberNumber;
 
-        Configuration config = SpliceTestPlatformConfig.create(
+        Configuration config = SpliceTestPlatformConfig.createForITs(
                 hbaseTargetDirectory,
                 0,
                 0,

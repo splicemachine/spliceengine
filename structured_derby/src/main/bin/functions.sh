@@ -56,7 +56,7 @@ _retrySplice() {
     if [[ ${ERROR_CODE} -eq 0 ]]; then
         for (( RETRY=1; RETRY<=MAXRETRY; RETRY++ )); do
             # splice/hbase will be retried several times to accommodate timeouts
-            _startSplice "${ROOT_DIR}" "${SPLICELOGFILE}" "${LOG4J_PATH}" "${ZOO_DIR}" "${HBASE_ROOT_DIR_URI}" "${CP}" "${SPLICE_MAIN_CLASS}" "${CHAOS}"
+            _startSplice "${ROOT_DIR}" "${SPLICELOGFILE}" "${LOG4J_PATH}" "${HBASE_ROOT_DIR_URI}" "${CP}" "${SPLICE_MAIN_CLASS}" "${CHAOS}"
             if [[ ${RETRY} -eq 1 ]]; then
                 # We can only check for error msg the first time, else we'll see the same ones again
                 _waitfor "${SPLICELOGFILE}" "${HBASE_TIMEOUT}" 'Ready to accept JDBC connections' 'Master not active after'
@@ -100,11 +100,10 @@ _startSplice() {
     ROOT_DIR="${1}"
     LOGFILE="${2}"
     LOG4J_PATH="${3}"
-    ZOO_DIR="${4}"
-    HBASE_ROOT_DIR_URI="${5}"
-    CLASSPATH="${6}"
-    SPLICE_MAIN_CLASS="${7}"
-    CHAOS="${8}"
+    HBASE_ROOT_DIR_URI="${4}"
+    CLASSPATH="${5}"
+    SPLICE_MAIN_CLASS="${6}"
+    CHAOS="${7}"
 
     SPLICE_PID_FILE="${ROOT_DIR}"/splice_pid
     export CLASSPATH
@@ -119,14 +118,6 @@ _startSplice() {
      -Dcom.sun.management.jmxremote.authenticate=false \
      -Dcom.sun.management.jmxremote.port=10102"
 
-#    SYS_ARGS="-Xmx5g -Xms1g \
-#     -XX:MaxPermSize=256M -XX:+CMSClassUnloadingEnabled -XX:+UseG1GC \
-#     -Djava.awt.headless=true \
-#     ${LOG4J_CONFIG} \
-#     -Djava.net.preferIPv4Stack=true \
-#     -Dcom.sun.management.jmxremote.ssl=false \
-#     -Dcom.sun.management.jmxremote.authenticate=false \
-#     -Dcom.sun.management.jmxremote.port=10102"
     if [[ -n ${SPLICE_SYS_ARGS} ]]; then
         SYS_ARGS="${SYS_ARGS} ${SPLICE_SYS_ARGS}"
     fi
@@ -137,7 +128,7 @@ _startSplice() {
     HBASE_REGIONSERVER_INFO_PORT=60030
     SPLICE_PORT=1527
 
-    (java ${SYS_ARGS} -enableassertions "${SPLICE_MAIN_CLASS}" "${ZOO_DIR}" "${HBASE_ROOT_DIR_URI}" ${HBASE_MASTER_PORT} ${HBASE_MASTER_INFO_PORT} ${HBASE_REGIONSERVER_PORT} ${HBASE_REGIONSERVER_INFO_PORT} ${SPLICE_PORT} ${CHAOS} >> "${LOGFILE}" 2>&1 ) &
+    (java ${SYS_ARGS} -enableassertions "${SPLICE_MAIN_CLASS}" "${HBASE_ROOT_DIR_URI}" ${HBASE_MASTER_PORT} ${HBASE_MASTER_INFO_PORT} ${HBASE_REGIONSERVER_PORT} ${HBASE_REGIONSERVER_INFO_PORT} ${SPLICE_PORT} ${CHAOS} >> "${LOGFILE}" 2>&1 ) &
     echo "$!" > ${SPLICE_PID_FILE}
 }
 
