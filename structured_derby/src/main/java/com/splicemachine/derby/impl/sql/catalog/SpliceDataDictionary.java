@@ -289,15 +289,25 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
     private boolean needToUpgrade(Splice_DD_Version catalogVersion) {
 
         // Not sure about the current version, do not upgrade
-        if (spliceSoftwareVersion == null)
+        if (spliceSoftwareVersion == null) {
+        	LOG.info("Splice Software Version = null");
             return false;
+        } else {
+        	LOG.info(String.format("Splice Software Version = %s", spliceSoftwareVersion.toString()));
+        }
 
         // This is a pre-Fuji catalog, upgrade it.
-        if (catalogVersion == null)
+        if (catalogVersion == null) {
+        	LOG.info("Splice Catalog Version = null");
+        	LOG.info("Upgrade needed since catalog version is null");
             return true;
+        } else {
+        	LOG.info(String.format("Splice Catalog Version = %s", catalogVersion.toString()));
+        }
 
         // Compare software version and catalog version
         if (catalogVersion.toLong() < spliceSoftwareVersion.toLong()) {
+        	LOG.info("Upgrade needed since catalog version < software version");
             return true;
         }
         return false;

@@ -5,6 +5,7 @@ import com.splicemachine.derby.impl.sql.catalog.Splice_DD_Version;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.store.access.TransactionController;
+import org.apache.log4j.Logger;
 
 import java.util.*;
 
@@ -12,6 +13,7 @@ import java.util.*;
  * Created by jyuan on 10/14/14.
  */
 public class SpliceCatalogUpgradeScripts {
+	protected static final Logger LOG = Logger.getLogger(SpliceCatalogUpgradeScripts.class);
 
     SpliceDataDictionary sdd;
     Splice_DD_Version catalogVersion;
@@ -44,7 +46,9 @@ public class SpliceCatalogUpgradeScripts {
 
     public void run() throws StandardException {
 
+    	if (LOG.isInfoEnabled()) LOG.info("Creating/updating system procedures");
         sdd.createOrUpdateAllSystemProcedures(tc);
+    	if (LOG.isInfoEnabled()) LOG.info("Updating system prepared statements");
         sdd.updateMetadataSPSes(tc);
 
         NavigableSet<Splice_DD_Version> keys = scripts.navigableKeySet();
