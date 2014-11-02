@@ -11,6 +11,7 @@
                 <excludes>
                     <exclude>**/hbase-log4j.properties</exclude>
                     <exclude>**/trace-log4j.properties</exclude>
+                    <exclude>**/splice-site.xml</exclude>
                 </excludes>
             </unpackOptions>
             <includes>
@@ -51,6 +52,7 @@
             <excludes>
                 <exclude>**/hbase-log4j.properties</exclude>
                 <exclude>**/trace-log4j.properties</exclude>
+				<exclude>**/splice-site.xml</exclude>
             </excludes>
         </fileSet>
     </fileSets>
