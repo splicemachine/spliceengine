@@ -26,7 +26,7 @@ import static com.splicemachine.homeless.TestUtils.o;
 
 public class DistinctGroupedAggregateOperationIT extends SpliceUnitTest {
 	public static final String CLASS_NAME = DistinctGroupedAggregateOperationIT.class.getSimpleName().toUpperCase();
-    protected static SpliceWatcher spliceClassWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
+    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
 	public static final String TABLE_NAME_1 = "A";
 	private static Logger LOG = Logger.getLogger(DistinctGroupedAggregateOperationIT.class);
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
@@ -65,7 +65,7 @@ public class DistinctGroupedAggregateOperationIT extends SpliceUnitTest {
                                                     "(null, null), (2,1), (3,1), (10,10);",
                                                 CLASS_NAME));
 
-    public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
+    public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
 
     @Test
     public void testMultipleDistinctAggregates() throws Exception {

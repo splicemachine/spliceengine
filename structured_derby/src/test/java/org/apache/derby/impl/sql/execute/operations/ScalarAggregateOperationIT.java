@@ -18,7 +18,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 
 public class ScalarAggregateOperationIT extends SpliceUnitTest {
     public static final String CLASS_NAME = ScalarAggregateOperationIT.class.getSimpleName().toUpperCase();
-    protected static SpliceWatcher spliceClassWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
+    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
     private static final Logger LOG = Logger.getLogger(ScalarAggregateOperationIT.class);
     public static final String TABLE_NAME = "T";
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
@@ -79,7 +79,7 @@ public class ScalarAggregateOperationIT extends SpliceUnitTest {
                                                        "(40, null), (20, null), (80, null), (80, null);",
                                                    CLASS_NAME));
 
-    @Rule public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
+    @Rule public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
 
 	@Test
 	public void testCountOperation() throws Exception{

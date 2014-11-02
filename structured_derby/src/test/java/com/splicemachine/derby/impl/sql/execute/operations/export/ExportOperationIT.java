@@ -3,7 +3,7 @@ package com.splicemachine.derby.impl.sql.execute.operations.export;
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 import com.google.common.io.PatternFilenameFilter;
-import com.splicemachine.derby.test.framework.DefaultedSpliceWatcher;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.test_tools.TableCreator;
@@ -37,7 +37,7 @@ public class ExportOperationIT {
     @ClassRule
     public static SpliceSchemaWatcher SCHEMA_WATCHER = new SpliceSchemaWatcher(CLASS_NAME);
     @Rule
-    public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
+    public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 

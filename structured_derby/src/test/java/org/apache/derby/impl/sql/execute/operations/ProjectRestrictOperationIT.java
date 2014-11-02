@@ -25,7 +25,7 @@ import static com.splicemachine.homeless.TestUtils.o;
 public class ProjectRestrictOperationIT extends SpliceUnitTest  { 
     private static Logger LOG = Logger.getLogger(ProjectRestrictOperationIT.class);
     public static final String CLASS_NAME = ProjectRestrictOperationIT.class.getSimpleName().toUpperCase();
-	protected static SpliceWatcher spliceClassWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
+	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
 	public static final String TABLE_NAME = "A";
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
 	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE_NAME,CLASS_NAME,"(si varchar(40),sa varchar(40),sc int)");
@@ -65,7 +65,7 @@ public class ProjectRestrictOperationIT extends SpliceUnitTest  {
 
         });
 
-	@Rule public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
+	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
 
     @Test
     public void testCanDivideSafely() throws Exception {

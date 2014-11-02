@@ -25,7 +25,7 @@ import java.util.*;
 public class NestedLoopJoinIT {
 		public static final String CLASS_NAME = NestedLoopJoinIT.class.getSimpleName().toUpperCase();
 
-		protected static DefaultedSpliceWatcher spliceClassWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
+		protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
 		protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 		protected static SpliceTableWatcher b2 = new SpliceTableWatcher("b2",
 						spliceSchemaWatcher.schemaName,"(c1 int, c2 int, c3 char(1), c4 int, c5 int,c6 int)");
@@ -66,7 +66,7 @@ public class NestedLoopJoinIT {
 						});
 
 
-		@Rule public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
+		@Rule public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
 		@Test
 		public void testCanJoinTwoTablesWithViewAndQualifiedSinkOperation() throws Exception {
 			/*Regression test for DB-1027*/

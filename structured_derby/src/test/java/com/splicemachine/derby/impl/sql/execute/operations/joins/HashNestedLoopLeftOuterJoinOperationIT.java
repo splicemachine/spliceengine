@@ -1,6 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations.joins;
 
-import com.splicemachine.derby.test.framework.DefaultedSpliceWatcher;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_tools.TableCreator;
@@ -25,7 +25,7 @@ public class HashNestedLoopLeftOuterJoinOperationIT {
     public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
     @Rule
-    public DefaultedSpliceWatcher watcher = new DefaultedSpliceWatcher(CLASS_NAME);
+    public SpliceWatcher watcher = new SpliceWatcher(CLASS_NAME);
 
     @Test
     public void leftJoin() throws Exception {

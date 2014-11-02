@@ -21,7 +21,7 @@ public class DataTypeCheckNegIT extends SpliceUnitTest {
     private static boolean done;
 
     private static final String CLASS_NAME = DataTypeCheckNegIT.class.getSimpleName().toUpperCase();
-    private static final SpliceWatcher spliceClassWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
+    private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
 
     private static String TABLE_1 = "A", TABLE_2 = "B", TABLE_3 = "C", TABLE_4 = "D", TABLE_5 = "E", TABLE_6 = "F",
             TABLE_7 = "G", TABLE_8 = "H", TABLE_9 = "I", TABLE_10 = "J", TABLE_11 = "K", TABLE_12 = "L", TABLE_13 = "M",

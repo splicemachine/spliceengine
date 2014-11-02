@@ -3,7 +3,7 @@ package org.apache.derby.impl.sql.execute.operations;
 
 import au.com.bytecode.opencsv.CSVReader;
 import au.com.bytecode.opencsv.CSVWriter;
-import com.splicemachine.derby.test.framework.DefaultedSpliceWatcher;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
@@ -32,11 +32,11 @@ public class QueryPerformanceTest {
 
     public static final String CLASS_NAME = QueryPerformanceTest.class.getSimpleName().toUpperCase();
 
-    protected static DefaultedSpliceWatcher spliceClassWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
+    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
     @Rule
-    public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
+    public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)

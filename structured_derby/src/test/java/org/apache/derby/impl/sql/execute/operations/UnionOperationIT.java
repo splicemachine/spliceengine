@@ -3,7 +3,7 @@ package org.apache.derby.impl.sql.execute.operations;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
-import com.splicemachine.derby.test.framework.DefaultedSpliceWatcher;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
@@ -22,7 +22,7 @@ import static org.junit.Assert.*;
 public class UnionOperationIT {
 
     private static final String CLASS_NAME = UnionOperationIT.class.getSimpleName().toUpperCase();
-    private static final DefaultedSpliceWatcher spliceClassWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
+    private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -30,7 +30,7 @@ public class UnionOperationIT {
             .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/UnionOperationIT.sql", CLASS_NAME));
 
     @Rule
-    public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
+    public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
 
     @Test
     public void testUnionAll() throws Exception {

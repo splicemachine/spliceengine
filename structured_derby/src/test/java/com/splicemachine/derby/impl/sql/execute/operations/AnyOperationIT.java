@@ -1,7 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.collect.Sets;
-import com.splicemachine.derby.test.framework.DefaultedSpliceWatcher;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
@@ -20,7 +20,7 @@ import static org.junit.Assert.assertEquals;
 public class AnyOperationIT {
 
     private static final String CLASS_NAME = AnyOperationIT.class.getSimpleName();
-    private static final SpliceWatcher spliceClassWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
+    private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
     private static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
     @ClassRule

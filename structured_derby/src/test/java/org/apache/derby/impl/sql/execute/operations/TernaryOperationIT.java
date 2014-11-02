@@ -21,7 +21,7 @@ import java.sql.ResultSet;
 public class TernaryOperationIT {
 
     private static final String CLASS_NAME = TernaryOperationIT.class.getSimpleName().toUpperCase();
-    private static SpliceWatcher classWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
+    private static SpliceWatcher classWatcher = new SpliceWatcher(CLASS_NAME);
 
     private static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
@@ -100,7 +100,7 @@ public class TernaryOperationIT {
                 }
             });
     @Rule
-    public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
+    public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
 
     @Test
     public void testLocateWorks() throws Exception {

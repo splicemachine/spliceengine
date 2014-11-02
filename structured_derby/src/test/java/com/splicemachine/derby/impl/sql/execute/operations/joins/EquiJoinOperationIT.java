@@ -1,6 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations.joins;
 
-import com.splicemachine.derby.test.framework.DefaultedSpliceWatcher;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
@@ -30,7 +30,7 @@ public class EquiJoinOperationIT {
 
     public static final String CLASS_NAME = EquiJoinOperationIT.class.getSimpleName().toUpperCase();
 
-    protected static DefaultedSpliceWatcher spliceClassWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
+    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
     @ClassRule
@@ -39,7 +39,7 @@ public class EquiJoinOperationIT {
             .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/employee.sql", CLASS_NAME))
             .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/hits.sql", CLASS_NAME));
 
-    @Rule public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
+    @Rule public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {

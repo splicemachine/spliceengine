@@ -1,6 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.tester;
 
-import com.splicemachine.derby.test.framework.DefaultedSpliceWatcher;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
@@ -22,7 +22,7 @@ import static org.junit.Assert.fail;
 public class NumericConstantsIT {
 
     private static final String CLASS_NAME = NumericConstantsIT.class.getSimpleName().toUpperCase();
-    private static final DefaultedSpliceWatcher spliceClassWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
+    private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -30,7 +30,7 @@ public class NumericConstantsIT {
             .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/NumericConstantsIT.sql", CLASS_NAME));
 
     @Rule
-    public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
+    public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
 
     // - - - - - - - - - - - - - - - - - - - - - -
     //

@@ -1,6 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations.joins;
 
-import com.splicemachine.derby.test.framework.DefaultedSpliceWatcher;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
@@ -30,7 +30,7 @@ import org.junit.runner.Description;
 public class JoinIT extends SpliceUnitTest {
     public static final String CLASS_NAME = JoinIT.class.getSimpleName();
 
-    protected static final SpliceWatcher spliceClassWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
+    protected static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
 
     protected static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 

@@ -18,7 +18,7 @@ import static com.splicemachine.homeless.TestUtils.*;
 
 public class SortOperationIT extends SpliceUnitTest { 
 	public static final String CLASS_NAME = SortOperationIT.class.getSimpleName().toUpperCase();
-	protected static SpliceWatcher spliceClassWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
+	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
 	public static final String TABLE_NAME_1 = "FOOD";
 	public static final String TABLE_NAME_2 = "PERSON";
 
@@ -113,7 +113,7 @@ public class SortOperationIT extends SpliceUnitTest {
                             "insert into sort_on_null values (1, NULL);",
                     CLASS_NAME));
 	
-	@Rule public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
+	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
 	
 	private static List<Triplet> correctByValue1 = Lists.newArrayList();
  	private static List<Triplet> distinctCorrectByValue1 = Lists.newArrayList();

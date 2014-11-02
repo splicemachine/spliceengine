@@ -38,7 +38,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.apache.hadoop.conf.Configuration;
 
-import com.splicemachine.derby.test.framework.DefaultedSpliceWatcher;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
@@ -68,7 +68,7 @@ public class SpliceTableInputFormatIT {
 	private static RecordReader rr= null;
 	
 	private static final String CLASS_NAME = SpliceTableInputFormatIT.class.getSimpleName().toUpperCase();
-    private static SpliceWatcher classWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
+    private static SpliceWatcher classWatcher = new SpliceWatcher(CLASS_NAME);
 
     private static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
@@ -110,7 +110,7 @@ public class SpliceTableInputFormatIT {
             });
    
     @Rule
-    public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
+    public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
 	
 	
 	public static Configuration getConfiguration(){

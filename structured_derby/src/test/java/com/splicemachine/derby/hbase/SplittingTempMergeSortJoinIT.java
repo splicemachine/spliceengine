@@ -39,7 +39,7 @@ public class SplittingTempMergeSortJoinIT {
 		}
 
 		private static String TABLE_NAME_1 = "selfjoin";
-		protected static DefaultedSpliceWatcher spliceClassWatcher = new DefaultedSpliceWatcher(
+		protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(
 						SCHEMA_NAME);
 		protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(
 						SCHEMA_NAME);
@@ -72,7 +72,7 @@ public class SplittingTempMergeSortJoinIT {
 						});
 
 		@Rule
-		public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(SCHEMA_NAME);
+		public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA_NAME);
 
 		@Test
 		public void testOneSelfMergeSortJoin() throws Exception {
