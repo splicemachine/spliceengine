@@ -9,7 +9,7 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
-import com.splicemachine.derby.test.framework.DefaultedSpliceWatcher;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceIndexWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
@@ -19,7 +19,7 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 @Ignore
 public class SpliceLevel2OptimizerImplIT extends SpliceUnitTest {
     public static final String CLASS_NAME = SpliceLevel2OptimizerImplIT.class.getSimpleName();
-    protected static SpliceWatcher spliceClassWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
+    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
     protected static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
     protected static final String CUSTOMER = "CUSTOMER";
     protected static final String CUSTOMER_IX1 = "CUSTOMER_IX1";

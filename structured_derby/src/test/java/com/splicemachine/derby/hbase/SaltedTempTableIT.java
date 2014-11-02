@@ -26,7 +26,7 @@ import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.test.framework.DefaultedSpliceWatcher;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
@@ -49,7 +49,7 @@ public class SaltedTempTableIT extends SpliceUnitTest {
     }
 
     private static String TABLE_NAME_1 = "selfjoin";
-    protected static DefaultedSpliceWatcher spliceClassWatcher = new DefaultedSpliceWatcher(
+    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(
             SCHEMA_NAME);
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(
             SCHEMA_NAME);
@@ -79,7 +79,7 @@ public class SaltedTempTableIT extends SpliceUnitTest {
             });
 
     @Rule
-    public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(SCHEMA_NAME);
+    public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA_NAME);
 
     @Test
     public void testGroupAggregateDistributesTempData() throws Exception {

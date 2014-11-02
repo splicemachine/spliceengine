@@ -1,7 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations.joins;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.derby.test.framework.DefaultedSpliceWatcher;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
@@ -50,7 +50,7 @@ public class ThreeTableEquiJoinIT {
     }
 
     private static final String CLASS_NAME=ThreeTableEquiJoinIT.class.getSimpleName();
-    private static DefaultedSpliceWatcher classWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
+    private static SpliceWatcher classWatcher = new SpliceWatcher(CLASS_NAME);
     private static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
     @ClassRule
@@ -58,7 +58,7 @@ public class ThreeTableEquiJoinIT {
             .around(schemaWatcher)
             .around(TestUtils.createFileDataWatcher(classWatcher, "small_msdatasample/startup.sql", CLASS_NAME));
 
-    @Rule public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(getClass().getSimpleName());
+    @Rule public SpliceWatcher methodWatcher = new SpliceWatcher(getClass().getSimpleName());
 
     @Test
     public void testThreeTableJoinWorks() throws Exception {

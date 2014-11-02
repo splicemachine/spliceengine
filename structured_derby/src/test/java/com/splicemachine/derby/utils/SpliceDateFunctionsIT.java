@@ -15,7 +15,7 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
-import com.splicemachine.derby.test.framework.DefaultedSpliceWatcher;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
@@ -24,7 +24,7 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 public class SpliceDateFunctionsIT {
 
     private static final String CLASS_NAME = SpliceDateFunctionsIT.class.getSimpleName().toUpperCase();
-    private static SpliceWatcher classWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
+    private static SpliceWatcher classWatcher = new SpliceWatcher(CLASS_NAME);
 
     private static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
@@ -128,7 +128,7 @@ public class SpliceDateFunctionsIT {
             });
    
     @Rule
-    public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
+    public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
     
     @Test
     public void testToDateFunction() throws Exception{

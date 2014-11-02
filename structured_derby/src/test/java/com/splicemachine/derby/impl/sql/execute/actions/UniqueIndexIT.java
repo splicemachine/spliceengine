@@ -59,7 +59,7 @@ public class UniqueIndexIT extends SpliceUnitTest {
             .around(new SpliceTableWatcher(TABLE_M, CLASS_NAME, "(name varchar(40), val int)"));
 
 	
-	@Rule public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
+	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
 
     /**
      * Basic test to ensure that a Unique Index can be used

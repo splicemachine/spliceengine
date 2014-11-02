@@ -2,7 +2,7 @@ package org.apache.derby.impl.sql.execute.operations;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.test.framework.DefaultedSpliceWatcher;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.utils.ConglomerateUtils;
@@ -45,7 +45,7 @@ public class TableScanOperation_LargeRegionCount_IT {
     @ClassRule
     public static SpliceSchemaWatcher SCHEMA_WATCHER = new SpliceSchemaWatcher(SCHEMA_NAME);
     @Rule
-    public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(SCHEMA_NAME);
+    public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA_NAME);
 
     @Test
     public void selectFromMultipleRegions() throws Exception {

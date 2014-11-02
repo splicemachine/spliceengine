@@ -90,7 +90,7 @@ public class NonUniqueIndexIT extends SpliceUnitTest {
             .around(spliceTableWatcher10);
 
 
-    @Rule public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
+    @Rule public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
 
     @Test(timeout=10000)
     public void testCanCreateIndexWithMultipleEntries() throws Exception{

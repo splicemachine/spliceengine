@@ -40,7 +40,7 @@ public class InnerJoinIT extends SpliceUnitTest {
 	public static final String TABLE_NAME_8 = "H";
 
 
-		protected static DefaultedSpliceWatcher spliceClassWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
+		protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
 		protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 		protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE_NAME_1,CLASS_NAME,"(si varchar(40),sa character varying(40),sc varchar(40),sd int,se float)");
 		protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE_NAME_2,CLASS_NAME,"(si varchar(40), sa varchar(40))");
@@ -114,7 +114,7 @@ public class InnerJoinIT extends SpliceUnitTest {
 						.around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/hits.sql", CLASS_NAME))
 						.around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/basic_join_dataset.sql", CLASS_NAME));
 
-		@Rule public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
+		@Rule public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
 
 		public static void insertData(String t1,String t2,SpliceWatcher spliceWatcher) throws Exception {
 				PreparedStatement psC = spliceWatcher.prepareStatement("insert into "+t1+" values (?,?)");

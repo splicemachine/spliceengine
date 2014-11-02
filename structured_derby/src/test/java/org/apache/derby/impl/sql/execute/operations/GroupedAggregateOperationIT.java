@@ -20,7 +20,7 @@ import com.splicemachine.homeless.TestUtils;
 
 public class GroupedAggregateOperationIT extends SpliceUnitTest {
     public static final String CLASS_NAME = GroupedAggregateOperationIT.class.getSimpleName().toUpperCase();
-    public static final SpliceWatcher spliceClassWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
+    public static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
     public static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
     public static final SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("OMS_LOG",CLASS_NAME,"(swh_date date, i integer)");
     public static final SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher("T8",CLASS_NAME,"(c1 int, c2 int)");
@@ -59,7 +59,7 @@ public class GroupedAggregateOperationIT extends SpliceUnitTest {
             });
 
     @Rule
-    public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
+    public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
 
     @Test
     // Confirm baseline HAVING support

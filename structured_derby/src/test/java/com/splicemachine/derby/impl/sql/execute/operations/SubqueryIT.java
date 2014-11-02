@@ -43,7 +43,7 @@ public class SubqueryIT {
 
     public static final String CLASS_NAME = SubqueryIT.class.getSimpleName();
 
-    protected static SpliceWatcher spliceClassWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
+    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
 
     protected static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
@@ -195,7 +195,7 @@ public class SubqueryIT {
                         "insert into childT select * from parentT; \n"
                     , CLASS_NAME));
 
-    @Rule public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
+    @Rule public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
 
     @Test
     public void testSubqueryWithSum() throws Exception {

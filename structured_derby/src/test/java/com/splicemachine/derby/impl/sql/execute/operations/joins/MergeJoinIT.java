@@ -34,7 +34,7 @@ public class MergeJoinIT extends SpliceUnitTest {
 
     public static final String CLASS_NAME = MergeJoinIT.class.getSimpleName();
 
-    protected static DefaultedSpliceWatcher spliceClassWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
+    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
     protected static final String LINEITEM = "LINEITEM";
@@ -171,7 +171,7 @@ public class MergeJoinIT extends SpliceUnitTest {
 
 
     @Rule
-    public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
+    public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
 
     public static final List<String> STRATEGIES = Arrays.asList("SORTMERGE", "NESTEDLOOP", "BROADCAST", "MERGE");
 

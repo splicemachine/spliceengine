@@ -1,6 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.tester;
 
-import com.splicemachine.derby.test.framework.DefaultedSpliceWatcher;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
@@ -28,7 +28,7 @@ public class NumericPromoteCompareIT {
 	// This test class was added as part of fix for DB-1001.
 	
     private static final String CLASS_NAME = NumericPromoteCompareIT.class.getSimpleName().toUpperCase();
-    private static final DefaultedSpliceWatcher spliceClassWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
+    private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -36,7 +36,7 @@ public class NumericPromoteCompareIT {
             .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/NumericPromoteCompareIT.sql", CLASS_NAME));
 
     @Rule
-    public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
+    public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
 
     private static String tableName1 = "customer";
     
