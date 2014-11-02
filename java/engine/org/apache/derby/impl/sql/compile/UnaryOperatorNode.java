@@ -21,27 +21,25 @@
 
 package	org.apache.derby.impl.sql.compile;
 
-import org.apache.derby.iapi.store.access.Qualifier;
-import org.apache.derby.iapi.sql.compile.Visitor;
-import org.apache.derby.iapi.reference.JDBC40Translation;
-import org.apache.derby.iapi.reference.SQLState;
-import org.apache.derby.iapi.reference.ClassName;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.sanity.SanityManager;
-import org.apache.derby.iapi.services.compiler.MethodBuilder;
-import org.apache.derby.iapi.services.compiler.LocalField;
-import org.apache.derby.iapi.types.TypeId;
-import org.apache.derby.iapi.types.DataTypeDescriptor;
-
 import java.lang.reflect.Modifier;
-
-import org.apache.derby.iapi.util.JBitSet;
-import org.apache.derby.iapi.services.classfile.VMOpcode;
-
 import java.sql.Types;
 import java.util.Collections;
 import java.util.List;
 import java.util.Vector;
+
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.reference.ClassName;
+import org.apache.derby.iapi.reference.JDBC40Translation;
+import org.apache.derby.iapi.reference.SQLState;
+import org.apache.derby.iapi.services.classfile.VMOpcode;
+import org.apache.derby.iapi.services.compiler.LocalField;
+import org.apache.derby.iapi.services.compiler.MethodBuilder;
+import org.apache.derby.iapi.services.sanity.SanityManager;
+import org.apache.derby.iapi.sql.compile.Visitor;
+import org.apache.derby.iapi.store.access.Qualifier;
+import org.apache.derby.iapi.types.DataTypeDescriptor;
+import org.apache.derby.iapi.types.TypeId;
+import org.apache.derby.iapi.util.JBitSet;
 
 /**
  * A UnaryOperatorNode represents a built-in unary operator as defined by
@@ -781,12 +779,10 @@ public class UnaryOperatorNode extends OperatorNode
     {
     	if (isSameNodeType(o)) 
     	{
-		// the first condition in the || covers the case when 
-	    	// both operands are null.
     		UnaryOperatorNode other = (UnaryOperatorNode)o;
-    		return (operator.equals(other.operator) && 
-			((operand == other.operand)|| 
-			 ((operand != null) && operand.isEquivalent(other.operand))));
+    		return ((operator == null && other.operator == null) || (operator != null && operator.equals(other.operator)) &&
+                // the first condition in the || covers the case when both operands are null.
+			((operand == other.operand)|| ((operand != null) && operand.isEquivalent(other.operand))));
     	}
     	return false;
     }
