@@ -1,17 +1,19 @@
 package com.splicemachine.derby.impl.sql.catalog.upgrade;
 
-import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
-import org.apache.derby.catalog.AliasInfo;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.dictionary.AliasDescriptor;
 import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
 import org.apache.derby.iapi.store.access.TransactionController;
+import org.apache.log4j.Logger;
+
+import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 
 /**
  * Created by jyuan on 10/17/14.
  */
 public abstract class UpgradeScriptBase implements UpgradeScript {
+	protected static final Logger LOG = Logger.getLogger(UpgradeScriptBase.class);
 
     protected SpliceDataDictionary sdd;
     protected TransactionController tc;
@@ -48,9 +50,13 @@ public abstract class UpgradeScriptBase implements UpgradeScript {
     }
 
     public void run() throws StandardException{
+    	if (LOG.isInfoEnabled()) LOG.info("Upgrading system tables");
         upgradeSystemTables();
+    	if (LOG.isInfoEnabled()) LOG.info("Upgrading system procedures");
         upgradeSystemProcedures();
+    	if (LOG.isInfoEnabled()) LOG.info("Upgrading system functions");
         upgradeSystemFunctions();
+    	if (LOG.isInfoEnabled()) LOG.info("Upgrading system stored statements");
         upgradeSystemStoredStatements();
     }
 }

@@ -15,6 +15,7 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -87,6 +88,10 @@ class SpliceMasterObserverInitAction {
                 try {
                     if (ZkUtils.isSpliceLoaded()) {
                         SpliceLogUtils.info(LOG, "Splice Machine has already been initialized");
+                        // Boot up the Splice data dictionary to trigger the upgrade process if it is needed.
+                        // We don't want the region servers to attempt an upgrade since we could end up in a race condition
+                        // between the region servers when the system tables are being updated.  See DB-2011 for more details.
+                        connection = bootSplice();
                         state.set(State.RUNNING);
                         return null;
                     } else {
@@ -94,11 +99,7 @@ class SpliceMasterObserverInitAction {
                         ZkUtils.refreshZookeeper();
                         SpliceUtilities.refreshHbase();
                         SpliceUtilities.createSpliceHBaseTables();
-                        new SpliceAccessManager(); //make sure splice access manager gets loaded
-                        //make sure that we have a Snowflake loaded
-                        SpliceDriver.driver().loadUUIDGenerator();
-                        EmbedConnectionMaker maker = new EmbedConnectionMaker();
-                        connection = maker.createFirstNew();
+                        connection = bootSplice();
                         ZkUtils.spliceFinishedLoading();
                         state.set(State.RUNNING);
                         return null;
@@ -115,6 +116,20 @@ class SpliceMasterObserverInitAction {
 
         });
     }
+
+    /**
+     * Boot up Splice (Derby) by creating an internal embedded connection to it.
+	 * @return internal connection to Splice
+	 * @throws IOException
+	 * @throws SQLException
+	 */
+	private Connection bootSplice() throws IOException, SQLException {
+		new SpliceAccessManager(); //make sure splice access manager gets loaded
+		//make sure that we have a Snowflake loaded
+		SpliceDriver.driver().loadUUIDGenerator();
+		EmbedConnectionMaker maker = new EmbedConnectionMaker();
+		return maker.createFirstNew();
+	}
 
     @Override
     public String toString() {
