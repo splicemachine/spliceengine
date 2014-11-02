@@ -88,6 +88,38 @@ public class WindowFunctionMultiIT extends SpliceUnitTest {
         "0,'2013-05-12',44880,467.33,74065939"
     };
 
+    private static String table7Def = "(years INTEGER, month INTEGER, prd_type_id INTEGER, emp_id INTEGER , amount NUMERIC(8, 2))";
+    public static final String TABLE7_NAME = "ALL_SALES";
+    protected static SpliceTableWatcher spliceTableWatcher7 = new SpliceTableWatcher(TABLE7_NAME,CLASS_NAME, table7Def);
+
+    private static String[] ALL_SALES = {
+        "2006,1,1,21,16034.84",
+        "2006,2,1,21,15644.65",
+        "2006,3,2,21,20167.83",
+        "2006,4,2,21,25056.45",
+        "2006,5,2,21,NULL",
+        "2006,6,1,21,15564.66",
+        "2006,7,1,21,15644.65",
+        "2006,8,1,21,16434.82",
+        "2006,9,1,21,19654.57",
+        "2006,10,1,21,21764.19",
+        "2006,11,1,21,13026.73",
+        "2006,12,2,21,10034.64",
+        "2005,1,2,22,16634.84",
+        "2005,1,2,21,26034.84",
+        "2005,2,1,21,12644.65",
+        "2005,3,1,21,NULL",
+        "2005,4,1,21,25026.45",
+        "2005,5,1,21,17212.66",
+        "2005,6,1,21,15564.26",
+        "2005,7,2,21,62654.82",
+        "2005,8,2,21,26434.82",
+        "2005,9,2,21,15644.65",
+        "2005,10,2,21,21264.19",
+        "2005,11,1,21,13026.73",
+        "2005,12,1,21,10032.64"
+    };
+
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
                                             .around(spliceSchemaWatcher)
@@ -134,6 +166,22 @@ public class WindowFunctionMultiIT extends SpliceUnitTest {
                 for (String row : TXN_DETAIL) {
                     ps = spliceClassWatcher.prepareStatement(
                         String.format("insert into %s values (%s)", spliceTableWatcher6, row));
+                    ps.execute();
+                }
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+    })
+    .around(spliceTableWatcher7)
+    .around(new SpliceDataWatcher() {
+        @Override
+        protected void starting(Description description) {
+            PreparedStatement ps;
+            try {
+                for (String row : ALL_SALES) {
+                    ps = spliceClassWatcher.prepareStatement(
+                        String.format("insert into %s values (%s)", spliceTableWatcher7, row));
                     ps.execute();
                 }
             } catch (Exception e) {
@@ -426,5 +474,37 @@ public class WindowFunctionMultiIT extends SpliceUnitTest {
         }
         rs.close();
         WindowFunctionIT.compareArrays(c10Expected, c10Actual);
+    }
+
+    @Test
+    public void testWindowDefnEquivalent() throws Exception {
+        // DB-2165 - NPE, operator null in OverClause.isEquivalent(OrderByCol, OrderByCol)
+        double[] sumExpected = new double[] {227276.50, 223927.08};
+        int[] rankExpected = new int[] {1, 2};
+        int[] denseRankExpected = new int[] {1, 2};
+        String sqlText =
+            String.format("SELECT\n" +
+                              "prd_type_id, SUM(amount),\n" +
+                              "RANK() OVER (ORDER BY SUM(amount) DESC) AS rank,\n" +
+                              "DENSE_RANK() OVER (ORDER BY SUM(amount) DESC) AS dense_rank\n" +
+                              "FROM %s\n" +
+                              "WHERE amount IS NOT NULL\n" +
+                              "GROUP BY prd_type_id\n" +
+                              "ORDER BY prd_type_id", this.getTableReference(TABLE7_NAME));
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+
+        List<Double> sumActual = new ArrayList<Double>(sumExpected.length);
+        List<Integer> rankActual = new ArrayList<Integer>(rankExpected.length);
+        List<Integer> denseRankActual = new ArrayList<Integer>(denseRankExpected.length);
+        while (rs.next()) {
+            sumActual.add(rs.getDouble(2));
+            rankActual.add(rs.getInt(3));
+            denseRankActual.add(rs.getInt(4));
+        }
+        rs.close();
+        WindowFunctionIT.compareArrays(sumExpected, sumActual);
+        WindowFunctionIT.compareArrays(rankExpected, rankActual);
+        WindowFunctionIT.compareArrays(denseRankExpected, denseRankActual);
     }
 }
