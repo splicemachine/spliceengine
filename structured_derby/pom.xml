@@ -224,65 +224,6 @@
 			</build>
 		</profile>
 		<profile>
-			<id>splice</id>
-			<activation>
-				<property>
-					<name>splice</name>
-				</property>
-			</activation>
-			<build>
-				<plugins>
-					<plugin>
-						<groupId>org.codehaus.mojo</groupId>
-						<artifactId>exec-maven-plugin</artifactId>
-						<version>1.2.1</version>
-						<executions>
-							<execution>
-								<goals>
-									<goal>exec</goal>
-								</goals>
-							</execution>
-						</executions>
-						<configuration>
-							<classpathScope>compile</classpathScope>
-							<executable>java</executable>
-							<arguments>
-								<argument>-cp</argument>
-								<classpath>${maven.runtime.classpath}</classpath>
-								<argument>-Xdebug</argument>
-								<argument>-Djava.awt.headless=true</argument>
-								<argument>-Djava.net.preferIPv4Stack=true</argument>
-								<argument>-Dlog4j.configuration=file:${basedir}/src/main/resources/trace-log4j.properties</argument>
-								<argument>-Xmx4g</argument>
-								<argument>-Xms1g</argument>
-								<argument>-Xmn128m</argument>
-								<argument>-XX:+UseConcMarkSweepGC</argument>
-								<argument>-XX:+UseParNewGC</argument>
-								<argument>-XX:NewSize=128m</argument>
-								<argument>-XX:MaxNewSize=128m</argument>
-								<argument>-XX:CMSInitiatingOccupancyFraction=70</argument>
-								<argument>-XX:+UseCMSInitiatingOccupancyOnly</argument>
-								<argument>-XX:MaxGCPauseMillis=100</argument>
-								<argument>-XX:MaxPermSize=256M</argument>
-								<argument>-XX:+CMSClassUnloadingEnabled</argument>
-								<argument>-XX:MaxDirectMemorySize=1g</argument>
-								<argument>-enableassertions</argument>
-								<argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4000</argument>
-								<argument>-Dderby.debug.true=DumpClassFile,DumpParseTree,DumpBindTree,DumpOptimizedTree,ByteCodeGenInstr</argument>
-								<argument>-Dderby.language.logQueryPlan=true</argument>
-								<argument>-Dderby.language.logStatementText=true</argument>
-								<argument>-Dderby.language.useStatistics=true</argument>
-								<argument>com.splicemachine.test.SpliceTestPlatform</argument>
-								<argument>${project.build.directory}/zookeeper</argument>
-								<argument>file://${project.build.directory}/hbase</argument>
-								<argument>${failTasksRandomly}</argument>
-							</arguments>
-						</configuration>
-					</plugin>
-				</plugins>
-			</build>
-		</profile>
-		<profile>
 			<id>spliceZoo</id>
 			<activation>
 				<property>
@@ -357,68 +298,6 @@
 			</build>
 		</profile>
 		<profile>
-			<id>spliceCI</id>
-			<activation>
-				<property>
-					<name>spliceCI</name>
-				</property>
-			</activation>
-			<build>
-				<plugins>
-					<plugin>
-						<groupId>org.codehaus.mojo</groupId>
-						<artifactId>exec-maven-plugin</artifactId>
-						<version>1.2.1</version>
-						<executions>
-							<execution>
-								<goals>
-									<goal>exec</goal>
-								</goals>
-							</execution>
-						</executions>
-						<configuration>
-							<classpathScope>compile</classpathScope>
-							<executable>java</executable>
-							<workingDirectory>${basedir}</workingDirectory>
-							<arguments>
-								<argument>-cp</argument>
-								<classpath>${maven.runtime.classpath}</classpath>
-								<argument>-Xdebug</argument>
-								<argument>-Dcom.sun.management.jmxremote.ssl=false</argument>
-								<argument>-Dcom.sun.management.jmxremote.authenticate=false</argument>
-								<argument>-Dcom.sun.management.jmxremote.port=10102</argument>
-								<argument>-Djava.awt.headless=true</argument>
-								<argument>-Dlog4j.configuration=file:${basedir}/src/main/resources/hbase-log4j.properties</argument>
-								<argument>-Djava.net.preferIPv4Stack=true</argument>
-								<argument>-Xmx4g</argument>
-								<argument>-Xms1g</argument>
-								<argument>-Xmn128m</argument>
-								<argument>-XX:+UseConcMarkSweepGC</argument>
-								<argument>-XX:+UseParNewGC</argument>
-								<argument>-XX:NewSize=128m</argument>
-								<argument>-XX:MaxNewSize=128m</argument>
-								<argument>-XX:CMSInitiatingOccupancyFraction=70</argument>
-								<argument>-XX:+UseCMSInitiatingOccupancyOnly</argument>
-								<argument>-XX:MaxGCPauseMillis=100</argument>
-								<argument>-XX:MaxPermSize=256M</argument>
-								<argument>-XX:+CMSClassUnloadingEnabled</argument>
-								<argument>-XX:MaxDirectMemorySize=1g</argument>
-								<argument>-enableassertions</argument>
-								<argument>com.splicemachine.test.SpliceTestPlatform</argument>
-								<argument>${project.build.directory}/zookeeper</argument>
-								<argument>file://${project.build.directory}/hbase</argument>
-								<argument>60021</argument>
-								<argument>60022</argument>
-								<argument>60023</argument>
-								<argument>60024</argument>
-								<argument>${failTasksRandomly}</argument>
-							</arguments>
-						</configuration>
-					</plugin>
-				</plugins>
-			</build>
-		</profile>
-		<profile>
 			<id>spliceClusterMember</id>
 			<activation>
 				<property>
@@ -465,39 +344,6 @@
 								<argument>com.splicemachine.test.SpliceTestClusterParticipant</argument>
 								<argument>${project.build.directory}/hbase</argument>
 								<argument>${memberNumber}</argument>
-							</arguments>
-						</configuration>
-					</plugin>
-				</plugins>
-			</build>
-		</profile>
-		<profile>
-			<id>splice-java</id>
-			<activation>
-				<property>
-					<name>splice-java</name>
-				</property>
-			</activation>
-			<build>
-				<plugins>
-					<plugin>
-						<groupId>org.codehaus.mojo</groupId>
-						<artifactId>exec-maven-plugin</artifactId>
-						<version>1.2.1</version>
-						<executions>
-							<execution>
-								<goals>
-									<goal>java</goal>
-								</goals>
-							</execution>
-						</executions>
-						<configuration>
-							<mainClass>com.splicemachine.test.SpliceTestPlatform</mainClass>
-							<executable>maven</executable>
-							<arguments>
-								<argument>${project.build.directory}/zookeeper</argument>
-								<argument>file://${project.build.directory}/hbase</argument>
-								<argument>${failTasksRandomly}</argument>
 							</arguments>
 						</configuration>
 					</plugin>
@@ -603,61 +449,6 @@
 							<mainClass>org.apache.derby.tools.ij</mainClass>
 							<includeProjectDependencies>true</includeProjectDependencies>
 							<executable>maven</executable>
-						</configuration>
-					</plugin>
-				</plugins>
-			</build>
-		</profile>
-		<profile>
-			<id>info</id>
-			<activation>
-				<property>
-					<name>info</name>
-				</property>
-			</activation>
-			<properties>
-				<log4j.location>${basedir}/src/main/resources/info-log4j.properties</log4j.location>
-			</properties>
-		</profile>
-		<profile>
-			<id>trace</id>
-			<activation>
-				<activeByDefault>true</activeByDefault>
-			</activation>
-			<properties>
-				<log4j.location>${basedir}/src/main/resources/trace-log4j.properties</log4j.location>
-			</properties>
-		</profile>
-		<profile>
-			<id>harness</id>
-			<activation>
-				<property>
-					<name>harness</name>
-				</property>
-			</activation>
-			<build>
-				<plugins>
-					<plugin>
-						<groupId>org.codehaus.mojo</groupId>
-						<artifactId>exec-maven-plugin</artifactId>
-						<version>1.2.1</version>
-						<executions>
-							<execution>
-								<goals>
-									<goal>exec</goal>
-								</goals>
-							</execution>
-						</executions>
-						<configuration>
-							<includeProjectDependencies>true</includeProjectDependencies>
-							<classpathScope>compile</classpathScope>
-							<executable>java</executable>
-							<arguments>
-								<argument>-cp</argument>
-								<classpath>${maven.runtime.classpath}</classpath>
-								<argument>org.apache.derbyTesting.functionTests.harness.RunTest</argument>
-								<argument>${test}</argument>
-							</arguments>
 						</configuration>
 					</plugin>
 				</plugins>
