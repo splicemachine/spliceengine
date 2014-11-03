@@ -16,7 +16,7 @@ import java.util.List;
  * @author Scott Fines
  *         Date: 9/4/14
  */
-public class SimpleMeasuredRegionScanner implements MeasuredRegionScanner {
+public class SimpleMeasuredRegionScanner implements MeasuredRegionScanner<KeyValue> {
     private final RegionScanner delegate;
     private Timer readTimer;
     private Counter bytesCounter;

@@ -50,7 +50,7 @@ import java.util.List;
  * @author Scott Fines
  * Created on: 7/25/13
  */
-public class BufferedRegionScanner implements MeasuredRegionScanner{
+public class BufferedRegionScanner implements MeasuredRegionScanner<KeyValue>{
 
     private static final Logger LOG = Logger.getLogger(BufferedRegionScanner.class);
 

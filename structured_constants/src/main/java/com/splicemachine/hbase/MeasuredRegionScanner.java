@@ -1,17 +1,14 @@
 package com.splicemachine.hbase;
 
 import java.io.IOException;
-
-
 import com.splicemachine.metrics.TimeView;
-import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 
 /**
  * @author Scott Fines
  * Date: 1/17/14
  */
-public interface MeasuredRegionScanner extends RegionScanner {
+public interface MeasuredRegionScanner<T> extends RegionScanner {
 
 		void start();
 
@@ -19,7 +16,7 @@ public interface MeasuredRegionScanner extends RegionScanner {
 
 		long getBytesOutput();
 
-		KeyValue next() throws IOException;
+		T next() throws IOException;
 
 		long getBytesVisited();
 
