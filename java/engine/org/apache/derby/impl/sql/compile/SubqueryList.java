@@ -33,8 +33,7 @@ import org.apache.derby.iapi.services.sanity.SanityManager;
  *
  */
 
-public class SubqueryList extends QueryTreeNodeVector
-{
+public class SubqueryList extends QueryTreeNodeVector<SubqueryNode>{
 	/**
 	 * Add a subquery to the list.
 	 *
@@ -42,8 +41,7 @@ public class SubqueryList extends QueryTreeNodeVector
 	 *
 	 */
 
-	public void addSubqueryNode(SubqueryNode subqueryNode) throws StandardException
-	{
+	public void addSubqueryNode(SubqueryNode subqueryNode) throws StandardException {
 		addElement(subqueryNode);
 	}
 
@@ -69,7 +67,7 @@ public class SubqueryList extends QueryTreeNodeVector
 		int size = size();
 		for (int index = 0; index < size; index++)
 		{
-			subqueryNode = (SubqueryNode) elementAt(index);
+			subqueryNode = elementAt(index);
 			subqueryNode.preprocess(numTables, outerFromList,
 									outerSubqueryList,
 									outerPredicateList);
@@ -93,7 +91,7 @@ public class SubqueryList extends QueryTreeNodeVector
 		for (int index = 0; index < size; index++)
 		{
 			SubqueryNode	subqueryNode;
-			subqueryNode = (SubqueryNode) elementAt(index);
+			subqueryNode = elementAt(index);
 			subqueryNode.optimize(dataDictionary, outerRows);
 		}
 	}
@@ -112,7 +110,7 @@ public class SubqueryList extends QueryTreeNodeVector
 		for (int index = 0; index < size; index++)
 		{
 			SubqueryNode	subqueryNode;
-			subqueryNode = (SubqueryNode) elementAt(index);
+			subqueryNode = elementAt(index);
 			subqueryNode.modifyAccessPaths();
 		}
 	}
@@ -135,7 +133,7 @@ public class SubqueryList extends QueryTreeNodeVector
 		{
 			SubqueryNode	subqueryNode;
 
-			subqueryNode = (SubqueryNode) elementAt(index);
+			subqueryNode = elementAt(index);
 			if (subqueryNode.isMaterializable())
 			{
 				continue;
@@ -165,7 +163,7 @@ public class SubqueryList extends QueryTreeNodeVector
 		{
 			SubqueryNode	subqueryNode;
 
-			subqueryNode = (SubqueryNode) elementAt(index);
+			subqueryNode = elementAt(index);
 
 			if (subqueryNode.getResultSet().referencesSessionSchema())
 			{
@@ -192,7 +190,7 @@ public class SubqueryList extends QueryTreeNodeVector
 		{
 			SubqueryNode	subqueryNode;
 
-			subqueryNode = (SubqueryNode) elementAt(index);
+			subqueryNode = elementAt(index);
 			subqueryNode.setPointOfAttachment(pointOfAttachment);
 		}
 	}
@@ -210,7 +208,7 @@ public class SubqueryList extends QueryTreeNodeVector
 
 		for (int index = 0; index < size; index++)
 		{
-			((SubqueryNode) elementAt(index)).getResultSet().decrementLevel(decrement);
+			elementAt(index).getResultSet().decrementLevel(decrement);
 		}
 	}
 
@@ -227,7 +225,7 @@ public class SubqueryList extends QueryTreeNodeVector
 	    {
 	        SubqueryNode    subqueryNode;
 
-	        subqueryNode = (SubqueryNode) elementAt(index);
+	        subqueryNode = elementAt(index);
 	        subqueryNode.setHavingSubquery(true);
 	    }
 	}
@@ -242,7 +240,7 @@ public class SubqueryList extends QueryTreeNodeVector
 		{
 			SubqueryNode    subqueryNode;
 
-			subqueryNode = (SubqueryNode) elementAt(index);
+			subqueryNode = elementAt(index);
 			subqueryNode.setWhereSubquery(true);
 		}
 	}

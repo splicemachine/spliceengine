@@ -48,7 +48,7 @@ import java.util.List;
  *
  */
 
-public class PredicateList extends QueryTreeNodeVector implements OptimizablePredicateList {
+public class PredicateList extends QueryTreeNodeVector<Predicate> implements OptimizablePredicateList {
     private int	numberOfStartPredicates;
     private int numberOfStopPredicates;
     private int numberOfQualifiers;
@@ -64,7 +64,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
      */
     @Override
     public OptimizablePredicate getOptPredicate(int index) {
-        return (OptimizablePredicate) elementAt(index);
+        return elementAt(index);
     }
 
     /**
@@ -74,7 +74,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
      */
     @Override
     public final void removeOptPredicate(int predCtr) throws StandardException {
-        Predicate predicate = (Predicate) remove(predCtr);
+        Predicate predicate = remove(predCtr);
 
         if (predicate.isStartKey())
             numberOfStartPredicates--;
@@ -153,7 +153,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
 		*/
       int size = size();
       for (int index = 0; index < size; index++) {
-          Predicate	pred = (Predicate) elementAt(index);
+          Predicate	pred = elementAt(index);
           RelationalOperator relop = pred.getRelop();
 
 			/* InListOperatorNodes, while not relational operators, may still
@@ -261,7 +261,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
     public void markAllPredicatesQualifiers() {
         int size = size();
         for (int index = 0; index < size; index++) {
-            ((Predicate) elementAt(index)).markQualifier();
+            elementAt(index).markQualifier();
         }
 
         numberOfQualifiers = size;
@@ -281,7 +281,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
         for (int index = 0; index < size; index++) {
             AndNode			andNode;
             Predicate		predicate;
-            predicate = (Predicate) elementAt(index);
+            predicate = elementAt(index);
             //We are not looking at constant comparison predicate.
             if (predicate.getReferencedMap().hasSingleBitSet()) {
                 continue;
@@ -313,7 +313,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
         for (int index = 0; index < size; index++) {
             AndNode			andNode;
             Predicate		predicate;
-            predicate = (Predicate) elementAt(index);
+            predicate = elementAt(index);
 
             andNode = predicate.getAndNode();
 
@@ -337,7 +337,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
         int size = size();
         for (int index = 0; index < size; index++) {
             AndNode	andNode;
-            Predicate predicate = (Predicate) elementAt(index);
+            Predicate predicate = elementAt(index);
 
             // This method is used by HashJoinStrategy to determine if
             // there are any equality predicates that can be used to
@@ -460,7 +460,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
   public void putOptimizableEqualityPredicateFirst(Optimizable optTable, int columnNumber) throws StandardException {
       int size = size();
       for (int index = 0; index < size; index++) {
-          Predicate	predicate = (Predicate) elementAt(index);
+          Predicate	predicate = elementAt(index);
 
           AndNode andNode = predicate.getAndNode();
 
@@ -633,7 +633,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
 		** flags that get set are only for the given conglomerate.
 		*/
         for (int index = 0; index < size; index++) {
-            predicate = (Predicate) elementAt(index);
+            predicate = elementAt(index);
             predicate.clearScanFlags();
         }
 
@@ -665,7 +665,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
             Predicate[] preds = new Predicate[size];
 
             for (int index = 0; index < size; index++) {
-                Predicate	pred = (Predicate) elementAt(index);
+                Predicate	pred = elementAt(index);
                 if (isQualifier(pred,optTable,pushPreds)) {
                     pred.markQualifier();
                     if (SanityManager.DEBUG) {
@@ -730,7 +730,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
 		*/
         List<Predicate> predicates = new ArrayList<Predicate>();
         for (int index = 0; index < size; index++) {
-            Predicate pred = (Predicate) elementAt(index);
+            Predicate pred = elementAt(index);
             Integer position = isIndexUseful(pred,optTable,pushPreds,skipProbePreds,baseColumnPositions);
             if (position != null) {
                 pred.setIndexPosition(position);
@@ -1010,7 +1010,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
     protected void transferNonQualifiers(Optimizable optTable, PredicateList otherPL) throws StandardException {
         //Walk list backwards since we can delete while traversing the list.
         for (int index = size() - 1; index >= 0; index--) {
-            Predicate	pred = (Predicate) elementAt(index);
+            Predicate	pred = elementAt(index);
 
             // Transfer each non-qualifier
             if (!pred.isRelationalOpPredicate() || !pred.getRelop().isQualifier(optTable, false)) {
@@ -1034,7 +1034,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
         int size = size();
 
         for (int index = 0; index < size; index++) {
-            ((Predicate) elementAt(index)).categorize();
+            elementAt(index).categorize();
         }
     }
 
@@ -1051,7 +1051,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
         //Walk list backwards since we can delete while traversing the list.
         for (int index = size() - 1; index >= 0; index--) {
      			  /* Look at the current predicate from the predicate list */
-            AndNode nextAnd = ((Predicate) elementAt(index)).getAndNode();
+            AndNode nextAnd = elementAt(index).getAndNode();
 
             if ((nextAnd.getLeftOperand().isBooleanTrue()) && (nextAnd.getRightOperand().isBooleanTrue())) {
                 removeElementAt(index);
@@ -1095,7 +1095,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
 		 */
         for (int index = size() - 1; index >= 0; index--) {
 			/* Look at the current predicate from the predicate list */
-            nextAnd = ((Predicate) elementAt(index)).getAndNode();
+            nextAnd = elementAt(index).getAndNode();
 
             // Skip over the predicate if it is not a constant expression
             if (! nextAnd.isConstantExpression()) {
@@ -1176,7 +1176,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
 
         int size = size();
         for (int index = 0; index < size; index++) {
-            nextAnd = ((Predicate) elementAt(index)).getAndNode();
+            nextAnd = elementAt(index).getAndNode();
 
         		/* We can skip over TRUE AND TRUE */
             if ((nextAnd.getLeftOperand().isBooleanTrue()) && (nextAnd.getRightOperand().isBooleanTrue())) {
@@ -1232,7 +1232,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
 
         int size = size();
         for (int index = 0; index < size; index++) {
-            pred = (Predicate) elementAt(index);
+            pred = elementAt(index);
 
             pred.setAndNode((AndNode)pred.getAndNode().remapColumnReferencesToExpressions());
         }
@@ -1329,7 +1329,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
 
         int size = size();
         for (int index = 0; index < size; index++) {
-            predicate = (Predicate) elementAt(index);
+            predicate = elementAt(index);
             if (predicate.isStartKey())
                 numberOfStartPredicates++;
             if (predicate.isStopKey())
@@ -1370,7 +1370,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
 		 */
         for (int index = size() - 1; index >= 0; index--) {
             Predicate	predicate;
-            predicate = (Predicate) elementAt(index);
+            predicate = elementAt(index);
 
             CollectNodesVisitor<ColumnReference> getCRs =  CollectNodesVisitor.newVisitor(ColumnReference.class);
 
@@ -1519,7 +1519,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
 
         int size = size();
         for (int index = 0; index < size; index++) {
-            Predicate predicate = (Predicate) elementAt(index);
+            Predicate predicate = elementAt(index);
             predicate.getAndNode().accept(collectCRs);
         }
 
@@ -1561,7 +1561,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
                                                boolean     resultColTable) throws StandardException {
         int size = size();
         for (int index = 0; index < size; index++) {
-            AndNode and = ((Predicate) elementAt(index)).getAndNode();
+            AndNode and = elementAt(index).getAndNode();
             and.checkTopPredicatesForEqualsConditions(
                     tableNumber, eqOuterCols, tableNumbers, tableColMap,
                     resultColTable);
@@ -1576,7 +1576,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
     boolean allPushable() {
         int size = size();
         for (int index = 0; index < size; index++) {
-            Predicate		predicate = (Predicate) elementAt(index);
+            Predicate		predicate = elementAt(index);
             if (! predicate.getPushable()) {
                 return false;
             }
@@ -1595,7 +1595,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
         int tableNumber = fbt.getTableNumber();
 
         for (int i = 0; i < size(); i++) {
-            Predicate p = (Predicate) elementAt(i);
+            Predicate p = elementAt(i);
             if (!p.getReferencedSet().get(tableNumber)) {
                 return false;
             }
@@ -1620,7 +1620,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
 
         // Walk the list backwards because of possible deletes
         for (int index = size() - 1; index >= 0; index--) {
-            Predicate predicate = (Predicate) elementAt(index);
+            Predicate predicate = elementAt(index);
             if (! predicate.getPushable()) {
                 continue;
             }
@@ -1668,7 +1668,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
       for (int index = 0; index < size; index++) {
           ColumnReference cr1 = null;
           ColumnReference cr2 = null;
-          Predicate predicate = (Predicate) elementAt(index);
+          Predicate predicate = elementAt(index);
           ValueNode vn = predicate.getAndNode().getLeftOperand();
 
           if (vn instanceof BinaryOperatorNode) {
@@ -1693,7 +1693,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
               int sourceTable = cr1.getTableNumber();
               //noinspection ForLoopReplaceableByForEach
               for (int inner = 0; inner < tableNumbers.length; inner++){
-                  if (tableNumbers[inner] == sourceTable) {
+                  if (tableNumbers[inner] == sourceTable && cr1.getSourceLevel()>0) {
                       cr1.setSourceLevel(cr1.getSourceLevel() - decrement);
                       break;
                   }
@@ -1704,7 +1704,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
               int sourceTable = cr2.getTableNumber();
               //noinspection ForLoopReplaceableByForEach
               for (int inner = 0; inner < tableNumbers.length; inner++){
-                  if (tableNumbers[inner] == sourceTable) {
+                  if (tableNumbers[inner] == sourceTable && cr2.getSourceLevel()>0) {
                       cr2.setSourceLevel(cr2.getSourceLevel() - decrement);
                       break;
                   }
@@ -1760,7 +1760,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
 		 */
         int size = size();
         for (int index = 0; index < size; index++) {
-            Predicate predicate = (Predicate) elementAt(index);
+            Predicate predicate = elementAt(index);
             ValueNode vn = predicate.getAndNode().getLeftOperand();
 
             if (! (vn.isBinaryEqualsOperatorNode())) {
@@ -1803,7 +1803,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
 			       */
             List<Predicate> movePreds = new ArrayList<Predicate>();
             for (int jcIndex = outerJCL.size() - 1; jcIndex >= 0; jcIndex--) {
-                Predicate predicate = (Predicate) outerJCL.elementAt(jcIndex);
+                Predicate predicate = outerJCL.elementAt(jcIndex);
                 if (predicate.getEquivalenceClass() != -1) {
                     outerJCL.removeElementAt(jcIndex);
                     movePreds.add(predicate);
@@ -1826,7 +1826,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
         				/* Assign an equivalence class to those Predicates
 				         * that have not already been assigned an equivalence class.
 				         */
-                Predicate outerP = (Predicate) outerJCL.elementAt(outerIndex);
+                Predicate outerP = outerJCL.elementAt(outerIndex);
                 if (outerP.getEquivalenceClass() == -1) {
                     outerP.setEquivalenceClass(cc.getNextEquivalenceClass());
                 }
@@ -1857,7 +1857,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
 					          /* Skip those Predicates that have already been
 					           * assigned a different equivalence class.
 					           */
-                    Predicate middleP = (Predicate) middleJCL.elementAt(middleIndex);
+                    Predicate middleP = middleJCL.elementAt(middleIndex);
                     if (middleP.getEquivalenceClass() != -1 && middleP.getEquivalenceClass() != outerEC) {
                         continue;
                     }
@@ -1909,7 +1909,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
                     PredicateList innerJCL = joinClauses[innerTableNumber];
                     int innerIndex = 0;
                     for ( ; innerIndex < innerJCL.size(); innerIndex++) {
-                        innerP = (Predicate) innerJCL.elementAt(innerIndex);
+                        innerP = innerJCL.elementAt(innerIndex);
 
                         // Skip over predicates with other equivalence classes
                         if (innerP.getEquivalenceClass() != -1 && innerP.getEquivalenceClass() != outerEC) {
@@ -2038,7 +2038,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
 
         int size = size();
         for (int index = 0; index < size; index++) {
-            Predicate		predicate = (Predicate) elementAt(index);
+            Predicate		predicate = elementAt(index);
             AndNode			andNode = predicate.getAndNode();
 
             // Skip anything that's not a RelationalOperator
@@ -2100,7 +2100,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
             ColumnReference searchCR;
             DataValueDescriptor searchODV = null;
             RelationalOperator ro = (RelationalOperator)
-                    ((Predicate) searchClauses.elementAt(scIndex)).getAndNode().getLeftOperand();
+                    searchClauses.elementAt(scIndex).getAndNode().getLeftOperand();
 
             // Find the ColumnReference and constant value, if any, in the search clause
             if (ro instanceof UnaryComparisonOperatorNode) {
@@ -2128,7 +2128,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
 				         * fact that a search clause was added because multiple search clauses
 				         * can get added when preprocessing LIKE and BETWEEN.
 				         */
-                Predicate predicate = (Predicate) equijoinClauses.elementAt(ejcIndex);
+                Predicate predicate = equijoinClauses.elementAt(ejcIndex);
                 if (predicate.transitiveSearchClauseAdded(ro)) {
                     continue;
                 }
@@ -2163,7 +2163,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
                 int scSize = searchClauses.size();
                 for (int scIndex2 = 0; scIndex2 < scSize; scIndex2++) {
                     DataValueDescriptor currODV = null;
-                    ro2 = (RelationalOperator)((Predicate) searchClauses.elementAt(scIndex2)).getAndNode().getLeftOperand();
+                    ro2 = (RelationalOperator) searchClauses.elementAt(scIndex2).getAndNode().getLeftOperand();
 
                     // Find the ColumnReference in the search clause
                     if (ro2 instanceof UnaryComparisonOperatorNode) {
@@ -2241,7 +2241,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
 	  	   * traversing the list.
 	       */
         for (int index = size() - 1; index >= 0; index--) {
-            Predicate predicate = (Predicate) elementAt(index);
+            Predicate predicate = elementAt(index);
 
             if (predicate.transitiveSearchClauseAdded(equalsNode)) {
                 removeElementAt(index);
@@ -2261,7 +2261,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
 		     */
         int outer = size() - 1;
         while (outer >= 0) {
-            Predicate predicate = (Predicate) elementAt(outer);
+            Predicate predicate = elementAt(outer);
             int equivalenceClass = predicate.getEquivalenceClass();
 
             if (equivalenceClass == -1) {
@@ -2271,7 +2271,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
 
             // Walk the rest of the list backwards.
             for (int inner = outer - 1; inner >= 0; inner--) {
-                Predicate innerPredicate = (Predicate) elementAt(inner);
+                Predicate innerPredicate = elementAt(inner);
                 if (innerPredicate.getEquivalenceClass() == equivalenceClass) {
         					  /* Only 1 predicate per column can be marked as a start
 				        	   * and/or a stop position.
@@ -2337,7 +2337,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
 	       * traversing the list.
 		     */
         for (int index = size() - 1; index >= 0; index--) {
-            predicate = (Predicate) elementAt(index);
+            predicate = elementAt(index);
 
             if (SanityManager.DEBUG) {
                 if (referencedTableMap.size() != predicate.getReferencedSet().size()) {
@@ -2391,7 +2391,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
 
         int size = size();
         for (int index = 0; index < size; index++) {
-            Predicate predicate = (Predicate) elementAt(index);
+            Predicate predicate = elementAt(index);
 
         		/*
 			       * Clear all of the scan flags since they may be different
@@ -2432,12 +2432,12 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
      */
     @Override
     public boolean isRedundantPredicate(int predNum) {
-        Predicate pred = (Predicate) elementAt(predNum);
+        Predicate pred = elementAt(predNum);
         if (pred.getEquivalenceClass() == -1) {
             return false;
         }
         for (int index = 0; index < predNum; index++) {
-            if ( ((Predicate) elementAt(index)).getEquivalenceClass() == pred.getEquivalenceClass()) {
+            if ( elementAt(index).getEquivalenceClass() == pred.getEquivalenceClass()) {
                 return true;
             }
         }
@@ -2481,7 +2481,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
 		     * start operator.  Note that all previous ones should be GE.
 		     */
         for (int index = size - 1; index >= 0; index--) {
-            Predicate pred = ((Predicate) elementAt(index));
+            Predicate pred = elementAt(index);
 
             if ( ! pred.isStartKey() )
                 continue;
@@ -2531,7 +2531,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
             int	colNum = 0;
             int size = size();
             for (int index = 0; index < size; index++) {
-                Predicate pred = ((Predicate) elementAt(index));
+                Predicate pred = elementAt(index);
 
                 if ( ! pred.isStopKey() )
                     continue;
@@ -2571,7 +2571,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
 		     * stop operator.  Note that all previous ones should be GT.
 		     */
         for (int index = size - 1; index >= 0; index--) {
-            Predicate pred = ((Predicate) elementAt(index));
+            Predicate pred = elementAt(index);
 
             if ( ! pred.isStopKey() )
                 continue;
@@ -2673,7 +2673,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
      */
     public void generateInListValues(ExpressionClassBuilder acb, MethodBuilder mb) throws StandardException {
         for (int index = size() - 1; index >= 0; index--) {
-            Predicate pred = (Predicate)elementAt(index);
+            Predicate pred = elementAt(index);
 
             // Don't do anything if it's not an IN-list probe predicate.
             if (!pred.isInListProbePredicate())
@@ -2694,7 +2694,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
 			 */
             if (SanityManager.DEBUG) {
                 for (int i = 0; i < index; i++) {
-                    if (((Predicate)elementAt(i)).isInListProbePredicate()) {
+                    if (elementAt(i).isInListProbePredicate()) {
                         SanityManager.THROWASSERT("Found multiple probe " +
                                 "predicates for IN-list when only one was " +
                                 "expected.");
@@ -2813,7 +2813,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
             // trailing OR qualifiers.
             int num_of_or_conjunctions = 0;
             for (int i = 0; i < numberOfQualifiers; i++) {
-                if (((Predicate) elementAt(i)).isOrList()) {
+                if (elementAt(i).isOrList()) {
                     num_of_or_conjunctions++;
                 }
             }
@@ -2860,7 +2860,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
         boolean gotOrQualifier = false;
 
         for (int index = 0; index < size; index++) {
-            Predicate pred = ((Predicate) elementAt(index));
+            Predicate pred = elementAt(index);
 
             if (pred.isQualifier()) {
                 if (pred.isOrList()) {
@@ -2904,7 +2904,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
             // are pushed slightly differently than the leading AND qualifiers.
 
             for (int index = qualNum; index < size; index++, and_idx++) {
-                Predicate pred = ((Predicate) elementAt(index));
+                Predicate pred = elementAt(index);
 
                 if (SanityManager.DEBUG) {
                     SanityManager.ASSERT(pred.isOrList());
@@ -3013,7 +3013,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
         int predIndex;
         int size = size();
         for (predIndex = 0; predIndex < size; predIndex++) {
-            Predicate pred = (Predicate) elementAt(predIndex);
+            Predicate pred = elementAt(predIndex);
 
             if (! pred.isQualifier()) {
                 sortList[QUALIFIER_ORDER_NON_QUAL].addElement(pred);
@@ -3095,7 +3095,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
             int	colNum = 0;
             int size = size();
             for (int index = 0; index < size; index++) {
-                Predicate pred = ((Predicate) elementAt(index));
+                Predicate pred = elementAt(index);
 
                 if ( ! pred.isStartKey() )
                     continue;
@@ -3138,7 +3138,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
 	  	 */
       int size = size();
       for (int index = 0; index < size; index++) {
-          Predicate pred = ((Predicate) elementAt(index));
+          Predicate pred = elementAt(index);
 
           if ( (pred.isStartKey() && (! pred.isStopKey())) ||
                   (pred.isStopKey() && (! pred.isStartKey()))) {
@@ -3335,7 +3335,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
 		   */
       int size = size();
       for (int index = 0; index < size; index++) {
-          Predicate	pred = (Predicate) elementAt(index);
+          Predicate	pred = elementAt(index);
           RelationalOperator relop = pred.getRelop();
 
           if (pred.isRelationalOpPredicate()) {
@@ -3395,7 +3395,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
         int size = size();
         OrderByList orderBy = (OrderByList)ordering;
         for (int index = 0; index < size; index++) {
-            Predicate pred = (Predicate) elementAt(index);
+            Predicate pred = elementAt(index);
             if (!pred.isInListProbePredicate())
                 continue;
 
@@ -3437,7 +3437,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
                 continue;
 
 			      /* to workingPredicates only add useful predicates... */
-            workingPredicates.addOptPredicate((Predicate)elementAt(i));
+            workingPredicates.addOptPredicate(elementAt(i));
         }
 
         int numWorkingPredicates = workingPredicates.size();
@@ -3483,7 +3483,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
             int[] baseColumnList =  cd.getIndexDescriptor().baseColumnPositions();
 
             for (int j = 0; j < numWorkingPredicates; j++) {
-                Predicate pred = (Predicate)workingPredicates.elementAt(j);
+                Predicate pred = workingPredicates.elementAt(j);
 
                 int ip = pred.hasEqualOnColumnList(baseColumnList,  optTable);
 
@@ -3677,7 +3677,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
         double selectivity = 1.0;
 
         for (int i = 0; i < size(); i++) {
-            OptimizablePredicate pred = (OptimizablePredicate)elementAt(i);
+            OptimizablePredicate pred = elementAt(i);
             selectivity *= pred.selectivity(optTable);
         }
 

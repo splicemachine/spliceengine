@@ -50,8 +50,7 @@ import java.util.Vector;
  *
  */
 
-public class FromList extends QueryTreeNodeVector implements OptimizableList
-{
+public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements OptimizableList {
 	Properties	properties;
 	// RESOLVE: The default should be false
 	boolean		fixedJoinOrder = true;

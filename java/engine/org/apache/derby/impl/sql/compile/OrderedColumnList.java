@@ -21,16 +21,16 @@
 
 package	org.apache.derby.impl.sql.compile;
 
-import java.util.Hashtable;import java.util.Iterator;
-
 import org.apache.derby.impl.sql.execute.IndexColumnOrder;
+
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * List of OrderedColumns
  *
  */
-public abstract class OrderedColumnList extends QueryTreeNodeVector implements Iterable<OrderedColumn>
-{
+public abstract class OrderedColumnList extends QueryTreeNodeVector<OrderedColumn> {
 	/**
 	 * Get an array of ColumnOrderings to pass to the store
 	 */
@@ -50,46 +50,38 @@ public abstract class OrderedColumnList extends QueryTreeNodeVector implements I
 			We don't know how many columns are in the source,
 			so we use a hashtable for lookup of the positions
 		*/
-		Hashtable hashColumns = new Hashtable();
+		Set<Integer> hashColumns = new HashSet<Integer>();
 
 		actualCols = 0;
 
-		for (int i = 0; i < numCols; i++)
-		{
-			OrderedColumn oc = (OrderedColumn) elementAt(i);
+      for (int i = 0; i < numCols; i++) {
+          OrderedColumn oc = elementAt(i);
 
-			// order by (lang) positions are 1-based,
-			// order items (store) are 0-based.
-			int position = oc.getColumnPosition() - 1;
+          // order by (lang) positions are 1-based,
+          // order items (store) are 0-based.
+          int position = oc.getColumnPosition() - 1;
 
-			Integer posInt = new Integer(position);
+          Integer posInt = position;
 
-			if (! hashColumns.containsKey(posInt))
-			{
-				ordering[i] = new IndexColumnOrder(position,
-												oc.isAscending(),
-												oc.isNullsOrderedLow());
-				actualCols++;
-				hashColumns.put(posInt, posInt);
-			}
-		}
+          if(hashColumns.add(posInt)){
+              ordering[i] = new IndexColumnOrder(position,
+                      oc.isAscending(),
+                      oc.isNullsOrderedLow());
+              actualCols++;
+          }
+      }
 
 		/*
 			If there were duplicates removed, we need
 			to shrink the array down to what we used.
 		*/
-		if (actualCols < numCols)
-		{
-			IndexColumnOrder[] newOrdering = new IndexColumnOrder[actualCols];
-			System.arraycopy(ordering, 0, newOrdering, 0, actualCols);
-			ordering = newOrdering;
-		}
+      if (actualCols < numCols)
+      {
+          IndexColumnOrder[] newOrdering = new IndexColumnOrder[actualCols];
+          System.arraycopy(ordering, 0, newOrdering, 0, actualCols);
+          ordering = newOrdering;
+      }
 
 		return ordering;
 	}
-
-    @Override
-    public Iterator<OrderedColumn> iterator() {
-        return super.iterator();
-    }
 }

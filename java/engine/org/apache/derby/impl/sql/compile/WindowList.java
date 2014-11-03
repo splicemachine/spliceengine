@@ -28,8 +28,7 @@ package org.apache.derby.impl.sql.compile;
  *
  */
 
-public class WindowList extends OrderedColumnList
-{
+public class WindowList extends QueryTreeNodeVector<WindowNode> {
     /**
      * @param window the window definition to add to the list
      */
