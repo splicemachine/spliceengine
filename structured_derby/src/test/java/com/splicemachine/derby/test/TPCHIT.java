@@ -16,52 +16,45 @@ import org.junit.runner.Description;
 import java.io.File;
 import java.io.FileInputStream;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import static com.splicemachine.derby.test.framework.SpliceUnitTest.format;
 import static com.splicemachine.derby.test.framework.SpliceUnitTest.getResourceDirectory;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class TPCHIT {
-    public static final String CLASS_NAME = "TPCH1X";
-    protected static final String LINEITEM = "LINEITEM";
-    protected static final String ORDERS = "ORDERS";
-    protected static final String CUSTOMERS = "CUSTOMER";
-    protected static final String PARTSUPP = "PARTSUPP";
-    protected static final String SUPPLIER = "SUPPLIER";
-    protected static final String PART = "PART";
-    protected static final String NATION = "NATION";
-    protected static final String REGION = "REGION";
 
-    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    private static final String SCHEMA_NAME = "TPCH1X";
+    private static final String LINEITEM = "LINEITEM";
+    private static final String ORDERS = "ORDERS";
+    private static final String CUSTOMERS = "CUSTOMER";
+    private static final String PARTSUPP = "PARTSUPP";
+    private static final String SUPPLIER = "SUPPLIER";
+    private static final String PART = "PART";
+    private static final String NATION = "NATION";
+    private static final String REGION = "REGION";
+
+    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA_NAME);
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA_NAME);
 
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(spliceSchemaWatcher)
-            .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "tcph/TPCHIT.sql", CLASS_NAME))
+            .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "tcph/TPCHIT.sql", SCHEMA_NAME))
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
                     try {
-                        PreparedStatement ps = spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)", CLASS_NAME, LINEITEM, getResource("lineitem.tbl")));
-                        ps.execute();
-                        ps = spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)", CLASS_NAME, ORDERS, getResource("orders.tbl")));
-                        ps.execute();
-                        ps = spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)", CLASS_NAME, CUSTOMERS, getResource("customer.tbl")));
-                        ps.execute();
-                        ps = spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)", CLASS_NAME, PARTSUPP, getResource("partsupp.tbl")));
-                        ps.execute();
-                        ps = spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)", CLASS_NAME, SUPPLIER, getResource("supplier.tbl")));
-                        ps.execute();
-                        ps = spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)", CLASS_NAME, PART, getResource("part.tbl")));
-                        ps.execute();
-                        ps = spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)", CLASS_NAME, NATION, getResource("nation.tbl")));
-                        ps.execute();
-                        ps = spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)", CLASS_NAME, REGION, getResource("region.tbl")));
-                        ps.execute();
+                        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)", SCHEMA_NAME, LINEITEM, getResource("lineitem.tbl"))).execute();
+                        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)", SCHEMA_NAME, ORDERS, getResource("orders.tbl"))).execute();
+                        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)", SCHEMA_NAME, CUSTOMERS, getResource("customer.tbl"))).execute();
+                        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)", SCHEMA_NAME, PARTSUPP, getResource("partsupp.tbl"))).execute();
+                        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)", SCHEMA_NAME, SUPPLIER, getResource("supplier.tbl"))).execute();
+                        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)", SCHEMA_NAME, PART, getResource("part.tbl"))).execute();
+                        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)", SCHEMA_NAME, NATION, getResource("nation.tbl"))).execute();
+                        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)", SCHEMA_NAME, REGION, getResource("region.tbl"))).execute();
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     } finally {
@@ -76,76 +69,60 @@ public class TPCHIT {
 
     @Test
     public void validateDataLoad() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery(format("select count(*) from %s.%s", CLASS_NAME, LINEITEM));
-        rs.next();
-        Assert.assertEquals(9958, rs.getLong(1));
-        rs = methodWatcher.executeQuery(format("select count(*) from %s.%s", CLASS_NAME, ORDERS));
-        rs.next();
-        Assert.assertEquals(2500, rs.getLong(1));
-        rs = methodWatcher.executeQuery(format("select count(*) from %s.%s", CLASS_NAME, CUSTOMERS));
-        rs.next();
-        Assert.assertEquals(250, rs.getLong(1));
-        rs = methodWatcher.executeQuery(format("select count(*) from %s.%s", CLASS_NAME, PARTSUPP));
-        rs.next();
-        Assert.assertEquals(1332, rs.getLong(1));
-        rs = methodWatcher.executeQuery(format("select count(*) from %s.%s", CLASS_NAME, SUPPLIER));
-        rs.next();
-        Assert.assertEquals(16, rs.getLong(1));
-        rs = methodWatcher.executeQuery(format("select count(*) from %s.%s", CLASS_NAME, PART));
-        rs.next();
-        Assert.assertEquals(333, rs.getLong(1));
-        rs = methodWatcher.executeQuery(format("select count(*) from %s.%s", CLASS_NAME, NATION));
-        rs.next();
-        Assert.assertEquals(25, rs.getLong(1));
-        rs = methodWatcher.executeQuery(format("select count(*) from %s.%s", CLASS_NAME, REGION));
-        rs.next();
-        Assert.assertEquals(5, rs.getLong(1));
+        assertEquals(9958L, methodWatcher.query(format("select count(*) from %s.%s", SCHEMA_NAME, LINEITEM)));
+        assertEquals(2500L, methodWatcher.query(format("select count(*) from %s.%s", SCHEMA_NAME, ORDERS)));
+        assertEquals(250L, methodWatcher.query(format("select count(*) from %s.%s", SCHEMA_NAME, CUSTOMERS)));
+        assertEquals(1332L, methodWatcher.query(format("select count(*) from %s.%s", SCHEMA_NAME, PARTSUPP)));
+        assertEquals(16L, methodWatcher.query(format("select count(*) from %s.%s", SCHEMA_NAME, SUPPLIER)));
+        assertEquals(333L, methodWatcher.query(format("select count(*) from %s.%s", SCHEMA_NAME, PART)));
+        assertEquals(25L, methodWatcher.query(format("select count(*) from %s.%s", SCHEMA_NAME, NATION)));
+        assertEquals(5L, methodWatcher.query(format("select count(*) from %s.%s", SCHEMA_NAME, REGION)));
     }
 
     @Test
     public void sql1() throws Exception {
-        Assert.assertTrue(runScript(new File(getSQLFile("1.sql")), methodWatcher.getOrCreateConnection()));
+        assertTrue(runScript(new File(getSQLFile("1.sql")), methodWatcher.getOrCreateConnection()));
     }
 
     @Test
     public void sql2() throws Exception {
-        Assert.assertTrue(runScript(new File(getSQLFile("2.sql")), methodWatcher.getOrCreateConnection()));
+        assertTrue(runScript(new File(getSQLFile("2.sql")), methodWatcher.getOrCreateConnection()));
     }
 
     @Test
     public void sql3() throws Exception {
-        Assert.assertTrue(runScript(new File(getSQLFile("3.sql")), methodWatcher.getOrCreateConnection()));
+        assertTrue(runScript(new File(getSQLFile("3.sql")), methodWatcher.getOrCreateConnection()));
     }
 
     @Test
     public void sql4() throws Exception {
-        Assert.assertTrue(runScript(new File(getSQLFile("4.sql")), methodWatcher.getOrCreateConnection()));
+        assertTrue(runScript(new File(getSQLFile("4.sql")), methodWatcher.getOrCreateConnection()));
     }
 
     @Test
     public void sql5() throws Exception {
-        Assert.assertTrue(runScript(new File(getSQLFile("5.sql")), methodWatcher.getOrCreateConnection()));
+        assertTrue(runScript(new File(getSQLFile("5.sql")), methodWatcher.getOrCreateConnection()));
     }
 
     @Test
     public void sql6() throws Exception {
-        Assert.assertTrue(runScript(new File(getSQLFile("6.sql")), methodWatcher.getOrCreateConnection()));
+        assertTrue(runScript(new File(getSQLFile("6.sql")), methodWatcher.getOrCreateConnection()));
     }
 
     @Test
     public void sql7() throws Exception {
-        Assert.assertTrue(runScript(new File(getSQLFile("7.sql")), methodWatcher.getOrCreateConnection()));
+        assertTrue(runScript(new File(getSQLFile("7.sql")), methodWatcher.getOrCreateConnection()));
     }
 
     @Test
     public void sql8() throws Exception {
-        Assert.assertTrue(runScript(new File(getSQLFile("8.sql")), methodWatcher.getOrCreateConnection()));
+        assertTrue(runScript(new File(getSQLFile("8.sql")), methodWatcher.getOrCreateConnection()));
     }
 
     @Test
     @Ignore
     public void sql9() throws Exception {
-        Assert.assertTrue(runScript(new File(getSQLFile("9.sql")), methodWatcher.getOrCreateConnection()));
+        assertTrue(runScript(new File(getSQLFile("9.sql")), methodWatcher.getOrCreateConnection()));
     }
 
     @Test
@@ -160,58 +137,58 @@ public class TPCHIT {
 
     @Test
     public void sql10() throws Exception {
-        Assert.assertTrue(runScript(new File(getSQLFile("10.sql")), methodWatcher.getOrCreateConnection()));
+        assertTrue(runScript(new File(getSQLFile("10.sql")), methodWatcher.getOrCreateConnection()));
     }
 
     @Test
     public void sql11() throws Exception {
-        Assert.assertTrue(runScript(new File(getSQLFile("11.sql")), methodWatcher.getOrCreateConnection()));
+        assertTrue(runScript(new File(getSQLFile("11.sql")), methodWatcher.getOrCreateConnection()));
     }
 
     @Test
     public void sql12() throws Exception {
-        Assert.assertTrue(runScript(new File(getSQLFile("12.sql")), methodWatcher.getOrCreateConnection()));
+        assertTrue(runScript(new File(getSQLFile("12.sql")), methodWatcher.getOrCreateConnection()));
     }
 
     @Test
     public void sql13() throws Exception {
-        Assert.assertTrue(runScript(new File(getSQLFile("13.sql")), methodWatcher.getOrCreateConnection()));
+        assertTrue(runScript(new File(getSQLFile("13.sql")), methodWatcher.getOrCreateConnection()));
     }
 
     @Test
     public void sql14() throws Exception {
-        Assert.assertTrue(runScript(new File(getSQLFile("14.sql")), methodWatcher.getOrCreateConnection()));
+        assertTrue(runScript(new File(getSQLFile("14.sql")), methodWatcher.getOrCreateConnection()));
     }
 
     @Test
     public void sql15() throws Exception {
-        Assert.assertTrue(runScript(new File(getSQLFile("15.sql")), methodWatcher.getOrCreateConnection()));
+        assertTrue(runScript(new File(getSQLFile("15.sql")), methodWatcher.getOrCreateConnection()));
     }
 
     @Test
     public void sql16() throws Exception {
-        Assert.assertTrue(runScript(new File(getSQLFile("16.sql")), methodWatcher.getOrCreateConnection()));
+        assertTrue(runScript(new File(getSQLFile("16.sql")), methodWatcher.getOrCreateConnection()));
     }
 
     @Test
     @Ignore
     public void sql17() throws Exception {
-        Assert.assertTrue(runScript(new File(getSQLFile("17.sql")), methodWatcher.getOrCreateConnection()));
+        assertTrue(runScript(new File(getSQLFile("17.sql")), methodWatcher.getOrCreateConnection()));
     }
 
     @Test
     public void sql18() throws Exception {
-        Assert.assertTrue(runScript(new File(getSQLFile("18.sql")), methodWatcher.getOrCreateConnection()));
+        assertTrue(runScript(new File(getSQLFile("18.sql")), methodWatcher.getOrCreateConnection()));
     }
 
     @Test
     public void sql19() throws Exception {
-        Assert.assertTrue(runScript(new File(getSQLFile("19.sql")), methodWatcher.getOrCreateConnection()));
+        assertTrue(runScript(new File(getSQLFile("19.sql")), methodWatcher.getOrCreateConnection()));
     }
 
     @Test
     public void sql20() throws Exception {
-        Assert.assertTrue(runScript(new File(getSQLFile("20.sql")), methodWatcher.getOrCreateConnection()));
+        assertTrue(runScript(new File(getSQLFile("20.sql")), methodWatcher.getOrCreateConnection()));
     }
 
     @Test(expected = SQLException.class)
@@ -224,7 +201,7 @@ public class TPCHIT {
                 " where " +
                 "s_suppkey = l3.l_suppkey " +
                 "and o_orderkey = l3.l_orderkey";
-        methodWatcher.executeQuery(String.format(mergeOverMergeSort, CLASS_NAME, CLASS_NAME, CLASS_NAME, CLASS_NAME));
+        methodWatcher.executeQuery(String.format(mergeOverMergeSort, SCHEMA_NAME, SCHEMA_NAME, SCHEMA_NAME, SCHEMA_NAME));
     }
 
     public static String getResource(String name) {
