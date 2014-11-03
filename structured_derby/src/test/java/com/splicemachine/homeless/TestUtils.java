@@ -241,11 +241,13 @@ public class TestUtils {
         private final String query;
         private final List<String> columns;
         private final List<List<String>> rows;
+        private final boolean sort;
 
-        private FormattedResult(String query, List<String> columns, List<List<String>> rows) {
+        private FormattedResult(String query, List<String> columns, List<List<String>> rows, boolean sort) {
             this.query = query;
             this.columns = columns;
             this.rows = rows;
+            this.sort = sort;
         }
 
         public int size() {
@@ -273,7 +275,9 @@ public class TestUtils {
             buf.append("\n");
 
             List<List<String>> sortedRows = Lists.newArrayList(rows);
-            Collections.sort(sortedRows, new ListComparator());
+            if(sort) {
+                Collections.sort(sortedRows, new ListComparator());
+            }
             for (List<String> row : sortedRows) {
                 int i=0;
                 for (String colVal : row) {
@@ -334,18 +338,26 @@ public class TestUtils {
                     }
                     rowKeyToRows.add(row);
                 }
-                return new FormattedResult(query, columns, rowKeyToRows);
+                return new FormattedResult(query, columns, rowKeyToRows, true);
             }
 
+                /**
+                 * Converts actual results to a <code>FormattedResult</code>
+                 *
+                 * @param query the query string
+                 * @param rs the JDBC ResultSet to convert.  ResultSet rows will be sorted for comparison.
+                 * @return FormattedResult
+                 * @throws Exception if there a problem with the ResultSet.
+                 */
+                public static FormattedResult convert(String query, ResultSet rs) throws Exception {
+                    return convert(query, rs, true);
+                }
+
             /**
-             * Converts actual results to a <code>FormattedResult</code>
-             *
-             * @param query the query string
-             * @param rs the JDBC ResultSet to convert.  ResultSet rows will be sorted for comparison.
-             * @return FormattedResult
-             * @throws Exception if there a problem with the ResultSet.
+             * Create a FormattedResult.  Set sort = false to NOT sort the rows in the output string.  Do this if
+             * the ResultSet you are verifying is already ordered and thus should be the same every time.
              */
-            public static FormattedResult convert(String query, ResultSet rs) throws Exception {
+            public static FormattedResult convert(String query, ResultSet rs, boolean sort) throws Exception {
                 List<String> columns = new ArrayList<String>();
                 List<List<String>> rows = new ArrayList<List<String>>();
                 ResultSetMetaData metaData = rs.getMetaData();
@@ -364,7 +376,7 @@ public class TestUtils {
                     rows.add(row);
                     gotColumnNames = true;
                 }
-                return new FormattedResult(query, columns, rows);
+                return new FormattedResult(query, columns, rows, sort);
             }
 
             /** Convert the ResultSet to a FormattedResult and return the trimmed string version of that */

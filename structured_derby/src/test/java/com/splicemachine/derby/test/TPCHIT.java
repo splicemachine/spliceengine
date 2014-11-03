@@ -3,15 +3,18 @@ package com.splicemachine.derby.test;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
-import com.splicemachine.test.SlowTest;
 import org.apache.commons.io.IOUtils;
-import org.junit.*;
-import org.junit.experimental.categories.Category;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import static com.splicemachine.derby.test.framework.SpliceUnitTest.format;
@@ -66,47 +69,47 @@ public class TPCHIT {
 
     @Test
     public void sql1() throws Exception {
-        executeQuery(getSQLFile("1.sql"));
+        executeQuery(getContent("1.sql"), getContent("1.expected.txt"), true);
     }
 
     @Test
     public void sql2() throws Exception {
-        executeQuery(getSQLFile("2.sql"));
+        executeQuery(getContent("2.sql"), "", true);
     }
 
     @Test
     public void sql3() throws Exception {
-        executeQuery(getSQLFile("3.sql"));
+        executeQuery(getContent("3.sql"), "", true);
     }
 
     @Test
     public void sql4() throws Exception {
-        executeQuery(getSQLFile("4.sql"));
+        executeQuery(getContent("4.sql"), getContent("4.expected.txt"), true);
     }
 
     @Test
     public void sql5() throws Exception {
-        executeQuery(getSQLFile("5.sql"));
+        executeQuery(getContent("5.sql"), "", true);
     }
 
     @Test
     public void sql6() throws Exception {
-        executeQuery(getSQLFile("6.sql"));
+        executeQuery(getContent("6.sql"), getContent("6.expected.txt"), false);
     }
 
     @Test
     public void sql7() throws Exception {
-        executeQuery(getSQLFile("7.sql"));
+        executeQuery(getContent("7.sql"), "", true);
     }
 
     @Test
     public void sql8() throws Exception {
-        executeQuery(getSQLFile("8.sql"));
+        executeQuery(getContent("8.sql"), "", true);
     }
 
     @Test
     public void sql9() throws Exception {
-        executeQuery(getSQLFile("9.sql"));
+        executeQuery(getContent("9.sql"), "", true);
     }
 
     @Test
@@ -118,58 +121,58 @@ public class TPCHIT {
 
     @Test
     public void sql10() throws Exception {
-        executeQuery(getSQLFile("10.sql"));
+        executeQuery(getContent("10.sql"), "", true);
     }
 
     @Test
     public void sql11() throws Exception {
-        executeQuery(getSQLFile("11.sql"));
+        executeQuery(getContent("11.sql"), "", true);
     }
 
     @Test
     public void sql12() throws Exception {
-        executeQuery(getSQLFile("12.sql"));
+        executeQuery(getContent("12.sql"), getContent("12.expected.txt"), true);
     }
 
     @Test
     public void sql13() throws Exception {
-        executeQuery(getSQLFile("13.sql"));
+        executeQuery(getContent("13.sql"), getContent("13.expected.txt"), true);
     }
 
     @Test
     public void sql14() throws Exception {
-        executeQuery(getSQLFile("14.sql"));
+        executeQuery(getContent("14.sql"), getContent("14.expected.txt"), false);
     }
 
     @Test
     public void sql15() throws Exception {
-        executeUpdate(getSQLFile("15a.sql"));
-        executeQuery(getSQLFile("15b.sql"));
+        executeUpdate(getContent("15a.sql"));
+        executeQuery(getContent("15b.sql"), "", false);
     }
 
     @Test
     public void sql16() throws Exception {
-        executeQuery(getSQLFile("16.sql"));
+        executeQuery(getContent("16.sql"), getContent("16.expected.txt"), true);
     }
 
     @Test
     public void sql17() throws Exception {
-        executeQuery(getSQLFile("17.sql"));
+        executeQuery(getContent("17.sql"), getContent("17.expected.txt"), false);
     }
 
     @Test
     public void sql18() throws Exception {
-        executeQuery(getSQLFile("18.sql"));
+        executeQuery(getContent("18.sql"), "", true);
     }
 
     @Test
     public void sql19() throws Exception {
-        executeQuery(getSQLFile("19.sql"));
+        executeQuery(getContent("19.sql"), getContent("19.expected.txt"), false);
     }
 
     @Test
     public void sql20() throws Exception {
-        executeQuery(getSQLFile("20.sql"));
+        executeQuery(getContent("20.sql"), "", true);
     }
 
     @Test(expected = SQLException.class)
@@ -189,17 +192,23 @@ public class TPCHIT {
         return getResourceDirectory() + "tcph/data/" + name;
     }
 
-    private static String getSQLFile(String name) {
-        return getResourceDirectory() + "tcph/query/" + name;
+    private static String getContent(String fileName) throws IOException {
+        String fullFileName = getResourceDirectory() + "tcph/query/" + fileName;
+        return IOUtils.toString(new FileInputStream(new File(fullFileName)));
     }
 
-    private void executeQuery(String queryFileName) throws Exception {
-        String query = IOUtils.toString(new FileInputStream(new File(queryFileName)));
-        methodWatcher.executeQuery(query);
+    private void executeQuery(String query, String expected, boolean isResultSetOrdered) throws Exception {
+        ResultSet resultSet = methodWatcher.executeQuery(query);
+
+        // If the ResultSet is NOT ordered (no order by clause in query) then sort it before comparing to expected result.
+        // When we don't sort we are assuming the order by clause gives the ResultSet a unique order-- seems to be
+        // the case for this data set (no duplicates in result set order by columns).
+        boolean sort = !isResultSetOrdered;
+
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.convert("", resultSet, sort).toString().trim());
     }
 
-    private void executeUpdate(String queryFileName) throws Exception {
-        String query = IOUtils.toString(new FileInputStream(new File(queryFileName)));
+    private void executeUpdate(String query) throws Exception {
         methodWatcher.executeUpdate(query);
     }
 }

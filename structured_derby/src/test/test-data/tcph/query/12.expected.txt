@@ -1,0 +1,4 @@
+L_SHIPMODE | HIGH_LINE_COUNT |LOW_LINE_COUNT |
+----------------------------------------------
+   MAIL    |       10        |      10       |
+   SHIP    |       10        |      12       |
