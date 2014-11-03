@@ -1,0 +1,117 @@
+option java_package = "com.splicemachine.coprocessor";
+option java_outer_classname = "SpliceMessage";
+option java_generic_services = true;
+option java_generate_equals_and_hash = true;
+option optimize_for = SPEED;
+
+import "Client.proto";
+
+message SpliceSchedulerRequest {
+	optional bytes taskStart = 1;
+	optional bytes taskEnd = 2;
+	optional string className = 3;
+	optional bytes classBytes = 4;
+    optional bool allowSplits = 5;
+}
+
+message TaskFutureResponse {
+	required string taskNode = 1;
+	required bytes taskId = 2;
+	optional double estimatedCost = 3;
+    required bytes startRow = 4;
+}
+
+message SchedulerResponse{
+    repeated TaskFutureResponse response = 1;
+}
+
+message DeleteFirstAfterRequest{
+	optional string transactionId = 1;
+	optional bytes rowKey = 2;
+	optional bytes limit = 3;
+}
+message ConstraintContext {
+	optional string tableName = 1;
+	optional string constraintName = 2;
+}
+
+message AllocateFilterMessage {
+	optional bytes addressMatch = 1;
+}
+
+message SuccessFilterMessage {
+	repeated bytes failedTasks = 1;
+}
+
+message SkippingScanFilterMessage {
+    repeated bytes startKeys = 1;
+    repeated bytes stopKeys = 2;
+    repeated bytes predicates = 3;
+}
+
+message HbaseAttributeHolderMessage {
+    message Attribute {
+        required string name = 1;
+        required bytes value = 2;
+    }
+    repeated Attribute attributes = 1;
+}
+
+message WriteResult {
+  enum Code {
+    FAILED = 0;
+    WRITE_CONFLICT = 1;
+    SUCCESS = 2;
+    PRIMARY_KEY_VIOLATION = 3;
+    UNIQUE_VIOLATION = 4;
+    FOREIGN_KEY_VIOLATION = 5;
+    CHECK_VIOLATION = 6;
+    NOT_SERVING_REGION = 7;
+    WRONG_REGION = 8;
+    REGION_TOO_BUSY = 9;
+    NOT_RUN = 10;
+    NOT_NULL = 11;
+  }				
+  optional Code code = 1;	
+  optional string errorMessage = 2;				
+  optional ConstraintContext constraintContext = 3;
+}
+
+message BulkWriteResponse {
+	optional bytes bytes = 1;
+}
+
+message BulkWriteRequest {
+	optional bytes bytes = 1;
+}
+
+message DropIndexRequest {
+	optional uint64 indexConglomId = 1;
+	optional uint64 baseConglomId = 2;
+    required int64 txnId = 3;
+}
+
+message DropIndexResponse {
+
+}
+
+service SpliceIndexService {
+	rpc bulkWrite(BulkWriteRequest)
+	  returns (BulkWriteResponse);
+	rpc deleteFirstAfter(DeleteFirstAfterRequest)
+	  returns (WriteResult); 
+}
+
+service SpliceIndexManagementService {
+	rpc dropIndex(DropIndexRequest) 
+	  returns (DropIndexResponse);	
+}
+
+service SpliceSchedulerService {
+	rpc submit(SpliceSchedulerRequest)
+	  returns (SchedulerResponse);
+}
+
+service SpliceDerbyCoprocessorService {
+
+}
