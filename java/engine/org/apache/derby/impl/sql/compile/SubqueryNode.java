@@ -329,6 +329,32 @@ public class SubqueryNode extends ValueNode
 	}
 
 	/**
+	 * Return whether or not this subquery is immediately under a top level
+	 * AndNode.
+	 *
+	 * @return boolean	Whether or not this subquery is immediately under a
+	 *					top level AndNode.
+	 */
+	public boolean getUnderTopAndNode()
+	{
+		return underTopAndNode;
+	}
+
+	/**
+	 * Get the ResultSet # for the point of attachment for this SubqueryNode.
+	 *
+	 * @return int		The ResultSet # for the point of attachment
+	 */
+	@SuppressWarnings("UnusedDeclaration")
+  public int getPointOfAttachment() {
+		if (SanityManager.DEBUG) {
+			SanityManager.ASSERT(pointOfAttachment >= 0,
+				"pointOfAttachment expected to be >= 0");
+		}
+		return pointOfAttachment;
+	}
+
+	/**
 	 * Get whether or not this SubqueryNode has already been
 	 * preprocessed.
 	 *
@@ -520,7 +546,7 @@ public class SubqueryNode extends ValueNode
 		 * subquery's sole column.
 		 */
 		if (leftOperand != null && leftOperand.requiresTypeFromContext()) {
-			leftOperand.setType(((ResultColumn) resultColumns.elementAt(0)).getTypeServices());
+			leftOperand.setType(resultColumns.elementAt(0).getTypeServices());
 		}
 
 		// Set the DataTypeServices
@@ -688,17 +714,29 @@ public class SubqueryNode extends ValueNode
 		 */
 		boolean flattenableNotExists = (isNOT_EXISTS() || canAllBeFlattened());
 
-      flattenable = orderByList==null && offset==null && fetchFirst==null &&
-              !isWhereExistsAnyInWithWhereSubquery() &&
-              (isIN() || isANY() || isEXISTS() || flattenableNotExists || parentComparisonOperator!=null);
       if(resultSet instanceof SelectNode){
           SelectNode sn = (SelectNode)resultSet;
-          flattenable = flattenable && !(sn).hasWindows()
+          flattenable = !sn.hasWindows() &&
+                  orderByList==null &&
+                  offset==null &&
+                  fetchFirst==null &&
+                  underTopAndNode && !havingSubquery &&
+                  !isWhereExistsAnyInWithWhereSubquery() &&
+                  (isIN() || isANY() || isEXISTS() || flattenableNotExists ||
+                  parentComparisonOperator!=null)
                   && !sn.hasAggregatesInSelectList() && sn.havingClause==null;
-      }else {
-        //TODO -sf- implement
-          throw new UnsupportedOperationException("IMPLEMENT");
-      }
+      }else
+        flattenable = false;
+//      flattenable = (resultSet instanceof SelectNode) &&
+//              !((SelectNode)resultSet).hasWindows() &&
+//              orderByList == null &&
+//              offset == null &&
+//              fetchFirst == null &&
+//              underTopAndNode && !havingSubquery &&
+//              !isWhereExistsAnyInWithWhereSubquery() &&
+//              (isIN() || isANY() || isEXISTS() || flattenableNotExists ||
+//                      parentComparisonOperator != null);
+//              && !sn.hasAggregatesInSelectList() && sn.havingClause==null;
 
 		if (flattenable) {
 //			SelectNode	select = (SelectNode) resultSet;
@@ -774,13 +812,10 @@ public class SubqueryNode extends ValueNode
                                     outerFromList, outerSubqueryList,
                                     outerPredicateList, flattenableNotExists);
                         }else if(fbt==null &&
-                                (sn.getWherePredicates().size()<=0)){
+                                (sn.getWherePredicates().size()<=0) && flattenableNotExists){
                             return flattenToExistsJoin(outerFromList,outerSubqueryList,outerPredicateList,flattenableNotExists);
                         }
                     }
-                }else{
-                    //TODO -sf- implement
-                    throw new UnsupportedOperationException("IMPLEMENT");
                 }
 
 				}
@@ -1013,10 +1048,11 @@ public class SubqueryNode extends ValueNode
 		/* Add the table(s) from the subquery into the outer from list */
 		outerFromList.destructiveAppend(fl);
 
+      PredicateList selectPredicates = select.getWherePredicates();
 		/* Append the subquery's predicate list to the
 		 * outer predicate list.
 		 */
-		outerPredicateList.destructiveAppend(select.getWherePredicates());
+		outerPredicateList.destructiveAppend(selectPredicates);
 
 		/* Append the subquery's subquery list to the
 		 * outer subquery list.
@@ -1024,8 +1060,8 @@ public class SubqueryNode extends ValueNode
 		 * SELECT list and WHERE clause of the subquery that's
 		 * getting flattened.
 		 */
-		outerSubqueryList.destructiveAppend(select.getWhereSubquerys());
-		outerSubqueryList.destructiveAppend(select.getSelectSubquerys());
+      outerSubqueryList.destructiveAppend(select.getWhereSubquerys());
+      outerSubqueryList.destructiveAppend(select.getSelectSubquerys());
 
 		/* return the new join condition
 		 * If we are flattening an EXISTS then there is no new join
@@ -1036,7 +1072,7 @@ public class SubqueryNode extends ValueNode
 		 * so we simply return the BinaryComparisonOperatorNode above
 		 * the new join condition.
 		 */
-		if (leftOperand == null) {
+      if (leftOperand == null) {
         /*
          * Just because we don't THINK that we don't have a left
          * side to join doesn't mean that we DON'T--
@@ -1044,38 +1080,44 @@ public class SubqueryNode extends ValueNode
          * We'll take the first one, and use it instead. Otherwise,
          * we default back to the constant node behavior of before
          */
-        for(int i=0;i<outerPredicateList.size();i++){
-            Predicate optPredicate = (Predicate)outerPredicateList.getOptPredicate(i);
-            if(optPredicate.isJoinPredicate()){
-                outerPredicateList.removeOptPredicate(i); //remove from outer predicate list
-                return optPredicate.getAndNode();
-            }
-        }
-			return (ValueNode) getNodeFactory().getNode(
-											C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-											Boolean.TRUE,
-											getContextManager());
-		} else {
-			ValueNode rightOperand = getRightOperand();
-			/* If the right operand is a CR, then we need to decrement
-			 * its source level as part of flattening so that
-			 * transitive closure will work correctly.
-			 */
-			if (rightOperand instanceof ColumnReference) {
-				ColumnReference cr = (ColumnReference) rightOperand;
-				int tableNumber = cr.getTableNumber();
-          //noinspection ForLoopReplaceableByForEach
-          for (int index = 0; index < tableNumbers.length; index++) {
-					if (tableNumber == tableNumbers[index]) {
-						cr.setSourceLevel(
-							cr.getSourceLevel() - 1);
-						break;
-					}
-				}
-			}
-			return getNewJoinCondition(leftOperand, rightOperand);
-		}
-	}
+          Predicate joinPred = null;
+          for(int i=0;i<outerPredicateList.size();i++){
+              Predicate pred = (Predicate)outerPredicateList.getOptPredicate(i);
+              if(pred.isJoinPredicate()){
+                  joinPred = pred;
+                  outerPredicateList.removeOptPredicate(i);
+                  break;
+              }
+          }
+          if(joinPred!=null){
+              return joinPred.getAndNode();
+          }else{
+              return (ValueNode) getNodeFactory().getNode(
+                      C_NodeTypes.BOOLEAN_CONSTANT_NODE,
+                      Boolean.TRUE,
+                      getContextManager());
+          }
+      }else{
+          ValueNode rightOperand = getRightOperand();
+			    /* If the right operand is a CR, then we need to decrement
+			     * its source level as part of flattening so that
+			     * transitive closure will work correctly.
+			     */
+          if (rightOperand instanceof ColumnReference) {
+              ColumnReference cr = (ColumnReference) rightOperand;
+              int tableNumber = cr.getTableNumber();
+              //noinspection ForLoopReplaceableByForEach
+              for (int index = 0; index < tableNumbers.length; index++) {
+                  if (tableNumber == tableNumbers[index]) {
+                      cr.setSourceLevel(
+                              cr.getSourceLevel() - 1);
+                      break;
+                  }
+              }
+          }
+          return getNewJoinCondition(leftOperand, rightOperand);
+      }
+  }
 
 	/**
 	 * Flatten this subquery into the outer query block
@@ -1110,20 +1152,15 @@ public class SubqueryNode extends ValueNode
       fromList.genExistsBaseTables(resultSet.getReferencedTableMap(),
               outerFromList, flattenableNotExists);
 
-      /*
-       * -sf- Pull all of the predicates from the subquery which reference
-       * a table in the outer from list. This pulls up all the join predicates,
-       * which will avoid the need to pull them up in the JoinConditionVisitor
-       */
-      int[] outerTableNumbers = outerFromList.getTableNumbers();
-      Set<Predicate> joinPredicates = new TreeSet<Predicate>();
-      for(int i=0;i<fromList.size();i++){
-          QueryTreeNode qtn = fromList.elementAt(i);
-          pullAllPredicates(select,qtn,joinPredicates, outerTableNumbers);
-      }
-
-      for (Predicate pred : joinPredicates) {
-          outerPredicateList.addOptPredicate(pred);
+      if(flattenableNotExists){
+          int[] outerTableNumbers = outerFromList.getTableNumbers();
+          Predicate joinPred = null;
+          for(int i=0;i<fromList.size() && joinPred==null;i++){
+              QueryTreeNode qtn = fromList.elementAt(i);
+              joinPred =findJoinPredicate(qtn, outerTableNumbers);
+          }
+          if(joinPred!=null)
+              outerPredicateList.addOptPredicate(joinPred);
       }
 
 
@@ -1145,26 +1182,24 @@ public class SubqueryNode extends ValueNode
 		return flattenToNormalJoin(outerFromList, outerSubqueryList, outerPredicateList);
 	}
 
-    private void pullAllPredicates(QueryTreeNode top,
-                                   QueryTreeNode qtn,
-                                   Set<Predicate> outerPredicateList,
+    private Predicate findJoinPredicate( QueryTreeNode qtn,
                                    int[] outerTableNumbers) throws StandardException {
         if(qtn instanceof SelectNode){
             PredicateList wherePreds = ((SelectNode) qtn).getWherePredicates();
-            Iterator iter = wherePreds.iterator();
-            while(iter.hasNext()){
-                Predicate pr = (Predicate)iter.next();
+            for(int i=0;i<wherePreds.size();i++){
+                Predicate pr = (Predicate)wherePreds.getOptPredicate(i);
                 if(referencesOuterTable(outerTableNumbers,pr)){
-                    iter.remove();
-                    pr.pullUpJoinPredicate((ResultSetNode)top);
-                    outerPredicateList.add(pr);
+                    wherePreds.removeOptPredicate(i);
+                    return pr;
                 }
             }
         }else if(qtn instanceof TableOperatorNode){
             TableOperatorNode ton = (TableOperatorNode)qtn;
-            pullAllPredicates(ton,ton.getLeftResultSet(),outerPredicateList, outerTableNumbers);
-            pullAllPredicates(ton,ton.getRightResultSet(), outerPredicateList,outerTableNumbers);
+            Predicate pr = findJoinPredicate(ton.getLeftResultSet(), outerTableNumbers);
+            if(pr!=null) return pr;
+            return findJoinPredicate(ton.getRightResultSet(), outerTableNumbers);
         }
+        return null;
     }
 
     private boolean referencesOuterTable(int[] outerTableNumbers, Predicate pr) {
@@ -1209,7 +1244,7 @@ public class SubqueryNode extends ValueNode
      * @return the right operand
      */
     private ValueNode getRightOperand() {
-        ResultColumn firstRC =(ResultColumn) resultSet.getResultColumns().elementAt(0);
+        ResultColumn firstRC = resultSet.getResultColumns().elementAt(0);
         return firstRC.getExpression();
     }
 
@@ -1364,7 +1399,7 @@ public class SubqueryNode extends ValueNode
 										getContextManager());
 		resultColumns = newRCL;
 
-		firstRC = (ResultColumn) resultColumns.elementAt(0);
+		firstRC = resultColumns.elementAt(0);
 		rightOperand = firstRC.getExpression();
 
 		bcoNode = getNewJoinCondition(leftOperand, rightOperand);
@@ -2320,7 +2355,7 @@ public class SubqueryNode extends ValueNode
 		 * the return type to boolean.
 		 */
 		if (subqueryType == Type.EXPRESSION) {
-			dts = ((ResultColumn) resultColumns.elementAt(0)).getTypeServices();
+			dts = resultColumns.elementAt(0).getTypeServices();
 		} else {
 			dts = getTrueNode().getTypeServices();
 		}

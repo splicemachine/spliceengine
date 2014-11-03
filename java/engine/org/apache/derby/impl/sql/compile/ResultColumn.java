@@ -1723,7 +1723,7 @@ public class ResultColumn extends ValueNode
 	  get the column descriptor for the column in the table.
 	  Otherwise return null.
 	  */
-	ColumnDescriptor getTableColumnDescriptor() {return columnDescriptor;}
+	public ColumnDescriptor getTableColumnDescriptor() {return columnDescriptor;}
 
 	/**
 	 * Returns true if this result column is a placeholder for a generated
