@@ -25,10 +25,12 @@ import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceIndexWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 
-public class TPCHIT extends SpliceUnitTest {
+import static com.splicemachine.derby.test.framework.SpliceUnitTest.format;
+import static com.splicemachine.derby.test.framework.SpliceUnitTest.getResourceDirectory;
+
+public class TPCHIT {
 		protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 		public static final String CLASS_NAME = "TPCH1X";
 		protected static final String LINEITEM = "LINEITEM";
@@ -73,7 +75,7 @@ public class TPCHIT extends SpliceUnitTest {
 
 		protected static SpliceIndexWatcher lineItemQ20 = new SpliceIndexWatcher(LINEITEM,CLASS_NAME,"lineItemq20",CLASS_NAME,
 				"(l_partkey, l_suppkey)");
-		
+
 		@ClassRule
 		public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 						.around(spliceSchemaWatcher)
@@ -257,20 +259,20 @@ public class TPCHIT extends SpliceUnitTest {
 		public void sql20() throws Exception {
 				Assert.assertTrue(runScript(new File(getSQLFile("20.sql")),methodWatcher.getOrCreateConnection()));
 		}
-		
+
 		@Test(expected=SQLException.class)
 		public void noMergeOverMergeSort() throws Exception {
-			String mergeOverMergeSort = "select s_name from  --SPLICE-PROPERTIES joinOrder=FIXED\n" +                                                                                                                     
+			String mergeOverMergeSort = "select s_name from  --SPLICE-PROPERTIES joinOrder=FIXED\n" +
 					"%s.supplier, "+
 					"%s.nation, "+
-					"%s.lineitem l3 --SPLICE-PROPERTIES joinStrategy=SORTMERGE\n "+                                                                                                       
-					" ,%s.orders --SPLICE-PROPERTIES joinStrategy=MERGE\n" +                                                                                                             
+					"%s.lineitem l3 --SPLICE-PROPERTIES joinStrategy=SORTMERGE\n "+
+					" ,%s.orders --SPLICE-PROPERTIES joinStrategy=MERGE\n" +
 					" where "+
 					"s_suppkey = l3.l_suppkey " +
 					"and o_orderkey = l3.l_orderkey";
 			methodWatcher.executeQuery(String.format(mergeOverMergeSort,CLASS_NAME,CLASS_NAME,CLASS_NAME,CLASS_NAME));
 		}
-		
+
 		public static String getResource(String name) {
 				return getResourceDirectory()+"tcph/data/"+name;
 		}
