@@ -1,7 +1,6 @@
 package com.splicemachine.derby.test;
 
 import com.google.common.io.Closeables;
-import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
@@ -11,7 +10,6 @@ import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
-import org.junit.runner.Description;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -35,37 +33,27 @@ public class TPCHIT {
     private static final String NATION = "NATION";
     private static final String REGION = "REGION";
 
-    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA_NAME);
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA_NAME);
-
+    private static SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA_NAME);
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
-            .around(spliceSchemaWatcher)
-            .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "tcph/TPCHIT.sql", SCHEMA_NAME))
-            .around(new SpliceDataWatcher() {
-                @Override
-                protected void starting(Description description) {
-                    try {
-                        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)", SCHEMA_NAME, LINEITEM, getResource("lineitem.tbl"))).execute();
-                        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)", SCHEMA_NAME, ORDERS, getResource("orders.tbl"))).execute();
-                        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)", SCHEMA_NAME, CUSTOMERS, getResource("customer.tbl"))).execute();
-                        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)", SCHEMA_NAME, PARTSUPP, getResource("partsupp.tbl"))).execute();
-                        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)", SCHEMA_NAME, SUPPLIER, getResource("supplier.tbl"))).execute();
-                        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)", SCHEMA_NAME, PART, getResource("part.tbl"))).execute();
-                        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)", SCHEMA_NAME, NATION, getResource("nation.tbl"))).execute();
-                        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)", SCHEMA_NAME, REGION, getResource("region.tbl"))).execute();
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    } finally {
-                        spliceClassWatcher.closeAll();
-                    }
-                }
-
-            });
+            .around(new SpliceSchemaWatcher(SCHEMA_NAME))
+            .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "tcph/TPCHIT.sql", SCHEMA_NAME));
 
     @Rule
-    public SpliceWatcher methodWatcher = new SpliceWatcher();
+    public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA_NAME);
+
+    @BeforeClass
+    public static void loadData() throws Exception {
+        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)", SCHEMA_NAME, LINEITEM, getResource("lineitem.tbl"))).execute();
+        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)", SCHEMA_NAME, ORDERS, getResource("orders.tbl"))).execute();
+        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)", SCHEMA_NAME, CUSTOMERS, getResource("customer.tbl"))).execute();
+        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)", SCHEMA_NAME, PARTSUPP, getResource("partsupp.tbl"))).execute();
+        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)", SCHEMA_NAME, SUPPLIER, getResource("supplier.tbl"))).execute();
+        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)", SCHEMA_NAME, PART, getResource("part.tbl"))).execute();
+        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)", SCHEMA_NAME, NATION, getResource("nation.tbl"))).execute();
+        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)", SCHEMA_NAME, REGION, getResource("region.tbl"))).execute();
+    }
 
     @Test
     public void validateDataLoad() throws Exception {
