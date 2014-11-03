@@ -2,8 +2,6 @@
 -- TPC-H/TPC-R Shipping Modes and Order Priority Query (Q12)
 -- Functional Query Definition
 -- Approved February 1998
-set schema tpch1x;
-VALUES (CURRENT_TIMESTAMP);
 select
 	l_shipmode,
 	sum(case
@@ -31,5 +29,4 @@ where
 group by
 	l_shipmode
 order by
-	l_shipmode;
-VALUES (CURRENT_TIMESTAMP);
+	l_shipmode

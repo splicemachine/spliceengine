@@ -2,8 +2,6 @@
 -- TPC-H/TPC-R Global Sales Opportunity Query (Q22)
 -- Functional Query Definition
 -- Approved February 1998
-set schema tpch1x;
-VALUES (CURRENT_TIMESTAMP);
 select
 	cntrycode,
 	count(*) as numcust,
@@ -41,5 +39,4 @@ from
 group by
 	cntrycode
 order by
-	cntrycode;
-VALUES (CURRENT_TIMESTAMP);
+	cntrycode

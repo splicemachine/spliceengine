@@ -2,8 +2,6 @@
 -- TPC-H/TPC-R Product Type Profit Measure Query (Q9)
 -- Functional Query Definition
 -- Approved February 1998
-set schema tpch1x;
-VALUES (CURRENT_TIMESTAMP) ;
 select
 	nation,
 	o_year,
@@ -36,5 +34,4 @@ group by
 	o_year
 order by
 	nation,
-	o_year desc;
-VALUES (CURRENT_TIMESTAMP) ;
+	o_year desc

@@ -2,8 +2,6 @@
 -- TPC-H/TPC-R Parts/Supplier Relationship Query (Q16)
 -- Functional Query Definition
 -- Approved February 1998
-set schema tpch1x;
-VALUES (CURRENT_TIMESTAMP);
 select
 	p_brand,
 	p_type,
@@ -33,5 +31,4 @@ order by
 	supplier_cnt desc,
 	p_brand,
 	p_type,
-	p_size;
-VALUES (CURRENT_TIMESTAMP);
+	p_size

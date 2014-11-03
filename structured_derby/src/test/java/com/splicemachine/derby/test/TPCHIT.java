@@ -1,11 +1,10 @@
 package com.splicemachine.derby.test;
 
-import com.google.common.io.Closeables;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.SlowTest;
-import org.apache.derby.tools.ij;
+import org.apache.commons.io.IOUtils;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -13,13 +12,11 @@ import org.junit.rules.TestRule;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.sql.Connection;
 import java.sql.SQLException;
 
 import static com.splicemachine.derby.test.framework.SpliceUnitTest.format;
 import static com.splicemachine.derby.test.framework.SpliceUnitTest.getResourceDirectory;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 public class TPCHIT {
 
@@ -69,48 +66,48 @@ public class TPCHIT {
 
     @Test
     public void sql1() throws Exception {
-        assertTrue(runScript(new File(getSQLFile("1.sql")), methodWatcher.getOrCreateConnection()));
+        executeQuery(getSQLFile("1.sql"));
     }
 
     @Test
     public void sql2() throws Exception {
-        assertTrue(runScript(new File(getSQLFile("2.sql")), methodWatcher.getOrCreateConnection()));
+        executeQuery(getSQLFile("2.sql"));
     }
 
     @Test
     public void sql3() throws Exception {
-        assertTrue(runScript(new File(getSQLFile("3.sql")), methodWatcher.getOrCreateConnection()));
+        executeQuery(getSQLFile("3.sql"));
     }
 
     @Test
     public void sql4() throws Exception {
-        assertTrue(runScript(new File(getSQLFile("4.sql")), methodWatcher.getOrCreateConnection()));
+        executeQuery(getSQLFile("4.sql"));
     }
 
     @Test
     public void sql5() throws Exception {
-        assertTrue(runScript(new File(getSQLFile("5.sql")), methodWatcher.getOrCreateConnection()));
+        executeQuery(getSQLFile("5.sql"));
     }
 
     @Test
     public void sql6() throws Exception {
-        assertTrue(runScript(new File(getSQLFile("6.sql")), methodWatcher.getOrCreateConnection()));
+        executeQuery(getSQLFile("6.sql"));
     }
 
     @Test
     public void sql7() throws Exception {
-        assertTrue(runScript(new File(getSQLFile("7.sql")), methodWatcher.getOrCreateConnection()));
+        executeQuery(getSQLFile("7.sql"));
     }
 
     @Test
     public void sql8() throws Exception {
-        assertTrue(runScript(new File(getSQLFile("8.sql")), methodWatcher.getOrCreateConnection()));
+        executeQuery(getSQLFile("8.sql"));
     }
 
     @Test
     @Ignore
     public void sql9() throws Exception {
-        assertTrue(runScript(new File(getSQLFile("9.sql")), methodWatcher.getOrCreateConnection()));
+        executeQuery(getSQLFile("9.sql"));
     }
 
     @Test
@@ -125,58 +122,59 @@ public class TPCHIT {
 
     @Test
     public void sql10() throws Exception {
-        assertTrue(runScript(new File(getSQLFile("10.sql")), methodWatcher.getOrCreateConnection()));
+        executeQuery(getSQLFile("10.sql"));
     }
 
     @Test
     public void sql11() throws Exception {
-        assertTrue(runScript(new File(getSQLFile("11.sql")), methodWatcher.getOrCreateConnection()));
+        executeQuery(getSQLFile("11.sql"));
     }
 
     @Test
     public void sql12() throws Exception {
-        assertTrue(runScript(new File(getSQLFile("12.sql")), methodWatcher.getOrCreateConnection()));
+        executeQuery(getSQLFile("12.sql"));
     }
 
     @Test
     public void sql13() throws Exception {
-        assertTrue(runScript(new File(getSQLFile("13.sql")), methodWatcher.getOrCreateConnection()));
+        executeQuery(getSQLFile("13.sql"));
     }
 
     @Test
     public void sql14() throws Exception {
-        assertTrue(runScript(new File(getSQLFile("14.sql")), methodWatcher.getOrCreateConnection()));
+        executeQuery(getSQLFile("14.sql"));
     }
 
     @Test
     public void sql15() throws Exception {
-        assertTrue(runScript(new File(getSQLFile("15.sql")), methodWatcher.getOrCreateConnection()));
+        executeUpdate(getSQLFile("15a.sql"));
+        executeQuery(getSQLFile("15b.sql"));
     }
 
     @Test
     public void sql16() throws Exception {
-        assertTrue(runScript(new File(getSQLFile("16.sql")), methodWatcher.getOrCreateConnection()));
+        executeQuery(getSQLFile("16.sql"));
     }
 
     @Test
     @Ignore
     public void sql17() throws Exception {
-        assertTrue(runScript(new File(getSQLFile("17.sql")), methodWatcher.getOrCreateConnection()));
+        executeQuery(getSQLFile("17.sql"));
     }
 
     @Test
     public void sql18() throws Exception {
-        assertTrue(runScript(new File(getSQLFile("18.sql")), methodWatcher.getOrCreateConnection()));
+        executeQuery(getSQLFile("18.sql"));
     }
 
     @Test
     public void sql19() throws Exception {
-        assertTrue(runScript(new File(getSQLFile("19.sql")), methodWatcher.getOrCreateConnection()));
+        executeQuery(getSQLFile("19.sql"));
     }
 
     @Test
     public void sql20() throws Exception {
-        assertTrue(runScript(new File(getSQLFile("20.sql")), methodWatcher.getOrCreateConnection()));
+        executeQuery(getSQLFile("20.sql"));
     }
 
     @Test(expected = SQLException.class)
@@ -192,24 +190,21 @@ public class TPCHIT {
         methodWatcher.executeQuery(String.format(mergeOverMergeSort, SCHEMA_NAME, SCHEMA_NAME, SCHEMA_NAME, SCHEMA_NAME));
     }
 
-    public static String getResource(String name) {
+    private static String getResource(String name) {
         return getResourceDirectory() + "tcph/data/" + name;
     }
 
-    protected static String getSQLFile(String name) {
+    private static String getSQLFile(String name) {
         return getResourceDirectory() + "tcph/query/" + name;
     }
 
-
-    protected static boolean runScript(File scriptFile, Connection connection) throws Exception {
-        FileInputStream fileStream = null;
-        try {
-            fileStream = new FileInputStream(scriptFile);
-            int result = ij.runScript(connection, fileStream, "UTF-8", System.out, "UTF-8");
-            return (result == 0);
-        } finally {
-            Closeables.closeQuietly(fileStream);
-        }
+    private void executeQuery(String queryFileName) throws Exception {
+        String query = IOUtils.toString(new FileInputStream(new File(queryFileName)));
+        methodWatcher.executeQuery(query);
     }
 
+    private void executeUpdate(String queryFileName) throws Exception {
+        String query = IOUtils.toString(new FileInputStream(new File(queryFileName)));
+        methodWatcher.executeUpdate(query);
+    }
 }
