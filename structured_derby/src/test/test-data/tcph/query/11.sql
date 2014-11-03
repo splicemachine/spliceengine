@@ -2,8 +2,6 @@
 -- TPC-H/TPC-R Important Stock Identification Query (Q11)
 -- Functional Query Definition
 -- Approved February 1998
-set schema tpch1x;
-VALUES (CURRENT_TIMESTAMP);
 select
 	ps_partkey,
 	sum(ps_supplycost * ps_availqty) as value
@@ -30,5 +28,4 @@ group by
 				and n_name = 'GERMANY'
 		)
 order by
-	value desc;
-VALUES (CURRENT_TIMESTAMP);
+	value desc
