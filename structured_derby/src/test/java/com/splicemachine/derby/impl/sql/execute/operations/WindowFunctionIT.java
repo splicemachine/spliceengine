@@ -1243,7 +1243,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
     }
 
     private static String printExpectedVActual(int[] expected, int[] actual) {
-        StringBuilder buf = new StringBuilder();
+        StringBuilder buf = new StringBuilder("\n");
         for (int anExpected : expected) {
             buf.append(anExpected).append(", ");
         }
@@ -1263,7 +1263,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
     }
 
     private static String printExpectedVActual(double[] expected, double[] actual) {
-        StringBuilder buf = new StringBuilder();
+        StringBuilder buf = new StringBuilder("\n");
         for (double anExpected : expected) {
             buf.append(anExpected).append(", ");
         }
@@ -1283,7 +1283,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
     }
 
     private static String printExpectedVActual(String[] expected, String[] actual) {
-        StringBuilder buf = new StringBuilder();
+        StringBuilder buf = new StringBuilder("\n");
         for (String anExpected : expected) {
             buf.append(anExpected).append(", ");
         }
