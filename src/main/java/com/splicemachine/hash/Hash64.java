@@ -9,6 +9,9 @@ import java.nio.ByteBuffer;
  * Date: 3/26/14
  */
 public interface Hash64 {
+
+    long hash(String elem);
+
     long hash(byte[] bytes, int offset, int length);
 
     long hash(ByteBuffer byteBuffer);

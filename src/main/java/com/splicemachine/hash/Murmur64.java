@@ -17,6 +17,22 @@ final class Murmur64 implements Hash64 {
     Murmur64(int seed) { this.seed = seed; }
 
     @Override
+    public long hash(String elem) {
+        assert elem!=null: "Cannot hash a null element";
+        int length = elem.length();
+        long h = initialize(seed,length);
+        int pos =0;
+        char[] chars = elem.toCharArray();
+        while(length-pos>=8){
+            h = hash(h,EndianNumbers.littleEndianLong(chars,pos));
+            pos+=8;
+        }
+
+        h = updatePartial(chars,length-pos,h,pos);
+        return finalize(h);
+    }
+
+    @Override
     public long hash(byte[] data, int offset, int length) {
         long h = initialize(seed, length);
 
@@ -82,6 +98,19 @@ final class Murmur64 implements Hash64 {
     }
 
     private long updatePartial(byte[] data, int length, long h, int dataPosition) {
+        switch (length) {
+            case 7: h ^= ((long)data[dataPosition+6] & 0xff) <<48;
+            case 6: h ^= ((long)data[dataPosition+5] & 0xff) <<40;
+            case 5: h ^= ((long)data[dataPosition+4] & 0xff) <<32;
+            case 4: h ^= ((long)data[dataPosition+3] & 0xff) <<24;
+            case 3: h ^= ((long)data[dataPosition+2] & 0xff) <<16;
+            case 2: h ^= ((long)data[dataPosition+1] & 0xff) <<8;
+            case 1: h ^= ((long)data[dataPosition  ] & 0xff);
+        }
+        return h;
+    }
+
+    private long updatePartial(char[] data, int length, long h, int dataPosition) {
         switch (length) {
             case 7: h ^= ((long)data[dataPosition+6] & 0xff) <<48;
             case 6: h ^= ((long)data[dataPosition+5] & 0xff) <<40;

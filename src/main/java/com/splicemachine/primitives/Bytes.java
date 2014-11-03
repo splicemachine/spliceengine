@@ -22,7 +22,7 @@ public class Bytes {
                 byte rightByte = b2[b2Offset + i];
                 if (leftByte < rightByte) {
                     return -1;
-                }else if(rightByte>leftByte) return 1;
+                }else if(rightByte<leftByte) return 1;
             }
             return 0;
         }
@@ -107,6 +107,22 @@ public class Bytes {
         }
         b[0] = (byte) val;
         return b;
+    }
+
+    /**
+     * Convert a long value into the specified byte array, using big-endian
+     * order.
+     *
+     * @param x the value to encode
+     * @param data the destination byte[]
+     * @param offset the offset to place the encoded data
+     * @throws java.lang.ArrayIndexOutOfBoundsException if {@code data.length-offset <8}.
+     */
+    public static void toBytes(int x, byte[] data, int offset){
+        data[offset] = (byte)(x>>24);
+        data[offset+1] = (byte)(x>>16);
+        data[offset+2] = (byte)(x>>8);
+        data[offset+3] = (byte)(x   );
     }
 
 

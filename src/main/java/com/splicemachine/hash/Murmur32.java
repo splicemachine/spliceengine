@@ -28,7 +28,7 @@ public class Murmur32 implements Hash32{
             /*
              * Since a char has two bytes, we create one int by packing together two chars
              */
-            int k1 = littleEndianInt(chars,pos);
+            int k1 = EndianNumbers.littleEndianInt(chars,pos);
             h = mutate(h,k1);
             pos+=2;
             visited+=4;
@@ -44,7 +44,7 @@ public class Murmur32 implements Hash32{
         int visited=0;
         int h = seed;
         while(length-pos>=4){
-            int k1 = littleEndianInt(bytes, pos);
+            int k1 = EndianNumbers.littleEndianInt(bytes, pos);
             h =mutate(h,k1);
             pos+=4;
             visited+=4;
@@ -87,46 +87,13 @@ public class Murmur32 implements Hash32{
         int bytesVisited=0;
         while(bytes.remaining()>=4){
             bytes.get(block);
-            int k1 = littleEndianInt(block, 0);
+            int k1 = EndianNumbers.littleEndianInt(block, 0);
             h =mutate(h, k1);
             bytesVisited+=4;
         }
         bytes.get(block,0,length-bytesVisited);
         h = updatePartial(block,length,0,h,bytesVisited);
         return finalize(h);
-    }
-
-    private static int littleEndianInt(CharSequence bytes, int offset) {
-        char b0 = bytes.charAt(offset);
-        char b1 = bytes.charAt(offset+1);
-        char b2 = bytes.charAt(offset+2);
-        char b3 = bytes.charAt(offset+3);
-        return (((b3       ) << 24) |
-                ((b2 & 0xff) << 16) |
-                ((b1 & 0xff) <<  8) |
-                ((b0 & 0xff)      ));
-    }
-
-
-    private static int littleEndianInt(char[] bytes, int offset) {
-        char b0 = bytes[offset];
-        char b1 = bytes[offset+1];
-        char b2 = bytes[offset+2];
-        char b3 = bytes[offset+3];
-        return (((b3       ) << 24) |
-                ((b2 & 0xff) << 16) |
-                ((b1 & 0xff) <<  8) |
-                ((b0 & 0xff)      ));
-    }
-    private static int littleEndianInt(byte[] bytes, int offset) {
-        byte b0 = bytes[offset];
-        byte b1 = bytes[offset+1];
-        byte b2 = bytes[offset+2];
-        byte b3 = bytes[offset+3];
-        return (((b3       ) << 24) |
-                ((b2 & 0xff) << 16) |
-                ((b1 & 0xff) <<  8) |
-                ((b0 & 0xff)      ));
     }
 
     private int updatePartial(CharSequence bytes, int length, int pos, int h,int bytesVisited) {

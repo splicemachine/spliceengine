@@ -15,6 +15,5 @@ public interface ByteComparator extends Comparator<byte[]> {
 
     public int compare(byte[] b1, int b1Offset,int b1Length, byte[] b2,int b2Offset,int b2Length);
 
-
     public boolean equals(byte[] b1, int b1Offset,int b1Length, byte[] b2,int b2Offset,int b2Length);
 }

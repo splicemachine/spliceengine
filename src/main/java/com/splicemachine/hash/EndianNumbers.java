@@ -56,4 +56,56 @@ package com.splicemachine.hash;
                 (((long)b2 & 0xff)<<8) |
                 (((long)b1 & 0xff));
     }
+
+    public static int littleEndianInt(char[] bytes, int offset) {
+        char b0 = bytes[offset];
+        char b1 = bytes[offset+1];
+        char b2 = bytes[offset+2];
+        char b3 = bytes[offset+3];
+        return (((b3       ) << 24) |
+                ((b2 & 0xff) << 16) |
+                ((b1 & 0xff) <<  8) |
+                ((b0 & 0xff)      ));
+    }
+
+    public static long littleEndianLong(char[] bytes, int offset) {
+        char b1 = bytes[offset];
+        char b2 = bytes[offset+1];
+        char b3 = bytes[offset+2];
+        char b4 = bytes[offset+3];
+        char b5 = bytes[offset+4];
+        char b6 = bytes[offset+5];
+        char b7 = bytes[offset+6];
+        char b8 = bytes[offset+7];
+        return  (((long)b8       )<<56) |
+                (((long)b7 & 0xff)<<48) |
+                (((long)b6 & 0xff)<<40) |
+                (((long)b5 & 0xff)<<32) |
+                (((long)b4 & 0xff)<<24) |
+                (((long)b3 & 0xff)<<16) |
+                (((long)b2 & 0xff)<<8) |
+                (((long)b1 & 0xff));
+    }
+
+    public static int littleEndianInt(byte[] bytes, int offset) {
+        byte b0 = bytes[offset];
+        byte b1 = bytes[offset+1];
+        byte b2 = bytes[offset+2];
+        byte b3 = bytes[offset+3];
+        return (((b3       ) << 24) |
+                ((b2 & 0xff) << 16) |
+                ((b1 & 0xff) <<  8) |
+                ((b0 & 0xff)      ));
+    }
+
+    public static int littleEndianInt(CharSequence bytes, int offset) {
+        char b0 = bytes.charAt(offset);
+        char b1 = bytes.charAt(offset+1);
+        char b2 = bytes.charAt(offset+2);
+        char b3 = bytes.charAt(offset+3);
+        return (((b3       ) << 24) |
+                ((b2 & 0xff) << 16) |
+                ((b1 & 0xff) <<  8) |
+                ((b0 & 0xff)      ));
+    }
 }
