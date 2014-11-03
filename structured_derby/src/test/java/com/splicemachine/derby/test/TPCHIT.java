@@ -105,18 +105,14 @@ public class TPCHIT {
     }
 
     @Test
-    @Ignore
     public void sql9() throws Exception {
         executeQuery(getSQLFile("9.sql"));
     }
 
     @Test
-    @Ignore
-    @Category(SlowTest.class)
-    public void testRepeatedSql9() throws Exception {
-        for (int i = 0; i < 100; i++) {
+    public void sql9Repeated() throws Exception {
+        for (int i = 0; i < 3; i++) {
             sql9();
-            System.out.printf("Iteration %d succeeded%n", i);
         }
     }
 
@@ -157,7 +153,6 @@ public class TPCHIT {
     }
 
     @Test
-    @Ignore
     public void sql17() throws Exception {
         executeQuery(getSQLFile("17.sql"));
     }
