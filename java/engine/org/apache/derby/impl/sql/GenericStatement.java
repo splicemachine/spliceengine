@@ -374,21 +374,31 @@ public class GenericStatement implements Statement {
 					// and optimize will be released when we end the nested
 					// transaction.
 					lcc.beginNestedTransaction(true);
+            if(SanityManager.DEBUG){
+                if(SanityManager.DEBUG_ON("DumpParseTree")){
+                    SanityManager.GET_DEBUG_STREAM().print(
+                            "\n\n============PARSE===========\n\n");
+                    qt.treePrint();
+                    SanityManager.GET_DEBUG_STREAM().print(
+                            "\n\n============END PARSE===========\n\n");
+                    lcc.getPrintedObjectsMap().clear();
+                }
+            }
 
 					qt.bindStatement();
 					bindTime = getCurrentTimeMillis(lcc);
 
-                    // Call user-written tree-printer if it exists
-                    walkAST( lcc, qt, ASTVisitor.AFTER_BIND);
+            // Call user-written tree-printer if it exists
+            walkAST( lcc, qt, ASTVisitor.AFTER_BIND);
 
-					if (SanityManager.DEBUG) 
-					{
-						if (SanityManager.DEBUG_ON("DumpBindTree")) 
-						{
-							SanityManager.GET_DEBUG_STREAM().print(
-								"\n\n============BIND===========\n\n");
-							qt.treePrint();
-							lcc.getPrintedObjectsMap().clear();
+            if (SanityManager.DEBUG) {
+                if (SanityManager.DEBUG_ON("DumpBindTree")) {
+                    SanityManager.GET_DEBUG_STREAM().print(
+                            "\n\n============BIND===========\n\n");
+                    qt.treePrint();
+                    SanityManager.GET_DEBUG_STREAM().print(
+                            "\n\n============END BIND===========\n\n");
+                    lcc.getPrintedObjectsMap().clear();
 						}
 
 						if (SanityManager.DEBUG_ON("StopAfterBinding")) {
@@ -432,6 +442,14 @@ public class GenericStatement implements Statement {
 							((GenericLanguageConnectionContext)lcc).removeStatement(this);
 					}
 					qt.optimizeStatement();
+            if(SanityManager.DEBUG && SanityManager.DEBUG_ON("DumpOptimizedTree")){
+                SanityManager.GET_DEBUG_STREAM().print(
+                        "\n\n============OPTIMIZED===========\n\n");
+                qt.treePrint();
+                SanityManager.GET_DEBUG_STREAM().print(
+                        "\n\n============END OPTIMIZED===========\n\n");
+                lcc.getPrintedObjectsMap().clear();
+            }
 					optimizeTime = getCurrentTimeMillis(lcc);
 
                     // Call user-written tree-printer if it exists
