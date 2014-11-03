@@ -17,9 +17,9 @@
 	
 	<modules>
 		<module>../structured_constants</module>
-		<!-- module>splice_96</module -->
-		<module>../structured_si</module>
+		<module>../splice_96</module>
 		<module>../splice_protocol</module>		
+		<module>../structured_si</module>
 		<module>../structured_derby</module>
 	</modules>
 
