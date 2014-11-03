@@ -1,4 +1,4 @@
-package com.splicemachine.hbase;
+package com.splicemachine.hbase.table;
 
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.ServerName;
@@ -7,6 +7,9 @@ import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.KeyOnlyFilter;
 import org.apache.hadoop.hbase.util.Pair;
 import org.junit.Test;
+
+import com.splicemachine.hbase.RegionCacheComparator;
+import com.splicemachine.hbase.ScanDivider;
 
 import java.io.IOException;
 import java.util.List;
