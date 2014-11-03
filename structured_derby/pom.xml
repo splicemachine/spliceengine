@@ -24,8 +24,7 @@
 		<dependency> <groupId>com.google.protobuf</groupId> <artifactId>protobuf-java</artifactId> </dependency>
 		<dependency> <groupId>com.splicemachine</groupId> <artifactId>asynchbase</artifactId> </dependency>
 		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice-web</artifactId> <type>tar.gz</type> </dependency>
-		<dependency> <groupId>com.splicemachine</groupId> <artifactId>structured_constants</artifactId> <classifier>${envClassifier}</classifier> </dependency>
-		<dependency> <groupId>com.splicemachine</groupId> <artifactId>structured_si</artifactId> <classifier>${envClassifier}${obfuscate.si}</classifier> </dependency>
+			<dependency> <groupId>com.splicemachine</groupId> <artifactId>structured_si</artifactId> <version>1.0.0RC2-SNAPSHOT</version> <classifier>${envClassifier}${obfuscate.si}</classifier> <scope>compile</scope> </dependency>		
 		<dependency> <groupId>com.splicemachine</groupId> <artifactId>utilities</artifactId> </dependency>
 		<dependency> <groupId>com.stumbleupon</groupId> <artifactId>async</artifactId> </dependency>
 		<dependency> <groupId>com.yammer.metrics</groupId> <artifactId>metrics-core</artifactId> </dependency>
@@ -45,7 +44,6 @@
 		<dependency> <groupId>org.apache.derby</groupId> <artifactId>derby</artifactId> </dependency>
 		<dependency> <groupId>org.apache.derby</groupId> <artifactId>derbyclient</artifactId> </dependency>
 		<dependency> <groupId>org.apache.mrunit</groupId> <artifactId>mrunit</artifactId> <classifier>hadoop2</classifier> </dependency>
-		<dependency> <groupId>org.apache.zookeeper</groupId> <artifactId>zookeeper</artifactId> </dependency>
 		<dependency> <groupId>org.codehaus.jsr166-mirror</groupId> <artifactId>jsr166y</artifactId> </dependency>
 		<dependency> <groupId>org.hamcrest</groupId> <artifactId>hamcrest-core</artifactId> </dependency>
 		<dependency> <groupId>org.mockito</groupId> <artifactId>mockito-all</artifactId> </dependency>
