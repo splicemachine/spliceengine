@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>com.splicemachine</groupId>
+	<version>1.0.0RC2-SNAPSHOT</version>
+	<packaging>pom</packaging>
+	<artifactId>spliceengine-hdp2.1</artifactId>
+	<name>${project.artifactId}</name>
+	<description>Splice Engine Parent POM for hdp2.1</description>
+
+	<parent>
+		<artifactId>spliceengine</artifactId>
+		<groupId>com.splicemachine</groupId>
+		<version>1.0.0RC2-SNAPSHOT</version>
+	</parent>
+	
+	<modules>
+		<module>../structured_constants</module>
+		<!-- module>splice_96</module -->
+		<module>../structured_si</module>
+		<module>../splice_protocol</module>		
+		<module>../structured_derby</module>
+	</modules>
+
+</project>
