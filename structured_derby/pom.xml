@@ -406,8 +406,12 @@
 								<!-- Setting the logStatementText option to true enables logging of all statements. -->
 								<argument>-Dderby.language.logStatementText=false</argument>
 								<argument>com.splicemachine.test.SpliceTestPlatform</argument>
-								<argument>${project.build.directory}/zookeeper</argument>
 								<argument>file://${project.build.directory}/hbase</argument>
+								<argument>60000</argument>
+								<argument>60010</argument>
+								<argument>60020</argument>
+								<argument>60030</argument>
+								<argument>1527</argument>
 								<argument>${failTasksRandomly}</argument>
 							</arguments>
 						</configuration>
