@@ -17,7 +17,7 @@
 	
 	<modules>
 		<module>../structured_constants</module>
-  		<module>../splice94</module>
+  		<module>../splice_94</module>
 		<module>../structured_si</module>
 		<module>../structured_derby</module>
 	</modules>
