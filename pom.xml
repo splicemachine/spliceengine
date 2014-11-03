@@ -9,26 +9,18 @@
 	<name>${project.artifactId}</name>
 	<description>Splice Machine Common Utilities</description>
 
+	<parent>
+		<groupId>com.splicemachine</groupId>
+		<artifactId>splice-maven-parent</artifactId>
+		<version>1.0.0-SNAPSHOT</version>
+	</parent>
+
 	<scm>
-		<connection>scm:git:git@github.com:splicemachine/utilities.git</connection>
-		<developerConnection>scm:git:git@github.com:splicemachine/utilities.git</developerConnection>
+		<connection>scm:git:git@github.com:splicemachine/${project.artifactId}.git</connection>
+		<developerConnection>scm:git:git@github.com:splicemachine/${project.artifactId}.git</developerConnection>
+		<url>https://github.com/splicemachine/${project.artifactId}</url>
 	</scm>
 
-	<distributionManagement>
-		<repository>
-			<id>splicemachine</id>
-			<name>Splice Machine Releases</name>
-			<url>http://nexus.splicemachine.com/nexus/content/repositories/releases</url>
-			<uniqueVersion>false</uniqueVersion>
-		</repository>
-		<snapshotRepository>
-			<id>splicemachine</id>
-			<name>Splice Machine Snapshots</name>
-			<url>http://nexus.splicemachine.com/nexus/content/repositories/snapshots</url>
-			<uniqueVersion>false</uniqueVersion>
-		</snapshotRepository>
-	</distributionManagement>
-	
 	<repositories>
 		<repository>
 			<id>splicemachine</id>
@@ -36,15 +28,8 @@
 		</repository>
 	</repositories>
 
-	<properties>
-		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-	</properties>
-
 	<dependencies>
 		<dependency> <groupId>com.google.guava</groupId> <artifactId>guava</artifactId> <version>11.0.2</version> </dependency>
-        <dependency> <groupId>log4j</groupId> <artifactId>log4j</artifactId> <version>1.2.17</version> </dependency>
-        <!-- = = = = = = = = = = = = = = = = = TEST dependencies -->
-        <dependency> <groupId>junit</groupId> <artifactId>junit</artifactId> <version>4.11</version> <scope>test</scope> </dependency>
 	</dependencies>
 
 	<build>
@@ -52,7 +37,6 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-source-plugin</artifactId>
-				<version>2.3</version>
 				<executions>
 					<execution>
 						<id>attach-sources</id>
