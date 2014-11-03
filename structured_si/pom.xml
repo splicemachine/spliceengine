@@ -14,34 +14,96 @@
 	</parent>
 
 	<dependencies>
-	<!-- 
-		<dependency> <groupId>com.github.stephenc.high-scale-lib</groupId> <artifactId>high-scale-lib</artifactId> </dependency>
-		<dependency> <groupId>com.google.code.findbugs</groupId> <artifactId>jsr305</artifactId> </dependency>
-		<dependency> <groupId>com.google.guava</groupId> <artifactId>guava</artifactId> </dependency>
-		<dependency> <groupId>com.lmax</groupId> <artifactId>disruptor</artifactId> </dependency>
-		<dependency> <groupId>com.splicemachine</groupId> <artifactId>asynchbase</artifactId> </dependency>
-		-->
-			<dependency> <groupId>com.splicemachine</groupId> <artifactId>structured_constants</artifactId> <version>1.0.0RC2-SNAPSHOT</version> <classifier>${envClassifier}</classifier> </dependency>
-<!-- 		<dependency> <groupId>com.splicemachine</groupId> <artifactId>utilities</artifactId> </dependency>
-		<dependency> <groupId>com.stumbleupon</groupId> <artifactId>async</artifactId> </dependency>
-		<dependency> <groupId>com.yammer.metrics</groupId> <artifactId>metrics-core</artifactId> </dependency>
-		<dependency> <groupId>io.netty</groupId> <artifactId>netty</artifactId> </dependency>
-		<dependency> <groupId>junit</groupId> <artifactId>junit</artifactId> </dependency>
-		<dependency> <groupId>log4j</groupId> <artifactId>log4j</artifactId> </dependency>
-		<dependency> <groupId>org.mockito</groupId> <artifactId>mockito-all</artifactId> </dependency>
-		-->
+		<dependency> <groupId>com.splicemachine</groupId> <artifactId>structured_constants</artifactId> <version>1.0.0RC2-SNAPSHOT</version> <classifier>${envClassifier}</classifier> </dependency>
 	</dependencies>
-
-	<build>
-		<resources>
-			<resource>
-				<directory>src/main/resources</directory>
-				<filtering>true</filtering>
-			</resource>
-		</resources>
-	</build>
-
 	<profiles>
+	<profile>
+			<id>cloudera-cdh4.5.0</id>
+			<activation>
+				<property>
+					<name>!hbase.profile</name>
+				</property>
+			</activation>
+			<dependencies>
+		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_94_adapter</artifactId> <version>1.0.0RC2-SNAPSHOT</version> <classifier>${envClassifier}</classifier> </dependency>
+			</dependencies>
+		</profile>
+		<profile>
+			<id>cloudera-cdh4.3.0</id>
+			<activation>
+				<property>
+					<name>hbase.profile</name>
+					<value>cloudera-cdh4.3.0</value>
+				</property>
+			</activation>
+			<dependencies>
+		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_94_adapter</artifactId> <version>1.0.0RC2-SNAPSHOT</version> <classifier>${envClassifier}</classifier> </dependency>
+			</dependencies>
+		</profile>
+		<profile>
+			<id>hdp1.3</id>
+			<activation>
+				<property>
+					<name>hbase.profile</name>
+					<value>hdp1.3</value>
+				</property>
+			</activation>
+			<dependencies>
+		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_94_adapter</artifactId> <version>1.0.0RC2-SNAPSHOT</version> <classifier>${envClassifier}</classifier> </dependency>
+			</dependencies>
+
+		</profile>
+		<profile>
+			<id>mapr3.1</id>
+			<activation>
+				<property>
+					<name>hbase.profile</name>
+					<value>mapr3.1</value>
+				</property>
+			</activation>
+			<dependencies>
+		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_94_adapter</artifactId> <version>1.0.0RC2-SNAPSHOT</version> <classifier>${envClassifier}</classifier> </dependency>
+			</dependencies>
+		</profile>
+		
+		<profile>
+			<activation>
+				<property>
+					<name>hbase.profile</name>
+					<value>cloudera-cdh5.1.3</value>
+				</property>
+			</activation>
+						<dependencies>
+		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_96_adapter</artifactId> <version>1.0.0RC2-SNAPSHOT</version> <classifier>${envClassifier}</classifier> </dependency>
+			</dependencies>
+		</profile>
+		<profile>
+			<id>hdp2.1</id>
+			<activation>
+				<property>
+					<name>hbase.profile</name>
+					<value>hdp2.1</value>
+				</property>
+			</activation>
+			<dependencies>
+		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_96_adapter</artifactId> <version>1.0.0RC2-SNAPSHOT</version> <classifier>${envClassifier}</classifier> </dependency>
+			</dependencies>
+		</profile>
+		<profile>
+			<id>mapr4.0</id>
+			<activation>
+				<property>
+					<name>hbase.profile</name>
+					<value>mapr4.0</value>
+				</property>
+			</activation>
+			<dependencies>
+		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_96_adapter</artifactId> <version>1.0.0RC2-SNAPSHOT</version> <classifier>${envClassifier}</classifier> </dependency>
+			</dependencies>
+
+		</profile>
+		
+		
 		<profile>
 			<id>obfuscate</id>
 			<activation>
@@ -267,4 +329,13 @@
 			</build>
 		</profile>
 	</profiles>
+		<build>
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+				<filtering>true</filtering>
+			</resource>
+		</resources>
+	</build>
+	
 </project>
