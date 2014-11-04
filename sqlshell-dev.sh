@@ -2,7 +2,7 @@
 
 # Splice Machine SQL Shell
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/" && pwd )"
-pushd "${SCRIPT_DIR}/splice_machine" &>/dev/null
+pushd "${SCRIPT_DIR}/structured_derby" &>/dev/null
 ROOT_DIR="$( pwd )"
 
 LOG4J_PROP_PATH="file:${ROOT_DIR}/target/splicemachine/lib/info-log4j.properties"
