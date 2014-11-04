@@ -16,7 +16,7 @@ usage() {
     echo "  -n Given by Jenkins when stoping server; env var BUILD_NUMVER, eg \"225\"."
     echo "      Used to stamp log files."
     echo "Stop Zookeeper and Splice. Log files get timestamped and copied to the"
-    echo "splice_machine/logs directory."
+    echo "structured_derby/logs directory."
 }
 
 BUILD_NUMBER=""
@@ -39,7 +39,7 @@ while getopts ":hn:" flag ; do
 done
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/" && pwd )"
-pushd "${SCRIPT_DIR}/splice_machine" &>/dev/null
+pushd "${SCRIPT_DIR}/structured_derby" &>/dev/null
 ROOT_DIR="$( pwd )"
 source ${ROOT_DIR}/src/main/bin/functions.sh
 SPLICELOG="${ROOT_DIR}"/splice.log

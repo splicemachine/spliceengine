@@ -14,13 +14,13 @@
 		<groupId>com.splicemachine</groupId>
 		<version>1.0.0RC2-SNAPSHOT</version>
 	</parent>
-
+	
 	<modules>
 		<module>../structured_constants</module>
-		<module>../splice_adapter98</module>
+		<!-- module>splice_96</module -->
 		<module>../structured_si</module>
-		<module>../splice_protocol</module>
-		<module>../splice_machine</module>
+		<module>../splice_protocol</module>		
+		<module>../structured_derby</module>
 	</modules>
 
 </project>
