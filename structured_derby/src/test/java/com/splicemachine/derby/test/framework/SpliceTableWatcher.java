@@ -49,7 +49,10 @@ public class SpliceTableWatcher extends TestWatcher {
             ResultSet rs = connection.getMetaData().getTables(null, schemaName.toUpperCase(), tableName.toUpperCase(), null);
             if (rs.next()) {
                 statement = connection.createStatement();
-                statement.execute(String.format("drop %s %s.%s",tableOrView,schemaName.toUpperCase(),tableName.toUpperCase()));
+                if(isView){
+                    statement.execute(String.format("drop view %s.%s",schemaName.toUpperCase(),tableName.toUpperCase()));
+                }else
+                    statement.execute(String.format("drop table if exists %s.%s",schemaName.toUpperCase(),tableName.toUpperCase()));
                 connection.commit();
             }
         } catch (Exception e) {
