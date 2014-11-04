@@ -2,7 +2,8 @@ package com.splicemachine.si.jmx;
 
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.api.TransactorListener;
-import com.splicemachine.si.data.hbase.IHTable;
+import com.splicemachine.si.data.api.IHTable;
+
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
 

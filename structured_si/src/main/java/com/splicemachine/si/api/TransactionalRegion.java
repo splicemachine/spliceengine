@@ -8,7 +8,6 @@ import com.splicemachine.si.impl.TxnFilter;
 import com.splicemachine.storage.EntryPredicateFilter;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
-
 import java.io.IOException;
 import java.util.Collection;
 

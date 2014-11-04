@@ -1,4 +1,4 @@
-package com.splicemachine.si.data.hbase;
+package com.splicemachine.si.data.api;
 
 import com.splicemachine.collections.CloseableIterator;
 import org.apache.hadoop.hbase.client.Delete;

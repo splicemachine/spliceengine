@@ -1,10 +1,8 @@
 package com.splicemachine.si.api;
 
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.si.impl.SICompactionState;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
-
 import java.io.IOException;
 import java.util.Collection;
 

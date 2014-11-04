@@ -25,7 +25,7 @@
 				</property>
 			</activation>
 			<dependencies>
-		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_94_adapter</artifactId> <version>1.0.0RC2-SNAPSHOT</version> <classifier>${envClassifier}</classifier> </dependency>
+		<dependency> <groupId>com.splicemachine</groupId> <artifactId>structured_constants</artifactId> <version>1.0.0RC2-SNAPSHOT</version> <classifier>${envClassifier}</classifier> </dependency>
 			</dependencies>
 		</profile>
 		<profile>
@@ -74,7 +74,7 @@
 				</property>
 			</activation>
 						<dependencies>
-		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_96_adapter</artifactId> <version>1.0.0RC2-SNAPSHOT</version> <classifier>${envClassifier}</classifier> </dependency>
+		<dependency> <groupId>com.splicemachine</groupId> <artifactId>structured_constants</artifactId> <version>1.0.0RC2-SNAPSHOT</version> <classifier>${envClassifier}</classifier> </dependency>
 			</dependencies>
 		</profile>
 		<profile>

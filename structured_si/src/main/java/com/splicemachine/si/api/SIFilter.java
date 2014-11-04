@@ -1,6 +1,5 @@
 package com.splicemachine.si.api;
 
-import com.splicemachine.si.impl.RowAccumulator;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.filter.Filter;
 

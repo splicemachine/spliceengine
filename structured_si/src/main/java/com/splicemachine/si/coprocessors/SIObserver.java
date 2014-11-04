@@ -10,6 +10,7 @@ import com.splicemachine.si.api.*;
 import com.splicemachine.si.impl.*;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
@@ -27,6 +28,7 @@ import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
@@ -49,7 +51,7 @@ public class SIObserver extends BaseRegionObserver {
 				tableEnvMatch = doesTableNeedSI(((RegionCoprocessorEnvironment)e).getRegion().getTableDesc().getNameAsString());
         if(tableEnvMatch){
             txnOperationFactory = new SimpleOperationFactory();
-            region = TransactionalRegions.get(((RegionCoprocessorEnvironment) e).getRegion());
+            region = SIFactoryDriver.siFactory.getTransactionalRegion(((RegionCoprocessorEnvironment) e).getRegion());
             Tracer.traceRegion(region.getTableName(), ((RegionCoprocessorEnvironment)e).getRegion());
         }
 				super.start(e);

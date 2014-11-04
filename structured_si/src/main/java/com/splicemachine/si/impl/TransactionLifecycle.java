@@ -1,10 +1,8 @@
-package com.splicemachine.si.api;
+package com.splicemachine.si.impl;
 
 import com.splicemachine.constants.SIConstants;
-import com.splicemachine.si.impl.ClientTxnLifecycleManager;
-import com.splicemachine.si.impl.KeepAliveScheduler;
-import com.splicemachine.si.impl.QueuedKeepAliveScheduler;
-import com.splicemachine.si.impl.UnsupportedLifecycleManager;
+import com.splicemachine.si.api.TxnLifecycleManager;
+import com.splicemachine.si.api.TxnStore;
 import com.splicemachine.annotations.ThreadSafe;
 
 /**
@@ -46,7 +44,7 @@ public class TransactionLifecycle {
 						KeepAliveScheduler ka = keepAliveScheduler;
 						if(tc!=null && ka!=null) return tc;
 
-						TxnStore txnStore = TransactionStorage.getTxnStore();
+						TxnStore txnStore = SIFactoryDriver.siFactory.getTxnStore();
 						ClientTxnLifecycleManager lfManager = new ClientTxnLifecycleManager(TransactionTimestamps.getTimestampSource());
 						lfManager.setStore(txnStore);
 

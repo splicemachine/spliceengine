@@ -1,13 +1,12 @@
-package com.splicemachine.si.coprocessors;
+package com.splicemachine.si.impl;
 
 import com.splicemachine.si.api.ReadResolver;
+import com.splicemachine.si.api.RowAccumulator;
 import com.splicemachine.si.api.TransactionReadController;
 import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.impl.PackedTxnFilter;
-import com.splicemachine.si.impl.RowAccumulator;
-import com.splicemachine.si.impl.TxnFilter;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.HasPredicateFilter;
+
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Scan;

@@ -1,4 +1,4 @@
-package com.splicemachine.si.impl;
+package com.splicemachine.si.api;
 
 import org.apache.hadoop.hbase.KeyValue;
 
