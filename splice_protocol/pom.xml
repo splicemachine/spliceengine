@@ -14,8 +14,10 @@
 	</parent>
 
 	<dependencies>
+		<!-- splice managed dependencies -->
+		<dependency> <groupId>com.splicemachine</groupId> <artifactId>structured_constants</artifactId> <version>1.0.0RC2-SNAPSHOT</version> <classifier>${envClassifier}</classifier> </dependency>
+		<!-- third party dependencies -->
 		<dependency> <groupId>com.google.protobuf</groupId> <artifactId>protobuf-java</artifactId> </dependency>
-			<dependency> <groupId>com.splicemachine</groupId> <artifactId>structured_constants</artifactId> <version>1.0.0RC2-SNAPSHOT</version> <classifier>${envClassifier}</classifier> </dependency>
 	</dependencies>
 
 	<build>
