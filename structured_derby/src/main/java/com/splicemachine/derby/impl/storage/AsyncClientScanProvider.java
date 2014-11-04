@@ -1,14 +1,11 @@
 package com.splicemachine.derby.impl.storage;
 
-import com.splicemachine.async.GatheringScanner;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
-import com.splicemachine.async.AsyncScanner;
-import com.splicemachine.async.SimpleAsyncScanner;
 import com.splicemachine.hbase.regioninfocache.HBaseRegionCache;
 import com.splicemachine.hbase.regioninfocache.RegionCache;
 import com.splicemachine.hbase.ScanDivider;
@@ -26,8 +23,11 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
+import com.splicemachine.async.AsyncScanner;
+import com.splicemachine.async.GatheringScanner;
 import com.splicemachine.async.KeyValue;
 import com.splicemachine.async.HBaseClient;
+import com.splicemachine.async.SimpleAsyncScanner;
 
 import java.io.IOException;
 import java.util.List;

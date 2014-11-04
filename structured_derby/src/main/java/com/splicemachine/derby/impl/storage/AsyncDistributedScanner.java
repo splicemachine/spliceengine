@@ -1,17 +1,19 @@
 package com.splicemachine.derby.impl.storage;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.async.AsyncScannerUtils;
-import com.splicemachine.async.SimpleAsyncScanner;
 import com.splicemachine.metrics.*;
 import com.splicemachine.metrics.Timer;
 import com.stumbleupon.async.Callback;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
+
+import com.splicemachine.async.AsyncScannerUtils;
 import com.splicemachine.async.HBaseClient;
 import com.splicemachine.async.KeyValue;
+import com.splicemachine.async.SimpleAsyncScanner;
 
 import java.io.IOException;
 import java.util.*;

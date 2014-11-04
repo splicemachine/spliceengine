@@ -1,10 +1,12 @@
 package com.splicemachine.derby.hbase;
 
 import com.splicemachine.derby.impl.sql.execute.index.SpliceIndexProtocol;
-import com.splicemachine.si.api.TransactionStorage;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.LazyTxnView;
+import com.splicemachine.si.impl.TransactionStorage;
+
 import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;
+
 import java.io.IOException;
 
 /**

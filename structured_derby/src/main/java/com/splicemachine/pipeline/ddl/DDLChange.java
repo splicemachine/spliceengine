@@ -1,11 +1,13 @@
 package com.splicemachine.pipeline.ddl;
 
 import com.splicemachine.derby.ddl.DDLChangeType;
-import com.splicemachine.si.api.TransactionStorage;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.LazyTxnView;
+import com.splicemachine.si.impl.TransactionStorage;
+
 import org.apache.log4j.Logger;
+
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;

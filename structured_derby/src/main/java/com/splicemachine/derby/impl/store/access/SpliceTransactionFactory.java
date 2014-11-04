@@ -1,12 +1,13 @@
 package com.splicemachine.derby.impl.store.access;
 
 import com.splicemachine.derby.impl.store.access.base.SpliceLocalFileResource;
-import com.splicemachine.si.api.TransactionLifecycle;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnLifecycleManager;
 import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.context.ContextManager;
@@ -20,6 +21,7 @@ import org.apache.derby.iapi.types.J2SEDataValueFactory;
 import org.apache.derby.impl.io.DirStorageFactory4;
 import org.apache.derby.io.StorageFactory;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.util.Properties;
 

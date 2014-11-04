@@ -1,5 +1,6 @@
 package com.splicemachine.si.data.hbase;
 
+import com.splicemachine.si.data.api.IHTable;
 import com.splicemachine.si.data.api.STableWriter;
 
 import org.apache.hadoop.hbase.KeyValue;

@@ -2,6 +2,10 @@ package com.splicemachine.async;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 
+import com.splicemachine.async.Bytes;
+import com.splicemachine.async.HBaseRpc;
+import com.splicemachine.async.ScanFilter;
+
 import java.util.Map;
 
 /**

@@ -1,5 +1,8 @@
 package com.splicemachine.async;
 
+import com.splicemachine.async.HBaseClient;
+import com.splicemachine.async.KeyValue;
+import com.splicemachine.async.Scanner;
 import com.splicemachine.collections.NullStopIterator;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.metrics.Counter;
@@ -10,6 +13,7 @@ import com.splicemachine.metrics.Timer;
 import com.splicemachine.stream.*;
 import com.stumbleupon.async.Callback;
 import com.stumbleupon.async.Deferred;
+
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.Result;
 

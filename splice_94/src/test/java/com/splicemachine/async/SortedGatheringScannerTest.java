@@ -1,12 +1,16 @@
 package com.splicemachine.async;
 
 import com.google.common.base.Function;
+import com.splicemachine.async.AsyncScanner;
+import com.splicemachine.async.SimpleAsyncScanner;
+import com.splicemachine.async.SortedGatheringScanner;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.hbase.RowKeyDistributor;
 import com.splicemachine.hbase.RowKeyDistributorByHashPrefix;
 import com.splicemachine.hbase.ScanDivider;
 import com.splicemachine.metrics.Metrics;
+
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.ConsoleAppender;

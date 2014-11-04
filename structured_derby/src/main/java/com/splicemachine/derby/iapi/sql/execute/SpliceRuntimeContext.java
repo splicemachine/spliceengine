@@ -8,8 +8,8 @@ import com.splicemachine.derby.impl.temp.TempTable;
 import com.splicemachine.derby.management.StatementInfo;
 import com.splicemachine.metrics.*;
 import com.splicemachine.si.api.TransactionOperations;
-import com.splicemachine.si.api.TransactionStorage;
 import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.impl.TransactionStorage;
 import com.splicemachine.utils.kryo.KryoPool;
 
 import java.io.Externalizable;

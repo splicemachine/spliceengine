@@ -2,6 +2,8 @@ package com.splicemachine.si.data.hbase;
 
 import com.splicemachine.collections.CloseableIterator;
 import com.splicemachine.collections.ForwardingCloseableIterator;
+import com.splicemachine.si.data.api.IHTable;
+
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Bytes;
