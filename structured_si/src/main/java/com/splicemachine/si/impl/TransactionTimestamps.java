@@ -1,5 +1,6 @@
-package com.splicemachine.si.api;
+package com.splicemachine.si.impl;
 
+import com.splicemachine.si.api.TimestampSource;
 import com.splicemachine.si.txn.SpliceTimestampSource;
 import com.splicemachine.annotations.ThreadSafe;
 import com.splicemachine.utils.ZkUtils;

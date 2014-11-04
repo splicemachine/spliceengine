@@ -1,17 +1,9 @@
 package com.splicemachine.si.api;
 
-import com.google.common.collect.Iterators;
-import com.splicemachine.si.impl.ConflictType;
 import com.splicemachine.si.impl.RootTransaction;
-import com.splicemachine.utils.ByteSlice;
-
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.Iterator;
 
 /**
  * @author Scott Fines

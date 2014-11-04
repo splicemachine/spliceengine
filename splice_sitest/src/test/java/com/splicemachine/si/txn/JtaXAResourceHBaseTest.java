@@ -1,7 +1,8 @@
 package com.splicemachine.si.txn;
 
 import com.splicemachine.si.HBaseSuite;
-import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.impl.HTransactorFactory;
+
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 

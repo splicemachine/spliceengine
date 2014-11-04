@@ -6,21 +6,24 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.table.SpliceHTableFactory;
 import com.splicemachine.si.api.*;
 import com.splicemachine.si.coprocessors.TxnLifecycleEndpoint;
+import com.splicemachine.si.data.api.IHTable;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
 import com.splicemachine.si.data.hbase.HDataLib;
 import com.splicemachine.si.data.hbase.HTableReader;
 import com.splicemachine.si.data.hbase.HTableWriter;
-import com.splicemachine.si.data.hbase.IHTable;
 import com.splicemachine.si.impl.STableReaderDelegate;
 import com.splicemachine.si.impl.SystemClock;
 import com.splicemachine.si.impl.Tracer;
+import com.splicemachine.si.impl.TransactionStorage;
+import com.splicemachine.si.impl.TransactionTimestamps;
 import com.splicemachine.si.impl.store.CompletedTxnCacheSupplier;
 import com.splicemachine.si.impl.store.LazyTxnSupplier;
 import com.splicemachine.si.impl.txnclient.CoprocessorTxnStore;
 import com.splicemachine.utils.SpliceUtilities;
 import com.splicemachine.utils.ZkUtils;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.HTableDescriptor;
@@ -30,6 +33,7 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 
 import javax.annotation.Nullable;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;

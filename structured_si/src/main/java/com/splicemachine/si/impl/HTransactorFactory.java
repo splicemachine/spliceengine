@@ -1,14 +1,12 @@
-package com.splicemachine.si.api;
+package com.splicemachine.si.impl;
 
 import com.splicemachine.constants.SIConstants;
+import com.splicemachine.si.api.TransactionReadController;
+import com.splicemachine.si.api.Transactor;
+import com.splicemachine.si.api.TxnLifecycleManager;
+import com.splicemachine.si.data.api.IHTable;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableWriter;
-import com.splicemachine.si.data.hbase.HDataLib;
-import com.splicemachine.si.data.hbase.HTableWriter;
-import com.splicemachine.si.data.hbase.IHTable;
-import com.splicemachine.si.impl.DataStore;
-import com.splicemachine.si.impl.SITransactionReadController;
-import com.splicemachine.si.impl.SITransactor;
 import com.splicemachine.si.jmx.ManagedTransactor;
 import com.splicemachine.si.jmx.TransactorStatus;
 import org.apache.hadoop.hbase.client.*;
@@ -56,20 +54,20 @@ public class HTransactorFactory extends SIConstants {
             }
 
 
-            SDataLib dataLib = new HDataLib();
-            final STableWriter writer = new HTableWriter();
+            SDataLib dataLib = SIFactoryDriver.siFactory.getDataLib();
+            final STableWriter writer = SIFactoryDriver.siFactory.getTableWriter();
             ManagedTransactor builderTransactor = new ManagedTransactor();
             DataStore ds = TxnDataStore.getDataStore();
             TxnLifecycleManager tc = TransactionLifecycle.getLifecycleManager();
 
             if(readController==null)
                 readController = new SITransactionReadController<
-                        Get,Scan,Delete,Put>(ds,dataLib, TransactionStorage.getTxnSupplier());
+                        Get,Scan,Delete,Put>(ds,dataLib, SIFactoryDriver.siFactory.getTxnSupplier());
             Transactor transactor = new SITransactor.Builder()
                     .dataLib(dataLib)
                     .dataWriter(writer)
                     .dataStore(ds)
-                    .txnStore(TransactionStorage.getTxnSupplier())
+                    .txnStore(SIFactoryDriver.siFactory.getTxnSupplier())
                     .build();
             builderTransactor.setTransactor(transactor);
             if(managedTransactor==null)

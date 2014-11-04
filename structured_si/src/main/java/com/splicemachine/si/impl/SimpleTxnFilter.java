@@ -6,9 +6,10 @@ import com.splicemachine.constants.SIConstants;
 import com.splicemachine.si.api.ReadResolver;
 import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.api.TxnView;
-import com.splicemachine.si.data.hbase.IHTable;
+import com.splicemachine.si.data.api.IHTable;
 import com.splicemachine.si.impl.store.ActiveTxnCacheSupplier;
 import com.splicemachine.utils.ByteSlice;
+
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.filter.Filter;

@@ -3,7 +3,6 @@ package com.splicemachine.si.impl;
 import com.google.common.collect.Lists;
 import com.splicemachine.si.api.*;
 import com.splicemachine.si.data.api.SDataLib;
-import com.splicemachine.si.data.hbase.HRowAccumulator;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import org.apache.hadoop.hbase.KeyValue;
@@ -83,8 +82,8 @@ public class SITransactionReadController<
 		@Override
 		public TxnFilter newFilterStatePacked(ReadResolver readResolver,
 																						 EntryPredicateFilter predicateFilter, Txn txn, boolean countStar) throws IOException {
-				return new PackedTxnFilter(newFilterState(txn),
-								new HRowAccumulator(predicateFilter,new EntryDecoder(),countStar));
+			return new PackedTxnFilter(newFilterState(txn),
+					SIFactoryDriver.siFactory.getRowAccumulator(predicateFilter,new EntryDecoder(),countStar));
 		}
 
 		@Override

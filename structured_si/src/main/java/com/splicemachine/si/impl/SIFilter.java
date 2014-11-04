@@ -1,7 +1,7 @@
-package com.splicemachine.si.coprocessors;
+package com.splicemachine.si.impl;
 
-import com.splicemachine.si.impl.TxnFilter;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.filter.FilterBase;
 import org.apache.log4j.Logger;

@@ -2,7 +2,8 @@ package com.splicemachine.si;
 
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.impl.HTransactorFactory;
+
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
