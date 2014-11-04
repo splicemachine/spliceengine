@@ -11,6 +11,7 @@ import com.splicemachine.si.impl.rollforward.RollForwardManagement;
 import com.splicemachine.si.impl.rollforward.RollForwardStatus;
 import com.splicemachine.si.impl.rollforward.SegmentedRollForward;
 import com.splicemachine.storage.EntryPredicateFilter;
+
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;

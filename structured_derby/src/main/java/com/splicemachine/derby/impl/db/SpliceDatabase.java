@@ -5,6 +5,7 @@ import javax.security.auth.login.Configuration;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.CancellationException;
+
 import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.ddl.DDLWatcher;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
@@ -13,13 +14,15 @@ import com.splicemachine.hbase.HBaseRegionLoads;
 import com.splicemachine.hbase.backup.*;
 import com.google.common.io.Closeables;
 import com.splicemachine.derby.hbase.SpliceMasterObserverRestoreAction;
-import com.splicemachine.si.api.TransactionTimestamps;
 import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.impl.TransactionTimestamps;
 import com.splicemachine.utils.SpliceUtilities;
 
 import org.apache.derby.iapi.error.ShutdownException;
+
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.Property;
 import org.apache.derby.iapi.services.context.ContextManager;
@@ -37,6 +40,7 @@ import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.log4j.Logger;
+
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceMasterObserver;
 import com.splicemachine.derby.impl.ast.AssignRSNVisitor;

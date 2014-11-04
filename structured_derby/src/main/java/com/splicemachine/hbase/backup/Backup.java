@@ -6,11 +6,12 @@ import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.pipeline.exception.Exceptions;
-import com.splicemachine.si.api.TransactionLifecycle;
-import com.splicemachine.si.api.TransactionTimestamps;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.impl.TransactionLifecycle;
+import com.splicemachine.si.impl.TransactionTimestamps;
 import com.splicemachine.utils.SpliceUtilities;
 import com.splicemachine.utils.ZkUtils;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.fs.*;
 import org.apache.hadoop.hbase.HTableDescriptor;

@@ -23,11 +23,11 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobStatus;
 import org.apache.hadoop.mapreduce.Job.JobState;
 
-import com.splicemachine.si.api.TransactionLifecycle;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.Txn.IsolationLevel;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.ActiveWriteTxn;
+import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.si.impl.WritableTxn;
 
 import java.sql.ResultSet;

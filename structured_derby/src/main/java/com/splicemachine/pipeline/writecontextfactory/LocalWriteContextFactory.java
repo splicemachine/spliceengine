@@ -7,10 +7,10 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.ddl.*;
 import com.splicemachine.derby.impl.sql.execute.LocalWriteFactory;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
-import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.DDLFilter;
+import com.splicemachine.si.impl.HTransactorFactory;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.pipeline.api.SharedCallBuffer;
 import com.splicemachine.pipeline.api.WriteContext;
@@ -33,6 +33,7 @@ import com.splicemachine.pipeline.writehandler.RegionWriteHandler;
 import com.splicemachine.pipeline.writehandler.SnapshotIsolatedWriteHandler;
 import com.splicemachine.pipeline.writehandler.UniqueIndexUpsertWriteHandler;
 import com.splicemachine.pipeline.exception.IndexNotSetUpException;
+
 import org.apache.derby.catalog.IndexDescriptor;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
@@ -43,6 +44,7 @@ import org.apache.derby.impl.sql.execute.ColumnInfo;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
@@ -52,6 +54,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
+
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
 import com.splicemachine.derby.ddl.TentativeDropColumnDesc;
 import com.splicemachine.derby.ddl.TentativeIndexDesc;

@@ -4,12 +4,14 @@ import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.splicemachine.async.*;
 import com.splicemachine.derby.impl.job.operation.SuccessFilter;
+
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
 
 import javax.annotation.Nullable;
+
 import java.util.List;
 import java.util.Map;
 

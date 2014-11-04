@@ -16,9 +16,9 @@ import com.splicemachine.job.JobFuture;
 import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.pipeline.exception.ErrorState;
 import com.splicemachine.pipeline.exception.Exceptions;
-import com.splicemachine.si.api.TransactionLifecycle;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.uuid.Snowflake;
 
 import org.apache.derby.catalog.DefaultInfo;

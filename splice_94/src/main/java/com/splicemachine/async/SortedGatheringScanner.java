@@ -2,6 +2,8 @@ package com.splicemachine.async;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
+import com.splicemachine.async.KeyValue;
+import com.splicemachine.async.Scanner;
 import com.splicemachine.collections.NullStopIterator;
 import com.splicemachine.metrics.Counter;
 import com.splicemachine.metrics.*;
@@ -11,6 +13,7 @@ import com.splicemachine.stream.CloseableStream;
 import com.splicemachine.stream.StreamException;
 import com.stumbleupon.async.Callback;
 import com.stumbleupon.async.Deferred;
+
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;

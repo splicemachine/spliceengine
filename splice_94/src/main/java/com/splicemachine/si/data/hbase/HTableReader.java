@@ -3,10 +3,13 @@ package com.splicemachine.si.data.hbase;
 import com.splicemachine.collections.CloseableIterator;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.async.SimpleAsyncScanner;
+import com.splicemachine.si.data.api.IHTable;
 import com.splicemachine.si.data.api.STableReader;
+
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
+
 import java.io.IOException;
 
 public class HTableReader implements STableReader<IHTable, Get, Scan> {

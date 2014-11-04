@@ -5,17 +5,20 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.storage.DerbyAsyncScannerUtils;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.hbase.RowKeyDistributor;
-import com.splicemachine.async.AsyncScanner;
-import com.splicemachine.async.SimpleAsyncScanner;
-import com.splicemachine.async.SortedGatheringScanner;
 import com.splicemachine.hbase.ScanDivider;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.pipeline.exception.Exceptions;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
+
+import com.splicemachine.async.AsyncScanner;
 import com.splicemachine.async.KeyValue;
+import com.splicemachine.async.SimpleAsyncScanner;
+import com.splicemachine.async.SortedGatheringScanner;
+
 import java.io.IOException;
 import java.util.List;
 

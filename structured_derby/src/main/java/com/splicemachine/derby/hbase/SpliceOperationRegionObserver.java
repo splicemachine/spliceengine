@@ -1,5 +1,6 @@
 package com.splicemachine.derby.hbase;
 
+import com.splicemachine.async.HbaseAttributeHolder;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.pipeline.api.Service;
 import com.splicemachine.si.api.TransactionalRegion;
@@ -18,8 +19,6 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.log4j.Logger;
-
-import com.splicemachine.async.HbaseAttributeHolder;
 
 import java.io.IOException;
 import java.util.Iterator;

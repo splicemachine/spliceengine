@@ -1,8 +1,11 @@
-package com.splicemachine.si.api;
+package com.splicemachine.si.impl;
 
 import com.splicemachine.annotations.ThreadSafe;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.hbase.table.SpliceHTableFactory;
+import com.splicemachine.si.api.TimestampSource;
+import com.splicemachine.si.api.TxnStore;
+import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.impl.store.CompletedTxnCacheSupplier;
 import com.splicemachine.si.impl.txnclient.CoprocessorTxnStore;
 

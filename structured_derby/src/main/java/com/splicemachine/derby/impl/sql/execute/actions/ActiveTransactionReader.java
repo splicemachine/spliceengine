@@ -13,30 +13,33 @@ import com.splicemachine.derby.impl.temp.TempTable;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.marshall.BucketHasher;
 import com.splicemachine.hbase.*;
-import com.splicemachine.async.AsyncScanner;
-import com.splicemachine.async.SimpleAsyncScanner;
-import com.splicemachine.async.SortedGatheringScanner;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.job.Task;
 import com.splicemachine.metrics.Metrics;
-import com.splicemachine.si.api.TransactionStorage;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.DenseTxn;
 import com.splicemachine.si.impl.SparseTxn;
+import com.splicemachine.si.impl.TransactionStorage;
 import com.splicemachine.si.impl.TxnViewBuilder;
 import com.splicemachine.stream.CloseableStream;
 import com.splicemachine.stream.StreamException;
 import com.splicemachine.stream.Transformer;
 import com.splicemachine.pipeline.exception.Exceptions;
+
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
+
+import com.splicemachine.async.AsyncScanner;
 import com.splicemachine.async.KeyValue;
 import com.splicemachine.async.Scanner;
+import com.splicemachine.async.SimpleAsyncScanner;
+import com.splicemachine.async.SortedGatheringScanner;
+
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Comparator;

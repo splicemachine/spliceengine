@@ -1,6 +1,6 @@
 package com.splicemachine.si.data.hbase;
 
-import com.splicemachine.si.impl.RowAccumulator;
+import com.splicemachine.si.api.RowAccumulator;
 import com.splicemachine.storage.EntryAccumulator;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;

@@ -12,8 +12,11 @@ import com.splicemachine.si.impl.ActiveWriteTxn;
 import com.splicemachine.si.impl.InheritingTxnView;
 import com.splicemachine.si.impl.LazyTxnView;
 import com.splicemachine.si.impl.ReadOnlyTxn;
+import com.splicemachine.si.impl.TransactionLifecycle;
+import com.splicemachine.si.impl.TransactionStorage;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
+
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
