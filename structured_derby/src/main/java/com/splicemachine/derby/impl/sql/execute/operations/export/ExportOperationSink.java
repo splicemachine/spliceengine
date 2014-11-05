@@ -9,6 +9,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.metrics.Timer;
+import org.apache.derby.iapi.sql.ResultColumnDescriptor;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.log4j.Logger;
 import org.supercsv.io.CsvListWriter;
@@ -26,11 +27,13 @@ public class ExportOperationSink implements OperationSink {
     private final ExportOperation operation;
     private final Timer totalTimer;
     private final ExportFile exportFile;
+    private final ResultColumnDescriptor[] resultColumnDescriptors;
 
     public ExportOperationSink(ExportOperation exportOperation, byte[] taskId) throws IOException {
         this.operation = exportOperation;
         this.totalTimer = Metrics.newTimer();
         this.exportFile = new ExportFile(exportOperation.getExportParams(), taskId);
+        this.resultColumnDescriptors = exportOperation.getSourceResultColumnDescriptors();
     }
 
     @Override
@@ -45,7 +48,7 @@ public class ExportOperationSink implements OperationSink {
             while ((row = operation.getNextSinkRow(spliceRuntimeContext)) != null) {
                 SpliceBaseOperation.checkInterrupt(rowsRead, SpliceConstants.interruptLoopCheck);
                 rowsRead++;
-                rowWriter.writeRow(row);
+                rowWriter.writeRow(row, resultColumnDescriptors);
                 rowsWritten++;
             }
             totalTimer.stopTiming();
