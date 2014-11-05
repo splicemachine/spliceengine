@@ -2,7 +2,6 @@ package com.splicemachine.storage;
 
 import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.storage.index.BitIndex;
-import com.splicemachine.utils.ByteSlice;
 
 /**
  * @author Scott Fines

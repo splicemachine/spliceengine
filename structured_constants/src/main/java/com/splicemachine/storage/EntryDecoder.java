@@ -3,7 +3,6 @@ package com.splicemachine.storage;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.NoSuchElementException;
-
 import com.google.common.base.Supplier;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.index.BitIndex;
