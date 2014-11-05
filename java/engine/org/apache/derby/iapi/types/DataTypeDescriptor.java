@@ -52,8 +52,7 @@ import org.apache.derby.iapi.sql.conn.ConnectionUtil;
  * <P>
  * A DataTypeDescriptor is immutable.
  */
-
-public final class DataTypeDescriptor implements Formatable
+public class DataTypeDescriptor implements Formatable
 {
 	/********************************************************
 	**

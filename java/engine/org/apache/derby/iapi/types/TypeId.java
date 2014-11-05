@@ -55,7 +55,7 @@ import org.apache.derby.iapi.error.StandardException;
    @see DataTypeDescriptor
  */
 
-public final class TypeId
+public class TypeId
 {
         /**
          * Various fixed numbers related to datatypes.
