@@ -1831,6 +1831,7 @@ public interface ResultSetFactory {
     public NoPutResultSet getExplainResultSet(ResultSet source, Activation activation, int resultSetNumber) throws StandardException;
 
     public NoPutResultSet getExplainResultSet(NoPutResultSet source, Activation activation, int resultSetNumber) throws StandardException;
+
     /**
      * Export
      */
@@ -1842,6 +1843,7 @@ public interface ResultSetFactory {
                                              int replicationCount,
                                              String encoding,
                                              String fieldSeparator,
-                                             String quoteChar) throws StandardException;
+                                             String quoteChar,
+                                             int srcResultDescriptionSavedObjectNum) throws StandardException;
 
 }

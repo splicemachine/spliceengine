@@ -87,7 +87,11 @@ public class ExportNode extends DMLStatementNode {
         mb.push(encoding);
         mb.push(fieldSeparator);
         mb.push(quoteCharacter);
-        mb.callMethod(VMOpcode.INVOKEINTERFACE, null, "getExportResultSet", ClassName.NoPutResultSet, 9);
+
+        /* Save result description of source node for use in export formatting. */
+        mb.push(acb.addItem(node.makeResultDescription()));
+
+        mb.callMethod(VMOpcode.INVOKEINTERFACE, null, "getExportResultSet", ClassName.NoPutResultSet, 10);
     }
 
     @Override
