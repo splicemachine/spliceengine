@@ -187,7 +187,7 @@ public class SingleGroupGroupedAggregateOperationIT extends SpliceUnitTest {
         Assert.assertEquals("Not all groups found!", unameStats.size(),row);
     }
 
-    @Test
+    @Test(timeout=20000)
     public void testGroupBySubselects() throws Exception {
         /*Regression test for DB-2014*/
         String query = String.format(
