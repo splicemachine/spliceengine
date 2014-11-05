@@ -8,11 +8,13 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.ResultColumnDescriptor;
 import org.apache.derby.iapi.sql.ResultSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
 import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.impl.sql.GenericResultDescription;
 import org.apache.derby.impl.sql.execute.GenericResultSetFactory;
 import org.apache.log4j.Logger;
 
@@ -1368,11 +1370,20 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
                                              int replicationCount,
                                              String encoding,
                                              String fieldSeparator,
-                                             String quoteChar) throws StandardException {
+                                             String quoteChar,
+                                             int srcResultDescriptionSavedObjectNum) throws StandardException {
+
+        // If we ask the activation prepared statement for ResultColumnDescriptors we get the two columns that
+        // export operation returns (exported row count, and export time) not the columns of the source operation.
+        // Not what we need to property format the rows during export.  So ExportOperation now saves the source
+        // ResultColumnDescriptor and we retrieve them here.
+        Object resultDescription = activation.getPreparedStatement().getSavedObject(srcResultDescriptionSavedObjectNum);
+        ResultColumnDescriptor[] columnDescriptors = ((GenericResultDescription) resultDescription).getColumnInfo();
 
         ConvertedResultSet convertedResultSet = (ConvertedResultSet) source;
         SpliceBaseOperation op = new ExportOperation(
                 convertedResultSet.getOperation(),
+                columnDescriptors,
                 activation,
                 resultSetNumber,
                 exportPath,
