@@ -121,9 +121,9 @@ public class TestUtils {
 
     public static List<Map> tableLookupByNumberNoPrint(SpliceWatcher spliceWatcher) throws Exception{
         ResultSet rs = spliceWatcher.executeQuery("select t1.tableid, t2.tablename, t1.CONGLOMERATENUMBER " +
-                "                                  from sys.sysconglomerates t1, sys.systables t2  " +
-                "                                  where t1.tableid=t2.tableid and t2.tablename not like 'SYS%'" +
-                "                                  order by t1.conglomeratenumber desc");
+                                                      "                                  from sys.sysconglomerates t1, sys.systables t2  " +
+                                                      "                                  where t1.tableid=t2.tableid and t2.tablename not like 'SYS%'" +
+                                                      "                                  order by t1.conglomeratenumber desc");
 
         return resultSetToMaps(rs);
     }
@@ -213,10 +213,10 @@ public class TestUtils {
 
     public static FormattedResult indexQuery(Connection connection, String schemaName, String tableName) throws Exception {
         String indexQuery = String.format("select t1.tableid, t2.tablename, t1.descriptor, " +
-                                                  "t1.CONGLOMERATENUMBER from sys.sysconglomerates t1, " +
-                                                  "sys.systables t2, sys.sysschemas t3 where t1.tableid=t2.tableid " +
-                                                  "and t2.schemaid=t3.schemaid and t3.schemaname = '%s' and t2" +
-                                                  ".tablename = '%s' order by t1.conglomeratenumber desc",
+                                              "t1.CONGLOMERATENUMBER from sys.sysconglomerates t1, " +
+                                              "sys.systables t2, sys.sysschemas t3 where t1.tableid=t2.tableid " +
+                                              "and t2.schemaid=t3.schemaid and t3.schemaname = '%s' and t2" +
+                                              ".tablename = '%s' order by t1.conglomeratenumber desc",
                                           schemaName, tableName);
         ResultSet rs = connection.createStatement().executeQuery(indexQuery);
         return FormattedResult.ResultFactory.convert(indexQuery, rs);
@@ -341,17 +341,17 @@ public class TestUtils {
                 return new FormattedResult(query, columns, rowKeyToRows, true);
             }
 
-                /**
-                 * Converts actual results to a <code>FormattedResult</code>
-                 *
-                 * @param query the query string
-                 * @param rs the JDBC ResultSet to convert.  ResultSet rows will be sorted for comparison.
-                 * @return FormattedResult
-                 * @throws Exception if there a problem with the ResultSet.
-                 */
-                public static FormattedResult convert(String query, ResultSet rs) throws Exception {
-                    return convert(query, rs, true);
-                }
+            /**
+             * Converts actual results to a <code>FormattedResult</code>
+             *
+             * @param query the query string
+             * @param rs the JDBC ResultSet to convert.  ResultSet rows will be sorted for comparison.
+             * @return FormattedResult
+             * @throws Exception if there a problem with the ResultSet.
+             */
+            public static FormattedResult convert(String query, ResultSet rs) throws Exception {
+                return convert(query, rs, true);
+            }
 
             /**
              * Create a FormattedResult.  Set sort = false to NOT sort the rows in the output string.  Do this if
@@ -379,9 +379,20 @@ public class TestUtils {
                 return new FormattedResult(query, columns, rows, sort);
             }
 
-            /** Convert the ResultSet to a FormattedResult and return the trimmed string version of that */
+            /**
+             * Convert the ResultSet to a FormattedResult and return the trimmed string version of that
+             * with rows sorted lexicographically
+             */
             public static String toString(ResultSet rs) throws Exception {
                 return convert("", rs).toString().trim();
+            }
+
+            /**
+             * Convert the ResultSet to a FormattedResult and return the trimmed string version of that
+             * with rows unsorted
+             */
+            public static String toStringUnsorted(ResultSet rs) throws Exception {
+                return convert("", rs, false).toString().trim();
             }
 
         }

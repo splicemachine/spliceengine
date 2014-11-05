@@ -6,6 +6,7 @@ import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
 import com.google.common.base.Strings;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -49,21 +50,24 @@ import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.StandardIterators;
 import com.splicemachine.derby.utils.marshall.BareKeyHash;
+import com.splicemachine.derby.utils.marshall.BucketingPrefix;
 import com.splicemachine.derby.utils.marshall.DataHash;
-import com.splicemachine.derby.utils.marshall.FixedBucketPrefix;
 import com.splicemachine.derby.utils.marshall.FixedPrefix;
 import com.splicemachine.derby.utils.marshall.HashPrefix;
 import com.splicemachine.derby.utils.marshall.KeyEncoder;
 import com.splicemachine.derby.utils.marshall.KeyPostfix;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
+import com.splicemachine.derby.utils.marshall.SpreadBucket;
 import com.splicemachine.derby.utils.marshall.UniquePostfix;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.hash.Hash32;
+import com.splicemachine.hash.HashFunctions;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.metrics.TimeView;
-import com.splicemachine.utils.IntArrays;
 import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 
 /**
@@ -98,7 +102,9 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
     private SpliceResultScanner step2Scanner;
     private boolean serializeSource = true;
     private DescriptorSerializer[] serializers;
-    private DataHash keyHash;
+    private HashPrefix firstStepHashPrefix;
+    private HashPrefix secondStepHashPrefix;
+    private DataHash dataHash;
 
     static {
         nodeTypes = Arrays.asList(NodeType.REDUCE, NodeType.SINK);
@@ -175,13 +181,16 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
         sourceExecIndexRow = windowContext.getSourceIndexRow();
         templateRow = getExecRowDefinition();
         serializers = VersionedSerializers.latestVersion(false).getSerializers(templateRow);
+        dataHash = null;
+        firstStepHashPrefix = null;
+        secondStepHashPrefix = null;
         startExecutionTime = System.currentTimeMillis();
     }
 
     @Override
     public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder,
                                             SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue)
-                                            throws StandardException, IOException {
+        throws StandardException, IOException {
         Scan reduceScan = buildReduceScan(uniqueSequenceID, spliceRuntimeContext);
         serializeSource = false;
         SpliceUtils.setInstructions(reduceScan, activation, top, spliceRuntimeContext);
@@ -219,7 +228,7 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
     @Override
     public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder,
                                          SpliceRuntimeContext spliceRuntimeContext)
-                                        throws StandardException, IOException {
+        throws StandardException, IOException {
         byte[] prefix = extraUniqueSequenceID;
         if (this != top) {
             prefix = uniqueSequenceID;
@@ -239,20 +248,20 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
         long start = System.currentTimeMillis();
         RowProvider provider;
 //        if (!isInSortedOrder) {
-            // If rows from source are not sorted, sort them based on (partition, order by) columns from over clause
-            // in step 1 shuffle.
-            // Compute Window function in step 2 shuffle
-            SpliceRuntimeContext firstStep = SpliceRuntimeContext.generateSinkRuntimeContext(operationInformation.getTransaction(), true);
-            firstStep.setStatementInfo(runtimeContext.getStatementInfo());
-            PairDecoder firstStepDecoder = OperationUtils.getPairDecoder(this, firstStep);
+        // If rows from source are not sorted, sort them based on (partition, order by) columns from over clause
+        // in step 1 shuffle.
+        // Compute Window function in step 2 shuffle
+        SpliceRuntimeContext firstStep = SpliceRuntimeContext.generateSinkRuntimeContext(operationInformation.getTransaction(), true);
+        firstStep.setStatementInfo(runtimeContext.getStatementInfo());
+        PairDecoder firstStepDecoder = OperationUtils.getPairDecoder(this, firstStep);
 
-            SpliceRuntimeContext secondStep = SpliceRuntimeContext.generateSinkRuntimeContext(operationInformation.getTransaction(),false);
-            secondStep.setStatementInfo(runtimeContext.getStatementInfo());
-            PairDecoder secondPairDecoder = OperationUtils.getPairDecoder(this, secondStep);
+        SpliceRuntimeContext secondStep = SpliceRuntimeContext.generateSinkRuntimeContext(operationInformation.getTransaction(),false);
+        secondStep.setStatementInfo(runtimeContext.getStatementInfo());
+        PairDecoder secondPairDecoder = OperationUtils.getPairDecoder(this, secondStep);
 
-            final RowProvider step1 = source.getMapRowProvider(this, firstStepDecoder, firstStep);
-            final RowProvider step2 = getMapRowProvider(this, secondPairDecoder, secondStep);
-            provider = RowProviders.combineInSeries(step1, step2);
+        final RowProvider step1 = source.getMapRowProvider(this, firstStepDecoder, firstStep);
+        final RowProvider step2 = getMapRowProvider(this, secondPairDecoder, secondStep);
+        provider = RowProviders.combineInSeries(step1, step2);
 /*        } else {
             // Only do second step shuffle if the rows has been sorted based on (partition, orderBy) columns
             SpliceRuntimeContext secondStep = SpliceRuntimeContext.generateSinkRuntimeContext(false);
@@ -268,30 +277,42 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
     public KeyEncoder getKeyEncoder(final SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 
         /*
-         * A row is encoded as
+         * A row key is encoded as
          * UUID + partition columns + sort columns + anotherUUID + taskId
          *
          * Step 1 and 2 use different UUIDs so that a subsequent reduce scan can pick up the desired rows
+         * Try caching HashPrefix
          */
-        byte[] uuid = spliceRuntimeContext.isFirstStepInMultistep() ? extraUniqueSequenceID : uniqueSequenceID;
-        HashPrefix prefix = new FixedBucketPrefix(spliceRuntimeContext.getHashBucket(), new FixedPrefix(uuid));
-        // FIXME: we need to bucket across TEMP because performance sucks. Code below breaks us tho.
-//        HashPrefix prefix = new BucketingPrefix(new FixedPrefix(uuid), HashFunctions.murmur3(0),
-//                                                SpliceDriver.driver().getTempTable().getCurrentSpread());
+        HashPrefix prefix;
+        if (spliceRuntimeContext.isFirstStepInMultistep()) {
+            if (firstStepHashPrefix == null) {
+                firstStepHashPrefix = new PartitionBucketPrefix(new FixedPrefix(extraUniqueSequenceID), HashFunctions.murmur3(0),
+                                                                SpliceDriver.driver().getTempTable().getCurrentSpread(),
+                                                                windowContext.getPartitionColumns(), sortTemplateRow.getRowArray());
+            }
+            prefix = firstStepHashPrefix;
+        } else {
+            if (secondStepHashPrefix == null) {
+                secondStepHashPrefix = new PartitionBucketPrefix(new FixedPrefix(uniqueSequenceID), HashFunctions.murmur3(0),
+                                                                 SpliceDriver.driver().getTempTable().getCurrentSpread(),
+                                                                 windowContext.getPartitionColumns(), sortTemplateRow.getRowArray());
+            }
+            prefix = secondStepHashPrefix;
+        }
 
         byte[] taskId = spliceRuntimeContext.getCurrentTaskId();
         KeyPostfix keyPostfix = new UniquePostfix(taskId, operationInformation.getUUIDGenerator());
 
-        return new KeyEncoder(prefix, getKeyHash(), keyPostfix);
+        return new KeyEncoder(prefix, getDataHash(), keyPostfix);
     }
 
-    private DataHash getKeyHash() {
-        if (keyHash == null) {
-            keyHash = BareKeyHash.encoder(windowContext.getKeyColumns(),
-                                          windowContext.getKeyOrders(),
-                                          serializers);
+    private DataHash getDataHash() {
+        if (dataHash == null) {
+            dataHash = BareKeyHash.encoder(windowContext.getKeyColumns(),
+                                           windowContext.getKeyOrders(),
+                                           serializers);
         }
-        return keyHash;
+        return dataHash;
     }
 
     @Override
@@ -370,12 +391,12 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
 
         // create the frame buffer that will use the frame source
         WindowFrameBuffer frameBuffer = BaseFrameBuffer.createFrameBuffer(
-                        spliceRuntimeContext,
-                        windowContext.getWindowFunctions(),
-                        frameSource,
-                        windowContext.getFrameDefinition(),
-                        windowContext.getSortColumns(),
-                        templateRow);
+            spliceRuntimeContext,
+            windowContext.getWindowFunctions(),
+            frameSource,
+            windowContext.getFrameDefinition(),
+            windowContext.getSortColumns(),
+            templateRow);
 
         // create and return the frame iterator
         return new WindowFunctionIterator(frameBuffer);
@@ -421,7 +442,7 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
         return getTempDecoder(ctx).decode(kv);
     }
 
-    protected PairDecoder getTempDecoder(SpliceRuntimeContext ctx) throws StandardException {
+    private PairDecoder getTempDecoder(SpliceRuntimeContext ctx) throws StandardException {
         if (rowDecoder == null) {
             rowDecoder = OperationUtils.getPairDecoder(this, ctx);
         }
@@ -500,8 +521,8 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
         String indent = "\n"+ Strings.repeat("\t", indentLevel);
 
         return "Window:" + indent +
-                "resultSetNumber:" + operationInformation.getResultSetNumber() + indent +
-                "source:" + source.prettyPrint(indentLevel + 1);
+            "resultSetNumber:" + operationInformation.getResultSetNumber() + indent +
+            "source:" + source.prettyPrint(indentLevel + 1);
     }
 
     @Override
@@ -536,4 +557,36 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
             LOG.trace("getLeftOperation");
         return this.source;
     }
+
+
+    private static class PartitionBucketPrefix extends BucketingPrefix {
+        private MultiFieldDecoder decoder;
+        private final int[] partitionColumns;
+        private final DataValueDescriptor[] fields;
+
+        public PartitionBucketPrefix(HashPrefix delegate, Hash32 hashFunction, SpreadBucket spreadBucket,
+                                     int[] partitionColumns, DataValueDescriptor[] fields) {
+            super(delegate, hashFunction, spreadBucket);
+            this.partitionColumns = partitionColumns;
+            this.fields = fields;
+        }
+
+        @Override
+        protected byte bucket(byte[] hashBytes) {
+            if (decoder == null)
+                decoder = MultiFieldDecoder.create();
+
+            // calculate the length in bytes of partition columns by skipping over them
+            decoder.set(hashBytes);
+            int offset = decoder.offset();
+            int skipLength = DerbyBytesUtil.skip(decoder, partitionColumns, fields);
+            // if there were keys to skip, decrement to account for final field separator
+            int keyLength = Math.max(0, skipLength - 1);
+
+            if (offset + keyLength > hashBytes.length)
+                keyLength = hashBytes.length - offset;
+            return spreadBucket.bucket(hashFunction.hash(hashBytes, offset, keyLength));
+        }
+    }
+
 }
