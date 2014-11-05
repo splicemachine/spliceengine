@@ -253,7 +253,7 @@ public class BulkWriteAction implements Callable<WriteStats> {
 										break;
 									default:
 										SpliceLogUtils.error(LOG, "Global Response went down default path, assert");
-										assert (false);
+										//assert false;
 										break;
 									
 									}
