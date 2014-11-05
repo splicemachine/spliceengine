@@ -187,7 +187,7 @@ public class SingleGroupGroupedAggregateOperationIT extends SpliceUnitTest {
         Assert.assertEquals("Not all groups found!", unameStats.size(),row);
     }
 
-    @Test(timeout=20000) //timeout after 20 seconds
+    @Test
     public void testGroupBySubselects() throws Exception {
         /*Regression test for DB-2014*/
         String query = String.format(
@@ -197,10 +197,8 @@ public class SingleGroupGroupedAggregateOperationIT extends SpliceUnitTest {
                         "        ,avg(ta.\"Avg\")\n" +
                         "from\n" +
                         "        %1$s t\n" +
-                        "        inner join (select username, sum(i) as \"Sum\" from %1$s --SPLICE-PROPERTIES joinStrategy=BROADCAST\n" +
-                                "group by username) as ts on ts.username = t.username\n" +
-                        "        inner join (select username, avg(i) as \"Avg\" from %1$s --SPLICE-PROPERTIES joinStrategy=BROADCAST\n" +
-                                "group by username) as ta on ta.username = t.username\n" +
+                        "        inner join (select username, sum(i) as \"Sum\" from %1$s group by username) as ts on ts.username = t.username\n" +
+                        "        inner join (select username, avg(i) as \"Avg\" from %1$s group by username) as ta on ta.username = t.username\n" +
                         "group by t.username"
         ,spliceTableWatcher);
         ResultSet rs = methodWatcher.executeQuery(query);
