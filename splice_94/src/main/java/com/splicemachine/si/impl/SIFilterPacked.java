@@ -22,23 +22,23 @@ import java.util.List;
  */
 public class SIFilterPacked extends FilterBase implements HasPredicateFilter {
     private Txn txn;
-		private TransactionReadController<Get,Scan> readController;
+		private TransactionReadController<KeyValue,Get,Scan> readController;
 		private EntryPredicateFilter predicateFilter;
-		private TxnFilter filterState = null;
+		private TxnFilter<KeyValue> filterState = null;
 		private boolean countStar = false;
 		private ReadResolver readResolver;
 
 		public SIFilterPacked() {
 		}
 
-		public SIFilterPacked(TxnFilter filterState){
+		public SIFilterPacked(TxnFilter<KeyValue> filterState){
 				this.filterState = filterState;
 		}
 
 		public SIFilterPacked(Txn txn,
 													ReadResolver resolver,
 													EntryPredicateFilter predicateFilter,
-													TransactionReadController<Get, Scan> readController,
+													TransactionReadController<KeyValue,Get, Scan> readController,
 													boolean countStar) throws IOException {
 				this.txn = txn;
 				this.readResolver = resolver;
@@ -50,7 +50,7 @@ public class SIFilterPacked extends FilterBase implements HasPredicateFilter {
 		@Override
 		public long getBytesVisited(){
 				if(filterState==null) return 0l;
-				PackedTxnFilter packed = (PackedTxnFilter)filterState;
+				PackedTxnFilter<KeyValue> packed = (PackedTxnFilter<KeyValue>)filterState;
 				@SuppressWarnings("unchecked") RowAccumulator accumulator = packed.getAccumulator();
 				return accumulator.getBytesVisited();
 		}

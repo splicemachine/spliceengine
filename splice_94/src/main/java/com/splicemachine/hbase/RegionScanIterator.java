@@ -1,11 +1,9 @@
 package com.splicemachine.hbase;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.splicemachine.utils.Source;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.NoSuchElementException;

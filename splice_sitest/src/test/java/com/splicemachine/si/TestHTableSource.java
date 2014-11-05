@@ -2,7 +2,8 @@ package com.splicemachine.si;
 
 import com.google.common.base.Preconditions;
 import com.splicemachine.si.coprocessors.SIObserver;
-import com.splicemachine.si.data.hbase.HTableSource;
+import com.splicemachine.si.data.api.HTableSource;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.HColumnDescriptor;

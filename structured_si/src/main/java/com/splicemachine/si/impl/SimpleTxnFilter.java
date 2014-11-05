@@ -9,12 +9,8 @@ import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.data.api.IHTable;
 import com.splicemachine.si.impl.store.ActiveTxnCacheSupplier;
 import com.splicemachine.utils.ByteSlice;
-
-import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.filter.Filter;
-import org.apache.hadoop.hbase.util.Bytes;
-
 import java.io.IOException;
 
 /**
@@ -24,12 +20,11 @@ import java.io.IOException;
  * @author Scott Fines
  * Date: 6/23/14
  */
-public class SimpleTxnFilter implements TxnFilter {
+public class SimpleTxnFilter<RowLock,Data> implements TxnFilter<Data> {
 		private final TxnSupplier transactionStore;
 		private final TxnView myTxn;
-		private final DataStore<Mutation,Put,Delete,Get,Scan,IHTable> dataStore;
+		private final DataStore<RowLock,Data,Mutation,Put,Delete,Get,Scan,IHTable> dataStore;
 		private final ReadResolver readResolver;
-
 		//per row fields
 		private final LongOpenHashSet visitedTxnIds = new LongOpenHashSet();
 		private final LongArrayList tombstonedTxnRows = new LongArrayList(1); //usually, there are very few deletes
@@ -60,31 +55,31 @@ public class SimpleTxnFilter implements TxnFilter {
 		}
 
 		@Override
-		public KeyValueType getType(KeyValue keyValue) throws IOException {
-				return dataStore.getKeyValueType(keyValue);
+		public KeyValueType getType(Data element) throws IOException {
+				return dataStore.getKeyValueType(element);
 		}
 
 		@Override
-		public Filter.ReturnCode filterKeyValue(KeyValue keyValue) throws IOException {
-				KeyValueType type = dataStore.getKeyValueType(keyValue);
+		public Filter.ReturnCode filterKeyValue(Data element) throws IOException {
+				KeyValueType type = dataStore.getKeyValueType(element);
 				if(type==KeyValueType.COMMIT_TIMESTAMP){
-						ensureTransactionIsCached(keyValue);
+						ensureTransactionIsCached(element);
 						return Filter.ReturnCode.SKIP;
 				}
 
-				readResolve(keyValue);
-				switch(dataStore.getKeyValueType(keyValue)){
+				readResolve(element);
+				switch(dataStore.getKeyValueType(element)){
 						case TOMBSTONE:
-								addToTombstoneCache(keyValue);
+								addToTombstoneCache(element);
 								return Filter.ReturnCode.SKIP;
 						case ANTI_TOMBSTONE:
-								addToAntiTombstoneCache(keyValue);
+								addToAntiTombstoneCache(element);
 								return Filter.ReturnCode.SKIP;
 						case USER_DATA:
-								return checkVisibility(keyValue);
+								return checkVisibility(element);
 						default:
 								//TODO -sf- do better with this?
-								throw new AssertionError("Unexpected Data type: "+ dataStore.getKeyValueType(keyValue));
+								throw new AssertionError("Unexpected Data type: "+ dataStore.getKeyValueType(element));
 				}
 		}
 
@@ -97,11 +92,11 @@ public class SimpleTxnFilter implements TxnFilter {
 				rowKey.reset();
 		}
 
-		@Override public KeyValue produceAccumulatedKeyValue() { return null; }
+		@Override public Data produceAccumulatedKeyValue() { return null; }
 		@Override public boolean getExcludeRow() { return false; }
 
 
-		private void readResolve(KeyValue keyValue) throws IOException {
+		private void readResolve(Data element) throws IOException {
 				/*
 				 * We want to resolve the transaction related
 				 * to this version of the data.
@@ -122,7 +117,7 @@ public class SimpleTxnFilter implements TxnFilter {
 				 * This means that we will NOT writes from dependent child transactions until their
 				 * parent transaction has been committed.
 				 */
-				long ts = keyValue.getTimestamp();
+				long ts = dataStore.dataLib.getTimestamp(element);
         if(!visitedTxnIds.add(ts)){
 						/*
 						 * We've already visited this version of the row data, so there's no
@@ -137,17 +132,17 @@ public class SimpleTxnFilter implements TxnFilter {
 
         //submit it to the resolver to resolve asynchronously
         if(t.getEffectiveState().isFinal()){
-            doResolve(keyValue, ts);
+            doResolve(element, ts);
         }
     }
 
-    protected void doResolve(KeyValue keyValue, long ts) {
+    protected void doResolve(Data data, long ts) {
         //get the row data. This will allow efficient movement of the row key without copying byte[]s
-        rowKey.set(keyValue.getBuffer(),keyValue.getRowOffset(),keyValue.getRowLength());
+    	dataStore.dataLib.setRowInSlice(data, rowKey);
         readResolver.resolve(rowKey,ts);
     }
 
-    private Filter.ReturnCode checkVisibility(KeyValue keyValue) throws IOException {
+    private Filter.ReturnCode checkVisibility(Data data) throws IOException {
 				/*
 				 * First, we check to see if we are covered by a tombstone--that is,
 				 * if keyValue has a timestamp <= the timestamp of a tombstone AND our isolationLevel
@@ -157,7 +152,7 @@ public class SimpleTxnFilter implements TxnFilter {
 				 * Otherwise, we just look at the transaction of the entry's visibility to us--if
 				 * it matches, then we can see it.
 				 */
-				long timestamp = keyValue.getTimestamp();
+				long timestamp = dataStore.dataLib.getTimestamp(data);
 				long[] tombstones = tombstonedTxnRows.buffer;
 				int tombstoneSize = tombstonedTxnRows.size();
 				for(int i=0;i<tombstoneSize;i++){
@@ -193,8 +188,8 @@ public class SimpleTxnFilter implements TxnFilter {
         return toCompare;
     }
 
-    private void addToAntiTombstoneCache(KeyValue kv) throws IOException {
-				long txnId = kv.getTimestamp();
+    private void addToAntiTombstoneCache(Data data) throws IOException {
+				long txnId = this.dataStore.dataLib.getTimestamp(data);
         if(isVisible(txnId)){
 						/*
 						 * We can see this anti-tombstone, hooray!
@@ -204,8 +199,8 @@ public class SimpleTxnFilter implements TxnFilter {
 				}
 		}
 
-		private void addToTombstoneCache(KeyValue kv) throws IOException {
-				long txnId = kv.getTimestamp();
+		private void addToTombstoneCache(Data data) throws IOException {
+			long txnId = this.dataStore.dataLib.getTimestamp(data);
 				/*
 				 * Only add a tombstone to our list if it's actually visible,
 				 * otherwise there's no point, since we can't see it anyway.
@@ -216,8 +211,8 @@ public class SimpleTxnFilter implements TxnFilter {
 				}
 		}
 
-		private void ensureTransactionIsCached(KeyValue keyValue) {
-				long txnId = keyValue.getTimestamp();
+		private void ensureTransactionIsCached(Data data) {
+			long txnId = this.dataStore.dataLib.getTimestamp(data);
         visitedTxnIds.add(txnId);
 				if(!transactionStore.transactionCached(txnId)){
 						/*
@@ -237,16 +232,21 @@ public class SimpleTxnFilter implements TxnFilter {
 						 * a failure, so we have to check for it.
 						 */
             TxnView toCache;
-						if(dataStore.isSIFail(keyValue)){
+						if(dataStore.isSIFail(data)){
 								//use the current read-resolver to remove the entry
-                doResolve(keyValue, keyValue.getTimestamp());
+                doResolve(data, dataStore.dataLib.getTimestamp(data));
                 toCache = new RolledBackTxn(txnId);
 						}else{
-								long commitTs = Bytes.toLong(keyValue.getBuffer(),keyValue.getValueOffset(),keyValue.getValueLength());
+								long commitTs = dataStore.dataLib.getValueToLong(data);
                 toCache = new CommittedTxn(txnId, commitTs);//since we don't care about the begin timestamp, just use the TxnId
 						}
             transactionStore.cache(toCache);
             currentTxn = toCache;
 				}
+		}
+
+		@Override
+		public DataStore getDataStore() {
+			return dataStore;
 		}
 }

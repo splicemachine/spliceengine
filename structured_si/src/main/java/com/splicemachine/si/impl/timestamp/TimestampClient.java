@@ -20,8 +20,6 @@ import javax.management.ObjectName;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
-import org.apache.hadoop.hbase.client.HConnectionManager;
-import org.apache.hadoop.hbase.ipc.HMasterInterface;
 import org.apache.log4j.Logger;
 import org.jboss.netty.bootstrap.ClientBootstrap;
 import org.jboss.netty.buffer.ChannelBuffer;
@@ -37,6 +35,7 @@ import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 import org.jboss.netty.handler.codec.frame.FixedLengthFrameDecoder;
 
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.utils.SpliceUtilities;
 
 /**
  * Accepts concurrent requests for new transactional timestamps and
@@ -138,15 +137,7 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampRe
     protected String getHost() throws TimestampIOException {
     	String hostName = null;
     	try {
-			/*
-			 * We have to use the deprecated API here because there appears to be no other way to get the host name
-			 * and IP of the HMaster (short of going to ZooKeeper directly, at any rate).
-			 */
-			@SuppressWarnings("deprecation") HMasterInterface master = HConnectionManager.getConnection(SpliceConstants.config).getMaster();
-			hostName = master.getClusterStatus().getMaster().getHostname();
-			
-			// Would this be better?
-			// SpliceUtilities.getAdmin().getClusterStatus().getMaster().getHostname();
+			hostName = SpliceUtilities.getMasterServer().getHostname();
     	} catch (Exception e) {
     		TimestampUtil.doClientErrorThrow(LOG, "Unable to determine host name for active hbase master", e);
     	}

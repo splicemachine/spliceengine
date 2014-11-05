@@ -1,26 +1,19 @@
 package com.splicemachine.si.impl;
 
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.si.api.*;
 import com.splicemachine.si.coprocessors.SICompactionScanner;
 import com.splicemachine.si.coprocessors.SIObserver;
-import com.splicemachine.si.data.api.SDataLib;
+import com.splicemachine.si.data.api.IHTable;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
 import com.splicemachine.si.data.hbase.HbRegion;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
-
-import org.apache.hadoop.hbase.client.Mutation;
-import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HRegionUtil;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
-import org.apache.hadoop.hbase.util.Pair;
-
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collection;
 
 /**
@@ -32,13 +25,10 @@ public class TxnRegion implements TransactionalRegion {
 		private final HRegion region;
 		private final RollForward rollForward;
 		private final ReadResolver readResolver;
-
 		private final TxnSupplier txnSupplier;
-
-		/*Old API classes..eventually, we will replace them with better designs*/
 		private final DataStore dataStore;
-    private final Transactor transactor;
-		private final HbRegion hbRegion;
+		private final Transactor transactor;
+		private final IHTable hbRegion;
 
 		private final boolean transactionalWrites; //if false, then will use straightforward writes
 
@@ -66,7 +56,7 @@ public class TxnRegion implements TransactionalRegion {
 
 		@Override
 		public TxnFilter packedFilter(TxnView txn, EntryPredicateFilter predicateFilter, boolean countStar) throws IOException {
-				return new PackedTxnFilter(unpackedFilter(txn),new HRowAccumulator(predicateFilter,new EntryDecoder(),countStar));
+				return new PackedTxnFilter(unpackedFilter(txn),new HRowAccumulator(dataStore,predicateFilter,new EntryDecoder(),countStar));
 		}
 
 		@Override
@@ -117,15 +107,8 @@ public class TxnRegion implements TransactionalRegion {
 																			 Collection<KVPair> data) throws IOException {
 					if(transactionalWrites)
 							return transactor.processKvBatch(hbRegion,rollForward,txn,family,qualifier,data,constraintChecker);
-					else{
-						Pair<Mutation, Integer>[] pairsToProcess = new Pair[data.size()];
-							int i=0;
-							for(KVPair pair:data){
-									pairsToProcess[i] = new Pair<Mutation, Integer>(getMutation(pair,txn), null);
-									i++;
-							}
-					return region.batchMutate(pairsToProcess);
-					}
+					else
+						return hbRegion.batchMutate(data, txn);
 		}
 
 		@Override public String getRegionName() { return region.getRegionNameAsString(); }
@@ -142,13 +125,4 @@ public class TxnRegion implements TransactionalRegion {
         return new SICompactionScanner(state,scanner);
     }
 
-    /*****************************************************************************************************************/
-    /*private helper methods*/
-    private Mutation getMutation(KVPair kvPair, TxnView txn) throws IOException {
-				assert kvPair.getType()== KVPair.Type.INSERT: "Performing an update/delete on a non-transactional table";
-				Put put = new Put(kvPair.getRow());
-				put.add(SpliceConstants.DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES,txn.getTxnId(),kvPair.getValue());
-				put.setAttribute(SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME, SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_VALUE);
-				return put;
-		}
 }

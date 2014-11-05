@@ -1,15 +1,14 @@
 package com.splicemachine.si.impl;
 
-import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.filter.Filter;
 
 import java.io.IOException;
 
-public interface TxnFilter {
-    Filter.ReturnCode filterKeyValue(KeyValue keyValue) throws IOException;
+public interface TxnFilter<Data> {
+    Filter.ReturnCode filterKeyValue(Data keyValue) throws IOException;
     void nextRow();
-    KeyValue produceAccumulatedKeyValue();
+    Data produceAccumulatedKeyValue();
     boolean getExcludeRow();
-
-		KeyValueType getType(KeyValue keyValue) throws IOException;
+	KeyValueType getType(Data keyValue) throws IOException;
+	DataStore getDataStore();
 }

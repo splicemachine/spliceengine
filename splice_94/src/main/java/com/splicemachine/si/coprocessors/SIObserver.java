@@ -39,123 +39,8 @@ import static com.splicemachine.constants.SpliceConstants.SUPPRESS_INDEXING_ATTR
 /**
  * An HBase coprocessor that applies SI logic to HBase read/write operations.
  */
-public class SIObserver extends BaseRegionObserver {
+public class SIObserver extends SIBaseObserver {
 		private static Logger LOG = Logger.getLogger(SIObserver.class);
-		private boolean tableEnvMatch = false;
-		private static final int S = 1000;
-		private TxnOperationFactory txnOperationFactory;
-		private TransactionalRegion region;
-		@Override
-		public void start(CoprocessorEnvironment e) throws IOException {
-				SpliceLogUtils.trace(LOG, "starting %s", SIObserver.class);
-				tableEnvMatch = doesTableNeedSI(((RegionCoprocessorEnvironment)e).getRegion().getTableDesc().getNameAsString());
-        if(tableEnvMatch){
-            txnOperationFactory = new SimpleOperationFactory();
-            region = SIFactoryDriver.siFactory.getTransactionalRegion(((RegionCoprocessorEnvironment) e).getRegion());
-            Tracer.traceRegion(region.getTableName(), ((RegionCoprocessorEnvironment)e).getRegion());
-        }
-				super.start(e);
-
-    }
-
-
-    public static boolean doesTableNeedSI(String tableName) {
-        SpliceConstants.TableEnv tableEnv = EnvUtils.getTableEnv(tableName);
-        SpliceLogUtils.trace(LOG,"table %s has Env %s",tableName,tableEnv);
-        if(SpliceConstants.TableEnv.ROOT_TABLE.equals(tableEnv)||
-                SpliceConstants.TableEnv.META_TABLE.equals(tableEnv)||
-                SpliceConstants.TableEnv.TRANSACTION_TABLE.equals(tableEnv)) return false;
-        if(SpliceConstants.TEMP_TABLE.equals(tableName)||
-                SpliceConstants.TEST_TABLE.equals(tableName)) return false;
-
-        return true;
-    }
-
-    @Override
-    public void stop(CoprocessorEnvironment e) throws IOException {
-        SpliceLogUtils.trace(LOG, "stopping %s", SIObserver.class);
-        if(region!=null)
-            region.discard();
-        super.stop(e);
-    }
-
-    @Override
-    public void preGet(ObserverContext<RegionCoprocessorEnvironment> e, Get get, List<KeyValue> results) throws IOException {
-        SpliceLogUtils.trace(LOG, "preGet %s", get);
-        if (tableEnvMatch && shouldUseSI(get)) {
-            HTransactorFactory.getTransactionReadController().preProcessGet(get);
-            assert (get.getMaxVersions() == Integer.MAX_VALUE);
-            addSIFilterToGet(get);
-        }
-        SpliceLogUtils.trace(LOG, "preGet after %s", get);        
-        super.preGet(e, get, results);
-    }
-
-    @Override
-    public RegionScanner preScannerOpen(ObserverContext<RegionCoprocessorEnvironment> e, Scan scan, RegionScanner s) throws IOException {
-        SpliceLogUtils.trace(LOG, "preScannerOpen %s", scan);
-        if (tableEnvMatch && shouldUseSI(scan)) {
-            HTransactorFactory.getTransactionReadController().preProcessScan(scan);
-            assert (scan.getMaxVersions() == Integer.MAX_VALUE);
-            addSIFilterToScan(scan);
-        }
-        return super.preScannerOpen(e, scan, s);
-    }
-
-    private boolean shouldUseSI(Get get) {
-        return HTransactorFactory.getTransactionReadController().isFilterNeededGet(get);
-    }
-
-    private boolean shouldUseSI(Scan scan) {
-        return HTransactorFactory.getTransactionReadController().isFilterNeededScan(scan);
-    }
-
-    private void addSIFilterToGet(Get get) throws IOException {
-//				Txn txn = HTransactorFactory.getClientTransactor().txnFromOp(get,true);
-				TxnView txn = txnOperationFactory.fromReads(get);
-        final Filter newFilter = makeSIFilter(txn, get.getFilter(),
-								getPredicateFilter(get),false);
-        get.setFilter(newFilter);
-    }
-
-    private void addSIFilterToScan(Scan scan) throws IOException {
-//				Txn txn = HTransactorFactory.getClientTransactor().txnFromOp(scan,true);
-				TxnView txn = txnOperationFactory.fromReads(scan);
-        final Filter newFilter = makeSIFilter(txn, scan.getFilter(),
-								getPredicateFilter(scan),scan.getAttribute(SIConstants.SI_COUNT_STAR) != null);
-        scan.setFilter(newFilter);
-    }
-
-    private EntryPredicateFilter getPredicateFilter(OperationWithAttributes operation) throws IOException {
-        final byte[] serializedPredicateFilter = operation.getAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL);
-        return EntryPredicateFilter.fromBytes(serializedPredicateFilter);
-    }
-
-    private Filter makeSIFilter(TxnView txn, Filter currentFilter, EntryPredicateFilter predicateFilter, boolean countStar) throws IOException {
-				TxnFilter txnFilter = region.packedFilter(txn, predicateFilter, countStar);
-				SIFilterPacked siFilter = new SIFilterPacked(txnFilter);
-        if (needsCompositeFilter(currentFilter)) {
-            return composeFilters(orderFilters(currentFilter, siFilter));
-        } else {
-            return siFilter;
-        }
-    }
-
-    private boolean needsCompositeFilter(Filter currentFilter) {
-        return currentFilter != null;
-    }
-
-    private Filter[] orderFilters(Filter currentFilter, Filter siFilter) {
-        if (currentFilter instanceof TransactionalFilter && ((TransactionalFilter) currentFilter).isBeforeSI()) {
-            return new Filter[] {currentFilter, siFilter};
-        } else {
-            return new Filter[] {siFilter, currentFilter};
-        }
-    }
-
-		private FilterList composeFilters(Filter[] filters) {
-				return new FilterList(FilterList.Operator.MUST_PASS_ALL, filters[0], filters[1]);
-		}
 
 		@Override
 		public void prePut(ObserverContext<RegionCoprocessorEnvironment> e, Put put, WALEdit edit, boolean writeToWAL) throws IOException {
@@ -249,9 +134,15 @@ public class SIObserver extends BaseRegionObserver {
     }
 
     @Override
-    public void postCompact(ObserverContext<RegionCoprocessorEnvironment> e, Store store, StoreFile resultFile) {
-        if (tableEnvMatch) {
-            Tracer.compact();
+    protected Filter makeSIFilter(TxnView txn, Filter currentFilter, EntryPredicateFilter predicateFilter, boolean countStar) throws IOException {
+				TxnFilter txnFilter = region.packedFilter(txn, predicateFilter, countStar);
+				SIFilterPacked siFilter = new SIFilterPacked(txnFilter);
+        if (needsCompositeFilter(currentFilter)) {
+            return composeFilters(orderFilters(currentFilter, siFilter));
+        } else {
+            return siFilter;
         }
     }
+
+    
 }

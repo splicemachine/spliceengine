@@ -50,30 +50,16 @@ import java.util.List;
  * @author Scott Fines
  * Created on: 7/25/13
  */
-public class BufferedRegionScanner implements MeasuredRegionScanner<KeyValue>{
-
+public class BufferedRegionScanner extends AbstractBufferedRegionScanner<KeyValue>{
     private static final Logger LOG = Logger.getLogger(BufferedRegionScanner.class);
 
-		private final HRegion region;
-		private final RegionScanner delegate;
-		private final Filter scanFilters;
-
-		//buffer filling stuff
-		private List<KeyValue>[] buffer;
-		private int bufferPosition;
-		private final int maxBufferSize;
-
-		//statistics information
-		private final Timer readTimer;
-		private final Counter bytesReadCounter;
-        private HasPredicateFilter hpf;
 
 		public BufferedRegionScanner(HRegion region,
 																 RegionScanner delegate,
 																 Scan scan,
 																 int bufferSize,
 																 MetricFactory metricFactory) {
-			this(region,delegate,scan,bufferSize,16,metricFactory); //initial buffer size of 16
+			super(region,delegate,scan,bufferSize,16,metricFactory); //initial buffer size of 16
 		}
 
 		public BufferedRegionScanner(HRegion region,
@@ -82,35 +68,8 @@ public class BufferedRegionScanner implements MeasuredRegionScanner<KeyValue>{
 																 int maxBufferSize,
 																 int  initialBufferSize,
 																 MetricFactory metricFactory) {
-				this.region = region;
-				this.delegate = delegate;
-				if(scan!=null)
-						this.scanFilters = scan.getFilter();
-				else
-						this.scanFilters = null;
-
-				this.bufferPosition =0;
-				int s=1;
-				while(s<maxBufferSize){
-						s<<=1;
-				}
-				this.maxBufferSize = s;
-				if(initialBufferSize>maxBufferSize)
-						initialBufferSize = this.maxBufferSize; //don't create more entries than we allow in the entire buffer
-				else{
-						s = 1;
-						while(s<initialBufferSize){
-								s<<=1;
-						}
-						initialBufferSize = s;
-				}
-				//noinspection unchecked
-				this.buffer = (List<KeyValue>[])new List[initialBufferSize];
-				this.readTimer = metricFactory.newTimer();
-				this.bytesReadCounter = metricFactory.newCounter();
-                hpf = getSIFilter();
+			super(region,delegate,scan,maxBufferSize,initialBufferSize,metricFactory);
 		}
-
 		@Override public HRegionInfo getRegionInfo() { return delegate.getRegionInfo(); }
 		@Override public boolean isFilterDone() { return delegate.isFilterDone(); }
 		@Override public boolean reseek(byte[] row) throws IOException { return delegate.reseek(row); }
@@ -179,10 +138,7 @@ public class BufferedRegionScanner implements MeasuredRegionScanner<KeyValue>{
 		@Override public boolean next(List<KeyValue> results, String metric) throws IOException { return next(results); }
 		@Override public boolean next(List<KeyValue> result, int limit) throws IOException { return next(result); }
 		@Override public boolean next(List<KeyValue> result, int limit, String metric) throws IOException { return next(result); }
-		@Override public void close() throws IOException { 
-			delegate.close();
-			buffer = null;
-		}
+
 
 		private void refill() throws IOException{
 				region.startRegionOperation();
@@ -227,69 +183,5 @@ public class BufferedRegionScanner implements MeasuredRegionScanner<KeyValue>{
 				}
 		}
 
-		@Override public TimeView getReadTime() { return readTimer.getTime(); }
-		@Override public long getBytesOutput() { return bytesReadCounter.getTotal(); }
-
-
-		@Override public long getRowsOutput() { return readTimer.getNumEvents(); }
-
-		@Override
-		public long getRowsFiltered() {
-				/*
-				 * We hav to look at the region scanner and see if it contains an SIFilterPacked.
-				 * If so, we can get the correct number here. Otherwise, we'll just return the number
-				 * of rows we output 0 (assume we didn't filter anything).
-				 */
-				EntryPredicateFilter epf = getEntryPredicateFilter();
-
-				if(epf==null)
-						return 0;
-				else
-						return epf.getRowsFiltered();
-		}
-
-		@Override
-		public long getBytesVisited() {
-				HasPredicateFilter hpf = getSIFilter();
-				if(hpf==null) return getBytesOutput();
-				return hpf.getBytesVisited();
-		}
-
-		@Override
-		public long getRowsVisited() {
-				EntryPredicateFilter epf = getEntryPredicateFilter();
-
-				if(epf==null)
-						return getRowsOutput();
-				else
-						return epf.getRowsOutput()+epf.getRowsFiltered();
-		}
-
-		@Override
-		public void start() {
-			//no-op
-		}
-
-		private EntryPredicateFilter getEntryPredicateFilter() {
-				HasPredicateFilter hpf = getSIFilter();
-				if(hpf==null) return null;
-				return hpf.getFilter();
-		}
-
-		private HasPredicateFilter getSIFilter(){
-				if(scanFilters==null) return null;
-				if(scanFilters instanceof FilterList){
-						FilterList fl = (FilterList) scanFilters;
-						List<Filter> filters = fl.getFilters();
-						for(Filter filter:filters){
-								if(filter instanceof HasPredicateFilter){
-										return (HasPredicateFilter) filter;
-								}
-						}
-				}else if (scanFilters instanceof HasPredicateFilter)
-						return (HasPredicateFilter) scanFilters;
-
-				return null;
-		}
 
 }

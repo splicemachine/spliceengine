@@ -1,15 +1,13 @@
 package com.splicemachine.si.api;
 
-import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.filter.Filter;
-
 import java.io.IOException;
 
 /**
  * @author Scott Fines
  *         Date: 4/9/14
  */
-public interface SIFilter {
+public interface SIFilter<Data> {
 
 		/**
 		 * Reset the filter for the next row.
@@ -27,5 +25,5 @@ public interface SIFilter {
 		 * @return a return code denoting whether or not this KeyValue should be included
 		 * or not.
 		 */
-		Filter.ReturnCode filterKeyValue(KeyValue kv) throws IOException;
+		Filter.ReturnCode filterKeyValue(Data kv) throws IOException;
 }

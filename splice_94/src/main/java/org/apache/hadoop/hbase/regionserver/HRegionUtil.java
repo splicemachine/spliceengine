@@ -27,7 +27,7 @@ import org.cliffc.high_scale_lib.Counter;
  * @author johnleach
  *
  */
-public class HRegionUtil {
+public class HRegionUtil extends BaseHRegionUtil {
 	public static KeyExists keyExists;
 
 		public static void lockStore(Store store) {
@@ -132,60 +132,7 @@ public class HRegionUtil {
 	    }
 	}
 
-    public static void updateWriteRequests(HRegion region, long numWrites){
-        Counter writeRequestsCount = region.writeRequestsCount;
-        if(writeRequestsCount!=null)
-            writeRequestsCount.add(numWrites);
-    }
 
-    public static void updateReadRequests(HRegion region, long numReads){
-        Counter readRequestsCount = region.readRequestsCount;
-        if(readRequestsCount!=null)
-            readRequestsCount.add(numReads);
-    }
-
-    public static boolean containsRange(HRegionInfo region, byte[] taskStart, byte[] taskEnd) {
-        byte[] regionStart = region.getStartKey();
-
-        if(regionStart.length!=0){
-            if(taskStart.length==0) return false;
-            if(taskEnd.length!=0 && Bytes.compareTo(taskEnd,taskStart)<=0) return false; //task end is before region start
-
-            //make sure taskStart >= regionStart
-            if(Bytes.compareTo(regionStart,taskStart)>0) return false; //task start is before region start
-        }
-
-        byte[] regionStop = region.getEndKey();
-        if(regionStop.length!=0){
-            if(taskEnd.length==0) return false;
-            if(taskStart.length!=0 && Bytes.compareTo(taskStart,regionStop)>=0) return false; //task start is after region stop
-
-            if(Bytes.compareTo(regionStop,taskEnd)<0) return false; //task goes past end of region
-        }
-        return true;
-    }
-
-    public static boolean containsRange(HRegion region, byte[] taskStart, byte[] taskEnd) {
-        byte[] regionStart = region.getStartKey();
-
-        if(regionStart.length!=0){
-            if(taskStart.length==0) return false;
-            if(taskEnd.length!=0 && Bytes.compareTo(taskEnd,taskStart)<=0) return false; //task end is before region start
-
-            //make sure taskStart >= regionStart
-            if(Bytes.compareTo(regionStart,taskStart)>0) return false; //task start is before region start
-        }
-
-        byte[] regionStop = region.getEndKey();
-        if(regionStop.length!=0){
-            if(taskEnd.length==0) return false;
-            if(taskStart.length!=0 && Bytes.compareTo(taskStart,regionStop)>=0) return false; //task start is after region stop
-
-            if(Bytes.compareTo(regionStop,taskEnd)<0) return false; //task goes past end of region
-        }
-
-        return true;
-    }
     
     public static long getBlocksToRead(Store store, byte[] start, byte[] end) throws IOException {
     	assert Bytes.compareTo(start, end) <= 0 || start.length == 0 || end.length ==0;
