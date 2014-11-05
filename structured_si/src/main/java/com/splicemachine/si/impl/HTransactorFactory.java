@@ -9,6 +9,8 @@ import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableWriter;
 import com.splicemachine.si.jmx.ManagedTransactor;
 import com.splicemachine.si.jmx.TransactorStatus;
+
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.*;
 
 /**
@@ -20,7 +22,7 @@ public class HTransactorFactory extends SIConstants {
 
     private static volatile boolean initialized;
     private static volatile ManagedTransactor managedTransactor;
-    private static volatile SITransactionReadController< Get, Scan, Delete, Put> readController;
+    private static volatile SITransactionReadController<KeyValue,Get, Scan, Delete, Put> readController;
 
     public static void setTransactor(ManagedTransactor managedTransactorToUse) {
         managedTransactor = managedTransactorToUse;
@@ -36,7 +38,7 @@ public class HTransactorFactory extends SIConstants {
         return managedTransactor.getTransactor();
     }
 
-    public static TransactionReadController<Get,Scan> getTransactionReadController(){
+    public static TransactionReadController<KeyValue,Get,Scan> getTransactionReadController(){
         initializeIfNeeded();
         return readController;
     }
@@ -61,7 +63,7 @@ public class HTransactorFactory extends SIConstants {
             TxnLifecycleManager tc = TransactionLifecycle.getLifecycleManager();
 
             if(readController==null)
-                readController = new SITransactionReadController<
+                readController = new SITransactionReadController<KeyValue,
                         Get,Scan,Delete,Put>(ds,dataLib, SIFactoryDriver.siFactory.getTxnSupplier());
             Transactor transactor = new SITransactor.Builder()
                     .dataLib(dataLib)

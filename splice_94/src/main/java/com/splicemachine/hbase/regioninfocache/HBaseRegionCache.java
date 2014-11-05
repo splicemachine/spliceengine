@@ -8,11 +8,10 @@ import com.splicemachine.hbase.RegionCacheComparator;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.ServerName;
-import org.apache.hadoop.hbase.regionserver.HRegionUtil;
+import org.apache.hadoop.hbase.regionserver.BaseHRegionUtil;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
-
 import javax.management.*;
 import java.util.Collections;
 import java.util.SortedSet;
@@ -107,7 +106,7 @@ public class HBaseRegionCache implements RegionCache {
             }
         }
         for (Pair<HRegionInfo, ServerName> info : regions) {
-            if (HRegionUtil.containsRange(info.getFirst(), startRow, stopRow))
+            if (BaseHRegionUtil.containsRange(info.getFirst(), startRow, stopRow))
                 containedRegions.add(info);
         }
         return containedRegions;

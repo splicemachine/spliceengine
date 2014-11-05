@@ -4,35 +4,30 @@ import com.carrotsearch.hppc.LongOpenHashSet;
 import com.carrotsearch.hppc.procedures.LongProcedure;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.hbase.KeyValueUtils;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnLifecycleManager;
 import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
-import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
-
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-
 import static com.splicemachine.constants.SpliceConstants.*;
 
 /**
  * Library of functions used by the SI module when accessing rows from data tables (data tables as opposed to the
  * transaction table).
  */
-public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes, Scan, IHTable> {
-    final SDataLib<Put, Delete, Get, Scan> dataLib;
+public class DataStore<RowLock,Data,Mutation, Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes, Scan, IHTable> {
+    public final SDataLib<Data,Put, Delete, Get, Scan> dataLib;
 		private final STableReader<IHTable, Get, Scan> reader;
-		private final STableWriter<IHTable, Mutation, Put, Delete> writer;
+		private final STableWriter<RowLock,IHTable, Mutation, Put, Delete> writer;
 		private final String siNeededAttribute;
 		private final String deletePutAttribute;
 		private final byte[] commitTimestampQualifier;
@@ -45,7 +40,7 @@ public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Ge
 		private TxnLifecycleManager control;
         private final List<List<byte[]>> columns;
 
-		public DataStore(SDataLib<Put, Delete, Get, Scan> dataLib,
+		public DataStore(SDataLib<Data,Put, Delete, Get, Scan> dataLib,
                      STableReader reader,
                      STableWriter writer,
                      String siNeededAttribute,
@@ -71,7 +66,6 @@ public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Ge
 				this.userColumnFamily = dataLib.encode(userColumnFamily);
 				this.txnSupplier = txnSupplier;
 				this.control = control;
-
                 this.columns =  Arrays.asList(
                         Arrays.asList(this.userColumnFamily, tombstoneQualifier),
                         Arrays.asList(this.userColumnFamily, commitTimestampQualifier),
@@ -94,16 +88,15 @@ public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Ge
 
     public Delete copyPutToDelete(final Put put, LongOpenHashSet transactionIdsToDelete) {
 				final Delete delete = dataLib.newDelete(dataLib.getPutKey(put));
-        final Iterable<KeyValue> cells = dataLib.listPut(put);
+        final Iterable<Data> cells = dataLib.listPut(put);
         transactionIdsToDelete.forEach(new LongProcedure() {
             @Override
             public void apply(long transactionId) {
-                for (KeyValue keyValue : cells) {
-                    dataLib.addKeyValueToDelete(delete, keyValue.getFamily(),
-                            keyValue.getQualifier(), transactionId);
+                for (Data data : cells) {
+                    dataLib.addDataToDelete(delete, data, transactionId);
                 }
-                dataLib.addKeyValueToDelete(delete, userColumnFamily, tombstoneQualifier, transactionId);
-                dataLib.addKeyValueToDelete(delete, userColumnFamily, commitTimestampQualifier, transactionId);
+                dataLib.addFamilyQualifierToDelete(delete, userColumnFamily, tombstoneQualifier, transactionId);
+                dataLib.addFamilyQualifierToDelete(delete, userColumnFamily, commitTimestampQualifier, transactionId);
 
             }
         });
@@ -122,22 +115,19 @@ public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Ge
 				operation.setAttribute(CHECK_BLOOM_ATTRIBUTE_NAME, userColumnFamily);
 		}
 
-		boolean isAntiTombstone(KeyValue keyValue) {
-				byte[] buffer = keyValue.getBuffer();
-				int valueOffset = keyValue.getValueOffset();
-				int valueLength = keyValue.getValueLength();
-				return Bytes.equals(siAntiTombstoneValue,0,siAntiTombstoneValue.length,buffer,valueOffset,valueLength);
+		boolean isAntiTombstone(Data keyValue) {
+				return dataLib.isAntiTombstone(keyValue, siAntiTombstoneValue);
 		}
 
-		public KeyValueType getKeyValueType(KeyValue keyValue) {
-				if(KeyValueUtils.singleMatchingQualifier(keyValue,commitTimestampQualifier)){
+		public KeyValueType getKeyValueType(Data keyValue) {
+				if(dataLib.singleMatchingQualifier(keyValue,commitTimestampQualifier)){
 						return KeyValueType.COMMIT_TIMESTAMP;
-				} else if(KeyValueUtils.singleMatchingQualifier(keyValue,SIConstants.PACKED_COLUMN_BYTES)){
+				} else if(dataLib.singleMatchingQualifier(keyValue,SIConstants.PACKED_COLUMN_BYTES)){
 						return KeyValueType.USER_DATA;
 				} else { // Took out the check...
-						if (KeyValueUtils.matchingValue(keyValue, siNull)) {
+						if (dataLib.matchingValue(keyValue, siNull)) {
 								return KeyValueType.TOMBSTONE;
-						} else if (KeyValueUtils.matchingValue(keyValue, siAntiTombstoneValue)) {
+						} else if (dataLib.matchingValue(keyValue, siAntiTombstoneValue)) {
 								return KeyValueType.ANTI_TOMBSTONE;
 						} else {
 								return KeyValueType.OTHER;
@@ -145,12 +135,12 @@ public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Ge
 				}
 		}
 
-		public boolean isSINull(KeyValue keyValue) {
-				return KeyValueUtils.matchingValue(keyValue, siNull);
+		public boolean isSINull(Data keyValue) {
+				return dataLib.matchingValue(keyValue, siNull);
 		}
 
-		public boolean isSIFail(KeyValue keyValue) {
-				return KeyValueUtils.matchingValue(keyValue, siFail);
+		public boolean isSIFail(Data keyValue) {
+				return dataLib.matchingValue(keyValue, siFail);
 		}
 
 		/**
@@ -194,7 +184,7 @@ public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Ge
 				return null;
 		}
 
-		public OperationStatus[] writeBatch(IHTable table, Pair<Mutation, Integer>[] mutationsAndLocks) throws IOException {
+		public OperationStatus[] writeBatch(IHTable table, Pair<Mutation, RowLock>[] mutationsAndLocks) throws IOException {
 				return writer.writeBatch(table, mutationsAndLocks);
 		}
 

@@ -10,21 +10,19 @@ import com.splicemachine.si.api.Clock;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
-import com.splicemachine.si.impl.SICompactionState;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
-
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class LStore implements STableReader<LTable, LGet, LGet>,
-        STableWriter<LTable, LTuple, LTuple, LTuple> {
+        STableWriter<Integer,LTable, LTuple, LTuple, LTuple> {
     private final Map<String, Map<byte[], Integer>> locks = Maps.newTreeMap();
     private final Map<String, Map<Integer, byte[]>> reverseLocks = Maps.newTreeMap();
     private final Map<String, List<LTuple>> relations = Maps.newTreeMap();

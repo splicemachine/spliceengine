@@ -3,6 +3,7 @@ package com.splicemachine.si.data.hbase;
 import com.splicemachine.collections.CloseableIterator;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.async.SimpleAsyncScanner;
+import com.splicemachine.si.data.api.HTableSource;
 import com.splicemachine.si.data.api.IHTable;
 import com.splicemachine.si.data.api.STableReader;
 

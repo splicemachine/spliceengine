@@ -3,10 +3,8 @@ package com.splicemachine.si.api;
 import com.splicemachine.si.impl.DDLFilter;
 import com.splicemachine.si.impl.TxnFilter;
 import com.splicemachine.storage.EntryPredicateFilter;
-import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.filter.Filter;
-
 import java.io.IOException;
 
 /**
@@ -15,7 +13,7 @@ import java.io.IOException;
  * @author Scott Fines
  * Date: 2/13/14
  */
-public interface TransactionReadController<Get,Scan> {
+public interface TransactionReadController<Data,Get,Scan> {
 
 		/**
 		 * Look at the operation and report back whether it has been flagged for SI treatment.
@@ -35,13 +33,13 @@ public interface TransactionReadController<Get,Scan> {
 		TxnFilter newFilterState(ReadResolver readResolver, Txn txn) throws IOException;
 
 		TxnFilter newFilterStatePacked(ReadResolver readResolver,
-																			EntryPredicateFilter predicateFilter,
-																			Txn txn, boolean countStar) throws IOException;
+											EntryPredicateFilter predicateFilter,
+											Txn txn, boolean countStar) throws IOException;
 
 		/**
 		 * Consider whether to use a key value in light of a given filterState.
 		 */
-		Filter.ReturnCode filterKeyValue(TxnFilter filterState, KeyValue keyValue) throws IOException;
+		Filter.ReturnCode filterKeyValue(TxnFilter filterState, Data data) throws IOException;
 
 		/**
 		 * Indicate that the filterState is now going to be used to process a new row.

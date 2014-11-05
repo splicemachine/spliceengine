@@ -8,9 +8,11 @@ import com.splicemachine.hbase.RowKeyDistributorByHashPrefix;
 import com.splicemachine.async.AsyncScanner;
 import com.splicemachine.async.SimpleAsyncScanner;
 import com.splicemachine.metrics.Metrics;
+
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
+
 import com.splicemachine.async.HBaseClient;
 
 import java.io.IOException;

@@ -2,6 +2,8 @@ package com.splicemachine.si.data.hbase;
 
 import com.splicemachine.collections.CloseableIterator;
 import com.splicemachine.collections.ForwardingCloseableIterator;
+import com.splicemachine.hbase.KVPair;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.data.api.IHTable;
 
 import org.apache.hadoop.hbase.client.*;
@@ -10,12 +12,13 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 
 /**
  * Wrapper that makes an HBase table comply with an interface that allows regions and tables to be used in a uniform manner.
  */
-public class HbTable implements IHTable {
+public class HbTable implements IHTable<Integer> {
     final HTableInterface table;
 
     public HbTable(HTableInterface table) {
@@ -119,4 +122,10 @@ public class HbTable implements IHTable {
     public void unLockRow(Integer lock) throws IOException {
         throw new RuntimeException("not implemented");
     }
+
+	@Override
+	public OperationStatus[] batchMutate(Collection<KVPair> data, TxnView txn)
+			throws IOException {
+        throw new RuntimeException("not implemented");
+	}
 }

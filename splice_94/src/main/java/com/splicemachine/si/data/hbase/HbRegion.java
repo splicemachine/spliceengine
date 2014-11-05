@@ -2,6 +2,9 @@ package com.splicemachine.si.data.hbase;
 
 
 import com.splicemachine.collections.CloseableIterator;
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.hbase.KVPair;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.data.api.IHTable;
 
 import org.apache.hadoop.hbase.KeyValue;
@@ -18,6 +21,7 @@ import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -26,7 +30,7 @@ import static com.splicemachine.constants.SpliceConstants.CHECK_BLOOM_ATTRIBUTE_
 /**
  * Wrapper that makes an HBase region comply with a standard interface that abstracts across regions and tables.
  */
-public class HbRegion implements IHTable {
+public class HbRegion implements IHTable<Integer> {
     static final Logger LOG = Logger.getLogger(HbRegion.class);
     static final Result EMPTY_RESULT = new Result(Collections.<KeyValue>emptyList());
     
@@ -140,4 +144,23 @@ public class HbRegion implements IHTable {
 		return region.getRegionNameAsString();
 	}
 
+	@Override
+	public OperationStatus[] batchMutate(Collection<KVPair> data,TxnView txn) throws IOException {
+		Pair<Mutation, Integer>[] pairsToProcess = new Pair[data.size()];
+		int i=0;
+		for(KVPair pair:data){
+				pairsToProcess[i] = new Pair<Mutation, Integer>(getMutation(pair,txn), null);
+				i++;
+		}
+		return region.batchMutate(pairsToProcess);
+	}
+	
+    private Mutation getMutation(KVPair kvPair, TxnView txn) throws IOException {
+				assert kvPair.getType()== KVPair.Type.INSERT: "Performing an update/delete on a non-transactional table";
+				Put put = new Put(kvPair.getRow());
+				put.add(SpliceConstants.DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES,txn.getTxnId(),kvPair.getValue());
+				put.setAttribute(SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME, SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_VALUE);
+				return put;
+	}
+    
 }

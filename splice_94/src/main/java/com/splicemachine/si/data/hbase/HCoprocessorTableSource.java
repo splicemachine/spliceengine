@@ -3,6 +3,8 @@ package com.splicemachine.si.data.hbase;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.client.HTableInterface;
 
+import com.splicemachine.si.data.api.HTableSource;
+
 import java.io.IOException;
 
 /**

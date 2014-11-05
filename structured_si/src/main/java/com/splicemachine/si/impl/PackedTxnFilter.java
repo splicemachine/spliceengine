@@ -10,11 +10,11 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 
-public class PackedTxnFilter implements TxnFilter,SIFilter {
+public class PackedTxnFilter<Data> implements TxnFilter<Data>,SIFilter<Data> {
     static final Logger LOG = Logger.getLogger(PackedTxnFilter.class);
     protected final TxnFilter simpleFilter;
     public final RowAccumulator accumulator;
-    private KeyValue lastValidKeyValue;
+    private Data lastValidKeyValue;
     protected boolean excludeRow = false;
 
     public PackedTxnFilter(TxnFilter simpleFilter,
@@ -28,17 +28,16 @@ public class PackedTxnFilter implements TxnFilter,SIFilter {
 		}
 
     @Override
-    public Filter.ReturnCode filterKeyValue(org.apache.hadoop.hbase.KeyValue dataKeyValue) throws IOException {
-//        simpleFilter.setKeyValue(dataKeyValue);
-        final Filter.ReturnCode returnCode = simpleFilter.filterKeyValue(dataKeyValue);
-        switch (simpleFilter.getType(dataKeyValue)) {
+    public Filter.ReturnCode filterKeyValue(Data data) throws IOException {
+        final Filter.ReturnCode returnCode = simpleFilter.filterKeyValue(data);
+        switch (simpleFilter.getType(data)) {
             case COMMIT_TIMESTAMP:
                 return returnCode; // These are always skip...
             case USER_DATA:
                 switch (returnCode) {
                 	case INCLUDE:
                 	case INCLUDE_AND_NEXT_COL:
-											return doAccumulate(dataKeyValue);
+											return doAccumulate(data);
                     case SKIP:
                     case NEXT_COL:
                     case NEXT_ROW:
@@ -60,33 +59,33 @@ public class PackedTxnFilter implements TxnFilter,SIFilter {
 				return Filter.ReturnCode.SKIP;
 		}
 
-		public Filter.ReturnCode doAccumulate(KeyValue dataKeyValue) throws IOException {
-				if (!accumulator.isFinished() && !excludeRow && accumulator.isOfInterest(dataKeyValue)) {
-						if (!accumulator.accumulate(dataKeyValue)) {
+		public Filter.ReturnCode doAccumulate(Data data) throws IOException {
+				if (!accumulator.isFinished() && !excludeRow && accumulator.isOfInterest(data)) {
+						if (!accumulator.accumulate(data)) {
 								excludeRow = true;
 						}
 				}
 				if (lastValidKeyValue == null) {
-						lastValidKeyValue = dataKeyValue;
+						lastValidKeyValue = data;
 						return Filter.ReturnCode.INCLUDE;
 				}
 				return Filter.ReturnCode.SKIP;
 		}
 
 		@Override
-		public KeyValueType getType(KeyValue keyValue) throws IOException {
-				return simpleFilter.getType(keyValue);
+		public KeyValueType getType(Data data) throws IOException {
+				return simpleFilter.getType(data);
 		}
 
 		@Override
-		public KeyValue produceAccumulatedKeyValue() {
+		public Data produceAccumulatedKeyValue() {
 				if (accumulator.isCountStar())
 						return lastValidKeyValue;
 				if (lastValidKeyValue == null)
 						return null;
 				final byte[] resultData = accumulator.result();
 				if (resultData != null) {
-						return KeyValueUtils.newKeyValue(lastValidKeyValue, resultData);
+						return (Data) getDataStore().dataLib.newValue(lastValidKeyValue, resultData);
 				} else {
 						return null;
 				}
@@ -104,5 +103,10 @@ public class PackedTxnFilter implements TxnFilter,SIFilter {
         lastValidKeyValue = null;
         excludeRow = false;
     }
+
+	@Override
+	public DataStore getDataStore() {
+		return simpleFilter.getDataStore();
+	}
 
 }

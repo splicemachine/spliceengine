@@ -1,7 +1,10 @@
 package com.splicemachine.si.data.hbase;
 
 import com.splicemachine.hbase.table.BetterHTablePool;
+import com.splicemachine.si.data.api.HTableSource;
+
 import org.apache.hadoop.hbase.client.HTableInterface;
+
 import java.io.IOException;
 
 /**

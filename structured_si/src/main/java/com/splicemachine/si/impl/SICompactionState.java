@@ -7,11 +7,10 @@ import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.store.ActiveTxnCacheSupplier;
 import com.splicemachine.utils.ByteSlice;
-import org.apache.hadoop.hbase.KeyValue;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.SortedSet;
@@ -23,13 +22,12 @@ import java.util.TreeSet;
  * <p/>
  * It is handed key-values and can change them.
  */
-public class SICompactionState<Mutation,
-        Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes, Scan, IHTable> {
+public class SICompactionState<RowLock,Data,Mutation,
+    Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes, Scan, IHTable> {
     private static final Logger LOG = Logger.getLogger(SICompactionState.class);
-//    private final SDataLib<Put, Delete, Get, Scan> dataLib;
-    private final DataStore<Mutation, Put, Delete, Get, Scan, IHTable> dataStore;
+    private final DataStore<RowLock,Data,Mutation, Put, Delete, Get, Scan, IHTable> dataStore;
     private final TxnSupplier transactionStore;
-    public SortedSet<KeyValue> dataToReturn;
+    public SortedSet<Data> dataToReturn;
     private final RollForward rollForward;
     private ByteSlice rowSlice = new ByteSlice();
 
@@ -37,7 +35,7 @@ public class SICompactionState<Mutation,
         this.dataStore = dataStore;
         this.rollForward = rollForward;
         this.transactionStore = new ActiveTxnCacheSupplier(transactionStore,SIConstants.activeTransactionCacheSize); //cache active transactions during our scan
-        this.dataToReturn  = new TreeSet<KeyValue>(KeyValue.COMPARATOR);
+        this.dataToReturn  = new TreeSet<Data>(dataStore.dataLib.getComparator());
     }
 
     /**
@@ -46,9 +44,9 @@ public class SICompactionState<Mutation,
      * @param rawList - the input of key values to process
      * @param results - the output key values
      */
-    public void mutate(List<KeyValue> rawList, List<KeyValue> results) throws IOException {
+    public void mutate(List<Data> rawList, List<Data> results) throws IOException {
         dataToReturn.clear();
-        for (KeyValue aRawList : rawList) {
+        for (Data aRawList : rawList) {
             mutate(aRawList);
         }
         results.addAll(dataToReturn);
@@ -57,9 +55,9 @@ public class SICompactionState<Mutation,
     /**
      * Apply SI mutation logic to an individual key-value. Return the "new" key-value.
      */
-    private void mutate(KeyValue keyValue) throws IOException {
-        final KeyValueType keyValueType = dataStore.getKeyValueType(keyValue);
-        long timestamp = keyValue.getTimestamp();
+    private void mutate(Data element) throws IOException {
+        final KeyValueType keyValueType = dataStore.getKeyValueType(element);
+        long timestamp = dataStore.dataLib.getTimestamp(element);
         switch (keyValueType) {
             case COMMIT_TIMESTAMP:
                 /*
@@ -68,31 +66,29 @@ public class SICompactionState<Mutation,
                  * we still need to deal with entries which are in the old form. As time goes on, this should
                  * be less and less frequent, but you still have to check
                  */
-                ensureTransactionCached(timestamp,keyValue);
-                dataToReturn.add(keyValue);
+                ensureTransactionCached(timestamp,element);
+                dataToReturn.add(element);
                 return;
             case TOMBSTONE:
             case ANTI_TOMBSTONE:
             case USER_DATA:
-                if(mutateCommitTimestamp(timestamp,keyValue))
-                    dataToReturn.add(keyValue);
+                if(mutateCommitTimestamp(timestamp,element))
+                    dataToReturn.add(element);
                 return;
             default:
                 if(LOG.isDebugEnabled()){
-                    String fam = Bytes.toString(keyValue.getBuffer(),keyValue.getFamilyOffset(),keyValue.getFamilyLength());
-                    String col = Bytes.toString(keyValue.getBuffer(),keyValue.getQualifierOffset(),keyValue.getQualifierLength());
-                    LOG.debug("KeyValue with family " + fam + " and column " + col + " are not SI-managed, ignoring");
+                       SpliceLogUtils.debug(LOG,"KeyValue with family %s and column %s are not SI-managed, ignoring",dataStore.dataLib.getFamilyAsString(element),dataStore.dataLib.getQualifierAsString(element));
                 }
-                dataToReturn.add(keyValue);
+                dataToReturn.add(element);
         }
     }
 
-    private void ensureTransactionCached(long timestamp,KeyValue keyValue) {
+    private void ensureTransactionCached(long timestamp,Data element) {
         if(!transactionStore.transactionCached(timestamp)){
-            if(isFailedCommitTimestamp(keyValue)){
+            if(isFailedCommitTimestamp(element)){
                 transactionStore.cache(new RolledBackTxn(timestamp));
-            }else if (keyValue.getValueLength()>0){ //shouldn't happen, but you never know
-                long commitTs = Bytes.toLong(keyValue.getBuffer(), keyValue.getValueOffset(), keyValue.getValueLength());
+            }else if (dataStore.dataLib.getValueLength(element)>0){ //shouldn't happen, but you never know
+                long commitTs = dataStore.dataLib.getValueToLong(element);
                 transactionStore.cache(new CommittedTxn(timestamp,commitTs));
             }
         }
@@ -101,14 +97,14 @@ public class SICompactionState<Mutation,
     /**
      * Replace unknown commit timestamps with actual commit times.
      */
-    private boolean mutateCommitTimestamp(long timestamp,KeyValue keyValue) throws IOException {
+    private boolean mutateCommitTimestamp(long timestamp,Data element) throws IOException {
         TxnView transaction = transactionStore.getTransaction(timestamp);
         if(transaction.getEffectiveState()== Txn.State.ROLLEDBACK){
             /*
              * This transaction has been rolled back, so just remove the data
              * from physical storage
              */
-            recordResolved(keyValue,transaction);
+            recordResolved(element,transaction);
             return false;
         }
         TxnView t = transaction;
@@ -121,44 +117,24 @@ public class SICompactionState<Mutation,
              * commit timestamp can be placed on it.
              */
             long globalCommitTimestamp = transaction.getEffectiveCommitTimestamp();
-            dataToReturn.add(newTransactionTimeStampKeyValue(keyValue,Bytes.toBytes(globalCommitTimestamp)));
-            recordResolved(keyValue, transaction);
+            dataToReturn.add(newTransactionTimeStampKeyValue(element,Bytes.toBytes(globalCommitTimestamp)));
+            recordResolved(element, transaction);
         }
         return true;
     }
 
-    private void recordResolved(KeyValue keyValue, TxnView transaction) {
-        rowSlice.set(keyValue.getBuffer(),keyValue.getRowOffset(),keyValue.getRowLength());
+    private void recordResolved(Data element, TxnView transaction) {
+    	dataStore.dataLib.setRowInSlice(element, rowSlice);
         rollForward.recordResolved(rowSlice,transaction.getTxnId());
     }
 
-//    private Txn getFromCache(long timestamp) throws IOException {
-//        Txn result = transactionStore.getTransaction(timestamp);
-//        return result;
-//    }
-
-    public static KeyValue newTransactionTimeStampKeyValue(KeyValue keyValue, byte[] value) {
-        return new KeyValue(keyValue.getBuffer(),keyValue.getRowOffset(),keyValue.getRowLength(),SIConstants.DEFAULT_FAMILY_BYTES,0,1,SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES,0,1,keyValue.getTimestamp(), KeyValue.Type.Put,value,0,value==null ? 0 : value.length);
+    public Data newTransactionTimeStampKeyValue(Data element, byte[] value) {
+    	return dataStore.dataLib.newTransactionTimeStampKeyValue(element, value);
     }
 
-//	public void close() {
-//		evaluatedTransactions.close();
-//	}
 
-    public static boolean isFailedCommitTimestamp(KeyValue keyValue) {
-        return keyValue.getValueLength() == 1 && keyValue.getBuffer()[keyValue.getValueOffset()] == SIConstants.SNAPSHOT_ISOLATION_FAILED_TIMESTAMP[0];
+    public boolean isFailedCommitTimestamp(Data element) {
+    	return dataStore.dataLib.isFailedCommitTimestamp(element);
     }
-
-//    public static int compareKeyValuesByTimestamp(KeyValue first, KeyValue second) {
-//        return Bytes.compareTo(first.getBuffer(), first.getTimestampOffset(), KeyValue.TIMESTAMP_SIZE,
-//                second.getBuffer(), second.getTimestampOffset(), KeyValue.TIMESTAMP_SIZE);
-//    }
-//	public static int compareKeyValuesByColumnAndTimestamp(KeyValue first, KeyValue second) {
-//		int compare = Bytes.compareTo(first.getBuffer(), first.getQualifierOffset(), first.getQualifierLength(),
-//				second.getBuffer(), second.getQualifierOffset(), second.getQualifierLength());
-//		if (compare != 0)
-//			return compare;
-//		return compareKeyValuesByTimestamp(first,second);
-//	}
 
 }

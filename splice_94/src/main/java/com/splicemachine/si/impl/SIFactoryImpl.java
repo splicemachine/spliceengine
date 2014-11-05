@@ -2,11 +2,8 @@ package com.splicemachine.si.impl;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
-
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.table.BetterHTablePool;
@@ -31,17 +28,17 @@ import com.splicemachine.storage.EntryPredicateFilter;
 public class SIFactoryImpl implements SIFactory {
 
 	@Override
-	public RowAccumulator getRowAccumulator(
+	public RowAccumulator getRowAccumulator(DataStore dataStore,
 			EntryPredicateFilter predicateFilter, EntryDecoder decoder,
 			boolean countStar) {
-		return new HRowAccumulator(predicateFilter,decoder,countStar);
+		return new HRowAccumulator(dataStore,predicateFilter,decoder,countStar);
 	}
 
 	@Override
-	public RowAccumulator getRowAccumulator(
+	public RowAccumulator getRowAccumulator(DataStore dataStore,
 			EntryPredicateFilter predicateFilter, EntryDecoder decoder,
 			EntryAccumulator accumulator, boolean countStar) {
-		return new HRowAccumulator(predicateFilter,decoder,accumulator,countStar);
+		return new HRowAccumulator(dataStore,predicateFilter,decoder,accumulator,countStar);
 	}
 
 	@Override

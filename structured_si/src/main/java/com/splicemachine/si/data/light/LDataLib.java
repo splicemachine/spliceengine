@@ -1,9 +1,12 @@
 package com.splicemachine.si.data.light;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.hbase.KVPair;
+import com.splicemachine.hbase.KeyValueUtils;
 import com.splicemachine.si.data.api.SDataLib;
+import com.splicemachine.utils.ByteSlice;
 
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
@@ -11,7 +14,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 
 import java.util.*;
 
-public class LDataLib implements SDataLib<LTuple, LTuple, LGet, LGet> {
+public class LDataLib implements SDataLib<KeyValue,LTuple, LTuple, LGet, LGet> {
 
     @Override
     public byte[] newRowKey(Object... args) {
@@ -258,11 +261,6 @@ public class LDataLib implements SDataLib<LTuple, LTuple, LGet, LGet> {
         return newPut(rowKey, null);
     }
 
-    @Override
-    public void addKeyValueToDelete(LTuple delete, byte[] family, byte[] qualifier, long timestamp) {
-    	addKeyValueToTuple(delete, family, qualifier, timestamp, null);
-    }
-
 		@Override
 		public KVPair toKVPair(LTuple lTuple) {
 				return new KVPair(lTuple.key,lTuple.values.get(0).getValue());
@@ -284,4 +282,173 @@ public class LDataLib implements SDataLib<LTuple, LTuple, LGet, LGet> {
 		public void setWriteToWAL(LTuple put, boolean writeToWAL) {
 			// no op
 		}
+
+		@Override
+		public void addFamilyQualifierToDelete(LTuple delete, byte[] family,
+				byte[] qualifier, long timestamp) {
+	    	addKeyValueToTuple(delete, family, qualifier, timestamp, null);						
+		}
+
+		@Override
+		public void addDataToDelete(LTuple delete, KeyValue data, long timestamp) {
+		    	addKeyValueToTuple(delete, data.getFamily(), data.getQualifier(), timestamp, null);			
+		}
+
+		@Override
+		public boolean singleMatchingColumn(KeyValue element, byte[] family,
+				byte[] qualifier) {
+			return KeyValueUtils.singleMatchingColumn(element, family, qualifier);
+		}
+
+		@Override
+		public boolean singleMatchingFamily(KeyValue element, byte[] family) {
+			return KeyValueUtils.singleMatchingFamily(element, family);
+		}
+
+		@Override
+		public boolean singleMatchingQualifier(KeyValue element, byte[] qualifier) {
+			return KeyValueUtils.singleMatchingQualifier(element, qualifier);
+		}
+
+		@Override
+		public boolean matchingValue(KeyValue element, byte[] value) {
+			return KeyValueUtils.matchingValue(element, value);
+		}
+
+		@Override
+		public boolean matchingFamilyKeyValue(KeyValue element, KeyValue other) {
+			return KeyValueUtils.matchingFamilyKeyValue(element, other);
+		}
+
+		@Override
+		public boolean matchingQualifierKeyValue(KeyValue element, KeyValue other) {
+			return KeyValueUtils.matchingQualifierKeyValue(element, other);
+		}
+
+		@Override
+		public boolean matchingRowKeyValue(KeyValue element, KeyValue other) {
+			return KeyValueUtils.matchingRowKeyValue(element, other);
+		}
+
+		@Override
+		public KeyValue newValue(KeyValue element, byte[] value) {
+			return KeyValueUtils.newKeyValue(element, value);
+		}
+
+		@Override
+		public KeyValue newValue(byte[] rowKey, byte[] family, byte[] qualifier,
+				Long timestamp, byte[] value) {
+			return KeyValueUtils.newKeyValue(rowKey, family, qualifier, timestamp, value);
+		}
+
+		@Override
+		public boolean isAntiTombstone(KeyValue element, byte[] antiTombstone) {		
+			byte[] buffer = element.getBuffer();
+			int valueOffset = element.getValueOffset();
+			int valueLength = element.getValueLength();
+			return Bytes.equals(antiTombstone,0,antiTombstone.length,buffer,valueOffset,valueLength);
+		}
+
+		@Override
+		public Comparator getComparator() {
+			return KeyValue.COMPARATOR;
+		}
+
+		@Override
+		public long getTimestamp(KeyValue element) {
+			return element.getTimestamp();
+		}
+
+		@Override
+		public String getFamilyAsString(KeyValue element) {
+			return Bytes.toString(element.getFamily());
+		}
+
+		@Override
+		public String getQualifierAsString(KeyValue element) {
+			return Bytes.toString(element.getQualifier());
+		}
+
+		@Override
+		public void setRowInSlice(KeyValue element, ByteSlice slice) {
+	        slice.set(element.getBuffer(),element.getRowOffset(),element.getRowLength());
+		}
+
+		@Override
+		public boolean isFailedCommitTimestamp(KeyValue Element) {
+	        return Element.getValueLength() == 1 && Element.getBuffer()[Element.getValueOffset()] == SIConstants.SNAPSHOT_ISOLATION_FAILED_TIMESTAMP[0];
+		}
+
+		@Override
+		public KeyValue newTransactionTimeStampKeyValue(KeyValue element,
+				byte[] value) {
+	        return new KeyValue(element.getBuffer(),element.getRowOffset(),element.getRowLength(),SIConstants.DEFAULT_FAMILY_BYTES,0,1,SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES,0,1,element.getTimestamp(), KeyValue.Type.Put,value,0,value==null ? 0 : value.length);
+		}
+
+		@Override
+		public long getValueLength(KeyValue element) {
+			return element.getValueLength();
+		}
+
+		@Override
+		public long getValueToLong(KeyValue element) {
+			return Bytes.toLong(element.getBuffer(), element.getValueOffset(), element.getValueLength());
+		}
+
+		@Override
+		public byte[] getDataFamily(KeyValue element) {
+			return element.getFamily();
+		}
+
+		@Override
+		public byte[] getDataQualifier(KeyValue element) {
+			return element.getQualifier();
+		}
+
+		@Override
+		public byte[] getDataValue(KeyValue element) {
+			return element.getValue();
+		}
+
+		@Override
+		public Result newResult(List<KeyValue> values) {
+			return new Result(values);
+		}
+
+		@Override
+		public KeyValue[] getDataFromResult(Result result) {
+			return result.raw();
+		}
+
+		@Override
+		public byte[] getDataRow(KeyValue element) {
+			return element.getRow();
+		}
+
+		@Override
+		public KeyValue getColumnLatest(Result result, byte[] family,
+				byte[] qualifier) {
+			return result.getColumnLatest(family, qualifier);
+		}
+
+		@Override
+		public byte[] getDataValueBuffer(KeyValue element) {
+			return element.getBuffer();
+		}
+
+		@Override
+		public int getDataValueOffset(KeyValue element) {
+			return element.getValueOffset();
+		}
+
+		@Override
+		public int getDataValuelength(KeyValue element) {
+			return element.getValueLength();
+		}
+		
+		@Override
+		public int getLength(KeyValue element) {
+			return element.getLength();
+		}
+
 }

@@ -1,40 +1,40 @@
 package com.splicemachine.si.data.hbase;
 
 import com.splicemachine.si.api.RowAccumulator;
+import com.splicemachine.si.impl.DataStore;
 import com.splicemachine.storage.EntryAccumulator;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.index.BitIndex;
-
 import java.io.Closeable;
 import java.io.IOException;
 
-import org.apache.hadoop.hbase.KeyValue;
-
-public class HRowAccumulator implements RowAccumulator {
+public class HRowAccumulator<Data> implements RowAccumulator<Data> {
     private final EntryPredicateFilter predicateFilter;
     private final EntryAccumulator entryAccumulator;
     private final EntryDecoder decoder;
+    private final DataStore dataStore;
     private boolean countStar;
+	private long bytesAccumulated = 0l;
+	public HRowAccumulator(DataStore dataStore, EntryPredicateFilter predicateFilter, EntryDecoder decoder, boolean countStar) {
+		this(dataStore, predicateFilter, decoder, predicateFilter.newAccumulator(),countStar);
+	}
 
-		private long bytesAccumulated = 0l;
-
-		public HRowAccumulator(EntryPredicateFilter predicateFilter, EntryDecoder decoder, boolean countStar) {
-			this(predicateFilter, decoder, predicateFilter.newAccumulator(),countStar);
-		}
-
-    public HRowAccumulator(EntryPredicateFilter predicateFilter, EntryDecoder decoder,EntryAccumulator accumulator, boolean countStar) {
+    public HRowAccumulator(DataStore dataStore, EntryPredicateFilter predicateFilter, EntryDecoder decoder,EntryAccumulator accumulator, boolean countStar) {
         this.predicateFilter = predicateFilter;
         this.entryAccumulator = accumulator;
         this.decoder = decoder;
         this.countStar = countStar;
+        this.dataStore = dataStore;
     }
 
     @Override
-    public boolean isOfInterest(KeyValue keyValue) {
+    public boolean isOfInterest(Data data) {
     	if (countStar)
     		return false;
-        decoder.set(keyValue.getBuffer(),keyValue.getValueOffset(),keyValue.getValueLength());
+        decoder.set(dataStore.dataLib.getDataValueBuffer(data),
+        		dataStore.dataLib.getDataValueOffset(data),
+        		dataStore.dataLib.getDataValuelength(data));
         final BitIndex currentIndex = decoder.getCurrentIndex();
 		return entryAccumulator.isInteresting(currentIndex);
     }
@@ -46,9 +46,8 @@ public class HRowAccumulator implements RowAccumulator {
 		}
 
 		@Override
-    public boolean accumulate(KeyValue keyValue) throws IOException {
-		bytesAccumulated+=keyValue.getLength();
-//        decoder.set(keyValue.getBuffer(),keyValue.getValueOffset(),keyValue.getValueLength()); //do we need to do this twice?
+    public boolean accumulate(Data data) throws IOException {
+		bytesAccumulated+=dataStore.dataLib.getLength(data);
         boolean pass = predicateFilter.match(decoder, entryAccumulator);
         if(!pass)
             entryAccumulator.reset();
