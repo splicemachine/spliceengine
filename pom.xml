@@ -53,8 +53,7 @@
 		<derby.version>10.9.1.0-splice1.0.0RC2-SNAPSHOT</derby.version>
 		<envClassifier/>
 		<excluded.categories>com.splicemachine.test.SlowTest</excluded.categories>
-		<failTasksRandomly>true</failTasksRandomly>
-		<!-- run chaos monkey -->
+		<failTasksRandomly>true</failTasksRandomly> <!-- run chaos monkey -->
 		<log4j.config.uri>file:${basedir}/src/main/resources/info-log4j.properties</log4j.config.uri>
 		<maven.build.timestamp.format>yyyy-MM-dd HH:mm Z</maven.build.timestamp.format>
 		<maven.compiler.source>1.6</maven.compiler.source>
@@ -198,7 +197,7 @@
 					<artifactId>proguard-maven-plugin</artifactId>
 					<version>2.0.7</version>
 				</plugin>
-				<plugin>
+				<!-- plugin>
 					<artifactId>maven-deploy-plugin</artifactId>
 					<version>2.7</version>
 					<configuration>
@@ -213,7 +212,7 @@
 							</goals>
 						</execution>
 					</executions>
-				</plugin>
+				</plugin -->
 			</plugins>
 		</pluginManagement>
 		<plugins>
