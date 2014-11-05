@@ -7,7 +7,6 @@ import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.util.Pair;
-
 import java.io.IOException;
 
 /**
