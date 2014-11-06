@@ -85,7 +85,7 @@ public class BulkWriteActionTest {
 								BulkWrite write = (BulkWrite) invocation.getArguments()[0];
 								if(state[0] == 0){
 										IntObjectOpenHashMap<WriteResult> results = IntObjectOpenHashMap.newInstance();
-										for(int i=0;i<write.getSize();i++){
+										for(int i=0;i<write.numEntries();i++){
 												results.put(i,WriteResult.notServingRegion());
 										}
 										state[0]++;
@@ -103,7 +103,7 @@ public class BulkWriteActionTest {
 
 										IntObjectOpenHashMap<WriteResult> failedRows = IntObjectOpenHashMap.newInstance();
 										Object[] kvBuffer = write.getBuffer();
-										for(int i=0;i<write.getSize();i++){
+										for(int i=0;i<write.numEntries();i++){
 												KVPair pair = (KVPair)kvBuffer[i];
 												if(!region.containsRow(pair.getRow())){
 														failedRows.put(i,WriteResult.wrongRegion());
@@ -353,7 +353,7 @@ public class BulkWriteActionTest {
 								}
 								IntObjectOpenHashMap<WriteResult> results = IntObjectOpenHashMap.newInstance();
 								Object[] buffer = write.getBuffer();
-								for(int i=0;i<write.getSize();i++){
+								for(int i=0;i<write.numEntries();i++){
 										KVPair pair = (KVPair) buffer[i];
 										byte[] rowKey = pair.getRow();
 										if(BytesUtil.startComparator.compare(startKey,rowKey)>0
@@ -442,7 +442,7 @@ public class BulkWriteActionTest {
 								}
 								IntObjectOpenHashMap<WriteResult> results = IntObjectOpenHashMap.newInstance();
 								Object[] buffer = write.getBuffer();
-								for(int i=0;i<write.getSize();i++){
+								for(int i=0;i<write.numEntries();i++){
 										KVPair pair = (KVPair) buffer[i];
 										byte[] rowKey = pair.getRow();
 										if(BytesUtil.startComparator.compare(startKey,rowKey)>0
@@ -547,7 +547,7 @@ public class BulkWriteActionTest {
 								IntObjectOpenHashMap<WriteResult> failed = IntObjectOpenHashMap.newInstance();
 								IntArrayList notRun = IntArrayList.newInstance();
 								Object[] buffer = write.getBuffer();
-								for(int i=0;i<write.getSize();i++){
+								for(int i=0;i<write.numEntries();i++){
 										if(isRegionSplit){
 												if(i==0)
 														failed.put(i,WriteResult.notServingRegion());
@@ -659,7 +659,7 @@ public class BulkWriteActionTest {
 								}
 								IntObjectOpenHashMap<WriteResult> results = IntObjectOpenHashMap.newInstance();
 								Object[] buffer = write.getBuffer();
-								for(int i=0;i<write.getSize();i++){
+								for(int i=0;i<write.numEntries();i++){
 										KVPair pair = (KVPair) buffer[i];
 										byte[] rowKey = pair.getRow();
 										if(BytesUtil.startComparator.compare(startKey,rowKey)>0
