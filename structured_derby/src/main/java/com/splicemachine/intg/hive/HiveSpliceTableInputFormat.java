@@ -70,20 +70,19 @@ ExecRowWritable>{
 	public RecordReader<ImmutableBytesWritable, ExecRowWritable> createRecordReader(
 			InputSplit split, TaskAttemptContext context) throws IOException,
 			InterruptedException {
-		String spliceTableName = conf.get(SpliceSerDe.SPLICE_TABLE_NAME);
+		String spliceTableName = conf.get(SpliceSerDe.SPLICE_INPUT_TABLE_NAME);
 		HiveSpliceRecordReader trr = this.spliceTableRecordReader;
 		
-		//if(sqlUtil == null)
 		sqlUtil = SQLUtil.getInstance(conf.get(SpliceSerDe.SPLICE_JDBC_STR));
 		String txnId = sqlUtil.getTransactionID();
-	    conf.set(SpliceSerDe.SPLICE_TRANSACTION_ID, txnId);
-		//if(trr == null){
-			trr = new HiveSpliceRecordReader();
-			trr.setConf(conf);
+		if(conf.get(SpliceSerDe.SPLICE_TRANSACTION_ID) == null)
+	        conf.set(SpliceSerDe.SPLICE_TRANSACTION_ID, txnId);
+		trr = new HiveSpliceRecordReader();
+		trr.setConf(conf);
 			
-			tableStructure = sqlUtil.getTableStructure(spliceTableName);
+		tableStructure = sqlUtil.getTableStructure(spliceTableName);
 			
-			Iterator iter = tableStructure.entrySet().iterator();
+		Iterator iter = tableStructure.entrySet().iterator();
 	    	if(iter.hasNext())
 	    	{
 	    		Map.Entry kv = (Map.Entry)iter.next();
