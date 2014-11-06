@@ -62,18 +62,18 @@ public class ExportExecRowWriterTest {
     private ResultColumnDescriptor[] columnDescriptors() {
         ResultColumnDescriptor[] array = new ResultColumnDescriptor[7];
 
-        array[0] = mockVarcharColDesc(StoredFormatIds.VARCHAR_TYPE_ID, 0);
-        array[1] = mockVarcharColDesc(StoredFormatIds.VARCHAR_TYPE_ID, 0);
-        array[2] = mockVarcharColDesc(StoredFormatIds.VARCHAR_TYPE_ID, 0);
-        array[3] = mockVarcharColDesc(StoredFormatIds.VARCHAR_TYPE_ID, 0);
-        array[4] = mockVarcharColDesc(StoredFormatIds.VARCHAR_TYPE_ID, 0);
-        array[5] = mockVarcharColDesc(StoredFormatIds.DECIMAL_TYPE_ID, 2);
-        array[6] = mockVarcharColDesc(StoredFormatIds.DECIMAL_TYPE_ID, 7);
+        array[0] = mockColDesc(StoredFormatIds.VARCHAR_TYPE_ID, 0);
+        array[1] = mockColDesc(StoredFormatIds.VARCHAR_TYPE_ID, 0);
+        array[2] = mockColDesc(StoredFormatIds.VARCHAR_TYPE_ID, 0);
+        array[3] = mockColDesc(StoredFormatIds.VARCHAR_TYPE_ID, 0);
+        array[4] = mockColDesc(StoredFormatIds.VARCHAR_TYPE_ID, 0);
+        array[5] = mockColDesc(StoredFormatIds.DECIMAL_TYPE_ID, 2);
+        array[6] = mockColDesc(StoredFormatIds.DECIMAL_TYPE_ID, 7);
 
         return array;
     }
 
-    private ResultColumnDescriptor mockVarcharColDesc(int formatId, int scale) {
+    private ResultColumnDescriptor mockColDesc(int formatId, int scale) {
         ResultColumnDescriptor mockVarCharColDesc = mock(ResultColumnDescriptor.class);
         DataTypeDescriptor mockType = mock(DataTypeDescriptor.class);
         TypeId mockTypeId = mock(TypeId.class);
