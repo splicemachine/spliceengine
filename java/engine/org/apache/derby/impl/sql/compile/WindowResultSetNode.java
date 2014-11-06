@@ -483,35 +483,6 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         referencesToSubstitute.add(vis);
     }
 
-    private boolean inSourceResult(ValueNode expression, ResultSetNode resultSetNode) {
-        if (! (expression instanceof ColumnReference || expression instanceof VirtualColumnNode)) {
-            // we can only find these instances
-            return false;
-        }
-        ResultColumnList childResultList = resultSetNode.getResultColumns();
-        // Check for match with all RCs of this result set node's RCL
-        for (int i = 0; i < childResultList.size(); i++) {
-            ResultColumn rc = (ResultColumn) childResultList.elementAt(i);
-            if (!rc.isGenerated()) {
-                // generated nodes are ones we've already created
-                ColumnDescriptor rcDescriptor = rc.getTableColumnDescriptor();
-                if (rcDescriptor == null) {
-                    ValueNode exp = rc.getExpression();
-                    if (exp instanceof ResultColumn) {
-                        rcDescriptor = ((ResultColumn) exp).getTableColumnDescriptor();
-                    } else {
-                        rcDescriptor = exp.getSourceResultColumn().getTableColumnDescriptor();
-                    }
-                }
-                if (rcDescriptor.equals(expression.getSourceResultColumn().getTableColumnDescriptor())) {
-                    // Found a match
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
     /**
      * Find function key columns that were not referenced by parent columns (columns in the select clause).
      * The key columns are from the function's OVER() clause. The function uses these key columns to create
@@ -539,7 +510,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         for (OrderedColumn keyCol : findMissingKeyNodes(columnMapping.getParentColumns(), wdn.getKeyColumns())) {
             ResultColumn source = null;
             boolean isAggReplacement = keyCol.getColumnExpression() instanceof ColumnReference &&
-                                (((ColumnReference) keyCol.getColumnExpression()).getGeneratedToReplaceAggregate());
+                (((ColumnReference) keyCol.getColumnExpression()).getGeneratedToReplaceAggregate());
             if (! isAggReplacement) {
                 // Don't look down for agg function results -- "source" is already pointing to the right place.
                 source = recursiveSourcePuller(childResult, keyCol.getColumnExpression());
@@ -598,41 +569,24 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
     }
 
     int counter = 0;
-    private ResultColumn recursiveSourcePuller(ResultSetNode resultSetNode, ValueNode expression) throws StandardException {
-        if (resultSetNode instanceof FromBaseTable) {
+    private ResultColumn recursiveSourcePuller(ResultSetNode childResultSetNode, ValueNode expression) throws StandardException {
+        if (childResultSetNode instanceof FromBaseTable) {
             // we've gone too far
             return null;
         }
-        if (! (expression instanceof ColumnReference || expression instanceof VirtualColumnNode)) {
-            // we can only find these instances
-            return null;
-        }
         counter = 0;
-        ResultColumnList childResultList = resultSetNode.getResultColumns();
-        // Check for match with all RCs of this result set node's RCL
-        for (int i = 0; i < childResultList.size(); i++) {
-            ResultColumn rc = (ResultColumn) childResultList.elementAt(i);
-            if (!rc.isGenerated()) {
-                // generated nodes are ones we've already created
-                ColumnDescriptor rcDescriptor = rc.getTableColumnDescriptor();
-                if (rcDescriptor == null) {
-                    ValueNode exp = rc.getExpression();
-                    if (exp instanceof ResultColumn) {
-                        rcDescriptor = ((ResultColumn) exp).getTableColumnDescriptor();
-                    } else {
-                        rcDescriptor = exp.getSourceResultColumn().getTableColumnDescriptor();
-                    }
-                }
-                if (rcDescriptor.equals(expression.getSourceResultColumn().getTableColumnDescriptor())) {
-                    // Found a match
-                    return rc;
-                }
-            }
+        Pair rcToChildRcl = findMatchingResultColumn(expression, childResultSetNode);
+
+        ResultColumn childRC = rcToChildRcl.rc;
+        if (childRC == null) {
+            childRC = recursiveSourcePuller(((SingleChildResultSetNode)childResultSetNode).getChildResult(), expression);
+        } else {
+            return childRC;
         }
-        ResultColumn childRC = recursiveSourcePuller(((SingleChildResultSetNode)resultSetNode).getChildResult(), expression);
 
         ResultColumn source = null;
         if (childRC != null) {
+            ResultColumnList childResultList = rcToChildRcl.childRcl;
             // Create an RC->CR for matching column that we'll add to the parent RCL upon return
             ColumnReference tmpColumnRef = (ColumnReference) getNodeFactory().getNode(
                 C_NodeTypes.COLUMN_REFERENCE,
@@ -640,8 +594,8 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                 null,
                 getContextManager());
             tmpColumnRef.setSource(childRC);
-            tmpColumnRef.setNestingLevel(((FromTable) resultSetNode).getLevel());
-            tmpColumnRef.setSourceLevel(((FromTable)resultSetNode).getLevel());
+            tmpColumnRef.setNestingLevel(((FromTable) childResultSetNode).getLevel());
+            tmpColumnRef.setSourceLevel(((FromTable)childResultSetNode).getLevel());
 
             // Create a CR and wrap it in just created RC and return it so that parent
             // can add it to its RCL
@@ -662,6 +616,50 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         return source;
     }
 
+    private Pair findMatchingResultColumn(ValueNode expression, ResultSetNode childResultSetNode) throws StandardException {
+        ResultColumnList childResultList = childResultSetNode.getResultColumns();
+
+        if (expression instanceof ColumnReference || expression instanceof VirtualColumnNode) {
+            // we can only find these instances
+
+            // Check for match with all RCs of this result set node's RCL
+            ResultColumn matchedRc = null;
+            for (int i = 0; i < childResultList.size(); i++) {
+                ResultColumn rc = childResultList.elementAt(i);
+                if (!rc.isGenerated()) {
+                    // generated nodes are ones we've already created
+                    ColumnDescriptor rcDescriptor = rc.getTableColumnDescriptor();
+                    if (rcDescriptor == null) {
+                        ValueNode exp = rc.getExpression();
+                        if (exp instanceof ResultColumn) {
+                            rcDescriptor = ((ResultColumn) exp).getTableColumnDescriptor();
+                        } else if (exp instanceof VirtualColumnNode &&
+                            exp.getSourceResultColumn().getTableColumnDescriptor() == null) {
+                            // DB-2170, WF over a view, has RC->VCN->RC->VCN->...->JavaToSQLValueNode and
+                            // all RCs had null TableColumnDescriptors. Have to get creative (and approximate)
+                            if (rc.columnTypeAndLengthMatch(expression.getSourceResultColumn()) &&
+                                 rc.columnNameMatches(expression.getSourceResultColumn().exposedName)) {
+                                matchedRc = rc;
+                            }
+                        } else {
+                            rcDescriptor = exp.getSourceResultColumn().getTableColumnDescriptor();
+                        }
+                    }
+
+                    if (rcDescriptor != null &&
+                        rcDescriptor.equals(expression.getSourceResultColumn().getTableColumnDescriptor())) {
+                        // Found a match
+                        matchedRc = rc;
+                    }
+                }
+                if (matchedRc != null) {
+                    // return matchedRC
+                    return Pair.newPair(matchedRc, childResultList);
+                }
+            }
+        }
+        return Pair.newPair(null,childResultList);
+    }
 
     /**
      * In the query rewrite involving aggregates, add the columns for
@@ -679,9 +677,9 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         // setting columns on windowingRCL will also set them on resultColumns
         ResultColumnList windowingRCL = resultColumns;
 
-		// Now process all of the functions.  As we process each windowFunctionNode replace the corresponding
-		// windowFunctionNode in parent RCL with an RC whose expression resolves to the function's result column.
-		// For each windowFunctionNode...
+        // Now process all of the functions.  As we process each windowFunctionNode replace the corresponding
+        // windowFunctionNode in parent RCL with an RC whose expression resolves to the function's result column.
+        // For each windowFunctionNode...
         for (WindowFunctionNode windowFunctionNode : windowFunctions) {
             // We don't handle window references here
             if (SanityManager.DEBUG) {
@@ -816,6 +814,10 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             ));
             this.processedAggregates.add(windowFunctionNode);
         }
+    }
+
+    private boolean inSourceResult(ValueNode expression, ResultSetNode resultSetNode) throws StandardException {
+        return findMatchingResultColumn(expression, resultSetNode).rc != null;
     }
 
     /**
@@ -1098,9 +1100,9 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             ResultColumn aParentCol = parentResultCols.getResultColumn(i+1);
             if (functionNode.equals(aParentCol.getExpression())) {
                 replacedNode = functionNode.replaceCallWithColumnReference(aParentCol,
-                                                            ((FromTable) childResult).getTableNumber(),
-                                                            this.level,
-                                                            newResultColumn);
+                                                                           ((FromTable) childResult).getTableNumber(),
+                                                                           this.level,
+                                                                           newResultColumn);
                 break;
             } else if (aParentCol.getExpression() instanceof BinaryOperatorNode) {
                 // TODO: what other skulduggery does Derby have in store in its plan trees?
@@ -1232,4 +1234,19 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             }
         }
     }
+
+    private static class Pair {
+        final ResultColumn rc;
+        final ResultColumnList childRcl;
+
+        private Pair(ResultColumn rc ,ResultColumnList childRcl){
+            this.rc = rc;
+            this.childRcl = childRcl;
+        }
+
+        public static Pair newPair(ResultColumn rc,ResultColumnList childRcl){
+            return new Pair(rc,childRcl);
+        }
+    }
+
 }
