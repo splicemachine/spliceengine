@@ -91,7 +91,7 @@ class RegionServerCallBuffer implements CallBuffer<Pair<byte[],RegionCallBuffer>
 			}
 		}
 		if(LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "flushing %d entries",bulkWrites.getSize());		
+			SpliceLogUtils.trace(LOG, "flushing %d entries",bulkWrites.numEntries());
 		return bulkWrites;    	
     }
     

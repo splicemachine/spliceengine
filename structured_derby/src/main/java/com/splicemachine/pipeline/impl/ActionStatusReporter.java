@@ -1,5 +1,7 @@
 package com.splicemachine.pipeline.impl;
 
+import com.google.common.util.concurrent.AtomicDouble;
+
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -23,6 +25,11 @@ public class ActionStatusReporter{
     public final AtomicLong totalFlushEntries = new AtomicLong(0l);
     public final AtomicLong totalFlushTime = new AtomicLong(0l);
     public final AtomicLong rejectedCount = new AtomicLong(0l);
+
+    public final AtomicLong totalFlushRegions = new AtomicLong(0l);
+    public final AtomicLong maxFlushRegions = new AtomicLong(0l);
+    public final AtomicLong minFlushRegions = new AtomicLong(0l);
+
     public void reset(){
         totalFlushesSubmitted.set(0);
         failedBufferFlushes.set(0);
@@ -44,6 +51,10 @@ public class ActionStatusReporter{
         maxFlushEntries.set(0);
         minFlushEntries.set(0);
         totalFlushEntries.set(0);
+
+        totalFlushRegions.set(0);
+        maxFlushRegions.set(0);
+        minFlushRegions.set(0);
     }
 
     public void complete(long timeTakenMs) {
