@@ -92,9 +92,27 @@ public class BulkWrites implements Externalizable {
     	return bulkWrites.buffer;
     }
 
-    public int getSize() {
-    	return bulkWrites.size();
+		/**
+		 * @return the number of rows in the bulk write
+		 */
+    public int numEntries() {
+				int numEntries = 0;
+				int size = bulkWrites.size();
+				Object[] buffer = bulkWrites.buffer;
+				for(int i=0;i<size;i++){
+						BulkWrite bw = (BulkWrite)buffer[i];
+						numEntries+=bw.getSize();
+				}
+				return numEntries;
     }
+
+		/**
+		 * @return the number of regions in this write
+		 */
+		public int numRegions(){
+			return bulkWrites.size();
+		}
+
 		@Override
 		public void writeExternal(ObjectOutput out) throws IOException {
 				Object[] buffer = bulkWrites.buffer;

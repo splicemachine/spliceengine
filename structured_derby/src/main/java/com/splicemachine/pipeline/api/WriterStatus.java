@@ -55,5 +55,15 @@ public interface WriterStatus {
 
 	long getTotalRejectedFlushes();
 
+    long getMaxRegionsPerFlush();
 
+    long getMinRegionsPerFlush();
+
+    long getAvgRegionsPerFlush();
+
+    double getOverallWriteThroughput();
+
+    double getAvgFlushedEntriesPerRegion();
+
+    double getAvgFlushedSizePerRegion();
 }
