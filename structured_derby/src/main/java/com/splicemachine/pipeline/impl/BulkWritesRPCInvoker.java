@@ -43,7 +43,7 @@ public class BulkWritesRPCInvoker implements BulkWritesInvoker {
 		 */
 		@Override
 		public BulkWritesResult invoke(BulkWrites writes,boolean refreshCache) throws IOException {
-				assert writes.getSize() != 0;
+				assert writes.numEntries() != 0;
 				SpliceIndexEndpoint indexEndpoint = null;
 				// Check for a non-serialized local operation
 				if(SpliceDriver.driver().isStarted())

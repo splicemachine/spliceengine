@@ -31,6 +31,13 @@ public class ActionStatusMonitor implements WriterStatus {
     @Override public long getMaxFlushedBufferEntries() { return statusMonitor.maxFlushEntries.get(); }
     @Override public long getTotalFlushedBufferEntries() { return statusMonitor.totalFlushEntries.get(); }
     @Override public long getTotalFlushTime() { return statusMonitor.totalFlushTime.get(); }
+    @Override public long getMaxRegionsPerFlush() { return statusMonitor.maxFlushRegions.get(); }
+    @Override public long getMinRegionsPerFlush() { return statusMonitor.minFlushRegions.get(); }
+
+    @Override
+    public long getAvgRegionsPerFlush() {
+        return (long)(statusMonitor.totalFlushRegions.get()/(double)statusMonitor.totalFlushesSubmitted.get());
+    }
 
     @Override
     public double getAvgFlushTime() {
@@ -53,5 +60,26 @@ public class ActionStatusMonitor implements WriterStatus {
     @Override
     public double getAvgFlushedBufferEntries() {
         return statusMonitor.totalFlushEntries.get()/(double)statusMonitor.totalFlushesSubmitted.get();
+    }
+
+    @Override
+    public double getOverallWriteThroughput() {
+        /*
+         * Throughput in rows/ms
+         */
+        long flushTimeMs = statusMonitor.totalFlushTime.get();
+        double rowsPerMs = statusMonitor.totalFlushEntries.get()/(double)flushTimeMs;
+
+        return rowsPerMs*1000; //throughput in rows/s
+    }
+
+    @Override
+    public double getAvgFlushedEntriesPerRegion() {
+        return getAvgFlushedBufferEntries()/getAvgRegionsPerFlush();
+    }
+
+    @Override
+    public double getAvgFlushedSizePerRegion() {
+        return getAvgFlushedBufferSize()/getAvgRegionsPerFlush();
     }
 }
