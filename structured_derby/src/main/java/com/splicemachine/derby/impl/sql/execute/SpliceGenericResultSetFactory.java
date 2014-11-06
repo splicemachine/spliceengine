@@ -1375,8 +1375,8 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
 
         // If we ask the activation prepared statement for ResultColumnDescriptors we get the two columns that
         // export operation returns (exported row count, and export time) not the columns of the source operation.
-        // Not what we need to property format the rows during export.  So ExportOperation now saves the source
-        // ResultColumnDescriptor and we retrieve them here.
+        // Not what we need to format the rows during export.  So ExportNode now saves the source
+        // ResultColumnDescriptors and we retrieve them here.
         Object resultDescription = activation.getPreparedStatement().getSavedObject(srcResultDescriptionSavedObjectNum);
         ResultColumnDescriptor[] columnDescriptors = ((GenericResultDescription) resultDescription).getColumnInfo();
 
