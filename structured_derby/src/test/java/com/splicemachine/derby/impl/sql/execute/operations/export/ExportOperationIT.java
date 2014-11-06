@@ -276,6 +276,14 @@ public class ExportOperationIT {
                 Files.toString(files[0], Charsets.UTF_8));
     }
 
+    /* sysaliases contains a column of type 'org.apache.derby.catalog.AliasInfo'. Make sure we can handle with out throwing.  */
+    @Test
+    public void export_sysaliases() throws Exception {
+        Long expectedRowCount = methodWatcher.query("select count(*) from sys.sysaliases");
+        String exportSQL = buildExportSQL("select * from sys.sysaliases", false);
+        exportAndAssertExportResults(exportSQL, expectedRowCount);
+    }
+
     /* It is important that we throw SQLException, given invalid parameters, rather than other exceptions which cause IJ to drop the connection.  */
     @Test
     public void export_throwsSQLException_givenBadArguments() throws Exception {
