@@ -21,6 +21,8 @@ import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.util.Pair;
 
 /**
  * Defines an abstraction over the construction and manipulate of HBase operations. Having this abstraction allows an
@@ -99,4 +101,5 @@ public interface SDataLib<Data,
 	Filter getActiveTransactionFilter(long beforeTs,long afterTs,byte[] destinationTable);
 	public InternalScanner getCompactionScanner(InternalScanner scanner, SICompactionState state);
 	boolean internalScannerNext(InternalScanner internalScanner,List<Data> data) throws IOException;	
+	boolean isDataInRange(Data data, Pair<byte[], byte[]> range);	
 }

@@ -17,6 +17,7 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.util.Pair;
 
 import java.io.IOException;
 import java.util.*;
@@ -515,4 +516,10 @@ public class LDataLib implements SDataLib<KeyValue,LTuple, LTuple, LGet, LGet> {
 				List<KeyValue> data) throws IOException {
 			throw new RuntimeException("Not Implemented");
 		}
+
+		@Override
+		public boolean isDataInRange(KeyValue data, Pair<byte[], byte[]> range) {
+			return BytesUtil.isKeyValueInRange(data, range);
+		}
+
 }
