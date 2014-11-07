@@ -1104,6 +1104,10 @@ public class CastNode extends ValueNode
 	public List getChildren() {
 		return castOperand.getChildren();
 	}
+
+    public ValueNode getCastOperand (){
+        return castOperand;
+    }
 }
 
 

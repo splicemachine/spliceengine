@@ -797,12 +797,49 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 
 		BinaryRelationalOperatorNode opNode = (BinaryRelationalOperatorNode)getAndNode().getLeftOperand();
 
+        ValueNode leftOperand = opNode.getLeftOperand();
+        ValueNode rightOperand = opNode.getRightOperand();
+        boolean isColumnReferenceOnLeft = false;
+        boolean isColumnReferenceOnRight = false;
+        int leftTableNumber = -1;
+        int rightTableNumber = -1;
+
+        if (leftOperand instanceof ColumnReference) {
+            isColumnReferenceOnLeft = true;
+            leftTableNumber = ((ColumnReference) leftOperand).getTableNumber();
+        }
+        else if (leftOperand instanceof CastNode) {
+            /*
+                if there is a CASTNODE, look one level deeper
+             */
+            CastNode n = (CastNode) leftOperand;
+            if (n.castOperand instanceof ColumnReference) {
+                isColumnReferenceOnLeft = true;
+                ColumnReference r = (ColumnReference)n.castOperand;
+                leftTableNumber = r.getTableNumber();
+            }
+        }
+
+        if (rightOperand instanceof ColumnReference) {
+            isColumnReferenceOnRight = true;
+            rightTableNumber = ((ColumnReference) rightOperand).getTableNumber();
+        }
+        else if (rightOperand instanceof CastNode) {
+            /*
+                if there is a CASTNODE, look one level deeper
+             */
+            CastNode n = (CastNode) rightOperand;
+            if (n.castOperand instanceof ColumnReference) {
+                isColumnReferenceOnRight = true;
+                ColumnReference r = (ColumnReference)n.castOperand;
+                rightTableNumber = r.getTableNumber();
+            }
+        }
+
 		// If both sides are column references AND they point to different
 		// tables, then this is a join pred.
-		return ((opNode.getLeftOperand() instanceof ColumnReference) &&
-			(opNode.getRightOperand() instanceof ColumnReference) &&
-			(((ColumnReference)opNode.getLeftOperand()).getTableNumber() !=
-			((ColumnReference)opNode.getRightOperand()).getTableNumber()));
+		return (isColumnReferenceOnLeft && isColumnReferenceOnRight &&
+                leftTableNumber != rightTableNumber);
 	}
 
 	/**

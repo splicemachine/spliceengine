@@ -37,6 +37,8 @@ import org.apache.derby.iapi.sql.conn.Authorizer;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.derby.iapi.store.access.TransactionController;
+
+import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.util.JBitSet;
 
 /**
@@ -591,6 +593,8 @@ public class SelectNode extends ResultSetNode
 										whereSubquerys,
 										whereAggregates);
             cc.setReliability( previousReliability );
+
+            propagateTypeCast(whereClause);
 			
 			/* RESOLVE - Temporarily disable aggregates in the HAVING clause.
 			** (We may remove them in the parser anyway.)
@@ -705,6 +709,62 @@ public class SelectNode extends ResultSetNode
 			throw StandardException.newException(SQLState.LANG_USER_AGGREGATE_MULTIPLE_DISTINCTS);
 		}
 	}
+
+    /*
+        Propagate type conversions to columns that are indirectly related to a big decimal
+     */
+    private void propagateTypeCast(ValueNode whereClause) {
+        if (whereClause instanceof AndNode) {
+            List<BinaryRelationalOperatorNode> l = new ArrayList();
+            collectJoinPredicates(whereClause, l);
+
+            boolean done = true;
+            do {
+                done = true;
+                Iterator<BinaryRelationalOperatorNode> it = l.iterator();
+                while (it.hasNext()) {
+                    BinaryRelationalOperatorNode operator = it.next();
+                    ColumnReference leftColumn = (ColumnReference) operator.leftOperand;
+                    ColumnReference rightColumn = (ColumnReference) operator.rightOperand;
+                    ResultColumn lrc = leftColumn.getSource();
+                    ResultColumn rrc = rightColumn.getSource();
+                    DataTypeDescriptor lct = lrc.getCastToType();
+                    DataTypeDescriptor rct = rrc.getCastToType();
+                    if (lct != null && rct == null) {
+                        rrc.setCastToType(lct);
+                        done = false;
+                    }
+                    else if (lct == null && rct != null) {
+                        lrc.setCastToType(rct);
+                        done = false;
+                    }
+                }
+            } while (!done);
+        }
+    }
+
+    /*
+        From where clause, this method returns a collection of all predicates that are eligible as a hash join predicate.
+        That is, the operator is an equal operator, both operands are column references.
+     */
+    private void collectJoinPredicates(ValueNode n, List<BinaryRelationalOperatorNode> l) {
+
+        if (n instanceof BinaryRelationalOperatorNode) {
+            BinaryRelationalOperatorNode cNode = (BinaryRelationalOperatorNode) n;
+            if (cNode.operator.compareTo("=") == 0 &&
+                    cNode.leftOperand instanceof ColumnReference &&
+                    cNode.rightOperand instanceof ColumnReference) {
+
+                l.add((BinaryRelationalOperatorNode) n);
+            }
+        } else if ( n instanceof BinaryOperatorNode) {
+            collectJoinPredicates(((BinaryOperatorNode) n).leftOperand, l);
+            collectJoinPredicates(((BinaryOperatorNode) n).rightOperand, l);
+        }
+        else if (n instanceof UnaryOperatorNode) {
+            collectJoinPredicates(((UnaryOperatorNode) n).operand, l);
+        }
+    }
 
 	/**
 	 * Bind the expressions in this ResultSetNode if it has tables.  This means binding the

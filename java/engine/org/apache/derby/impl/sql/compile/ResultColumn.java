@@ -92,6 +92,8 @@ public class ResultColumn extends ValueNode
 	boolean			updatableByCursor;
 	private boolean defaultColumn;
     private boolean wasDefault;
+    private DataTypeDescriptor castToType;
+
     //Following 2 fields have been added for DERBY-4631. 
     //rightOuterJoinUsingClause will be set to true for following 2 cases
     //1)if this column represents the join column which is part of the 
@@ -1924,6 +1926,13 @@ public class ResultColumn extends ValueNode
 	public List getChildren() {
 		return Collections.singletonList(expression);
 	}
-	
+
+    public DataTypeDescriptor getCastToType() {
+        return castToType;
+    }
+
+    public void setCastToType(DataTypeDescriptor type) {
+        castToType = type;
+    }
 }
 

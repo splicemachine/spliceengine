@@ -656,7 +656,8 @@ public class ColumnReference extends ValueNode
 			   ( ! replacesWindowFunctionCall ) &&
 			   ( (source.getExpression() instanceof ColumnReference) ||
 			     (source.getExpression() instanceof VirtualColumnNode) ||
-				 (source.getExpression() instanceof ConstantNode));
+				 (source.getExpression() instanceof ConstantNode) ||
+                 (source.getExpression() instanceof CastNode));
 	}
 
 	/**
@@ -679,7 +680,8 @@ public class ColumnReference extends ValueNode
 		}
 
 		if ( ! ( (expression instanceof VirtualColumnNode) ||
-				 (expression instanceof ColumnReference) )
+				 (expression instanceof ColumnReference) ||
+                 (expression instanceof CastNode))
 			)
 		{
 			return;
@@ -710,9 +712,17 @@ public class ColumnReference extends ValueNode
 		}
 
 		/* Find the matching ResultColumn */
-		source = getSourceResultColumn();
-		columnName = source.getName();
-		columnNumber = source.getColumnPosition();
+        if (expression instanceof CastNode) {
+            VirtualColumnNode vn = (VirtualColumnNode)((CastNode) expression).getCastOperand();
+            source = vn.getSourceResultColumn();
+        }
+        else {
+            source = getSourceResultColumn();
+        }
+
+        columnName = source.getName();
+        columnNumber = source.getColumnPosition();
+
 
 		if (source.getExpression() instanceof ColumnReference)
 		{

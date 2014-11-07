@@ -175,63 +175,34 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
 					getContextManager());
 			((CastNode) leftOperand).bindCastNodeOnly();
 		}
-		//
-		// Splice fork: fix for DB-1001
-		//
-		// If we have <int> <op> <decimal>, or <decimal> <op> <int>,
-		// we need to implicitly promote the int to the decimal.
-		// Ideally we could make this more broadly apply to any numeric type
-		// and compare the type precedence like this:
-		//
-		//     if (rightTypeId.typePrecedence() > leftTypeId.typePrecedence()) ...
-		//
-		// However, there are too many edge case combinations with regression risk,
-		// especially across the various floating point types, so we limit the scope
-		// to promoting numeric integer types (SMALLINT, INTEGER, BIGINT)
-		// to decimal types (DECIMAL, NUMERIC). Besides, this issue has only
-		// been reported for integer and decimal comparisons. The rest seem to be
-		// handled fine already at a lower level than here.
-		//
-		else if ((leftTypeId.isIntegerNumericTypeId() && rightTypeId.isDecimalTypeId()) ||
-				 (leftTypeId.isDecimalTypeId()        && rightTypeId.isIntegerNumericTypeId())) {
+		else if (operator.compareTo("=") == 0 &&
+                 leftOperand instanceof ColumnReference &&
+                 rightOperand instanceof ColumnReference) {
 
-			DataTypeDescriptor leftTypeServices = leftOperand.getTypeServices();
-			DataTypeDescriptor rightTypeServices = rightOperand.getTypeServices();
+            // A column needs to be cast to a big decimal, if
+            // 1. It is not a big decimal
+            // 2. It is compared with a big decimal by equal operation
+            // 3. Both operands of equal operator are column references
+            // A predicate that satisfies the above conditions is a candidate for a hash join predicate.
+            if ((leftTypeId.isIntegerNumericTypeId() && rightTypeId.isDecimalTypeId()) ||
+                 (leftTypeId.isDecimalTypeId() && rightTypeId.isIntegerNumericTypeId())) {
 
-			// If right side is the decimal then promote the left side integer
-			if (rightTypeId.isDecimalTypeId()) {
-				leftOperand =  (ValueNode)
-					getNodeFactory().getNode(
-						C_NodeTypes.CAST_NODE,
-						leftOperand,
-						new DataTypeDescriptor(
-								rightTypeId,
-								rightTypeServices.getPrecision(),
-								rightTypeServices.getScale(),
-								true, 
-								rightTypeServices.getMaximumWidth()
-						),
-						getContextManager());
-				((CastNode) leftOperand).bindCastNodeOnly();
-			} else {
-				// Otherwise, left side is the decimal so promote the right side integer
-				rightOperand =  (ValueNode)
-					getNodeFactory().getNode(
-						C_NodeTypes.CAST_NODE,
-						rightOperand,
-						new DataTypeDescriptor(
-								leftTypeId,
-								leftTypeServices.getPrecision(),
-								leftTypeServices.getScale(),
-								true, 
-								leftTypeServices.getMaximumWidth()
-						),
-						getContextManager());
-				((CastNode) rightOperand).bindCastNodeOnly();
-			}
-		}
+                ValueNode decimalOperand = leftTypeId.isDecimalTypeId() ? leftOperand : rightOperand;
+                ValueNode intOperand = leftTypeId.isIntegerNumericTypeId() ? leftOperand : rightOperand;
+                TypeId decimalTypeId = leftTypeId.isDecimalTypeId() ? leftTypeId : rightTypeId;
 
-		/* Test type compatability and set type info for this node */
+                DataTypeDescriptor dty = new DataTypeDescriptor(
+                        decimalTypeId,
+                        decimalOperand.getTypeServices().getPrecision(),
+                        decimalOperand.getTypeServices().getScale(),
+                        true,
+                        decimalOperand.getTypeServices().getMaximumWidth()
+                );
+                ((ColumnReference)intOperand).getSource().setCastToType(dty);
+            }
+        }
+
+		/* Test type compatibility and set type info for this node */
 		bindComparisonOperator();
 
 		return this;
