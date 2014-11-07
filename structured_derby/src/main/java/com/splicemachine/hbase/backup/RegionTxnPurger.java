@@ -2,18 +2,19 @@ package com.splicemachine.hbase.backup;
 
 import java.io.IOException;
 import java.util.List;
-
 import javax.annotation.Nullable;
-
-import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.Delete;
+import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
-
 import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.hbase.RegionScanIterator;
 import com.splicemachine.metrics.Metrics;
+import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.impl.DenseTxn;
+import com.splicemachine.si.impl.HTransactorFactory;
 import com.splicemachine.si.impl.region.RegionTxnStore;
 import com.splicemachine.si.impl.region.V1TxnDecoder;
 import com.splicemachine.si.impl.region.V2TxnDecoder;
@@ -22,7 +23,7 @@ import com.splicemachine.utils.Source;
 /**
  * Purges unneeded transactions from a Transaction table region.
  */
-public class RegionTxnPurger {
+public class RegionTxnPurger<Data> {
     /*
      * The region in which to access data
      */
@@ -30,11 +31,13 @@ public class RegionTxnPurger {
 
     private final V1TxnDecoder oldTransactionDecoder;
     private final V2TxnDecoder newTransactionDecoder;
+    private final SDataLib dataLib;
 
     public RegionTxnPurger(HRegion region) {
         this.region = region;
         this.oldTransactionDecoder = V1TxnDecoder.INSTANCE;
         this.newTransactionDecoder = V2TxnDecoder.INSTANCE;
+        this.dataLib = HTransactorFactory.getTransactor().getDataLib();
     }
 
     public Source<DenseTxn> getPostBackupTxns(final long afterTs) throws IOException {
@@ -42,10 +45,10 @@ public class RegionTxnPurger {
 
         RegionScanner baseScanner = region.getScanner(scan);
 
-        final RegionScanner scanner = new BufferedRegionScanner(region, baseScanner, scan, 1024, Metrics.noOpMetricFactory());
-        return new RegionScanIterator<DenseTxn>(scanner, new RegionScanIterator.IOFunction<DenseTxn>() {
+        final RegionScanner scanner = new BufferedRegionScanner(region, baseScanner, scan, 1024, Metrics.noOpMetricFactory(),HTransactorFactory.getTransactor().getDataLib() );
+        return new RegionScanIterator<Data,Put,Delete,Get,Scan,DenseTxn>(scanner, new RegionScanIterator.IOFunction<DenseTxn,Data>() {
             @Override
-            public DenseTxn apply(@Nullable List<KeyValue> keyValues) throws IOException {
+            public DenseTxn apply(@Nullable List<Data> keyValues) throws IOException {
                 DenseTxn txn = decode(keyValues);
                 switch (txn.getState()) {
                     case ROLLEDBACK:
@@ -60,13 +63,13 @@ public class RegionTxnPurger {
                 }
                 return null;
             }
-        });
+        }, dataLib);
 
     }
 
     public void rollbackTransactionsAfter(final long afterTs) throws IOException {
         Source<DenseTxn> source = getPostBackupTxns(afterTs);
-        RegionTxnStore store = new RegionTxnStore(region, null, null);
+        RegionTxnStore store = new RegionTxnStore(region, null, null,dataLib);
         while (source.hasNext()) {
             DenseTxn txn = source.next();
             store.recordRollback(txn.getTxnId());
@@ -88,10 +91,10 @@ public class RegionTxnPurger {
         return scan;
     }
 
-    private DenseTxn decode(List<KeyValue> keyValues) throws IOException {
-        DenseTxn txn = newTransactionDecoder.decode(keyValues);
+    private DenseTxn decode(List<Data> keyValues) throws IOException {
+        DenseTxn txn = newTransactionDecoder.decode(dataLib,keyValues);
         if (txn == null) {
-            txn = oldTransactionDecoder.decode(keyValues);
+            txn = oldTransactionDecoder.decode(dataLib,keyValues);
         }
 
         return txn;

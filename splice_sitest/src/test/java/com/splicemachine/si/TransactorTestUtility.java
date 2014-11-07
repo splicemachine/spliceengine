@@ -12,6 +12,7 @@ import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
 import com.splicemachine.si.data.hbase.HbRegion;
+import com.splicemachine.si.impl.HTransactorFactory;
 import com.splicemachine.si.impl.PackedTxnFilter;
 import com.splicemachine.si.impl.TxnFilter;
 import com.splicemachine.storage.EntryDecoder;
@@ -19,6 +20,7 @@ import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
 import com.splicemachine.utils.kryo.KryoPool;
+
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.filter.BinaryComparator;
@@ -337,7 +339,7 @@ public class TransactorTestUtility {
 										throw new RuntimeException(e);
 								}
 								EntryDecoder decoder = new EntryDecoder();
-								filterState = new PackedTxnFilter(filterState, new HRowAccumulator(EntryPredicateFilter.emptyPredicate(),decoder, false));
+								filterState = new PackedTxnFilter(filterState, new HRowAccumulator(HTransactorFactory.getTransactor().getDataStore(),EntryPredicateFilter.emptyPredicate(),decoder, false));
 								result = transactorSetup.readController.filterResult(filterState, rawTuple);
 								
 						} 	

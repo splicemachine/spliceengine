@@ -19,8 +19,10 @@ import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.iapi.types.SQLDecimal;
-import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.Delete;
+import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTable;
+import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
@@ -46,6 +48,7 @@ import com.splicemachine.metrics.TimeView;
 import com.splicemachine.metrics.Timer;
 import com.splicemachine.si.api.SIFilter;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
 import com.splicemachine.si.impl.HTransactorFactory;
 import com.splicemachine.si.impl.PackedTxnFilter;
@@ -59,21 +62,18 @@ import com.splicemachine.storage.HasPredicateFilter;
 import com.splicemachine.storage.Indexed;
 import com.splicemachine.utils.ByteSlice;
 
-public class SpliceTableScanner implements StandardIterator<ExecRow>{
+public class SpliceTableScanner<Data> implements StandardIterator<ExecRow>{
 	
 	private final Timer timer;
 	private final Counter filterCounter;
-
 	private ResultScanner resultScanner;
 	private final Scan scan;
 	private final ExecRow template;
 	private final String tableVersion;
 	private final int[] rowDecodingMap;
-
-
-	private SIFilter siFilter;
+	private SIFilter<Data> siFilter;
 	private EntryPredicateFilter predicateFilter;
-	private List<KeyValue> keyValues;
+	private List<Data> keyValues;
 
 	private RowLocation currentRowLocation;
 	private final boolean[] keyColumnSortOrder;
@@ -88,7 +88,7 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 	private int[] keyDecodingMap;
 	private FormatableBitSet accessedKeys;
 
-	private final SIFilterFactory filterFactory;
+	private final SIFilterFactory<Data> filterFactory;
 	private Timer readTimer;
 	private final Filter scanFilters;
     private HTable htable;
@@ -96,6 +96,7 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
     private List<String> pkColNames;
     private List<Integer> pkColIds;
     private DataValueDescriptor[] data;
+    private final SDataLib<Data, Put, Delete, Get, Scan> dataLib = HTransactorFactory.getTransactor().getDataLib();;
     
 	SpliceTableScanner(ResultScanner scanner,
 												ExecRow template,
@@ -184,12 +185,12 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 									TxnFilter iFilterState = HTransactorFactory.getTransactionReadController().newFilterState(NoOpReadResolver.INSTANCE, baseTxn);
 									//TxnFilter iFilterState = null;
 									
-									HRowAccumulator hRowAccumulator = new HRowAccumulator(predicateFilter, getRowEntryDecoder(), accumulator, isCountStar);
+									HRowAccumulator hRowAccumulator = new HRowAccumulator(HTransactorFactory.getTransactor().getDataStore(),predicateFilter, getRowEntryDecoder(), accumulator, isCountStar);
 									
-									return new PackedTxnFilter(iFilterState, hRowAccumulator){
+									return new PackedTxnFilter<Data>(iFilterState, hRowAccumulator){
 											@Override
-											public Filter.ReturnCode doAccumulate(KeyValue dataKeyValue) throws IOException {
-													if(!com.splicemachine.hbase.KeyValueUtils.singleMatchingQualifier(dataKeyValue,SpliceConstants.PACKED_COLUMN_BYTES))
+											public Filter.ReturnCode doAccumulate(Data dataKeyValue) throws IOException {
+													if(!HTransactorFactory.getTransactor().getDataLib().singleMatchingQualifier(dataKeyValue, SpliceConstants.PACKED_COLUMN_BYTES))
 														return Filter.ReturnCode.SKIP;
 													if (!accumulator.isFinished() && accumulator.isOfInterest(dataKeyValue)) {
 																	if (!accumulator.accumulate(dataKeyValue)) {
@@ -296,8 +297,8 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 
 			if (tmp != null) {
 				hasRow = true;
-				for (KeyValue kv : tmp.raw()) {
-					keyValues.add(kv);
+				for (Object kv : HTransactorFactory.getTransactor().getDataLib().getDataFromResult(tmp)) {
+					keyValues.add((Data) kv);
 				}
 			} else {
 				hasRow = false;
@@ -308,7 +309,7 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 					currentRowLocation = null;
 					return null;
 				} else {
-					KeyValue kv = keyValues.get(0);
+					Data kv = keyValues.get(0);
 
 					if (template.nColumns() > 0) {
 						if (!filterRowKey(kv) || !filterRow(filter)) {
@@ -433,7 +434,7 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 			return EntryPredicateFilter.fromBytes(scan.getAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL));
 	}
 	
-	protected void setRowLocation(KeyValue sampleKv) throws StandardException {
+	protected void setRowLocation(Data sampleKv) throws StandardException {
 			if(indexName!=null && template.nColumns() > 0 && template.getColumn(template.nColumns()).getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID){
 				 /*
 					* If indexName !=null, then we are currently scanning an index,
@@ -443,7 +444,7 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 					currentRowLocation = (RowLocation) template.getColumn(template.nColumns());
 			} else {
 				
-					slice.set(sampleKv.getBuffer(), sampleKv.getRowOffset(), sampleKv.getRowLength());
+					slice.set(dataLib.getDataRowBuffer(sampleKv), dataLib.getDataRowOffset(sampleKv), dataLib.getDataRowlength(sampleKv));
 					
 					if(currentRowLocation==null)
 							currentRowLocation = new HBaseRowLocation(slice);
@@ -454,11 +455,11 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 
 	private boolean filterRow(SIFilter filter) throws IOException {
 			filter.nextRow();
-			Iterator<KeyValue> kvIter = keyValues.iterator();
+			Iterator<Data> kvIter = keyValues.iterator();
 			
 			while(kvIter.hasNext()){
 				
-					KeyValue kv = kvIter.next();
+					Data kv = kvIter.next();
 					Filter.ReturnCode returnCode = filter.filterKeyValue(kv);
 					switch(returnCode){
 							case NEXT_COL:
@@ -476,16 +477,11 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 			return keyValues.size() > 0 && filter.getAccumulator().result() != null;
 	}
 
-	private boolean filterRowKey(KeyValue keyValue) throws IOException {
+	private boolean filterRowKey(Data keyValue) throws IOException {
 			if(!isKeyed) {
 				return true;
-			}
-
-			byte[] dataBuffer = keyValue.getBuffer();
-			int dataOffset = keyValue.getRowOffset();
-			int dataLength = keyValue.getRowLength();
-			
-			keyDecoder.set(dataBuffer, dataOffset, dataLength);
+			}			
+			keyDecoder.set(dataLib.getDataRowBuffer(keyValue),dataLib.getDataRowOffset(keyValue),dataLib.getDataRowlength(keyValue));
 			if(keyAccumulator==null)
 					keyAccumulator = ExecRowAccumulator.newAccumulator(predicateFilter,false,template,
 															keyDecodingMap, keyColumnSortOrder, accessedKeys, tableVersion);

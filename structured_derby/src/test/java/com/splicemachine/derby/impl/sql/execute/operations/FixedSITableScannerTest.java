@@ -13,6 +13,7 @@ import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.si.api.RowAccumulator;
 import com.splicemachine.si.api.SIFilter;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
+import com.splicemachine.si.impl.HTransactorFactory;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.storage.EntryAccumulator;
 import com.splicemachine.storage.EntryDecoder;
@@ -164,14 +165,14 @@ public class FixedSITableScannerTest {
 				testScansProperly(null,null);
 		}
 
-		private static class MockFilter implements SIFilter{
+		private static class MockFilter<Data> implements SIFilter<Data>{
 				private RowAccumulator accumulator;
 
 				private MockFilter(EntryAccumulator accumulator,
 													 EntryDecoder decoder,
 													 EntryPredicateFilter predicateFilter,
 													 boolean isCountStar) {
-						this.accumulator = new HRowAccumulator(predicateFilter,decoder,accumulator,isCountStar);
+						this.accumulator = new HRowAccumulator(HTransactorFactory.getTransactor().getDataStore(),predicateFilter,decoder,accumulator,isCountStar);
 				}
 
 				@Override public void nextRow() {  }
@@ -182,8 +183,8 @@ public class FixedSITableScannerTest {
 				}
 
 				@Override
-				public Filter.ReturnCode filterKeyValue(KeyValue kv) throws IOException {
-						if(!com.splicemachine.hbase.KeyValueUtils.singleMatchingQualifier(kv,SpliceConstants.PACKED_COLUMN_BYTES))
+				public Filter.ReturnCode filterKeyValue(Data kv) throws IOException {
+						if(!HTransactorFactory.getTransactor().getDataLib().singleMatchingQualifier(kv, SpliceConstants.PACKED_COLUMN_BYTES))
 								return Filter.ReturnCode.SKIP;
 						if(!accumulator.isFinished() && accumulator.isOfInterest(kv)){
 								if(!accumulator.accumulate(kv))

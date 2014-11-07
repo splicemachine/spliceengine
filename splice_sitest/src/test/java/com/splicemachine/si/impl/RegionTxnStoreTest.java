@@ -29,7 +29,7 @@ public class RegionTxnStoreTest {
 				HRegion region = getMockRegion();
 
         TransactionResolver resolver = getTransactionResolver();
-				RegionTxnStore store = new RegionTxnStore(region,resolver,mock(TxnSupplier.class));
+				RegionTxnStore store = new RegionTxnStore(region,resolver,mock(TxnSupplier.class),HTransactorFactory.getTransactor().getDataLib());
 
 				SparseTxn txn = new SparseTxn(1,1,-1,-1,-1,true,true, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.State.ACTIVE,new ByteSlice());
 				store.recordTransaction(txn);
@@ -43,7 +43,7 @@ public class RegionTxnStoreTest {
 		public void testCanCommitATransaction() throws Exception {
 				HRegion region = getMockRegion();
 
-				RegionTxnStore store = new RegionTxnStore(region,getTransactionResolver(),mock(TxnSupplier.class));
+				RegionTxnStore store = new RegionTxnStore(region,getTransactionResolver(),mock(TxnSupplier.class),HTransactorFactory.getTransactor().getDataLib());
 
 				SparseTxn txn = new SparseTxn(1,1,-1,-1,-1,true,true, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.State.ACTIVE,new ByteSlice());
 				store.recordTransaction(txn);
@@ -76,7 +76,7 @@ public class RegionTxnStoreTest {
 		public void testCanRollbackATransaction() throws Exception {
 				HRegion region = getMockRegion();
 
-				RegionTxnStore store = new RegionTxnStore(region,getTransactionResolver(),mock(TxnSupplier.class));
+				RegionTxnStore store = new RegionTxnStore(region,getTransactionResolver(),mock(TxnSupplier.class),HTransactorFactory.getTransactor().getDataLib());
 
 				SparseTxn txn = new SparseTxn(1,1,-1,-1,-1,true,true, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.State.ACTIVE,new ByteSlice());
 				store.recordTransaction(txn);
@@ -100,7 +100,7 @@ public class RegionTxnStoreTest {
 		public void testCanGetActiveTransactions() throws Exception {
 				HRegion region = getMockRegion();
 
-				RegionTxnStore store = new RegionTxnStore(region,getTransactionResolver(),mock(TxnSupplier.class));
+				RegionTxnStore store = new RegionTxnStore(region,getTransactionResolver(),mock(TxnSupplier.class),HTransactorFactory.getTransactor().getDataLib());
 
 				SparseTxn txn = new SparseTxn(1,1,-1,-1,-1,true,true, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.State.ACTIVE,new ByteSlice());
 				store.recordTransaction(txn);
@@ -114,7 +114,7 @@ public class RegionTxnStoreTest {
 		public void testGetActiveTransactionsFiltersOutRolledbackTxns() throws Exception {
 				HRegion region = getMockRegion();
 
-				RegionTxnStore store = new RegionTxnStore(region,getTransactionResolver(),mock(TxnSupplier.class));
+				RegionTxnStore store = new RegionTxnStore(region,getTransactionResolver(),mock(TxnSupplier.class),HTransactorFactory.getTransactor().getDataLib());
 
 				SparseTxn txn = new SparseTxn(1,1,-1,-1,-1,true,true, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.State.ACTIVE,new ByteSlice());
 				store.recordTransaction(txn);
@@ -130,7 +130,7 @@ public class RegionTxnStoreTest {
 		public void testGetActiveTransactionsFiltersOutCommittedTxns() throws Exception {
 				HRegion region = getMockRegion();
 
-				RegionTxnStore store = new RegionTxnStore(region,getTransactionResolver(),mock(TxnSupplier.class));
+				RegionTxnStore store = new RegionTxnStore(region,getTransactionResolver(),mock(TxnSupplier.class),HTransactorFactory.getTransactor().getDataLib());
 
 				SparseTxn txn = new SparseTxn(1,1,-1,-1,-1,true,true, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.State.ACTIVE,new ByteSlice());
 				store.recordTransaction(txn);

@@ -3,6 +3,8 @@ package com.splicemachine.hbase;
 import com.google.common.collect.Lists;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
+import com.splicemachine.si.impl.HTransactorFactory;
+
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
@@ -48,7 +50,7 @@ public class BufferedRegionScannerTest {
 						}
 				});
 				MetricFactory factory = Metrics.noOpMetricFactory();
-				BufferedRegionScanner scanner = new BufferedRegionScanner(region,fromListScanner,null,2,1024,factory);
+				BufferedRegionScanner scanner = new BufferedRegionScanner(region,fromListScanner,null,2,1024,factory,HTransactorFactory.getTransactor().getDataLib());
 
 				int count =0;
 				while(scanner.nextRaw(new ArrayList<KeyValue>(),null))

@@ -16,6 +16,7 @@ import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.metrics.TimeView;
 import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.si.impl.HTransactorFactory;
 import com.splicemachine.utils.SpliceLogUtils;
 
 import org.apache.derby.iapi.error.StandardException;
@@ -137,7 +138,7 @@ public class LastIndexKeyOperation extends ScanOperation {
         if (baseScanner == null) {
             baseScanner = region.getScanner(scan);
         }
-        return new BufferedRegionScanner(region,baseScanner,scan, SpliceConstants.DEFAULT_CACHE_SIZE, spliceRuntimeContext);
+        return new BufferedRegionScanner(region,baseScanner,scan, SpliceConstants.DEFAULT_CACHE_SIZE, spliceRuntimeContext,HTransactorFactory.getTransactor().getDataLib());
     }
 
     @Override

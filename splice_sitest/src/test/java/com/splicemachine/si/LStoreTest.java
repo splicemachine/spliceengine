@@ -2,8 +2,10 @@ package com.splicemachine.si;
 
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.light.*;
+
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
 import org.junit.Test;
@@ -16,7 +18,7 @@ public class LStoreTest {
         LStore store = new LStore(new ManualClock());
 
         LTable table = store.open("table1");
-        SDataLib<LTuple, LTuple, LGet, LGet> dataLib = new LDataLib();
+        SDataLib<KeyValue,LTuple, LTuple, LGet, LGet> dataLib = new LDataLib();
         byte[] testKey = dataLib.newRowKey(new Object[]{"joe"});
         LTuple tuple = dataLib.newPut(testKey);
         dataLib.addKeyValueToPut(tuple, dataLib.encode("foo"), dataLib.encode("age"), 1L, dataLib.encode(23));
@@ -36,7 +38,7 @@ public class LStoreTest {
     @Test
     public void testUsingRelationAPI() throws Exception {
         LStore store = new LStore(new ManualClock());
-        SDataLib<LTuple, LTuple, LGet, LGet> dataLib = new LDataLib();
+        SDataLib<KeyValue,LTuple, LTuple, LGet, LGet> dataLib = new LDataLib();
         RelationHelper api = new RelationHelper(dataLib, store, store);
         api.open("table1");
         api.write(new Object[]{"joe"}, "foo", "age", 21, 0L);

@@ -11,8 +11,8 @@ import java.io.IOException;
  * @author Scott Fines
  *         Date: 4/10/14
  */
-public interface SIFilterFactory {
-				SIFilter newFilter(EntryPredicateFilter predicateFilter,
+public interface SIFilterFactory<Data> {
+				SIFilter<Data> newFilter(EntryPredicateFilter predicateFilter,
 													 EntryDecoder rowEntryDecoder,
 													 EntryAccumulator accumulator,
 													 boolean isCountStar) throws IOException;

@@ -2,14 +2,13 @@ package com.splicemachine.derby.iapi.sql.execute;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceOperationRegionScanner;
-import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.hbase.MeasuredRegionScanner;
-import com.splicemachine.hbase.BaseReadAheadRegionScanner;
+import com.splicemachine.hbase.ReadAheadRegionScanner;
 import com.splicemachine.si.api.TransactionalRegion;
-import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.impl.HTransactorFactory;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
@@ -19,7 +18,6 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 
 
@@ -85,9 +83,9 @@ public class SpliceOperationContext {
         this.preparedStatement = preparedStatement;
 
 				if(SpliceConstants.useReadAheadScanner)
-						this.scanner = new BaseReadAheadRegionScanner(region, scan.getCaching(), scanner,spliceRuntimeContext);
+						this.scanner = new ReadAheadRegionScanner(region, scan.getCaching(), scanner,spliceRuntimeContext,HTransactorFactory.getTransactor().getDataLib());
 				else
-						this.scanner = new BufferedRegionScanner(region, scanner, scan, scan.getCaching(),spliceRuntimeContext);
+						this.scanner = new BufferedRegionScanner(region, scanner, scan, scan.getCaching(),spliceRuntimeContext,HTransactorFactory.getTransactor().getDataLib());
 
         this.region=region;
         this.txnRegion = txnRegion;
@@ -140,9 +138,9 @@ public class SpliceOperationContext {
                 caching=SpliceConstants.DEFAULT_CACHE_SIZE;
 
 						if(SpliceConstants.useReadAheadScanner)
-								scanner = new BaseReadAheadRegionScanner(region, caching, baseScanner,spliceRuntimeContext);
+								scanner = new ReadAheadRegionScanner(region, caching, baseScanner,spliceRuntimeContext,HTransactorFactory.getTransactor().getDataLib());
 						else
-								scanner = new BufferedRegionScanner(region, baseScanner, scan, caching, spliceRuntimeContext);
+								scanner = new BufferedRegionScanner(region, baseScanner, scan, caching, spliceRuntimeContext,HTransactorFactory.getTransactor().getDataLib());
         }
         return scanner;
     }

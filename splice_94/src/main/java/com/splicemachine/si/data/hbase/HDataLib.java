@@ -13,6 +13,7 @@ import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.impl.SICompactionState;
 import com.splicemachine.si.impl.region.ActiveTxnFilter;
 import com.splicemachine.utils.ByteSlice;
+
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
@@ -25,6 +26,8 @@ import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import org.apache.hadoop.hbase.regionserver.MultiVersionConsistencyControl;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.util.Pair;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -523,6 +526,11 @@ public class HDataLib implements SDataLib<KeyValue,Put, Delete, Get, Scan> {
 		public boolean internalScannerNext(InternalScanner internalScanner,
 				List<KeyValue> data) throws IOException {
 			return internalScanner.next(data);
+		}
+
+		@Override
+		public boolean isDataInRange(KeyValue data, Pair<byte[], byte[]> range) {
+			return BytesUtil.isKeyValueInRange(data, range);
 		}
 
 }
