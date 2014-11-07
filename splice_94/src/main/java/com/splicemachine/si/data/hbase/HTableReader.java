@@ -24,9 +24,6 @@ public class HTableReader implements STableReader<IHTable, Get, Scan> {
 
     @Override
     public IHTable open(String tableName) throws IOException {
-//        if(SIConstants.TRANSACTION_TABLE.equals(tableName))
-//            return transactionTable;
-
         return new HbTable(tableSource.getTable(tableName));
     }
 

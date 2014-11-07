@@ -4,19 +4,27 @@ import com.google.common.collect.Iterables;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.KeyValueUtils;
+import com.splicemachine.metrics.MetricFactory;
+import com.splicemachine.si.coprocessors.SICompactionScanner;
 import com.splicemachine.si.data.api.SDataLib;
+import com.splicemachine.si.impl.SICompactionState;
+import com.splicemachine.si.impl.region.ActiveTxnFilter;
 import com.splicemachine.utils.ByteSlice;
-
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.InternalScanner;
+import org.apache.hadoop.hbase.regionserver.MultiVersionConsistencyControl;
+import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -458,6 +466,63 @@ public class HDataLib implements SDataLib<KeyValue,Put, Delete, Get, Scan> {
 		@Override
 		public int getLength(KeyValue element) {
 			return element.getLength();
+		}
+
+		@Override
+		public byte[] getDataRowBuffer(KeyValue element) {
+			return element.getBuffer();
+		}
+
+		@Override
+		public int getDataRowOffset(KeyValue element) {
+			return element.getRowOffset();
+		}
+
+		@Override
+		public int getDataRowlength(KeyValue element) {
+			return element.getRowLength();
+		}
+
+		@Override
+		public boolean regionScannerNext(RegionScanner regionScanner,
+				List<KeyValue> data) throws IOException {
+			return regionScanner.next(data);
+		}
+
+		@Override
+		public boolean regionScannerNextRaw(RegionScanner regionScanner,
+				List<KeyValue> data) throws IOException {
+			return regionScanner.nextRaw(data,null);
+		}
+		
+		@Override
+		public void setThreadReadPoint(RegionScanner delegate) {
+			MultiVersionConsistencyControl.setThreadReadPoint(delegate.getMvccReadPoint());
+		}
+
+		@Override
+		public RegionScanner getBufferedRegionScanner(HRegion region,
+				RegionScanner delegate, Scan scan, int bufferSize,
+				MetricFactory metricFactory) {
+			return new BufferedRegionScanner(region,delegate,scan,bufferSize,metricFactory,this);
+		}
+
+		@Override
+		public Filter getActiveTransactionFilter(long beforeTs, long afterTs,
+				byte[] destinationTable) {
+			return new ActiveTxnFilter(beforeTs,afterTs,destinationTable);
+		}
+
+		@Override
+		public InternalScanner getCompactionScanner(InternalScanner scanner,
+				SICompactionState state) {
+			 return new SICompactionScanner(state,scanner,this);			
+		}
+
+		@Override
+		public boolean internalScannerNext(InternalScanner internalScanner,
+				List<KeyValue> data) throws IOException {
+			return internalScanner.next(data);
 		}
 
 }

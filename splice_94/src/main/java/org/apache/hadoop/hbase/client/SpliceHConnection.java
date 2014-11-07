@@ -23,12 +23,6 @@ public class SpliceHConnection extends HConnectionManager.HConnectionImplementat
 								connection = new SpliceHConnection(conf, true);
 								HConnectionManager.HBASE_INSTANCES.put(connectionKey, (HConnectionManager.HConnectionImplementation) connection);
 						}
-//								} else if (connection.isClosed()) {
-//										HConnectionManager.deleteConnection(connectionKey, true);
-//										connection = new HConnectionImplementation(conf, true);
-//										HBASE_INSTANCES.put(connectionKey, connection);
-//								}
-//								connection.incCount();
 						return connection;
 				}
 		}

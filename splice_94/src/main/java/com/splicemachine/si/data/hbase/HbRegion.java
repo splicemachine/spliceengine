@@ -30,7 +30,7 @@ import static com.splicemachine.constants.SpliceConstants.CHECK_BLOOM_ATTRIBUTE_
 /**
  * Wrapper that makes an HBase region comply with a standard interface that abstracts across regions and tables.
  */
-public class HbRegion implements IHTable<Integer> {
+public class HbRegion extends BaseHbRegion<Integer> {
     static final Logger LOG = Logger.getLogger(HbRegion.class);
     static final Result EMPTY_RESULT = new Result(Collections.<KeyValue>emptyList());
     
@@ -143,7 +143,6 @@ public class HbRegion implements IHTable<Integer> {
 	public String toString() {
 		return region.getRegionNameAsString();
 	}
-
 	@Override
 	public OperationStatus[] batchMutate(Collection<KVPair> data,TxnView txn) throws IOException {
 		Pair<Mutation, Integer>[] pairsToProcess = new Pair[data.size()];
@@ -154,13 +153,4 @@ public class HbRegion implements IHTable<Integer> {
 		}
 		return region.batchMutate(pairsToProcess);
 	}
-	
-    private Mutation getMutation(KVPair kvPair, TxnView txn) throws IOException {
-				assert kvPair.getType()== KVPair.Type.INSERT: "Performing an update/delete on a non-transactional table";
-				Put put = new Put(kvPair.getRow());
-				put.add(SpliceConstants.DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES,txn.getTxnId(),kvPair.getValue());
-				put.setAttribute(SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME, SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_VALUE);
-				return put;
-	}
-    
 }

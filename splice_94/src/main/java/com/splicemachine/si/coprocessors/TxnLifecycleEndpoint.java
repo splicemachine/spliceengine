@@ -9,6 +9,7 @@ import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.ThrowIfDisconnected;
 import com.splicemachine.si.api.*;
 import com.splicemachine.si.impl.DenseTxn;
+import com.splicemachine.si.impl.HTransactorFactory;
 import com.splicemachine.si.impl.TransactionStorage;
 import com.splicemachine.si.impl.TransactionTimestamps;
 import com.splicemachine.si.impl.region.RegionTxnStore;
@@ -62,7 +63,7 @@ public class TxnLifecycleEndpoint extends BaseEndpointCoprocessor implements Txn
                     }
                 }
             }
-            regionStore = new RegionTxnStore(region,resolver,TransactionStorage.getTxnSupplier());
+            regionStore = new RegionTxnStore(region,resolver,TransactionStorage.getTxnSupplier(),HTransactorFactory.getTransactor().getDataLib());
             timestampSource = TransactionTimestamps.getTimestampSource();
         }
 		}

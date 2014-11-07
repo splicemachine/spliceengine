@@ -32,7 +32,7 @@ import java.util.concurrent.locks.LockSupport;
  * Date: 5/8/14
  */
 public class ReadAheadRegionScanner implements MeasuredRegionScanner<KeyValue>{
-		private static final Logger LOGGER = Logger.getLogger(ReadAheadRegionScanner.class);
+		private static final Logger LOGGER = Logger.getLogger(BaseReadAheadRegionScanner.class);
 		private static final ExecutorService readAheadService = Executors.newCachedThreadPool(new ThreadFactoryBuilder().setDaemon(true).setNameFormat("tableScan-lookAhead-%d").build());
 
 		private final RingBuffer<List<KeyValue>> ringBuffer;
