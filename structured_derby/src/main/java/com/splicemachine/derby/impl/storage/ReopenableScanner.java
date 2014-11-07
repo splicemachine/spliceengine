@@ -6,12 +6,15 @@ import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.si.impl.HTransactorFactory;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+
 import java.io.IOException;
 
 /**
@@ -69,7 +72,7 @@ public abstract class ReopenableScanner {
         if (lastRow != null) {
             scan.setStartRow(lastRow);
         }
-        delegate = new BufferedRegionScanner(region, region.getScanner(scan), scan, SpliceConstants.DEFAULT_CACHE_SIZE, metricFactory);
+        delegate = new BufferedRegionScanner(region, region.getScanner(scan), scan, SpliceConstants.DEFAULT_CACHE_SIZE, metricFactory,HTransactorFactory.getTransactor().getDataLib() );
         //skip the first row because it has been seen
         try {
             if (lastRow != null) {

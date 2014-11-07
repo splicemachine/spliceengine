@@ -8,6 +8,7 @@ import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.hbase.BaseReadAheadRegionScanner;
+import com.splicemachine.hbase.ReadAheadRegionScanner;
 import com.splicemachine.metrics.Counter;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.TimeView;
@@ -15,6 +16,7 @@ import com.splicemachine.metrics.Timer;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.impl.BaseSIFilter;
+import com.splicemachine.si.impl.HTransactorFactory;
 import com.splicemachine.utils.SpliceLogUtils;
 
 import org.apache.derby.iapi.error.StandardException;
@@ -308,13 +310,13 @@ public class RegionAwareScanner extends ReopenableScanner implements SpliceResul
         localScan.setFilter(scan.getFilter());
 				localScan.setCaching(SpliceConstants.DEFAULT_CACHE_SIZE);
 				if(SpliceConstants.useReadAheadScanner)
-						localScanner = new BaseReadAheadRegionScanner(region,
+						localScanner = new ReadAheadRegionScanner(region,
 										SpliceConstants.DEFAULT_CACHE_SIZE,
-										region.getScanner(localScan), metricFactory );
+										region.getScanner(localScan), metricFactory,HTransactorFactory.getTransactor().getDataLib() );
 				else
 						localScanner = new BufferedRegionScanner(region,
 										region.getScanner(localScan), localScan,
-										SpliceConstants.DEFAULT_CACHE_SIZE, metricFactory );
+										SpliceConstants.DEFAULT_CACHE_SIZE, metricFactory,HTransactorFactory.getTransactor().getDataLib()  );
 
 				localScanner.start();
 				if(remoteStart!=null){
@@ -394,7 +396,7 @@ public class RegionAwareScanner extends ReopenableScanner implements SpliceResul
             startScan.setFilter(getCorrectFilter(scan.getFilter(), txn));
             RegionScanner localScanner = null;
             try{
-            	localScanner = new BufferedRegionScanner(region,region.getScanner(startScan),startScan,startScan.getCaching(),metricFactory);
+            	localScanner = new BufferedRegionScanner(region,region.getScanner(startScan),startScan,startScan.getCaching(),metricFactory,HTransactorFactory.getTransactor().getDataLib() );
                 List<KeyValue> keyValues = Lists.newArrayList();
                 localScanner.next(keyValues);
                 if (keyValues.isEmpty()) {

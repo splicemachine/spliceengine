@@ -4,12 +4,10 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
-
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
-
 import com.google.common.collect.Lists;
 import com.google.common.io.Closeables;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
@@ -23,15 +21,15 @@ import com.splicemachine.metrics.Metrics;
 import com.splicemachine.si.api.ReadResolver;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnSupplier;
-import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.DataStore;
 import com.splicemachine.si.impl.BaseSIFilter;
-import com.splicemachine.si.impl.SimpleTxnFilter;
+import com.splicemachine.si.impl.SIFilter;
 import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.si.impl.TransactionStorage;
 import com.splicemachine.si.impl.TransactionalRegions;
 import com.splicemachine.si.impl.TxnDataStore;
 import com.splicemachine.si.impl.TxnFilter;
+import com.splicemachine.si.impl.UpdatingTxnFilter;
 import com.splicemachine.si.impl.readresolve.SynchronousReadResolver;
 import com.splicemachine.si.impl.rollforward.SegmentedRollForward;
 
@@ -130,7 +128,7 @@ public class RollForwardTask implements Task {
         ReadResolver resolver = SynchronousReadResolver.getResolver(region, txnSupplier, TransactionalRegions.getRollForwardStatus(),true);
         DataStore dataStore = TxnDataStore.getDataStore();
         TxnFilter filer = new UpdatingTxnFilter(txnSupplier,txn,resolver,dataStore,context);
-        BaseSIFilter filter = new BaseSIFilter(filer);
+        BaseSIFilter filter = new SIFilter(filer);
 
         Scan scan = new Scan();
         scan.setStartRow(start);
@@ -138,7 +136,7 @@ public class RollForwardTask implements Task {
         scan.setFilter(filter);
         scan.setCacheBlocks(false);
 
-        return new BufferedRegionScanner(region,region.getScanner(scan), scan,16,Metrics.noOpMetricFactory());
+        return new BufferedRegionScanner(region,region.getScanner(scan), scan,16,Metrics.noOpMetricFactory(),dataStore.dataLib);
     }
 
     @Override public void cleanup() throws ExecutionException {  }
@@ -148,22 +146,4 @@ public class RollForwardTask implements Task {
         return SchedulerPriorities.INSTANCE.getBasePriority(RollForwardTask.class);
     }
 
-    private class UpdatingTxnFilter extends SimpleTxnFilter {
-        private final SegmentedRollForward.Context context;
-
-        public UpdatingTxnFilter(TxnSupplier transactionStore,
-                                 TxnView myTxn,
-                                 ReadResolver readResolver,
-                                 DataStore dataStore,
-                                 SegmentedRollForward.Context context) {
-            super(transactionStore, myTxn, readResolver, dataStore);
-            this.context = context;
-        }
-
-        @Override
-        protected void doResolve(KeyValue keyValue, long ts) {
-            super.doResolve(keyValue, ts);
-            context.rowResolved();
-        }
-    }
 }
