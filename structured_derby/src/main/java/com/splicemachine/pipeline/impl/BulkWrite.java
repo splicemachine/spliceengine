@@ -1,7 +1,7 @@
 package com.splicemachine.pipeline.impl;
 
 import com.carrotsearch.hppc.ObjectArrayList;
-import com.splicemachine.derby.hbase.SpliceWriteControl;
+import com.splicemachine.derby.hbase.WriteSemaphore;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.TxnView;
@@ -24,7 +24,7 @@ public class BulkWrite implements Externalizable {
     private byte[] regionKey;
     private long bufferSize = -1;
     private String encodedStringName;
-    public SpliceWriteControl.Status status;
+    public WriteSemaphore.Status status;
     public int initialSize;
     
     public BulkWrite() { }
