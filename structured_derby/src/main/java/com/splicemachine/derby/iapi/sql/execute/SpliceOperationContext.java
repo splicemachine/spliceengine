@@ -6,7 +6,7 @@ import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.hbase.MeasuredRegionScanner;
-import com.splicemachine.hbase.ReadAheadRegionScanner;
+import com.splicemachine.hbase.BaseReadAheadRegionScanner;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
@@ -85,7 +85,7 @@ public class SpliceOperationContext {
         this.preparedStatement = preparedStatement;
 
 				if(SpliceConstants.useReadAheadScanner)
-						this.scanner = new ReadAheadRegionScanner(region, scan.getCaching(), scanner,spliceRuntimeContext);
+						this.scanner = new BaseReadAheadRegionScanner(region, scan.getCaching(), scanner,spliceRuntimeContext);
 				else
 						this.scanner = new BufferedRegionScanner(region, scanner, scan, scan.getCaching(),spliceRuntimeContext);
 
@@ -140,7 +140,7 @@ public class SpliceOperationContext {
                 caching=SpliceConstants.DEFAULT_CACHE_SIZE;
 
 						if(SpliceConstants.useReadAheadScanner)
-								scanner = new ReadAheadRegionScanner(region, caching, baseScanner,spliceRuntimeContext);
+								scanner = new BaseReadAheadRegionScanner(region, caching, baseScanner,spliceRuntimeContext);
 						else
 								scanner = new BufferedRegionScanner(region, baseScanner, scan, caching, spliceRuntimeContext);
         }
