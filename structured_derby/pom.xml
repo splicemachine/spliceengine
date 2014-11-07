@@ -68,7 +68,7 @@
 				</property>
 			</activation>
 			<dependencies>
-		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_94_adapter</artifactId> <version>1.0.0RC2-SNAPSHOT</version> <classifier>${envClassifier}</classifier><scope>test</scope> </dependency>
+		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_94_adapter</artifactId> <version>1.0.0RC2-SNAPSHOT</version> <classifier>${envClassifier}</classifier> </dependency>
 			</dependencies>
 		</profile>
 		<profile>
