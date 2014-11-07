@@ -5,13 +5,20 @@ import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.KeyValueUtils;
+import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.si.data.api.SDataLib;
+import com.splicemachine.si.impl.SICompactionState;
 import com.splicemachine.utils.ByteSlice;
 
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.InternalScanner;
+import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 
+import java.io.IOException;
 import java.util.*;
 
 public class LDataLib implements SDataLib<KeyValue,LTuple, LTuple, LGet, LGet> {
@@ -451,4 +458,61 @@ public class LDataLib implements SDataLib<KeyValue,LTuple, LTuple, LGet, LGet> {
 			return element.getLength();
 		}
 
+		@Override
+		public byte[] getDataRowBuffer(KeyValue element) {
+			return element.getBuffer();
+		}
+
+		@Override
+		public int getDataRowOffset(KeyValue element) {
+			return element.getRowOffset();
+		}
+
+		@Override
+		public int getDataRowlength(KeyValue element) {
+			return element.getRowLength();
+		}
+
+		@Override
+		public boolean regionScannerNext(RegionScanner regionScanner,
+				List<KeyValue> data) throws IOException {
+			return regionScanner.next(data);
+		}
+
+		@Override
+		public void setThreadReadPoint(RegionScanner delegate) {
+			throw new RuntimeException("Not Implemented");			
+		}
+
+		@Override
+		public boolean regionScannerNextRaw(RegionScanner regionScanner,
+				List<KeyValue> data) throws IOException {
+			throw new RuntimeException("Not Implemented");
+		}
+
+		@Override
+		public RegionScanner getBufferedRegionScanner(HRegion region,
+				RegionScanner delegate, LGet scan, int bufferSize,
+				MetricFactory metricFactory) {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		@Override
+		public Filter getActiveTransactionFilter(long beforeTs, long afterTs,
+				byte[] destinationTable) {
+			throw new RuntimeException("Not Implemented");
+		}
+
+		@Override
+		public InternalScanner getCompactionScanner(InternalScanner scanner,
+				SICompactionState state) {
+			throw new RuntimeException("Not Implemented");
+		}
+
+		@Override
+		public boolean internalScannerNext(InternalScanner internalScanner,
+				List<KeyValue> data) throws IOException {
+			throw new RuntimeException("Not Implemented");
+		}
 }
