@@ -6,7 +6,6 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.encoding.debug.DataType;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.storage.*;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HTable;

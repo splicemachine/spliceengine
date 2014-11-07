@@ -195,7 +195,7 @@ public class SpliceAdminIT {
         ResultSet rs = cs.executeQuery();
         TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_SCHEMA_INFO()", rs);
         System.out.println(fr.toString());
-        DbUtils.closeQuietly(rs);
+         DbUtils.closeQuietly(rs);
     }
 
     @Test

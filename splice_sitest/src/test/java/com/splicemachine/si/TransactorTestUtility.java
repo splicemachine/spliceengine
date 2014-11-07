@@ -339,7 +339,7 @@ public class TransactorTestUtility {
 										throw new RuntimeException(e);
 								}
 								EntryDecoder decoder = new EntryDecoder();
-								filterState = new PackedTxnFilter(filterState, new HRowAccumulator(HTransactorFactory.getTransactor().getDataStore(),EntryPredicateFilter.emptyPredicate(),decoder, false));
+								filterState = new PackedTxnFilter(filterState, new HRowAccumulator(transactorSetup.dataStore,EntryPredicateFilter.emptyPredicate(),decoder, false));
 								result = transactorSetup.readController.filterResult(filterState, rawTuple);
 								
 						} 	

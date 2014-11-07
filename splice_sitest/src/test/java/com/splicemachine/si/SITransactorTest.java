@@ -40,18 +40,6 @@ public class SITransactorTest extends SIConstants {
 								createdParentTxns.add(txn);
 						}
 				};
-//        transactorSetup.rollForwardQueue = new SynchronousRollForwardQueue(
-//								new RollForwardAction() {
-//                    @Override
-//                    public Boolean rollForward(long transactionId, List<byte[]> rowList) throws IOException {
-//                        final STableReader reader = storeSetup.getReader();
-//                        Object testSTable = reader.open(storeSetup.getPersonTableName());
-//												new RegionRollForwardAction(testSTable,
-//																Providers.basicProvider(transactorSetup.transactionStore),
-//																Providers.basicProvider(transactorSetup.dataStore)).rollForward(transactionId,rowList);
-//                        return true;
-//                    }
-//                }, 10, 100, 1000, "test");
 				testUtility = new TransactorTestUtility(useSimple,storeSetup,transactorSetup,transactor,control);
 				txnStore  = transactorSetup.txnStore;
     }
@@ -64,7 +52,6 @@ public class SITransactorTest extends SIConstants {
     @Before
     public void setUp() throws IOException {
         baseSetUp();
-        System.out.println("Setting up "+this.getClass());
     }
 
     @After

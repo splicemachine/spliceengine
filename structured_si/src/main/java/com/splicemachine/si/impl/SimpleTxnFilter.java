@@ -50,6 +50,7 @@ public class SimpleTxnFilter<RowLock,Data> implements TxnFilter<Data> {
 													 DataStore dataStore) {
 				this.transactionStore = new ActiveTxnCacheSupplier(transactionStore, SIConstants.activeTransactionCacheSize); //cache active transactions, but only on this thread
 				this.myTxn = myTxn;
+				assert readResolver != null && dataStore != null;
 				this.readResolver = readResolver;
 				this.dataStore = dataStore;
 		}
@@ -117,7 +118,7 @@ public class SimpleTxnFilter<RowLock,Data> implements TxnFilter<Data> {
 				 * This means that we will NOT writes from dependent child transactions until their
 				 * parent transaction has been committed.
 				 */
-				long ts = dataStore.dataLib.getTimestamp(element);
+				long ts = dataStore.getDataLib().getTimestamp(element);
         if(!visitedTxnIds.add(ts)){
 						/*
 						 * We've already visited this version of the row data, so there's no
@@ -138,7 +139,7 @@ public class SimpleTxnFilter<RowLock,Data> implements TxnFilter<Data> {
 
     protected void doResolve(Data data, long ts) {
         //get the row data. This will allow efficient movement of the row key without copying byte[]s
-    	dataStore.dataLib.setRowInSlice(data, rowKey);
+    	dataStore.getDataLib().setRowInSlice(data, rowKey);
         readResolver.resolve(rowKey,ts);
     }
 
@@ -152,7 +153,7 @@ public class SimpleTxnFilter<RowLock,Data> implements TxnFilter<Data> {
 				 * Otherwise, we just look at the transaction of the entry's visibility to us--if
 				 * it matches, then we can see it.
 				 */
-				long timestamp = dataStore.dataLib.getTimestamp(data);
+				long timestamp = dataStore.getDataLib().getTimestamp(data);
 				long[] tombstones = tombstonedTxnRows.buffer;
 				int tombstoneSize = tombstonedTxnRows.size();
 				for(int i=0;i<tombstoneSize;i++){
@@ -189,7 +190,7 @@ public class SimpleTxnFilter<RowLock,Data> implements TxnFilter<Data> {
     }
 
     private void addToAntiTombstoneCache(Data data) throws IOException {
-				long txnId = this.dataStore.dataLib.getTimestamp(data);
+				long txnId = this.dataStore.getDataLib().getTimestamp(data);
         if(isVisible(txnId)){
 						/*
 						 * We can see this anti-tombstone, hooray!
@@ -200,7 +201,7 @@ public class SimpleTxnFilter<RowLock,Data> implements TxnFilter<Data> {
 		}
 
 		private void addToTombstoneCache(Data data) throws IOException {
-			long txnId = this.dataStore.dataLib.getTimestamp(data);
+			long txnId = this.dataStore.getDataLib().getTimestamp(data);
 				/*
 				 * Only add a tombstone to our list if it's actually visible,
 				 * otherwise there's no point, since we can't see it anyway.
@@ -212,7 +213,7 @@ public class SimpleTxnFilter<RowLock,Data> implements TxnFilter<Data> {
 		}
 
 		private void ensureTransactionIsCached(Data data) {
-			long txnId = this.dataStore.dataLib.getTimestamp(data);
+			long txnId = this.dataStore.getDataLib().getTimestamp(data);
         visitedTxnIds.add(txnId);
 				if(!transactionStore.transactionCached(txnId)){
 						/*
@@ -234,10 +235,10 @@ public class SimpleTxnFilter<RowLock,Data> implements TxnFilter<Data> {
             TxnView toCache;
 						if(dataStore.isSIFail(data)){
 								//use the current read-resolver to remove the entry
-                doResolve(data, dataStore.dataLib.getTimestamp(data));
+                doResolve(data, dataStore.getDataLib().getTimestamp(data));
                 toCache = new RolledBackTxn(txnId);
 						}else{
-								long commitTs = dataStore.dataLib.getValueToLong(data);
+								long commitTs = dataStore.getDataLib().getValueToLong(data);
                 toCache = new CommittedTxn(txnId, commitTs);//since we don't care about the begin timestamp, just use the TxnId
 						}
             transactionStore.cache(toCache);

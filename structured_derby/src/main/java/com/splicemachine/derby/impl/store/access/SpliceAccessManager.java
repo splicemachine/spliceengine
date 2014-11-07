@@ -503,7 +503,7 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
                         throw new IOException("DDLChange "+ddlChange+" does not have a writable transaction");
                     else throw re;
                 }
-                TransactionReadController<Get, Scan> txController = HTransactorFactory.getTransactionReadController();
+                TransactionReadController txController = HTransactorFactory.getTransactionReadController();
                 DDLFilter ddlFilter = txController.newDDLFilter(ddlChange.getTxn());
                 if (ddlFilter.compareTo(ddlDemarcationPoint) > 0) {
                     ddlDemarcationPoint = ddlFilter;

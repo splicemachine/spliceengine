@@ -26,6 +26,10 @@ import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 
 public class SIFactoryImpl implements SIFactory {
+	
+	public static final SDataLib dataLib = new HDataLib();
+	public static final STableWriter tableWriter = new HTableWriter();
+	
 
 	@Override
 	public RowAccumulator getRowAccumulator(DataStore dataStore,
@@ -43,12 +47,12 @@ public class SIFactoryImpl implements SIFactory {
 
 	@Override
 	public STableWriter getTableWriter() {
-		return new HTableWriter();
+		return tableWriter;
 	}
 
 	@Override
 	public SDataLib getDataLib() {
-		return new HDataLib();
+		return dataLib;
 	}
 
 
