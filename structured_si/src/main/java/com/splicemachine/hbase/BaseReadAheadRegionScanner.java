@@ -202,7 +202,7 @@ public abstract class BaseReadAheadRegionScanner<Put extends OperationWithAttrib
 		/********************************************************************************************************************/
 
 		private static final int LOCK_SIZE = (1<<6); //lock for region checking every 64 entries
-		private class Reader<Data> implements Callable<IOStats> {
+		private class Reader implements Callable<IOStats> {
 				private final RegionScanner delegate;
 				private final MetricFactory metricFactory;
 				private final HRegion region;
