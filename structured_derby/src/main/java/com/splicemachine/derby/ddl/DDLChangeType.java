@@ -15,7 +15,8 @@ public enum DDLChangeType {
     DROP_COLUMN(true),
     DROP_TABLE(true),
     DROP_SCHEMA(true),
-    DROP_INDEX(true);
+    DROP_INDEX(true),
+    REBOOT_DD(false);
 
     private boolean tentative;
 
