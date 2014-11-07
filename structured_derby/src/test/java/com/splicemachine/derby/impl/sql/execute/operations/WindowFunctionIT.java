@@ -20,6 +20,7 @@ import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
+import com.splicemachine.derby.test.framework.SpliceViewWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.SpliceXPlainTrace;
 import com.splicemachine.derby.test.framework.TestConnection;
@@ -118,6 +119,11 @@ public class WindowFunctionIT extends SpliceUnitTest {
         "7934, 'MILLER', 'CLERK', 7782,'1982-01-23', 1300, NULL, 10"
     };
 
+    private static final String VIEW_NAME = "YEAR_VIEW";
+    private static String viewDef = String.format("as select to_char(hiredate,'yy') as yr,ename,hiredate from %s.%s group by hiredate,ename",
+                                                  CLASS_NAME, TABLE4_NAME);
+    private static SpliceViewWatcher yearView = new SpliceViewWatcher(VIEW_NAME,CLASS_NAME, viewDef);
+
     private static String table5aDef = "(ID INT generated always as identity (START WITH 1, INCREMENT BY 1) PRIMARY KEY, Nome_Dep VARCHAR(200))";
     public static final String TABLE5a_NAME = "Departamentos";
     protected static SpliceTableWatcher spliceTableWatcher5a = new SpliceTableWatcher(TABLE5a_NAME,CLASS_NAME, table5aDef);
@@ -169,7 +175,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
                                                     PreparedStatement ps;
                                                     try {
                                                         for (String row : PURCHASED_ROWS) {
-                                                            String sql = String.format("insert into %s values (%s)", spliceTableWatcher2, row);
+                                                            String sql = String.format("insert into %s values (%s)",
+                                                                                       spliceTableWatcher2, row);
 //                            System.out.println(sql+";");  // will print insert statements
                                                             ps = spliceClassWatcher.prepareStatement(sql);
                                                             ps.execute();
@@ -187,7 +194,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
                                                     try {
                                                         for (String row : PEOPLE_ROWS) {
                                                             ps = spliceClassWatcher.prepareStatement(
-                                                                String.format("insert into %s values (%s)", spliceTableWatcher3, row));
+                                                                String.format("insert into %s values (%s)",
+                                                                              spliceTableWatcher3, row));
                                                             ps.execute();
                                                         }
                                                     } catch (Exception e) {
@@ -203,7 +211,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
                                                     try {
                                                         for (String row : EMP_ROWS) {
                                                             ps = spliceClassWatcher.prepareStatement(
-                                                                String.format("insert into %s values (%s)", spliceTableWatcher4, row));
+                                                                String.format("insert into %s values (%s)",
+                                                                              spliceTableWatcher4, row));
                                                             ps.execute();
                                                         }
                                                     } catch (Exception e) {
@@ -211,6 +220,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
                                                     }
                                                 }
                                             })
+                                            .around(yearView)
                                             .around(spliceTableWatcher5a)
                                             .around(new SpliceDataWatcher() {
                                                 @Override
@@ -219,7 +229,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
                                                     try {
                                                         for (String row : DEPT) {
                                                             ps = spliceClassWatcher.prepareStatement(
-                                                                String.format("insert into %s (Nome_Dep) values (%s)", spliceTableWatcher5a, row));
+                                                                String.format("insert into %s (Nome_Dep) values (%s)" +
+                                                                                  "", spliceTableWatcher5a, row));
                                                             ps.execute();
                                                         }
                                                     } catch (Exception e) {
@@ -235,7 +246,9 @@ public class WindowFunctionIT extends SpliceUnitTest {
                                                     try {
                                                         for (String row : FUNC) {
                                                             ps = spliceClassWatcher.prepareStatement(
-                                                                String.format("insert into %s (ID_Dep, Nome, Salario) values (%s)", spliceTableWatcher5b, row));
+                                                                String.format("insert into %s (ID_Dep, Nome, " +
+                                                                                  "Salario) values (%s)",
+                                                                              spliceTableWatcher5b, row));
                                                             ps.execute();
                                                         }
                                                     } catch (Exception e) {
@@ -1415,7 +1428,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
                 "  100  |  3  | 55000 |  6  |\n" +
                 "  110  |  1  | 53000 |  7  |\n" +
                 "  120  |  3  | 75000 |  5  |";
-        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
 
@@ -1442,7 +1455,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
                 "    4    |    2    |   Kacy    |Matthews |   3   |2000-05-20 04:02:00.0 |\n" +
                 "    5    |    2    |    Tom    |Matthews |   7   |2001-09-15 11:52:00.0 |\n" +
                 "    5    |    2    |    Tom    |Matthews |   8   |2001-09-15 11:52:00.0 |";
-        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
 
@@ -1565,7 +1578,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
                 "  110  |  1  |53000 |  4  |\n" +
                 "  120  |  3  |75000 |  3  |";
 
-        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
 
@@ -1629,7 +1642,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
                 "  100  |  3  | 55000 |    1    |\n" +
                 "  110  |  1  | 53000 |    4    |\n" +
                 "  120  |  3  | 75000 |    2    |";
-        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
 
@@ -1814,6 +1827,63 @@ public class WindowFunctionIT extends SpliceUnitTest {
                 "       3624.9000       |\n" +
                 "       3624.9000       |\n" +
                 "       3624.9000       |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    @Ignore("DB-2170 - NPE when window function over view. (expected result will need to be regenerated after fix.)")
+    public void testRankOverView() throws Exception {
+        String sqlText =
+            String.format("select yr, rank() over ( partition by yr order by hiredate ) as EMPRANK, ename," +
+                              "hiredate from %s", this.getTableReference(VIEW_NAME));
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        // TODO: regenerate expected results when fixed
+        String expected =
+            "EMPRANK | ENAME | HIREDATE  |\n" +
+                "------------------------------\n" +
+                "    1    | ALLEN |1981-02-20 |\n" +
+                "    2    | WARD  |1981-02-22 |\n" +
+                "    3    | JONES |1981-04-02 |\n" +
+                "    4    | BLAKE |1981-05-01 |\n" +
+                "    5    | CLARK |1981-06-09 |\n" +
+                "    6    |TURNER |1981-09-08 |\n" +
+                "    7    |MARTIN |1981-09-28 |\n" +
+                "    8    | KING  |1981-11-17 |\n" +
+                "    9    | FORD  |1981-12-03 |\n" +
+                "    9    | JAMES |1981-12-03 |\n" +
+                "    1    | ADAMS |1983-01-12 |\n" +
+                "    1    |MILLER |1982-01-23 |\n" +
+                "    2    | SCOTT |1982-12-09 |\n" +
+                "    1    | SMITH |1980-12-17 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    @Ignore("DB-2170 - NPE when window function over view. (this one works periodically, why?)")
+    public void testRankOverViewMissingKey() throws Exception {
+        String sqlText =
+            String.format("select rank() over ( partition by yr order by hiredate ) as EMPRANK, ename," +
+                              "hiredate from %s", this.getTableReference(VIEW_NAME));
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "EMPRANK | ENAME | HIREDATE  |\n" +
+                "------------------------------\n" +
+                "    1    | ALLEN |1981-02-20 |\n" +
+                "    2    | WARD  |1981-02-22 |\n" +
+                "    3    | JONES |1981-04-02 |\n" +
+                "    4    | BLAKE |1981-05-01 |\n" +
+                "    5    | CLARK |1981-06-09 |\n" +
+                "    6    |TURNER |1981-09-08 |\n" +
+                "    7    |MARTIN |1981-09-28 |\n" +
+                "    8    | KING  |1981-11-17 |\n" +
+                "    9    | FORD  |1981-12-03 |\n" +
+                "    9    | JAMES |1981-12-03 |\n" +
+                "    1    | ADAMS |1983-01-12 |\n" +
+                "    1    |MILLER |1982-01-23 |\n" +
+                "    2    | SCOTT |1982-12-09 |\n" +
+                "    1    | SMITH |1980-12-17 |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
