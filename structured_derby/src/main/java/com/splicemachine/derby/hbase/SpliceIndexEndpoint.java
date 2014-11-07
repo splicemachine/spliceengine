@@ -83,7 +83,7 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
 		private long conglomId;
 		private TransactionalRegion region;
 
-		private Timer timer=SpliceDriver.driver().getRegistry().newTimer(receptionName, TimeUnit.MILLISECONDS,TimeUnit.SECONDS);
+		private Timer timer=SpliceDriver.driver().getRegistry().newTimer(receptionName, TimeUnit.MILLISECONDS, TimeUnit.SECONDS);
 		private Meter throughputMeter = SpliceDriver.driver().getRegistry().newMeter(throughputMeterName, "successfulRows", TimeUnit.SECONDS);
 		private Meter failedMeter =SpliceDriver.driver().getRegistry().newMeter(failedMeterName,"failedRows",TimeUnit.SECONDS);
 		private Meter rejectedMeter =SpliceDriver.driver().getRegistry().newMeter(rejectedMeterName,"rejectedRows",TimeUnit.SECONDS);
@@ -172,21 +172,15 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
 				List<Pair<BulkWriteResult,SpliceIndexEndpoint>> startPoints = new ArrayList<Pair<BulkWriteResult,SpliceIndexEndpoint>>();
 				WriteBufferFactory indexWriteBufferFactory = new IndexWriteBufferFactory();
 				boolean dependent = isDependent();
-				WriteSemaphore.Status status = null;
-				int kvPairSize = (int) bulkWrites.getKVPairSize();
+				WriteSemaphore.Status status;
+				int kvPairSize = bulkWrites.numEntries();
+				status = (dependent)?control.acquireDependentPermit(kvPairSize):control.acquireIndependentPermit(kvPairSize);
+				if(status== WriteSemaphore.Status.REJECTED) {
+						rejectAll(result, size);
+						return result;
+				}
+
 				try {
-						status = (dependent)?control.acquireDependentPermit(kvPairSize):control.acquireIndependentPermit(kvPairSize);
-						switch(status) {
-								case REJECTED:
-										this.rejectedMeter.mark();
-										for (int i = 0; i< size; i++) {
-												BulkWrite bulkWrite = (BulkWrite) buffer[i];
-												result.addResult(new BulkWriteResult(new WriteResult(Code.PIPELINE_TOO_BUSY, String.format("endpoint not found for region %s on region %s",bulkWrite.getEncodedStringName(), rce.getRegion().getRegionNameAsString()))));
-										}
-										return result;
-								default:
-										break;
-						}
 						for (int i = 0; i< size; i++) {
 								BulkWrite bulkWrite = (BulkWrite) buffer[i];
 								assert bulkWrite!=null;
@@ -224,6 +218,12 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
 				}
 		}
 
+		private void rejectAll(BulkWritesResult result, int numResults) {
+				this.rejectedMeter.mark();
+				for (int i = 0; i < numResults; i++) {
+						result.addResult(new BulkWriteResult(WriteResult.pipelineTooBusy(rce.getRegion().getRegionNameAsString())));
+				}
+		}
 		private static BulkWriteResult sendUpstream(BulkWrite bulkWrite, SpliceIndexEndpoint endpoint, WriteBufferFactory indexWriteBufferFactory) throws IOException {
 				assert bulkWrite.getTxn()!=null;
 				assert endpoint != null;
