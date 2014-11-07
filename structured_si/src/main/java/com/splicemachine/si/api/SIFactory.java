@@ -11,8 +11,8 @@ import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 
 public interface SIFactory {
-	public RowAccumulator getRowAccumulator(DataStore dataStore, EntryPredicateFilter predicateFilter, EntryDecoder decoder, boolean countStar);
-	public RowAccumulator getRowAccumulator(DataStore dataStore, EntryPredicateFilter predicateFilter, EntryDecoder decoder, EntryAccumulator accumulator, boolean countStar);
+	public RowAccumulator getRowAccumulator(EntryPredicateFilter predicateFilter, EntryDecoder decoder, boolean countStar);
+	public RowAccumulator getRowAccumulator(EntryPredicateFilter predicateFilter, EntryDecoder decoder, EntryAccumulator accumulator, boolean countStar);
     public STableWriter getTableWriter();
     public SDataLib getDataLib();
     public DataStore getDataStore();

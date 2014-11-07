@@ -32,17 +32,15 @@ public class SIFactoryImpl implements SIFactory {
 	
 
 	@Override
-	public RowAccumulator getRowAccumulator(DataStore dataStore,
-			EntryPredicateFilter predicateFilter, EntryDecoder decoder,
+	public RowAccumulator getRowAccumulator(EntryPredicateFilter predicateFilter, EntryDecoder decoder,
 			boolean countStar) {
-		return new HRowAccumulator(dataStore,predicateFilter,decoder,countStar);
+		return new HRowAccumulator(dataLib,predicateFilter,decoder,countStar);
 	}
 
 	@Override
-	public RowAccumulator getRowAccumulator(DataStore dataStore,
-			EntryPredicateFilter predicateFilter, EntryDecoder decoder,
+	public RowAccumulator getRowAccumulator(EntryPredicateFilter predicateFilter, EntryDecoder decoder,
 			EntryAccumulator accumulator, boolean countStar) {
-		return new HRowAccumulator(dataStore,predicateFilter,decoder,accumulator,countStar);
+		return new HRowAccumulator(dataLib,predicateFilter,decoder,accumulator,countStar);
 	}
 
 	@Override

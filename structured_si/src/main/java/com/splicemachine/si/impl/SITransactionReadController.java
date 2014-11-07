@@ -82,7 +82,7 @@ public class SITransactionReadController<Data,
 		public TxnFilter newFilterStatePacked(ReadResolver readResolver,
 																						 EntryPredicateFilter predicateFilter, Txn txn, boolean countStar) throws IOException {
 			return new PackedTxnFilter(newFilterState(txn),
-					SIFactoryDriver.siFactory.getRowAccumulator(dataStore,predicateFilter,new EntryDecoder(),countStar));
+					SIFactoryDriver.siFactory.getRowAccumulator(predicateFilter,new EntryDecoder(),countStar));
 		}
 
 		@Override

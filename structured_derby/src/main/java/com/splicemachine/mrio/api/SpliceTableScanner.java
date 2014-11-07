@@ -53,6 +53,7 @@ import com.splicemachine.si.data.hbase.HRowAccumulator;
 import com.splicemachine.si.impl.HTransactorFactory;
 import com.splicemachine.si.impl.PackedTxnFilter;
 import com.splicemachine.si.impl.ReadOnlyTxn;
+import com.splicemachine.si.impl.SIFactoryDriver;
 import com.splicemachine.si.impl.TxnFilter;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.storage.EntryAccumulator;
@@ -96,7 +97,7 @@ public class SpliceTableScanner<Data> implements StandardIterator<ExecRow>{
     private List<String> pkColNames;
     private List<Integer> pkColIds;
     private DataValueDescriptor[] data;
-    private final SDataLib<Data, Put, Delete, Get, Scan> dataLib = HTransactorFactory.getTransactor().getDataLib();;
+    private final SDataLib<Data, Put, Delete, Get, Scan> dataLib = SIFactoryDriver.siFactory.getDataLib();
     
 	SpliceTableScanner(ResultScanner scanner,
 												ExecRow template,
@@ -185,7 +186,7 @@ public class SpliceTableScanner<Data> implements StandardIterator<ExecRow>{
 									TxnFilter iFilterState = HTransactorFactory.getTransactionReadController().newFilterState(NoOpReadResolver.INSTANCE, baseTxn);
 									//TxnFilter iFilterState = null;
 									
-									HRowAccumulator hRowAccumulator = new HRowAccumulator(HTransactorFactory.getTransactor().getDataStore(),predicateFilter, getRowEntryDecoder(), accumulator, isCountStar);
+									HRowAccumulator hRowAccumulator = new HRowAccumulator(dataLib,predicateFilter, getRowEntryDecoder(), accumulator, isCountStar);
 									
 									return new PackedTxnFilter<Data>(iFilterState, hRowAccumulator){
 											@Override
