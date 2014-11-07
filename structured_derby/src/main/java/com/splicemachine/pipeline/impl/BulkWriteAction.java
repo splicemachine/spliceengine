@@ -118,11 +118,11 @@ public class BulkWriteAction implements Callable<WriteStats> {
 						Timer totalTimer = metricFactory.newTimer();
 						totalTimer.startTiming();
 						if (LOG.isDebugEnabled())
-							SpliceLogUtils.debug(LOG, "[%d] initialBulkWritesSize=%d, initialKVPairSize=%d",id,bulkWrites.getSize(),bulkWrites.getKVPairSize());
+							SpliceLogUtils.debug(LOG, "[%d] initialBulkWritesSize=%d, initialKVPairSize=%d",id,bulkWrites.numEntries(),bulkWrites.getKVPairSize());
 						execute(bulkWrites);
 						totalTimer.stopTiming();
 						if(metricFactory.isActive())
-								return new SimpleWriteStats(bulkWrites.getBufferHeapSize(),bulkWrites.getKVPairSize(),
+								return new SimpleWriteStats(bulkWrites.getKVPairSize(),bulkWrites.numEntries(),
 												retryCounter.getTotal(),
 												globalErrorCounter.getTotal(),
 												partialFailureCounter.getTotal(),
@@ -150,8 +150,21 @@ public class BulkWriteAction implements Callable<WriteStats> {
 
     private void reportSize() {
         boolean success;
-        long bufferEntries = bulkWrites.getSize();
+        long bufferEntries = bulkWrites.numEntries();
+				int numRegions = bulkWrites.numRegions();
         statusReporter.totalFlushEntries.addAndGet(bufferEntries);
+				statusReporter.totalFlushRegions.addAndGet(numRegions);
+
+				do{
+						long currentMax = statusReporter.maxFlushRegions.get();
+						success = currentMax >= bufferEntries || statusReporter.maxFlushRegions.compareAndSet(currentMax, bufferEntries);
+				}while(!success);
+
+				do{
+						long currentMin = statusReporter.minFlushRegions.get();
+						success = currentMin <= bufferEntries || statusReporter.minFlushRegions.compareAndSet(currentMin, bufferEntries);
+				}while(!success);
+
         do{
             long currentMax = statusReporter.maxFlushEntries.get();
             success = currentMax >= bufferEntries || statusReporter.maxFlushEntries.compareAndSet(currentMax, bufferEntries);
@@ -253,7 +266,7 @@ public class BulkWriteAction implements Callable<WriteStats> {
 										break;
 									default:
 										SpliceLogUtils.error(LOG, "Global Response went down default path, assert");
-										assert (false);
+										//assert false;
 										break;
 									
 									}

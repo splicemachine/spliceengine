@@ -2,8 +2,6 @@
 -- TPC-H/TPC-R Discounted Revenue Query (Q19)
 -- Functional Query Definition
 -- Approved February 1998
-set schema tpch1x;
-VALUES (CURRENT_TIMESTAMP);
 select
 	sum(l_extendedprice* (1 - l_discount)) as revenue
 from
@@ -38,5 +36,4 @@ where
 		and p_size between 1 and 15
 		and l_shipmode in ('AIR', 'AIR REG')
 		and l_shipinstruct = 'DELIVER IN PERSON'
-	);
-VALUES (CURRENT_TIMESTAMP);
+	)

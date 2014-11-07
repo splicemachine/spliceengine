@@ -43,19 +43,21 @@ public class BulkWritesRPCInvoker implements BulkWritesInvoker {
 		 */
 		@Override
 		public BulkWritesResult invoke(BulkWrites writes,boolean refreshCache) throws IOException {
-				assert writes.getSize() != 0;
+				assert writes.numEntries() != 0;
 				SpliceIndexEndpoint indexEndpoint = null;
 				// Check for a non-serialized local operation
-				if ((indexEndpoint = SpliceDriver.driver().getSpliceIndexEndpoint( ((BulkWrite) writes.getBuffer()[0]).getEncodedStringName())) != null) {
-					return indexEndpoint.bulkWrite(writes);
-				} else {
-					Configuration config = SpliceConstants.config;
-					NoRetryExecRPCInvoker invoker = new NoRetryExecRPCInvoker(config,
-									connection,batchProtocolClass,tableName,writes.getRegionKey(),refreshCache);
-					BatchProtocol instance = (BatchProtocol) Proxy.newProxyInstance(config.getClassLoader(),
+				if(SpliceDriver.driver().isStarted())
+					if ((indexEndpoint = SpliceDriver.driver().getSpliceIndexEndpoint( ((BulkWrite) writes.getBuffer()[0]).getEncodedStringName())) != null) {
+							return indexEndpoint.bulkWrite(writes);
+					} 
+				// if SpliceDriver is in another JVM and we cannot call the 'driver.start()' within current JVM
+				Configuration config = SpliceConstants.config;
+				NoRetryExecRPCInvoker invoker = new NoRetryExecRPCInvoker(config,
+				connection,batchProtocolClass,tableName,writes.getRegionKey(),refreshCache);
+				BatchProtocol instance = (BatchProtocol) Proxy.newProxyInstance(config.getClassLoader(),
 									protoClassArray,invoker);
-					return PipelineUtils.fromCompressedBytes(instance.bulkWrites(PipelineUtils.toCompressedBytes(writes)),BulkWritesResult.class);
-				}
+				return PipelineUtils.fromCompressedBytes(instance.bulkWrites(PipelineUtils.toCompressedBytes(writes)),BulkWritesResult.class);
+				
 
 		}
 

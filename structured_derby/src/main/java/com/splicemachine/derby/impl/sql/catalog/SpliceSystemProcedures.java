@@ -338,7 +338,17 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .ownerClass(TransactionAdmin.class.getCanonicalName())
                             .build();
                     procedures.add(childTxnProc);
-
+                    
+                    /*
+                     * Procedure to commit a child transaction
+                     */
+                    Procedure commitTxnProc = Procedure.newBuilder().name("SYSCS_COMMIT_CHILD_TRANSACTION")
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .bigint("childTransactionId") // input
+                            .ownerClass(TransactionAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(commitTxnProc);
 
         			/*
         			 * Procedure to get the log level for the given logger

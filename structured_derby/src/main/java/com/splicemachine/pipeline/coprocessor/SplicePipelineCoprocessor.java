@@ -27,7 +27,6 @@ public class SplicePipelineCoprocessor  extends BaseEndpointCoprocessor {
 	                || EnvUtils.getTableEnv((RegionCoprocessorEnvironment) e).equals(SpliceConstants.TableEnv.USER_INDEX_TABLE)
 	                || EnvUtils.getTableEnv((RegionCoprocessorEnvironment) e).equals(SpliceConstants.TableEnv.DERBY_SYS_TABLE)
 	                || EnvUtils.getTableEnv((RegionCoprocessorEnvironment) e).equals(SpliceConstants.TableEnv.META_TABLE);
-
 	        if (tableEnvMatch) {
 	        	SpliceDriver.driver().start(((RegionCoprocessorEnvironment) e).getRegionServerServices());
 	            runningCoprocessors.incrementAndGet();

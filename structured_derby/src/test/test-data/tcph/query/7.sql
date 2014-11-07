@@ -2,9 +2,6 @@
 -- TPC-H/TPC-R Volume Shipping Query (Q7)
 -- Functional Query Definition
 -- Approved February 1998
-set schema tpch1x;
-VALUES (CURRENT_TIMESTAMP) ;
-
 select
 	supp_nation,
 	cust_nation,
@@ -44,5 +41,4 @@ group by
 order by
 	supp_nation,
 	cust_nation,
-	l_year;
-VALUES (CURRENT_TIMESTAMP) ;
+	l_year

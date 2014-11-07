@@ -2,8 +2,6 @@
 -- TPC-H/TPC-R Small-Quantity-Order Revenue Query (Q17)
 -- Functional Query Definition
 -- Approved February 1998
-set schema tpch1x;
-VALUES (CURRENT_TIMESTAMP);
 select
 	sum(l_extendedprice) / 7.0 as avg_yearly
 from
@@ -20,5 +18,4 @@ where
 			lineitem
 		where
 			l_partkey = p_partkey
-	);
-VALUES (CURRENT_TIMESTAMP);
+	)

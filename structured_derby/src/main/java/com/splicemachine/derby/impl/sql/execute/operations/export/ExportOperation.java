@@ -15,9 +15,9 @@ import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.TxnView;
-
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.ResultColumnDescriptor;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.impl.sql.execute.ValueRow;
 
@@ -37,6 +37,7 @@ public class ExportOperation extends SpliceBaseOperation implements SinkingOpera
     protected static List<NodeType> NODE_TYPES = ImmutableList.of(NodeType.REDUCE);
 
     private SpliceOperation source;
+    private ResultColumnDescriptor[] sourceColumnDescriptors;
     private ExportParams exportParams;
 
     private ExecRow currentTemplate;
@@ -45,6 +46,7 @@ public class ExportOperation extends SpliceBaseOperation implements SinkingOpera
     }
 
     public ExportOperation(SpliceOperation source,
+                           ResultColumnDescriptor[] sourceColumnDescriptors,
                            Activation activation,
                            int rsNumber,
                            String exportPath,
@@ -55,6 +57,7 @@ public class ExportOperation extends SpliceBaseOperation implements SinkingOpera
                            String quoteCharacter) throws StandardException {
         super(activation, rsNumber, 0d, 0d);
         this.source = source;
+        this.sourceColumnDescriptors = sourceColumnDescriptors;
         this.exportParams = new ExportParams(exportPath, compression, replicationCount, encoding, fieldSeparator, quoteCharacter);
         this.activation = activation;
         try {
@@ -173,10 +176,6 @@ public class ExportOperation extends SpliceBaseOperation implements SinkingOpera
         }
     }
 
-    public SpliceOperation getSource() {
-        return this.source;
-    }
-
     @Override
     public String prettyPrint(int indentLevel) {
         String indent = "\n" + Strings.repeat("\t", indentLevel);
@@ -194,9 +193,21 @@ public class ExportOperation extends SpliceBaseOperation implements SinkingOpera
         return source.isReferencingTable(tableNumber);
     }
 
+    // - - - - - - - - - - - -
+    // export only methods
+    // - - - - - - - - - - - -
+
     public ExportParams getExportParams() {
         return exportParams;
     }
+
+    public ResultColumnDescriptor[] getSourceResultColumnDescriptors() {
+        return this.sourceColumnDescriptors;
+    }
+
+    // - - - - - - - - - - - -
+    // serialization
+    // - - - - - - - - - - - -
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
@@ -204,6 +215,12 @@ public class ExportOperation extends SpliceBaseOperation implements SinkingOpera
         source = (SpliceOperation) in.readObject();
         currentTemplate = (ExecRow) in.readObject();
         exportParams = (ExportParams) in.readObject();
+        int srcColDescriptors = in.readInt();
+        sourceColumnDescriptors = new ResultColumnDescriptor[srcColDescriptors];
+
+        for (int i = 0; i < srcColDescriptors; i++) {
+            sourceColumnDescriptors[i] = (ResultColumnDescriptor) in.readObject();
+        }
     }
 
     @Override
@@ -212,6 +229,10 @@ public class ExportOperation extends SpliceBaseOperation implements SinkingOpera
         out.writeObject(source);
         out.writeObject(currentTemplate);
         out.writeObject(exportParams);
+        out.writeInt(sourceColumnDescriptors.length);
+        for (int i = 0; i < sourceColumnDescriptors.length; i++) {
+            out.writeObject(sourceColumnDescriptors[i]);
+        }
     }
 
 }

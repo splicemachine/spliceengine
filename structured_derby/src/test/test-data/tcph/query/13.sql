@@ -2,8 +2,6 @@
 -- TPC-H/TPC-R Customer Distribution Query (Q13)
 -- Functional Query Definition
 -- Approved February 1998
-set schema tpch1x;
-VALUES (CURRENT_TIMESTAMP);
 select
 	c_count,
 	count(*) as custdist
@@ -23,5 +21,4 @@ group by
 	c_count
 order by
 	custdist desc,
-	c_count desc;
-VALUES (CURRENT_TIMESTAMP);
+	c_count desc

@@ -1,10 +1,10 @@
 package com.splicemachine.derby.impl.sql.execute.operations.export;
 
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.io.StoredFormatIds;
+import org.apache.derby.iapi.sql.ResultColumnDescriptor;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.SQLDecimal;
-import org.apache.derby.iapi.types.SQLVarchar;
+import org.apache.derby.iapi.types.*;
 import org.apache.derby.impl.sql.execute.ValueRow;
 import org.junit.Test;
 import org.supercsv.io.CsvListWriter;
@@ -15,6 +15,8 @@ import java.io.StringWriter;
 import java.math.BigDecimal;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class ExportExecRowWriterTest {
 
@@ -25,11 +27,12 @@ public class ExportExecRowWriterTest {
         StringWriter writer = new StringWriter(100);
         CsvListWriter csvWriter = new CsvListWriter(writer, CsvPreference.EXCEL_PREFERENCE);
         ExportExecRowWriter execRowWriter = new ExportExecRowWriter(csvWriter);
+        ResultColumnDescriptor[] columnDescriptors = columnDescriptors();
 
         // when
-        execRowWriter.writeRow(build("AAA", "BBB", "CCC", "DDD", "EEE", 111.123456789, 222.123456789));
-        execRowWriter.writeRow(build("AAA", "BBB", null, "DDD", "EEE", 111.123456789, 222.123456789));   // null!
-        execRowWriter.writeRow(build("AAA", "BBB", "CCC", "DDD", "EEE", 111.123456789, 222.123456789));
+        execRowWriter.writeRow(build("AAA", "BBB", "CCC", "DDD", "EEE", 111.123456789, 222.123456789), columnDescriptors);
+        execRowWriter.writeRow(build("AAA", "BBB", null, "DDD", "EEE", 111.123456789, 222.123456789), columnDescriptors);   // null!
+        execRowWriter.writeRow(build("AAA", "BBB", "CCC", "DDD", "EEE", 111.123456789, 222.123456789), columnDescriptors);
         execRowWriter.close();
 
         // then
@@ -54,6 +57,32 @@ public class ExportExecRowWriterTest {
 
         row.setRowArray(rowValues);
         return row;
+    }
+
+    private ResultColumnDescriptor[] columnDescriptors() {
+        ResultColumnDescriptor[] array = new ResultColumnDescriptor[7];
+
+        array[0] = mockColDesc(StoredFormatIds.VARCHAR_TYPE_ID, 0);
+        array[1] = mockColDesc(StoredFormatIds.VARCHAR_TYPE_ID, 0);
+        array[2] = mockColDesc(StoredFormatIds.VARCHAR_TYPE_ID, 0);
+        array[3] = mockColDesc(StoredFormatIds.VARCHAR_TYPE_ID, 0);
+        array[4] = mockColDesc(StoredFormatIds.VARCHAR_TYPE_ID, 0);
+        array[5] = mockColDesc(StoredFormatIds.DECIMAL_TYPE_ID, 2);
+        array[6] = mockColDesc(StoredFormatIds.DECIMAL_TYPE_ID, 7);
+
+        return array;
+    }
+
+    private ResultColumnDescriptor mockColDesc(int formatId, int scale) {
+        ResultColumnDescriptor mockVarCharColDesc = mock(ResultColumnDescriptor.class);
+        DataTypeDescriptor mockType = mock(DataTypeDescriptor.class);
+        TypeId mockTypeId = mock(TypeId.class);
+
+        when(mockVarCharColDesc.getType()).thenReturn(mockType);
+        when(mockType.getTypeId()).thenReturn(mockTypeId);
+        when(mockType.getScale()).thenReturn(scale);
+        when(mockTypeId.getTypeFormatId()).thenReturn(formatId);
+        return mockVarCharColDesc;
     }
 
 

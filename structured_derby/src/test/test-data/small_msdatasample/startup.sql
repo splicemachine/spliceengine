@@ -1,3 +1,4 @@
+drop table if exists category;
 CREATE TABLE category (
 	cat_id			INT,
 	cat_name		VARCHAR(128),
@@ -11,6 +12,7 @@ CREATE TABLE category (
 	cat_name_ko		VARCHAR(128));
 call SYSCS_UTIL.SYSCS_IMPORT_DATA ('<SCHEMA>', 'CATEGORY', null, null, '<DIR>small_msdatasample/category.csv', ',', '"', null,null,null);
 
+drop table if exists category_sub;
 CREATE TABLE category_sub (
 	sbc_id			INT,
 	sbc_desc		VARCHAR(128),
@@ -25,6 +27,7 @@ CREATE TABLE category_sub (
 	sbc_desc_ko		VARCHAR(128));
 call SYSCS_UTIL.SYSCS_IMPORT_DATA ('<SCHEMA>', 'CATEGORY_SUB', null, null, '<DIR>small_msdatasample/category_sub.csv', ',', '"', null,null,null);
 
+drop table if exists customer;
 CREATE TABLE customer (
 	cst_id 			INT, 
 	cst_last_name 		VARCHAR(64), 
@@ -51,6 +54,7 @@ CREATE TABLE customer (
 call SYSCS_UTIL.SYSCS_IMPORT_DATA ('<SCHEMA>', 'CUSTOMER', null, null, '<DIR>small_msdatasample/customer_iso.csv', ',', '"', null,null,null);
 
 
+drop table if exists item;
 CREATE TABLE item (
 	itm_id			INT,
 	itm_name		VARCHAR(128),
@@ -83,7 +87,7 @@ CREATE TABLE item (
 	itm_long_desc_ko	VARCHAR(32672));
 call SYSCS_UTIL.SYSCS_IMPORT_DATA ('<SCHEMA>', 'ITEM', null, null, '<DIR>small_msdatasample/item.csv', ',', '"', null,null,null);
 
-
+drop table if exists order_header;
 CREATE TABLE order_header (
 	orh_id			VARCHAR(50), 
 	orh_date 		TIMESTAMP, 
@@ -95,6 +99,7 @@ CREATE TABLE order_header (
 	orh_rush		INT);
 call SYSCS_UTIL.SYSCS_IMPORT_DATA ('<SCHEMA>', 'ORDER_HEADER', null, null, '<DIR>small_msdatasample/order_header.csv', ',', '"', null,null,null);
 
+drop table if exists order_line;
 CREATE TABLE order_line (
 	orl_order_id 		VARCHAR(50), 
 	orl_amt 		INT,

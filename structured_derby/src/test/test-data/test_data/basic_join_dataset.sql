@@ -1,3 +1,5 @@
+drop table if exists table1;
+drop table if exists table2;
 CREATE TABLE table1(c1 int,c2 int);
 CREATE TABLE table2(c1 int,c2 int);
 INSERT into table1 (c1, c2) VALUES (9, 9);

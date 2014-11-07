@@ -2,8 +2,6 @@
 -- TPC-H/TPC-R Suppliers Who Kept Orders Waiting Query (Q21)
 -- Functional Query Definition
 -- Approved February 1998
-set schema tpch1x;
-VALUES (CURRENT_TIMESTAMP);
 select
 	s_name,
 	count(*) as numwait
@@ -42,5 +40,4 @@ group by
 	s_name
 order by
 	numwait desc,
-	s_name;
-VALUES (CURRENT_TIMESTAMP);
+	s_name

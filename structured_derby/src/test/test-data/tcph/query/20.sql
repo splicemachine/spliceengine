@@ -2,8 +2,6 @@
 -- TPC-H/TPC-R Potential Part Promotion Query (Q20)
 -- Function Query Definition
 -- Approved February 1998
-set schema tpch1x;
-VALUES (CURRENT_TIMESTAMP);
 select s_name,s_address from supplier,nation
 where s_suppkey in (
 		select ps_suppkey from partsupp
@@ -17,5 +15,4 @@ where s_suppkey in (
 	and s_nationkey = n_nationkey
 	and n_name = 'CANADA'
 order by
-	s_name;
-VALUES (CURRENT_TIMESTAMP);
+	s_name
