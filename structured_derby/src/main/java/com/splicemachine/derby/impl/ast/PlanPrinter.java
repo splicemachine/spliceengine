@@ -182,7 +182,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
                     HashMap<String, Object> subInfo = new HashMap<String, Object>();
                     subInfo.put("node", nodeInfo(subq.getResultSet(), 1));
                     subInfo.put("expression?", subq.getSubqueryType() ==
-                            SubqueryNode.EXPRESSION_SUBQUERY);
+                            SubqueryNode.Type.EXPRESSION);
                     subInfo.put("correlated?", subq.hasCorrelatedCRs());
                     subInfo.put("invariant?", subq.isInvariant());
                     return subInfo;
@@ -259,6 +259,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
                             }
                         }
                         columnInfo.put("src", src);
+                        columnInfo.put("exp node", exp.getClass().getSimpleName());
                     }
                 }
                 resultColumns.add(columnInfo);

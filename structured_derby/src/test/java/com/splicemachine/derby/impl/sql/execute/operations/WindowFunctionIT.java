@@ -1,10 +1,10 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import static junit.framework.Assert.assertEquals;
+
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
 
 import org.junit.Assert;
 import org.junit.ClassRule;
@@ -20,9 +20,11 @@ import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
+import com.splicemachine.derby.test.framework.SpliceViewWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.SpliceXPlainTrace;
 import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.homeless.TestUtils;
 
 /**
  *
@@ -117,6 +119,11 @@ public class WindowFunctionIT extends SpliceUnitTest {
         "7934, 'MILLER', 'CLERK', 7782,'1982-01-23', 1300, NULL, 10"
     };
 
+    private static final String VIEW_NAME = "YEAR_VIEW";
+    private static String viewDef = String.format("as select to_char(hiredate,'yy') as yr,ename,hiredate from %s.%s group by hiredate,ename",
+                                                  CLASS_NAME, TABLE4_NAME);
+    private static SpliceViewWatcher yearView = new SpliceViewWatcher(VIEW_NAME,CLASS_NAME, viewDef);
+
     private static String table5aDef = "(ID INT generated always as identity (START WITH 1, INCREMENT BY 1) PRIMARY KEY, Nome_Dep VARCHAR(200))";
     public static final String TABLE5a_NAME = "Departamentos";
     protected static SpliceTableWatcher spliceTableWatcher5a = new SpliceTableWatcher(TABLE5a_NAME,CLASS_NAME, table5aDef);
@@ -148,566 +155,1003 @@ public class WindowFunctionIT extends SpliceUnitTest {
                                             .around(spliceSchemaWatcher)
                                             .around(spliceTableWatcher)
                                             .around(new SpliceDataWatcher() {
-            @Override
-            protected void starting(Description description) {
-                PreparedStatement ps;
-                try {
-                    for (String row : EMPTAB_ROWS) {
-                        ps = spliceClassWatcher.prepareStatement(
-                            String.format("insert into %s values (%s)", spliceTableWatcher, row));
-                        ps.execute();
-                    }
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            }})
-            .around(spliceTableWatcher2)
-            .around(new SpliceDataWatcher() {
-                @Override
-                protected void starting(Description description) {
-                    PreparedStatement ps;
-                    try {
-                        for (String row : PURCHASED_ROWS) {
-                            String sql = String.format("insert into %s values (%s)", spliceTableWatcher2, row);
+                                                @Override
+                                                protected void starting(Description description) {
+                                                    PreparedStatement ps;
+                                                    try {
+                                                        for (String row : EMPTAB_ROWS) {
+                                                            ps = spliceClassWatcher.prepareStatement(
+                                                                String.format("insert into %s values (%s)", spliceTableWatcher, row));
+                                                            ps.execute();
+                                                        }
+                                                    } catch (Exception e) {
+                                                        throw new RuntimeException(e);
+                                                    }
+                                                }})
+                                            .around(spliceTableWatcher2)
+                                            .around(new SpliceDataWatcher() {
+                                                @Override
+                                                protected void starting(Description description) {
+                                                    PreparedStatement ps;
+                                                    try {
+                                                        for (String row : PURCHASED_ROWS) {
+                                                            String sql = String.format("insert into %s values (%s)",
+                                                                                       spliceTableWatcher2, row);
 //                            System.out.println(sql+";");  // will print insert statements
-                            ps = spliceClassWatcher.prepareStatement(sql);
-                            ps.execute();
-                        }
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-            })
-            .around(spliceTableWatcher3)
-            .around(new SpliceDataWatcher() {
-                @Override
-                protected void starting(Description description) {
-                    PreparedStatement ps;
-                    try {
-                        for (String row : PEOPLE_ROWS) {
-                            ps = spliceClassWatcher.prepareStatement(
-                                String.format("insert into %s values (%s)", spliceTableWatcher3, row));
-                            ps.execute();
-                        }
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-            })
-            .around(spliceTableWatcher4)
-            .around(new SpliceDataWatcher() {
-                @Override
-                protected void starting(Description description) {
-                    PreparedStatement ps;
-                    try {
-                        for (String row : EMP_ROWS) {
-                            ps = spliceClassWatcher.prepareStatement(
-                                String.format("insert into %s values (%s)", spliceTableWatcher4, row));
-                            ps.execute();
-                        }
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-            })
-            .around(spliceTableWatcher5a)
-            .around(new SpliceDataWatcher() {
-                @Override
-                protected void starting(Description description) {
-                    PreparedStatement ps;
-                    try {
-                        for (String row : DEPT) {
-                            ps = spliceClassWatcher.prepareStatement(
-                                String.format("insert into %s (Nome_Dep) values (%s)", spliceTableWatcher5a, row));
-                            ps.execute();
-                        }
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-            })
-            .around(spliceTableWatcher5b)
-            .around(new SpliceDataWatcher() {
-                @Override
-                protected void starting(Description description) {
-                    PreparedStatement ps;
-                    try {
-                        for (String row : FUNC) {
-                            ps = spliceClassWatcher.prepareStatement(
-                                String.format("insert into %s (ID_Dep, Nome, Salario) values (%s)", spliceTableWatcher5b, row));
-                            ps.execute();
-                        }
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-            });
+                                                            ps = spliceClassWatcher.prepareStatement(sql);
+                                                            ps.execute();
+                                                        }
+                                                    } catch (Exception e) {
+                                                        throw new RuntimeException(e);
+                                                    }
+                                                }
+                                            })
+                                            .around(spliceTableWatcher3)
+                                            .around(new SpliceDataWatcher() {
+                                                @Override
+                                                protected void starting(Description description) {
+                                                    PreparedStatement ps;
+                                                    try {
+                                                        for (String row : PEOPLE_ROWS) {
+                                                            ps = spliceClassWatcher.prepareStatement(
+                                                                String.format("insert into %s values (%s)",
+                                                                              spliceTableWatcher3, row));
+                                                            ps.execute();
+                                                        }
+                                                    } catch (Exception e) {
+                                                        throw new RuntimeException(e);
+                                                    }
+                                                }
+                                            })
+                                            .around(spliceTableWatcher4)
+                                            .around(new SpliceDataWatcher() {
+                                                @Override
+                                                protected void starting(Description description) {
+                                                    PreparedStatement ps;
+                                                    try {
+                                                        for (String row : EMP_ROWS) {
+                                                            ps = spliceClassWatcher.prepareStatement(
+                                                                String.format("insert into %s values (%s)",
+                                                                              spliceTableWatcher4, row));
+                                                            ps.execute();
+                                                        }
+                                                    } catch (Exception e) {
+                                                        throw new RuntimeException(e);
+                                                    }
+                                                }
+                                            })
+                                            .around(yearView)
+                                            .around(spliceTableWatcher5a)
+                                            .around(new SpliceDataWatcher() {
+                                                @Override
+                                                protected void starting(Description description) {
+                                                    PreparedStatement ps;
+                                                    try {
+                                                        for (String row : DEPT) {
+                                                            ps = spliceClassWatcher.prepareStatement(
+                                                                String.format("insert into %s (Nome_Dep) values (%s)" +
+                                                                                  "", spliceTableWatcher5a, row));
+                                                            ps.execute();
+                                                        }
+                                                    } catch (Exception e) {
+                                                        throw new RuntimeException(e);
+                                                    }
+                                                }
+                                            })
+                                            .around(spliceTableWatcher5b)
+                                            .around(new SpliceDataWatcher() {
+                                                @Override
+                                                protected void starting(Description description) {
+                                                    PreparedStatement ps;
+                                                    try {
+                                                        for (String row : FUNC) {
+                                                            ps = spliceClassWatcher.prepareStatement(
+                                                                String.format("insert into %s (ID_Dep, Nome, " +
+                                                                                  "Salario) values (%s)",
+                                                                              spliceTableWatcher5b, row));
+                                                            ps.execute();
+                                                        }
+                                                    } catch (Exception e) {
+                                                        throw new RuntimeException(e);
+                                                    }
+                                                }
+                                            });
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
 
     @Test
-    public void testMaxMin()throws Exception{
-        {
-            int[] result = {50000, 50000, 50000, 52000, 52000, 53000, 75000, 51000, 51000, 51000, 52000, 55000, 55000, 55000, 75000};
+    public void testMinRows2Preceding() throws Exception {
+        String sqlText =
+            String.format("SELECT empnum,dept,salary," +
+                              "min(salary) over (Partition by dept ORDER BY salary ROWS 2 preceding) as minsal " +
+                              "from %s order by empnum",
+                          this.getTableReference(TABLE_NAME));
 
-            String sqlText =
-                "SELECT empnum,dept,salary,min(salary) over (Partition by dept ORDER BY salary ROWS 2 preceding) as minsal from %s";
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
 
-            ResultSet rs = methodWatcher.executeQuery(
-                String.format(sqlText, this.getTableReference(TABLE_NAME)));
+        String expected =
+            "EMPNUM |DEPT |SALARY |MINSAL |\n" +
+                "------------------------------\n" +
+                "  10   |  1  | 50000 | 50000 |\n" +
+                "  20   |  1  | 75000 | 52000 |\n" +
+                "  30   |  3  | 84000 | 75000 |\n" +
+                "  40   |  2  | 52000 | 51000 |\n" +
+                "  44   |  2  | 52000 | 51000 |\n" +
+                "  49   |  2  | 53000 | 52000 |\n" +
+                "  50   |  1  | 52000 | 50000 |\n" +
+                "  55   |  1  | 52000 | 50000 |\n" +
+                "  60   |  1  | 78000 | 75000 |\n" +
+                "  70   |  1  | 76000 | 53000 |\n" +
+                "  80   |  3  | 79000 | 55000 |\n" +
+                "  90   |  2  | 51000 | 51000 |\n" +
+                "  100  |  3  | 55000 | 55000 |\n" +
+                "  110  |  1  | 53000 | 52000 |\n" +
+                "  120  |  3  | 75000 | 55000 |";
 
-            int i = 0;
-            while (rs.next()) {
-                Assert.assertEquals(result[i++], rs.getInt(4));
-            }
-            rs.close();
-        }
-
-        {
-            int[] result = {52000, 53000, 75000, 76000, 78000, 78000, 78000, 52000, 53000, 53000, 53000, 79000, 84000, 84000, 84000};
-            String sqlText =
-                "SELECT empnum,dept,salary,max(salary) over (Partition by dept ORDER BY salary ROWS BETWEEN CURRENT ROW AND 2 FOLLOWING ) as maxsal from %s";
-
-
-            ResultSet rs = methodWatcher.executeQuery(
-                String.format(sqlText, this.getTableReference(TABLE_NAME)));
-
-            int i = 0;
-            while (rs.next()) {
-                Assert.assertEquals(result[i++],rs.getInt(4));
-            }
-            rs.close();
-        }
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
     }
 
     @Test
-    public void testWindowFrame() throws Exception {
-        int[] result = {78000, 78000, 78000, 78000, 78000, 78000, 78000, 53000, 53000, 53000, 53000, 84000, 84000, 84000, 84000};
+    public void testMaxRowsCurrent2Following()throws Exception{
         String sqlText =
-            "SELECT empnum, dept, salary, max(salary) over (Partition by dept ORDER BY salary rows between unbounded preceding and unbounded following) as maxsal from %s";
+            String.format("SELECT empnum,dept,salary," +
+                              "max(salary) over (Partition by dept ORDER BY salary, empnum ROWS BETWEEN CURRENT ROW AND 2 FOLLOWING ) as maxsal " +
+                              "from %s order by empnum",
+                          this.getTableReference(TABLE_NAME));
 
-        ResultSet rs = methodWatcher.executeQuery(
-            String.format(sqlText, this.getTableReference(TABLE_NAME)));
-        int i = 0;
-        while(rs.next()) {
-            Assert.assertEquals(result[i++],rs.getInt(4));
-        }
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+
+        String expected =
+            "EMPNUM |DEPT |SALARY |MAXSAL |\n" +
+                "------------------------------\n" +
+                "  10   |  1  | 50000 | 52000 |\n" +
+                "  20   |  1  | 75000 | 78000 |\n" +
+                "  30   |  3  | 84000 | 84000 |\n" +
+                "  40   |  2  | 52000 | 53000 |\n" +
+                "  44   |  2  | 52000 | 53000 |\n" +
+                "  49   |  2  | 53000 | 53000 |\n" +
+                "  50   |  1  | 52000 | 53000 |\n" +
+                "  55   |  1  | 52000 | 75000 |\n" +
+                "  60   |  1  | 78000 | 78000 |\n" +
+                "  70   |  1  | 76000 | 78000 |\n" +
+                "  80   |  3  | 79000 | 84000 |\n" +
+                "  90   |  2  | 51000 | 52000 |\n" +
+                "  100  |  3  | 55000 | 79000 |\n" +
+                "  110  |  1  | 53000 | 76000 |\n" +
+                "  120  |  3  | 75000 | 84000 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
+    }
 
-        sqlText =
-            "SELECT empnum, dept, salary, max(salary) over (Partition by dept ORDER BY salary rows between current row and unbounded following) as maxsal from %s";
+    @Test
+    public void testFrameRowsUnboundedPrecedingUnboundedFollowing() throws Exception {
+        String sqlText =
+            String.format("SELECT empnum, dept, salary, " +
+                              "max(salary) over (Partition by dept ORDER BY salary, empnum rows between unbounded preceding and unbounded following) as maxsal " +
+                              "from %s order by dept",
+                          this.getTableReference(TABLE_NAME));
 
-        rs = methodWatcher.executeQuery(
-            String.format(sqlText, this.getTableReference(TABLE_NAME)));
-
-        i = 0;
-        while(rs.next()) {
-            Assert.assertEquals(result[i++], rs.getInt(4));
-        }
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "EMPNUM |DEPT |SALARY |MAXSAL |\n" +
+                "------------------------------\n" +
+                "  10   |  1  | 50000 | 78000 |\n" +
+                "  50   |  1  | 52000 | 78000 |\n" +
+                "  55   |  1  | 52000 | 78000 |\n" +
+                "  110  |  1  | 53000 | 78000 |\n" +
+                "  20   |  1  | 75000 | 78000 |\n" +
+                "  70   |  1  | 76000 | 78000 |\n" +
+                "  60   |  1  | 78000 | 78000 |\n" +
+                "  90   |  2  | 51000 | 53000 |\n" +
+                "  40   |  2  | 52000 | 53000 |\n" +
+                "  44   |  2  | 52000 | 53000 |\n" +
+                "  49   |  2  | 53000 | 53000 |\n" +
+                "  100  |  3  | 55000 | 84000 |\n" +
+                "  120  |  3  | 75000 | 84000 |\n" +
+                "  80   |  3  | 79000 | 84000 |\n" +
+                "  30   |  3  | 84000 | 84000 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
+    }
 
-        int[] result2 = {50000, 50000, 50000, 50000, 50000, 50000, 50000, 51000, 51000, 51000, 51000, 55000, 55000, 55000, 55000};
-        sqlText =
-            "SELECT empnum, dept, salary, min(salary) over (Partition by dept ORDER BY salary rows between unbounded preceding and current row) as maxsal from %s";
+    @Test
+    public void testFrameRowsCurrentRowUnboundedFollowing() throws Exception {
+        String sqlText =
+            String.format("SELECT empnum, dept, salary, " +
+                              "max(salary) over (Partition by dept ORDER BY salary rows between current row and unbounded following) as maxsal " +
+                              "from %s order by empnum",
+                          this.getTableReference(TABLE_NAME));
 
-        rs = methodWatcher.executeQuery(
-            String.format(sqlText, this.getTableReference(TABLE_NAME)));
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "EMPNUM |DEPT |SALARY |MAXSAL |\n" +
+                "------------------------------\n" +
+                "  10   |  1  | 50000 | 78000 |\n" +
+                "  20   |  1  | 75000 | 78000 |\n" +
+                "  30   |  3  | 84000 | 84000 |\n" +
+                "  40   |  2  | 52000 | 53000 |\n" +
+                "  44   |  2  | 52000 | 53000 |\n" +
+                "  49   |  2  | 53000 | 53000 |\n" +
+                "  50   |  1  | 52000 | 78000 |\n" +
+                "  55   |  1  | 52000 | 78000 |\n" +
+                "  60   |  1  | 78000 | 78000 |\n" +
+                "  70   |  1  | 76000 | 78000 |\n" +
+                "  80   |  3  | 79000 | 84000 |\n" +
+                "  90   |  2  | 51000 | 53000 |\n" +
+                "  100  |  3  | 55000 | 84000 |\n" +
+                "  110  |  1  | 53000 | 78000 |\n" +
+                "  120  |  3  | 75000 | 84000 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+    @Test
+    public void testFrameRowsUnboundedPrecedingCurrentRow() throws Exception {
+        String sqlText =
+            String.format("SELECT empnum, dept, salary, " +
+                              "min(salary) over (Partition by dept ORDER BY salary rows between unbounded preceding and current row) as minsal " +
+                              "from %s order by empnum",
+                          this.getTableReference(TABLE_NAME));
 
-        i = 0;
-        while(rs.next()) {
-            Assert.assertEquals(result2[i++], rs.getInt(4));
-        }
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "EMPNUM |DEPT |SALARY |MINSAL |\n" +
+                "------------------------------\n" +
+                "  10   |  1  | 50000 | 50000 |\n" +
+                "  20   |  1  | 75000 | 50000 |\n" +
+                "  30   |  3  | 84000 | 55000 |\n" +
+                "  40   |  2  | 52000 | 51000 |\n" +
+                "  44   |  2  | 52000 | 51000 |\n" +
+                "  49   |  2  | 53000 | 51000 |\n" +
+                "  50   |  1  | 52000 | 50000 |\n" +
+                "  55   |  1  | 52000 | 50000 |\n" +
+                "  60   |  1  | 78000 | 50000 |\n" +
+                "  70   |  1  | 76000 | 50000 |\n" +
+                "  80   |  3  | 79000 | 55000 |\n" +
+                "  90   |  2  | 51000 | 51000 |\n" +
+                "  100  |  3  | 55000 | 55000 |\n" +
+                "  110  |  1  | 53000 | 50000 |\n" +
+                "  120  |  3  | 75000 | 55000 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
 
     @Test
     public void testSum() throws Exception {
-        {
-            int[] result = {50000, 154000, 154000, 207000, 282000, 358000, 436000, 51000, 155000, 155000, 208000, 55000, 130000, 209000, 293000};
-            String sqlText =
-                "SELECT empnum, dept, salary, sum(salary) over (Partition by dept ORDER BY salary) as sumsal from %s";
+        String sqlText =
+            String.format("SELECT empnum, dept, salary, sum(salary) over (Partition by dept ORDER BY salary) as sumsal " +
+                              "from %s order by dept, empnum",
+                          this.getTableReference(TABLE_NAME));
 
-            ResultSet rs = methodWatcher.executeQuery(
-                String.format(sqlText, this.getTableReference(TABLE_NAME)));
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "EMPNUM |DEPT |SALARY |SUMSAL |\n" +
+                "------------------------------\n" +
+                "  10   |  1  | 50000 | 50000 |\n" +
+                "  20   |  1  | 75000 |282000 |\n" +
+                "  50   |  1  | 52000 |154000 |\n" +
+                "  55   |  1  | 52000 |154000 |\n" +
+                "  60   |  1  | 78000 |436000 |\n" +
+                "  70   |  1  | 76000 |358000 |\n" +
+                "  110  |  1  | 53000 |207000 |\n" +
+                "  40   |  2  | 52000 |155000 |\n" +
+                "  44   |  2  | 52000 |155000 |\n" +
+                "  49   |  2  | 53000 |208000 |\n" +
+                "  90   |  2  | 51000 | 51000 |\n" +
+                "  30   |  3  | 84000 |293000 |\n" +
+                "  80   |  3  | 79000 |209000 |\n" +
+                "  100  |  3  | 55000 | 55000 |\n" +
+                "  120  |  3  | 75000 |130000 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
 
-            int i = 0;
-            while (rs.next()) {
-                Assert.assertEquals(result[i++],rs.getInt(4));
-            }
-            rs.close();
-        }
+    @Test
+    public void testSumRowsUnboundedPrecedingUnboundedFollowing() throws Exception {
+        String sqlText =
+            String.format("SELECT empnum, dept, salary, " +
+                              "sum(salary) over (Partition by dept ORDER BY salary rows between unbounded preceding and unbounded following) as sumsal " +
+                              "from %s order by dept, empnum",
+                          this.getTableReference(TABLE_NAME));
 
-        {
-            int[] result = {436000, 436000, 436000, 436000, 436000, 436000, 436000, 208000, 208000, 208000, 208000, 293000, 293000, 293000, 293000};
-            String sqlText =
-                "SELECT empnum, dept, salary, sum(salary) over (Partition by dept ORDER BY salary rows between unbounded preceding and unbounded following) as sumsal from %s";
-            ResultSet rs = methodWatcher.executeQuery(
-                String.format(sqlText, this.getTableReference(TABLE_NAME)));
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "EMPNUM |DEPT |SALARY |SUMSAL |\n" +
+                "------------------------------\n" +
+                "  10   |  1  | 50000 |436000 |\n" +
+                "  20   |  1  | 75000 |436000 |\n" +
+                "  50   |  1  | 52000 |436000 |\n" +
+                "  55   |  1  | 52000 |436000 |\n" +
+                "  60   |  1  | 78000 |436000 |\n" +
+                "  70   |  1  | 76000 |436000 |\n" +
+                "  110  |  1  | 53000 |436000 |\n" +
+                "  40   |  2  | 52000 |208000 |\n" +
+                "  44   |  2  | 52000 |208000 |\n" +
+                "  49   |  2  | 53000 |208000 |\n" +
+                "  90   |  2  | 51000 |208000 |\n" +
+                "  30   |  3  | 84000 |293000 |\n" +
+                "  80   |  3  | 79000 |293000 |\n" +
+                "  100  |  3  | 55000 |293000 |\n" +
+                "  120  |  3  | 75000 |293000 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
 
-            int i = 0;
-            while (rs.next()) {
-                Assert.assertEquals(result[i++],rs.getInt(4));
-            }
-            rs.close();
-        }
+    @Test
+    public void testSumRowsCurrentRowUnboundedFollowing() throws Exception {
+        String sqlText =
+            String.format("SELECT empnum, dept, salary, " +
+                              "sum(salary) over (Partition by dept ORDER BY salary, empnum rows between current row and unbounded following) as sumsal " +
+                              "from %s order by dept, empnum",
+                          this.getTableReference(TABLE_NAME));
 
-        {
-            int[] result = {436000, 386000, 334000, 282000, 229000, 154000, 78000, 208000, 157000, 105000, 53000, 293000, 238000, 163000, 84000};
-            String sqlText =
-                "SELECT empnum, dept, salary, sum(salary) over (Partition by dept ORDER BY salary rows between current row and unbounded following) as sumsal from %s";
-            ResultSet rs = methodWatcher.executeQuery(
-                String.format(sqlText, this.getTableReference(TABLE_NAME)));
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "EMPNUM |DEPT |SALARY |SUMSAL |\n" +
+                "------------------------------\n" +
+                "  10   |  1  | 50000 |436000 |\n" +
+                "  20   |  1  | 75000 |229000 |\n" +
+                "  50   |  1  | 52000 |386000 |\n" +
+                "  55   |  1  | 52000 |334000 |\n" +
+                "  60   |  1  | 78000 | 78000 |\n" +
+                "  70   |  1  | 76000 |154000 |\n" +
+                "  110  |  1  | 53000 |282000 |\n" +
+                "  40   |  2  | 52000 |157000 |\n" +
+                "  44   |  2  | 52000 |105000 |\n" +
+                "  49   |  2  | 53000 | 53000 |\n" +
+                "  90   |  2  | 51000 |208000 |\n" +
+                "  30   |  3  | 84000 | 84000 |\n" +
+                "  80   |  3  | 79000 |163000 |\n" +
+                "  100  |  3  | 55000 |293000 |\n" +
+                "  120  |  3  | 75000 |238000 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
 
-            int i = 0;
-            while (rs.next()) {
-                Assert.assertEquals(result[i++],rs.getInt(4));
-            }
-            rs.close();
-        }
+    @Test
+    public void testSumRows1Preceding1Following() throws Exception {
+        String sqlText =
+            String.format("SELECT empnum, dept, salary, " +
+                              "sum(salary) over (Partition by dept ORDER BY salary, empnum rows between 1 preceding and 1 following) as sumsal from %s",
+                          this.getTableReference(TABLE_NAME));
 
-        {
-            int[] result = {102000, 154000, 157000, 180000, 204000, 229000, 154000, 103000, 155000, 157000, 105000, 130000, 209000, 238000, 163000};
-            String sqlText =
-                "SELECT empnum, dept, salary, sum(salary) over (Partition by dept ORDER BY salary rows between 1 preceding and 1 following) as sumsal from %s";
-            ResultSet rs = methodWatcher.executeQuery(
-                String.format(sqlText, this.getTableReference(TABLE_NAME)));
-
-            int i = 0;
-            while (rs.next()) {
-                Assert.assertEquals(result[i++],rs.getInt(4));
-            }
-            rs.close();
-        }
-
-
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "EMPNUM |DEPT |SALARY |SUMSAL |\n" +
+                "------------------------------\n" +
+                "  90   |  2  | 51000 |103000 |\n" +
+                "  40   |  2  | 52000 |155000 |\n" +
+                "  44   |  2  | 52000 |157000 |\n" +
+                "  49   |  2  | 53000 |105000 |\n" +
+                "  100  |  3  | 55000 |130000 |\n" +
+                "  120  |  3  | 75000 |209000 |\n" +
+                "  80   |  3  | 79000 |238000 |\n" +
+                "  30   |  3  | 84000 |163000 |\n" +
+                "  10   |  1  | 50000 |102000 |\n" +
+                "  50   |  1  | 52000 |154000 |\n" +
+                "  55   |  1  | 52000 |157000 |\n" +
+                "  110  |  1  | 53000 |180000 |\n" +
+                "  20   |  1  | 75000 |204000 |\n" +
+                "  70   |  1  | 76000 |229000 |\n" +
+                "  60   |  1  | 78000 |154000 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
     }
 
     @Test
     public void testAvg() throws Exception {
-        {
-            int[] result = {50000, 51333, 51333, 51750, 56400, 59666, 62285, 51000, 51666, 51666, 52000, 55000, 65000, 69666, 73250};
-            String sqlText =
-                "SELECT empnum, dept, salary, avg(salary) over (Partition by dept ORDER BY salary) as avgsal from %s";
-            ResultSet rs = methodWatcher.executeQuery(
-                String.format(sqlText, this.getTableReference(TABLE_NAME)));
-            int i = 0;
-            while (rs.next()) {
-                Assert.assertEquals(result[i++],rs.getInt(4));
-            }
-            rs.close();
-        }
+        String sqlText =
+            String.format("SELECT empnum, dept, salary, " +
+                              "avg(salary) over (Partition by dept ORDER BY salary) as avgsal " +
+                              "from %s order by dept, empnum",
+                          this.getTableReference(TABLE_NAME));
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "EMPNUM |DEPT |SALARY |AVGSAL |\n" +
+                "------------------------------\n" +
+                "  10   |  1  | 50000 | 50000 |\n" +
+                "  20   |  1  | 75000 | 56400 |\n" +
+                "  50   |  1  | 52000 | 51333 |\n" +
+                "  55   |  1  | 52000 | 51333 |\n" +
+                "  60   |  1  | 78000 | 62285 |\n" +
+                "  70   |  1  | 76000 | 59666 |\n" +
+                "  110  |  1  | 53000 | 51750 |\n" +
+                "  40   |  2  | 52000 | 51666 |\n" +
+                "  44   |  2  | 52000 | 51666 |\n" +
+                "  49   |  2  | 53000 | 52000 |\n" +
+                "  90   |  2  | 51000 | 51000 |\n" +
+                "  30   |  3  | 84000 | 73250 |\n" +
+                "  80   |  3  | 79000 | 69666 |\n" +
+                "  100  |  3  | 55000 | 55000 |\n" +
+                "  120  |  3  | 75000 | 65000 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testCountStar() throws Exception {
+
+        String sqlText =
+            String.format("SELECT empnum, dept, salary, " +
+                              "count(*) over (Partition by dept ORDER BY salary) as count from %s order by dept, empnum",
+                          this.getTableReference(TABLE_NAME));
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "EMPNUM |DEPT |SALARY | COUNT |\n" +
+                "------------------------------\n" +
+                "  10   |  1  | 50000 |   1   |\n" +
+                "  20   |  1  | 75000 |   5   |\n" +
+                "  50   |  1  | 52000 |   3   |\n" +
+                "  55   |  1  | 52000 |   3   |\n" +
+                "  60   |  1  | 78000 |   7   |\n" +
+                "  70   |  1  | 76000 |   6   |\n" +
+                "  110  |  1  | 53000 |   4   |\n" +
+                "  40   |  2  | 52000 |   3   |\n" +
+                "  44   |  2  | 52000 |   3   |\n" +
+                "  49   |  2  | 53000 |   4   |\n" +
+                "  90   |  2  | 51000 |   1   |\n" +
+                "  30   |  3  | 84000 |   4   |\n" +
+                "  80   |  3  | 79000 |   3   |\n" +
+                "  100  |  3  | 55000 |   1   |\n" +
+                "  120  |  3  | 75000 |   2   |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testCountRowsCurrentRowUnboundedFollowing() throws Exception {
+        String sqlText =
+            String.format("SELECT empnum, dept, salary, " +
+                              "count(salary) over (Partition by dept ORDER BY salary, empnum rows between current row and unbounded following) as countsal " +
+                              "from %s",
+                          this.getTableReference(TABLE_NAME));
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "EMPNUM |DEPT |SALARY |COUNTSAL |\n" +
+                "--------------------------------\n" +
+                "  90   |  2  | 51000 |    4    |\n" +
+                "  40   |  2  | 52000 |    3    |\n" +
+                "  44   |  2  | 52000 |    2    |\n" +
+                "  49   |  2  | 53000 |    1    |\n" +
+                "  100  |  3  | 55000 |    4    |\n" +
+                "  120  |  3  | 75000 |    3    |\n" +
+                "  80   |  3  | 79000 |    2    |\n" +
+                "  30   |  3  | 84000 |    1    |\n" +
+                "  10   |  1  | 50000 |    7    |\n" +
+                "  50   |  1  | 52000 |    6    |\n" +
+                "  55   |  1  | 52000 |    5    |\n" +
+                "  110  |  1  | 53000 |    4    |\n" +
+                "  20   |  1  | 75000 |    3    |\n" +
+                "  70   |  1  | 76000 |    2    |\n" +
+                "  60   |  1  | 78000 |    1    |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testCountRowsUnboundedPrecedingUnboundedFollowing() throws Exception {
+        String sqlText =
+            String.format("SELECT empnum, dept, salary, " +
+                              "count(salary) over (Partition by dept ORDER BY salary rows between unbounded preceding and unbounded following) as sumsal " +
+                              "from %s order by salary, dept, empnum",
+                          this.getTableReference(TABLE_NAME));
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "EMPNUM |DEPT |SALARY |SUMSAL |\n" +
+                "------------------------------\n" +
+                "  10   |  1  | 50000 |   7   |\n" +
+                "  90   |  2  | 51000 |   4   |\n" +
+                "  50   |  1  | 52000 |   7   |\n" +
+                "  55   |  1  | 52000 |   7   |\n" +
+                "  40   |  2  | 52000 |   4   |\n" +
+                "  44   |  2  | 52000 |   4   |\n" +
+                "  110  |  1  | 53000 |   7   |\n" +
+                "  49   |  2  | 53000 |   4   |\n" +
+                "  100  |  3  | 55000 |   4   |\n" +
+                "  20   |  1  | 75000 |   7   |\n" +
+                "  120  |  3  | 75000 |   4   |\n" +
+                "  70   |  1  | 76000 |   7   |\n" +
+                "  60   |  1  | 78000 |   7   |\n" +
+                "  80   |  3  | 79000 |   4   |\n" +
+                "  30   |  3  | 84000 |   4   |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
     }
 
     @Test
     public void testCount() throws Exception {
+        String sqlText =
+            String.format("SELECT empnum, dept, salary, " +
+                              "count(salary) over (Partition by dept) as c from %s order by dept, empnum",
+                          this.getTableReference(TABLE_NAME));
 
-        {
-            int[] result = {1, 3, 3, 4, 5, 6, 7, 1, 3, 3, 4, 1, 2, 3, 4};
-            String sqlText =
-                "SELECT empnum, dept, salary, count(*) over (Partition by dept ORDER BY salary) as count from %s";
-            ResultSet rs = methodWatcher.executeQuery(
-                String.format(sqlText, this.getTableReference(TABLE_NAME)));
-
-            int i = 0;
-            while (rs.next()) {
-                Assert.assertEquals(result[i++],rs.getInt(4));
-            }
-            rs.close();
-        }
-        {
-            int[] result = {7, 6, 5, 4, 3, 2, 1, 4, 3, 2, 1, 4, 3, 2, 1};
-            String sqlText =
-                "SELECT empnum, dept, salary, count(salary) over (Partition by dept ORDER BY salary rows between current row and unbounded following) as sumsal from %s";
-            ResultSet rs = methodWatcher.executeQuery(
-                String.format(sqlText, this.getTableReference(TABLE_NAME)));
-
-            int i = 0;
-            while (rs.next()) {
-                Assert.assertEquals(result[i++],rs.getInt(4));
-            }
-            rs.close();
-        }
-        {
-            int[] result = {7, 7, 7, 7, 7, 7, 7, 4, 4, 4, 4, 4, 4, 4, 4};
-            String sqlText =
-                "SELECT empnum, dept, salary, count(salary) over (Partition by dept ORDER BY salary rows between unbounded preceding and unbounded following) as sumsal from %s";
-            ResultSet rs = methodWatcher.executeQuery(
-                String.format(sqlText, this.getTableReference(TABLE_NAME)));
-
-            int i = 0;
-            while (rs.next()) {
-                Assert.assertEquals(result[i++],rs.getInt(4));
-            }
-            rs.close();
-        }
-
-        {
-            int[] result = {7, 7, 7, 7, 7, 7, 7, 4, 4, 4, 4, 4, 4, 4, 4};
-            String sqlText =
-                    "SELECT empnum, dept, salary, count(salary) over (Partition by dept) as c from %s";
-            ResultSet rs = methodWatcher.executeQuery(
-                    String.format(sqlText, this.getTableReference(TABLE_NAME)));
-
-            int i = 0;
-            while (rs.next()) {
-                Assert.assertEquals(result[i++],rs.getInt(4));
-            }
-            rs.close();
-        }
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "EMPNUM |DEPT |SALARY | C |\n" +
+                "--------------------------\n" +
+                "  10   |  1  | 50000 | 7 |\n" +
+                "  20   |  1  | 75000 | 7 |\n" +
+                "  50   |  1  | 52000 | 7 |\n" +
+                "  55   |  1  | 52000 | 7 |\n" +
+                "  60   |  1  | 78000 | 7 |\n" +
+                "  70   |  1  | 76000 | 7 |\n" +
+                "  110  |  1  | 53000 | 7 |\n" +
+                "  40   |  2  | 52000 | 4 |\n" +
+                "  44   |  2  | 52000 | 4 |\n" +
+                "  49   |  2  | 53000 | 4 |\n" +
+                "  90   |  2  | 51000 | 4 |\n" +
+                "  30   |  3  | 84000 | 4 |\n" +
+                "  80   |  3  | 79000 | 4 |\n" +
+                "  100  |  3  | 55000 | 4 |\n" +
+                "  120  |  3  | 75000 | 4 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
     }
 
     @Test
-    public void TestRangeUnbounded() throws Exception {
-        {
-            int[] result = {436000, 386000, 386000, 282000, 229000, 154000, 78000, 208000, 157000, 157000, 53000, 293000, 238000, 163000, 84000};
-            String sqlText =
-                "SELECT empnum, dept, salary, sum(salary) over (Partition by dept ORDER BY salary range between current row and unbounded following) from %s";
-            ResultSet rs = methodWatcher.executeQuery(
-                String.format(sqlText, this.getTableReference(TABLE_NAME)));
+    public void testRangeCurrentRowUnboundedFollowing() throws Exception {
+        String sqlText =
+            String.format("SELECT empnum, dept, salary, " +
+                              "sum(salary) over (Partition by dept ORDER BY salary range between current row and unbounded following) " +
+                              "from %s order by dept, empnum",
+                          this.getTableReference(TABLE_NAME));
 
-            int i = 0;
-            while (rs.next()) {
-                Assert.assertEquals(result[i++],rs.getInt(4));
-            }
-            rs.close();
-        }
-
-        {
-            int[] result = {50000, 154000, 154000, 207000, 282000, 358000, 436000, 51000, 155000, 155000, 208000, 55000, 130000, 209000, 293000};
-            String sqlText =
-                "SELECT empnum, dept, salary, sum(salary) over (Partition by dept ORDER BY salary range between unbounded preceding and current row) as sumsal from %s";
-
-            ResultSet rs = methodWatcher.executeQuery(
-                String.format(sqlText, this.getTableReference(TABLE_NAME)));
-
-            int i = 0;
-            while (rs.next()) {
-                Assert.assertEquals(result[i++],rs.getInt(4));
-            }
-            rs.close();
-        }
-
-        {
-            int[] result = {436000, 436000, 436000, 436000, 436000, 436000, 436000, 208000, 208000, 208000, 208000, 293000, 293000, 293000, 293000};
-            String sqlText =
-                "SELECT empnum, dept, salary, sum(salary) over (Partition by dept ORDER BY salary range between unbounded preceding and unbounded following) as sumsal from %s";
-            ResultSet rs = methodWatcher.executeQuery(
-                String.format(sqlText, this.getTableReference(TABLE_NAME)));
-
-            int i = 0;
-            while (rs.next()) {
-                Assert.assertEquals(result[i++],rs.getInt(4));
-            }
-            rs.close();
-        }
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "EMPNUM |DEPT |SALARY |   4   |\n" +
+                "------------------------------\n" +
+                "  10   |  1  | 50000 |436000 |\n" +
+                "  20   |  1  | 75000 |229000 |\n" +
+                "  50   |  1  | 52000 |386000 |\n" +
+                "  55   |  1  | 52000 |386000 |\n" +
+                "  60   |  1  | 78000 | 78000 |\n" +
+                "  70   |  1  | 76000 |154000 |\n" +
+                "  110  |  1  | 53000 |282000 |\n" +
+                "  40   |  2  | 52000 |157000 |\n" +
+                "  44   |  2  | 52000 |157000 |\n" +
+                "  49   |  2  | 53000 | 53000 |\n" +
+                "  90   |  2  | 51000 |208000 |\n" +
+                "  30   |  3  | 84000 | 84000 |\n" +
+                "  80   |  3  | 79000 |163000 |\n" +
+                "  100  |  3  | 55000 |293000 |\n" +
+                "  120  |  3  | 75000 |238000 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
     }
 
     @Test
-    public void TestRowsUnbounded() throws Exception {
-        {
-            int[] result = {436000, 386000, 334000, 282000, 229000, 154000, 78000, 208000, 157000, 105000, 53000, 293000, 238000, 163000, 84000};
-            String sqlText =
-                    "SELECT empnum, dept, salary, sum(salary) over (Partition by dept ORDER BY salary rows between current row and unbounded following) from %s";
-            ResultSet rs = methodWatcher.executeQuery(
-                    String.format(sqlText, this.getTableReference(TABLE_NAME)));
+    public void testRangeUnboundedPrecedingCurrentRow() throws Exception {
+        String sqlText =
+            String.format("SELECT empnum, dept, salary, " +
+                              "sum(salary) over (Partition by dept ORDER BY salary range between unbounded preceding and current row) as sumsal " +
+                              "from %s order by dept, empnum",
+                          this.getTableReference(TABLE_NAME));
 
-            int i = 0;
-            while (rs.next()) {
-                Assert.assertEquals(result[i++],rs.getInt(4));
-            }
-            rs.close();
-        }
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "EMPNUM |DEPT |SALARY |SUMSAL |\n" +
+                "------------------------------\n" +
+                "  10   |  1  | 50000 | 50000 |\n" +
+                "  20   |  1  | 75000 |282000 |\n" +
+                "  50   |  1  | 52000 |154000 |\n" +
+                "  55   |  1  | 52000 |154000 |\n" +
+                "  60   |  1  | 78000 |436000 |\n" +
+                "  70   |  1  | 76000 |358000 |\n" +
+                "  110  |  1  | 53000 |207000 |\n" +
+                "  40   |  2  | 52000 |155000 |\n" +
+                "  44   |  2  | 52000 |155000 |\n" +
+                "  49   |  2  | 53000 |208000 |\n" +
+                "  90   |  2  | 51000 | 51000 |\n" +
+                "  30   |  3  | 84000 |293000 |\n" +
+                "  80   |  3  | 79000 |209000 |\n" +
+                "  100  |  3  | 55000 | 55000 |\n" +
+                "  120  |  3  | 75000 |130000 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
 
-        {
-            int[] result = {50000, 102000, 154000, 207000, 282000, 358000, 436000, 51000, 103000, 155000, 208000, 55000, 130000, 209000, 293000};
-            String sqlText =
-                    "SELECT empnum, dept, salary, sum(salary) over (Partition by dept ORDER BY salary rows between unbounded preceding and current row) as sumsal from %s";
+    @Test
+    public void testRangeUnboundedPrecedingUnboundedFollowing() throws Exception {
+        String sqlText =
+            String.format("SELECT empnum, dept, salary, " +
+                              "sum(salary) over (Partition by dept ORDER BY salary range between unbounded preceding and unbounded following) as sumsal " +
+                              "from %s order by dept, empnum",
+                          this.getTableReference(TABLE_NAME));
 
-            ResultSet rs = methodWatcher.executeQuery(
-                    String.format(sqlText, this.getTableReference(TABLE_NAME)));
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "EMPNUM |DEPT |SALARY |SUMSAL |\n" +
+                "------------------------------\n" +
+                "  10   |  1  | 50000 |436000 |\n" +
+                "  20   |  1  | 75000 |436000 |\n" +
+                "  50   |  1  | 52000 |436000 |\n" +
+                "  55   |  1  | 52000 |436000 |\n" +
+                "  60   |  1  | 78000 |436000 |\n" +
+                "  70   |  1  | 76000 |436000 |\n" +
+                "  110  |  1  | 53000 |436000 |\n" +
+                "  40   |  2  | 52000 |208000 |\n" +
+                "  44   |  2  | 52000 |208000 |\n" +
+                "  49   |  2  | 53000 |208000 |\n" +
+                "  90   |  2  | 51000 |208000 |\n" +
+                "  30   |  3  | 84000 |293000 |\n" +
+                "  80   |  3  | 79000 |293000 |\n" +
+                "  100  |  3  | 55000 |293000 |\n" +
+                "  120  |  3  | 75000 |293000 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
 
-            int i = 0;
-            while (rs.next()) {
-                Assert.assertEquals(result[i++],rs.getInt(4));
-            }
-            rs.close();
-        }
+    @Test
+    public void testRowsCurrentRowUnboundedFollowingSortOnResult() throws Exception {
+        // had to add empnum to fn order by so that results would be deterministic/repeatable
+        String sqlText =
+            String.format("SELECT empnum, dept, salary, " +
+                              "sum(salary) over (Partition by dept ORDER BY salary, empnum rows between current row and unbounded following) " +
+                              "from %s",
+                          this.getTableReference(TABLE_NAME));
 
-        {
-            int[] result = {436000, 436000, 436000, 436000, 436000, 436000, 436000, 208000, 208000, 208000, 208000, 293000, 293000, 293000, 293000};
-            String sqlText =
-                    "SELECT empnum, dept, salary, sum(salary) over (Partition by dept ORDER BY salary rows between unbounded preceding and unbounded following) as sumsal from %s";
-            ResultSet rs = methodWatcher.executeQuery(
-                    String.format(sqlText, this.getTableReference(TABLE_NAME)));
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "EMPNUM |DEPT |SALARY |   4   |\n" +
+                "------------------------------\n" +
+                "  90   |  2  | 51000 |208000 |\n" +
+                "  40   |  2  | 52000 |157000 |\n" +
+                "  44   |  2  | 52000 |105000 |\n" +
+                "  49   |  2  | 53000 | 53000 |\n" +
+                "  100  |  3  | 55000 |293000 |\n" +
+                "  120  |  3  | 75000 |238000 |\n" +
+                "  80   |  3  | 79000 |163000 |\n" +
+                "  30   |  3  | 84000 | 84000 |\n" +
+                "  10   |  1  | 50000 |436000 |\n" +
+                "  50   |  1  | 52000 |386000 |\n" +
+                "  55   |  1  | 52000 |334000 |\n" +
+                "  110  |  1  | 53000 |282000 |\n" +
+                "  20   |  1  | 75000 |229000 |\n" +
+                "  70   |  1  | 76000 |154000 |\n" +
+                "  60   |  1  | 78000 | 78000 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
 
-            int i = 0;
-            while (rs.next()) {
-                Assert.assertEquals(result[i++],rs.getInt(4));
-            }
-            rs.close();
-        }
+    @Test
+    public void testRowsUnboundedPrecedingCurrentRowSortOnResult() throws Exception {
+        String sqlText =
+            String.format("SELECT empnum, dept, salary, " +
+                              "sum(salary) over (Partition by dept ORDER BY salary, empnum rows between unbounded preceding and current row) as sumsal " +
+                              "from %s order by dept, empnum",
+                          this.getTableReference(TABLE_NAME));
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "EMPNUM |DEPT |SALARY |SUMSAL |\n" +
+                "------------------------------\n" +
+                "  10   |  1  | 50000 | 50000 |\n" +
+                "  20   |  1  | 75000 |282000 |\n" +
+                "  50   |  1  | 52000 |102000 |\n" +
+                "  55   |  1  | 52000 |154000 |\n" +
+                "  60   |  1  | 78000 |436000 |\n" +
+                "  70   |  1  | 76000 |358000 |\n" +
+                "  110  |  1  | 53000 |207000 |\n" +
+                "  40   |  2  | 52000 |103000 |\n" +
+                "  44   |  2  | 52000 |155000 |\n" +
+                "  49   |  2  | 53000 |208000 |\n" +
+                "  90   |  2  | 51000 | 51000 |\n" +
+                "  30   |  3  | 84000 |293000 |\n" +
+                "  80   |  3  | 79000 |209000 |\n" +
+                "  100  |  3  | 55000 | 55000 |\n" +
+                "  120  |  3  | 75000 |130000 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+    @Test
+    public void testRowsUnboundedPrecedingUnboundedFollowing() throws Exception {
+        String sqlText =
+            String.format("SELECT empnum, dept, salary, " +
+                              "sum(salary) over (Partition by dept ORDER BY salary rows between unbounded preceding and unbounded following) as sumsal " +
+                              "from %s order by dept, empnum",
+                          this.getTableReference(TABLE_NAME));
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "EMPNUM |DEPT |SALARY |SUMSAL |\n" +
+                "------------------------------\n" +
+                "  10   |  1  | 50000 |436000 |\n" +
+                "  20   |  1  | 75000 |436000 |\n" +
+                "  50   |  1  | 52000 |436000 |\n" +
+                "  55   |  1  | 52000 |436000 |\n" +
+                "  60   |  1  | 78000 |436000 |\n" +
+                "  70   |  1  | 76000 |436000 |\n" +
+                "  110  |  1  | 53000 |436000 |\n" +
+                "  40   |  2  | 52000 |208000 |\n" +
+                "  44   |  2  | 52000 |208000 |\n" +
+                "  49   |  2  | 53000 |208000 |\n" +
+                "  90   |  2  | 51000 |208000 |\n" +
+                "  30   |  3  | 84000 |293000 |\n" +
+                "  80   |  3  | 79000 |293000 |\n" +
+                "  100  |  3  | 55000 |293000 |\n" +
+                "  120  |  3  | 75000 |293000 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
     }
 
     @Test
     public void testRangeDescOrder() throws Exception {
 
         {
-            int[] result = {75000, 53000, 52000, 52000, 50000, 50000, 50000, 52000, 51000, 51000, 51000, 75000, 55000, 55000, 55000};
             String sqlText =
-                "SELECT empnum,dept,salary,min(salary) over (Partition by dept ORDER BY salary desc ROWS BETWEEN CURRENT ROW AND 2 FOLLOWING ) as minsal from %s";
+                String.format("SELECT empnum,dept,salary," +
+                                  "min(salary) over (Partition by dept ORDER BY salary desc RANGE BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING ) as minsal " +
+                                  "from %s order by dept, empnum",
+                              this.getTableReference(TABLE_NAME));
 
-            ResultSet rs = methodWatcher.executeQuery(
-                String.format(sqlText, this.getTableReference(TABLE_NAME)));
-
-            int i = 0;
-            while (rs.next()) {
-                Assert.assertEquals(result[i++],rs.getInt(4));
-            }
+            ResultSet rs = methodWatcher.executeQuery(sqlText);
+            String expected =
+                "EMPNUM |DEPT |SALARY |MINSAL |\n" +
+                    "------------------------------\n" +
+                    "  10   |  1  | 50000 | 50000 |\n" +
+                    "  20   |  1  | 75000 | 50000 |\n" +
+                    "  50   |  1  | 52000 | 50000 |\n" +
+                    "  55   |  1  | 52000 | 50000 |\n" +
+                    "  60   |  1  | 78000 | 50000 |\n" +
+                    "  70   |  1  | 76000 | 50000 |\n" +
+                    "  110  |  1  | 53000 | 50000 |\n" +
+                    "  40   |  2  | 52000 | 51000 |\n" +
+                    "  44   |  2  | 52000 | 51000 |\n" +
+                    "  49   |  2  | 53000 | 51000 |\n" +
+                    "  90   |  2  | 51000 | 51000 |\n" +
+                    "  30   |  3  | 84000 | 55000 |\n" +
+                    "  80   |  3  | 79000 | 55000 |\n" +
+                    "  100  |  3  | 55000 | 55000 |\n" +
+                    "  120  |  3  | 75000 | 55000 |";
+            assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
             rs.close();
         }
 
 
         {
-            int[] result = {78000, 154000, 229000, 282000, 386000, 386000, 436000, 53000, 157000, 157000, 208000, 84000, 163000, 238000, 293000};
             String sqlText =
-                "SELECT empnum, dept, salary, sum(salary) over (Partition by dept ORDER BY salary desc) as sumsal from %s";
+                String.format("SELECT empnum, dept, salary, " +
+                                  "sum(salary) over (Partition by dept ORDER BY salary desc) as sumsal " +
+                                  "from %s order by dept, empnum",
+                              this.getTableReference(TABLE_NAME));
 
-            ResultSet rs = methodWatcher.executeQuery(
-                String.format(sqlText, this.getTableReference(TABLE_NAME)));
-
-            int i = 0;
-            while (rs.next()) {
-                Assert.assertEquals(result[i++],rs.getInt(4));
-            }
+            ResultSet rs = methodWatcher.executeQuery(sqlText);
+            String expected =
+                "EMPNUM |DEPT |SALARY |SUMSAL |\n" +
+                    "------------------------------\n" +
+                    "  10   |  1  | 50000 |436000 |\n" +
+                    "  20   |  1  | 75000 |229000 |\n" +
+                    "  50   |  1  | 52000 |386000 |\n" +
+                    "  55   |  1  | 52000 |386000 |\n" +
+                    "  60   |  1  | 78000 | 78000 |\n" +
+                    "  70   |  1  | 76000 |154000 |\n" +
+                    "  110  |  1  | 53000 |282000 |\n" +
+                    "  40   |  2  | 52000 |157000 |\n" +
+                    "  44   |  2  | 52000 |157000 |\n" +
+                    "  49   |  2  | 53000 | 53000 |\n" +
+                    "  90   |  2  | 51000 |208000 |\n" +
+                    "  30   |  3  | 84000 | 84000 |\n" +
+                    "  80   |  3  | 79000 |163000 |\n" +
+                    "  100  |  3  | 55000 |293000 |\n" +
+                    "  120  |  3  | 75000 |238000 |";
+            assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
             rs.close();
         }
     }
     @Test
     public void testSingleRow() throws Exception {
         {
-            int[] result = {50000, 104000, 104000, 53000, 75000, 76000, 78000, 51000, 104000, 104000, 53000, 55000, 75000, 79000, 84000};
             String sqlText =
-                "SELECT empnum, dept, salary, sum(salary) over (Partition by dept ORDER BY salary range between current row and current row) as sumsal from %s";
+                String.format("SELECT empnum, dept, salary, " +
+                                  "sum(salary) over (Partition by dept ORDER BY salary range between current row and current row) as sumsal " +
+                                  "from %s order by dept, empnum",
+                              this.getTableReference(TABLE_NAME));
 
-            ResultSet rs = methodWatcher.executeQuery(
-                String.format(sqlText, this.getTableReference(TABLE_NAME)));
-
-            int i = 0;
-            while (rs.next()) {
-                Assert.assertEquals(result[i++],rs.getInt(4));
-            }
+            ResultSet rs = methodWatcher.executeQuery(sqlText);
+            String expected =
+                "EMPNUM |DEPT |SALARY |SUMSAL |\n" +
+                    "------------------------------\n" +
+                    "  10   |  1  | 50000 | 50000 |\n" +
+                    "  20   |  1  | 75000 | 75000 |\n" +
+                    "  50   |  1  | 52000 |104000 |\n" +
+                    "  55   |  1  | 52000 |104000 |\n" +
+                    "  60   |  1  | 78000 | 78000 |\n" +
+                    "  70   |  1  | 76000 | 76000 |\n" +
+                    "  110  |  1  | 53000 | 53000 |\n" +
+                    "  40   |  2  | 52000 |104000 |\n" +
+                    "  44   |  2  | 52000 |104000 |\n" +
+                    "  49   |  2  | 53000 | 53000 |\n" +
+                    "  90   |  2  | 51000 | 51000 |\n" +
+                    "  30   |  3  | 84000 | 84000 |\n" +
+                    "  80   |  3  | 79000 | 79000 |\n" +
+                    "  100  |  3  | 55000 | 55000 |\n" +
+                    "  120  |  3  | 75000 | 75000 |";
+            assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
             rs.close();
         }
 
         {
-            int[] result = {50000, 52000, 52000, 53000, 75000, 76000, 78000, 51000, 52000, 52000, 53000, 55000, 75000, 79000, 84000};
             String sqlText =
-                "SELECT empnum, dept, salary, sum(salary) over (Partition by dept ORDER BY salary rows between current row and current row) as sumsal from %s";
+                String.format("SELECT empnum, dept, salary, " +
+                                  "sum(salary) over (Partition by dept ORDER BY salary rows between current row and current row) as sumsal " +
+                                  "from %s order by dept, empnum",
+                              this.getTableReference(TABLE_NAME));
 
-            ResultSet rs = methodWatcher.executeQuery(
-                String.format(sqlText, this.getTableReference(TABLE_NAME)));
-
-            int i = 0;
-            while (rs.next()) {
-                Assert.assertEquals(result[i++],rs.getInt(4));
-            }
+            ResultSet rs = methodWatcher.executeQuery(sqlText);
+            String expected =
+                "EMPNUM |DEPT |SALARY |SUMSAL |\n" +
+                    "------------------------------\n" +
+                    "  10   |  1  | 50000 | 50000 |\n" +
+                    "  20   |  1  | 75000 | 75000 |\n" +
+                    "  50   |  1  | 52000 | 52000 |\n" +
+                    "  55   |  1  | 52000 | 52000 |\n" +
+                    "  60   |  1  | 78000 | 78000 |\n" +
+                    "  70   |  1  | 76000 | 76000 |\n" +
+                    "  110  |  1  | 53000 | 53000 |\n" +
+                    "  40   |  2  | 52000 | 52000 |\n" +
+                    "  44   |  2  | 52000 | 52000 |\n" +
+                    "  49   |  2  | 53000 | 53000 |\n" +
+                    "  90   |  2  | 51000 | 51000 |\n" +
+                    "  30   |  3  | 84000 | 84000 |\n" +
+                    "  80   |  3  | 79000 | 79000 |\n" +
+                    "  100  |  3  | 55000 | 55000 |\n" +
+                    "  120  |  3  | 75000 | 75000 |";
+            assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
             rs.close();
         }
     }
 
     @Test
     public void testRowNumberWithinPartiion() throws Exception {
-        int[] result = {1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 1, 2, 3, 4};
-        int[] colVal = {78000, 76000, 75000, 53000, 52000, 52000, 50000, 53000, 52000, 52000, 51000, 84000, 79000, 75000, 55000};
         String sqlText =
-            "SELECT empnum, dept, salary, ROW_NUMBER() OVER (partition by dept ORDER BY salary desc) AS RowNumber FROM %s";
+            String.format("SELECT empnum, dept, salary, " +
+                              "ROW_NUMBER() OVER (partition by dept ORDER BY dept, empnum, salary desc) AS RowNumber " +
+                              "FROM %s",
+                          this.getTableReference(TABLE_NAME));
 
-        ResultSet rs = methodWatcher.executeQuery(
-            String.format(sqlText, this.getTableReference(TABLE_NAME)));
-
-        int i = 0;
-        while (rs.next()) {
-            Assert.assertEquals(colVal[i],rs.getInt(3));
-            Assert.assertEquals(result[i],rs.getInt(4));
-            ++i;
-        }
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "EMPNUM |DEPT |SALARY | ROWNUMBER |\n" +
+                "----------------------------------\n" +
+                "  40   |  2  | 52000 |     1     |\n" +
+                "  44   |  2  | 52000 |     2     |\n" +
+                "  49   |  2  | 53000 |     3     |\n" +
+                "  90   |  2  | 51000 |     4     |\n" +
+                "  30   |  3  | 84000 |     1     |\n" +
+                "  80   |  3  | 79000 |     2     |\n" +
+                "  100  |  3  | 55000 |     3     |\n" +
+                "  120  |  3  | 75000 |     4     |\n" +
+                "  10   |  1  | 50000 |     1     |\n" +
+                "  20   |  1  | 75000 |     2     |\n" +
+                "  50   |  1  | 52000 |     3     |\n" +
+                "  55   |  1  | 52000 |     4     |\n" +
+                "  60   |  1  | 78000 |     5     |\n" +
+                "  70   |  1  | 76000 |     6     |\n" +
+                "  110  |  1  | 53000 |     7     |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
 
     @Test
     public void testRowNumberWithoutPartiion() throws Exception {
-        int[] result = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
-        int[] colVal = {84000, 79000, 78000, 76000, 75000, 75000, 55000, 53000, 53000, 52000, 52000, 52000, 52000, 51000, 50000};
         String sqlText =
-            "SELECT empnum, dept, salary, ROW_NUMBER() OVER (ORDER BY salary desc) AS RowNumber FROM %s";
+            String.format("SELECT empnum, dept, salary, ROW_NUMBER() OVER (ORDER BY dept, empnum, salary desc) AS RowNumber " +
+                              "FROM %s",
+                          this.getTableReference(TABLE_NAME));
 
-        ResultSet rs = methodWatcher.executeQuery(
-            String.format(sqlText, this.getTableReference(TABLE_NAME)));
-
-        int i = 0;
-        while (rs.next()) {
-            Assert.assertEquals(colVal[i],rs.getInt(3));
-            Assert.assertEquals(result[i],rs.getInt(4));
-            ++i;
-        }
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "EMPNUM |DEPT |SALARY | ROWNUMBER |\n" +
+                "----------------------------------\n" +
+                "  10   |  1  | 50000 |     1     |\n" +
+                "  20   |  1  | 75000 |     2     |\n" +
+                "  50   |  1  | 52000 |     3     |\n" +
+                "  55   |  1  | 52000 |     4     |\n" +
+                "  60   |  1  | 78000 |     5     |\n" +
+                "  70   |  1  | 76000 |     6     |\n" +
+                "  110  |  1  | 53000 |     7     |\n" +
+                "  40   |  2  | 52000 |     8     |\n" +
+                "  44   |  2  | 52000 |     9     |\n" +
+                "  49   |  2  | 53000 |    10     |\n" +
+                "  90   |  2  | 51000 |    11     |\n" +
+                "  30   |  3  | 84000 |    12     |\n" +
+                "  80   |  3  | 79000 |    13     |\n" +
+                "  100  |  3  | 55000 |    14     |\n" +
+                "  120  |  3  | 75000 |    15     |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
 
     @Test
-    public void testRankWithinPartiion() throws Exception {
-        int[] result = {1, 2, 3, 4, 5, 5, 7, 1, 2, 2, 4, 1, 2, 3, 4};
-        int[] colVal = {78000, 76000, 75000, 53000, 52000, 52000, 50000, 53000, 52000, 52000, 51000, 84000, 79000, 75000, 55000};
+    public void testRankWithinPartition() throws Exception {
         String sqlText =
-            "SELECT empnum, dept, salary, RANK() OVER (PARTITION BY dept ORDER BY salary desc) AS Rank FROM %s";
+            String.format("SELECT empnum, dept, salary, RANK() OVER (PARTITION BY dept ORDER BY dept, empnum, salary desc) AS Rank FROM %s",
+                          this.getTableReference(TABLE_NAME));
 
-        ResultSet rs = methodWatcher.executeQuery(
-            String.format(sqlText, this.getTableReference(TABLE_NAME)));
-
-        int i = 0;
-        while (rs.next()) {
-            Assert.assertEquals(colVal[i],rs.getInt(3));
-            Assert.assertEquals(result[i],rs.getInt(4));
-            ++i;
-        }
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "EMPNUM |DEPT |SALARY |RANK |\n" +
+                "----------------------------\n" +
+                "  40   |  2  | 52000 |  1  |\n" +
+                "  44   |  2  | 52000 |  2  |\n" +
+                "  49   |  2  | 53000 |  3  |\n" +
+                "  90   |  2  | 51000 |  4  |\n" +
+                "  30   |  3  | 84000 |  1  |\n" +
+                "  80   |  3  | 79000 |  2  |\n" +
+                "  100  |  3  | 55000 |  3  |\n" +
+                "  120  |  3  | 75000 |  4  |\n" +
+                "  10   |  1  | 50000 |  1  |\n" +
+                "  20   |  1  | 75000 |  2  |\n" +
+                "  50   |  1  | 52000 |  3  |\n" +
+                "  55   |  1  | 52000 |  4  |\n" +
+                "  60   |  1  | 78000 |  5  |\n" +
+                "  70   |  1  | 76000 |  6  |\n" +
+                "  110  |  1  | 53000 |  7  |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
 
     @Test
     public void testRankWithoutPartiion() throws Exception {
-        int[] result = {1, 2, 3, 4, 5, 5, 7, 8, 8, 10, 10, 10, 10, 14, 15};
-        int[] colVal = {84000, 79000, 78000, 76000, 75000, 75000, 55000, 53000, 53000, 52000, 52000, 52000, 52000, 51000, 50000};
         String sqlText =
-            "SELECT empnum, dept, salary, RANK() OVER (ORDER BY salary desc) AS Rank FROM %s";
+            String.format("SELECT empnum, dept, salary, RANK() OVER (ORDER BY salary desc) AS Rank FROM %s order by dept, empnum",
+                          this.getTableReference(TABLE_NAME));
 
-        ResultSet rs = methodWatcher.executeQuery(
-            String.format(sqlText, this.getTableReference(TABLE_NAME)));
-
-        int i = 0;
-        while (rs.next()) {
-            Assert.assertEquals(colVal[i],rs.getInt(3));
-            Assert.assertEquals(result[i],rs.getInt(4));
-            ++i;
-        }
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "EMPNUM |DEPT |SALARY |RANK |\n" +
+                "----------------------------\n" +
+                "  10   |  1  | 50000 | 15  |\n" +
+                "  20   |  1  | 75000 |  5  |\n" +
+                "  50   |  1  | 52000 | 10  |\n" +
+                "  55   |  1  | 52000 | 10  |\n" +
+                "  60   |  1  | 78000 |  3  |\n" +
+                "  70   |  1  | 76000 |  4  |\n" +
+                "  110  |  1  | 53000 |  8  |\n" +
+                "  40   |  2  | 52000 | 10  |\n" +
+                "  44   |  2  | 52000 | 10  |\n" +
+                "  49   |  2  | 53000 |  8  |\n" +
+                "  90   |  2  | 51000 | 14  |\n" +
+                "  30   |  3  | 84000 |  1  |\n" +
+                "  80   |  3  | 79000 |  2  |\n" +
+                "  100  |  3  | 55000 |  7  |\n" +
+                "  120  |  3  | 75000 |  5  |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
 
     @Test
-    public void testDenseRankWithinPartion() throws Exception {
-        int[] result = {1, 2, 3, 4, 5, 5, 6, 1, 2, 2, 3, 1, 2, 3, 4};
-        int[] colVal = {78000, 76000, 75000, 53000, 52000, 52000, 50000, 53000, 52000, 52000, 51000, 84000, 79000, 75000, 55000};
+    public void testDenseRankWithinPartition() throws Exception {
         String sqlText =
-            "SELECT empnum, dept, salary, DENSE_RANK() OVER (PARTITION BY dept ORDER BY salary desc) AS Rank FROM %s";
+            String.format("SELECT empnum, dept, salary, DENSE_RANK() OVER (PARTITION BY dept ORDER BY salary desc) AS denseank " +
+                              "FROM %s order by dept, empnum",
+                          this.getTableReference(TABLE_NAME));
 
-        ResultSet rs = methodWatcher.executeQuery(
-            String.format(sqlText, this.getTableReference(TABLE_NAME)));
-
-        int i = 0;
-        while (rs.next()) {
-            Assert.assertEquals(colVal[i],rs.getInt(3));
-            Assert.assertEquals(result[i],rs.getInt(4));
-            ++i;
-        }
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "EMPNUM |DEPT |SALARY |DENSEANK |\n" +
+                "--------------------------------\n" +
+                "  10   |  1  | 50000 |    6    |\n" +
+                "  20   |  1  | 75000 |    3    |\n" +
+                "  50   |  1  | 52000 |    5    |\n" +
+                "  55   |  1  | 52000 |    5    |\n" +
+                "  60   |  1  | 78000 |    1    |\n" +
+                "  70   |  1  | 76000 |    2    |\n" +
+                "  110  |  1  | 53000 |    4    |\n" +
+                "  40   |  2  | 52000 |    2    |\n" +
+                "  44   |  2  | 52000 |    2    |\n" +
+                "  49   |  2  | 53000 |    1    |\n" +
+                "  90   |  2  | 51000 |    3    |\n" +
+                "  30   |  3  | 84000 |    1    |\n" +
+                "  80   |  3  | 79000 |    2    |\n" +
+                "  100  |  3  | 55000 |    4    |\n" +
+                "  120  |  3  | 75000 |    3    |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
 
@@ -741,8 +1185,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
             Assert.assertEquals(EMPTAB_ROWS.length * 2, operation.getWriteRows());
         }
         catch (Exception e) {
-        	e.printStackTrace();
-        	throw e;
+            e.printStackTrace();
+            throw e;
         }
         finally{
             conn.rollback();
@@ -751,328 +1195,487 @@ public class WindowFunctionIT extends SpliceUnitTest {
 
     @Test
     public void testDenseRankWithoutPartition() throws Exception {
-        int[] result = {1, 2, 3, 4, 5, 5, 6, 7, 7, 8, 8, 8, 8, 9, 10};
-        int[] colVal = {84000, 79000, 78000, 76000, 75000, 75000, 55000, 53000, 53000, 52000, 52000, 52000, 52000, 51000, 50000};
         String sqlText =
-            "SELECT empnum, dept, salary, DENSE_RANK() OVER (ORDER BY salary desc) AS Rank FROM %s";
+            String.format("SELECT empnum, dept, salary, DENSE_RANK() OVER (ORDER BY salary desc) AS denseank " +
+                              "FROM %s order by dept, empnum" ,
+                          this.getTableReference(TABLE_NAME));
 
-        ResultSet rs = methodWatcher.executeQuery(
-            String.format(sqlText, this.getTableReference(TABLE_NAME)));
-
-        int i = 0;
-        while (rs.next()) {
-            Assert.assertEquals(colVal[i],rs.getInt(3));
-            Assert.assertEquals(result[i],rs.getInt(4));
-            ++i;
-        }
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "EMPNUM |DEPT |SALARY |DENSEANK |\n" +
+                "--------------------------------\n" +
+                "  10   |  1  | 50000 |   10    |\n" +
+                "  20   |  1  | 75000 |    5    |\n" +
+                "  50   |  1  | 52000 |    8    |\n" +
+                "  55   |  1  | 52000 |    8    |\n" +
+                "  60   |  1  | 78000 |    3    |\n" +
+                "  70   |  1  | 76000 |    4    |\n" +
+                "  110  |  1  | 53000 |    7    |\n" +
+                "  40   |  2  | 52000 |    8    |\n" +
+                "  44   |  2  | 52000 |    8    |\n" +
+                "  49   |  2  | 53000 |    7    |\n" +
+                "  90   |  2  | 51000 |    9    |\n" +
+                "  30   |  3  | 84000 |    1    |\n" +
+                "  80   |  3  | 79000 |    2    |\n" +
+                "  100  |  3  | 55000 |    6    |\n" +
+                "  120  |  3  | 75000 |    5    |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
 
     @Test
-    public void testRowNumber2OrderByCols() throws Exception {
-        int[] result = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
-        int[] colVal = {78000, 76000, 75000, 53000, 52000, 52000, 50000, 53000, 52000, 52000, 51000, 84000, 79000, 75000, 55000};
+    public void testRowNumber3OrderByCols() throws Exception {
         String sqlText =
-            "SELECT empnum, dept, salary, ROW_NUMBER() OVER (ORDER BY dept, salary desc) AS Rank FROM %s";
+            String.format("SELECT empnum, dept, salary, ROW_NUMBER() OVER (ORDER BY dept, salary desc, empnum) AS rownum " +
+                              "FROM %s",
+                          this.getTableReference(TABLE_NAME));
 
-        ResultSet rs = methodWatcher.executeQuery(
-            String.format(sqlText, this.getTableReference(TABLE_NAME)));
-
-        int i = 0;
-        while (rs.next()) {
-            Assert.assertEquals(colVal[i],rs.getInt(3));
-            Assert.assertEquals(result[i],rs.getInt(4));
-            ++i;
-        }
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "EMPNUM |DEPT |SALARY |ROWNUM |\n" +
+                "------------------------------\n" +
+                "  60   |  1  | 78000 |   1   |\n" +
+                "  70   |  1  | 76000 |   2   |\n" +
+                "  20   |  1  | 75000 |   3   |\n" +
+                "  110  |  1  | 53000 |   4   |\n" +
+                "  50   |  1  | 52000 |   5   |\n" +
+                "  55   |  1  | 52000 |   6   |\n" +
+                "  10   |  1  | 50000 |   7   |\n" +
+                "  49   |  2  | 53000 |   8   |\n" +
+                "  40   |  2  | 52000 |   9   |\n" +
+                "  44   |  2  | 52000 |  10   |\n" +
+                "  90   |  2  | 51000 |  11   |\n" +
+                "  30   |  3  | 84000 |  12   |\n" +
+                "  80   |  3  | 79000 |  13   |\n" +
+                "  120  |  3  | 75000 |  14   |\n" +
+                "  100  |  3  | 55000 |  15   |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
 
     @Test
     public void testRank2OrderByCols() throws Exception {
-        int[] result = {1, 2, 3, 4, 5, 5, 7, 8, 9, 9, 11, 12, 13, 14, 15};
-        int[] colVal = {78000, 76000, 75000, 53000, 52000, 52000, 50000, 53000, 52000, 52000, 51000, 84000, 79000, 75000, 55000};
         String sqlText =
-            "SELECT empnum, dept, salary, RANK() OVER (ORDER BY dept, salary desc) AS Rank FROM %s";
+            String.format("SELECT empnum, dept, salary, RANK() OVER (ORDER BY dept, salary desc) AS Rank " +
+                              "FROM %s order by empnum",
+                          this.getTableReference(TABLE_NAME));
 
-        ResultSet rs = methodWatcher.executeQuery(
-            String.format(sqlText, this.getTableReference(TABLE_NAME)));
-
-        int i = 0;
-        while (rs.next()) {
-            Assert.assertEquals(colVal[i],rs.getInt(3));
-            Assert.assertEquals(result[i],rs.getInt(4));
-            ++i;
-        }
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "EMPNUM |DEPT |SALARY |RANK |\n" +
+                "----------------------------\n" +
+                "  10   |  1  | 50000 |  7  |\n" +
+                "  20   |  1  | 75000 |  3  |\n" +
+                "  30   |  3  | 84000 | 12  |\n" +
+                "  40   |  2  | 52000 |  9  |\n" +
+                "  44   |  2  | 52000 |  9  |\n" +
+                "  49   |  2  | 53000 |  8  |\n" +
+                "  50   |  1  | 52000 |  5  |\n" +
+                "  55   |  1  | 52000 |  5  |\n" +
+                "  60   |  1  | 78000 |  1  |\n" +
+                "  70   |  1  | 76000 |  2  |\n" +
+                "  80   |  3  | 79000 | 13  |\n" +
+                "  90   |  2  | 51000 | 11  |\n" +
+                "  100  |  3  | 55000 | 15  |\n" +
+                "  110  |  1  | 53000 |  4  |\n" +
+                "  120  |  3  | 75000 | 14  |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
 
     @Test
     public void testDenseRank2OrderByCols() throws Exception {
-        int[] result = {1, 2, 3, 4, 5, 5, 6, 7, 8, 8, 9, 10, 11, 12, 13};
-        int[] colVal = {78000, 76000, 75000, 53000, 52000, 52000, 50000, 53000, 52000, 52000, 51000, 84000, 79000, 75000, 55000};
         String sqlText =
-            "SELECT empnum, dept, salary, DENSE_RANK() OVER (ORDER BY dept, salary desc) AS Rank FROM %s";
+            String.format("SELECT empnum, dept, salary, DENSE_RANK() OVER (ORDER BY dept, salary desc) AS denserank " +
+                              "FROM %s order by empnum",
+                          this.getTableReference(TABLE_NAME));
 
-        ResultSet rs = methodWatcher.executeQuery(
-            String.format(sqlText, this.getTableReference(TABLE_NAME)));
-
-        int i = 0;
-        while (rs.next()) {
-            Assert.assertEquals(colVal[i],rs.getInt(3));
-            Assert.assertEquals(result[i],rs.getInt(4));
-            ++i;
-        }
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "EMPNUM |DEPT |SALARY | DENSERANK |\n" +
+                "----------------------------------\n" +
+                "  10   |  1  | 50000 |     6     |\n" +
+                "  20   |  1  | 75000 |     3     |\n" +
+                "  30   |  3  | 84000 |    10     |\n" +
+                "  40   |  2  | 52000 |     8     |\n" +
+                "  44   |  2  | 52000 |     8     |\n" +
+                "  49   |  2  | 53000 |     7     |\n" +
+                "  50   |  1  | 52000 |     5     |\n" +
+                "  55   |  1  | 52000 |     5     |\n" +
+                "  60   |  1  | 78000 |     1     |\n" +
+                "  70   |  1  | 76000 |     2     |\n" +
+                "  80   |  3  | 79000 |    11     |\n" +
+                "  90   |  2  | 51000 |     9     |\n" +
+                "  100  |  3  | 55000 |    13     |\n" +
+                "  110  |  1  | 53000 |     4     |\n" +
+                "  120  |  3  | 75000 |    12     |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
 
     @Test
     public void testDenseRankWithPartition3OrderByCols_duplicateKey() throws Exception {
-        int[] denseRank = {1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 1, 2, 3, 4};
-        int[] salary = {50000, 75000, 52000, 52000, 78000, 76000, 53000, 52000, 52000, 53000, 51000, 84000, 79000, 55000, 75000};
         String sqlText =
-            "SELECT empnum, dept, salary, DENSE_RANK() OVER (PARTITION BY dept ORDER BY dept, empnum, salary desc) AS DenseRank FROM %s";
+            String.format("SELECT empnum, dept, salary, DENSE_RANK() OVER (PARTITION BY dept ORDER BY dept, empnum, salary desc) AS DenseRank FROM %s",
+                          this.getTableReference(TABLE_NAME));
 
-        ResultSet rs = methodWatcher.executeQuery(
-            String.format(sqlText, this.getTableReference(TABLE_NAME)));
-
-        int i = 0;
-        while (rs.next()) {
-            Assert.assertEquals(salary[i],rs.getInt(3));
-            Assert.assertEquals(denseRank[i],rs.getInt(4));
-            ++i;
-        }
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "EMPNUM |DEPT |SALARY | DENSERANK |\n" +
+                "----------------------------------\n" +
+                "  40   |  2  | 52000 |     1     |\n" +
+                "  44   |  2  | 52000 |     2     |\n" +
+                "  49   |  2  | 53000 |     3     |\n" +
+                "  90   |  2  | 51000 |     4     |\n" +
+                "  30   |  3  | 84000 |     1     |\n" +
+                "  80   |  3  | 79000 |     2     |\n" +
+                "  100  |  3  | 55000 |     3     |\n" +
+                "  120  |  3  | 75000 |     4     |\n" +
+                "  10   |  1  | 50000 |     1     |\n" +
+                "  20   |  1  | 75000 |     2     |\n" +
+                "  50   |  1  | 52000 |     3     |\n" +
+                "  55   |  1  | 52000 |     4     |\n" +
+                "  60   |  1  | 78000 |     5     |\n" +
+                "  70   |  1  | 76000 |     6     |\n" +
+                "  110  |  1  | 53000 |     7     |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
 
     @Test
     public void testDenseRankWithPartition2OrderByCols_duplicateKey() throws Exception {
-        int[] denseRank = {1, 2, 3, 4, 5, 5, 6, 1, 2, 2, 3, 1, 2, 3, 4};
-        int[] salary = {78000, 76000, 75000,  53000, 52000, 52000, 50000, 53000, 52000, 52000, 51000, 84000, 79000,  75000,  55000};
         String sqlText =
-            "SELECT empnum, dept, salary, DENSE_RANK() OVER (PARTITION BY dept ORDER BY dept, salary desc) AS DenseRank FROM %s";
+            String.format("SELECT empnum, dept, salary, DENSE_RANK() OVER (PARTITION BY dept ORDER BY dept, salary desc) AS DenseRank " +
+                              "FROM %s order by empnum",
+                          this.getTableReference(TABLE_NAME));
 
-        ResultSet rs = methodWatcher.executeQuery(
-            String.format(sqlText, this.getTableReference(TABLE_NAME)));
-
-        int i = 0;
-        while (rs.next()) {
-            Assert.assertEquals(salary[i],rs.getInt(3));
-            Assert.assertEquals(denseRank[i],rs.getInt(4));
-            ++i;
-        }
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "EMPNUM |DEPT |SALARY | DENSERANK |\n" +
+                "----------------------------------\n" +
+                "  10   |  1  | 50000 |     6     |\n" +
+                "  20   |  1  | 75000 |     3     |\n" +
+                "  30   |  3  | 84000 |     1     |\n" +
+                "  40   |  2  | 52000 |     2     |\n" +
+                "  44   |  2  | 52000 |     2     |\n" +
+                "  49   |  2  | 53000 |     1     |\n" +
+                "  50   |  1  | 52000 |     5     |\n" +
+                "  55   |  1  | 52000 |     5     |\n" +
+                "  60   |  1  | 78000 |     1     |\n" +
+                "  70   |  1  | 76000 |     2     |\n" +
+                "  80   |  3  | 79000 |     2     |\n" +
+                "  90   |  2  | 51000 |     3     |\n" +
+                "  100  |  3  | 55000 |     4     |\n" +
+                "  110  |  1  | 53000 |     4     |\n" +
+                "  120  |  3  | 75000 |     3     |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
 
     @Test
     public void testDenseRankWithPartition3OrderByCols_KeyColMissingFromSelect() throws Exception {
-        int[] denseRank = {1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 1, 2, 3, 4};
-        int[] salary = {50000, 75000, 52000, 52000, 78000, 76000, 53000, 52000, 52000, 53000, 51000, 84000, 79000, 55000, 75000};
         String sqlText =
-            "SELECT empnum, salary, DENSE_RANK() OVER (PARTITION BY dept ORDER BY dept, empnum, salary desc) AS DenseRank FROM %s";
+            String.format("SELECT empnum, salary, DENSE_RANK() OVER (PARTITION BY dept ORDER BY dept, empnum, salary desc) AS DenseRank " +
+                              "FROM %s",
+                          this.getTableReference(TABLE_NAME));
 
-        ResultSet rs = methodWatcher.executeQuery(
-            String.format(sqlText, this.getTableReference(TABLE_NAME)));
-
-        int i = 0;
-        while (rs.next()) {
-            Assert.assertEquals(salary[i],rs.getInt(2));
-            Assert.assertEquals(denseRank[i],rs.getInt(3));
-            ++i;
-        }
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "EMPNUM |SALARY | DENSERANK |\n" +
+                "----------------------------\n" +
+                "  40   | 52000 |     1     |\n" +
+                "  44   | 52000 |     2     |\n" +
+                "  49   | 53000 |     3     |\n" +
+                "  90   | 51000 |     4     |\n" +
+                "  30   | 84000 |     1     |\n" +
+                "  80   | 79000 |     2     |\n" +
+                "  100  | 55000 |     3     |\n" +
+                "  120  | 75000 |     4     |\n" +
+                "  10   | 50000 |     1     |\n" +
+                "  20   | 75000 |     2     |\n" +
+                "  50   | 52000 |     3     |\n" +
+                "  55   | 52000 |     4     |\n" +
+                "  60   | 78000 |     5     |\n" +
+                "  70   | 76000 |     6     |\n" +
+                "  110  | 53000 |     7     |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
 
     @Test
     public void testDenseRankWithoutPartitionOrderby() throws Exception {
-        int[] result = {1, 2, 3, 4, 5, 5, 6, 7, 7, 8, 8, 8, 8, 9, 10};
-        int[] colVal = {84000, 79000, 78000, 76000, 75000, 75000, 55000, 53000, 53000, 52000, 52000, 52000, 52000, 51000, 50000};
         String sqlText =
-            "SELECT empnum, dept, salary, DENSE_RANK() OVER (ORDER BY salary desc) AS Rank FROM %s order by salary desc";
+            String.format("SELECT empnum, dept, salary, DENSE_RANK() OVER (ORDER BY salary desc) AS Rank " +
+                              "FROM %s order by empnum",
+                          this.getTableReference(TABLE_NAME));
 
-        ResultSet rs = methodWatcher.executeQuery(
-            String.format(sqlText, this.getTableReference(TABLE_NAME)));
-
-        int i = 0;
-        while (rs.next()) {
-            Assert.assertEquals(colVal[i],rs.getInt(3));
-            Assert.assertEquals(result[i],rs.getInt(4));
-            ++i;
-        }
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "EMPNUM |DEPT |SALARY |RANK |\n" +
+                "----------------------------\n" +
+                "  10   |  1  | 50000 | 10  |\n" +
+                "  20   |  1  | 75000 |  5  |\n" +
+                "  30   |  3  | 84000 |  1  |\n" +
+                "  40   |  2  | 52000 |  8  |\n" +
+                "  44   |  2  | 52000 |  8  |\n" +
+                "  49   |  2  | 53000 |  7  |\n" +
+                "  50   |  1  | 52000 |  8  |\n" +
+                "  55   |  1  | 52000 |  8  |\n" +
+                "  60   |  1  | 78000 |  3  |\n" +
+                "  70   |  1  | 76000 |  4  |\n" +
+                "  80   |  3  | 79000 |  2  |\n" +
+                "  90   |  2  | 51000 |  9  |\n" +
+                "  100  |  3  | 55000 |  6  |\n" +
+                "  110  |  1  | 53000 |  7  |\n" +
+                "  120  |  3  | 75000 |  5  |";
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
 
     @Test
     public void testRowNumberWithoutPartitionOrderby() throws Exception {
         // DB-1683
-        int[] personID = {1, 1, 1, 2, 2, 2, 3, 3, 4, 5, 5};
-        int[] number = { 4,  5,  6,  9, 10, 11,  1,  2,  3,  7,  8};
         String sqlText =
-            "select PersonID,FamilyID,FirstName,LastName, ROW_NUMBER() over (order by DOB) as Number, dob from %s order by PersonID";
+            String.format("select PersonID,FamilyID,FirstName,LastName, ROW_NUMBER() over (order by DOB) as Number, dob " +
+                              "from %s order by PersonID",
+                          this.getTableReference(TABLE3_NAME));
 
-        ResultSet rs = methodWatcher.executeQuery(
-            String.format(sqlText, this.getTableReference(TABLE3_NAME)));
-
-        int i = 0;
-        while (rs.next()) {
-            Assert.assertEquals(personID[i],rs.getInt(1));
-            Assert.assertEquals(number[i],rs.getInt(5));
-            ++i;
-        }
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "PERSONID |FAMILYID | FIRSTNAME |LASTNAME |NUMBER |         DOB          |\n" +
+                "-------------------------------------------------------------------------\n" +
+                "    1    |    1    |    Joe    | Johnson |   4   |2000-10-23 13:00:00.0 |\n" +
+                "    1    |    1    |    Joe    | Johnson |   5   |2000-10-23 13:00:00.0 |\n" +
+                "    1    |    1    |    Joe    | Johnson |   6   |2000-10-23 13:00:00.0 |\n" +
+                "    2    |    1    |    Jim    | Johnson |   9   |2001-12-15 05:45:00.0 |\n" +
+                "    2    |    1    |    Jim    | Johnson |  10   |2001-12-15 05:45:00.0 |\n" +
+                "    2    |    1    |    Jim    | Johnson |  11   |2001-12-15 05:45:00.0 |\n" +
+                "    3    |    2    |   Karly   |Matthews |   1   |2000-05-20 04:00:00.0 |\n" +
+                "    3    |    2    |   Karly   |Matthews |   2   |2000-05-20 04:00:00.0 |\n" +
+                "    4    |    2    |   Kacy    |Matthews |   3   |2000-05-20 04:02:00.0 |\n" +
+                "    5    |    2    |    Tom    |Matthews |   7   |2001-09-15 11:52:00.0 |\n" +
+                "    5    |    2    |    Tom    |Matthews |   8   |2001-09-15 11:52:00.0 |";
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
 
     @Test
     public void testRowNumberWithoutPartitionOrderby_OrderbyColNotInSelect() throws Exception {
         // DB-1683
-        int[] personID = {1, 1, 1, 2, 2, 2, 3, 3, 4, 5, 5};
-        int[] number = { 4,  5,  6,  9, 10, 11,  1,  2,  3,  7,  8};
         String sqlText =
-            "select PersonID,FamilyID,FirstName,LastName, ROW_NUMBER() over (order by DOB) as Number from %s order by PersonID";
+            String.format("select PersonID,FamilyID,FirstName,LastName, ROW_NUMBER() over (order by DOB) as Number " +
+                              "from %s order by PersonID",
+                          this.getTableReference(TABLE3_NAME));
 
-        ResultSet rs = methodWatcher.executeQuery(
-            String.format(sqlText, this.getTableReference(TABLE3_NAME)));
-
-        int i = 0;
-        while (rs.next()) {
-            Assert.assertEquals(personID[i],rs.getInt(1));
-            Assert.assertEquals(number[i],rs.getInt(5));
-            ++i;
-        }
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "PERSONID |FAMILYID | FIRSTNAME |LASTNAME |NUMBER |\n" +
+                "--------------------------------------------------\n" +
+                "    1    |    1    |    Joe    | Johnson |   4   |\n" +
+                "    1    |    1    |    Joe    | Johnson |   5   |\n" +
+                "    1    |    1    |    Joe    | Johnson |   6   |\n" +
+                "    2    |    1    |    Jim    | Johnson |   9   |\n" +
+                "    2    |    1    |    Jim    | Johnson |  10   |\n" +
+                "    2    |    1    |    Jim    | Johnson |  11   |\n" +
+                "    3    |    2    |   Karly   |Matthews |   1   |\n" +
+                "    3    |    2    |   Karly   |Matthews |   2   |\n" +
+                "    4    |    2    |   Kacy    |Matthews |   3   |\n" +
+                "    5    |    2    |    Tom    |Matthews |   7   |\n" +
+                "    5    |    2    |    Tom    |Matthews |   8   |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
 
     @Test
     public void testScalarAggWithOrderBy() throws Exception {
         // DB-1775
-        double[] result = {1.0, 2.0, 9.0, 6.0, 11.0, 23.0, 3.0, 10.0, 20.0, 10.0, 12.0, 20.0, 11.0, 15.0, 25.0};
         String sqlText =
-            "SELECT sum(price) over (Partition by item ORDER BY date) as  sumprice from %s";
+            String.format("SELECT sum(price) over (Partition by item ORDER BY date) as  sumprice from %s",
+                          this.getTableReference(TABLE2_NAME));
 
-        ResultSet rs = methodWatcher.executeQuery(
-            String.format(sqlText, this.getTableReference(TABLE2_NAME)));
-
-        int i = 0;
-        while (rs.next()) {
-            Assert.assertEquals(result[i++],rs.getDouble(1), 0.00);
-        }
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "SUMPRICE |\n" +
+                "----------\n" +
+                "  10.0   |\n" +
+                "  12.0   |\n" +
+                "  20.0   |\n" +
+                "   6.0   |\n" +
+                "  11.0   |\n" +
+                "  23.0   |\n" +
+                "   3.0   |\n" +
+                "  10.0   |\n" +
+                "  20.0   |\n" +
+                "   1.0   |\n" +
+                "   2.0   |\n" +
+                "   9.0   |\n" +
+                "  11.0   |\n" +
+                "  15.0   |\n" +
+                "  25.0   |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
 
     @Test
     public void testSelectAllColsScalarAggWithOrderBy() throws Exception {
         // DB-1774
-        double[] result = {1.0, 2.0, 9.0, 6.0, 11.0, 23.0, 3.0, 10.0, 20.0, 10.0, 12.0, 20.0, 11.0, 15.0, 25.0};
         String sqlText =
-            "SELECT item, price, sum(price) over (Partition by item ORDER BY date) as sumsal, date from %s";
+            String.format("SELECT item, price, sum(price) over (Partition by item ORDER BY date) as sumsal, date " +
+                              "from %s",
+                          this.getTableReference(TABLE2_NAME));
 
-        ResultSet rs = methodWatcher.executeQuery(
-            String.format(sqlText, this.getTableReference(TABLE2_NAME)));
-
-        int i = 0;
-        while (rs.next()) {
-            Assert.assertEquals(result[i++],rs.getDouble(3), 0.00);
-        }
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "ITEM | PRICE |SUMSAL |         DATE           |\n" +
+                "-----------------------------------------------\n" +
+                "  4  | 10.0  | 10.0  |2014-09-08 17:50:17.182 |\n" +
+                "  4  |  2.0  | 12.0  |2014-09-08 18:05:47.166 |\n" +
+                "  4  |  8.0  | 20.0  |2014-09-08 18:08:04.986 |\n" +
+                "  2  |  6.0  |  6.0  |2014-09-08 17:50:17.182 |\n" +
+                "  2  |  5.0  | 11.0  |2014-09-08 18:26:51.387 |\n" +
+                "  2  | 12.0  | 23.0  |2014-09-08 18:40:15.48  |\n" +
+                "  3  |  3.0  |  3.0  |2014-09-08 17:36:55.414 |\n" +
+                "  3  |  7.0  | 10.0  |2014-09-08 18:00:44.742 |\n" +
+                "  3  | 10.0  | 20.0  |2014-09-08 18:25:42.387 |\n" +
+                "  1  |  1.0  |  1.0  |2014-09-08 17:45:15.204 |\n" +
+                "  1  |  1.0  |  2.0  |2014-09-08 18:27:48.881 |\n" +
+                "  1  |  7.0  |  9.0  |2014-09-08 18:33:46.446 |\n" +
+                "  5  | 11.0  | 11.0  |2014-09-08 17:41:56.353 |\n" +
+                "  5  |  4.0  | 15.0  |2014-09-08 17:46:26.428 |\n" +
+                "  5  | 10.0  | 25.0  |2014-09-08 18:11:23.645 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
 
     @Test
     public void testWindowFunctionWithGroupBy() throws Exception {
 
-        int[] col2 = {1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3};
-        int[] col3 = {78000, 76000, 75000, 53000, 52000, 52000, 50000, 53000, 52000, 52000, 51000, 84000, 79000, 75000, 55000};
-        int[] col4 = {1, 2, 3, 4, 5, 5, 7, 1, 2, 2, 4, 1, 2, 3, 4};
         String sqlText =
-                "select empnum, dept, sum(salary)," +
+            "select empnum, dept, sum(salary)," +
                 "rank() over(partition by dept order by salary desc) rank " +
                 "from %s " +
-                "group by empnum, dept";
+                "group by empnum, dept order by empnum";
 
         ResultSet rs = methodWatcher.executeQuery(
-                String.format(sqlText, this.getTableReference(TABLE_NAME)));
+            String.format(sqlText, this.getTableReference(TABLE_NAME)));
 
-        int i = 0;
-        while (rs.next()) {
-            Assert.assertEquals(col2[i],rs.getInt(2));
-            Assert.assertEquals(col3[i],rs.getInt(3));
-            Assert.assertEquals(col4[i],rs.getInt(4));
-            i++;
-        }
+        String expected =
+            "EMPNUM |DEPT |  3   |RANK |\n" +
+                "---------------------------\n" +
+                "  10   |  1  |50000 |  7  |\n" +
+                "  20   |  1  |75000 |  3  |\n" +
+                "  30   |  3  |84000 |  1  |\n" +
+                "  40   |  2  |52000 |  2  |\n" +
+                "  44   |  2  |52000 |  2  |\n" +
+                "  49   |  2  |53000 |  1  |\n" +
+                "  50   |  1  |52000 |  5  |\n" +
+                "  55   |  1  |52000 |  5  |\n" +
+                "  60   |  1  |78000 |  1  |\n" +
+                "  70   |  1  |76000 |  2  |\n" +
+                "  80   |  3  |79000 |  2  |\n" +
+                "  90   |  2  |51000 |  4  |\n" +
+                "  100  |  3  |55000 |  4  |\n" +
+                "  110  |  1  |53000 |  4  |\n" +
+                "  120  |  3  |75000 |  3  |";
+
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
 
     @Test
     public void testMaxInOrderBy() throws Exception {
-
-        int[] salaryExpected = {55000, 75000, 79000, 84000, 50000, 52000, 52000, 53000, 75000, 76000, 78000, 51000, 52000, 52000, 53000};
-        int[] maxSalExpected = {84000, 84000, 84000, 84000, 78000, 78000, 78000, 78000, 78000, 78000, 78000, 53000, 53000, 53000, 53000};
         String sqlText =
-            "SELECT empnum, dept, salary, max(salary) over (Partition by dept) as maxsal from %s order by maxsal desc, salary";
+            String.format("SELECT empnum, dept, salary, " +
+                              "max(salary) over (Partition by dept) as maxsal " +
+                              "from %s order by empnum",
+                          this.getTableReference(TABLE_NAME));
 
-        ResultSet rs = methodWatcher.executeQuery(
-            String.format(sqlText, this.getTableReference(TABLE_NAME)));
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
 
-        List<Integer> salaryActual = new ArrayList<Integer>(salaryExpected.length);
-        List<Integer> maxSalActual = new ArrayList<Integer>(maxSalExpected.length);
-        while (rs.next()) {
-            salaryActual.add(rs.getInt(3));
-            maxSalActual.add(rs.getInt(4));
-        }
+        String expected =
+            "EMPNUM |DEPT |SALARY |MAXSAL |\n" +
+                "------------------------------\n" +
+                "  10   |  1  | 50000 | 78000 |\n" +
+                "  20   |  1  | 75000 | 78000 |\n" +
+                "  30   |  3  | 84000 | 84000 |\n" +
+                "  40   |  2  | 52000 | 53000 |\n" +
+                "  44   |  2  | 52000 | 53000 |\n" +
+                "  49   |  2  | 53000 | 53000 |\n" +
+                "  50   |  1  | 52000 | 78000 |\n" +
+                "  55   |  1  | 52000 | 78000 |\n" +
+                "  60   |  1  | 78000 | 78000 |\n" +
+                "  70   |  1  | 76000 | 78000 |\n" +
+                "  80   |  3  | 79000 | 84000 |\n" +
+                "  90   |  2  | 51000 | 53000 |\n" +
+                "  100  |  3  | 55000 | 84000 |\n" +
+                "  110  |  1  | 53000 | 78000 |\n" +
+                "  120  |  3  | 75000 | 84000 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
-
-        compareArrays(salaryExpected, salaryActual);
-        compareArrays(maxSalExpected, maxSalActual);
     }
 
     @Test
     public void testRankInOrderBy() throws Exception {
-
-        int[] salaryExpected = {78000, 76000, 75000, 53000, 52000, 52000, 50000, 53000, 52000, 52000, 51000, 84000, 79000, 75000, 55000};
-        int[] maxSalExpected = {7, 6, 5, 4, 2, 2, 1, 4, 2, 2, 1, 4, 3, 2, 1};
         String sqlText =
-            "SELECT empnum, dept, salary, rank() over (Partition by dept order by salary) as salrank from %s order by dept, salrank desc";
+            String.format("SELECT empnum, dept, salary, " +
+                              "rank() over (Partition by dept order by salary) as salrank " +
+                              "from %s order by empnum",
+                          this.getTableReference(TABLE_NAME));
 
-        ResultSet rs = methodWatcher.executeQuery(
-            String.format(sqlText, this.getTableReference(TABLE_NAME)));
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
 
-        List<Integer> salaryActual = new ArrayList<Integer>(salaryExpected.length);
-        List<Integer> maxSalActual = new ArrayList<Integer>(maxSalExpected.length);
-        while (rs.next()) {
-            salaryActual.add(rs.getInt(3));
-            maxSalActual.add(rs.getInt(4));
-        }
+        String expected =
+            "EMPNUM |DEPT |SALARY | SALRANK |\n" +
+                "--------------------------------\n" +
+                "  10   |  1  | 50000 |    1    |\n" +
+                "  20   |  1  | 75000 |    5    |\n" +
+                "  30   |  3  | 84000 |    4    |\n" +
+                "  40   |  2  | 52000 |    2    |\n" +
+                "  44   |  2  | 52000 |    2    |\n" +
+                "  49   |  2  | 53000 |    4    |\n" +
+                "  50   |  1  | 52000 |    2    |\n" +
+                "  55   |  1  | 52000 |    2    |\n" +
+                "  60   |  1  | 78000 |    7    |\n" +
+                "  70   |  1  | 76000 |    6    |\n" +
+                "  80   |  3  | 79000 |    3    |\n" +
+                "  90   |  2  | 51000 |    1    |\n" +
+                "  100  |  3  | 55000 |    1    |\n" +
+                "  110  |  1  | 53000 |    4    |\n" +
+                "  120  |  3  | 75000 |    2    |";
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
-
-        compareArrays(salaryExpected, salaryActual);
-        compareArrays(maxSalExpected, maxSalActual);
     }
 
     @Test
     public void testRankWithAggAsOrderByCol() throws Exception {
-
-        double[] col1Expected = { 800,  950, 1100, 1250, 1250, 1300, 1500, 1600, 2450, 2850, 2975, 3000, 3000, 5000};
-        int[] empSalExpected = { 1,  2,  3,  4,  4,  6,  7,  8,  9, 10, 11, 12, 12, 14};
-        String[] enameExpected = { "SMITH",  "JAMES",  "ADAMS", "MARTIN",   "WARD", "MILLER", "TURNER",  "ALLEN",  "CLARK",  "BLAKE",  "JONES", "SCOTT", "FORD",   "KING"};
+        // have to order by ename here because it's the only col with unique values and forces repeatable results
         String sqlText =
-            "select sum(sal), rank() over ( order by sum(sal) ) empsal, ename from %s group by ename";
+            String.format("select sum(sal), " +
+                              "rank() over ( order by sum(sal) ) empsal, ename from %s " +
+                              "group by ename order by ename",
+                          this.getTableReference(TABLE4_NAME));
 
-        ResultSet rs = methodWatcher.executeQuery(
-            String.format(sqlText, this.getTableReference(TABLE4_NAME)));
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
 
-        List<Double> col1Actual = new ArrayList<Double>(col1Expected.length);
-        List<Integer> empSalActual = new ArrayList<Integer>(empSalExpected.length);
-        List<String> enameActual = new ArrayList<String>(enameExpected.length);
-        while (rs.next()) {
-            col1Actual.add(rs.getDouble(1));
-            empSalActual.add(rs.getInt(2));
-            enameActual.add(rs.getString(3));
-        }
+        String expected =
+            "1    |EMPSAL | ENAME |\n" +
+                "-------------------------\n" +
+                "1100.00 |   3   | ADAMS |\n" +
+                "1600.00 |   8   | ALLEN |\n" +
+                "2850.00 |  10   | BLAKE |\n" +
+                "2450.00 |   9   | CLARK |\n" +
+                "3000.00 |  12   | FORD  |\n" +
+                "950.00  |   2   | JAMES |\n" +
+                "2975.00 |  11   | JONES |\n" +
+                "5000.00 |  14   | KING  |\n" +
+                "1250.00 |   4   |MARTIN |\n" +
+                "1300.00 |   6   |MILLER |\n" +
+                "3000.00 |  12   | SCOTT |\n" +
+                "800.00  |   1   | SMITH |\n" +
+                "1500.00 |   7   |TURNER |\n" +
+                "1250.00 |   4   | WARD  |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
-
-        compareArrays(col1Expected, col1Actual);
-        compareArrays(empSalExpected, empSalActual);
-        // enames, SCOTT and FORD have same salary and so rank the same and results
-        // order the names arbitrarily, therefore, we can't use ename with static comparison.
-//        compareArrays(enameExpected, enameActual);
     }
 
     @Test(expected=SQLException.class)
@@ -1082,70 +1685,75 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText =
             "select sal, rank() over ( order by sum(sal) ) empsal, ename from %s";
 
-        ResultSet rs = methodWatcher.executeQuery(
+        methodWatcher.executeQuery(
             String.format(sqlText, this.getTableReference(TABLE4_NAME)));
     }
 
     @Test
     public void testRankWith2AggAsOrderByCol() throws Exception {
-
-        double[] col1Expected = { 800,  950, 1100, 1250, 1250, 1300, 1500, 1600, 2450, 2850, 2975, 3000, 3000, 5000};
-        int[] empSalExpected = { 1,  2,  3,  4,  4,  6,  7,  8,  9, 10, 11, 12, 12, 14};
-        String[] enameExpected = { "SMITH",  "JAMES",  "ADAMS", "MARTIN",   "WARD", "MILLER", "TURNER",  "ALLEN",  "CLARK",  "BLAKE",  "JONES", "SCOTT", "FORD",   "KING"};
+        // have to order by ename here because it's the only col with unique values and forces repeatable results
         String sqlText =
-            "select sum(sal) as sum_sal, avg(sal) as avg_sal, rank() over ( order by sum(sal), avg(sal) ) empsal, ename from %s group by ename";
+            String.format("select sum(sal) as sum_sal, avg(sal) as avg_sal, " +
+                              "rank() over ( order by sum(sal), avg(sal) ) empsal, ename " +
+                              "from %s group by ename order by ename",
+                          this.getTableReference(TABLE4_NAME));
 
-        ResultSet rs = methodWatcher.executeQuery(
-            String.format(sqlText, this.getTableReference(TABLE4_NAME)));
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
 
-        List<Double> col1Actual = new ArrayList<Double>(col1Expected.length);
-        List<Integer> empSalActual = new ArrayList<Integer>(empSalExpected.length);
-        List<String> enameActual = new ArrayList<String>(enameExpected.length);
-        while (rs.next()) {
-            col1Actual.add(rs.getDouble(1));
-            empSalActual.add(rs.getInt(3));
-            enameActual.add(rs.getString(4));
-        }
+        String expected =
+            "SUM_SAL | AVG_SAL  |EMPSAL | ENAME |\n" +
+                "-------------------------------------\n" +
+                " 1100.00 |1100.0000 |   3   | ADAMS |\n" +
+                " 1600.00 |1600.0000 |   8   | ALLEN |\n" +
+                " 2850.00 |2850.0000 |  10   | BLAKE |\n" +
+                " 2450.00 |2450.0000 |   9   | CLARK |\n" +
+                " 3000.00 |3000.0000 |  12   | FORD  |\n" +
+                " 950.00  |950.0000  |   2   | JAMES |\n" +
+                " 2975.00 |2975.0000 |  11   | JONES |\n" +
+                " 5000.00 |5000.0000 |  14   | KING  |\n" +
+                " 1250.00 |1250.0000 |   4   |MARTIN |\n" +
+                " 1300.00 |1300.0000 |   6   |MILLER |\n" +
+                " 3000.00 |3000.0000 |  12   | SCOTT |\n" +
+                " 800.00  |800.0000  |   1   | SMITH |\n" +
+                " 1500.00 |1500.0000 |   7   |TURNER |\n" +
+                " 1250.00 |1250.0000 |   4   | WARD  |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
-
-        compareArrays(col1Expected, col1Actual);
-        compareArrays(empSalExpected, empSalActual);
-        // enames, SCOTT and FORD have same salary and so rank the same and results
-        // order the names arbitrarily, therefore, we can't use ename with static comparison.
-//        compareArrays(enameExpected, enameActual);
     }
 
     @Test
     public void testMediaForDept() throws Exception {
         // DB-1650, DB-2020
-        String[] funcionarioExpected = { "Luciano", "Zavaschi",   "Nogare",    "Diego",   "Laerte", "Ferreira", "Amorim", "Felipe",  "Fabiano"};
-        double[] mpdExpected = {14166.3333, 14166.3333, 5499.6666, 4500.0000, 14166.3333, 5499.6666, 4500.0000, 5499.6666, 4500.0000};
-
         String sqlText = String.format("SELECT %1$s.Nome_Dep, %2$s.Nome AS Funcionario, %2$s.Salario, " +
-                "AVG(%2$s.Salario) OVER(PARTITION BY %1$s.Nome_Dep) \"Média por Departamento\", " +
-                "%2$s.Salario - AVG(%2$s.Salario) as \"Diferença de Salário\" FROM %2$s INNER" +
-                " JOIN %1$s ON %2$s.ID_Dep = %1$s.ID group by %1$s.Nome_Dep," +
-                "%2$s.Nome, %2$s.Salario ORDER BY 3 DESC",
+                                           "AVG(%2$s.Salario) OVER(PARTITION BY %1$s.Nome_Dep) \"Média por " +
+                                           "Departamento\", " +
+                                           "%2$s.Salario - AVG(%2$s.Salario) as \"Diferença de Salário\" FROM %2$s " +
+                                           "INNER" +
+                                           " JOIN %1$s ON %2$s.ID_Dep = %1$s.ID group by %1$s.Nome_Dep," +
+                                           "%2$s.Nome, %2$s.Salario ORDER BY 3 DESC, 1",
                                        this.getTableReference(TABLE5a_NAME), this.getTableReference(TABLE5b_NAME));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
 
-        List<String> funcionarioActual = new ArrayList<String>(funcionarioExpected.length);
-        List<Double> mpdActual = new ArrayList<Double>(mpdExpected.length);
-        while (rs.next()) {
-            funcionarioActual.add(rs.getString(2));
-            mpdActual.add(rs.getDouble(4));
-        }
+        String expected =
+            "NOME_DEP     | FUNCIONARIO | SALARIO |Média por Departamento |Diferença de Salário |\n" +
+                "----------------------------------------------------------------------------------------\n" +
+                "Recursos Humanos |   Luciano   |23500.00 |      14166.3333       |       0.0000        |\n" +
+                "Recursos Humanos |  Zavaschi   |13999.00 |      14166.3333       |       0.0000        |\n" +
+                "       IT        |   Nogare    |11999.00 |       5499.6666       |       0.0000        |\n" +
+                "     Vendas      |    Diego    | 9000.00 |       4500.0000       |       0.0000        |\n" +
+                "Recursos Humanos |   Laerte    | 5000.00 |      14166.3333       |       0.0000        |\n" +
+                "       IT        |  Ferreira   | 2500.00 |       5499.6666       |       0.0000        |\n" +
+                "     Vendas      |   Amorim    | 2500.00 |       4500.0000       |       0.0000        |\n" +
+                "       IT        |   Felipe    | 2000.00 |       5499.6666       |       0.0000        |\n" +
+                "     Vendas      |   Fabiano   | 2000.00 |       4500.0000       |       0.0000        |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
-
-        compareArrays(funcionarioExpected, funcionarioActual);
-        compareArrays(mpdExpected, mpdActual);
     }
 
     @Test
     public void testConstMinusAvg1() throws Exception {
         // DB-2124
-        double[] salDiffExpected = {-3499.6666, -2999.6666, 6499.3333, -9166.3333, 9333.6666, -167.3333, -2500.0000, -2000.0000, 4500.0000};
         String sqlText = String.format("SELECT %2$s.Salario - AVG(%2$s.Salario) OVER(PARTITION BY " +
                                            "%1$s.Nome_Dep) \"Diferença de Salário\" FROM %2$s " +
                                            "INNER JOIN %1$s " +
@@ -1153,21 +1761,26 @@ public class WindowFunctionIT extends SpliceUnitTest {
                                        this.getTableReference(TABLE5a_NAME), this.getTableReference(TABLE5b_NAME));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
-        List<Double> salDiffActual = new ArrayList<Double>(salDiffExpected.length);
-        while (rs.next()) {
-            salDiffActual.add(rs.getDouble(1));
-        }
-        rs.close();
 
-        compareArrays(salDiffExpected, salDiffActual);
+        String expected =
+            "Diferença de Salário |\n" +
+                "----------------------\n" +
+                "     -9166.3333      |\n" +
+                "      9333.6666      |\n" +
+                "      -167.3333      |\n" +
+                "     -2500.0000      |\n" +
+                "     -2000.0000      |\n" +
+                "      4500.0000      |\n" +
+                "     -3499.6666      |\n" +
+                "     -2999.6666      |\n" +
+                "      6499.3333      |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
     }
 
     @Test
     public void testConstMinusAvg2() throws Exception {
         // DB-2124
-        double[] salExpected = {23500.00, 11999.00, 9000.00, 13999.00, 2500.00, 2000.00, 2500.00, 2000.00, 5000.00};
-        double[] mediaForDeptExpected = {14166.3333, 5499.6666, 4500.0000, 14166.3333, 4500.0000, 4500.0000, 5499.6666, 5499.6666, 14166.3333};
-        double[] salDiffExpected = {9333.6666, 6499.3333, 4500.0000, -167.3333, -2000.0000, -2500.0000, -2999.6666, -3499.6666,  -9166.3333};
         String sqlText = String.format("SELECT %1$s.Nome_Dep, " +
                                            "%2$s.Nome AS Funcionario, " +
                                            "%2$s.Salario, " +
@@ -1180,25 +1793,26 @@ public class WindowFunctionIT extends SpliceUnitTest {
                                        this.getTableReference(TABLE5a_NAME), this.getTableReference(TABLE5b_NAME));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
-        List<Double> salActual = new ArrayList<Double>(salExpected.length);
-        List<Double> mediaForDeptActual = new ArrayList<Double>(mediaForDeptExpected.length);
-        List<Double> salDiffActual = new ArrayList<Double>(salDiffExpected.length);
-        while (rs.next()) {
-            salActual.add(rs.getDouble(3));
-            mediaForDeptActual.add(rs.getDouble(4));
-            salDiffActual.add(rs.getDouble(5));
-        }
-        rs.close();
 
-        compareArrays(salExpected, salActual);
-        compareArrays(mediaForDeptExpected, mediaForDeptActual);
-        compareArrays(salDiffExpected, salDiffActual);
+        String expected =
+            "NOME_DEP     | FUNCIONARIO | SALARIO |Média por Departamento |Diferença de Salário |\n" +
+                "----------------------------------------------------------------------------------------\n" +
+                "Recursos Humanos |   Luciano   |23500.00 |      14166.3333       |      9333.6666      |\n" +
+                "       IT        |   Nogare    |11999.00 |       5499.6666       |      6499.3333      |\n" +
+                "     Vendas      |    Diego    | 9000.00 |       4500.0000       |      4500.0000      |\n" +
+                "Recursos Humanos |  Zavaschi   |13999.00 |      14166.3333       |      -167.3333      |\n" +
+                "     Vendas      |   Amorim    | 2500.00 |       4500.0000       |     -2000.0000      |\n" +
+                "     Vendas      |   Fabiano   | 2000.00 |       4500.0000       |     -2500.0000      |\n" +
+                "       IT        |  Ferreira   | 2500.00 |       5499.6666       |     -2999.6666      |\n" +
+                "       IT        |   Felipe    | 2000.00 |       5499.6666       |     -3499.6666      |\n" +
+                "Recursos Humanos |   Laerte    | 5000.00 |      14166.3333       |     -9166.3333      |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
     }
 
     @Test
     public void testSumTimesConstDivSum() throws Exception {
         // DB-2086 - identical agg gets removed from aggregates array
-        double[] mediaForDeptExpected = {3624.9000, 3624.9000, 3624.9000};
         String sqlText = String.format("SELECT SUM(%2$s.Salario) * 100 / " +
                                            "SUM(%2$s.Salario) OVER(PARTITION BY %1$s.Nome_Dep) " +
                                            "\"Média por Departamento\" " +
@@ -1206,99 +1820,71 @@ public class WindowFunctionIT extends SpliceUnitTest {
                                        this.getTableReference(TABLE5a_NAME), this.getTableReference(TABLE5b_NAME));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
-        List<Double> mediaForDeptActual = new ArrayList<Double>(mediaForDeptExpected.length);
-        while (rs.next()) {
-            mediaForDeptActual.add(rs.getDouble(1));
-        }
+
+        String expected =
+            "Média por Departamento |\n" +
+                "------------------------\n" +
+                "       3624.9000       |\n" +
+                "       3624.9000       |\n" +
+                "       3624.9000       |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
-
-        compareArrays(mediaForDeptExpected, mediaForDeptActual);
     }
 
-    //============================================================================================================
-    //
-    //============================================================================================================
-    public static void compareArrays(int[] expected, List<Integer> actualList) {
-        int[] actual = new int[actualList.size()];
-        for (int i=0; i<actualList.size(); i++) {
-            actual[i] = actualList.get(i);
-        }
-        Assert.assertArrayEquals(printExpectedVActual(expected,actual),expected, actual);
+    @Test
+    @Ignore("DB-2170 - NPE when window function over view. (expected result will need to be regenerated after fix.)")
+    public void testRankOverView() throws Exception {
+        String sqlText =
+            String.format("select yr, rank() over ( partition by yr order by hiredate ) as EMPRANK, ename," +
+                              "hiredate from %s", this.getTableReference(VIEW_NAME));
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        // TODO: regenerate expected results when fixed
+        String expected =
+            "EMPRANK | ENAME | HIREDATE  |\n" +
+                "------------------------------\n" +
+                "    1    | ALLEN |1981-02-20 |\n" +
+                "    2    | WARD  |1981-02-22 |\n" +
+                "    3    | JONES |1981-04-02 |\n" +
+                "    4    | BLAKE |1981-05-01 |\n" +
+                "    5    | CLARK |1981-06-09 |\n" +
+                "    6    |TURNER |1981-09-08 |\n" +
+                "    7    |MARTIN |1981-09-28 |\n" +
+                "    8    | KING  |1981-11-17 |\n" +
+                "    9    | FORD  |1981-12-03 |\n" +
+                "    9    | JAMES |1981-12-03 |\n" +
+                "    1    | ADAMS |1983-01-12 |\n" +
+                "    1    |MILLER |1982-01-23 |\n" +
+                "    2    | SCOTT |1982-12-09 |\n" +
+                "    1    | SMITH |1980-12-17 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
     }
 
-    public static void compareArrays(double[] expected, List<Double> actualList) {
-        double[] actual = new double[actualList.size()];
-        for (int i=0; i<actualList.size(); i++) {
-            actual[i] = actualList.get(i);
-        }
-        Assert.assertArrayEquals(printExpectedVActual(expected,actual),expected, actual, 0.0);
-    }
-
-    private static void compareArrays(String[] expected, List<String> actualList) {
-        String[] actual = new String[actualList.size()];
-        for (int i=0; i<actualList.size(); i++) {
-            actual[i] = (actualList.get(i));
-        }
-        Assert.assertArrayEquals(printExpectedVActual(expected,actual), expected, actual);
-    }
-
-    private static String printExpectedVActual(int[] expected, int[] actual) {
-        StringBuilder buf = new StringBuilder("\n");
-        for (int anExpected : expected) {
-            buf.append(anExpected).append(", ");
-        }
-        int eSize = buf.length();
-        if (eSize > 2) {
-            buf.setLength(buf.length()-2);
-            buf.append('\n');
-            eSize = buf.length();
-        }
-        for (int anActual : actual) {
-            buf.append(anActual).append(", ");
-        }
-        if (buf.length() - eSize > 2) {
-            buf.setCharAt(buf.length()-2,'\n');
-        }
-        return buf.toString();
-    }
-
-    private static String printExpectedVActual(double[] expected, double[] actual) {
-        StringBuilder buf = new StringBuilder("\n");
-        for (double anExpected : expected) {
-            buf.append(anExpected).append(", ");
-        }
-        int eSize = buf.length();
-        if (eSize > 2) {
-            buf.setLength(buf.length()-2);
-            buf.append('\n');
-            eSize = buf.length();
-        }
-        for (double anActual : actual) {
-            buf.append(anActual).append(", ");
-        }
-        if (buf.length() - eSize > 2) {
-            buf.setCharAt(buf.length()-2,'\n');
-        }
-        return buf.toString();
-    }
-
-    private static String printExpectedVActual(String[] expected, String[] actual) {
-        StringBuilder buf = new StringBuilder("\n");
-        for (String anExpected : expected) {
-            buf.append(anExpected).append(", ");
-        }
-        int eSize = buf.length();
-        if (eSize > 2) {
-            buf.setLength(buf.length()-2);
-            buf.append('\n');
-            eSize = buf.length();
-        }
-        for (String anActual : actual) {
-            buf.append(anActual).append(", ");
-        }
-        if (buf.length() - eSize > 2) {
-            buf.setCharAt(buf.length()-2,'\n');
-        }
-        return buf.toString();
+    @Test
+    @Ignore("DB-2170 - NPE when window function over view. (this one works periodically, why?)")
+    public void testRankOverViewMissingKey() throws Exception {
+        String sqlText =
+            String.format("select rank() over ( partition by yr order by hiredate ) as EMPRANK, ename," +
+                              "hiredate from %s", this.getTableReference(VIEW_NAME));
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "EMPRANK | ENAME | HIREDATE  |\n" +
+                "------------------------------\n" +
+                "    1    | ALLEN |1981-02-20 |\n" +
+                "    2    | WARD  |1981-02-22 |\n" +
+                "    3    | JONES |1981-04-02 |\n" +
+                "    4    | BLAKE |1981-05-01 |\n" +
+                "    5    | CLARK |1981-06-09 |\n" +
+                "    6    |TURNER |1981-09-08 |\n" +
+                "    7    |MARTIN |1981-09-28 |\n" +
+                "    8    | KING  |1981-11-17 |\n" +
+                "    9    | FORD  |1981-12-03 |\n" +
+                "    9    | JAMES |1981-12-03 |\n" +
+                "    1    | ADAMS |1983-01-12 |\n" +
+                "    1    |MILLER |1982-01-23 |\n" +
+                "    2    | SCOTT |1982-12-09 |\n" +
+                "    1    | SMITH |1980-12-17 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
     }
 }

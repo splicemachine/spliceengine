@@ -2,8 +2,6 @@
 -- TPC-H/TPC-R Shipping Priority Query (Q3)
 -- Functional Query Definition
 -- Approved February 1998
-set schema tpch1x;
-VALUES (CURRENT_TIMESTAMP) ;
 select
 	l_orderkey,
 	sum(l_extendedprice * (1 - l_discount)) as revenue,
@@ -25,5 +23,4 @@ group by
 	o_shippriority
 order by
 	revenue desc,
-	o_orderdate;
-VALUES (CURRENT_TIMESTAMP) ;
+	o_orderdate

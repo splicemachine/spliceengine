@@ -118,12 +118,12 @@ public class MergeJoinIT extends SpliceUnitTest {
                     PreparedStatement ps = spliceClassWatcher.prepareStatement(
                             format("call SYSCS_UTIL.SYSCS_IMPORT_DATA(" +
                                     "'%s','%s',null,null,'%s','|','\"',null,null,null)",
-                                    CLASS_NAME, LINEITEM, TPCHIT.getResource("lineitem.tbl")));
+                                    CLASS_NAME, LINEITEM, getResource("lineitem.tbl")));
                     ps.execute();
                     ps = spliceClassWatcher.prepareStatement(
                             format("call SYSCS_UTIL.SYSCS_IMPORT_DATA(" +
                                     "'%s','%s',null,null,'%s','|','\"',null,null,null)",
-                                    CLASS_NAME, ORDERS, TPCHIT.getResource("orders.tbl")));
+                                    CLASS_NAME, ORDERS, getResource("orders.tbl")));
                     ps.execute();
                 } catch (Exception e) {
                     throw new RuntimeException(e);
@@ -377,6 +377,10 @@ public class MergeJoinIT extends SpliceUnitTest {
     public void testMergeWithUnorderedPredicates() throws Exception {
     	List<Object[]> data = TestUtils.resultSetToArrays(methodWatcher.executeQuery(MERGE_WITH_UNORDERED));
     	Assert.assertTrue("does not return 1 row for merge, position problems in MergeSortJoinStrategy/Operation?",data.size()==1);
+    }
+
+    private static String getResource(String name) {
+        return getResourceDirectory() + "tcph/data/" + name;
     }
 
 }

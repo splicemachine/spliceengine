@@ -3,14 +3,12 @@ package com.splicemachine.derby.impl.sql.execute.operations.export;
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 import com.google.common.io.PatternFilenameFilter;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.test_tools.TableCreator;
-
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -29,7 +27,6 @@ import static org.junit.Assert.*;
  * This IT assumes the server side writes to the local files system accessible to IT itself.  Currently true only
  * because SpliceTestPlatform starts a cluster than uses local FS instead of HDFS, may not be in the future.
  */
-@Ignore
 public class ExportOperationIT {
 
     private static final String CLASS_NAME = ExportOperationIT.class.getSimpleName().toUpperCase();
@@ -97,7 +94,7 @@ public class ExportOperationIT {
                 .withInsert("insert into export_local values(?,?,?,?)")
                 .withRows(getTestRows()).create();
 
-        String exportSQL = buildExportSQL("select * from export_local", false);
+        String exportSQL = buildExportSQL("select * from export_local order by a asc", false);
 
         exportAndAssertExportResults(exportSQL, 6);
         File[] files = temporaryFolder.getRoot().listFiles(new PatternFilenameFilter(".*csv"));
@@ -120,7 +117,7 @@ public class ExportOperationIT {
                 .withInsert("insert into pipe values(?,?,?,?)")
                 .withRows(getTestRows()).create();
 
-        String exportSQL = buildExportSQL("select * from pipe", false, "|");
+        String exportSQL = buildExportSQL("select * from pipe order by a asc", false, "|");
 
         exportAndAssertExportResults(exportSQL, 6);
         File[] files = temporaryFolder.getRoot().listFiles(new PatternFilenameFilter(".*csv"));
@@ -143,7 +140,7 @@ public class ExportOperationIT {
                 .withInsert("insert into tabs values(?,?,?,?)")
                 .withRows(getTestRows()).create();
 
-        String exportSQL = buildExportSQL("select * from tabs", false, "\\t");
+        String exportSQL = buildExportSQL("select * from tabs order by a asc", false, "\\t");
 
         exportAndAssertExportResults(exportSQL, 6);
         File[] files = temporaryFolder.getRoot().listFiles(new PatternFilenameFilter(".*csv"));
@@ -214,7 +211,7 @@ public class ExportOperationIT {
                 .withInsert("insert into export_compressed values(?,?,?,?)")
                 .withRows(getTestRows()).create();
 
-        String exportSQL = buildExportSQL("select * from export_compressed", true);
+        String exportSQL = buildExportSQL("select * from export_compressed order by a asc", true);
 
         exportAndAssertExportResults(exportSQL, 6);
         File[] files = temporaryFolder.getRoot().listFiles(new PatternFilenameFilter(".*csv.gz"));
@@ -229,6 +226,63 @@ public class ExportOperationIT {
                 IOUtils.toString(new GZIPInputStream(new FileInputStream(files[0]))));
     }
 
+    @Test
+    public void export_decimalFormatting() throws Exception {
+
+        new TableCreator(methodWatcher.getOrCreateConnection())
+                .withCreate("create table export_decimal(a smallint, b decimal(31, 25), c decimal(31, 2))")
+                .withInsert("insert into export_decimal values(?,?,?)")
+                .withRows(rows(row(1, 2.0, 3.00005), row(1, 2.0, 3.00005))).create();
+
+        //
+        // default column order
+        //
+        String exportSQL = buildExportSQL("select * from export_decimal order by a asc", false);
+
+        exportAndAssertExportResults(exportSQL, 2);
+        File[] files = temporaryFolder.getRoot().listFiles(new PatternFilenameFilter(".*csv"));
+        assertEquals(1, files.length);
+        assertEquals("" +
+                        "1,2.0000000000000000000000000,3.00\n" +
+                        "1,2.0000000000000000000000000,3.00\n",
+                Files.toString(files[0], Charsets.UTF_8));
+
+        //
+        // alternate column order
+        //
+        FileUtils.deleteDirectory(temporaryFolder.getRoot());
+        exportSQL = buildExportSQL("select c,b,a from export_decimal order by a asc", false);
+
+        exportAndAssertExportResults(exportSQL, 2);
+        files = temporaryFolder.getRoot().listFiles(new PatternFilenameFilter(".*csv"));
+        assertEquals(1, files.length);
+        assertEquals("" +
+                        "3.00,2.0000000000000000000000000,1\n" +
+                        "3.00,2.0000000000000000000000000,1\n",
+                Files.toString(files[0], Charsets.UTF_8));
+
+        //
+        // column subset
+        //
+        FileUtils.deleteDirectory(temporaryFolder.getRoot());
+        exportSQL = buildExportSQL("select b from export_decimal order by a asc", false);
+
+        exportAndAssertExportResults(exportSQL, 2);
+        files = temporaryFolder.getRoot().listFiles(new PatternFilenameFilter(".*csv"));
+        assertEquals(1, files.length);
+        assertEquals("" +
+                        "2.0000000000000000000000000\n" +
+                        "2.0000000000000000000000000\n",
+                Files.toString(files[0], Charsets.UTF_8));
+    }
+
+    /* sysaliases contains a column of type 'org.apache.derby.catalog.AliasInfo'. Make sure we can handle with out throwing.  */
+    @Test
+    public void export_sysaliases() throws Exception {
+        Long expectedRowCount = methodWatcher.query("select count(*) from sys.sysaliases");
+        String exportSQL = buildExportSQL("select * from sys.sysaliases", false);
+        exportAndAssertExportResults(exportSQL, expectedRowCount);
+    }
 
     /* It is important that we throw SQLException, given invalid parameters, rather than other exceptions which cause IJ to drop the connection.  */
     @Test

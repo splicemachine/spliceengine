@@ -88,7 +88,7 @@ public class WorkStealingTaskScheduler<T extends Task> implements StealableTaskS
 				/*
 				 * We can only accept this task if there are idle workers.
 				 * An idle worker corresponds to an empty queue, so check
-				 * the queue size. However, as the getSize-checkSize-submit
+				 * the queue size. However, as the numEntries-checkSize-submit
 				 * operation is not atomic, we cannot rely on that as a
 				 * safety valve. Instead, we keep an atomic counter in sync.
 				 */

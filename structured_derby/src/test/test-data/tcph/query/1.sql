@@ -2,8 +2,6 @@
 -- TPC-H/TPC-R Pricing Summary Report Query (Q1)
 -- Functional Query Definition
 -- Approved February 1998
-set schema tpch1x;
-VALUES (CURRENT_TIMESTAMP) ;
 select
 	l_returnflag,
 	l_linestatus,
@@ -24,5 +22,4 @@ group by
 	l_linestatus
 order by
 	l_returnflag,
-	l_linestatus;
-VALUES (CURRENT_TIMESTAMP) ;
+	l_linestatus

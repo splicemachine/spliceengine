@@ -237,54 +237,67 @@ public class Scans extends SpliceUtils {
 		}
 
 		private static void attachScanKeys(Scan scan,
-																			 DataValueDescriptor[] startKeyValue, int startSearchOperator,
-																			 DataValueDescriptor[] stopKeyValue, int stopSearchOperator,
-																			 FormatableBitSet scanColumnList,
-																			 boolean[] sortOrder,
-																			 int[] columnTypes, //the types of the column in the ENTIRE Row
-																			 int[] keyTablePositionMap, //the location in the ENTIRE row of the key columns
-																			 DataValueFactory dataValueFactory,
-																			 String tableVersion) throws IOException {
-				try {
-						// Determines whether we can generate a key and also handles type conversion...
+				DataValueDescriptor[] startKeyValue, int startSearchOperator,
+				DataValueDescriptor[] stopKeyValue, int stopSearchOperator,
+				FormatableBitSet scanColumnList,
+				boolean[] sortOrder,
+				int[] columnTypes, //the types of the column in the ENTIRE Row
+				int[] keyTablePositionMap, //the location in the ENTIRE row of the key columns
+				DataValueFactory dataValueFactory,
+				String tableVersion) throws IOException {
+			try {
+				// Determines whether we can generate a key and also handles type conversion...
 
-						boolean generateKey = true;
-						if(startKeyValue!=null && stopKeyValue!=null){
-								for (int i=0;i<startKeyValue.length;i++) {
-										DataValueDescriptor startDesc = startKeyValue[i];
-										if(startDesc ==null || startDesc.isNull()){
-												generateKey=false;
-												break;
-										}
-										if (keyTablePositionMap != null && keyTablePositionMap.length > 0 &&
-														startDesc.getTypeFormatId() != columnTypes[keyTablePositionMap[i]]) {
-												startKeyValue[i] = QualifierUtils.adjustDataValueDescriptor(startDesc,columnTypes[keyTablePositionMap[i]],dataValueFactory);
-										}
-								}
-
-								for (int i=0;i<stopKeyValue.length;i++) {
-										DataValueDescriptor stopDesc = stopKeyValue[i];
-										if (keyTablePositionMap != null && keyTablePositionMap.length > 0 &&
-														stopDesc.getTypeFormatId() != columnTypes[keyTablePositionMap[i]]) {
-												stopKeyValue[i] = QualifierUtils.adjustDataValueDescriptor(stopDesc,columnTypes[keyTablePositionMap[i]],dataValueFactory);
-										}
-								}
-
+				// gd according to Scott, startKey and stopKey are independent, so need to be evaluated as such
+				boolean generateStartKey = false;
+				boolean generateStopKey = false;
+				
+				if(startKeyValue!=null){  
+					generateStartKey=true; 
+					for (int i=0;i<startKeyValue.length;i++) {
+						DataValueDescriptor startDesc = startKeyValue[i];
+						if(startDesc ==null || startDesc.isNull()){
+							generateStartKey = false; // if null encountered, don't make a start key (TODO - only true if null encountered at the end?)
+							break;
 						}
-
-						if(generateKey){
-								byte[] startRow = DerbyBytesUtil.generateScanKeyForIndex(startKeyValue, startSearchOperator, sortOrder,tableVersion);
-								scan.setStartRow(startRow);
-								byte[] stopRow = DerbyBytesUtil.generateScanKeyForIndex(stopKeyValue, stopSearchOperator, sortOrder,tableVersion);
-								scan.setStopRow(stopRow);
-								if(startRow==null)
-										scan.setStartRow(HConstants.EMPTY_START_ROW);
-								if(stopRow==null)
-										scan.setStopRow(HConstants.EMPTY_END_ROW);
+						if (keyTablePositionMap != null && keyTablePositionMap.length > 0 &&
+								startDesc.getTypeFormatId() != columnTypes[keyTablePositionMap[i]]) {
+							startKeyValue[i] = QualifierUtils.adjustDataValueDescriptor(startDesc,columnTypes[keyTablePositionMap[i]],dataValueFactory);
 						}
-				} catch (StandardException e) {
-						throw new IOException(e);
+					}
 				}
+				if(stopKeyValue!=null) {
+					generateStopKey=true;
+					for (int i=0;i<stopKeyValue.length;i++) {
+						DataValueDescriptor stopDesc = stopKeyValue[i];
+						if(stopDesc ==null || stopDesc.isNull()){
+							generateStopKey=false; // if null encountered, don't make a stop key (TODO - only true if null encountered at the end?)
+							break;
+						}
+						if (keyTablePositionMap != null && keyTablePositionMap.length > 0 &&
+								stopDesc.getTypeFormatId() != columnTypes[keyTablePositionMap[i]]) {
+							stopKeyValue[i] = QualifierUtils.adjustDataValueDescriptor(stopDesc,columnTypes[keyTablePositionMap[i]],dataValueFactory);
+						}
+					}
+				}
+
+				//if(generateKey){
+				if (generateStartKey) {
+					byte[] startRow = DerbyBytesUtil.generateScanKeyForIndex(startKeyValue, startSearchOperator, sortOrder,tableVersion);
+					scan.setStartRow(startRow);
+					if(startRow==null)
+						scan.setStartRow(HConstants.EMPTY_START_ROW);
+				}
+				if (generateStopKey) {
+					byte[] stopRow = DerbyBytesUtil.generateScanKeyForIndex(stopKeyValue, stopSearchOperator, sortOrder,tableVersion);
+					scan.setStopRow(stopRow);
+					if(stopRow==null)
+						scan.setStopRow(HConstants.EMPTY_END_ROW);
+				}
+				//}
+			} catch (StandardException e) {
+				throw new IOException(e);
+			}
 		}
 
     /**

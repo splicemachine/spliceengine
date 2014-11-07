@@ -2,8 +2,6 @@
 -- TPC-H/TPC-R Large Volume Customer Query (Q18)
 -- Function Query Definition
 -- Approved February 1998
-set schema tpch1x;
-VALUES (CURRENT_TIMESTAMP);
 select
 	c_name,
 	c_custkey,
@@ -35,5 +33,4 @@ group by
 	o_totalprice
 order by
 	o_totalprice desc,
-	o_orderdate;
-VALUES (CURRENT_TIMESTAMP);
+	o_orderdate

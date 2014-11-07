@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations.joins;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.splicemachine.test.SlowTest;
 import com.splicemachine.derby.test.framework.*;
@@ -51,6 +52,12 @@ public class InnerJoinIT extends SpliceUnitTest {
 		protected static SpliceTableWatcher spliceTableWatcher7 = new SpliceTableWatcher(TABLE_NAME_7,CLASS_NAME,"(a varchar(20), b varchar(20), w decimal(4),e varchar(15))");
 		protected static SpliceTableWatcher spliceTableWatcher8 = new SpliceTableWatcher(TABLE_NAME_8,CLASS_NAME,"(i int)");
 
+    private static SpliceTableWatcher t1 = new SpliceTableWatcher("t1",CLASS_NAME,"(a int)");
+    private static SpliceTableWatcher t2 = new SpliceTableWatcher("t2",CLASS_NAME,"(b int)");
+    private static SpliceTableWatcher t3 = new SpliceTableWatcher("t3",CLASS_NAME,"(c int)");
+    private static SpliceTableWatcher t4 = new SpliceTableWatcher("t4",CLASS_NAME,"(d int)");
+    private static SpliceTableWatcher t5 = new SpliceTableWatcher("t5",CLASS_NAME,"(e int)");
+
 		@ClassRule
 		public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 						.around(spliceSchemaWatcher)
@@ -62,54 +69,45 @@ public class InnerJoinIT extends SpliceUnitTest {
 						.around(spliceTableWatcher6)
 						.around(spliceTableWatcher7)
 						.around(spliceTableWatcher8)
+            .around(t1)
+            .around(t2)
+            .around(t3)
+            .around(t4)
+            .around(t5)
 						.around(new SpliceDataWatcher() {
-								@Override
-								protected void starting(Description description) {
-										try {
-												PreparedStatement ps = spliceClassWatcher.prepareStatement(format("insert into %s (si, sa, sc,sd,se) values (?,?,?,?,?)", TABLE_NAME_1));
-												for (int i = 0; i < 10; i++) {
-														ps.setString(1, "" + i);
-														ps.setString(2, "i");
-														ps.setString(3, "" + i * 10);
-														ps.setInt(4, i);
-														ps.setFloat(5, 10.0f * i);
-														ps.executeUpdate();
-												}
-										} catch (Exception e) {
-												throw new RuntimeException(e);
-										} finally {
-												spliceClassWatcher.closeAll();
-										}
-								}
+                @Override
+                protected void starting(Description description) {
+                    try {
+                        PreparedStatement ps = spliceClassWatcher.prepareStatement(format("insert into %s (si, sa, sc,sd,se) values (?,?,?,?,?)", TABLE_NAME_1));
+                        for (int i = 0; i < 10; i++) {
+                            ps.setString(1, "" + i);
+                            ps.setString(2, "i");
+                            ps.setString(3, "" + i * 10);
+                            ps.setInt(4, i);
+                            ps.setFloat(5, 10.0f * i);
+                            ps.executeUpdate();
+                        }
 
-						}).around(new SpliceDataWatcher() {
-								@Override
-								protected void starting(Description description) {
-										try {
-												Statement statement = spliceClassWatcher.getStatement();
-												statement.execute(String.format("insert into %s values  ('p1','mxss','design',10000,'deale')",TABLE_NAME_4));
-												statement.execute(String.format("insert into %s values  ('e2','alice',12,'deale')",TABLE_NAME_5));
-												statement.execute(String.format("insert into %s values  ('e3','alice',12,'deale')",TABLE_NAME_5));
-										} catch (Exception e) {
-												throw new RuntimeException(e);
-										} finally {
-												spliceClassWatcher.closeAll();
-										}
-								}
+                        Statement statement = spliceClassWatcher.getStatement();
+                        statement.execute(String.format("insert into %s values  ('p1','mxss','design',10000,'deale')", TABLE_NAME_4));
+                        statement.execute(String.format("insert into %s values  ('e2','alice',12,'deale')", TABLE_NAME_5));
+                        statement.execute(String.format("insert into %s values  ('e3','alice',12,'deale')", TABLE_NAME_5));
 
-						}).around(new SpliceDataWatcher() {
+                        insertData(TABLE_NAME_2, TABLE_NAME_3, spliceClassWatcher);
 
-								@Override
-								protected void starting(Description description) {
-										try {
-												insertData(TABLE_NAME_2, TABLE_NAME_3, spliceClassWatcher);
-										} catch (Exception e) {
-												throw new RuntimeException(e);
-										} finally {
-												spliceClassWatcher.closeAll();
-										}
-								}
-						}).around(TestUtils.createFileDataWatcher(spliceClassWatcher, "small_msdatasample/startup.sql", CLASS_NAME))
+                        statement.execute(String.format("insert into %s (a) values 1,2,3", t1));
+                        statement.execute(String.format("insert into %s (b) values 2,3,4", t2));
+                        statement.execute(String.format("insert into %s (c) values 3,4,5", t3));
+                        statement.execute(String.format("insert into %s (d) values 4,5,6", t4));
+                        statement.execute(String.format("insert into %s (e) values 5,6,7", t5));
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    } finally {
+                        spliceClassWatcher.closeAll();
+                    }
+                }
+
+            }).around(TestUtils.createFileDataWatcher(spliceClassWatcher, "small_msdatasample/startup.sql", CLASS_NAME))
 						.around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/employee.sql", CLASS_NAME))
 						.around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/hits.sql", CLASS_NAME))
 						.around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/basic_join_dataset.sql", CLASS_NAME));
@@ -132,7 +130,48 @@ public class InnerJoinIT extends SpliceUnitTest {
 				spliceWatcher.commit();
 		}
 
-		@Test
+    @Test
+    public void testFlattensSubqueryOverUnionIntoJoin() throws Exception {
+        /*Regression test for DB-2068.*/
+        /*
+         * We need to test two things:
+         *
+         * 1. the generated query plan has a Join and NOT a Subquery in it.
+         * 2. The generated query plan completes successfully.
+         *
+         * To do that, we'll write the query out once, then use the explain
+         * command to print the query plan. Once that is done, we'll execute the query
+         * once to ensure that the proper answer returns
+         */
+        String query = String.format("select a from --SPLICE-PROPERTIES joinOrder=FIXED\n" +
+                "%s\n" +
+                "where not exists (\n" +
+                "              select b from %s where t2.b = t1.a\n" +
+                "        union select c from %s where t3.c = t1.a\n" +
+                "        union select d from %s where t4.d = t1.a\n" +
+                "        union select e from %s where t5.e = t1.a\n" +
+                ")",t1,t2,t3,t4,t5);
+
+        ResultSet resultSet = methodWatcher.executeQuery("explain " + query);
+        boolean foundJoin = false;
+        while(resultSet.next()){
+            String explainOutput = resultSet.getString(1);
+            if(explainOutput.contains("JoinNode"))
+                foundJoin = true;
+            Assert.assertFalse("SubqueryNode was found!", explainOutput.contains("SubqueryNode"));
+        }
+        Assert.assertTrue("JoinNode was not found!", foundJoin);
+
+        //now run the query and make sure it returns just the row "1"
+        resultSet = methodWatcher.executeQuery(query);
+        Assert.assertTrue("Query does not return data!",resultSet.next());
+        int v = resultSet.getInt(1);
+        Assert.assertFalse("No data returned!",resultSet.wasNull());
+        Assert.assertEquals("Incorrect data returned!",1,v);
+        Assert.assertFalse("More than one row was returned!",resultSet.next());
+    }
+
+    @Test
 		public void testScrollableInnerJoin() throws Exception {
 				ResultSet rs = methodWatcher.executeQuery("select cc.si, dd.si from cc inner join dd on cc.si = dd.si");
 				int j = 0;

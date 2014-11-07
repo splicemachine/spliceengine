@@ -117,7 +117,7 @@ public class RegionWriteHandler implements WriteHandler {
                 ctx.result(mutation,result);
             }
         }catch (IOException ioe) {
-            LOG.error(ioe);
+//            LOG.error(ioe);
             /*
              * We are hinging on an undocumented implementation of how HRegion.put(Pair<Put,Integer>[]) works.
              *
@@ -157,7 +157,6 @@ public class RegionWriteHandler implements WriteHandler {
 										//see if it's due to constraints, otherwise just pass it through
 										if(constraintChecker!=null && constraintChecker.matches(stat)){
 												ctx.result(mutation,constraintChecker.asWriteResult(stat));
-												SpliceLogUtils.error(LOG, "primary Key Violated by written data " + stat);
 												break;
 										}
 								default:

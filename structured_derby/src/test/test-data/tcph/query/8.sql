@@ -2,8 +2,6 @@
 -- TPC-H/TPC-R National Market Share Query (Q8)
 -- Functional Query Definition
 -- Approved February 1998
-set schema tpch1x;
-VALUES (CURRENT_TIMESTAMP) ;
 select
 	o_year,
 	sum(case
@@ -40,5 +38,4 @@ from
 group by
 	o_year
 order by
-	o_year;
-VALUES (CURRENT_TIMESTAMP) ;
+	o_year
