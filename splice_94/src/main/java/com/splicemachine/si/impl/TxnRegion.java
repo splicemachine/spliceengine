@@ -2,7 +2,7 @@ package com.splicemachine.si.impl;
 
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.si.api.*;
-import com.splicemachine.si.coprocessors.SICompactionScanner;
+import com.splicemachine.si.coprocessors.BaseSICompactionScanner;
 import com.splicemachine.si.coprocessors.SIObserver;
 import com.splicemachine.si.data.api.IHTable;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
@@ -121,8 +121,6 @@ public class TxnRegion implements TransactionalRegion {
 
     @Override
     public InternalScanner compactionScanner(InternalScanner scanner) {
-        SICompactionState state = new SICompactionState(dataStore,txnSupplier,rollForward);
-        return new SICompactionScanner(state,scanner);
+        return dataStore.dataLib.getCompactionScanner(scanner, new SICompactionState(dataStore,txnSupplier,rollForward));
     }
-
 }
