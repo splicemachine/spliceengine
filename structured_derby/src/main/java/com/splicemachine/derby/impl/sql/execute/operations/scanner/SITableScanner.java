@@ -74,10 +74,10 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>{
 		private FormatableBitSet accessedKeys;
 		private final SIFilterFactory filterFactory;
 		private ExecRowAccumulator accumulator;
-		private SDataLib dataLib;
+		private final SDataLib dataLib;
 
 
-		SITableScanner(SDataLib dataLib, MeasuredRegionScanner<Data> scanner,
+		SITableScanner(final SDataLib dataLib, MeasuredRegionScanner<Data> scanner,
 									 final TransactionalRegion region,
 													final ExecRow template,
 													MetricFactory metricFactory,
@@ -116,7 +116,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>{
 																					boolean isCountStar) throws IOException {
 										TxnFilter<Data> txnFilter = region.unpackedFilter(txn);
 
-										HRowAccumulator<Data> hRowAccumulator = new HRowAccumulator<Data>(HTransactorFactory.getTransactor().getDataStore(),predicateFilter, getRowEntryDecoder(), accumulator, isCountStar);
+										HRowAccumulator<Data> hRowAccumulator = new HRowAccumulator<Data>(dataLib,predicateFilter, getRowEntryDecoder(), accumulator, isCountStar);
 										//noinspection unchecked
 										return new PackedTxnFilter<Data>(txnFilter, hRowAccumulator){
 												@Override

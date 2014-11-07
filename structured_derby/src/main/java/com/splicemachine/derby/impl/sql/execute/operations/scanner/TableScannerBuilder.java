@@ -5,6 +5,8 @@ import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.HTransactorFactory;
+import com.splicemachine.si.impl.SIFactoryDriver;
+
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.client.Scan;
@@ -201,7 +203,7 @@ public class TableScannerBuilder {
 		}
 
 		public SITableScanner build(){
-				return new SITableScanner(HTransactorFactory.getTransactor().getDataLib(),scanner,
+				return new SITableScanner(SIFactoryDriver.siFactory.getDataLib(),scanner,
 								region,
 								template,
 								metricFactory,

@@ -13,14 +13,13 @@ import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.si.api.RowAccumulator;
 import com.splicemachine.si.api.SIFilter;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
-import com.splicemachine.si.impl.HTransactorFactory;
+import com.splicemachine.si.impl.SIFactoryDriver;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.storage.EntryAccumulator;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.uuid.Snowflake;
-
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -34,10 +33,8 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-
 import java.io.IOException;
 import java.util.List;
-
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -172,7 +169,7 @@ public class FixedSITableScannerTest {
 													 EntryDecoder decoder,
 													 EntryPredicateFilter predicateFilter,
 													 boolean isCountStar) {
-						this.accumulator = new HRowAccumulator(HTransactorFactory.getTransactor().getDataStore(),predicateFilter,decoder,accumulator,isCountStar);
+						this.accumulator = new HRowAccumulator(SIFactoryDriver.siFactory.getDataLib(),predicateFilter,decoder,accumulator,isCountStar);
 				}
 
 				@Override public void nextRow() {  }
@@ -184,7 +181,7 @@ public class FixedSITableScannerTest {
 
 				@Override
 				public Filter.ReturnCode filterKeyValue(Data kv) throws IOException {
-						if(!HTransactorFactory.getTransactor().getDataLib().singleMatchingQualifier(kv, SpliceConstants.PACKED_COLUMN_BYTES))
+						if(!SIFactoryDriver.siFactory.getDataLib().singleMatchingQualifier(kv, SpliceConstants.PACKED_COLUMN_BYTES))
 								return Filter.ReturnCode.SKIP;
 						if(!accumulator.isFinished() && accumulator.isOfInterest(kv)){
 								if(!accumulator.accumulate(kv))
