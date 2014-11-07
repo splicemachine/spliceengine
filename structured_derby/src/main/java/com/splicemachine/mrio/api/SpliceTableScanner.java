@@ -298,7 +298,7 @@ public class SpliceTableScanner<Data> implements StandardIterator<ExecRow>{
 
 			if (tmp != null) {
 				hasRow = true;
-				for (Object kv : HTransactorFactory.getTransactor().getDataLib().getDataFromResult(tmp)) {
+				for (Object kv : SIFactoryDriver.siFactory.getDataLib().getDataFromResult(tmp)) {
 					keyValues.add((Data) kv);
 				}
 			} else {
