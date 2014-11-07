@@ -15,7 +15,7 @@ import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.hbase.MeasuredResultScanner;
-import com.splicemachine.hbase.ReadAheadRegionScanner;
+import com.splicemachine.hbase.BaseReadAheadRegionScanner;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.metrics.MetricFactory;
@@ -103,7 +103,7 @@ public class ConglomerateScanner {
         transactionalRegion.discard();
         regionScan.setFilter(new SIFilterPacked(packed));
         RegionScanner sourceScanner = region.getScanner(regionScan);
-        return SpliceConstants.useReadAheadScanner? new ReadAheadRegionScanner(region, SpliceConstants.DEFAULT_CACHE_SIZE, sourceScanner,metricFactory)
+        return SpliceConstants.useReadAheadScanner? new BaseReadAheadRegionScanner(region, SpliceConstants.DEFAULT_CACHE_SIZE, sourceScanner,metricFactory)
                 : new BufferedRegionScanner(region,sourceScanner,regionScan,SpliceConstants.DEFAULT_CACHE_SIZE,SpliceConstants.DEFAULT_CACHE_SIZE,metricFactory);
     }
 

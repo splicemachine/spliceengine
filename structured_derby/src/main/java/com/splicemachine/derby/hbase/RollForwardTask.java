@@ -25,7 +25,7 @@ import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.DataStore;
-import com.splicemachine.si.impl.SIFilter;
+import com.splicemachine.si.impl.BaseSIFilter;
 import com.splicemachine.si.impl.SimpleTxnFilter;
 import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.si.impl.TransactionStorage;
@@ -130,7 +130,7 @@ public class RollForwardTask implements Task {
         ReadResolver resolver = SynchronousReadResolver.getResolver(region, txnSupplier, TransactionalRegions.getRollForwardStatus(),true);
         DataStore dataStore = TxnDataStore.getDataStore();
         TxnFilter filer = new UpdatingTxnFilter(txnSupplier,txn,resolver,dataStore,context);
-        SIFilter filter = new SIFilter(filer);
+        BaseSIFilter filter = new BaseSIFilter(filer);
 
         Scan scan = new Scan();
         scan.setStartRow(start);

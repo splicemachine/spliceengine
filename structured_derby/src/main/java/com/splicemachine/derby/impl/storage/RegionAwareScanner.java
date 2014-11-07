@@ -7,14 +7,14 @@ import com.splicemachine.derby.iapi.storage.ScanBoundary;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.hbase.MeasuredRegionScanner;
-import com.splicemachine.hbase.ReadAheadRegionScanner;
+import com.splicemachine.hbase.BaseReadAheadRegionScanner;
 import com.splicemachine.metrics.Counter;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.TimeView;
 import com.splicemachine.metrics.Timer;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.pipeline.exception.Exceptions;
-import com.splicemachine.si.impl.SIFilter;
+import com.splicemachine.si.impl.BaseSIFilter;
 import com.splicemachine.utils.SpliceLogUtils;
 
 import org.apache.derby.iapi.error.StandardException;
@@ -308,7 +308,7 @@ public class RegionAwareScanner extends ReopenableScanner implements SpliceResul
         localScan.setFilter(scan.getFilter());
 				localScan.setCaching(SpliceConstants.DEFAULT_CACHE_SIZE);
 				if(SpliceConstants.useReadAheadScanner)
-						localScanner = new ReadAheadRegionScanner(region,
+						localScanner = new BaseReadAheadRegionScanner(region,
 										SpliceConstants.DEFAULT_CACHE_SIZE,
 										region.getScanner(localScan), metricFactory );
 				else
@@ -436,13 +436,13 @@ public class RegionAwareScanner extends ReopenableScanner implements SpliceResul
          * If we have no transaction id, we need to make sure and remove the SI Filter from the list,
          * because otherwise it'll break
          */
-        if(filter instanceof SIFilter) return null;
+        if(filter instanceof BaseSIFilter) return null;
         else if(filter instanceof FilterList){
             FilterList list = (FilterList)filter;
             FilterList copy = new FilterList();
             boolean added = false;
             for(Filter listedFilter:list.getFilters()){
-                if(!(listedFilter instanceof SIFilter)){
+                if(!(listedFilter instanceof BaseSIFilter)){
                     added=true;
                     copy.addFilter(listedFilter);
                 }

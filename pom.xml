@@ -324,8 +324,8 @@
 			<id>cloudera-cdh4.5.0</id>
 			<activation>
     				<property><name>!hbase.profile</name></property>  
- <!--     				 				<property><name>hbase.profile</name><value>cloudera-cdh4.5.0</value></property> 
-	-->		</activation>			
+<!--      				 				<property><name>hbase.profile</name><value>cloudera-cdh4.5.0</value></property> -->
+			</activation>			
 			<modules><module>cloudera-cdh4.5.0</module></modules>
 						<properties>
 							<envClassifier>cloudera-cdh4.5.0</envClassifier>
@@ -335,8 +335,8 @@
 		<profile>
 			<id>cloudera-cdh5.1.3</id>
 			<activation>
- <!--   					<property><name>!hbase.profile</name></property>  -->
- 				<property><name>hbase.profile</name><value>cloudera-cdh5.1.3</value></property>  
+<!--     					<property><name>!hbase.profile</name></property>  -->
+				<property><name>hbase.profile</name><value>cloudera-cdh5.1.3</value></property>  
 			</activation>
 			<modules><module>cloudera-cdh5.1.3</module></modules>	
 			<properties>
