@@ -1,8 +1,12 @@
 package com.splicemachine.si.api;
 
 import com.splicemachine.hbase.KVPair;
+import com.splicemachine.si.data.api.SDataLib;
+import com.splicemachine.si.impl.DataStore;
+
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
+
 import java.io.IOException;
 import java.util.Collection;
 
@@ -31,5 +35,6 @@ public interface Transactor<Table, Mutation extends OperationWithAttributes,Put 
 		OperationStatus[] processKvBatch(Table table, RollForward rollForwardQueue, TxnView txnId,
 																		 byte[] family, byte[] qualifier,
 																		 Collection<KVPair> mutations,ConstraintChecker constraintChecker) throws IOException;
-
+		DataStore getDataStore();
+		SDataLib getDataLib();
 }

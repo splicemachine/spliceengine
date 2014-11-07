@@ -1,31 +1,32 @@
 package com.splicemachine.si.data.hbase;
 
 import static com.splicemachine.constants.SpliceConstants.CHECK_BLOOM_ATTRIBUTE_NAME;
-
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import com.splicemachine.collections.CloseableIterator;
+import com.splicemachine.hbase.KVPair;
 import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.Delete;
+import org.apache.hadoop.hbase.client.Durability;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.HRegionUtil;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
-import org.apache.hadoop.hbase.util.Bytes;
-
-import com.splicemachine.si.data.api.IHTable;
+import org.apache.hadoop.hbase.util.Pair;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.data.api.SRowLock;
 
 /**
  * Wrapper that makes an HBase region comply with a standard interface that abstracts across regions and tables.
  */
-public class HbRegion implements IHTable {
+public class HbRegion extends BaseHbRegion<SRowLock> {
 //    static final Logger LOG = Logger.getLogger(HbRegion.class);
     static final Result EMPTY_RESULT = Result.create(Collections.<Cell>emptyList());
     final HRegion region;
@@ -109,15 +110,6 @@ public class HbRegion implements IHTable {
         }
     }
 
-    @Override
-    public boolean checkRegionForRow(byte[] row) {
-        HRegionInfo info = region.getRegionInfo();
-        return ((info.getStartKey().length == 0) ||
-                (Bytes.compareTo(info.getStartKey(), row) <= 0)) &&
-            ((info.getEndKey().length == 0) ||
-                (Bytes.compareTo(info.getEndKey(), row) > 0));
-    }
-
     private boolean rowExists(byte[] checkBloomFamily, byte[] rowKey) throws IOException {
         return HRegionUtil.keyExists(region.getStore(checkBloomFamily), rowKey);
     }
@@ -126,4 +118,44 @@ public class HbRegion implements IHTable {
         return EMPTY_RESULT;
     }
 
+	@Override
+	public void put(Put put, SRowLock rowLock) throws IOException {
+		region.put(put);		
+	}
+
+	@Override
+	public void put(Put put, boolean durable) throws IOException {
+		if (!durable)
+			put.setDurability(Durability.SKIP_WAL);
+		region.put(put);		
+	}
+
+	@Override
+	public OperationStatus[] batchPut(Pair<Mutation, SRowLock>[] puts)
+			throws IOException {
+		Mutation[] mutations = new Mutation[puts.length];
+		int i=0;
+		for(Pair<Mutation, SRowLock> pair:puts){
+				mutations[i] = pair.getFirst();
+				i++;
+		}
+		return region.batchMutate(mutations);
+	}
+
+	@Override
+	public void delete(Delete delete, SRowLock rowLock) throws IOException {
+		region.delete(delete);
+	}
+
+	@Override
+	public OperationStatus[] batchMutate(Collection<KVPair> data,TxnView txn) throws IOException {
+		Mutation[] mutations = new Mutation[data.size()];
+		int i=0;
+		for(KVPair pair:data){
+				mutations[i] = getMutation(pair,txn);
+				i++;
+		}
+		return region.batchMutate(mutations);
+	}
+	
 }

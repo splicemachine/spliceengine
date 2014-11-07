@@ -2,16 +2,15 @@ package com.splicemachine.si.impl.region;
 
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.hbase.KeyValueUtils;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.impl.DenseTxn;
 import com.splicemachine.si.impl.SparseTxn;
 import com.splicemachine.si.impl.TxnUtils;
 import com.splicemachine.utils.ByteSlice;
-import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
-
 import java.io.IOException;
 import java.util.List;
 
@@ -19,7 +18,7 @@ import java.util.List;
  * @author Scott Fines
  *         Date: 8/18/14
  */
-public class V1TxnDecoder extends TxnDecoder{
+public class V1TxnDecoder<Data,Put extends OperationWithAttributes,Delete,Get extends OperationWithAttributes, Scan> extends TxnDecoder<Data,Put,Delete,Get,Scan>{
     private static final byte[] FAMILY = SIConstants.DEFAULT_FAMILY_BYTES;
 
     static final byte[] OLD_COMMIT_TIMESTAMP_COLUMN = Bytes.toBytes(SIConstants.TRANSACTION_COMMIT_TIMESTAMP_COLUMN);
@@ -58,91 +57,100 @@ public class V1TxnDecoder extends TxnDecoder{
            *	17	--	additive				(may not be present)
            */
     @Override
-    public SparseTxn decode(long txnId,Result result) throws IOException {
-        KeyValue beginTsVal = result.getColumnLatest(FAMILY,OLD_START_TIMESTAMP_COLUMN);
-        KeyValue parentTxnVal = result.getColumnLatest(FAMILY,OLD_PARENT_COLUMN);
-        KeyValue ruVal = result.getColumnLatest(FAMILY, OLD_READ_UNCOMMITTED_COLUMN);
-        KeyValue rcVal = result.getColumnLatest(FAMILY,OLD_READ_COMMITTED_COLUMN);
-        KeyValue statusVal = result.getColumnLatest(FAMILY, OLD_STATUS_COLUMN);
-        KeyValue cTsVal = result.getColumnLatest(FAMILY,OLD_COMMIT_TIMESTAMP_COLUMN);
-        KeyValue gTsVal = result.getColumnLatest(FAMILY,OLD_GLOBAL_COMMIT_TIMESTAMP_COLUMN);
-        KeyValue kaTimeKv = result.getColumnLatest(FAMILY, OLD_KEEP_ALIVE_COLUMN);
-        KeyValue destinationTables = result.getColumnLatest(FAMILY,OLD_WRITE_TABLE_COLUMN);
-        KeyValue dependentKv = result.getColumnLatest(FAMILY, OLD_DEPENDENT_COLUMN);
-        KeyValue additiveKv = result.getColumnLatest(FAMILY,OLD_ADDITIVE_COLUMN);
+    public SparseTxn decode(SDataLib<Data,Put,Delete,Get,Scan> dataLib, long txnId,Result result) throws IOException {
+    	return decodeInternal(dataLib, txnId, dataLib.getColumnLatest(result,FAMILY,OLD_START_TIMESTAMP_COLUMN),
+    			dataLib.getColumnLatest(result,FAMILY,OLD_PARENT_COLUMN),
+    			dataLib.getColumnLatest(result,FAMILY, OLD_READ_UNCOMMITTED_COLUMN),
+        		dataLib.getColumnLatest(result,FAMILY,OLD_READ_COMMITTED_COLUMN),
+        		dataLib.getColumnLatest(result,FAMILY, OLD_STATUS_COLUMN),
+        		dataLib.getColumnLatest(result,FAMILY,OLD_COMMIT_TIMESTAMP_COLUMN),
+        		dataLib.getColumnLatest(result,FAMILY,OLD_GLOBAL_COMMIT_TIMESTAMP_COLUMN),
+        		dataLib.getColumnLatest(result,FAMILY, OLD_KEEP_ALIVE_COLUMN),
+        		dataLib.getColumnLatest(result,FAMILY,OLD_WRITE_TABLE_COLUMN),
+        		dataLib.getColumnLatest(result,FAMILY, OLD_DEPENDENT_COLUMN),
+        		dataLib.getColumnLatest(result,FAMILY,OLD_ADDITIVE_COLUMN));
 
-        return decodeInternal(txnId, beginTsVal, parentTxnVal, dependentKv,additiveKv,ruVal, rcVal, statusVal, cTsVal, gTsVal, kaTimeKv, destinationTables);
     }
 
     @Override
-    public DenseTxn decode(List<KeyValue> keyValues) throws IOException {
+    public DenseTxn decode(SDataLib<Data,Put,Delete,Get,Scan> dataLib, List<Data> keyValues) throws IOException {
         if(keyValues.size()<=0) return null;
-        KeyValue beginTsVal = null;
-        KeyValue parentTxnVal = null;
-        KeyValue ruVal = null;
-        KeyValue rcVal = null;
-        KeyValue statusVal = null;
-        KeyValue cTsVal = null;
-        KeyValue gTsVal = null;
-        KeyValue kaTimeKv = null;
-        KeyValue destinationTables = null;
-        KeyValue dependentKv = null;
-        KeyValue additiveKv = null;
-        for(KeyValue kv:keyValues){
-            if(KeyValueUtils.singleMatchingColumn(kv, FAMILY, OLD_START_TIMESTAMP_COLUMN))
+        Data beginTsVal = null;
+        Data parentTxnVal = null;
+        Data ruVal = null;
+        Data rcVal = null;
+        Data statusVal = null;
+        Data cTsVal = null;
+        Data gTsVal = null;
+        Data kaTimeKv = null;
+        Data destinationTables = null;
+        Data dependentKv = null;
+        Data additiveKv = null;
+        for(Data kv:keyValues){
+        	if (dataLib.singleMatchingColumn(kv, FAMILY, OLD_START_TIMESTAMP_COLUMN))
                 beginTsVal = kv;
-            else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,OLD_PARENT_COLUMN))
+            else if(dataLib.singleMatchingColumn(kv,FAMILY,OLD_PARENT_COLUMN))
                 parentTxnVal = kv;
-            else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,OLD_READ_UNCOMMITTED_COLUMN))
+            else if(dataLib.singleMatchingColumn(kv,FAMILY,OLD_READ_UNCOMMITTED_COLUMN))
                 ruVal = kv;
-            else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,OLD_READ_COMMITTED_COLUMN))
+            else if(dataLib.singleMatchingColumn(kv,FAMILY,OLD_READ_COMMITTED_COLUMN))
                 rcVal = kv;
-            else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,OLD_STATUS_COLUMN))
+            else if(dataLib.singleMatchingColumn(kv,FAMILY,OLD_STATUS_COLUMN))
                 statusVal = kv;
-            else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,OLD_COMMIT_TIMESTAMP_COLUMN))
+            else if(dataLib.singleMatchingColumn(kv,FAMILY,OLD_COMMIT_TIMESTAMP_COLUMN))
                 cTsVal = kv;
-            else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,OLD_GLOBAL_COMMIT_TIMESTAMP_COLUMN))
+            else if(dataLib.singleMatchingColumn(kv,FAMILY,OLD_GLOBAL_COMMIT_TIMESTAMP_COLUMN))
                 gTsVal = kv;
-            else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,OLD_KEEP_ALIVE_COLUMN))
+            else if(dataLib.singleMatchingColumn(kv,FAMILY,OLD_KEEP_ALIVE_COLUMN))
                 kaTimeKv = kv;
-            else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,OLD_WRITE_TABLE_COLUMN))
+            else if(dataLib.singleMatchingColumn(kv,FAMILY,OLD_WRITE_TABLE_COLUMN))
                 destinationTables = kv;
-            else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,OLD_DEPENDENT_COLUMN))
+            else if(dataLib.singleMatchingColumn(kv,FAMILY,OLD_DEPENDENT_COLUMN))
                 dependentKv = kv;
-            else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,OLD_ADDITIVE_COLUMN))
+            else if(dataLib.singleMatchingColumn(kv,FAMILY,OLD_ADDITIVE_COLUMN))
                 additiveKv = kv;
         }
-        if(beginTsVal==null) return null;
-        long txnId = TxnUtils.txnIdFromRowKey(beginTsVal.getBuffer(), beginTsVal.getRowOffset(), beginTsVal.getRowLength());
-        return decodeInternal(txnId,beginTsVal,parentTxnVal,dependentKv,additiveKv,ruVal,rcVal,statusVal,cTsVal,gTsVal,kaTimeKv,destinationTables);
+        if(beginTsVal==null) return null;        
+        long txnId = TxnUtils.txnIdFromRowKey(dataLib.getDataRowBuffer(beginTsVal), dataLib.getDataRowOffset(beginTsVal), dataLib.getDataRowlength(beginTsVal));
+        return decodeInternal(dataLib,txnId,beginTsVal,parentTxnVal,dependentKv,additiveKv,ruVal,rcVal,statusVal,cTsVal,gTsVal,kaTimeKv,destinationTables);
+    }
+    
+    protected long toLong(SDataLib<Data,Put,Delete,Get,Scan> dataLib, Data data) {
+    	return Bytes.toLong(dataLib.getDataValueBuffer(data), dataLib.getDataValueOffset(data), 
+        		dataLib.getDataValuelength(data));
     }
 
-    protected DenseTxn decodeInternal(long txnId,
-                                      KeyValue beginTsVal,
-                                      KeyValue parentTxnVal,
-                                      KeyValue dependentKv,
-                                      KeyValue additiveKv,
-                                      KeyValue readUncommittedKv,
-                                      KeyValue readCommittedKv,
-                                      KeyValue statusKv,
-                                      KeyValue commitTimestampKv,
-                                      KeyValue globalTimestampKv,
-                                      KeyValue keepAliveTimeKv,
-                                      KeyValue destinationTables) {
-        long beginTs = Bytes.toLong(beginTsVal.getBuffer(), beginTsVal.getValueOffset(), beginTsVal.getValueLength());
+    protected boolean toBoolean(SDataLib<Data,Put,Delete,Get,Scan> dataLib, Data data) {
+    	return BytesUtil.toBoolean(dataLib.getDataValueBuffer(data), dataLib.getDataValueOffset(data));
+    }
+
+    protected DenseTxn decodeInternal(SDataLib<Data,Put,Delete,Get,Scan> dataLib,
+    								  long txnId,
+                                      Data beginTsVal,
+                                      Data parentTxnVal,
+                                      Data dependentKv,
+                                      Data additiveKv,
+                                      Data readUncommittedKv,
+                                      Data readCommittedKv,
+                                      Data statusKv,
+                                      Data commitTimestampKv,
+                                      Data globalTimestampKv,
+                                      Data keepAliveTimeKv,
+                                      Data destinationTables) {
+        long beginTs = toLong(dataLib,beginTsVal);
         long parentTs = -1l; //by default, the "root" transaction id is -1l
         if(parentTxnVal!=null)
-            parentTs = Bytes.toLong(parentTxnVal.getBuffer(),parentTxnVal.getValueOffset(),parentTxnVal.getValueLength());
+            parentTs = toLong(dataLib,parentTxnVal); 
         boolean dependent = false;
         boolean hasDependent = false;
         if(dependentKv!=null){
             hasDependent = true;
-            dependent = BytesUtil.toBoolean(dependentKv.getBuffer(), dependentKv.getValueOffset());
+            dependent = toBoolean(dataLib,dependentKv);
         }
         boolean additive = false;
         boolean hasAdditive = false;
         if(additiveKv!=null){
-            additive = BytesUtil.toBoolean(additiveKv.getBuffer(),additiveKv.getValueOffset());
+            additive = toBoolean(dataLib,additiveKv);
             hasAdditive = true;
         }
 						/*
@@ -160,17 +168,17 @@ public class V1TxnDecoder extends TxnDecoder{
 						 */
         boolean readUncommitted = false;
         if(readUncommittedKv!=null)
-            readUncommitted = BytesUtil.toBoolean(readUncommittedKv.getBuffer(), readUncommittedKv.getValueOffset());
+            readUncommitted = toBoolean(dataLib,readUncommittedKv);
         boolean readCommitted = false;
         if(readCommittedKv!=null)
-            readCommitted = BytesUtil.toBoolean(readCommittedKv.getBuffer(), readCommittedKv.getValueOffset());
-        Txn.State state = Txn.State.decode(statusKv.getBuffer(), statusKv.getValueOffset(), statusKv.getValueLength());
+            readCommitted = toBoolean(dataLib,readCommittedKv);
+        Txn.State state = Txn.State.decode(dataLib.getDataValueBuffer(statusKv),dataLib.getDataValueOffset(statusKv),dataLib.getDataValuelength(statusKv));
         long commitTs = -1l;
         if(commitTimestampKv!=null)
-            commitTs = Bytes.toLong(commitTimestampKv.getBuffer(), commitTimestampKv.getValueOffset(), commitTimestampKv.getValueLength());
+            commitTs = toLong(dataLib,commitTimestampKv);
         long globalCommitTs = -1l;
         if(globalTimestampKv!=null)
-            globalCommitTs = Bytes.toLong(globalTimestampKv.getBuffer(),globalTimestampKv.getValueOffset(),globalTimestampKv.getValueLength());
+            globalCommitTs = toLong(dataLib,globalTimestampKv);
         else if(hasDependent &&!dependent){
             //performance enhancement to avoid an extra region get() during commit time
             globalCommitTs = commitTs;
@@ -183,9 +191,9 @@ public class V1TxnDecoder extends TxnDecoder{
                  * there is some network latency which could cause small keep alives to be problematic. To help out,
                  * we allow a little fudge factor in the timeout
                  */
-            state = adjustStateForTimeout(state, keepAliveTimeKv,true);
+            state = adjustStateForTimeout(dataLib,state, keepAliveTimeKv,true);
         }
-        long kaTime = decodeKeepAlive(keepAliveTimeKv,true);
+        long kaTime = decodeKeepAlive(dataLib,keepAliveTimeKv,true);
 
         Txn.IsolationLevel level = null;
         if(readCommittedKv!=null){
@@ -198,7 +206,9 @@ public class V1TxnDecoder extends TxnDecoder{
         ByteSlice destTableBuffer = null;
         if(destinationTables!=null){
             destTableBuffer = new ByteSlice();
-            destTableBuffer.set(destinationTables.getBuffer(),destinationTables.getValueOffset(),destinationTables.getValueLength());
+            destTableBuffer.set(dataLib.getDataValueBuffer(destinationTables),
+            		dataLib.getDataValueOffset(destinationTables),
+            		dataLib.getDataValuelength(destinationTables));
         }
 
         return new DenseTxn(txnId,beginTs,parentTs,

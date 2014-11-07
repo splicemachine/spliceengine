@@ -10,21 +10,20 @@ import com.splicemachine.constants.SIConstants;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.hbase.KeyValueUtils;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.impl.DenseTxn;
 import com.splicemachine.si.impl.SparseTxn;
 import com.splicemachine.si.impl.TxnUtils;
 import com.splicemachine.utils.ByteSlice;
-import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
-
 import java.io.IOException;
 import java.util.List;
 
-public class V2TxnDecoder extends TxnDecoder{
+public class V2TxnDecoder<Data,Put extends OperationWithAttributes,Delete,Get extends OperationWithAttributes, Scan> extends TxnDecoder<Data,Put,Delete,Get,Scan>{
     private static final byte[] FAMILY = SIConstants.DEFAULT_FAMILY_BYTES;
     static final byte[] DATA_QUALIFIER_BYTES = Bytes.toBytes("d");
     static final byte[] COUNTER_QUALIFIER_BYTES = Bytes.toBytes("c");
@@ -58,8 +57,8 @@ public class V2TxnDecoder extends TxnDecoder{
 				 * order: counter,data,destinationTable,globalCommitTimestamp,keepAlive,state,commitTimestamp,
 				 */
 
-    public Put encodeForPut(SparseTxn txn) throws IOException {
-        Put put = new Put(TxnUtils.getRowKey(txn.getTxnId()));
+    public org.apache.hadoop.hbase.client.Put encodeForPut(SparseTxn txn) throws IOException {
+    	org.apache.hadoop.hbase.client.Put put = new org.apache.hadoop.hbase.client.Put(TxnUtils.getRowKey(txn.getTxnId()));
         MultiFieldEncoder metaFieldEncoder = MultiFieldEncoder.create(5);
         metaFieldEncoder.encodeNext(txn.getBeginTimestamp()).encodeNext(txn.getParentTxnId());
 
@@ -90,51 +89,56 @@ public class V2TxnDecoder extends TxnDecoder{
     }
 
     @Override
-    public DenseTxn decode(List<KeyValue> keyValues) throws IOException {
+    public DenseTxn decode(SDataLib<Data,Put,Delete,Get,Scan> dataLib,List<Data> keyValues) throws IOException {
         if(keyValues.size()<=0) return null;
-        KeyValue dataKv = null;
-        KeyValue keepAliveKv = null;
-        KeyValue commitKv = null;
-        KeyValue globalCommitKv = null;
-        KeyValue stateKv = null;
-        KeyValue destinationTables = null;
+        Data dataKv = null;
+        Data keepAliveKv = null;
+        Data commitKv = null;
+        Data globalCommitKv = null;
+        Data stateKv = null;
+        Data destinationTables = null;
 
-        for(KeyValue kv: keyValues){
-            if(KeyValueUtils.singleMatchingColumn(kv, FAMILY, DATA_QUALIFIER_BYTES))
+        for(Data kv: keyValues){
+            if(dataLib.singleMatchingColumn(kv, FAMILY, DATA_QUALIFIER_BYTES))
                 dataKv = kv;
-            else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,KEEP_ALIVE_QUALIFIER_BYTES))
+            else if(dataLib.singleMatchingColumn(kv,FAMILY,KEEP_ALIVE_QUALIFIER_BYTES))
                 keepAliveKv = kv;
-            else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,GLOBAL_COMMIT_QUALIFIER_BYTES))
+            else if(dataLib.singleMatchingColumn(kv,FAMILY,GLOBAL_COMMIT_QUALIFIER_BYTES))
                 globalCommitKv = kv;
-            else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,COMMIT_QUALIFIER_BYTES))
+            else if(dataLib.singleMatchingColumn(kv,FAMILY,COMMIT_QUALIFIER_BYTES))
                 commitKv = kv;
-            else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,STATE_QUALIFIER_BYTES))
+            else if(dataLib.singleMatchingColumn(kv,FAMILY,STATE_QUALIFIER_BYTES))
                 stateKv = kv;
-            else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,DESTINATION_TABLE_QUALIFIER_BYTES))
+            else if(dataLib.singleMatchingColumn(kv,FAMILY,DESTINATION_TABLE_QUALIFIER_BYTES))
                 destinationTables = kv;
         }
         if(dataKv==null) return null;
 
-        long txnId = TxnUtils.txnIdFromRowKey(dataKv.getBuffer(),dataKv.getRowOffset(),dataKv.getRowLength());
+        long txnId = TxnUtils.txnIdFromRowKey(dataLib.getDataRowBuffer(dataKv),dataLib.getDataRowOffset(dataKv),dataLib.getDataRowlength(dataKv));
 
-        return decodeInternal(dataKv, keepAliveKv, commitKv, globalCommitKv, stateKv, destinationTables, txnId);
+        return decodeInternal(dataLib,dataKv, keepAliveKv, commitKv, globalCommitKv, stateKv, destinationTables, txnId);
     }
 
     @Override
-    public SparseTxn decode(long txnId, Result result) throws IOException {
-        KeyValue dataKv = result.getColumnLatest(FAMILY, DATA_QUALIFIER_BYTES);
-        KeyValue commitTsVal = result.getColumnLatest(FAMILY,COMMIT_QUALIFIER_BYTES);
-        KeyValue globalTsVal = result.getColumnLatest(FAMILY,GLOBAL_COMMIT_QUALIFIER_BYTES);
-        KeyValue stateKv = result.getColumnLatest(FAMILY,STATE_QUALIFIER_BYTES);
-        KeyValue destinationTables = result.getColumnLatest(FAMILY,DESTINATION_TABLE_QUALIFIER_BYTES);
-        KeyValue kaTime = result.getColumnLatest(FAMILY, KEEP_ALIVE_QUALIFIER_BYTES);
+    public SparseTxn decode(SDataLib<Data,Put,Delete,Get,Scan> dataLib, long txnId, Result result) throws IOException {
+        Data dataKv = dataLib.getColumnLatest(result,FAMILY, DATA_QUALIFIER_BYTES);
+        Data commitTsVal = dataLib.getColumnLatest(result,FAMILY,COMMIT_QUALIFIER_BYTES);
+        Data globalTsVal = dataLib.getColumnLatest(result,FAMILY,GLOBAL_COMMIT_QUALIFIER_BYTES);
+        Data stateKv = dataLib.getColumnLatest(result,FAMILY,STATE_QUALIFIER_BYTES);
+        Data destinationTables = dataLib.getColumnLatest(result,FAMILY,DESTINATION_TABLE_QUALIFIER_BYTES);
+        Data kaTime = dataLib.getColumnLatest(result,FAMILY, KEEP_ALIVE_QUALIFIER_BYTES);
 
         if(dataKv==null) return null;
-        return decodeInternal(dataKv,kaTime,commitTsVal,globalTsVal,stateKv,destinationTables,txnId);
+        return decodeInternal(dataLib,dataKv,kaTime,commitTsVal,globalTsVal,stateKv,destinationTables,txnId);
     }
 
-    protected DenseTxn decodeInternal(KeyValue dataKv, KeyValue keepAliveKv, KeyValue commitKv, KeyValue globalCommitKv, KeyValue stateKv, KeyValue destinationTables, long txnId) {
-        MultiFieldDecoder decoder = MultiFieldDecoder.wrap(dataKv.getBuffer(), dataKv.getValueOffset(), dataKv.getValueLength());
+    protected long toLong(SDataLib<Data,Put,Delete,Get,Scan> dataLib, Data data) {
+    	return Encoding.decodeLong(dataLib.getDataValueBuffer(data), dataLib.getDataValueOffset(data), false);
+    }
+    
+    protected DenseTxn decodeInternal(SDataLib<Data,Put,Delete,Get,Scan> dataLib, Data dataKv, Data keepAliveKv, Data commitKv, Data globalCommitKv, Data stateKv, Data destinationTables, long txnId) {
+        MultiFieldDecoder decoder = MultiFieldDecoder.wrap(dataLib.getDataValueBuffer(dataKv), 
+        		dataLib.getDataValueOffset(dataKv), dataLib.getDataValuelength(dataKv));
         long beginTs = decoder.decodeNextLong();
         long parentTxnId = -1l;
         if(!decoder.nextIsNull()) parentTxnId = decoder.decodeNextLong();
@@ -155,13 +159,14 @@ public class V2TxnDecoder extends TxnDecoder{
 
         long commitTs = -1l;
         if(commitKv!=null)
-            commitTs = Encoding.decodeLong(commitKv.getBuffer(), commitKv.getValueOffset(), false);
+            commitTs = toLong(dataLib,commitKv);
 
         long globalTs = -1l;
         if(globalCommitKv!=null)
-            globalTs = Encoding.decodeLong(globalCommitKv.getBuffer(), globalCommitKv.getValueOffset(), false);
+            globalTs = toLong(dataLib,globalCommitKv);
 
-        Txn.State state = Txn.State.decode(stateKv.getBuffer(),stateKv.getValueOffset(),stateKv.getValueLength());
+        Txn.State state = Txn.State.decode(dataLib.getDataValueBuffer(stateKv),
+        		dataLib.getDataValueOffset(stateKv),dataLib.getDataValuelength(stateKv));
         //adjust for committed timestamp
         if(commitTs>0 || globalTs>0){
             //we have a commit timestamp, our state MUST be committed
@@ -175,14 +180,14 @@ public class V2TxnDecoder extends TxnDecoder{
 								 * there is some network latency which could cause small keep alives to be problematic. To help out,
 								 * we allow a little fudge factor in the timeout
 								 */
-            state = adjustStateForTimeout(state, keepAliveKv,false);
+            state = adjustStateForTimeout(dataLib,state, keepAliveKv,false);
         }
-        long kaTime = decodeKeepAlive(keepAliveKv,false);
+        long kaTime = decodeKeepAlive(dataLib,keepAliveKv,false);
 
         ByteSlice destTableBuffer = null;
         if(destinationTables!=null){
             destTableBuffer = new ByteSlice();
-            destTableBuffer.set(destinationTables.getBuffer(),destinationTables.getValueOffset(),destinationTables.getValueLength());
+            destTableBuffer.set(dataLib.getDataValueBuffer(destinationTables),dataLib.getDataValueOffset(destinationTables),dataLib.getDataValuelength(destinationTables));
         }
 
         return new DenseTxn(txnId,beginTs,parentTxnId,

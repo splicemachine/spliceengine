@@ -3,9 +3,11 @@ package com.splicemachine.si.impl.region;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.impl.DenseTxn;
 import com.splicemachine.si.impl.SparseTxn;
-import org.apache.hadoop.hbase.KeyValue;
+
+import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 
@@ -23,15 +25,15 @@ import java.util.List;
  * @author Scott Fines
  * Date: 8/14/14
  */
-abstract class TxnDecoder {
+public abstract class TxnDecoder<Data,Put extends OperationWithAttributes,Delete,Get extends OperationWithAttributes, Scan> {
 
-    abstract SparseTxn decode(long txnId, Result result) throws IOException;
+    abstract SparseTxn decode(SDataLib<Data,Put,Delete,Get, Scan> datalib, long txnId, Result result) throws IOException;
 
-    abstract DenseTxn decode(List<KeyValue> keyValues) throws IOException;
+    abstract DenseTxn decode(SDataLib<Data,Put,Delete,Get, Scan> datalib, List<Data> keyValues) throws IOException;
 
     private static final long TRANSACTION_TIMEOUT_WINDOW = SIConstants.transactionTimeout+1000;
-    protected static Txn.State adjustStateForTimeout(Txn.State currentState,KeyValue columnLatest,long currTime,boolean oldForm) {
-        long lastKATime = decodeKeepAlive(columnLatest, oldForm);
+    protected static <Data> Txn.State adjustStateForTimeout(SDataLib dataLib, Txn.State currentState,Data columnLatest,long currTime,boolean oldForm) {
+        long lastKATime = decodeKeepAlive(dataLib, columnLatest, oldForm);
 
         if((currTime-lastKATime)>TRANSACTION_TIMEOUT_WINDOW)
             return Txn.State.ROLLEDBACK; //time out the txn
@@ -39,7 +41,7 @@ abstract class TxnDecoder {
         return currentState;
     }
 
-    protected static long decodeKeepAlive(KeyValue columnLatest, boolean oldForm) {
+    protected static <Data> long decodeKeepAlive(SDataLib dataLib, Data columnLatest, boolean oldForm) {
         long lastKATime;
         if(oldForm){
             /*
@@ -55,16 +57,16 @@ abstract class TxnDecoder {
              * In the case of a commit/roll back, the value of the keep alive doesn't matter, and in the case
              * of B), we want to fail it. The easiest way to deal with this is just to return 0l.
              */
-            int length = columnLatest.getValueLength();
+            int length = dataLib.getDataValuelength(columnLatest);
             if(length==0) return 0l;
             else
-                lastKATime = Bytes.toLong(columnLatest.getBuffer(), columnLatest.getValueOffset(), length);
+                lastKATime = Bytes.toLong(dataLib.getDataValueBuffer(columnLatest), dataLib.getDataValueOffset(columnLatest), length);
         }else
-            lastKATime = Encoding.decodeLong(columnLatest.getBuffer(), columnLatest.getValueOffset(), false);
+            lastKATime = Encoding.decodeLong(dataLib.getDataValueBuffer(columnLatest), dataLib.getDataValueOffset(columnLatest), false);
         return lastKATime;
     }
 
-    protected static Txn.State adjustStateForTimeout(Txn.State currentState,KeyValue columnLatest,boolean oldForm) {
-        return adjustStateForTimeout(currentState,columnLatest,System.currentTimeMillis(),oldForm);
+    protected static <Data> Txn.State adjustStateForTimeout(SDataLib dataLib, Txn.State currentState,Data columnLatest,boolean oldForm) {
+        return adjustStateForTimeout(dataLib,currentState,columnLatest,System.currentTimeMillis(),oldForm);
     }
 }

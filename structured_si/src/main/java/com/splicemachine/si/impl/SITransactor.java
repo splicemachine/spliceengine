@@ -731,4 +731,14 @@ public class SITransactor<RowLock,Data,Table,
 				}
 
 		}
+
+		@Override
+		public DataStore getDataStore() {
+			return dataStore;
+		}
+
+		@Override
+		public SDataLib getDataLib() {
+			return dataLib;
+		}
 }
