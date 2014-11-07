@@ -24,7 +24,6 @@ public abstract class ForwardingTxnView extends AbstractTxn{
         return "Txn("+getTxnId()+","+getState()+")";
     }
 
-
     @Override
     public long getGlobalCommitTimestamp() {
         return 0;

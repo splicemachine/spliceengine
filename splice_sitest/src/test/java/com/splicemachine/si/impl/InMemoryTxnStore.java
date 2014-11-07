@@ -6,14 +6,12 @@ import com.google.common.primitives.Longs;
 import com.splicemachine.concurrent.LongStripedSynchronizer;
 import com.splicemachine.si.api.*;
 import com.splicemachine.utils.ByteSlice;
-
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
-
 /**
  * In-memory representation of a full Transaction Store.
  *

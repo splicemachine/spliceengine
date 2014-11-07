@@ -9,14 +9,13 @@ import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.ThrowIfDisconnected;
 import com.splicemachine.si.api.*;
 import com.splicemachine.si.impl.DenseTxn;
-import com.splicemachine.si.impl.HTransactorFactory;
+import com.splicemachine.si.impl.SIFactoryDriver;
 import com.splicemachine.si.impl.TransactionStorage;
 import com.splicemachine.si.impl.TransactionTimestamps;
 import com.splicemachine.si.impl.region.RegionTxnStore;
 import com.splicemachine.si.impl.SparseTxn;
 import com.splicemachine.si.impl.region.TransactionResolver;
 import com.splicemachine.utils.Source;
-
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;
@@ -24,7 +23,6 @@ import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.ipc.HBaseServer;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -63,7 +61,7 @@ public class TxnLifecycleEndpoint extends BaseEndpointCoprocessor implements Txn
                     }
                 }
             }
-            regionStore = new RegionTxnStore(region,resolver,TransactionStorage.getTxnSupplier(),HTransactorFactory.getTransactor().getDataLib());
+            regionStore = new RegionTxnStore(region,resolver,TransactionStorage.getTxnSupplier(),SIFactoryDriver.siFactory.getDataLib());
             timestampSource = TransactionTimestamps.getTimestampSource();
         }
 		}

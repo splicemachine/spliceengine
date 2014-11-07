@@ -10,7 +10,7 @@ public class SIFactoryDriver {
 		try {
 			siFactory = (SIFactory) Class.forName(SI_FACTORY_CLASS).newInstance();
 		} catch (Exception e) {
-
+			e.printStackTrace();
 		}		
 	}
 	

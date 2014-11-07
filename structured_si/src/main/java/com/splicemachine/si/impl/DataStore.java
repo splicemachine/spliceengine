@@ -206,4 +206,8 @@ public class DataStore<RowLock,Data,Mutation, Put extends OperationWithAttribute
 						return new WritableTxn(txnId,beginTs,level, txnSupplier.getTransaction(parentTxnId),control, false);
 				}
 		}
+    
+    public SDataLib<Data,Put, Delete, Get, Scan> getDataLib() {
+    	return this.dataLib;
+    }
 }

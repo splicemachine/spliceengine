@@ -3,8 +3,6 @@ package com.splicemachine.hbase;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
-
-import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Scan;
@@ -15,7 +13,6 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.MultiVersionConsistencyControl;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.log4j.Logger;
-
 import com.google.common.collect.Lists;
 import com.splicemachine.metrics.Counter;
 import com.splicemachine.metrics.MetricFactory;

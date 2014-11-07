@@ -4,10 +4,11 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.*;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.hbase.ByteBufferArrayUtils;
-import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.data.api.SDataLib;
+import com.splicemachine.si.data.light.LDataLib;
 import com.splicemachine.utils.ByteSlice;
+
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.KeyValue;
@@ -21,6 +22,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import javax.annotation.Nullable;
+
 import java.io.IOException;
 import java.util.*;
 
@@ -110,6 +112,7 @@ public class TxnTestUtils {
 								else return KeyValueType.OTHER;
 						}
 				});
+				when(ds.getDataLib()).thenReturn(new LDataLib()); 
 				return ds;
 		}
 
