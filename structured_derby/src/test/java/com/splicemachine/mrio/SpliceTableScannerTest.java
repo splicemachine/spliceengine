@@ -232,7 +232,6 @@ public class SpliceTableScannerTest {
 
 						KeyEncoder encoder = new KeyEncoder(NoOpPrefix.INSTANCE, BareKeyHash.encoder(keyEncodingMap, keySortOrder, serializers), NoOpPostfix.INSTANCE);
 						key = encoder.getKey(row);
-						System.out.println(new String(key));
 				}else{
 						key = new Snowflake((short)1).nextUUIDBytes();
 						rowEncodingMap = IntArrays.count(data.length);
