@@ -92,7 +92,6 @@ public class IndexSharedWriteConfiguration extends BaseWriteConfiguration {
 				int remaining = completedCount.decrementAndGet();
 				if(remaining<=0){
 						sharedMainMutationList.clear();
-						sharedMainMutationList = null;
 				}
 		}
 
