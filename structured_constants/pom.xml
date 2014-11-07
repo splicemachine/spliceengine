@@ -43,6 +43,8 @@
 		<dependency> <groupId>net.sf.supercsv</groupId> <artifactId>super-csv</artifactId></dependency>
 		<dependency> <groupId>net.sf.opencsv</groupId> <artifactId>opencsv</artifactId> </dependency>
 		<dependency> <groupId>org.apache.mrunit</groupId> <artifactId>mrunit</artifactId> <classifier>hadoop2</classifier> </dependency>
+		<dependency> <groupId>org.codehaus.jsr166-mirror</groupId> <artifactId>jsr166y</artifactId> </dependency>
+		
 	</dependencies>
 	<build>
 		<resources>
