@@ -276,7 +276,9 @@ public class HDataLib implements SDataLib<Put, Delete, Get, Scan> {
 
 		@Override
 		public Put toPut(KVPair kvPair, byte[] family, byte[] column, long longTransactionId) {
-				return kvPair.toPut(family,column,longTransactionId);
+        Put put = kvPair.toPut(family, column, longTransactionId);
+        put.setWriteToWAL(false);
+        return put;
 		}
 
 		@Override
