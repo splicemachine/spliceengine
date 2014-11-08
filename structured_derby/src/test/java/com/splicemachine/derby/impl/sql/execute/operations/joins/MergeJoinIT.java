@@ -370,13 +370,13 @@ public class MergeJoinIT extends SpliceUnitTest {
     @Test
     public void testMergeWithRightCoveringIndex() throws Exception {
     	List<Object[]> data = TestUtils.resultSetToArrays(methodWatcher.executeQuery(MERGE_INDEX_RIGHT_SIDE_TEST));
-    	Assert.assertTrue("does not return 1 row for merge, position problems in MergeSortJoinStrategy/Operation?",data.size()==1);
+    	Assert.assertEquals("does not return 1 row for merge, position problems in MergeSortJoinStrategy/Operation?",1,data.size());
     }
 
     @Test
     public void testMergeWithUnorderedPredicates() throws Exception {
     	List<Object[]> data = TestUtils.resultSetToArrays(methodWatcher.executeQuery(MERGE_WITH_UNORDERED));
-    	Assert.assertTrue("does not return 1 row for merge, position problems in MergeSortJoinStrategy/Operation?",data.size()==1);
+    	Assert.assertEquals("does not return 1 row for merge, position problems in MergeSortJoinStrategy/Operation?",1,data.size());
     }
 
     private static String getResource(String name) {
