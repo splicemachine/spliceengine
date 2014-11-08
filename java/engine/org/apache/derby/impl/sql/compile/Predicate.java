@@ -126,6 +126,18 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         startKey = true;
     }
 
+    public void unmarkStartKey(){
+        startKey = false;
+    }
+
+    public void unmarkStopKey(){
+        stopKey = false;
+    }
+
+    public void unmarkQualifier(){
+        isQualifier = false;
+    }
+
     @Override
     public boolean isStartKey()
     {
