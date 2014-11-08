@@ -76,12 +76,27 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
          * We can't remove outright duplicates, but we can and SHOULD remove duplicates
          * which are the same exact object--thus, the use of an identity hash map here.
          */
-        Collection<Predicate> toPullUp = Collections.newSetFromMap(new IdentityHashMap<Predicate, Boolean>());
+        Collection<Predicate> toPullUp = Lists.newArrayList();
         HashableJoinStrategy joinStrategy = (HashableJoinStrategy)ap.getJoinStrategy();
         boolean removeFromBaseTable = !(joinStrategy instanceof HashNestedLoopJoinStrategy);
         ResultSetNode rightResultSet = j.getRightResultSet();
         pullPredicates(rightResultSet,toPullUp,evalableAtNode(j),removeFromBaseTable,rightResultSet,false);
 
+        //remove duplicates from the list
+        List<Predicate> newPreds = Lists.newArrayListWithExpectedSize(toPullUp.size());
+        for(Predicate pre:toPullUp){
+            boolean found = false;
+            for(int i=0;i<newPreds.size();i++){
+                Predicate existing = newPreds.get(i);
+                if(pre==existing) {
+                    found = true;
+                    break;
+                }
+            }
+            if(!found)
+                newPreds.add(pre);
+        }
+        toPullUp = newPreds;
         for (Predicate p: toPullUp){
             p = updatePredColRefsToNode(p, j);
             /*

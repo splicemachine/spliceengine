@@ -190,8 +190,8 @@ public class WorkdayTinyIT extends SpliceUnitTest {
              */
             Assert.assertEquals("Incorrect row count!",12,count);
         }finally{
-            if(indexCreated)
-                dropIndex(SCHEMA_NAME,OmsLogTable.INDEX_WHDATE_IDX);
+//            if(indexCreated)
+//                dropIndex(SCHEMA_NAME,OmsLogTable.INDEX_WHDATE_IDX);
         }
     }
 
