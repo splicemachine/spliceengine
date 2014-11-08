@@ -88,10 +88,10 @@ public class MergeJoinStrategy extends HashableJoinStrategy {
 			SpliceLogUtils.trace(LOG, "estimateCost innerTable=%s,predList=%s,conglomerateDescriptor=%s,outerCost=%s,optimizer=%s,costEstimate=%s",innerTable,predList,cd,outerCost,optimizer,costEstimate);
     }
 
-		@Override
-		public void unmarkQualifierIfNeeded(Predicate p){
-				//no-op
-		}
+//		@Override
+//		public void unmarkQualifierIfNeeded(Predicate p){
+//				//no-op
+//		}
 
 	@Override
 	public boolean feasible(Optimizable innerTable,OptimizablePredicateList predList, Optimizer optimizer) throws StandardException {
