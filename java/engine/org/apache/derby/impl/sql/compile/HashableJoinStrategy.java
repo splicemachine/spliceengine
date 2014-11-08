@@ -286,6 +286,16 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
         return numArgs;
     }
 
+
+    public void unmarkQualifierIfNeeded(Predicate p){
+        if(p.isStartKey())
+            p.unmarkStartKey();
+        if(p.isStopKey())
+            p.unmarkStopKey();
+        if(p.isQualifier())
+            p.unmarkQualifier();
+    }
+
     /**
      * @see JoinStrategy#divideUpPredicateLists
      *
