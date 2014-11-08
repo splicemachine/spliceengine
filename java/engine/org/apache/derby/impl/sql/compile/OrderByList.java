@@ -738,4 +738,8 @@ public class OrderByList extends OrderedColumnList
 	public int getResultSetNumber() {
 		return resultSetNumber;
 	}
+
+    public void setAlwaysSort() {
+        alwaysSort = true;
+    }
 }

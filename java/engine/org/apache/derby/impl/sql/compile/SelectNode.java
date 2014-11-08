@@ -1920,11 +1920,16 @@ public class SelectNode extends ResultSetNode
 				}
 			}
 		}
-
-		optimizer = getOptimizer(fromList,
-								wherePredicates,
-								dataDictionary,
-								orderByList);
+        if ((orderByList != null && orderByList.getSortNeeded()) &&
+            (((selectAggregates != null) && (selectAggregates.size() > 0)) || (groupByList != null))) {
+            // Preserve order by sort for aggregates with group by, otherwise
+            // the optimizer will optimize away the sort.
+            orderByList.setAlwaysSort();
+        }
+        optimizer = getOptimizer(fromList,
+                            wherePredicates,
+                            dataDictionary,
+                            orderByList);
 		optimizer.setOuterRows(outerRows);
 
 		/* Optimize this SelectNode */
