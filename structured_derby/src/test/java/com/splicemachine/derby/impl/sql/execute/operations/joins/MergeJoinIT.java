@@ -259,7 +259,8 @@ public class MergeJoinIT extends SpliceUnitTest {
                                                    o("scott",2),
                                                    o("scott",5),
                                                    o("tori",1));
-        String query = "select p.fname, t.num from people p, purchase t --splice-properties joinStrategy=%s \n" +
+        String query = "select p.fname, t.num from --SPLICE-PROPERTIES joinOrder=FIXED\n" +
+                "people p, purchase t --SPLICE-PROPERTIES joinStrategy=%s \n" +
                            "where p.fname = t.fname and p.lname = t.lname order by p.fname, t.num";
         List<List<Object[]>> results = Lists.newArrayList();
 
@@ -270,9 +271,11 @@ public class MergeJoinIT extends SpliceUnitTest {
 
         Assert.assertTrue("Each strategy returns the same join results",
                              results.size() == STRATEGIES.size());
+        int s = 0;
         for (List<Object[]> result: results) {
-            Assert.assertArrayEquals("The join results match expected results",
+            Assert.assertArrayEquals("Results for Strategy "+STRATEGIES.get(s)+" incorrect",
                                         expected.toArray(), result.toArray());
+            s++;
         }
     }
 
