@@ -248,12 +248,6 @@ public class SQLUtil {
 		  return childTxsID;
 	  }
 	  
-	  public void commitChildTransaction(Connection conn, long childTxnID) throws SQLException{
-		  PreparedStatement ps = conn.prepareStatement("call SYSCS_UTIL.SYSCS_COMMIT_CHILD_TRANSACTION(?)");
-		  ps.setLong(1, childTxnID);
-		  ps.execute();
-	  }
-	  
 	  public void closeConn(Connection conn) throws SQLException{
 		  conn.close();
 	  }

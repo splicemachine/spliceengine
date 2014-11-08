@@ -192,21 +192,6 @@ public class TransactionAdmin {
     private static final ResultColumnDescriptor[] CHILD_TXN_ID_COLUMNS = new GenericColumnDescriptor[]{
             new GenericColumnDescriptor("childTxnId", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT))
     };
-    
-    public static void SYSCS_COMMIT_CHILD_TRANSACTION(Long txnId) throws SQLException, IOException{
-    	TxnLifecycleManager tc = TransactionLifecycle.getLifecycleManager();
-    	TxnSupplier store = TransactionStorage.getTxnStore();
-        TxnView childTxn = ((TxnStore)store).getTransaction(txnId);
-        if (childTxn == null) {
-            throw new IllegalArgumentException(String.format("Specified child transaction id %s not found.", txnId));
-        }
-    	try {
-			tc.commit(txnId);
-		} catch (IOException e) {
-			
-			throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
-		}
-    }
 
     public static void SYSCS_ELEVATE_TRANSACTION(String tableName) throws IOException, SQLException {
     	 //TxnSupplier store = TransactionStorage.getTxnStore();
