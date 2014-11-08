@@ -39,7 +39,7 @@ import com.splicemachine.mrio.api.SQLUtil;
 import com.splicemachine.mrio.api.SpliceMRConstants;
 
 public class SpliceStorageHandler extends DefaultStorageHandler
-implements HiveMetaHook, HiveStoragePredicateHandler{
+implements HiveMetaHook, HiveStoragePredicateHandler, PostExecute{
 
 	private Configuration spliceConf;
 	final static public String DEFAULT_PREFIX = "default.";
@@ -47,7 +47,7 @@ implements HiveMetaHook, HiveStoragePredicateHandler{
 
 	private String parentTxnId = null;
 	boolean performInput = true;
-	private static Connection parentConn = null;
+	private Connection parentConn = null;
 	
 	private String getSpliceTableName(Table tbl)
 	{
@@ -266,9 +266,14 @@ implements HiveMetaHook, HiveStoragePredicateHandler{
 	    return HiveSpliceTableOutputFormat.class;
 	}
 
-	public static void commitParentTxn() throws SQLException{
+	@Override
+	public void run(SessionState sess, Set<ReadEntity> inputs,
+			Set<WriteEntity> outputs, LineageInfo lInfo,
+			UserGroupInformation ugi) throws Exception {
+		// TODO Auto-generated method stub
 		if(parentConn != null)
 			parentConn.commit();
+		System.out.println("Hive hook post exec, commit");
 	}
 
 }
