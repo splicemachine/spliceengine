@@ -256,8 +256,6 @@ public class SpliceDriver extends SIConstants {
     }
 
     public HRegion getOnlineRegion(String encodedRegionName)  {
-    	if(regionServerServices == null)
-    		System.out.println("regionServerServices null");
     	return regionServerServices.getFromOnlineRegions(encodedRegionName);
     }
 
@@ -274,10 +272,6 @@ public class SpliceDriver extends SIConstants {
     public SpliceIndexEndpoint getSpliceIndexEndpoint(String encodedRegionName) {
     	CoprocessorEnvironment ce = getSpliceIndexEndpointEnvironment(encodedRegionName);
     	return ce == null?null:(SpliceIndexEndpoint) ce.getInstance();
-    }
-    
-    public boolean isStarted(){
-    	return regionServerServices == null? false : true;
     }
     
     public void start(RegionServerServices regionServerServices){

@@ -32,10 +32,7 @@ import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.hbase.regioninfocache.HBaseRegionCache;
-import com.splicemachine.hbase.regioninfocache.RegionCache;
 import com.splicemachine.pipeline.api.CallBuffer;
-import com.splicemachine.pipeline.callbuffer.PipingCallBuffer;
 import com.splicemachine.pipeline.impl.WriteCoordinator;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.ActiveWriteTxn;
@@ -123,18 +120,17 @@ public class TransactionAdminTest {
 			rs.next();
 			long childTransactionId = rs.getLong(1);
 			System.out.println("Child transaction id: " + childTransactionId);
-			TxnView txn = new ActiveWriteTxn(parentTransactionId,parentTransactionId);
+			TxnView txn = new ActiveWriteTxn(childTransactionId,childTransactionId);
 			System.out.println("Preparing query #2...");
 			ps = conn2.prepareStatement(sqlUpdate2);
 			System.out.println("Executing query #2...");
 		    int updated = ps.executeUpdate();
 			System.out.println(updated + " rows updated.");
 			//Configuration conf = new Configuration();
-			RegionCache regionCache = HBaseRegionCache.getInstance();
 			
-			PipingCallBuffer callBuffer = (PipingCallBuffer)WriteCoordinator.create(SpliceUtils.config).writeBuffer(Bytes.toBytes("1232"), 
+			CallBuffer<KVPair> callBuffer = WriteCoordinator.create(SpliceUtils.config).writeBuffer(Bytes.toBytes("1232"), 
 					txn, 1);
-			//callBuffer.rebuildBuffer();
+			
 			ExecRow value = new ValueRow(2);
 			DataValueDescriptor[] newData = new DataValueDescriptor[2];
 			newData[0] = new SQLInteger(2);
@@ -154,11 +150,10 @@ public class TransactionAdminTest {
 			kv.setValue(bdata);	
 			//System.out.println("key:"+new String(key)+" value:"+new String(bdata));
 			callBuffer.add(kv);
-			//callBuffer.flushBuffer();
+			
 		    System.out.println("committing child...");
-		    callBuffer.close();
 		    conn2.commit();
-		    //callBuffer.close();
+		    callBuffer.close();
 		    System.out.println("Committing parent...");
 		    conn1.commit();
 

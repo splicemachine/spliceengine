@@ -80,19 +80,32 @@ public class SpliceJob extends Job {
 			try {
 				conn = sqlUtil.createConn();
 
-				//sqlUtil.disableAutoCommit(conn);
+				sqlUtil.disableAutoCommit(conn);
 				
 				String pTxsID = sqlUtil.getTransactionID(conn);
 				
 				PreparedStatement ps = conn.prepareStatement("call SYSCS_UTIL.SYSCS_ELEVATE_TRANSACTION(?)");
-		
+				System.out.println(super.getConfiguration().get(SpliceMRConstants.SPLICE_INPUT_TABLE_NAME)); 
 				ps.setString(1,super.getConfiguration().get(SpliceMRConstants.SPLICE_INPUT_TABLE_NAME));
 				ps.executeUpdate();
-
+				 
+				/*TxnView txn = new ActiveWriteTxn(Long.parseLong(parentTxsID),
+						Long.parseLong(parentTxsID));*/
+				
+				/*WritableTxn t = new WritableTxn(Long.parseLong(parentTxsID),
+						Long.parseLong(parentTxsID),
+						IsolationLevel.SNAPSHOT_ISOLATION,
+						Txn.ROOT_TRANSACTION,
+						TransactionLifecycle.getLifecycleManager(),
+						false
+						);
+				t.elevateToWritable(Bytes.toBytes("USERTEST"));*/
 				super.getConfiguration().set(
 						SpliceMRConstants.SPLICE_TRANSACTION_ID,
 						String.valueOf(pTxsID));
-				
+				// super.getConfiguration().set(SpliceMRConstants.SPLICE_TRANSACTION_ID,
+				// pTxsID);
+
 			} catch (SQLException e1) {
 				throw new IOException(e1);
 			} catch (InstantiationException e) {
@@ -123,6 +136,7 @@ public class SpliceJob extends Job {
 	 */
 	public void commit() throws SQLException {
 		sqlUtil.commit(conn);
+		System.out.println("committed");
 		sqlUtil.closeConn(conn);
 		sqlUtil.close();
 	}
