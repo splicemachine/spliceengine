@@ -56,8 +56,7 @@ public class SpliceSerDe implements SerDe {
 	 private ObjectInspector rowOI;
 	 private List<String> colNames;
 	 private List<Integer> colTypes;
-	 public static final String SPLICE_INPUT_TABLE_NAME = "splice_input_tableName";
-	 public static final String SPLICE_OUTPUT_TABLE_NAME = "splice_output_tableName";
+	 public static final String SPLICE_TABLE_NAME = "splice_input_tableName";
 	 public static final String SPLICE_JDBC_STR = "splice_jdbc";
 	 protected static final String SPLICE_TRANSACTION_ID = "transaction_id";
 	 private List<Object> row = new ArrayList<Object>();
@@ -78,20 +77,13 @@ public class SpliceSerDe implements SerDe {
 	 public void initialize(Configuration conf, Properties tbl)
 	     throws SerDeException {
 	   // Get a list of the table's column names.
-	   String spliceInputTableName = tbl.getProperty(SpliceSerDe.SPLICE_INPUT_TABLE_NAME);
-	   String spliceOutputTableName = tbl.getProperty(SpliceSerDe.SPLICE_OUTPUT_TABLE_NAME);
+	   String spliceTableName = tbl.getProperty(SpliceSerDe.SPLICE_TABLE_NAME);
+	   spliceTableName = spliceTableName.trim();
 	   if(sqlUtil == null)
 		   sqlUtil = SQLUtil.getInstance(tbl.getProperty(SpliceSerDe.SPLICE_JDBC_STR));
 	   
-	   if(spliceInputTableName != null){
-		   	spliceInputTableName = spliceInputTableName.trim();
-		   	preReadTableStructure(spliceInputTableName);
-	   }
-	   else if(spliceOutputTableName != null){
-		   spliceOutputTableName = spliceOutputTableName.trim();
-		   preReadTableStructure(spliceOutputTableName);
-	   }
-
+	   preReadTableStructure(spliceTableName);
+	  
 	   String colNamesStr = tbl.getProperty(Constants.LIST_COLUMNS);
 	   colNames = Arrays.asList(colNamesStr.split(","));
 	  
