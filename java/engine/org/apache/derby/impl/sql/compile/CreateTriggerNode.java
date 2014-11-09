@@ -22,11 +22,7 @@
 package	org.apache.derby.impl.sql.compile;
 
 import java.sql.Timestamp;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Enumeration;
-import java.util.Hashtable;
-import java.util.Vector;
+import java.util.*;
 
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
@@ -601,9 +597,9 @@ public class CreateTriggerNode extends DDLStatementNode
 			** the from table is NEW or OLD (or user designated alternates
 			** REFERENCING), we turn them into a trigger table VTI.
 			*/
-			CollectNodesVisitor visitor = new CollectNodesVisitor(FromBaseTable.class);
+			CollectNodesVisitor<FromBaseTable> visitor = CollectNodesVisitor.newVisitor(FromBaseTable.class);
 			actionNode.accept(visitor);
-			Vector tabs = visitor.getList();
+			List<FromBaseTable> tabs = visitor.getList();
 			Collections.sort(tabs, OFFSET_COMPARATOR);
 			for (int i = 0; i < tabs.size(); i++)
 			{
@@ -721,11 +717,11 @@ public class CreateTriggerNode extends DDLStatementNode
 
         if ( genColCount == 0 ) { return; }
 
-        CollectNodesVisitor     visitor = new CollectNodesVisitor( ColumnReference.class );
+        CollectNodesVisitor<ColumnReference> visitor = CollectNodesVisitor.newVisitor( ColumnReference.class );
 
         actionNode.accept( visitor );
 
-        Vector                   columnRefs = visitor.getList();
+        List<ColumnReference> columnRefs = visitor.getList();
         int                             colRefCount = columnRefs.size();
 
         for ( int crf_idx = 0; crf_idx < colRefCount; crf_idx++ )

@@ -62,11 +62,7 @@ import org.apache.derby.iapi.sql.dictionary.ColumnDescriptor;
 
 import org.apache.derby.catalog.UUID;
 
-import java.util.ArrayList;
-import java.util.Hashtable;
-import java.util.HashSet;
-import java.util.Properties;
-import java.util.Vector;
+import java.util.*;
 
 /**
  * A TableElementList represents the list of columns and other table elements
@@ -933,20 +929,16 @@ public class TableElementList extends QueryTreeNodeVector
         {
             ColumnDefinitionNode    cdn = (ColumnDefinitionNode) generatedColumns.get( i );
             GenerationClauseNode    generationClauseNode = cdn.getGenerationClauseNode();
-            Vector                  referencedColumns = generationClauseNode.findReferencedColumns();
-            int                     refCount = referencedColumns.size();
-            for ( int j = 0; j < refCount; j++ )
-            {
-                String  name = ((ColumnReference) referencedColumns.elementAt( j ) ).getColumnName();
+            List<ColumnReference> referencedColumns = generationClauseNode.findReferencedColumns();
+						for (ColumnReference referencedColumn : referencedColumns) {
+								String name = referencedColumn.getColumnName();
 
-                if ( name != null )
-                {
-                    if ( names.contains( name ) )
-                    {
-                        throw StandardException.newException(SQLState.LANG_CANT_REFERENCE_GENERATED_COLUMN, cdn.getColumnName());
-                    }
-                }
-            }
+								if (name != null) {
+										if (names.contains(name)) {
+												throw StandardException.newException(SQLState.LANG_CANT_REFERENCE_GENERATED_COLUMN, cdn.getColumnName());
+										}
+								}
+						}
         }
 
     }

@@ -21,13 +21,11 @@
 
 package	org.apache.derby.impl.sql.compile;
 
-import org.apache.derby.iapi.services.sanity.SanityManager;
-import org.apache.derby.iapi.sql.compile.Visitable; 
+import org.apache.derby.iapi.sql.compile.Visitable;
 import org.apache.derby.iapi.sql.compile.Visitor;
 
-import org.apache.derby.iapi.error.StandardException;
-
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Collect all nodes of the designated type to be returned
@@ -38,10 +36,9 @@ import java.util.Vector;
  * parameter.
  *
  */
-public class CollectNodesVisitor implements Visitor
-{
-	private Vector	nodeList;
-	private Class 	nodeClass;
+public class CollectNodesVisitor<T> implements Visitor {
+	private List<T> nodeList;
+	private Class<? extends T> 	nodeClass;
 	private Class	skipOverClass;
 	/**
 	 * Construct a visitor
@@ -49,10 +46,9 @@ public class CollectNodesVisitor implements Visitor
 	 * @param nodeClass the class of the node that 
 	 * 	we are looking for.
 	 */
-	public CollectNodesVisitor(Class nodeClass)
-	{
+	public CollectNodesVisitor(Class<? extends T> nodeClass) {
 		this.nodeClass = nodeClass;
-		nodeList = new Vector();
+		nodeList = new ArrayList<T>();
 	}
 
 	/**
@@ -63,19 +59,16 @@ public class CollectNodesVisitor implements Visitor
 	 * @param skipOverClass do not go below this
 	 * node when searching for nodeClass.
 	 */
-	public CollectNodesVisitor(Class nodeClass, Class skipOverClass)
-	{
+	public CollectNodesVisitor(Class<T> nodeClass, Class skipOverClass) {
 		this(nodeClass);
 		this.skipOverClass = skipOverClass;
 	}
 
-	public boolean visitChildrenFirst(Visitable node)
-	{
+	public boolean visitChildrenFirst(Visitable node) {
 		return false;
 	}
 
-	public boolean stopTraversal()
-	{
+	public boolean stopTraversal() {
 		return false;
 	}
 	////////////////////////////////////////////////
@@ -91,11 +84,11 @@ public class CollectNodesVisitor implements Visitor
 	 *
 	 * @return me
 	 */
-	public Visitable visit(Visitable node)
-	{
-		if (nodeClass.isInstance(node))
-		{
-			nodeList.add(node);
+	public Visitable visit(Visitable node) {
+		if (nodeClass.isInstance(node)) {
+        //this is safe because nodeClass.isInstance(node) will return false if the cast won't work
+        @SuppressWarnings("unchecked") T n = (T) node;
+        nodeList.add(n);
 		}
 		return node;
 	}
@@ -106,11 +99,8 @@ public class CollectNodesVisitor implements Visitor
 	 *
 	 * @return true/false
 	 */
-	public boolean skipChildren(Visitable node)
-	{
-		return (skipOverClass == null) ?
-				false:
-				skipOverClass.isInstance(node);
+	public boolean skipChildren(Visitable node) {
+		return (skipOverClass != null) && skipOverClass.isInstance(node);
 	}
 
 	////////////////////////////////////////////////
@@ -122,8 +112,18 @@ public class CollectNodesVisitor implements Visitor
 	 * Return the list of matching nodes.
 	 *
 	 */
-	public Vector getList()
+	public List<T> getList()
 	{
 		return nodeList;
 	}
-}	
+
+    /**
+     * Static factory method which makes typing easier
+     * @param nodeClass the class to collect
+     * @param <T> the type of the class to collect
+     * @return a new CollectNodesVisitor for this type
+     */
+    public static <T> CollectNodesVisitor<T> newVisitor(Class<? extends T> nodeClass){
+        return new CollectNodesVisitor<T>(nodeClass);
+    }
+}

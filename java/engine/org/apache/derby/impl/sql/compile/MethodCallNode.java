@@ -234,12 +234,10 @@ abstract class MethodCallNode extends JavaValueNode
 	void getCorrelationTables(JBitSet correlationMap)
 		throws StandardException
 	{
-		CollectNodesVisitor getCRs = new CollectNodesVisitor(ColumnReference.class);
+		CollectNodesVisitor<ColumnReference> getCRs = CollectNodesVisitor.newVisitor(ColumnReference.class);
 		accept(getCRs);
-		Vector colRefs = getCRs.getList();
-		for (Enumeration e = colRefs.elements(); e.hasMoreElements(); )
-		{
-			ColumnReference ref = (ColumnReference)e.nextElement();
+		List<ColumnReference> colRefs = getCRs.getList();
+		for (ColumnReference ref:colRefs ) {
 			if (ref.getCorrelated())
 			{
 				correlationMap.set(ref.getTableNumber());
