@@ -279,7 +279,11 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
          parentTaskId = id; 
       }
 
-    public byte getHashBucket() {
+		public void setHashBucket(byte hashBucket) {
+				this.hashBucket = hashBucket;
+		}
+
+		public byte getHashBucket() {
 				return hashBucket;
 		}
 
