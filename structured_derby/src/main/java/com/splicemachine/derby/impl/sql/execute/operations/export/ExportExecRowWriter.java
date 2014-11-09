@@ -5,6 +5,7 @@ import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.sql.ResultColumnDescriptor;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.TypeId;
 import org.supercsv.io.CsvListWriter;
 
 import java.io.Closeable;
@@ -61,7 +62,8 @@ class ExportExecRowWriter implements Closeable {
     }
 
     private boolean isDecimal(ResultColumnDescriptor columnDescriptor) {
-        return columnDescriptor.getType().getTypeId().getTypeFormatId() == StoredFormatIds.DECIMAL_TYPE_ID;
+        TypeId typeId = columnDescriptor.getType().getTypeId();
+        return typeId != null && typeId.getTypeFormatId() == StoredFormatIds.DECIMAL_TYPE_ID;
     }
 
     /**

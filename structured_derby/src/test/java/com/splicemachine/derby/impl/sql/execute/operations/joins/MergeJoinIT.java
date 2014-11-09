@@ -259,7 +259,8 @@ public class MergeJoinIT extends SpliceUnitTest {
                                                    o("scott",2),
                                                    o("scott",5),
                                                    o("tori",1));
-        String query = "select p.fname, t.num from people p, purchase t --splice-properties joinStrategy=%s \n" +
+        String query = "select p.fname, t.num from --SPLICE-PROPERTIES joinOrder=FIXED\n" +
+                "people p, purchase t --SPLICE-PROPERTIES joinStrategy=%s \n" +
                            "where p.fname = t.fname and p.lname = t.lname order by p.fname, t.num";
         List<List<Object[]>> results = Lists.newArrayList();
 
@@ -270,9 +271,11 @@ public class MergeJoinIT extends SpliceUnitTest {
 
         Assert.assertTrue("Each strategy returns the same join results",
                              results.size() == STRATEGIES.size());
+        int s = 0;
         for (List<Object[]> result: results) {
-            Assert.assertArrayEquals("The join results match expected results",
+            Assert.assertArrayEquals("Results for Strategy "+STRATEGIES.get(s)+" incorrect",
                                         expected.toArray(), result.toArray());
+            s++;
         }
     }
 
@@ -370,17 +373,55 @@ public class MergeJoinIT extends SpliceUnitTest {
     @Test
     public void testMergeWithRightCoveringIndex() throws Exception {
     	List<Object[]> data = TestUtils.resultSetToArrays(methodWatcher.executeQuery(MERGE_INDEX_RIGHT_SIDE_TEST));
-    	Assert.assertTrue("does not return 1 row for merge, position problems in MergeSortJoinStrategy/Operation?",data.size()==1);
+    	Assert.assertEquals("does not return 1 row for merge, position problems in MergeSortJoinStrategy/Operation?", 1, data.size());
     }
 
     @Test
     public void testMergeWithUnorderedPredicates() throws Exception {
     	List<Object[]> data = TestUtils.resultSetToArrays(methodWatcher.executeQuery(MERGE_WITH_UNORDERED));
-    	Assert.assertTrue("does not return 1 row for merge, position problems in MergeSortJoinStrategy/Operation?",data.size()==1);
+    	Assert.assertEquals("does not return 1 row for merge, position problems in MergeSortJoinStrategy/Operation?",1,data.size());
     }
 
     private static String getResource(String name) {
         return getResourceDirectory() + "tcph/data/" + name;
     }
 
+    @Test
+    public void testSimpleMergeJoinWith2Columns() throws Exception {
+        List<Object[]> expected = Arrays.asList(
+                o("adam",1),
+                o("adam",10),
+                o("scott",1),
+                o("scott",2),
+                o("scott",5),
+                o("tori",1));
+        String query = "select p.fname, t.num from --SPLICE-PROPERTIES joinOrder=FIXED\n" +
+                "people p" +
+                ", purchase t --SPLICE-PROPERTIES joinStrategy=%s \n" +
+                "where " +
+                "   p.fname = t.fname " +
+                "   and p.lname = t.lname " +
+                "order by " +
+                "   p.fname, t.num";
+        ResultSet rs = methodWatcher.executeQuery(String.format(query, "MERGE"));
+        List<Object[]> results = TestUtils.resultSetToArrays(rs);
+
+        Assert.assertArrayEquals("Results for Strategy MERGE incorrect",
+                expected.toArray(), results.toArray());
+    }
+
+    @Test
+    public void testRepeatedMergeWithUnorderedPredicates() throws Exception {
+        for(int i=0;i<100;i++){
+            testMergeWithUnorderedPredicates();
+        }
+    }
+
+    @Test
+    public void testRepeatedSimpleJoinOn2Columns() throws Exception {
+        for(int i=0;i<100;i++){
+            testSimpleMergeJoinWith2Columns();
+        }
+
+    }
 }
