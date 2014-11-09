@@ -31,7 +31,6 @@ public class MergeSortScanBoundaryTest {
 				MultiFieldEncoder encoder = MultiFieldEncoder.create(6);
 				encoder.setRawBytes(new byte[1]);
 				encoder.setRawBytes(snowflake.nextUUIDBytes());
-				encoder.mark();
 
 				List<byte[]> keys = Lists.newArrayList();
 				//encode some rights

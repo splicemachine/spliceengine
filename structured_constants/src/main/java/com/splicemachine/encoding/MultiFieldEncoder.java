@@ -23,15 +23,10 @@ public class MultiFieldEncoder {
     private final int numFields;
     private int currentPos;
     private int currentSize;
-    private int initialPos;
-    private int initialSize;
 
     private MultiFieldEncoder(int numFields) {
         fields = new byte[numFields][];
         this.numFields = numFields;
-        this.initialPos = 0;
-        this.initialSize = 0;
-
 		//initialize ourselves
         reset();
     }
@@ -39,10 +34,6 @@ public class MultiFieldEncoder {
     public static MultiFieldEncoder create(int numFields){
         return new MultiFieldEncoder(numFields);
     }
-
-    public void close(){
-    }
-
 
     public MultiFieldEncoder encodeNext(boolean value){
         encodeNext(value,false);
@@ -201,18 +192,16 @@ public class MultiFieldEncoder {
 
         byte[] data = new byte[currentSize+currentPos-1];
         int destPos=0;
-        boolean isFirst = true;
         for(int srcPos=0;srcPos<currentPos;srcPos++){
             byte[] src = fields[srcPos];
-            //TODO -sf- should we blow up here instead?
-            if(!isFirst){
+            if(srcPos != 0){
                 data[destPos] = 0x00; //we know that 0x00 is never allowed, so it's a safe terminator
                 destPos++;
-            } else{
-                isFirst=false;
             }
-            if(src==null||src.length==0)
+            if(src==null || src.length==0) {
+                /* Happens when encodeEmpty() is called. */
                 continue;
+            }
 
             System.arraycopy(src,0,data,destPos,src.length);
             destPos+=src.length;
@@ -226,13 +215,8 @@ public class MultiFieldEncoder {
          * as we need to. Any remaining garbage in the array will get destroyed along with this object
          * then. Just make sure we don't keep one of these around for forever without using it repeatedly.
          */
-        currentPos=initialPos;
-        currentSize= initialSize;
-    }
-
-    public void mark(){
-        initialPos=currentPos;
-        initialSize =currentSize;
+        currentPos=0;
+        currentSize= 0;
     }
 
     public byte[] getEncodedBytes(int position) {
