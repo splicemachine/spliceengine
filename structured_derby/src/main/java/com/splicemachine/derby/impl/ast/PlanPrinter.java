@@ -259,6 +259,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
                             }
                         }
                         columnInfo.put("src", src);
+                        columnInfo.put("exp node", exp.getClass().getSimpleName());
                     }
                 }
                 resultColumns.add(columnInfo);

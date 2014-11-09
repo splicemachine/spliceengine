@@ -51,7 +51,7 @@ import com.splicemachine.pipeline.api.Writer;
 import com.splicemachine.pipeline.impl.BulkWrites;
 import com.splicemachine.pipeline.impl.WriteResult;
 import com.splicemachine.pipeline.writecontext.PipelineWriteContext;
-import com.splicemachine.pipeline.writehandler.IndexSharedCallBuffer;
+import com.splicemachine.pipeline.writehandler.IndexWriteBufferFactory;
 import com.splicemachine.pipeline.writehandler.IndexUpsertWriteHandler;
 import com.splicemachine.pipeline.writehandler.RegionWriteHandler;
 import com.splicemachine.storage.EntryEncoder;
@@ -78,7 +78,7 @@ public class IndexedPipelineTest {
 								supplier,mock(DataStore.class), mock(Transactor.class));
         RegionCoprocessorEnvironment env = mock(RegionCoprocessorEnvironment.class);
         when(env.getRegion()).thenReturn(testRegion);
-        final PipelineWriteContext testCtx = spy(new PipelineWriteContext(new IndexSharedCallBuffer(),new ActiveWriteTxn(1l,1l),txnRegion, env));
+        final PipelineWriteContext testCtx = spy(new PipelineWriteContext(new IndexWriteBufferFactory(),new ActiveWriteTxn(1l,1l),txnRegion, env));
 
         //get a fake PipingWriteBuffer
         final TxnView txn = new ActiveWriteTxn(1l,1l);
@@ -160,7 +160,7 @@ public class IndexedPipelineTest {
         final ActiveWriteTxn txn = new ActiveWriteTxn(1l, 1l);
         RegionCoprocessorEnvironment env = mock(RegionCoprocessorEnvironment.class);
         when(env.getRegion()).thenReturn(testRegion);
-        final PipelineWriteContext testCtx = spy(new PipelineWriteContext(new IndexSharedCallBuffer(),txn,txnRegion, env));
+        final PipelineWriteContext testCtx = spy(new PipelineWriteContext(new IndexWriteBufferFactory(),txn,txnRegion, env));
 
         //get a fake PipingWriteBuffer
 //        final String txnId = "1";
@@ -259,7 +259,7 @@ public class IndexedPipelineTest {
         final TxnView txn = new ActiveWriteTxn(1l,1l);
         RegionCoprocessorEnvironment env = mock(RegionCoprocessorEnvironment.class);
         when(env.getRegion()).thenReturn(testRegion);
-        final PipelineWriteContext testCtx = spy(new PipelineWriteContext(new IndexSharedCallBuffer(),txn,txnRegion, env));
+        final PipelineWriteContext testCtx = spy(new PipelineWriteContext(new IndexWriteBufferFactory(),txn,txnRegion, env));
 
         //get a fake PipingWriteBuffer
         final ObjectArrayList<KVPair> indexedRows = ObjectArrayList.newInstance();
@@ -356,7 +356,7 @@ public class IndexedPipelineTest {
         final TxnView txn = new ActiveWriteTxn(1l,1l);
         RegionCoprocessorEnvironment env = mock(RegionCoprocessorEnvironment.class);
         when(env.getRegion()).thenReturn(testRegion);
-        final PipelineWriteContext testCtx = spy(new PipelineWriteContext(new IndexSharedCallBuffer(),txn,txnRegion, env));
+        final PipelineWriteContext testCtx = spy(new PipelineWriteContext(new IndexWriteBufferFactory(),txn,txnRegion, env));
 
         //get a fake PipingWriteBuffer
         final ObjectArrayList<KVPair> indexedRows = ObjectArrayList.newInstance();
@@ -439,7 +439,7 @@ public class IndexedPipelineTest {
         final TxnView txn = new ActiveWriteTxn(1l,1l);
         RegionCoprocessorEnvironment env = mock(RegionCoprocessorEnvironment.class);
         when(env.getRegion()).thenReturn(testRegion);
-        PipelineWriteContext testCtx = spy(new PipelineWriteContext(new IndexSharedCallBuffer(),txn,txnRegion, env));
+        PipelineWriteContext testCtx = spy(new PipelineWriteContext(new IndexWriteBufferFactory(),txn,txnRegion, env));
 
         //get a fake PipingWriteBuffer
         final ObjectArrayList<KVPair> indexedRows = ObjectArrayList.newInstance();

@@ -1,5 +1,7 @@
 package org.apache.derby.impl.sql.execute.operations;
 
+import static junit.framework.Assert.assertEquals;
+
 import java.sql.ResultSet;
 import java.util.*;
 
@@ -25,6 +27,8 @@ public class GroupedAggregateOperationIT extends SpliceUnitTest {
     public static final SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("OMS_LOG",CLASS_NAME,"(swh_date date, i integer)");
     public static final SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher("T8",CLASS_NAME,"(c1 int, c2 int)");
     public static final SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher("A1",CLASS_NAME,"(c1 varchar(10), c2 numeric(15,0))");  // JIRA 1859
+    public static final SpliceTableWatcher spliceTableWatcher4 =
+        new SpliceTableWatcher("new_order",CLASS_NAME,"(no_w_id int NOT NULL, no_d_id int NOT NULL, no_o_id int NOT NULL, PRIMARY KEY (no_w_id,no_d_id,no_o_id))");  // DB-2183
 
     @ClassRule
     public static TestRule rule = RuleChain.outerRule(spliceSchemaWatcher)
@@ -32,12 +36,14 @@ public class GroupedAggregateOperationIT extends SpliceUnitTest {
             .around(spliceTableWatcher)
             .around(spliceTableWatcher2)
             .around(spliceTableWatcher3)
+            .around(spliceTableWatcher4)
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
                     try {
                         spliceClassWatcher.setAutoCommit(true);
-                        spliceClassWatcher.executeUpdate(format("insert into %s values (date('2012-01-01'),1)", spliceTableWatcher));
+                        spliceClassWatcher.executeUpdate(format("insert into %s values (date('2012-01-01'),1)",
+                                                                spliceTableWatcher));
                         spliceClassWatcher.executeUpdate(format("insert into %s values (date('2012-02-01'),1)", spliceTableWatcher));
                         spliceClassWatcher.executeUpdate(format("insert into %s values (date('2012-03-01'),1)", spliceTableWatcher));
                         spliceClassWatcher.executeUpdate(format("insert into %s values (date('2012-03-01'),2)", spliceTableWatcher));
@@ -48,7 +54,9 @@ public class GroupedAggregateOperationIT extends SpliceUnitTest {
                         spliceClassWatcher.executeUpdate(format("insert into %s (c1) values ('A100001')", spliceTableWatcher3));
                         spliceClassWatcher.executeUpdate(format("insert into %s values ('A100001', 2000000503984)", spliceTableWatcher3));
                         spliceClassWatcher.executeUpdate(format("insert into %s (c1) values ('A100001')", spliceTableWatcher3));
-                        
+                        spliceClassWatcher.executeUpdate(format("insert into %s values (1, 2, 3), (1, 2, 4), (1, 3, 1), (1, 3, 2), (1, 3, 3), (1, 3, 4), (1, 3, 5), (2, 1, 1), (2, 1, 2), (2, 1, 3)", spliceTableWatcher4));
+                        spliceClassWatcher.executeUpdate(format("insert into %s values (11, 2, 3), (11, 2, 4), (11, 3, 1), (11, 3, 2), (10, 3, 3), (10, 3, 4), (10, 3, 5), (2, 10, 1), (2, 3, 2), (2, 3, 3)", spliceTableWatcher4));
+                        spliceClassWatcher.executeUpdate(format("insert into %s values (121, 2, 3), (112, 2, 4), (121, 3, 1), (211, 3, 2), (102, 3, 3), (102, 3, 4), (120, 3, 5), (2, 210, 1), (22, 3, 2), (22, 3, 3)", spliceTableWatcher4));
 
                     } catch (Exception e) {
                         throw new RuntimeException(e);
@@ -219,6 +227,29 @@ public class GroupedAggregateOperationIT extends SpliceUnitTest {
         	i++;
         }
         Assert.assertEquals("Should return 1 row",1, i);
+    }
+
+    @Test()
+    // DB-2183
+    public void testAggregateWithOrderBy() throws Exception {
+        String sqlText = format("select NO_W_ID, count(*) as cnt from %s group by NO_W_ID order by NO_W_ID",spliceTableWatcher4);
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "NO_W_ID | CNT |\n" +
+                "----------------\n" +
+                "    1    |  7  |\n" +
+                "    2    |  7  |\n" +
+                "   10    |  3  |\n" +
+                "   11    |  4  |\n" +
+                "   22    |  2  |\n" +
+                "   102   |  2  |\n" +
+                "   112   |  1  |\n" +
+                "   120   |  1  |\n" +
+                "   121   |  2  |\n" +
+                "   211   |  1  |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
     }
 
 }

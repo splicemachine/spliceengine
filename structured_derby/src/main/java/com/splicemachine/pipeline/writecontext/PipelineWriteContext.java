@@ -5,12 +5,12 @@ import com.google.common.collect.Maps;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.KVPair;
+import com.splicemachine.pipeline.api.*;
 import com.splicemachine.hbase.ThrowIfDisconnected;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.pipeline.api.CallBuffer;
 import com.splicemachine.pipeline.api.Code;
-import com.splicemachine.pipeline.api.SharedCallBuffer;
 import com.splicemachine.pipeline.api.WriteContext;
 import com.splicemachine.pipeline.api.WriteHandler;
 import com.splicemachine.pipeline.exception.Exceptions;
@@ -42,16 +42,16 @@ public class PipelineWriteContext implements WriteContext, Comparable{
     private final boolean keepState;
     private final boolean useAsyncWriteBuffers;
     private final TxnView txn;
-    private SharedCallBuffer indexSharedCallBuffer;
+    private WriteBufferFactory indexSharedCallBuffer;
     private static final AtomicInteger idGen = new AtomicInteger(0);
     private final int id = idGen.incrementAndGet();
     private RegionCoprocessorEnvironment env;
     
-    public PipelineWriteContext(SharedCallBuffer indexSharedCallBuffer,TxnView txn,TransactionalRegion rce,  RegionCoprocessorEnvironment env) {
+    public PipelineWriteContext(WriteBufferFactory indexSharedCallBuffer,TxnView txn,TransactionalRegion rce,  RegionCoprocessorEnvironment env) {
         this(indexSharedCallBuffer,txn,rce,env,true,true);
     }
 
-    public PipelineWriteContext(SharedCallBuffer indexSharedCallBuffer,TxnView txn,TransactionalRegion rce, RegionCoprocessorEnvironment env,boolean keepState,boolean useAsyncWriteBuffers) {
+    public PipelineWriteContext(WriteBufferFactory indexSharedCallBuffer,TxnView txn,TransactionalRegion rce, RegionCoprocessorEnvironment env,boolean keepState,boolean useAsyncWriteBuffers) {
         this.indexSharedCallBuffer = indexSharedCallBuffer;
         this.env = env;
     	this.rce = rce;

@@ -11,6 +11,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.compile.AccessPath;
+import org.apache.derby.iapi.sql.compile.JoinStrategy;
 import org.apache.derby.iapi.sql.compile.Optimizable;
 import org.apache.derby.iapi.sql.dictionary.ColumnDescriptor;
 import org.apache.derby.impl.sql.compile.*;
@@ -71,14 +72,38 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
          * not they are both the same comparison operator. As a result,
          * removing duplicates here would remove more join conditions
          * than we can allow.
+         *
+         * We can't remove outright duplicates, but we can and SHOULD remove duplicates
+         * which are the same exact object--thus, the use of an identity hash map here.
          */
-        Collection<Predicate> toPullUp = new LinkedList<Predicate>();
-        boolean removeFromBaseTable = !(ap.getJoinStrategy() instanceof HashNestedLoopJoinStrategy);
+        Collection<Predicate> toPullUp = Lists.newArrayList();
+        HashableJoinStrategy joinStrategy = (HashableJoinStrategy)ap.getJoinStrategy();
+        boolean removeFromBaseTable = !(joinStrategy instanceof HashNestedLoopJoinStrategy);
         ResultSetNode rightResultSet = j.getRightResultSet();
         pullPredicates(rightResultSet,toPullUp,evalableAtNode(j),removeFromBaseTable,rightResultSet,false);
 
+        //remove duplicates from the list
+        List<Predicate> newPreds = Lists.newArrayListWithExpectedSize(toPullUp.size());
+        for(Predicate pre:toPullUp){
+            boolean found = false;
+            for(int i=0;i<newPreds.size();i++){
+                Predicate existing = newPreds.get(i);
+                if(pre==existing) {
+                    found = true;
+                    break;
+                }
+            }
+            if(!found)
+                newPreds.add(pre);
+        }
+        toPullUp = newPreds;
         for (Predicate p: toPullUp){
             p = updatePredColRefsToNode(p, j);
+            /*
+             * We have pulled the predicate off of any relevant tables, so we have to ensure
+             * that they aren't used as start keys anymore (which causes explosions when we try and generate stuff).
+             */
+            joinStrategy.unmarkQualifierIfNeeded(p);
             j.addOptPredicate(p);
             if (LOG.isDebugEnabled()) {
                 LOG.debug(String.format("Added pred %s to Join=%s.",
@@ -116,7 +141,7 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
              * is a pretty ugly attempt to ensure that this works correctly.
              */
             pulledPredicates= pullPredsFromTable((FromBaseTable) next, pullCheck, removeFromBaseTable);
-        }else if(next instanceof IndexToBaseRowNode &&!removeFromBaseTable){
+        }else if(next instanceof IndexToBaseRowNode){
             /* Only pull from index if we are a HashNestedLoopJoin */
             pulledPredicates = pullPredsFromIndex((IndexToBaseRowNode) next, pullCheck);
         }
@@ -145,7 +170,10 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
 
         if(next instanceof SingleChildResultSetNode){
             pullPredicates(((SingleChildResultSetNode)next).getChildResult(),toPull,pullCheck,removeFromBaseTable,top,checkUsability);
-        }else if(next instanceof TableOperatorNode){
+        }else if(next instanceof IndexToBaseRowNode){
+            pullPredicates(((IndexToBaseRowNode)next).getSource(),toPull,pullCheck,removeFromBaseTable,top,checkUsability);
+        }
+        else if(next instanceof TableOperatorNode){
             TableOperatorNode ton = (TableOperatorNode)next;
             pullPredicates(ton.getLeftResultSet(),toPull,pullCheck,removeFromBaseTable,top,true);
             pullPredicates(ton.getRightResultSet(),toPull,pullCheck,removeFromBaseTable,top,true);
