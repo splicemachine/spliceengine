@@ -11,7 +11,6 @@ import com.splicemachine.utils.SpliceLogUtils;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.compile.AccessPath;
-import org.apache.derby.iapi.sql.compile.JoinStrategy;
 import org.apache.derby.iapi.sql.compile.Optimizable;
 import org.apache.derby.iapi.sql.dictionary.ColumnDescriptor;
 import org.apache.derby.impl.sql.compile.*;
@@ -77,8 +76,7 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
          * which are the same exact object--thus, the use of an identity hash map here.
          */
         Collection<Predicate> toPullUp = Collections.newSetFromMap(new IdentityHashMap<Predicate, Boolean>());
-        HashableJoinStrategy joinStrategy = (HashableJoinStrategy)ap.getJoinStrategy();
-        boolean removeFromBaseTable = !(joinStrategy instanceof HashNestedLoopJoinStrategy);
+        boolean removeFromBaseTable = !(ap.getJoinStrategy() instanceof HashNestedLoopJoinStrategy);
         ResultSetNode rightResultSet = j.getRightResultSet();
         pullPredicates(rightResultSet,toPullUp,evalableAtNode(j),removeFromBaseTable,rightResultSet,false);
 
@@ -88,7 +86,12 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
              * We have pulled the predicate off of any relevant tables, so we have to ensure
              * that they aren't used as start keys anymore (which causes explosions when we try and generate stuff).
              */
-            joinStrategy.unmarkQualifierIfNeeded(p);
+            if(p.isStartKey())
+                p.unmarkStartKey();
+            if(p.isStopKey())
+                p.unmarkStopKey();
+            if(p.isQualifier())
+                p.unmarkQualifier();
             j.addOptPredicate(p);
             if (LOG.isDebugEnabled()) {
                 LOG.debug(String.format("Added pred %s to Join=%s.",
