@@ -21,6 +21,8 @@ import java.math.BigDecimal;
  */
 public final class Encoding {
 
+    public static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
+
     private Encoding(){} //can't construct me!
 
     /**

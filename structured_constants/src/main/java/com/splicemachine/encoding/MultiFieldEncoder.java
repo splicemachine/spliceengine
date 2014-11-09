@@ -188,7 +188,7 @@ public class MultiFieldEncoder {
 
 	public byte[] build(){
         //if you haven't tried to encode anything, return empty array
-        if(currentPos==0) return new byte[0];
+        if(currentPos==0) return Encoding.EMPTY_BYTE_ARRAY;
 
         byte[] data = new byte[currentSize+currentPos-1];
         int destPos=0;
