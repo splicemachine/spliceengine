@@ -321,7 +321,6 @@
 		</profile>
 		<profile>
 			<id>all_distros</id>
-			<activation><activeByDefault>true</activeByDefault></activation>
 			<modules>
 				<module>cloudera-cdh4.3.0</module>
 				<module>cloudera-cdh4.5.0</module>
