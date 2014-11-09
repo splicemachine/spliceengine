@@ -5717,7 +5717,6 @@ ValueNode
 remainingNonNegatablePredicate(ValueNode leftOperand) throws StandardException :
 {
 	int			operator;
-	SubqueryNode.Type opType;
 	String		javaClassName;
 	Token 		tok = null;
 	ValueNode	tree = null;
@@ -5733,9 +5732,8 @@ remainingNonNegatablePredicate(ValueNode leftOperand) throws StandardException :
 		LOOKAHEAD({(getToken(1).kind == ALL || getToken(1).kind == ANY || 
 			getToken(1).kind == SOME) && getToken(2).kind == LEFT_PAREN})
 		(
-			opType = quantifier(operator)
 			<LEFT_PAREN>
-			leftOperand = tableSubquery(opType, leftOperand)
+			leftOperand = tableSubquery(quantifier(operator), leftOperand)
 			<RIGHT_PAREN>
 		)
 		|
@@ -9047,6 +9045,7 @@ tableSubquery(SubqueryNode.Type subqueryType, ValueNode leftOperand) throws Stan
 		return subqueryNode;
 	}
 }
+
 
 
 /*
