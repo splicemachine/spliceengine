@@ -373,7 +373,7 @@ public class MergeJoinIT extends SpliceUnitTest {
     @Test
     public void testMergeWithRightCoveringIndex() throws Exception {
     	List<Object[]> data = TestUtils.resultSetToArrays(methodWatcher.executeQuery(MERGE_INDEX_RIGHT_SIDE_TEST));
-    	Assert.assertEquals("does not return 1 row for merge, position problems in MergeSortJoinStrategy/Operation?", 1, data.size());
+    	Assert.assertEquals("does not return 1 row for merge, position problems in MergeSortJoinStrategy/Operation?",1,data.size());
     }
 
     @Test
@@ -386,42 +386,4 @@ public class MergeJoinIT extends SpliceUnitTest {
         return getResourceDirectory() + "tcph/data/" + name;
     }
 
-    @Test
-    public void testSimpleMergeJoinWith2Columns() throws Exception {
-        List<Object[]> expected = Arrays.asList(
-                o("adam",1),
-                o("adam",10),
-                o("scott",1),
-                o("scott",2),
-                o("scott",5),
-                o("tori",1));
-        String query = "select p.fname, t.num from --SPLICE-PROPERTIES joinOrder=FIXED\n" +
-                "people p" +
-                ", purchase t --SPLICE-PROPERTIES joinStrategy=%s \n" +
-                "where " +
-                "   p.fname = t.fname " +
-                "   and p.lname = t.lname " +
-                "order by " +
-                "   p.fname, t.num";
-        ResultSet rs = methodWatcher.executeQuery(String.format(query, "MERGE"));
-        List<Object[]> results = TestUtils.resultSetToArrays(rs);
-
-        Assert.assertArrayEquals("Results for Strategy MERGE incorrect",
-                expected.toArray(), results.toArray());
-    }
-
-    @Test
-    public void testRepeatedMergeWithUnorderedPredicates() throws Exception {
-        for(int i=0;i<100;i++){
-            testMergeWithUnorderedPredicates();
-        }
-    }
-
-    @Test
-    public void testRepeatedSimpleJoinOn2Columns() throws Exception {
-        for(int i=0;i<100;i++){
-            testSimpleMergeJoinWith2Columns();
-        }
-
-    }
 }
