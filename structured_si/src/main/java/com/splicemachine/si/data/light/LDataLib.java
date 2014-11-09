@@ -477,7 +477,7 @@ public class LDataLib implements SDataLib<KeyValue,LTuple, LTuple, LGet, LGet> {
 		@Override
 		public boolean regionScannerNext(RegionScanner regionScanner,
 				List<KeyValue> data) throws IOException {
-			return regionScanner.next(data);
+			throw new RuntimeException("Not Implemented");
 		}
 
 		@Override

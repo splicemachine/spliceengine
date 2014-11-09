@@ -64,11 +64,12 @@
 			<id>cloudera-cdh4.5.0</id>
 			<activation>
 				<property>
-					<name>!hbase.profile</name>
+					<name>hbase.profile</name>
+					<value>cloudera-cdh4.5.0</value>
 				</property>
 			</activation>
 			<dependencies>
-		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_94_adapter</artifactId> <version>1.0.0RC2-SNAPSHOT</version> <classifier>${envClassifier}</classifier> </dependency>
+		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_sitest</artifactId> <version>1.0.0RC2-SNAPSHOT</version> <classifier>${envClassifier}</classifier> </dependency>
 			</dependencies>
 		</profile>
 		<profile>
@@ -80,7 +81,7 @@
 				</property>
 			</activation>
 			<dependencies>
-		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_94_adapter</artifactId> <version>1.0.0RC2-SNAPSHOT</version> <classifier>${envClassifier}</classifier> </dependency>
+		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_sitest</artifactId> <version>1.0.0RC2-SNAPSHOT</version> <classifier>${envClassifier}</classifier> </dependency>
 			</dependencies>
 		</profile>
 		<profile>
@@ -92,7 +93,7 @@
 				</property>
 			</activation>
 			<dependencies>
-		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_94_adapter</artifactId> <version>1.0.0RC2-SNAPSHOT</version> <classifier>${envClassifier}</classifier> </dependency>
+		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_sitest</artifactId> <version>1.0.0RC2-SNAPSHOT</version> <classifier>${envClassifier}</classifier> </dependency>
 			</dependencies>
 
 		</profile>
@@ -105,7 +106,7 @@
 				</property>
 			</activation>
 			<dependencies>
-		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_94_adapter</artifactId> <version>1.0.0RC2-SNAPSHOT</version> <classifier>${envClassifier}</classifier> </dependency>
+		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_sitest</artifactId> <version>1.0.0RC2-SNAPSHOT</version> <classifier>${envClassifier}</classifier> </dependency>
 			</dependencies>
 		</profile>
 		
@@ -117,7 +118,7 @@
 				</property>
 			</activation>
 						<dependencies>
-		<dependency> <groupId>com.splicemachine</groupId> <artifactId>structured_constants</artifactId> <version>1.0.0RC2-SNAPSHOT</version> <classifier>${envClassifier}</classifier> </dependency>
+		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_sitest</artifactId> <version>1.0.0RC2-SNAPSHOT</version> <classifier>${envClassifier}</classifier> </dependency>
 			</dependencies>
 		</profile>
 		<profile>
@@ -129,7 +130,7 @@
 				</property>
 			</activation>
 			<dependencies>
-		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_96_adapter</artifactId> <version>1.0.0RC2-SNAPSHOT</version> <classifier>${envClassifier}</classifier> </dependency>
+		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_sitest</artifactId> <version>1.0.0RC2-SNAPSHOT</version> <classifier>${envClassifier}</classifier> </dependency>
 			</dependencies>
 		</profile>
 		<profile>
@@ -141,7 +142,7 @@
 				</property>
 			</activation>
 			<dependencies>
-		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_96_adapter</artifactId> <version>1.0.0RC2-SNAPSHOT</version> <classifier>${envClassifier}</classifier> </dependency>
+		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_sitest</artifactId> <version>1.0.0RC2-SNAPSHOT</version> <classifier>${envClassifier}</classifier> </dependency>
 			</dependencies>
 
 		</profile>

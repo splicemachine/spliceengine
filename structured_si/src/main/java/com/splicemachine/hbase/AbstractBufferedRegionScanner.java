@@ -208,7 +208,7 @@ public abstract class AbstractBufferedRegionScanner<Put extends OperationWithAtt
 	
 	private void refill() throws IOException{
 		region.startRegionOperation();
-		MultiVersionConsistencyControl.setThreadReadPoint(delegate.getMvccReadPoint());
+		dataLib.setThreadReadPoint(delegate);
 		int bufferPos = 0;
 		readTimer.startTiming();
 		try{
