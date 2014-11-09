@@ -9,6 +9,7 @@ import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
+import com.splicemachine.derby.utils.FormatableBitSetUtils;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SerializationUtils;
 import com.splicemachine.pipeline.exception.Exceptions;
@@ -33,6 +34,7 @@ import org.apache.derby.iapi.store.access.ScanController;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.ipc.ExecRPCInvoker;
 
 import java.io.Externalizable;
 import java.io.IOException;
