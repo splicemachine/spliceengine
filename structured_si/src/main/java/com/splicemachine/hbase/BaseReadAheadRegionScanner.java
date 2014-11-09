@@ -233,7 +233,7 @@ public abstract class BaseReadAheadRegionScanner<Put extends OperationWithAttrib
 						OUTER: do{
 								if(closed) break; //check if we are closed
 								region.startRegionOperation();
-								MultiVersionConsistencyControl.setThreadReadPoint(delegate.getMvccReadPoint());
+								dataLib.setThreadReadPoint(delegate);
 								timer.startTiming();
 								try{
 										if(LOGGER.isTraceEnabled())

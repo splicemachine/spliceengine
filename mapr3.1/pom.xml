@@ -5,9 +5,9 @@
 	<groupId>com.splicemachine</groupId>
 	<version>1.0.0RC2-SNAPSHOT</version>
 	<packaging>pom</packaging>
-	<artifactId>spliceengine-cloudera-mapr4.0</artifactId>
+	<artifactId>spliceengine-mapr3.1</artifactId>
 	<name>${project.artifactId}</name>
-	<description>Splice Engine Parent POM for mapr4.0</description>
+	<description>Splice Engine Parent POM for mapr3.1</description>
 
 	<parent>
 		<artifactId>spliceengine</artifactId>
@@ -18,8 +18,7 @@
 	<modules>
 <!--		<module>splice_constants</module>
 		<module>splice_si</module>
-		<module>splice_protocol</module>
-  		<module>splice_98_adapter</module>
+  		<module>splice_94_adapter</module>
 		<module>splice_sitest</module>
 		<module>splice_machine</module> -->
 	</modules>
