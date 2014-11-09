@@ -160,42 +160,7 @@ public class WorkdayTinyIT extends SpliceUnitTest {
         }
     }
 
-    @Test
-    public void testSelfJoinOverIndex() throws Exception {
-        /*regression test for DB-2191*/
-        boolean indexCreated=false;
-        try {
-
-            SpliceIndexWatcher.createIndex(methodWatcher.getOrCreateConnection(), SCHEMA_NAME, OmsLogTable.TABLE_NAME,
-                    OmsLogTable.INDEX_WHDATE_IDX, OmsLogTable.INDEX_WHDATE_IDX_DEF, false);
-            indexCreated = true;
-
-            String query = String.format("select count(*) from --SPLICE-PROPERTIES joinOrder=FIXED\n" +
-                    "%2$s a  --SPLICE-PROPERTIES index=%1$s\n" +
-                    ", %2$s b --SPLICE-PROPERTIES index=%1$s, joinStrategy=SORTMERGE\n" +
-                    "where a.swh_date=b.swh_date and \n" +
-                    "      a.date_time=b.date_time and \n" +
-                    "      a.request_id=b.request_id and \n" +
-                    "      a.swh_date=date('2012-07-16')",
-                    OmsLogTable.INDEX_WHDATE_IDX,
-                    SCHEMA_NAME+"."+OmsLogTable.TABLE_NAME);
-
-            ResultSet resultSet = methodWatcher.executeQuery(query);
-            Assert.assertTrue("no count returned!", resultSet.next());
-            int count = resultSet.getInt(1);
-            /*
-             * 12 is the number of rows with swh_date = '2102-07-16'. Because it's a self-join on
-             * the swh_date field and the request_id, it will limit the count to the number of rows
-             * on the left hand side, which is 12
-             */
-            Assert.assertEquals("Incorrect row count!",12,count);
-        }finally{
-            if(indexCreated)
-                dropIndex(SCHEMA_NAME,OmsLogTable.INDEX_WHDATE_IDX);
-        }
-    }
-
-    private void dropIndex(String schemaName, String tableName){
+		private void dropIndex(String schemaName, String tableName){
 				try{
 						SpliceIndexWatcher.executeDrop(schemaName,tableName);
 				}catch(Exception e){
