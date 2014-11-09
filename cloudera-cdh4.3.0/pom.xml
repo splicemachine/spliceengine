@@ -5,9 +5,9 @@
 	<groupId>com.splicemachine</groupId>
 	<version>1.0.0RC2-SNAPSHOT</version>
 	<packaging>pom</packaging>
-	<artifactId>spliceengine-cloudera-cdh4.5.0</artifactId>
+	<artifactId>spliceengine-cloudera-cdh4.3.0</artifactId>
 	<name>${project.artifactId}</name>
-	<description>Splice Engine Parent POM for cloudera-cdh4.5.0</description>
+	<description>Splice Engine Parent POM for cloudera-cdh4.3.0</description>
 
 	<parent>
 		<artifactId>spliceengine</artifactId>
@@ -16,11 +16,11 @@
 	</parent>
 	
 	<modules>
-		<module>splice_constants</module>
+<!--		<module>splice_constants</module>
 		<module>splice_si</module>
   		<module>splice_94_adapter</module>
 		<module>splice_sitest</module>
-		<module>splice_machine</module>
+		<module>splice_machine</module> -->
 	</modules>
 
 	<dependencies>
