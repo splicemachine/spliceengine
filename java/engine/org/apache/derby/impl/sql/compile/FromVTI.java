@@ -87,8 +87,11 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Types;
 
-import java.util.*;
-
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Properties; 
+import java.util.Vector;
 import org.apache.derby.iapi.services.io.FormatableHashtable;
 
 import java.lang.reflect.Modifier;
@@ -915,14 +918,18 @@ public class FromVTI extends FromTable implements VTIEnvironment
 		 * from other VTIs that appear after this one in the FROM list.
 		 * These CRs will have uninitialized column and table numbers.
 		 */
-		List<ColumnReference> colRefs = getNodesFromParameters(ColumnReference.class);
+		Vector colRefs = getNodesFromParameters(ColumnReference.class);
 		Vector aggregateVector = null;
-		for (ColumnReference ref:colRefs) {
+		for (Enumeration e = colRefs.elements(); e.hasMoreElements(); )
+		{
+			ColumnReference ref = (ColumnReference)e.nextElement();
 
 			// Rebind the CR if the tableNumber is uninitialized
-			if (ref.getTableNumber() == -1) {
+			if (ref.getTableNumber() == -1)
+			{
 				// we need a fake agg list
-				if (aggregateVector == null) {
+				if (aggregateVector == null)
+				{
 					aggregateVector = new Vector();
 				}
 				ref.bindExpression(fromListParam,
@@ -942,10 +949,10 @@ public class FromVTI extends FromTable implements VTIEnvironment
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	<T> List<T> getNodesFromParameters(Class<? extends T> nodeClass)
+	Vector getNodesFromParameters(Class nodeClass)
 		throws StandardException
 	{
-		CollectNodesVisitor<T> getCRs = CollectNodesVisitor.newVisitor(nodeClass);
+		CollectNodesVisitor getCRs = new CollectNodesVisitor(nodeClass);
 		methodCall.accept(getCRs);
 		return getCRs.getList();
 	}

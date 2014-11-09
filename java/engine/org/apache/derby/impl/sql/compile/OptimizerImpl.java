@@ -33,13 +33,16 @@ import org.apache.derby.iapi.sql.compile.CostEstimate;
 import org.apache.derby.iapi.sql.compile.RequiredRowOrdering;
 import org.apache.derby.iapi.sql.compile.RowOrdering;
 import org.apache.derby.iapi.sql.compile.AccessPath;
+import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
+import org.apache.derby.catalog.IndexDescriptor;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.util.JBitSet;
 import org.apache.derby.iapi.util.StringUtil;
 import org.apache.log4j.Logger;
+import java.util.Properties;
 import java.util.HashMap;
 
 /**

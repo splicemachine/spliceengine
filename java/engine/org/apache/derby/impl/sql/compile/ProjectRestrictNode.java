@@ -558,11 +558,11 @@ public class ProjectRestrictNode extends SingleChildResultSetNode
         return allTablesFound;
     }
 
-//    private Vector getColumnReferences(Predicate pred) throws StandardException {
-//        CollectNodesVisitor cnv = new CollectNodesVisitor(ColumnReference.class);
-//        pred.accept(cnv);
-//        return cnv.getList();
-//    }
+    private Vector getColumnReferences(Predicate pred) throws StandardException {
+        CollectNodesVisitor cnv = new CollectNodesVisitor(ColumnReference.class);
+        pred.accept(cnv);
+        return cnv.getList();
+    }
 
     private Set getAllChildReferencedTables() {
         Set tableSet = new HashSet();

@@ -68,7 +68,8 @@ import java.util.Vector;
  *
  */
 
-abstract class MethodCallNode extends JavaValueNode {
+abstract class MethodCallNode extends JavaValueNode
+{
 	/*
 	** Name of the method.
 	*/
@@ -120,7 +121,8 @@ abstract class MethodCallNode extends JavaValueNode {
 	 *
 	 * @param	methodName	The name of the method to call
 	 */
-	public void init(Object methodName) {
+	public void init(Object methodName)
+	{
 		this.methodName = (String) methodName;
 	}
 
@@ -232,11 +234,14 @@ abstract class MethodCallNode extends JavaValueNode {
 	void getCorrelationTables(JBitSet correlationMap)
 		throws StandardException
 	{
-		CollectNodesVisitor<ColumnReference> getCRs = CollectNodesVisitor.newVisitor(ColumnReference.class);
+		CollectNodesVisitor getCRs = new CollectNodesVisitor(ColumnReference.class);
 		accept(getCRs);
-		List<ColumnReference> colRefs = getCRs.getList();
-		for (ColumnReference ref:colRefs) {
-			if (ref.getCorrelated()) {
+		Vector colRefs = getCRs.getList();
+		for (Enumeration e = colRefs.elements(); e.hasMoreElements(); )
+		{
+			ColumnReference ref = (ColumnReference)e.nextElement();
+			if (ref.getCorrelated())
+			{
 				correlationMap.set(ref.getTableNumber());
 			}
 		}

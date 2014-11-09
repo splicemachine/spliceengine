@@ -62,7 +62,11 @@ import org.apache.derby.iapi.sql.dictionary.ColumnDescriptor;
 
 import org.apache.derby.catalog.UUID;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Hashtable;
+import java.util.HashSet;
+import java.util.Properties;
+import java.util.Vector;
 
 /**
  * A TableElementList represents the list of columns and other table elements
@@ -891,26 +895,28 @@ public class TableElementList extends QueryTreeNodeVector
 	void findIllegalGenerationReferences( FromList fromList, TableDescriptor baseTable )
 		throws StandardException
 	{
-      List<ColumnDefinitionNode> generatedColumns = new ArrayList<ColumnDefinitionNode>();
-      HashSet<String> names = new HashSet<String>();
-      int size = size();
+        ArrayList   generatedColumns = new ArrayList();
+        HashSet     names = new HashSet();
+		int         size = size();
 
-      // add in existing generated columns if this is an ALTER TABLE statement
-      if ( baseTable != null ) {
-          ColumnDescriptorList cdl = baseTable.getGeneratedColumns();
-          int                  count = cdl.size();
-          for ( int i = 0; i < count; i++ ) {
-              names.add( cdl.elementAt( i ).getColumnName() );
-          }
-      }
+        // add in existing generated columns if this is an ALTER TABLE statement
+        if ( baseTable != null )
+        {
+            ColumnDescriptorList cdl = baseTable.getGeneratedColumns();
+            int                  count = cdl.size();
+            for ( int i = 0; i < count; i++ )
+            {
+                names.add( cdl.elementAt( i ).getColumnName() );
+            }
+        }
+        
+        // find all of the generated columns
+		for (int index = 0; index < size; index++)
+		{
+			ColumnDefinitionNode cdn;
+			TableElementNode     element = (TableElementNode) elementAt(index);
 
-      // find all of the generated columns
-      for (int index = 0; index < size; index++)
-      {
-          ColumnDefinitionNode cdn;
-          TableElementNode     element = (TableElementNode) elementAt(index);
-
-          if (! (element instanceof ColumnDefinitionNode)) { continue; }
+			if (! (element instanceof ColumnDefinitionNode)) { continue; }
 
 			cdn = (ColumnDefinitionNode) element;
 
@@ -923,15 +929,20 @@ public class TableElementList extends QueryTreeNodeVector
         // now look at their generation clauses to see if they reference one
         // another
         int    count = generatedColumns.size();
-        for ( int i = 0; i < count; i++ ) {
-            ColumnDefinitionNode cdn = generatedColumns.get(i);
-            GenerationClauseNode generationClauseNode = cdn.getGenerationClauseNode();
-            List<ColumnReference> referencedColumns = generationClauseNode.findReferencedColumns();
-            int refCount = referencedColumns.size();
-            for ( int j = 0; j < refCount; j++ ) {
-                String  name = referencedColumns.get(j).getColumnName();
-                if ( name != null ) {
-                    if ( names.contains( name ) ) {
+        for ( int i = 0; i < count; i++ )
+        {
+            ColumnDefinitionNode    cdn = (ColumnDefinitionNode) generatedColumns.get( i );
+            GenerationClauseNode    generationClauseNode = cdn.getGenerationClauseNode();
+            Vector                  referencedColumns = generationClauseNode.findReferencedColumns();
+            int                     refCount = referencedColumns.size();
+            for ( int j = 0; j < refCount; j++ )
+            {
+                String  name = ((ColumnReference) referencedColumns.elementAt( j ) ).getColumnName();
+
+                if ( name != null )
+                {
+                    if ( names.contains( name ) )
+                    {
                         throw StandardException.newException(SQLState.LANG_CANT_REFERENCE_GENERATED_COLUMN, cdn.getColumnName());
                     }
                 }

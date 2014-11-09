@@ -132,10 +132,6 @@ public class IndexToBaseRowNode extends FromTable
 		return source.getFinalCostEstimate();
 	}
 
-    public FromTable getSource(){
-        return source;
-    }
-
 	/**
 	 * Return whether or not the underlying ResultSet tree
 	 * is ordered on the specified columns.

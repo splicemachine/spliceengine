@@ -21,25 +21,38 @@
 
 package	org.apache.derby.impl.sql.compile;
 
-import org.apache.derby.catalog.UUID;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.reference.Limits;
-import org.apache.derby.iapi.reference.SQLState;
-import org.apache.derby.iapi.services.context.ContextManager;
-import org.apache.derby.iapi.services.sanity.SanityManager;
-import org.apache.derby.iapi.sql.compile.C_NodeTypes;
-import org.apache.derby.iapi.sql.compile.CompilerContext;
-import org.apache.derby.iapi.sql.compile.NodeFactory;
+import org.apache.derby.iapi.sql.compile.Visitable;
 import org.apache.derby.iapi.sql.compile.Visitor;
+
+import org.apache.derby.iapi.services.context.ContextManager;
+
+import org.apache.derby.iapi.services.sanity.SanityManager;
+
+import org.apache.derby.iapi.error.StandardException;
+
+import org.apache.derby.iapi.sql.compile.CompilerContext;
+import org.apache.derby.iapi.sql.compile.C_NodeTypes;
+import org.apache.derby.iapi.sql.compile.NodeFactory;
+
 import org.apache.derby.iapi.sql.conn.Authorizer;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
+
+import org.apache.derby.iapi.sql.dictionary.DataDictionary;
+import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
+import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
+
 import org.apache.derby.iapi.sql.depend.DependencyManager;
+import org.apache.derby.iapi.sql.depend.Dependent;
 import org.apache.derby.iapi.sql.depend.ProviderInfo;
 import org.apache.derby.iapi.sql.depend.ProviderList;
-import org.apache.derby.iapi.sql.dictionary.DataDictionary;
-import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
+
+import org.apache.derby.iapi.reference.SQLState;
+import org.apache.derby.iapi.reference.Limits;
+
 import org.apache.derby.iapi.sql.execute.ConstantAction;
+
 import org.apache.derby.impl.sql.execute.ColumnInfo;
+import org.apache.derby.catalog.UUID;
 
 /**
  * A CreateViewNode is the root of a QueryTree that represents a CREATE VIEW
@@ -47,16 +60,17 @@ import org.apache.derby.impl.sql.execute.ColumnInfo;
  *
  */
 
-public class CreateViewNode extends DDLStatementNode {
-	ResultColumnList resultColumns;
-	ResultSetNode	queryExpression;
-	String qeText;
-	int	checkOption;
-	ProviderInfo[] providerInfos;
-	ColumnInfo[] colInfos;
+public class CreateViewNode extends DDLStatementNode
+{
+	ResultColumnList	resultColumns;
+	ResultSetNode		queryExpression;
+	String				qeText;
+	int					checkOption;
+	ProviderInfo[]		providerInfos;
+	ColumnInfo[]		colInfos;
 	private OrderByList orderByList;
-    private ValueNode offset;
-    private ValueNode fetchFirst;
+    private ValueNode   offset;
+    private ValueNode   fetchFirst;
     private boolean hasJDBClimitClause; // true if using JDBC limit/offset escape syntax
 
 	/**
@@ -76,37 +90,40 @@ public class CreateViewNode extends DDLStatementNode {
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-  public void init(Object newObjectName,
-                   Object resultColumns,
-                   Object	 queryExpression,
-                   Object checkOption,
-                   Object qeText,
+
+	public void init(Object newObjectName,
+				   Object resultColumns,
+				   Object	 queryExpression,
+				   Object checkOption,
+				   Object qeText,
                    Object orderCols,
                    Object offset,
                    Object fetchFirst,
                    Object hasJDBClimitClause)
-          throws StandardException {
-      initAndCheck(newObjectName);
-      this.resultColumns = (ResultColumnList) resultColumns;
-      this.queryExpression = (ResultSetNode) queryExpression;
-      this.checkOption = (Integer) checkOption;
-      this.qeText = ((String) qeText).trim();
-      this.orderByList = (OrderByList)orderCols;
-      this.offset = (ValueNode)offset;
-      this.fetchFirst = (ValueNode)fetchFirst;
-      this.hasJDBClimitClause = (hasJDBClimitClause != null) && (Boolean) hasJDBClimitClause;
+		throws StandardException
+	{
+		initAndCheck(newObjectName);
+		this.resultColumns = (ResultColumnList) resultColumns;
+		this.queryExpression = (ResultSetNode) queryExpression;
+		this.checkOption = ((Integer) checkOption).intValue();
+		this.qeText = ((String) qeText).trim();
+		this.orderByList = (OrderByList)orderCols;
+        this.offset = (ValueNode)offset;
+        this.fetchFirst = (ValueNode)fetchFirst;
+        this.hasJDBClimitClause = (hasJDBClimitClause == null) ? false : ((Boolean) hasJDBClimitClause).booleanValue();
 
 		implicitCreateSchema = true;
 	}
 
-    /**
+	/**
 	 * Convert this object to a String.  See comments in QueryTreeNode.java
 	 * for how this should be done for tree printing.
 	 *
 	 * @return	This object as a String
 	 */
 
-	public String toString() {
+	public String toString()
+	{
 		if (SanityManager.DEBUG)
 		{
 			return super.toString() +

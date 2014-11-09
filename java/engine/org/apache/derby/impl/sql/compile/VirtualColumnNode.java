@@ -26,7 +26,6 @@ import java.util.List;
 
 import org.apache.derby.iapi.services.compiler.MethodBuilder;
 import org.apache.derby.iapi.services.sanity.SanityManager;
-import org.apache.derby.iapi.sql.compile.Visitor;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.impl.sql.compile.ExpressionClassBuilder;
@@ -161,7 +160,7 @@ public class VirtualColumnNode extends ValueNode
 		return sourceColumn.updatableByCursor();
 	}
 
-    /**
+	/**
 	 * Return the ResultColumn that is the source of this VirtualColumnNode.
 	 *
 	 * @return ResultSetNode	

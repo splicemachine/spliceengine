@@ -354,8 +354,9 @@ public class RowResultSetNode extends FromTable
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-  @Override
-	public void verifySelectStarSubquery(FromList outerFromList, SubqueryNode.Type subqueryType)  throws StandardException {
+	public void verifySelectStarSubquery(FromList outerFromList, int subqueryType) 
+					throws StandardException
+	{
 		return; 
 	}
 

@@ -39,7 +39,8 @@ import org.apache.derby.iapi.reference.SQLState;
  *
  */
 
-public class TableName extends QueryTreeNode {
+public class TableName extends QueryTreeNode
+{
 	/* Both schemaName and tableName can be null, however, if 
 	** tableName is null then schemaName must also be null.
 	*/

@@ -27,7 +27,13 @@ import org.apache.derby.iapi.services.sanity.SanityManager;
 
 import org.apache.derby.iapi.error.StandardException;
 
-import org.apache.derby.iapi.sql.compile.*;
+import org.apache.derby.iapi.sql.compile.Optimizable;
+import org.apache.derby.iapi.sql.compile.OptimizablePredicate;
+import org.apache.derby.iapi.sql.compile.OptimizablePredicateList;
+import org.apache.derby.iapi.sql.compile.Optimizer;
+import org.apache.derby.iapi.sql.compile.CostEstimate;
+import org.apache.derby.iapi.sql.compile.RowOrdering;
+import org.apache.derby.iapi.sql.compile.C_NodeTypes;
 
 import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
 
@@ -59,12 +65,8 @@ public class UnionNode extends SetOperatorNode
 	/* True if this is the top node of a table constructor */
 	boolean			topTableConstructor;
 
-    boolean isNotExists;
-    private boolean existsBaseTable;
-    private boolean hasTrulyTheBestAccessPath;
 
-
-    /**
+	/**
 	 * Initializer for a UnionNode.
 	 *
 	 * @param leftResult		The ResultSetNode on the left side of this union
@@ -498,18 +500,7 @@ public class UnionNode extends SetOperatorNode
 		return treeTop;
 	}
 
-    @Override
-    public AccessPath getTrulyTheBestAccessPath() {
-        if(hasTrulyTheBestAccessPath)
-            return trulyTheBestAccessPath;
-
-        ResultSetNode rsn = getRightResultSet();
-        if(rsn instanceof Optimizable)
-            return ((Optimizable)rsn).getTrulyTheBestAccessPath();
-        return trulyTheBestAccessPath;
-    }
-
-    /**
+	/**
 	 * Convert this object to a String.  See comments in QueryTreeNode.java
 	 * for how this should be done for tree printing.
 	 *
@@ -528,23 +519,7 @@ public class UnionNode extends SetOperatorNode
 		}
 	}
 
-    @Override
-    public boolean isNotExists() {
-        return isNotExists;
-    }
-
-    void setExistsBaseTable(boolean existsBaseTable, boolean isNotExists)
-    {
-        this.existsBaseTable = existsBaseTable;
-        this.isNotExists = isNotExists;
-    }
-
-    @Override
-    public boolean isOneRowResultSet() throws StandardException {
-        return existsBaseTable || super.isOneRowResultSet();
-    }
-
-    /**
+	/**
 	 * Bind the expressions under this TableOperatorNode.  This means
 	 * binding the sub-expressions, as well as figuring out what the
 	 * return type is for each expression.

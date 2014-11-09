@@ -42,7 +42,6 @@ import org.apache.derby.iapi.types.StringDataValue;
 import org.apache.derby.iapi.util.JBitSet;
 
 import java.util.HashMap;
-import java.util.List;
 
 /**
  * A SetOperatorNode represents a UNION, INTERSECT, or EXCEPT in a DML statement. Binding and optimization
@@ -215,20 +214,23 @@ abstract class SetOperatorNode extends TableOperatorNode
 		 */
 
 		// Find all UnionNodes in the subtree.
-		CollectNodesVisitor<UnionNode> cnv = CollectNodesVisitor.newVisitor(UnionNode.class);
+		CollectNodesVisitor cnv = new CollectNodesVisitor(UnionNode.class);
 		this.accept(cnv);
-		List<UnionNode> unions = cnv.getList();
+		java.util.Vector unions = cnv.getList();
 
 		// Now see if any of them have unpushed predicates.
 		boolean genPRN = false;
-		for (int i = unions.size() - 1; i >= 0; i--) {
-			if (unions.get(i).hasUnPushedPredicates()) {
+		for (int i = unions.size() - 1; i >= 0; i--)
+		{
+			if (((UnionNode)unions.get(i)).hasUnPushedPredicates())
+			{
 				genPRN = true;
 				break;
 			}
 		}
 
-		if (genPRN) {
+		if (genPRN)
+		{
 			// When we generate the project restrict node, we pass in the
 			// "pushedPredicates" list because that has the predicates in
 			// _unscoped_ form, which means they are intended for _this_
@@ -915,8 +917,9 @@ abstract class SetOperatorNode extends TableOperatorNode
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-  @Override
-	public void verifySelectStarSubquery(FromList outerFromList, SubqueryNode.Type subqueryType)  throws StandardException {
+	public void verifySelectStarSubquery(FromList outerFromList, int subqueryType) 
+					throws StandardException
+	{
 		/* Check both sides - SELECT * is not valid on either side */
 		leftResultSet.verifySelectStarSubquery(outerFromList, subqueryType);
 		rightResultSet.verifySelectStarSubquery(outerFromList, subqueryType);
