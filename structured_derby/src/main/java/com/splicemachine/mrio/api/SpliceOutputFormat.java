@@ -313,7 +313,6 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 					if((strSize != null) && (!strSize.equals("")))
 						size = Integer.valueOf(strSize);
 					txn = new ActiveWriteTxn(childTxsID,childTxsID);
-
 					callBuffer = WriteCoordinator.create(conf).writeBuffer(Bytes.toBytes(tableID), 
 									txn, size);
 					
