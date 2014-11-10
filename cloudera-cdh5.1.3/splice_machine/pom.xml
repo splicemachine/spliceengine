@@ -18,18 +18,6 @@
 	</dependencies>
 
 	<build>
-			<sourceDirectory>../../structured_derby/src/main/java</sourceDirectory>
-			<testSourceDirectory>../../structured_derby/src/test/java</testSourceDirectory>
-			<resources>
-				<resource>
-					<directory>../../structured_derby/src/main/resources</directory>
-				</resource>
-			</resources>
-			<testResources>
-				<testResource>
-					<directory>../../structured_derby/src/test/resources</directory>
-				</testResource>
-			</testResources>
 
 		<plugins>
 			<!-- plugin>
