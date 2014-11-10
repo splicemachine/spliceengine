@@ -100,7 +100,6 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
     private byte[] extraUniqueSequenceID;
     private WindowFunctionIterator windowFunctionIterator;
     private SpliceResultScanner step2Scanner;
-    private boolean serializeSource = true;
     private DescriptorSerializer[] serializers;
     private HashPrefix firstStepHashPrefix;
     private HashPrefix secondStepHashPrefix;
@@ -118,7 +117,6 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
         int	aggregateItem,
         Activation activation,
         GeneratedMethod rowAllocator,
-        int maxRowSize,
         int resultSetNumber,
         double optimizerEstimatedRowCount,
         double optimizerEstimatedCost) throws StandardException  {
@@ -144,10 +142,7 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.readExternal(in);
-        serializeSource = in.readBoolean();
-        if (serializeSource) {
-            source = (SpliceOperation) in.readObject();
-        }
+        source = (SpliceOperation) in.readObject();
         isInSortedOrder = in.readBoolean();
         windowContext = (DerbyWindowContext)in.readObject();
         extraUniqueSequenceID = new byte[in.readInt()];
@@ -157,10 +152,7 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
-        out.writeBoolean(serializeSource);
-        if (serializeSource) {
-            out.writeObject(source);
-        }
+        out.writeObject(source);
         out.writeBoolean(isInSortedOrder);
         out.writeObject(windowContext);
         out.writeInt(extraUniqueSequenceID.length);
@@ -189,29 +181,31 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
 
     @Override
     public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder,
-                                            SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue)
-        throws StandardException, IOException {
-        Scan reduceScan = buildReduceScan(uniqueSequenceID, spliceRuntimeContext);
-        serializeSource = false;
-        SpliceUtils.setInstructions(reduceScan, activation, top, spliceRuntimeContext);
-        serializeSource = true;
-        byte[] tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
-        return new DistributedClientScanProvider("windowReduce", tempTableBytes,
-                                                 reduceScan,decoder, spliceRuntimeContext);
+                                            SpliceRuntimeContext spliceRuntimeContext,
+                                            boolean returnDefaultValue) throws StandardException, IOException {
+        return createRowProvider(top, decoder, spliceRuntimeContext, "windowReduceRowProvider");
     }
 
-    private Scan buildReduceScan(byte[] uniqueId, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    private RowProvider createRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext ctx,
+                                          String name) throws StandardException {
+        Scan reduceScan = buildReduceScan((this != top ? uniqueSequenceID : extraUniqueSequenceID));
+        SpliceUtils.setInstructions(reduceScan, activation, top, ctx);
+        return new DistributedClientScanProvider(name, SpliceDriver.driver().getTempTable().getTempTableName(),
+                                                 reduceScan,decoder, ctx);
+    }
+
+    private Scan buildReduceScan(byte[] uniqueId) throws StandardException {
         Scan reduceScan;
 
         try {
             reduceScan = Scans.buildPrefixRangeScan(uniqueId, null);
-            //make sure that we filter out failed tasks
-            if (failedTasks.size() > 0) {
-                SuccessFilter filter = new SuccessFilter(failedTasks);
-                reduceScan.setFilter(filter);
-            }
         } catch (IOException e) {
             throw Exceptions.parseException(e);
+        }
+        //make sure that we filter out failed tasks
+        if (failedTasks.size() > 0) {
+            SuccessFilter filter = new SuccessFilter(failedTasks);
+            reduceScan.setFilter(filter);
         }
         return reduceScan;
     }
@@ -227,20 +221,8 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
 
     @Override
     public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder,
-                                         SpliceRuntimeContext spliceRuntimeContext)
-        throws StandardException, IOException {
-        byte[] prefix = extraUniqueSequenceID;
-        if (this != top) {
-            prefix = uniqueSequenceID;
-        }
-        Scan reduceScan = buildReduceScan(prefix, spliceRuntimeContext);
-        boolean serializeSourceTemp = serializeSource;
-        serializeSource = spliceRuntimeContext.isFirstStepInMultistep();
-        SpliceUtils.setInstructions(reduceScan, activation, top, spliceRuntimeContext);
-        serializeSource = serializeSourceTemp;
-        byte[] tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
-        return new DistributedClientScanProvider("WindowMapRowProvider",tempTableBytes,
-                                                 reduceScan,decoder, spliceRuntimeContext);
+                                         SpliceRuntimeContext spliceRuntimeContext)  throws StandardException, IOException {
+        return createRowProvider(top, decoder, spliceRuntimeContext, "WindowMapRowProvider");
     }
 
     @Override
@@ -254,13 +236,13 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
         SpliceRuntimeContext firstStep = SpliceRuntimeContext.generateSinkRuntimeContext(operationInformation.getTransaction(), true);
         firstStep.setStatementInfo(runtimeContext.getStatementInfo());
         PairDecoder firstStepDecoder = OperationUtils.getPairDecoder(this, firstStep);
+        final RowProvider step1 = source.getMapRowProvider(this, firstStepDecoder, firstStep);
 
         SpliceRuntimeContext secondStep = SpliceRuntimeContext.generateSinkRuntimeContext(operationInformation.getTransaction(),false);
         secondStep.setStatementInfo(runtimeContext.getStatementInfo());
         PairDecoder secondPairDecoder = OperationUtils.getPairDecoder(this, secondStep);
-
-        final RowProvider step1 = source.getMapRowProvider(this, firstStepDecoder, firstStep);
         final RowProvider step2 = getMapRowProvider(this, secondPairDecoder, secondStep);
+
         provider = RowProviders.combineInSeries(step1, step2);
 /*        } else {
             // Only do second step shuffle if the rows has been sorted based on (partition, orderBy) columns
@@ -270,6 +252,7 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
         }*/
         nextTime += System.currentTimeMillis()-start;
         SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(), this, runtimeContext);
+        //noinspection unchecked
         return provider.shuffleRows(soi,OperationUtils.cleanupSubTasks(this));
     }
 

@@ -395,7 +395,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 						int[] groupingKeys = groupedAggregateContext.getGroupingKeys();
 						boolean[] groupingKeyOrder = groupedAggregateContext.getGroupingKeyOrder();
 
-            StandardIterator<ExecRow> sourceIterator = getSourceIterator(spliceRuntimeContext,groupingKeys);
+            StandardIterator<ExecRow> sourceIterator =  getSourceIterator(spliceRuntimeContext,groupingKeys);
 						DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(sourceExecIndexRow);
 						KeyEncoder encoder = new KeyEncoder(NoOpPrefix.INSTANCE,BareKeyHash.encoder(groupingKeys,groupingKeyOrder,serializers),NoOpPostfix.INSTANCE);
 						aggregator = new ScanGroupedAggregateIterator(buffer,sourceIterator,encoder,groupingKeys,false);
