@@ -212,12 +212,12 @@ public class ByteSlice implements Externalizable {
 		public int find(byte toFind, int startOffset){
 				if(startOffset<0 || startOffset>=length) return -1;
 				int finalOffset = offset+length;
-				int size =0;
+				int position = 0;
 				for(int i=offset+startOffset;i<finalOffset;i++){
-						if(buffer[i]==toFind)
-								return size;
-						else
-								size++;
+						if(buffer[i]==toFind) {
+							return position;
+						}
+					position++;
 				}
 				return -1;
 		}
