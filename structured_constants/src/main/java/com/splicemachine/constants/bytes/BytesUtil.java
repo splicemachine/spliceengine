@@ -30,7 +30,6 @@ public class BytesUtil {
      * @param list
      * @return the result byte array
      */
-
     public static byte[] concat(List<byte[]> list) {
         int length = 0;
         for (byte[] bytes : list) {
@@ -320,16 +319,7 @@ public class BytesUtil {
 				return slice;
 		}
 
-		public static void main(String...args) throws Exception{
-				String text = "test";
-				byte[] encoded = Bytes.toBytes(text);
-				String hex = BytesUtil.toHex(encoded);
-				byte[] decoded = BytesUtil.fromHex(hex);
-				String decodedStr = Bytes.toString(decoded);
-				System.out.println(decodedStr);
-		}
-
-		public static byte[] longToBytes(long n) {
+        public static byte[] longToBytes(long n) {
 				byte[] data = new byte[8];
 				longToBytes(n,data,0);
 				return data;
