@@ -9,6 +9,11 @@
 	<name>${project.artifactId}</name>
 	<description>Splice Engine Parent POM for cloudera-cdh4.5.0</description>
 
+	<properties>
+		<envClassifier>cloudera-cdh4.5.0</envClassifier>
+	</properties>
+
+
 	<parent>
 		<artifactId>spliceengine</artifactId>
 		<groupId>com.splicemachine</groupId>
