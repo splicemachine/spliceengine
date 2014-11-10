@@ -288,6 +288,10 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
                         int mappedPosition = mainColToIndexPosMap[newPos];
                         ByteSlice keySlice = newKeyAccumulator.getField(mappedPosition,true);
                         newPutDecoder.nextField(newDecoder,newPos,keySlice);
+                        if(this.descColumns.get(newPos)) {
+                            keySlice.set(keySlice.getByteCopy());
+                            keySlice.reverse();
+                        }
                         occupy(newKeyAccumulator,updateIndex,newPos);
                         remainingIndexColumns.clear(newPos);
                     }
@@ -314,6 +318,10 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
                         int mappedPosition = mainColToIndexPosMap[oldPos];
                         ByteSlice oldKeySlice = oldKeyAccumulator.getField(mappedPosition,true);
                         oldDataDecoder.nextField(oldDecoder,oldPos,oldKeySlice);
+                        if(this.descColumns.get(oldPos)) {
+                            oldKeySlice.set(oldKeySlice.getByteCopy());
+                            oldKeySlice.reverse();
+                        }
                         occupy(oldKeyAccumulator,oldIndex,oldPos);
                         if (remainingIndexColumns.get(oldPos)) {
                             ByteSlice keySlice = newKeyAccumulator.getField(mappedPosition,true);
