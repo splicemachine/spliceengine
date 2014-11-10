@@ -16,20 +16,4 @@
 			<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_si-cloudera-cdh4.5.0</artifactId> <version>1.0.0RC2-SNAPSHOT</version></dependency>
 	</dependencies>
 
-	<build>
-		<sourceDirectory>../../splice_94/src/main/java</sourceDirectory>
-		<testSourceDirectory>../../splice_94/src/test/java</testSourceDirectory>
-		<resources>
-			<resource>
-				<directory>../../splice_94/src/main/resources</directory>
-			</resource>
-		</resources>
-		<testResources>
-			<testResource>
-				<directory>../../splice_94/src/test/resources</directory>
-			</testResource>
-		</testResources>
-
-	</build>
-
 </project>
