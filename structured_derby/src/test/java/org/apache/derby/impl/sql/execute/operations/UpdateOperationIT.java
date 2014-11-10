@@ -11,8 +11,10 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
+import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.List;
 
 public class UpdateOperationIT extends SpliceUnitTest { 
@@ -26,6 +28,7 @@ public class UpdateOperationIT extends SpliceUnitTest {
     protected static SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher("customer",spliceSchemaWatcher.schemaName,"(cust_id int, status boolean)");
     protected static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher("shipment",spliceSchemaWatcher.schemaName,"(cust_id int)");
     protected static SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher("tab2",spliceSchemaWatcher.schemaName,"(c1 int not null primary key, c2 int, c3 int)");
+    protected static SpliceTableWatcher dc = new SpliceTableWatcher("dc",spliceSchemaWatcher.schemaName,"(dc decimal(10,2))");
     private static final SpliceTableWatcher nullIndexedTable = new SpliceTableWatcher("nt",spliceSchemaWatcher.schemaName,"(a int, b int)");
     private static final SpliceIndexWatcher nullIndex = new SpliceIndexWatcher(nullIndexedTable.tableName,spliceSchemaWatcher.schemaName,"nt_idx",spliceSchemaWatcher.schemaName,"(a)",true);
 
@@ -41,6 +44,7 @@ public class UpdateOperationIT extends SpliceUnitTest {
             .around(spliceTableWatcher6)
             .around(nullIndexedTable)
             .around(nullIndex)
+            .around(dc)
             .around(new SpliceDataWatcher() {
         @Override
         protected void starting(Description description) {
@@ -105,6 +109,8 @@ public class UpdateOperationIT extends SpliceUnitTest {
                 createIndex.execute();
 
                 spliceClassWatcher.getStatement().execute(String.format("insert into %s (a,b) values (null,null)",nullIndexedTable));
+
+                spliceClassWatcher.getStatement().execute(String.format("insert into %s (dc) values (10)",dc));
             } catch (Exception e) {
                 throw new RuntimeException(e);
             } finally {
@@ -132,6 +138,30 @@ public class UpdateOperationIT extends SpliceUnitTest {
             });
 	
 	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
+
+    @Test
+    public void testUpdateDoubleIndexFieldWorks() throws Exception {
+        /*regression test for DB-2204*/
+        TestConnection conn = methodWatcher.getOrCreateConnection();
+        conn.setAutoCommit(false);
+        try{
+            Statement s = conn.createStatement();
+            s.execute("create index didx on "+dc+"(dc)");
+            s.execute("create unique index duniq on "+dc+"(dc)");
+
+            int updated = s.executeUpdate("update "+dc+" set dc = dc+1.1");
+            Assert.assertEquals("Incorrect number of reported updates!",1,updated);
+
+            //make sure that the update worked
+            ResultSet rs = s.executeQuery("select * from "+ dc);
+            Assert.assertTrue("Did not return results!",rs.next());
+            Assert.assertEquals("Incorrect value returned!", new BigDecimal("11.10"),rs.getBigDecimal(1));
+        }finally{
+            //rollback to prevent accidental contamination
+            conn.rollback();
+            conn.reset();
+        }
+    }
 
     @Test
     public void testUpdateSetNullLong() throws Exception {

@@ -106,8 +106,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
         	return true; //send upstream without acting on it
         }
 
-        upsert(mutation,ctx);
-        return !failed;
+        return upsert(mutation,ctx);
     }
 
     private void ensureBufferReader(KVPair mutation, WriteContext ctx) {
@@ -121,11 +120,11 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
         }
     }
 
-    private void upsert(KVPair mutation, WriteContext ctx) {
+    private boolean upsert(KVPair mutation, WriteContext ctx) {
     	if (LOG.isTraceEnabled())
     		SpliceLogUtils.trace(LOG, "upsert %s", mutation);
        KVPair put = update(mutation, ctx);
-        if(put==null) return; //we updated the table, and the index during the update process
+        if(put==null) return false; //we updated the table, and the index during the update process
 
         try{
             KVPair indexPair = transformer.translate(mutation);
@@ -142,6 +141,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
             failed=true;
             ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName() + ":" + e.getMessage()));
         }
+        return true;
     }
 
     private MultiFieldDecoder createKeyDecoder() {
