@@ -89,13 +89,18 @@ public class SpliceTransaction extends BaseSpliceTransaction {
         Pair<String,Txn> savePoint;
         do{
             savePoint = txnStack.pop();
+            doCommit(savePoint);
         } while(!savePoint.getFirst().equals(name));
+//        doCommit(savePoint);
+        return txnStack.size();
+    }
+
+    private void doCommit(Pair<String, Txn> savePoint) throws StandardException {
         try {
             savePoint.getSecond().commit();
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
-        return txnStack.size();
     }
 
     @Override

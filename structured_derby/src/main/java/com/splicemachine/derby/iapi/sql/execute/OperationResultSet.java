@@ -601,12 +601,12 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 		}
 
 		private TxnView getTransaction() throws StandardException {
-        if(txn==null){
+//        if(txn==null){
             TransactionController transactionExecute = activation.getLanguageConnectionContext().getTransactionExecute();
             Transaction rawStoreXact = ((TransactionManager) transactionExecute).getRawStoreXact();
-            txn = ((BaseSpliceTransaction) rawStoreXact).getActiveStateTxn();
-        }
-        return txn;
+            return ((BaseSpliceTransaction) rawStoreXact).getActiveStateTxn();
+//        }
+//        return txn;
 		}
 
     public IOStats getStats() {
