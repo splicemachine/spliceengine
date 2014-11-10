@@ -11,9 +11,9 @@ import java.io.IOException;
  */
 public interface WriteContextFactory<T> {
 
-    WriteContext create(SharedCallBuffer indexSharedCallBuffer, TxnView txn, T key, RegionCoprocessorEnvironment env) throws IOException, InterruptedException;
+    WriteContext create(WriteBufferFactory indexSharedCallBuffer, TxnView txn, T key, RegionCoprocessorEnvironment env) throws IOException, InterruptedException;
 
-    WriteContext create(SharedCallBuffer indexSharedCallBuffer, TxnView txn, T key,
+    WriteContext create(WriteBufferFactory indexSharedCallBuffer, TxnView txn, T key,
                         int expectedWrites, RegionCoprocessorEnvironment env) throws IOException, InterruptedException;
 
     /**
@@ -25,7 +25,7 @@ public interface WriteContextFactory<T> {
      * @throws IOException
      * @throws InterruptedException
      */
-    WriteContext createPassThrough(SharedCallBuffer indexSharedCallBuffer, TxnView txn, T key, int expectedWrites, RegionCoprocessorEnvironment env) throws IOException,InterruptedException;
+    WriteContext createPassThrough(WriteBufferFactory indexSharedCallBuffer, TxnView txn, T key, int expectedWrites, RegionCoprocessorEnvironment env) throws IOException,InterruptedException;
 
     void dropIndex(long indexConglomId,TxnView txn);
 

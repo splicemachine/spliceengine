@@ -34,13 +34,13 @@ public class WriteResult implements Externalizable{
         this.code = code;
     }
 
-		public WriteResult(Code code, String errorMessage, ConstraintContext context) {
-				this.code = code;
-				this.constraintContext = context;
-				this.errorMessage = errorMessage;
-		}
+    public WriteResult(Code code, String errorMessage, ConstraintContext context) {
+        this.code = code;
+        this.constraintContext = context;
+        this.errorMessage = errorMessage;
+    }
 
-		@Override
+    @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeUTF(code.name());
         out.writeBoolean(errorMessage!=null);
@@ -89,22 +89,27 @@ public class WriteResult implements Externalizable{
     }
 
 
-		private static final WriteResult NOT_RUN_RESULT = new WriteResult(Code.NOT_RUN);
+    private static final WriteResult NOT_RUN_RESULT = new WriteResult(Code.NOT_RUN);
     public static WriteResult notRun() {
-				return NOT_RUN_RESULT;
+        return NOT_RUN_RESULT;
     }
 
-		private static final WriteResult SUCCESS_RESULT = new WriteResult(Code.SUCCESS);
+    private static final WriteResult SUCCESS_RESULT = new WriteResult(Code.SUCCESS);
     public static WriteResult success() {
-				return SUCCESS_RESULT;
+        return SUCCESS_RESULT;
     }
 
-	private static final WriteResult PARTIAL_RESULT = new WriteResult(Code.PARTIAL);
+    private static final WriteResult PARTIAL_RESULT = new WriteResult(Code.PARTIAL);
     public static WriteResult partial() {
-				return PARTIAL_RESULT;
+        return PARTIAL_RESULT;
     }
 
-    
+    private static final WriteResult INTERRUPED = new WriteResult(Code.INTERRUPTED_EXCEPTON);
+    public static WriteResult interrupted(){ return INTERRUPED;}
+
+    private static final WriteResult INDEX_NOT_SETUP = new WriteResult(Code.INDEX_NOT_SETUP_EXCEPTION);
+    public static WriteResult indexNotSetup(){ return INDEX_NOT_SETUP;}
+
     public static WriteResult failed(String message) {
         return new WriteResult(Code.FAILED,message);
     }
@@ -136,13 +141,17 @@ public class WriteResult implements Externalizable{
         return new WriteResult(Code.REGION_TOO_BUSY);
     }
 
-	@Override
-	public String toString() {
-		return "WriteResult{ "+
-				"code=" + code + 
-				", errorMessage=" + errorMessage + 
-				" }";
-		
-	}
+    public static WriteResult pipelineTooBusy(String regionNameAsString) {
+        return new WriteResult(Code.PIPELINE_TOO_BUSY,"pipeling for regionserver owning region "+ regionNameAsString+" is too busy");
+    }
+
+    @Override
+    public String toString() {
+        return "WriteResult{ "+
+                "code=" + code +
+                ", errorMessage=" + errorMessage +
+                " }";
+
+    }
 
 }

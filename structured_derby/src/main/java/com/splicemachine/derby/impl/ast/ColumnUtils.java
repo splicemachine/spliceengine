@@ -61,7 +61,10 @@ public class ColumnUtils {
                 } else {
                     expression = null;
                 }
-            } else {
+            } else if (expression instanceof CastNode) {
+                expression = ((CastNode) expression).getCastOperand();
+            }
+            else {
                 expression = null;
             }
         }
@@ -70,6 +73,13 @@ public class ColumnUtils {
     }
 
     public static Pair<Integer, Integer> RSCoordinate(ResultColumn rc) {
-        return Pair.newPair(rc.getResultSetNumber(), rc.getVirtualColumnId());
+
+        ResultColumn resultColumn = rc;
+        ValueNode vn = rc.getExpression();
+        if (vn instanceof CastNode) {
+            VirtualColumnNode vcn = (VirtualColumnNode)((CastNode) vn).getCastOperand();
+            resultColumn = vcn.getSourceColumn();
+        }
+        return Pair.newPair(resultColumn.getResultSetNumber(), resultColumn.getVirtualColumnId());
     }
 }

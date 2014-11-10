@@ -91,7 +91,6 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 	private HashMap<List, List> tableStructure;
 	private HashMap<List, List> pks;
 	
-	
 	public Configuration getConf() {
 		return this.conf;
 	}
@@ -140,9 +139,10 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 	    	Map.Entry kv = (Map.Entry)pkiter.next();
 	    	pkColNames = (ArrayList<String>)kv.getKey(); 	
 	    }
-	   
+	    
+	    String taskID = arg0.getTaskAttemptID().getTaskID().toString();
 	    if(pkColNames == null || pkColNames.size() == 0){
-	    	SpliceRecordWriter spw = new SpliceRecordWriter(null, allColTypes);
+	    	SpliceRecordWriter spw = new SpliceRecordWriter(null, allColTypes, taskID);
 			return spw;
 	    }
 	   
@@ -151,14 +151,14 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 	    	for (int i = 0; i < pkColNames.size(); i++){
 	    		pkCols[i] = allColNames.indexOf(pkColNames.get(i))+1;
 	    	}
-	    	SpliceRecordWriter spw = new SpliceRecordWriter(pkCols, allColTypes);
+	    	SpliceRecordWriter spw = new SpliceRecordWriter(pkCols, allColTypes, taskID);
 			return spw;	
 	    }    
 	}
 	
-	public static class SpliceRecordWriter extends RecordWriter<ImmutableBytesWritable, ExecRow> {
+	protected static class SpliceRecordWriter extends RecordWriter<ImmutableBytesWritable, ExecRow> {
 	     
-		private RecordingCallBuffer<KVPair> callBuffer = null;
+		private RecordingCallBuffer callBuffer = null;
 		private static final Snowflake snowflake = new Snowflake((short)1);
 		private int[] pkCols = null;
 		private DescriptorSerializer[] serializers = null;
@@ -168,10 +168,10 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 		private DataValueDescriptor[] rowDesc = null;
 		private String taskID = "";
 		private Connection conn = null;
-		private long childTxsID = -1;
+		private long childTxsID;
 		TxnView txn = null;
 	
-		public SpliceRecordWriter(int[]pkCols, ArrayList colTypes) throws IOException{
+		public SpliceRecordWriter(int[]pkCols, ArrayList colTypes, String taskID) throws IOException{
 			if(conf == null)
 				throw new IOException("Error: Please set Configuration for SpliceRecordWriter");
 			try {
@@ -206,30 +206,30 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 				return;
 			}
 			try {
+				this.callBuffer.flushBuffer();
 				this.callBuffer.close();
-				sqlUtil.commitChildTransaction(conn, childTxsID);
 				sqlUtil.commit(conn);
+				System.out.println("child conn committed");
 				sqlUtil.closeConn(conn);
-				if(arg0 != null)
-					System.out.println("Task "+arg0.getTaskAttemptID()+" succeed");
+				System.out.println("Task "+arg0.getTaskAttemptID()+" succeed");
 				
 			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 				try {
-					e.printStackTrace();
 					sqlUtil.rollback(conn);
 					sqlUtil.closeConn(conn);
-					if(arg0 != null)
-						System.out.println("Task "+arg0.getTaskAttemptID()+" failed");
-					throw new IOException(e);
+					System.out.println("Task "+arg0.getTaskAttemptID()+" failed");
+					throw new IOException("Exception in RecordWriter.close, "+e.getMessage());
 				} catch (SQLException e1) {
 					// TODO Auto-generated catch block
-					throw new IOException(e);
+					throw new IOException("Exception in RecordWriter.close, "+e1.getMessage());
 				}
 			}
 		}
 		
 		
-		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+		private KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 			HashPrefix prefix;
 			DataHash dataHash;
 			KeyPostfix postfix = NoOpPostfix.INSTANCE;
@@ -252,7 +252,7 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 			return new KeyEncoder(prefix,dataHash,postfix);
 	}
 		
-		public int[] getEncodingColumns(int n) {
+		private int[] getEncodingColumns(int n) {
 	        int[] columns = IntArrays.count(n);
 
 	        // Skip primary key columns to save space
@@ -268,7 +268,7 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 	        
 	    }
 		
-		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+		private DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 			//get all columns that are being set
 			int[] columns = getEncodingColumns(colTypes.size());
 			
@@ -276,7 +276,7 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 			return new EntryDataHash(columns,null,serializers);
 	}
 		
-		public DataValueDescriptor[] createDVD() throws StandardException
+		private DataValueDescriptor[] createDVD() throws StandardException
 		{
 			DataValueDescriptor dvds[] = new DataValueDescriptor[colTypes.size()];
 			for(int pos = 0; pos < colTypes.size(); pos++){
@@ -299,30 +299,35 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 					conn = sqlUtil.createConn();
 					sqlUtil.disableAutoCommit(conn);
 					long parentTxnID = Long.parseLong(conf.get(SpliceMRConstants.SPLICE_TRANSACTION_ID));
-					System.out.println("parent TXNid in OutputFormat:"+parentTxnID);
 					childTxsID = sqlUtil.getChildTransactionID(conn, 
 									parentTxnID, 
 									conf.get(SpliceMRConstants.SPLICE_OUTPUT_TABLE_NAME));
+					System.out.println("parentTxsID:"+parentTxnID);
+					//childTxsID = Long.parseLong(sqlUtil.getTransactionID(conn));
 					
+					/*PreparedStatement ps = conn.prepareStatement("call SYSCS_UTIL.SYSCS_ELEVATE_TRANSACTION(?)");
+					ps.setString(1, "USERTEST");	
+					ps.executeUpdate();*/
+
 					String strSize = conf.get(SpliceMRConstants.SPLICE_WRITE_BUFFER_SIZE);
-					
 					int size = 1024;
 					if((strSize != null) && (!strSize.equals("")))
 						size = Integer.valueOf(strSize);
-					
 					txn = new ActiveWriteTxn(childTxsID,childTxsID);
-
+					
+					//TxnView txn = new ActiveWriteTxn(parentTxnID,parentTxnID);
 					callBuffer = WriteCoordinator.create(conf).writeBuffer(Bytes.toBytes(tableID), 
 									txn, size);
 					
 				}		
 				byte[] key = this.keyEncoder.getKey(value);
 				rowHash.setRow(value);
+				
 				byte[] bdata = rowHash.encode();
 				KVPair kv = new KVPair();
 				kv.setKey(key);
 				kv.setValue(bdata);	
-				
+				//System.out.println("key:"+new String(key)+" value:"+new String(bdata));
 				callBuffer.add(kv);
 					
 			} catch (StandardException e) {

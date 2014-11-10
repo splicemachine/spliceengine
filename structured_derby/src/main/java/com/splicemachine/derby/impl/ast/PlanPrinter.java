@@ -182,7 +182,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
                     HashMap<String, Object> subInfo = new HashMap<String, Object>();
                     subInfo.put("node", nodeInfo(subq.getResultSet(), 1));
                     subInfo.put("expression?", subq.getSubqueryType() ==
-                            SubqueryNode.Type.EXPRESSION);
+                            SubqueryNode.EXPRESSION_SUBQUERY);
                     subInfo.put("correlated?", subq.hasCorrelatedCRs());
                     subInfo.put("invariant?", subq.isInvariant());
                     return subInfo;

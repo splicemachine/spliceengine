@@ -12,7 +12,7 @@ import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.DDLFilter;
 import com.splicemachine.si.impl.HTransactorFactory;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.pipeline.api.SharedCallBuffer;
+import com.splicemachine.pipeline.api.WriteBufferFactory;
 import com.splicemachine.pipeline.api.WriteContext;
 import com.splicemachine.pipeline.api.WriteContextFactory;
 import com.splicemachine.pipeline.api.WriteHandler;
@@ -95,7 +95,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
     
     
 	@Override
-	public WriteContext create(SharedCallBuffer indexSharedCallBuffer,
+	public WriteContext create(WriteBufferFactory indexSharedCallBuffer,
 			TxnView txn, TransactionalRegion rce,
 			RegionCoprocessorEnvironment env) throws IOException,
 			InterruptedException {
@@ -107,7 +107,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
 	}
 
 	@Override
-	public WriteContext create(SharedCallBuffer indexSharedCallBuffer,
+	public WriteContext create(WriteBufferFactory indexSharedCallBuffer,
 			TxnView txn, TransactionalRegion region, int expectedWrites,
 			RegionCoprocessorEnvironment env) throws IOException,
 			InterruptedException {
@@ -167,7 +167,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
     }
 
     @Override
-    public WriteContext createPassThrough(SharedCallBuffer indexSharedCallBuffer, TxnView txn, TransactionalRegion region, int expectedWrites, RegionCoprocessorEnvironment env) throws IOException, InterruptedException {
+    public WriteContext createPassThrough(WriteBufferFactory indexSharedCallBuffer, TxnView txn, TransactionalRegion region, int expectedWrites, RegionCoprocessorEnvironment env) throws IOException, InterruptedException {
         PipelineWriteContext context = new PipelineWriteContext(indexSharedCallBuffer,txn,region, env);
         addIndexInformation(expectedWrites, context);
         return context;

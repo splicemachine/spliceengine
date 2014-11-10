@@ -3046,7 +3046,7 @@ public class SpliceLevel2OptimizerImpl implements Optimizer {
 		/* Predicates which contain subqueries that are not materializable are
 		 * not currently pushable.
 		 */
-		if (pred.hasSubquery()||!((Predicate)pred).getPushable())
+		if (pred.hasSubquery())
 		{
 			return false;
 		}

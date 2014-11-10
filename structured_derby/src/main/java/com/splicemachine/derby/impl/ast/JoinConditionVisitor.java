@@ -12,9 +12,17 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.compile.AccessPath;
 import org.apache.derby.iapi.sql.compile.Optimizable;
-import org.apache.derby.iapi.sql.dictionary.ColumnDescriptor;
-import org.apache.derby.impl.sql.compile.*;
+import org.apache.derby.impl.sql.compile.ColumnReference;
+import org.apache.derby.impl.sql.compile.FromBaseTable;
+import org.apache.derby.impl.sql.compile.HalfOuterJoinNode;
+import org.apache.derby.impl.sql.compile.IndexToBaseRowNode;
+import org.apache.derby.impl.sql.compile.JoinNode;
 import org.apache.derby.impl.sql.compile.Predicate;
+import org.apache.derby.impl.sql.compile.PredicateList;
+import org.apache.derby.impl.sql.compile.ProjectRestrictNode;
+import org.apache.derby.impl.sql.compile.ResultColumn;
+import org.apache.derby.impl.sql.compile.ResultColumnList;
+import org.apache.derby.impl.sql.compile.ResultSetNode;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
@@ -64,18 +72,41 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
     // Machinery for pulling up predicates (for hash-based joins)
 
     private JoinNode pullUpPreds(JoinNode j, AccessPath ap) throws StandardException {
-        /*
-         * We must allow duplicate entries here, because it's possible to have
-         * multiple join conditions, and the equality check for Predicates
-         * is very loose--it doesn't compare specific columns, only whether or
-         * not they are both the same comparison operator. As a result,
-         * removing duplicates here would remove more join conditions
-         * than we can allow.
-         */
-        Collection<Predicate> toPullUp = new LinkedList<Predicate>();
-        boolean removeFromBaseTable = !(ap.getJoinStrategy() instanceof HashNestedLoopJoinStrategy);
-        ResultSetNode rightResultSet = j.getRightResultSet();
-        pullPredicates(rightResultSet,toPullUp,evalableAtNode(j),removeFromBaseTable,rightResultSet,false);
+        List<Predicate> toPullUp = new LinkedList<Predicate>();
+
+        // Collect PRs, FBTs until a binary node (Union, Join) found, or end
+        Iterable<ResultSetNode> rightsUntilBinary = Iterables.filter(
+                RSUtils.nodesUntilBinaryNode(j.getRightResultSet()),
+                RSUtils.rsnHasPreds);
+
+        com.google.common.base.Predicate<Predicate> joinScoped = evalableAtNode(j);
+
+        for (ResultSetNode rsn: rightsUntilBinary) {
+            // Encode whether to pull up predicate to join:
+            //  when can't evaluate on node but can evaluate at join
+            com.google.common.base.Predicate<Predicate> shouldPull =
+                    Predicates.and(Predicates.not(evalableAtNode(rsn)), joinScoped);
+            if(rsn instanceof ProjectRestrictNode)
+                toPullUp.addAll(pullPredsFromPR((ProjectRestrictNode)rsn,shouldPull));
+            else if(rsn instanceof FromBaseTable){
+                /*
+                 * If we are a HashNestedLoopJoin, then we can keep join predicates on the base node--in
+                 * fact, we need them there for correct performance. However, we ALSO need them
+                 * to be present on the Join node ( to ensure that the hash indices are properly found). This
+                 * is a pretty ugly attempt to ensure that this works correctly.
+                 */
+                boolean removeFromBaseTable = !(ap.getJoinStrategy() instanceof HashNestedLoopJoinStrategy);
+                toPullUp.addAll(pullPredsFromTable((FromBaseTable)rsn,shouldPull,removeFromBaseTable));
+            }else if(rsn instanceof IndexToBaseRowNode){
+                /* Only pull from index if we are a HashNestedLoopJoin */
+                boolean pullFromIndex = (ap.getJoinStrategy() instanceof HashNestedLoopJoinStrategy);
+                if(pullFromIndex){
+                    List<? extends Predicate> c = pullPredsFromIndex((IndexToBaseRowNode) rsn, shouldPull);
+                    toPullUp.addAll(c);
+                }
+            }else
+                throw new IllegalArgumentException("Programmer error: unable to find proper class for pulling predicates: "+ rsn);
+        }
 
         for (Predicate p: toPullUp){
             p = updatePredColRefsToNode(p, j);
@@ -87,115 +118,6 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
         }
 
         return j;
-    }
-
-    private void pullPredicates(ResultSetNode next,Collection<Predicate> toPull,
-                                com.google.common.base.Predicate<Predicate> joinScoped,
-                                boolean removeFromBaseTable,
-                                ResultSetNode top,boolean checkUsability) throws StandardException {
-        /*
-         * This method recursively pulls join predicates from the ResultSetNode specified (next); these
-         * predicates are then pushed on to the JoinNode directly later.
-         *
-         * There are several strange aspects of this method, that are in place to avoid
-         * awkwardness with the Derby query Optimizer.
-         *
-         * 1. When the "checkUsability" flag is set, we will first attempt to verify that
-         *
-         */
-        if(next==null) return; //we are done
-        com.google.common.base.Predicate<Predicate> pullCheck = Predicates.and(Predicates.not(evalableAtNode(next)),joinScoped);
-        List<? extends Predicate> pulledPredicates = null;
-        if(next instanceof ProjectRestrictNode){
-            pulledPredicates = pullPredsFromPR((ProjectRestrictNode) next, pullCheck);
-        }else if(next instanceof FromBaseTable){
-            /*
-             * If we are a HashNestedLoopJoin, then we can keep join predicates on the base node--in
-             * fact, we need them there for correct performance. However, we ALSO need them
-             * to be present on the Join node ( to ensure that the hash indices are properly found). This
-             * is a pretty ugly attempt to ensure that this works correctly.
-             */
-            pulledPredicates= pullPredsFromTable((FromBaseTable) next, pullCheck, removeFromBaseTable);
-        }else if(next instanceof IndexToBaseRowNode &&!removeFromBaseTable){
-            /* Only pull from index if we are a HashNestedLoopJoin */
-            pulledPredicates = pullPredsFromIndex((IndexToBaseRowNode) next, pullCheck);
-        }
-
-        if(pulledPredicates!=null && pulledPredicates.size()>0){
-            if(checkUsability){
-                for(Predicate predicate:pulledPredicates){
-                /*
-                 * Discard any join criteria which reference columns that don't exist in the top
-                 * of the operation.
-                 *
-                 * This is to avoid a situation where you have a Union over two tables on the right,
-                 * and you need to pull up join criteria. Unions only have one column type, but joins will
-                 * have two (table 1 and table 2's join criteria). In this case, we need to discard the join
-                 * predicate that refers to table 2, because it's redundant, and also because it will break
-                 * when later trying to identify the hash join columns.
-                 */
-                    if(canBeUsed(predicate,top)){
-                        toPull.add(predicate);
-                    }
-                }
-            }else{
-                toPull.addAll(pulledPredicates);
-            }
-        }
-
-        if(next instanceof SingleChildResultSetNode){
-            pullPredicates(((SingleChildResultSetNode)next).getChildResult(),toPull,pullCheck,removeFromBaseTable,top,checkUsability);
-        }else if(next instanceof TableOperatorNode){
-            TableOperatorNode ton = (TableOperatorNode)next;
-            pullPredicates(ton.getLeftResultSet(),toPull,pullCheck,removeFromBaseTable,top,true);
-            pullPredicates(ton.getRightResultSet(),toPull,pullCheck,removeFromBaseTable,top,true);
-        }
-    }
-
-    private boolean canBeUsed(Predicate predicate, ResultSetNode target) {
-        assert predicate.isJoinPredicate(): "Attempted to evaluate a non-join predicate";
-        ResultColumnList targetCols = target.getResultColumns();
-        AndNode andNode = predicate.getAndNode();
-        ValueNode vn = andNode.getLeftOperand();
-        if(vn instanceof BinaryRelationalOperatorNode){
-            BinaryRelationalOperatorNode bron = (BinaryRelationalOperatorNode)vn;
-            ColumnReference colRef = (ColumnReference)bron.getLeftOperand();
-            if(!findResultColumn(targetCols,colRef)){
-           /*
-            * We didn't find a result column which matched the left side of the
-            * join predicate, so try again with the right
-            */
-                colRef = (ColumnReference)bron.getRightOperand();
-                return findResultColumn(targetCols,colRef);
-            }
-        }
-        //TODO -sf- deal with InListOperatorNode etc.
-        return true;
-    }
-
-    private boolean findResultColumn(ResultColumnList targetCols, ColumnReference colRef) {
-        for(ResultColumn rc:targetCols){
-            if (matchesColumn(colRef, rc)) return true;
-        }
-        return false;
-    }
-
-    private boolean matchesColumn(ColumnReference colRef, ResultColumn rc) {
-        ValueNode rcExpr = rc.getExpression();
-        if(rcExpr instanceof ColumnReference){
-            ColumnReference cRef = (ColumnReference)rcExpr;
-            //these are *NOT* guaranteed to be non-null in all cases
-            ColumnDescriptor resultDesc = cRef.getSource().getTableColumnDescriptor();
-            ColumnDescriptor ourDesc = colRef.getSource().getTableColumnDescriptor();
-            if(resultDesc!=null)
-                return resultDesc.equals(ourDesc);
-            else
-                return true; //TODO -sf- this is probably incorrect
-        }else if(rcExpr instanceof VirtualColumnNode){
-            VirtualColumnNode vcn = (VirtualColumnNode)rcExpr;
-            return matchesColumn(colRef, vcn.getSourceColumn());
-        }
-        return false;
     }
 
     private List<? extends Predicate> pullPredsFromIndex(IndexToBaseRowNode rsn,
@@ -254,26 +176,11 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
                 p.setPulled(true);
                 if (LOG.isDebugEnabled()) {
                     LOG.debug(String.format("Pulled pred %s from Table=%s",
-                            PredicateUtils.predToString.apply(p), t.getResultSetNumber()));
+                            PredicateUtils.predToString.apply((Predicate) p), t.getResultSetNumber()));
                 }
             }
             if(!pull || !shouldRemove)
                 t.pushOptPredicate(p);
-        }
-        PredicateList storePl = t.storeRestrictionList;
-        for(int i=0,s = storePl.size();i<s;i++){
-            Predicate p = (Predicate)storePl.getOptPredicate(i);
-            boolean pull = shouldPull.apply(p);
-            if(pull && shouldRemove){
-                storePl.removeOptPredicate(i);
-//                pulled.add(p);
-//                p.setPulled(true);
-                if (LOG.isDebugEnabled()) {
-                    LOG.debug(String.format("Removed pred %s from Table=%s",
-                            PredicateUtils.predToString.apply(p), t.getResultSetNumber()));
-                }
-
-            }
         }
         Collections.sort(pulled, new Comparator<Predicate>() { // Sort for Hash Join Key Ordering on Execution Side
 			@Override
