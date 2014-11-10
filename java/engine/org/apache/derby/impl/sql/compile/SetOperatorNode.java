@@ -42,7 +42,6 @@ import org.apache.derby.iapi.types.StringDataValue;
 import org.apache.derby.iapi.util.JBitSet;
 
 import java.util.HashMap;
-import java.util.List;
 
 /**
  * A SetOperatorNode represents a UNION, INTERSECT, or EXCEPT in a DML statement. Binding and optimization
@@ -215,15 +214,15 @@ abstract class SetOperatorNode extends TableOperatorNode
 		 */
 
 		// Find all UnionNodes in the subtree.
-		CollectNodesVisitor<UnionNode> cnv = CollectNodesVisitor.newVisitor(UnionNode.class);
+		CollectNodesVisitor cnv = new CollectNodesVisitor(UnionNode.class);
 		this.accept(cnv);
-		List<UnionNode> unions = cnv.getList();
+		java.util.Vector unions = cnv.getList();
 
 		// Now see if any of them have unpushed predicates.
 		boolean genPRN = false;
 		for (int i = unions.size() - 1; i >= 0; i--)
 		{
-			if (unions.get(i).hasUnPushedPredicates())
+			if (((UnionNode)unions.get(i)).hasUnPushedPredicates())
 			{
 				genPRN = true;
 				break;

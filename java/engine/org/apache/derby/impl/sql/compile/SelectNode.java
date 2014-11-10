@@ -22,6 +22,10 @@
 
 package	org.apache.derby.impl.sql.compile;
 
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.*;
 
 import org.apache.derby.iapi.error.StandardException;
@@ -36,7 +40,6 @@ import org.apache.derby.iapi.sql.compile.Visitor;
 import org.apache.derby.iapi.sql.conn.Authorizer;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
-import org.apache.derby.iapi.sql.execute.WindowFunction;
 import org.apache.derby.iapi.store.access.TransactionController;
 
 import org.apache.derby.iapi.types.DataTypeDescriptor;
@@ -89,7 +92,7 @@ public class SelectNode extends ResultSetNode
 	/**
 	 * List of window function calls (e.g. ROW_NUMBER, AVG(i), DENSE_RANK).
 	 */
-	private List<WindowFunctionNode> windowFuncCalls;
+	private Vector windowFuncCalls;
 
 	/** User specified a group by without aggregates and we turned 
 	 * it into a select distinct 
@@ -190,15 +193,15 @@ public class SelectNode extends ResultSetNode
             // any inside nested SELECTs) used in result columns, and
             // check them for any <in-line window specification>s.
 
-			CollectNodesVisitor<WindowFunctionNode> cnvw =
-                new CollectNodesVisitor<WindowFunctionNode>(WindowFunctionNode.class,
+			CollectNodesVisitor cnvw =
+                new CollectNodesVisitor(WindowFunctionNode.class,
                                         SelectNode.class);
 			resultColumns.accept(cnvw);
 			windowFuncCalls = cnvw.getList();
 
 			for (int i=0; i < windowFuncCalls.size(); i++) {
 				WindowFunctionNode wfn =
-					(WindowFunctionNode)windowFuncCalls.get(i);
+					(WindowFunctionNode)windowFuncCalls.elementAt(i);
 
 				// Some window function, e.g. ROW_NUMBER() contains an inline
 				// window specification, so we add it to our list of window
@@ -1326,13 +1329,14 @@ public class SelectNode extends ResultSetNode
 			// Collect window function calls and in-lined window definitions
 			// contained in them from the orderByList.
 
-			CollectNodesVisitor<WindowFunctionNode> cnvw = CollectNodesVisitor.newVisitor(WindowFunctionNode.class);
+			CollectNodesVisitor cnvw =
+				new CollectNodesVisitor(WindowFunctionNode.class);
 			orderByList.accept(cnvw);
-			List<WindowFunctionNode> wfcInOrderBy = cnvw.getList();
+			Vector wfcInOrderBy = cnvw.getList();
 
 			for (int i=0; i < wfcInOrderBy.size(); i++) {
 				WindowFunctionNode wfn =
-					(WindowFunctionNode)wfcInOrderBy.get(i);
+					(WindowFunctionNode)wfcInOrderBy.elementAt(i);
 				windowFuncCalls.add(wfn);
 
 
@@ -2699,10 +2703,12 @@ public class SelectNode extends ResultSetNode
      * @param functions the given functions to batch.
      * @return the mapping {windowDefinition} -> {funct1,[funct2,...]}
      */
-    private static Map<WindowNode,Collection<WindowFunctionNode>> collectFunctionsForDefinitions(List<WindowFunctionNode> functions) {
+    private static Map<WindowNode,Collection<WindowFunctionNode>> collectFunctionsForDefinitions(Vector functions) {
         // maintaining insertion order of keys (same as vector order)
         Map<WindowNode,Collection<WindowFunctionNode>> map = new LinkedHashMap<WindowNode,Collection<WindowFunctionNode>>();
-        for (WindowFunctionNode functionNode : functions) {
+        for (Object node : functions) {
+            // the function
+            WindowFunctionNode functionNode = (WindowFunctionNode) node;
             // the function's window definition or reference
             WindowNode window = functionNode.getWindow();
 

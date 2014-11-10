@@ -1372,7 +1372,8 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             Predicate	predicate;
             predicate = elementAt(index);
 
-            CollectNodesVisitor<ColumnReference> getCRs =  CollectNodesVisitor.newVisitor(ColumnReference.class);
+            CollectNodesVisitor getCRs =
+                    new CollectNodesVisitor(ColumnReference.class);
 
             predicate.getAndNode().accept(getCRs);
             List<ColumnReference> colRefs = getCRs.getList();
@@ -1515,7 +1516,8 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
      * @exception StandardException		Thrown on error
      */
     void markReferencedColumns() throws StandardException {
-        CollectNodesVisitor<ColumnReference> collectCRs = CollectNodesVisitor.newVisitor(ColumnReference.class);
+        CollectNodesVisitor collectCRs =
+                new CollectNodesVisitor(ColumnReference.class);
 
         int size = size();
         for (int index = 0; index < size; index++) {

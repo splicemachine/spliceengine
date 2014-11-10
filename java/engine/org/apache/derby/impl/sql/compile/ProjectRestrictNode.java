@@ -49,7 +49,11 @@ import org.apache.derby.catalog.types.ReferencedColumnsDescriptorImpl;
 import org.apache.derby.iapi.util.JBitSet;
 import org.apache.derby.iapi.services.classfile.VMOpcode;
 
-import java.util.*;
+import java.util.Iterator;
+import java.util.Properties;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.Vector;
 
 /**
  * A ProjectRestrictNode represents a result set for any of the basic DML
@@ -554,8 +558,8 @@ public class ProjectRestrictNode extends SingleChildResultSetNode
         return allTablesFound;
     }
 
-    private List<ColumnReference> getColumnReferences(Predicate pred) throws StandardException {
-        CollectNodesVisitor<ColumnReference> cnv = CollectNodesVisitor.newVisitor(ColumnReference.class);
+    private Vector getColumnReferences(Predicate pred) throws StandardException {
+        CollectNodesVisitor cnv = new CollectNodesVisitor(ColumnReference.class);
         pred.accept(cnv);
         return cnv.getList();
     }

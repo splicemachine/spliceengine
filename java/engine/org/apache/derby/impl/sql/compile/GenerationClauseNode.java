@@ -39,7 +39,6 @@ import java.lang.reflect.Modifier;
 import org.apache.derby.iapi.error.StandardException;
 
 import java.sql.Types;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Vector;
@@ -144,16 +143,16 @@ public class GenerationClauseNode extends ValueNode
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-    public List<ColumnReference> findReferencedColumns()
+    public Vector findReferencedColumns()
         throws StandardException
     {
-        CollectNodesVisitor<ColumnReference> visitor = CollectNodesVisitor.newVisitor( ColumnReference.class );
+        CollectNodesVisitor visitor = new CollectNodesVisitor( ColumnReference.class );
 
         _generationExpression.accept( visitor );
 
-        List<ColumnReference> result = visitor.getList();
+        Vector result = visitor.getList();
 
-        if ( result == null ) { result = Collections.emptyList(); }
+        if ( result == null ) { result = new Vector(); }
 
         return result;
     }
