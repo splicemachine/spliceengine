@@ -97,12 +97,8 @@ class DDLZookeeperClient {
         }
     }
 
-    static List<String> getOngoingDDLChangeIDs(Watcher watcher) throws StandardException {
-        try {
-            return ZkUtils.getChildren(CHANGES_PATH, watcher);
-        } catch (IOException e) {
-            throw Exceptions.parseException(e);
-        }
+    static List<String> getOngoingDDLChangeIDs(Watcher watcher) throws Exception {
+        return ZkUtils.getChildren(CHANGES_PATH, watcher);
     }
 
     static DDLChange getOngoingDDLChange(String changeId) throws StandardException {
