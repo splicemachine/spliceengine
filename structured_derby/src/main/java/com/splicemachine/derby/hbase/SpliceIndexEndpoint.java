@@ -18,12 +18,11 @@ import com.splicemachine.pipeline.utils.PipelineUtils;
 import com.splicemachine.pipeline.writecontextfactory.LocalWriteContextFactory;
 import com.splicemachine.pipeline.writehandler.IndexSharedCallBuffer;
 import com.splicemachine.pipeline.writehandler.IndexWriteBufferFactory;
-import com.splicemachine.si.api.TransactionStorage;
-import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.TransactionStorage;
 import com.splicemachine.si.impl.TransactionalRegions;
+import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.yammer.metrics.core.Meter;
 import com.yammer.metrics.core.MetricName;
@@ -343,7 +342,7 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
 		}
 
 		private static Pair<LocalWriteContextFactory, AtomicInteger> getContextPair(long conglomId) {
-				Pair<LocalWriteContextFactory,AtomicInteger> ctxFactoryPair = factoryMap.get(conglomId);
+				Pair<LocalWriteContextFactory, AtomicInteger> ctxFactoryPair = factoryMap.get(conglomId);
 				if(ctxFactoryPair==null){
 						ctxFactoryPair = Pair.newPair(new LocalWriteContextFactory(conglomId),new AtomicInteger());
 						Pair<LocalWriteContextFactory, AtomicInteger> existing = factoryMap.putIfAbsent(conglomId, ctxFactoryPair);
