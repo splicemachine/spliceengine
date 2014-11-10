@@ -41,19 +41,5 @@
 		<dependency> <groupId>org.apache.hive</groupId> <artifactId>hive-service</artifactId> <version>${hive.version}</version> </dependency>
 		<dependency> <groupId>org.apache.hive</groupId> <artifactId>hive-shims</artifactId> <version>${hive.version}</version> </dependency>
 	</dependencies>
-	<build>
-		<sourceDirectory>../../structured_constants/src/main/java</sourceDirectory>
-		<testSourceDirectory>../../structured_constants/src/test/java</testSourceDirectory>
-		<resources>
-			<resource>
-				<directory>../../structured_constants/src/main/resources</directory>
-			</resource>
-		</resources>
-		<testResources>
-			<testResource>
-				<directory>../../structured_constants/src/test/resources</directory>
-			</testResource>
-		</testResources>
 
-	</build>
 </project>
