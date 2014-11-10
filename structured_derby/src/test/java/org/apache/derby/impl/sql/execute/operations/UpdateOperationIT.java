@@ -12,9 +12,11 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.Statement;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
@@ -64,6 +66,34 @@ public class UpdateOperationIT {
                 .withInsert("insert into CUSTOMER values(?,?)")
                 .withRows(rows(row(1, true), row(2, true), row(3, true), row(4, true), row(5, true)))
                 .create();
+    }
+
+    /*regression test for DB-2204*/
+    @Test
+    public void testUpdateDoubleIndexFieldWorks() throws Exception {
+        methodWatcher.executeUpdate("create table dc (dc decimal(10,2))");
+        methodWatcher.executeUpdate("insert into dc values (10)");
+
+        TestConnection conn = methodWatcher.getOrCreateConnection();
+        conn.setAutoCommit(false);
+
+        Statement s = conn.createStatement();
+        s.execute("create index didx on dc (dc)");
+        s.execute("create unique index duniq on dc (dc)");
+
+        int updated = s.executeUpdate("update dc set dc = dc+1.1");
+
+        //make base table and index have expected number of rows
+        assertEquals("Incorrect number of reported updates!", 1, updated);
+        assertEquals(1L, methodWatcher.query("select count(*) from dc"));
+        assertEquals(1L, methodWatcher.query("select count(*) from dc --SPLICE-PROPERTIES index=didx"));
+        assertEquals(1L, methodWatcher.query("select count(*) from dc --SPLICE-PROPERTIES index=duniq"));
+
+        //make sure that the update worked
+        BigDecimal expected = new BigDecimal("11.10");
+        assertEquals("Incorrect value returned!", expected, methodWatcher.query("select dc from dc"));
+        assertEquals("Incorrect value returned!", expected, methodWatcher.query("select dc from dc --SPLICE-PROPERTIES index=didx"));
+        assertEquals("Incorrect value returned!", expected, methodWatcher.query("select dc from dc --SPLICE-PROPERTIES index=duniq"));
     }
 
     /*regression test for Bug 889*/
