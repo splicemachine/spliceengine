@@ -5,6 +5,42 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.DriverManager;
 
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.types.DataTypeDescriptor;
+import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.SQLBoolean;
+import org.apache.derby.iapi.types.SQLInteger;
+import org.apache.derby.iapi.types.SQLVarchar;
+import org.apache.derby.impl.sql.execute.ValueRow;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.util.Bytes;
+
+import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.utils.marshall.BareKeyHash;
+import com.splicemachine.derby.utils.marshall.DataHash;
+import com.splicemachine.derby.utils.marshall.EntryDataHash;
+import com.splicemachine.derby.utils.marshall.HashPrefix;
+import com.splicemachine.derby.utils.marshall.KeyEncoder;
+import com.splicemachine.derby.utils.marshall.KeyPostfix;
+import com.splicemachine.derby.utils.marshall.NoOpDataHash;
+import com.splicemachine.derby.utils.marshall.NoOpPostfix;
+import com.splicemachine.derby.utils.marshall.NoOpPrefix;
+import com.splicemachine.derby.utils.marshall.SaltedPrefix;
+import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
+import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
+import com.splicemachine.encoding.Encoding;
+import com.splicemachine.hbase.KVPair;
+import com.splicemachine.hbase.regioninfocache.HBaseRegionCache;
+import com.splicemachine.hbase.regioninfocache.RegionCache;
+import com.splicemachine.pipeline.api.CallBuffer;
+import com.splicemachine.pipeline.callbuffer.PipingCallBuffer;
+import com.splicemachine.pipeline.impl.WriteCoordinator;
+import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.impl.ActiveWriteTxn;
+import com.splicemachine.uuid.Snowflake;
+
 // TODO: Convert this into a proper IT and/or UT to test SYSCS_START_CHILD_TRANSACTION procedure.
 
 public class TransactionAdminTest {
@@ -58,17 +94,43 @@ public class TransactionAdminTest {
 			rs.next();
 			long childTransactionId = rs.getLong(1);
 			System.out.println("Child transaction id: " + childTransactionId);
-
+			TxnView txn = new ActiveWriteTxn(parentTransactionId,parentTransactionId);
 			System.out.println("Preparing query #2...");
 			ps = conn2.prepareStatement(sqlUpdate2);
 			System.out.println("Executing query #2...");
 		    int updated = ps.executeUpdate();
 			System.out.println(updated + " rows updated.");
-
-		    System.out.println("committing 2...");
+			//Configuration conf = new Configuration();
+			RegionCache regionCache = HBaseRegionCache.getInstance();
+			
+			PipingCallBuffer callBuffer = (PipingCallBuffer)WriteCoordinator.create(SpliceUtils.config).writeBuffer(Bytes.toBytes("1232"), 
+					txn, 1);
+			//callBuffer.rebuildBuffer();
+			ExecRow value = new ValueRow(2);
+			DataValueDescriptor[] newData = new DataValueDescriptor[2];
+			newData[0] = new SQLInteger(2);
+			newData[1] = new SQLBoolean(false);
+			
+			value.setRowArray(newData);
+			
+			KeyEncoder keyEncoder = getKeyEncoder(null);
+			byte[] key = keyEncoder.getKey(value);
+			DataHash rowHash = getRowHash(null);
+			
+			rowHash.setRow(value);
+			
+			byte[] bdata = rowHash.encode();
+			KVPair kv = new KVPair();
+			kv.setKey(key);
+			kv.setValue(bdata);	
+			//System.out.println("key:"+new String(key)+" value:"+new String(bdata));
+			callBuffer.add(kv);
+			//callBuffer.flushBuffer();
+		    System.out.println("committing child...");
+		    callBuffer.close();
 		    conn2.commit();
-
-		    System.out.println("Committing 1...");
+		    //callBuffer.close();
+		    System.out.println("Committing parent...");
 		    conn1.commit();
 
 		    System.out.println("Closing 2...");
