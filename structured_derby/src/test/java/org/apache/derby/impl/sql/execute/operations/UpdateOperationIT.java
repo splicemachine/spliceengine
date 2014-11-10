@@ -258,6 +258,37 @@ public class UpdateOperationIT {
         assertEquals("verify using index", expected, TestUtils.FormattedResult.ResultFactory.toString(rs2));
     }
 
+    @Test
+    public void updateColumnWhichIsDescendingInIndexAndIsAlsoPrimaryKey() throws Exception {
+        new TableCreator(methodWatcher.getOrCreateConnection())
+                .withCreate("create table tab3 (a int primary key, b int, c int, d int)")
+                .withIndex("create index index_tab3 on tab3 (a desc, b desc, c)")
+                .withInsert("insert into tab3 values(?,?,?,?)")
+                .withRows(rows(
+                        row(10, 10, 10, 10),
+                        row(20, 20, 10, 20),
+                        row(30, 30, 20, 30)
+                ))
+                .create();
+
+        int rows = methodWatcher.executeUpdate("update tab3 set a=99,b=99,c=99 where d=30");
+
+        assertEquals("incorrect num rows updated!", 1L, rows);
+        assertEquals("incorrect num rows present!", 3L, methodWatcher.query("select count(*) from tab3"));
+        assertEquals("incorrect num rows present!", 3L, methodWatcher.query("select count(*) from tab3 --SPLICE-PROPERTIES index=index_tab3"));
+
+        ResultSet rs1 = methodWatcher.executeQuery("select * from tab3 where d=30");
+        ResultSet rs2 = methodWatcher.executeQuery("select * from tab3 --SPLICE-PROPERTIES index=index_tab3 \n where d=30");
+
+        String expected = "" +
+                "A | B | C | D |\n" +
+                "----------------\n" +
+                "99 |99 |99 |30 |";
+
+        assertEquals("verify without index", expected, TestUtils.FormattedResult.ResultFactory.toString(rs1));
+        assertEquals("verify using index", expected, TestUtils.FormattedResult.ResultFactory.toString(rs2));
+    }
+
     /*
      * Regression test for DB-2007. Assert that this doesn't explode, and that
      * the NULL,NULL row isn't modified, so the number of rows modified = 0
