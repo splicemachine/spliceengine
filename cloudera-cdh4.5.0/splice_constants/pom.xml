@@ -19,6 +19,7 @@
 		<hbase.version>0.94.6-cdh4.5.0-splice1.0.0RC2-SNAPSHOT</hbase.version>
 		<hadoop.version>2.0.0-cdh4.5.0</hadoop.version>
 		<hive.version>0.10.0-cdh4.5.0</hive.version>
+		<foo.version>${project.basedir}</foo.version>
 	</properties>
 
 
@@ -45,18 +46,27 @@
 		<dependency> <groupId>org.apache.hive</groupId> <artifactId>hive-service</artifactId> <version>${hive.version}</version> </dependency>
 	</dependencies>
 	<build>
-		<sourceDirectory>../../structured_constants/src/main/java</sourceDirectory>
-		<testSourceDirectory>../../structured_constants/src/test/java</testSourceDirectory>
-		<resources>
-			<resource>
-				<directory>../../structured_constants/src/main/resources</directory>
-			</resource>
-		</resources>
-		<testResources>
-			<testResource>
-				<directory>../../structured_constants/src/test/resources</directory>
-			</testResource>
-		</testResources>
-
+<plugins>
+		<plugin>
+			<groupId>org.codehaus.mojo</groupId>
+			<artifactId>build-helper-maven-plugin</artifactId>
+			<version>1.9.1</version>
+			<executions>
+				<execution>
+					<id>add-source</id>
+					<phase>generate-sources</phase>
+					<goals>
+						<goal>add-source</goal>
+					</goals>
+					<configuration>
+						<sources>
+							<source>../../structured_constants/src/main/java</source>
+							<source>../../structured_constants/src/test/java</source>
+						</sources>
+					</configuration>
+				</execution>
+			</executions>
+		</plugin>
+</plugins>
 	</build>
 </project>
