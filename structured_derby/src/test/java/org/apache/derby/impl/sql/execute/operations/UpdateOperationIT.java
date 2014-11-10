@@ -77,7 +77,10 @@ public class UpdateOperationIT {
                 .create();
 
         int updated = methodWatcher.executeUpdate("update c set k = NULL where l = 2");
-        assertEquals("incorrect num rows updated!", 1, updated);
+
+        assertEquals("incorrect num rows updated!", 1L, updated);
+        assertEquals("incorrect num rows present!", 2L, methodWatcher.query("select count(*) from c"));
+
         ResultSet rs = methodWatcher.executeQuery("select * from c");
         assertEquals("" +
                         "K  | L |\n" +
@@ -188,36 +191,41 @@ public class UpdateOperationIT {
         assertEquals("Row was not removed from original set", originalCount.longValue() - 1L, finalCount.longValue());
     }
 
-    /*Regression test for DB-1481*/
+    /* Regression test for DB-1481, DB-2189 */
     @Test
     public void testUpdateOnAllColumnIndex() throws Exception {
         new TableCreator(methodWatcher.getOrCreateConnection())
                 .withCreate("create table tab2 (c1 int not null primary key, c2 int, c3 int)")
-                .withInsert("create index ti on tab2 (c1,c2 desc,c3)")
+                .withIndex("create index ti on tab2 (c1,c2 desc,c3)")
                 .withInsert("insert into tab2 values(?,?,?)")
                 .withRows(rows(
-                        row(6, 2, 8),
-                        row(2, 8, 6),
-                        row(28, 5, 9),
-                        row(3, 12, 543),
-                        row(56, 2, 7),
-                        row(31, 5, 7),
-                        row(-12, 5, 2)
+                        row(1, 10, 1),
+                        row(2, 20, 1),
+                        row(3, 30, 2),
+                        row(4, 40, 2),
+                        row(5, 50, 3),
+                        row(6, 60, 3),
+                        row(7, 70, 3)
                 ))
                 .create();
 
-        String query = "update tab2 --DERBY-PROPERTIES index=TI\n set c2=11 where c3=7"; //force the index just to make sure
-        int rows = methodWatcher.executeUpdate(query);
-        assertEquals("incorrect num rows updated!", 2, rows);
+        int rows = methodWatcher.executeUpdate("update tab2 set c2=99 where c3=2");
 
-        //make sure that every row with c3=7 is updated to be 11
-        ResultSet rs = methodWatcher.executeQuery("select * from tab2 where c3=7");
-        assertEquals("" +
-                        "C1 |C2 |C3 |\n" +
-                        "------------\n" +
-                        "31 |11 | 7 |\n" +
-                        "56 |11 | 7 |",
-                TestUtils.FormattedResult.ResultFactory.toString(rs));
+        assertEquals("incorrect num rows updated!", 2L, rows);
+        assertEquals("incorrect num rows present!", 7L, methodWatcher.query("select count(*) from tab2"));
+        assertEquals("incorrect num rows present!", 7L, methodWatcher.query("select count(*) from tab2 --SPLICE-PROPERTIES index=ti"));
+
+        ResultSet rs1 = methodWatcher.executeQuery("select * from tab2 where c3=2");
+        ResultSet rs2 = methodWatcher.executeQuery("select * from tab2 --SPLICE-PROPERTIES index=ti \n where c3=2");
+
+        String expected = "" +
+                "C1 |C2 |C3 |\n" +
+                "------------\n" +
+                " 3 |99 | 2 |\n" +
+                " 4 |99 | 2 |";
+
+        assertEquals("verify without index", expected, TestUtils.FormattedResult.ResultFactory.toString(rs1));
+        assertEquals("verify using index", expected, TestUtils.FormattedResult.ResultFactory.toString(rs2));
     }
 
     /*
@@ -230,9 +238,14 @@ public class UpdateOperationIT {
                 .withCreate("create table nt (a int, b int)")
                 .withIndex("create unique index nt_idx on nt (a)")
                 .create();
+
         methodWatcher.executeUpdate("insert into NT (a,b) values (null,null)");
+
         int modified = methodWatcher.executeUpdate("update NT set a = a+ 1.1");
+
         assertEquals("Claimed to have modified a row!", 0, modified);
+        assertEquals(1L, methodWatcher.query("select count(*) from nt"));
+        assertEquals(1L, methodWatcher.query("select count(*) from nt --SPLICE-PROPERTIES index=nt_idx"));
     }
 
     // If you change one of the following 'update over join' tests,
@@ -266,13 +279,13 @@ public class UpdateOperationIT {
 
     private void doTestUpdateOverJoin(String hint, TestConnection connection) throws Exception {
         StringBuilder sb = new StringBuilder(200);
-        sb.append("update %s %s set %s.status = 'false' \n");
+        sb.append("update CUSTOMER customer set CUSTOMER.status = 'false' \n");
         sb.append("where not exists ( \n");
         sb.append("  select 1 \n");
-        sb.append("  from %s %s --SPLICE-PROPERTIES joinStrategy=%s \n");
-        sb.append("  where %s.cust_id = %s.cust_id \n");
+        sb.append("  from SHIPMENT shipment --SPLICE-PROPERTIES joinStrategy=%s \n");
+        sb.append("  where CUSTOMER.cust_id = SHIPMENT.cust_id \n");
         sb.append(") \n");
-        String query = String.format(sb.toString(), "customer", "customer", "customer", "SHIPMENT", "shipment", hint, "customer", "shipment");
+        String query = String.format(sb.toString(), hint);
         int rows = connection.createStatement().executeUpdate(query);
         assertEquals("incorrect num rows updated!", 3, rows);
     }
