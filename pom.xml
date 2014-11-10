@@ -55,6 +55,8 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<skip.integration.tests>true</skip.integration.tests>
+		<envClassifier>cloudera-cdh4.5.0</envClassifier>
+		<hbase.profile>cloudera-cdh4.5.0</hbase.profile>
 	</properties>
 
 	<dependencyManagement>
@@ -318,19 +320,6 @@
 			<properties>
 				<obfuscate.si>-obfuscated</obfuscate.si>
 			</properties>
-		</profile>
-		<profile>
-			<id>all_distros</id>
-			<modules>
-				<module>cloudera-cdh4.3.0</module>
-				<module>cloudera-cdh4.5.0</module>
-				<module>cloudera-cdh5.1.3</module>
-				<module>cloudera-cdh5.2.0</module>
-				<module>hdp1.3</module>
-				<module>hdp2.1</module>
-				<module>mapr3.1</module>
-				<module>mapr4.0</module>
-			</modules>
 		</profile>
 		<profile>
 			<id>cloudera-cdh4.5.0</id>
