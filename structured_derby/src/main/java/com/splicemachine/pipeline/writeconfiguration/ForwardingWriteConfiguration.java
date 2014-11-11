@@ -1,6 +1,8 @@
 package com.splicemachine.pipeline.writeconfiguration;
 
 import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
+import com.splicemachine.derby.hbase.DerbyFactory;
+import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.pipeline.api.WriteConfiguration;
@@ -17,6 +19,7 @@ import java.util.concurrent.ExecutionException;
  */
 public  class ForwardingWriteConfiguration implements WriteConfiguration{
 		protected final WriteConfiguration delegate;
+		protected static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
 
 		protected ForwardingWriteConfiguration(WriteConfiguration delegate) {
 				this.delegate = delegate;

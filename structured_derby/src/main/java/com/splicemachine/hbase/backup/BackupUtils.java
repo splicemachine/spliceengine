@@ -13,8 +13,11 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 
 import com.google.common.base.Throwables;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.hbase.DerbyFactory;
+import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 
 public class BackupUtils {
+	public static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
 	public static final String REGION_INFO = "region.info";
 	public static boolean createBackupTable() {
 		return true;
@@ -38,13 +41,17 @@ public class BackupUtils {
             region.flushcache();
             region.startRegionOperation();
             FileSystem fs = region.getFilesystem();
-	    	FileUtil.copy(fs, region.getRegionDir(), fs, new Path(backupDirectory+"/"+region.getRegionDir().getName()), false, SpliceConstants.config);
-	    	HRegion.writeRegioninfoOnFilesystem(region.getRegionInfo(), new Path(backupDirectory+"/"+region.getRegionDir().getName()+"/"+REGION_INFO), backupFileSystem, SpliceConstants.config);
+            
+	    	FileUtil.copy(fs, derbyFactory.getRegionDir(region), fs, new Path(backupDirectory+"/"+derbyFactory.getRegionDir(region).getName()), false, SpliceConstants.config);
+	    	derbyFactory.writeRegioninfoOnFilesystem(region.getRegionInfo(), new Path(backupDirectory+"/"+derbyFactory.getRegionDir(region).getName()+"/"+REGION_INFO), backupFileSystem, SpliceConstants.config);
         } catch (Exception e) {
-        	region.closeRegionOperation();
             throw new ExecutionException(Throwables.getRootCause(e));
         } finally {
-        	region.closeRegionOperation();
+        	try {
+        		region.closeRegionOperation();
+        	} catch (Exception e) {
+                throw new ExecutionException(Throwables.getRootCause(e));
+        	}
         }
 
 	}

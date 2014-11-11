@@ -48,11 +48,11 @@ public class TransactionCountTask extends DebugTask{
             region.startRegionOperation();
             try{
                 writer.write(String.format("%d%n",System.currentTimeMillis()));
-                List<KeyValue> keyValues = Lists.newArrayList();
+                List keyValues = Lists.newArrayList();
                 boolean shouldContinue;
                 do{
                     keyValues.clear();
-                    shouldContinue = scanner.nextRaw(keyValues,null);
+                    shouldContinue = scanner.nextRaw(keyValues);
                     if(keyValues.size()>0){
                         putRow(keyValues, txnHashMap, writer);
                     }

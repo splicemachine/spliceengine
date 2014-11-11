@@ -1,11 +1,14 @@
 package com.splicemachine.hbase.backup;
 
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.hbase.DerbyFactory;
+import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
@@ -25,6 +28,7 @@ import java.util.concurrent.ExecutionException;
  *
  */
 public class RestoreBackupTask extends ZkTask {
+	public static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
     private static final long serialVersionUID = 5l;
     private BackupItem backupItem;
 
@@ -74,7 +78,7 @@ public class RestoreBackupTask extends ZkTask {
             }
             List<Pair<byte[], String>> famPaths = regionInfo.getFamPaths();
             List<Pair<byte[], String>> copyPaths = copyStoreFiles(famPaths);
-            region.bulkLoadHFiles(copyPaths);
+            derbyFactory.bulkLoadHFiles(region, copyPaths);
         } catch (IOException e) {
             SpliceLogUtils.error(LOG, "Couldn't recover region " + region, e);
             throw new ExecutionException("Failed recovery of region " + region, e);
@@ -88,7 +92,7 @@ public class RestoreBackupTask extends ZkTask {
         for (Pair<byte[], String> pair : famPaths) {
             Path srcPath = new Path(pair.getSecond());
             FileSystem srcFs = srcPath.getFileSystem(SpliceConstants.config);
-            Path localDir = region.getRegionDir();
+            Path localDir = derbyFactory.getRegionDir(region);
             Path tmpPath = getRandomFilename(fs, localDir);
             FileUtil.copy(srcFs, srcPath, fs, tmpPath, false, SpliceConstants.config);
             copy.add(new Pair<byte[], String>(pair.getFirst(), tmpPath.toString()));

@@ -3,17 +3,16 @@ package com.splicemachine.hbase.debug;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.si.data.api.SDataLib;
+import com.splicemachine.si.impl.SIFactoryDriver;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.index.BitIndex;
-import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -28,7 +27,7 @@ import java.util.concurrent.ExecutionException;
  */
 public class ColumnDumpTask extends DebugTask{
     private EntryDecoder decoder = new EntryDecoder();
-
+    private static final SDataLib dataLib = SIFactoryDriver.siFactory.getDataLib();
     private int columnNumber;
 
     public ColumnDumpTask() { }
@@ -73,7 +72,7 @@ public class ColumnDumpTask extends DebugTask{
 
             writer = getWriter();
             scanner = region.getScanner(scan);
-            List<KeyValue> keyValues = Lists.newArrayList();
+            List keyValues = Lists.newArrayList();
             region.startRegionOperation();
             System.out.println("Starting scan task");
             try{
@@ -81,7 +80,7 @@ public class ColumnDumpTask extends DebugTask{
                 boolean shouldContinue;
                 do{
                     keyValues.clear();
-                    shouldContinue = scanner.nextRaw(keyValues,null);
+                    shouldContinue = scanner.nextRaw(keyValues);
                     if(keyValues.size()>0){
                         writeRow(writer,keyValues);
                     }
@@ -106,13 +105,13 @@ public class ColumnDumpTask extends DebugTask{
     }
 
     private static final String outputPattern = "%-20s\t%8d\t%s%n";
-    private void writeRow(Writer writer,List<KeyValue> keyValues) throws IOException {
-        for(KeyValue kv:keyValues){
-            if(!kv.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES))
+    private void writeRow(Writer writer,List keyValues) throws IOException {
+        for(Object kv:keyValues){
+            if(!dataLib.singleMatchingColumn(kv,SpliceConstants.DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES))
                 continue;
-            long txnId = kv.getTimestamp();
+            long txnId = dataLib.getTimestamp(kv);
 
-            byte[] value = kv.getValue();
+            byte[] value = dataLib.getDataValue(kv);
             //split by separator
             decoder.set(value);
             BitIndex encodedIndex = decoder.getCurrentIndex();
@@ -128,7 +127,7 @@ public class ColumnDumpTask extends DebugTask{
             ByteBuffer buffer = decoder.nextAsBuffer(fieldDecoder, pos);
             byte[] bufferBytes = new byte[buffer.remaining()];
             buffer.get(bufferBytes);
-            String data = String.format(outputPattern, BytesUtil.toHex(kv.getRow()),txnId,BytesUtil.toHex(bufferBytes));
+            String data = String.format(outputPattern, BytesUtil.toHex(dataLib.getDataRow(kv)),txnId,BytesUtil.toHex(bufferBytes));
 
             writer.write(data);
         }

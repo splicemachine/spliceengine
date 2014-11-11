@@ -9,10 +9,8 @@ import org.apache.hadoop.hbase.catalog.CatalogTracker;
 import org.apache.hadoop.hbase.catalog.MetaEditor;
 import org.apache.hadoop.hbase.master.MasterFileSystem;
 import org.apache.hadoop.hbase.master.MasterServices;
-import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.net.URI;
 import java.util.*;
@@ -21,7 +19,7 @@ import java.util.*;
  * Restore tables.
  */
 public class SpliceMasterObserverRestoreAction {
-
+	public static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
     public  static final String BACKUP_PATH = "BACKUP_PATH";
     private static Logger LOG = Logger.getLogger(SpliceMasterObserver.class);
     private MasterServices masterServices;
@@ -40,7 +38,7 @@ public class SpliceMasterObserverRestoreAction {
         for (String tableName : descriptors.keySet()) {
             if (LOG.isInfoEnabled())
                 SpliceLogUtils.info(LOG, "Deleting table descriptor " + tableName);
-            masterServices.getTableDescriptors().remove(tableName);
+            derbyFactory.removeTableFromDescriptors(masterServices, tableName);
         }
 
 
@@ -65,7 +63,7 @@ public class SpliceMasterObserverRestoreAction {
             for (FileStatus regionDir : regionDirectories) {
                 if (LOG.isInfoEnabled())
                     SpliceLogUtils.info(LOG, "Restoring region" + regionDir.getPath().toString());
-                HRegionInfo hri = HRegion.loadDotRegionInfoFileContent(fs, regionDir.getPath());
+                HRegionInfo hri = derbyFactory.loadRegionInfoFileContent(fs, regionDir.getPath());
                 if (LOG.isInfoEnabled())
                     SpliceLogUtils.info(LOG, "Restoring region with hri " + hri);
                 regions.add(hri);

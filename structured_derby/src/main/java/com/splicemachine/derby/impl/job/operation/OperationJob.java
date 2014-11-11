@@ -1,6 +1,8 @@
 package com.splicemachine.derby.impl.job.operation;
 
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.hbase.DerbyFactory;
+import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -9,6 +11,7 @@ import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.job.Task;
 import com.splicemachine.si.api.TxnView;
+
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Pair;
@@ -25,6 +28,7 @@ import java.util.Map;
  * Created on: 4/3/13
  */
 public class OperationJob extends SpliceConstants implements CoprocessorJob,Externalizable {
+	private static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
     private Scan scan;
     private SpliceObserverInstructions instructions;
     private HTableInterface table;
@@ -99,15 +103,14 @@ public class OperationJob extends SpliceConstants implements CoprocessorJob,Exte
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeObject(jobId);
-        scan.write(out);
+        derbyFactory.writeScanExternal(out, scan);
         out.writeObject(instructions);
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         jobId = (String)in.readObject();
-        scan = new Scan();
-        scan.readFields(in);
+        scan = derbyFactory.readScanExternal(in);
         instructions = (SpliceObserverInstructions)in.readObject();
     }
 

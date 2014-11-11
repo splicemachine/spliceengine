@@ -4,9 +4,9 @@ import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.derby.hbase.SpliceBaseOperationRegionScanner;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
-import com.splicemachine.derby.hbase.SpliceOperationRegionScanner;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -81,7 +81,7 @@ public class RowCountOperation extends SpliceBaseOperation{
 
 		private long rowsFetched;
 		private Scan regionScan;
-		private SpliceOperationRegionScanner spliceScanner;
+		private SpliceBaseOperationRegionScanner spliceScanner;
 
 		private long rowsSkipped;
 		private NoPutResultSet[] subqueryTrackingArray;

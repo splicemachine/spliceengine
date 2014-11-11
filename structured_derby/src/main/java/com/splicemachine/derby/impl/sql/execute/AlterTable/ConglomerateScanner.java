@@ -29,7 +29,6 @@ import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
@@ -50,7 +49,7 @@ public class ConglomerateScanner {
     private MeasuredRegionScanner brs;
     private EntryDecoder entryDecoder;
     private final long demarcationTimestamp;
-    private List<KeyValue> values;
+    private List values;
 
     public ConglomerateScanner(HRegion region,
                                Txn txn,
@@ -100,7 +99,7 @@ public class ConglomerateScanner {
                 : new BufferedRegionScanner(region,sourceScanner,regionScan,SpliceConstants.DEFAULT_CACHE_SIZE,SpliceConstants.DEFAULT_CACHE_SIZE,metricFactory,HTransactorFactory.getTransactor().getDataLib());
     }
 
-    public List<KeyValue> next() throws ExecutionException, IOException{
+    public List next() throws ExecutionException, IOException{
         if (brs == null) {
             initScanner();
         }
@@ -115,7 +114,7 @@ public class ConglomerateScanner {
         boolean more;
 
         values.clear();
-        more = brs.nextRaw(values, null);
+        more = brs.nextRaw(values);
         if (!more) return null;
 
         return values;

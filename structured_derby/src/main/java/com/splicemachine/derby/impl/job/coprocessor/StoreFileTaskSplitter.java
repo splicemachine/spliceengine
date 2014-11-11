@@ -11,10 +11,9 @@ import org.apache.hadoop.hbase.regionserver.Store;
 import org.apache.hadoop.hbase.regionserver.StoreFile;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Iterator;
-import java.util.List;
 import java.util.NavigableSet;
 import java.util.SortedSet;
 
@@ -45,7 +44,7 @@ public class StoreFileTaskSplitter implements TaskSplitter{
 				Store store = region.getStore(SpliceConstants.DEFAULT_FAMILY_BYTES);
 				HRegionUtil.lockStore(store);
 				try{
-						List<StoreFile> storeFiles = store.getStorefiles();
+						Collection<StoreFile> storeFiles = store.getStorefiles();
 						if(LOG.isTraceEnabled())
 								SpliceLogUtils.trace(LOG,"Region %s has %d store files",region,storeFiles.size());
 						NavigableSet<SizedInterval> possibleScanIntervals = Sets.newTreeSet();

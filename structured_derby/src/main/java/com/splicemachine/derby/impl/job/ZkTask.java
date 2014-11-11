@@ -1,22 +1,18 @@
 package com.splicemachine.derby.impl.job;
 
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.utils.ErrorReporter;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.Status;
 import com.splicemachine.job.TaskStatus;
 import com.splicemachine.si.api.*;
-import com.splicemachine.si.impl.ActiveWriteTxn;
 import com.splicemachine.si.impl.InheritingTxnView;
 import com.splicemachine.si.impl.LazyTxnView;
-import com.splicemachine.si.impl.ReadOnlyTxn;
 import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.si.impl.TransactionStorage;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
-
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -24,7 +20,6 @@ import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.*;
 import org.apache.zookeeper.data.Stat;
-
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -222,7 +217,7 @@ public abstract class ZkTask implements RegionTask,Externalizable {
             stat = zkManager.execute(new SpliceZooKeeperManager.Command<Stat>() {
                 @Override
                 public Stat execute(RecoverableZooKeeper zooKeeper) throws InterruptedException, KeeperException {
-                    return zooKeeper.exists(CoprocessorTaskScheduler.getJobPath()+"/"+jobId,taskWatcher);
+                    return zooKeeper.exists(SpliceUtils.zkSpliceJobPath+"/"+jobId,taskWatcher);
                 }
             });
             if(stat==null)

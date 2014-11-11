@@ -47,11 +47,11 @@ public class TransactionDump extends DebugTask {
                 scanner = region.getScanner(scan);
                 writer = getWriter();
 
-                List<KeyValue> keyValues = Lists.newArrayListWithExpectedSize(12);
+                List keyValues = Lists.newArrayListWithExpectedSize(12);
                 boolean shouldContinue;
                 do{
                     keyValues.clear();
-                    shouldContinue = scanner.nextRaw(keyValues,null);
+                    shouldContinue = scanner.nextRaw(keyValues);
                     writeRow(writer,keyValues);
                 }while(shouldContinue);
 

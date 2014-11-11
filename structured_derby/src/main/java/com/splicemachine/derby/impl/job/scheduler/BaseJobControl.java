@@ -4,10 +4,7 @@ import com.google.common.collect.Lists;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
-import com.splicemachine.derby.impl.job.coprocessor.SpliceSchedulerProtocol;
-import com.splicemachine.derby.impl.job.coprocessor.TaskFutureContext;
 import com.splicemachine.derby.stats.TaskStats;
-import com.splicemachine.hbase.table.BoundCall;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.job.Status;
@@ -19,7 +16,6 @@ import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
@@ -33,26 +29,26 @@ import java.util.concurrent.*;
  * @author Scott Fines
  * Created on: 9/17/13
  */
-class JobControl implements JobFuture {
-    private static final Logger LOG = Logger.getLogger(JobControl.class);
-    private final CoprocessorJob job;
-    private final NavigableSet<RegionTaskControl> tasksToWatch;
-    private final BlockingQueue<RegionTaskControl> changedTasks;
-    private final Set<RegionTaskControl> failedTasks;
-    private final Set<RegionTaskControl> completedTasks;
-    private final Set<RegionTaskControl> cancelledTasks;
-    private final JobStatsAccumulator stats;
-    private final SpliceZooKeeperManager zkManager;
-    private final int maxResubmissionAttempts;
-    private final JobMetrics jobMetrics;
-    private final String jobPath;
-    private final List<Callable<Void>> finalCleanupTasks;
-		private final List<Callable<Void>> intermediateCleanupTasks;
-    private volatile boolean cancelled = false;
-		private volatile boolean cleanedUp = false;
-		private volatile boolean intermediateCleanedUp = false;
+public abstract class BaseJobControl implements JobFuture {
+    private static final Logger LOG = Logger.getLogger(BaseJobControl.class);
+    protected final CoprocessorJob job;
+    protected final NavigableSet<RegionTaskControl> tasksToWatch;
+    protected final BlockingQueue<RegionTaskControl> changedTasks;
+    protected final Set<RegionTaskControl> failedTasks;
+    protected final Set<RegionTaskControl> completedTasks;
+    protected final Set<RegionTaskControl> cancelledTasks;
+    protected final JobStatsAccumulator stats;
+    protected final SpliceZooKeeperManager zkManager;
+    protected final int maxResubmissionAttempts;
+    protected final JobMetrics jobMetrics;
+    protected final String jobPath;
+    protected final List<Callable<Void>> finalCleanupTasks;
+    protected final List<Callable<Void>> intermediateCleanupTasks;
+    protected volatile boolean cancelled = false;
+    protected volatile boolean cleanedUp = false;
+    protected volatile boolean intermediateCleanedUp = false;
 
-    JobControl(CoprocessorJob job, String jobPath,SpliceZooKeeperManager zkManager, int maxResubmissionAttempts, JobMetrics jobMetrics){
+    BaseJobControl(CoprocessorJob job, String jobPath,SpliceZooKeeperManager zkManager, int maxResubmissionAttempts, JobMetrics jobMetrics){
         this.job = job;
         this.jobPath = jobPath;
         this.zkManager = zkManager;
@@ -377,39 +373,8 @@ class JobControl implements JobFuture {
     /*
      * Physically submits a Task.
      */
-    void submit(final RegionTask task,
+    public abstract void submit(final RegionTask task,
                         Pair<byte[], byte[]> range,
                         HTableInterface table,
-                        final int tryCount) throws ExecutionException {
-        final byte[] start = range.getFirst();
-        final byte[] stop = range.getSecond();
-
-        try{
-            table.coprocessorExec(SpliceSchedulerProtocol.class, start, stop,
-                    new BoundCall<SpliceSchedulerProtocol, TaskFutureContext[]>() {
-                        @Override
-                        public TaskFutureContext[] call(SpliceSchedulerProtocol instance) throws IOException {
-                            throw new UnsupportedOperationException();
-                        }
-
-                        @Override
-                        public TaskFutureContext[] call(byte[] startKey, byte[] stopKey, SpliceSchedulerProtocol instance) throws IOException {
-                            return instance.submit(startKey, stopKey, task, tryCount == 0); //only allow splitting the first time
-                        }
-                    }, new Batch.Callback<TaskFutureContext[]>() {
-                        @Override
-                        public void update(byte[] region, byte[] row, TaskFutureContext[] results) {
-                            for (TaskFutureContext result : results) {
-                                RegionTaskControl control = new RegionTaskControl(result.getStartRow(), task, JobControl.this, result, tryCount, zkManager);
-                                tasksToWatch.add(control);
-                                taskChanged(control);
-                            }
-                        }
-                    }
-            );
-            jobMetrics.addJob(job);
-        }catch (Throwable throwable) {
-            throw new ExecutionException(throwable);
-        }
-    }
+                        final int tryCount) throws ExecutionException;
 }

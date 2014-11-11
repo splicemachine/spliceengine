@@ -98,13 +98,13 @@ import com.splicemachine.uuid.Snowflake;
  */
 public class SpliceDriver extends SIConstants {
     private static final Logger LOG = Logger.getLogger(SpliceDriver.class);
-
+    private static DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
     private final List<Service> services = new CopyOnWriteArrayList<Service>();
     protected RegionServerServices regionServerServices;
     private JmxReporter metricsReporter;
 	private Connection connection;
 	private XplainTaskReporter taskReporter;
-	public static String ENDPOINT_CLASS_NAME = SpliceIndexEndpoint.class.getCanonicalName();
+	public static String ENDPOINT_CLASS_NAME = "com.splicemachine.derby.hbase.SpliceIndexEndpoint";
 	public XplainTaskReporter getTaskReporter() {
 		return taskReporter;
 	}
@@ -257,7 +257,7 @@ public class SpliceDriver extends SIConstants {
     }
     
     public List<HRegion> getOnlineRegionsForTable(byte[] tableName) throws IOException {
-    	return regionServerServices.getOnlineRegions(tableName);
+    	return derbyFactory.getOnlineRegions(regionServerServices,tableName);
     }
 
     public HRegion getOnlineRegion(String encodedRegionName)  {
@@ -274,9 +274,9 @@ public class SpliceDriver extends SIConstants {
     	return host==null?null:host.findCoprocessorEnvironment(ENDPOINT_CLASS_NAME);
     }
 
-    public SpliceIndexEndpoint getSpliceIndexEndpoint(String encodedRegionName) {
+    public SpliceBaseIndexEndpoint getSpliceIndexEndpoint(String encodedRegionName) {
     	CoprocessorEnvironment ce = getSpliceIndexEndpointEnvironment(encodedRegionName);
-    	return ce == null?null:(SpliceIndexEndpoint) ce.getInstance();
+    	return ce == null?null:(SpliceBaseIndexEndpoint) ce.getInstance();
     }
     
     public void start(RegionServerServices regionServerServices){

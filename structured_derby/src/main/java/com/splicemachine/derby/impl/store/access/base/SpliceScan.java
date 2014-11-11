@@ -2,7 +2,6 @@ package com.splicemachine.derby.impl.store.access.base;
 
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.impl.sql.execute.LazyScan;
 import com.splicemachine.derby.impl.sql.execute.ParallelScan;
 import com.splicemachine.derby.impl.storage.KeyValueUtils;
@@ -20,7 +19,6 @@ import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -94,7 +92,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
         this.trans = (BaseSpliceTransaction)trans;
 				setupScan();
 				attachFilter();
-				tableName = Bytes.toString(SpliceOperationCoprocessor.TEMP_TABLE);
+				tableName = Bytes.toString(SpliceConstants.TEMP_TABLE_BYTES);
         if(LOG.isTraceEnabled()){
             SpliceLogUtils.trace(LOG,"scanning with start key %s and stop key %s and transaction %s", Arrays.toString(startKeyValue),Arrays.toString(stopKeyValue),trans);
         }

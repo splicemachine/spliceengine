@@ -35,7 +35,7 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
     private static final Logger LOG = Logger.getLogger(RegionTaskControl.class);
     private final byte[] startRow;
     private final RegionTask task;
-    private final JobControl jobControl;
+    private final BaseJobControl jobControl;
     private final TaskFutureContext taskFutureContext;
     private final int tryNum;
     private final SpliceZooKeeperManager zkManager;
@@ -51,7 +51,7 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
 
     RegionTaskControl(byte[] startRow,
                       RegionTask task,
-                      JobControl jobControl,
+                      BaseJobControl jobControl,
                       TaskFutureContext taskFutureContext,
                       int tryNum,
                       SpliceZooKeeperManager zkManager) {

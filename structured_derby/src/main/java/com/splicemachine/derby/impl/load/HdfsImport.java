@@ -465,11 +465,9 @@ public class HdfsImport {
     public ExecRow executeShuffle(SpliceRuntimeContext runtimeContext,Txn txn) throws StandardException {
 				try {
 						admin = new HBaseAdmin(SpliceUtils.config);
-				} catch (MasterNotRunningException e) {
+				} catch (Exception e) {
 						throw StandardException.newException(SQLState.COMMUNICATION_ERROR,e);
-				} catch (ZooKeeperConnectionException e) {
-						throw StandardException.newException(SQLState.COMMUNICATION_ERROR,e);
-				}
+				} 
 				try{
 						ImportFile file = new ImportFile(context.getFilePath().toString());
 						FileSystem fileSystem = file.getFileSystem();

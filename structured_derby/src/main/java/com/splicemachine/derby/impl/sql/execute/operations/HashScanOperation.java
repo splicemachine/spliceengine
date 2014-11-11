@@ -1,7 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
-import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
@@ -13,7 +13,6 @@ import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.io.FormatableIntHolder;
@@ -23,12 +22,10 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.store.access.Qualifier;
 import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
 import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -38,6 +35,7 @@ import java.util.Properties;
 
 public class HashScanOperation extends ScanOperation implements SinkingOperation {
 		private static Logger LOG = Logger.getLogger(HashScanOperation.class);
+		
 		protected Scan mapScan;
 		protected Boolean isKeyed;
 		protected ExecRow currentRow;
@@ -169,7 +167,7 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 		public RowProvider getMapRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 				try{
 						Scan scan = Scans.buildPrefixRangeScan(uniqueSequenceID,null);
-						return new ClientScanProvider("hashScanMap",SpliceOperationCoprocessor.TEMP_TABLE,scan,
+						return new ClientScanProvider("hashScanMap",SpliceConstants.TEMP_TABLE_BYTES,scan,
 										OperationUtils.getPairDecoder(this,spliceRuntimeContext), spliceRuntimeContext);
 				} catch (IOException e) {
 						throw Exceptions.parseException(e);
@@ -222,19 +220,16 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 		@Override
 		public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 				SpliceLogUtils.trace(LOG, "nextRow");
-				List<KeyValue> keyValues = new ArrayList<KeyValue>();
+				List keyValues = new ArrayList(2);
 				try {
 						regionScanner.next(keyValues);
 						if (!keyValues.isEmpty()) {
 								SpliceLogUtils.trace(LOG, "nextRow retrieved hbase values %s", keyValues);
 
 								DataValueDescriptor[] rowArray = currentRow.getRowArray();
-//								for(KeyValue kv:keyValues){
-//										RowMarshaller.sparsePacked().decode(kv, rowArray, baseColumnMap, (MultiFieldDecoder)null);
-//								}
 								SpliceLogUtils.trace(LOG, "nextRow retrieved derby row %s", currentRow);
 								this.setCurrentRow(currentRow);
-								currentRowLocation = new HBaseRowLocation(keyValues.get(0).getRow());
+								currentRowLocation = new HBaseRowLocation(dataLib.getDataRow(keyValues.get(0)));
 								return currentRow;
 						}
 				} catch (Exception e) {

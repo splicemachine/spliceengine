@@ -15,8 +15,11 @@ import com.splicemachine.job.JobStatsUtils;
 import com.splicemachine.metrics.TimeView;
 import com.splicemachine.metrics.Timer;
 import com.splicemachine.pipeline.api.RecordingCallBuffer;
+import com.splicemachine.si.data.api.SDataLib;
+import com.splicemachine.si.impl.SIFactoryDriver;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.i18n.MessageService;
 import org.apache.derby.iapi.sql.Activation;
@@ -45,6 +48,7 @@ import java.util.List;
 public abstract class SpliceBaseOperation implements SpliceOperation, Externalizable {
 		private static final long serialVersionUID = 4l;
 		private static Logger LOG = Logger.getLogger(SpliceBaseOperation.class);
+		protected static final SDataLib dataLib = SIFactoryDriver.siFactory.getDataLib();
         public static ThreadLocal<List<XplainOperationChainInfo>> operationChain =
                 new ThreadLocal<List<XplainOperationChainInfo>>();
         protected XplainOperationChainInfo operationChainInfo;

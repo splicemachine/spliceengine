@@ -9,20 +9,20 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
 import com.splicemachine.si.api.Txn;
 import org.apache.hadoop.fs.*;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
-
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.hbase.DerbyFactory;
+import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.utils.SpliceAdmin;
 import org.apache.hadoop.hbase.util.Pair;
 
 public class BackupItem implements InternalTable {
+	public static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
 	public static final String DEFAULT_SCHEMA = "RECOVERY";
 	public static final String DEFAULT_TABLE = "BACKUP_ITEM";
 	public static final String CREATE_TABLE = "create table %s.%s (backup_transaction_id bigint not null, " + 
@@ -199,7 +199,7 @@ public class BackupItem implements InternalTable {
             if (!stat.isDir()) {
                 continue; // ignore non directories
             }
-            HRegionInfo regionInfo = HRegion.loadDotRegionInfoFileContent(fs, stat.getPath());
+            HRegionInfo regionInfo = derbyFactory.loadRegionInfoFileContent(fs, stat.getPath());
             addRegionInfo(new RegionInfo(regionInfo, getFamilyPaths(fs, stat.getPath())));
         };
         fs.close();

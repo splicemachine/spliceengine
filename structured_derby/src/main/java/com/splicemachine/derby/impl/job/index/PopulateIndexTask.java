@@ -6,13 +6,14 @@ import java.io.ObjectOutput;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+
 import org.apache.derby.iapi.services.io.ArrayUtil;
-import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
+
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.base.Throwables;
@@ -41,8 +42,10 @@ import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnLifecycleManager;
 import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.impl.DDLTxnView;
 import com.splicemachine.si.impl.HTransactorFactory;
+import com.splicemachine.si.impl.SIFactoryDriver;
 import com.splicemachine.si.impl.SIFilterPacked;
 import com.splicemachine.si.impl.TransactionalRegions;
 import com.splicemachine.si.impl.TxnFilter;
@@ -72,7 +75,7 @@ public class PopulateIndexTask extends ZkTask {
     private int[] columnOrdering;
     private int[] format_ids;
     private long demarcationPoint;
-
+    private static SDataLib dataLib = SIFactoryDriver.siFactory.getDataLib();
     private HRegion region;
 
     //performance improvement
@@ -211,7 +214,7 @@ public class PopulateIndexTask extends ZkTask {
 
             RecordingCallBuffer<KVPair> writeBuffer = null;
 						try{
-								List<KeyValue> nextRow = Lists.newArrayListWithExpectedSize(mainColToIndexPosMap.length);
+								List nextRow = Lists.newArrayListWithExpectedSize(mainColToIndexPosMap.length);
 								boolean shouldContinue = true;
 								boolean[] ascDescInfo = new boolean[format_ids.length];
 								Arrays.fill(ascDescInfo,true);
@@ -236,7 +239,7 @@ public class PopulateIndexTask extends ZkTask {
 										while(shouldContinue){
 												SpliceBaseOperation.checkInterrupt(numRecordsRead, SpliceConstants.interruptLoopCheck);
 												nextRow.clear();
-												shouldContinue  = brs.nextRaw(nextRow,null);
+												shouldContinue  = brs.nextRaw(nextRow);
 												numRecordsRead++;
 												translateResult(nextRow, transformer, writeBuffer, transformationTimer);
 										}
@@ -304,18 +307,18 @@ public class PopulateIndexTask extends ZkTask {
 				}
 		}
 
-		private void translateResult(List<KeyValue> result,
+		private void translateResult(List result,
                                  IndexTransformer transformer,
                                  CallBuffer<KVPair> writeBuffer,
 																 Timer manipulationTimer) throws Exception {
         //we know that there is only one KeyValue for each row
 				manipulationTimer.startTiming();
-        for(KeyValue kv:result){
+        for(Object kv:result){
             //ignore SI CF
-        	if (kv.getBuffer()[kv.getQualifierOffset()] != SIConstants.PACKED_COLUMN_BYTES[0])
+        	if (dataLib.getDataQualifierBuffer(kv)[dataLib.getDataQualifierOffset(kv)] != SIConstants.PACKED_COLUMN_BYTES[0])
         		continue;
-            byte[] row = kv.getRow();
-            byte[] data = kv.getValue();
+            byte[] row = dataLib.getDataRow(kv);
+            byte[] data = dataLib.getDataValue(kv);
             if(mainPair==null)
                 mainPair = new KVPair();
             mainPair.setKey(row);

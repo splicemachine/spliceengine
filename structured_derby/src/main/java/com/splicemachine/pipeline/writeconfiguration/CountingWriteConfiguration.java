@@ -8,9 +8,7 @@ import com.splicemachine.pipeline.impl.ActionStatusReporter;
 import com.splicemachine.pipeline.impl.BulkWrite;
 import com.splicemachine.pipeline.impl.BulkWriteResult;
 import com.splicemachine.pipeline.impl.WriteResult;
-
 import org.apache.hadoop.hbase.NotServingRegionException;
-import org.apache.hadoop.hbase.ipc.HBaseClient;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
 
 import java.util.concurrent.ExecutionException;
@@ -30,7 +28,7 @@ public class CountingWriteConfiguration extends ForwardingWriteConfiguration {
     @Override
     public WriteResponse globalError(Throwable t) throws ExecutionException {
         statusReporter.globalFailures.incrementAndGet();
-        if(t instanceof HBaseClient.CallTimeoutException)
+        if(derbyFactory.isCallTimeoutException(t))
             statusReporter.timedOutFlushes.incrementAndGet();
         else if(t instanceof NotServingRegionException)
             statusReporter.notServingRegionFlushes.incrementAndGet();

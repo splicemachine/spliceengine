@@ -14,8 +14,6 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.hadoop.hbase.HTableDescriptor;
-import org.apache.hadoop.hbase.MasterNotRunningException;
-import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.util.Bytes;
 import java.io.IOException;
@@ -39,11 +37,9 @@ public class Vacuum {
 				this.connection = connection;
 				try {
 						this.admin = new HBaseAdmin(SpliceConstants.config);
-				} catch (MasterNotRunningException e) {
+				} catch (Exception e) {
 						throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
-				} catch (ZooKeeperConnectionException e) {
-						throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
-				}
+				} 
 		}
 
 		public void vacuumDatabase() throws SQLException{

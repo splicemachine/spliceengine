@@ -17,7 +17,7 @@ import org.apache.hadoop.hbase.util.Pair;
  * @author Scott Fines
  *         Created on: 9/18/13
  */
-class JobMetrics implements JobSchedulerManagement{
+public class JobMetrics implements JobSchedulerManagement{
     final AtomicLong totalSubmittedJobs = new AtomicLong(0l);
     final AtomicLong totalCompletedJobs = new AtomicLong(0l);
     final AtomicLong totalFailedJobs = new AtomicLong(0l);
