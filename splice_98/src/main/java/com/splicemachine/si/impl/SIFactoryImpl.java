@@ -2,15 +2,12 @@ package com.splicemachine.si.impl;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.regionserver.HRegion;
-
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.table.BetterHTablePool;
 import com.splicemachine.hbase.table.SpliceHTableFactory;
-import com.splicemachine.si.api.DataEvaluator;
 import com.splicemachine.si.api.RowAccumulator;
 import com.splicemachine.si.api.SIFactory;
 import com.splicemachine.si.api.TransactionalRegion;
@@ -29,29 +26,31 @@ import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 
 public class SIFactoryImpl implements SIFactory {
+	
+	public static final SDataLib dataLib = new HDataLib();
+	public static final STableWriter tableWriter = new HTableWriter();
+	
 
 	@Override
-	public RowAccumulator getRowAccumulator(
-			EntryPredicateFilter predicateFilter, EntryDecoder decoder,
+	public RowAccumulator getRowAccumulator(EntryPredicateFilter predicateFilter, EntryDecoder decoder,
 			boolean countStar) {
-		return new HRowAccumulator(predicateFilter,decoder,countStar);
+		return new HRowAccumulator(dataLib,predicateFilter,decoder,countStar);
 	}
 
 	@Override
-	public RowAccumulator getRowAccumulator(
-			EntryPredicateFilter predicateFilter, EntryDecoder decoder,
+	public RowAccumulator getRowAccumulator(EntryPredicateFilter predicateFilter, EntryDecoder decoder,
 			EntryAccumulator accumulator, boolean countStar) {
-		return new HRowAccumulator(predicateFilter,decoder,accumulator,countStar);
+		return new HRowAccumulator(dataLib,predicateFilter,decoder,accumulator,countStar);
 	}
 
 	@Override
 	public STableWriter getTableWriter() {
-		return new HTableWriter();
+		return tableWriter;
 	}
 
 	@Override
 	public SDataLib getDataLib() {
-		return new HDataLib();
+		return dataLib;
 	}
 
 

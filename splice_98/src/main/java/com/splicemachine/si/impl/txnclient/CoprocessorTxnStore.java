@@ -339,7 +339,7 @@ public class CoprocessorTxnStore implements TxnStore{
 		private TxnView decode(TxnMessage.Txn message) throws IOException {
         TxnMessage.TxnInfo info = message.getInfo();
         if(info.getTxnId()<0) return null; //we didn't find it
-
+        
 				long txnId = info.getTxnId();
 				long parentTxnId = info.getParentTxnid();
 				long beginTs = info.getBeginTs();

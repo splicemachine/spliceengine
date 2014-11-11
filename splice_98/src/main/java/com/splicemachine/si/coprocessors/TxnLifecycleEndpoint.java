@@ -1,31 +1,34 @@
 package com.splicemachine.si.coprocessors;
 
-import com.google.common.collect.Lists;
+import com.google.common.base.Supplier;
+import com.google.protobuf.RpcCallback;
+import com.google.protobuf.RpcController;
+import com.google.protobuf.Service;
+import com.splicemachine.concurrent.CountedReference;
 import com.splicemachine.concurrent.LongStripedSynchronizer;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.environment.EnvUtils;
-import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.hbase.ThrowIfDisconnected;
+import com.splicemachine.hbase.HBaseServerUtils;
 import com.splicemachine.si.api.*;
-import com.splicemachine.si.impl.DenseTxn;
+import com.splicemachine.si.coprocessor.TxnMessage;
+import com.splicemachine.si.impl.SIFactoryDriver;
 import com.splicemachine.si.impl.TransactionStorage;
 import com.splicemachine.si.impl.TransactionTimestamps;
 import com.splicemachine.si.impl.region.RegionTxnStore;
-import com.splicemachine.si.impl.SparseTxn;
 import com.splicemachine.si.impl.region.TransactionResolver;
 import com.splicemachine.utils.Source;
+import com.splicemachine.utils.SpliceLogUtils;
 
+import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;
+import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.ipc.HBaseServer;
+import org.apache.hadoop.hbase.protobuf.ResponseConverter;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -34,76 +37,175 @@ import java.util.concurrent.locks.ReadWriteLock;
  * @author Scott Fines
  * Date: 6/19/14
  */
-public class TxnLifecycleEndpoint extends BaseEndpointCoprocessor implements TxnLifecycleProtocol {
-
+public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService implements CoprocessorService,Coprocessor {
 		private static final Logger LOG = Logger.getLogger(TxnLifecycleEndpoint.class);
-
 		private LongStripedSynchronizer<ReadWriteLock> lockStriper;
-
 		private RegionTxnStore regionStore;
 		private HRegion region;
 		private TimestampSource timestampSource;
+    private volatile boolean isTxnTable = false;
 
-    private static volatile TransactionResolver txnResolver;
+    public static CountedReference<TransactionResolver> resolverRef = new CountedReference<TransactionResolver>(new Supplier<TransactionResolver>() {
+        @Override
+        public TransactionResolver get() {
+            return new TransactionResolver(TransactionStorage.getTxnSupplier(),2,128);
+        }
+    }, new CountedReference.ShutdownAction<TransactionResolver>() {
+        @Override
+        public void shutdown(TransactionResolver instance) {
+            instance.shutdown();
+        }
+    });
+
     @Override
 		public void start(CoprocessorEnvironment env) {
 				region = ((RegionCoprocessorEnvironment)env).getRegion();
-        SpliceConstants.TableEnv table = EnvUtils.getTableEnv((RegionCoprocessorEnvironment)env);
+        SpliceConstants.TableEnv table = EnvUtils.getTableEnv((RegionCoprocessorEnvironment) env);
         if(table.equals(SpliceConstants.TableEnv.TRANSACTION_TABLE)){
             lockStriper = LongStripedSynchronizer.stripedReadWriteLock(SIConstants.transactionlockStripes,false);
-            TransactionResolver resolver = txnResolver;
-            if(resolver==null){
-                synchronized (LOG){
-                    if(txnResolver!=null)
-                        resolver = txnResolver;
-                    else{
-                        txnResolver = new TransactionResolver(TransactionStorage.getTxnSupplier(),2,128);
-                        resolver = txnResolver;
-                    }
-                }
-            }
-            regionStore = new RegionTxnStore(region,resolver,TransactionStorage.getTxnSupplier());
+            TransactionResolver resolver = resolverRef.get();
+            regionStore = new RegionTxnStore(region,resolver,TransactionStorage.getTxnSupplier(),SIFactoryDriver.siFactory.getDataLib(),SIFactoryDriver.siFactory.getTransactionLib());
             timestampSource = TransactionTimestamps.getTimestampSource();
+            isTxnTable = true;
         }
 		}
 
 		@Override
 		public void stop(CoprocessorEnvironment env) {
-				super.stop(env);
-		}
-
-		@Override
-		public void recordTransaction(long txnId, byte[] packedTxn) throws IOException {
-				SparseTxn txn = SparseTxn.decodeFromNetwork(packedTxn);
-				assert txn.getTxnId()==txnId: "Transaction Ids do not match"; //probably won't happen, but it catches programmer errors
-
-
-				Lock lock = lockStriper.get(txnId).writeLock(); //use the write lock to record transactions
-				acquireLock(lock);
-				try{
-					regionStore.recordTransaction(txn);
-				}finally{
-            unlock(lock);
-        }
+        SpliceLogUtils.trace(LOG, "Shutting down TxnLifecycleEndpoint");
+        if(isTxnTable)
+            resolverRef.release(true);
 		}
 
     @Override
-		public void elevateTransaction(long txnId, byte[] newDestinationTable) throws IOException {
-				if(newDestinationTable==null){
-						LOG.warn("Attempting to elevate a transaction with no destination table. This is probably a waste of a network call");
-						return;
-				}
-				Lock lock = lockStriper.get(txnId).writeLock();
-				acquireLock(lock);
-				try{
-						regionStore.addDestinationTable(txnId,newDestinationTable);
-				}finally{
-            unlock(lock);
-        }
-		}
+    public Service getService() {
+        SpliceLogUtils.trace(LOG, "Getting the TxnLifecycle Service");
+        return this;
+    }
 
-		@Override
-		public long commit(long txnId) throws IOException {
+    @Override
+    public void beginTransaction(RpcController controller, TxnMessage.TxnInfo request, RpcCallback<TxnMessage.VoidResponse> done) {
+        Lock lock = lockStriper.get(request.getTxnId()).writeLock();
+        try{
+            acquireLock(lock);
+            try{
+                regionStore.recordTransaction(request);
+            }finally{
+                unlock(lock);
+            }
+            done.run(TxnMessage.VoidResponse.getDefaultInstance());
+        }catch(IOException ioe){
+            ResponseConverter.setControllerException(controller, ioe);
+        }
+    }
+
+    @Override
+    public void elevateTransaction(RpcController controller, TxnMessage.ElevateRequest request, RpcCallback<TxnMessage.VoidResponse> done) {
+        if(request.getNewDestinationTable()==null){
+            LOG.warn("Attempting to elevate a transaction with no destination table. This is probably a waste of a network call");
+            return;
+        }
+        Lock lock = lockStriper.get(request.getTxnId()).writeLock();
+        try{
+            acquireLock(lock);
+            try{
+                regionStore.addDestinationTable(request.getTxnId(), request.getNewDestinationTable().toByteArray());
+            }finally{
+                unlock(lock);
+            }
+            done.run(TxnMessage.VoidResponse.getDefaultInstance());
+        }catch(IOException ioe){
+            ResponseConverter.setControllerException(controller,ioe);
+        }
+    }
+
+    @Override
+    public void beginChildTransaction(RpcController controller, TxnMessage.CreateChildRequest request, RpcCallback<TxnMessage.Txn> done) {
+
+    }
+
+    @Override
+    public void lifecycleAction(RpcController controller, TxnMessage.TxnLifecycleMessage request, RpcCallback<TxnMessage.ActionResponse> done) {
+        try{
+            TxnMessage.ActionResponse response = null;
+            switch(request.getAction()){
+                case COMMIT:
+                    response = TxnMessage.ActionResponse.newBuilder().setCommitTs(commit(request.getTxnId())).build();
+                    break;
+                case TIMEOUT:
+                case ROLLBACk:
+                    rollback(request.getTxnId());
+                    response = TxnMessage.ActionResponse.getDefaultInstance();
+                    break;
+                case KEEPALIVE:
+                    boolean b = keepAlive(request.getTxnId());
+                    response = TxnMessage.ActionResponse.newBuilder().setContinue(b).build();
+                    break;
+            }
+            done.run(response);
+        }catch(IOException ioe){
+            ResponseConverter.setControllerException(controller,ioe);
+        }
+    }
+
+    @Override
+    public void getTransaction(RpcController controller, TxnMessage.TxnRequest request, RpcCallback<TxnMessage.Txn> done) {
+        try{
+            long txnId = request.getTxnId();
+            Lock lock = lockStriper.get(txnId).readLock();
+            acquireLock(lock);
+            try{
+                TxnMessage.Txn transaction = (TxnMessage.Txn) regionStore.getTransaction(txnId);
+                done.run(transaction);
+            }finally{
+                unlock(lock);
+            }
+        }catch(IOException ioe){
+            ResponseConverter.setControllerException(controller,ioe);
+        }
+    }
+
+    @Override
+    public void getActiveTransactionIds(RpcController controller, TxnMessage.ActiveTxnRequest request, RpcCallback<TxnMessage.ActiveTxnIdResponse> done) {
+        long endTxnId = request.getEndTxnId();
+        if(endTxnId<0)
+            endTxnId = Long.MAX_VALUE;
+        long startTxnId = request.getStartTxnId();
+        try {
+            byte[] destTables = null;
+            if(request.hasDestinationTables())
+                destTables = request.getDestinationTables().toByteArray();
+            long[] activeTxnIds = regionStore.getActiveTxnIds(startTxnId, endTxnId, destTables);
+            TxnMessage.ActiveTxnIdResponse.Builder response = TxnMessage.ActiveTxnIdResponse.newBuilder();
+            for(int i=0;i<activeTxnIds.length;i++){
+                response.addActiveTxnIds(activeTxnIds[i]);
+            }
+            done.run(response.build());
+        } catch (IOException e) {
+            ResponseConverter.setControllerException(controller,e);
+        }
+    }
+
+    @Override
+    public void getActiveTransactions(RpcController controller, TxnMessage.ActiveTxnRequest request, RpcCallback<TxnMessage.ActiveTxnResponse> done) {
+        long endTxnId = request.getEndTxnId();
+        if(endTxnId<0)
+            endTxnId = Long.MAX_VALUE;
+        long startTxnId = request.getStartTxnId();
+        try {
+            Source<TxnMessage.Txn> activeTxns = regionStore.getActiveTxns(startTxnId, endTxnId,request.getDestinationTables().toByteArray());
+            TxnMessage.ActiveTxnResponse.Builder response = TxnMessage.ActiveTxnResponse.newBuilder();
+            while(activeTxns.hasNext()){
+                response.addTxns(activeTxns.next());
+            }
+            done.run(response.build());
+        } catch (IOException e) {
+            ResponseConverter.setControllerException(controller,e);
+        }
+
+    }
+
+    public long commit(long txnId) throws IOException {
 				Lock lock = lockStriper.get(txnId).writeLock();
 				acquireLock(lock);
 				try{
@@ -127,7 +229,6 @@ public class TxnLifecycleEndpoint extends BaseEndpointCoprocessor implements Txn
         }
 		}
 
-		@Override
 		public void rollback(long txnId) throws IOException {
 				Lock lock = lockStriper.get(txnId).writeLock();
 				acquireLock(lock);
@@ -152,7 +253,6 @@ public class TxnLifecycleEndpoint extends BaseEndpointCoprocessor implements Txn
         }
 		}
 
-		@Override
 		public boolean keepAlive(long txnId) throws IOException {
 				Lock lock = lockStriper.get(txnId).writeLock();
 				acquireLock(lock);
@@ -163,51 +263,6 @@ public class TxnLifecycleEndpoint extends BaseEndpointCoprocessor implements Txn
         }
 		}
 
-		@Override
-		public byte[] getTransaction(long txnId, boolean getDestinationTables) throws IOException {
-				Lock lock = lockStriper.get(txnId).readLock();
-				acquireLock(lock);
-				try{
-						SparseTxn transaction = regionStore.getTransaction(txnId);
-						return encodeForNetwork(transaction,getDestinationTables);
-				}finally{
-            unlock(lock);
-        }
-		}
-
-		@Override
-		public byte[] getActiveTransactionIds(long afterTs, long beforeTs, byte[] destinationTable) throws IOException {
-				long[] activeTxnIds = regionStore.getActiveTxnIds(beforeTs,afterTs,destinationTable);
-				MultiFieldEncoder encoder = MultiFieldEncoder.create(activeTxnIds.length);
-				for(long activeTxnId:activeTxnIds){
-						encoder.encodeNext(activeTxnId);
-				}
-				return encoder.build();
-		}
-
-    @Override
-    public List<byte[]> getActiveTransactions(long afterTs, long beforeTs, byte[] destinationTable) throws IOException {
-        Source<DenseTxn> activeTxns = regionStore.getActiveTxns(afterTs,beforeTs,destinationTable);
-        List<byte[]> encodedData = Lists.newArrayList();
-        MultiFieldEncoder txnEncoder = MultiFieldEncoder.create(11);
-        while(activeTxns.hasNext()){
-            DenseTxn txn = activeTxns.next();
-            txnEncoder.reset();
-            txn.encodeForNetwork(txnEncoder, true, true);
-            encodedData.add(txnEncoder.build());
-        }
-        return encodedData;
-    }
-
-    private byte[] encodeForNetwork(SparseTxn transaction,boolean addDestinationTables) {
-        if(transaction==null) return HConstants.EMPTY_BYTE_ARRAY;
-        MultiFieldEncoder encoder = MultiFieldEncoder.create(addDestinationTables? 10:9);
-        transaction.encodeForNetwork(encoder, false, addDestinationTables);
-
-        return encoder.build();
-    }
-
-
     private void acquireLock(Lock lock) throws IOException {
 				//make sure that the region doesn't close while we are working on it
 				region.startRegionOperation();
@@ -216,14 +271,12 @@ public class TxnLifecycleEndpoint extends BaseEndpointCoprocessor implements Txn
 						try {
 								shouldContinue = !lock.tryLock(200, TimeUnit.MILLISECONDS);
 								try{
-								/*
-								 * Checks if the client has disconnected while acquiring this lock.
-								 * If it has, we need to ensure that our lock is released (if it has been
-								 * acquired).
-								 */
-										ThrowIfDisconnected.throwIfDisconnected throwIfDisconnected = ThrowIfDisconnected.getThrowIfDisconnected();
-										String regionNameAsString = region.getRegionNameAsString();
-										throwIfDisconnected.invoke(HBaseServer.getCurrentCall(), regionNameAsString);
+								    /*
+								     * Checks if the client has disconnected while acquiring this lock.
+								     * If it has, we need to ensure that our lock is released (if it has been
+	   							   * acquired).
+    								 */
+                    HBaseServerUtils.checkCallerDisconnect(region, region.getRegionNameAsString());
 								}catch(IOException ioe){
 										if(!shouldContinue) //the lock was acquired, so it needs to be unlocked
                         unlock(lock);
@@ -237,7 +290,7 @@ public class TxnLifecycleEndpoint extends BaseEndpointCoprocessor implements Txn
 				}
 		}
 
-    private void unlock(Lock lock) {
+    private void unlock(Lock lock) throws IOException {
         lock.unlock();
         region.closeRegionOperation();
     }

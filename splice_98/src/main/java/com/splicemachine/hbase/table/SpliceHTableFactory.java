@@ -8,18 +8,15 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.hbase.HBaseRegionCache;
+import com.splicemachine.hbase.regioninfocache.HBaseRegionCache;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.hbase.table.SpliceConnectionPool;
 
 public class SpliceHTableFactory implements HTableInterfaceFactory {
     private static Logger LOG = Logger.getLogger(SpliceHTableFactory.class);
