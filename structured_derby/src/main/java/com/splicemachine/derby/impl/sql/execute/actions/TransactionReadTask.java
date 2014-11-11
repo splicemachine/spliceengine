@@ -88,14 +88,14 @@ public class TransactionReadTask extends ZkTask {
         boolean[] usedTempBuckets = new boolean[currentSpread.getNumBuckets()];
 
         int rows = 0;
-        Source<DenseTxn> activeTxns = null;
+        Source<SparseTxn> activeTxns = null;
         try{
             activeTxns = activeOnly?regionTxnStore.getActiveTxns(minTxnId, maxTxnId, writeTable):
                     regionTxnStore.getAllTxns(minTxnId,maxTxnId); //todo -sf- add destination table filter
 
             MultiFieldEncoder rowEncoder = MultiFieldEncoder.create(11);
             while(activeTxns.hasNext()){
-                DenseTxn txn = activeTxns.next();
+            	SparseTxn txn = activeTxns.next();
                 byte[] key = Encoding.encode(txn.getTxnId());
                 hashBytes[0] = currentSpread.bucket(hashFunction.hash(key,0,key.length));
                 usedTempBuckets[currentSpread.bucketIndex(hashBytes[0])] = true;

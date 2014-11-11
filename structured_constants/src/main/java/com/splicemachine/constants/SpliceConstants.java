@@ -33,6 +33,16 @@ public class SpliceConstants {
     @Parameter public static final String MAX_DDL_WAIT = "splice.ddl.maxWaitSeconds";
     @DefaultValue(MAX_DDL_WAIT) public static final int DEFAULT_MAX_DDL_WAIT=240;
     public static long maxDdlWait;
+    
+    /** 
+     * 
+     * This is only used by 5.0 and >
+     * Is this too small ?  TODO JL
+     * 
+     */
+    @Parameter public static final String NUM_CLIENT_HCONNECTIONS = "splice.client.numConnections";
+    @DefaultValue(MAX_DDL_WAIT) public static final int DEFAULT_NUM_HCONNECTIONS=5;
+    public static int numHConnections;
 
     public enum AuthenticationType {NONE,LDAP,NATIVE,CUSTOM};
 
@@ -1234,6 +1244,8 @@ public class SpliceConstants {
         rollForwardTxnThreshold = config.getInt(ROLL_FORWARD_TXN_THRESHOLD,DEFAULT_ROLLFOWARD_TXN_THRESHOLD);
 
         maxDdlWait = config.getInt(MAX_DDL_WAIT,DEFAULT_MAX_DDL_WAIT);
+        
+        numHConnections = config.getInt(NUM_CLIENT_HCONNECTIONS,DEFAULT_NUM_HCONNECTIONS);
 		}
 
 		public static void reloadConfiguration(Configuration configuration) {
