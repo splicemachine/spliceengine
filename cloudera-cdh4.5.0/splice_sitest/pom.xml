@@ -15,6 +15,7 @@
 
 			<dependencies>
 		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_94_adapter-cloudera-cdh4.5.0</artifactId> <version>1.0.0RC2-SNAPSHOT</version> </dependency>
+		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_94_adapter-cloudera-cdh4.5.0</artifactId> <version>1.0.0RC2-SNAPSHOT</version> <classifier>tests</classifier> </dependency>
 			</dependencies>
 
 </project>

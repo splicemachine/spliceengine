@@ -1,6 +1,7 @@
 package com.splicemachine.constants;
 
 import com.splicemachine.encoding.Encoding;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.util.Bytes;
 
@@ -31,7 +32,12 @@ public class SIConstants extends SpliceConstants {
 		public static final int TRANSACTION_GLOBAL_COMMIT_TIMESTAMP_COLUMN = 16;
 		public static final int TRANSACTION_ADDITIVE_COLUMN = 17;
 		public static final int WRITE_TABLE_COLUMN = 18;
+		// Snowflake logic
+	    public static final byte[] COUNTER_COL = "c".getBytes();
+	    public static final String MACHINE_ID_COUNTER = "MACHINE_IDS";
+	    public static final long MAX_MACHINE_ID = 0xffff; //12 bits of 1s is the maximum machine id available
 
+	    
     public static final byte[] TRANSACTION_ID_COLUMN_BYTES = Encoding.encode(TRANSACTION_ID_COLUMN);
     public static final byte[] TRANSACTION_START_TIMESTAMP_COLUMN_BYTES = Bytes.toBytes(TRANSACTION_START_TIMESTAMP_COLUMN);
     public static final byte[] TRANSACTION_PARENT_COLUMN_BYTES = Encoding.encode(TRANSACTION_PARENT_COLUMN);
