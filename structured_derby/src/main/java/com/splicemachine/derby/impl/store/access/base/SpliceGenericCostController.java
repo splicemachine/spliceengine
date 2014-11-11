@@ -24,21 +24,53 @@ import com.splicemachine.utils.SpliceLogUtils;
 public abstract class SpliceGenericCostController extends GenericCostController {
     private static final Logger LOG = Logger.getLogger(SpliceGenericCostController.class);
 
-    protected static long computeRowCount(SortedSet<Pair<HRegionInfo,ServerName>> regions, Map<String,RegionLoad> regionLoads, long constantRowSize, long hfileMaxSize, Scan scan) {
+	/* If we have no region load information the table was probably created very recently, assume nearly empty. */
+	private static final int NO_REGION_LOAD_DEFAULT_COST_ROWS = 1;
+
+	/**
+	 * Calculates an estimated row count. The sum of H*(s/S) for each region to which the specified scan applies.
+	 *
+	 * Where:
+	 *
+	 * H = an arbitrary constant (representing number of rows per region).
+	 * s = MB of storage in the region
+	 * S = max MB of storage per region
+	 */
+    protected static long computeRowCount(
+			SortedSet<Pair<HRegionInfo,ServerName>> regions,
+			Map<String,RegionLoad> regionLoads,
+			long constantRowSize,
+			long hfileMaxSize,
+			Scan scan) {
+
+		if (regions == null || regions.isEmpty() || regionLoads == null || regionLoads.isEmpty()) {
+			SpliceLogUtils.trace(LOG, "Insufficient info, assuming table/index is small.");
+			return NO_REGION_LOAD_DEFAULT_COST_ROWS;
+		}
+
 		long rowCount = 0;
 		int numberOfRegionsInvolved = 0;
-		if (LOG.isTraceEnabled())
+		if (LOG.isTraceEnabled()) {
 			SpliceLogUtils.trace(LOG, "computeRowCount {regions={%s}, regionLoad={%s}, constantRowSize=%d, hfileMaxSize=%d, scan={%s}",
-					regions==null?"null":Arrays.toString(regions.toArray()), regionLoads==null?"null":Arrays.toString(regionLoads.keySet().toArray()), constantRowSize, hfileMaxSize, scan);		
+					Arrays.toString(regions.toArray()), Arrays.toString(regionLoads.keySet().toArray()), constantRowSize, hfileMaxSize, scan);
+		}
 		for (Pair<HRegionInfo,ServerName> info: regions) {
 			if (isRegionInScan(scan,info.getFirst())) {
-				if (LOG.isTraceEnabled())
-					SpliceLogUtils.trace(LOG, "regionInfo with encodedname {%s} and region name as string %s", info.getFirst().getEncodedName(), info.getFirst().getRegionNameAsString());				
+				if (LOG.isTraceEnabled()) {
+					SpliceLogUtils.trace(LOG, "regionInfo with encoded name {%s} and region name as string %s", info.getFirst().getEncodedName(), info.getFirst().getRegionNameAsString());
+				}
 				numberOfRegionsInvolved++;
-				rowCount+=getRowSize(constantRowSize,regionLoads==null?null:regionLoads.get(info.getFirst().getRegionNameAsString()),hfileMaxSize);	
+				RegionLoad regionLoad = regionLoads.get(info.getFirst().getRegionNameAsString());
+				if(regionLoad != null) {
+					rowCount += getRowSize(constantRowSize, regionLoad, hfileMaxSize);
+				} else {
+					rowCount += NO_REGION_LOAD_DEFAULT_COST_ROWS;
+				}
 			}
 		}
-		if (numberOfRegionsInvolved == 1 && scan.getStartRow() != null && !Bytes.equals(scan.getStartRow(),HConstants.EMPTY_START_ROW) && scan.getStopRow() != null && !Bytes.equals(scan.getStopRow(),HConstants.EMPTY_END_ROW) ) {
+		if (numberOfRegionsInvolved == 1 &&
+				scan.getStartRow() != null && !Bytes.equals(scan.getStartRow(),HConstants.EMPTY_START_ROW) &&
+				scan.getStopRow() != null && !Bytes.equals(scan.getStopRow(),HConstants.EMPTY_END_ROW) ) {
 			rowCount=(long) ( ( (double)rowCount)*SpliceConstants.extraStartStopQualifierMultiplier);
 		}
 		return rowCount;
@@ -51,10 +83,9 @@ public abstract class SpliceGenericCostController extends GenericCostController 
 	}
 	
 	protected static long getRowSize(long constantRowSize, RegionLoad regionLoad, long hfileMaxSize) {
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "getRowSize with constantRowSize %d and regionLoad %s and hfileMaxSize %d",constantRowSize, regionLoad, hfileMaxSize);
-		if (regionLoad==null)
-			return constantRowSize; // No Metrics
+		if (LOG.isTraceEnabled()) {
+			SpliceLogUtils.trace(LOG, "getRowSize with constantRowSize %d and regionLoad %s and hfileMaxSize %d", constantRowSize, regionLoad, hfileMaxSize);
+		}
 		float rowSize = (float) constantRowSize*((float) HBaseRegionLoads.memstoreAndStorefileSize(regionLoad)/(float) hfileMaxSize);
 		return rowSize < SpliceConstants.optimizerTableMinimalRows?SpliceConstants.optimizerTableMinimalRows:(long) rowSize;
 	}
@@ -64,10 +95,11 @@ public abstract class SpliceGenericCostController extends GenericCostController 
         try {
             return HBaseRegionCache.getInstance().getRegions(Bytes.toBytes(table));
         } catch (ExecutionException e) {
-        	SpliceLogUtils.error(LOG, "Erorr in getRegions on the cost controller, should not happen", e);
+        	SpliceLogUtils.error(LOG, "Error in getRegions on the cost controller, should not happen", e);
         	return null;
         }
     }
+
     /**
      * Scratch Estimate...
      */
@@ -75,6 +107,7 @@ public abstract class SpliceGenericCostController extends GenericCostController 
 	public long getEstimatedRowCount() throws StandardException {
 		return 0;
 	}
+
 	@Override
 	public void extraQualifierSelectivity(CostEstimate costEstimate) throws StandardException {
 		if (LOG.isTraceEnabled())
