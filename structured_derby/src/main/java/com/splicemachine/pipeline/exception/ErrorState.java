@@ -1,13 +1,13 @@
 package com.splicemachine.pipeline.exception;
 
 import com.splicemachine.si.api.CannotCommitException;
+import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.pipeline.constraint.ConstraintViolation;
 import com.splicemachine.si.impl.WriteConflict;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.RegionTooBusyException;
 import org.apache.hadoop.hbase.client.RetriesExhaustedException;
-import org.apache.hadoop.hbase.ipc.HBaseClient;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -1810,7 +1810,7 @@ public enum ErrorState {
         public boolean accepts(Throwable t) {
             return t instanceof NotServingRegionException
                     || t instanceof WrongRegionException
-                    || t instanceof HBaseClient.FailedServerException
+                    || DerbyFactoryDriver.derbyFactory.isFailedServerException(t)
                     || super.accepts(t);
         }
 

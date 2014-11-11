@@ -5,8 +5,9 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.splicemachine.concurrent.ResettableCountDownLatch;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.hbase.DerbyFactory;
+import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.hbase.ThrowIfDisconnected;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.impl.WriteConflict;
 import com.splicemachine.pipeline.api.Code;
@@ -17,8 +18,6 @@ import com.splicemachine.pipeline.impl.WriteResult;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.RegionTooBusyException;
-import org.apache.hadoop.hbase.ipc.HBaseServer;
-import org.apache.hadoop.hbase.ipc.RpcCallContext;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.log4j.Logger;
 import javax.annotation.Nullable;
@@ -31,6 +30,7 @@ import java.util.List;
  *         Created on: 4/30/13
  */
 public class RegionWriteHandler implements WriteHandler {
+	protected static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
     static final Logger LOG = Logger.getLogger(RegionWriteHandler.class);
     private final TransactionalRegion region;
     private List<KVPair> mutations = Lists.newArrayList();
@@ -72,10 +72,7 @@ public class RegionWriteHandler implements WriteHandler {
        	if (LOG.isDebugEnabled())
     		SpliceLogUtils.debug(LOG, "flush");
         //make sure that the write aborts if the caller disconnects
-        RpcCallContext currentCall = HBaseServer.getCurrentCall();
-        if(currentCall!=null){
-        	ThrowIfDisconnected.getThrowIfDisconnected().invoke(currentCall, ctx.getRegion().getRegionNameAsString());
-        }
+       	derbyFactory.checkCallerDisconnect(ctx.getRegion());
         /*
          * We have to block here in case someone did a table manipulation under us.
          * If they didn't, then the writeLatch will be exhausted, and I'll be able to

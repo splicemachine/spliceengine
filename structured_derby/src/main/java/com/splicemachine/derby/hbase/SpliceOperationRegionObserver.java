@@ -34,7 +34,7 @@ import java.util.Map;
 public class SpliceOperationRegionObserver extends BaseRegionObserver {
     private static Logger LOG = Logger.getLogger(SpliceOperationRegionObserver.class);
     public static String SPLICE_OBSERVER_INSTRUCTIONS = "Z"; // Reducing this so the amount of network traffic will be reduced...
-
+    public static DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
     private TransactionalRegion txnRegion;
 
     /**
@@ -117,9 +117,8 @@ public class SpliceOperationRegionObserver extends BaseRegionObserver {
 			SpliceLogUtils.trace(LOG, "postScannerOpen called, wrapping SpliceOperationRegionScanner");
 			if (scan.getCaching() < 0) // Async Scanner is corrupting this value..
 				scan.setCaching(SpliceConstants.DEFAULT_CACHE_SIZE);
-			return super.postScannerOpen(e, scan, new SpliceOperationRegionScanner(s,scan,e.getEnvironment().getRegion(),txnRegion));
+			return super.postScannerOpen(e, scan, derbyFactory.getOperationRegionScanner(s,scan,e.getEnvironment().getRegion(),txnRegion));
 		}
-//		SpliceLogUtils.trace(LOG, "postScannerOpen called, but no instructions specified");
 		return super.postScannerOpen(e, scan, s);
 	}
 
@@ -130,16 +129,16 @@ public class SpliceOperationRegionObserver extends BaseRegionObserver {
 
     @Override
     public boolean preScannerNext(ObserverContext<RegionCoprocessorEnvironment> e, InternalScanner s, List<Result> results, int limit, boolean hasMore) throws IOException {
-        if(s instanceof SpliceOperationRegionScanner){
-            ((SpliceOperationRegionScanner)s).setupBatch();
+        if(s instanceof SpliceBaseOperationRegionScanner){
+            ((SpliceBaseOperationRegionScanner)s).setupBatch();
         }
         return super.preScannerNext(e, s, results, limit, hasMore);
     }
 
     @Override
     public boolean postScannerNext(ObserverContext<RegionCoprocessorEnvironment> e, InternalScanner s, List<Result> results, int limit, boolean hasMore) throws IOException {
-        if(s instanceof SpliceOperationRegionScanner){
-            ((SpliceOperationRegionScanner)s).cleanupBatch();
+        if(s instanceof SpliceBaseOperationRegionScanner){
+            ((SpliceBaseOperationRegionScanner)s).cleanupBatch();
         }
         return super.postScannerNext(e, s, results, limit, hasMore);
     }

@@ -3,6 +3,8 @@ package com.splicemachine.derby.impl.job.operation;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.derby.hbase.DerbyFactory;
+import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -11,6 +13,7 @@ import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.job.Task;
 import com.splicemachine.si.api.TxnView;
+
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Pair;
@@ -27,13 +30,15 @@ import java.util.Map;
  *         Date: 4/22/14
  */
 public class MultiScanOperationJob implements CoprocessorJob,Externalizable {
+		private static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
 		private List<Scan> scans;
 		private SpliceObserverInstructions instructions;
 		private HTableInterface table;
-    private TxnView txn;
-    private int taskPriority;
+		private TxnView txn;
+		private int taskPriority;
 		private String jobId;
 
+		
 		public MultiScanOperationJob() {
 		}
 
@@ -89,8 +94,8 @@ public class MultiScanOperationJob implements CoprocessorJob,Externalizable {
 		public void writeExternal(ObjectOutput out) throws IOException {
 				out.writeObject(jobId);
 				out.writeInt(scans.size());
-				for(Scan scan:scans){
-						scan.write(out);
+				for (Scan scan: scans) {
+					derbyFactory.writeScanExternal(out, scan);
 				}
 				out.writeObject(instructions);
 		}
@@ -101,9 +106,7 @@ public class MultiScanOperationJob implements CoprocessorJob,Externalizable {
 				int scanCount = in.readInt();
 				scans = Lists.newArrayListWithCapacity(scanCount);
 				for(int i=0;i<scanCount;i++){
-						Scan scan = new Scan();
-						scan.readFields(in);
-						scans.add(scan);
+					scans.add(derbyFactory.readScanExternal(in));
 				}
 				instructions = (SpliceObserverInstructions)in.readObject();
 		}

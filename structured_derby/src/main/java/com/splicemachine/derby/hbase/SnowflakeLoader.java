@@ -19,7 +19,7 @@ import java.util.List;
  *         Created on: 7/3/13
  */
 public class SnowflakeLoader extends SIConstants {
-
+	DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
     private Snowflake snowflake;
 
     public synchronized Snowflake load() throws IOException {
@@ -35,8 +35,7 @@ public class SnowflakeLoader extends SIConstants {
             scan.setBatch(100);
             scan.setStartRow(counterNameRow);
             scan.setStopRow(counterNameRow);
-            scan.setFilter(new AllocatedFilter(localAddress));
-
+            scan.setFilter(derbyFactory.getAllocatedFilter(localAddress));
             ResultScanner scanner = sequenceTable.getScanner(scan);
             try{
                 Result result;

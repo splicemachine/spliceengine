@@ -5,7 +5,6 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.environment.EnvUtils;
 import com.splicemachine.si.impl.TransactionalRegions;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
-import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 
 /**
@@ -13,7 +12,7 @@ import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
  *
  * @author John Leach
  */
-public class SpliceDerbyCoprocessor extends BaseEndpointCoprocessor {
+public class SpliceBaseDerbyCoprocessor {
     private static final AtomicLong runningCoprocessors = new AtomicLong(0l);
     private boolean tableEnvMatch;
     public static volatile String regionServerZNode;
@@ -25,7 +24,7 @@ public class SpliceDerbyCoprocessor extends BaseEndpointCoprocessor {
      * @see com.splicemachine.derby.hbase.SpliceDriver
      * 
      */
-    @Override
+
     public void start(CoprocessorEnvironment e) {
         rsZnode = ((RegionCoprocessorEnvironment) e).getRegionServerServices().getZooKeeper().rsZNode;
         regionServerZNode =((RegionCoprocessorEnvironment) e).getRegionServerServices().getServerName().getServerName();
@@ -39,7 +38,6 @@ public class SpliceDerbyCoprocessor extends BaseEndpointCoprocessor {
         	SpliceDriver.driver().start(((RegionCoprocessorEnvironment) e).getRegionServerServices());
             runningCoprocessors.incrementAndGet();
         }
-        super.start(e);
     }
 
     /**
@@ -48,13 +46,10 @@ public class SpliceDerbyCoprocessor extends BaseEndpointCoprocessor {
      * @see com.splicemachine.derby.hbase.SpliceDriver
      * 
      */
-    @Override
     public void stop(CoprocessorEnvironment e) {
-//        if (tableEnvMatch) {
             if (runningCoprocessors.decrementAndGet() <= 0l) {
                 SpliceDriver.driver().shutdown();
             }
-//        }
     }
 
 }

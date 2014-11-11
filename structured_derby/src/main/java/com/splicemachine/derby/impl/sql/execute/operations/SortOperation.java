@@ -4,7 +4,6 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.google.common.base.Strings;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
-import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.job.operation.SuccessFilter;
@@ -34,10 +33,8 @@ import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.store.access.ColumnOrdering;
-import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -70,7 +67,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 		private PairDecoder rowDecoder;
 		private DistinctSortAggregateBuffer buffer;
 		private byte[] groupingKey;
-		private ArrayList<KeyValue> keyValues;
+		private ArrayList keyValues;
 
 
 		/*
@@ -239,7 +236,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 
 		private ExecRow getNextRowFromScan(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 				if(keyValues==null)
-						keyValues = new ArrayList<KeyValue>();
+						keyValues = new ArrayList(2);
 				else
 					keyValues.clear();
 				regionScanner.next(keyValues);
@@ -302,7 +299,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 				}else{
 						decoder = getTempDecoder();
 				}
-				return new ClientScanProvider("sort",SpliceOperationCoprocessor.TEMP_TABLE,reduceScan, decoder, spliceRuntimeContext);
+				return new ClientScanProvider("sort",SpliceConstants.TEMP_TABLE_BYTES,reduceScan, decoder, spliceRuntimeContext);
 		}
 
 		@Override

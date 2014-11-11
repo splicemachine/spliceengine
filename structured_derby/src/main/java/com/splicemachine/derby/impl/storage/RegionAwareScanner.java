@@ -7,7 +7,6 @@ import com.splicemachine.derby.iapi.storage.ScanBoundary;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.hbase.MeasuredRegionScanner;
-import com.splicemachine.hbase.BaseReadAheadRegionScanner;
 import com.splicemachine.hbase.ReadAheadRegionScanner;
 import com.splicemachine.metrics.Counter;
 import com.splicemachine.metrics.MetricFactory;
@@ -18,7 +17,6 @@ import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.impl.BaseSIFilter;
 import com.splicemachine.si.impl.HTransactorFactory;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HTableInterface;
@@ -31,7 +29,6 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -64,7 +61,7 @@ public class RegionAwareScanner extends ReopenableScanner implements SpliceResul
     private boolean lookBehindExhausted = false;
     private boolean localExhausted = false;
     private boolean lookAheadExhausted = false;
-    private List<KeyValue> keyValues = Lists.newArrayList();
+    private List keyValues = Lists.newArrayList();
     private byte[] remoteFinish;
     private byte[] remoteStart;
     private byte[] localStart;
@@ -174,7 +171,7 @@ public class RegionAwareScanner extends ReopenableScanner implements SpliceResul
                 }
             }
             if(keyValues.size()>0){
-                setLastRow(keyValues.get(keyValues.size()-1).getRow());
+                setLastRow(dataLib.getDataRow(keyValues.get(keyValues.size()-1)));
                 return new Result(keyValues);
             }else{
                 localExhausted=true;
@@ -397,7 +394,7 @@ public class RegionAwareScanner extends ReopenableScanner implements SpliceResul
             RegionScanner localScanner = null;
             try{
             	localScanner = new BufferedRegionScanner(region,region.getScanner(startScan),startScan,startScan.getCaching(),metricFactory,HTransactorFactory.getTransactor().getDataLib() );
-                List<KeyValue> keyValues = Lists.newArrayList();
+                List keyValues = Lists.newArrayList();
                 localScanner.next(keyValues);
                 if (keyValues.isEmpty()) {
                 	// need to do something here...
@@ -405,7 +402,7 @@ public class RegionAwareScanner extends ReopenableScanner implements SpliceResul
                     lookBehindExhausted=true;
                     return;
                 }
-                Result behindResult = new Result(keyValues);
+                Result behindResult = dataLib.newResult(keyValues);
                 byte[] startKey = boundary.getStartKey(behindResult);
                 if (startKey == null) {
                     localStart = regionStart;

@@ -1,6 +1,8 @@
 package com.splicemachine.derby.impl.job.operation;
 
 import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.derby.hbase.DerbyFactory;
+import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -21,6 +23,7 @@ import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.TransactionalRegions;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.hadoop.hbase.client.Scan;
@@ -43,6 +46,7 @@ import java.util.concurrent.ExecutionException;
  * Created on: 4/3/13
  */
 public class SinkTask extends ZkTask {
+	private static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
     private static final long serialVersionUID = 3l;
     private static final Logger LOG = Logger.getLogger(SinkTask.class);
     private HRegion region;
@@ -274,16 +278,15 @@ public class SinkTask extends ZkTask {
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
-        scan.write(out);
-				out.writeByte(hashBucket);
+        derbyFactory.writeScanExternal(out, scan);
+		out.writeByte(hashBucket);
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.readExternal(in);
-        scan  = new Scan();
-        scan.readFields(in);
-				hashBucket = in.readByte();
+        scan = derbyFactory.readScanExternal(in);
+		hashBucket = in.readByte();
     }
 
     @Override

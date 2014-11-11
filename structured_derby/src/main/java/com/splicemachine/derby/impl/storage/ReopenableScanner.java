@@ -6,7 +6,9 @@ import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.impl.HTransactorFactory;
+import com.splicemachine.si.impl.SIFactoryDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 
 import org.apache.hadoop.hbase.client.HTableInterface;
@@ -22,6 +24,7 @@ import java.io.IOException;
  */
 public abstract class ReopenableScanner {
     private static Logger LOG = Logger.getLogger(ReopenableScanner.class);
+    protected static final SDataLib dataLib = SIFactoryDriver.siFactory.getDataLib();
     public static final int MAX_RETIRES = 10;
     private byte[] lastRow;
     private int numRetries;

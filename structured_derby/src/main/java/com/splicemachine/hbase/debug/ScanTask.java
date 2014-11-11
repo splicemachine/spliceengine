@@ -7,12 +7,14 @@ import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.si.data.api.SDataLib;
+import com.splicemachine.si.impl.SIFactoryDriver;
 import com.splicemachine.storage.EntryAccumulator;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.utils.SpliceZooKeeperManager;
-import org.apache.hadoop.hbase.KeyValue;
+
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.filter.FilterBase;
@@ -30,9 +32,8 @@ import java.util.concurrent.ExecutionException;
  */
 public class ScanTask extends DebugTask{
     private EntryPredicateFilter predicateFilter;
-
     private EntryDecoder decoder = new EntryDecoder();
-
+    private static final SDataLib dataLib = SIFactoryDriver.siFactory.getDataLib();
     public ScanTask() {
     }
 
@@ -77,7 +78,7 @@ public class ScanTask extends DebugTask{
 
             writer = getWriter();
             scanner = region.getScanner(scan);
-            List<KeyValue> keyValues = Lists.newArrayList();
+            List keyValues = Lists.newArrayList();
             region.startRegionOperation();
             System.out.println("Starting scan task");
             try{
@@ -85,7 +86,7 @@ public class ScanTask extends DebugTask{
                 boolean shouldContinue;
                 do{
                     keyValues.clear();
-                    shouldContinue = scanner.nextRaw(keyValues,null);
+                    shouldContinue = scanner.nextRaw(keyValues);
                     if(keyValues.size()>0){
                         writeRow(writer,keyValues);
                     }
@@ -105,14 +106,14 @@ public class ScanTask extends DebugTask{
     }
 
     private static final String outputPattern = "%-20s\t%8d\t%s%n";
-    private void writeRow(Writer writer,List<KeyValue> keyValues) throws IOException {
-        for(KeyValue kv:keyValues){
-            if(!kv.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,SpliceConstants.PACKED_COLUMN_BYTES))
+    private void writeRow(Writer writer,List keyValues) throws IOException {
+        for(Object kv:keyValues){
+            if(!dataLib.singleMatchingColumn(kv,SpliceConstants.DEFAULT_FAMILY_BYTES,SpliceConstants.PACKED_COLUMN_BYTES))
                 continue;
-            String row = BytesUtil.toHex(kv.getRow());
-            long txnId = kv.getTimestamp();
+            String row = BytesUtil.toHex(dataLib.getDataRow(kv));
+            long txnId = dataLib.getTimestamp(kv);
 
-            byte[] value = kv.getValue();
+            byte[] value = dataLib.getDataValue(kv);
             //split by separator
             decoder.set(value);
             StringBuilder valueStr = new StringBuilder();

@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
-import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -12,7 +11,6 @@ import com.google.common.collect.Lists;
 import com.google.common.io.Closeables;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
-import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.job.Status;
 import com.splicemachine.job.Task;
@@ -92,7 +90,7 @@ public class RollForwardTask implements Task {
             MeasuredRegionScanner mrs = null;
             try{
                 mrs = getRegionScanner(txn,context);
-                List<KeyValue> kvs = Lists.newArrayList();
+                List kvs = Lists.newArrayList();
                 int checkSize = 1024-1;
                 int rowCount = 0;
                 boolean shouldContinue;

@@ -4,8 +4,9 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
-import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
+import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -15,7 +16,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+
 import javax.annotation.Nullable;
+
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
@@ -71,7 +74,7 @@ public class ZkTaskMonitor implements TaskMonitor{
 
     @Override
     public void cancelJob(String jobId) {
-        String path = CoprocessorTaskScheduler.getJobPath()+"/"+jobId;
+        String path = SpliceUtils.zkSpliceJobPath+"/"+jobId;
         try{
             zooKeeper.delete(path,-1);
         } catch (InterruptedException e) {
@@ -90,7 +93,7 @@ public class ZkTaskMonitor implements TaskMonitor{
     public String[] getRunningJobs() {
         List<String> runningJobs = Lists.newArrayList();
         try {
-            runningJobs.addAll(zooKeeper.getChildren(CoprocessorTaskScheduler.getJobPath(), false));
+            runningJobs.addAll(zooKeeper.getChildren(SpliceUtils.zkSpliceJobPath, false));
         } catch (KeeperException e) {
             if(e.code() ==KeeperException.Code.NONODE){
                 SpliceLogUtils.info(LOG,"No tasks have been submitted to this cluster. Ever");

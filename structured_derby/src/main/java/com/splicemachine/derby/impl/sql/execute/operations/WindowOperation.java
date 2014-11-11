@@ -14,7 +14,6 @@ import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
@@ -95,7 +94,7 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
     protected ExecIndexRow sortTemplateRow;
     protected ExecIndexRow sourceExecIndexRow;
     private ExecRow templateRow;
-    private ArrayList<KeyValue> keyValues;
+    private ArrayList keyValues;
     private PairDecoder rowDecoder;
     private byte[] extraUniqueSequenceID;
     private WindowFunctionIterator windowFunctionIterator;
@@ -432,7 +431,7 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
 
     private ExecRow getNextRowFromScan(SpliceRuntimeContext ctx) throws StandardException, IOException {
         if(keyValues==null)
-            keyValues = new ArrayList<KeyValue>();
+            keyValues = new ArrayList(2);
         else
             keyValues.clear();
         regionScanner.next(keyValues);

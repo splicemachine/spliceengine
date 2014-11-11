@@ -1,8 +1,8 @@
 package com.splicemachine.derby.impl.job.scheduler;
 
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
-import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
+import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobScheduler;
 import com.splicemachine.job.JobSchedulerManagement;
@@ -76,7 +76,7 @@ public class DistributedJobScheduler implements JobScheduler<CoprocessorJob>{
 				 *Look at ZooKeeper for the job list
 				 */
 				try {
-						List<String> children = zkManager.getRecoverableZooKeeper().getChildren(CoprocessorTaskScheduler.getJobPath(), false);
+						List<String> children = zkManager.getRecoverableZooKeeper().getChildren(SpliceUtils.zkSpliceJobPath, false);
 						if(LOG.isTraceEnabled())
 								LOG.trace("activeOperations: "+ children.toString());
 						long[] jobs = new long[children.size()];

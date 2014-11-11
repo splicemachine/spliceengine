@@ -1,9 +1,12 @@
 package com.splicemachine.derby.impl.temp;
 
 import com.google.common.primitives.Longs;
+import com.splicemachine.derby.hbase.DerbyFactory;
+import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.marshall.SpreadBucket;
 import com.splicemachine.uuid.Snowflake;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
@@ -28,6 +31,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * Date: 11/18/13
  */
 public class TempTable {
+		protected static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
 		private static final Logger LOG = Logger.getLogger(TempTable.class);
 		private final byte[] tempTableName;
 		private AtomicReference<SpreadBucket> spread;
@@ -42,7 +46,7 @@ public class TempTable {
 		}
 
 		public InternalScanner getTempCompactionScanner(){
-			return new NoOpInternalScanner();
+			return derbyFactory.noOpInternalScanner();
 		}
 
 		/**
@@ -114,16 +118,4 @@ public class TempTable {
 				return tempTableName;
 		}
 
-		private static class NoOpInternalScanner implements InternalScanner{
-
-				@Override public boolean next(List<KeyValue> results) throws IOException { return false;   }
-
-				@Override public boolean next(List<KeyValue> results, String metric) throws IOException { return false;}
-
-				@Override public boolean next(List<KeyValue> result, int limit) throws IOException { return false;}
-
-				@Override public boolean next(List<KeyValue> result, int limit, String metric) throws IOException { return false; }
-
-				@Override public void close() throws IOException { }
-		}
 }

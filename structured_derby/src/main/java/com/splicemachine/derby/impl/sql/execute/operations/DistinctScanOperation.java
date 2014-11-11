@@ -4,7 +4,6 @@ import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
-import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.GroupedRow;
@@ -35,11 +34,9 @@ import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
 import org.apache.derby.shared.common.reference.SQLState;
-import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -58,7 +55,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
 
     private Scan reduceScan;
 		private byte[] groupingKey;
-		private List<KeyValue> keyValues;
+		private List keyValues;
 		private Scan scan;
 
 		@SuppressWarnings("UnusedDeclaration")
@@ -311,7 +308,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
 						else{
 								decoder = getTempDecoder(spliceRuntimeContext);
 						}
-						return new DistributedClientScanProvider("distinctScanReduce", SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,decoder, spliceRuntimeContext);
+						return new DistributedClientScanProvider("distinctScanReduce", SpliceConstants.TEMP_TABLE_BYTES,reduceScan,decoder, spliceRuntimeContext);
 				} catch (IOException e) {
 						throw Exceptions.parseException(e);
         }

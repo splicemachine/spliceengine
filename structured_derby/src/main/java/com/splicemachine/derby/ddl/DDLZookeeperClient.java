@@ -1,12 +1,10 @@
 package com.splicemachine.derby.ddl;
 
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.hbase.SpliceDerbyCoprocessor;
-import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.hbase.SpliceBaseDerbyCoprocessor;
 import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.ZkUtils;
-
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
@@ -14,10 +12,7 @@ import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooDefs;
-
 import java.io.IOException;
-import java.lang.management.ManagementFactory;
-import java.net.InetAddress;
 import java.util.Collection;
 import java.util.List;
 
@@ -71,12 +66,12 @@ class DDLZookeeperClient {
          * See DB-1812: Instead of creating our own server registration, we merely fetch our own
          * label from the RegionServers list which hbase maintains for us.
          */
-        return SpliceDerbyCoprocessor.regionServerZNode;
+        return SpliceBaseDerbyCoprocessor.regionServerZNode;
     }
 
     static Collection<String> getActiveServers(Watcher watcher) throws StandardException {
         try {
-            return ZkUtils.getChildren(SpliceDerbyCoprocessor.rsZnode, watcher);
+            return ZkUtils.getChildren(SpliceBaseDerbyCoprocessor.rsZnode, watcher);
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }

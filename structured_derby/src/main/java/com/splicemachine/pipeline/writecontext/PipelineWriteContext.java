@@ -2,6 +2,8 @@ package com.splicemachine.pipeline.writecontext;
 
 import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
 import com.google.common.collect.Maps;
+import com.splicemachine.derby.hbase.DerbyFactory;
+import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.KVPair;
@@ -18,7 +20,6 @@ import com.splicemachine.pipeline.impl.WriteResult;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.ipc.HBaseServer;
 import org.apache.hadoop.hbase.ipc.RpcCallContext;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.log4j.Logger;
@@ -32,6 +33,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Created on: 4/30/13
  */
 public class PipelineWriteContext implements WriteContext, Comparable{
+	protected static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
     private static final Logger LOG = Logger.getLogger(PipelineWriteContext.class);
 	private final Map<KVPair,WriteResult> resultsMap;
     private final TransactionalRegion rce;
@@ -148,9 +150,8 @@ public class PipelineWriteContext implements WriteContext, Comparable{
     public void flush() throws IOException {
     	if (LOG.isDebugEnabled())
     		SpliceLogUtils.debug(LOG, "flush");
-        RpcCallContext currentCall = HBaseServer.getCurrentCall();
-        if(currentCall!=null)
-        	ThrowIfDisconnected.getThrowIfDisconnected().invoke(currentCall, rce.getRegionName());
+    	if (env != null && env.getRegion() != null)
+    		derbyFactory.checkCallerDisconnect(env.getRegion());
         
         try{
             WriteNode next = head.next;
