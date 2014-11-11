@@ -197,6 +197,22 @@ public abstract class WindowFunctionNode extends AggregateNode {
                 // it may be a "direct" input value such as numeric for, say, count(). In
                 // that case, we leave it "as is".
                 lower = ((ColumnReference)node).getSource().getExpression();
+                if (lower instanceof VirtualColumnNode) {
+                    // If the "lower" expression is a VCN, create a CR pointing to its RC
+                    // add to the plan tree
+                    ResultColumn targetRC = ((ColumnReference)node).getSource();
+
+                    ColumnReference tmpColumnRef = (ColumnReference) getNodeFactory().getNode(
+                        C_NodeTypes.COLUMN_REFERENCE,
+                        targetRC.getName(),
+                        null,
+                        getContextManager());
+                    tmpColumnRef.setSource(targetRC);
+                    tmpColumnRef.setNestingLevel(0);
+                    tmpColumnRef.setSourceLevel(0);
+
+                    lower = tmpColumnRef;
+                }
             }
             resultColumns[i++] = (ResultColumn) getNodeFactory().getNode(
                 C_NodeTypes.RESULT_COLUMN,
