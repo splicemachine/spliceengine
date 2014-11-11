@@ -1,25 +1,25 @@
 package com.splicemachine.si.coprocessors;
 
+import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.impl.SICompactionState;
 import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.client.Delete;
+import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Decorator for an HBase scanner that performs SI operations at compaction time. Delegates the core work to
  * SICompactionState.
  */
-public class SICompactionScanner implements InternalScanner {
-    private final  SICompactionState compactionState;
-    private final InternalScanner delegate;
-    List<Cell> rawList = new ArrayList<Cell>();
-
+public class SICompactionScanner extends BaseSICompactionScanner<Cell,Put,Delete,Get, Scan> {
+    
     public SICompactionScanner(SICompactionState compactionState,
-                               InternalScanner scanner) {
-        this.compactionState = compactionState;
-        this.delegate = scanner;
+                               InternalScanner scanner, SDataLib<Cell,Put,Delete,Get,Scan> dataLib) {
+    	super(compactionState,scanner,dataLib);
     }
 
     @Override
@@ -32,19 +32,5 @@ public class SICompactionScanner implements InternalScanner {
         return nextDirect(results, limit);
     }
 
-    /**
-     * Read data from the underlying scanner and send the results through the SICompactionState.
-     */
-    @SuppressWarnings("unchecked")
-		private boolean nextDirect(List<Cell> results, int limit) throws IOException {
-        rawList.clear();
-        final boolean more = delegate.next(rawList);
-		compactionState.mutate(rawList, results);
-		return more;
-    }
 
-    @Override
-    public void close() throws IOException {
-        delegate.close();
-    }
 }

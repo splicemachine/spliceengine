@@ -2,7 +2,7 @@ package com.splicemachine.si.impl;
 
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.si.api.*;
-import com.splicemachine.si.coprocessors.BaseSICompactionScanner;
+import com.splicemachine.si.coprocessors.SICompactionScanner;
 import com.splicemachine.si.coprocessors.SIObserver;
 import com.splicemachine.si.data.api.IHTable;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
@@ -56,7 +56,7 @@ public class TxnRegion implements TransactionalRegion {
 
 		@Override
 		public TxnFilter packedFilter(TxnView txn, EntryPredicateFilter predicateFilter, boolean countStar) throws IOException {
-				return new PackedTxnFilter(unpackedFilter(txn),new HRowAccumulator(dataStore,predicateFilter,new EntryDecoder(),countStar));
+				return new PackedTxnFilter(unpackedFilter(txn),new HRowAccumulator(dataStore.getDataLib(),predicateFilter,new EntryDecoder(),countStar));
 		}
 
 		@Override
@@ -122,7 +122,7 @@ public class TxnRegion implements TransactionalRegion {
     @Override
     public InternalScanner compactionScanner(InternalScanner scanner) {
         SICompactionState state = new SICompactionState(dataStore,txnSupplier,rollForward);
-        return new BaseSICompactionScanner(state,scanner);
+        return new SICompactionScanner(state,scanner,dataStore.getDataLib());
     }
 
 }

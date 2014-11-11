@@ -9,13 +9,13 @@ import java.util.SortedSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.protobuf.Service;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.hadoop.hbase.NotServingRegionException;
+import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.HTable;
@@ -28,13 +28,12 @@ import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.concurrent.KeyedCompletionService;
 import com.splicemachine.concurrent.KeyedFuture;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.hbase.NoRetryCoprocessorRpcChannel;
-import com.splicemachine.hbase.RegionCache;
+import com.splicemachine.hbase.regioninfocache.RegionCache;
 import com.splicemachine.utils.SpliceLogUtils;
 
 /**
@@ -70,13 +69,13 @@ public class SpliceHTable extends HTable {
     @Override
     public Pair<byte[][], byte[][]> getStartEndKeys() throws IOException {
         try {
-            SortedSet<HRegionInfo> regions = regionCache.getRegions(tableNameBytes);
+            SortedSet<Pair<HRegionInfo, ServerName>> regions = regionCache.getRegions(tableNameBytes);
             byte[][] startKeys = new byte[regions.size()][];
             byte[][] endKeys = new byte[regions.size()][];
             int regionPos = 0;
-            for (HRegionInfo regionInfo : regions) {
-                startKeys[regionPos] = regionInfo.getStartKey();
-                endKeys[regionPos] = regionInfo.getEndKey();
+            for (Pair<HRegionInfo, ServerName> regionInfo : regions) {
+                startKeys[regionPos] = regionInfo.getFirst().getStartKey();
+                endKeys[regionPos] = regionInfo.getFirst().getEndKey();
                 regionPos++;
             }
             return Pair.newPair(startKeys, endKeys);

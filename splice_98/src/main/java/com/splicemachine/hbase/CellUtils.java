@@ -5,6 +5,8 @@ import java.util.List;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.util.Pair;
 
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
@@ -143,5 +145,18 @@ public class CellUtils {
 		public static boolean matchingColumn(Cell kv, byte[] family, byte[] qualifier) {
 				return CellUtil.matchingFamily(kv, family) && CellUtil.matchingQualifier(kv,qualifier);
 		}
+
+	    /**
+	     * Returns true if the specified KeyValue is contained by the specified range.
+	     */
+	    public static boolean isKeyValueInRange(Cell kv, Pair<byte[], byte[]> range) {
+	        byte[] kvBuffer = kv.getRowArray(); // TODO JL SAR
+	        int rowKeyOffset = kv.getRowOffset();
+	        short rowKeyLength = kv.getRowLength();
+	        byte[] start = range.getFirst();
+	        byte[] stop = range.getSecond();
+	        return (start.length == 0 || Bytes.compareTo(start, 0, start.length, kvBuffer, rowKeyOffset, rowKeyLength) <= 0) &&
+	                (stop.length == 0 || Bytes.compareTo(stop, 0, stop.length, kvBuffer, rowKeyOffset, rowKeyLength) >= 0);
+	    }
 
 }
