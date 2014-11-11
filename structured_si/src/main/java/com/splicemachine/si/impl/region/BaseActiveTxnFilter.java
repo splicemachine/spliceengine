@@ -4,8 +4,7 @@ import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.data.api.SDataLib;
-import com.splicemachine.si.impl.DataStore;
-import com.splicemachine.si.impl.HTransactorFactory;
+import com.splicemachine.si.impl.SIFactoryDriver;
 import com.splicemachine.si.impl.TxnUtils;
 import org.apache.hadoop.hbase.filter.FilterBase;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -31,15 +30,13 @@ public abstract class BaseActiveTxnFilter<Data> extends FilterBase implements Wr
     private boolean isChild = false;
     private boolean committed = false;
     private SDataLib datalib;
-    private DataStore dataStore;
     private MultiFieldDecoder fieldDecoder;
 
     public BaseActiveTxnFilter(long beforeTs, long afterTs, byte[] destinationTable) {
         this.beforeTs = beforeTs;
         this.afterTs = afterTs;
         this.destinationTable = destinationTable;
-        this.datalib = HTransactorFactory.getTransactor().getDataLib();
-        this.dataStore = HTransactorFactory.getTransactor().getDataStore();
+        this.datalib = SIFactoryDriver.siFactory.getDataLib();
         if(destinationTable!=null)
             this.newEncodedDestinationTable = Encoding.encodeBytesUnsorted(destinationTable);
         else
