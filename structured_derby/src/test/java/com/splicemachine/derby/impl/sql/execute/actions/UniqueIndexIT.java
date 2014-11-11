@@ -30,11 +30,11 @@ public class UniqueIndexIT extends SpliceUnitTest {
     private static final String CLASS_NAME = UniqueIndexIT.class.getSimpleName().toUpperCase();
 
     private static final String TABLE_A = "A", TABLE_B = "B", TABLE_C = "C", TABLE_D = "D", TABLE_E = "E",
-	  TABLE_F = "F", TABLE_G = "G", TABLE_H = "H", TABLE_I = "I", TABLE_J = "J", TABLE_K = "K", TABLE_L= "L",
+	  TABLE_F = "F", TABLE_G = "G", TABLE_H = "H", TABLE_I = "I", TABLE_J = "J", TABLE_K = "K",
       TABLE_M = "M",
 
     INDEX_A = "IDX_A1", INDEX_B = "IDX_B1", INDEX_C = "IDX_C1", INDEX_D = "IDX_D1", INDEX_E = "IDX_E1",
-	  INDEX_F = "IDX_F1", INDEX_G = "IDX_G1", INDEX_K = "IDX_K1", INDEX_L = "IDX_L1", INDEX_M = "IDX_M1";
+	  INDEX_F = "IDX_F1", INDEX_G = "IDX_G1", INDEX_K = "IDX_K1", INDEX_M = "IDX_M1";
 
     @Override
     public String getSchemaName() {
@@ -55,7 +55,6 @@ public class UniqueIndexIT extends SpliceUnitTest {
             .around(new SpliceTableWatcher(TABLE_I, CLASS_NAME, "(name varchar(40), val int)"))
             .around(new SpliceTableWatcher(TABLE_J, CLASS_NAME, "(name varchar(40), val int)"))
             .around(new SpliceTableWatcher(TABLE_K, CLASS_NAME, "(name varchar(40), val int)"))
-            .around(new SpliceTableWatcher(TABLE_L, CLASS_NAME, "(name varchar(40), val int)"))
             .around(new SpliceTableWatcher(TABLE_M, CLASS_NAME, "(name varchar(40), val int)"));
 
 	
@@ -213,6 +212,7 @@ public class UniqueIndexIT extends SpliceUnitTest {
         }
         Assert.assertEquals("Incorrect number of rows returned!", 2, results.size());
     }
+
     /**
      * Tests that we can safely delete a record, and have it
      * percolate through to the index.
@@ -223,13 +223,17 @@ public class UniqueIndexIT extends SpliceUnitTest {
      */
     @Test(timeout = 10000)
     public void testCanDeleteEntry() throws Exception{
-        new SpliceIndexWatcher(TABLE_L,CLASS_NAME, INDEX_L,CLASS_NAME,"(name)",true).starting(null);
-        String name = "sfines";
-        int value = 2;
-        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",TABLE_L,name,value));
-        methodWatcher.getStatement().execute(format("delete from %s where name = '%s'",TABLE_L,name));
-        ResultSet rs = methodWatcher.executeQuery(format("select * from %s where name = '%s'",TABLE_L,name));
-        Assert.assertTrue("Rows are returned incorrectly",!rs.next());
+        // given
+        methodWatcher.executeUpdate("create table L (name varchar(40), val int)");
+        methodWatcher.executeUpdate("create index L_INDEX on L (name)");
+        methodWatcher.executeUpdate("insert into L (name,val) values ('testName',2)");
+        // when
+        methodWatcher.executeUpdate("delete from L where name = 'testName'");
+        // then
+        Assert.assertEquals(0L, methodWatcher.query("select count(*) from L"));
+        Assert.assertEquals(0L, methodWatcher.query("select count(*) from L --SPLICE-PROPERTIES index=L_INDEX"));
+        Assert.assertFalse("Rows are returned incorrectly", methodWatcher.executeQuery(format("select * from L where name = 'testName'")).next());
+        Assert.assertFalse("Rows are returned incorrectly", methodWatcher.executeQuery(format("select * from L --SPLICE-PROPERTIES index=L_INDEX\n where name = 'testName'")).next());
     }
 
     /**
