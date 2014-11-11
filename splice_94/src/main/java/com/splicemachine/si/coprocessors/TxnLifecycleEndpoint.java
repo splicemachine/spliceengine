@@ -8,7 +8,6 @@ import com.splicemachine.constants.environment.EnvUtils;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.ThrowIfDisconnected;
 import com.splicemachine.si.api.*;
-import com.splicemachine.si.impl.DenseTxn;
 import com.splicemachine.si.impl.SIFactoryDriver;
 import com.splicemachine.si.impl.TransactionStorage;
 import com.splicemachine.si.impl.TransactionTimestamps;
@@ -18,6 +17,9 @@ import com.splicemachine.si.impl.region.TransactionResolver;
 import com.splicemachine.utils.Source;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.ipc.HBaseServer;
@@ -34,12 +36,9 @@ import java.util.concurrent.locks.ReadWriteLock;
  * Date: 6/19/14
  */
 public class TxnLifecycleEndpoint extends BaseEndpointCoprocessor implements TxnLifecycleProtocol {
-
 		private static final Logger LOG = Logger.getLogger(TxnLifecycleEndpoint.class);
-
 		private LongStripedSynchronizer<ReadWriteLock> lockStriper;
-
-		private RegionTxnStore regionStore;
+		private RegionTxnStore<SparseTxn,KeyValue,Put,Get> regionStore;
 		private HRegion region;
 		private TimestampSource timestampSource;
 
@@ -61,7 +60,7 @@ public class TxnLifecycleEndpoint extends BaseEndpointCoprocessor implements Txn
                     }
                 }
             }
-            regionStore = new RegionTxnStore(region,resolver,TransactionStorage.getTxnSupplier(),SIFactoryDriver.siFactory.getDataLib());
+            regionStore = new RegionTxnStore(region,resolver,TransactionStorage.getTxnSupplier(),SIFactoryDriver.siFactory.getDataLib(),SIFactoryDriver.siFactory.getTransactionLib());
             timestampSource = TransactionTimestamps.getTimestampSource();
         }
 		}
@@ -186,11 +185,11 @@ public class TxnLifecycleEndpoint extends BaseEndpointCoprocessor implements Txn
 
     @Override
     public List<byte[]> getActiveTransactions(long afterTs, long beforeTs, byte[] destinationTable) throws IOException {
-        Source<DenseTxn> activeTxns = regionStore.getActiveTxns(afterTs,beforeTs,destinationTable);
+        Source<SparseTxn> activeTxns = regionStore.getActiveTxns(afterTs,beforeTs,destinationTable);
         List<byte[]> encodedData = Lists.newArrayList();
         MultiFieldEncoder txnEncoder = MultiFieldEncoder.create(11);
         while(activeTxns.hasNext()){
-            DenseTxn txn = activeTxns.next();
+        	SparseTxn txn = activeTxns.next();
             txnEncoder.reset();
             txn.encodeForNetwork(txnEncoder, true, true);
             encodedData.add(txnEncoder.build());

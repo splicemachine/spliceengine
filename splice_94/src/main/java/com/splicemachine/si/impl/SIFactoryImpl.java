@@ -2,8 +2,10 @@ package com.splicemachine.si.impl;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
+
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.table.BetterHTablePool;
@@ -21,6 +23,8 @@ import com.splicemachine.si.data.hbase.HPoolTableSource;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
 import com.splicemachine.si.data.hbase.HTableReader;
 import com.splicemachine.si.data.hbase.HTableWriter;
+import com.splicemachine.si.impl.region.HTransactionLib;
+import com.splicemachine.si.impl.region.STransactionLib;
 import com.splicemachine.storage.EntryAccumulator;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
@@ -29,7 +33,7 @@ public class SIFactoryImpl implements SIFactory {
 	
 	public static final SDataLib dataLib = new HDataLib();
 	public static final STableWriter tableWriter = new HTableWriter();
-	
+	public static final STransactionLib transactionLib = new HTransactionLib();
 
 	@Override
 	public RowAccumulator getRowAccumulator(EntryPredicateFilter predicateFilter, EntryDecoder decoder,
@@ -98,6 +102,11 @@ public class SIFactoryImpl implements SIFactory {
 	@Override
 	public TransactionalRegion getTransactionalRegion(HRegion region) {
 		return TransactionalRegions.get(region);
+	}
+
+	@Override
+	public STransactionLib getTransactionLib() {
+		return transactionLib;
 	}
 
 }
