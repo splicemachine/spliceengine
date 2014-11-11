@@ -291,29 +291,54 @@ public class IndexCostController extends SpliceGenericCostController implements 
     boolean                 reopenScan,
     int                     accessType,
     StoreCostResult         costResult) throws StandardException {
-    	if (LOG.isTraceEnabled())
-    		SpliceLogUtils.trace(LOG, "getScanCost input {scan_type=%d, row_count=%d, group_size=%d, "
-    				+ "forUpdate=%s, scanColumnList=%s, template=%s, startKeyValue=%s, startSearchOperator=%d"
-    				+ "stopKeyValue=%s, stopSearchOperator=%d, reopen_scan=%s, access_type=%d",
-    				scanType, rowCount, groupSize, forUpdate, scanColumnList, template==null?"null":Arrays.toString(template), startKeyValue, startSearchOperator,
-    				stopKeyValue, stopSearchOperator, reopenScan, accessType);
-    	SpliceScan spliceScan = new SpliceScan(open_conglom,scanColumnList,startKeyValue,startSearchOperator,null,stopKeyValue,stopSearchOperator,open_conglom.getTransaction(),false);
-		spliceScan.setupScan();
-    	if (LOG.isTraceEnabled())
-    		SpliceLogUtils.trace(LOG, "getScanCost generated Scan %s",spliceScan.getScan());				
-        SortedSet<Pair<HRegionInfo,ServerName>> baseRegions = getRegions(baseConglomerate.getContainerid());
-        Map<String,RegionLoad> baseRegionLoads = HBaseRegionLoads.getCachedRegionLoadsMapForTable(baseConglomerate.getContainerid()+"");
-    	((SortState) costResult).setNumberOfRegions(baseRegions==null?0:baseRegions.size());
-        long estimatedRowCount = computeRowCount(baseRegions,baseRegionLoads,SpliceConstants.hbaseRegionRowEstimate,SpliceConstants.regionMaxFileSize,spliceScan.getScan()); 
-        double cost = (double) estimatedRowCount*SpliceConstants.indexPerRowCost*((double)open_conglom.getFormatIds().length/ (double)baseConglomerate.getFormat_ids().length); // Attempt to make bigger indexes / tables cost more.
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "getScanCost input {scan_type=%d, row_count=%d, group_size=%d, "
+                            + "forUpdate=%s, scanColumnList=%s, template=%s, startKeyValue=%s, startSearchOperator=%d"
+                            + "stopKeyValue=%s, stopSearchOperator=%d, reopen_scan=%s, access_type=%d",
+                    scanType, rowCount, groupSize, forUpdate, scanColumnList, template==null?"null":Arrays.toString(template), startKeyValue, startSearchOperator,
+                    stopKeyValue, stopSearchOperator, reopenScan, accessType);
+        SpliceScan spliceScan = new SpliceScan(open_conglom,scanColumnList,startKeyValue,startSearchOperator,null,stopKeyValue,stopSearchOperator,open_conglom.getTransaction(),false);
+        spliceScan.setupScan();
+
+        if (LOG.isTraceEnabled()) {
+            SpliceLogUtils.trace(LOG, "getScanCost generated Scan %s", spliceScan.getScan());
+        }
+
+        long indexConglomerateID = open_conglom.getContainerID();
+
+        SortedSet<Pair<HRegionInfo,ServerName>> indexRegions = getRegions(indexConglomerateID);
+
+        Map<String,RegionLoad> indexRegionLoads = HBaseRegionLoads.getCachedRegionLoadsMapForTable(String.valueOf(indexConglomerateID));
+
+        /* Although all indexes for a given table will have the same number of *rows*, and the method called here is
+         * named computeRowCount, what we are really computing is some estimate of the cost of the index scan based on
+         * the number of bytes the scan will read.  Consider: 'select a from T where a > N' where a is not sorted in the
+         * base table.  The cost calculated here should be less that the cost of the base table scan in proportion to
+         * the number of regions we avoid reading by starting at N.
+         *
+         * Since the 'estimatedRowCount' here is actually proportional to bytes read in the scanned regions we should
+         * also get a lower relative cost for indexes that have fewer columns, which is what we want.  A minor optimization
+         * is, given two covering indexes, use the one with fewer columns--on average smaller index KeyValues, thus
+         * less disk/network IO.
+         */
+        long estimatedRowCount = computeRowCount(
+                indexRegions,
+                indexRegionLoads,
+                SpliceConstants.hbaseRegionRowEstimate,
+                SpliceConstants.regionMaxFileSize,
+                spliceScan.getScan());
+
+        double cost = (double) estimatedRowCount*SpliceConstants.indexPerRowCost;
+
         if (SanityManager.DEBUG) {
             SanityManager.ASSERT(cost >= 0);
             SanityManager.ASSERT(estimatedRowCount >= 0);
         }
+
+        ((SortState) costResult).setNumberOfRegions(indexRegions==null?0:indexRegions.size());
         costResult.setEstimatedCost(cost);
         costResult.setEstimatedRowCount(estimatedRowCount);
         SpliceLogUtils.trace(LOG, "getScanCost output costResult=%s",costResult);
-        return;
     }
 	
 	@Override
