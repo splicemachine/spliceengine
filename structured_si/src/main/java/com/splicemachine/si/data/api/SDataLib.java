@@ -86,7 +86,9 @@ public interface SDataLib<Data,
 	byte[] getDataValue(Data element);	
 	byte[] getDataRow(Data element);
 	byte[] getDataValueBuffer(Data element);
-	byte[] getDataRowBuffer(Data element);	
+	byte[] getDataRowBuffer(Data element);
+	byte[] getDataQualifierBuffer(Data element);
+	int getDataQualifierOffset(Data element);	
 	int getDataRowOffset(Data element);
 	int getDataRowlength(Data element);	
 	int getDataValueOffset(Data element);

@@ -535,4 +535,14 @@ public class HDataLib implements SDataLib<KeyValue,Put, Delete, Get, Scan> {
 			return BytesUtil.isKeyValueInRange(data, range);
 		}
 
+		@Override
+		public byte[] getDataQualifierBuffer(KeyValue element) {
+			return element.getBuffer();
+		}
+
+		@Override
+		public int getDataQualifierOffset(KeyValue element) {
+			return element.getQualifierOffset();
+		}
+
 }
