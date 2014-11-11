@@ -1832,8 +1832,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
     }
 
     @Test
-//    @Ignore("DB-2170 - NPE when window function over view. (works periodically, why?)")
-    public void testRankOverView() throws Exception {
+    @Ignore("DB-2170 - window function over view. (works periodically, why?)")
+    public void testDB2170RankOverView() throws Exception {
         String sqlText =
             String.format("select yr, rank() over ( partition by yr order by hiredate ) as EMPRANK, ename," +
                               "hiredate from %s", this.getTableReference(VIEW_NAME));
@@ -1860,8 +1860,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
     }
 
     @Test
-//    @Ignore("DB-2170 - NPE when window function over view. (works periodically, why?)")
-    public void testRankOverViewMissingKey() throws Exception {
+    @Ignore("DB-2170 - window function over view. (works periodically, why?)")
+    public void testDB2170RankOverViewMissingKey() throws Exception {
         String sqlText =
             String.format("select rank() over ( partition by yr order by hiredate ) as EMPRANK, ename," +
                               "hiredate from %s", this.getTableReference(VIEW_NAME));
@@ -1888,33 +1888,35 @@ public class WindowFunctionIT extends SpliceUnitTest {
     }
 
     @Test
-    public void testtDB2170MaxOverViewBogus() throws Exception {
+    @Ignore("DB-2170 - window function over view. (works periodically, why?)")
+    public void testDB2170MaxOverView() throws Exception {
         String sqlText =
             String.format("select max(hiredate) over () as maxhiredate, ename," +
-                              "hiredate from %s", this.getTableReference(VIEW_NAME));
+                              "hiredate from %s order by ename", this.getTableReference(VIEW_NAME));
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
-            "EMPRANK | ENAME | HIREDATE  |\n" +
-                "------------------------------\n" +
-                "    1    | ALLEN |1981-02-20 |\n" +
-                "    2    | WARD  |1981-02-22 |\n" +
-                "    3    | JONES |1981-04-02 |\n" +
-                "    4    | BLAKE |1981-05-01 |\n" +
-                "    5    | CLARK |1981-06-09 |\n" +
-                "    6    |TURNER |1981-09-08 |\n" +
-                "    7    |MARTIN |1981-09-28 |\n" +
-                "    8    | KING  |1981-11-17 |\n" +
-                "    9    | FORD  |1981-12-03 |\n" +
-                "    9    | JAMES |1981-12-03 |\n" +
-                "    1    | ADAMS |1983-01-12 |\n" +
-                "    1    |MILLER |1982-01-23 |\n" +
-                "    2    | SCOTT |1982-12-09 |\n" +
-                "    1    | SMITH |1980-12-17 |";
+            "MAXHIREDATE | ENAME | HIREDATE  |\n" +
+                "----------------------------------\n" +
+                " 1983-01-12  | ADAMS |1983-01-12 |\n" +
+                " 1983-01-12  | ALLEN |1981-02-20 |\n" +
+                " 1983-01-12  | BLAKE |1981-05-01 |\n" +
+                " 1983-01-12  | CLARK |1981-06-09 |\n" +
+                " 1983-01-12  | FORD  |1981-12-03 |\n" +
+                " 1983-01-12  | JAMES |1981-12-03 |\n" +
+                " 1983-01-12  | JONES |1981-04-02 |\n" +
+                " 1983-01-12  | KING  |1981-11-17 |\n" +
+                " 1983-01-12  |MARTIN |1981-09-28 |\n" +
+                " 1983-01-12  |MILLER |1982-01-23 |\n" +
+                " 1983-01-12  | SCOTT |1982-12-09 |\n" +
+                " 1983-01-12  | SMITH |1980-12-17 |\n" +
+                " 1983-01-12  |TURNER |1981-09-08 |\n" +
+                " 1983-01-12  | WARD  |1981-02-22 |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
+
     @Test
-    public void testtDB2170MaxBogus() throws Exception {
+    public void testDB2170MaxOverTable() throws Exception {
         String sqlText =
             String.format("select max(hiredate) over () as maxhiredate, ename, hiredate from %s order by ename",
                           this.getTableReference(TABLE4_NAME));
@@ -1943,7 +1945,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
     }
 
     @Test
-    public void testDB2170WithAggBogus() throws Exception {
+    public void testDB2170WithAggOverView() throws Exception {
         String sqlText =
             String.format("select max(hiredate) as maxhiredate, ename,hiredate from %s group by ename, hiredate",
                           this.getTableReference(VIEW_NAME));
