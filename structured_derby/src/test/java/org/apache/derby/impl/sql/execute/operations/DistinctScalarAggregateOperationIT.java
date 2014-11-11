@@ -1,5 +1,6 @@
 package org.apache.derby.impl.sql.execute.operations;
 
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 
@@ -87,7 +88,25 @@ public class DistinctScalarAggregateOperationIT extends SpliceUnitTest {
         }
     }
 
-    @Test
+		@Test
+		public void testDistinctCountWithQualifiedPreparedStatement() throws Exception {
+				/*Regression test for DB-2213*/
+				PreparedStatement ps = methodWatcher.prepareStatement("select count(distinct score) from "+spliceTableWatcher+" where oid = ?");
+
+				//set it to 2
+				ps.setInt(1,2);
+				ResultSet rs = ps.executeQuery();
+				Assert.assertTrue("Did not return any rows!",rs.next());
+				Assert.assertEquals("Incorrect count!",2,rs.getInt(1));
+
+				//now set it to something else and make sure it's correct
+				ps.setInt(1,3);
+				rs = ps.executeQuery();
+				Assert.assertTrue("Did not return any rows!",rs.next());
+				Assert.assertEquals("Incorrect count!",3,rs.getInt(1));
+		}
+
+		@Test
     public void testDistinctCount() throws Exception {
         ResultSet rs = methodWatcher.executeQuery("select count(distinct score) from" + this.getPaddedTableReference("ORDERSUMMARY"));
         if (rs.next()) {
