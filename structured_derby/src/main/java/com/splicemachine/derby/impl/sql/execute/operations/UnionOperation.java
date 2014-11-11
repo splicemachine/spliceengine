@@ -12,7 +12,6 @@ import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.job.TaskScheduler;
 import com.splicemachine.pipeline.exception.Exceptions;
-
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -121,6 +120,13 @@ public class UnionOperation extends SpliceBaseOperation {
 				super.open();
 				firstResultSet.open();
 				secondResultSet.open();
+		}
+
+		@Override
+		public void close() throws StandardException, IOException {
+			super.close();
+			if (firstResultSet != null) firstResultSet.close();
+			if (secondResultSet != null) secondResultSet.close();
 		}
 
 		@Override

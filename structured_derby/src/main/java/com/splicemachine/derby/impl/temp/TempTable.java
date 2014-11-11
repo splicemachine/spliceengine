@@ -11,7 +11,6 @@ import org.apache.hadoop.hbase.regionserver.StoreFile;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -29,10 +28,19 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class TempTable {
 		private static final Logger LOG = Logger.getLogger(TempTable.class);
+		
 		private final byte[] tempTableName;
 		private AtomicReference<SpreadBucket> spread;
 
-		public TempTable(byte[] tempTableName) {
+	    /**
+	     * Prefix that should be used for log messages related to splice specific
+	     * compaction logic, in particular for the temp table. Use this prefix here
+	     * and in {@link com.splicemachine.derby.impl.temp.TempTable}, so that
+	     * one grep command can find these messages regardless of originating class.
+	     */
+	    public static final String LOG_COMPACT_PRE = "(splicecompact)";
+	    
+	    public TempTable(byte[] tempTableName) {
 				this.tempTableName = tempTableName;
 				this.spread = new AtomicReference<SpreadBucket>(SpreadBucket.SIXTEEN);
 		}
@@ -54,76 +62,81 @@ public class TempTable {
 		 * @throws ExecutionException
 		 */
 		public void filterCompactionFiles(Configuration config,List<StoreFile> storeFiles) throws ExecutionException {
-				long deadDataThreshold = getTempCompactionThreshold(config);
+			long deadDataThreshold = getTempCompactionThreshold(config);
 
-				Iterator<StoreFile> storeFileIterator = storeFiles.iterator();
-				while (storeFileIterator.hasNext()) {
-						StoreFile storeFile = storeFileIterator.next();
-						StoreFile.Reader reader = storeFile.getReader();
-						long maxStoreTs = reader.getMaxTimestamp();
-						if (maxStoreTs >= deadDataThreshold) {
-								if(LOG.isTraceEnabled())
-										LOG.trace("Keeping file with max timestamp "+maxStoreTs+", since maxTimestamp >= "+deadDataThreshold);
-								//keep this store file around, it has data that's still interesting to us
-								storeFileIterator.remove();
-						}else if(LOG.isTraceEnabled()){
-								LOG.trace("Removing file with timestamp "+maxStoreTs+" and "+reader.getEntries()+" rows");
-						}
+			Iterator<StoreFile> storeFileIterator = storeFiles.iterator();
+			while (storeFileIterator.hasNext()) {
+				StoreFile storeFile = storeFileIterator.next();
+				StoreFile.Reader reader = storeFile.getReader();
+				long maxStoreTs = reader.getMaxTimestamp();
+				if (maxStoreTs >= deadDataThreshold) {
+					if (LOG.isTraceEnabled())
+						LOG.trace(String.format("%s Not removing file with max timestamp %d (>= %d threshold) ", LOG_COMPACT_PRE, maxStoreTs, deadDataThreshold));
+					// Remove it from this candidate list, which means we keep the store file around,
+					// because it has data that's still interesting to us.
+					storeFileIterator.remove();
+				} else if (LOG.isTraceEnabled()) {
+					LOG.trace(String.format("%s Removing file with max timestamp %d (< %d threshold) and %d rows",
+						LOG_COMPACT_PRE, maxStoreTs, deadDataThreshold, reader.getEntries()));
 				}
+			}
 		}
 
 		private long getTempCompactionThreshold(Configuration c) throws ExecutionException {
-				long[] activeOperations = SpliceDriver.driver().getJobScheduler().getActiveOperations();
-				if(LOG.isDebugEnabled()){
-						LOG.debug("Detected "+ activeOperations.length+" active operations");
-				}
-				if(LOG.isTraceEnabled())
-						LOG.trace("Active Operations: "+ Arrays.toString(activeOperations));
-				if(activeOperations.length==0){
-						//we can remove everything!
-						return System.currentTimeMillis();
-				}
-				//transform the operation ids into timestamps
-				long[] activeTimestamps = new long[activeOperations.length];
-				for(int i=0;i<activeOperations.length;i++){
-						if(activeOperations[i]!=-1)
-								activeTimestamps[i] = Snowflake.timestampFromUUID(activeOperations[i]);
-				}
+			long[] activeOperations = SpliceDriver.driver().getJobScheduler().getActiveOperations();
 
-						/*
-						 * HBase has a configurable "max clock skew" setting, which forces the RegionServer to have a System
-						 * clock within <maxClockSkew> milliseconds of the Master. As a consequence of that, all RegionServers
-						 * should have pretty close to the same time (within some multiple of clockSkew). We opt conservatively
-						 * here and assume that we can have a system clock difference between two regionservers of 2*clockSkew.
-						 *
-						 * In practice, we want this clock Skew to be very small anyway, because we could run the risk of
-						 * duplicate UUIDs if the system clock gets reset (e.g. it's best to run ntp or some other system
-						 * to maintain consistent system clocks).
-						 *
-						 */
-				long maxClockSkew = c.getLong("hbase.master.maxclockskew", 30000);
-				maxClockSkew*=2; //unfortunate fudge factor to deal with the reality of different system clocks
+			if (LOG.isDebugEnabled()) {
+				LOG.debug(String.format("%s Detected %d active operations", LOG_COMPACT_PRE, activeOperations.length));
+			}
+			
+			// Comment this out for now. This can be 10k, 100k, huge even for trace level.
+			// if (LOG.isTraceEnabled())
+			//		LOG.trace("Active Operations: "+ Arrays.toString(activeOperations));
+			
+			if (activeOperations.length==0) {
+				//we can remove everything!
+				return System.currentTimeMillis();
+			}
+			//transform the operation ids into timestamps
+			long[] activeTimestamps = new long[activeOperations.length];
+			for(int i=0;i<activeOperations.length;i++){
+				if(activeOperations[i]!=-1)
+					activeTimestamps[i] = Snowflake.timestampFromUUID(activeOperations[i]);
+			}
 
-				long l = Longs.min(activeTimestamps) - maxClockSkew;
-				if(LOG.isTraceEnabled())
-						LOG.trace("Removing data which occurs before timestamp "+ l);
-				return l;
+			/*
+			 * HBase has a configurable "max clock skew" setting, which forces the RegionServer to have a System
+			 * clock within <maxClockSkew> milliseconds of the Master. As a consequence of that, all RegionServers
+			 * should have pretty close to the same time (within some multiple of clockSkew). We opt conservatively
+			 * here and assume that we can have a system clock difference between two regionservers of 2*clockSkew.
+			 *
+			 * In practice, we want this clock Skew to be very small anyway, because we could run the risk of
+			 * duplicate UUIDs if the system clock gets reset (e.g. it's best to run ntp or some other system
+			 * to maintain consistent system clocks).
+			 */
+			long maxClockSkew = c.getLong("hbase.master.maxclockskew", 30000);
+			maxClockSkew*=2; // unfortunate fudge factor to deal with the reality of different system clocks
+			long maxToUse = Longs.min(activeTimestamps) - maxClockSkew;
+			if (LOG.isTraceEnabled())
+				LOG.trace(String.format("%s Looking to remove files with timestamp before: %d", LOG_COMPACT_PRE, maxToUse));
+			
+			return maxToUse;
 		}
 
 		public byte[] getTempTableName() {
-				return tempTableName;
+			return tempTableName;
 		}
 
 		private static class NoOpInternalScanner implements InternalScanner{
 
-				@Override public boolean next(List<KeyValue> results) throws IOException { return false;   }
+			@Override public boolean next(List<KeyValue> results) throws IOException { return false;   }
 
-				@Override public boolean next(List<KeyValue> results, String metric) throws IOException { return false;}
+			@Override public boolean next(List<KeyValue> results, String metric) throws IOException { return false;}
 
-				@Override public boolean next(List<KeyValue> result, int limit) throws IOException { return false;}
+			@Override public boolean next(List<KeyValue> result, int limit) throws IOException { return false;}
 
-				@Override public boolean next(List<KeyValue> result, int limit, String metric) throws IOException { return false; }
+			@Override public boolean next(List<KeyValue> result, int limit, String metric) throws IOException { return false; }
 
-				@Override public void close() throws IOException { }
+			@Override public void close() throws IOException { }
 		}
 }

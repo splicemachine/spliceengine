@@ -242,16 +242,18 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(getWriteIntakeInfo);
 
-        			/*
-        			 * Procedure get the active statements' job and task status
-        			 */
-                    Procedure getActiveJobIDs = Procedure.newBuilder().name("SYSCS_GET_ACTIVE_JOB_IDS")
+                    // Please leave here commented out for now. Will remove this code permanently
+                    // once we have another mechanism by which to quickly count this from
+                    // a client app. For internal debugging purposes only.
+                    /*
+                    Procedure getActiveJobCount = Procedure.newBuilder().name("SYSCS_GET_ACTIVE_JOB_COUNT")
                             .numOutputParams(0)
                             .numResultSets(1)
                             .ownerClass(SpliceAdmin.class.getCanonicalName())
                             .build();
-                    procedures.add(getActiveJobIDs);
-
+                    procedures.add(getActiveJobCount);
+					*/
+                    
         			/*Procedure to get the completed statement's summary*/
                     Procedure getCompletedStatements = Procedure.newBuilder().name("SYSCS_GET_PAST_STATEMENT_SUMMARY")
                             .numOutputParams(0)

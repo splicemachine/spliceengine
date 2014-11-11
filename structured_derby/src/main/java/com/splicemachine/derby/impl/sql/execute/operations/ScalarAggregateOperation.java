@@ -130,7 +130,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 		@Override
 		public void close() throws StandardException, IOException {
 				super.close();
-				source.close();
+				if (source != null) source.close();
 		}
 
 		@Override
@@ -277,12 +277,12 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 				return BareKeyHash.encoder(IntArrays.count(execRowDefinition.nColumns()),null,serializers);
 		}
 
-		@Override
-		public String toString() {
-				return "ScalarAggregateOperation {source=" + source + "}";
-		}
+	    @Override
+	    public String toString() {
+	        return String.format("ScalarAggregateOperation {resultSetNumber=%d, source=%s}", resultSetNumber, source);
+	    }
 
-		public boolean isSingleInputRow() {
+	    public boolean isSingleInputRow() {
 				return this.singleInputRow;
 		}
 

@@ -124,6 +124,12 @@ public class AnyOperation extends SpliceBaseOperation {
     }
 
     @Override
+    public void close() throws StandardException, IOException {
+        super.close();
+        if (source != null) source.close();
+    }
+
+    @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException {
         super.init(context);
         source.init(context);

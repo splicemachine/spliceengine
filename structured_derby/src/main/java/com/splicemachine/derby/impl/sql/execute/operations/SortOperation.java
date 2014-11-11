@@ -405,17 +405,11 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 		@Override
 		public void close() throws StandardException, IOException {
 				SpliceLogUtils.trace(LOG, "close in Sort");
+				
 				beginTime = getCurrentTimeMillis();
-//        if (isOpen) {
-//            if(reduceScan!=null)
-//                SpliceDriver.driver().getTempCleaner().deleteRange(uniqueSequenceID,reduceScan.getStartRow(),reduceScan.getStopRow());
-//            clearCurrentRow();
-//
-//            sortResult = null;
-				source.close();
-
+				
+				if (source != null) source.close();
 				super.close();
-//        }
 
 				closeTime += getElapsedMillis(beginTime);
 

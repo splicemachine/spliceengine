@@ -211,8 +211,9 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
 				if(scanner!=null)
 						scanner.close();
 				super.close();
-				if(source!=null)
-						source.close();
+				// TODO: check why we cal source.close() even though we don't call source.open() from open()
+                if(source!=null)
+                        source.close();
 		}
 
 		@Override
@@ -497,5 +498,10 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
 				//don't use a transaction for this, since we are reading from temp
 				return RegionAwareScanner.create(null,region,baseScan,SpliceConstants.TEMP_TABLE_BYTES,boundary,spliceRuntimeContext);
 		}
+
+	    @Override
+	    public String toString() {
+	        return String.format("DistinctScalarAggregateOperation {resultSetNumber=%d, source=%s}", resultSetNumber, source);
+	    }
 
 }

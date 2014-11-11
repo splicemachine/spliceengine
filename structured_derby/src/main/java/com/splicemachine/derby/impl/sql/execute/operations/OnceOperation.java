@@ -55,7 +55,7 @@ public class OnceOperation extends SpliceBaseOperation {
 		private int cardinalityCheck;
 		public int subqueryNumber;
 		public int pointOfAttachment;
-
+        // TODO: dataProvider is never set, never used - remove it?
 		private RowProvider dataProvider; // used for local calls to nextRow()
 		private RowSource rowSource;
 

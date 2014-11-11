@@ -407,7 +407,6 @@ class JobControl implements JobFuture {
                         }
                     }
             );
-            jobMetrics.addJob(job);
         }catch (Throwable throwable) {
             throw new ExecutionException(throwable);
         }

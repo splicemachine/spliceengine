@@ -148,8 +148,13 @@ public class RowCountOperation extends SpliceBaseOperation{
 
 		@Override
 		public void open() throws StandardException, IOException {
-				super.open();
-				source.open();
+			super.open();
+			source.open();
+		}
+
+		public void close() throws StandardException, IOException {
+			super.close();
+			source.close();
 		}
 
 		@Override

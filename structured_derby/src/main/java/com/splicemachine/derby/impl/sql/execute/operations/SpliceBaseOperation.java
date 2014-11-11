@@ -45,6 +45,7 @@ import java.util.List;
 public abstract class SpliceBaseOperation implements SpliceOperation, Externalizable {
 		private static final long serialVersionUID = 4l;
 		private static Logger LOG = Logger.getLogger(SpliceBaseOperation.class);
+		private static Logger LOG_CLOSE = Logger.getLogger(SpliceBaseOperation.class.getName() + ".close");
         public static ThreadLocal<List<XplainOperationChainInfo>> operationChain =
                 new ThreadLocal<List<XplainOperationChainInfo>>();
         protected XplainOperationChainInfo operationChainInfo;
@@ -211,30 +212,37 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
 		@Override
 		public void clearCurrentRow() {
-				if(activation!=null){
-						int resultSetNumber = operationInformation.getResultSetNumber();
-						if(resultSetNumber!=-1)
-								activation.clearCurrentRow(resultSetNumber);
-				}
+				//
+				// DO NOT call activation.clearCurrentRow here.
+			    // Even when closing a top operation, certain queries
+			    // (such as the one in TPCH20) need the activation
+				// with its state intact. Resolving DB-2136 exposed
+			    // this hole, which had previously been masked.
+				//
+//			    if(activation!=null){
+//						int resultSetNumber = operationInformation.getResultSetNumber();
+//						if(resultSetNumber!=-1)
+//								activation.clearCurrentRow(resultSetNumber);
+//				}
+			
 				currentRow=null;
 		}
 
 		@Override
 		public void close() throws StandardException,IOException {
-				if(LOG.isTraceEnabled())
-						LOG.trace("closing operation "+ this);
+				if (LOG_CLOSE.isTraceEnabled())
+					LOG_CLOSE.trace(String.format("closing operation %s: %s", jobResults != null ? "and cleaning results" : "", this));
+
 				clearCurrentRow();
-				if(jobResults!=null)
-						jobResults.cleanup();
+				
+				if (jobResults != null)
+					jobResults.cleanup();
 		}
 
-
-		//	@Override
 		public void addWarning(SQLWarning w) {
 				activation.addWarning(w);
 		}
 
-		//	@Override
 		public SQLWarning getWarnings() {
 				return activation.getWarnings();
 		}
@@ -243,12 +251,12 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		public void markAsTopResultSet() {
 				this.isTopResultSet = true;
 		}
+
 		@Override
 		public void open() throws StandardException, IOException {
 				this.uniqueSequenceID = operationInformation.getUUIDGenerator().nextBytes();
-//        init(SpliceOperationContext.newContext(activation));
 		}
-		//	@Override
+
 		public double getEstimatedRowCount() {
 				return operationInformation.getEstimatedRowCount();
 		}
@@ -257,6 +265,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		public int resultSetNumber() {
 				return operationInformation.getResultSetNumber();
 		}
+
 		@Override
 		public void setCurrentRow(ExecRow row) {
 				operationInformation.setCurrentRow(row);
