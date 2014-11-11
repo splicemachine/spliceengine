@@ -7,19 +7,22 @@ package com.splicemachine.si.impl.region;
  */
 
 import java.io.IOException;
+
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.Txn.IsolationLevel;
 import com.splicemachine.si.api.Txn.State;
 import com.splicemachine.si.impl.DenseTxn;
+import com.splicemachine.si.impl.SparseTxn;
 import com.splicemachine.si.impl.TxnUtils;
 import com.splicemachine.utils.ByteSlice;
+
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Put;
 
-public class V2TxnDecoder<Put extends OperationWithAttributes,Delete,Get extends OperationWithAttributes, Scan> extends AbstractV2TxnDecoder<DenseTxn,KeyValue,Put,Delete,Get,Scan>{   
+public class V2TxnDecoder<Put extends OperationWithAttributes,Delete,Get extends OperationWithAttributes, Scan> extends AbstractV2TxnDecoder<SparseTxn,KeyValue,Put,Delete,Get,Scan>{   
     public static final V2TxnDecoder INSTANCE = new V2TxnDecoder();
     private V2TxnDecoder() { 
     	super();
@@ -47,7 +50,7 @@ public class V2TxnDecoder<Put extends OperationWithAttributes,Delete,Get extends
 	 * order: counter,data,destinationTable,globalCommitTimestamp,keepAlive,state,commitTimestamp,
 	 */
 @Override
-	public org.apache.hadoop.hbase.client.Put encodeForPut(DenseTxn txn) throws IOException {
+	public org.apache.hadoop.hbase.client.Put encodeForPut(SparseTxn txn) throws IOException {
 		org.apache.hadoop.hbase.client.Put put = new org.apache.hadoop.hbase.client.Put(TxnUtils.getRowKey(txn.getTxnId()));
 		MultiFieldEncoder metaFieldEncoder = MultiFieldEncoder.create(5);
 		metaFieldEncoder.encodeNext(txn.getBeginTimestamp()).encodeNext(txn.getParentTxnId());
