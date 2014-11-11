@@ -2,13 +2,9 @@ package com.splicemachine.si.data.hbase;
 
 
 import com.splicemachine.collections.CloseableIterator;
+import com.splicemachine.si.data.api.SRowLock;
 import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Delete;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.Mutation;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HRegionUtil;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
@@ -78,8 +74,9 @@ public class HbRegion implements IHTable {
     }
 
 		@Override
-		public Integer tryLock(byte[] rowKey) throws IOException {
-				return region.getLock(null, rowKey, false);
+		public SRowLock tryLock(byte[] rowKey) throws IOException {
+        Integer lock = region.getLock(null, rowKey, false);
+        return new HbRowLock(lock,region);
 		}
 
 		@Override
@@ -89,8 +86,8 @@ public class HbRegion implements IHTable {
 
     @SuppressWarnings("deprecation")
     @Override
-    public void put(Put put, Integer rowLock) throws IOException {
-        region.put(put, rowLock);
+    public void put(Put put, SRowLock rowLock) throws IOException {
+        region.put(put, rowLock.getLockId());
     }
 
     @Override
@@ -120,12 +117,12 @@ public class HbRegion implements IHTable {
     }
 
     @Override
-    public Integer lockRow(byte[] rowKey) throws IOException {
+    public SRowLock lockRow(byte[] rowKey) throws IOException {
         final Integer lock = region.obtainRowLock(rowKey);
         if (lock == null) {
             throw new RuntimeException("Unable to obtain row lock on region of table " + region.getTableDesc().getNameAsString());
         }
-        return lock;
+        return new HbRowLock(lock,region);
     }
 
     @Override

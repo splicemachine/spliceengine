@@ -1,5 +1,6 @@
 package com.splicemachine.si.data.hbase;
 
+import com.splicemachine.si.data.api.SRowLock;
 import com.splicemachine.si.data.api.STableWriter;
 
 import org.apache.hadoop.hbase.KeyValue;
@@ -21,7 +22,7 @@ public class HTableWriter implements STableWriter<IHTable, Mutation, Put, Delete
     }
 
     @Override
-    public void write(IHTable table, Put put, Integer rowLock) throws IOException {
+    public void write(IHTable table, Put put, SRowLock rowLock) throws IOException {
         table.put(put, rowLock);
     }
 
@@ -46,7 +47,7 @@ public class HTableWriter implements STableWriter<IHTable, Mutation, Put, Delete
     }
 
 		@Override
-		public Integer tryLock(IHTable ihTable, byte[] rowKey) throws IOException{
+		public SRowLock tryLock(IHTable ihTable, byte[] rowKey) throws IOException{
 				return ihTable.tryLock(rowKey);
 		}
 
@@ -56,12 +57,7 @@ public class HTableWriter implements STableWriter<IHTable, Mutation, Put, Delete
     }
 
     @Override
-    public Integer lockRow(IHTable table, byte[] rowKey) throws IOException {
+    public SRowLock lockRow(IHTable table, byte[] rowKey) throws IOException {
         return table.lockRow(rowKey);
-    }
-
-    @Override
-    public void unLockRow(IHTable table, Integer lock) throws IOException {
-        table.unLockRow(lock);
     }
 }

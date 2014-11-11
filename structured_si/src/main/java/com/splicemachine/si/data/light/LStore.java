@@ -8,9 +8,9 @@ import com.splicemachine.collections.CloseableIterator;
 import com.splicemachine.collections.ForwardingCloseableIterator;
 import com.splicemachine.si.api.Clock;
 import com.splicemachine.si.api.Transactor;
+import com.splicemachine.si.data.api.SRowLock;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
-import com.splicemachine.si.impl.SICompactionState;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
@@ -25,8 +25,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class LStore implements STableReader<LTable, LGet, LGet>,
         STableWriter<LTable, LTuple, LTuple, LTuple> {
-    private final Map<String, Map<byte[], Integer>> locks = Maps.newTreeMap();
-    private final Map<String, Map<Integer, byte[]>> reverseLocks = Maps.newTreeMap();
+    private final Map<String, Map<byte[], SRowLock>> locks = Maps.newTreeMap();
+    private final Map<String, Map<SRowLock, byte[]>> reverseLocks = Maps.newTreeMap();
     private final Map<String, List<LTuple>> relations = Maps.newTreeMap();
     private final Clock clock;
 
@@ -178,7 +178,7 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
     }
 
     @Override
-    public void write(LTable table, LTuple put, Integer rowLock) throws IOException {
+    public void write(LTable table, LTuple put, SRowLock rowLock) throws IOException {
         write(table, put);
     }
 
@@ -211,7 +211,7 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
 
     @Override
     public boolean checkAndPut(LTable table, final byte[] family, final byte[] qualifier, byte[] expectedValue, LTuple put) throws IOException {
-        Integer lock = null;
+        SRowLock lock = null;
         try {
             lock = lockRow(table, put.key);
             LGet get = new LGet(put.key, put.key, null, null, null);
@@ -239,7 +239,7 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
             }
         } finally {
             if (lock != null) {
-                unLockRow(table, lock);
+                lock.unlock();
             }
         }
     }
@@ -249,20 +249,20 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
     }
 
     @Override
-    public Integer lockRow(LTable sTable, byte[] rowKey) {
+    public SRowLock lockRow(LTable sTable, byte[] rowKey) {
         synchronized (this) {
             String table = sTable.relationIdentifier;
-            Map<byte[], Integer> lockTable = locks.get(table);
-            Map<Integer, byte[]> reverseLockTable = reverseLocks.get(table);
+            Map<byte[], SRowLock> lockTable = locks.get(table);
+            Map<SRowLock, byte[]> reverseLockTable = reverseLocks.get(table);
             if (lockTable == null) {
                 lockTable = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
                 reverseLockTable = Maps.newHashMap();
                 locks.put(table, lockTable);
                 reverseLocks.put(table, reverseLockTable);
             }
-            Integer currentLock = lockTable.get(rowKey);
+            SRowLock currentLock = lockTable.get(rowKey);
             if (currentLock == null) {
-								currentLock = lockIdGenerator.incrementAndGet();
+								currentLock = new LRowLock(lockIdGenerator.incrementAndGet(), this, sTable);
                 lockTable.put(rowKey, currentLock);
                 reverseLockTable.put(currentLock, rowKey);
                 return currentLock;
@@ -271,12 +271,11 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
         }
     }
 
-    @Override
-    public void unLockRow(LTable sTable, Integer lock) {
+    public void unLockRow(LTable sTable, SRowLock lock) {
         synchronized (this) {
             String table = sTable.relationIdentifier;
-            Map<byte[], Integer> lockTable = locks.get(table);
-            Map<Integer, byte[]> reverseLockTable = reverseLocks.get(table);
+            Map<byte[], SRowLock> lockTable = locks.get(table);
+            Map<SRowLock, byte[]> reverseLockTable = reverseLocks.get(table);
             if (lockTable == null) {
                 throw new RuntimeException("unlocking unknown lock: " + table);
             }
@@ -354,7 +353,7 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
     }
 
 		@Override
-		public Integer tryLock(LTable lTable, byte[] rowKey) {
+		public SRowLock tryLock(LTable lTable, byte[] rowKey) {
 				return lockRow(lTable, rowKey);
 		}
 

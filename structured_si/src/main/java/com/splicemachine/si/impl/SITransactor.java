@@ -13,6 +13,7 @@ import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.si.api.*;
 import com.splicemachine.si.data.api.SDataLib;
+import com.splicemachine.si.data.api.SRowLock;
 import com.splicemachine.si.data.api.STableWriter;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -268,7 +269,7 @@ public class SITransactor<Table,
                                                 Collection<KVPair> mutations,
                                                 ConstraintChecker constraintChecker) throws IOException {
 				OperationStatus[] finalStatus = new OperationStatus[mutations.size()];
-				Pair<KVPair,Integer>[] lockPairs = new Pair[mutations.size()];
+				Pair<KVPair,SRowLock>[] lockPairs = new Pair[mutations.size()];
 				TxnFilter constraintState = null;
 				if(constraintChecker!=null)
 						constraintState = new SimpleTxnFilter(transactionStore,txn, NoOpReadResolver.INSTANCE,dataStore);
@@ -317,16 +318,11 @@ public class SITransactor<Table,
 //        }
     }
 
-    private void releaseLocksForKvBatch(Table table, Pair<KVPair, Integer>[] locks){
+    private void releaseLocksForKvBatch(Table table, Pair<KVPair, SRowLock>[] locks){
 				if(locks==null) return;
-				for(Pair<KVPair,Integer>lock:locks){
-						if(lock==null) continue;
-						try {
-								dataWriter.unLockRow(table,lock.getSecond());
-						} catch (IOException e) {
-								LOG.error("Unable to unlock row "+ Bytes.toStringBinary(lock.getFirst().getRow()),e);
-								//ignore otherwise
-						}
+				for(Pair<KVPair,SRowLock>lock:locks){
+						if(lock==null || lock.getSecond()==null) continue;
+						lock.getSecond().unlock();
 				}
 		}
 
@@ -347,7 +343,7 @@ public class SITransactor<Table,
 
     private IntObjectOpenHashMap<Pair<Mutation,Integer>> checkConflictsForKvBatch(Table table,
                                                                     RollForward rollForwardQueue,
-                                                                    Pair<KVPair, Integer>[] dataAndLocks,
+                                                                    Pair<KVPair, SRowLock>[] dataAndLocks,
                                                                     LongOpenHashSet[] conflictingChildren,
                                                                     TxnView transaction,
                                                                     byte[] family, byte[] qualifier,
@@ -356,7 +352,7 @@ public class SITransactor<Table,
                                                                     OperationStatus[] finalStatus) throws IOException{
         IntObjectOpenHashMap<Pair<Mutation,Integer>> finalMutationsToWrite = IntObjectOpenHashMap.newInstance();
         for(int i=0;i<dataAndLocks.length;i++){
-            Pair<KVPair,Integer> baseDataAndLock = dataAndLocks[i];
+            Pair<KVPair,SRowLock> baseDataAndLock = dataAndLocks[i];
             if(baseDataAndLock==null) continue;
 
             ConflictResults conflictResults = ConflictResults.NO_CONFLICT;
@@ -397,7 +393,7 @@ public class SITransactor<Table,
             conflictingChildren[i] = conflictResults.childConflicts;
             Mutation mutationToRun = getMutationToRun(table, rollForwardQueue, kvPair,
                     family, qualifier, transaction, conflictResults);
-						finalMutationsToWrite.put(i, Pair.newPair(mutationToRun, baseDataAndLock.getSecond()));
+						finalMutationsToWrite.put(i, Pair.newPair(mutationToRun, baseDataAndLock.getSecond().getLockId()));
 				}
 				return finalMutationsToWrite;
 		}
@@ -443,7 +439,7 @@ public class SITransactor<Table,
 		private static final boolean unsafeWrites = Boolean.getBoolean("splice.unsafe.writes");
 
 
-		private void lockRows(Table table, Collection<KVPair> mutations, Pair<KVPair,Integer>[] mutationsAndLocks,OperationStatus[] finalStatus) throws IOException {
+		private void lockRows(Table table, Collection<KVPair> mutations, Pair<KVPair,SRowLock>[] mutationsAndLocks,OperationStatus[] finalStatus) throws IOException {
 				/*
 				 * We attempt to lock each row in the collection.
 				 *
@@ -455,7 +451,7 @@ public class SITransactor<Table,
 				 */
 				int position=0;
 				for(KVPair mutation:mutations){
-						Integer lock = dataWriter.tryLock(table,mutation.getRow());
+						SRowLock lock = dataWriter.tryLock(table,mutation.getRow());
 						if(lock!=null)
 								mutationsAndLocks[position] = Pair.newPair(mutation,lock);
 						else

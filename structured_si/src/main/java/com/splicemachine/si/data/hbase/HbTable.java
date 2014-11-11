@@ -2,6 +2,7 @@ package com.splicemachine.si.data.hbase;
 
 import com.splicemachine.collections.CloseableIterator;
 import com.splicemachine.collections.ForwardingCloseableIterator;
+import com.splicemachine.si.data.api.SRowLock;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -65,7 +66,7 @@ public class HbTable implements IHTable {
     }
 
 		@Override
-		public Integer tryLock(byte[] rowKey) {
+		public SRowLock tryLock(byte[] rowKey) {
 				try {
 						return lockRow(rowKey);
 				} catch (IOException e) {
@@ -79,7 +80,7 @@ public class HbTable implements IHTable {
     }
 
     @Override
-    public void put(Put put, Integer rowLock) throws IOException {
+    public void put(Put put, SRowLock rowLock) throws IOException {
         table.put(put);
     }
 
@@ -109,7 +110,7 @@ public class HbTable implements IHTable {
     }
 
     @Override
-    public Integer lockRow(byte[] rowKey) throws IOException {
+    public SRowLock lockRow(byte[] rowKey) throws IOException {
         throw new RuntimeException("not implemented");
     }
 

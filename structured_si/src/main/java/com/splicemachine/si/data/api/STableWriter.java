@@ -12,7 +12,7 @@ import java.util.List;
  */
 public interface STableWriter<Table, Mutation, Put, Delete> {
     void write(Table Table, Put put) throws IOException;
-    void write(Table Table, Put put, Integer rowLock) throws IOException;
+    void write(Table Table, Put put, SRowLock rowLock) throws IOException;
     void write(Table Table, Put put, boolean durable) throws IOException;
     void write(Table Table, List<Put> puts) throws IOException;
     OperationStatus[] writeBatch(Table table, Pair<Mutation, Integer>[] puts) throws IOException;
@@ -24,9 +24,8 @@ public interface STableWriter<Table, Mutation, Put, Delete> {
 		 * @param rowKey the row to lock
 		 * @return the id of the lock acquired, or {@code null} if the lock was not able to be acquired.
 		 */
-		Integer tryLock(Table table, byte[] rowKey) throws IOException;
-		//TODO -sf- can we replace this with an actual Lock abstraction?
-    Integer lockRow(Table Table, byte[] rowKey) throws IOException;
-    void unLockRow(Table Table, Integer lock) throws IOException;
+		SRowLock tryLock(Table table, byte[] rowKey) throws IOException;
+    SRowLock lockRow(Table Table, byte[] rowKey) throws IOException;
+
     boolean checkAndPut(Table Table, byte[] family, byte[] qualifier, byte[] expectedValue, Put put) throws IOException;
 }
