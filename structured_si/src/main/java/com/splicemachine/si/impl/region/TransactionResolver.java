@@ -61,14 +61,14 @@ import java.util.concurrent.ThreadPoolExecutor;
  * @author Scott Fines
  * Date: 8/19/14
  */
-public class TransactionResolver<Transaction> {
+public class TransactionResolver<Transaction,TableBuffer> {
     private static final Logger LOG = Logger.getLogger(TransactionResolver.class);
     @ThreadSafe private final TxnSupplier txnSupplier;
     private final RingBuffer<TxnResolveEvent<Transaction>> ringBuffer;
     private final Disruptor<TxnResolveEvent<Transaction>> disruptor;
     private final ThreadPoolExecutor consumerThreads;
     private volatile boolean stopped;
-    protected STransactionLib<Transaction> transactionLib;
+    protected STransactionLib<Transaction,TableBuffer> transactionLib;
 
     public TransactionResolver(TxnSupplier txnSupplier, int numThreads, int bufferSize) {
         this.txnSupplier = txnSupplier;

@@ -14,7 +14,9 @@ import com.splicemachine.si.impl.TransactionTimestamps;
 import com.splicemachine.si.impl.region.RegionTxnStore;
 import com.splicemachine.si.impl.SparseTxn;
 import com.splicemachine.si.impl.region.TransactionResolver;
+import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.Source;
+
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
@@ -25,6 +27,7 @@ import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.ipc.HBaseServer;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -38,7 +41,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 public class TxnLifecycleEndpoint extends BaseEndpointCoprocessor implements TxnLifecycleProtocol {
 		private static final Logger LOG = Logger.getLogger(TxnLifecycleEndpoint.class);
 		private LongStripedSynchronizer<ReadWriteLock> lockStriper;
-		private RegionTxnStore<SparseTxn,KeyValue,Put,Get> regionStore;
+		private RegionTxnStore<SparseTxn,ByteSlice,KeyValue,Put,Get> regionStore;
 		private HRegion region;
 		private TimestampSource timestampSource;
 
