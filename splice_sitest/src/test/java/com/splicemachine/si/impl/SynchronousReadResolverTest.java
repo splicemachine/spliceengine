@@ -11,7 +11,6 @@ import com.splicemachine.si.api.TxnLifecycleManager;
 import com.splicemachine.si.api.TxnStore;
 import com.splicemachine.si.impl.readresolve.SynchronousReadResolver;
 import com.splicemachine.si.impl.rollforward.RollForwardStatus;
-
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Put;
@@ -23,7 +22,6 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
