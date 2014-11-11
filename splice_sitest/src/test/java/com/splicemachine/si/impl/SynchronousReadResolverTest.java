@@ -3,6 +3,7 @@ package com.splicemachine.si.impl;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.encoding.Encoding;
+import com.splicemachine.impl.MockRegionUtils;
 import com.splicemachine.si.SimpleTimestampSource;
 import com.splicemachine.si.api.ReadResolver;
 import com.splicemachine.si.api.Txn;
@@ -10,6 +11,7 @@ import com.splicemachine.si.api.TxnLifecycleManager;
 import com.splicemachine.si.api.TxnStore;
 import com.splicemachine.si.impl.readresolve.SynchronousReadResolver;
 import com.splicemachine.si.impl.rollforward.RollForwardStatus;
+
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Put;
@@ -35,7 +37,7 @@ public class SynchronousReadResolverTest {
 
 		@Test
 		public void testResolveRolledBackWorks() throws Exception {
-				HRegion region = TxnTestUtils.getMockRegion();
+				HRegion region = MockRegionUtils.getMockRegion();
 
         final TxnStore store = new InMemoryTxnStore(new SimpleTimestampSource(),Long.MAX_VALUE);
 				ReadResolver resolver = SynchronousReadResolver.getResolver(region,store,new RollForwardStatus());
@@ -80,7 +82,7 @@ public class SynchronousReadResolverTest {
 
 		@Test
 		public void testResolvingCommittedWorks() throws Exception {
-				HRegion region = TxnTestUtils.getMockRegion();
+				HRegion region = MockRegionUtils.getMockRegion();
 
         final SimpleTimestampSource commitTsGenerator = new SimpleTimestampSource();
         final TxnStore store = new InMemoryTxnStore(commitTsGenerator,Long.MAX_VALUE);
@@ -130,7 +132,7 @@ public class SynchronousReadResolverTest {
 
 		@Test
 		public void testResolvingCommittedDoesNotHappenUntilParentCommits() throws Exception {
-				HRegion region = TxnTestUtils.getMockRegion();
+				HRegion region = MockRegionUtils.getMockRegion();
 
         SimpleTimestampSource timestampSource = new SimpleTimestampSource();
         TxnStore store = new InMemoryTxnStore(timestampSource,Long.MAX_VALUE);

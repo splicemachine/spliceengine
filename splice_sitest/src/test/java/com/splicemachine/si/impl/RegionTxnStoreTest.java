@@ -1,17 +1,18 @@
 package com.splicemachine.si.impl;
 
+import com.splicemachine.impl.MockRegionUtils;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.impl.region.RegionTxnStore;
 import com.splicemachine.si.impl.region.TransactionResolver;
 import com.splicemachine.utils.ByteSlice;
+
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
 import static com.splicemachine.si.impl.TxnTestUtils.assertTxnsMatch;
-import static com.splicemachine.si.impl.TxnTestUtils.getMockRegion;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyLong;
@@ -26,7 +27,7 @@ public class RegionTxnStoreTest {
 
 		@Test
 		public void testCanWriteAndReadNewTransactionInformation() throws Exception {
-				HRegion region = getMockRegion();
+				HRegion region = MockRegionUtils.getMockRegion();
 
         TransactionResolver resolver = getTransactionResolver();
 				RegionTxnStore store = new RegionTxnStore(region,resolver,mock(TxnSupplier.class),SIFactoryDriver.siFactory.getDataLib(),SIFactoryDriver.siFactory.getTransactionLib());
@@ -41,7 +42,7 @@ public class RegionTxnStoreTest {
 
     @Test
 		public void testCanCommitATransaction() throws Exception {
-				HRegion region = getMockRegion();
+				HRegion region = MockRegionUtils.getMockRegion();
 
 				RegionTxnStore store = new RegionTxnStore(region,getTransactionResolver(),mock(TxnSupplier.class),SIFactoryDriver.siFactory.getDataLib(),SIFactoryDriver.siFactory.getTransactionLib());
 
@@ -74,7 +75,7 @@ public class RegionTxnStoreTest {
 
 		@Test
 		public void testCanRollbackATransaction() throws Exception {
-				HRegion region = getMockRegion();
+				HRegion region = MockRegionUtils.getMockRegion();
 
 				RegionTxnStore store = new RegionTxnStore(region,getTransactionResolver(),mock(TxnSupplier.class),SIFactoryDriver.siFactory.getDataLib(),SIFactoryDriver.siFactory.getTransactionLib());
 
@@ -98,7 +99,7 @@ public class RegionTxnStoreTest {
 		@Test
 //    @Ignore
 		public void testCanGetActiveTransactions() throws Exception {
-				HRegion region = getMockRegion();
+				HRegion region = MockRegionUtils.getMockRegion();
 
 				RegionTxnStore store = new RegionTxnStore(region,getTransactionResolver(),mock(TxnSupplier.class),SIFactoryDriver.siFactory.getDataLib(),SIFactoryDriver.siFactory.getTransactionLib());
 
@@ -112,7 +113,7 @@ public class RegionTxnStoreTest {
 
 		@Test
 		public void testGetActiveTransactionsFiltersOutRolledbackTxns() throws Exception {
-				HRegion region = getMockRegion();
+				HRegion region = MockRegionUtils.getMockRegion();
 
 				RegionTxnStore store = new RegionTxnStore(region,getTransactionResolver(),mock(TxnSupplier.class),SIFactoryDriver.siFactory.getDataLib(),SIFactoryDriver.siFactory.getTransactionLib());
 
@@ -128,7 +129,7 @@ public class RegionTxnStoreTest {
 
 		@Test
 		public void testGetActiveTransactionsFiltersOutCommittedTxns() throws Exception {
-				HRegion region = getMockRegion();
+				HRegion region = MockRegionUtils.getMockRegion();
 
 				RegionTxnStore store = new RegionTxnStore(region,getTransactionResolver(),mock(TxnSupplier.class),SIFactoryDriver.siFactory.getDataLib(),SIFactoryDriver.siFactory.getTransactionLib());
 
