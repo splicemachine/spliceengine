@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.job.scheduler;
 
+import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.RollForwardTask;
 import com.splicemachine.derby.impl.job.index.CreateIndexTask;
@@ -41,7 +42,7 @@ public class SchedulerPriorities {
 
 
 		public TieredTaskSchedulerSetup getSchedulerSetup(){
-				int numThreads = config.getInt(SpliceConstants.TOTAL_WORKERS,SpliceConstants.DEFAULT_TOTAL_WORKERS);
+				int numThreads = SIConstants.taskWorkers;
 				String type = config.get(TIER_STRATEGY);
 				if(type==null || type.equals("binaryNormalized")){
 						return SchedulerSetups.binaryNormalizedSetup(numThreads,numTiers,maxPriority);
