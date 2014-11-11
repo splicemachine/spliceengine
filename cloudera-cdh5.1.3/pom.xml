@@ -25,6 +25,7 @@
 	</modules>
 
 	<dependencies>
+					<dependency> <groupId>com.google.protobuf</groupId> <artifactId>protobuf-java</artifactId> <version>2.5.0</version> </dependency>
 		<dependency> <groupId>com.carrotsearch</groupId> <artifactId>hppc</artifactId> </dependency>
 		<dependency> <groupId>com.carrotsearch</groupId> <artifactId>java-sizeof</artifactId> </dependency>
 		<dependency> <groupId>org.uncommons.maths</groupId> <artifactId>uncommons-maths</artifactId>  </dependency>
