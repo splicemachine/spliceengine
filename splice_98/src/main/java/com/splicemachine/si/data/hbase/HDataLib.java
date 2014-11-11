@@ -7,12 +7,14 @@ import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.hbase.KVPair;
+import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.si.coprocessors.SICompactionScanner;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.impl.SICompactionState;
 import com.splicemachine.si.impl.region.ActiveTxnFilter;
 import com.splicemachine.utils.ByteSlice;
+
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.KeyValue;
@@ -27,6 +29,7 @@ import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -507,7 +510,7 @@ public class HDataLib implements SDataLib<Cell,Put, Delete, Get, Scan> {
 		}
 
 		@Override
-		public RegionScanner getBufferedRegionScanner(HRegion region,
+		public MeasuredRegionScanner<Cell> getBufferedRegionScanner(HRegion region,
 				RegionScanner delegate, Scan scan, int bufferSize,
 				MetricFactory metricFactory) {
 			return new BufferedRegionScanner(region,delegate,scan,bufferSize,metricFactory,this);
