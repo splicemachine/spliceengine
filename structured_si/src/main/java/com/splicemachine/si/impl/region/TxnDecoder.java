@@ -3,14 +3,12 @@ package com.splicemachine.si.impl.region;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.Txn.IsolationLevel;
 import com.splicemachine.si.data.api.SDataLib;
-import com.splicemachine.si.impl.DenseTxn;
-import com.splicemachine.si.impl.SparseTxn;
-
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
+import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
-
 import java.io.IOException;
 import java.util.List;
 
@@ -25,11 +23,11 @@ import java.util.List;
  * @author Scott Fines
  * Date: 8/14/14
  */
-public abstract class TxnDecoder<Data,Put extends OperationWithAttributes,Delete,Get extends OperationWithAttributes, Scan> {
+public abstract class TxnDecoder<Transaction,Data,Put extends OperationWithAttributes,Delete,Get extends OperationWithAttributes, Scan> {
 
-    abstract SparseTxn decode(SDataLib<Data,Put,Delete,Get, Scan> datalib, long txnId, Result result) throws IOException;
+    abstract Transaction decode(SDataLib<Data,Put,Delete,Get, Scan> datalib, long txnId, Result result) throws IOException;
 
-    abstract DenseTxn decode(SDataLib<Data,Put,Delete,Get, Scan> datalib, List<Data> keyValues) throws IOException;
+    public abstract Transaction decode(SDataLib<Data,Put,Delete,Get, Scan> datalib, List<Data> keyValues) throws IOException;
 
     private static final long TRANSACTION_TIMEOUT_WINDOW = SIConstants.transactionTimeout+1000;
     protected static <Data> Txn.State adjustStateForTimeout(SDataLib dataLib, Txn.State currentState,Data columnLatest,long currTime,boolean oldForm) {
@@ -69,4 +67,10 @@ public abstract class TxnDecoder<Data,Put extends OperationWithAttributes,Delete
     protected static <Data> Txn.State adjustStateForTimeout(SDataLib dataLib, Txn.State currentState,Data columnLatest,boolean oldForm) {
         return adjustStateForTimeout(dataLib,currentState,columnLatest,System.currentTimeMillis(),oldForm);
     }
+
+	public abstract org.apache.hadoop.hbase.client.Put encodeForPut(Transaction txn) throws IOException;
+        
+    protected abstract Transaction composeValue(Data destinationTables, IsolationLevel level, long txnId, long beginTs,long parentTs,  boolean hasAdditive,
+    		boolean additive, long commitTs, long globalCommitTs, Txn.State state, long kaTime);
+    
 }

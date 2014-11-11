@@ -4,10 +4,7 @@ import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.data.api.SDataLib;
-import com.splicemachine.si.impl.DenseTxn;
-import com.splicemachine.si.impl.SparseTxn;
 import com.splicemachine.si.impl.TxnUtils;
-import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -18,26 +15,24 @@ import java.util.List;
  * @author Scott Fines
  *         Date: 8/18/14
  */
-public class V1TxnDecoder<Data,Put extends OperationWithAttributes,Delete,Get extends OperationWithAttributes, Scan> extends TxnDecoder<Data,Put,Delete,Get,Scan>{
-    private static final byte[] FAMILY = SIConstants.DEFAULT_FAMILY_BYTES;
+public abstract class AbstractV1TxnDecoder<Transaction,Data,Put extends OperationWithAttributes,Delete,Get extends OperationWithAttributes, Scan> extends TxnDecoder<Transaction,Data,Put,Delete,Get,Scan>{
+    public static final byte[] FAMILY = SIConstants.DEFAULT_FAMILY_BYTES;
 
-    static final byte[] OLD_COMMIT_TIMESTAMP_COLUMN = Bytes.toBytes(SIConstants.TRANSACTION_COMMIT_TIMESTAMP_COLUMN);
-    static final byte[] OLD_START_TIMESTAMP_COLUMN = Bytes.toBytes(SIConstants.TRANSACTION_START_TIMESTAMP_COLUMN);
-    static final byte[] OLD_PARENT_COLUMN = Bytes.toBytes(SIConstants.TRANSACTION_PARENT_COLUMN);
-    static final byte[] OLD_DEPENDENT_COLUMN = Bytes.toBytes(SIConstants.TRANSACTION_DEPENDENT_COLUMN);
-    static final byte[] OLD_ALLOW_WRITES_COLUMN = Bytes.toBytes(SIConstants.TRANSACTION_ALLOW_WRITES_COLUMN);
-    static final byte[] OLD_ADDITIVE_COLUMN = Bytes.toBytes(SIConstants.TRANSACTION_ADDITIVE_COLUMN);
-    static final byte[] OLD_READ_UNCOMMITTED_COLUMN = Bytes.toBytes(SIConstants.TRANSACTION_READ_UNCOMMITTED_COLUMN);
-    static final byte[] OLD_READ_COMMITTED_COLUMN = Bytes.toBytes(SIConstants.TRANSACTION_READ_COMMITTED_COLUMN);
-    static final byte[] OLD_KEEP_ALIVE_COLUMN = Bytes.toBytes(SIConstants.TRANSACTION_KEEP_ALIVE_COLUMN);
-    static final byte[] OLD_STATUS_COLUMN = Bytes.toBytes(SIConstants.TRANSACTION_STATUS_COLUMN);
-    static final byte[] OLD_GLOBAL_COMMIT_TIMESTAMP_COLUMN = Bytes.toBytes(SIConstants.TRANSACTION_GLOBAL_COMMIT_TIMESTAMP_COLUMN);
-    static final byte[] OLD_COUNTER_COLUMN = Bytes.toBytes(SIConstants.TRANSACTION_COUNTER_COLUMN);
-    static final byte[] OLD_WRITE_TABLE_COLUMN = Bytes.toBytes(SIConstants.WRITE_TABLE_COLUMN);
+    public static final byte[] OLD_COMMIT_TIMESTAMP_COLUMN = Bytes.toBytes(SIConstants.TRANSACTION_COMMIT_TIMESTAMP_COLUMN);
+    public static final byte[] OLD_START_TIMESTAMP_COLUMN = Bytes.toBytes(SIConstants.TRANSACTION_START_TIMESTAMP_COLUMN);
+    public static final byte[] OLD_PARENT_COLUMN = Bytes.toBytes(SIConstants.TRANSACTION_PARENT_COLUMN);
+    public static final byte[] OLD_DEPENDENT_COLUMN = Bytes.toBytes(SIConstants.TRANSACTION_DEPENDENT_COLUMN);
+    public static final byte[] OLD_ALLOW_WRITES_COLUMN = Bytes.toBytes(SIConstants.TRANSACTION_ALLOW_WRITES_COLUMN);
+    public static final byte[] OLD_ADDITIVE_COLUMN = Bytes.toBytes(SIConstants.TRANSACTION_ADDITIVE_COLUMN);
+    public static final byte[] OLD_READ_UNCOMMITTED_COLUMN = Bytes.toBytes(SIConstants.TRANSACTION_READ_UNCOMMITTED_COLUMN);
+    public static final byte[] OLD_READ_COMMITTED_COLUMN = Bytes.toBytes(SIConstants.TRANSACTION_READ_COMMITTED_COLUMN);
+    public static final byte[] OLD_KEEP_ALIVE_COLUMN = Bytes.toBytes(SIConstants.TRANSACTION_KEEP_ALIVE_COLUMN);
+    public static final byte[] OLD_STATUS_COLUMN = Bytes.toBytes(SIConstants.TRANSACTION_STATUS_COLUMN);
+    public static final byte[] OLD_GLOBAL_COMMIT_TIMESTAMP_COLUMN = Bytes.toBytes(SIConstants.TRANSACTION_GLOBAL_COMMIT_TIMESTAMP_COLUMN);
+    public static final byte[] OLD_COUNTER_COLUMN = Bytes.toBytes(SIConstants.TRANSACTION_COUNTER_COLUMN);
+    public static final byte[] OLD_WRITE_TABLE_COLUMN = Bytes.toBytes(SIConstants.WRITE_TABLE_COLUMN);
 
-    public static final V1TxnDecoder INSTANCE = new V1TxnDecoder();
-
-    private V1TxnDecoder() { }
+    protected AbstractV1TxnDecoder() { }
 
     /*
            * 1. The old way uses the Values CF (V) and integer qualifiers (Bytes.toBytes(int)) to encode data
@@ -57,7 +52,7 @@ public class V1TxnDecoder<Data,Put extends OperationWithAttributes,Delete,Get ex
            *	17	--	additive				(may not be present)
            */
     @Override
-    public SparseTxn decode(SDataLib<Data,Put,Delete,Get,Scan> dataLib, long txnId,Result result) throws IOException {
+    public Transaction decode(SDataLib<Data,Put,Delete,Get,Scan> dataLib, long txnId,Result result) throws IOException {
     	return decodeInternal(dataLib, txnId, dataLib.getColumnLatest(result,FAMILY,OLD_START_TIMESTAMP_COLUMN),
     			dataLib.getColumnLatest(result,FAMILY,OLD_PARENT_COLUMN),
     			dataLib.getColumnLatest(result,FAMILY, OLD_READ_UNCOMMITTED_COLUMN),
@@ -73,7 +68,7 @@ public class V1TxnDecoder<Data,Put extends OperationWithAttributes,Delete,Get ex
     }
 
     @Override
-    public DenseTxn decode(SDataLib<Data,Put,Delete,Get,Scan> dataLib, List<Data> keyValues) throws IOException {
+    public Transaction decode(SDataLib<Data,Put,Delete,Get,Scan> dataLib, List<Data> keyValues) throws IOException {
         if(keyValues.size()<=0) return null;
         Data beginTsVal = null;
         Data parentTxnVal = null;
@@ -124,19 +119,24 @@ public class V1TxnDecoder<Data,Put extends OperationWithAttributes,Delete,Get ex
     	return BytesUtil.toBoolean(dataLib.getDataValueBuffer(data), dataLib.getDataValueOffset(data));
     }
 
-    protected DenseTxn decodeInternal(SDataLib<Data,Put,Delete,Get,Scan> dataLib,
+	@Override
+	public org.apache.hadoop.hbase.client.Put encodeForPut(Transaction txn) throws IOException {
+		throw new RuntimeException("Not Implemented");
+	}
+
+    protected Transaction decodeInternal(SDataLib<Data,Put,Delete,Get,Scan> dataLib,
     								  long txnId,
-                                      Data beginTsVal,
-                                      Data parentTxnVal,
-                                      Data dependentKv,
-                                      Data additiveKv,
-                                      Data readUncommittedKv,
-                                      Data readCommittedKv,
-                                      Data statusKv,
-                                      Data commitTimestampKv,
-                                      Data globalTimestampKv,
-                                      Data keepAliveTimeKv,
-                                      Data destinationTables) {
+    								  Data beginTsVal,
+    								  Data parentTxnVal,
+    								  Data dependentKv,
+    								  Data additiveKv,
+    								  Data readUncommittedKv,
+    								  Data readCommittedKv,
+    								  Data statusKv,
+    								  Data commitTimestampKv,
+    								  Data globalTimestampKv,
+    								  Data keepAliveTimeKv,
+    								  Data destinationTables) {
         long beginTs = toLong(dataLib,beginTsVal);
         long parentTs = -1l; //by default, the "root" transaction id is -1l
         if(parentTxnVal!=null)
@@ -202,16 +202,8 @@ public class V1TxnDecoder<Data,Put extends OperationWithAttributes,Delete,Get ex
         }else if(readUncommittedKv!=null && readUncommitted)
             level = Txn.IsolationLevel.READ_COMMITTED;
 
-
-        ByteSlice destTableBuffer = null;
-        if(destinationTables!=null){
-            destTableBuffer = new ByteSlice();
-            destTableBuffer.set(dataLib.getDataValueBuffer(destinationTables),
-            		dataLib.getDataValueOffset(destinationTables),
-            		dataLib.getDataValuelength(destinationTables));
-        }
-
-        return new DenseTxn(txnId,beginTs,parentTs,
-                commitTs,globalCommitTs, hasAdditive,additive,level,state,destTableBuffer,kaTime);
+        return composeValue(destinationTables,level,txnId, beginTs,parentTs,hasAdditive,
+        		additive,commitTs,globalCommitTs,state,kaTime);
+        
     }
 }
