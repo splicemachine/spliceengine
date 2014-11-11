@@ -49,15 +49,14 @@ public class BulkWritesRPCInvoker implements BulkWritesInvoker {
 				if(SpliceDriver.driver().isStarted())
 					if ((indexEndpoint = SpliceDriver.driver().getSpliceIndexEndpoint( ((BulkWrite) writes.getBuffer()[0]).getEncodedStringName())) != null) {
 							return indexEndpoint.bulkWrite(writes);
-					} 
-				// if SpliceDriver is in another JVM and we cannot call the 'driver.start()' within current JVM
+					}
+					// if SpliceDriver is in another JVM and we cannot call the 'driver.start()' within current JVM
 				Configuration config = SpliceConstants.config;
 				NoRetryExecRPCInvoker invoker = new NoRetryExecRPCInvoker(config,
 				connection,batchProtocolClass,tableName,writes.getRegionKey(),refreshCache);
 				BatchProtocol instance = (BatchProtocol) Proxy.newProxyInstance(config.getClassLoader(),
-									protoClassArray,invoker);
+										protoClassArray,invoker);
 				return PipelineUtils.fromCompressedBytes(instance.bulkWrites(PipelineUtils.toCompressedBytes(writes)),BulkWritesResult.class);
-				
 
 		}
 
