@@ -5,6 +5,7 @@ import java.util.Comparator;
 import java.util.List;
 
 import com.splicemachine.hbase.KVPair;
+import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.si.coprocessors.BaseSICompactionScanner;
 import com.splicemachine.si.impl.SICompactionState;
@@ -97,7 +98,7 @@ public interface SDataLib<Data,
 	boolean regionScannerNext(RegionScanner regionScanner, List<Data> data) throws IOException;
 	void setThreadReadPoint(RegionScanner delegate);
 	boolean regionScannerNextRaw(RegionScanner regionScanner,List<Data> data) throws IOException;
-	RegionScanner getBufferedRegionScanner(HRegion region, RegionScanner delegate, Scan scan, int bufferSize, MetricFactory metricFactory);	
+	MeasuredRegionScanner<Data> getBufferedRegionScanner(HRegion region, RegionScanner delegate, Scan scan, int bufferSize, MetricFactory metricFactory);	
 	Filter getActiveTransactionFilter(long beforeTs,long afterTs,byte[] destinationTable);
 	public InternalScanner getCompactionScanner(InternalScanner scanner, SICompactionState state);
 	boolean internalScannerNext(InternalScanner internalScanner,List<Data> data) throws IOException;	

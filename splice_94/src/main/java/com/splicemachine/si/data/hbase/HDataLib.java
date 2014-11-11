@@ -7,6 +7,7 @@ import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.KeyValueUtils;
+import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.si.coprocessors.SICompactionScanner;
 import com.splicemachine.si.data.api.SDataLib;
@@ -505,7 +506,7 @@ public class HDataLib implements SDataLib<KeyValue,Put, Delete, Get, Scan> {
 		}
 
 		@Override
-		public RegionScanner getBufferedRegionScanner(HRegion region,
+		public MeasuredRegionScanner<KeyValue> getBufferedRegionScanner(HRegion region,
 				RegionScanner delegate, Scan scan, int bufferSize,
 				MetricFactory metricFactory) {
 			return new BufferedRegionScanner(region,delegate,scan,bufferSize,metricFactory,this);

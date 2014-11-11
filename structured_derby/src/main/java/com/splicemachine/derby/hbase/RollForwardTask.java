@@ -136,7 +136,7 @@ public class RollForwardTask implements Task {
         scan.setFilter(filter);
         scan.setCacheBlocks(false);
 
-        return new BufferedRegionScanner(region,region.getScanner(scan), scan,16,Metrics.noOpMetricFactory(),dataStore.dataLib);
+        return dataStore.dataLib.getBufferedRegionScanner(region,region.getScanner(scan), scan,16,Metrics.noOpMetricFactory());
     }
 
     @Override public void cleanup() throws ExecutionException {  }

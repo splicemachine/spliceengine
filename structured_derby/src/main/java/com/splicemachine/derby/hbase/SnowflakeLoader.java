@@ -1,6 +1,7 @@
 package com.splicemachine.derby.hbase;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.encoding.Encoding;
@@ -8,11 +9,7 @@ import com.splicemachine.uuid.Snowflake;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.*;
-import org.apache.hadoop.hbase.filter.FilterBase;
 import org.apache.hadoop.hbase.util.Bytes;
-
-import java.io.DataInput;
-import java.io.DataOutput;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.util.List;
@@ -21,11 +18,7 @@ import java.util.List;
  * @author Scott Fines
  *         Created on: 7/3/13
  */
-public class SnowflakeLoader {
-    private static final String MACHINE_ID_COUNTER = "MACHINE_IDS";
-
-    private static final byte[] COUNTER_COL = "c".getBytes();
-    private static final long MAX_MACHINE_ID = 0xffff; //12 bits of 1s is the maximum machine id available
+public class SnowflakeLoader extends SIConstants {
 
     private Snowflake snowflake;
 
@@ -121,49 +114,5 @@ public class SnowflakeLoader {
         SnowflakeLoader loader = new SnowflakeLoader();
         Snowflake snowflake = loader.load();
         System.out.println(snowflake.nextUUID());
-    }
-
-    public static class AllocatedFilter extends FilterBase {
-        @SuppressWarnings("unused")
-		private static final long serialVersionUID = 2l;
-
-        private byte[] addressMatch;
-        private boolean foundMatch;
-
-        public AllocatedFilter() {
-            super();
-        }
-
-        public AllocatedFilter(byte[] localAddress) {
-            this.addressMatch = localAddress;
-            this.foundMatch=false;
-        }
-
-        @Override
-        public void write(DataOutput out) throws IOException {
-            out.writeInt(addressMatch.length);
-            out.write(addressMatch);
-        }
-
-        @Override
-        public void readFields(DataInput in) throws IOException {
-            addressMatch = new byte[in.readInt()];
-            in.readFully(addressMatch);
-        }
-
-        @Override
-        public ReturnCode filterKeyValue(KeyValue ignored) {
-            if(foundMatch)
-                return ReturnCode.NEXT_ROW; //can skip the remainder, because we've already got an entry allocated
-            byte[] value = ignored.getValue();
-            if(Bytes.equals(addressMatch,value)){
-                foundMatch= true;
-                return ReturnCode.INCLUDE;
-            }else if(value.length!=0 || Bytes.equals(value,COUNTER_COL)){
-                //a machine has already got this id -- also skip the counter column, since we don't need that
-                return ReturnCode.SKIP;
-            }
-            return ReturnCode.INCLUDE; //this is an available entry
-        }
     }
 }
