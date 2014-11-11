@@ -539,4 +539,14 @@ public class HDataLib implements SDataLib<Cell,Put, Delete, Get, Scan> {
 			return CellUtils.isKeyValueInRange(data, range);
 		}
 
+		@Override
+		public byte[] getDataQualifierBuffer(Cell element) {
+			return element.getQualifierArray();
+		}
+
+		@Override
+		public int getDataQualifierOffset(Cell element) {
+			return element.getQualifierOffset();
+		}
+
 }
