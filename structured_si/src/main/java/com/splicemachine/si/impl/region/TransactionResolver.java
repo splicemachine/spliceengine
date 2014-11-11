@@ -10,15 +10,12 @@ import com.splicemachine.encoding.Encoding;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.api.TxnView;
-import com.splicemachine.si.impl.SparseTxn;
 import com.splicemachine.si.impl.TxnUtils;
-import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.util.concurrent.ThreadPoolExecutor;
 
@@ -64,15 +61,14 @@ import java.util.concurrent.ThreadPoolExecutor;
  * @author Scott Fines
  * Date: 8/19/14
  */
-public class TransactionResolver {
+public class TransactionResolver<Transaction> {
     private static final Logger LOG = Logger.getLogger(TransactionResolver.class);
     @ThreadSafe private final TxnSupplier txnSupplier;
-
-    private final RingBuffer<TxnResolveEvent> ringBuffer;
-    private final Disruptor<TxnResolveEvent> disruptor;
-
+    private final RingBuffer<TxnResolveEvent<Transaction>> ringBuffer;
+    private final Disruptor<TxnResolveEvent<Transaction>> disruptor;
     private final ThreadPoolExecutor consumerThreads;
     private volatile boolean stopped;
+    protected STransactionLib<Transaction> transactionLib;
 
     public TransactionResolver(TxnSupplier txnSupplier, int numThreads, int bufferSize) {
         this.txnSupplier = txnSupplier;
@@ -83,11 +79,11 @@ public class TransactionResolver {
         while(bSize<bufferSize)
             bSize<<=1;
 
-        disruptor = new Disruptor<TxnResolveEvent>(new EventFactory<TxnResolveEvent>() {
-            @Override
-            public TxnResolveEvent newInstance() {
-                return new TxnResolveEvent();
-            }
+        disruptor = new Disruptor<TxnResolveEvent<Transaction>>(new EventFactory<TxnResolveEvent<Transaction>>() {
+			@Override
+			public TxnResolveEvent<Transaction> newInstance() {
+	                return new TxnResolveEvent<Transaction>();
+			}
         },bSize,consumerThreads,
                 ProducerType.MULTI,
                 new BlockingWaitStrategy());
@@ -96,7 +92,7 @@ public class TransactionResolver {
         disruptor.start();
     }
 
-    public void resolveTimedOut(HRegion txnRegion,SparseTxn txn,boolean oldForm){
+    public void resolveTimedOut(HRegion txnRegion,Transaction txn,boolean oldForm){
         if(stopped) return; //we aren't running, so do nothing
         long sequence;
         try{
@@ -108,7 +104,7 @@ public class TransactionResolver {
             return;
         }
         try{
-            TxnResolveEvent event = ringBuffer.get(sequence);
+            TxnResolveEvent<Transaction> event = ringBuffer.get(sequence);
             event.txnRegion = txnRegion;
             event.timedOut = true;
             event.txn = txn;
@@ -118,7 +114,7 @@ public class TransactionResolver {
         }
     }
 
-    public void resolveGlobalCommitTimestamp(HRegion txnRegion, SparseTxn txn,boolean oldForm){
+    public void resolveGlobalCommitTimestamp(HRegion txnRegion, Transaction txn,boolean oldForm){
         if(stopped) return; //we aren't running, so do nothing
         long sequence;
         try{
@@ -130,7 +126,7 @@ public class TransactionResolver {
             return;
         }
         try{
-            TxnResolveEvent event = ringBuffer.get(sequence);
+            TxnResolveEvent<Transaction> event = ringBuffer.get(sequence);
             event.txnRegion = txnRegion;
             event.timedOut = false;
             event.txn = txn;
@@ -139,18 +135,23 @@ public class TransactionResolver {
             ringBuffer.publish(sequence);
         }
     }
+    
+    public void shutdown() {
+        disruptor.shutdown();
+        consumerThreads.shutdownNow();
+    }
 
-    private static class TxnResolveEvent{
+    private static class TxnResolveEvent <Transaction>{
         private boolean timedOut;
         private HRegion txnRegion;
         private boolean oldForm;
-        private SparseTxn txn;
+        private Transaction txn;
     }
 
 
-    private class ResolveEventHandler implements EventHandler<TxnResolveEvent> {
+    private class ResolveEventHandler implements EventHandler<TxnResolveEvent<Transaction>> {
         @Override
-        public void onEvent(TxnResolveEvent event, long sequence, boolean endOfBatch) throws Exception {
+        public void onEvent(TxnResolveEvent<Transaction> event, long sequence, boolean endOfBatch) throws Exception {
             if(event.timedOut){
                 resolveTimeOut(event.txnRegion,event.txn,event.oldForm);
             }
@@ -159,11 +160,11 @@ public class TransactionResolver {
         }
     }
 
-    private void resolveCommit(HRegion txnRegion, SparseTxn txn,boolean oldForm) throws IOException {
-        if(txn.getState()!= Txn.State.COMMITTED) return; //not committed, don't do anything
-        long txnId = txn.getTxnId();
+    private void resolveCommit(HRegion txnRegion, Transaction txn,boolean oldForm) throws IOException {
+        if(transactionLib.getTransactionState(txn)!= Txn.State.COMMITTED) return; //not committed, don't do anything
+        long txnId = transactionLib.getTxnId(txn);
         try{
-            TxnView parentView = txnSupplier.getTransaction(txn.getParentTxnId());
+            TxnView parentView = txnSupplier.getTransaction(transactionLib.getParentTxnId(txn));
         /*
          * The logic necessary to acquire the transaction's global commit timestamp
          * is actually contained within the TxnView. We rely on the getEffectiveCommitTimestamp()
@@ -176,9 +177,9 @@ public class TransactionResolver {
             SpliceLogUtils.trace(LOG,"Adding global commit timestamp to transaction %d", txnId);
             Put put = new Put(TxnUtils.getRowKey(txnId));
             if(oldForm)
-                put.add(SIConstants.DEFAULT_FAMILY_BYTES,V1TxnDecoder.OLD_GLOBAL_COMMIT_TIMESTAMP_COLUMN, Bytes.toBytes(globalCommitTs));
+                put.add(SIConstants.DEFAULT_FAMILY_BYTES,AbstractV1TxnDecoder.OLD_GLOBAL_COMMIT_TIMESTAMP_COLUMN, Bytes.toBytes(globalCommitTs));
             else
-                put.add(SIConstants.DEFAULT_FAMILY_BYTES,V2TxnDecoder.GLOBAL_COMMIT_QUALIFIER_BYTES, Encoding.encode(globalCommitTs));
+                put.add(SIConstants.DEFAULT_FAMILY_BYTES,AbstractV2TxnDecoder.GLOBAL_COMMIT_QUALIFIER_BYTES, Encoding.encode(globalCommitTs));
             //don't write to the WAL to avoid the write performance penalty
             put.setWriteToWAL(false);
 
@@ -188,16 +189,16 @@ public class TransactionResolver {
         }
     }
 
-    private void resolveTimeOut(HRegion txnRegion,SparseTxn txn,boolean oldForm) {
-        long txnId = txn.getTxnId();
+    private void resolveTimeOut(HRegion txnRegion,Transaction txn,boolean oldForm) {
+        long txnId = transactionLib.getTxnId(txn);
         try{
             Put put = new Put(TxnUtils.getRowKey(txnId));
 
             SpliceLogUtils.trace(LOG,"Moving Txn %d from timed out to outright rolled back",txnId);
             if(oldForm)
-                put.add(SIConstants.DEFAULT_FAMILY_BYTES,V1TxnDecoder.OLD_STATUS_COLUMN, Txn.State.ROLLEDBACK.encode());
+                put.add(SIConstants.DEFAULT_FAMILY_BYTES,AbstractV1TxnDecoder.OLD_STATUS_COLUMN, Txn.State.ROLLEDBACK.encode());
             else
-                put.add(SIConstants.DEFAULT_FAMILY_BYTES,V2TxnDecoder.STATE_QUALIFIER_BYTES, Txn.State.ROLLEDBACK.encode());
+                put.add(SIConstants.DEFAULT_FAMILY_BYTES,AbstractV2TxnDecoder.STATE_QUALIFIER_BYTES, Txn.State.ROLLEDBACK.encode());
 
             put.setWriteToWAL(false);
 

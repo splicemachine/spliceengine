@@ -8,8 +8,6 @@ import com.splicemachine.hbase.RegionScanIterator;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.si.api.*;
 import com.splicemachine.si.data.api.SDataLib;
-import com.splicemachine.si.impl.DenseTxn;
-import com.splicemachine.si.impl.SparseTxn;
 import com.splicemachine.si.impl.TxnUtils;
 import com.splicemachine.utils.Source;
 import org.apache.hadoop.hbase.client.Delete;
@@ -34,21 +32,23 @@ import java.util.List;
  * @author Scott Fines
  * Date: 6/19/14
  */
-public class RegionTxnStore<Data,Put extends OperationWithAttributes,Get extends OperationWithAttributes> {
+public class RegionTxnStore<Transaction,Data,Put extends OperationWithAttributes,Get extends OperationWithAttributes> {
 		/*
 		 * The region in which to access data
 		 */
 		private final HRegion region;
-		private final TxnDecoder<Data,Put,Delete,Get,Scan> oldTransactionDecoder;
-		private final V2TxnDecoder<Data,Put,Delete,Get,Scan> newTransactionDecoder;
+		private final TxnDecoder<Transaction,Data,Put,Delete,Get,Scan> oldTransactionDecoder;
+		private final TxnDecoder<Transaction,Data,Put,Delete,Get,Scan> newTransactionDecoder;
 		private final SDataLib<Data,Put,Delete,Get,Scan> dataLib;
-		private final TransactionResolver resolver;
+		private final TransactionResolver<Transaction> resolver;
 		private final TxnSupplier txnStore;
+		private final STransactionLib transactionlib;
 
-		public RegionTxnStore(HRegion region,TransactionResolver resolver,TxnSupplier txnStore,SDataLib<Data,Put,Delete,Get,Scan> dataLib) {
+		public RegionTxnStore(HRegion region,TransactionResolver resolver,TxnSupplier txnStore,SDataLib<Data,Put,Delete,Get,Scan> dataLib,STransactionLib transactionlib) {
 				this.region = region;
-				this.oldTransactionDecoder = V1TxnDecoder.INSTANCE;
-				this.newTransactionDecoder = V2TxnDecoder.INSTANCE;
+				this.transactionlib =transactionlib; 
+				this.oldTransactionDecoder = transactionlib.getV1TxnDecoder();
+				this.newTransactionDecoder = transactionlib.getV2TxnDecoder();
 				this.resolver = resolver;
 				this.txnStore = txnStore;
 				this.dataLib = dataLib;
@@ -61,7 +61,7 @@ public class RegionTxnStore<Data,Put extends OperationWithAttributes,Get extends
 		 * @return all recorded transaction information for the specified transaction.
 		 * @throws IOException if something goes wrong when fetching transactions
 		 */
-		public SparseTxn getTransaction(long txnId) throws IOException {
+		public Transaction getTransaction(long txnId) throws IOException {
 			org.apache.hadoop.hbase.client.Get get = new org.apache.hadoop.hbase.client.Get(TxnUtils.getRowKey(txnId));
 				Result result = region.get(get);
 				if(result==null || result.size()<=0) return null; //no transaction
@@ -83,7 +83,7 @@ public class RegionTxnStore<Data,Put extends OperationWithAttributes,Get extends
 		 */
 		public void addDestinationTable(long txnId,byte[] destinationTable) throws IOException {
 			org.apache.hadoop.hbase.client.Get get = new org.apache.hadoop.hbase.client.Get(TxnUtils.getRowKey(txnId));
-        byte[] destTableQualifier = V2TxnDecoder.DESTINATION_TABLE_QUALIFIER_BYTES;
+        byte[] destTableQualifier = AbstractV2TxnDecoder.DESTINATION_TABLE_QUALIFIER_BYTES;
         get.addColumn(FAMILY, destTableQualifier);
 				/*
 				 * We only need to check the new transaction format, because we will never attempt to elevate
@@ -128,24 +128,24 @@ public class RegionTxnStore<Data,Put extends OperationWithAttributes,Get extends
 		public boolean keepAlive(long txnId) throws IOException{
 				byte[] rowKey = TxnUtils.getRowKey(txnId);
 				org.apache.hadoop.hbase.client.Get get = new org.apache.hadoop.hbase.client.Get(rowKey);
-				get.addColumn(FAMILY,V2TxnDecoder.KEEP_ALIVE_QUALIFIER_BYTES);
-				get.addColumn(FAMILY,V2TxnDecoder.STATE_QUALIFIER_BYTES);
+				get.addColumn(FAMILY,AbstractV2TxnDecoder.KEEP_ALIVE_QUALIFIER_BYTES);
+				get.addColumn(FAMILY,AbstractV2TxnDecoder.STATE_QUALIFIER_BYTES);
 				//we don't try to keep alive transactions with an old form
 
 				Result result = region.get(get);
 				if(result==null) return false; //attempted to keep alive a read-only transaction? a waste, but whatever
-				Data stateKv = dataLib.getColumnLatest(result, FAMILY, V2TxnDecoder.STATE_QUALIFIER_BYTES);
+				Data stateKv = dataLib.getColumnLatest(result, FAMILY, AbstractV2TxnDecoder.STATE_QUALIFIER_BYTES);
 				Txn.State state = Txn.State.decode(dataLib.getDataValueBuffer(stateKv), 
 						dataLib.getDataValueOffset(stateKv), dataLib.getDataValuelength(stateKv));
 				if(state != Txn.State.ACTIVE) return false; //skip the put if we don't need to do it
-				Data oldKAKV = dataLib.getColumnLatest(result, FAMILY, V2TxnDecoder.KEEP_ALIVE_QUALIFIER_BYTES);
+				Data oldKAKV = dataLib.getColumnLatest(result, FAMILY, AbstractV2TxnDecoder.KEEP_ALIVE_QUALIFIER_BYTES);
 				long currTime = System.currentTimeMillis();
 				Txn.State adjustedState = TxnDecoder.adjustStateForTimeout(dataLib,state,oldKAKV,currTime,false);
 				if(adjustedState!= Txn.State.ACTIVE)
 						throw new TransactionTimeoutException(txnId);
 
 				org.apache.hadoop.hbase.client.Put newPut = new org.apache.hadoop.hbase.client.Put(TxnUtils.getRowKey(txnId));
-				newPut.add(FAMILY,V2TxnDecoder.KEEP_ALIVE_QUALIFIER_BYTES,Encoding.encode(currTime));
+				newPut.add(FAMILY,AbstractV2TxnDecoder.KEEP_ALIVE_QUALIFIER_BYTES,Encoding.encode(currTime));
 				region.put(newPut); //TODO -sf- does this work when the region is splitting?
 				return true;
 		}
@@ -169,11 +169,11 @@ public class RegionTxnStore<Data,Put extends OperationWithAttributes,Get extends
 				byte[] rowKey = TxnUtils.getRowKey(txnId);
 				org.apache.hadoop.hbase.client.Get get = new org.apache.hadoop.hbase.client.Get(rowKey);
 				//add the columns for the new encoding
-				get.addColumn(FAMILY,V2TxnDecoder.STATE_QUALIFIER_BYTES);
-				get.addColumn(FAMILY,V2TxnDecoder.KEEP_ALIVE_QUALIFIER_BYTES);
+				get.addColumn(FAMILY,AbstractV2TxnDecoder.STATE_QUALIFIER_BYTES);
+				get.addColumn(FAMILY,AbstractV2TxnDecoder.KEEP_ALIVE_QUALIFIER_BYTES);
 				//add the columns for the old encoding
-				get.addColumn(FAMILY,V1TxnDecoder.OLD_STATUS_COLUMN);
-				get.addColumn(FAMILY,V1TxnDecoder.OLD_KEEP_ALIVE_COLUMN);
+				get.addColumn(FAMILY,AbstractV1TxnDecoder.OLD_STATUS_COLUMN);
+				get.addColumn(FAMILY,AbstractV1TxnDecoder.OLD_KEEP_ALIVE_COLUMN);
 
 				Result result = region.get(get);
 				if(result==null)
@@ -181,14 +181,14 @@ public class RegionTxnStore<Data,Put extends OperationWithAttributes,Get extends
 
 				boolean oldForm = false;
 				Data keepAliveKv;
-				Data stateKv = dataLib.getColumnLatest(result, FAMILY,V2TxnDecoder.STATE_QUALIFIER_BYTES);
+				Data stateKv = dataLib.getColumnLatest(result, FAMILY,AbstractV2TxnDecoder.STATE_QUALIFIER_BYTES);
 				if(stateKv==null){
 						oldForm=true;
 					//used the old encoding
-						stateKv =dataLib.getColumnLatest(result, FAMILY,V1TxnDecoder.OLD_STATUS_COLUMN);
-						keepAliveKv = dataLib.getColumnLatest(result, FAMILY,V1TxnDecoder.OLD_KEEP_ALIVE_COLUMN);
+						stateKv =dataLib.getColumnLatest(result, FAMILY,AbstractV1TxnDecoder.OLD_STATUS_COLUMN);
+						keepAliveKv = dataLib.getColumnLatest(result, FAMILY,AbstractV1TxnDecoder.OLD_KEEP_ALIVE_COLUMN);
 				}else{
-						keepAliveKv = dataLib.getColumnLatest(result, FAMILY,V2TxnDecoder.KEEP_ALIVE_QUALIFIER_BYTES);
+						keepAliveKv = dataLib.getColumnLatest(result, FAMILY,AbstractV2TxnDecoder.KEEP_ALIVE_QUALIFIER_BYTES);
 				}
 				Txn.State state = Txn.State.decode(dataLib.getDataValueBuffer(stateKv),
 						dataLib.getDataValueOffset(stateKv),dataLib.getDataValuelength(stateKv));
@@ -204,9 +204,9 @@ public class RegionTxnStore<Data,Put extends OperationWithAttributes,Get extends
 		 * @param txn the transaction to write
 		 * @throws IOException if something goes wrong in writing the transaction
 		 */
-		public void recordTransaction(SparseTxn txn) throws IOException{
+		public void recordTransaction(Transaction txn) throws IOException{
 			org.apache.hadoop.hbase.client.Put put = newTransactionDecoder.encodeForPut(txn);
-				region.put(put);
+			region.put(put);
 		}
 
 		/**
@@ -225,8 +225,8 @@ public class RegionTxnStore<Data,Put extends OperationWithAttributes,Get extends
 		 */
 		public void recordCommit(long txnId, long commitTs) throws IOException{
 				org.apache.hadoop.hbase.client.Put put = new org.apache.hadoop.hbase.client.Put(TxnUtils.getRowKey(txnId));
-				put.add(FAMILY,V2TxnDecoder.COMMIT_QUALIFIER_BYTES,Encoding.encode(commitTs));
-				put.add(FAMILY,V2TxnDecoder.STATE_QUALIFIER_BYTES, Txn.State.COMMITTED.encode());
+				put.add(FAMILY,AbstractV2TxnDecoder.COMMIT_QUALIFIER_BYTES,Encoding.encode(commitTs));
+				put.add(FAMILY,AbstractV2TxnDecoder.STATE_QUALIFIER_BYTES, Txn.State.COMMITTED.encode());
 				region.put(put);
 		}
 
@@ -240,17 +240,17 @@ public class RegionTxnStore<Data,Put extends OperationWithAttributes,Get extends
 		 */
 		public long getCommitTimestamp(long txnId) throws IOException {
 			org.apache.hadoop.hbase.client.Get get = new org.apache.hadoop.hbase.client.Get(TxnUtils.getRowKey(txnId));
-				get.addColumn(FAMILY,V2TxnDecoder.COMMIT_QUALIFIER_BYTES);
-				get.addColumn(FAMILY,V1TxnDecoder.OLD_COMMIT_TIMESTAMP_COLUMN);
+				get.addColumn(FAMILY,AbstractV2TxnDecoder.COMMIT_QUALIFIER_BYTES);
+				get.addColumn(FAMILY,AbstractV1TxnDecoder.OLD_COMMIT_TIMESTAMP_COLUMN);
 
 				Result result = region.get(get);
 				if(result==null) return -1l; //no commit timestamp for read-only transactions
 
 				Data kv;
-				if((kv=dataLib.getColumnLatest(result,FAMILY,V2TxnDecoder.COMMIT_QUALIFIER_BYTES))!=null)
+				if((kv=dataLib.getColumnLatest(result,FAMILY,AbstractV2TxnDecoder.COMMIT_QUALIFIER_BYTES))!=null)
 						return Encoding.decodeLong(dataLib.getDataValueBuffer(kv),dataLib.getDataValueOffset(kv),false);
 				else{
-						kv = dataLib.getColumnLatest(result,FAMILY,V1TxnDecoder.OLD_COMMIT_TIMESTAMP_COLUMN);
+						kv = dataLib.getColumnLatest(result,FAMILY,AbstractV1TxnDecoder.OLD_COMMIT_TIMESTAMP_COLUMN);
 						return Bytes.toLong(dataLib.getDataValueBuffer(kv),dataLib.getDataValueOffset(kv),
 								dataLib.getDataValuelength(kv));
 				}
@@ -270,7 +270,7 @@ public class RegionTxnStore<Data,Put extends OperationWithAttributes,Get extends
 		 */
 		public void recordRollback(long txnId) throws IOException {
 			org.apache.hadoop.hbase.client.Put put = new org.apache.hadoop.hbase.client.Put(TxnUtils.getRowKey(txnId));
-				put.add(FAMILY,V2TxnDecoder.STATE_QUALIFIER_BYTES, Txn.State.ROLLEDBACK.encode());
+				put.add(FAMILY,AbstractV2TxnDecoder.STATE_QUALIFIER_BYTES, Txn.State.ROLLEDBACK.encode());
 				region.put(put);
 		}
 
@@ -295,30 +295,30 @@ public class RegionTxnStore<Data,Put extends OperationWithAttributes,Get extends
 		 * @throws IOException
 		 */
 		public long[] getActiveTxnIds(long beforeTs, long afterTs, byte[] destinationTable) throws IOException{
-        Source<DenseTxn> activeTxn = getActiveTxns(afterTs,beforeTs,destinationTable);
+        Source<Transaction> activeTxn = getActiveTxns(afterTs,beforeTs,destinationTable);
         LongArrayList lal = LongArrayList.newInstance();
         while(activeTxn.hasNext()){
-            lal.add(activeTxn.next().getTxnId());
+            lal.add(transactionlib.getTxnId(activeTxn.next()));
         }
         return lal.toArray();
 		}
 
-    public Source<DenseTxn> getAllTxns(long minTs, long maxTs) throws IOException{
+    public Source<Transaction> getAllTxns(long minTs, long maxTs) throws IOException{
     	org.apache.hadoop.hbase.client.Scan scan = setupScanOnRange(minTs,maxTs);
 
         RegionScanner baseScanner = region.getScanner(scan);
 
         final RegionScanner scanner = dataLib.getBufferedRegionScanner(region,baseScanner,scan,1024, Metrics.noOpMetricFactory());
         
-        return new RegionScanIterator<Data,Put,Delete,Get,Scan,DenseTxn>(scanner,new RegionScanIterator.IOFunction<DenseTxn,Data>() {
+        return new RegionScanIterator<Data,Put,Delete,Get,Scan,Transaction>(scanner,new RegionScanIterator.IOFunction<Transaction,Data>() {
             @Override
-            public DenseTxn apply(@Nullable List<Data> keyValues) throws IOException{
+            public Transaction apply(@Nullable List<Data> keyValues) throws IOException{
                 return decode(keyValues);
             }
         },dataLib);
     }
 
-    public Source<DenseTxn> getActiveTxns(long afterTs,long beforeTs, byte[] destinationTable) throws IOException{
+    public Source<Transaction> getActiveTxns(long afterTs,long beforeTs, byte[] destinationTable) throws IOException{
     	org.apache.hadoop.hbase.client.Scan scan = setupScanOnRange(afterTs, beforeTs);
 
         scan.setFilter(dataLib.getActiveTransactionFilter(beforeTs,afterTs,destinationTable));
@@ -326,10 +326,10 @@ public class RegionTxnStore<Data,Put extends OperationWithAttributes,Get extends
         RegionScanner baseScanner = region.getScanner(scan);
 
         final RegionScanner scanner = dataLib.getBufferedRegionScanner(region,baseScanner,scan,1024, Metrics.noOpMetricFactory());
-        return new RegionScanIterator<Data,Put,Delete,Get,Scan,DenseTxn>(scanner,new RegionScanIterator.IOFunction<DenseTxn,Data>() {
+        return new RegionScanIterator<Data,Put,Delete,Get,Scan,Transaction>(scanner,new RegionScanIterator.IOFunction<Transaction,Data>() {
             @Override
-            public DenseTxn apply(@Nullable List<Data> keyValues) throws IOException{
-                DenseTxn txn = newTransactionDecoder.decode(dataLib,keyValues);
+            public Transaction apply(@Nullable List<Data> keyValues) throws IOException{
+                Transaction txn = newTransactionDecoder.decode(dataLib,keyValues);
                 boolean oldForm = false;
                 if(txn==null){
                     oldForm = true;
@@ -346,7 +346,7 @@ public class RegionTxnStore<Data,Put extends OperationWithAttributes,Get extends
                  * is -1, then we return it. Otherwise, just mark the child transaction with a global
                  * commit timestamp and move on.
                  */
-                long parentTxnId =txn.getParentTxnId();
+                long parentTxnId =transactionlib.getParentTxnId(txn);
                 if(parentTxnId<0){
                     //we are a top-level transaction
                     return txn;
@@ -401,8 +401,8 @@ public class RegionTxnStore<Data,Put extends OperationWithAttributes,Get extends
     }
 
 
-    private SparseTxn decode(long txnId,Result result) throws IOException {
-        SparseTxn txn = newTransactionDecoder.decode(dataLib,txnId,result);
+    private Transaction decode(long txnId,Result result) throws IOException {
+        Transaction txn = newTransactionDecoder.decode(dataLib,txnId,result);
         boolean oldForm = false;
         if(txn==null){
             oldForm = true;
@@ -413,8 +413,8 @@ public class RegionTxnStore<Data,Put extends OperationWithAttributes,Get extends
         return txn;
 
     }
-    private DenseTxn decode(List<Data> keyValues) throws IOException {
-        DenseTxn txn = newTransactionDecoder.decode(dataLib,keyValues);
+    private Transaction decode(List<Data> keyValues) throws IOException {
+        Transaction txn = newTransactionDecoder.decode(dataLib,keyValues);
         boolean oldForm = false;
         if(txn==null){
             oldForm = true;
@@ -425,15 +425,15 @@ public class RegionTxnStore<Data,Put extends OperationWithAttributes,Get extends
         return txn;
     }
 
-    private void resolveTxn(SparseTxn txn, boolean oldForm) {
-        switch(txn.getState()){
+    private void resolveTxn(Transaction txn, boolean oldForm) {
+        switch(transactionlib.getTransactionState(txn)){
             case ROLLEDBACK:
-                if(txn.isTimedOut()){
+                if(transactionlib.isTimedOut(txn)){
                     resolver.resolveTimedOut(region,txn,oldForm);
                 }
                 break;
             case COMMITTED:
-                if(txn.getParentTxnId()>0 && txn.getGlobalCommitTimestamp()<0){
+                if(transactionlib.getParentTxnId(txn)>0 && transactionlib.getGlobalCommitTimestamp(txn)<0){
                 /*
                  * Just because the transaction was committed and has a parent doesn't mean that EVERY parent
                  * has been committed; still, submit this to the resolver on the off chance that it
