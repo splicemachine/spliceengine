@@ -32,7 +32,7 @@ import java.util.List;
  * @author Scott Fines
  * Date: 6/19/14
  */
-public class RegionTxnStore<Transaction,Data,Put extends OperationWithAttributes,Get extends OperationWithAttributes> {
+public class RegionTxnStore<Transaction,TableBuffer,Data,Put extends OperationWithAttributes,Get extends OperationWithAttributes> {
 		/*
 		 * The region in which to access data
 		 */
@@ -40,7 +40,7 @@ public class RegionTxnStore<Transaction,Data,Put extends OperationWithAttributes
 		private final TxnDecoder<Transaction,Data,Put,Delete,Get,Scan> oldTransactionDecoder;
 		private final TxnDecoder<Transaction,Data,Put,Delete,Get,Scan> newTransactionDecoder;
 		private final SDataLib<Data,Put,Delete,Get,Scan> dataLib;
-		private final TransactionResolver<Transaction> resolver;
+		private final TransactionResolver<Transaction,TableBuffer> resolver;
 		private final TxnSupplier txnStore;
 		private final STransactionLib transactionlib;
 
