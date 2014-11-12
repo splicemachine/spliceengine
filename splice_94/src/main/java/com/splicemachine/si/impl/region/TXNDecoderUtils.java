@@ -22,7 +22,6 @@ public class TXNDecoderUtils {
 		        		dataLib.getDataValueOffset(destinationTables),
 		        		dataLib.getDataValuelength(destinationTables));
 		    }
-
 		    return new DenseTxn(txnId,beginTs,parentTs,
 		            commitTs,globalCommitTs, hasAdditive,additive,level,state,destTableBuffer,kaTime);
 		}

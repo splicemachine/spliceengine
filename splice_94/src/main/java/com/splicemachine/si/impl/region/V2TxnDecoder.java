@@ -77,8 +77,9 @@ public class V2TxnDecoder<Put extends OperationWithAttributes,Delete,Get extends
 				put.add(FAMILY,GLOBAL_COMMIT_QUALIFIER_BYTES,Encoding.encode(globalCommitTs));
 		}
 		ByteSlice destTableBuffer = txn.getDestinationTableBuffer();
-		if(destTableBuffer!=null && destTableBuffer.length()>0)
-		put.add(FAMILY,DESTINATION_TABLE_QUALIFIER_BYTES,destTableBuffer.getByteCopy());
+		if(destTableBuffer!=null && destTableBuffer.length()>0) {
+			put.add(FAMILY,DESTINATION_TABLE_QUALIFIER_BYTES,destTableBuffer.getByteCopy());
+		}
 		return put;
 	}
     

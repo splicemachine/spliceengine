@@ -1,17 +1,13 @@
 package com.splicemachine.derby.hbase;
 
 import java.io.IOException;
-
 import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
-
 import com.google.protobuf.RpcCallback;
 import com.google.protobuf.RpcController;
 import com.google.protobuf.Service;
 import com.splicemachine.coprocessor.SpliceMessage;
-import com.splicemachine.coprocessor.SpliceMessage.DeleteFirstAfterRequest;
 import com.splicemachine.coprocessor.SpliceMessage.SpliceIndexService;
-import com.splicemachine.coprocessor.SpliceMessage.WriteResult;
 import com.splicemachine.pipeline.coprocessor.BatchProtocol;
 import com.splicemachine.pipeline.impl.BulkWrites;
 import com.splicemachine.pipeline.impl.BulkWritesResult;
@@ -49,11 +45,6 @@ public class SpliceIndexEndpoint extends SpliceIndexService implements BatchProt
 		            org.apache.hadoop.hbase.protobuf.ResponseConverter.setControllerException(rpcController, e);
 		        }
 		        callback.run(writeResponse.build());
-		}
-
-		public void deleteFirstAfter(RpcController controller,
-				DeleteFirstAfterRequest request, RpcCallback<WriteResult> done) {
-			
 		}
 
 		@Override

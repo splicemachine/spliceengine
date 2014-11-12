@@ -24,7 +24,7 @@
 				<artifactId>maven-protoc-plugin</artifactId>
 				<version>0.3.2</version>
 				<configuration>
-					<protocExecutable>protoc</protocExecutable>
+					<protocExecutable>/usr/local/bin/protoc</protocExecutable>
 					<protoSourceRoot>${project.basedir}/../../splice_protocol/src/main/protobuf</protoSourceRoot>
 				</configuration>
 				<executions>
