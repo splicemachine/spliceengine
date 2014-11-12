@@ -304,7 +304,7 @@ public class IndexCostController extends SpliceGenericCostController implements 
             SpliceLogUtils.trace(LOG, "getScanCost generated Scan %s", spliceScan.getScan());
         }
 
-        long indexConglomerateID = open_conglom.getContainerID();
+        long indexConglomerateID = baseConglomerate.getContainerid();
 
         SortedSet<Pair<HRegionInfo,ServerName>> indexRegions = getRegions(indexConglomerateID);
 
