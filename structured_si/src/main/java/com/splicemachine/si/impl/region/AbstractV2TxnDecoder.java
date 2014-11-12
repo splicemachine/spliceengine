@@ -57,13 +57,12 @@ public abstract class AbstractV2TxnDecoder<Transaction,Data,Put extends Operatio
         if(dataKv==null) return null;
 
         long txnId = TxnUtils.txnIdFromRowKey(dataLib.getDataRowBuffer(dataKv),dataLib.getDataRowOffset(dataKv),dataLib.getDataRowlength(dataKv));
-
         return decodeInternal(dataLib,dataKv, keepAliveKv, commitKv, globalCommitKv, stateKv, destinationTables, txnId);
     }
 
     @Override
     public Transaction decode(SDataLib<Data,Put,Delete,Get,Scan> dataLib, long txnId, Result result) throws IOException {
-        Data dataKv = dataLib.getColumnLatest(result,FAMILY, DATA_QUALIFIER_BYTES);
+    	Data dataKv = dataLib.getColumnLatest(result,FAMILY, DATA_QUALIFIER_BYTES);
         Data commitTsVal = dataLib.getColumnLatest(result,FAMILY,COMMIT_QUALIFIER_BYTES);
         Data globalTsVal = dataLib.getColumnLatest(result,FAMILY,GLOBAL_COMMIT_QUALIFIER_BYTES);
         Data stateKv = dataLib.getColumnLatest(result,FAMILY,STATE_QUALIFIER_BYTES);
@@ -125,7 +124,6 @@ public abstract class AbstractV2TxnDecoder<Transaction,Data,Put extends Operatio
             state = adjustStateForTimeout(dataLib,state, keepAliveKv,false);
         }
         long kaTime = decodeKeepAlive(dataLib,keepAliveKv,false);
-
         return composeValue(destinationTables,level,txnId, beginTs,parentTxnId,hasAdditive,
         		isAdditive,commitTs,globalTs,state,kaTime);
         

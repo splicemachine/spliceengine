@@ -408,7 +408,6 @@ public class RegionTxnStore<Transaction,TableBuffer,Data,Put extends OperationWi
             oldForm = true;
             txn = oldTransactionDecoder.decode(dataLib,txnId,result);
         }
-
         resolveTxn(txn, oldForm);
         return txn;
 
