@@ -211,7 +211,7 @@ public class BulkWriteAction implements Callable<WriteStats> {
 						SpliceLogUtils.trace(LOG,"[%d] %s",id,nextWrite);
 						try{
 								BulkWritesInvoker invoker = invokerFactory.newInstance();
-								BulkWritesResult bulkWritesResult = null;
+								BulkWritesResult bulkWritesResult;
 								writeTimer.startTiming();
 								bulkWritesResult = invoker.invoke(nextWrite,numAttempts>0);
 								if (LOG.isDebugEnabled())
@@ -318,7 +318,7 @@ public class BulkWriteAction implements Callable<WriteStats> {
 						addToWritesToPerform(retryPipingCallBuffer,writesToPerform);
 						retryPipingCallBuffer = null;
 						if (numAttempts > 100 && numAttempts%50==0)
-								SpliceLogUtils.warn(LOG, "BulkWriteAction Taking Long Time with [%d] attempts", numAttempts);
+								SpliceLogUtils.warn(LOG, "[%d] BulkWriteAction Taking Long Time with [%d] attempts", id,numAttempts);
 				}while(writesToPerform.size()>0);
 		}
 
@@ -335,7 +335,7 @@ public class BulkWriteAction implements Callable<WriteStats> {
 		}
 		private void addToRetryCallBuffer(ObjectArrayList<KVPair> retryBuffer, TxnView txn, boolean refreshCache) throws Exception {
 				if (LOG.isDebugEnabled())
-						SpliceLogUtils.debug(LOG, "addToRetryCallBuffer %d rows",retryBuffer==null?0:retryBuffer.size());
+						SpliceLogUtils.debug(LOG, "[%d] addToRetryCallBuffer %d rows",id,retryBuffer==null?0:retryBuffer.size());
 				if (retryPipingCallBuffer == null)
 						retryPipingCallBuffer = new PipingCallBuffer(tableName,txn,null,regionCache,PipelineConstants.noOpFlushHook,writeConfiguration,null);
 				if (refreshCache) {

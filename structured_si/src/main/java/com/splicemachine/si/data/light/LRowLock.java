@@ -41,9 +41,4 @@ public class LRowLock implements SRowLock {
     public int hashCode() {
         return lockId.hashCode();
     }
-
-    @Override
-    public void unlock() {
-       //no-op
-    }
 }

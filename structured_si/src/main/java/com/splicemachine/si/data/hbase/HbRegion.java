@@ -76,6 +76,7 @@ public class HbRegion implements IHTable {
 		@Override
 		public SRowLock tryLock(byte[] rowKey) throws IOException {
         Integer lock = region.getLock(null, rowKey, false);
+        if(lock==null) return null;
         return new HbRowLock(lock,region);
 		}
 
