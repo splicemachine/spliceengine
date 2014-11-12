@@ -1,11 +1,17 @@
 package com.splicemachine.derby.hbase;
 
 import java.io.IOException;
+
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;
-import com.splicemachine.pipeline.coprocessor.BatchProtocol;
+import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 
-public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements BatchProtocol{
+import com.splicemachine.pipeline.api.WriteContext;
+import com.splicemachine.pipeline.coprocessor.BatchProtocol;
+import com.splicemachine.pipeline.impl.BulkWrites;
+import com.splicemachine.pipeline.impl.BulkWritesResult;
+
+public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements BatchProtocol, IndexEndpoint{
 		SpliceBaseIndexEndpoint endpoint;
 		
 		@Override
@@ -23,5 +29,16 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
 		@Override
 		public byte[] bulkWrites(byte[] bulkWrites) throws IOException {
 			return endpoint.bulkWrites(bulkWrites);
+		}
+
+		@Override
+		public BulkWritesResult bulkWrite(BulkWrites bulkWrites)
+				throws IOException {
+			return endpoint.bulkWrite(bulkWrites);
+		}
+
+		@Override
+		public SpliceBaseIndexEndpoint getBaseIndexEndpoint() {
+			return endpoint;
 		}
 }

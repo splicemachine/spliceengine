@@ -1,8 +1,10 @@
 package com.splicemachine.derby.hbase;
 
 import java.io.IOException;
+
 import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
+
 import com.google.protobuf.RpcCallback;
 import com.google.protobuf.RpcController;
 import com.google.protobuf.Service;
@@ -11,8 +13,10 @@ import com.splicemachine.coprocessor.SpliceMessage.DeleteFirstAfterRequest;
 import com.splicemachine.coprocessor.SpliceMessage.SpliceIndexService;
 import com.splicemachine.coprocessor.SpliceMessage.WriteResult;
 import com.splicemachine.pipeline.coprocessor.BatchProtocol;
+import com.splicemachine.pipeline.impl.BulkWrites;
+import com.splicemachine.pipeline.impl.BulkWritesResult;
 
-public class SpliceIndexEndpoint extends SpliceIndexService implements BatchProtocol, Coprocessor{
+public class SpliceIndexEndpoint extends SpliceIndexService implements BatchProtocol, Coprocessor, IndexEndpoint{
 		SpliceBaseIndexEndpoint endpoint;
 		
 		@Override
@@ -50,5 +54,16 @@ public class SpliceIndexEndpoint extends SpliceIndexService implements BatchProt
 		public void deleteFirstAfter(RpcController controller,
 				DeleteFirstAfterRequest request, RpcCallback<WriteResult> done) {
 			
+		}
+
+		@Override
+		public BulkWritesResult bulkWrite(BulkWrites bulkWrites)
+				throws IOException {
+			return endpoint.bulkWrite(bulkWrites);
+		}
+
+		@Override
+		public SpliceBaseIndexEndpoint getBaseIndexEndpoint() {
+			return endpoint;
 		}
 }

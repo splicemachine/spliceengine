@@ -36,7 +36,7 @@ public class SpliceIndexManagementEndpoint extends SpliceIndexManagementService 
 	@Override
 	public void dropIndex(RpcController rpcController, DropIndexRequest dropIndexRequest,RpcCallback<DropIndexResponse> callback) {
           TxnView transaction = new LazyTxnView(dropIndexRequest.getTxnId(),TransactionStorage.getTxnSupplier());
-          SpliceIndexEndpoint.factoryMap.get(dropIndexRequest.getBaseConglomId()).getFirst().dropIndex(dropIndexRequest.getIndexConglomId(),transaction);
+          SpliceBaseIndexEndpoint.factoryMap.get(dropIndexRequest.getBaseConglomId()).getFirst().dropIndex(dropIndexRequest.getIndexConglomId(),transaction);
           DropIndexResponse.Builder dropIndexResponse = DropIndexResponse.newBuilder();
           callback.run(dropIndexResponse.build());
 
