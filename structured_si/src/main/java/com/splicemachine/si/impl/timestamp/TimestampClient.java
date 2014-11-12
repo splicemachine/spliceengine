@@ -308,6 +308,15 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampRe
         super.channelConnected(ctx, e);
     }
 
+    public void channelDisconnected(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
+        TimestampUtil.doClientInfo(LOG, "TimestampClient was disconnected from the server");
+        synchronized(_state) {
+            _channel = null;
+            _state.set(State.DISCONNECTED);
+            connectIfNeeded();
+        }
+    }
+
     protected void doTrace(String message, Object... args) {
     	TimestampUtil.doClientTrace(LOG, message, args);
 	}
