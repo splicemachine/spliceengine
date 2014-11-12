@@ -46,4 +46,9 @@ public class ReadAheadRegionScanner extends BaseReadAheadRegionScanner<Put,Get,C
 		public long getMaxResultSize() {
 			return Long.MAX_VALUE;
 		}
+		@Override
+		public boolean internalNextRaw(List<Cell> results) throws IOException {
+			// TODO Auto-generated method stub
+			return this.nextRaw(results);
+		}
 }

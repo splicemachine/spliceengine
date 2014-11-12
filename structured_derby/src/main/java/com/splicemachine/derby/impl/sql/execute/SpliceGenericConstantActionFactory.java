@@ -1,7 +1,10 @@
 package com.splicemachine.derby.impl.sql.execute;
 
+import com.splicemachine.derby.hbase.DerbyFactory;
+import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.impl.sql.execute.actions.*;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.derby.catalog.AliasInfo;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
@@ -30,6 +33,7 @@ import java.util.Properties;
  */
 public class SpliceGenericConstantActionFactory extends GenericConstantActionFactory {
 	private static Logger LOG = Logger.getLogger(SpliceGenericConstantActionFactory.class);
+	private static DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
     @Override
     public ConstantAction getCreateConstraintConstantAction(String constraintName,
                                                                             int constraintType,
@@ -98,7 +102,7 @@ public class SpliceGenericConstantActionFactory extends GenericConstantActionFac
                                                      UUID tableId,
                                                      long tableConglomerateId) {
     	SpliceLogUtils.trace(LOG, "getDropIndexConstantAction for index {%s} on {%s.%s}",fullIndexName, schemaName, tableName);
-        return new DropIndexConstantOperation(fullIndexName,indexName,
+        return derbyFactory.getDropIndexConstantAction(fullIndexName,indexName,
                 tableName,schemaName,tableId,tableConglomerateId);
     }
 

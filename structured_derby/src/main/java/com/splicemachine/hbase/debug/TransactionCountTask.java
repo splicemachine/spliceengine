@@ -3,7 +3,10 @@ package com.splicemachine.hbase.debug;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
+import com.splicemachine.hbase.SimpleMeasuredRegionScanner;
+import com.splicemachine.metrics.Metrics;
 import com.splicemachine.tools.LongHashMap;
+
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
@@ -40,11 +43,11 @@ public class TransactionCountTask extends DebugTask{
         scan.addFamily(SIConstants.DEFAULT_FAMILY_BYTES); //just scan SI instead of the data itself
 
         LongHashMap<Long> txnHashMap = LongHashMap.evictingMap(1000);
-        RegionScanner scanner;
+        SimpleMeasuredRegionScanner scanner;
         try{
 
             Writer writer = getWriter();
-            scanner = region.getScanner(scan);
+            scanner = new SimpleMeasuredRegionScanner(region.getScanner(scan),Metrics.noOpMetricFactory());
             region.startRegionOperation();
             try{
                 writer.write(String.format("%d%n",System.currentTimeMillis()));
@@ -52,7 +55,7 @@ public class TransactionCountTask extends DebugTask{
                 boolean shouldContinue;
                 do{
                     keyValues.clear();
-                    shouldContinue = scanner.nextRaw(keyValues);
+                    shouldContinue = scanner.internalNextRaw(keyValues);
                     if(keyValues.size()>0){
                         putRow(keyValues, txnHashMap, writer);
                     }

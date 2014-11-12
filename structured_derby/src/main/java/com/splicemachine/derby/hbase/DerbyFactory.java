@@ -3,10 +3,14 @@ package com.splicemachine.derby.hbase;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.SortedSet;
 
+import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
+import org.apache.derby.iapi.sql.execute.ConstantAction;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -60,4 +64,8 @@ public interface DerbyFactory {
 	Filter getSkippingScanFilter(List<Pair<byte[], byte[]>> startStopKeys, List<byte[]> predicates);
 	HTableInterface getTable(RegionCoprocessorEnvironment rce, byte[] tableName) throws IOException;
 	int getReduceNumberOfRegions(String tableName, Configuration conf) throws IOException;
+	ConstantAction getDropIndexConstantAction(String fullIndexName,
+    String indexName,String tableName,String schemaName,UUID tableId,long tableConglomerateId);
+	void SYSCS_GET_REQUESTS(ResultSet[] resultSet) throws SQLException;
+	void SYSCS_GET_SCHEMA_INFO(final ResultSet[] resultSet) throws SQLException;
 }

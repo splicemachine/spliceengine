@@ -59,4 +59,10 @@ public class BufferedRegionScanner extends AbstractBufferedRegionScanner<Put,Get
 		@Override public boolean next(List<KeyValue> results, String metric) throws IOException { return next(results); }
 		@Override public boolean next(List<KeyValue> result, int limit) throws IOException { return next(result); }
 		@Override public boolean next(List<KeyValue> result, int limit, String metric) throws IOException { return next(result); }
+
+		@Override
+		public boolean internalNextRaw(List<KeyValue> results) throws IOException {
+			return internalNext(results);
+		}
+
 }

@@ -15,9 +15,12 @@ import com.splicemachine.si.impl.SICompactionState;
 import com.splicemachine.si.impl.region.ActiveTxnFilter;
 import com.splicemachine.utils.ByteSlice;
 
+import org.apache.hadoop.hbase.HServerLoad;
 import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
@@ -30,9 +33,12 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Implementation of SDataLib that is specific to the HBase operation and result types.
@@ -580,5 +586,6 @@ public class HDataLib implements SDataLib<KeyValue,Put, Delete, Get, Scan> {
 		@Override
 		public KeyValue matchDataColumn(Result result) {
 			return matchDataColumn(result.raw());
-		}		
+		}
+		
 }

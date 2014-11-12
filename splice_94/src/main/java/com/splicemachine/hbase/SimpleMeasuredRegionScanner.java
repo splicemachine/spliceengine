@@ -94,4 +94,9 @@ public class SimpleMeasuredRegionScanner implements MeasuredRegionScanner<KeyVal
     public void close() throws IOException {
         delegate.close();
     }
+
+	@Override
+	public boolean internalNextRaw(List<KeyValue> results) throws IOException {
+		return delegate.nextRaw(results, null);
+	}
 }

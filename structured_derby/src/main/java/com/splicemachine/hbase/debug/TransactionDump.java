@@ -4,7 +4,10 @@ import com.google.common.collect.Lists;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
+import com.splicemachine.hbase.SimpleMeasuredRegionScanner;
+import com.splicemachine.metrics.Metrics;
 import com.splicemachine.si.api.TransactionStatus;
+
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
@@ -40,18 +43,18 @@ public class TransactionDump extends DebugTask {
         //we leave the blocks cached cause we want to keep SI stuff in the cache if possible
 
         try{
-            RegionScanner scanner = null;
+        	SimpleMeasuredRegionScanner scanner = null;
             Writer writer = null;
             region.startRegionOperation();
             try{
-                scanner = region.getScanner(scan);
+                scanner = new SimpleMeasuredRegionScanner(region.getScanner(scan),Metrics.noOpMetricFactory());
                 writer = getWriter();
 
                 List keyValues = Lists.newArrayListWithExpectedSize(12);
                 boolean shouldContinue;
                 do{
                     keyValues.clear();
-                    shouldContinue = scanner.nextRaw(keyValues);
+                    shouldContinue = scanner.internalNextRaw(keyValues);
                     writeRow(writer,keyValues);
                 }while(shouldContinue);
 

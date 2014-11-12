@@ -61,4 +61,10 @@ public class BufferedRegionScanner extends AbstractBufferedRegionScanner<Put,Get
 		public long getMaxResultSize() {
 			return delegate.getMaxResultSize();
 		}
+
+		@Override
+		public boolean internalNextRaw(List<Cell> results) throws IOException {
+			// TODO Auto-generated method stub
+			return delegate.nextRaw(results);
+		}
 }

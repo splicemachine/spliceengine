@@ -276,7 +276,7 @@ public class SpliceDriver extends SIConstants {
 
     public SpliceBaseIndexEndpoint getSpliceIndexEndpoint(String encodedRegionName) {
     	CoprocessorEnvironment ce = getSpliceIndexEndpointEnvironment(encodedRegionName);
-    	return ce == null?null:(SpliceBaseIndexEndpoint) ce.getInstance();
+    	return ce == null?null:((IndexEndpoint) ce.getInstance()).getBaseIndexEndpoint();
     }
     
     public void start(RegionServerServices regionServerServices){
@@ -450,7 +450,7 @@ public class SpliceDriver extends SIConstants {
 
             writerPool.registerJMX(mbs);
 
-            SpliceIndexEndpoint.registerJMX(mbs);
+            SpliceBaseIndexEndpoint.registerJMX(mbs);
 
             new ManifestReader().registerJMX(mbs);
             

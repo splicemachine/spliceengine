@@ -117,7 +117,7 @@ public abstract class BaseAdminProcedures {
         throw Util.noCurrentConnection();
     }
 
-    protected static ResultSet executeStatement(StringBuilder sb) throws SQLException {
+    public static ResultSet executeStatement(StringBuilder sb) throws SQLException {
         ResultSet result = null;
         Connection connection = getDefaultConn();
         try {

@@ -239,7 +239,7 @@ public class PopulateIndexTask extends ZkTask {
 										while(shouldContinue){
 												SpliceBaseOperation.checkInterrupt(numRecordsRead, SpliceConstants.interruptLoopCheck);
 												nextRow.clear();
-												shouldContinue  = brs.nextRaw(nextRow);
+												shouldContinue  = brs.internalNextRaw(nextRow);
 												numRecordsRead++;
 												translateResult(nextRow, transformer, writeBuffer, transformationTimer);
 										}

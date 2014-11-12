@@ -2,7 +2,7 @@ package com.splicemachine.derby.impl.job.index;
 
 import com.google.common.base.Throwables;
 import com.splicemachine.derby.ddl.TentativeIndexDesc;
-import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
+import com.splicemachine.derby.hbase.SpliceBaseIndexEndpoint;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
@@ -106,7 +106,7 @@ public class CreateIndexTask extends ZkTask {
         try{
             //add index to table watcher
             TentativeIndexDesc tentativeIndexDesc = (TentativeIndexDesc)ddlChange.getTentativeDDLDesc();
-            WriteContextFactory contextFactory = SpliceIndexEndpoint.getContextFactory(tentativeIndexDesc.getBaseConglomerateNumber());
+            WriteContextFactory contextFactory = SpliceBaseIndexEndpoint.getContextFactory(tentativeIndexDesc.getBaseConglomerateNumber());
             contextFactory.addIndex(ddlChange, columnOrdering, formatIds);
         } catch (Exception e) {
         	SpliceLogUtils.error(LOG, e);

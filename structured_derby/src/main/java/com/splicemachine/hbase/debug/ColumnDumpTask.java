@@ -6,13 +6,17 @@ import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.hbase.SimpleMeasuredRegionScanner;
+import com.splicemachine.metrics.Metrics;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.impl.SIFactoryDriver;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.index.BitIndex;
+
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -67,11 +71,11 @@ public class ColumnDumpTask extends DebugTask{
         scan.setAttribute(SpliceConstants.SI_EXEMPT, Bytes.toBytes(true));
 
         Writer writer;
-        RegionScanner scanner;
+        SimpleMeasuredRegionScanner scanner;
         try{
 
             writer = getWriter();
-            scanner = region.getScanner(scan);
+            scanner = new SimpleMeasuredRegionScanner(region.getScanner(scan),Metrics.noOpMetricFactory());
             List keyValues = Lists.newArrayList();
             region.startRegionOperation();
             System.out.println("Starting scan task");
@@ -80,7 +84,7 @@ public class ColumnDumpTask extends DebugTask{
                 boolean shouldContinue;
                 do{
                     keyValues.clear();
-                    shouldContinue = scanner.nextRaw(keyValues);
+                    shouldContinue = scanner.internalNextRaw(keyValues);
                     if(keyValues.size()>0){
                         writeRow(writer,keyValues);
                     }
