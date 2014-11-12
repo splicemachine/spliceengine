@@ -3,6 +3,7 @@ package com.splicemachine.derby.hbase;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.job.scheduler.SimpleThreadedTaskScheduler;
 import com.splicemachine.pipeline.api.WriteBufferFactory;
+import com.splicemachine.pipeline.coprocessor.BatchProtocol;
 import com.splicemachine.pipeline.exception.IndexNotSetUpException;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.api.Code;
@@ -26,6 +27,7 @@ import com.yammer.metrics.core.Timer;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.RegionTooBusyException;
+import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HRegionServer;
@@ -51,88 +53,21 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 
 
-public class SpliceBaseIndexEndpoint {
-		private static final Logger LOG = Logger.getLogger(SpliceBaseIndexEndpoint.class);
-		public static volatile int ipcReserved = 10;
-		private static volatile int taskWorkers = SpliceConstants.taskWorkers;
-		private static volatile int maxWorkers = 10;
-		private static volatile int flushQueueSizeBlock = SpliceConstants.flushQueueSizeBlock;
-		private static volatile int compactionQueueSizeBlock = SpliceConstants.compactionQueueSizeBlock;
-		private static volatile WriteSemaphore control = new WriteSemaphore((SpliceConstants.ipcThreads-taskWorkers-ipcReserved)/2,(SpliceConstants.ipcThreads-taskWorkers-ipcReserved)/2,SpliceConstants.maxDependentWrites,SpliceConstants.maxIndependentWrites);
-
-		public static ConcurrentMap<Long,Pair<LocalWriteContextFactory,AtomicInteger>> factoryMap = new NonBlockingHashMap<Long, Pair<LocalWriteContextFactory, AtomicInteger>>();
-		static{
-				factoryMap.put(-1l,Pair.newPair(LocalWriteContextFactory.unmanagedContextFactory(),new AtomicInteger(1)));
-		}
-
-		private static MetricName receptionName = new MetricName("com.splicemachine","receiverStats","time");
-		private static MetricName throughputMeterName = new MetricName("com.splicemachine","receiverStats","success");
-		private static MetricName failedMeterName = new MetricName("com.splicemachine","receiverStats","failed");
-		private static MetricName rejectedMeterName = new MetricName("com.splicemachine","receiverStats","rejected");
-
-		private long conglomId;
-		private TransactionalRegion region;
-
-		private Timer timer=SpliceDriver.driver().getRegistry().newTimer(receptionName, TimeUnit.MILLISECONDS, TimeUnit.SECONDS);
-		private Meter throughputMeter = SpliceDriver.driver().getRegistry().newMeter(throughputMeterName, "successfulRows", TimeUnit.SECONDS);
-		private Meter failedMeter =SpliceDriver.driver().getRegistry().newMeter(failedMeterName,"failedRows",TimeUnit.SECONDS);
-		private Meter rejectedMeter =SpliceDriver.driver().getRegistry().newMeter(rejectedMeterName,"rejectedRows",TimeUnit.SECONDS);
-
-		private RegionCoprocessorEnvironment rce;
-
+public class SpliceIndexEndpoint2 extends BaseEndpointCoprocessor implements BatchProtocol{
+		SpliceBaseIndexEndpoint endpoint;
+		
+		@Override
 		public void start(CoprocessorEnvironment env) {
-				rce = ((RegionCoprocessorEnvironment)env);
-				HRegionServer rs = (HRegionServer) rce.getRegionServerServices();
-				String tableName = rce.getRegion().getTableDesc().getNameAsString();
-				try{
-						conglomId = Long.parseLong(tableName);
-						maxWorkers = env.getConfiguration().getInt("splice.task.maxWorkers",SimpleThreadedTaskScheduler.DEFAULT_MAX_WORKERS);
-						final Pair<LocalWriteContextFactory,AtomicInteger> factoryPair = Pair.newPair(new LocalWriteContextFactory(conglomId), new AtomicInteger(1));
-						Pair<LocalWriteContextFactory, AtomicInteger> originalPair = factoryMap.putIfAbsent(conglomId, factoryPair);
-						if(originalPair!=null){
-								//someone else already created the factory
-								originalPair.getSecond().incrementAndGet();
-						}else{
-								Service service = new Service() {
-										@Override public boolean shutdown() { return true; }
-										@Override
-										public boolean start() {
-												factoryPair.getFirst().prepare();
-												SpliceDriver.driver().deregisterService(this);
-												return true;
-										}
-
-								};
-								SpliceDriver.driver().registerService(service);
-						}
-				}catch(NumberFormatException nfe){
-						SpliceLogUtils.debug(LOG, "Unable to parse conglomerate id for table %s, " +
-										"index management for batch operations will be diabled",tableName);
-						conglomId=-1;
-				}
-
-				Service service = new Service() {
-						@Override public boolean shutdown() { return true; }
-						@Override
-						public boolean start() {
-								if(conglomId>=0){
-										region = TransactionalRegions.get(rce.getRegion());
-								}else{
-										region = TransactionalRegions.nonTransactionalRegion(rce.getRegion());
-								}
-								SpliceDriver.driver().deregisterService(this);
-								return true;
-						}
-				};
-				SpliceDriver.driver().registerService(service);
+				endpoint = new SpliceBaseIndexEndpoint();
+				endpoint.start(env);
+				super.start(env);
 		}
-
+		
+		@Override
 		public void stop(CoprocessorEnvironment env) {
-				Pair<LocalWriteContextFactory,AtomicInteger> factoryPair = factoryMap.get(conglomId);
-				if(factoryPair!=null &&  factoryPair.getSecond().decrementAndGet()<=0){
-						factoryMap.remove(conglomId);
-				}
+				endpoint.stop(env);
 		}
+		
 		/**
 		 *
 		 * Can it fail here?
@@ -149,7 +84,7 @@ public class SpliceBaseIndexEndpoint {
 				int size =  bulkWrites.getBulkWrites().size();
 				long start = System.nanoTime();
 				// start
-				List<Pair<BulkWriteResult,SpliceBaseIndexEndpoint>> startPoints = new ArrayList<Pair<BulkWriteResult,SpliceBaseIndexEndpoint>>();
+				List<Pair<BulkWriteResult,SpliceIndexEndpoint2>> startPoints = new ArrayList<Pair<BulkWriteResult,SpliceIndexEndpoint2>>();
 				WriteBufferFactory indexWriteBufferFactory = new IndexWriteBufferFactory();
 				boolean dependent = isDependent();
 				WriteSemaphore.Status status;
@@ -165,7 +100,7 @@ public class SpliceBaseIndexEndpoint {
 								BulkWrite bulkWrite = (BulkWrite) buffer[i];
 								assert bulkWrite!=null;
 								// Grab the instances endpoint and not this one
-								SpliceBaseIndexEndpoint endpoint = SpliceDriver.driver().getSpliceIndexEndpoint(bulkWrite.getEncodedStringName());
+								SpliceIndexEndpoint2 endpoint = SpliceDriver.driver().getSpliceIndexEndpoint(bulkWrite.getEncodedStringName());
 								if (endpoint == null) {
 										if (LOG.isDebugEnabled())
 												SpliceLogUtils.debug(LOG, "endpoint not found for region %s on region %s",bulkWrite.getEncodedStringName(), rce.getRegion().getRegionNameAsString());
@@ -179,7 +114,7 @@ public class SpliceBaseIndexEndpoint {
 						// complete
 						for (int i = 0; i< size; i++) {
 								BulkWrite bulkWrite = (BulkWrite) buffer[i];
-								Pair<BulkWriteResult,SpliceBaseIndexEndpoint> pair = startPoints.get(i);
+								Pair<BulkWriteResult,SpliceIndexEndpoint2> pair = startPoints.get(i);
 								result.addResult(flushAndClose(pair.getFirst(),bulkWrite,pair.getSecond()));
 						}
 						timer.update(System.nanoTime()-start,TimeUnit.NANOSECONDS);
@@ -204,7 +139,7 @@ public class SpliceBaseIndexEndpoint {
 						result.addResult(new BulkWriteResult(WriteResult.pipelineTooBusy(rce.getRegion().getRegionNameAsString())));
 				}
 		}
-		private static BulkWriteResult sendUpstream(BulkWrite bulkWrite, SpliceBaseIndexEndpoint endpoint, WriteBufferFactory indexWriteBufferFactory) throws IOException {
+		private static BulkWriteResult sendUpstream(BulkWrite bulkWrite, SpliceIndexEndpoint2 endpoint, WriteBufferFactory indexWriteBufferFactory) throws IOException {
 				assert bulkWrite.getTxn()!=null;
 				assert endpoint != null;
 				HRegion region = endpoint.rce.getRegion();
@@ -247,7 +182,7 @@ public class SpliceBaseIndexEndpoint {
 				}
 		}
 
-		private static BulkWriteResult flushAndClose(BulkWriteResult writeResult, BulkWrite bulkWrite,SpliceBaseIndexEndpoint endpoint) throws IOException {
+		private static BulkWriteResult flushAndClose(BulkWriteResult writeResult, BulkWrite bulkWrite,SpliceIndexEndpoint2 endpoint) throws IOException {
 				WriteContext context = writeResult.getWriteContext();
 				if (context==null)
 						return writeResult; // Already Failed
@@ -302,6 +237,7 @@ public class SpliceBaseIndexEndpoint {
 
 		}
 
+		@Override
 		public byte[] bulkWrites(byte[] bulkWriteBytes) throws IOException {
 				try {
 						assert bulkWriteBytes!=null;
