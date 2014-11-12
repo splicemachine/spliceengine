@@ -25,11 +25,6 @@ message SchedulerResponse{
     repeated TaskFutureResponse response = 1;
 }
 
-message DeleteFirstAfterRequest{
-	optional string transactionId = 1;
-	optional bytes rowKey = 2;
-	optional bytes limit = 3;
-}
 message ConstraintContext {
 	optional string tableName = 1;
 	optional string constraintName = 2;
@@ -97,9 +92,7 @@ message DropIndexResponse {
 
 service SpliceIndexService {
 	rpc bulkWrite(BulkWriteRequest)
-	  returns (BulkWriteResponse);
-	rpc deleteFirstAfter(DeleteFirstAfterRequest)
-	  returns (WriteResult); 
+	  returns (BulkWriteResponse); 
 }
 
 service SpliceIndexManagementService {
