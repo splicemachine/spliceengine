@@ -22,7 +22,7 @@ import static org.mockito.Mockito.*;
  */
 public class TxnTestUtils {
 		public static STransactionLib transactionLib = SIFactoryDriver.siFactory.getTransactionLib();
-		private TxnTestUtils(){}
+		public TxnTestUtils(){}
 
 		public static <Transaction,TableBuffer> void assertTxnsMatch(String baseErrorMessage, Transaction correct, Transaction actual) {
 				Assert.assertEquals(baseErrorMessage + " TxnIds differ", transactionLib.getTxnId(correct), transactionLib.getTxnId(actual));

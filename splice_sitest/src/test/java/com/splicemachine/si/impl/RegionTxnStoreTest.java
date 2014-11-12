@@ -1,5 +1,6 @@
 package com.splicemachine.si.impl;
 
+import com.splicemachine.async.Bytes;
 import com.splicemachine.impl.MockRegionUtils;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnSupplier;
@@ -28,11 +29,13 @@ public class RegionTxnStoreTest {
 		@Test
 		public void testCanWriteAndReadNewTransactionInformation() throws Exception {
 				HRegion region = MockRegionUtils.getMockRegion();
+				ByteSlice slice = new ByteSlice();
+				slice.set(Bytes.fromInt(1234));
 
         TransactionResolver resolver = getTransactionResolver();
 				RegionTxnStore store = new RegionTxnStore(region,resolver,mock(TxnSupplier.class),SIFactoryDriver.siFactory.getDataLib(),SIFactoryDriver.siFactory.getTransactionLib());
 
-				SparseTxn txn = new SparseTxn(1,1,-1,-1,-1,true,true, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.State.ACTIVE,new ByteSlice());
+				SparseTxn txn = new SparseTxn(1,1,-1,-1,-1,true,true, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.State.ACTIVE,slice);
 				store.recordTransaction(txn);
 
 				SparseTxn transaction = (SparseTxn) store.getTransaction(txn.getTxnId());
@@ -46,7 +49,10 @@ public class RegionTxnStoreTest {
 
 				RegionTxnStore store = new RegionTxnStore(region,getTransactionResolver(),mock(TxnSupplier.class),SIFactoryDriver.siFactory.getDataLib(),SIFactoryDriver.siFactory.getTransactionLib());
 
-				SparseTxn txn = new SparseTxn(1,1,-1,-1,-1,true,true, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.State.ACTIVE,new ByteSlice());
+				ByteSlice slice = new ByteSlice();
+				slice.set(Bytes.fromInt(1234));
+				
+				SparseTxn txn = new SparseTxn(1,1,-1,-1,-1,true,true, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.State.ACTIVE,slice);
 				store.recordTransaction(txn);
 
 				//check that insertion works
@@ -65,7 +71,7 @@ public class RegionTxnStoreTest {
 				SparseTxn correctTxn = new SparseTxn(txn.getTxnId(),txn.getBeginTimestamp(),txn.getParentTxnId(),
 								commitTs,txn.getGlobalCommitTimestamp(),
 								txn.hasAdditiveField(),txn.isAdditive(),txn.getIsolationLevel(),
-								Txn.State.COMMITTED,new ByteSlice());
+								Txn.State.COMMITTED,slice);
 
 				assertTxnsMatch("Transaction does not match committed state!",correctTxn,(SparseTxn) store.getTransaction(txn.getTxnId()));
 
@@ -76,10 +82,12 @@ public class RegionTxnStoreTest {
 		@Test
 		public void testCanRollbackATransaction() throws Exception {
 				HRegion region = MockRegionUtils.getMockRegion();
+				ByteSlice slice = new ByteSlice();
+				slice.set(Bytes.fromInt(1234));
 
 				RegionTxnStore store = new RegionTxnStore(region,getTransactionResolver(),mock(TxnSupplier.class),SIFactoryDriver.siFactory.getDataLib(),SIFactoryDriver.siFactory.getTransactionLib());
 
-				SparseTxn txn = new SparseTxn(1,1,-1,-1,-1,true,true, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.State.ACTIVE,new ByteSlice());
+				SparseTxn txn = new SparseTxn(1,1,-1,-1,-1,true,true, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.State.ACTIVE,slice);
 				store.recordTransaction(txn);
 
 				//check that insertion works
@@ -91,7 +99,7 @@ public class RegionTxnStoreTest {
 				SparseTxn correctTxn = new SparseTxn(txn.getTxnId(),txn.getBeginTimestamp(),txn.getParentTxnId(),
 								txn.getCommitTimestamp(),txn.getGlobalCommitTimestamp(),
 								txn.hasAdditiveField(),txn.isAdditive(),txn.getIsolationLevel(),
-								Txn.State.ROLLEDBACK,new ByteSlice());
+								Txn.State.ROLLEDBACK,slice);
 
 				assertTxnsMatch("Transaction does not match committed state!",correctTxn,(SparseTxn) store.getTransaction(txn.getTxnId()));
 		}
