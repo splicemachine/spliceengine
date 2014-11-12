@@ -30,6 +30,7 @@ import org.apache.derby.iapi.sql.compile.CompilerContext;
 import org.apache.derby.iapi.services.classfile.VMOpcode;
 import org.apache.derby.iapi.sql.dictionary.SequenceDescriptor;
 import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
+import org.apache.derby.iapi.store.access.Qualifier;
 
 import java.util.Collections;
 import java.util.List;
@@ -194,4 +195,10 @@ public class NextSequenceNode extends ValueNode {
 	public List getChildren() {
 		return Collections.EMPTY_LIST;
 	}
+
+    protected int getOrderableVariantType() throws StandardException
+    {
+        return Qualifier.CONSTANT;
+    }
+
 }

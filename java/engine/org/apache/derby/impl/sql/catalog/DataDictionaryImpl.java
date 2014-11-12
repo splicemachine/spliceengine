@@ -10254,7 +10254,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
      *
 	 * @exception StandardException thrown on failure.
 	 */ 
-	void computeSequenceRowLocation
+	protected void computeSequenceRowLocation
         ( TransactionController tc, String sequenceIDstring, RowLocation[] rowLocation, SequenceDescriptor[] sequenceDescriptor )
 		throws StandardException								  
 	{

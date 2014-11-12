@@ -34,6 +34,7 @@ import java.sql.Timestamp;
 import junit.framework.Test;
 import junit.framework.TestSuite;
 
+import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derbyTesting.junit.BaseJDBCTestCase;
 import org.apache.derbyTesting.junit.TestConfiguration;
 import org.apache.derbyTesting.junit.DatabasePropertyTestSetup;
@@ -944,6 +945,10 @@ public class SequenceGeneratorTest  extends GeneratedColumnsHelper
         public boolean updateCurrentValueOnDisk( Long oldValue, Long newValue )
         {
             return updateCurrentValueOnDisk( null, oldValue, newValue, false );
+        }
+
+        public RowLocation getSequenceRowLocation() {
+            return null;
         }
     
     }

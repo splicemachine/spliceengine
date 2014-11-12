@@ -135,6 +135,7 @@ public abstract class SequenceUpdater implements Cacheable
     //
     ///////////////////////////////////////////////////////////////////////////////////
 
+    abstract public RowLocation getSequenceRowLocation();
     /**
      * <p>
      * Initialize the sequence generator. Work is done inside a read-only subtransaction of
@@ -558,6 +559,11 @@ public abstract class SequenceUpdater implements Cacheable
         protected boolean updateCurrentValueOnDisk( TransactionController tc, Long oldValue, Long newValue, boolean wait ) throws StandardException
         {
             return _dd.updateCurrentSequenceValue( tc, _sequenceRowLocation, wait, oldValue, newValue );
+        }
+
+        @Override
+        public RowLocation getSequenceRowLocation() {
+            return _sequenceRowLocation;
         }
     }
 
