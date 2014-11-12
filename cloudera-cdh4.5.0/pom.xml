@@ -11,7 +11,6 @@
 		<envClassifier>cloudera-cdh4.5.0</envClassifier>
 	</properties>
 
-
 	<parent>
 		<artifactId>spliceengine</artifactId>
 		<groupId>com.splicemachine</groupId>
@@ -21,15 +20,15 @@
 	<modules>
 		<module>splice_constants</module>
 		<module>splice_si</module>
-  		<module>splice_si_94_adapter</module>
+  		<module>splice_si_adapter_94</module>
 		<module>splice_si_test</module>
 		<module>splice_machine</module>
-  		<module>splice_machine_94_adapter</module>
+  		<module>splice_machine_adapter_94</module>
   		<module>splice_machine_test</module>  		
 	</modules>
 
 	<dependencies>
-				<dependency> <groupId>com.google.protobuf</groupId> <artifactId>protobuf-java</artifactId> <version>2.4.1</version> </dependency>
+		<dependency> <groupId>com.google.protobuf</groupId> <artifactId>protobuf-java</artifactId> <version>2.4.1</version> </dependency>
 		<dependency> <groupId>com.carrotsearch</groupId> <artifactId>hppc</artifactId> </dependency>
 		<dependency> <groupId>com.carrotsearch</groupId> <artifactId>java-sizeof</artifactId> </dependency>
 		<dependency> <groupId>org.uncommons.maths</groupId> <artifactId>uncommons-maths</artifactId>  </dependency>
