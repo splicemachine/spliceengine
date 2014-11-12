@@ -69,7 +69,7 @@ public class ScanTask extends DebugTask{
         scan.setCacheBlocks(false);
         scan.setCaching(100);
         scan.setBatch(100);
-        scan.setFilter(new HBaseEntryPredicateFilter(predicateFilter));
+        scan.setFilter(new AbstractHBaseEntryPredicateFilter(predicateFilter));
         scan.setAttribute(SIConstants.SI_EXEMPT, Bytes.toBytes(true));
 
         Writer writer;
@@ -154,61 +154,5 @@ public class ScanTask extends DebugTask{
 
 		@Override public boolean isSplittable() { return true; }
 
-		private class HBaseEntryPredicateFilter extends FilterBase {
-        private EntryPredicateFilter epf;
-        private EntryAccumulator accumulator;
-        private EntryDecoder decoder;
-
-        private boolean filterRow = false;
-        public HBaseEntryPredicateFilter(EntryPredicateFilter epf) {
-            this.epf = epf;
-            this.accumulator = epf.newAccumulator();
-            this.decoder = new EntryDecoder();
-        }
-
-        @Override
-        public void reset() {
-            this.accumulator.reset();
-            this.filterRow = false;
-        }
-
-        @Override
-        public boolean filterRow() {
-            return filterRow;
-        }
-
-        @Override
-        public ReturnCode filterKeyValue(KeyValue ignored) {
-            if(!ignored.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES))
-                return ReturnCode.INCLUDE;
-
-            try {
-                if(ignored.getValueLength()==0){
-                    //skip records with no data
-                    filterRow=true;
-                    return ReturnCode.NEXT_COL;
-                }
-
-                decoder.set(ignored.getValue());
-                if(epf.match(decoder,accumulator)){
-                    return ReturnCode.INCLUDE;
-                }else{
-                    filterRow = true;
-                    return ReturnCode.NEXT_COL;
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-                filterRow=true;
-                return ReturnCode.NEXT_COL;
-            }
-        }
-
-        @Override
-        public void write(DataOutput out) throws IOException {
-        }
-
-        @Override
-        public void readFields(DataInput in) throws IOException {
-        }
-    }
+		
 }

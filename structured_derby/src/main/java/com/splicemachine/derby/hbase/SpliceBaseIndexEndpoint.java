@@ -3,7 +3,6 @@ package com.splicemachine.derby.hbase;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.job.scheduler.SimpleThreadedTaskScheduler;
 import com.splicemachine.pipeline.api.WriteBufferFactory;
-import com.splicemachine.pipeline.coprocessor.BatchProtocol;
 import com.splicemachine.pipeline.exception.IndexNotSetUpException;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.api.Code;

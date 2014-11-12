@@ -3,7 +3,7 @@ package com.splicemachine.derby.impl.storage;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.splicemachine.async.*;
-import com.splicemachine.derby.impl.job.operation.SuccessFilter;
+import com.splicemachine.derby.impl.job.operation.BaseSuccessFilter;
 
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
@@ -73,8 +73,8 @@ public class AsyncScannerUtils {
     }
 
     private static ScanFilter convertFilter(Filter filter) {
-        if(filter instanceof SuccessFilter){
-            SuccessFilter sf = (SuccessFilter)filter;
+        if(filter instanceof BaseSuccessFilter){
+        	BaseSuccessFilter sf = (BaseSuccessFilter)filter;
             return new AsyncSuccessFilter(sf.getTaskList());
         }
 

@@ -7,7 +7,6 @@ import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.SpliceMethod;
-import com.splicemachine.derby.impl.job.operation.SuccessFilter;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils.JoinSide;
 import com.splicemachine.derby.impl.storage.DistributedClientScanProvider;
 import com.splicemachine.derby.impl.storage.RowProviders;
@@ -133,7 +132,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
             reduceScan = context.getScan();
         }
         if (failedTasks.size() > 0) {
-            reduceScan.setFilter(new SuccessFilter(failedTasks));
+            reduceScan.setFilter(derbyFactory.getSuccessFilter(failedTasks));
         }
         JoinUtils.getMergedRow(leftRow, rightRow, wasRightOuterJoin, rightNumCols, leftNumCols, mergedRow);
         startExecutionTime = System.currentTimeMillis();
@@ -251,7 +250,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 						finish[finish.length-1] = 0x01;
             reduceScan = Scans.newScan(start, finish, null);
             if (failedTasks.size() > 0) {
-                reduceScan.setFilter(new SuccessFilter(failedTasks));
+                reduceScan.setFilter(derbyFactory.getSuccessFilter(failedTasks));
             }
             if (top != this && top instanceof SinkingOperation) {
                 //don't serialize the underlying operations, since we're just reading from TEMP anyway

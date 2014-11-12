@@ -6,13 +6,11 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.impl.job.operation.SuccessFilter;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.GroupedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SourceIterator;
 import com.splicemachine.derby.impl.sql.execute.operations.sort.DistinctSortAggregateBuffer;
 import com.splicemachine.derby.impl.sql.execute.operations.sort.SinkSortIterator;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
-import com.splicemachine.derby.impl.storage.KeyValueUtils;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.Scans;
@@ -243,7 +241,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 				if(keyValues.isEmpty()) return null;
 				if(rowDecoder==null)
 						rowDecoder =getTempDecoder();
-				return rowDecoder.decode(KeyValueUtils.matchDataColumn(keyValues));
+				return rowDecoder.decode(dataLib.matchDataColumn(keyValues));
 		}
 
 		@Override
@@ -279,7 +277,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 						reduceScan = Scans.buildPrefixRangeScan(range, null);
 						if (failedTasks.size() > 0 && !distinct) {
 								//we don't need the filter when distinct is true, because we'll overwrite duplicates anyway
-								reduceScan.setFilter(new SuccessFilter(failedTasks));
+								reduceScan.setFilter(derbyFactory.getSuccessFilter(failedTasks));
 						}
 				} catch (IOException e) {
 						throw Exceptions.parseException(e);

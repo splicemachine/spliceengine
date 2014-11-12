@@ -1,8 +1,6 @@
 package com.splicemachine.derby.impl.store.access.hbase;
 
-import com.splicemachine.hbase.HBaseRegionLoads;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.error.StandardException; 
 import org.apache.derby.iapi.sql.compile.CostEstimate;
@@ -11,25 +9,20 @@ import org.apache.derby.iapi.store.access.StoreCostResult;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
-
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.compile.SortState;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceGenericCostController;
 import com.splicemachine.derby.impl.store.access.base.SpliceScan;
-
 import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.HServerLoad.RegionLoad;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
-
-import java.util.Map;
 import java.util.SortedSet;
 
 
 public class HBaseCostController extends SpliceGenericCostController implements StoreCostController {
-    private static final Logger LOG = Logger.getLogger(HBaseCostController.class);
+	private static final Logger LOG = Logger.getLogger(HBaseCostController.class);
 	private OpenSpliceConglomerate open_conglom;
 
 	public HBaseCostController(OpenSpliceConglomerate    open_conglom) throws StandardException {
@@ -79,9 +72,8 @@ public class HBaseCostController extends SpliceGenericCostController implements 
         // table in HBase
 
         SortedSet<Pair<HRegionInfo,ServerName>> regions = getRegions(open_conglom.getConglomerate().getContainerid());
-        Map<String,RegionLoad> regionLoads = HBaseRegionLoads.getCachedRegionLoadsMapForTable(open_conglom.getConglomerate().getContainerid()+"");
     	((SortState) cost_result).setNumberOfRegions(regions==null?0:regions.size());
-        long estimatedRowCount = computeRowCount(regions,regionLoads,SpliceConstants.hbaseRegionRowEstimate,SpliceConstants.regionMaxFileSize,spliceScan.getScan());
+    	long estimatedRowCount = derbyFactory.computeRowCount(LOG, open_conglom.getConglomerate().getContainerid()+"", regions, spliceScan.getScan());
         double cost = estimatedRowCount*SpliceConstants.baseTablePerRowCost;
         if (SanityManager.DEBUG) {
             SanityManager.ASSERT(cost >= 0);

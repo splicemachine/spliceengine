@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.Comparator;
 import java.util.List;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.metrics.MetricFactory;
@@ -104,5 +105,10 @@ public interface SDataLib<Data,
 	Filter getActiveTransactionFilter(long beforeTs,long afterTs,byte[] destinationTable);
 	public InternalScanner getCompactionScanner(InternalScanner scanner, SICompactionState state);
 	boolean internalScannerNext(InternalScanner internalScanner,List<Data> data) throws IOException;	
-	boolean isDataInRange(Data data, Pair<byte[], byte[]> range);	
+	boolean isDataInRange(Data data, Pair<byte[], byte[]> range);
+	Data matchKeyValue(Iterable<Data> kvs, byte[] columnFamily, byte[] qualifier);
+	Data matchKeyValue(Data[] kvs,byte[] columnFamily, byte[] qualifier);
+	Data matchDataColumn(Data[] kvs);
+	Data matchDataColumn(List<Data> kvs);
+	Data matchDataColumn(Result result);
 }

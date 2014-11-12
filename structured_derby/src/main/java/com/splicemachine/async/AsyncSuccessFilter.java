@@ -1,8 +1,6 @@
 package com.splicemachine.async;
 
-import com.splicemachine.derby.impl.job.operation.SuccessFilter;
 import org.jboss.netty.buffer.ChannelBuffer;
-
 import java.util.List;
 
 /**
@@ -10,7 +8,7 @@ import java.util.List;
  * Date: 7/16/14
  */
 public class AsyncSuccessFilter extends ScanFilter {
-    private static final byte[] NAME =Bytes.ISO88591(SuccessFilter.class.getName());
+    private static final byte[] NAME =Bytes.ISO88591(AsyncSuccessFilter.class.getName());
     private List<byte[]> failedTasks;
 
     public AsyncSuccessFilter(List<byte[]> failedTasks) {

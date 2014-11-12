@@ -375,12 +375,7 @@ public class BroadcastJoinOperation extends JoinOperation {
             leaf = leaf.getLeftOperation();
         }
         if (tableName != null) {
-            Collection<HServerLoad.RegionLoad> loads =
-                HBaseRegionLoads.getCachedRegionLoadsForTable(tableName);
-            if (loads != null && loads.size() == 1) {
-                regionSizeMB = HBaseRegionLoads
-                                   .memstoreAndStorefileSize(loads.iterator().next());
-            }
+        	regionSizeMB = derbyFactory.getRegionsSizeMB(tableName);
         }
         long objectSize = RamUsageEstimator.sizeOf(inMemoryMap);
         float objectSizeMB = objectSize / (1024 * 1024f);

@@ -3,10 +3,14 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.si.data.api.SDataLib;
+import com.splicemachine.si.impl.SIFactoryDriver;
+
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.filter.FilterBase;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
+import org.apache.hadoop.io.Writable;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -17,23 +21,24 @@ import java.util.List;
  * @author Scott Fines
  *         Date: 7/22/14
  */
-public class SkippingScanFilter extends FilterBase {
-    private List<Pair<byte[], byte[]>> startStopKeys;
-    private List<byte[]> predicates;
+public abstract class AbstractSkippingScanFilter<Data> extends FilterBase implements Writable {
+	private static final SDataLib dataLib = SIFactoryDriver.siFactory.getDataLib();
+    protected List<Pair<byte[], byte[]>> startStopKeys;
+    protected List<byte[]> predicates;
 
-    private byte[] currentStartKey;
-    private byte[] currentStopKey;
-    private int currentIndex;
+    protected byte[] currentStartKey;
+    protected byte[] currentStopKey;
+    protected int currentIndex;
 
     private boolean matchesRow;
-    private boolean matchesEverything;
+    protected boolean matchesEverything;
 
     //serialization filter, DO NOT USE
     @Deprecated
-    public SkippingScanFilter() {
+    public AbstractSkippingScanFilter() {
     }
 
-    public SkippingScanFilter(List<Pair<byte[], byte[]>> startStopKeys, List<byte[]> predicates) {
+    public AbstractSkippingScanFilter(List<Pair<byte[], byte[]>> startStopKeys, List<byte[]> predicates) {
         this.startStopKeys = startStopKeys;
         this.predicates = predicates;
     }
@@ -43,23 +48,22 @@ public class SkippingScanFilter extends FilterBase {
         matchesRow = false;
     }
 
-    @Override
-    public ReturnCode filterKeyValue(KeyValue kv) {
+    public ReturnCode internalFilter(Data kv) {
         //cheap skip if we are scanning everything
         if (matchesEverything) return ReturnCode.INCLUDE;
         //if we've already checked this row, then we don't need to do it again
         if (matchesRow) return ReturnCode.INCLUDE;
 
-        byte[] kvBuffer = kv.getBuffer();
-        int rowKeyOffset = kv.getRowOffset();
-        short rowKeyLength = kv.getRowLength();
+        byte[] kvBuffer = dataLib.getDataRowBuffer(kv);
+        int rowKeyOffset = dataLib.getDataRowOffset(kv);
+        int rowKeyLength = dataLib.getDataRowlength(kv);
         if (currentStartKey.length == 0) {
             if (Bytes.compareTo(currentStopKey, 0, currentStopKey.length, kvBuffer, rowKeyOffset, rowKeyLength) <= 0) {
                 //this kv is past the end of this current range. set the next range and try again
                 Pair<byte[], byte[]> newRange = startStopKeys.get(currentIndex++);
                 currentStartKey = newRange.getFirst();
                 currentStopKey = newRange.getSecond();
-                return filterKeyValue(kv); //try the looping again
+                return internalFilter(kv); //try the looping again
             }
             //we are contained in this range, so include it
             return ReturnCode.INCLUDE;
@@ -71,7 +75,7 @@ public class SkippingScanFilter extends FilterBase {
             Pair<byte[], byte[]> newRange = startStopKeys.get(currentIndex++);
             currentStartKey = newRange.getFirst();
             currentStopKey = newRange.getSecond();
-            return filterKeyValue(kv); //try the looping again
+            return internalFilter(kv); //try the looping again
         } else {
             matchesRow = true; //don't bother processing future items
             return ReturnCode.INCLUDE;

@@ -4,7 +4,6 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.storage.ClientResultScanner;
-import com.splicemachine.derby.impl.storage.KeyValueUtils;
 import com.splicemachine.derby.impl.storage.RegionAwareScanner;
 import com.splicemachine.derby.impl.storage.SpliceResultScanner;
 import com.splicemachine.derby.utils.JoinSideExecRow;
@@ -14,6 +13,9 @@ import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.TimeView;
+import com.splicemachine.si.data.api.SDataLib;
+import com.splicemachine.si.impl.SIFactoryDriver;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.client.Result;
@@ -28,7 +30,7 @@ import java.io.IOException;
  */
 public class ResultMergeScanner implements StandardIterator<JoinSideExecRow> {
     private final SpliceResultScanner scanner;
-
+    private static final SDataLib dataLib = SIFactoryDriver.siFactory.getDataLib();
     private final PairDecoder leftDecoder;
     private final PairDecoder rightDecoder;
 
@@ -82,7 +84,7 @@ public class ResultMergeScanner implements StandardIterator<JoinSideExecRow> {
 						throw aioobe;
 				}
         if(ordinal == JoinUtils.JoinSide.RIGHT.ordinal()){
-            ExecRow rightRow = rightDecoder.decode(KeyValueUtils.matchDataColumn(result.raw()));
+            ExecRow rightRow = rightDecoder.decode(dataLib.matchDataColumn(result));
             if(rightSideRow==null){
                 rightKeyDecoder = MultiFieldDecoder.wrap(rowKey);
                 rightSideRow = new JoinSideExecRow(rightRow, JoinUtils.JoinSide.RIGHT);
@@ -96,7 +98,7 @@ public class ResultMergeScanner implements StandardIterator<JoinSideExecRow> {
             rightSideRow.setRowKey(rowKey);
             return rightSideRow;
         }else{
-            ExecRow leftRow = leftDecoder.decode(KeyValueUtils.matchDataColumn(result.raw()));
+            ExecRow leftRow = leftDecoder.decode(dataLib.matchDataColumn(result));
             if(leftSideRow==null){
                 leftKeyDecoder = MultiFieldDecoder.wrap(rowKey);
                 leftSideRow = new JoinSideExecRow(leftRow, JoinUtils.JoinSide.LEFT);

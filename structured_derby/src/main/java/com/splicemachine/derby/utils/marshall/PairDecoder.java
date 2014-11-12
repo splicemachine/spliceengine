@@ -2,16 +2,17 @@ package com.splicemachine.derby.utils.marshall;
 
 import com.esotericsoftware.kryo.KryoException;
 import com.splicemachine.hbase.KVPair;
-
+import com.splicemachine.si.data.api.SDataLib;
+import com.splicemachine.si.impl.SIFactoryDriver;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.hadoop.hbase.KeyValue;
 
 /**
  * @author Scott Fines
  * Date: 11/15/13
  */
-public class PairDecoder {
+public class PairDecoder<Data> {
+		private static final SDataLib dataLib = SIFactoryDriver.siFactory.getDataLib();
 		private final KeyDecoder keyDecoder;
 		private final KeyHashDecoder rowDecoder;
 		private final ExecRow templateRow;
@@ -34,24 +35,13 @@ public class PairDecoder {
         return templateRow;
     }
 
-		public ExecRow decode(KeyValue data) throws StandardException{
+		public ExecRow decode(Data data) throws StandardException{
 			try {
-				templateRow.resetRowArray();
-				keyDecoder.decode(data.getBuffer(),data.getRowOffset(),data.getRowLength(),templateRow);
-				rowDecoder.set(data.getBuffer(),data.getValueOffset(),data.getValueLength());
-				
-				//System.out.println("templateRow " + templateRow);
-				//int size = templateRow.nColumns();
-				/*System.out.println("templateRow size " + size);
-				for (int i=0;i<size;i++) {
-					if (templateRow != null) {
-					System.out.println(templateRow.getColumn(i+1).getTypeName());
-//					System.out.println(templateRow.getColumn(i).getTraceString());
-					} else {
-						System.out.println("template: " + templateRow);						
-					}
-				}
-				*/
+				templateRow.resetRowArray();				
+				keyDecoder.decode(data, templateRow);
+				rowDecoder.set(dataLib.getDataValueBuffer(data),
+						dataLib.getDataValueOffset(data),
+						dataLib.getDataValuelength(data));
 				rowDecoder.decode(templateRow);
 				return templateRow;
 			} catch (StandardException se) {

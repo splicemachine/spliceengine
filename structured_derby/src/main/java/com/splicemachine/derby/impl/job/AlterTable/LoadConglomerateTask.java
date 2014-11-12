@@ -48,7 +48,6 @@ import java.util.concurrent.ExecutionException;
  * To change this template use File | Settings | File Templates.
  */
 public class LoadConglomerateTask extends ZkTask {
-
     private UUID tableId;
     private long fromConglomId;
     private long toConglomId;
@@ -129,15 +128,14 @@ public class LoadConglomerateTask extends ZkTask {
             MetricFactory metricFactory = isTraced? Metrics.basicMetricFactory(): Metrics.noOpMetricFactory();
             writeTimer = metricFactory.newTimer();
 
-            List<KeyValue> result;
+            List result;
             writeTimer.startTiming();
             do {
                 SpliceBaseOperation.checkInterrupt(numRecordsRead, SpliceConstants.interruptLoopCheck);
                 result = scanner.next();
                 if (result == null) continue;
 
-                KeyValue kv = KeyValueUtils.matchDataColumn(result);
-                newPair = transformer.transform(kv);
+                newPair = transformer.transform(dataLib.matchDataColumn(result));
                 loader.add(newPair);
                 numRecordsRead++;
 

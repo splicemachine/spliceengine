@@ -1,9 +1,6 @@
 package com.splicemachine.derby.impl.sql.compile;
 
-import java.util.Map;
-
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.compile.AccessPath;
 import org.apache.derby.iapi.sql.compile.CostEstimate;
 import org.apache.derby.iapi.sql.compile.JoinStrategy;
 import org.apache.derby.iapi.sql.compile.Optimizable;
@@ -12,9 +9,7 @@ import org.apache.derby.iapi.sql.compile.Optimizer;
 import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
 import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.derby.impl.sql.compile.HashableJoinStrategy;
-import org.apache.hadoop.hbase.HServerLoad.RegionLoad;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.HBaseRegionLoads;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -103,13 +98,9 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
 
 		if (hashFeasible && innerTable != null && innerTable.isBaseTable() && (td = innerTable.getTableDescriptor())!= null &&
 				(cd = td.getConglomerateDescriptors()) != null && cd.length >= 1) {
-	        Map<String,RegionLoad> regionLoads = HBaseRegionLoads.getCachedRegionLoadsMapForTable(cd[0].getConglomerateNumber()+"");
-			if (regionLoads == null)
-				return false;
-			long cost = 0;
-	        for (RegionLoad regionLoad: regionLoads.values()) {
-	        	cost += HBaseRegionLoads.memstoreAndStorefileSize(regionLoad);
-	        }
+	        long cost = HBaseRegionLoads.memstoreAndStoreFileSize(cd[0].getConglomerateNumber()+"");
+	        if (cost<0)
+	        	return false;
 	        SpliceLogUtils.trace(LOG, "feasible cost=%d",cost);
 	        if (cost < SpliceConstants.broadcastRegionMBThreshold) {
 		        SpliceLogUtils.trace(LOG, "broadcast join is feasible");

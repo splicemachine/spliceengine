@@ -5,6 +5,8 @@ import com.carrotsearch.hppc.ObjectArrayList;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.splicemachine.derby.hbase.DerbyFactory;
+import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.regioninfocache.RegionCache;
 import com.splicemachine.metrics.Counter;
@@ -30,6 +32,7 @@ import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 import org.apache.hadoop.hbase.client.Row;
 import org.apache.log4j.Logger;
+
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -43,6 +46,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * Created on: 8/8/13
  */
 public class BulkWriteAction implements Callable<WriteStats> {
+		private static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
 		private static final Logger LOG = Logger.getLogger(BulkWriteAction.class);
 		private static final AtomicLong idGen = new AtomicLong(0l);
 		private BulkWrites bulkWrites;
@@ -71,7 +75,8 @@ public class BulkWriteAction implements Callable<WriteStats> {
 													 ActionStatusReporter statusReporter) {
 				this(tableName,bulkWrites,regionCache,
 								writeConfiguration,statusReporter,
-								new BulkWritesRPCInvoker.Factory(connection,tableName),Sleeper.THREAD_SLEEPER);
+								derbyFactory.getBulkWritesInvoker(connection, tableName),
+								Sleeper.THREAD_SLEEPER);
 		}
 
 		BulkWriteAction(byte[] tableName,

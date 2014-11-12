@@ -47,7 +47,7 @@ public class RegionTxnPurger<Transaction,Data> {
 
         RegionScanner baseScanner = region.getScanner(scan);
 
-        final RegionScanner scanner = new BufferedRegionScanner(region, baseScanner, scan, 1024, Metrics.noOpMetricFactory(),HTransactorFactory.getTransactor().getDataLib() );
+        final RegionScanner scanner = new BufferedRegionScanner(region, baseScanner, scan, 1024, Metrics.noOpMetricFactory(),SIFactoryDriver.siFactory.getDataLib() );
         return new RegionScanIterator<Data,Put,Delete,Get,Scan,Transaction>(scanner, new RegionScanIterator.IOFunction<Transaction,Data>() {
             @Override
             public Transaction apply(@Nullable List<Data> keyValues) throws IOException {

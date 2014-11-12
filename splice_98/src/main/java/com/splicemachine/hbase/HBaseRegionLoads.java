@@ -10,7 +10,6 @@ import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
@@ -178,4 +177,17 @@ public class HBaseRegionLoads {
         return load.getStorefileSizeMB() + load.getMemStoreSizeMB();
     }
 
+    public static long memstoreAndStoreFileSize(String tableName) {
+        Map<String,RegionLoad> regionLoads = HBaseRegionLoads.getCachedRegionLoadsMapForTable(tableName);
+    	if (regionLoads == null)
+    		return -1;
+    	long cost = 0;
+        for (RegionLoad regionLoad: regionLoads.values()) {
+        	cost += HBaseRegionLoads.memstoreAndStorefileSize(regionLoad);
+        }
+        return cost;
+    }
+    
+
+    
 }
