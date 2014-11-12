@@ -312,17 +312,17 @@ public class SpliceBaseIndexEndpoint {
 				}
 		}
 
-		private WriteContext getWriteContext(WriteBufferFactory indexWriteBufferFactory, TxnView txn, TransactionalRegion region, RegionCoprocessorEnvironment rce,int writeSize) throws IOException, InterruptedException {
+		public WriteContext getWriteContext(WriteBufferFactory indexWriteBufferFactory, TxnView txn, TransactionalRegion region, RegionCoprocessorEnvironment rce,int writeSize) throws IOException, InterruptedException {
 				Pair<LocalWriteContextFactory, AtomicInteger> ctxFactoryPair = getContextPair(conglomId);
 				return ctxFactoryPair.getFirst().create(indexWriteBufferFactory,txn,region,rce);
 		}
 
-		private boolean isDependent() throws IOException {
+		public boolean isDependent() throws IOException {
 				Pair<LocalWriteContextFactory, AtomicInteger> ctxFactoryPair = getContextPair(conglomId);
 				return ctxFactoryPair.getFirst().hasDependentWrite();
 		}
 
-		private static Pair<LocalWriteContextFactory, AtomicInteger> getContextPair(long conglomId) {
+		public static Pair<LocalWriteContextFactory, AtomicInteger> getContextPair(long conglomId) {
 				Pair<LocalWriteContextFactory, AtomicInteger> ctxFactoryPair = factoryMap.get(conglomId);
 				if(ctxFactoryPair==null){
 						ctxFactoryPair = Pair.newPair(new LocalWriteContextFactory(conglomId),new AtomicInteger());

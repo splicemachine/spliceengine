@@ -109,8 +109,10 @@ public class IndexController  extends SpliceController  {
 								DescriptorSerializer[] serializers = VersionedSerializers.forVersion("1.0",true).getSerializers(execRow);
 								KeyHashDecoder decoder = BareKeyHash.decoder(null,null,serializers);
 								try{
-										KeyValue kv = KeyValueUtils.matchDataColumn(result.raw());
-										decoder.set(kv.getBuffer(),kv.getValueOffset(),kv.getValueLength());
+										Object kv = dataLib.matchDataColumn(result.raw());
+										decoder.set(dataLib.getDataValueBuffer(kv),
+												dataLib.getDataValueOffset(kv),
+												dataLib.getDataValuelength(kv));
 										decoder.decode(execRow);
 										validCols = new int[validColumns.getNumBitsSet()];
 										int pos=0;

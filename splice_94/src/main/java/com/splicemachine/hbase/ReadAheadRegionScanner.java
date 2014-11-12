@@ -39,4 +39,5 @@ public class ReadAheadRegionScanner extends BaseReadAheadRegionScanner<Put,Get,K
 		@Override public boolean next(List<KeyValue> results, String metric) throws IOException { return nextRaw(results,metric); }
 		@Override public boolean next(List<KeyValue> result, int limit) throws IOException { return nextRaw(result,limit,null); }
 		@Override public boolean next(List<KeyValue> result, int limit, String metric) throws IOException { return nextRaw(result,limit,metric); }
+		@Override public boolean internalNextRaw(List<KeyValue> results) throws IOException {return nextRaw(results,null);}
 }

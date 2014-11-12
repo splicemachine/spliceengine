@@ -5,7 +5,6 @@ import com.google.gson.*;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
-import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
 import com.splicemachine.pipeline.api.Code;
 import com.splicemachine.pipeline.constraint.ConstraintContext;
 import com.splicemachine.pipeline.constraint.ConstraintViolation;
@@ -13,7 +12,6 @@ import com.splicemachine.pipeline.constraint.Constraints;
 import com.splicemachine.pipeline.impl.WriteResult;
 import com.splicemachine.si.impl.WriteConflict;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.MessageId;
 import org.apache.derby.shared.common.reference.SQLState;
@@ -26,7 +24,6 @@ import org.apache.hadoop.hbase.regionserver.WrongRegionException;
 import org.apache.hadoop.ipc.RemoteException;
 import org.apache.hadoop.hbase.client.ScannerTimeoutException;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.ConnectException;

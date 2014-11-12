@@ -1,14 +1,11 @@
 package com.splicemachine.derby.impl.sql.execute;
 
-import com.google.common.io.Closeables;
 import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.ddl.DropIndexDDLDesc;
 import com.splicemachine.derby.impl.sql.execute.actions.IndexConstantOperation;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.pipeline.exception.ErrorState;
-import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
 import org.apache.derby.catalog.UUID;
@@ -21,10 +18,6 @@ import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
 import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.derby.iapi.store.access.TransactionController;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.coprocessor.Batch;
-import java.io.IOException;
 
 /**
  * DDL operation to drop an index. The approach is as follows:
@@ -38,7 +31,7 @@ import java.io.IOException;
  * @author Scott Fines
  * Date: 3/4/14
  */
-public class DropIndexConstantOperation extends IndexConstantOperation{
+public abstract class AbstractDropIndexConstantOperation extends IndexConstantOperation{
 		private String				fullIndexName;
 		private long				tableConglomerateId;
 		/**
@@ -53,7 +46,7 @@ public class DropIndexConstantOperation extends IndexConstantOperation{
 		 *  @param  tableConglomerateId	heap Conglomerate Id for table
 		 *
 		 */
-		public DropIndexConstantOperation(String fullIndexName, String indexName, String tableName,
+		public AbstractDropIndexConstantOperation(String fullIndexName, String indexName, String tableName,
                                       String schemaName, UUID tableId, long tableConglomerateId) {
 				super(tableId, indexName, tableName, schemaName);
 				this.fullIndexName = fullIndexName;
@@ -122,26 +115,11 @@ public class DropIndexConstantOperation extends IndexConstantOperation{
         DDLChange change = new DDLChange(userTxn, DDLChangeType.DROP_INDEX);
         change.setTentativeDDLDesc(new DropIndexDDLDesc(indexConglomId,tableConglomId));
         notifyMetadataChangeAndWait(change);
-
-				//drop the index trigger from the main table
-				HTableInterface mainTable = SpliceAccessManager.getHTable(tableConglomId);
-				try {
-						mainTable.coprocessorExec(SpliceIndexProtocol.class,
-                    HConstants.EMPTY_START_ROW, HConstants.EMPTY_END_ROW,
-                    new Batch.Call<SpliceIndexProtocol, Void>() {
-                        @Override
-                        public Void call(SpliceIndexProtocol instance) throws IOException {
-                            instance.dropIndex(indexConglomId, tableConglomId, userTxn.getTxnId());
-                            return null;
-                        }
-                    }) ;
-				} catch (Throwable throwable) {
-						throw Exceptions.parseException(throwable);
-				}finally{
-						Closeables.closeQuietly(mainTable);
-				}
+        dropIndexTrigger(tableConglomId, indexConglomId, userTxn);				
 		}
 
+	public abstract void dropIndexTrigger(final long tableConglomId, final long indexConglomId, final TxnView userTxn) throws StandardException;		
+		
     private void drop(ConglomerateDescriptor cd,
                       TableDescriptor td,
                       DataDictionary dd,

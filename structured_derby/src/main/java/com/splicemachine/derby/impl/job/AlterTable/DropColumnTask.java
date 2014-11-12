@@ -2,7 +2,7 @@ package com.splicemachine.derby.impl.job.AlterTable;
 
 import com.google.common.base.Throwables;
 import com.splicemachine.derby.ddl.TentativeDropColumnDesc;
-import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
+import com.splicemachine.derby.hbase.SpliceBaseIndexEndpoint;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
@@ -11,9 +11,7 @@ import com.splicemachine.pipeline.api.WriteContextFactory;
 import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
-
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -66,7 +64,7 @@ public class DropColumnTask extends ZkTask {
     public void doExecute() throws ExecutionException, InterruptedException {
         try{
             TentativeDropColumnDesc tentativeDropColumnDesc = (TentativeDropColumnDesc)ddlChange.getTentativeDDLDesc();
-            WriteContextFactory contextFactory = SpliceIndexEndpoint.getContextFactory(tentativeDropColumnDesc.getBaseConglomerateNumber());
+            WriteContextFactory contextFactory = SpliceBaseIndexEndpoint.getContextFactory(tentativeDropColumnDesc.getBaseConglomerateNumber());
             contextFactory.addDDLChange(ddlChange);
         } catch (Exception e) {
             SpliceLogUtils.error(LOG, e);

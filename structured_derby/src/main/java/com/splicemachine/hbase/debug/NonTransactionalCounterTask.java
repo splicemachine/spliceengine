@@ -5,9 +5,13 @@ import com.google.common.io.Closeables;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
+import com.splicemachine.hbase.SimpleMeasuredRegionScanner;
+import com.splicemachine.metrics.Metrics;
+
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
+
 import java.io.IOException;
 import java.io.Writer;
 import java.util.List;
@@ -37,17 +41,17 @@ public class NonTransactionalCounterTask extends DebugTask{
         scan.setAttribute(SIConstants.SI_EXEMPT, Bytes.toBytes(true));
         scan.addFamily(SIConstants.DEFAULT_FAMILY_BYTES);
 
-        RegionScanner scanner = null;
+        SimpleMeasuredRegionScanner scanner = null;
         long totalCount=0l;
         try{
-            scanner = region.getScanner(scan);
+            scanner = new SimpleMeasuredRegionScanner(region.getScanner(scan),Metrics.noOpMetricFactory());
             List keyValues = Lists.newArrayList();
             region.startRegionOperation();
             try{
                 boolean shouldContinue;
                 do{
                     keyValues.clear();
-                    shouldContinue = scanner.nextRaw(keyValues);
+                    shouldContinue = scanner.internalNextRaw(keyValues);
                     if(keyValues.size()>0)
                         totalCount++;
                 }while(shouldContinue);

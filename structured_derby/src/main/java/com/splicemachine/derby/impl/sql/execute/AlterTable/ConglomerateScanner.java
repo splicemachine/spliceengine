@@ -114,7 +114,7 @@ public class ConglomerateScanner {
         boolean more;
 
         values.clear();
-        more = brs.nextRaw(values);
+        more = brs.internalNextRaw(values);
         if (!more) return null;
 
         return values;

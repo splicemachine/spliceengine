@@ -1,8 +1,10 @@
 package com.splicemachine.derby.utils;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.derby.hbase.DerbyFactory;
+import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.hbase.ManifestReader.SpliceMachineVersion;
-import com.splicemachine.derby.hbase.SpliceIndexEndpoint.ActiveWriteHandlersIface;
+import com.splicemachine.derby.hbase.SpliceBaseIndexEndpoint.ActiveWriteHandlersIface;
 import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.job.scheduler.StealableTaskSchedulerManagement;
 import com.splicemachine.derby.impl.job.scheduler.TieredSchedulerManagement;
@@ -73,6 +75,7 @@ import com.splicemachine.pipeline.threadpool.ThreadPoolStatus;
  *         Date: 12/9/13
  */
 public class SpliceAdmin extends BaseAdminProcedures {
+	protected static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
 	private static Logger LOG = Logger.getLogger(SpliceAdmin.class);
 	
     public static void SYSCS_SET_LOGGER_LEVEL(final String loggerName, final String logLevel) throws SQLException {
@@ -777,21 +780,7 @@ public class SpliceAdmin extends BaseAdminProcedures {
     }
 
     public static void SYSCS_GET_REQUESTS(ResultSet[] resultSet) throws SQLException {
-        StringBuilder sb = new StringBuilder("select * from (values ");
-        int i = 0;
-        for (Map.Entry<ServerName, HServerLoad> serverLoad : getLoad().entrySet()) {
-            if (i != 0) {
-                sb.append(", ");
-            }
-            ServerName sn = serverLoad.getKey();
-            sb.append(String.format("('%s',%d,%d)",
-                    sn.getHostname(),
-                    sn.getPort(),
-                    serverLoad.getValue().getTotalNumberOfRequests()));
-            i++;
-        }
-        sb.append(") foo (hostname, port, totalRequests)");
-        resultSet[0] = executeStatement(sb);
+    	derbyFactory.SYSCS_GET_REQUESTS(resultSet);
     }
 
     public static void SYSCS_PERFORM_MAJOR_COMPACTION_ON_SCHEMA(String schemaName) throws SQLException {
@@ -846,7 +835,7 @@ public class SpliceAdmin extends BaseAdminProcedures {
 						vacuum.shutdown();
 				}
 		}
-    private static ResultColumnDescriptor[] SCHEMA_INFO_COLUMNS = new GenericColumnDescriptor[]{
+    public static ResultColumnDescriptor[] SCHEMA_INFO_COLUMNS = new GenericColumnDescriptor[]{
             new GenericColumnDescriptor("SCHEMANAME",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
             new GenericColumnDescriptor("TABLENAME",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
             new GenericColumnDescriptor("REGIONNAME",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
@@ -856,108 +845,7 @@ public class SpliceAdmin extends BaseAdminProcedures {
             new GenericColumnDescriptor("STOREINDEXSIZE",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
     };
     public static void SYSCS_GET_SCHEMA_INFO(final ResultSet[] resultSet) throws SQLException {
-        ResultSet allTablesInSchema = getDefaultConn().prepareStatement("SELECT S.SCHEMANAME, T.TABLENAME, C.ISINDEX, " +
-                "C.CONGLOMERATENUMBER FROM SYS.SYSCONGLOMERATES C, SYS.SYSTABLES T, SYS.SYSSCHEMAS S " +
-                "WHERE C.TABLEID = T.TABLEID AND T.SCHEMAID = S.SCHEMAID AND T.TABLENAME NOT LIKE 'SYS%' " +
-                "ORDER BY S.SCHEMANAME").executeQuery();
-
-        ExecRow template;
-        try {
-            DataValueDescriptor[] columns = new DataValueDescriptor[SCHEMA_INFO_COLUMNS.length];
-            for(int i=0;i<SCHEMA_INFO_COLUMNS.length;i++){
-                columns[i] = SCHEMA_INFO_COLUMNS[i].getType().getNull();
-            }
-            template = new ValueRow(columns.length);
-            template.setRowArray(columns);
-        } catch (StandardException e) {
-            throw PublicAPI.wrapStandardException(e);
-        }
-        List<ExecRow> results = Lists.newArrayList();
-
-        // Map<regionNameAsString,HServerLoad.RegionLoad>
-        Map<String, HServerLoad.RegionLoad> regionLoadMap = getRegionLoad();
-        HBaseAdmin admin = null;
-        try {
-            admin = SpliceUtils.getAdmin();
-            StringBuilder regionBuilder = new StringBuilder();
-            while (allTablesInSchema.next()) {
-                String conglom = allTablesInSchema.getObject("CONGLOMERATENUMBER").toString();
-                regionBuilder.setLength(0);
-                for (HRegionInfo ri : admin.getTableRegions(Bytes.toBytes(conglom))) {
-                    String regionName = Bytes.toString(ri.getRegionName());
-                    int storefileSizeMB = 0;
-                    int memStoreSizeMB = 0;
-                    int storefileIndexSizeMB = 0;
-                    if (regionName != null && ! regionName.isEmpty()) {
-                        HServerLoad.RegionLoad regionLoad = regionLoadMap.get(regionName);
-                        if (regionLoad != null) {
-                            storefileSizeMB = regionLoad.getStorefileSizeMB();
-                            memStoreSizeMB = regionLoad.getMemStoreSizeMB();
-                            storefileIndexSizeMB = regionLoad.getStorefileIndexSizeMB();
-
-                            byte[][] parsedRegionName = HRegionInfo.parseRegionName(ri.getRegionName());
-                            String tableName = "Unknown";
-                            String regionID = "Unknown";
-                            if (parsedRegionName != null) {
-                                if (parsedRegionName.length >= 1) {
-                                    tableName = Bytes.toString(parsedRegionName[0]);
-                                }
-                                if (parsedRegionName.length >= 3) {
-                                    regionID = Bytes.toString(parsedRegionName[2]);
-                                }
-                            }
-                            regionBuilder.append('(')
-                                    .append(tableName).append(',')
-                                    .append(regionID).append(' ')
-                                    .append(storefileSizeMB).append(' ')
-                                    .append(memStoreSizeMB).append(' ')
-                                    .append(storefileIndexSizeMB)
-                                    .append(" MB) ");
-                        }
-                    }
-                    DataValueDescriptor[] cols = template.getRowArray();
-                    try {
-                        cols[0].setValue(allTablesInSchema.getString("SCHEMANAME"));
-                        cols[1].setValue(allTablesInSchema.getString("TABLENAME"));
-                        cols[2].setValue(regionName);
-                        cols[3].setValue(allTablesInSchema.getBoolean("ISINDEX"));
-                        cols[4].setValue(storefileSizeMB);
-                        cols[5].setValue(memStoreSizeMB);
-                        cols[6].setValue(storefileIndexSizeMB);
-                    } catch (StandardException e) {
-                        throw PublicAPI.wrapStandardException(e);
-                    }
-                    results.add(template.getClone());
-                }
-            }
-        } catch (IOException e) {
-            throw new SQLException(e);
-        } finally {
-            if (admin != null) {
-                try {
-                    admin.close();
-                } catch (IOException e) {
-                    // ignore
-                }
-            }
-            if (allTablesInSchema != null) {
-                try {
-                    allTablesInSchema.close();
-                } catch (SQLException e) {
-                    // ignore
-                }
-            }
-        }
-        EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
-        Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
-        IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(results, SCHEMA_INFO_COLUMNS, lastActivation);
-        try{
-            resultsToWrap.openCore();
-            EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap, false, null, true);
-            resultSet[0] = ers;
-        } catch (StandardException se) {
-            throw PublicAPI.wrapStandardException(se);
-        }
+    	derbyFactory.SYSCS_GET_SCHEMA_INFO(resultSet);
     }
 
     /**
@@ -1211,58 +1099,6 @@ public class SpliceAdmin extends BaseAdminProcedures {
 				 */
 				Arrays.sort(congloms);
         return congloms;
-    }
-
-    /* @return  Map<regionNameAsString,HServerLoad.RegionLoad> */
-    private static Map<String, HServerLoad.RegionLoad> getRegionLoad() throws SQLException {
-        Map<String, HServerLoad.RegionLoad> regionLoads = new HashMap<String, HServerLoad.RegionLoad>();
-        HBaseAdmin admin = null;
-        admin = SpliceUtils.getAdmin();
-        try {
-            ClusterStatus clusterStatus = admin.getClusterStatus();
-            for (ServerName serverName : clusterStatus.getServers()) {
-                final HServerLoad serverLoad = clusterStatus.getLoad(serverName);
-
-                for (Map.Entry<byte[], HServerLoad.RegionLoad> entry : serverLoad.getRegionsLoad().entrySet()) {
-                    regionLoads.put(Bytes.toString(entry.getKey()), entry.getValue());
-                }
-            }
-        } catch (IOException e) {
-            throw new SQLException(e);
-        } finally {
-            if (admin != null)
-                try {
-                    admin.close();
-                } catch (IOException e) {
-                    // ignore
-                }
-        }
-
-        return regionLoads;
-    }
-
-    private static Map<ServerName, HServerLoad> getLoad() throws SQLException {
-        Map<ServerName, HServerLoad> serverLoadMap = new HashMap<ServerName, HServerLoad>();
-        HBaseAdmin admin = null;
-        try {
-            admin = SpliceUtils.getAdmin();
-            for (ServerName serverName : SpliceUtils.getServers()) {
-                try {
-                    serverLoadMap.put(serverName, admin.getClusterStatus().getLoad(serverName));
-                } catch (IOException e) {
-                    throw new SQLException(e);
-                }
-            }
-        } finally {
-            if (admin != null)
-                try {
-                    admin.close();
-                } catch (IOException e) {
-                    // ignore
-                }
-        }
-
-        return serverLoadMap;
     }
 
     private static class Trip<T, U, V> {

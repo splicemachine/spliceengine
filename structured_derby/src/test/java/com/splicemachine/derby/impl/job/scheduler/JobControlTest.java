@@ -4,7 +4,6 @@ import com.google.common.collect.Maps;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
-import com.splicemachine.derby.impl.job.coprocessor.SpliceSchedulerProtocol;
 import com.splicemachine.derby.impl.job.coprocessor.TaskFutureContext;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.hbase.table.BoundCall;
@@ -29,11 +28,9 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-
 import java.util.Map;
 import java.util.NavigableSet;
 import java.util.concurrent.*;
-
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 
