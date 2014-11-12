@@ -4,6 +4,7 @@ import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.api.Code;
 import com.splicemachine.pipeline.impl.WriteResult;
 
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
@@ -16,13 +17,13 @@ import java.io.IOException;
  */
 public class UniqueConstraintChecker implements BatchConstraintChecker {
 		private static final OperationStatus SUCCESS = new OperationStatus(HConstants.OperationStatusCode.SUCCESS);
+		private final WriteResult result;
 		private final boolean isPrimaryKey;
 
-		private final ConstraintContext constraintContext;
 
 		public UniqueConstraintChecker(boolean isPrimaryKey, ConstraintContext constraintContext) {
 				this.isPrimaryKey = isPrimaryKey;
-				this.constraintContext = constraintContext;
+				this.result =  new WriteResult(isPrimaryKey? WriteResult.Code.PRIMARY_KEY_VIOLATION: WriteResult.Code.UNIQUE_VIOLATION,constraintContext);
 		}
 
 		@Override
@@ -35,7 +36,7 @@ public class UniqueConstraintChecker implements BatchConstraintChecker {
 
 		@Override
 		public WriteResult asWriteResult(OperationStatus opStatus){
-				return new WriteResult(isPrimaryKey? Code.PRIMARY_KEY_VIOLATION: Code.UNIQUE_VIOLATION,constraintContext);
+				return result;
 		}
 
 		@Override
