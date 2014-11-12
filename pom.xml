@@ -41,6 +41,13 @@
 		</repository>
 	</repositories>
 
+	<pluginRepositories>
+		<pluginRepository>
+			<id>protoc-plugin</id>
+			<url>http://sergei-ivanov.github.com/maven-protoc-plugin/repo/releases/</url>
+		</pluginRepository>
+	</pluginRepositories>
+
 	<properties>
 		<assemble>false</assemble>
 		<derby.version>10.9.1.0-splice1.0.0RC2-SNAPSHOT</derby.version>
@@ -150,7 +157,7 @@
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-jar-plugin</artifactId>
 					<configuration>
-						<classifier>${envClassifier}</classifier>
+						<!-- classifier>${envClassifier}</classifier -->
 						<archive>
 							<manifestEntries>
 								<Implementation-Version>${buildNumber}</Implementation-Version>
