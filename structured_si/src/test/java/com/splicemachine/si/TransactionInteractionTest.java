@@ -399,6 +399,21 @@ public class TransactionInteractionTest {
 
     @Test
     public void testTwoAdditiveTransactionsCannotSeeEachOthersWritesEvenAfterCommit() throws Exception {
+        /*
+         * The purpose of this test is to ensure consistent iteration between two additive transactions.
+         *
+         * Imagine the following scenario:
+         *
+         * You have two regions, R1 and R2 with a primary key on column a. You issue "update foo set a = newA". In
+         * this case, the update deletes the row at location a and inserts a new record at location newA. So imagine
+         * that a is in R1, and newA is in R2; further imagine that the scanner for R2 is behind that of R1. If
+         * the additive transaction managing the scan on R2 could see the writes of R1, then R2 would see
+         * the entry for newA, and update it to something else, which would result in incorrect results.
+         *
+         * Therefore, we need to ensure that two additive transactions are NEVER able to see one another, to
+         * ensure that we have consistent iteration. This has negative consequences (like detecting write conflicts
+         * during writes and so forth), but is necessary.
+         */
         String name = "scott10";
         Txn userTxn = control.beginTransaction(DESTINATION_TABLE);
         Txn child1 = control.beginChildTransaction(userTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION,true,DESTINATION_TABLE);
