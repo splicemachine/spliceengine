@@ -170,6 +170,9 @@ public class TableOperationSink implements OperationSink {
 								LOG.debug(String.format("Wrote %d rows from operation %s",rowsWritten,operation.getClass().getSimpleName()));
 						}
         }
+				//DB-2007/DB-2070. This is in place to make DB-2007 changes appear unchanged even though it isn't
+				if(operation instanceof DMLWriteOperation)
+						rowsWritten+=((DMLWriteOperation)operation).getFilteredRows();
 				return new TaskStats(totalTimer.getTime().getWallClockTime(),rowsRead,rowsWritten,usedTempBuckets);
     }
 
