@@ -3,15 +3,19 @@ package com.splicemachine.derby.impl.sql.execute.sequence;
 import java.util.Arrays;
 import org.apache.derby.iapi.error.StandardException;
 import com.splicemachine.tools.ResourcePool;
+import org.apache.hadoop.hbase.client.HTableInterface;
 
 public abstract class AbstractSequenceKey implements ResourcePool.Key{
+        protected HTableInterface table;
         protected final byte[] sysColumnsRow;
         protected final long blockAllocationSize;
         protected long autoIncStart;
         protected long autoIncrement;
         public AbstractSequenceKey(
+                   HTableInterface table,
                    byte[] sysColumnsRow,
                    long blockAllocationSize) {
+            this.table = table;
             this.sysColumnsRow = sysColumnsRow;
             this.blockAllocationSize = blockAllocationSize;
         }
@@ -46,5 +50,6 @@ public abstract class AbstractSequenceKey implements ResourcePool.Key{
         }
 
         protected abstract void getStartAndIncrementFromSystemTables() throws StandardException;
-        
+
+        public abstract SpliceSequence makeNew() throws StandardException;
     }
