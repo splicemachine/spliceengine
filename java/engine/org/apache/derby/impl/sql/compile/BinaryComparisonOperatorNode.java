@@ -175,30 +175,52 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
 					getContextManager());
 			((CastNode) leftOperand).bindCastNodeOnly();
 		}
-		else if (operator.compareTo("=") == 0 &&
-                 leftOperand instanceof ColumnReference &&
-                 rightOperand instanceof ColumnReference) {
+		else if ((leftTypeId.isIntegerNumericTypeId() && rightTypeId.isDecimalTypeId()) ||
+                (leftTypeId.isDecimalTypeId() && rightTypeId.isIntegerNumericTypeId())) {
 
-            // A column needs to be cast to a big decimal, if
-            // 1. It is not a big decimal
-            // 2. It is compared with a big decimal by equal operation
-            // 3. Both operands of equal operator are column references
-            // A predicate that satisfies the above conditions is a candidate for a hash join predicate.
-            if ((leftTypeId.isIntegerNumericTypeId() && rightTypeId.isDecimalTypeId()) ||
-                 (leftTypeId.isDecimalTypeId() && rightTypeId.isIntegerNumericTypeId())) {
+            ValueNode decimalOperand = leftTypeId.isDecimalTypeId() ? leftOperand : rightOperand;
+            ValueNode intOperand = leftTypeId.isIntegerNumericTypeId() ? leftOperand : rightOperand;
+            TypeId decimalTypeId = leftTypeId.isDecimalTypeId() ? leftTypeId : rightTypeId;
 
-                ValueNode decimalOperand = leftTypeId.isDecimalTypeId() ? leftOperand : rightOperand;
-                ValueNode intOperand = leftTypeId.isIntegerNumericTypeId() ? leftOperand : rightOperand;
-                TypeId decimalTypeId = leftTypeId.isDecimalTypeId() ? leftTypeId : rightTypeId;
+            DataTypeDescriptor dty = new DataTypeDescriptor(
+                    decimalTypeId,
+                    decimalOperand.getTypeServices().getPrecision(),
+                    decimalOperand.getTypeServices().getScale(),
+                    true,
+                    decimalOperand.getTypeServices().getMaximumWidth()
+            );
 
-                DataTypeDescriptor dty = new DataTypeDescriptor(
-                        decimalTypeId,
-                        decimalOperand.getTypeServices().getPrecision(),
-                        decimalOperand.getTypeServices().getScale(),
-                        true,
-                        decimalOperand.getTypeServices().getMaximumWidth()
-                );
+            if (operator.compareTo("=") == 0 &&
+                    leftOperand instanceof ColumnReference &&
+                    rightOperand instanceof ColumnReference) {
+
+                // A column needs to be cast to a big decimal, if
+                // 1. It is not a big decimal
+                // 2. It is compared with a big decimal by equal operation
+                // 3. Both operands of equal operator are column references
+                // A predicate that satisfies the above conditions is a candidate for a hash join predicate.
+
                 ((ColumnReference)intOperand).getSource().setCastToType(dty);
+            } else {
+                // If right side is the decimal then promote the left side integer
+                if (rightTypeId.isDecimalTypeId()) {
+                    leftOperand =  (ValueNode)
+                            getNodeFactory().getNode(
+                                    C_NodeTypes.CAST_NODE,
+                                    leftOperand,
+                                    dty,
+                                    getContextManager());
+                    ((CastNode) leftOperand).bindCastNodeOnly();
+                } else {
+                    // Otherwise, left side is the decimal so promote the right side integer
+                    rightOperand =  (ValueNode)
+                            getNodeFactory().getNode(
+                                    C_NodeTypes.CAST_NODE,
+                                    rightOperand,
+                                    dty,
+                                    getContextManager());
+                    ((CastNode) rightOperand).bindCastNodeOnly();
+                }
             }
         }
 
