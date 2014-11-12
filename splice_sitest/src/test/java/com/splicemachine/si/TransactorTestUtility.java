@@ -199,7 +199,7 @@ public class TransactorTestUtility {
 					} else if (fieldValue != null) {
 						entryEncoder.getEntryEncoder().encodeNext((String) fieldValue);
 					}
-						put.add(transactorSetup.family, SpliceConstants.PACKED_COLUMN_BYTES, -1, entryEncoder.encode());
+						put.add(transactorSetup.family, SpliceConstants.PACKED_COLUMN_BYTES, txn.getTxnId(), entryEncoder.encode());
 				} finally {
 					entryEncoder.close();
 				}
