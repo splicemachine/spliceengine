@@ -18,6 +18,6 @@ public class SpliceIndexManagementEndpoint extends BaseEndpointCoprocessor imple
     @Override
     public void dropIndex(long indexConglomId,long baseConglomId,long txnId) throws IOException {
         TxnView transaction = new LazyTxnView(txnId,TransactionStorage.getTxnSupplier());
-        SpliceIndexEndpoint.factoryMap.get(baseConglomId).getFirst().dropIndex(indexConglomId,transaction);
+        SpliceBaseIndexEndpoint.factoryMap.get(baseConglomId).getFirst().dropIndex(indexConglomId,transaction);
     }
 }
