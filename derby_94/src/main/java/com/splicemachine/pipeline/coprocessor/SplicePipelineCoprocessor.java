@@ -1,15 +1,12 @@
 package com.splicemachine.pipeline.coprocessor;
 
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.environment.EnvUtils;
 import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.pipeline.PipelineDriver;
 
 public class SplicePipelineCoprocessor  extends BaseEndpointCoprocessor {
 	    private static final AtomicLong runningCoprocessors = new AtomicLong(0l);
