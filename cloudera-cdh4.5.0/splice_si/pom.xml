@@ -16,4 +16,5 @@
 	<dependencies>
 		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_constants-cloudera-cdh4.5.0</artifactId> <version>1.0.0RC2-SNAPSHOT</version></dependency>
 	</dependencies>
+
 </project>

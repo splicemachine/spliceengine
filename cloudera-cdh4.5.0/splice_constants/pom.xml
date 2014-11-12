@@ -6,6 +6,7 @@
 	<artifactId>splice_constants-cloudera-cdh4.5.0</artifactId>
 	<name>${project.artifactId}</name>
 	<description>Splice Engine Constants</description>
+
 	<parent>
 		<artifactId>spliceengine-cloudera-cdh4.5.0</artifactId>
 		<groupId>com.splicemachine</groupId>
