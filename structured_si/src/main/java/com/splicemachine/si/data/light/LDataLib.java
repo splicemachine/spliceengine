@@ -2,6 +2,7 @@ package com.splicemachine.si.data.light;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SIConstants;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.KeyValueUtils;
@@ -533,4 +534,40 @@ public class LDataLib implements SDataLib<KeyValue,LTuple, LTuple, LGet, LGet> {
 			return element.getQualifierOffset();
 		}
 
+		@Override
+		public KeyValue matchKeyValue(Iterable<KeyValue> kvs,
+				byte[] columnFamily, byte[] qualifier) {
+			for(KeyValue kv:kvs){
+				if(kv.matchingColumn(columnFamily,qualifier))
+						return kv;
+			}
+			return null;
+		}
+
+		@Override
+		public KeyValue matchKeyValue(KeyValue[] kvs, byte[] columnFamily,
+				byte[] qualifier) {
+			for(KeyValue kv:kvs){
+				if(kv.matchingColumn(columnFamily,qualifier))
+						return kv;
+			}
+			return null;
+		}
+
+		@Override
+		public KeyValue matchDataColumn(KeyValue[] kvs) {
+			return matchKeyValue(kvs, SpliceConstants.DEFAULT_FAMILY_BYTES,
+					SpliceConstants.PACKED_COLUMN_BYTES);
+		}
+
+		@Override
+		public KeyValue matchDataColumn(List<KeyValue> kvs) {
+			return matchKeyValue(kvs, SpliceConstants.DEFAULT_FAMILY_BYTES,
+					SpliceConstants.PACKED_COLUMN_BYTES);
+		}
+
+		@Override
+		public KeyValue matchDataColumn(Result result) {
+			return matchDataColumn(result.raw());
+		}		
 }
