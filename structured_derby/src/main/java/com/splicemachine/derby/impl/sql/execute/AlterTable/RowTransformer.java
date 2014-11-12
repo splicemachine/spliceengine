@@ -16,8 +16,9 @@ import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.data.api.SDataLib;
+import com.splicemachine.si.impl.SIFactoryDriver;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.uuid.UUIDGenerator;
 import org.apache.derby.catalog.UUID;
@@ -26,13 +27,11 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.impl.sql.execute.ColumnInfo;
 import org.apache.derby.impl.sql.execute.ValueRow;
-import org.apache.hadoop.hbase.KeyValue;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.sql.SQLException;
-public class RowTransformer implements Closeable {
-
+public class RowTransformer<Data> implements Closeable {
+	private static SDataLib dataLib = SIFactoryDriver.siFactory.getDataLib();
     private UUID tableId;
     private TxnView txn;
     private boolean initialized = false;
@@ -41,7 +40,7 @@ public class RowTransformer implements Closeable {
     private ColumnInfo[] columnInfos;
     private int droppedColumnPosition;
     private EntryDataDecoder rowDecoder;
-		private KeyHashDecoder keyDecoder;
+	private KeyHashDecoder keyDecoder;
     private PairEncoder entryEncoder;
     private int[] oldColumnOrdering;
     private int[] newColumnOrdering;
@@ -155,7 +154,7 @@ public class RowTransformer implements Closeable {
 				return newPair;
 		}
 
-    public KVPair transform(KeyValue kv) throws StandardException, SQLException, IOException{
+    public KVPair transform(Data kv) throws StandardException, SQLException, IOException{
         if (!initialized) {
             initialize();
         }
@@ -164,10 +163,10 @@ public class RowTransformer implements Closeable {
         oldRow.resetRowArray();
         DataValueDescriptor[] oldFields = oldRow.getRowArray();
         if (oldFields.length != 0) {
-						keyDecoder.set(kv.getBuffer(),kv.getKeyOffset(),kv.getKeyLength());
+						keyDecoder.set(dataLib.getDataRowBuffer(kv),dataLib.getDataRowOffset(kv),dataLib.getDataRowlength(kv));
 						keyDecoder.decode(oldRow);
 
-						rowDecoder.set(kv.getBuffer(),kv.getValueOffset(),kv.getValueLength());
+						rowDecoder.set(dataLib.getDataValueBuffer(kv),dataLib.getDataValueOffset(kv),dataLib.getDataValuelength(kv));
 						rowDecoder.decode(oldRow);
         }
 
@@ -175,7 +174,7 @@ public class RowTransformer implements Closeable {
         KVPair newPair = entryEncoder.encode(newRow);
 
         // preserve the old row key
-        newPair.setKey(kv.getRow());
+        newPair.setKey(dataLib.getDataRow(kv));
         return newPair;
     }
 

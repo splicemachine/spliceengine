@@ -4,16 +4,15 @@ import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.derby.impl.sql.execute.operations.AbstractSkippingScanFilter;
 import com.splicemachine.derby.impl.sql.execute.operations.QualifierUtils;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
-import com.splicemachine.derby.impl.sql.execute.operations.SkippingScanFilter;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.storage.AndPredicate;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.OrPredicate;
 import com.splicemachine.storage.Predicate;
-
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.store.access.Qualifier;
@@ -303,15 +302,15 @@ public class Scans extends SpliceUtils {
     /**
      * Return the scan's SkippingScanFilter if it has such, top level, or in a list (return first one)-- otherwise null.
      */
-    public static SkippingScanFilter findSkippingScanFilter(Scan scan) {
+    public static AbstractSkippingScanFilter findSkippingScanFilter(Scan scan) {
         Filter filter = scan.getFilter();
-        if(filter instanceof SkippingScanFilter){
-            return (SkippingScanFilter) filter;
+        if(filter instanceof AbstractSkippingScanFilter){
+            return (AbstractSkippingScanFilter) filter;
         }else if(filter instanceof FilterList){
             FilterList fl = (FilterList) filter;
             for(Filter f:fl.getFilters()){
-                if(f instanceof SkippingScanFilter){
-                    return (SkippingScanFilter) f;
+                if(f instanceof AbstractSkippingScanFilter){
+                    return (AbstractSkippingScanFilter) f;
                 }
             }
         }

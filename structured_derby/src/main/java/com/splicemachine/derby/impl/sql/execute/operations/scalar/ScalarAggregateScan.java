@@ -4,17 +4,16 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.storage.BaseHashAwareScanBoundary;
-import com.splicemachine.derby.impl.storage.KeyValueUtils;
 import com.splicemachine.derby.impl.storage.RegionAwareScanner;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
-import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.data.api.SDataLib;
+import com.splicemachine.si.impl.SIFactoryDriver;
 import com.splicemachine.metrics.MetricFactory;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
-
 import java.io.IOException;
 
 /**
@@ -24,7 +23,7 @@ import java.io.IOException;
  * Created on: 10/8/13
  */
 public class ScalarAggregateScan implements ScalarAggregateSource{
-
+	protected static final SDataLib dataLib = SIFactoryDriver.siFactory.getDataLib();
     private final PairDecoder scanDecoder;
     private final RegionAwareScanner regionScanner;
 
@@ -55,9 +54,6 @@ public class ScalarAggregateScan implements ScalarAggregateSource{
 
     @Override
     public ExecIndexRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException,IOException {
-//        if(keyValues==null)
-//            keyValues = Lists.newArrayListWithExpectedSize(2);
-//        keyValues.clear();
         /*
          * We use nextRaw() because it avoids region availability checks--once
          * we get as far as calling this.nextRow(SpliceRuntimeContext), we should
@@ -69,8 +65,6 @@ public class ScalarAggregateScan implements ScalarAggregateSource{
 				if(next==null || next.size()<=0)
 						return null;
 
-//				if(keyValues.isEmpty())
-//            return null;
-        return (ExecIndexRow)scanDecoder.decode(KeyValueUtils.matchDataColumn(next.raw()));
+        return (ExecIndexRow)scanDecoder.decode(dataLib.matchDataColumn(next));
     }
 }

@@ -22,9 +22,7 @@
 package com.splicemachine.derby.impl.store.access.btree;
 
 import java.util.Arrays;
-import java.util.Map;
 import java.util.SortedSet;
-
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.error.StandardException; 
 import org.apache.derby.iapi.sql.compile.CostEstimate;
@@ -33,11 +31,9 @@ import org.apache.derby.iapi.store.access.StoreCostResult;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.HServerLoad.RegionLoad;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.compile.SortState;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
@@ -45,7 +41,6 @@ import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceGenericCostController;
 import com.splicemachine.derby.impl.store.access.base.SpliceScan;
-import com.splicemachine.hbase.HBaseRegionLoads;
 import com.splicemachine.utils.SpliceLogUtils;
 
 
@@ -302,9 +297,8 @@ public class IndexCostController extends SpliceGenericCostController implements 
     	if (LOG.isTraceEnabled())
     		SpliceLogUtils.trace(LOG, "getScanCost generated Scan %s",spliceScan.getScan());				
         SortedSet<Pair<HRegionInfo,ServerName>> baseRegions = getRegions(baseConglomerate.getContainerid());
-        Map<String,RegionLoad> baseRegionLoads = HBaseRegionLoads.getCachedRegionLoadsMapForTable(baseConglomerate.getContainerid()+"");
     	((SortState) costResult).setNumberOfRegions(baseRegions==null?0:baseRegions.size());
-        long estimatedRowCount = computeRowCount(baseRegions,baseRegionLoads,SpliceConstants.hbaseRegionRowEstimate,SpliceConstants.regionMaxFileSize,spliceScan.getScan()); 
+    	long estimatedRowCount = derbyFactory.computeRowCount(LOG, baseConglomerate.getContainerid()+"", baseRegions, spliceScan.getScan());    	
         double cost = (double) estimatedRowCount*SpliceConstants.indexPerRowCost*((double)open_conglom.getFormatIds().length/ (double)baseConglomerate.getFormat_ids().length); // Attempt to make bigger indexes / tables cost more.
         if (SanityManager.DEBUG) {
             SanityManager.ASSERT(cost >= 0);

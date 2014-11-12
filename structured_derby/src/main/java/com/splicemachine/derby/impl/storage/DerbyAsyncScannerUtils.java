@@ -3,8 +3,8 @@ package com.splicemachine.derby.impl.storage;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.splicemachine.async.*;
-import com.splicemachine.derby.impl.job.operation.SuccessFilter;
-import com.splicemachine.derby.impl.sql.execute.operations.SkippingScanFilter;
+import com.splicemachine.derby.impl.job.operation.BaseSuccessFilter;
+import com.splicemachine.derby.impl.sql.execute.operations.AbstractSkippingScanFilter;
 
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.Filter;
@@ -65,11 +65,11 @@ public class DerbyAsyncScannerUtils {
     }
 
     private static ScanFilter convertFilter(Filter filter) {
-        if(filter instanceof SuccessFilter){
-            SuccessFilter sf = (SuccessFilter)filter;
+        if(filter instanceof BaseSuccessFilter){
+        	BaseSuccessFilter sf = (BaseSuccessFilter)filter;
             return new AsyncSuccessFilter(sf.getTaskList());
-        }else if(filter instanceof SkippingScanFilter){
-            SkippingScanFilter sf = (SkippingScanFilter)filter;
+        }else if(filter instanceof AbstractSkippingScanFilter){
+        	AbstractSkippingScanFilter sf = (AbstractSkippingScanFilter)filter;
             return new AsyncSkippingScanFilter(sf);
         }
 

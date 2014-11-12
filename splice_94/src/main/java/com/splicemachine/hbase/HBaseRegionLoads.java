@@ -6,7 +6,9 @@ import com.splicemachine.concurrent.DynamicScheduledRunnable;
 import com.splicemachine.concurrent.MoreExecutors;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceUtilities;
+
 import org.apache.hadoop.hbase.*;
+import org.apache.hadoop.hbase.HServerLoad.RegionLoad;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
@@ -178,4 +180,15 @@ public class HBaseRegionLoads {
         return load.getStorefileSizeMB() + load.getMemStoreSizeMB();
     }
 
+    public static long memstoreAndStoreFileSize(String tableName) {
+        Map<String,RegionLoad> regionLoads = HBaseRegionLoads.getCachedRegionLoadsMapForTable(tableName);
+    	if (regionLoads == null)
+    		return -1;
+    	long cost = 0;
+        for (RegionLoad regionLoad: regionLoads.values()) {
+        	cost += HBaseRegionLoads.memstoreAndStorefileSize(regionLoad);
+        }
+        return cost;
+    }
+    
 }

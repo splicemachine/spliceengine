@@ -7,12 +7,15 @@ import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.Status;
 import com.splicemachine.job.TaskStatus;
 import com.splicemachine.si.api.*;
+import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.impl.InheritingTxnView;
 import com.splicemachine.si.impl.LazyTxnView;
+import com.splicemachine.si.impl.SIFactoryDriver;
 import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.si.impl.TransactionStorage;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
+
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -20,6 +23,7 @@ import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.*;
 import org.apache.zookeeper.data.Stat;
+
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -33,6 +37,7 @@ import java.util.concurrent.ExecutionException;
  * Created on: 5/9/13
  */
 public abstract class ZkTask implements RegionTask,Externalizable {
+	protected static final SDataLib dataLib = SIFactoryDriver.siFactory.getDataLib();
     private static final long serialVersionUID = 6l;
     protected final Logger LOG;
     protected TaskStatus status;

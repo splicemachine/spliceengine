@@ -12,7 +12,7 @@ import java.util.List;
 public class KeyValueUtils {
 
 		private KeyValueUtils(){}
-
+/*
 		public static KeyValue matchKeyValue(Iterable<KeyValue> kvs,byte[] columnFamily, byte[] qualifier){
 				for(KeyValue kv:kvs){
 						if(kv.matchingColumn(columnFamily,qualifier))
@@ -38,4 +38,5 @@ public class KeyValueUtils {
 				return matchKeyValue(kvs, SpliceConstants.DEFAULT_FAMILY_BYTES,
 								SpliceConstants.PACKED_COLUMN_BYTES);
 		}
+		*/
 }

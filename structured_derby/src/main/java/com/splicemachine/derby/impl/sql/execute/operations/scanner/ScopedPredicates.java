@@ -3,11 +3,13 @@ package com.splicemachine.derby.impl.sql.execute.operations.scanner;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
-import com.splicemachine.derby.impl.sql.execute.operations.SkippingScanFilter;
+import com.splicemachine.derby.impl.sql.execute.operations.AbstractSkippingScanFilter;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
+
 import org.apache.hadoop.hbase.util.Pair;
+
 import java.io.IOException;
 import java.util.List;
 
@@ -23,7 +25,7 @@ class ScopedPredicates<Data> {
     private List<ObjectArrayList<Predicate>> predicates;
     private SDataLib dataLib;
 
-    ScopedPredicates(SkippingScanFilter filter, SDataLib dataLib) throws IOException {
+    ScopedPredicates(AbstractSkippingScanFilter<Data> filter, SDataLib dataLib) throws IOException {
     	this.dataLib = dataLib;
         if (filter != null) {
             this.startStopKeys = filter.getStartStopKeys();

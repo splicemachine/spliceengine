@@ -545,4 +545,40 @@ public class HDataLib implements SDataLib<KeyValue,Put, Delete, Get, Scan> {
 			return element.getQualifierOffset();
 		}
 
+		@Override
+		public KeyValue matchKeyValue(Iterable<KeyValue> kvs,
+				byte[] columnFamily, byte[] qualifier) {
+			for(KeyValue kv:kvs){
+				if(kv.matchingColumn(columnFamily,qualifier))
+						return kv;
+			}
+			return null;
+		}
+
+		@Override
+		public KeyValue matchKeyValue(KeyValue[] kvs, byte[] columnFamily,
+				byte[] qualifier) {
+			for(KeyValue kv:kvs){
+				if(kv.matchingColumn(columnFamily,qualifier))
+						return kv;
+			}
+			return null;
+		}
+
+		@Override
+		public KeyValue matchDataColumn(KeyValue[] kvs) {
+			return matchKeyValue(kvs, SpliceConstants.DEFAULT_FAMILY_BYTES,
+					SpliceConstants.PACKED_COLUMN_BYTES);
+		}
+
+		@Override
+		public KeyValue matchDataColumn(List<KeyValue> kvs) {
+			return matchKeyValue(kvs, SpliceConstants.DEFAULT_FAMILY_BYTES,
+					SpliceConstants.PACKED_COLUMN_BYTES);
+		}
+
+		@Override
+		public KeyValue matchDataColumn(Result result) {
+			return matchDataColumn(result.raw());
+		}		
 }

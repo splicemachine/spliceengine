@@ -3,22 +3,23 @@ package com.splicemachine.derby.utils;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.concurrent.Callable;
-
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.sql.execute.StandardCloseable;
 import com.splicemachine.pipeline.exception.Exceptions;
-
+import com.splicemachine.si.data.api.SDataLib;
+import com.splicemachine.si.impl.SIFactoryDriver;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.Delete;
+import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
-
-import com.splicemachine.derby.impl.storage.KeyValueUtils;
 import com.splicemachine.derby.impl.storage.SpliceResultScanner;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.encoding.MultiFieldDecoder;
@@ -30,6 +31,7 @@ import com.splicemachine.metrics.Metrics;
  *         Created on: 11/2/13
  */
 public class StandardIterators {
+	
 
     private StandardIterators() {
     }
@@ -179,8 +181,9 @@ public class StandardIterators {
         }
     }
 
-    private static class SpliceResultScannerPartitionAwareIterator implements PartitionAwareIterator<ExecRow> {
-        private final SpliceResultScanner scanner;
+    private static class SpliceResultScannerPartitionAwareIterator<Data> implements PartitionAwareIterator<ExecRow> {
+    	protected final SDataLib<Data,Put,Delete,Get,Scan> dataLib = SIFactoryDriver.siFactory.getDataLib();
+    	private final SpliceResultScanner scanner;
         private final PairDecoder decoder;
         private final int[] partitionColumns;
         private byte[] partition;
@@ -209,10 +212,10 @@ public class StandardIterators {
                 keyDecoder.reset();
         }
 
-        private void copyPartitionKey(KeyValue kv) {
+        private void copyPartitionKey(Data kv) {
             // partition key is the first few columns of row key
             createKeyDecoder();
-            byte[] key = kv.getRow();
+            byte[] key = dataLib.getDataRow(kv);
             keyDecoder.set(key, 9, key.length - 9); // skip 9 bytes for hash prefix (bucket# + uuid)
             for (int i = 0; i < partitionColumns.length; ++i) {
                 DerbyBytesUtil.skip(keyDecoder, dvds[i]);
@@ -232,11 +235,9 @@ public class StandardIterators {
                 partition = null;
                 return null;
             }
-
-            KeyValue kv = KeyValueUtils.matchDataColumn(result.raw());
-            copyPartitionKey(kv);
-            ExecRow row = decoder.decode(kv);
-
+            Data data = dataLib.matchDataColumn(result);
+            copyPartitionKey(data);
+            ExecRow row = decoder.decode(data);
             return row;
         }
 

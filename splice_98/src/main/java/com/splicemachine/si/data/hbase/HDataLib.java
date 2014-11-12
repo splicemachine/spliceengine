@@ -549,4 +549,40 @@ public class HDataLib implements SDataLib<Cell,Put, Delete, Get, Scan> {
 			return element.getQualifierOffset();
 		}
 
+		@Override
+		public Cell matchKeyValue(Iterable<Cell> kvs, byte[] columnFamily,
+				byte[] qualifier) {
+			for(Cell kv:kvs){
+				if(CellUtils.matchingColumn(kv,columnFamily,qualifier))
+						return kv;
+			}
+			return null;
+		}
+
+		@Override
+		public Cell matchKeyValue(Cell[] kvs, byte[] columnFamily,
+				byte[] qualifier) {
+			for(Cell kv:kvs){
+				if(CellUtils.matchingColumn(kv,columnFamily,qualifier))
+						return kv;
+			}
+			return null;
+		}
+
+		@Override
+		public Cell matchDataColumn(Cell[] kvs) {
+			return matchKeyValue(kvs, SpliceConstants.DEFAULT_FAMILY_BYTES,
+					SpliceConstants.PACKED_COLUMN_BYTES);
+		}
+
+		@Override
+		public Cell matchDataColumn(List<Cell> kvs) {
+			return matchKeyValue(kvs, SpliceConstants.DEFAULT_FAMILY_BYTES,
+					SpliceConstants.PACKED_COLUMN_BYTES);
+		}
+
+		@Override
+		public Cell matchDataColumn(Result result) {
+			return matchDataColumn(result.rawCells());
+		}
 }

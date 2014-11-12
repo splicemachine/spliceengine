@@ -7,6 +7,9 @@ import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobResults;
+import com.splicemachine.si.data.api.SDataLib;
+import com.splicemachine.si.impl.SIFactoryDriver;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Pair;
@@ -24,7 +27,7 @@ import java.util.concurrent.Callable;
  *         Created on: 3/26/13
  */
 public abstract class SingleScanRowProvider implements RowProvider {
-
+	protected static final SDataLib dataLib = SIFactoryDriver.siFactory.getDataLib();
     protected SpliceRuntimeContext spliceRuntimeContext;
     private static final Logger LOG = Logger.getLogger(SingleScanRowProvider.class);
 

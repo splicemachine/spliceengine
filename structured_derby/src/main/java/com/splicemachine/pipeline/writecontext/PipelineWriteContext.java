@@ -4,11 +4,8 @@ import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
 import com.google.common.collect.Maps;
 import com.splicemachine.derby.hbase.DerbyFactory;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
-import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.api.*;
-import com.splicemachine.hbase.ThrowIfDisconnected;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.pipeline.api.CallBuffer;
@@ -20,7 +17,6 @@ import com.splicemachine.pipeline.impl.WriteResult;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.ipc.RpcCallContext;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.log4j.Logger;
 import java.io.IOException;
@@ -127,7 +123,7 @@ public class PipelineWriteContext implements WriteContext, Comparable{
         HTableInterface table = tableCache.get(indexConglomBytes);
         if(table==null){
             try {
-                table = getCoprocessorEnvironment().getTable(indexConglomBytes);
+                table = derbyFactory.getTable(getCoprocessorEnvironment(),indexConglomBytes);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }

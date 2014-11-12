@@ -8,6 +8,8 @@ import com.google.common.collect.Lists;
 import com.splicemachine.collections.RingBuffer;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.derby.hbase.DerbyFactory;
+import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
@@ -24,6 +26,7 @@ import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 
@@ -45,6 +48,7 @@ import java.util.List;
  * Date: 7/22/14
  */
 public class HashNestedLoopJoinOperation extends JoinOperation{
+	protected static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
 //    private static final Logger LOG = Logger.getLogger(HashNestedLoopJoinOperation.class);
     private static final List<NodeType> nodeTypes = ImmutableList.of(NodeType.MAP, NodeType.SCROLL);
 
@@ -373,7 +377,7 @@ public class HashNestedLoopJoinOperation extends JoinOperation{
          */
         List<byte[]> predicates = Lists.transform(keyData, toPredicateFunction);
         List<Pair<byte[], byte[]>> ranges = Lists.transform(keyData, toPairFunction);
-        SkippingScanFilter filter = new SkippingScanFilter(ranges,predicates);
+        Filter filter = derbyFactory.getSkippingScanFilter(ranges,predicates);
         Scan scan = new Scan(ranges.get(0).getFirst(),ranges.get(ranges.size()-1).getSecond());
         scan.setFilter(filter);
         scan.setMaxVersions();

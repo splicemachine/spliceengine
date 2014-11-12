@@ -6,7 +6,6 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.impl.job.operation.SuccessFilter;
 import com.splicemachine.derby.impl.sql.execute.operations.scalar.ScalarAggregateScan;
 import com.splicemachine.derby.impl.sql.execute.operations.scalar.ScalarAggregator;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
@@ -97,8 +96,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 						reduceScan = Scans.buildPrefixRangeScan(range, null); //no transaction needed against TEMP
 						//make sure that we filter out failed tasks
             if(failedTasks.size()>0){
-                SuccessFilter filter = new SuccessFilter(failedTasks);
-                reduceScan.setFilter(filter);
+                reduceScan.setFilter(derbyFactory.getSuccessFilter(failedTasks));
             }
 				} catch (IOException e) {
 						throw Exceptions.parseException(e);

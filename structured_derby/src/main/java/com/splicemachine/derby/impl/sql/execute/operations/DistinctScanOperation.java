@@ -242,7 +242,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
         if(rowDecoder==null){
 						rowDecoder = getTempDecoder(spliceRuntimeContext);
 				}
-				ExecRow decodedRow = rowDecoder.decode(KeyValueUtils.matchDataColumn(keyValues));
+				ExecRow decodedRow = rowDecoder.decode(dataLib.matchDataColumn(keyValues));
 				setCurrentRow(decodedRow);
 				timer.tick(1);
 				return decodedRow;

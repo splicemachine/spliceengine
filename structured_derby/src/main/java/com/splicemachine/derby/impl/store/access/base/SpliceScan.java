@@ -4,10 +4,8 @@ import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.execute.LazyScan;
 import com.splicemachine.derby.impl.sql.execute.ParallelScan;
-import com.splicemachine.derby.impl.storage.KeyValueUtils;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -17,8 +15,11 @@ import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.si.data.api.SDataLib;
+import com.splicemachine.si.impl.SIFactoryDriver;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -31,7 +32,6 @@ import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.impl.sql.execute.ValueRow;
-import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
@@ -40,7 +40,8 @@ import java.io.IOException;
 import java.util.Arrays;
 
 public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
-		protected static Logger LOG = Logger.getLogger(SpliceScan.class);
+	protected static final SDataLib dataLib = SIFactoryDriver.siFactory.getDataLib();
+	protected static Logger LOG = Logger.getLogger(SpliceScan.class);
     protected OpenSpliceConglomerate spliceConglomerate;
     private BaseSpliceTransaction trans;
 
@@ -291,8 +292,8 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 								DescriptorSerializer[] serializers = VersionedSerializers.forVersion("1.0",true).getSerializers(destRow);
 								EntryDataDecoder decoder = new EntryDataDecoder(null,null,serializers);
 								try{
-										KeyValue kv = KeyValueUtils.matchDataColumn(currentResult.raw());
-										decoder.set(kv.getBuffer(),kv.getValueOffset(),kv.getValueLength());
+										Object kv = dataLib.matchDataColumn(currentResult);
+										decoder.set(dataLib.getDataValueBuffer(kv),dataLib.getDataValueOffset(kv),dataLib.getDataValuelength(kv));
 										decoder.decode(row);
 										this.currentRow = destRow;
 								}finally{
@@ -336,8 +337,8 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 								try{
 										ExecRow row = new ValueRow(fetchedRow.length);
 										row.setRowArray(fetchedRow);
-										KeyValue kv = KeyValueUtils.matchDataColumn(currentResult.raw());
-										decoder.set(kv.getBuffer(),kv.getValueOffset(),kv.getValueLength());
+										Object kv = dataLib.matchDataColumn(currentResult);
+										decoder.set(dataLib.getDataValueBuffer(kv),dataLib.getDataValueOffset(kv),dataLib.getDataValuelength(kv));
 										decoder.decode(row);
 								}finally{
 										Closeables.closeQuietly(decoder);
@@ -415,8 +416,9 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 										KeyHashDecoder decoder = new EntryDataDecoder(null,null,serializers);
 										try{
 												if (results[i] != null) {
-														KeyValue kv = KeyValueUtils.matchDataColumn(results[i].raw());
-														decoder.set(kv.getBuffer(),kv.getValueOffset(),kv.getValueLength());
+														Object kv = dataLib.matchDataColumn(results[i]);
+														decoder.set(dataLib.getDataValueBuffer(kv),
+																dataLib.getDataValueOffset(kv),dataLib.getDataValuelength(kv));
 														decoder.decode(row);
 												}
 										}finally{

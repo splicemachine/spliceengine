@@ -63,7 +63,7 @@ public abstract class AbstractScanProvider extends SingleScanRowProvider {
 
         Result result = getResult();
         if(result!=null && !result.isEmpty()){
-            currentRow = decoder.decode(KeyValueUtils.matchDataColumn(result.raw()));
+            currentRow = decoder.decode(dataLib.matchDataColumn(result));
             SpliceLogUtils.trace(LOG, "after populate, currentRow=%s", currentRow);
             currentRowLocation = new HBaseRowLocation(result.getRow());
             populated = true;

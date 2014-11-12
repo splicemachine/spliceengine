@@ -1,19 +1,17 @@
 package com.splicemachine.derby.impl.job.scheduler;
 
+import com.splicemachine.derby.hbase.DerbyFactory;
+import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobScheduler;
 import com.splicemachine.job.JobSchedulerManagement;
-import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.api.TxnLifecycleManager;
 import com.splicemachine.si.api.TxnView;
-import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import com.splicemachine.utils.ZkUtils;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.HTableInterface;
@@ -22,7 +20,6 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
-
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -35,6 +32,7 @@ import java.util.concurrent.ExecutionException;
  * Created on: 5/9/13
  */
 public class DistributedJobScheduler implements JobScheduler<CoprocessorJob>{
+	private static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
     private static final int DEFAULT_MAX_RESUBMISSIONS = 20;
 		private static final Logger LOG = Logger.getLogger(DistributedJobScheduler.class);
 		protected final SpliceZooKeeperManager zkManager;
@@ -112,7 +110,7 @@ public class DistributedJobScheduler implements JobScheduler<CoprocessorJob>{
     /*Private helper methods*/
 
 		private JobFuture submitTasks(CoprocessorJob job,String jobPath) throws ExecutionException{
-				JobControl control = new JobControl(job,jobPath,zkManager,maxResubmissionAttempts, jobMetrics);
+				BaseJobControl control = derbyFactory.getJobControl(job, jobPath, zkManager, maxResubmissionAttempts, jobMetrics);
 				Map<? extends RegionTask, Pair<byte[], byte[]>> tasks;
 				try {
 						tasks = job.getTasks();
@@ -134,7 +132,7 @@ public class DistributedJobScheduler implements JobScheduler<CoprocessorJob>{
 
 
 		private void submitTransactionalTasks(TxnView parentTxn,
-																					JobControl control,
+																					BaseJobControl control,
 																					Map<? extends RegionTask, Pair<byte[], byte[]>> tasks,
 																					HTableInterface table,
 																					byte[] destTable) throws ExecutionException {
@@ -145,7 +143,7 @@ public class DistributedJobScheduler implements JobScheduler<CoprocessorJob>{
 				}
 		}
 
-		private void submitNonTransactionalTasks(JobControl control, Map<? extends RegionTask, Pair<byte[], byte[]>> tasks, HTableInterface table) throws ExecutionException {
+		private void submitNonTransactionalTasks(BaseJobControl control, Map<? extends RegionTask, Pair<byte[], byte[]>> tasks, HTableInterface table) throws ExecutionException {
 				for(Map.Entry<? extends RegionTask,Pair<byte[],byte[]>> taskEntry:tasks.entrySet()){
 						control.submit(taskEntry.getKey(),taskEntry.getValue(),table,0);
 				}
@@ -154,7 +152,7 @@ public class DistributedJobScheduler implements JobScheduler<CoprocessorJob>{
 		private String createJobNode(CoprocessorJob job) throws KeeperException, InterruptedException {
         String jobId = job.getJobId();
         jobId = jobId.replaceAll("/","_");
-        String path = CoprocessorTaskScheduler.getJobPath()+"/"+jobId;
+        String path = SpliceUtils.zkSpliceJobPath+"/"+jobId;
         ZkUtils.recursiveSafeCreate(path, new byte[]{}, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
 
         return path;

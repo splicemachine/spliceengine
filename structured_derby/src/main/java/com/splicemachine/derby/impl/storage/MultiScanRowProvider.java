@@ -7,7 +7,10 @@ import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobResults;
+import com.splicemachine.si.data.api.SDataLib;
+import com.splicemachine.si.impl.SIFactoryDriver;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
@@ -28,6 +31,7 @@ import java.util.concurrent.ExecutionException;
  *         Created on: 3/26/13
  */
 public abstract class MultiScanRowProvider implements RowProvider {
+	protected static final SDataLib dataLib = SIFactoryDriver.siFactory.getDataLib();
     private static final Logger LOG = Logger.getLogger(MultiScanRowProvider.class);
     protected SpliceRuntimeContext spliceRuntimeContext;
 

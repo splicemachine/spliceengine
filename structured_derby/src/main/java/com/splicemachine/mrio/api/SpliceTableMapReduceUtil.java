@@ -10,6 +10,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutput;
+import java.io.ObjectOutputStream;
 import java.lang.reflect.Method;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
@@ -49,11 +53,15 @@ import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.util.StringUtils;
 
+import com.splicemachine.derby.hbase.DerbyFactory;
+import com.splicemachine.derby.hbase.DerbyFactoryDriver;
+
 /**
  * Utility for {@link TableMapper} and {@link TableReducer}
  */
 @SuppressWarnings("unchecked")
 public class SpliceTableMapReduceUtil {
+	  protected static DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
   static Log LOG = LogFactory.getLog(SpliceTableMapReduceUtil.class);
   private static SQLUtil sqlUtil = null;
   /**
@@ -218,10 +226,17 @@ public class SpliceTableMapReduceUtil {
    * @throws IOException When writing the scan fails.
    */
   static String convertScanToString(Scan scan) throws IOException {
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
-    DataOutputStream dos = new DataOutputStream(out);
-    scan.write(dos);
-    return Base64.encodeBytes(out.toByteArray());
+	  ObjectOutput dos = null;
+	  try {
+	    ByteArrayOutputStream out = new ByteArrayOutputStream();
+	    dos = new ObjectOutputStream(out);
+	    derbyFactory.writeScanExternal(dos, scan);
+	    dos.flush();
+	    return Base64.encodeBytes(out.toByteArray());
+	  } finally {
+    	if (dos!=null)
+    		dos.close();
+    }
   }
 
   /**
@@ -232,11 +247,15 @@ public class SpliceTableMapReduceUtil {
    * @throws IOException When reading the scan instance fails.
    */
   static Scan convertStringToScan(String base64) throws IOException {
-    ByteArrayInputStream bis = new ByteArrayInputStream(Base64.decode(base64));
-    DataInputStream dis = new DataInputStream(bis);
-    Scan scan = new Scan();
-    scan.readFields(dis);
-    return scan;
+	  ObjectInput dis = null;
+    try {
+	    ByteArrayInputStream bis = new ByteArrayInputStream(Base64.decode(base64));
+	    dis = new ObjectInputStream(bis);
+	    return derbyFactory.readScanExternal(dis);
+	} finally {
+		if (dis!=null)
+			dis.close();
+	}
   }
 
   /**
@@ -367,10 +386,10 @@ public class SpliceTableMapReduceUtil {
     job.setOutputValueClass(Object.class);
     if (partitioner == HRegionPartitioner.class) {
       job.setPartitionerClass(HRegionPartitioner.class);
-      HTable outputTable = new HTable(conf, hbaseTableID);
-      int regions = outputTable.getRegionsInfo().size();
+      // TODO Where are the keys?
+      int regions = derbyFactory.getReduceNumberOfRegions(hbaseTableID,conf);
       if (job.getNumReduceTasks() > regions) {
-        job.setNumReduceTasks(outputTable.getRegionsInfo().size());
+        job.setNumReduceTasks(regions);
       }
     } else if (partitioner != null) {
       job.setPartitionerClass(partitioner);
@@ -399,8 +418,7 @@ public class SpliceTableMapReduceUtil {
 	    	sqlUtil = SQLUtil.getInstance(conf.get(SpliceMRConstants.SPLICE_JDBC_STR));
 	    // If passed a quorum/ensemble address, pass it on to TableOutputFormat.
 	String hbaseTableID = sqlUtil.getConglomID(table);
-    HTable outputTable = new HTable(job.getConfiguration(), hbaseTableID);
-    int regions = outputTable.getRegionsInfo().size();
+	int regions = derbyFactory.getReduceNumberOfRegions(hbaseTableID,job.getConfiguration());
     if (job.getNumReduceTasks() > regions)
       job.setNumReduceTasks(regions);
   }
@@ -421,8 +439,7 @@ public class SpliceTableMapReduceUtil {
 	    sqlUtil = SQLUtil.getInstance(conf.get(SpliceMRConstants.SPLICE_JDBC_STR));
 	    // If passed a quorum/ensemble address, pass it on to TableOutputFormat.
 	String hbaseTableID = sqlUtil.getConglomID(table);
-    HTable outputTable = new HTable(job.getConfiguration(), hbaseTableID);
-    int regions = outputTable.getRegionsInfo().size();
+    int regions = derbyFactory.getReduceNumberOfRegions(hbaseTableID,conf);
     job.setNumReduceTasks(regions);
   }
 

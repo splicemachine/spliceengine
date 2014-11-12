@@ -1,5 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.derby.hbase.DerbyFactory;
+import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.iapi.storage.RowProvider;
@@ -49,7 +51,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		private static final long serialVersionUID = 4l;
 		private static Logger LOG = Logger.getLogger(SpliceBaseOperation.class);
 		protected static final SDataLib dataLib = SIFactoryDriver.siFactory.getDataLib();
-        public static ThreadLocal<List<XplainOperationChainInfo>> operationChain =
+		protected static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
+		public static ThreadLocal<List<XplainOperationChainInfo>> operationChain =
                 new ThreadLocal<List<XplainOperationChainInfo>>();
         protected XplainOperationChainInfo operationChainInfo;
 		/* Run time statistics variables */

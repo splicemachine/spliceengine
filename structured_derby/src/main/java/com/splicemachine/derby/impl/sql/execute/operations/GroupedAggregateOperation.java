@@ -10,7 +10,6 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.iapi.storage.ScanBoundary;
-import com.splicemachine.derby.impl.job.operation.SuccessFilter;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.EmptyRowSupplier;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.GroupedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SourceIterator;
@@ -176,8 +175,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 						throw Exceptions.parseException(e);
 				}
 				if(failedTasks.size()>0){
-						SuccessFilter filter = new SuccessFilter(failedTasks);
-						reduceScan.setFilter(filter);
+						reduceScan.setFilter(derbyFactory.getSuccessFilter(failedTasks));
 				}
 		}
 

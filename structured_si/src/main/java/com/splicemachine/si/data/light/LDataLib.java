@@ -523,4 +523,14 @@ public class LDataLib implements SDataLib<KeyValue,LTuple, LTuple, LGet, LGet> {
 			return BytesUtil.isKeyValueInRange(data, range);
 		}
 
+		@Override
+		public byte[] getDataQualifierBuffer(KeyValue element) {
+			return element.getBuffer();
+		}
+
+		@Override
+		public int getDataQualifierOffset(KeyValue element) {
+			return element.getQualifierOffset();
+		}
+
 }

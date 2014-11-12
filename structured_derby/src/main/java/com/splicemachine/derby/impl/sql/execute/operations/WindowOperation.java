@@ -6,7 +6,6 @@ import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
 import com.google.common.base.Strings;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -17,7 +16,6 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
@@ -28,7 +26,6 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.iapi.storage.ScanBoundary;
-import com.splicemachine.derby.impl.job.operation.SuccessFilter;
 import com.splicemachine.derby.impl.sql.execute.operations.window.BaseFrameBuffer;
 import com.splicemachine.derby.impl.sql.execute.operations.window.DerbyWindowContext;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
@@ -36,7 +33,6 @@ import com.splicemachine.derby.impl.sql.execute.operations.window.WindowFrameBuf
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowFunctionIterator;
 import com.splicemachine.derby.impl.storage.BaseHashAwareScanBoundary;
 import com.splicemachine.derby.impl.storage.DistributedClientScanProvider;
-import com.splicemachine.derby.impl.storage.KeyValueUtils;
 import com.splicemachine.derby.impl.storage.RegionAwareScanner;
 import com.splicemachine.derby.impl.storage.RowProviders;
 import com.splicemachine.derby.impl.storage.SpliceResultScanner;
@@ -94,7 +90,7 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
     protected ExecIndexRow sortTemplateRow;
     protected ExecIndexRow sourceExecIndexRow;
     private ExecRow templateRow;
-    private ArrayList keyValues;
+    private List keyValues;
     private PairDecoder rowDecoder;
     private byte[] extraUniqueSequenceID;
     private WindowFunctionIterator windowFunctionIterator;
@@ -206,8 +202,7 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
             reduceScan = Scans.buildPrefixRangeScan(uniqueId, null);
             //make sure that we filter out failed tasks
             if (failedTasks.size() > 0) {
-                SuccessFilter filter = new SuccessFilter(failedTasks);
-                reduceScan.setFilter(filter);
+                reduceScan.setFilter(derbyFactory.getSuccessFilter(failedTasks));
             }
         } catch (IOException e) {
             throw Exceptions.parseException(e);
@@ -436,9 +431,7 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
             keyValues.clear();
         regionScanner.next(keyValues);
         if(keyValues.isEmpty()) return null;
-
-        KeyValue kv = KeyValueUtils.matchDataColumn(keyValues);
-        return getTempDecoder(ctx).decode(kv);
+        return getTempDecoder(ctx).decode(dataLib.matchDataColumn(keyValues));
     }
 
     private PairDecoder getTempDecoder(SpliceRuntimeContext ctx) throws StandardException {

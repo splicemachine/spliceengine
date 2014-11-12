@@ -1,11 +1,13 @@
 package com.splicemachine.derby.impl.ast;
 
+import com.splicemachine.derby.hbase.DerbyFactory;
+import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.hbase.HBaseRegionLoads;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.compile.Visitable;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.impl.sql.compile.*;
-import org.apache.hadoop.hbase.HServerLoad;
 
 import java.util.Collection;
 import java.util.TreeSet;
@@ -14,7 +16,7 @@ import java.util.TreeSet;
  * Created by jyuan on 7/8/14.
  */
 public class XPlainTraceVisitor extends AbstractSpliceVisitor  {
-
+	protected static DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
     private static TreeSet<String> xplainTables;
 
     static{
@@ -43,14 +45,8 @@ public class XPlainTraceVisitor extends AbstractSpliceVisitor  {
                 lcc.getStatementContext().setXPlainTableOrProcedure(true);
             }
             else {
-                Collection<HServerLoad.RegionLoad> regionLoads =
-                        HBaseRegionLoads
-                                .getCachedRegionLoadsForTable(Long.toString(table.getTableDescriptor()
-                                        .getHeapConglomerateId()));
-                if (regionLoads != null
-                        && regionLoads.size() > lcc.getStatementContext().getMaxCardinality()){
-                    lcc.getStatementContext().setMaxCardinality(regionLoads.size());
-                }
+            	derbyFactory.setMaxCardinalityBasedOnRegionLoad(Long.toString(table.getTableDescriptor()
+                                        .getHeapConglomerateId()), lcc);
             }
 
         }

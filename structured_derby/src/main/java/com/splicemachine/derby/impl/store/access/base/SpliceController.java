@@ -2,7 +2,6 @@ package com.splicemachine.derby.impl.store.access.base;
 
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.impl.storage.KeyValueUtils;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
@@ -15,19 +14,18 @@ import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.pipeline.exception.Exceptions;
-import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.si.data.api.SDataLib;
+import com.splicemachine.si.impl.SIFactoryDriver;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.store.access.ConglomerateController;
 import org.apache.derby.iapi.store.access.SpaceInfo;
-import org.apache.derby.iapi.store.access.conglomerate.Conglomerate;
 import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.impl.sql.execute.ValueRow;
 import org.apache.derby.impl.store.raw.data.SpaceInformation;
-import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Put;
@@ -37,7 +35,8 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.util.Properties;
 
-public abstract class SpliceController implements ConglomerateController {
+public abstract class SpliceController<Data> implements ConglomerateController {
+		protected static final SDataLib dataLib = SIFactoryDriver.siFactory.getDataLib();
 		protected static Logger LOG = Logger.getLogger(SpliceController.class);
 		protected OpenSpliceConglomerate openSpliceConglomerate;
 		protected BaseSpliceTransaction trans;
@@ -131,8 +130,8 @@ public abstract class SpliceController implements ConglomerateController {
 						ExecRow row = new ValueRow(destRow.length);
 						row.setRowArray(destRow);
 						row.resetRowArray();
-						KeyValue keyValue = KeyValueUtils.matchDataColumn(result.raw());
-						rowDecoder.set(keyValue.getBuffer(), keyValue.getValueOffset(), keyValue.getValueLength());
+						Object keyValue = dataLib.matchDataColumn(result);						
+						rowDecoder.set(dataLib.getDataValueBuffer(keyValue), dataLib.getDataValueOffset(keyValue), dataLib.getDataValuelength(keyValue));
 						rowDecoder.decode(row);
 						return true;
 				} catch (Exception e) {
