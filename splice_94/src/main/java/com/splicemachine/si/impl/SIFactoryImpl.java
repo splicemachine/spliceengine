@@ -35,6 +35,9 @@ public class SIFactoryImpl implements SIFactory {
 	public static final STableWriter tableWriter = new HTableWriter();
 	public static final STransactionLib transactionLib = new HTransactionLib();
 
+	
+	public SIFactoryImpl(){};
+	
 	@Override
 	public RowAccumulator getRowAccumulator(EntryPredicateFilter predicateFilter, EntryDecoder decoder,
 			boolean countStar) {
