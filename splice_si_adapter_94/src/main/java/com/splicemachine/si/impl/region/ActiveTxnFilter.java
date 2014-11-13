@@ -7,7 +7,7 @@ import org.apache.hadoop.hbase.KeyValue;
  *         Date: 8/18/14
  */
 public class ActiveTxnFilter extends BaseActiveTxnFilter<KeyValue> {
-
+	
     public ActiveTxnFilter(long beforeTs, long afterTs, byte[] destinationTable) {
     	super(beforeTs,afterTs,destinationTable);
     }
