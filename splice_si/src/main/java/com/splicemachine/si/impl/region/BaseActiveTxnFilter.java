@@ -31,7 +31,7 @@ public abstract class BaseActiveTxnFilter<Data> extends FilterBase implements Wr
     private boolean committed = false;
     private SDataLib datalib;
     private MultiFieldDecoder fieldDecoder;
-
+    
     public BaseActiveTxnFilter(long beforeTs, long afterTs, byte[] destinationTable) {
         this.beforeTs = beforeTs;
         this.afterTs = afterTs;

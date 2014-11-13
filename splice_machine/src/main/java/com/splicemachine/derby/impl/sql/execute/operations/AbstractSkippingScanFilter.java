@@ -5,6 +5,7 @@ import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.impl.SIFactoryDriver;
+import com.splicemachine.utils.SpliceLogUtils;
 
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.filter.FilterBase;
@@ -89,20 +90,24 @@ public abstract class AbstractSkippingScanFilter<Data> extends FilterBase implem
 
     @Override
     public void write(DataOutput out) throws IOException {
-        out.writeInt(startStopKeys.size());
-        for (int i = 0; i < startStopKeys.size(); i++) {
-            Pair<byte[], byte[]> startStopKey = startStopKeys.get(i);
-            byte[] start = startStopKey.getFirst();
-            out.writeInt(start.length);
-            out.write(start);
-            byte[] stop = startStopKey.getSecond();
-            out.writeInt(stop.length);
-            out.write(stop);
-
-            byte[] predicate = predicates.get(i);
-            out.writeInt(predicate.length);
-            out.write(predicate);
-        }
+    	try {
+	        out.writeInt(startStopKeys.size());
+	        for (int i = 0; i < startStopKeys.size(); i++) {
+	            Pair<byte[], byte[]> startStopKey = startStopKeys.get(i);
+	            byte[] start = startStopKey.getFirst();
+	            out.writeInt(start.length);
+	            out.write(start);
+	            byte[] stop = startStopKey.getSecond();
+	            out.writeInt(stop.length);
+	            out.write(stop);
+	
+	            byte[] predicate = predicates.get(i);
+	            out.writeInt(predicate.length);
+	            out.write(predicate);
+	        }
+    	} catch (IOException e) {
+    		throw e;
+    	}
     }
 
     @Override

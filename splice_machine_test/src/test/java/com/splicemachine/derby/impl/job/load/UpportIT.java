@@ -5,6 +5,7 @@ import com.google.common.primitives.Ints;
 import com.splicemachine.derby.test.framework.SpliceNetConnection;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.pipeline.exception.ErrorState;
 
@@ -24,7 +25,7 @@ import java.util.List;
  * @author Scott Fines
  *         Date: 10/20/14
  */
-public class UpportIT {
+public class UpportIT extends SpliceUnitTest {
     private static final SpliceSchemaWatcher schema =
             new SpliceSchemaWatcher(UpportIT.class.getSimpleName().toUpperCase());
     private static final SpliceTableWatcher nullableBTable =
@@ -363,14 +364,4 @@ public class UpportIT {
         return conn;
     }
 
-    private static String getBaseDirectory() {
-        String userDir = System.getProperty("user.dir");
-        if(!userDir.endsWith("splice_machine"))
-            userDir = userDir+"/splice_machine/";
-        return userDir;
-    }
-
-    private static String getResourceDirectory() {
-        return getBaseDirectory()+"/src/test/test-data/";
-    }
 }
