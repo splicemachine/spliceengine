@@ -2,14 +2,17 @@ package com.splicemachine.derby.impl.job.load;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.pipeline.exception.ErrorState;
+
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
+
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
@@ -23,7 +26,7 @@ import java.sql.Types;
  * @author Scott Fines
  * Created on: 9/20/13
  */
-public class ImportErrorIT {
+public class ImportErrorIT extends SpliceUnitTest {
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     public static final String CLASS_NAME = ImportErrorIT.class.getSimpleName().toUpperCase();
     /*
@@ -330,14 +333,4 @@ public class ImportErrorIT {
         }
     }
 
-    private static String getBaseDirectory() {
-        String userDir = System.getProperty("user.dir");
-        if(!userDir.endsWith("splice_machine"))
-            userDir = userDir+"/splice_machine";
-        return userDir;
-    }
-
-    private static String getResourceDirectory() {
-        return getBaseDirectory()+"/src/test/test-data";
-    }
 }
