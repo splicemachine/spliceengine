@@ -7,6 +7,7 @@ import com.splicemachine.hbase.RowKeyDistributor;
 import com.splicemachine.hbase.RowKeyDistributorByHashPrefix;
 import com.splicemachine.hbase.ScanDivider;
 import com.splicemachine.metrics.Metrics;
+
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.ConsoleAppender;
@@ -49,7 +50,8 @@ public class SortedGatheringScannerTest {
 
         final HBaseClient client = SimpleAsyncScanner.HBASE_CLIENT;
         try {
-            AsyncScanner scanner = SortedGatheringScanner.newScanner(1024,
+            @SuppressWarnings("unchecked")
+			AsyncScanner scanner = SortedGatheringScanner.newScanner(1024,
                     Metrics.noOpMetricFactory(), new Function<Scan, Scanner>() {
                         @Override
                         public Scanner apply(Scan scan) {

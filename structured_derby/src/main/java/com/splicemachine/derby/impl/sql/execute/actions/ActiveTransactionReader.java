@@ -30,18 +30,22 @@ import com.splicemachine.stream.CloseableStream;
 import com.splicemachine.stream.StreamException;
 import com.splicemachine.stream.Transformer;
 import com.splicemachine.pipeline.exception.Exceptions;
+
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
+
 import com.splicemachine.async.KeyValue;
 import com.splicemachine.async.Scanner;
+
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -86,7 +90,7 @@ public class ActiveTransactionReader {
             JobStats jobStats = submit.getJobStats();
 
             boolean[] usedTempBuckets = getUsedTempBuckets(jobStats);
-            final AsyncScanner scanner = configureResultScan(queueSize, job.operationUUID, usedTempBuckets);
+            final AsyncScanner scanner = configureResultScan(queueSize, job.operationUUID, usedTempBuckets, submit);
             return scanner.stream().transform(new Transformer<List<KeyValue>, TxnView>() {
                 @Override
                 public TxnView transform(List<KeyValue> element) throws StreamException {
@@ -111,6 +115,7 @@ public class ActiveTransactionReader {
                         throw new StreamException(e);
                     }
                 }
+
             });
         } catch (ExecutionException e) {
             throw Exceptions.getIOException(e);
@@ -120,7 +125,8 @@ public class ActiveTransactionReader {
     }
 
     /*private helper methods*/
-    private AsyncScanner configureResultScan(int queueSize, byte[] operationId, boolean[] usedTempBuckets) throws IOException {
+    
+    private AsyncScanner configureResultScan(int queueSize, byte[] operationId, boolean[] usedTempBuckets, JobFuture submit) throws IOException {
         final TempTable tempTable = SpliceDriver.driver().getTempTable();
         RowKeyDistributor keyDistributor = new RowKeyDistributorByHashPrefix(BucketHasher.getHasher(tempTable.getCurrentSpread()));
         keyDistributor = new FilteredRowKeyDistributor(keyDistributor,usedTempBuckets);
@@ -130,7 +136,12 @@ public class ActiveTransactionReader {
         scan.setStopRow(BytesUtil.unsignedCopyAndIncrement(operationId));
         Function<Scan, Scanner> convertFunction = DerbyAsyncScannerUtils.convertFunction(tempTable.getTempTableName(), SimpleAsyncScanner.HBASE_CLIENT);
         List<Scan> dividedScans = ScanDivider.divide(scan, keyDistributor);
-        final AsyncScanner scanner = SortedGatheringScanner.newScanner(queueSize, Metrics.noOpMetricFactory(), convertFunction, dividedScans,
+
+        final AsyncScanner scanner = SortedGatheringScanner.newScanner(
+        		queueSize,
+        		Metrics.noOpMetricFactory(),
+        		convertFunction,
+        		dividedScans,
                 new Comparator<byte[]>() {
                     @Override
                     public int compare(byte[] o1, byte[] o2) {
@@ -141,11 +152,34 @@ public class ActiveTransactionReader {
                         int prefixLength = 10;
                         return Bytes.compareTo(o1, prefixLength, o1.length - prefixLength, o2, prefixLength, o2.length - prefixLength);
                     }
-                }
+                },
+                // Perform proper job cleanup upon scanner close (resolves DB-2257)
+                JobCleanup.cleanupCalls(submit)
         );
 
         scanner.open();
         return scanner;
+    }
+
+    /**
+     * Callable to pass to scanner construction so that when the scanner closes,
+     * the active transaction job also gets cleaned up.
+     */
+    private static class JobCleanup implements Callable<Void> {
+    	private JobFuture future;
+    	
+    	private static JobCleanup[] cleanupCalls(JobFuture future) {
+    		return new JobCleanup[]{new JobCleanup(future)};
+    	}
+    	
+    	private JobCleanup(JobFuture jobFuture) {
+    		future = jobFuture;
+    	}
+    	
+    	public Void call() throws Exception {
+    		future.cleanup();
+    		return null;
+    	}
     }
 
     private boolean[] getUsedTempBuckets(JobStats jobStats) {
