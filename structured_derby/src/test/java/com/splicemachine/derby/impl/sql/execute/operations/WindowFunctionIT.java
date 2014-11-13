@@ -1943,30 +1943,29 @@ public class WindowFunctionIT extends SpliceUnitTest {
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
-
     @Test
     public void testDB2170WithAggOverView() throws Exception {
         String sqlText =
-            String.format("select max(hiredate) as maxhiredate, ename,hiredate from %s group by ename, hiredate",
+            String.format("select max(hiredate) as maxhiredate, ename,hiredate from %s group by ename, hiredate order by ename",
                           this.getTableReference(VIEW_NAME));
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
             "MAXHIREDATE | ENAME | HIREDATE  |\n" +
                 "----------------------------------\n" +
-                " 1981-09-28  |MARTIN |1981-09-28 |\n" +
-                " 1980-12-17  | SMITH |1980-12-17 |\n" +
-                " 1981-09-08  |TURNER |1981-09-08 |\n" +
                 " 1983-01-12  | ADAMS |1983-01-12 |\n" +
-                " 1982-12-09  | SCOTT |1982-12-09 |\n" +
                 " 1981-02-20  | ALLEN |1981-02-20 |\n" +
                 " 1981-05-01  | BLAKE |1981-05-01 |\n" +
-                " 1981-11-17  | KING  |1981-11-17 |\n" +
-                " 1981-12-03  | JAMES |1981-12-03 |\n" +
+                " 1981-06-09  | CLARK |1981-06-09 |\n" +
                 " 1981-12-03  | FORD  |1981-12-03 |\n" +
-                " 1981-02-22  | WARD  |1981-02-22 |\n" +
+                " 1981-12-03  | JAMES |1981-12-03 |\n" +
                 " 1981-04-02  | JONES |1981-04-02 |\n" +
+                " 1981-11-17  | KING  |1981-11-17 |\n" +
+                " 1981-09-28  |MARTIN |1981-09-28 |\n" +
                 " 1982-01-23  |MILLER |1982-01-23 |\n" +
-                " 1981-06-09  | CLARK |1981-06-09 |";
+                " 1982-12-09  | SCOTT |1982-12-09 |\n" +
+                " 1980-12-17  | SMITH |1980-12-17 |\n" +
+                " 1981-09-08  |TURNER |1981-09-08 |\n" +
+                " 1981-02-22  | WARD  |1981-02-22 |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }

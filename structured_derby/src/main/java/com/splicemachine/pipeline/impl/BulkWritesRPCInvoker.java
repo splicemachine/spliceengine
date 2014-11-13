@@ -45,9 +45,10 @@ public class BulkWritesRPCInvoker implements BulkWritesInvoker {
 		public BulkWritesResult invoke(BulkWrites writes,boolean refreshCache) throws IOException {
 				assert writes.numEntries() != 0;
 				SpliceIndexEndpoint indexEndpoint = null;
+				SpliceDriver driver = SpliceDriver.driver();
 				// Check for a non-serialized local operation
-				if(SpliceDriver.driver().isStarted())
-					if ((indexEndpoint = SpliceDriver.driver().getSpliceIndexEndpoint( ((BulkWrite) writes.getBuffer()[0]).getEncodedStringName())) != null) {
+				if(driver.isStarted())
+					if ((indexEndpoint = driver.getSpliceIndexEndpoint( ((BulkWrite) writes.getBuffer()[0]).getEncodedStringName())) != null) {
 							return indexEndpoint.bulkWrite(writes);
 					}
 					// if SpliceDriver is in another JVM and we cannot call the 'driver.start()' within current JVM
