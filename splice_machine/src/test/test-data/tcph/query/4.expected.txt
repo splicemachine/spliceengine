@@ -1,7 +1,0 @@
-O_ORDERPRIORITY | ORDER_COUNT |
---------------------------------
-    1-URGENT     |     15      |
-     2-HIGH      |     14      |
-    3-MEDIUM     |     14      |
- 4-NOT SPECIFIED |     13      |
-      5-LOW      |     18      |

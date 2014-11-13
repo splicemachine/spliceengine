@@ -1,3 +1,0 @@
-This is a placeholder file since git doesn't like empty directories.
-
-This directory is for "bad" file import logs to be written to.
