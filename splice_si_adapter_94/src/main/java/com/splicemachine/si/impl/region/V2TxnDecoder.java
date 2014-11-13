@@ -22,7 +22,7 @@ import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Put;
 
-public class V2TxnDecoder<Put extends OperationWithAttributes,Delete,Get extends OperationWithAttributes, Scan> extends AbstractV2TxnDecoder<SparseTxn,KeyValue,Put,Delete,Get,Scan>{   
+public class V2TxnDecoder<Put extends OperationWithAttributes,Delete,Get extends OperationWithAttributes, Scan> extends AbstractV2TxnDecoder<SparseTxn,SparseTxn,KeyValue,Put,Delete,Get,Scan>{   
     public static final V2TxnDecoder INSTANCE = new V2TxnDecoder();
     private V2TxnDecoder() { 
     	super();

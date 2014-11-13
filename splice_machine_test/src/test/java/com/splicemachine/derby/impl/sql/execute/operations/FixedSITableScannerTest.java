@@ -269,7 +269,7 @@ public class FixedSITableScannerTest {
 						}
 				};
 				//noinspection unchecked
-				when(scanner.nextRaw(any(List.class),any(String.class))).thenAnswer(rowReturnAnswer);
+				when(scanner.internalNextRaw(any(List.class))).thenAnswer(rowReturnAnswer);
 				//noinspection unchecked
 				when(scanner.next(any(List.class))).thenAnswer(rowReturnAnswer);
 

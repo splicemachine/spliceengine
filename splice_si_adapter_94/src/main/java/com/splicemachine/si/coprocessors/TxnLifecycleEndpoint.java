@@ -41,7 +41,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 public class TxnLifecycleEndpoint extends BaseEndpointCoprocessor implements TxnLifecycleProtocol {
 		private static final Logger LOG = Logger.getLogger(TxnLifecycleEndpoint.class);
 		private LongStripedSynchronizer<ReadWriteLock> lockStriper;
-		private RegionTxnStore<SparseTxn,ByteSlice,KeyValue,Put,Get> regionStore;
+		private RegionTxnStore<SparseTxn,SparseTxn,ByteSlice,KeyValue,Put,Get> regionStore;
 		private HRegion region;
 		private TimestampSource timestampSource;
 

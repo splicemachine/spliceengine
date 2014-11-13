@@ -4,6 +4,7 @@ import com.google.common.collect.Maps;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
+//import com.splicemachine.derby.impl.job.coprocessor.SpliceSchedulerProtocol;
 import com.splicemachine.derby.impl.job.coprocessor.TaskFutureContext;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.hbase.table.BoundCall;
@@ -42,6 +43,7 @@ import static org.mockito.Mockito.*;
  * Created on: 11/11/13
  */
 public class JobControlTest {
+	/*
 
     private static final Logger LOG = Logger.getLogger(JobControlTest.class);
 
@@ -426,4 +428,5 @@ public class JobControlTest {
 						return null;
 				}
 		}
+		*/
 }

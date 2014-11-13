@@ -40,6 +40,7 @@ import static org.mockito.Mockito.when;
  *         Created on: 9/24/13
  */
 public class PipingCallBufferTest{
+	/*
 	public static final String FOO_SERVERNAME="example.org,1234,1212121212";
 
     @Before
@@ -372,6 +373,7 @@ public class PipingCallBufferTest{
         }
     }
 */
+	/*
     @After
     public void tearDown() throws Exception {
 
@@ -497,6 +499,7 @@ public class PipingCallBufferTest{
             this.writesRejected.incrementAndGet();
         }
     }
+    */
 }
 
 

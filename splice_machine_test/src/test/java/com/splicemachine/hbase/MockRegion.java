@@ -61,7 +61,7 @@ public class MockRegion {
         HRegion testRegion = mock(HRegion.class);
         when(testRegion.getRegionInfo()).thenReturn(testRegionInfo);
         when(testRegion.getTableDesc()).thenReturn(descriptor);
-        when(testRegion.batchMutate(any(Pair[].class))).then(putAnswer);
+        //when(testRegion.batchMutate(any(Pair[].class))).then(putAnswer); TODO JL
         return testRegion;
     }
 }
