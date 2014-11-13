@@ -299,13 +299,13 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 					conn = sqlUtil.createConn();
 					sqlUtil.disableAutoCommit(conn);
 					long parentTxnID = Long.parseLong(conf.get(SpliceMRConstants.SPLICE_TRANSACTION_ID));
-					System.out.println("parent TXNid in OutputFormat:"+parentTxnID);
+					
 					childTxsID = sqlUtil.getChildTransactionID(conn, 
 									parentTxnID, 
 									conf.get(SpliceMRConstants.SPLICE_OUTPUT_TABLE_NAME));
 					
 					String strSize = conf.get(SpliceMRConstants.SPLICE_WRITE_BUFFER_SIZE);
-					//int size = 1024;
+					
 					int size = 1024;
 					if((strSize != null) && (!strSize.equals("")))
 						size = Integer.valueOf(strSize);

@@ -259,7 +259,9 @@ public class SpliceSerDe implements SerDe {
 			      
 			      PrimitiveObjectInspector primOI = (PrimitiveObjectInspector)fieldOI;
 			      Object data = primOI.getPrimitiveJavaObject(fieldObj);
-			     
+			      if(i >= dvds.length)
+			    	  break;
+			      
 			      if(primOI.getPrimitiveCategory() == PrimitiveCategory.INT)
 			    	  dvds[i] = new SQLInteger((Integer)data);
 			      else if (primOI.getPrimitiveCategory() == PrimitiveCategory.STRING)

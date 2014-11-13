@@ -79,8 +79,7 @@ public class SpliceJob extends Job {
 		if (conn == null)
 			try {
 				conn = sqlUtil.createConn();
-
-				//sqlUtil.disableAutoCommit(conn);
+				sqlUtil.disableAutoCommit(conn);
 				
 				String pTxsID = sqlUtil.getTransactionID(conn);
 				
