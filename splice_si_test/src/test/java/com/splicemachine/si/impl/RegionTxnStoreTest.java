@@ -8,9 +8,12 @@ import com.splicemachine.si.impl.SIFactoryDriver;
 import com.splicemachine.si.impl.SparseTxn;
 import com.splicemachine.si.impl.region.RegionTxnStore;
 import com.splicemachine.si.impl.region.TransactionResolver;
+
 import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
 import org.junit.Test;
+
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Mockito.doNothing;
@@ -75,6 +78,11 @@ public class RegionTxnStoreTest extends TxnTestUtils {
 				Assert.assertArrayEquals("Incorrect listing!",new long[]{1},activeTxnIds);
 		}
 
+		@Test
+		public void home() {
+			System.out.println("--" + Bytes.toBytes("g").length);
+		}
+		
 		@Test
 		public void testGetActiveTransactionsFiltersOutRolledbackTxns() throws Exception {
 				HRegion region = MockRegionUtils.getMockRegion();
