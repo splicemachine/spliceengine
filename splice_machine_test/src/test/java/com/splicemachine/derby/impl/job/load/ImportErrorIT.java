@@ -332,8 +332,8 @@ public class ImportErrorIT {
 
     private static String getBaseDirectory() {
         String userDir = System.getProperty("user.dir");
-        if(!userDir.endsWith("structured_derby"))
-            userDir = userDir+"/structured_derby";
+        if(!userDir.endsWith("splice_machine"))
+            userDir = userDir+"/splice_machine";
         return userDir;
     }
 

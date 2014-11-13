@@ -325,11 +325,11 @@ public class PipingCallBufferTest{
 
 				WriteConfiguration config = mock(WriteConfiguration.class);
 				when(config.getMetricFactory()).thenReturn(Metrics.noOpMetricFactory());
-<<<<<<< HEAD:structured_derby/src/test/java/com/splicemachine/hbase/writer/PipingWriteBufferTest.java
+<<<<<<< HEAD:splice_machine/src/test/java/com/splicemachine/hbase/writer/PipingWriteBufferTest.java
         PipingWriteBuffer buffer = new PipingWriteBuffer(tableName, new ActiveWriteTxn(100,100), null, null, regionCache, null, config, monitor);
 =======
         PipingCallBuffer buffer = new PipingCallBuffer(tableName, "100", null, regionCache, null, config, monitor);
->>>>>>> 96452a4... DB-1862 Write Pipeline Changes:structured_derby/src/test/java/com/splicemachine/pipeline/callbuffer/PipingCallBufferTest.java
+>>>>>>> 96452a4... DB-1862 Write Pipeline Changes:splice_machine/src/test/java/com/splicemachine/pipeline/callbuffer/PipingCallBufferTest.java
 
         KVPair kv = new KVPair(Bytes.toBytes("aaaa"), Bytes.toBytes("1"));
         buffer.add(kv);

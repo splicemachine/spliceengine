@@ -47,8 +47,8 @@ public class MicrostrategiesCustomerIT extends SpliceUnitTest {
 		@Test
     public void testSelectDistinctSelectsDistincts() throws Exception{
 	    String userDir = System.getProperty("user.dir");
-	    if(!userDir.endsWith("structured_derby"))
-	    	userDir = userDir+"/structured_derby/";
+	    if(!userDir.endsWith("splice_machine"))
+	    	userDir = userDir+"/splice_machine/";
 	    PreparedStatement ps = methodWatcher.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA (?, ?, null,null,?,',',null,null,null,null)");
 	    ps.setString(1,CLASS_NAME);
 	    ps.setString(2,TABLE_NAME);  
