@@ -258,11 +258,6 @@
 
 		<profile>
 			<id>spliceWait</id>
-			<activation>
-				<property>
-					<name>spliceFast</name>
-				</property>
-			</activation>
 			<build>
 				<plugins>
 					<plugin>
