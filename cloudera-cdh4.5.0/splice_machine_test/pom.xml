@@ -56,96 +56,6 @@
 		</profile>
 
 		<profile>
-			<id>ITs</id>
-			<properties>
-				<!-- enable failsafe integration tests -->
-				<skip.integration.tests>false</skip.integration.tests>
-				<!-- skip server start/stop if server already running -->
-				<server.start.skip>skipServerStart</server.start.skip>
-				<!-- ant task start/stop server args -->
-				<run.command>/bin/bash</run.command>
-				<splice.start.script>start-splice-dev.sh</splice.start.script>
-				<splice.stop.script>stop-splice-dev.sh</splice.stop.script>
-			</properties>
-			<build>
-				<plugins>
-					<plugin>
-						<artifactId>maven-antrun-plugin</artifactId>
-						<version>1.6</version>
-						<executions>
-							<execution>
-								<id>############## start-splice ################</id>
-								<phase>pre-integration-test</phase>
-								<configuration>
-									<target name="StartSpliceServer" unless="${server.start.skip}">
-										<taskdef resource="net/sf/antcontrib/antcontrib.properties"
-												 classpathref="maven.plugin.classpath"/>
-										<if>
-											<istrue value="${failTasksRandomly}"/>
-											<!-- run with chaos monkey (default) -->
-											<then>
-												<exec executable="${run.command}" dir="${basedir}" spawn="false">
-													<arg value="${basedir}/../${splice.start.script}"/>
-													<arg value="-c"/>
-													<arg value="-p ${envClassifier}${obfuscate.si}"/>
-													<arg value="-b ${build.tag}"/>
-												</exec>
-											</then>
-											<else>
-												<!-- chaos monkey overridden: -DfailTasksRandomly=false -->
-												<exec executable="${run.command}" dir="${basedir}" spawn="false">
-													<arg value="${basedir}/../${splice.start.script}"/>
-													<arg value="-p ${envClassifier}${obfuscate.si}"/>
-													<arg value="-b ${build.tag}"/>
-												</exec>
-											</else>
-										</if>
-									</target>
-								</configuration>
-								<goals>
-									<goal>run</goal>
-								</goals>
-							</execution>
-							<execution>
-								<id>############## stop-splice ################</id>
-								<phase>post-integration-test</phase>
-								<configuration>
-									<target name="StopSpliceServer" unless="${server.start.skip}">
-										<exec executable="${run.command}" dir="${basedir}" spawn="false">
-											<arg value="${basedir}/../${splice.stop.script}"/>
-											<arg value="-n ${build.number}"/>
-										</exec>
-									</target>
-								</configuration>
-								<goals>
-									<goal>run</goal>
-								</goals>
-							</execution>
-						</executions>
-						<dependencies>
-							<dependency>
-								<groupId>ant-contrib</groupId>
-								<artifactId>ant-contrib</artifactId>
-								<version>1.0b3</version>
-								<exclusions>
-									<exclusion>
-										<groupId>ant</groupId>
-										<artifactId>ant</artifactId>
-									</exclusion>
-								</exclusions>
-							</dependency>
-							<dependency>
-								<groupId>org.apache.ant</groupId>
-								<artifactId>ant-nodeps</artifactId>
-								<version>1.8.1</version>
-							</dependency>
-						</dependencies>
-					</plugin>
-				</plugins>
-			</build>
-		</profile>
-
-		<profile>
 			<id>spliceZoo</id>
 			<activation>
 				<property>
@@ -185,7 +95,7 @@
 					<plugin>
 						<groupId>org.codehaus.mojo</groupId>
 						<artifactId>exec-maven-plugin</artifactId>
-						<version>1.2.1</version>
+						<version>1.3.2</version>
 						<executions>
 							<execution>
 								<goals>
@@ -237,7 +147,7 @@
 					<plugin>
 						<groupId>org.codehaus.mojo</groupId>
 						<artifactId>exec-maven-plugin</artifactId>
-						<version>1.2.1</version>
+						<version>1.3.2</version>
 						<executions>
 							<execution>
 								<goals>
@@ -288,7 +198,7 @@
 					<plugin>
 						<groupId>org.codehaus.mojo</groupId>
 						<artifactId>exec-maven-plugin</artifactId>
-						<version>1.2.1</version>
+						<version>1.3.2</version>
 						<executions>
 							<execution>
 								<goals>
@@ -347,6 +257,38 @@
 		</profile>
 
 		<profile>
+			<id>spliceWait</id>
+			<activation>
+				<property>
+					<name>spliceFast</name>
+				</property>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>exec-maven-plugin</artifactId>
+						<version>1.3.2</version>
+						<executions>
+							<execution>
+								<goals>
+									<goal>java</goal>
+								</goals>
+							</execution>
+						</executions>
+						<configuration>
+							<mainClass>com.splicemachine.test.SpliceTestPlatformWait</mainClass>
+							<arguments>
+								<argument>localhost</argument>
+								<argument>1527</argument>
+							</arguments>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+
+		<profile>
 			<id>ij</id>
 			<activation>
 				<property>
@@ -362,7 +304,7 @@
 					<plugin>
 						<groupId>org.codehaus.mojo</groupId>
 						<artifactId>exec-maven-plugin</artifactId>
-						<version>1.2.1</version>
+						<version>1.3.2</version>
 						<executions>
 							<execution>
 								<goals>
