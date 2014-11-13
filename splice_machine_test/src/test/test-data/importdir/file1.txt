@@ -1,3 +1,0 @@
-Luke Skywalker,Jedi Knight,25
-Han Solo,Smuggler,40
-Leia Organa,Princess,25
