@@ -20,7 +20,7 @@ import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Put;
 
-public class V2TxnDecoder<Put extends OperationWithAttributes,Delete,Get extends OperationWithAttributes, Scan> extends AbstractV2TxnDecoder<TxnMessage.Txn,Cell,Put,Delete,Get,Scan>{
+public class V2TxnDecoder<Put extends OperationWithAttributes,Delete,Get extends OperationWithAttributes, Scan> extends AbstractV2TxnDecoder<TxnMessage.TxnInfo,TxnMessage.Txn,Cell,Put,Delete,Get,Scan>{
 	public static final STransactionLib<TxnMessage.Txn,ByteString> transactionLib = SIFactoryDriver.siFactory.getTransactionLib();
     public static final V2TxnDecoder INSTANCE = new V2TxnDecoder();
 
@@ -50,8 +50,9 @@ public class V2TxnDecoder<Put extends OperationWithAttributes,Delete,Get extends
 	 * order: counter,data,destinationTable,globalCommitTimestamp,keepAlive,state,commitTimestamp,
 	 */
 @Override
-	public org.apache.hadoop.hbase.client.Put encodeForPut(TxnMessage.Txn txn) throws IOException {
-		org.apache.hadoop.hbase.client.Put put = new org.apache.hadoop.hbase.client.Put(TxnUtils.getRowKey(transactionLib.getTxnId(txn)));
+	public org.apache.hadoop.hbase.client.Put encodeForPut(TxnMessage.TxnInfo txnInfo) throws IOException {
+	TxnMessage.Txn txn = TxnMessage.Txn.newBuilder().setInfo(txnInfo).buildPartial();
+	org.apache.hadoop.hbase.client.Put put = new org.apache.hadoop.hbase.client.Put(TxnUtils.getRowKey(transactionLib.getTxnId(txn)));
 		MultiFieldEncoder metaFieldEncoder = MultiFieldEncoder.create(5);
 		metaFieldEncoder.encodeNext(transactionLib.getBeginTimestamp(txn)).encodeNext(transactionLib.getParentTxnId(txn));
 

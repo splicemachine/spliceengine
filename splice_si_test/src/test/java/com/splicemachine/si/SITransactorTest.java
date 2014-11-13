@@ -537,7 +537,6 @@ public class SITransactorTest extends SIConstants {
 						t2.rollback();
         }
         Assert.assertEquals("joe2 age=20 job=null", testUtility.read(t1, "joe2"));
-        Assert.assertEquals("joe2 age=20 job=null", testUtility.read(t1, "joe2"));
         t1.commit();
         try {
             t2.commit();

@@ -20,7 +20,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import java.io.IOException;
 import java.util.List;
 
-public abstract class AbstractV2TxnDecoder<Transaction,Data,Put extends OperationWithAttributes,Delete,Get extends OperationWithAttributes, Scan> extends TxnDecoder<Transaction,Data,Put,Delete,Get,Scan>{
+public abstract class AbstractV2TxnDecoder<TxnInfo,Transaction,Data,Put extends OperationWithAttributes,Delete,Get extends OperationWithAttributes, Scan> extends TxnDecoder<TxnInfo,Transaction,Data,Put,Delete,Get,Scan>{
     public static final byte[] FAMILY = SIConstants.DEFAULT_FAMILY_BYTES;
     public static final byte[] DATA_QUALIFIER_BYTES = Bytes.toBytes("d");
     public static final byte[] COUNTER_QUALIFIER_BYTES = Bytes.toBytes("c");

@@ -5,7 +5,9 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.util.Bytes;
 
+import com.google.protobuf.ByteString;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.table.BetterHTablePool;
@@ -15,6 +17,11 @@ import com.splicemachine.si.api.SIFactory;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.TxnStore;
 import com.splicemachine.si.api.TxnSupplier;
+import com.splicemachine.si.api.Txn.IsolationLevel;
+import com.splicemachine.si.api.Txn.State;
+import com.splicemachine.si.coprocessor.TxnMessage;
+import com.splicemachine.si.coprocessor.TxnMessage.Txn;
+import com.splicemachine.si.coprocessor.TxnMessage.TxnInfo;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
@@ -28,8 +35,9 @@ import com.splicemachine.si.impl.region.STransactionLib;
 import com.splicemachine.storage.EntryAccumulator;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
+import com.splicemachine.utils.ByteSlice;
 
-public class SIFactoryImpl implements SIFactory {
+public class SIFactoryImpl implements SIFactory<TxnMessage.TxnInfo> {
 	
 	public static final SDataLib dataLib = new HDataLib();
 	public static final STableWriter tableWriter = new HTableWriter();
@@ -111,4 +119,13 @@ public class SIFactoryImpl implements SIFactory {
 		return transactionLib;
 	}
 
+	@Override
+	public TxnMessage.TxnInfo getTransaction(long txnId, long beginTimestamp,
+			long parentTxnId, long commitTimestamp,
+			long globalCommitTimestamp, boolean hasAdditiveField,
+			boolean additive, IsolationLevel isolationLevel, State state,
+			String destTableBuffer) {
+		return TxnMessage.TxnInfo.newBuilder().setTxnId(txnId).setBeginTs(beginTimestamp)
+		.setParentTxnid(parentTxnId).setDestinationTables(ByteString.copyFrom(Bytes.toBytes(destTableBuffer))).setIsolationLevel(isolationLevel.encode()).build();
+	}
 }
