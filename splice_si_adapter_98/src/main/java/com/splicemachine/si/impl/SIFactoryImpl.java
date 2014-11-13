@@ -31,13 +31,14 @@ import com.splicemachine.si.data.hbase.HRowAccumulator;
 import com.splicemachine.si.data.hbase.HTableReader;
 import com.splicemachine.si.data.hbase.HTableWriter;
 import com.splicemachine.si.impl.region.HTransactionLib;
+import com.splicemachine.si.impl.region.RegionTxnStore;
 import com.splicemachine.si.impl.region.STransactionLib;
 import com.splicemachine.storage.EntryAccumulator;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.ByteSlice;
 
-public class SIFactoryImpl implements SIFactory<TxnMessage.TxnInfo> {
+public class SIFactoryImpl implements SIFactory<TxnMessage.Txn> {
 	
 	public static final SDataLib dataLib = new HDataLib();
 	public static final STableWriter tableWriter = new HTableWriter();
@@ -120,12 +121,19 @@ public class SIFactoryImpl implements SIFactory<TxnMessage.TxnInfo> {
 	}
 
 	@Override
-	public TxnMessage.TxnInfo getTransaction(long txnId, long beginTimestamp,
+	public TxnMessage.Txn getTransaction(long txnId, long beginTimestamp,
 			long parentTxnId, long commitTimestamp,
 			long globalCommitTimestamp, boolean hasAdditiveField,
 			boolean additive, IsolationLevel isolationLevel, State state,
 			String destTableBuffer) {
-		return TxnMessage.TxnInfo.newBuilder().setTxnId(txnId).setBeginTs(beginTimestamp)
-		.setParentTxnid(parentTxnId).setDestinationTables(ByteString.copyFrom(Bytes.toBytes(destTableBuffer))).setIsolationLevel(isolationLevel.encode()).build();
+		return TxnMessage.Txn.newBuilder().setState(state.ordinal()).setCommitTs(commitTimestamp).setGlobalCommitTs(globalCommitTimestamp).setInfo(TxnMessage.TxnInfo.newBuilder().setTxnId(txnId).setBeginTs(beginTimestamp)
+		.setParentTxnid(parentTxnId).setDestinationTables(ByteString.copyFrom(Bytes.toBytes(destTableBuffer))).setIsolationLevel(isolationLevel.encode()).build()).build();
+	}
+
+	@Override
+	public void storeTransaction(RegionTxnStore regionTransactionStore,
+			Txn transaction) throws IOException {
+		regionTransactionStore.recordTransaction(transaction.getInfo());
+		
 	}
 }

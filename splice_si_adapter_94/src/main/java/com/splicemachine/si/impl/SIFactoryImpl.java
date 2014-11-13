@@ -27,6 +27,7 @@ import com.splicemachine.si.data.hbase.HRowAccumulator;
 import com.splicemachine.si.data.hbase.HTableReader;
 import com.splicemachine.si.data.hbase.HTableWriter;
 import com.splicemachine.si.impl.region.HTransactionLib;
+import com.splicemachine.si.impl.region.RegionTxnStore;
 import com.splicemachine.si.impl.region.STransactionLib;
 import com.splicemachine.storage.EntryAccumulator;
 import com.splicemachine.storage.EntryDecoder;
@@ -124,5 +125,12 @@ public class SIFactoryImpl implements SIFactory<SparseTxn> {
 		return new SparseTxn(txnId,beginTimestamp,parentTxnId,commitTimestamp,
 				globalCommitTimestamp, hasAdditiveField,additive,isolationLevel,
 				state,ByteSlice.wrap(Bytes.toBytes(destTableBuffer)));
+	}
+
+	@Override
+	public void storeTransaction(RegionTxnStore regionTransactionStore,
+			SparseTxn transaction) throws IOException {
+		regionTransactionStore.recordTransaction(transaction);
+		
 	}
 }

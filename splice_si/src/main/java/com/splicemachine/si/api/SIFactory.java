@@ -1,5 +1,7 @@
 package com.splicemachine.si.api;
 
+import java.io.IOException;
+
 import org.apache.hadoop.hbase.regionserver.HRegion;
 
 import com.splicemachine.si.api.Txn.IsolationLevel;
@@ -8,6 +10,7 @@ import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
 import com.splicemachine.si.impl.DataStore;
+import com.splicemachine.si.impl.region.RegionTxnStore;
 import com.splicemachine.si.impl.region.STransactionLib;
 import com.splicemachine.storage.EntryAccumulator;
 import com.splicemachine.storage.EntryDecoder;
@@ -28,4 +31,5 @@ public interface SIFactory<Transaction> {
 			long commitTimestamp, long globalCommitTimestamp,
 			boolean hasAdditiveField, boolean additive,
 			IsolationLevel isolationLevel, State state, String destTableBuffer);
+	void storeTransaction(RegionTxnStore regionTransactionStore, Transaction transaction) throws IOException;
 }
