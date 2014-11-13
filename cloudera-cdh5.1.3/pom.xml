@@ -20,8 +20,6 @@
   		<module>splice_si_adapter_98</module>
 		<module>splice_si_test</module>
 		<module>splice_machine</module>
-  		<module>splice_machine_adapter_98</module>
-  		<module>splice_machine_test</module>  
 	</modules>
 
 	<dependencies>
