@@ -3,6 +3,7 @@ package com.splicemachine.si;
 import com.splicemachine.si.impl.*;
 import com.splicemachine.si.impl.store.ActiveTxnCacheTest;
 import com.splicemachine.si.impl.store.CompletedTxnCacheSupplierTest;
+
 import org.junit.AfterClass;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;

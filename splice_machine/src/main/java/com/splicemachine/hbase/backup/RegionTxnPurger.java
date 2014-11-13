@@ -23,14 +23,14 @@ import com.splicemachine.utils.Source;
 /**
  * Purges unneeded transactions from a Transaction table region.
  */
-public class RegionTxnPurger<Transaction,Data> {
+public class RegionTxnPurger<TxnInfo,Transaction,Data> {
     /*
      * The region in which to access data
      */
     private final HRegion region;
 
-    private final TxnDecoder<Transaction, Data, Put, Delete, Get, Scan> oldTransactionDecoder;
-    private final TxnDecoder<Transaction, Data, Put, Delete, Get, Scan> newTransactionDecoder;
+    private final TxnDecoder<TxnInfo,Transaction, Data, Put, Delete, Get, Scan> oldTransactionDecoder;
+    private final TxnDecoder<TxnInfo,Transaction, Data, Put, Delete, Get, Scan> newTransactionDecoder;
     private final SDataLib dataLib;
     private final STransactionLib transactionLib;
 

@@ -34,10 +34,12 @@ import com.splicemachine.derby.impl.job.scheduler.BaseJobControl;
 import com.splicemachine.derby.impl.job.scheduler.JobMetrics;
 import com.splicemachine.pipeline.api.BulkWritesInvoker;
 import com.splicemachine.si.api.TransactionalRegion;
+import com.splicemachine.si.api.Txn;
 import com.splicemachine.storage.EntryPredicateFilter;
+import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 
-public interface DerbyFactory {
+public interface DerbyFactory<Transaction> {
 	Filter getAllocatedFilter(byte[] localAddress);	
 	SpliceBaseOperationRegionScanner getOperationRegionScanner(RegionScanner s,
 			Scan scan, HRegion region, TransactionalRegion txnRegion) throws IOException;	

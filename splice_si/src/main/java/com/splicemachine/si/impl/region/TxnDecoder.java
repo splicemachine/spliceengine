@@ -23,7 +23,7 @@ import java.util.List;
  * @author Scott Fines
  * Date: 8/14/14
  */
-public abstract class TxnDecoder<Transaction,Data,Put extends OperationWithAttributes,Delete,Get extends OperationWithAttributes, Scan> {
+public abstract class TxnDecoder<TxnInfo,Transaction,Data,Put extends OperationWithAttributes,Delete,Get extends OperationWithAttributes, Scan> {
 
     abstract Transaction decode(SDataLib<Data,Put,Delete,Get, Scan> datalib, long txnId, Result result) throws IOException;
 
@@ -68,7 +68,7 @@ public abstract class TxnDecoder<Transaction,Data,Put extends OperationWithAttri
         return adjustStateForTimeout(dataLib,currentState,columnLatest,System.currentTimeMillis(),oldForm);
     }
 
-	public abstract org.apache.hadoop.hbase.client.Put encodeForPut(Transaction txn) throws IOException;
+	public abstract org.apache.hadoop.hbase.client.Put encodeForPut(TxnInfo txn) throws IOException;
         
     protected abstract Transaction composeValue(Data destinationTables, IsolationLevel level, long txnId, long beginTs,long parentTs,  boolean hasAdditive,
     		boolean additive, long commitTs, long globalCommitTs, Txn.State state, long kaTime);

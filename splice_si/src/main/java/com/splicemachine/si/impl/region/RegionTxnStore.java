@@ -32,13 +32,13 @@ import java.util.List;
  * @author Scott Fines
  * Date: 6/19/14
  */
-public class RegionTxnStore<Transaction,TableBuffer,Data,Put extends OperationWithAttributes,Get extends OperationWithAttributes> {
+public class RegionTxnStore<TxnInfo,Transaction,TableBuffer,Data,Put extends OperationWithAttributes,Get extends OperationWithAttributes> {
 		/*
 		 * The region in which to access data
 		 */
 		private final HRegion region;
-		private final TxnDecoder<Transaction,Data,Put,Delete,Get,Scan> oldTransactionDecoder;
-		private final TxnDecoder<Transaction,Data,Put,Delete,Get,Scan> newTransactionDecoder;
+		private final TxnDecoder<TxnInfo,Transaction,Data,Put,Delete,Get,Scan> oldTransactionDecoder;
+		private final TxnDecoder<TxnInfo,Transaction,Data,Put,Delete,Get,Scan> newTransactionDecoder;
 		private final SDataLib<Data,Put,Delete,Get,Scan> dataLib;
 		private final TransactionResolver<Transaction,TableBuffer> resolver;
 		private final TxnSupplier txnStore;
@@ -204,7 +204,7 @@ public class RegionTxnStore<Transaction,TableBuffer,Data,Put extends OperationWi
 		 * @param txn the transaction to write
 		 * @throws IOException if something goes wrong in writing the transaction
 		 */
-		public void recordTransaction(Transaction txn) throws IOException{
+		public void recordTransaction(TxnInfo txn) throws IOException{
 			org.apache.hadoop.hbase.client.Put put = newTransactionDecoder.encodeForPut(txn);
 			region.put(put);
 		}

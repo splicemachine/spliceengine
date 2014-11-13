@@ -15,7 +15,7 @@ import java.util.List;
  * @author Scott Fines
  *         Date: 8/18/14
  */
-public abstract class AbstractV1TxnDecoder<Transaction,Data,Put extends OperationWithAttributes,Delete,Get extends OperationWithAttributes, Scan> extends TxnDecoder<Transaction,Data,Put,Delete,Get,Scan>{
+public abstract class AbstractV1TxnDecoder<TxnInfo,Transaction,Data,Put extends OperationWithAttributes,Delete,Get extends OperationWithAttributes, Scan> extends TxnDecoder<TxnInfo,Transaction,Data,Put,Delete,Get,Scan>{
     public static final byte[] FAMILY = SIConstants.DEFAULT_FAMILY_BYTES;
 
     public static final byte[] OLD_COMMIT_TIMESTAMP_COLUMN = Bytes.toBytes(SIConstants.TRANSACTION_COMMIT_TIMESTAMP_COLUMN);
@@ -120,7 +120,7 @@ public abstract class AbstractV1TxnDecoder<Transaction,Data,Put extends Operatio
     }
 
 	@Override
-	public org.apache.hadoop.hbase.client.Put encodeForPut(Transaction txn) throws IOException {
+	public org.apache.hadoop.hbase.client.Put encodeForPut(TxnInfo txn) throws IOException {
 		throw new RuntimeException("Not Implemented");
 	}
 

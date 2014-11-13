@@ -1,6 +1,7 @@
 package com.splicemachine.si.impl.region;
 
 import com.google.protobuf.ByteString;
+import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.Txn.IsolationLevel;
 import com.splicemachine.si.api.Txn.State;
 import com.splicemachine.si.coprocessor.TxnMessage;
@@ -49,7 +50,7 @@ public class HTransactionLib implements STransactionLib<TxnMessage.Txn,ByteStrin
 
 	@Override
 	public boolean isTimedOut(TxnMessage.Txn transaction) {
-		throw new RuntimeException("Not Implemented");
+		return Txn.State.fromInt(transaction.getState()).equals(Txn.State.ROLLEDBACK);
 	}
 
 	@Override
