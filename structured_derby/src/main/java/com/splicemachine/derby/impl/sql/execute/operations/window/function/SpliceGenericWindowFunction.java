@@ -20,7 +20,8 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
  */
 public abstract class SpliceGenericWindowFunction implements WindowFunction {
 
-    public static int CHUNKSIZE = 100;
+    public static final int CHUNKSIZE = 100;
+    protected DataValueDescriptor resultType;
     protected ArrayList<WindowChunk> chunks;
     protected WindowChunk first, last;
 
@@ -29,9 +30,12 @@ public abstract class SpliceGenericWindowFunction implements WindowFunction {
     }
 
     @Override
-    public WindowFunction setup(ClassFactory cf, String aggregateName, DataTypeDescriptor returnDataType)
-    {
+    public WindowFunction setup(ClassFactory cf, String aggregateName, DataTypeDescriptor returnDataType) {
         return this;
+    }
+
+    public void setResultType(DataValueDescriptor resultType) {
+        this.resultType = resultType.cloneValue(false);
     }
 
     protected void add(DataValueDescriptor[] addends) throws StandardException{
@@ -110,14 +114,6 @@ public abstract class SpliceGenericWindowFunction implements WindowFunction {
         return (dvd == null || dvd.length == 0);
     }
 
-    private int findLargestSize(DataValueDescriptor[] left, DataValueDescriptor[] right) {
-        int size = left.length;
-        if (right.length > size) {
-            return right.length;
-        }
-        return size;
-    }
-
     public void reset() {
         WindowChunk chunk = new WindowChunk();
         first = last = chunk;
@@ -137,7 +133,11 @@ public abstract class SpliceGenericWindowFunction implements WindowFunction {
     @Override
     public int getTypeFormatId() {
         // unused
-        return -1;
+        if (resultType == null) {
+            return -1;
+        } else {
+            return resultType.getTypeFormatId();
+        }
     }
 
     protected class WindowChunk {
@@ -171,8 +171,11 @@ public abstract class SpliceGenericWindowFunction implements WindowFunction {
             values[last++] = v;
         }
 
-        public void setResult(DataValueDescriptor v) {
-            this.result = v;
+        public void setResult(DataValueDescriptor v) throws StandardException {
+            if (result == null) {
+                result = resultType.cloneValue(false);
+            }
+            this.result.setValue(v);
         }
 
         public DataValueDescriptor[] get(int i) {

@@ -81,10 +81,4 @@ public class DenseRankFunction extends SpliceGenericWindowFunction implements Wi
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
 
     }
-
-    @Override
-    public int getTypeFormatId() {
-        return 0;
-    }
-
 }

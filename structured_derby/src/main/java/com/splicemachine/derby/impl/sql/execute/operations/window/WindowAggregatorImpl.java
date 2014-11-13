@@ -83,7 +83,8 @@ public class WindowAggregatorImpl implements WindowAggregator {
     @Override
     public void accumulate(ExecRow nextRow, ExecRow accumulatorRow) throws StandardException {
 		DataValueDescriptor aggCol = accumulatorRow.getColumn(functionColumnId);
-		accumulate(getInputColumns(nextRow, inputColumnIds),aggCol);
+        DataValueDescriptor outputCol = accumulatorRow.getColumn(resultColumnId);
+		accumulate(getInputColumns(nextRow, inputColumnIds),aggCol, outputCol);
 	}
 
 	@Override
@@ -92,7 +93,7 @@ public class WindowAggregatorImpl implements WindowAggregator {
 		DataValueDescriptor aggCol = row.getColumn(functionColumnId);
 
         WindowFunction ua = (WindowFunction)aggCol.getObject();
-		if(ua ==null) ua = findOrCreateNewWindowFunction();
+		if(ua ==null) ua = findOrCreateNewWindowFunction(outputCol);
 		
 		DataValueDescriptor result = ua.getResult();
 		if(result ==null) outputCol.setToNull();
@@ -104,8 +105,9 @@ public class WindowAggregatorImpl implements WindowAggregator {
         UserDataValue aggColumn = (UserDataValue) row.getColumn(functionColumnId);
 
         WindowFunction ua = (WindowFunction) aggColumn.getObject();
+        DataValueDescriptor outputCol = row.getColumn(resultColumnId);
         if (ua == null) {
-            ua = findOrCreateNewWindowFunction();
+            ua = findOrCreateNewWindowFunction(outputCol);
             aggColumn.setValue(ua);
             return true;
         }
@@ -152,16 +154,16 @@ public class WindowAggregatorImpl implements WindowAggregator {
         return functionName;
     }
 
-    private void accumulate(DataValueDescriptor[] inputCols,DataValueDescriptor aggCol)
+    private void accumulate(DataValueDescriptor[] inputCols,DataValueDescriptor aggCol, DataValueDescriptor outputCol)
         throws StandardException{
         WindowFunction ua = (WindowFunction)aggCol.getObject();
         if(ua == null){
-            ua = findOrCreateNewWindowFunction();
+            ua = findOrCreateNewWindowFunction(outputCol);
         }
         ua.accumulate(inputCols);
     }
 
-    private SpliceGenericWindowFunction findOrCreateNewWindowFunction() throws StandardException {
+    private SpliceGenericWindowFunction findOrCreateNewWindowFunction(DataValueDescriptor resultType) throws StandardException {
         SpliceGenericWindowFunction aggInstance = cachedAggregator;
 		if (aggInstance == null){
 			try{
@@ -173,6 +175,7 @@ public class WindowAggregatorImpl implements WindowAggregator {
                 );
                 function = function.newWindowFunction();
                 cachedAggregator = (SpliceGenericWindowFunction) function;
+                cachedAggregator.setResultType(resultType);
                 aggInstance = cachedAggregator;
 			} catch(Exception e){
 				throw StandardException.unexpectedUserException(e);
