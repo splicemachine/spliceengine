@@ -10,12 +10,15 @@ import com.splicemachine.encoding.Encoding;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.impl.SIFactoryDriver;
 import com.splicemachine.si.impl.TxnUtils;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.util.concurrent.ThreadPoolExecutor;
 
@@ -68,7 +71,7 @@ public class TransactionResolver<Transaction,TableBuffer> {
     private final Disruptor<TxnResolveEvent<Transaction>> disruptor;
     private final ThreadPoolExecutor consumerThreads;
     private volatile boolean stopped;
-    protected STransactionLib<Transaction,TableBuffer> transactionLib;
+    protected static STransactionLib transactionLib = SIFactoryDriver.siFactory.getTransactionLib();
 
     public TransactionResolver(TxnSupplier txnSupplier, int numThreads, int bufferSize) {
         this.txnSupplier = txnSupplier;
@@ -161,7 +164,9 @@ public class TransactionResolver<Transaction,TableBuffer> {
     }
 
     private void resolveCommit(HRegion txnRegion, Transaction txn,boolean oldForm) throws IOException {
-        if(transactionLib.getTransactionState(txn)!= Txn.State.COMMITTED) return; //not committed, don't do anything
+        assert txn!=null;
+    	
+    	if(transactionLib.getTransactionState(txn)!= Txn.State.COMMITTED) return; //not committed, don't do anything
         long txnId = transactionLib.getTxnId(txn);
         try{
             TxnView parentView = txnSupplier.getTransaction(transactionLib.getParentTxnId(txn));
