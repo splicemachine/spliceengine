@@ -91,7 +91,7 @@ public class ImportErrorIT extends SpliceUnitTest {
                 String correctErrorMessage = String.format("Data file not found: File %s does not exist",location);
                 String correctErrorMessage1 = String.format("Data file not found: File %s does not exist.",location);
                 String retval = se.getMessage();
-                Assert.assertTrue("Incorrect error message!", retval.equals(correctErrorMessage)||retval.equals(correctErrorMessage1));
+                Assert.assertTrue("Incorrect error message! location={" + location + "}, retval={" + retval + "}", retval.equals(correctErrorMessage)||retval.equals(correctErrorMessage1));
 //                Assert.assertEquals("Incorrect error message!", correctErrorMessage, se.getMessage());
             }
         });
@@ -309,7 +309,7 @@ public class ImportErrorIT extends SpliceUnitTest {
      * further assertions in ErrorCheck
      */
     private void runImportTest(String table,String file,ErrorCheck check) throws SQLException {
-        String location = getResourceDirectory()+"/test_data/bad_import/"+file;
+        String location = getResourceDirectory()+"test_data/bad_import/"+file;
         PreparedStatement ps = null;
         try{
             ps = methodWatcher.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA(?,?,?,null, ?,',',null,null,null,null)");
