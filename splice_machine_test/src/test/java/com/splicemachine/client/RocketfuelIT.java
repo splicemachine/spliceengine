@@ -2,21 +2,15 @@ package com.splicemachine.client;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
-import com.google.common.io.Closeables;
 import com.google.common.io.Files;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
-import org.apache.hadoop.hbase.thrift.generated.Hbase;
 import org.junit.Assert;
-import org.junit.ClassRule;
 import org.junit.Ignore;
-
 import javax.annotation.Nullable;
-import java.io.BufferedReader;
 import java.io.File;
 import java.nio.charset.Charset;
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.List;

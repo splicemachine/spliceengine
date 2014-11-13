@@ -5,6 +5,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.util.Bytes;
 
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
@@ -15,6 +16,8 @@ import com.splicemachine.si.api.SIFactory;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.TxnStore;
 import com.splicemachine.si.api.TxnSupplier;
+import com.splicemachine.si.api.Txn.IsolationLevel;
+import com.splicemachine.si.api.Txn.State;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
@@ -28,8 +31,9 @@ import com.splicemachine.si.impl.region.STransactionLib;
 import com.splicemachine.storage.EntryAccumulator;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
+import com.splicemachine.utils.ByteSlice;
 
-public class SIFactoryImpl implements SIFactory {
+public class SIFactoryImpl implements SIFactory<SparseTxn> {
 	
 	public static final SDataLib dataLib = new HDataLib();
 	public static final STableWriter tableWriter = new HTableWriter();
@@ -111,5 +115,14 @@ public class SIFactoryImpl implements SIFactory {
 	public STransactionLib getTransactionLib() {
 		return transactionLib;
 	}
-
+	@Override
+	public SparseTxn getTransaction(long txnId, long beginTimestamp,
+			long parentTxnId, long commitTimestamp,
+			long globalCommitTimestamp, boolean hasAdditiveField,
+			boolean additive, IsolationLevel isolationLevel, State state,
+			String destTableBuffer) {
+		return new SparseTxn(txnId,beginTimestamp,parentTxnId,commitTimestamp,
+				globalCommitTimestamp, hasAdditiveField,additive,isolationLevel,
+				state,ByteSlice.wrap(Bytes.toBytes(destTableBuffer)));
+	}
 }

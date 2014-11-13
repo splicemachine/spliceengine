@@ -126,7 +126,7 @@ public class TableScanOperationTest {
                 return true;
             }
         };
-        when(mockScanner.nextRaw(any(List.class), any(String.class))).thenAnswer(answer);
+        when(mockScanner.internalNextRaw(any(List.class))).thenAnswer(answer);
         when(mockScanner.next(any(List.class))).thenAnswer(answer);
 
         HRegion mockRegion = mock(HRegion.class);

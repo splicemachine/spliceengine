@@ -73,11 +73,16 @@ import com.splicemachine.hbase.debug.HBaseEntryPredicateFilter;
 import com.splicemachine.pipeline.api.BulkWritesInvoker.Factory;
 import com.splicemachine.pipeline.impl.BulkWritesRPCInvoker;
 import com.splicemachine.si.api.TransactionalRegion;
+import com.splicemachine.si.api.Txn.IsolationLevel;
+import com.splicemachine.si.api.Txn.State;
+import com.splicemachine.si.coprocessor.TxnMessage;
+import com.splicemachine.si.coprocessor.TxnMessage.TxnInfo;
 import com.splicemachine.storage.EntryPredicateFilter;
+import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 
-public class DerbyFactoryImpl implements DerbyFactory {
+public class DerbyFactoryImpl implements DerbyFactory<TxnMessage.TxnInfo> {
 
 	@Override
 	public Filter getAllocatedFilter(byte[] localAddress) {
@@ -443,4 +448,5 @@ public class DerbyFactoryImpl implements DerbyFactory {
 	        }
 			
 		}
+
 }
