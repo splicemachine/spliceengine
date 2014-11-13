@@ -56,7 +56,7 @@ public class RegionTxnStoreTest extends TxnTestUtils {
 				HRegion region = MockRegionUtils.getMockRegion();
 				RegionTxnStore store = new RegionTxnStore(region,getTransactionResolver(),mock(TxnSupplier.class),SIFactoryDriver.siFactory.getDataLib(),SIFactoryDriver.siFactory.getTransactionLib());
 				Object txn = factory.getTransaction(1,1,-1,-1,-1,true,true, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.State.ACTIVE,"12344");
-				store.recordTransaction(txn);
+				factory.storeTransaction(store,txn);
 				Object transaction = store.getTransaction(1);
 				assertTxnsMatch("Transactions do not match!",txn,transaction);
 				store.recordRollback(1);
@@ -69,7 +69,7 @@ public class RegionTxnStoreTest extends TxnTestUtils {
 				HRegion region = MockRegionUtils.getMockRegion();
 				RegionTxnStore store = new RegionTxnStore(region,getTransactionResolver(),mock(TxnSupplier.class),SIFactoryDriver.siFactory.getDataLib(),SIFactoryDriver.siFactory.getTransactionLib());
 				Object txn = factory.getTransaction(1,1,-1,-1,-1,true,true, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.State.ACTIVE,"12344");
-				store.recordTransaction(txn);
+				factory.storeTransaction(store,txn);
 				long[] activeTxnIds = store.getActiveTxnIds(0, 2,null);
 				Assert.assertEquals("Incorrect length!",1,activeTxnIds.length);
 				Assert.assertArrayEquals("Incorrect listing!",new long[]{1},activeTxnIds);
@@ -81,7 +81,7 @@ public class RegionTxnStoreTest extends TxnTestUtils {
 				RegionTxnStore store = new RegionTxnStore(region,getTransactionResolver(),mock(TxnSupplier.class),SIFactoryDriver.siFactory.getDataLib(),SIFactoryDriver.siFactory.getTransactionLib());
 
 				Object txn = factory.getTransaction(1,1,-1,-1,-1,true,true, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.State.ACTIVE,"1234");
-				store.recordTransaction(txn);
+				factory.storeTransaction(store,txn);
 
 				Thread.sleep(100); //sleep for 100 ms to ensure that the System.currentTimeMillis() moves forward
 				store.recordRollback(1);
@@ -94,7 +94,7 @@ public class RegionTxnStoreTest extends TxnTestUtils {
 				HRegion region = MockRegionUtils.getMockRegion();
 				RegionTxnStore store = new RegionTxnStore(region,getTransactionResolver(),mock(TxnSupplier.class),SIFactoryDriver.siFactory.getDataLib(),SIFactoryDriver.siFactory.getTransactionLib());
 				Object txn = factory.getTransaction(1,1,-1,-1,-1,true,true, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.State.ACTIVE,"1234");
-				store.recordTransaction(txn);
+				factory.storeTransaction(store,txn);
 				Thread.sleep(100); //sleep for 100 ms to ensure that the System.currentTimeMillis() moves forward
 				store.recordCommit(1,2l);
 				long[] activeTxnIds = store.getActiveTxnIds(0, 3,null);
