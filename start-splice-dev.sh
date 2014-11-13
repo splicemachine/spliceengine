@@ -21,7 +21,7 @@ usage() {
     echo "  -h => print this message"
 }
 
-CHAOS="FALSE"
+CHAOS="false"
 PROFILE="cloudera-cdh4.5.0"  # default hbase platform profile
 BUILD_TAG=""
 
@@ -33,7 +33,7 @@ while getopts ":chp:b:" flag ; do
         ;;
         c)
         # start server with the chaos monkey (random task failures)
-            CHAOS="TRUE"
+            CHAOS="true"
         ;;
         p)
         # the hbase profile
@@ -53,36 +53,18 @@ done
 echo "Running with hbase profile \"${PROFILE}\" and chaos monkey = ${CHAOS} ${BUILD_TAG}"
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/" && pwd )"
-pushd "${SCRIPT_DIR}/splice_machine" &>/dev/null
+
+pushd "${SCRIPT_DIR}/${PROFILE}/splice_machine_test" &>/dev/null
+
 ROOT_DIR="$( pwd )"
 
-source ${ROOT_DIR}/src/main/bin/functions.sh
-
-SPLICE_SINGLE_PATTERN="${ROOT_DIR}/target/splice_machine-*-${PROFILE}_simple.tar.gz"
-TARBALL=`ls ${SPLICE_SINGLE_PATTERN}`
-if [[ ! -f "${TARBALL}" ]]; then
-    # Maven simple.tar.gz assembly is required to reference server dependencies.
-    # If it's not present, quit.
-    echo "Required assembly, ${TARBALL}, not found. An unexpected hbase profile was provided \\"${PROFILE}\\" or the project needs to be built."
-    exit 1
-fi
-
-# Extract package libs for server dependencies in classpath
-tar xvf ${TARBALL} -C "${ROOT_DIR}"/target splicemachine/lib &>/dev/null
-
 # Config
-SPLICELOG="${ROOT_DIR}"/splice.log
-ZOOLOG="${ROOT_DIR}"/zoo.log
-# Add in the lib directory where splice-site.xml resides.
-CLASSPATH="${ROOT_DIR}"/target/splicemachine/lib:"${ROOT_DIR}"/target/splicemachine/lib/*
-echo "CLASSPATH=${CLASSPATH}"
-ZOO_DIR="${ROOT_DIR}"/target/zookeeper
-HBASE_ROOT_DIR_URI="file://${ROOT_DIR}/target/hbase"
-LOG4J_PATH="file:${ROOT_DIR}/target/classes/hbase-log4j.properties"
+SPLICELOG="${ROOT_DIR}"/splice_it.log
+ZOOLOG="${ROOT_DIR}"/zoo_it.log
 
 # Check if server running. Shut down if so.
 # Doing this automatically so that running in batch mode, like ITs, works without problems.
-S=$(ps -ef | awk '/SpliceTestPlatform/ && !/awk/ {print $2}')
+S=$(ps -ef | awk '/SpliceTestPlatform}SpliceSinglePlatform/ && !/awk/ {print $2}')
 Z=$(ps -ef | awk '/ZooKeeperServerMain/ && !/awk/ {print $2}')
 if [[ -n ${S} || -n ${Z} ]]; then
     echo "Splice server is running. Shutting down."
@@ -90,14 +72,16 @@ if [[ -n ${S} || -n ${Z} ]]; then
 fi
 
 currentDateTime=$(date +'%m-%d-%Y:%H:%M:%S')
-echo "=== Running with hbase profile ${PROFILE} at $currentDateTime ${BUILD_TAG} === " > ${SPLICELOG}
-export SPLICE_SYS_ARGS="-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4000"
-ZOO_WAIT_TIME=45
-# This is the class we start in dev env
-SPLICE_MAIN_CLASS="com.splicemachine.test.SpliceTestPlatform"
-# Start server with retry logic
-#echo "${ROOT_DIR}/target/classes" "${SPLICELOG}" "${ZOOLOG}" "${LOG4J_PATH}" "${ZOO_DIR}" "${ZOO_WAIT_TIME}" "${HBASE_ROOT_DIR_URI}" "${CLASSPATH}" "${SPLICE_MAIN_CLASS}" "${CHAOS}"
-_retrySplice "${ROOT_DIR}/target/splicemachine" "${SPLICELOG}" "${ZOOLOG}" "${LOG4J_PATH}" "${ZOO_DIR}" "${ZOO_WAIT_TIME}" "${HBASE_ROOT_DIR_URI}" "${CLASSPATH}" "${SPLICE_MAIN_CLASS}" "${CHAOS}"
+echo "=== Running with hbase profile ${PROFILE} at ${currentDateTime} ${BUILD_TAG} === " > ${SPLICELOG}
+
+# Start zookeeper in background.
+mvn -B exec:exec -PspliceZoo > zoo_it.log 2>&1 &
+
+# Start SpliceTestPlaform in background.
+mvn -B exec:exec -PspliceFast -DfailTasksRandomly=${CHAOS} > splice_it.log 2>&1 &
+
+# wait for splice to start
+mvn -B exec:java -PspliceWait
 
 popd &>/dev/null
 

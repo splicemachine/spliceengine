@@ -39,44 +39,36 @@ while getopts ":hn:" flag ; do
 done
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/" && pwd )"
+
 pushd "${SCRIPT_DIR}/splice_machine" &>/dev/null
+
 ROOT_DIR="$( pwd )"
-source ${ROOT_DIR}/src/main/bin/functions.sh
-SPLICELOG="${ROOT_DIR}"/splice.log
-ZOOLOG="${ROOT_DIR}"/zoo.log
-DERBYLOG="${ROOT_DIR}"/derby.log
+
+# Config
+SPLICELOG="${ROOT_DIR}"/splice_it.log
+ZOOLOG="${ROOT_DIR}"/zoo_it.log
 
 # Check if server running. If not, no need to proceed.
-S=$(ps -ef | awk '/SpliceTestPlatform/ && !/awk/ {print $2}')
+S=$(ps -ef | awk '/SpliceTestPlatform|SpliceSinglePlatform/ && !/awk/ {print $2}')
 Z=$(ps -ef | awk '/ZooKeeperServerMain/ && !/awk/ {print $2}')
 if [[ -z ${S} && -z ${Z} ]]; then
     echo "Splice server is not running."
     exit 0
+else
+# otherwise kill it nicely
+	SIG=15
+	[[ -n ${S} ]] && echo "Found SpliceTestPlatform straggler. Killing." && for pid in ${S}; do kill -${SIG} `echo ${pid}`; done
+	[[ -n ${Z} ]] && echo "Found ZooKeeperServerMain straggler. Killing." && for pid in ${Z}; do kill -${SIG} `echo ${pid}`; done
 fi
 
 currentDateTime=$(date +'%m-%d-%Y:%H:%M:%S')
-
 echo "Shutting down splice at $currentDateTime" >> ${SPLICELOG}
 
-source ${ROOT_DIR}/src/main/bin/functions.sh
-_stopServer "${ROOT_DIR}/target/splicemachine" "${ROOT_DIR}/target/splicemachine"
-
-# Check for stragglers
-SIG=15
+# Check for stragglers and kill 'em dead
+SIG=9
 S=$(ps -ef | awk '/SpliceTestPlatform/ && !/awk/ {print $2}')
-#[[ -n ${S} ]] && echo "Found SpliceTestPlatform straggler. Killing." && for pid in ${S}; do kill -${SIG} `echo ${pid}`; done
 Z=$(ps -ef | awk '/ZooKeeperServerMain/ && !/awk/ {print $2}')
-#[[ -n ${Z} ]] && echo "Found ZooKeeperServerMain straggler. Killing." && for pid in ${Z}; do kill -${SIG} `echo ${pid}`; done
-
-if [ ! -d "logs" ]; then
-    mkdir logs
-fi
-
-if [[ -z ${BUILD_NUMBER} ]]; then
-    BUILD_NUMBER="${currentDateTime}-"
-fi
-cp ${SPLICELOG} logs/${BUILD_NUMBER}$( basename "${SPLICELOG}")
-cp ${ZOOLOG} logs/${BUILD_NUMBER}$( basename "${ZOOLOG}")
-cp ${DERBYLOG} logs/${BUILD_NUMBER}$( basename "${DERBYLOG}") &>/dev/null
+[[ -n ${S} ]] && echo "Found SpliceTestPlatform straggler. Killing." && for pid in ${S}; do kill -${SIG} `echo ${pid}`; done
+[[ -n ${Z} ]] && echo "Found ZooKeeperServerMain straggler. Killing." && for pid in ${Z}; do kill -${SIG} `echo ${pid}`; done
 
 popd &>/dev/null
