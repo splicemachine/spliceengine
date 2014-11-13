@@ -14,7 +14,7 @@ usage() {
     echo "Where: "
     echo "  -c is an optional flag determining random task failures. Default is that the chaos"
     echo "    monkey NOT run. To see if you have the chaos monkey running, execute: "
-    echo "        grep 'task fail' structured_derby/splice.log"
+    echo "        grep 'task fail' splice_machine/splice.log"
     echo "  -p <hbase_profile> is the optional splice hbase platform to run.  One of:"
     echo "  cloudera-cdh4.5.0, cloudera-cdh4.3.0, hdp1.3, apache-hbase-0.94.9, mapr-0.94.9.  Default is cloudera-cdh4.5.0."
     echo "  -b Used by Jenkins when starting server; env var BUILD_TAG, eg \"jenkins-Splice-Continuous-Build-325\""
@@ -53,7 +53,7 @@ done
 echo "Running with hbase profile \"${PROFILE}\" and chaos monkey = ${CHAOS} ${BUILD_TAG}"
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/" && pwd )"
-pushd "${SCRIPT_DIR}/structured_derby" &>/dev/null
+pushd "${SCRIPT_DIR}/splice_machine" &>/dev/null
 ROOT_DIR="$( pwd )"
 
 source ${ROOT_DIR}/src/main/bin/functions.sh

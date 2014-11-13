@@ -92,7 +92,7 @@ public class ImportData {
 		// TODO Auto-generated method stub
 		//arg0: Table name
 		//arg1: SQL for creating table
-		//arg2: Source data file path (relative path to spliceengine/structured_derby/)
+		//arg2: Source data file path (relative path to spliceengine/splice_machine/)
 		//arg3: Split Character
 		if(args.length < 5)
 			throw new Exception("missing argument");
