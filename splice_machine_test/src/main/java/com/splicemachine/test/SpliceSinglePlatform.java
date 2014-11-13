@@ -3,8 +3,6 @@ package com.splicemachine.test;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.MiniHBaseCluster;
 
-import static com.splicemachine.test.SpliceTestPlatformUsage.usage;
-
 /**
  * Start MiniHBaseCluster for use by demo/standalone splice app.
  */
@@ -12,7 +10,7 @@ public class SpliceSinglePlatform {
 
     public static void main(String[] args) throws Exception {
         if (args.length != 7) {
-            usage("Unknown argument(s)", null);
+            SpliceTestPlatformUsage.usage("Unknown argument(s)", null);
         }
         try {
 
@@ -36,7 +34,7 @@ public class SpliceSinglePlatform {
             new MiniHBaseCluster(config, 1, 1);
 
         } catch (NumberFormatException e) {
-            usage("Bad port specified", e);
+            SpliceTestPlatformUsage.usage("Bad port specified", e);
         }
     }
 
