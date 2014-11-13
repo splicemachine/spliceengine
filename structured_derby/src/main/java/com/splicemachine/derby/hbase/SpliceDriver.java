@@ -256,8 +256,6 @@ public class SpliceDriver extends SIConstants {
     }
 
     public HRegion getOnlineRegion(String encodedRegionName)  {
-    	if(regionServerServices == null)
-    		System.out.println("regionServerServices null");
     	return regionServerServices.getFromOnlineRegions(encodedRegionName);
     }
 
