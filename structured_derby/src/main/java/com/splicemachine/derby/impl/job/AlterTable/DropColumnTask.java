@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.job.AlterTable;
 
 import com.google.common.base.Throwables;
 import com.splicemachine.derby.ddl.TentativeDropColumnDesc;
+import com.splicemachine.derby.hbase.PipelineContextFactories;
 import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
@@ -66,8 +67,13 @@ public class DropColumnTask extends ZkTask {
     public void doExecute() throws ExecutionException, InterruptedException {
         try{
             TentativeDropColumnDesc tentativeDropColumnDesc = (TentativeDropColumnDesc)ddlChange.getTentativeDDLDesc();
-            WriteContextFactory contextFactory = SpliceIndexEndpoint.getContextFactory(tentativeDropColumnDesc.getBaseConglomerateNumber());
-            contextFactory.addDDLChange(ddlChange);
+            WriteContextFactory contextFactory = PipelineContextFactories.getWriteContext(tentativeDropColumnDesc.getBaseConglomerateNumber());
+//            WriteContextFactory contextFactory = SpliceIndexEndpoint.getContextFactory(tentativeDropColumnDesc.getBaseConglomerateNumber());
+            try {
+                contextFactory.addDDLChange(ddlChange);
+            }finally{
+                contextFactory.close();
+            }
         } catch (Exception e) {
             SpliceLogUtils.error(LOG, e);
             throw new ExecutionException(Throwables.getRootCause(e));

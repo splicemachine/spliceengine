@@ -55,15 +55,16 @@ public abstract class BaseWriteConfiguration implements WriteConfiguration {
 						IntArrayList notRun = bulkWriteResult.getNotRunRows();
 						if(notRun!=null && notRun.size()>0)
 								return WriteResponse.PARTIAL;
+						/*
+						 * We got a partial result, but didn't specify which rows needed behavior.
+						 * That's weird, but since we weren't told there would be a problem, we may
+						 * as well ignore
+						 */
 						return WriteResponse.IGNORE;
-				}
-				else if (!writeResult.canRetry())
+				} else if (!writeResult.canRetry())
 						throw Exceptions.fromString(writeResult);
-				else if (writeResult.canRetry()) {
+				else
 						return WriteResponse.RETRY;
-				}else {
-						return WriteResponse.IGNORE;
-				}
 		}
 
 		@Override

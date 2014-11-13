@@ -1,7 +1,9 @@
 package com.splicemachine.derby.hbase;
 
 import com.splicemachine.derby.impl.sql.execute.index.SpliceIndexProtocol;
+import com.splicemachine.pipeline.api.WriteContextFactory;
 import com.splicemachine.si.api.TransactionStorage;
+import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.LazyTxnView;
 import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;
@@ -16,6 +18,11 @@ public class SpliceIndexManagementEndpoint extends BaseEndpointCoprocessor imple
     @Override
     public void dropIndex(long indexConglomId,long baseConglomId,long txnId) throws IOException {
         TxnView transaction = new LazyTxnView(txnId,TransactionStorage.getTxnSupplier());
-        SpliceIndexEndpoint.factoryMap.get(baseConglomId).getFirst().dropIndex(indexConglomId,transaction);
+        WriteContextFactory<TransactionalRegion> writeContext = PipelineContextFactories.getWriteContext(baseConglomId);
+        try {
+            writeContext.dropIndex(indexConglomId, transaction);
+        }finally{
+            writeContext.close();
+        }
     }
 }
