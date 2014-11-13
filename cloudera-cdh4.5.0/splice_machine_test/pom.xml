@@ -49,7 +49,7 @@
 											<!-- run with chaos monkey (default) -->
 											<then>
 												<exec executable="${run.command}" dir="${basedir}" spawn="false">
-													<arg value="${basedir}/../../${splice.start.script}"/>
+													<arg value="../../${splice.start.script}"/>
 													<arg value="-c"/>
 													<arg value="-p ${envClassifier}"/>
 													<arg value="-b ${build.tag}"/>
@@ -58,7 +58,7 @@
 											<else>
 												<!-- chaos monkey overridden: -DfailTasksRandomly=false -->
 												<exec executable="${run.command}" dir="${basedir}" spawn="false">
-													<arg value="${basedir}/../${splice.start.script}"/>
+													<arg value="../../${splice.start.script}"/>
 													<arg value="-p ${envClassifier}"/>
 													<arg value="-b ${build.tag}"/>
 												</exec>
