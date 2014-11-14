@@ -569,5 +569,10 @@ public class LDataLib implements SDataLib<KeyValue,LTuple, LTuple, LGet, LGet> {
 		@Override
 		public KeyValue matchDataColumn(Result result) {
 			return matchDataColumn(result.raw());
+		}
+
+		@Override
+		public boolean matchingQualifier(KeyValue element, byte[] qualifier) {
+			return element.matchingQualifier(qualifier);
 		}		
 }

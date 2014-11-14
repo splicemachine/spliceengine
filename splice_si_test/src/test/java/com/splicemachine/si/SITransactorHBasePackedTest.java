@@ -53,5 +53,10 @@ public class SITransactorHBasePackedTest extends SITransactorHBaseTest {
     public void writeScanWithFilter() throws IOException {
         // temporarily mask test in parent class
     }
+    
+    @Test
+    public void writeWriteRead() throws IOException {
+    	super.writeWriteRead();
+    }
 
 }

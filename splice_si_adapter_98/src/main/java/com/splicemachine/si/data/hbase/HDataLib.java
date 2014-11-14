@@ -585,4 +585,9 @@ public class HDataLib implements SDataLib<Cell,Put, Delete, Get, Scan> {
 		public Cell matchDataColumn(Result result) {
 			return matchDataColumn(result.rawCells());
 		}
+
+		@Override
+		public boolean matchingQualifier(Cell element, byte[] qualifier) {
+			return CellUtil.matchingQualifier(element, qualifier);
+		}
 }

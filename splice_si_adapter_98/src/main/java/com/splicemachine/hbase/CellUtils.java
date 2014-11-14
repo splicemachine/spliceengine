@@ -61,6 +61,8 @@ public class CellUtils {
 		 * @return true if the cell belongs to the specified family.
 		 */
 		public static boolean singleMatchingQualifier(Cell keyValue, byte[] qualifier) {
+				assert qualifier!=null: "Qualifiers should not be null";
+				assert qualifier.length==1: "Qualifiers should be of length 1 not " + qualifier.length + " value --" + Bytes.toString(qualifier) + "--";
 				return keyValue.getQualifierArray()[keyValue.getQualifierOffset()] == qualifier[0];
 		}
 

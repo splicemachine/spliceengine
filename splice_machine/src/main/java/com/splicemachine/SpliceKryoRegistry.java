@@ -89,13 +89,19 @@ import com.splicemachine.derby.hbase.ActivationSerializer;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.job.coprocessor.SizedInterval;
+import com.splicemachine.derby.impl.job.index.CreateIndexTask;
 import com.splicemachine.derby.impl.job.operation.SinkTask;
+import com.splicemachine.derby.impl.load.ColumnContext;
+import com.splicemachine.derby.impl.load.FileImportReader;
+import com.splicemachine.derby.impl.load.ImportContext;
+import com.splicemachine.derby.impl.load.ImportTask;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueDescriptor;
 import com.splicemachine.derby.impl.sql.execute.LazyNumberDataValueDescriptor;
 import com.splicemachine.derby.impl.sql.execute.LazyStringDataValueDescriptor;
 import com.splicemachine.derby.impl.sql.execute.LazyTimestampDataValueDescriptor;
 import com.splicemachine.derby.impl.sql.execute.actions.DeleteConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.actions.TransactionReadTask;
 import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.DerbyAggregateContext;
 import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.DerbyGroupedAggregateContext;
@@ -779,7 +785,14 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(WriteResult.class, EXTERNALIZABLE_SERIALIZER,209);                
         instance.register(ConstraintContext.class, EXTERNALIZABLE_SERIALIZER,210);                
         instance.register(WritableTxn.class, EXTERNALIZABLE_SERIALIZER,211);  
-        instance.register(SinkTask.class, EXTERNALIZABLE_SERIALIZER,212);  
+        instance.register(SinkTask.class, EXTERNALIZABLE_SERIALIZER,212); 
+        instance.register(ImportTask.class, EXTERNALIZABLE_SERIALIZER,213);    
+        instance.register(ImportContext.class, EXTERNALIZABLE_SERIALIZER,214);  
+        instance.register(ColumnContext.class, EXTERNALIZABLE_SERIALIZER,215);          
+        instance.register(FileImportReader.class, EXTERNALIZABLE_SERIALIZER,216); 
+        instance.register(CreateIndexTask.class, EXTERNALIZABLE_SERIALIZER,217);
+        instance.register(TransactionReadTask.class, EXTERNALIZABLE_SERIALIZER,218);
+        
         
     }
 }

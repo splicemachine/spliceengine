@@ -10,6 +10,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import com.google.protobuf.ByteString;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.table.BetterHTablePool;
 import com.splicemachine.hbase.table.SpliceHTableFactory;
 import com.splicemachine.si.api.RowAccumulator;
@@ -135,5 +136,15 @@ public class SIFactoryImpl implements SIFactory<TxnMessage.Txn> {
 			Txn transaction) throws IOException {
 		regionTransactionStore.recordTransaction(transaction.getInfo());
 		
+	}
+
+	@Override
+	public long getTxnId(Txn transaction) {
+		return transaction.getInfo().getTxnId();
+	}
+
+	@Override
+	public byte[] transactionToByteArray(MultiFieldEncoder mfe, Txn transaction) {
+		return transaction.toByteArray();
 	}
 }

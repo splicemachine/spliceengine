@@ -6,9 +6,15 @@ import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.impl.SIFactoryDriver;
 import com.splicemachine.si.impl.TxnUtils;
+
+import org.apache.hadoop.hbase.client.Delete;
+import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.FilterBase;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.io.Writable;
+
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -29,7 +35,7 @@ public abstract class BaseActiveTxnFilter<Data> extends FilterBase implements Wr
     private boolean filter = false;
     private boolean isChild = false;
     private boolean committed = false;
-    private SDataLib datalib;
+    private SDataLib<Data, Put, Delete, Get, Scan> datalib;
     private MultiFieldDecoder fieldDecoder;
     
     public BaseActiveTxnFilter(long beforeTs, long afterTs, byte[] destinationTable) {
@@ -88,9 +94,9 @@ public abstract class BaseActiveTxnFilter<Data> extends FilterBase implements Wr
         return ReturnCode.INCLUDE;
     }
 
-    private ReturnCode filterCommitTimestamp(Data kv) {
+    private ReturnCode filterCommitTimestamp(Data kv) {    	
         if(datalib.singleMatchingQualifier(kv,AbstractV2TxnDecoder.GLOBAL_COMMIT_QUALIFIER_BYTES)
-        		||datalib.singleMatchingQualifier(kv,AbstractV1TxnDecoder.OLD_GLOBAL_COMMIT_TIMESTAMP_COLUMN)) {
+        		||datalib.matchingQualifier(kv,AbstractV1TxnDecoder.OLD_GLOBAL_COMMIT_TIMESTAMP_COLUMN)) {
             /*
              * We have a global commit timestamp set. This means that not only are we
              * committed, but we are also (probably) the child of a committed transaction.
@@ -102,7 +108,7 @@ public abstract class BaseActiveTxnFilter<Data> extends FilterBase implements Wr
         }
         //check for a normal commit column
         if(datalib.singleMatchingQualifier(kv,AbstractV2TxnDecoder.COMMIT_QUALIFIER_BYTES)
-                ||datalib.singleMatchingQualifier(kv,AbstractV1TxnDecoder.OLD_COMMIT_TIMESTAMP_COLUMN)){
+                ||datalib.matchingQualifier(kv,AbstractV1TxnDecoder.OLD_COMMIT_TIMESTAMP_COLUMN)){
                 /*
                  * We have a commit column, so we've been committed. However, we could
                  * be a child, so we can't filter immediately here
@@ -129,7 +135,7 @@ public abstract class BaseActiveTxnFilter<Data> extends FilterBase implements Wr
             fieldDecoder.skip();
             long pTxnId = fieldDecoder.decodeNextLong();
             isChild = pTxnId>0;            
-        }else if(datalib.singleMatchingQualifier(kv,AbstractV1TxnDecoder.OLD_PARENT_COLUMN)){
+        }else if(datalib.matchingQualifier(kv,AbstractV1TxnDecoder.OLD_PARENT_COLUMN)){
             isChild = datalib.getDataValuelength(kv) > 0;
         }
     }
@@ -139,7 +145,7 @@ public abstract class BaseActiveTxnFilter<Data> extends FilterBase implements Wr
         byte[] compareBytes = null;        
         if(datalib.singleMatchingQualifier(kv,AbstractV2TxnDecoder.DESTINATION_TABLE_QUALIFIER_BYTES)){
             compareBytes = newEncodedDestinationTable;
-        }else if(datalib.singleMatchingQualifier(kv,AbstractV1TxnDecoder.OLD_WRITE_TABLE_COLUMN))
+        }else if(datalib.matchingQualifier(kv,AbstractV1TxnDecoder.OLD_WRITE_TABLE_COLUMN))
             compareBytes = destinationTable;
 
         if(compareBytes!=null){
@@ -164,7 +170,7 @@ public abstract class BaseActiveTxnFilter<Data> extends FilterBase implements Wr
             if(keepAliveSeen)
                 return ReturnCode.SKIP;
             adjustedState = TxnDecoder.adjustStateForTimeout(datalib,Txn.State.ACTIVE, kv, false);            
-        }else if(datalib.singleMatchingQualifier(kv,AbstractV1TxnDecoder.OLD_KEEP_ALIVE_COLUMN)){
+        }else if(datalib.matchingQualifier(kv,AbstractV1TxnDecoder.OLD_KEEP_ALIVE_COLUMN)){
             if(keepAliveSeen)
                 return ReturnCode.SKIP;
             adjustedState = TxnDecoder.adjustStateForTimeout(datalib,Txn.State.ACTIVE, kv, true);
@@ -198,8 +204,9 @@ public abstract class BaseActiveTxnFilter<Data> extends FilterBase implements Wr
                  */
             return ReturnCode.INCLUDE;
         }        
+        assert AbstractV2TxnDecoder.STATE_QUALIFIER_BYTES.length == 1;
         if(datalib.singleMatchingQualifier(kv,AbstractV2TxnDecoder.STATE_QUALIFIER_BYTES)
-                || datalib.singleMatchingQualifier(kv,AbstractV1TxnDecoder.OLD_STATUS_COLUMN)){
+                || datalib.matchingQualifier(kv,AbstractV1TxnDecoder.OLD_STATUS_COLUMN)){
             if(stateSeen) return ReturnCode.SKIP;
             stateSeen = true;
             byte[] checkState = Txn.State.ACTIVE.encode(); //doesn't actually create a new byte[]

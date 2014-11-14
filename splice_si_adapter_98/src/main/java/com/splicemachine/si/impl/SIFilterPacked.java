@@ -1,20 +1,12 @@
 package com.splicemachine.si.impl;
 
 import com.splicemachine.si.api.ReadResolver;
-import com.splicemachine.si.api.RowAccumulator;
 import com.splicemachine.si.api.TransactionReadController;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.storage.EntryPredicateFilter;
-import com.splicemachine.storage.HasPredicateFilter;
-
 import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.filter.FilterBase;
-
-import java.io.DataInput;
-import java.io.DataOutput;
 import java.io.IOException;
 import java.util.List;
 
@@ -34,7 +26,7 @@ public class SIFilterPacked extends BaseSIFilterPacked<Cell> {
 		public SIFilterPacked(Txn txn,
 													ReadResolver resolver,
 													EntryPredicateFilter predicateFilter,
-													TransactionReadController<KeyValue,Get, Scan> readController,
+													TransactionReadController<Cell,Get, Scan> readController,
 													boolean countStar) throws IOException {
 			super(txn,resolver,predicateFilter,readController,countStar);
 		}
@@ -43,4 +35,22 @@ public class SIFilterPacked extends BaseSIFilterPacked<Cell> {
 		public ReturnCode filterKeyValue(Cell keyValue) {
 				return internalFilter(keyValue);
 		}
+
+		@Override
+	    public void filterRowCells(List<Cell> keyValues) {
+	        // FIXME: this is scary
+	        try {
+	            initFilterStateIfNeeded();
+	        } catch (IOException e) {
+	            throw new RuntimeException(e);
+	        }
+	        if (!filterRow())
+	            keyValues.remove(0);
+	        final Cell accumulatedValue = filterState.produceAccumulatedKeyValue();
+	        if (accumulatedValue != null) {
+	            keyValues.add(accumulatedValue);
+	        }
+	    }
+		
+
 }

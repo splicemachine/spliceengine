@@ -23,9 +23,9 @@ import java.util.List;
  */
 public class BaseSIFilterPacked<Data> extends FilterBase implements HasPredicateFilter, Writable {
     private Txn txn;
-		private TransactionReadController<KeyValue,Get,Scan> readController;
+		private TransactionReadController<Data,Get,Scan> readController;
 		private EntryPredicateFilter predicateFilter;
-		private TxnFilter<Data> filterState = null;
+		protected TxnFilter<Data> filterState = null;
 		private boolean countStar = false;
 		private ReadResolver readResolver;
 
@@ -39,7 +39,7 @@ public class BaseSIFilterPacked<Data> extends FilterBase implements HasPredicate
 		public BaseSIFilterPacked(Txn txn,
 													ReadResolver resolver,
 													EntryPredicateFilter predicateFilter,
-													TransactionReadController<KeyValue,Get, Scan> readController,
+													TransactionReadController<Data,Get, Scan> readController,
 													boolean countStar) throws IOException {
 				this.txn = txn;
 				this.readResolver = resolver;
@@ -64,7 +64,8 @@ public class BaseSIFilterPacked<Data> extends FilterBase implements HasPredicate
 		public ReturnCode internalFilter(Data keyValue) {
 				try {
 						initFilterStateIfNeeded();
-						return filterState.filterKeyValue(keyValue);
+						ReturnCode code= filterState.filterKeyValue(keyValue);
+						return code;
 				} catch (IOException e) {
 						throw new RuntimeException(e);
 				} catch (Exception e) {
@@ -73,11 +74,9 @@ public class BaseSIFilterPacked<Data> extends FilterBase implements HasPredicate
 		}
 
 		@SuppressWarnings("unchecked")
-		private void initFilterStateIfNeeded() throws IOException {
+		protected void initFilterStateIfNeeded() throws IOException {
 				if (filterState == null) {
 						filterState = readController.newFilterStatePacked(readResolver, predicateFilter, txn, countStar);
-//						filterState = readController.newFilterStatePacked(tableName, rollForwardQueue, predicateFilter,
-//										Long.parseLong(transactionIdString), countStar);
 				}
 		}
 

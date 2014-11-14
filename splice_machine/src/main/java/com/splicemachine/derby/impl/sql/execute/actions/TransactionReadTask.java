@@ -34,14 +34,14 @@ import java.util.concurrent.ExecutionException;
  */
 public class TransactionReadTask extends ZkTask {
     private static final Logger LOG = Logger.getLogger(TransactionReadTask.class);
+    private static SIFactory siFactory = SIFactoryDriver.siFactory;
     private long minTxnId;
     private long maxTxnId;
     private byte[] writeTable;
     private byte[] operationUUID;
     //the number of active txns to fetch before giving up--allows us to be efficient with our search
     private int numTxns;
-    private boolean activeOnly; //when true, will fetch only active transactions
-
+    private boolean activeOnly; //when true, will fetch only active transactions    
     private RegionTxnStore regionTxnStore;
 
     //serialization constructor
@@ -88,23 +88,20 @@ public class TransactionReadTask extends ZkTask {
         boolean[] usedTempBuckets = new boolean[currentSpread.getNumBuckets()];
 
         int rows = 0;
-        Source<SparseTxn> activeTxns = null;
+        Source activeTxns = null;
         try{
             activeTxns = activeOnly?regionTxnStore.getActiveTxns(minTxnId, maxTxnId, writeTable):
                     regionTxnStore.getAllTxns(minTxnId,maxTxnId); //todo -sf- add destination table filter
 
             MultiFieldEncoder rowEncoder = MultiFieldEncoder.create(11);
             while(activeTxns.hasNext()){
-            	SparseTxn txn = activeTxns.next();
-                byte[] key = Encoding.encode(txn.getTxnId());
+            	Object txn = activeTxns.next();
+                byte[] key = Encoding.encode(siFactory.getTxnId(txn));
                 hashBytes[0] = currentSpread.bucket(hashFunction.hash(key,0,key.length));
                 usedTempBuckets[currentSpread.bucketIndex(hashBytes[0])] = true;
                 keyEncoder.reset();
                 key = keyEncoder.setRawBytes(hashBytes).setRawBytes(key).build();
-
-                rowEncoder.reset();
-                txn.encodeForNetwork(rowEncoder, true, true);
-                KVPair kvPair = new KVPair(key,rowEncoder.build());
+                KVPair kvPair = new KVPair(key,siFactory.transactionToByteArray(rowEncoder, txn));
                 callBuffer.add(kvPair);
 
                 if(rows>= numTxns)
