@@ -2,6 +2,7 @@ package com.splicemachine.si.data.hbase;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
+import com.splicemachine.async.*;
 import com.splicemachine.constants.SIConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
@@ -9,7 +10,6 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
-import com.splicemachine.async.*;
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;

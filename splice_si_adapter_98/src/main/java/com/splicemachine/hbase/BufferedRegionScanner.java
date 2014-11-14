@@ -64,7 +64,6 @@ public class BufferedRegionScanner extends AbstractBufferedRegionScanner<Put,Get
 
 		@Override
 		public boolean internalNextRaw(List<Cell> results) throws IOException {
-			// TODO Auto-generated method stub
-			return delegate.nextRaw(results);
+			return internalNext(results);
 		}
 }
