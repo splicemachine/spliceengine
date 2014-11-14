@@ -18,15 +18,13 @@ import java.util.Iterator;
 import java.util.List;
 
 @SuppressWarnings("unchecked")
-//@Ignore
-public class SITransactorTest extends SIConstants {
+public class SITransactorTest {
 		public static final byte[] DESTINATION_TABLE = Bytes.toBytes("1184");
 		boolean useSimple = true;
 		static StoreSetup storeSetup;
 		static TestTransactionSetup transactorSetup;
 		Transactor transactor;
 		TxnLifecycleManager control;
-		//	TransactionManager control;
 		TransactorTestUtility testUtility;
 		final List<Txn> createdParentTxns = Lists.newArrayList();
 		private TxnStore txnStore;
