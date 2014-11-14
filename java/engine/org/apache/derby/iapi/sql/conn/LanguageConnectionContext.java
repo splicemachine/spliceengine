@@ -1334,4 +1334,10 @@ public interface LanguageConnectionContext extends Context {
      */
     public void setReferencedColumnMap(TableDescriptor td,
                                        FormatableBitSet map);
+
+    /**
+     * Enter restore mode. In this mode no statements can be executed. It is reset when the
+     * database is rebooted.
+     */
+    public void enterRestoreMode();
 }

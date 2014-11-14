@@ -492,6 +492,10 @@ Guide.
             </msg>
 
             <msg>
+                <name>08006.C.9</name>
+		<text>Can't execute statement while in Restore Mode. Reboot database after restore operation is finished.</text>
+            </msg>
+            <msg>
                 <name>08006.D</name>
                 <text>Database '{0}' shutdown.</text>
                 <arg>databaseName</arg>

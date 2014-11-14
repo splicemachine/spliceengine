@@ -310,6 +310,10 @@ public class GenericLanguageConnectionContext
      * operations.
      */
     private WeakHashMap<TableDescriptor, FormatableBitSet> referencedColumnMap;
+    /**
+     * If in restore mode, statements can't be executed
+     */
+    private boolean restoreMode = false;
 
     /*
        constructor
@@ -1084,6 +1088,10 @@ public class GenericLanguageConnectionContext
         public PreparedStatement prepareInternalStatement(SchemaDescriptor compilationSchema, String sqlText, boolean isForReadOnly, boolean forMetaData) 
         throws StandardException 
         {
+            if (restoreMode) {
+                throw StandardException.newException(
+                        SQLState.CONNECTION_RESET_ON_RESTORE_MODE);
+            }
             if (forMetaData) {
                 //DERBY-2946
                 //Make sure that metadata queries always run with SYS as 
@@ -1102,6 +1110,10 @@ public class GenericLanguageConnectionContext
         public PreparedStatement prepareInternalStatement(String sqlText) 
         throws StandardException 
         {
+            if (restoreMode) {
+                throw StandardException.newException(
+                        SQLState.CONNECTION_RESET_ON_RESTORE_MODE);
+            }
             return connFactory.
                 getStatement(getDefaultSchema(), sqlText, true).prepare(this);
         }      
@@ -3962,4 +3974,8 @@ public class GenericLanguageConnectionContext
 	public boolean useCaches() {
 		return useCaches;
 	}
+
+    public void enterRestoreMode() {
+        this.restoreMode = true;
+    };
 }
