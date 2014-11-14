@@ -32,6 +32,8 @@ import static com.splicemachine.constants.SpliceConstants.SUPPRESS_INDEXING_ATTR
 public class SIObserver extends SIBaseObserver {
 		private static Logger LOG = Logger.getLogger(SIObserver.class);
 
+		
+		
 		@Override
 		 public void prePut(ObserverContext<RegionCoprocessorEnvironment> e, Put put, WALEdit edit, Durability writeToWAL) throws IOException {				
 			/*
@@ -126,7 +128,7 @@ public class SIObserver extends SIBaseObserver {
     @Override
     protected Filter makeSIFilter(TxnView txn, Filter currentFilter, EntryPredicateFilter predicateFilter, boolean countStar) throws IOException {
 				TxnFilter txnFilter = region.packedFilter(txn, predicateFilter, countStar);
-				BaseSIFilterPacked siFilter = new BaseSIFilterPacked(txnFilter);
+				BaseSIFilterPacked siFilter = new SIFilterPacked(txnFilter);
         if (needsCompositeFilter(currentFilter)) {
             return composeFilters(orderFilters(currentFilter, siFilter));
         } else {
