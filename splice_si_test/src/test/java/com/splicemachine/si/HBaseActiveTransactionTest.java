@@ -3,6 +3,7 @@ package com.splicemachine.si;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.io.IOException;
 
@@ -38,5 +39,10 @@ public class HBaseActiveTransactionTest extends ActiveTransactionTest{
             System.out.printf("[%s]Tearing down HBase%n",HBaseActiveTransactionTest.class.getSimpleName());
             HBaseSuite.tearDownClass();
         }
+    }
+    
+    @Test
+    public void oldestActiveTransactionsTwo() throws IOException {
+    	super.oldestActiveTransactionsTwo();
     }
 }
