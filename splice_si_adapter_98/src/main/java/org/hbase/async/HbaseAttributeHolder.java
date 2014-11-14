@@ -1,4 +1,4 @@
-package com.splicemachine.async;
+package org.hbase.async;
 
 import com.google.common.collect.Maps;
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -8,9 +8,8 @@ import org.apache.hadoop.hbase.exceptions.DeserializationException;
 import org.apache.hadoop.hbase.filter.FilterBase;
 import org.apache.hadoop.io.WritableUtils;
 import java.io.DataInput;
-import java.io.DataOutput;
 import java.io.IOException;
-import java.util.*;
+import java.util.Map;
 
 /**
  * @author Scott Fines
@@ -20,11 +19,11 @@ public class HbaseAttributeHolder extends FilterBase {
 
     public HbaseAttributeHolder() { }
 
-    private Map<String,byte[]> attributes;
-
-    public HbaseAttributeHolder(Map<String, byte[]> attrMap) {
-        this.attributes = attrMap;
+    public HbaseAttributeHolder(Map<String,byte[]> attributes) {
+        this.attributes = attributes;
     }
+
+    private Map<String,byte[]> attributes;
 
     public Map<String, byte[]> getAttributes() { return attributes; }
 
@@ -54,15 +53,6 @@ public class HbaseAttributeHolder extends FilterBase {
             attributes.put(attr.getName(),attr.getValue().toByteArray());
         }
         return new HbaseAttributeHolder(attributes);
-    }
-
-//    @Override
-    public void write(DataOutput out) throws IOException {
-        WritableUtils.writeVInt(out,attributes.size());
-        for(Map.Entry<String,byte[]> entry:attributes.entrySet()){
-            org.apache.hadoop.hbase.util.Bytes.writeByteArray(out,entry.getKey().getBytes());
-            org.apache.hadoop.hbase.util.Bytes.writeByteArray(out,entry.getValue());
-        }
     }
 
 //    @Override
