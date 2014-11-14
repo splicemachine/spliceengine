@@ -7,10 +7,10 @@ import org.junit.Test;
 
 import java.io.IOException;
 
-public class SITransactorHBasePackedTest extends SITransactorHBaseTest {
+public class SITransactorHBasePackedTest extends SITransactorTest {
 
     public SITransactorHBasePackedTest() {
-				super();
+        this.useSimple = false;
     }
 
     @Override
@@ -57,6 +57,16 @@ public class SITransactorHBasePackedTest extends SITransactorHBaseTest {
     @Test
     public void writeWriteRead() throws IOException {
     	super.writeWriteRead();
+    }
+
+    @Override
+    public void testGetActiveTransactionsFiltersOutChildrenCommit() throws Exception {
+        /*
+         * We ignore this because it takes a very long time in HBase style, and we don't want
+         * to hold up tests for it. Also, we have ITs around index creation that would break if
+         * this doesn't work quite right, so in this case we're safe leaving off the underlying
+         * submodule tests in favor of the larger module tests.
+         */
     }
 
 }
