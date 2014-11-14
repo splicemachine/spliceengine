@@ -587,5 +587,10 @@ public class HDataLib implements SDataLib<KeyValue,Put, Delete, Get, Scan> {
 		public KeyValue matchDataColumn(Result result) {
 			return matchDataColumn(result.raw());
 		}
+
+		@Override
+		public boolean matchingQualifier(KeyValue element, byte[] qualifier) {
+			return element.matchingQualifier(qualifier);
+		}
 		
 }

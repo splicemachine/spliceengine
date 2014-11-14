@@ -66,6 +66,7 @@ public interface SDataLib<Data,
 	boolean singleMatchingColumn(Data element, byte[] family, byte[] qualifier);
 	boolean singleMatchingFamily(Data element, byte[] family);
 	boolean singleMatchingQualifier(Data element, byte[] qualifier);
+	boolean matchingQualifier(Data element, byte[] qualifier);	
 	boolean matchingValue(Data element, byte[] value);
 	boolean matchingFamilyKeyValue(Data element, Data other);
 	boolean matchingQualifierKeyValue(Data element, Data other);

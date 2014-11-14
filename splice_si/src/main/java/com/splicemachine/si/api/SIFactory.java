@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import org.apache.hadoop.hbase.regionserver.HRegion;
 
+import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.si.api.Txn.IsolationLevel;
 import com.splicemachine.si.api.Txn.State;
 import com.splicemachine.si.data.api.SDataLib;
@@ -32,4 +33,6 @@ public interface SIFactory<Transaction> {
 			boolean hasAdditiveField, boolean additive,
 			IsolationLevel isolationLevel, State state, String destTableBuffer);
 	void storeTransaction(RegionTxnStore regionTransactionStore, Transaction transaction) throws IOException;
+	long getTxnId(Transaction transaction);
+	byte[] transactionToByteArray(MultiFieldEncoder mfe, Transaction transaction);
 }

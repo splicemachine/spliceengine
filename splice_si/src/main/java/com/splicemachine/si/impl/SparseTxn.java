@@ -176,6 +176,10 @@ public class SparseTxn{
         return timedOut;
     }
 
+    public byte[] toByteArray() {
+    	return null;
+    }
+    
     @Override
     public String toString() {
         return "SparseTxn{" +

@@ -9,6 +9,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.table.BetterHTablePool;
 import com.splicemachine.hbase.table.SpliceHTableFactory;
 import com.splicemachine.si.api.RowAccumulator;
@@ -132,5 +133,18 @@ public class SIFactoryImpl implements SIFactory<SparseTxn> {
 			SparseTxn transaction) throws IOException {
 		regionTransactionStore.recordTransaction(transaction);
 		
+	}
+
+	@Override
+	public long getTxnId(SparseTxn transaction) {
+		return transaction.getTxnId();
+	}
+
+	@Override
+	public byte[] transactionToByteArray(MultiFieldEncoder mfe,
+			SparseTxn transaction) {		
+		mfe.reset();
+        transaction.encodeForNetwork(mfe, true, true);
+		return mfe.build();
 	}
 }
