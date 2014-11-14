@@ -4,7 +4,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.splicemachine.async.*;
 import com.splicemachine.derby.impl.job.operation.BaseSuccessFilter;
-import com.splicemachine.derby.impl.sql.execute.operations.AbstractSkippingScanFilter;
+import com.splicemachine.hbase.AbstractSkippingScanFilter;
 
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.Filter;

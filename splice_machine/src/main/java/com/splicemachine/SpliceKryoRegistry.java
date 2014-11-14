@@ -89,6 +89,7 @@ import com.splicemachine.derby.hbase.ActivationSerializer;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.job.coprocessor.SizedInterval;
+import com.splicemachine.derby.impl.job.operation.SinkTask;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueDescriptor;
 import com.splicemachine.derby.impl.sql.execute.LazyNumberDataValueDescriptor;
 import com.splicemachine.derby.impl.sql.execute.LazyStringDataValueDescriptor;
@@ -777,6 +778,8 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(RootTransaction.class, EXTERNALIZABLE_SERIALIZER,208);        
         instance.register(WriteResult.class, EXTERNALIZABLE_SERIALIZER,209);                
         instance.register(ConstraintContext.class, EXTERNALIZABLE_SERIALIZER,210);                
-        instance.register(WritableTxn.class, EXTERNALIZABLE_SERIALIZER,211);               
+        instance.register(WritableTxn.class, EXTERNALIZABLE_SERIALIZER,211);  
+        instance.register(SinkTask.class, EXTERNALIZABLE_SERIALIZER,212);  
+        
     }
 }
