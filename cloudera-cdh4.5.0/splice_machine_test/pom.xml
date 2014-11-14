@@ -28,8 +28,8 @@
 				<server.start.skip>skipServerStart</server.start.skip> <!-- skip server start/stop if server already running -->
 				<!-- ant task start/stop server args -->
 				<run.command>/bin/bash</run.command>
-				<splice.start.script>start-splice-dev.sh</splice.start.script>
-				<splice.stop.script>stop-splice-dev.sh</splice.stop.script>
+				<splice.start.script>${project.basedir}/src/test/bin/start-splice-its</splice.start.script>
+				<splice.stop.script>${project.basedir}/src/test/bin/stop-splice-its</splice.stop.script>
 			</properties>
 			<build>
 				<plugins>
@@ -38,29 +38,26 @@
 						<version>1.6</version>
 						<executions>
 							<execution>
-								<id>############## start-splice ################</id>
+								<id>############### start-splice-its ###############</id>
 								<phase>pre-integration-test</phase>
 								<configuration>
 									<target name="StartSpliceServer" unless="${server.start.skip}">
 										<taskdef resource="net/sf/antcontrib/antcontrib.properties"
 												 classpathref="maven.plugin.classpath"/>
 										<if>
-											<istrue value="${failTasksRandomly}"/>
-											<!-- run with chaos monkey (default) -->
+											<istrue value="${failTasksRandomly}"/> <!-- run with chaos monkey (default) -->
 											<then>
 												<exec executable="${run.command}" dir="${basedir}" spawn="false">
-													<arg value="../../${splice.start.script}"/>
+													<arg value="${splice.start.script}"/>
 													<arg value="-c"/>
 													<arg value="-p ${envClassifier}"/>
-													<arg value="-b ${build.tag}"/>
 												</exec>
 											</then>
 											<else>
 												<!-- chaos monkey overridden: -DfailTasksRandomly=false -->
 												<exec executable="${run.command}" dir="${basedir}" spawn="false">
-													<arg value="../../${splice.start.script}"/>
+													<arg value="${splice.start.script}"/>
 													<arg value="-p ${envClassifier}"/>
-													<arg value="-b ${build.tag}"/>
 												</exec>
 											</else>
 										</if>
@@ -71,13 +68,12 @@
 								</goals>
 							</execution>
 							<execution>
-								<id>############## stop-splice ################</id>
+								<id>############### stop-splice-its ###############</id>
 								<phase>post-integration-test</phase>
 								<configuration>
 									<target name="StopSpliceServer" unless="${server.start.skip}">
 										<exec executable="${run.command}" dir="${basedir}" spawn="false">
-											<arg value="${basedir}/../${splice.stop.script}"/>
-											<arg value="-n ${build.number}"/>
+											<arg value="${splice.stop.script}"/>
 										</exec>
 									</target>
 								</configuration>

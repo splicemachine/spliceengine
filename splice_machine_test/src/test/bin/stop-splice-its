@@ -1,0 +1,28 @@
+#!/bin/bash
+
+##################################################################################
+# Stop Zookeeper and the Splice HBase servers
+# See usage() below.
+##################################################################################
+
+# Check if server running. If not, no need to proceed.
+S=$(ps -ef | awk '/SpliceTestPlatform|SpliceSinglePlatform/ && !/awk/ {print $2}')
+Z=$(ps -ef | awk '/ZooKeeperServerMain/ && !/awk/ {print $2}')
+if [[ -z ${S} && -z ${Z} ]]; then
+    echo "Splice server is not running."
+    exit 0
+else
+# otherwise kill it nicely
+	SIG=15
+	[[ -n ${S} ]] && echo "Found SpliceTestPlatform straggler. Killing." && for pid in ${S}; do kill -${SIG} `echo ${pid}`; done
+	[[ -n ${Z} ]] && echo "Found ZooKeeperServerMain straggler. Killing." && for pid in ${Z}; do kill -${SIG} `echo ${pid}`; done
+fi
+# give them time to die
+sleep 15
+
+# Check for stragglers and kill 'em dead
+SIG=9
+S=$(ps -ef | awk '/SpliceTestPlatform/ && !/awk/ {print $2}')
+Z=$(ps -ef | awk '/ZooKeeperServerMain/ && !/awk/ {print $2}')
+[[ -n ${S} ]] && echo "Found SpliceTestPlatform straggler. Killing." && for pid in ${S}; do kill -${SIG} $(echo ${pid}); done
+[[ -n ${Z} ]] && echo "Found ZooKeeperServerMain straggler. Killing." && for pid in ${Z}; do kill -${SIG} $(echo ${pid}); done
