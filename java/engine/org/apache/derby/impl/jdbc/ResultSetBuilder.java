@@ -350,6 +350,9 @@ public class ResultSetBuilder {
 			if (!isFrozen()) {
 				freezeColumns();
 			}
+			if (rowBuilder == null) {
+				getRowBuilder(); // forces creation so empty results set can be created instead of NPE
+			}
 			IteratorNoPutResultSet resultsToWrap =
 				new IteratorNoPutResultSet(
 					rowBuilder.rowsList,
