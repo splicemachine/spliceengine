@@ -19,32 +19,32 @@ import java.io.ObjectOutput;
  */
 public class BulkWrite implements Externalizable {
     private static final long serialVersionUID = 1l;
-	private TxnView txn;
+    private TxnView txn;
     public ObjectArrayList<KVPair> mutations;
     private byte[] regionKey;
     private long bufferSize = -1;
     private String encodedStringName;
     public WriteSemaphore.Status status;
     public int initialSize;
-    
+
     public BulkWrite() { }
 
     public BulkWrite(ObjectArrayList<KVPair> mutations, TxnView txn,byte[] regionKey,String encodedStringName) {
-    	assert txn != null; 
-        assert regionKey != null; 
+        assert txn != null;
+        assert regionKey != null;
         assert encodedStringName != null;
-    	this.mutations = mutations;
+        this.mutations = mutations;
         this.regionKey = regionKey;
-		this.txn = txn;
-		this.encodedStringName = encodedStringName;
+        this.txn = txn;
+        this.encodedStringName = encodedStringName;
     }
 
     public BulkWrite(TxnView txn, byte[] regionKey, String encodedStringName){
-    	assert txn != null; 
-        assert regionKey != null; 
+        assert txn != null;
+        assert regionKey != null;
         assert encodedStringName != null;
         this.txn = txn;
-    	this.mutations = ObjectArrayList.newInstance();
+        this.mutations = ObjectArrayList.newInstance();
         this.regionKey = regionKey;
         this.encodedStringName = encodedStringName;
     }
@@ -54,32 +54,32 @@ public class BulkWrite implements Externalizable {
     }
 
 
-	public TxnView getTxn(){ 
-		return txn; 
-	}
+    public TxnView getTxn(){
+        return txn;
+    }
 
     public byte[] getRegionKey() {
         return regionKey;
     }
-    
-    public String getEncodedStringName() {
-		return encodedStringName;
-	}
 
-	public void setEncodedStringName(String encodedStringName) {
-		this.encodedStringName = encodedStringName;
-	}
+    public String getEncodedStringName() {
+        return encodedStringName;
+    }
+
+    public void setEncodedStringName(String encodedStringName) {
+        this.encodedStringName = encodedStringName;
+    }
 
 
     public void addWrite(KVPair write){
         mutations.add(write);
     }
 
-	@Override
+    @Override
     public String toString() {
         return "BulkWrite{" +
                 "txn'" + txn + '\'' +
-                ", encodedStringName='" + encodedStringName + '\'' +                
+                ", encodedStringName='" + encodedStringName + '\'' +
                 ", regionKey=" + Bytes.toStringBinary(regionKey) +
                 ", rows="+mutations.size()+
                 '}';
@@ -91,58 +91,58 @@ public class BulkWrite implements Externalizable {
             Object[] buffer = mutations.buffer;
             int iBuffer = mutations.size();
             for (int i = 0; i< iBuffer; i++) {
-            KVPair kvPair = (KVPair) buffer[i];
+                KVPair kvPair = (KVPair) buffer[i];
                 heap+=kvPair.getSize();
             }
             bufferSize= heap;
         }
         return bufferSize;
     }
-    
+
     public Object[] getBuffer() {
-    	return mutations.buffer;
+        return mutations.buffer;
     }
 
     public int getSize() {
-    	return mutations.size();
+        return mutations.size();
     }
-		@Override
-		public void writeExternal(ObjectOutput out) throws IOException {
-				TransactionOperations.getOperationFactory().writeTxn(txn,out);	
-				out.writeUTF(encodedStringName);
-				out.writeInt(regionKey.length);
-				out.write(regionKey);
-				Object[] buffer = mutations.buffer;
-				int iBuffer = mutations.size();
-				out.writeInt(iBuffer);
-				for (int i = 0; i< iBuffer; i++) {
-						out.writeObject(buffer[i]);
-				}
-		}
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        TransactionOperations.getOperationFactory().writeTxn(txn,out);
+        out.writeUTF(encodedStringName);
+        out.writeInt(regionKey.length);
+        out.write(regionKey);
+        Object[] buffer = mutations.buffer;
+        int iBuffer = mutations.size();
+        out.writeInt(iBuffer);
+        for (int i = 0; i< iBuffer; i++) {
+            out.writeObject(buffer[i]);
+        }
+    }
 
-		@Override
-		public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-				txn = TransactionOperations.getOperationFactory().readTxn(in);
-				encodedStringName = in.readUTF();
-				regionKey = new byte[in.readInt()];
-				in.read(regionKey);
-				int size = in.readInt();
-				mutations = ObjectArrayList.newInstanceWithCapacity(size);
-				for(int i=0;i<size;i++){
-						mutations.add((KVPair)in.readObject());
-				}
-		}
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        txn = TransactionOperations.getOperationFactory().readTxn(in);
+        encodedStringName = in.readUTF();
+        regionKey = new byte[in.readInt()];
+        in.read(regionKey);
+        int size = in.readInt();
+        mutations = ObjectArrayList.newInstanceWithCapacity(size);
+        for(int i=0;i<size;i++){
+            mutations.add((KVPair)in.readObject());
+        }
+    }
 
-		@Override
-		public boolean equals(Object obj) {
-			BulkWrite write = (BulkWrite) obj;
-			if (Bytes.compareTo(this.regionKey, write.regionKey) != 0 
-					|| !this.encodedStringName.equals(write.encodedStringName)
-					|| !this.txn.equals(write.txn)
-					|| !this.mutations.equals(write.mutations))
-				return false;
-			return true;
-		}	
-		
-	
+    @Override
+    public boolean equals(Object obj) {
+        BulkWrite write = (BulkWrite) obj;
+        if (Bytes.compareTo(this.regionKey, write.regionKey) != 0
+                || !this.encodedStringName.equals(write.encodedStringName)
+                || !this.txn.equals(write.txn)
+                || !this.mutations.equals(write.mutations))
+            return false;
+        return true;
+    }
+
+
 }

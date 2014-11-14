@@ -141,5 +141,19 @@ public class RegionWritePipeline {
             throughputMeter.mark(numSuccess);
             failedMeter.mark(numFailed);
         }
+
+        public double throughput() {
+            return throughputMeter.meanRate();
+        }
+
+        public double fifteenMThroughput() {
+            return throughputMeter.fifteenMinuteRate();
+        }
+        public double fiveMThroughput() {
+            return throughputMeter.fiveMinuteRate();
+        }
+        public double oneMThroughput() {
+            return throughputMeter.oneMinuteRate();
+        }
     }
 }

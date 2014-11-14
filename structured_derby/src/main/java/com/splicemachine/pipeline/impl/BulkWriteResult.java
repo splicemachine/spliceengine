@@ -14,61 +14,63 @@ import java.io.ObjectOutput;
  * Created on: 8/8/13 
  */
 public class BulkWriteResult implements Externalizable {
-	private WriteResult globalStatus;
-    private IntArrayList notRunRows;
-	private IntObjectOpenHashMap<WriteResult> failedRows;
-	private WriteContext writeContext;
-	
-	public BulkWriteResult() {
-        notRunRows = new IntArrayList();
-        failedRows = new IntObjectOpenHashMap<WriteResult>();
-    }
-	public BulkWriteResult(WriteContext writeContext, WriteResult globalStatus) {
-        notRunRows = new IntArrayList();
-        failedRows = new IntObjectOpenHashMap<WriteResult>();
-        this.writeContext = writeContext;
-        this.globalStatus = globalStatus;
-    }
+		private WriteResult globalStatus;
+		private IntArrayList notRunRows;
+		private IntObjectOpenHashMap<WriteResult> failedRows;
+		private WriteContext writeContext;
 
-	public BulkWriteResult(WriteResult globalStatus, IntArrayList notRunRows,IntObjectOpenHashMap<WriteResult> failedRows){
-			this.notRunRows = notRunRows;
-			this.failedRows = failedRows;
-			this.globalStatus = globalStatus;
+		private transient int position;
+
+		public BulkWriteResult() {
+				notRunRows = new IntArrayList();
+				failedRows = new IntObjectOpenHashMap<WriteResult>();
+		}
+		public BulkWriteResult(WriteContext writeContext, WriteResult globalStatus) {
+				notRunRows = new IntArrayList();
+				failedRows = new IntObjectOpenHashMap<WriteResult>();
+				this.writeContext = writeContext;
+				this.globalStatus = globalStatus;
+		}
+
+		public BulkWriteResult(WriteResult globalStatus, IntArrayList notRunRows,IntObjectOpenHashMap<WriteResult> failedRows){
+				this.notRunRows = notRunRows;
+				this.failedRows = failedRows;
+				this.globalStatus = globalStatus;
 		}
 
 		public BulkWriteResult(WriteResult globalStatus){
-			this();
-			this.globalStatus = globalStatus;
+				this();
+				this.globalStatus = globalStatus;
 		}
 
-    public IntObjectOpenHashMap<WriteResult> getFailedRows() {
-        return failedRows;
-    }
+		public IntObjectOpenHashMap<WriteResult> getFailedRows() {
+				return failedRows;
+		}
 
-    public IntArrayList getNotRunRows() {
-        return notRunRows;
-    }
+		public IntArrayList getNotRunRows() {
+				return notRunRows;
+		}
 
-    public void addResult(int pos, WriteResult result) {
-        switch (result.getCode()) {
-			case SUCCESS:
-				return; //return nothing for success
-            case NOT_RUN:
-                notRunRows.add(pos);
-                break;
-            default:
-				failedRows.put(pos,result);
-        }
-    }
+		public void addResult(int pos, WriteResult result) {
+				switch (result.getCode()) {
+						case SUCCESS:
+								return; //return nothing for success
+						case NOT_RUN:
+								notRunRows.add(pos);
+								break;
+						default:
+								failedRows.put(pos,result);
+				}
+		}
 
-    @Override
-    public String toString() {
-        return "BulkWriteResult{" +
-        		"globalStatus=" + (globalStatus==null?"null":globalStatus.toString()) + 
-                "notRunRows=" + (notRunRows==null?"null":notRunRows.size()) +
-                ", failedRows=" + (failedRows==null?"null":failedRows.size()) +
-                '}';
-    }
+		@Override
+		public String toString() {
+				return "BulkWriteResult{" +
+								"globalStatus=" + (globalStatus==null?"null":globalStatus.toString()) +
+								"notRunRows=" + (notRunRows==null?"null":notRunRows.size()) +
+								", failedRows=" + (failedRows==null?"null":failedRows.size()) +
+								'}';
+		}
 
 		@Override
 		public void writeExternal(final ObjectOutput out) throws IOException {
@@ -118,23 +120,30 @@ public class BulkWriteResult implements Externalizable {
 		public WriteResult getGlobalResult() {
 				return globalStatus;
 		}
-		
+
 		public void setGlobalStatus(WriteResult globalStatus) {
-			this.globalStatus = globalStatus;
+				this.globalStatus = globalStatus;
 		}
 
 		public void setFailedRows(IntObjectOpenHashMap<WriteResult> failedRows) {
 				this.failedRows = failedRows;
 		}
 		public WriteContext getWriteContext() {
-			return writeContext;
+				return writeContext;
 		}
 		public void setWriteContext(WriteContext writeContext) {
-			this.writeContext = writeContext;
+				this.writeContext = writeContext;
 		}
-		
+
 		public boolean hasWriteContext() {
-			return writeContext != null;
+				return writeContext != null;
 		}
- 		
+
+		public int getPosition() {
+				return position;
+		}
+
+		public void setPosition(int position) {
+				this.position = position;
+		}
 }

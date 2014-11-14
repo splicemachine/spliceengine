@@ -1,6 +1,7 @@
 package com.splicemachine.derby.hbase;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.pipeline.api.Service;
 import com.splicemachine.pipeline.api.WriteBufferFactory;
@@ -23,8 +24,12 @@ import org.apache.log4j.Logger;
 
 import javax.management.*;
 import java.io.IOException;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Endpoint to allow special batch operations that the HBase API doesn't explicitly enable
@@ -36,13 +41,40 @@ import java.util.concurrent.TimeUnit;
 
 
 public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements BatchProtocol{
-
 		private static final Logger LOG = Logger.getLogger(SpliceIndexEndpoint.class);
 		public static volatile int ipcReserved = 10;
-		private static volatile int taskWorkers = SpliceConstants.taskWorkers;
-		private static volatile int flushQueueSizeBlock = SpliceConstants.flushQueueSizeBlock;
-		private static volatile int compactionQueueSizeBlock = SpliceConstants.compactionQueueSizeBlock;
-		private static volatile WriteSemaphore control = new WriteSemaphore((SpliceConstants.ipcThreads-taskWorkers-ipcReserved)/2,(SpliceConstants.ipcThreads-taskWorkers-ipcReserved)/2,SpliceConstants.maxDependentWrites,SpliceConstants.maxIndependentWrites);
+//		private static volatile int flushQueueSizeBlock = SpliceConstants.flushQueueSizeBlock;
+//		private static volatile int compactionQueueSizeBlock = SpliceConstants.compactionQueueSizeBlock;
+
+		private static final Comparator<BulkWrite> bulkWriteComparator = new Comparator<BulkWrite>() {
+				@Override
+				public int compare(BulkWrite o1, BulkWrite o2) {
+						if (o1.getSize() > o2.getSize())
+								return -1;
+						else if (o1.getSize() < o2.getSize())
+								return 1;
+						return 0;
+				}
+		};
+		private static final Comparator<BulkWriteResult> resultComparator = new Comparator<BulkWriteResult>() {
+				@Override
+				public int compare(BulkWriteResult o1, BulkWriteResult o2) {
+						if (o1.getPosition() < o2.getPosition())
+								return -1;
+						if (o1.getPosition() > o2.getPosition())
+								return 1;
+						else
+								return 0;
+				}
+		};
+		private static final WriteControl writeControl;
+		static{
+				int ipcThreads = SpliceConstants.ipcThreads-SpliceConstants.taskWorkers-ipcReserved;
+
+				int totalPerSecondThroughput = SpliceConstants.maxIndependentWrites;
+				int dependentPerSecondThroughput = SpliceConstants.maxDependentWrites;
+				writeControl = new WriteControl(ipcThreads,totalPerSecondThroughput,dependentPerSecondThroughput);
+		}
 
 
 		private static MetricName receptionName = new MetricName("com.splicemachine","receiverStats","time");
@@ -54,11 +86,12 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
 		private Timer timer=SpliceDriver.driver().getRegistry().newTimer(receptionName, TimeUnit.MILLISECONDS, TimeUnit.SECONDS);
 		private Meter rejectedMeter =SpliceDriver.driver().getRegistry().newMeter(rejectedMeterName, "rejectedRows", TimeUnit.SECONDS);
 
-		private RegionWritePipeline.PipelineMeters pipelineMeter = new RegionWritePipeline.PipelineMeters();
+		private static final RegionWritePipeline.PipelineMeters pipelineMeter = new RegionWritePipeline.PipelineMeters();
 
 		private RegionCoprocessorEnvironment rce;
 
 		private RegionWritePipeline regionWritePipeline;
+		private static final AtomicLong rejectedCount = new AtomicLong(0l);
 
 		@Override
 		public void start(CoprocessorEnvironment env) {
@@ -106,57 +139,94 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
 				int size =  bulkWrites.getBulkWrites().size();
 				long start = System.nanoTime();
 				// start
-				List<Pair<BulkWriteResult,RegionWritePipeline>> startPoints = Lists.newArrayListWithExpectedSize(size);
+//				List<Pair<BulkWriteResult,RegionWritePipeline>> startPoints = Lists.newArrayListWithExpectedSize(size);
 				WriteBufferFactory indexWriteBufferFactory = new IndexWriteBufferFactory();
 				boolean dependent = regionWritePipeline.isDependent();
-				WriteSemaphore.Status status;
 				int kvPairSize = bulkWrites.numEntries();
-				status = (dependent)?control.acquireDependentPermit(kvPairSize):control.acquireIndependentPermit(kvPairSize);
-				if(status== WriteSemaphore.Status.REJECTED) {
-						rejectAll(result, size);
-						return result;
-				}
-
+				int minSize = bulkWrites.smallestBulkWriteSize();
+				int permits = dependent? writeControl.acquireDependentPermits(minSize,kvPairSize): writeControl.acquireIndependentPermits(minSize,kvPairSize);
 				try {
-						for (int i = 0; i< size; i++) {
+						if(permits<=0){
+								//we cannot write to this
+								rejectAll(result,size);
+								rejectedCount.incrementAndGet();
+								return result;
+						}
+						Map<BulkWrite,Pair<BulkWriteResult,RegionWritePipeline>> writePairMap=Maps.newIdentityHashMap();
+						List<BulkWrite> toWrite = Lists.newArrayListWithExpectedSize(size);
+						for(int i=0;i<size;i++){
 								BulkWrite bulkWrite = (BulkWrite) buffer[i];
 								assert bulkWrite!=null;
-								// Grab the instances endpoint and not this one
 								RegionWritePipeline writePipeline = SpliceDriver.driver().getWritePipeline(bulkWrite.getEncodedStringName());
-								if (writePipeline == null) {
-										if (LOG.isDebugEnabled())
-												SpliceLogUtils.debug(LOG, "endpoint not found for region %s on region %s",bulkWrite.getEncodedStringName(), rce.getRegion().getRegionNameAsString());
-										startPoints.add(Pair.<BulkWriteResult,RegionWritePipeline>newPair(new BulkWriteResult(WriteResult.notServingRegion()),null));
-								}
-								else {
-										startPoints.add(Pair.newPair(writePipeline.submitBulkWrite(bulkWrite, indexWriteBufferFactory, rce), writePipeline));
+								if(writePipeline==null){
+										if (LOG.isTraceEnabled())
+												SpliceLogUtils.trace(LOG, "endpoint not found for region %s on region %s", bulkWrite.getEncodedStringName(), rce.getRegion().getRegionNameAsString());
+										BulkWriteResult r = new BulkWriteResult(WriteResult.notServingRegion());
+										r.setPosition(i);
+										writePairMap.put(bulkWrite,Pair.<BulkWriteResult, RegionWritePipeline>newPair(r,null));
+								}else if(bulkWrite.getSize()>permits){
+										//we don't have enough permits to perform this write, so we'll need to back it off
+										BulkWriteResult r = new BulkWriteResult(WriteResult.pipelineTooBusy(bulkWrite.getEncodedStringName()));
+										r.setPosition(i);
+
+										writePairMap.put(bulkWrite, Pair.<BulkWriteResult, RegionWritePipeline>newPair(r, null));
+								}else{
+										//we might be able to write this one
+										BulkWriteResult r = new BulkWriteResult();
+										r.setPosition(i);
+
+										writePairMap.put(bulkWrite,Pair.newPair(r, writePipeline));
+										toWrite.add(bulkWrite);
 								}
 						}
+						Collections.sort(toWrite, bulkWriteComparator);
+						int p = 0;
+						int availablePermits = permits;
+						while(availablePermits>0 && p< toWrite.size()){
+								BulkWrite next = toWrite.get(p);
+								if(next.getSize()>availablePermits){
+										//we ran out of permits, so we should just break
+										break;
+								}else{
+										//we can write this one!
+										Pair<BulkWriteResult,RegionWritePipeline> writePair = writePairMap.get(next);
+										BulkWriteResult newR = writePair.getSecond().submitBulkWrite(next,indexWriteBufferFactory,rce);
+										newR.setPosition(writePair.getFirst().getPosition());
+										writePair.setFirst(newR);
+										availablePermits-=next.getSize();
+								}
+								p++;
+						}
+						//reject any remaining bulk writes
+						for(int j=p;j<toWrite.size();j++){
+								BulkWrite n = toWrite.get(j);
+								Pair<BulkWriteResult,RegionWritePipeline> writePair = writePairMap.get(n);
+								writePair.setSecond(null);
+								writePair.setFirst(new BulkWriteResult(WriteResult.pipelineTooBusy(n.getEncodedStringName())));
+						}
 
-						// complete
-						for (int i = 0; i< size; i++) {
-								BulkWrite bulkWrite = (BulkWrite) buffer[i];
-								Pair<BulkWriteResult,RegionWritePipeline> pair = startPoints.get(i);
-								if(pair.getSecond()==null)
-										result.addResult(pair.getFirst());
-								else
-										result.addResult(pair.getSecond().finishWrite(pair.getFirst(),bulkWrite));
+						//complete the writes
+						List<BulkWriteResult> results = Lists.newArrayListWithExpectedSize(writePairMap.size());
+						for(Map.Entry<BulkWrite,Pair<BulkWriteResult,RegionWritePipeline>> entry:writePairMap.entrySet()){
+								Pair<BulkWriteResult,RegionWritePipeline> pair = entry.getValue();
+								if(pair.getSecond()!=null){
+										BulkWriteResult e = pair.getSecond().finishWrite(pair.getFirst(), entry.getKey());
+										e.setPosition(pair.getFirst().getPosition());
+										results.add(e);
+								}else
+										results.add(entry.getValue().getFirst());
+						}
+						Collections.sort(results, resultComparator);
+						for(int i=0;i<results.size();i++){
+								result.addResult(results.get(i));
 						}
 						timer.update(System.nanoTime()-start,TimeUnit.NANOSECONDS);
 						return result;
 				} finally {
-						switch (status) {
-								case REJECTED:
-										break;
-								case DEPENDENT:
-										control.releaseDependentPermit(kvPairSize);
-										break;
-								case INDEPENDENT:
-										control.releaseIndependentPermit(kvPairSize);
-										break;
-						}
+						writeControl.releasePermits(permits);
 				}
 		}
+
 
 		private void rejectAll(BulkWritesResult result, int numResults) {
 				this.rejectedMeter.mark();
@@ -164,130 +234,14 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
 						result.addResult(new BulkWriteResult(WriteResult.pipelineTooBusy(rce.getRegion().getRegionNameAsString())));
 				}
 		}
-//		private static Pair<WriteContext,Code> sendUpstream(BulkWrite bulkWrite, SpliceIndexEndpoint endpoint, WriteBufferFactory indexWriteBufferFactory) throws IOException {
-//				assert bulkWrite.getTxn()!=null;
-//				assert endpoint != null;
-//				HRegion region = endpoint.rce.getRegion();
-//				try {
-//						region.startRegionOperation();
-//				} catch (NotServingRegionException nsre) {
-//						SpliceLogUtils.debug(LOG, "hbase not serving region %s",region.getRegionNameAsString());
-//						return Pair.newPair(null,Code.NOT_SERVING_REGION);
-//				} catch (RegionTooBusyException nsre) {
-//						SpliceLogUtils.debug(LOG, "hbase region too busy %s",region.getRegionNameAsString());
-//						return Pair.newPair(null,Code.REGION_TOO_BUSY);
-//				} catch (InterruptedIOException ioe) {
-//						SpliceLogUtils.error(LOG, "hbase region interrupted %s",region.getRegionNameAsString());
-//						return Pair.newPair(null,Code.INTERRUPTED_EXCEPTON);
-//				}
-//
-//				try{
-//						WriteContext context;
-//						try {
-//								context = endpoint.getWriteContext(indexWriteBufferFactory,bulkWrite.getTxn(),endpoint.region,endpoint.rce,bulkWrite.getMutations().size());
-//						} catch (InterruptedException e) {
-//								SpliceLogUtils.debug(LOG, "write context interrupted %s",region.getRegionNameAsString());
-//								return Pair.newPair(null,Code.INTERRUPTED_EXCEPTON);
-//						} catch (IndexNotSetUpException e) {
-//								SpliceLogUtils.debug(LOG, "write context index not setup exception %s",region.getRegionNameAsString());
-//								return Pair.newPair(null,Code.INDEX_NOT_SETUP_EXCEPTION);
-//						}
-//
-//						Object[] bufferArray = bulkWrite.getBuffer();
-//						int size = bulkWrite.getSize();
-//						for (int i = 0; i<size; i++) {
-//								context.sendUpstream((KVPair) bufferArray[i]); //send all writes along the pipeline
-//						}
-//						return Pair.newPair(context,Code.SUCCESS);
-//				}
-//				finally {
-//						region.closeRegionOperation();
-//				}
-//		}
 
-//		private static BulkWriteResult flushAndClose(Pair<WriteContext,Code> ctxPair, BulkWrite bulkWrite,RegionWritePipeline writePipeline) throws IOException {
-//				WriteContext context = ctxPair.getFirst();
-//				if (context==null)
-//						return new BulkWriteResult(new WriteResult(ctxPair.getSecond())); // Already Failed
-//				HRegion region = endpoint.rce.getRegion();
-//				try {
-//						region.startRegionOperation();
-//				} catch (NotServingRegionException nsre) {
-//						SpliceLogUtils.debug(LOG, "hbase not serving region %s",region.getRegionNameAsString());
-//						return new BulkWriteResult(new WriteResult(Code.NOT_SERVING_REGION,region.getRegionNameAsString()));
-//				} catch (RegionTooBusyException nsre) {
-//						SpliceLogUtils.debug(LOG, "hbase region too busy %s",region.getRegionNameAsString());
-//						return new BulkWriteResult(new WriteResult(Code.REGION_TOO_BUSY,region.getRegionNameAsString()));
-//				} catch (InterruptedIOException ioe) {
-//						SpliceLogUtils.error(LOG, "hbase region interrupted %s",region.getRegionNameAsString());
-//						return new BulkWriteResult(new WriteResult(Code.INTERRUPTED_EXCEPTON,region.getRegionNameAsString()));
-//				}
-//				try {
-//						Object[] bufferArray = bulkWrite.getBuffer();
-//						context.flush();
-//						Map<KVPair,WriteResult> resultMap = context.close();
-//						BulkWriteResult response = new BulkWriteResult();
-//						int failed=0;
-//						int size = bulkWrite.getSize();
-//						for (int i = 0; i<size; i++) {
-//								@SuppressWarnings("RedundantCast") WriteResult result = resultMap.get((KVPair)bufferArray[i]);
-//								if(!result.isSuccess()){
-//										failed++;
-//								}
-//								response.addResult(i,result);
-//						}
-//						if (failed > 0)
-//								response.setGlobalStatus(WriteResult.partial());
-//						else
-//								response.setGlobalStatus(WriteResult.success());
-//						SpliceLogUtils.trace(LOG,"Returning response %s",response);
-//						int numSuccessWrites = size-failed;
-//						endpoint.throughputMeter.mark(numSuccessWrites);
-//						endpoint.failedMeter.mark(failed);
-//						return response;
-//				} finally {
-//						region.closeRegionOperation();
-//				}
-//
-//		}
 
 		@Override
 		public byte[] bulkWrites(byte[] bulkWriteBytes) throws IOException {
-//				try {
 						assert bulkWriteBytes!=null;
 						BulkWrites bulkWrites = PipelineUtils.fromCompressedBytes(bulkWriteBytes, BulkWrites.class);
 						return PipelineUtils.toCompressedBytes(bulkWrite(bulkWrites));
-//				} finally {
-//						bulkWriteBytes = null; // Dereference bytes passed.
-//				}
 		}
-
-//		private WriteContext getWriteContext(WriteBufferFactory indexWriteBufferFactory, TxnView txn, TransactionalRegion region, RegionCoprocessorEnvironment rce,int writeSize) throws IOException, InterruptedException {
-//				Pair<LocalWriteContextFactory, AtomicInteger> ctxFactoryPair = getContextPair(conglomId);
-//				return ctxFactoryPair.getFirst().create(indexWriteBufferFactory,txn,region,rce);
-//		}
-//
-//		private boolean isDependent() throws IOException {
-//				Pair<LocalWriteContextFactory, AtomicInteger> ctxFactoryPair = getContextPair(conglomId);
-//				return ctxFactoryPair.getFirst().hasDependentWrite();
-//		}
-
-//		private static Pair<LocalWriteContextFactory, AtomicInteger> getContextPair(long conglomId) {
-//				Pair<LocalWriteContextFactory,AtomicInteger> ctxFactoryPair = factoryMap.get(conglomId);
-//				if(ctxFactoryPair==null){
-//						ctxFactoryPair = Pair.newPair(new LocalWriteContextFactory(conglomId),new AtomicInteger());
-//						Pair<LocalWriteContextFactory, AtomicInteger> existing = factoryMap.putIfAbsent(conglomId, ctxFactoryPair);
-//						if(existing!=null){
-//								ctxFactoryPair = existing;
-//						}
-//				}
-//				return ctxFactoryPair;
-//		}
-
-//		public static LocalWriteContextFactory getContextFactory(long baseConglomId) {
-//				Pair<LocalWriteContextFactory,AtomicInteger> ctxPair = getContextPair(baseConglomId);
-//				return ctxPair.getFirst();
-//		}
 
 		public static void registerJMX(MBeanServer mbs) throws MalformedObjectNameException, NotCompliantMBeanException, InstanceAlreadyExistsException, MBeanRegistrationException {
 				ObjectName coordinatorName = new ObjectName("com.splicemachine.derby.hbase:type=ActiveWriteHandlers");
@@ -300,34 +254,54 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
 
 		public static class ActiveWriteHandlers implements ActiveWriteHandlersIface {
 				private static final ActiveWriteHandlers INSTANCE = new ActiveWriteHandlers();
+
 				private  ActiveWriteHandlers () {}
 
 				public static ActiveWriteHandlers get(){ return INSTANCE; }
 				@Override public int getIpcReservedPool() { return ipcReserved; }
-				@Override public void setIpcReservedPool(int ipcReservedPool) { ipcReserved = ipcReservedPool; }
-				@Override public int getFlushQueueSizeLimit() { return flushQueueSizeBlock; }
-				@Override public void setFlushQueueSizeLimit(int flushQueueSizeLimit) { flushQueueSizeBlock = flushQueueSizeLimit; }
-				@Override public int getCompactionQueueSizeLimit(){ return compactionQueueSizeBlock; }
-				@Override public void setCompactionQueueSizeLimit(int compactionQueueSizeLimit) { compactionQueueSizeBlock = compactionQueueSizeLimit; }
-				@Override public int getDependentWriteThreads() { return control.getDependentThreadCount(); }
-				@Override public int getIndependentWriteThreads() { return control.getIndependentThreadCount(); }
-				@Override public int getDependentWriteCount() {return control.getDependentRowPermitCount(); }
-				@Override public int getIndependentWriteCount() { return control.getIndependentRowPermitCount(); }
+
+				@Override
+				public int getTotalWriteThreads() {
+						return writeControl.maxWriteThreads();
+				}
+
+				@Override public int getOccupiedWriteThreads() { return writeControl.getOccupiedThreads(); }
+
+				@Override public double getOverallAvgThroughput() { return pipelineMeter.throughput(); }
+				@Override public double get1MThroughput() { return pipelineMeter.oneMThroughput(); }
+				@Override public double get5MThroughput() { return pipelineMeter.fiveMThroughput(); }
+				@Override public double get15MThroughput() { return pipelineMeter.fifteenMThroughput(); }
+
+				@Override
+				public long getTotalRejected() {
+						return rejectedCount.get();
+				}
+
+				@Override
+				public int getAvailableIndependentPermits() {
+						return writeControl.getAvailableIndependentPermits();
+				}
+
+				@Override
+				public int getAvailableDependentPermits() {
+						return writeControl.getAvailableDependentPermits();
+				}
 		}
 
 		@MXBean
 		@SuppressWarnings("UnusedDeclaration")
 		public interface ActiveWriteHandlersIface {
 				public int getIpcReservedPool();
-				public void setIpcReservedPool(int rpcReservedPool);
-				public int getFlushQueueSizeLimit();
-				public void setFlushQueueSizeLimit(int flushQueueSizeLimit);
-				public int getCompactionQueueSizeLimit();
-				public void setCompactionQueueSizeLimit(int compactionQueueSizeLimit);
-				public int getDependentWriteThreads();
-				public int getIndependentWriteThreads();
-				public int getDependentWriteCount();
-				public int getIndependentWriteCount();
+				int getTotalWriteThreads();
+				public int getOccupiedWriteThreads();
+				public double getOverallAvgThroughput();
+				public double get1MThroughput();
+				public double get5MThroughput();
+				public double get15MThroughput();
+
+				long getTotalRejected();
+				int getAvailableIndependentPermits();
+				int getAvailableDependentPermits();
 		}
 
 }

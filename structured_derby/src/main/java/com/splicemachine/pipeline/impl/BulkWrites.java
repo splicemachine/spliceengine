@@ -147,5 +147,16 @@ public class BulkWrites implements Externalizable {
 			}
 			bulkWrites = null;
 		}
-		
+
+		public int smallestBulkWriteSize() {
+				if(bulkWrites.size()<=0) return 0;
+				int min = Integer.MAX_VALUE;
+				Object[] buffer = bulkWrites.buffer;
+				for(int i=0;i<bulkWrites.size();i++){
+						BulkWrite bulkWrite = (BulkWrite)buffer[i];
+						if(bulkWrite.getSize()<min)
+								min = bulkWrite.getSize();
+				}
+				return min;
+		}
 }

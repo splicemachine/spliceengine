@@ -42,10 +42,10 @@ import java.util.Map.Entry;
  * necessary.
  *
  * @author Scott Fines
- * 
- * 
- * 
- * 
+ *
+ *
+ *
+ *
  * Created on: 8/27/13
  */
 public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, CanRebuild {
@@ -59,7 +59,7 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, CanRebuild
     private long totalElementsAdded = 0l;
     private long totalBytesAdded = 0l;
     private long totalFlushes = 0l;
-	private final MergingWriteStats writeStats;
+    private final MergingWriteStats writeStats;
     private volatile boolean rebuildBuffer = true; // rebuild from region cache
     private final WriteConfiguration writeConfiguration;
     private long currentHeapSize;
@@ -67,50 +67,51 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, CanRebuild
     private final BufferConfiguration bufferConfiguration;
     private final PreFlushHook preFlushHook;
     private boolean record = true;
-    
+
     public PipingCallBuffer(byte[] tableName,
-                      TxnView txn,
-                      Writer writer,
-                      RegionCache regionCache,
-                      PreFlushHook preFlushHook,
-                      WriteConfiguration writeConfiguration,
-                      BufferConfiguration bufferConfiguration) {
+                            TxnView txn,
+                            Writer writer,
+                            RegionCache regionCache,
+                            PreFlushHook preFlushHook,
+                            WriteConfiguration writeConfiguration,
+                            BufferConfiguration bufferConfiguration) {
         this.writer = writer;
         this.tableName = tableName;
         this.txn = txn;
         this.regionCache = regionCache;
-        this.writeConfiguration = new UpdatingWriteConfiguration(writeConfiguration,this); 
+        this.writeConfiguration = new UpdatingWriteConfiguration(writeConfiguration,this);
         this.startKeyToBufferMap = new TreeMap<byte[],Pair<RegionCallBuffer,ServerName>>(Bytes.BYTES_COMPARATOR);
         this.serverToRSBufferMap = new TreeMap<ServerName,RegionServerCallBuffer>();
         this.bufferConfiguration = bufferConfiguration;
         this.preFlushHook = preFlushHook;
-		MetricFactory metricFactory = writeConfiguration!=null? writeConfiguration.getMetricFactory(): Metrics.noOpMetricFactory();
-		writeStats = new MergingWriteStats(metricFactory);
+        MetricFactory metricFactory = writeConfiguration!=null? writeConfiguration.getMetricFactory(): Metrics.noOpMetricFactory();
+        writeStats = new MergingWriteStats(metricFactory);
     }
 
     @Override
     public void add(KVPair element) throws Exception {
-    	SpliceLogUtils.trace(LOG, "add %s",element);
+        assert element!=null: "Cannot add a non-null element!";
+        SpliceLogUtils.trace(LOG, "add %s",element);
         rebuildIfNecessary();
         Map.Entry<byte[],Pair<RegionCallBuffer,ServerName>> entry = startKeyToBufferMap.floorEntry(element.getRow());
         if(entry==null) entry = startKeyToBufferMap.firstEntry();
         assert entry!=null;
         entry.getValue().getFirst().add(element);
-		long size = element.getSize();
+        long size = element.getSize();
         currentHeapSize+=size;
-        currentKVPairSize++;   
+        currentKVPairSize++;
         if (record) {
-	        totalElementsAdded++;
-			totalBytesAdded +=size;
+            totalElementsAdded++;
+            totalBytesAdded +=size;
         }
         if(writer!=null && (currentHeapSize>=bufferConfiguration.getMaxHeapSize()
-        		|| currentKVPairSize >= bufferConfiguration.getMaxEntries())) {
+                || currentKVPairSize >= bufferConfiguration.getMaxEntries())) {
             flushLargestBuffer();
         }
     }
 
     private void flushLargestBuffer() throws Exception {
-    	int maxSize = 0;
+        int maxSize = 0;
         RegionServerCallBuffer bufferToFlush = null;
         for (RegionServerCallBuffer buffer : serverToRSBufferMap.values()) {
             if (buffer.getHeapSize() > maxSize) {
@@ -122,12 +123,12 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, CanRebuild
         currentHeapSize-=maxSize;
         currentKVPairSize-=bufferToFlush.getKVPairSize();
         if (LOG.isDebugEnabled())
-        	SpliceLogUtils.debug(LOG, "flushLargestBuffer {table=%s, size=%d, rows=%d}",Bytes.toString(this.tableName),bufferToFlush.getHeapSize(),bufferToFlush.getKVPairSize());
+            SpliceLogUtils.debug(LOG, "flushLargestBuffer {table=%s, size=%d, rows=%d}",Bytes.toString(this.tableName),bufferToFlush.getHeapSize(),bufferToFlush.getKVPairSize());
         bufferToFlush.flushBuffer();
     }
 
     private void rebuildIfNecessary() throws Exception {
-        if(startKeyToBufferMap == null || (!rebuildBuffer&&startKeyToBufferMap.size()>0)) return; //no need to rebuild the buffer
+        if(!rebuildBuffer && startKeyToBufferMap != null && startKeyToBufferMap.size()>0) return; //no need to rebuild the buffer
         /*
          * We need to rebuild the buffer. It's possible that there are
          * multiple buffer flushes in flight, some of whom may fail
@@ -140,71 +141,73 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, CanRebuild
          * until after the region map has been rebuilt.
          */
         ObjectArrayList<KVPair> items = getKVPairs();
-        for(Pair<RegionCallBuffer,ServerName> buffer:startKeyToBufferMap.values())
-        	buffer.getFirst().flushBuffer();
-        for(RegionServerCallBuffer buffer:serverToRSBufferMap.values()) {
-        	assert (buffer.getBulkWrites().getKVPairSize() ==0);
-        	buffer.close();        	
-        }
         assert items != null;
+        if(startKeyToBufferMap!=null) {
+            for (Pair<RegionCallBuffer, ServerName> buffer : startKeyToBufferMap.values())
+                buffer.getFirst().flushBuffer();
+            for (RegionServerCallBuffer buffer : serverToRSBufferMap.values()) {
+                assert (buffer.getBulkWrites().getKVPairSize() == 0);
+                buffer.close();
+            }
+        }
         this.startKeyToBufferMap = new TreeMap<byte[],Pair<RegionCallBuffer,ServerName>>(Bytes.BYTES_COMPARATOR);
         this.serverToRSBufferMap = new TreeMap<ServerName,RegionServerCallBuffer>();
         currentHeapSize=0;
-        currentKVPairSize=0;  
-        
+        currentKVPairSize=0;
+
         if (LOG.isDebugEnabled())
-        	SpliceLogUtils.debug(LOG, "rebuilding region map %s",Bytes.toString(tableName));
+            SpliceLogUtils.debug(LOG, "rebuilding region map %s",Bytes.toString(tableName));
         SortedSet<Pair<HRegionInfo,ServerName>> regions = PipelineUtils.getRegions(regionCache, tableName);
         if (LOG.isDebugEnabled()) {
-        	for (Pair<HRegionInfo,ServerName> pair: regions) {
-            	SpliceLogUtils.debug(LOG, "region %s on server %s",pair.getFirst().getRegionNameAsString(), pair.getSecond().getServerName());        		
-        	}
+            for (Pair<HRegionInfo,ServerName> pair: regions) {
+                SpliceLogUtils.debug(LOG, "region %s on server %s",pair.getFirst().getRegionNameAsString(), pair.getSecond().getServerName());
+            }
         }
         for(Pair<HRegionInfo,ServerName> pair:regions){
-        	HRegionInfo region = pair.getFirst();
-        	ServerName serverName = pair.getSecond();
+            HRegionInfo region = pair.getFirst();
+            ServerName serverName = pair.getSecond();
             byte[] startKey = region.getStartKey();
             RegionServerCallBuffer rsc = this.serverToRSBufferMap.get(pair.getSecond());
             // Do we have this RS already?
             if (rsc == null) {
-            	SpliceLogUtils.debug(LOG, "adding RSC %s", pair.getSecond());
+                SpliceLogUtils.debug(LOG, "adding RSC %s", pair.getSecond());
                 rsc = new RegionServerCallBuffer(tableName,writeConfiguration,pair.getSecond(),
-                		writer != null? new RegulatedWriter(writer,new CountingHandler(new OtherWriteHandler(writer), bufferConfiguration),
-                               bufferConfiguration.getMaxFlushesPerRegion()):null,
-                		writeStats);
-            	serverToRSBufferMap.put(pair.getSecond(), rsc);
-            }            
+                        writer != null? new RegulatedWriter(writer,new CountingHandler(new OtherWriteHandler(writer), bufferConfiguration),
+                                bufferConfiguration.getMaxFlushesPerRegion()):null,
+                        writeStats);
+                serverToRSBufferMap.put(pair.getSecond(), rsc);
+            }
             Entry<byte[], Pair<RegionCallBuffer, ServerName>> startKeyToBuffer = this.startKeyToBufferMap.floorEntry(startKey);
             // Total Miss
-        	RegionCallBuffer rcb = null;
-        	if (startKeyToBuffer != null)	
-        		rcb = startKeyToBuffer.getValue().getFirst();            
+            RegionCallBuffer rcb = null;
+            if (startKeyToBuffer != null)
+                rcb = startKeyToBuffer.getValue().getFirst();
             if (startKeyToBuffer == null || rcb.keyOutsideBuffer(startKey)) {
                 if (LOG.isDebugEnabled()) {
-                	SpliceLogUtils.debug(LOG, "lower startKey %s", startKeyToBuffer);
-                	if (rcb!=null) {
-                		SpliceLogUtils.debug(LOG, "region %s", rcb.getHregionInfo().getRegionNameAsString());
-                		SpliceLogUtils.debug(LOG, "region startKey %s", rcb.getHregionInfo().getStartKey());
-                		SpliceLogUtils.debug(LOG, "region endKey %s", rcb.getHregionInfo().getEndKey());
-                		SpliceLogUtils.debug(LOG, "comparison %d", Bytes.compareTo(startKey, rcb.getHregionInfo().getStartKey()));                		
-                	}
-                	SpliceLogUtils.debug(LOG, "startKey %s", startKey);
-                	SpliceLogUtils.debug(LOG, "key outside buffer, add new region (suspect) %s", region.getRegionNameAsString());
+                    SpliceLogUtils.debug(LOG, "lower startKey %s", startKeyToBuffer);
+                    if (rcb!=null) {
+                        SpliceLogUtils.debug(LOG, "region %s", rcb.getHregionInfo().getRegionNameAsString());
+                        SpliceLogUtils.debug(LOG, "region startKey %s", rcb.getHregionInfo().getStartKey());
+                        SpliceLogUtils.debug(LOG, "region endKey %s", rcb.getHregionInfo().getEndKey());
+                        SpliceLogUtils.debug(LOG, "comparison %d", Bytes.compareTo(startKey, rcb.getHregionInfo().getStartKey()));
+                    }
+                    SpliceLogUtils.debug(LOG, "startKey %s", startKey);
+                    SpliceLogUtils.debug(LOG, "key outside buffer, add new region (suspect) %s", region.getRegionNameAsString());
                 }
                 RegionCallBuffer newBuffer = new RegionCallBuffer(rsc,region,txn,preFlushHook);
-                startKeyToBufferMap.put(startKey,Pair.newPair(newBuffer,pair.getSecond())); 
+                startKeyToBufferMap.put(startKey,Pair.newPair(newBuffer,pair.getSecond()));
                 rsc.add(Pair.newPair(startKey, newBuffer));
             } else {
-            	throw new RuntimeException("Not Functional Path");
-            	
+                throw new RuntimeException("Not Functional Path");
+
             }
-     
+
         }
         rebuildBuffer=false;
-		if (LOG.isDebugEnabled())
-        	SpliceLogUtils.debug(LOG, "Adding Items Backs %s", items.size());
-		record = false;
-		assert items != null;
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "Adding Items Backs %s", items.size());
+        record = false;
+        assert items != null;
         this.addAll(items);
         items.release();
         items = null; // dereference
@@ -219,22 +222,22 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, CanRebuild
 
     @Override
     public void addAll(ObjectArrayList<KVPair> elements) throws Exception {
-    	Object[] elementArray = elements.buffer;
-    	int size = elements.size();
-    	for (int i = 0; i< size; i++) {
-            add((KVPair)elementArray[i]);        		
-    	}
+        Object[] elementArray = elements.buffer;
+        int size = elements.size();
+        for (int i = 0; i< size; i++) {
+            add((KVPair)elementArray[i]);
+        }
     }
 
     @Override
     public void flushBuffer() throws Exception {
-    	SpliceLogUtils.debug(LOG, "flushBuffer");
+        SpliceLogUtils.debug(LOG, "flushBuffer");
         if (serverToRSBufferMap == null) return;
-    	//flush all buffers
+        //flush all buffers
         rebuildIfNecessary();
         for(RegionServerCallBuffer buffer:serverToRSBufferMap.values()) {
-        	if (LOG.isDebugEnabled())
-        		SpliceLogUtils.debug(LOG, "flushBuffer {table=%s, server=%s, rows=%d ",Bytes.toString(tableName),buffer.getServerName(),buffer.getKVPairSize());
+            if (LOG.isDebugEnabled())
+                SpliceLogUtils.debug(LOG, "flushBuffer {table=%s, server=%s, rows=%d ",Bytes.toString(tableName),buffer.getServerName(),buffer.getKVPairSize());
             buffer.flushBuffer();
         }
         currentHeapSize=0;
@@ -243,18 +246,18 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, CanRebuild
 
     @Override
     public void close() throws Exception {
-    	SpliceLogUtils.debug(LOG, "close");
-    	//close all buffers
+        SpliceLogUtils.debug(LOG, "close");
+        //close all buffers
         if (serverToRSBufferMap == null) return;
         rebuildIfNecessary();
         for(RegionServerCallBuffer buffer:serverToRSBufferMap.values()) {
-        	if (LOG.isDebugEnabled())
-        		SpliceLogUtils.debug(LOG, "Closing {table=%s, server=%s}",Bytes.toString(tableName),buffer.getServerName());
+            if (LOG.isDebugEnabled())
+                SpliceLogUtils.debug(LOG, "Closing {table=%s, server=%s}",Bytes.toString(tableName),buffer.getServerName());
             buffer.close();
         }
-        
+
         for(Pair<RegionCallBuffer,ServerName> buffer:startKeyToBufferMap.values())
-        	buffer.getFirst().close();        
+            buffer.getFirst().close();
         serverToRSBufferMap = null;
         startKeyToBufferMap = null;
         currentHeapSize = 0;
@@ -267,48 +270,48 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, CanRebuild
     @Override public double getAverageEntriesPerFlush() { return ((double)totalElementsAdded)/totalFlushes; }
     @Override public double getAverageSizePerFlush() { return ((double) totalBytesAdded)/totalFlushes; }
     @Override public CallBuffer<KVPair> unwrap() { return this; }
-	@Override public WriteStats getWriteStats() { return writeStats; }
+    @Override public WriteStats getWriteStats() { return writeStats; }
 
-	@Override
-	public void incrementHeap(long heap) throws Exception {
-	}
+    @Override
+    public void incrementHeap(long heap) throws Exception {
+    }
 
-	@Override
-	public void incrementCount(int count) throws Exception {
-	}
-	
-	public List<BulkWrites> getBulkWrites() throws Exception {
-		SpliceLogUtils.trace(LOG, "getBulkWrites");
+    @Override
+    public void incrementCount(int count) throws Exception {
+    }
+
+    public List<BulkWrites> getBulkWrites() throws Exception {
+        SpliceLogUtils.trace(LOG, "getBulkWrites");
         rebuildIfNecessary();
-        List<BulkWrites> writes = new ArrayList<BulkWrites>();   
+        List<BulkWrites> writes = new ArrayList<BulkWrites>();
         for(RegionServerCallBuffer buffer:serverToRSBufferMap.values())
-        	writes.add(buffer.getBulkWrites());
+            writes.add(buffer.getBulkWrites());
         return writes;
-	}
-	
-	public ObjectArrayList<KVPair> getKVPairs() throws Exception {
-		SpliceLogUtils.trace(LOG, "getKVPairs");
-		ObjectArrayList<KVPair> kvPairs = new ObjectArrayList<KVPair>();
+    }
+
+    public ObjectArrayList<KVPair> getKVPairs() throws Exception {
+        SpliceLogUtils.trace(LOG, "getKVPairs");
+        ObjectArrayList<KVPair> kvPairs = new ObjectArrayList<KVPair>();
         for(Pair<RegionCallBuffer,ServerName> buffer:startKeyToBufferMap.values()) {
-        	kvPairs.addAll(buffer.getFirst().getBuffer());
+            kvPairs.addAll(buffer.getFirst().getBuffer());
         }
         return kvPairs;
-	}
-	
-	@Override
-	public void rebuildBuffer() {
-		rebuildBuffer = true;
-	}
+    }
 
-	@Override
-	public PreFlushHook getPreFlushHook() {
-		return preFlushHook;
-	}
+    @Override
+    public void rebuildBuffer() {
+        rebuildBuffer = true;
+    }
 
-	@Override
-	public WriteConfiguration getWriteConfiguration() {
-		return writeConfiguration;
-	}
-		
+    @Override
+    public PreFlushHook getPreFlushHook() {
+        return preFlushHook;
+    }
+
+    @Override
+    public WriteConfiguration getWriteConfiguration() {
+        return writeConfiguration;
+    }
+
 }
 
