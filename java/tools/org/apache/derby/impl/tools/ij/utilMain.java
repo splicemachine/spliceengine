@@ -232,7 +232,7 @@ public class utilMain implements java.security.PrivilegedAction {
 				version = "?";
 			}*/
 
-   			out.println(version);
+   			//out.println(version);
 			for (int i=connEnv.length-1;i>=0;i--) { // print out any initial warnings...
 				Connection c = connEnv[i].getConnection();
 				if (c!=null) {
