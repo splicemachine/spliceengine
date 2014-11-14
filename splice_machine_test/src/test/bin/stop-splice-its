@@ -12,13 +12,12 @@ if [[ -z ${S} && -z ${Z} ]]; then
     echo "Splice server is not running."
     exit 0
 else
-# otherwise kill it nicely
+	# otherwise kill it nicely
 	SIG=15
-	[[ -n ${S} ]] && echo "Found SpliceTestPlatform straggler. Killing." && for pid in ${S}; do kill -${SIG} `echo ${pid}`; done
-	[[ -n ${Z} ]] && echo "Found ZooKeeperServerMain straggler. Killing." && for pid in ${Z}; do kill -${SIG} `echo ${pid}`; done
+	[[ -n ${S} ]] && echo "Found SpliceTestPlatform. Stopping it." && for pid in ${S}; do kill -${SIG} `echo ${pid}`; done
+	[[ -n ${Z} ]] && echo "Found ZooKeeperServerMain. Stopping it." && for pid in ${Z}; do kill -${SIG} `echo ${pid}`; done
 fi
-# give them time to die
-sleep 15
+sleep 20 # give them time to die
 
 # Check for stragglers and kill 'em dead
 SIG=9

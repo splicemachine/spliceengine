@@ -30,7 +30,7 @@ public class SpliceTestPlatformWait {
             try {
                 new Socket(hostname, port);
                 System.out.println("\nStarted\n");
-                System.exit(0);
+                break;
             } catch (Exception e) {
                 System.out.println(format("SpliceTestPlatformWait: Not started, still waiting for '%s:%s'. %s of %s seconds elapsed.",
                         hostname, port, elapsedSecs, MAX_WAIT_SECS));
@@ -38,9 +38,11 @@ public class SpliceTestPlatformWait {
             }
             elapsedSecs = (long) ((System.currentTimeMillis() - startTime) / 1000d);
         }
+        if (elapsedSecs >= MAX_WAIT_SECS) {
+            System.out.println(format("Waited %s seconds without success", MAX_WAIT_SECS));
+            System.exit(-1);
+        }
 
-        System.out.println(format("Waited %s seconds without success", MAX_WAIT_SECS));
-        System.exit(-1);
     }
 
 }

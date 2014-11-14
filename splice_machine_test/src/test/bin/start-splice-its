@@ -58,13 +58,12 @@ if [[ -n ${S} || -n ${Z} ]]; then
 fi
 
 # Start zookeeper in background.
+echo "Starting ZooKeeperServerMain, log file is ${ZOOLOG}"
 mvn -B exec:exec -PspliceZoo > ${ZOOLOG} 2>&1 &
 
 # Start SpliceTestPlaform in background.
+echo "Starting SpliceTestPlatform with failTasksRandomly set to ${CHAOS}, log file is ${SPLICELOG}"
 mvn -B exec:exec -PspliceFast -DfailTasksRandomly=${CHAOS} > ${SPLICELOG} 2>&1 &
-
-# wait for splice to start
-mvn -B exec:java -PspliceWait
 
 popd &>/dev/null
 
