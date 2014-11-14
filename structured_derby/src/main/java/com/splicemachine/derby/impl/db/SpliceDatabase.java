@@ -391,12 +391,14 @@ public class SpliceDatabase extends BasicDatabase {
             SpliceLogUtils.error(LOG, "Error recovering backup", t);
 
         } finally {
-            Closeables.closeQuietly(admin);
             try {
-                DDLCoordinationFactory.getController().finishMetadataChange(changeId);
+                if (changeId != null) {
+                    DDLCoordinationFactory.getController().finishMetadataChange(changeId);
+                }
             } catch (StandardException e) {
                 SpliceLogUtils.error(LOG, "Error recovering backup", e);
             }
+            Closeables.closeQuietly(admin);
         }
     }
 
