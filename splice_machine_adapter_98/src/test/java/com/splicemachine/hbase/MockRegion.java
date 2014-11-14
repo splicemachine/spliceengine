@@ -7,7 +7,6 @@ import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
-import org.apache.hadoop.hbase.util.Pair;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import com.carrotsearch.hppc.ObjectArrayList;
@@ -26,15 +25,14 @@ public class MockRegion {
         return new Answer<OperationStatus[]>() {
             @Override
             public OperationStatus[] answer(InvocationOnMock invocation) throws Throwable {
-                @SuppressWarnings("unchecked") Pair<Mutation, Integer>[] writes = (Pair<Mutation, Integer>[]) invocation.getArguments()[0];
+                @SuppressWarnings("unchecked") Mutation[] writes = (Mutation[]) invocation.getArguments()[0];
                 OperationStatus[] answer = new OperationStatus[writes.length];
                 int i = 0;
-                for (Pair<Mutation, Integer> pair : writes) {
-                    successfulPuts.add(pair.getFirst());
+                for (Mutation mutation : writes) {
+                    successfulPuts.add(mutation);
                     answer[i] = new OperationStatus(HConstants.OperationStatusCode.SUCCESS);
                     i++;
                 }
-
                 return answer;
             }
         };

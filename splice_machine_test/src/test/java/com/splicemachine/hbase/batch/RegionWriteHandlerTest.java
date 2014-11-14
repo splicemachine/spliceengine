@@ -3,6 +3,7 @@ package com.splicemachine.hbase.batch;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.hbase.KVPair;
+import com.splicemachine.hbase.MockRegion;
 import com.splicemachine.pipeline.writehandler.IndexWriteBufferFactory;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.Transactor;
@@ -17,6 +18,7 @@ import com.splicemachine.pipeline.api.Code;
 import com.splicemachine.pipeline.impl.WriteResult;
 import com.splicemachine.pipeline.writecontext.PipelineWriteContext;
 import com.splicemachine.pipeline.writehandler.RegionWriteHandler;
+
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
@@ -24,8 +26,9 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
 import org.junit.Test;
+
 import java.util.Map;
-import static com.splicemachine.hbase.MockRegion.*;
+
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -38,7 +41,7 @@ public class RegionWriteHandlerTest {
     @Test
     public void testWritesRowsCorrectly() throws Exception {
         final ObjectArrayList<Mutation> successfulPuts = ObjectArrayList.newInstance();
-        HRegion testRegion = getMockRegion(getSuccessOnlyAnswer(successfulPuts));
+        HRegion testRegion = MockRegion.getMockRegion(MockRegion.getSuccessOnlyAnswer(successfulPuts));
 
 				TxnSupplier supplier = mock(TxnSupplier.class);
 				//TODO -sf- make this simpler
@@ -102,7 +105,7 @@ public class RegionWriteHandlerTest {
     public void testNotServingRegionExceptionThrowingCausesAllRowsToFail() throws Exception {
     	ObjectArrayList<Mutation> results = ObjectArrayList.newInstance();
 
-        HRegion testRegion = getMockRegion(getNotServingRegionAnswer());
+        HRegion testRegion = MockRegion.getMockRegion(MockRegion.getNotServingRegionAnswer());
 
         RegionCoprocessorEnvironment rce = mock(RegionCoprocessorEnvironment.class);
         when(rce.getRegion()).thenReturn(testRegion);
@@ -138,7 +141,7 @@ public class RegionWriteHandlerTest {
     public void testClosingRegionBeforeSendingUpstreamResultsInNotServingRegionCodes() throws Exception {
     	ObjectArrayList<Mutation> results = ObjectArrayList.newInstance();
 
-        HRegion testRegion = getMockRegion(getSuccessOnlyAnswer(results));
+        HRegion testRegion = MockRegion.getMockRegion(MockRegion.getSuccessOnlyAnswer(results));
         when(testRegion.isClosed()).thenReturn(true);
 
 				TxnSupplier supplier = mock(TxnSupplier.class);
@@ -171,7 +174,7 @@ public class RegionWriteHandlerTest {
     public void testWrongRegionIsProperlyReturned() throws Exception {
     	ObjectArrayList<Mutation> results = ObjectArrayList.newInstance();
 
-        HRegion testRegion = getMockRegion(getSuccessOnlyAnswer(results));
+        HRegion testRegion = MockRegion.getMockRegion(MockRegion.getSuccessOnlyAnswer(results));
 
         HRegionInfo info = testRegion.getRegionInfo();
         when(info.getEndKey()).thenReturn(Bytes.toBytes(11));
@@ -246,7 +249,7 @@ public class RegionWriteHandlerTest {
     public void testClosingRegionHalfwayThroughUpstreamWritesHalfTheRecords() throws Exception {
     	ObjectArrayList<Mutation> results = ObjectArrayList.newInstance();
 
-        HRegion testRegion = getMockRegion(getSuccessOnlyAnswer(results));
+        HRegion testRegion = MockRegion.getMockRegion(MockRegion.getSuccessOnlyAnswer(results));
 
 				TxnSupplier supplier = mock(TxnSupplier.class);
 				//TODO -sf- make this simpler
