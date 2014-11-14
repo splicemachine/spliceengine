@@ -8,6 +8,7 @@ import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -61,9 +62,8 @@ public class ManifestReaderTest {
         Assert.assertEquals("http://www.splicemachine.com", version.getURL());
     }
 
-    @Test // Test for DB-1431
-    @Ignore
-    // Ignoring this test as it is not vaild with new project structure - 2014-11-14
+    @Ignore // Test for DB-1431
+    // Ignoring this test as it is not valid with new project structure - 2014-11-14
     public void testNullManifest() throws Exception {
         ManifestReader.SpliceMachineVersion version = new ManifestReader().createVersion();
         System.out.println(version);
