@@ -3,20 +3,24 @@ package com.splicemachine.derby.impl.db;
 import javax.security.auth.login.Configuration;
 
 import java.sql.SQLException;
+import java.sql.SQLWarning;
 import java.util.*;
 import java.util.concurrent.CancellationException;
 import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.ddl.DDLWatcher;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.utils.BaseAdminProcedures;
 import com.splicemachine.hbase.HBaseRegionLoads;
 import com.splicemachine.hbase.backup.*;
 import com.google.common.io.Closeables;
 import com.splicemachine.derby.hbase.SpliceMasterObserverRestoreAction;
-import com.splicemachine.si.api.TransactionTimestamps;
+import com.splicemachine.si.api.TransactionLifecycle;
+import com.splicemachine.si.api.TxnLifecycleManager;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceUtilities;
 
+import org.apache.derby.iapi.error.ExceptionSeverity;
 import org.apache.derby.iapi.error.ShutdownException;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
@@ -26,12 +30,15 @@ import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.context.ContextService;
 import org.apache.derby.iapi.services.monitor.Monitor;
 import org.apache.derby.iapi.services.property.PropertyFactory;
+import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.conn.ConnectionUtil;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
 import org.apache.derby.iapi.sql.execute.ExecutionFactory;
 import org.apache.derby.iapi.store.access.AccessFactory;
 import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.impl.db.BasicDatabase;
+import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.derby.shared.common.sanity.SanityManager;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
@@ -169,6 +176,12 @@ public class SpliceDatabase extends BasicDatabase {
                     } catch (ShutdownException e) {
                         LOG.warn("could not get contexts, database shutting down", e);
                     }
+                } else if (change.getChangeType() == DDLChangeType.ENTER_RESTORE_MODE) {
+                    TransactionLifecycle.getLifecycleManager().enterRestoreMode();
+                    Collection<LanguageConnectionContext> allContexts = ContextService.getFactory().getAllContexts(LanguageConnectionContext.CONTEXT_ID);
+                    for(LanguageConnectionContext context:allContexts){
+                        context.enterRestoreMode();
+                    }
                 }
             }
 
@@ -297,6 +310,7 @@ public class SpliceDatabase extends BasicDatabase {
     @Override
     public void restore(String restoreDir, boolean wait) throws SQLException {
         HBaseAdmin admin = null;
+        String changeId = null;
         try {
             admin = SpliceUtilities.getAdmin();
             if (!admin.tableExists(SpliceMasterObserver.RESTORE_TABLE)) {
@@ -305,12 +319,24 @@ public class SpliceDatabase extends BasicDatabase {
                 admin.createTable(desc);
             }
 
+            EmbedConnection defaultConn = (EmbedConnection) BaseAdminProcedures.getDefaultConn();
+            Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
+            lastActivation.addWarning(
+                    new SQLWarning("Database has to be rebooted after the restore operation",
+                            "01010", ExceptionSeverity.WARNING_SEVERITY));
+
             // Check for ongoing backup...
             String backupResponse = null;
             Backup.validateBackupSchema();
             if ( (backupResponse = BackupUtils.isBackupRunning()) != null)
                 throw new SQLException(backupResponse); // TODO i18n
             Backup backup = Backup.readBackup(restoreDir,BackupScope.D);
+
+            // enter restore mode
+
+            DDLChange change = new DDLChange(backup.getBackupTransaction(), DDLChangeType.ENTER_RESTORE_MODE);
+            changeId = DDLCoordinationFactory.getController().notifyMetadataChange(change);
+
 
             // recreate tables
 
@@ -360,18 +386,17 @@ public class SpliceDatabase extends BasicDatabase {
                 throw t;
             }
 
-
-            DDLChange change = new DDLChange(backup.getBackupTransaction(), DDLChangeType.REBOOT_DD);
-            String id = DDLCoordinationFactory.getController().notifyMetadataChange(change);
-            DDLCoordinationFactory.getController().finishMetadataChange(id);
-
-
         } catch (Throwable t) {
             // TODO error handling
             SpliceLogUtils.error(LOG, "Error recovering backup", t);
 
         } finally {
             Closeables.closeQuietly(admin);
+            try {
+                DDLCoordinationFactory.getController().finishMetadataChange(changeId);
+            } catch (StandardException e) {
+                SpliceLogUtils.error(LOG, "Error recovering backup", e);
+            }
         }
     }
 

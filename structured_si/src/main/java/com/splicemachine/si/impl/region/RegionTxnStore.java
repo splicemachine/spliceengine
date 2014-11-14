@@ -20,6 +20,7 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -36,6 +37,7 @@ import java.util.List;
  * Date: 6/19/14
  */
 public class RegionTxnStore {
+    private static final Logger LOG = Logger.getLogger(RegionTxnStore.class);
 		/*
 		 * The region in which to access data
 		 */
@@ -136,6 +138,11 @@ public class RegionTxnStore {
 				if(result==null) return false; //attempted to keep alive a read-only transaction? a waste, but whatever
 
 				KeyValue stateKv = result.getColumnLatest(FAMILY,V2TxnDecoder.STATE_QUALIFIER_BYTES);
+                if (stateKv==null) {
+                    // couldn't find the transaction data, it's fine under Restore Mode, issue a warning nonetheless
+                    LOG.warn("Couldn't load data for keeping alive transaction " + txnId + ". This isn't an issue under Restore Mode");
+                    return false;
+                }
 				Txn.State state = Txn.State.decode(stateKv.getBuffer(), stateKv.getValueOffset(), stateKv.getValueLength());
 				if(state != Txn.State.ACTIVE) return false; //skip the put if we don't need to do it
 

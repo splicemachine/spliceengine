@@ -21,6 +21,7 @@ import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.db.Database;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.cache.Cacheable;
+import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.context.ContextService;
 import org.apache.derby.iapi.services.monitor.Monitor;
 import org.apache.derby.iapi.services.sanity.SanityManager;
@@ -373,31 +374,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
         }
 
         super.boot(create, startParams);
-
-        DDLCoordinationFactory.getWatcher().registerDDLListener(new DDLWatcher.DDLListener() {
-            @Override
-            public void startGlobalChange() {
-                //ignore
-            }
-
-            @Override
-            public void finishGlobalChange() {
-                //ignore
-            }
-
-            @Override
-            public void startChange(DDLChange change) throws StandardException {
-                if (change.getChangeType().equals(DDLChangeType.REBOOT_DD)) {
-                    Properties props = updateProperties();
-                    SpliceDataDictionary.super.boot(false, props);
-                }
-            }
-
-            @Override
-            public void finishChange(String changeId) {
-                //ignore
-            }
-        });
     }
 
     private Properties updateProperties() throws StandardException {
