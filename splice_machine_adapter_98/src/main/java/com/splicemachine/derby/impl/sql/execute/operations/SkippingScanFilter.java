@@ -3,12 +3,15 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.exceptions.DeserializationException;
 import org.apache.hadoop.hbase.util.Pair;
+
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.SpliceZeroCopyByteString;
 import com.splicemachine.coprocessor.SpliceMessage;
+import com.splicemachine.hbase.AbstractSkippingScanFilter;
+
 import java.io.IOException;
 import java.util.List;
 
