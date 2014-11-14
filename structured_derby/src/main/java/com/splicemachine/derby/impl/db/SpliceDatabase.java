@@ -441,6 +441,8 @@ public class SpliceDatabase extends BasicDatabase {
             // create metadata, including timestamp source's timestamp
             // this has to be called after all tables have been dumped.
             backup.createMetadata();
+            backup.markBackupSuccesful();
+            backup.writeBackupStatusChange();
         } catch (Throwable e) {
             if(info!=null) info.failJob();
             if (backup != null) {
@@ -450,10 +452,6 @@ public class SpliceDatabase extends BasicDatabase {
             LOG.error("Couldn't backup database", e);
             throw new SQLException(Exceptions.parseException(e));
         }finally {
-            if (backup != null) {
-                backup.markBackupSuccesful();
-                backup.writeBackupStatusChange();
-            }
             Closeables.closeQuietly(admin);
         }
     }
