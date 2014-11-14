@@ -441,6 +441,11 @@ public class SpliceDatabase extends BasicDatabase {
             // create metadata, including timestamp source's timestamp
             // this has to be called after all tables have been dumped.
             backup.createMetadata();
+
+            if (backup.isTemporaryBaseFolder()) {
+                backup.moveToBaseFolder();
+            }
+
             backup.markBackupSuccesful();
             backup.writeBackupStatusChange();
         } catch (Throwable e) {
