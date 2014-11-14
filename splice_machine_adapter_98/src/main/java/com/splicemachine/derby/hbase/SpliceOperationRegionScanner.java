@@ -31,7 +31,7 @@ public class SpliceOperationRegionScanner extends SpliceBaseOperationRegionScann
 
 		@Override
 		public boolean nextRaw(List<Cell> keyValues) throws IOException {
-				return nextRaw(keyValues);
+				return next(keyValues);
 		}
 
 		@Override
