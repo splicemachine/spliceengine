@@ -117,7 +117,7 @@
 							</archive>
 							<descriptors>
 								<descriptor>${project.basedir}/src/main/assembly/assembly.xml</descriptor>
-								<descriptor>${project.basedir}/src/main/assembly/simple_assembly.xml</descriptor>
+								<descriptor>${project.basedir}/src/main/assembly/standalone_assembly.xml</descriptor>
 							</descriptors>
 							<attach>true</attach>
 						</configuration>

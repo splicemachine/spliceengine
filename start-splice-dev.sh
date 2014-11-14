@@ -58,7 +58,7 @@ ROOT_DIR="$( pwd )"
 
 source ${ROOT_DIR}/src/main/bin/functions.sh
 
-SPLICE_SINGLE_PATTERN="${ROOT_DIR}/target/splice_machine-*-${PROFILE}_simple.tar.gz"
+SPLICE_SINGLE_PATTERN="${ROOT_DIR}/target/splice_machine-*-${PROFILE}_standalone.tar.gz"
 TARBALL=`ls ${SPLICE_SINGLE_PATTERN}`
 if [[ ! -f "${TARBALL}" ]]; then
     # Maven simple.tar.gz assembly is required to reference server dependencies.
