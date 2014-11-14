@@ -245,12 +245,19 @@ _waitfor() {
         # total number of seconds we should wait for clean status
         (( t = TIMEOUT ))
         while (( t > 0 )); do
-            S=$(echo stat | nc localhost 2181 | grep Mode:)
-            if [ -n "${S}" ]; then
-                echo "Detected zookeeper running@localhost in $S"
-                return 0;
+            if [[ ${UNAME} == CYGWIN* ]]; then
+                S=$(grep Snapshotting $LOGFILE)
+                if [ -n "${S}" ]; then
+                    echo "Detected zookeeper running"
+                    return 0;
+                fi
+            else
+                S=$(echo stat | nc localhost 2181 | grep Mode:)
+                if [ -n "${S}" ]; then
+                    echo "Detected zookeeper running@localhost in $S"
+                    return 0;
+                fi
             fi
-
             # Show something while we wait
             echo -ne "."
             sleep ${INTERVAL}
