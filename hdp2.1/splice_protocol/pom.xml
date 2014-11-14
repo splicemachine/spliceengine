@@ -23,7 +23,7 @@
 				<groupId>com.google.protobuf.tools</groupId>
 				<artifactId>maven-protoc-plugin</artifactId>
 				<configuration>
-					<protocExecutable>/usr/local/bin/protoc</protocExecutable>
+					<protocExecutable>protoc</protocExecutable>
 					<protoSourceRoot>${project.basedir}/../../splice_protocol/src/main/protobuf</protoSourceRoot>
 				</configuration>
 				<executions>
