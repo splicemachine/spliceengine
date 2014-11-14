@@ -1752,11 +1752,25 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
                 new ClientMessageId(SQLState.TABLE_NAME_CANNOT_BE_NULL)); 
 
         }
-        PreparedStatement cs = prepareMetaDataQuery("SYSIBM.SQLPRIMARYKEYS(?,?,?,?)");
 
+        // Splice fork: handle the very common case where names are
+        // upper case in the data dictionary but provided arg is not.
+        // Don't bother handling the other permutations, because it
+        // can get tricky and impact performance. For example,
+        // we don't want to have to convert T.TABLENAME to UPPER(T.TABLENAME)
+        // in the metadata.properties external query.
+        
+        boolean storesUpper = false;
+        try {
+        	storesUpper = storesUpperCaseIdentifiers();
+        } catch (SQLException e) {
+        	// Ok to swallow this one. Assume false.
+        }
+
+        PreparedStatement cs = prepareMetaDataQuery("SYSIBM.SQLPRIMARYKEYS(?,?,?,?)");
         cs.setStringX(1, catalog);
-        cs.setStringX(2, schema);
-        cs.setStringX(3, table);
+        cs.setStringX(2, (storesUpper && schema != null ? schema.toUpperCase() : schema));
+        cs.setStringX(3, (storesUpper ? table.toUpperCase() : table));
         cs.setStringX(4, getOptions());
         return executeCatalogQuery(cs);
     }

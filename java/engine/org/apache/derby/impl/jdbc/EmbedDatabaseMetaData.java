@@ -2756,9 +2756,15 @@ public class EmbedDatabaseMetaData extends ConnectionChild
                            SQLState.TABLE_NAME_CANNOT_BE_NULL);
         }
 
-		s.setString(1, swapNull(catalog));
-		s.setString(2, swapNull(schema));
-		s.setString(3, table); //DERBY-1484: Must match table name as stored
+        // Splice fork: see 
+        // org.apache.derby.client.am.DatabaseMetaData.getPrimaryKeysX()
+        // for reasoning of handling upper case conversion like this.
+        
+    	boolean storesUpper = storesUpperCaseIdentifiers();
+
+        s.setString(1, swapNull(catalog));
+        s.setString(2, (storesUpper ? swapNull(schema).toUpperCase() : swapNull(schema)));
+        s.setString(3, (storesUpper ? table.toUpperCase() : table));
 		return s.executeQuery();
 	}	
 
