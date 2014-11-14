@@ -33,6 +33,7 @@
 			</properties>
 			<build>
 				<plugins>
+
 					<plugin>
 						<artifactId>maven-antrun-plugin</artifactId>
 						<executions>
@@ -100,6 +101,27 @@
 							</dependency>
 						</dependencies>
 					</plugin>
+
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>exec-maven-plugin</artifactId>
+						<executions>
+							<execution>
+								<phase>pre-integration-test</phase>
+								<goals>
+									<goal>java</goal>
+								</goals>
+							</execution>
+						</executions>
+						<configuration>
+							<mainClass>com.splicemachine.test.SpliceTestPlatformWait</mainClass>
+							<arguments>
+								<argument>localhost</argument>
+								<argument>1527</argument>
+							</arguments>
+						</configuration>
+					</plugin>
+
 				</plugins>
 			</build>
 		</profile>
