@@ -94,21 +94,15 @@ implements HiveMetaHook, HiveStoragePredicateHandler{
 	      if (tableName.startsWith(DEFAULT_PREFIX)) {
 	          tableName = tableName.substring(DEFAULT_PREFIX.length());
 	        }
-	      System.out.println("=========== SpliceStorageHandler configureTableJobProperties, "
-					+ "tableName getting from hive metastore:"
-					+ tableName + "============"+"isInputJob?"+isInputJob);
+	      
 	    }
 	    tableName = tableName.trim();
-	   
-	    if(isInputJob){
-	    	//jobProperties.put(SpliceSerDe.SPLICE_TRANSACTION_ID, sqlUtil.getTransactionID());
+	    parentTxnId = startWriteJobParentTxn(connStr, tableName);
+    	jobProperties.put(SpliceSerDe.SPLICE_TRANSACTION_ID, parentTxnId);
+	    if(isInputJob)
 	    	jobProperties.put(SpliceSerDe.SPLICE_INPUT_TABLE_NAME, tableName);
-	    }
-	    else{
+	    else
 	    	jobProperties.put(SpliceSerDe.SPLICE_OUTPUT_TABLE_NAME, tableName);
-	    	parentTxnId = startWriteJobParentTxn(connStr, tableName);
-	    	jobProperties.put(SpliceSerDe.SPLICE_TRANSACTION_ID, parentTxnId);
-	    }
 	    jobProperties.put(SpliceSerDe.SPLICE_JDBC_STR, connStr);
 		
 	}
@@ -121,7 +115,6 @@ implements HiveMetaHook, HiveStoragePredicateHandler{
 			parentConn = sqlUtil.createConn();
 			sqlUtil.disableAutoCommit(parentConn);
 			String pTxsID = sqlUtil.getTransactionID(parentConn);
-			System.out.println("parent TxnID in StorageHandler:" + pTxsID);
 			PreparedStatement ps = parentConn
 					.prepareStatement("call SYSCS_UTIL.SYSCS_ELEVATE_TRANSACTION(?)");
 			ps.setString(1, tableName);
@@ -146,8 +139,6 @@ implements HiveMetaHook, HiveStoragePredicateHandler{
 	  public void configureInputJobProperties(
 	    TableDesc tableDesc,
 	    Map<String, String> jobProperties) {
-		System.out.println("SpliceStorageHandler, configureInputJobProperties:"
-				+ "get tableName from tableDesc: "+tableDesc.getTableName());
 		
 	    configureTableJobProperties(tableDesc, jobProperties, true);
 	  }
@@ -156,9 +147,7 @@ implements HiveMetaHook, HiveStoragePredicateHandler{
 	  public void configureOutputJobProperties(
 	    TableDesc tableDesc,
 	    Map<String, String> jobProperties) {
-		System.out.println("SpliceStorageHandler, configureOutputJobProperties:"
-				+ "get tableName from tableDesc: "+tableDesc.getTableName());
-	      configureTableJobProperties(tableDesc, jobProperties, false);
+	    configureTableJobProperties(tableDesc, jobProperties, false);
 	  }
 	
 	@Override
@@ -184,12 +173,11 @@ implements HiveMetaHook, HiveStoragePredicateHandler{
 	public void preCreateTable(Table tbl) throws MetaException {
 		
 		boolean isExternal = MetaStoreUtils.isExternalTable(tbl);
-		if(isExternal)
-		{
+		if(isExternal){
 			System.out.println("Creating External table for Splice...");
 		}
 		String tableName = getSpliceTableName(tbl);
-		System.out.println("----- tableName in preCreateTable:"+tableName);
+		
 		Map<String, String> serdeParam = tbl.getSd().getSerdeInfo().getParameters();
 		// We can choose to support user define column mapping.
 		// But currently I don't think it is necessary
