@@ -1,6 +1,5 @@
 package com.splicemachine.derby.hbase;
 
-import com.google.common.collect.Maps;
 import com.splicemachine.pipeline.api.WriteBufferFactory;
 import com.splicemachine.pipeline.api.WriteContext;
 import com.splicemachine.pipeline.api.WriteContextFactory;
@@ -21,7 +20,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class PipelineContextFactories {
     private static final DiscardingWriteContext<TransactionalRegion> UNMANAGED_CTX_FACTORY
-            = new DiscardingWriteContext<TransactionalRegion>(LocalWriteContextFactory.unmanagedContextFactory());
+            = new DiscardingWriteContext<TransactionalRegion>(-1l, LocalWriteContextFactory.unmanagedContextFactory());
     private static final ConcurrentMap<Long,DiscardingWriteContext<TransactionalRegion>> ctxMap
             = new ConcurrentHashMap<Long, DiscardingWriteContext<TransactionalRegion>>();
     static{
@@ -32,7 +31,7 @@ public class PipelineContextFactories {
     public static WriteContextFactory<TransactionalRegion> getWriteContext(long conglomerateId){
         DiscardingWriteContext<TransactionalRegion> ctxFactory = ctxMap.get(conglomerateId);
         if(ctxFactory==null){
-            DiscardingWriteContext<TransactionalRegion> newFactory = new DiscardingWriteContext<TransactionalRegion>(new LocalWriteContextFactory(conglomerateId));
+            DiscardingWriteContext<TransactionalRegion> newFactory = new DiscardingWriteContext<TransactionalRegion>(conglomerateId, new LocalWriteContextFactory(conglomerateId));
             DiscardingWriteContext<TransactionalRegion> oldFactory = ctxMap.putIfAbsent(conglomerateId, newFactory);
             if(oldFactory!=null)
                 ctxFactory = oldFactory;
@@ -44,11 +43,13 @@ public class PipelineContextFactories {
     }
 
     private static class DiscardingWriteContext<T> implements WriteContextFactory<T>{
+        private final long conglomId;
         private final WriteContextFactory<T> delegate;
         private AtomicInteger refCount = new AtomicInteger(0);
         private volatile boolean closed = false;
 
-        public DiscardingWriteContext(WriteContextFactory<T> delegate) {
+        public DiscardingWriteContext(long conglomId, WriteContextFactory<T> delegate) {
+            this.conglomId = conglomId;
             this.delegate = delegate;
         }
 
@@ -99,6 +100,7 @@ public class PipelineContextFactories {
             if(remaining<=0){
                 closed=true;
                 delegate.close();
+                ctxMap.remove(conglomId,this); //remove us from the map
             }
         }
 
