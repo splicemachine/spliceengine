@@ -27,9 +27,6 @@
 					<value>true</value>
 				</property>
 			</activation>
-			<properties>
-				<obfuscate.si>-obfuscated</obfuscate.si>
-			</properties>
 			<build>
 				<plugins>
 					<plugin>
@@ -42,7 +39,7 @@
 							<appendClassifier>true</appendClassifier>
 							<!-- archive></archive -->
 							<attach>true</attach>
-							<attachArtifactClassifier>${obfuscate.si}</attachArtifactClassifier>
+							<attachArtifactClassifier>obfuscated</attachArtifactClassifier>
 							<attachArtifactType>jar</attachArtifactType>
 							<!-- exclusions></exclusions -->
 							<!-- inFilter></inFilter -->
@@ -61,14 +58,10 @@
 								<option>-keepattributes Exceptions</option>
 								<!-- # Write out an obfuscation mapping file for de-obfuscating any stack traces. -->
 								<!-- # Or for incremental obfuscation of extensions... this will allow for patching obfuscated code if needed. -->
-								<option>-printmapping
-									${project.build.directory}/${project.build.finalName}-${envClassifier}.map
-								</option>
+								<option>-printmapping ${project.build.directory}/${project.build.finalName}.map </option>
 								<!-- # Kick-ass option to list all classes and class members that match the various -keep options. -->
 								<!-- # Awesome for debugging config files. -->
-								<option>-printseeds
-									${project.build.directory}/${project.build.finalName}-${envClassifier}.keep
-								</option>
+								<option>-printseeds ${project.build.directory}/${project.build.finalName}.keep </option>
 								<!-- ################################################# -->
 								<!-- ### From the example for a typical library... ### -->
 								<!-- ################################################# -->
