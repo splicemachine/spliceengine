@@ -269,15 +269,14 @@ public class SpliceConstants {
 		@Parameter public static final String SI_DELAY_ROLL_FORWARD_MAX_SIZE = "splice.si.delayRollForwardMaxSize";
 		@DefaultValue(SI_DELAY_ROLL_FORWARD_MAX_SIZE) public static final int DEFAULT_SI_DELAY_ROLL_FORWARD_MAX_SIZE = 300;
 		public static int siDelayRollForwardMaxSize;
-
-		
-		@SpliceConstants.Parameter public static final String TOTAL_WORKERS = "splice.task.maxWorkers";
-		@SpliceConstants.DefaultValue(TOTAL_WORKERS) public static final int DEFAULT_TOTAL_WORKERS=Runtime.getRuntime().availableProcessors();
-		public static int taskWorkers;
-
+	
 		@SpliceConstants.Parameter public static final String NUM_PRIORITY_TIERS = "splice.task.numPriorities";
 		@DefaultValue(NUM_PRIORITY_TIERS) public static final int DEFAULT_NUM_PRIORITY_TIERS=4;
 		public static int numPriorityTiers;
+
+		@SpliceConstants.Parameter public static final String TOTAL_WORKERS = "splice.task.maxWorkers";
+		@SpliceConstants.DefaultValue(TOTAL_WORKERS) public static final int DEFAULT_TOTAL_WORKERS=Math.max(DEFAULT_NUM_PRIORITY_TIERS,Runtime.getRuntime().availableProcessors());
+		public static int taskWorkers;
 
 		@SpliceConstants.Parameter public static final String MAX_PRIORITY = "splice.task.maxPriority";
 		@DefaultValue(MAX_PRIORITY) public static final int DEFAULT_MAX_PRIORITY=100;
