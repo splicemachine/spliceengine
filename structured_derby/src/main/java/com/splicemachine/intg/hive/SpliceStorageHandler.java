@@ -43,9 +43,9 @@ implements HiveMetaHook, HiveStoragePredicateHandler{
 
 	private Configuration spliceConf;
 	final static public String DEFAULT_PREFIX = "default.";
-	private SQLUtil sqlUtil = null;
+	private static SQLUtil sqlUtil = null;
 
-	private String parentTxnId = null;
+	private static String parentTxnId = null;
 	boolean performInput = true;
 	private static Connection parentConn = null;
 	
@@ -97,7 +97,10 @@ implements HiveMetaHook, HiveStoragePredicateHandler{
 	      
 	    }
 	    tableName = tableName.trim();
-	    parentTxnId = startWriteJobParentTxn(connStr, tableName);
+	    if(parentConn == null){
+	    	parentTxnId = startWriteJobParentTxn(connStr, tableName);   	
+	    }
+	   
     	jobProperties.put(SpliceSerDe.SPLICE_TRANSACTION_ID, parentTxnId);
 	    if(isInputJob)
 	    	jobProperties.put(SpliceSerDe.SPLICE_INPUT_TABLE_NAME, tableName);
@@ -114,12 +117,12 @@ implements HiveMetaHook, HiveStoragePredicateHandler{
 		try {
 			parentConn = sqlUtil.createConn();
 			sqlUtil.disableAutoCommit(parentConn);
-			String pTxsID = sqlUtil.getTransactionID(parentConn);
+			String txsId = sqlUtil.getTransactionID(parentConn);
 			PreparedStatement ps = parentConn
 					.prepareStatement("call SYSCS_UTIL.SYSCS_ELEVATE_TRANSACTION(?)");
 			ps.setString(1, tableName);
 			ps.executeUpdate();
-			return pTxsID;
+			return txsId;
 		} catch (SQLException e) {
 			return null;
 		} catch (InstantiationException e) {
@@ -255,13 +258,23 @@ implements HiveMetaHook, HiveStoragePredicateHandler{
 	}
 
 	public static void commitParentTxn() throws SQLException{
-		if(parentConn != null)
+		
+		if(parentConn != null){
 			parentConn.commit();
+			parentConn.close();
+			parentConn = null;
+		}
+			
 	}
 
 	public static void rollbackParentTxn() throws SQLException{
-		if(parentConn != null)
+		
+		if(parentConn != null){
 			parentConn.rollback();
+			parentConn.close();
+			parentConn = null;
+		}
+			
 	}
 }
 
