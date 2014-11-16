@@ -4,7 +4,6 @@ import com.carrotsearch.hppc.LongArrayList;
 import com.google.common.collect.Lists;
 import com.splicemachine.si.api.*;
 import com.splicemachine.si.impl.ForwardingLifecycleManager;
-import com.splicemachine.si.impl.SITransactor;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.*;
 
@@ -19,29 +18,15 @@ import java.util.List;
  * Date: 8/21/14
  */
 public class ActiveTransactionTest {
-    public static final byte[] DESTINATION_TABLE = Bytes.toBytes("1216");
-    boolean useSimple = true;
+
+    private static final byte[] DESTINATION_TABLE = Bytes.toBytes("1216");
+
     protected static StoreSetup storeSetup;
     protected static TestTransactionSetup transactorSetup;
-    Transactor transactor;
-    TxnLifecycleManager control;
-    //	TransactionManager control;
-    TransactorTestUtility testUtility;
-    final List<Txn> createdParentTxns = Lists.newArrayList();
-    private TxnStore txnStore;
 
-    @SuppressWarnings("unchecked")
-    protected void baseSetUp() {
-        transactor = transactorSetup.transactor;
-        control = new ForwardingLifecycleManager(transactorSetup.txnLifecycleManager){
-            @Override
-            protected void afterStart(Txn txn) {
-                createdParentTxns.add(txn);
-            }
-        };
-        testUtility = new TransactorTestUtility(useSimple,storeSetup,transactorSetup,transactor,control);
-        txnStore  = transactorSetup.txnStore;
-    }
+    private TxnLifecycleManager control;
+    private final List<Txn> createdParentTxns = Lists.newArrayList();
+    private TxnStore txnStore;
 
     @BeforeClass
     public static void setupClass(){
@@ -51,7 +36,13 @@ public class ActiveTransactionTest {
 
     @Before
     public void setUp() throws IOException {
-        baseSetUp();
+        control = new ForwardingLifecycleManager(transactorSetup.txnLifecycleManager){
+            @Override
+            protected void afterStart(Txn txn) {
+                createdParentTxns.add(txn);
+            }
+        };
+        txnStore  = transactorSetup.txnStore;
     }
 
     @After
@@ -59,7 +50,6 @@ public class ActiveTransactionTest {
         for(Txn txn: createdParentTxns){
             txn.rollback(); // rollback the transaction to prevent contamination
         }
-
     }
 
     @Test
