@@ -14,7 +14,24 @@
 	</parent>
 
 	<dependencies>
-		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_machine_adapter_98-hdp2.1</artifactId> <version>1.0.0RC2-SNAPSHOT</version></dependency>
+		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_machine_adapter_98-hdp2.1</artifactId> <version>1.0.0RC2-SNAPSHOT</version>
+ <exclusions>
+ 	<exclusion>
+ 		<artifactId>xercesImpl</artifactId>
+ 		<groupId>xerces</groupId>
+ 	</exclusion>
+ 	
+ 	<exclusion>
+ 		<artifactId>jasper-compiler</artifactId>
+ 		<groupId>tomcat</groupId>
+ 	</exclusion> 	
+ 	
+ 	<exclusion>
+ 		<artifactId>jasper-runtime</artifactId>
+ 		<groupId>tomcat</groupId>
+ 	</exclusion> 	
+ </exclusions>
+		</dependency>
 		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_machine_adapter_98-hdp2.1</artifactId> <version>1.0.0RC2-SNAPSHOT</version><classifier>tests</classifier></dependency>
 	</dependencies>
 
