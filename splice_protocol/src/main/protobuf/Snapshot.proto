@@ -16,31 +16,49 @@
  * limitations under the License.
  */
 option java_package = "org.apache.hadoop.hbase.protobuf.generated";
-option java_outer_classname = "HFileProtos";
+option java_outer_classname = "SnapshotProtos";
 option java_generic_services = true;
 option java_generate_equals_and_hash = true;
 option optimize_for = SPEED;
 
+import "FS.proto";
 import "HBase.proto";
 
-// Map of name/values
-message FileInfoProto {
-  repeated BytesBytesPair map_entry = 1;
+message SnapshotFileInfo {
+  enum Type {
+    HFILE = 1;
+    WAL = 2;
+  }
+
+  required Type type = 1;
+
+  optional string hfile = 3;
+
+  optional string wal_server = 4;
+  optional string wal_name = 5;
 }
 
-// HFile file trailer
-message FileTrailerProto {
-  optional uint64 file_info_offset = 1;
-  optional uint64 load_on_open_data_offset = 2;
-  optional uint64 uncompressed_data_index_size = 3;
-  optional uint64 total_uncompressed_bytes = 4;
-  optional uint32 data_index_count = 5;
-  optional uint32 meta_index_count = 6;
-  optional uint64 entry_count = 7;
-  optional uint32 num_data_index_levels = 8;
-  optional uint64 first_data_block_offset = 9;
-  optional uint64 last_data_block_offset = 10;
-  optional string comparator_class_name = 11;
-  optional uint32 compression_codec = 12;
-  optional bytes encryption_key = 13;
+message SnapshotRegionManifest {
+  optional int32 version = 1;
+
+  required RegionInfo region_info = 2;
+  repeated FamilyFiles family_files = 3;
+
+  message StoreFile {
+    required string name = 1;
+    optional Reference reference = 2;
+
+    // TODO: Add checksums or other fields to verify the file
+    optional uint64 file_size = 3;
+  }
+
+  message FamilyFiles {
+    required bytes family_name = 1;
+    repeated StoreFile store_files = 2;
+  }
+}
+
+message SnapshotDataManifest {
+  required TableSchema table_schema = 1;
+  repeated SnapshotRegionManifest region_manifests = 2;
 }

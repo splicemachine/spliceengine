@@ -164,12 +164,25 @@ message SnapshotDescription {
   optional int32 version = 5;
 }
 
+/**
+ * Description of the distributed procedure to take
+ */
+message ProcedureDescription {
+  required string signature = 1; // the unique signature of the procedure
+  optional string instance = 2; // the procedure instance name
+  optional int64 creation_time = 3 [default = 0];
+  repeated NameStringPair configuration = 4;
+}
+
 message EmptyMsg {
 }
 
 message LongMsg {
   required int64 long_msg = 1;
+}
 
+message DoubleMsg {
+  required double double_msg = 1;
 }
 
 message BigDecimalMsg {
@@ -184,4 +197,11 @@ message UUID {
 message NamespaceDescriptor {
   required bytes name = 1;
   repeated NameStringPair configuration = 2;
+}
+
+/**
+ * Description of the region server info
+ */
+message RegionServerInfo {
+  optional int32 infoPort = 1;
 }
