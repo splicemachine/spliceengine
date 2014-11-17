@@ -92,6 +92,7 @@ public final class UpdateNode extends DMLModStatementNode
 	protected FromTable			targetTable;
 	protected FormatableBitSet 			readColsBitSet;
 	protected boolean 			positionedUpdate;
+	protected boolean 			isUpdateWithSubquery; // Splice fork
 
 	/* Column name for the RowLocation in the ResultSet */
 	public static final String COLUMNNAME = "###RowLocationToUpdate";
@@ -341,9 +342,12 @@ public final class UpdateNode extends DMLModStatementNode
 	 	** from list.
 		*/
 		resultFromList = resultSet.getFromList();
+		// Splice fork - don't enforce this if special subquery syntax
+		if (!isUpdateWithSubquery) {
 		if (SanityManager.DEBUG)
 		SanityManager.ASSERT(resultFromList.size() == 1,
 			"More than one table in result from list in an update.");
+		}
 
 		/* Normalize the SET clause's result column list for synonym */
 		if (synonymTableName != null)
@@ -526,7 +530,11 @@ public final class UpdateNode extends DMLModStatementNode
 		 * the table name out from each RC. See comment on 
 		 * checkTableNameAndScrubResultColumns().
 		 */
-		checkTableNameAndScrubResultColumns(resultColumnList);
+		// Splice fork: leave table names present in special case
+        // of multi column update with single source select.
+        if (!isUpdateWithSubquery) {
+			checkTableNameAndScrubResultColumns(resultColumnList);
+		}
 
 		/* Set the new result column list in the result set */
 		resultSet.setResultColumns(resultColumnList);
@@ -635,6 +643,10 @@ public final class UpdateNode extends DMLModStatementNode
 		return Authorizer.UPDATE_PRIV;
 	}
 
+	void setUpdateWithSubquery(boolean withSubquery) {
+		isUpdateWithSubquery = withSubquery;
+	}
+	
 	/**
 	 * Return true if the node references SESSION schema tables (temporary or permanent)
 	 *

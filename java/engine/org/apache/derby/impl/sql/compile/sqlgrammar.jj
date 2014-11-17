@@ -875,7 +875,7 @@ public class SQLParser
 
 		SelectNode resultSet = (SelectNode) nodeFactory.getNode(
 										C_NodeTypes.SELECT_NODE,
-										setClause,
+										setClause, /* SELECT list */
 										null, 	/* AGGREGATE list */
 										fromList, /* FROM list */
 					  					whereClause, /* WHERE clause */
@@ -895,6 +895,84 @@ public class SQLParser
 
 		return retval;
 	}
+
+     private StatementNode getUpdateNodeWithSub(FromTable fromTable, /* table to be updated */
+                                         TableName tableName, /* table to be updated */
+                                         ResultColumnList setClause, /* new values to ue for the update */
+                                         ValueNode whereClause, /* where clause for outer update */
+                                         ValueNode subQuery) /* inner source subquery for multi column syntax */
+        throws StandardException
+    {
+        FromList   fromList = (FromList) nodeFactory.getNode(
+                                C_NodeTypes.FROM_LIST,
+                                getContextManager());
+
+        fromList.addFromTable(fromTable);
+
+        // Bring the subquery table(s) to the outer from list
+        SelectNode innerSelect = (SelectNode)((SubqueryNode)subQuery).getResultSet();
+        FromList innerFrom = innerSelect.getFromList();
+        List innerFromEntries = innerFrom.getNodes();
+        for (Object obj : innerFromEntries) {
+            assert obj instanceof FromTable;
+            fromList.addFromTable((FromTable)obj);
+        }
+
+        // Bring the subquery where clause to outer where clause
+        ValueNode innerWhere = innerSelect.getWhereClause();
+        ValueNode alteredWhereClause;
+        if (whereClause != null) {
+            alteredWhereClause = (ValueNode) getNodeFactory().getNode(
+                C_NodeTypes.AND_NODE,
+                whereClause, /* the one passed into this method */
+                innerWhere,  /* the one pulled from subquery */
+                getContextManager());
+        } else {
+            alteredWhereClause = innerWhere;
+        }
+        
+        // Alter the passed in setClause to give it non-null expressions
+        // and to point to subqjuery table.
+        ResultColumnList innerRCL = innerSelect.getResultColumns();
+        int inputSize = setClause.size();
+        for (int index = 0; index < inputSize; index++)
+        {
+            ResultColumn rc = ((ResultColumn) setClause.elementAt(index));
+            // String columnName = rc.getName();
+            ResultColumn innerResultColumn = ((ResultColumn)innerRCL.elementAt(index));
+            String innerColumnName = innerResultColumn.getName();
+            ValueNode colRef = (ValueNode) getNodeFactory().getNode(
+                C_NodeTypes.COLUMN_REFERENCE,
+                innerColumnName,
+                ((FromTable)innerFromEntries.get(0)).getTableName(),
+                getContextManager());
+            rc.setExpression(colRef);
+        }
+
+        SelectNode resultSet = (SelectNode) nodeFactory.getNode(
+            C_NodeTypes.SELECT_NODE,
+            setClause, /* SELECT list */
+            null,   /* AGGREGATE list */
+            fromList, /* FROM list */
+            alteredWhereClause, /* WHERE clause */
+            null, /* GROUP BY list */
+            null, /* having clause */
+            null, /* window list */
+            getContextManager());
+
+        StatementNode retval =
+            (StatementNode) nodeFactory.getNode(
+                C_NodeTypes.UPDATE_NODE,
+                tableName, /* target table for update */
+                resultSet, /* SelectNode just created */
+                getContextManager());
+           
+        ((UpdateNode)retval).setUpdateWithSubquery(true);
+        
+        setUpAndLinkParameters();
+
+        return retval;
+    }
 
     /**
      * Generate a trim operator node
@@ -3684,7 +3762,7 @@ tableOrIndex() :
 StatementNode
 updateBody() throws StandardException :
 {
-	ResultColumnList	columnList;
+	ResultColumnList	columnList = null;
 	String				correlationName = null;
 	JavaToSQLValueNode	javaToSQLNode = null;
 	TableName  tableName = null;
@@ -3692,6 +3770,10 @@ updateBody() throws StandardException :
 	FromTable  fromTable = null;
 	Properties targetProperties = null;
 	Token	   whereToken = null;
+	// Splice fork - additional variables
+    boolean    isUpdateFromSub = false;
+    ValueNode  subQuery = null;
+    Token      leftParenToken = null;
 }
 {
 	LOOKAHEAD( { newInvocationFollows(1) } ) 
@@ -3718,7 +3800,23 @@ updateBody() throws StandardException :
 		[
 			targetProperties = propertyList(false) <CHECK_PROPERTIES>
 		] 
-		<SET> columnList = setClauseList()
+
+        /* Check if this is multi column update with single subquery source */
+
+        <SET>
+        [
+            leftParenToken = <LEFT_PAREN> columnList = setClauseListSpecial() <RIGHT_PAREN> <EQUALS_OPERATOR>
+            {
+                isUpdateFromSub = true;
+                subQuery = updateSource(null);
+            }
+        ]
+        {
+            if (!isUpdateFromSub) {
+               columnList = setClauseList();
+            }
+        }
+
 		[ 
 			whereToken = <WHERE>
 		    (
@@ -3760,7 +3858,11 @@ updateBody() throws StandardException :
 			}
 			((FromBaseTable) fromTable).setTableProperties(targetProperties);
 		}
-		return getUpdateNode(fromTable, tableName, columnList, whereClause);
+		if (isUpdateFromSub) {
+            return getUpdateNodeWithSub(fromTable, tableName, columnList, whereClause, subQuery);
+		} else {
+            return getUpdateNode(fromTable, tableName, columnList, whereClause);
+		}
 	}
 }
 
@@ -8687,6 +8789,20 @@ setClauseList() throws StandardException :
 	}
 }
 
+ResultColumnList
+setClauseListSpecial() throws StandardException :
+{
+    ResultColumnList    columnList = (ResultColumnList) nodeFactory.getNode(
+                                                C_NodeTypes.RESULT_COLUMN_LIST,
+                                                getContextManager());
+}
+{
+    setClauseSpecial(columnList) ( <COMMA> setClauseSpecial(columnList) ) *
+    {
+        return columnList;
+    }
+}
+
 /*
  * <A NAME="setClause">setClause</A>
  */
@@ -8713,6 +8829,25 @@ setClause(ResultColumnList columnList) throws StandardException :
 										getContextManager());
 		columnList.addResultColumn(resultColumn);
 	}
+}
+
+void
+setClauseSpecial(ResultColumnList columnList) throws StandardException :
+{
+    ResultColumn resultColumn;
+    ColumnReference  columnName;
+    ValueNode    valueNode;
+}
+{
+    columnName = columnReference()
+    {
+        resultColumn = (ResultColumn) nodeFactory.getNode(
+                                        C_NodeTypes.RESULT_COLUMN,
+                                        columnName,
+                                        null, /* valueNode null for now - will be populated later */
+                                        getContextManager());
+        columnList.addResultColumn(resultColumn);
+    }
 }
 
 /*
