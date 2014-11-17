@@ -82,12 +82,13 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
         com.google.common.base.Predicate<Predicate> joinScoped = evalableAtNode(j);
 
         for (ResultSetNode rsn: rightsUntilBinary) {
+            List<? extends Predicate> c = null;
             // Encode whether to pull up predicate to join:
             //  when can't evaluate on node but can evaluate at join
             com.google.common.base.Predicate<Predicate> shouldPull =
                     Predicates.and(Predicates.not(evalableAtNode(rsn)), joinScoped);
             if(rsn instanceof ProjectRestrictNode)
-                toPullUp.addAll(pullPredsFromPR((ProjectRestrictNode)rsn,shouldPull));
+                c = pullPredsFromPR((ProjectRestrictNode)rsn,shouldPull);
             else if(rsn instanceof FromBaseTable){
                 /*
                  * If we are a HashNestedLoopJoin, then we can keep join predicates on the base node--in
@@ -96,16 +97,20 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
                  * is a pretty ugly attempt to ensure that this works correctly.
                  */
                 boolean removeFromBaseTable = !(ap.getJoinStrategy() instanceof HashNestedLoopJoinStrategy);
-                toPullUp.addAll(pullPredsFromTable((FromBaseTable)rsn,shouldPull,removeFromBaseTable));
+                c = pullPredsFromTable((FromBaseTable)rsn,shouldPull,removeFromBaseTable);
             }else if(rsn instanceof IndexToBaseRowNode){
                 /* Only pull from index if we are a HashNestedLoopJoin */
-                boolean pullFromIndex = (ap.getJoinStrategy() instanceof HashNestedLoopJoinStrategy);
+                boolean pullFromIndex = true;//(ap.getJoinStrategy() instanceof HashNestedLoopJoinStrategy);
                 if(pullFromIndex){
-                    List<? extends Predicate> c = pullPredsFromIndex((IndexToBaseRowNode) rsn, shouldPull);
-                    toPullUp.addAll(c);
+                    c = pullPredsFromIndex((IndexToBaseRowNode) rsn, shouldPull);
                 }
             }else
                 throw new IllegalArgumentException("Programmer error: unable to find proper class for pulling predicates: "+ rsn);
+
+            for (Predicate p:c) {
+                if (!toPullUp.contains(p))
+                    toPullUp.addAll(c);
+            }
         }
 
         for (Predicate p: toPullUp){
