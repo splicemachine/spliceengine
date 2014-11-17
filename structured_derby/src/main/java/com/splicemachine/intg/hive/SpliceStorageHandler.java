@@ -10,6 +10,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hive.metastore.HiveMetaHook;
@@ -34,6 +36,7 @@ import org.apache.hadoop.mapred.InputFormat;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.OutputFormat;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.log4j.Logger;
 
 import com.splicemachine.mrio.api.SQLUtil;
 import com.splicemachine.mrio.api.SpliceMRConstants;
@@ -46,57 +49,32 @@ implements HiveMetaHook, HiveStoragePredicateHandler{
 	private static SQLUtil sqlUtil = null;
 
 	private static String parentTxnId = null;
-	boolean performInput = true;
 	private static Connection parentConn = null;
-	
-	private String getSpliceTableName(Table tbl)
-	{
-		String tableName = tbl.getParameters().get(SpliceSerDe.SPLICE_INPUT_TABLE_NAME);
-		if(tableName == null){
-			tableName = tbl.getParameters().get(SpliceSerDe.SPLICE_OUTPUT_TABLE_NAME);
-			performInput = false;
-		}
-		if(tableName == null)
-		{
-			// Note: Have to look at What is in SerdeInfo.
-			// Now I'm just imitating what HBase does
-			if(performInput)
-				tableName = tbl.getSd().getSerdeInfo().getParameters().get(SpliceSerDe.SPLICE_INPUT_TABLE_NAME);
-			else
-				tableName = tbl.getSd().getSerdeInfo().getParameters().get(SpliceSerDe.SPLICE_OUTPUT_TABLE_NAME);
-		}
-		 if (tableName == null) {
-		        tableName = tbl.getDbName() + "." + tbl.getTableName();
-		        if (tableName.startsWith(DEFAULT_PREFIX)) {
-		          tableName = tableName.substring(DEFAULT_PREFIX.length());
-		        }
-		      }
-		tableName = tableName.trim();
-		return tableName;
-	}
+	private static Logger Log = Logger.getLogger(SpliceStorageHandler.class.getName());
 	
 	public void configureTableJobProperties(TableDesc tableDesc,
-		    								Map<String, String> jobProperties, boolean isInputJob)
+		    								Map<String, String> jobProperties, boolean isInputJob) throws Exception
 	{
 		Properties tableProperties = tableDesc.getProperties();
 		String tableName = null;
 		String connStr = tableProperties.getProperty(SpliceSerDe.SPLICE_JDBC_STR);
+		if(connStr == null)
+			throw new Exception("Error: wrong param. Did you mean '"+SpliceSerDe.SPLICE_JDBC_STR+"'?");
 		if(sqlUtil == null)
 			sqlUtil = SQLUtil.getInstance(connStr);
-		if(isInputJob)
+		if(isInputJob){
 			tableName = tableProperties.getProperty(SpliceSerDe.SPLICE_INPUT_TABLE_NAME);
-		else
-	    	tableName = tableProperties.getProperty(SpliceSerDe.SPLICE_OUTPUT_TABLE_NAME);
-	    
-	    if (tableName == null) {
-	      tableName = tableProperties.getProperty(hive_metastoreConstants.META_TABLE_NAME);
-	      
-	      if (tableName.startsWith(DEFAULT_PREFIX)) {
-	          tableName = tableName.substring(DEFAULT_PREFIX.length());
-	        }
-	      
-	    }
+			if(tableName == null)
+				throw new Exception("Error: wrong param. Did you mean '"+SpliceSerDe.SPLICE_INPUT_TABLE_NAME+"'?");
+		}
+		else{
+			tableName = tableProperties.getProperty(SpliceSerDe.SPLICE_OUTPUT_TABLE_NAME);
+			if(tableName == null)
+				throw new Exception("Error: wrong param. Did you mean '"+SpliceSerDe.SPLICE_OUTPUT_TABLE_NAME+"'?");
+		}
+	   
 	    tableName = tableName.trim();
+	    
 	    if(parentConn == null){
 	    	parentTxnId = startWriteJobParentTxn(connStr, tableName);   	
 	    }
@@ -141,16 +119,28 @@ implements HiveMetaHook, HiveStoragePredicateHandler{
 	@Override
 	  public void configureInputJobProperties(
 	    TableDesc tableDesc,
-	    Map<String, String> jobProperties) {
+	    Map<String, String> jobProperties){
 		
-	    configureTableJobProperties(tableDesc, jobProperties, true);
+	    try {
+			configureTableJobProperties(tableDesc, jobProperties, true);
+		} catch (Exception e) {
+			
+			Log.error(e);
+			System.exit(1);
+		}
 	  }
 	
 	@Override
 	  public void configureOutputJobProperties(
 	    TableDesc tableDesc,
 	    Map<String, String> jobProperties) {
-	    configureTableJobProperties(tableDesc, jobProperties, false);
+	    try {
+			configureTableJobProperties(tableDesc, jobProperties, false);
+		} catch (Exception e) {
+			
+			Log.error(e);
+			System.exit(1);
+		}
 	  }
 	
 	@Override
@@ -177,33 +167,32 @@ implements HiveMetaHook, HiveStoragePredicateHandler{
 		
 		boolean isExternal = MetaStoreUtils.isExternalTable(tbl);
 		if(isExternal){
-			System.out.println("Creating External table for Splice...");
+			Log.info("Creating External table for Splice...");
 		}
-		String tableName = getSpliceTableName(tbl);
 		
-		Map<String, String> serdeParam = tbl.getSd().getSerdeInfo().getParameters();
+		String inputTableName = tbl.getParameters().get(SpliceSerDe.SPLICE_INPUT_TABLE_NAME);
+		String outputTableName = tbl.getParameters().get(SpliceSerDe.SPLICE_OUTPUT_TABLE_NAME);
+		if(inputTableName == null && outputTableName == null)
+			throw new MetaException("Wrong param, did you mean " + 
+									SpliceSerDe.SPLICE_INPUT_TABLE_NAME+
+									" or "+ SpliceSerDe.SPLICE_OUTPUT_TABLE_NAME+" ? ");
+		
 		// We can choose to support user define column mapping.
 		// But currently I don't think it is necessary
 		// We map all columns from Splice Table to Hive Table.
-		String connStr = spliceConf.get(SpliceSerDe.SPLICE_JDBC_STR);
+		String connStr = tbl.getParameters().get(SpliceSerDe.SPLICE_JDBC_STR);
+		if(connStr == null)
+			throw new MetaException("Wrong param, did you mean " + 
+					SpliceSerDe.SPLICE_JDBC_STR+" ? ");
 		 if(sqlUtil == null)
 		    	sqlUtil = SQLUtil.getInstance(connStr);
-		
-		try {
-			if(sqlUtil.checkTableExists(tableName)){
-				
-			}
-			else{
-				throw new MetaException("Error in preCreateTable, "
-						+ "check Table Exists in Splice. "
-						+ "Now we only support creating External Table."
-						+ "Please create table in Splice first."
-						);
-			}
-		} catch (SQLException e) {
-			throw new MetaException("Error in preCreateTable, "
-									+ "check Table Exists in Splice. "
-									+ e.getCause());
+		if(inputTableName != null){
+			inputTableName = inputTableName.trim();
+			checkTableExists(inputTableName);
+		}
+		if(outputTableName != null){
+			outputTableName = outputTableName.trim();
+			checkTableExists(outputTableName);
 		}
 	}
 
@@ -263,6 +252,7 @@ implements HiveMetaHook, HiveStoragePredicateHandler{
 			parentConn.commit();
 			parentConn.close();
 			parentConn = null;
+			Log.info("transaction" + parentTxnId +"committed");
 		}
 			
 	}
@@ -273,8 +263,24 @@ implements HiveMetaHook, HiveStoragePredicateHandler{
 			parentConn.rollback();
 			parentConn.close();
 			parentConn = null;
+			Log.info("transaction" + parentTxnId +"rolledback");
 		}
 			
+	}
+	
+	private void checkTableExists(String tableName) throws MetaException{
+		try {
+			if(!sqlUtil.checkTableExists(tableName))
+				throw new MetaException("Error in checkTableExists, "
+						+ "check Table Exists in Splice. "
+						+ "Now we only support creating External Table."
+						+ "Please create table in Splice first."
+						);
+		} catch (SQLException e) {
+			throw new MetaException("Error in checkTableExists, "
+									+ "check Table Exists in Splice. "
+									+ e);
+		}
 	}
 }
 

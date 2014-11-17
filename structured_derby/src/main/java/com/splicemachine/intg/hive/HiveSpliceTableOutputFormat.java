@@ -98,19 +98,19 @@ import com.splicemachine.pipeline.api.RecordingCallBuffer;
 import com.splicemachine.pipeline.impl.WriteCoordinator;
 
 import org.apache.hadoop.hive.ql.exec.FileSinkOperator.RecordWriter;
+import org.apache.log4j.Logger;
 
 public class HiveSpliceTableOutputFormat extends OutputFormat implements
 HiveOutputFormat<ImmutableBytesWritable, Put>,
 org.apache.hadoop.mapred.OutputFormat<ImmutableBytesWritable, Put>{
 	private SpliceOutputFormat outputFormat = new SpliceOutputFormat();
 	private static SQLUtil sqlUtil = null;
-	
-	private static Configuration conf = null;
-	
+	private static Configuration conf = null;	
 	private String spliceTableName;
 	protected static String tableID;
 	private HashMap<List, List> tableStructure;
 	private HashMap<List, List> pks;
+	private static Logger Log = Logger.getLogger(HiveSpliceTableOutputFormat.class.getName());
 
 	public Configuration getConf() {
 		return this.conf;
@@ -187,7 +187,7 @@ org.apache.hadoop.mapred.OutputFormat<ImmutableBytesWritable, Put>{
 			throws IOException {
 		 	
 		 	spliceTableName = jc.get(SpliceSerDe.SPLICE_OUTPUT_TABLE_NAME);
-		 	System.out.println("checking outputspec, writing to Splice table: "+spliceTableName);
+		 	Log.info("checking outputspec, writing to Splice table: "+spliceTableName);
 		    jc.set(TableOutputFormat.OUTPUT_TABLE, spliceTableName);
 		    Job job = new Job(jc);
 		    JobContext jobContext = ShimLoader.getHadoopShims().newJobContext(job);
@@ -218,15 +218,14 @@ org.apache.hadoop.mapred.OutputFormat<ImmutableBytesWritable, Put>{
 	    jc.set(TableOutputFormat.OUTPUT_TABLE, spliceTableName);
 	    final boolean walEnabled = HiveConf.getBoolVar(
 	        jc, HiveConf.ConfVars.HIVE_HBASE_WAL_ENABLED);
-	    //final HTable table = new HTable(HBaseConfiguration.create(jc), spliceTableName);
-	    //table.setAutoFlush(false);
+	    
 	    setConf(jc);
 	    RecordWriter rw = null;
 	    try {
 			rw = this.getRecordWriter();
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			Log.error(e);
+			System.exit(1);
 		}
 	    return rw;
 	}

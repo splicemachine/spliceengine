@@ -96,6 +96,7 @@ import com.splicemachine.pipeline.api.RecordingCallBuffer;
 import com.splicemachine.pipeline.impl.WriteCoordinator;
 
 import org.apache.hadoop.hive.ql.exec.FileSinkOperator.RecordWriter;
+import org.apache.log4j.Logger;
 
 public class HiveSpliceOutputFormat extends OutputFormat implements
 HiveOutputFormat<ImmutableBytesWritable, Put>,
@@ -108,6 +109,7 @@ org.apache.hadoop.mapred.OutputFormat<ImmutableBytesWritable, Put>{
 	protected static String tableID;
 	private HashMap<List, List> tableStructure;
 	private HashMap<List, List> pks;
+	private static Logger Log = Logger.getLogger(HiveSpliceOutputFormat.class.getName());
 	
 	public Configuration getConf() {
 		return this.conf;
@@ -193,7 +195,7 @@ org.apache.hadoop.mapred.OutputFormat<ImmutableBytesWritable, Put>{
 		
 		public SpliceRecordWriter(int[]pkCols, ArrayList colTypes) throws IOException{
 			
-			System.out.println("Initializing SpliceRecordWriter....");
+			Log.info("Initializing SpliceRecordWriter....");
 			if(conf == null)
 				throw new IOException("Error: Please set Configuration for SpliceRecordWriter");
 			try {
@@ -205,12 +207,10 @@ org.apache.hadoop.mapred.OutputFormat<ImmutableBytesWritable, Put>{
 				this.rowHash = getRowHash(null);	
 				tableID = sqlUtil.getConglomID(conf.get(TableOutputFormat.OUTPUT_TABLE));	
 				
-			} catch (StandardException e) {
-				// TODO Auto-generated catch block
-				throw new IOException(e.getCause());
+			} catch (StandardException e) {				
+				throw new IOException(e);
 			} catch (SQLException e) {
-				// TODO Auto-generated catch block
-				throw new IOException(e.getCause());
+				throw new IOException(e);
 			} 
 		}
 		
@@ -331,14 +331,15 @@ org.apache.hadoop.mapred.OutputFormat<ImmutableBytesWritable, Put>{
 					sqlUtil.commit(conn);
 					
 				} catch (Exception e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					Log.error(e);
 					try {
 						sqlUtil.rollback(conn);
-						throw new IOException("Exception in RecordWriter.close, "+e.getMessage());
+						Log.error("rolling back child transaction:"+childTxsID);
+						throw new IOException("Exception in RecordWriter.close, "+e);
 					} catch (SQLException e1) {
 						// TODO Auto-generated catch block
-						throw new IOException("Exception in RecordWriter.close, "+e1.getMessage());
+						Log.error("roll back child transaction failed, child transactionID:"+childTxsID);
+						throw new IOException("Exception in RecordWriter.close, "+e1);
 					}
 				}
 		        }
@@ -374,9 +375,7 @@ org.apache.hadoop.mapred.OutputFormat<ImmutableBytesWritable, Put>{
 			Class<? extends Writable> valueClass, boolean isCompressed,
 			Properties tableProperties, Progressable progress)
 			throws IOException {
-		System.out.println("getHiveRecordWriter...");
 		String spliceTableName = jc.get(SpliceSerDe.SPLICE_OUTPUT_TABLE_NAME);
-		System.out.println("spliceTableName: "+spliceTableName);
 	    jc.set(TableOutputFormat.OUTPUT_TABLE, spliceTableName);
 	    final boolean walEnabled = HiveConf.getBoolVar(
 	        jc, HiveConf.ConfVars.HIVE_HBASE_WAL_ENABLED);
@@ -387,8 +386,8 @@ org.apache.hadoop.mapred.OutputFormat<ImmutableBytesWritable, Put>{
 	    try {
 			rw = this.getRecordWriter();
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			Log.error(e);
+			System.exit(1);
 		}
 	    return rw;
 	}

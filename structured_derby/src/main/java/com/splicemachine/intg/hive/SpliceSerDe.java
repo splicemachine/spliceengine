@@ -65,8 +65,7 @@ public class SpliceSerDe implements SerDe {
 	 private LazySimpleSerDe.SerDeParameters serdeParams;
 	 private int[]pkCols = null;
 	 
-	 static Logger Log = Logger.getLogger(
-			 SpliceSerDe.class.getName());
+	 private static Logger Log = Logger.getLogger(SpliceSerDe.class.getName());
 
 	 /**
 	  * An initialization function used to gather information about the table.	
