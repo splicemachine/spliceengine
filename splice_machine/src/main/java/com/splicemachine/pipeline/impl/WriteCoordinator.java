@@ -39,7 +39,7 @@ public class WriteCoordinator extends PipelineConstants implements CallBufferFac
 
     public static WriteCoordinator create(Configuration config) throws IOException {
         assert config!=null;
-        HConnection connection= HConnectionManager.getConnection(config);
+        HConnection connection= HConnectionManager.createConnection(config);
         MonitoredThreadPool writerPool = MonitoredThreadPool.create();
         RegionCache regionCache = HBaseRegionCache.getInstance();
         int maxEntries = SpliceConstants.maxBufferEntries;
