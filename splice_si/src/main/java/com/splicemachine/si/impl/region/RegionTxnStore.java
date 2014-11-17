@@ -10,6 +10,8 @@ import com.splicemachine.si.api.*;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.impl.TxnUtils;
 import com.splicemachine.utils.Source;
+import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Put;
@@ -18,7 +20,10 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.Logger;
+
 import javax.annotation.Nullable;
+
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
@@ -33,6 +38,7 @@ import java.util.List;
  * Date: 6/19/14
  */
 public class RegionTxnStore<TxnInfo,Transaction,TableBuffer,Data,Put extends OperationWithAttributes,Get extends OperationWithAttributes> {
+	private static final Logger LOG = Logger.getLogger(RegionTxnStore.class);
 		/*
 		 * The region in which to access data
 		 */
@@ -62,6 +68,8 @@ public class RegionTxnStore<TxnInfo,Transaction,TableBuffer,Data,Put extends Ope
 		 * @throws IOException if something goes wrong when fetching transactions
 		 */
 		public Transaction getTransaction(long txnId) throws IOException {
+			if (LOG.isTraceEnabled())
+				SpliceLogUtils.trace(LOG, "getTransaction txnId=%d",txnId);
 			org.apache.hadoop.hbase.client.Get get = new org.apache.hadoop.hbase.client.Get(TxnUtils.getRowKey(txnId));
 				Result result = region.get(get);
 				if(result==null || result.size()<=0) return null; //no transaction
@@ -82,6 +90,8 @@ public class RegionTxnStore<TxnInfo,Transaction,TableBuffer,Data,Put extends Ope
 		 * was improperly elevated from a read-only transaction (e.g. if it's not present on the table).
 		 */
 		public void addDestinationTable(long txnId,byte[] destinationTable) throws IOException {
+			if (LOG.isTraceEnabled())
+				SpliceLogUtils.trace(LOG, "addDestinationTable txnId=%d, desinationTable",txnId,destinationTable);
 			org.apache.hadoop.hbase.client.Get get = new org.apache.hadoop.hbase.client.Get(TxnUtils.getRowKey(txnId));
         byte[] destTableQualifier = AbstractV2TxnDecoder.DESTINATION_TABLE_QUALIFIER_BYTES;
         get.addColumn(FAMILY, destTableQualifier);
@@ -126,6 +136,8 @@ public class RegionTxnStore<TxnInfo,Transaction,TableBuffer,Data,Put extends Ope
 		 * the timeout threshold
 		 */
 		public boolean keepAlive(long txnId) throws IOException{
+			if (LOG.isTraceEnabled())
+				SpliceLogUtils.trace(LOG, "keepAlive txnId=%d",txnId);
 				byte[] rowKey = TxnUtils.getRowKey(txnId);
 				org.apache.hadoop.hbase.client.Get get = new org.apache.hadoop.hbase.client.Get(rowKey);
 				get.addColumn(FAMILY,AbstractV2TxnDecoder.KEEP_ALIVE_QUALIFIER_BYTES);
@@ -166,6 +178,8 @@ public class RegionTxnStore<TxnInfo,Transaction,TableBuffer,Data,Put extends Ope
 		 * @throws IOException if something goes wrong fetching the transaction
 		 */
 		public Txn.State getState(long txnId) throws IOException{
+			if (LOG.isTraceEnabled())
+				SpliceLogUtils.trace(LOG, "getState txnId=%d",txnId);
 				byte[] rowKey = TxnUtils.getRowKey(txnId);
 				org.apache.hadoop.hbase.client.Get get = new org.apache.hadoop.hbase.client.Get(rowKey);
 				//add the columns for the new encoding
@@ -195,6 +209,9 @@ public class RegionTxnStore<TxnInfo,Transaction,TableBuffer,Data,Put extends Ope
 				if(state== Txn.State.ACTIVE)
 						state = TxnDecoder.adjustStateForTimeout(dataLib,state,keepAliveKv,oldForm);
 
+				if (LOG.isTraceEnabled())
+					SpliceLogUtils.trace(LOG, "getState returnedState state=%s",state);
+				
 				return state;
 		}
 
@@ -205,6 +222,8 @@ public class RegionTxnStore<TxnInfo,Transaction,TableBuffer,Data,Put extends Ope
 		 * @throws IOException if something goes wrong in writing the transaction
 		 */
 		public void recordTransaction(TxnInfo txn) throws IOException{
+			if (LOG.isTraceEnabled())
+				SpliceLogUtils.trace(LOG, "recordTransaction txn=%s",txn);
 			org.apache.hadoop.hbase.client.Put put = newTransactionDecoder.encodeForPut(txn);
 			region.put(put);
 		}
@@ -224,6 +243,8 @@ public class RegionTxnStore<TxnInfo,Transaction,TableBuffer,Data,Put extends Ope
 		 * @throws IOException if something goes wrong while committing.
 		 */
 		public void recordCommit(long txnId, long commitTs) throws IOException{
+			if (LOG.isTraceEnabled())
+				SpliceLogUtils.trace(LOG, "recordCommit txnId=%d, commitTs=%d",txnId, commitTs);
 				org.apache.hadoop.hbase.client.Put put = new org.apache.hadoop.hbase.client.Put(TxnUtils.getRowKey(txnId));
 				put.add(FAMILY,AbstractV2TxnDecoder.COMMIT_QUALIFIER_BYTES,Encoding.encode(commitTs));
 				put.add(FAMILY,AbstractV2TxnDecoder.STATE_QUALIFIER_BYTES, Txn.State.COMMITTED.encode());
@@ -239,6 +260,8 @@ public class RegionTxnStore<TxnInfo,Transaction,TableBuffer,Data,Put extends Ope
 		 * @throws IOException if something goes wrong during the fetch
 		 */
 		public long getCommitTimestamp(long txnId) throws IOException {
+			if (LOG.isTraceEnabled())
+				SpliceLogUtils.trace(LOG, "getCommitTimestamp txnId=%d",txnId);
 			org.apache.hadoop.hbase.client.Get get = new org.apache.hadoop.hbase.client.Get(TxnUtils.getRowKey(txnId));
 				get.addColumn(FAMILY,AbstractV2TxnDecoder.COMMIT_QUALIFIER_BYTES);
 				get.addColumn(FAMILY,AbstractV1TxnDecoder.OLD_COMMIT_TIMESTAMP_COLUMN);
@@ -269,6 +292,8 @@ public class RegionTxnStore<TxnInfo,Transaction,TableBuffer,Data,Put extends Ope
 		 * @throws IOException if something goes wrong during the write.
 		 */
 		public void recordRollback(long txnId) throws IOException {
+			if (LOG.isTraceEnabled())
+				SpliceLogUtils.trace(LOG, "recordRollback txnId=%d",txnId);
 			org.apache.hadoop.hbase.client.Put put = new org.apache.hadoop.hbase.client.Put(TxnUtils.getRowKey(txnId));
 				put.add(FAMILY,AbstractV2TxnDecoder.STATE_QUALIFIER_BYTES, Txn.State.ROLLEDBACK.encode());
 				region.put(put);
@@ -295,15 +320,20 @@ public class RegionTxnStore<TxnInfo,Transaction,TableBuffer,Data,Put extends Ope
 		 * @throws IOException
 		 */
 		public long[] getActiveTxnIds(long afterTs, long beforeTs, byte[] destinationTable) throws IOException{
-        Source<Transaction> activeTxn = getActiveTxns(afterTs,beforeTs,destinationTable);
-        LongArrayList lal = LongArrayList.newInstance();
-        while(activeTxn.hasNext()){
-            lal.add(transactionlib.getTxnId(activeTxn.next()));
-        }
-        return lal.toArray();
+			if (LOG.isTraceEnabled())
+				SpliceLogUtils.trace(LOG, "getActiveTxnIds beforeTs=%d, afterTs=%s, destinationTable=%s",beforeTs, afterTs, destinationTable);
+	
+			Source<Transaction> activeTxn = getActiveTxns(afterTs,beforeTs,destinationTable);
+	        LongArrayList lal = LongArrayList.newInstance();
+	        while(activeTxn.hasNext()){
+	            lal.add(transactionlib.getTxnId(activeTxn.next()));
+	        }
+	        return lal.toArray();
 		}
 
     public Source<Transaction> getAllTxns(long minTs, long maxTs) throws IOException{
+		if (LOG.isTraceEnabled())
+			SpliceLogUtils.trace(LOG, "getAllTxns minTs=%d, maxTs=%s",minTs, maxTs);
     	org.apache.hadoop.hbase.client.Scan scan = setupScanOnRange(minTs,maxTs);
 
         RegionScanner baseScanner = region.getScanner(scan);
@@ -319,8 +349,9 @@ public class RegionTxnStore<TxnInfo,Transaction,TableBuffer,Data,Put extends Ope
     }
 
     public Source<Transaction> getActiveTxns(long afterTs,long beforeTs, byte[] destinationTable) throws IOException{
+		if (LOG.isTraceEnabled())
+			SpliceLogUtils.trace(LOG, "getActiveTxns afterTs=%d, beforeTs=%s",afterTs, beforeTs);
     	org.apache.hadoop.hbase.client.Scan scan = setupScanOnRange(afterTs, beforeTs);
-
         scan.setFilter(dataLib.getActiveTransactionFilter(beforeTs,afterTs,destinationTable));
 
         RegionScanner baseScanner = region.getScanner(scan);
