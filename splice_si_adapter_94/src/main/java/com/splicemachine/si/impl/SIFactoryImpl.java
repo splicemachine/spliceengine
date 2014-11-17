@@ -1,12 +1,14 @@
 package com.splicemachine.si.impl;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
 
+import com.splicemachine.async.KeyValue;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.encoding.MultiFieldEncoder;
@@ -19,6 +21,7 @@ import com.splicemachine.si.api.TxnStore;
 import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.api.Txn.IsolationLevel;
 import com.splicemachine.si.api.Txn.State;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
@@ -33,6 +36,7 @@ import com.splicemachine.si.impl.region.STransactionLib;
 import com.splicemachine.storage.EntryAccumulator;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
+import com.splicemachine.stream.StreamException;
 import com.splicemachine.utils.ByteSlice;
 
 public class SIFactoryImpl implements SIFactory<SparseTxn> {
@@ -147,4 +151,27 @@ public class SIFactoryImpl implements SIFactory<SparseTxn> {
         transaction.encodeForNetwork(mfe, true, true);
 		return mfe.build();
 	}
+
+	@Override
+	public TxnView transform(List<KeyValue> element) throws StreamException {
+	      DenseTxn denseTxn = (DenseTxn) SparseTxn.decodeFromNetwork(element.get(0).value(), true);
+          TxnViewBuilder tvb = new TxnViewBuilder().txnId(denseTxn.getTxnId())
+                  .parentTxnId(denseTxn.getParentTxnId())
+                  .beginTimestamp(denseTxn.getBeginTimestamp())
+                  .commitTimestamp(denseTxn.getCommitTimestamp())
+                  .globalCommitTimestamp(denseTxn.getGlobalCommitTimestamp())
+                  .state(denseTxn.getState())
+                  .isolationLevel(denseTxn.getIsolationLevel())
+                  .keepAliveTimestamp(denseTxn.getLastKATime())
+                  .destinationTable(denseTxn.getDestinationTableBuffer())
+                  .store(TransactionStorage.getTxnSupplier());
+          if(denseTxn.hasAdditiveField())
+              tvb = tvb.additive(denseTxn.isAdditive());
+
+          try {
+              return tvb.build();
+          } catch (IOException e) {
+              throw new StreamException(e);
+          }
+      }
 }
