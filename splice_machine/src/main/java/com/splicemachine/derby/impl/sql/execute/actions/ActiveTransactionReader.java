@@ -17,9 +17,11 @@ import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.job.Task;
 import com.splicemachine.metrics.Metrics;
+import com.splicemachine.si.api.SIFactory;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.DenseTxn;
+import com.splicemachine.si.impl.SIFactoryDriver;
 import com.splicemachine.si.impl.SparseTxn;
 import com.splicemachine.si.impl.TransactionStorage;
 import com.splicemachine.si.impl.TxnViewBuilder;
@@ -55,6 +57,7 @@ public class ActiveTransactionReader {
     private final long minTxnId;
     private final long maxTxnId;
     private final byte[] writeTable;
+    private static final SIFactory siFactory = SIFactoryDriver.getSIFactory();
 
     public ActiveTransactionReader(long minTxnId, long maxTxnId, byte[] writeTable){
         this.minTxnId = minTxnId;
@@ -93,26 +96,7 @@ public class ActiveTransactionReader {
             return scanner.stream().transform(new Transformer<List<KeyValue>, TxnView>() {
                 @Override
                 public TxnView transform(List<KeyValue> element) throws StreamException {
-                    DenseTxn denseTxn = (DenseTxn) SparseTxn.decodeFromNetwork(element.get(0).value(), true);
-                    TxnViewBuilder tvb = new TxnViewBuilder().txnId(denseTxn.getTxnId())
-                            .parentTxnId(denseTxn.getParentTxnId())
-                            .beginTimestamp(denseTxn.getBeginTimestamp())
-                            .commitTimestamp(denseTxn.getCommitTimestamp())
-                            .globalCommitTimestamp(denseTxn.getGlobalCommitTimestamp())
-                            .state(denseTxn.getState())
-                            .isolationLevel(denseTxn.getIsolationLevel())
-                            .keepAliveTimestamp(denseTxn.getLastKATime())
-                            .destinationTable(denseTxn.getDestinationTableBuffer())
-                            .store(TransactionStorage.getTxnSupplier());
-
-                    if(denseTxn.hasAdditiveField())
-                        tvb = tvb.additive(denseTxn.isAdditive());
-
-                    try {
-                        return tvb.build();
-                    } catch (IOException e) {
-                        throw new StreamException(e);
-                    }
+                	return siFactory.transform(element);
                 }
             });
         } catch (ExecutionException e) {
