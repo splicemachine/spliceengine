@@ -141,6 +141,7 @@
 									<URL>http://www.splicemachine.com</URL>
 								</manifestEntries>
 							</archive>
+							<finalName>splice_machine-${project.version}</finalName>
 							<descriptors>
 								<descriptor>${project.basedir}/src/main/assembly/assembly.xml</descriptor>
 								<descriptor>${project.basedir}/src/main/assembly/standalone_assembly.xml</descriptor>
