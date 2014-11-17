@@ -1,6 +1,7 @@
 package com.splicemachine.si.impl;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.hbase.HConstants;
@@ -8,6 +9,8 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import com.google.protobuf.ByteString;
+import com.google.protobuf.InvalidProtocolBufferException;
+import com.splicemachine.async.KeyValue;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.encoding.MultiFieldEncoder;
@@ -20,6 +23,7 @@ import com.splicemachine.si.api.TxnStore;
 import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.api.Txn.IsolationLevel;
 import com.splicemachine.si.api.Txn.State;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.coprocessor.TxnMessage;
 import com.splicemachine.si.coprocessor.TxnMessage.Txn;
 import com.splicemachine.si.coprocessor.TxnMessage.TxnInfo;
@@ -37,6 +41,7 @@ import com.splicemachine.si.impl.region.STransactionLib;
 import com.splicemachine.storage.EntryAccumulator;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
+import com.splicemachine.stream.StreamException;
 import com.splicemachine.utils.ByteSlice;
 
 public class SIFactoryImpl implements SIFactory<TxnMessage.Txn> {
@@ -127,7 +132,7 @@ public class SIFactoryImpl implements SIFactory<TxnMessage.Txn> {
 			long globalCommitTimestamp, boolean hasAdditiveField,
 			boolean additive, IsolationLevel isolationLevel, State state,
 			String destTableBuffer) {
-		return TxnMessage.Txn.newBuilder().setState(state.ordinal()).setCommitTs(commitTimestamp).setGlobalCommitTs(globalCommitTimestamp).setInfo(TxnMessage.TxnInfo.newBuilder().setTxnId(txnId).setBeginTs(beginTimestamp)
+		return TxnMessage.Txn.newBuilder().setState(state.getId()).setCommitTs(commitTimestamp).setGlobalCommitTs(globalCommitTimestamp).setInfo(TxnMessage.TxnInfo.newBuilder().setTxnId(txnId).setBeginTs(beginTimestamp)
 		.setParentTxnid(parentTxnId).setDestinationTables(ByteString.copyFrom(Bytes.toBytes(destTableBuffer))).setIsolationLevel(isolationLevel.encode()).build()).build();
 	}
 
@@ -147,4 +152,37 @@ public class SIFactoryImpl implements SIFactory<TxnMessage.Txn> {
 	public byte[] transactionToByteArray(MultiFieldEncoder mfe, Txn transaction) {
 		return transaction.toByteArray();
 	}
+
+	@Override
+	public TxnView transform(List<KeyValue> element) throws StreamException {
+	    KeyValue keyValue = element.get(0);
+        TxnMessage.Txn txn;
+        
+        try {
+            txn = TxnMessage.Txn.parseFrom(keyValue.value());
+        } catch (InvalidProtocolBufferException e) {
+            throw new StreamException(e); //shouldn't happen
+        }
+        TxnMessage.TxnInfo info = txn.getInfo();
+        TxnViewBuilder tvb = new TxnViewBuilder().txnId(info.getTxnId())
+                .parentTxnId(info.getParentTxnid())
+                .beginTimestamp(info.getBeginTs())
+                .commitTimestamp(txn.getCommitTs())
+                .globalCommitTimestamp(txn.getGlobalCommitTs())
+                .state(com.splicemachine.si.api.Txn.State.fromInt(txn.getState()))
+                .isolationLevel(com.splicemachine.si.api.Txn.IsolationLevel.fromInt(info.getIsolationLevel()))
+                .keepAliveTimestamp(txn.getLastKeepAliveTime())
+                .store(TransactionStorage.getTxnSupplier());
+
+        if(info.hasDestinationTables())
+            tvb = tvb.destinationTable(info.getDestinationTables().toByteArray());
+        if(info.hasIsAdditive())
+            tvb = tvb.additive(info.getIsAdditive());
+
+        try {
+            return tvb.build();
+        } catch (IOException e) {
+            throw new StreamException(e);
+        }
+    }
 }

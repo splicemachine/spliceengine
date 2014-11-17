@@ -1,9 +1,11 @@
 package com.splicemachine.si.api;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.apache.hadoop.hbase.regionserver.HRegion;
 
+import com.splicemachine.async.KeyValue;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.si.api.Txn.IsolationLevel;
 import com.splicemachine.si.api.Txn.State;
@@ -16,6 +18,7 @@ import com.splicemachine.si.impl.region.STransactionLib;
 import com.splicemachine.storage.EntryAccumulator;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
+import com.splicemachine.stream.StreamException;
 
 public interface SIFactory<Transaction> {
 	public RowAccumulator getRowAccumulator(EntryPredicateFilter predicateFilter, EntryDecoder decoder, boolean countStar);
@@ -35,4 +38,5 @@ public interface SIFactory<Transaction> {
 	void storeTransaction(RegionTxnStore regionTransactionStore, Transaction transaction) throws IOException;
 	long getTxnId(Transaction transaction);
 	byte[] transactionToByteArray(MultiFieldEncoder mfe, Transaction transaction);
+	TxnView transform(List<KeyValue> element) throws StreamException;
 }
