@@ -28,10 +28,10 @@ public class TokenBucket implements TrafficController {
     private final TokenStrategy tokenAdder;
     private AtomicInteger numTokens;
     private volatile AtomicLong fuzzyTime;
-    private final int maxTokens;
+    private volatile int maxTokens;
     private final WaitStrategy waitStrategy;
 
-    public  TokenBucket(int maxTokens,TokenStrategy tokenStrategy, WaitStrategy waitStrategy) {
+    public TokenBucket(int maxTokens,TokenStrategy tokenStrategy, WaitStrategy waitStrategy) {
         this.waitStrategy = waitStrategy;
         this.tokenAdder = tokenStrategy;
         this.maxTokens = maxTokens;
@@ -174,6 +174,12 @@ public class TokenBucket implements TrafficController {
     public int availablePermits() {
         addNewTokens(); //add any tokens that weren't available before
        return numTokens.get();
+    }
+
+    @Override
+    public void setMaxPermits(int newMaxPermits) {
+        if(newMaxPermits<1) throw new IllegalArgumentException("Cannot set a max permits < 1");
+        this.maxTokens = newMaxPermits;
     }
 
     public static interface TokenStrategy{

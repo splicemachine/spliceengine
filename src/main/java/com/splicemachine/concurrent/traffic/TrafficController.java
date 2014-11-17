@@ -119,4 +119,16 @@ public interface TrafficController {
     int tryAcquire(int minPermits, int maxPermits);
 
     int availablePermits();
+
+    /**
+     * Optional method: Set a new max number of permits to use.
+     *
+     * Implementations are not required to make this happen immediately: for example, if
+     * more permits than this are already set, then implementations may wait until those permits
+     * are exhausted before setting the new maximum.
+     *
+     * @param newMaxPermits the new number of max permits
+     * @throws java.lang.IllegalArgumentException if the new max permits is < 1
+     */
+    void setMaxPermits(int newMaxPermits);
 }
