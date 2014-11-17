@@ -43,6 +43,7 @@ import org.apache.derby.iapi.types.TypeId;
 import org.apache.derby.iapi.util.JBitSet;
 import org.apache.derby.iapi.util.PropertyUtil;
 
+import java.sql.ResultSet;
 import java.util.*;
 
 /**
@@ -1708,10 +1709,14 @@ public class JoinNode extends TableOperatorNode {
                 isHashableJoin(rightResultSet)){
              // Look for unary path to FromBaseTable, to prune preds from nonStoreRestrictionList
              FromBaseTable table = null;
-             if(rightResultSet instanceof ProjectRestrictNode &&
-                     ((ProjectRestrictNode) rightResultSet).getChildResult() instanceof FromBaseTable){
-                 table = (FromBaseTable) ((ProjectRestrictNode)rightResultSet).getChildResult();
-             }else if (rightResultSet instanceof FromBaseTable){
+             if(rightResultSet instanceof ProjectRestrictNode) {
+                 ResultSetNode child = ((ProjectRestrictNode) rightResultSet).getChildResult();
+                 if (child instanceof FromBaseTable) {
+                     table = (FromBaseTable) child;
+                 } else if (child instanceof IndexToBaseRowNode) {
+                     table = ((IndexToBaseRowNode) child).source;
+                 }
+             } else if (rightResultSet instanceof FromBaseTable){
                  table = (FromBaseTable)rightResultSet;
              }
             // If found, clear join predicates, b/c they will be handled by the join
