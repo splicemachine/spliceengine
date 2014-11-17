@@ -70,4 +70,5 @@ public interface DerbyFactory<Transaction> {
     String indexName,String tableName,String schemaName,UUID tableId,long tableConglomerateId);
 	void SYSCS_GET_REQUESTS(ResultSet[] resultSet) throws SQLException;
 	void SYSCS_GET_SCHEMA_INFO(final ResultSet[] resultSet) throws SQLException;
+	ServerName getServerName(String serverName);
 }
