@@ -16,7 +16,6 @@ public class ActiveTxnFilter extends BaseActiveTxnFilter<Cell> {
     
     @Override
     public ReturnCode filterKeyValue(Cell kv) {
-    	System.out.println("filterKeyValue " + kv);
     	return this.internalFilter(kv);
     }
     
