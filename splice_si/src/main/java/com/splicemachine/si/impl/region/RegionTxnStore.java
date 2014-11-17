@@ -294,7 +294,7 @@ public class RegionTxnStore<TxnInfo,Transaction,TableBuffer,Data,Put extends Ope
 		 * optionally write to {@code destinationTable}
 		 * @throws IOException
 		 */
-		public long[] getActiveTxnIds(long beforeTs, long afterTs, byte[] destinationTable) throws IOException{
+		public long[] getActiveTxnIds(long afterTs, long beforeTs, byte[] destinationTable) throws IOException{
         Source<Transaction> activeTxn = getActiveTxns(afterTs,beforeTs,destinationTable);
         LongArrayList lal = LongArrayList.newInstance();
         while(activeTxn.hasNext()){

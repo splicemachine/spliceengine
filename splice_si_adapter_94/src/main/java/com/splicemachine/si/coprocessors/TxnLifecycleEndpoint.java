@@ -178,7 +178,7 @@ public class TxnLifecycleEndpoint extends BaseEndpointCoprocessor implements Txn
 
 		@Override
 		public byte[] getActiveTransactionIds(long afterTs, long beforeTs, byte[] destinationTable) throws IOException {
-				long[] activeTxnIds = regionStore.getActiveTxnIds(beforeTs,afterTs,destinationTable);
+				long[] activeTxnIds = regionStore.getActiveTxnIds(afterTs, beforeTs, destinationTable);
 				MultiFieldEncoder encoder = MultiFieldEncoder.create(activeTxnIds.length);
 				for(long activeTxnId:activeTxnIds){
 						encoder.encodeNext(activeTxnId);
