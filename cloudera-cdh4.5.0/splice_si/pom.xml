@@ -209,6 +209,53 @@
 								<option>-keep public class com.splicemachine.si.impl.rollforward.SegmentedRollForward { public *; }</option>
 								<option>-keep public interface com.splicemachine.si.impl.rollforward.SegmentedRollForward$Action { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.rollforward.SegmentedRollForward$Context { public *; }</option>
+								<!-- ### Needed after consolidation of 94 and 98. ### -->
+								<option>-keep public class com.splicemachine.si.api.RollForwardQueue { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.RowAccumulator { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.TxnView { public *; }</option>
+								<option>-keep public class com.splicemachine.si.coprocessors.RollForwardQueueMap { public *; }</option>
+								<option>-keep public class com.splicemachine.si.coprocessors.SIBaseObserver { public *; protected boolean tableEnvMatch; protected com.splicemachine.si.api.TransactionalRegion region; protected com.splicemachine.si.api.TxnOperationFactory txnOperationFactory; protected boolean needsCompositeFilter(org.apache.hadoop.hbase.filter.Filter); protected org.apache.hadoop.hbase.filter.Filter[] orderFilters(org.apache.hadoop.hbase.filter.Filter, org.apache.hadoop.hbase.filter.Filter); protected org.apache.hadoop.hbase.filter.FilterList composeFilters(org.apache.hadoop.hbase.filter.Filter[]);  }</option>
+								<option>-keep public class com.splicemachine.si.coprocessors.TxnLifecycleEndpoint { public *; }</option>
+								<option>-keep public class com.splicemachine.si.coprocessors.BaseSICompactionScanner { public *; protected boolean nextDirect(java.util.List, int); }</option>
+								<option>-keep public class com.splicemachine.si.data.api.HTableSource { public *; }</option>
+								<option>-keep public class com.splicemachine.si.data.api.IHTable { public *; }</option>
+								<option>-keep public class com.splicemachine.si.data.api.SDataLib {public *; }</option>
+								<option>-keep public class com.splicemachine.si.data.api.STableReader { public *; }</option>
+								<option>-keep public class com.splicemachine.si.data.api.STableWriter { public *; }</option>
+								<option>-keep public class com.splicemachine.si.data.hbase.HRowAccumulator { public *; }</option>
+								<option>-keep public class com.splicemachine.si.data.hbase.HTableReader { public *; }</option>
+								<option>-keep public class com.splicemachine.si.data.hbase.HbRegion { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.AdditiveWriteConflict { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.BaseSIFilter { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.BaseSIFilterPacked { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.HTransactorFactory { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.SICompactionState { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.SIFactoryDriver { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.SIFactoryImpl { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.TransactionLifecycle { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.TransactionTimestamps { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.TxnDataStore { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.TxnUtils { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.region.AbstractV1TxnDecoder { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.region.AbstractV2TxnDecoder { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.region.ActiveTxnFilter { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.region.BaseActiveTxnFilter { public *; protected long afterTs; protected long beforeTs; }</option>
+								<option>-keep public class com.splicemachine.si.impl.region.HTransactionLib { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.region.STransactionLib { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.region.TransactionResolver { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.region.TxnDecoder { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.rollforward.RollForwardManagement { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.rollforward.RollForwardStatus { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.store.CompletedTxnCacheSupplier { public *; }</option>
+								<option>-keep public class com.splicemachine.hbase.AbstractSkippingScanFilter { public *; }</option>
+								<option>-keep public class com.splicemachine.hbase.AbstractBufferedRegionScanner { public *; protected final org.apache.hadoop.hbase.regionserver.RegionScanner delegate;}</option>
+								<option>-keep public class com.splicemachine.derby.hbase.BaseAllocatedFilter { public *; }</option>
+								<option>-keep public class com.splicemachine.hbase.BaseReadAheadRegionScanner { public *; }</option>
+								<option>-keep public class com.splicemachine.async.AsyncSkippingScanFilter { public *; }</option>
+								<option>-keep public class com.splicemachine.si.data.hbase.BaseHbRegion { public *; protected static org.apache.hadoop.hbase.client.Mutation getMutation(com.splicemachine.hbase.KVPair, com.splicemachine.si.api.TxnView); }</option>
+								<option>-keep public class com.splicemachine.si.data.hbase.HbTable { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.SIFactory { public *; }</option>
+								<option>-keep public class com.splicemachine.si.data.hbase.HTableWriter { public *; }</option>
 							</options>
 							<!-- outjar></outjar -->
 							<!-- proguardInclude></proguardInclude -->
