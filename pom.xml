@@ -235,6 +235,16 @@
 	<profiles>
 
 		<profile>
+			<id>all</id>
+			<modules>
+				<module>cloudera-cdh4.5.0</module>
+				<module>cloudera-cdh5.1.3</module>
+				<module>hdp2.1</module>
+				<module>mapr4.0</module>
+			</modules>
+		</profile>
+
+		<profile>
 			<id>no_obfuscate</id>
 			<activation>
 				<property>
