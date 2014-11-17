@@ -24,8 +24,8 @@ import java.io.IOException;
  *         Date: 8/18/14
  */
 public abstract class BaseActiveTxnFilter<Data> extends FilterBase implements Writable {
-    private final long beforeTs;
-    private final long afterTs;
+    protected final long beforeTs;
+    protected final long afterTs;
     private final byte[] destinationTable;
     private final byte[] newEncodedDestinationTable;
     private boolean isAlive = false;
@@ -49,17 +49,6 @@ public abstract class BaseActiveTxnFilter<Data> extends FilterBase implements Wr
             this.newEncodedDestinationTable = null;
     }
 
-    @Override
-    public boolean filterRowKey(byte[] buffer, int offset, int length) {
-				/*
-				 * Since the transaction id must necessarily be the begin timestamp in both
-				 * the old and new format, we can filter transactions out based entirely on the
-				 * row key here
-				 */
-        long txnId = TxnUtils.txnIdFromRowKey(buffer, offset, length);
-        boolean withinRange = txnId >= afterTs && txnId <= beforeTs;
-        return !withinRange;
-    }
 
     @Override
     public boolean filterRow() {
