@@ -141,6 +141,7 @@
 									<URL>http://www.splicemachine.com</URL>
 								</manifestEntries>
 							</archive>
+							<finalName>splice_machine-${project.version}</finalName>
 							<descriptors>
 								<descriptor>${project.basedir}/src/main/assembly/assembly.xml</descriptor>
 								<descriptor>${project.basedir}/src/main/assembly/standalone_assembly.xml</descriptor>
@@ -214,9 +215,7 @@
 								<argument>-cp</argument>
 								<classpath>${maven.runtime.classpath}</classpath>
 								<argument>-Djava.awt.headless=true</argument>
-								<argument>
-									-Dlog4j.configuration=file:${basedir}/src/main/resources/info-log4j.properties
-								</argument>
+								<argument>-Dlog4j.configuration=file:${basedir}/src/main/resources/info-log4j.properties</argument>
 								<argument>-Djava.net.preferIPv4Stack=true</argument>
 								<argument>-Dzookeeper.sasl.client=false</argument>
 								<argument>-Xmx2g</argument>
