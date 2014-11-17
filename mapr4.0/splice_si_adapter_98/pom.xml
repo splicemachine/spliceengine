@@ -14,7 +14,7 @@
 	</parent>
 
 	<dependencies>
-		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_si-mapr4.0</artifactId> <version>1.0.0RC2-SNAPSHOT</version></dependency>
+		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_si-mapr4.0</artifactId> <version>1.0.0RC2-SNAPSHOT</version> <classifier>${obfuscate.si}</classifier> </dependency>
 		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_protocol-mapr4.0</artifactId> <version>1.0.0RC2-SNAPSHOT</version></dependency>
 		<dependency> <groupId>com.splicemachine</groupId> <artifactId>asynchbase</artifactId> </dependency>
 		<dependency> <groupId>com.stumbleupon</groupId> <artifactId>async</artifactId> </dependency>
