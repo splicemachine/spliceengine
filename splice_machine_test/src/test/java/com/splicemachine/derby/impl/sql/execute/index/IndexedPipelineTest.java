@@ -536,7 +536,7 @@ public class IndexedPipelineTest {
         SortedSet<Pair<HRegionInfo,ServerName>> indexRegionInfos = Sets.newTreeSet(new RegionCacheComparator());
         HRegionInfo indexRegionInfo = mock(HRegionInfo.class);
         when(indexRegionInfo.getStartKey()).thenReturn(HConstants.EMPTY_START_ROW);
-        indexRegionInfos.add(Pair.newPair(indexRegionInfo, new ServerName(FOO_SERVERNAME)));
+        indexRegionInfos.add(Pair.newPair(indexRegionInfo, ServerName.valueOf(FOO_SERVERNAME)));
         RegionCache fakeCache = mock(RegionCache.class);
         when(fakeCache.getRegions(any(byte[].class))).thenReturn(indexRegionInfos);
         return fakeCache;

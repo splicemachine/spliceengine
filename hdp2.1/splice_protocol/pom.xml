@@ -14,7 +14,18 @@
 	</parent>
 
 	<dependencies>
-		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_constants-hdp2.1</artifactId> <version>1.0.0RC2-SNAPSHOT</version></dependency>
+		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_constants-hdp2.1</artifactId> <version>1.0.0RC2-SNAPSHOT</version>
+ <exclusions>
+ 	<exclusion>
+ 		<artifactId>asynchbase</artifactId>
+ 		<groupId>com.splicemachine</groupId>
+ 	</exclusion>
+ 	<exclusion>
+ 		<artifactId>async</artifactId>
+ 		<groupId>com.stumbleupon</groupId> 
+ 	</exclusion> 	
+ </exclusions>
+		</dependency>
 	</dependencies>
 
 	<build>
@@ -24,7 +35,7 @@
 				<artifactId>maven-protoc-plugin</artifactId>
 				<configuration>
 					<protocExecutable>protoc</protocExecutable>
-					<protoSourceRoot>${project.basedir}/../../splice_protocol/src/main/protobuf</protoSourceRoot>
+					<protoSourceRoot>${project.basedir}/src/main/protobuf</protoSourceRoot>
 				</configuration>
 				<executions>
 					<execution>
