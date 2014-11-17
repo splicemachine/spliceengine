@@ -21,7 +21,11 @@ public class EnvUtils {
 			return TableEnv.TRANSACTION_TABLE;
 		else if (tableName.equals("-ROOT-"))
 			return TableEnv.ROOT_TABLE;
-		else if (tableName.equals(".META."))
+		else if ("hbase:meta".equals(tableName)
+                || "meta".equals(tableName)
+                || "hbase:namespace".equals(tableName)
+                || "namespace".equals(tableName)
+                || ".META.".equals(tableName))
 			return TableEnv.META_TABLE;
 		else if (tableName.equals(SpliceConstants.TEMP_TABLE))
 			return TableEnv.DERBY_SYS_TABLE;

@@ -10,6 +10,7 @@ import com.splicemachine.si.impl.*;
 import com.splicemachine.storage.EntryPredicateFilter;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Durability;
 import org.apache.hadoop.hbase.client.Put;
@@ -32,10 +33,10 @@ import static com.splicemachine.constants.SpliceConstants.SUPPRESS_INDEXING_ATTR
 public class SIObserver extends SIBaseObserver {
 		private static Logger LOG = Logger.getLogger(SIObserver.class);
 
-		
-		
+
+
 		@Override
-		 public void prePut(ObserverContext<RegionCoprocessorEnvironment> e, Put put, WALEdit edit, Durability writeToWAL) throws IOException {				
+		 public void prePut(ObserverContext<RegionCoprocessorEnvironment> e, Put put, WALEdit edit, Durability writeToWAL) throws IOException {
 			/*
 				 * This is relatively expensive--it's better to use the write pipeline when you need to load a lot of rows.
 				 */
@@ -109,7 +110,10 @@ public class SIObserver extends SIBaseObserver {
 	                          Durability writeToWAL) throws IOException {
         if (tableEnvMatch) {
             if (delete.getAttribute(SUPPRESS_INDEXING_ATTRIBUTE_NAME) == null) {
-                throw new RuntimeException("Direct deletes are not supported under snapshot isolation. Instead a Put is expected that will set a record level tombstone.");
+                TableName tableName = e.getEnvironment().getRegion().getTableDesc().getTableName();
+                String message = "Direct deletes are not supported under snapshot isolation. " +
+                        "Instead a Put is expected that will set a record level tombstone. tableName=" + tableName;
+                throw new RuntimeException(message);
             }
         }
         super.preDelete(e, delete, edit, writeToWAL);
@@ -136,5 +140,5 @@ public class SIObserver extends SIBaseObserver {
         }
     }
 
-    
+
 }
