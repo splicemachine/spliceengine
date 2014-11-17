@@ -90,6 +90,7 @@ import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.job.coprocessor.SizedInterval;
 import com.splicemachine.derby.impl.job.index.CreateIndexTask;
+import com.splicemachine.derby.impl.job.index.PopulateIndexTask;
 import com.splicemachine.derby.impl.job.operation.SinkTask;
 import com.splicemachine.derby.impl.load.ColumnContext;
 import com.splicemachine.derby.impl.load.FileImportReader;
@@ -792,7 +793,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(FileImportReader.class, EXTERNALIZABLE_SERIALIZER,216); 
         instance.register(CreateIndexTask.class, EXTERNALIZABLE_SERIALIZER,217);
         instance.register(TransactionReadTask.class, EXTERNALIZABLE_SERIALIZER,218);
-        
+        instance.register(PopulateIndexTask.class, EXTERNALIZABLE_SERIALIZER,219);        
         
     }
 }
