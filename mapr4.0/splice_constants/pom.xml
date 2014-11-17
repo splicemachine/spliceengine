@@ -22,6 +22,9 @@
 	</properties>
 
 	<dependencies>
+	
+		<dependency> <groupId>com.splicemachine</groupId> <artifactId>asynchbase</artifactId> </dependency>
+		<dependency> <groupId>com.stumbleupon</groupId> <artifactId>async</artifactId> </dependency> 
 		<dependency> <groupId>com.mapr.hadoop</groupId> <artifactId>maprfs-core</artifactId> <version>${maprfs.version}</version> </dependency>
 		<dependency> <groupId>com.mapr.hadoop</groupId> <artifactId>maprfs</artifactId> <version>${maprfs.version}</version> </dependency>
 		<dependency> <groupId>joda-time</groupId> <artifactId>joda-time</artifactId> </dependency>
