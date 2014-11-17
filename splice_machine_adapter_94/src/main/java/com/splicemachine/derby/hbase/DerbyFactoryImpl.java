@@ -460,5 +460,10 @@ public class DerbyFactoryImpl implements DerbyFactory<SparseTxn> {
 			
 		}
 
+		@Override
+		public ServerName getServerName(String serverName) {
+			return new ServerName(serverName);
+		}
+
 		
 }

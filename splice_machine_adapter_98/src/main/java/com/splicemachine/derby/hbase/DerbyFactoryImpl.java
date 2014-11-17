@@ -449,4 +449,9 @@ public class DerbyFactoryImpl implements DerbyFactory<TxnMessage.TxnInfo> {
 			
 		}
 
+		@Override
+		public ServerName getServerName(String serverName) {
+			return ServerName.valueOf(serverName);
+		}
+
 }

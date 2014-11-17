@@ -4,12 +4,14 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.collect.Lists;
@@ -21,6 +23,7 @@ import com.splicemachine.si.impl.DataStore;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.rollforward.NoopRollForward;
 import com.splicemachine.uuid.Snowflake;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
@@ -35,7 +38,9 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+
 import com.splicemachine.concurrent.ResettableCountDownLatch;
+import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldEncoder;
@@ -536,7 +541,7 @@ public class IndexedPipelineTest {
         SortedSet<Pair<HRegionInfo,ServerName>> indexRegionInfos = Sets.newTreeSet(new RegionCacheComparator());
         HRegionInfo indexRegionInfo = mock(HRegionInfo.class);
         when(indexRegionInfo.getStartKey()).thenReturn(HConstants.EMPTY_START_ROW);
-        indexRegionInfos.add(Pair.newPair(indexRegionInfo, ServerName.valueOf(FOO_SERVERNAME)));
+        indexRegionInfos.add(Pair.newPair(indexRegionInfo, DerbyFactoryDriver.derbyFactory.getServerName(FOO_SERVERNAME)));
         RegionCache fakeCache = mock(RegionCache.class);
         when(fakeCache.getRegions(any(byte[].class))).thenReturn(indexRegionInfos);
         return fakeCache;
