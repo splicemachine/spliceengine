@@ -1,6 +1,10 @@
 package com.splicemachine.async;
 
 import org.jboss.netty.buffer.ChannelBuffer;
+
+import com.google.protobuf.ZeroCopyLiteralByteString;
+import com.splicemachine.coprocessor.SpliceMessage;
+
 import java.util.List;
 
 /**
@@ -19,7 +23,11 @@ public class AsyncSuccessFilter extends ScanFilter {
 
     @Override
     byte[] serialize() {
-        throw new UnsupportedOperationException("IMPLEMENT FOR 0.96+");
+        SpliceMessage.SuccessFilterMessage.Builder builder = SpliceMessage.SuccessFilterMessage.newBuilder();
+        for(byte[] failedTask:failedTasks){
+            builder.addFailedTasks(ZeroCopyLiteralByteString.wrap(failedTask));
+        }
+        return builder.build().toByteArray();
     }
 
     @Override
