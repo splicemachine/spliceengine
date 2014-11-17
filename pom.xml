@@ -255,7 +255,7 @@
 				</property>
 			</activation>
 			<properties>
-				<obfuscate.si>-obfuscated</obfuscate.si>
+				<obfuscate.si>obfuscated</obfuscate.si>
 			</properties>
 		</profile>
 
