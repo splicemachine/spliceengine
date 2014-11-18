@@ -12,8 +12,7 @@ import java.math.BigDecimal;
  *
  * -- Fields are followed by a single byte, 0, field delimiter.
  * -- Last field does not get a delimiter.
- * -- Empty fields are represented by a single byte, 0.
- * -- Empty fields are not followed by a delimiter.
+ * -- Empty fields (encodeEmpty()) occupy zero bytes, but are followed by a delimiter.
  *
  * @author Scott Fines
  *         Created on: 6/10/13
@@ -27,8 +26,7 @@ public class MultiFieldEncoder {
     private MultiFieldEncoder(int numFields) {
         fields = new byte[numFields][];
         this.numFields = numFields;
-
-		//initialize ourselves
+        //initialize ourselves
         reset();
     }
 
@@ -173,6 +171,7 @@ public class MultiFieldEncoder {
         return this;
     }
 
+
     public MultiFieldEncoder encodeNext(byte[] value){
         return encodeNext(value,false);
     }
@@ -199,7 +198,7 @@ public class MultiFieldEncoder {
                 destPos++;
             }
             if(src==null || src.length==0) {
-                /* Happens when encodeEmpty() is called. */
+                /* Happens when encodeEmpty() is called, or if a field's encoding is an empty byte array (e.g. null String) */
                 continue;
             }
 
@@ -295,13 +294,13 @@ public class MultiFieldEncoder {
         return setRawBytes(Encoding.encodedNullDouble());
     }
 
-		public int getNumFields() {
-				return fields.length;
-		}
+    public int getNumFields() {
+        return fields.length;
+    }
 
-		public MultiFieldEncoder setRawBytes(ByteSlice slice) {
-				return setRawBytes(slice.array(),slice.offset(),slice.length());
-		}
+    public MultiFieldEncoder setRawBytes(ByteSlice slice) {
+        return setRawBytes(slice.array(),slice.offset(),slice.length());
+    }
 
     public MultiFieldEncoder encodeNextUnsorted(ByteSlice destTable) {
         return encodeNextUnsorted(destTable.array(),destTable.offset(),destTable.length());
