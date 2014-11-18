@@ -177,7 +177,7 @@ public class InsertOperationTest {
         when(txn.allowsWrites()).thenReturn(true);
         doNothing().when(txn).commit();
         doNothing().when(txn).rollback();
-				doReturn(txn).when(spy).getChildTransaction();
+//				doReturn(txn).when(spy).getChildTransaction();
 				doReturn(TestingDataType.getTemplateOutput(dataTypes)).when(spy).getExecRowDefinition();
 				operation = spy;
 
