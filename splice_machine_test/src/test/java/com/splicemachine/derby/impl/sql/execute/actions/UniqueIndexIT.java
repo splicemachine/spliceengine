@@ -1,19 +1,13 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Types;
+import java.sql.*;
 import java.util.Arrays;
 import java.util.List;
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.test.framework.*;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import com.splicemachine.homeless.TestUtils;
@@ -223,18 +217,35 @@ public class UniqueIndexIT extends SpliceUnitTest {
      */
     @Test(timeout = 10000)
     public void testCanDeleteEntry() throws Exception{
-        // given
-        methodWatcher.executeUpdate("create table L (name varchar(40), val int)");
-        methodWatcher.executeUpdate("create index L_INDEX on L (name)");
-        methodWatcher.executeUpdate("insert into L (name,val) values ('testName',2)");
-        // when
-        methodWatcher.executeUpdate("delete from L where name = 'testName'");
-        // then
-        Assert.assertEquals(0L, methodWatcher.query("select count(*) from L"));
-        Assert.assertEquals(0L, methodWatcher.query("select count(*) from L --SPLICE-PROPERTIES index=L_INDEX"));
-        Assert.assertFalse("Rows are returned incorrectly", methodWatcher.executeQuery(format("select * from L where name = 'testName'")).next());
-        Assert.assertFalse("Rows are returned incorrectly", methodWatcher.executeQuery(format("select * from L --SPLICE-PROPERTIES index=L_INDEX\n where name = 'testName'")).next());
+        TestConnection conn = methodWatcher.getOrCreateConnection();
+        conn.setAutoCommit(false);
+        try {
+            // given
+            Statement s = conn.createStatement();
+            s.executeUpdate("create table L (name varchar(40), val int)");
+            s.executeUpdate("create index L_INDEX on L (name)");
+            s.executeUpdate("insert into L (name,val) values ('testName',2)");
+            // when
+            s.executeUpdate("delete from L where name = 'testName'");
+            // then
+            Assert.assertEquals(0L, conn.getCount("select count(*) from L"));
+            Assert.assertEquals(0L, conn.getCount("select count(*) from L --SPLICE-PROPERTIES index=L_INDEX"));
+            Assert.assertFalse("Rows are returned incorrectly", conn.query(format("select * from L where name = 'testName'")).next());
+            Assert.assertFalse("Rows are returned incorrectly", conn.query(format("select * from L --SPLICE-PROPERTIES index=L_INDEX\n where name = 'testName'")).next());
+        }finally{
+            conn.rollback();
+            conn.reset();
+        }
     }
+
+    @Test
+    @Ignore("Takes forever, but is useful for tracking down race condition errors")
+    public void testRepeatedCanDeleteEntry() throws Exception {
+        for(int i=0;i<100;i++){
+            testCanDeleteEntry();
+        }
+    }
+
 
     /**
      * DB-1020
