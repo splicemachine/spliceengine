@@ -45,7 +45,7 @@ public class WriteControl {
                 minPermits = 0;
                 maxPermits = maxPermits-acquired;
             }
-            return totalThroughputControl.tryAcquire(minPermits,maxPermits);
+            return acquired+totalThroughputControl.tryAcquire(minPermits,maxPermits);
         }catch(InterruptedException ie){
             return 0; //interrupted means reject outright
         }
