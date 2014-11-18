@@ -209,7 +209,7 @@
 								<option>-keep public class com.splicemachine.si.impl.rollforward.SegmentedRollForward { public *; }</option>
 								<option>-keep public interface com.splicemachine.si.impl.rollforward.SegmentedRollForward$Action { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.rollforward.SegmentedRollForward$Context { public *; }</option>
-								<!-- ### Needed after consolidation of 94 and 98. ### -->
+								<!-- ### Needed after consolidation of 94 and 98. cdh4.5.0 ### -->
 								<option>-keep public class com.splicemachine.async.AsyncSkippingScanFilter { public *; }</option>
 								<option>-keep public class com.splicemachine.derby.hbase.BaseAllocatedFilter { public *; }</option>
 								<option>-keep public class com.splicemachine.hbase.AbstractBufferedRegionScanner { public *; protected final org.apache.hadoop.hbase.regionserver.RegionScanner delegate;}</option>
