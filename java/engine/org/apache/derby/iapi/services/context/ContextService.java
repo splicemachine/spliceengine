@@ -304,19 +304,7 @@ public final class ContextService //OLD extends Hashtable
 
 		if (SanityManager.DEBUG) {
 
-			if (Thread.currentThread() != cm.activeThread) {
-				SanityManager.THROWASSERT("resetCurrentContextManager - mismatch threads - current" + Thread.currentThread() + " - cm's " + cm.activeThread);
-			}
-
-			if (getCurrentContextManager() != cm) {
-				SanityManager.THROWASSERT("resetCurrentContextManager - mismatch contexts - " + Thread.currentThread());
-			}
-
-			if (cm.activeCount < -1) {
-				SanityManager.THROWASSERT("resetCurrentContextManager - invalid count - current" + Thread.currentThread() + " - count " + cm.activeCount);
-			}
-
-			if (cm.activeCount == 0) {
+	if (cm.activeCount == 0) {
 				
 				cm.activeThread = null;
                 
@@ -334,6 +322,21 @@ public final class ContextService //OLD extends Hashtable
 				
 //				SanityManager.THROWASSERT("resetCurrentContextManager - invalid count - current" + Thread.currentThread() + " - count " + cm.activeCount);
 			}
+			
+			if (Thread.currentThread() != cm.activeThread) {					
+				SanityManager.THROWASSERT("resetCurrentContextManager - mismatch threads - current" + Thread.currentThread() + " - cm's " + cm.activeThread + 
+						" : " + cm.activeCount);				
+			}
+
+			if (getCurrentContextManager() != cm) {
+				SanityManager.THROWASSERT("resetCurrentContextManager - mismatch contexts - " + Thread.currentThread() + " : " + getCurrentContextManager() + " : " + cm);
+			}
+
+			if (cm.activeCount < -1) {
+				SanityManager.THROWASSERT("resetCurrentContextManager - invalid count - current" + Thread.currentThread() + " - count " + cm.activeCount);
+			}
+
+		
 
 			if (cm.activeCount > 0) {
 				if (tcl.get() != cm)
