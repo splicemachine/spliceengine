@@ -97,7 +97,6 @@ public class EntryEncoder {
             encoder.reset();
         } else {
             //close the old encoder to prevent resource leaks
-            encoder.close();
             encoder = MultiFieldEncoder.create(bitIndex.cardinality());
         }
     }
@@ -139,8 +138,6 @@ public class EntryEncoder {
     }
 
     public void close(){
-        if(encoder!=null)
-            encoder.close();
     }
 
     public static EntryEncoder create(KryoPool kryoPool,int numCols, BitSet setCols,BitSet scalarFields,BitSet floatFields,BitSet doubleFields){
