@@ -2,6 +2,7 @@ package com.splicemachine.derby.ddl;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
+import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.SpliceKryoRegistry;
@@ -71,7 +72,11 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
             id = id.substring(1); //strip the leading / to make sure that we register properly
 
         // run refresh() synchronously the first time
-        refresh();
+        try {
+            refresh();
+        } catch (Exception e) {
+            throw Exceptions.parseException(e);
+        }
 
         refreshThread.submit(new Runnable() {
             @Override
@@ -87,6 +92,22 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
                     int currentSignalSize = requestCount.get();
                     try{
                         refresh();
+                    }catch(KeeperException ke) {
+                        if(ke.code()==Code.SESSIONEXPIRED) {
+                            LOG.error("Zookeeper Session expired, shutting down");
+                            break; //stop looping
+                        }else{
+                            LOG.error("Failed to refresh ddl",ke);
+                        }
+                    }catch(IOException ioe){
+                        Throwable t = Throwables.getRootCause(ioe);
+                        if(t instanceof KeeperException){
+                            KeeperException ke = (KeeperException)t;
+                            if(ke.code()==Code.SESSIONEXPIRED) {
+                                LOG.error("Zookeeper Session expired, shutting down");
+                                break; //stop looping
+                            }
+                        }
                     }catch(Throwable e){
                         LOG.error("Failed to refresh ddl",e);
                     }
@@ -160,7 +181,7 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
 
     /*****************************************************************************************************************/
     /*private helper methods*/
-    private synchronized void refresh() throws StandardException {
+    private synchronized void refresh() throws Exception {
 
         // Get all ongoing DDL changes
         List<String> ongoingDDLChangeIDs = getOngoingDDLChangeIDs(this);
@@ -173,12 +194,8 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
         for (Iterator<String> iterator = ongoingDDLChangeIDs.iterator(); iterator.hasNext();) {
             String changeId = iterator.next();
             if (!seenDDLChanges.contains(changeId)) {
-                byte[] data;
-                try {
-                    data = ZkUtils.getData(SpliceConstants.zkSpliceDDLOngoingTransactionsPath + "/" + changeId);
-                } catch (IOException e) {
-                    throw Exceptions.parseException(e);
-                }
+                byte[] data = ZkUtils.getData(SpliceConstants.zkSpliceDDLOngoingTransactionsPath + "/" + changeId);
+
 
                 DDLChange ddlChange = decode(data);
                 LOG.debug("New change with id " + changeId + " :" + ddlChange);
