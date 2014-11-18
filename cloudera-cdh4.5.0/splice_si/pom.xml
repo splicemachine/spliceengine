@@ -215,6 +215,7 @@
 								<option>-keep public class com.splicemachine.hbase.AbstractBufferedRegionScanner { public *; protected final org.apache.hadoop.hbase.regionserver.RegionScanner delegate;}</option>
 								<option>-keep public class com.splicemachine.hbase.AbstractSkippingScanFilter { public *; }</option>
 								<option>-keep public class com.splicemachine.hbase.BaseReadAheadRegionScanner { public *; }</option>
+								<option>-keep public class com.splicemachine.hbase.RegionScanIterator* { public *; }</option>
 								<option>-keep public class com.splicemachine.si.LStoreSetup { public *; }</option>
 								<option>-keep public class com.splicemachine.si.LStoreTest { public *; }</option>
 								<option>-keep public class com.splicemachine.si.TestTransactionSetup { public *; }</option>
@@ -239,6 +240,7 @@
 								<option>-keep public class com.splicemachine.si.data.hbase.HTableWriter { public *; }</option>
 								<option>-keep public class com.splicemachine.si.data.hbase.HbRegion { public *; }</option>
 								<option>-keep public class com.splicemachine.si.data.hbase.HbTable { public *; }</option>
+								<option>-keep public class com.splicemachine.si.data.light.IncrementingClock { public *; }</option>
 								<option>-keep public class com.splicemachine.si.data.light.LDataLib { public *; }</option>
 								<option>-keep public class com.splicemachine.si.data.light.LGet { public *; }</option>
 								<option>-keep public class com.splicemachine.si.data.light.LStore { public *; }</option>
@@ -257,12 +259,14 @@
 								<option>-keep public class com.splicemachine.si.impl.SIFactoryDriver { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.SIFactoryImpl { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.SITransactionReadController { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.SITransactor* { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.STableReaderDelegate { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.SystemClock { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.TransactionLifecycle { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.TransactionTimestamps { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.TxnDataStore { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.TxnUtils { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.UpdatingTxnFilter { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.region.AbstractV1TxnDecoder { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.region.AbstractV2TxnDecoder { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.region.ActiveTxnFilter { public *; }</option>
@@ -273,16 +277,12 @@
 								<option>-keep public class com.splicemachine.si.impl.region.TxnDecoder { public *; protected *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.rollforward.RollForwardManagement { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.rollforward.RollForwardStatus { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.store.ActiveTxnCacheSupplier { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.store.CompletedTxnCacheSupplier { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.store.LazyTxnSupplier { public *; }</option>
 								<option>-keep public class com.splicemachine.si.txn.JtaXAResource { public *; }</option>
-								<option>-keep public class com.splicemachine.si.data.light.IncrementingClock { public *; }</option>
-								<option>-keep public class com.splicemachine.si.txn.ZooKeeperTimestampSource { public *; }</option>
 								<option>-keep public class com.splicemachine.si.txn.ZooKeeperStatTimestampSource { public *; }</option>
-								<option>-keep public class com.splicemachine.si.impl.store.ActiveTxnCacheSupplier { public *; }</option>
-								<option>-keep public class com.splicemachine.si.impl.SITransactor* { public *; }</option>
-								<option>-keep public class com.splicemachine.hbase.RegionScanIterator* { public *; }</option>
-								<option>-keep public class com.splicemachine.si.impl.UpdatingTxnFilter { public *; }</option>
+								<option>-keep public class com.splicemachine.si.txn.ZooKeeperTimestampSource { public *; }</option>
 							</options>
 							<!-- outjar></outjar -->
 							<!-- proguardInclude></proguardInclude -->
