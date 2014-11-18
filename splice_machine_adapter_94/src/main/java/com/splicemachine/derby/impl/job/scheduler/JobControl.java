@@ -56,7 +56,6 @@ public class JobControl extends BaseJobControl {
                         }
                     }
             );
-            jobMetrics.addJob(job);
         }catch (Throwable throwable) {
             throw new ExecutionException(throwable);
         }

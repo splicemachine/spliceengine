@@ -50,7 +50,8 @@ import java.util.List;
 public abstract class SpliceBaseOperation implements SpliceOperation, Externalizable {
 		private static final long serialVersionUID = 4l;
 		private static Logger LOG = Logger.getLogger(SpliceBaseOperation.class);
-		protected static final SDataLib dataLib = SIFactoryDriver.siFactory.getDataLib();
+        private static Logger LOG_CLOSE = Logger.getLogger(SpliceBaseOperation.class.getName() + ".close");
+        protected static final SDataLib dataLib = SIFactoryDriver.siFactory.getDataLib();
 		protected static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
 		public static ThreadLocal<List<XplainOperationChainInfo>> operationChain =
                 new ThreadLocal<List<XplainOperationChainInfo>>();
@@ -216,25 +217,34 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 				return activation;
 		}
 
-		@Override
-		public void clearCurrentRow() {
-				if(activation!=null){
-						int resultSetNumber = operationInformation.getResultSetNumber();
-						if(resultSetNumber!=-1)
-								activation.clearCurrentRow(resultSetNumber);
-				}
-				currentRow=null;
-		}
+    @Override
+    public void clearCurrentRow() {
+        //
+        // DO NOT call activation.clearCurrentRow here.
+        // Even when closing a top operation, certain queries
+        // (such as the one in TPCH20) need the activation
+        // with its state intact. Resolving DB-2136 exposed
+        // this hole, which had previously been masked.
+        //
+//			    if(activation!=null){
+//						int resultSetNumber = operationInformation.getResultSetNumber();
+//						if(resultSetNumber!=-1)
+//								activation.clearCurrentRow(resultSetNumber);
+//				}
 
-		@Override
-		public void close() throws StandardException,IOException {
-				if(LOG.isTraceEnabled())
-						LOG.trace("closing operation "+ this);
-				clearCurrentRow();
-				if(jobResults!=null)
-						jobResults.cleanup();
-		}
+        currentRow = null;
+    }
 
+    @Override
+    public void close() throws StandardException, IOException {
+        if (LOG_CLOSE.isTraceEnabled())
+            LOG_CLOSE.trace(String.format("closing operation %s: %s", jobResults != null ? "and cleaning results" : "", this));
+
+        clearCurrentRow();
+
+        if (jobResults != null)
+            jobResults.cleanup();
+    }
 
 		//	@Override
 		public void addWarning(SQLWarning w) {

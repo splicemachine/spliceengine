@@ -1,16 +1,11 @@
 package com.splicemachine.derby.impl.job.scheduler;
 
-import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
-import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.job.JobSchedulerManagement;
 import com.splicemachine.job.Status;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 
 /**
@@ -48,55 +43,12 @@ public class JobMetrics implements JobSchedulerManagement{
     @Override public long getTotalCancelledJobs() { return totalCancelledJobs.get(); }
     @Override public int getNumRunningJobs() { return numRunningJobs.get(); }
 
-    @Override
-    public String[] getRunningJobs() {
-        // return [jobID,statement]
-        List<String> jobs = new ArrayList<String>();
-        StringBuilder buf = new StringBuilder();
-        for (Map.Entry<String, String> jobSQL : jobSQLMap.entrySet()) {
-            buf.append(jobSQL.getKey());
-            buf.append(SEP_CHAR);
-            buf.append(jobSQL.getValue());
-            jobs.add(buf.toString());
-            buf.setLength(0);
-        }
-        return jobs.toArray(new String[0]);
-    }
-
-    @Override
-    public String[] getRunningTasks() {
-        // return [jobID,taskID,taskStatus]
-        List<String> tasks = new ArrayList<String>();
-        StringBuilder buf = new StringBuilder();
-        for (Map.Entry<String, Pair<String,String>> jobTask : taskJobStatusMap.entrySet()) {
-            buf.append(jobTask.getValue().getFirst());
-            buf.append(SEP_CHAR);
-            buf.append(jobTask.getKey());
-            buf.append(SEP_CHAR);
-            buf.append(jobTask.getValue().getSecond());
-            tasks.add(buf.toString());
-            buf.setLength(0);
-        }
-        return tasks.toArray(new String[tasks.size()]);
-    }
-
-    public void addJob(CoprocessorJob job) {
-        if (job instanceof OperationJob) {
-            jobSQLMap.put(job.getJobId(), ((OperationJob)job).getInstructions().getStatement().getSource());
-        }
-    }
-
     public void removeJob(String jobID, Status finalState) {
+        // TODO: purge this method (like we purged addJob, UpdateTask, etc.),
+        // but only after finding out whether the jobFinished invocation
+        // should move elsewhere.
         jobFinished(finalState);
-        jobSQLMap.remove(jobID);
+        // jobSQLMap.remove(jobID);
     }
 
-    public void updateTask(byte[] taskID, String jobID, String status) {
-        Pair<String,String> taskStatus = new Pair<String, String>(jobID,status);
-        taskJobStatusMap.put(Bytes.toString(taskID),taskStatus);
-    }
-
-    public void removeTask(byte[] taskID) {
-        taskJobStatusMap.remove(Bytes.toString(taskID));
-    }
 }

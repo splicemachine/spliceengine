@@ -56,7 +56,6 @@ public class OnceOperation extends SpliceBaseOperation {
 		public int subqueryNumber;
 		public int pointOfAttachment;
 
-		private RowProvider dataProvider; // used for local calls to nextRow()
 		private RowSource rowSource;
 
 		@Deprecated
@@ -159,9 +158,6 @@ public class OnceOperation extends SpliceBaseOperation {
 
 		@Override
 		public void close() throws StandardException, IOException {
-				if(dataProvider!=null)
-						dataProvider.close();
-				dataProvider = null;
 				source.close();
 				super.close();
 		}

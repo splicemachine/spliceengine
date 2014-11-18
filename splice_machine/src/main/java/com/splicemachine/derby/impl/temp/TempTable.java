@@ -32,9 +32,19 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class TempTable {
 		protected static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
-		private static final Logger LOG = Logger.getLogger(TempTable.class);
+        private static final Logger LOG = Logger.getLogger(TempTable.class);
+
 		private final byte[] tempTableName;
 		private AtomicReference<SpreadBucket> spread;
+
+    /**
+     * Prefix that should be used for log messages related to splice specific
+     * compaction logic, in particular for the temp table. Use this prefix here
+     * and in {@link com.splicemachine.derby.impl.temp.TempTable}, so that
+     * one grep command can find these messages regardless of originating class.
+     */
+    public static final String LOG_COMPACT_PRE = "(splicecompact)";
+
 
 		public TempTable(byte[] tempTableName) {
 				this.tempTableName = tempTableName;
@@ -67,22 +77,28 @@ public class TempTable {
 						long maxStoreTs = reader.getMaxTimestamp();
 						if (maxStoreTs >= deadDataThreshold) {
 								if(LOG.isTraceEnabled())
-										LOG.trace("Keeping file with max timestamp "+maxStoreTs+", since maxTimestamp >= "+deadDataThreshold);
-								//keep this store file around, it has data that's still interesting to us
+                                    LOG.trace(String.format("%s Not removing file with max timestamp %d (>= %d threshold) ", LOG_COMPACT_PRE, maxStoreTs, deadDataThreshold));
+                            // Remove it from this candidate list, which means we keep the store file around,
+                            // because it has data that's still interesting to us.
 								storeFileIterator.remove();
 						}else if(LOG.isTraceEnabled()){
-								LOG.trace("Removing file with timestamp "+maxStoreTs+" and "+reader.getEntries()+" rows");
+                            LOG.trace(String.format("%s Removing file with max timestamp %d (< %d threshold) and %d rows",
+                                    LOG_COMPACT_PRE, maxStoreTs, deadDataThreshold, reader.getEntries()));
 						}
 				}
 		}
 
 		private long getTempCompactionThreshold(Configuration c) throws ExecutionException {
 				long[] activeOperations = SpliceDriver.driver().getJobScheduler().getActiveOperations();
-				if(LOG.isDebugEnabled()){
+
+                if(LOG.isDebugEnabled()){
 						LOG.debug("Detected "+ activeOperations.length+" active operations");
 				}
-				if(LOG.isTraceEnabled())
-						LOG.trace("Active Operations: "+ Arrays.toString(activeOperations));
+
+                // Comment this out for now. This can be 10k, 100k, huge even for trace level.
+                // if (LOG.isTraceEnabled())
+                //		LOG.trace("Active Operations: "+ Arrays.toString(activeOperations));
+
 				if(activeOperations.length==0){
 						//we can remove everything!
 						return System.currentTimeMillis();
@@ -108,10 +124,11 @@ public class TempTable {
 				long maxClockSkew = c.getLong("hbase.master.maxclockskew", 30000);
 				maxClockSkew*=2; //unfortunate fudge factor to deal with the reality of different system clocks
 
-				long l = Longs.min(activeTimestamps) - maxClockSkew;
+				long maxToUse = Longs.min(activeTimestamps) - maxClockSkew;
 				if(LOG.isTraceEnabled())
-						LOG.trace("Removing data which occurs before timestamp "+ l);
-				return l;
+                    LOG.trace(String.format("%s Looking to remove files with timestamp before: %d", LOG_COMPACT_PRE, maxToUse));
+
+				return maxToUse;
 		}
 
 		public byte[] getTempTableName() {

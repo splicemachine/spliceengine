@@ -106,7 +106,6 @@ public class WorkStealingTaskScheduler<T extends Task> implements StealableTaskS
 				stats.submittedCount.incrementAndGet();
 				pendingTasks.offer(task);
 				TaskFuture taskFuture = new ListeningTaskFuture<T>(task,0);
-				jobMetrics.updateTask(taskFuture.getTaskId(), task.getJobId(), taskFuture.getStatus().name());
 				return taskFuture;
 		}
 
@@ -299,7 +298,6 @@ public class WorkStealingTaskScheduler<T extends Task> implements StealableTaskS
 								WORKER_LOG.error("Unexpected exception calling task "+ Bytes.toString(next.getTaskId()),e);
 						}finally{
 								next.getTaskStatus().detachListener(stats);
-                            jobMetrics.updateTask(next.getTaskId(), next.getJobId(),next.getTaskStatus().getStatus().name());
 						}
 				}
 

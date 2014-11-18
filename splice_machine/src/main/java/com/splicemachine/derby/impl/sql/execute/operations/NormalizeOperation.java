@@ -327,16 +327,22 @@ public class NormalizeOperation extends SpliceBaseOperation {
 				return result;
 		}
 
-		@Override
-		public String toString() {
-				return "NormalizeOperation {source="+source+"}";
-		}
+    @Override
+    public String toString() {
+        return String.format("NormalizeOperation {resultSetNumber=%d, source=%s}", resultSetNumber, source);
+    }
 
 		@Override
 		public void open() throws StandardException, IOException {
 				super.open();
 				if(source!=null) source.open();
 		}
+
+    @Override
+    public void close() throws StandardException, IOException {
+        super.close();
+        if(source!=null) source.close();
+    }
 
 		public SpliceOperation getSource() {
 				return this.source;

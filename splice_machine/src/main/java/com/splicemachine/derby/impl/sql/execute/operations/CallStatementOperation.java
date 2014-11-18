@@ -43,7 +43,10 @@ import java.util.List;
  */
 
 public class CallStatementOperation extends NoRowsOperation {
-		private static Logger LOG = Logger.getLogger(CallStatementOperation.class);
+
+    // TODO: remove all the subsqueryTrackingArrayStuff? Carried over from Derby and not used here.
+
+    private static Logger LOG = Logger.getLogger(CallStatementOperation.class);
 		private String methodName;
 		private SpliceMethod<Object> methodCall;
 

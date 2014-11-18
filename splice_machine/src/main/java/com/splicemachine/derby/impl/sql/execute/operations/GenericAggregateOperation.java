@@ -154,6 +154,11 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation impl
 				if(source!=null)source.open();
 		}
 
+    @Override
+    public String toString() {
+        return String.format("GenericAggregateOperation {resultSetNumber=%d, source=%s}", resultSetNumber, source);
+    }
+
 		@Override
 		public String prettyPrint(int indentLevel) {
 				String indent = "\n"+ Strings.repeat("\t",indentLevel);
@@ -183,4 +188,12 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation impl
 		public byte[] getUniqueSequenceId() {
 				return uniqueSequenceID;
 		}
+
+    @Override
+    public void close() throws StandardException, IOException {
+        super.close();
+        // TODO: subclasses also do this - check if redundant
+        if (source != null) source.close();
+    }
+
 }

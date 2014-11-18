@@ -62,6 +62,10 @@ public class RowProviders {
 						public void open() {
 								//no-op
 						}
+                    @Override
+                    public void close() {
+                        //no-op - see SourceRowProvider class
+                    }
 				};
 		}
 
@@ -303,6 +307,9 @@ public class RowProviders {
 
 				@Override
 				public void open() {
+					    /* Leave commented out for reference, but we never get here anyway.
+                         * The only usage of SourceRowProvider is theanonymous inner class
+                         * returned by openedSourceProvider, where open() is a no-op.
 						try {
 								source.open();
 						} catch (StandardException e) {
@@ -310,10 +317,14 @@ public class RowProviders {
 						} catch (IOException e) {
 								SpliceLogUtils.logAndThrowRuntime(log,e);
 						}
+						*/
 				}
 
 				@Override
 				public void close() {
+					    /* Leave commented out for reference, but we are not supposed to
+                         * close operations here anyway. See DB-2136. We close the operation
+                         * from SpliceNoPutResultSet.
 						try {
 								source.close();
 						} catch (StandardException e) {
@@ -321,6 +332,7 @@ public class RowProviders {
 						} catch (IOException e) {
 								SpliceLogUtils.logAndThrowRuntime(log,e);
 						}
+					    */
 				}
 
 				@Override
@@ -525,19 +537,24 @@ public class RowProviders {
 		 * are shuffled in series (first then second).
 		 */
 		private static class SerialCombinedRowProvider extends CombinedRowProvider{
+                private JobResults firstJobResults;
 
 				private SerialCombinedRowProvider(RowProvider firstRowProvider, RowProvider secondRowProvider) {
 						super(firstRowProvider, secondRowProvider);
 				}
 
+            public JobResults finishShuffle(List<Pair<JobFuture, JobInfo>> jobFutures, Callable<Void>... intermediateCleanupTasks) throws StandardException {
+                JobResults jobResults = super.finishShuffle(jobFutures, intermediateCleanupTasks);
+                if (firstJobResults != null)
+                    firstJobResults.cleanup();
+                return jobResults;
+            }
+
 				@Override
 				public List<Pair<JobFuture, JobInfo>> asyncShuffleRows(SpliceObserverInstructions instructions) throws StandardException, IOException {
-						List<Pair<JobFuture, JobInfo>> l = new LinkedList<Pair<JobFuture, JobInfo>>();
-						for (RowProvider rp : Arrays.asList(firstRowProvider, secondRowProvider)) {
-								l.add(futurePairForResults(rp.finishShuffle(rp.asyncShuffleRows(instructions))));
-						}
-						return l;
-				}
+                    firstJobResults = firstRowProvider.finishShuffle(firstRowProvider.asyncShuffleRows(instructions));
+                    return secondRowProvider.asyncShuffleRows(instructions);
+                }
 
 				@Override
 				public String toString() {

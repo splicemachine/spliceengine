@@ -12,7 +12,6 @@ import com.splicemachine.derby.management.StatementInfo;
 import com.splicemachine.derby.management.StatementManagement;
 import com.splicemachine.derby.management.XPlainTrace;
 import com.splicemachine.hbase.jmx.JMXUtils;
-import com.splicemachine.job.JobSchedulerManagement;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.logging.Logging;
 
@@ -38,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.iapi.error.StandardException;
@@ -57,6 +57,9 @@ import org.apache.derby.iapi.types.*;
 import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.derby.impl.jdbc.EmbedResultSet;
 import org.apache.derby.impl.jdbc.EmbedResultSet40;
+import org.apache.derby.impl.jdbc.ResultSetBuilder;
+import org.apache.derby.impl.jdbc.Util;
+import org.apache.derby.impl.jdbc.ResultSetBuilder.RowBuilder;
 import org.apache.derby.impl.sql.GenericColumnDescriptor;
 import org.apache.derby.impl.sql.execute.IteratorNoPutResultSet;
 import org.apache.derby.impl.sql.execute.ValueRow;
@@ -66,6 +69,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.pipeline.exception.ErrorState;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.pipeline.threadpool.ThreadPoolStatus;
@@ -76,8 +80,8 @@ import com.splicemachine.pipeline.threadpool.ThreadPoolStatus;
  */
 public class SpliceAdmin extends BaseAdminProcedures {
 	protected static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
-	private static Logger LOG = Logger.getLogger(SpliceAdmin.class);
-	
+    private static Logger LOG = Logger.getLogger(SpliceAdmin.class);
+
     public static void SYSCS_SET_LOGGER_LEVEL(final String loggerName, final String logLevel) throws SQLException {
         operate(new JMXServerOperation() {
             @Override
@@ -158,13 +162,13 @@ public class SpliceAdmin extends BaseAdminProcedures {
                         sb.append(", ");
                     }
                     sb.append(String.format("('%s',%d,%d,%d,%d,%d,%d,%d)", connections.get(i).getFirst(),
-                                            activeWrite.getDependentWriteThreads(),
-                                            activeWrite.getDependentWriteCount(),                                            
-                                            activeWrite.getIndependentWriteThreads(),
-                                            activeWrite.getIndependentWriteCount(),                                            
-                                            activeWrite.getCompactionQueueSizeLimit(),
-                                            activeWrite.getFlushQueueSizeLimit(),
-                                            activeWrite.getIpcReservedPool()));
+                            activeWrite.getDependentWriteThreads(),
+                            activeWrite.getDependentWriteCount(),
+                            activeWrite.getIndependentWriteThreads(),
+                            activeWrite.getIndependentWriteCount(),
+                            activeWrite.getCompactionQueueSizeLimit(),
+                            activeWrite.getFlushQueueSizeLimit(),
+                            activeWrite.getIpcReservedPool()));
                     i++;
                 }
                 sb.append(") foo (hostname, dependentWriteThreads, dependentWriteCount, independentWriteThreads, independentWriteCount, compactionQueueSizeLimit, flushQueueSizeLimit, ipcReserverdPool)");
@@ -185,10 +189,10 @@ public class SpliceAdmin extends BaseAdminProcedures {
                         sb.append(", ");
                     }
                     sb.append(String.format("('%s','%s','%s','%s','%s')", connections.get(i).getFirst(),
-                                            spliceMachineVersion.getRelease(),
-                                            spliceMachineVersion.getImplementationVersion(),
-                                            spliceMachineVersion.getBuildTime(),
-                                            spliceMachineVersion.getURL()));
+                            spliceMachineVersion.getRelease(),
+                            spliceMachineVersion.getImplementationVersion(),
+                            spliceMachineVersion.getBuildTime(),
+                            spliceMachineVersion.getURL()));
                     i++;
                 }
                 sb.append(") foo (hostname, release, implementationVersion, buildTime, url)");
@@ -209,85 +213,53 @@ public class SpliceAdmin extends BaseAdminProcedures {
         });
     }
 
+    // Please leave here commented out for now. Will remove this code permanently
+    // once we have another mechanism by which to quickly count this from
+    // a client app. For internal debugging purposes only.
+    /*
+    public static void SYSCS_GET_ACTIVE_JOB_COUNT(final ResultSet[] resultSet) throws SQLException {
+		ResultSetBuilder rsBuilder = new ResultSetBuilder();
+		try {
+			rsBuilder.getColumnBuilder()
+				.addColumn("JOB_ID", Types.VARCHAR, 128);
+
+			long[] activeOperations = SpliceDriver.driver().getJobScheduler().getActiveOperations();
+
+			RowBuilder rowBuilder = rsBuilder.getRowBuilder();
+			if (activeOperations != null && activeOperations.length > 0) {
+				for (int i = 0; i < activeOperations.length; i++) {
+					rowBuilder.getDvd(0).setValue(activeOperations[i]);
+					rowBuilder.addRow();
+				}
+			}
+			
+			resultSet[0] = rsBuilder.buildResultSet((EmbedConnection)getDefaultConn());
+		} catch (StandardException se) {
+			throw PublicAPI.wrapStandardException(se);
+		} catch (ExecutionException ee) {
+			throw PublicAPI.wrapStandardException(Exceptions.parseException(ee));
+		}
+    }
+    */
+
+    /**
+     * @deprecated desupported as of version 1.00. Throws exception if invoked.
+     */
     public static void SYSCS_GET_ACTIVE_JOB_IDS(final ResultSet[] resultSet) throws SQLException {
-        operate(new JMXServerOperation() {
-            @Override
-            public void operate(List<Pair<String, JMXConnector>> connections) throws MalformedObjectNameException, IOException, SQLException {
-                // <jobID-><statement,jobHost>>
-                Map<String, List<Pair<String, String>>> jobMap = new HashMap<String, List<Pair<String, String>>>();
-                // <jobID-><taskID,taskHost,status>>
-                Map<String, List<Trip<String, String, String>>> taskMap = new HashMap<String, List<Trip<String, String, String>>>();
-                List<Pair<String, JobSchedulerManagement>> jobMonitors = JMXUtils.getJobSchedulerManagement(connections);
-
-                for (Pair<String, JobSchedulerManagement> taskMonitor : jobMonitors) {
-                    for (String job : taskMonitor.getSecond().getRunningJobs()) {
-                        // [jobID,statement]
-                        String[] jobComponents = job.split("\\" + JobSchedulerManagement.SEP_CHAR);
-                        String jobID = jobComponents[0];
-                        List<Pair<String, String>> jobVals = jobMap.get(jobID);
-                        if (jobVals == null) {
-                            jobVals = new ArrayList<Pair<String, String>>();
-                        }
-                        jobVals.add(new Pair<String, String>(jobComponents[1], taskMonitor.getFirst()));
-                        jobMap.put(jobID, jobVals);
-                    }
-                    for (String task : taskMonitor.getSecond().getRunningTasks()) {
-                        // [jobID,taskID,taskStatus]
-                        String[] taskComponents = task.split("\\" + JobSchedulerManagement.SEP_CHAR);
-                        String jobID = taskComponents[0];
-                        List<Trip<String, String, String>> taskVals = taskMap.get(jobID);
-                        if (taskVals == null) {
-                            taskVals = new ArrayList<Trip<String, String, String>>();
-                        }
-                        taskVals.add(new Trip<String, String, String>(taskComponents[1], taskMonitor.getFirst(), taskComponents[2]));
-                        taskMap.put(jobID, taskVals);
-                    }
-                }
-
-                StringBuilder sb = new StringBuilder("select * from (values ");
-                int i = 0;
-                for (Map.Entry<String, List<Pair<String, String>>> jobEntry : jobMap.entrySet()) {
-                    String jobID = jobEntry.getKey();
-                    for (Pair<String, String> statement : jobEntry.getValue()) {
-                        String sql = SpliceUtils.escape(statement.getFirst());
-                        String jobHost = statement.getSecond();
-                        String taskID = "unknownID";
-                        String taskHost = "unknownHost";
-                        String taskStatus = "unknownStatus";
-                        List<Trip<String, String, String>> taskEntries = taskMap.get(jobID);
-                        if (i != 0) {
-                            sb.append(", ");
-                        }
-                        if (taskEntries != null && !taskEntries.isEmpty()) {
-                            // todo - does nothing if no task info
-                            for (Trip<String, String, String> taskEntry : taskEntries) {
-                                taskID = taskEntry.getFirst();
-                                taskHost = taskEntry.getSecond();
-                                taskStatus = taskEntry.getThird();
-                                sb.append(String.format("('%s','%s','%s','%s','%s','%s')",
-                                        sql,
-                                        jobID,
-                                        jobHost,
-                                        taskID,
-                                        taskHost,
-                                        taskStatus));
-                            }
-                        } else {
-                            sb.append(String.format("('%s','%s','%s','%s','%s','%s')",
-                                    sql,
-                                    jobID,
-                                    jobHost,
-                                    taskID,
-                                    taskHost,
-                                    taskStatus));
-                        }
-                        i++;
-                    }
-                }
-                sb.append(") foo (statement, jobid, jobhost, taskid, taskhost, status)");
-                resultSet[0] = executeStatement(sb);
-            }
-        });
+        // This stored procedure was a temporary internal debugging mechanism
+        // that was useful at the time, but it's time to purge it, because:
+        // - it has not been close to working properly for a long time
+        // - it's non trivial to make it work properly (all jobs/tasks in all states)
+        // - it's not presenting information we need to expose via stored proc anyway
+        // - SYSCS_GET_STATEMENT_SUMMARY or SYSCS_GET_REGION_SERVER_TASK_INFO
+        //   are the commonly used equivalents
+        //
+        // Right now an upgrade from before 1.00 will not automatically delete
+        // stored procedures, even if you invoke SYSCS_UPDATE_ALL_SYSTEM_PROCEDURES().
+        // Therefore, we keep this backend method but throw runtime exception,
+        // in case the data dictionary still has this procedure.
+        throw new SQLException(
+                "The procedure SYSCS_GET_ACTIVE_JOB_IDS has been permanently desupported. Use SYSCS_GET_STATEMENT_SUMMARY or SYSCS_GET_REGION_SERVER_TASK_INFO.");
     }
 
     public static void SYSCS_GET_PAST_STATEMENT_SUMMARY(final ResultSet[] resultSets) throws SQLException {
@@ -296,13 +268,13 @@ public class SpliceAdmin extends BaseAdminProcedures {
             public void operate(List<Pair<String, JMXConnector>> connections) throws MalformedObjectNameException, IOException, SQLException {
                 List<Pair<String, StatementManagement>> statementManagers = JMXUtils.getStatementManagers(connections);
 
-								ExecRow dataTemplate = new ValueRow(16);
-								dataTemplate.setRowArray(new DataValueDescriptor[]{
-												new SQLLongint(),new SQLVarchar(),new SQLVarchar(),new SQLVarchar(),new SQLVarchar(),new SQLVarchar(),
-												new SQLInteger(),new SQLInteger(),new SQLInteger(),new SQLInteger(),
-												new SQLLongint(),new SQLLongint(),new SQLLongint(),new SQLLongint(),new SQLLongint(),new SQLDouble()
-								});
-								List<ExecRow> rows = Lists.newArrayListWithExpectedSize(statementManagers.size());
+                ExecRow dataTemplate = new ValueRow(16);
+                dataTemplate.setRowArray(new DataValueDescriptor[]{
+                        new SQLLongint(),new SQLVarchar(),new SQLVarchar(),new SQLVarchar(),new SQLVarchar(),new SQLVarchar(),
+                        new SQLInteger(),new SQLInteger(),new SQLInteger(),new SQLInteger(),
+                        new SQLLongint(),new SQLLongint(),new SQLLongint(),new SQLLongint(),new SQLLongint(),new SQLDouble()
+                });
+                List<ExecRow> rows = Lists.newArrayListWithExpectedSize(statementManagers.size());
                 for (Pair<String, StatementManagement> managementPair : statementManagers) {
                     StatementManagement management = managementPair.getSecond();
                     List<StatementInfo> completedStatements = management.getRecentCompletedStatements();
@@ -339,63 +311,63 @@ public class SpliceAdmin extends BaseAdminProcedures {
                         int successfulJobs = numJobs - numFailedJobs - numCancelledJobs;
                         long startTimeMs = completedStatement.getStartTimeMs();
                         long stopTimeMs = completedStatement.getStopTimeMs();
-												dataTemplate.resetRowArray();
-												DataValueDescriptor[] dvds = dataTemplate.getRowArray();
-												try {
-														dvds[0].setValue(completedStatement.getStatementUuid());
-														dvds[1].setValue(managementPair.getFirst());
-														dvds[2].setValue(completedStatement.getUser());
-														dvds[3].setValue(completedStatement.getTxnId());
-														dvds[4].setValue(numFailedJobs>0?"FAILED" : numCancelledJobs>0? "CANCELLED":"SUCCESS");
-														dvds[5].setValue(completedStatement.getSql());
-														dvds[6].setValue(numJobs);
-														dvds[7].setValue(successfulJobs);
-														dvds[8].setValue(numFailedJobs);
-														dvds[9].setValue(numCancelledJobs);
-														dvds[10].setValue(startTimeMs);
-														dvds[11].setValue(stopTimeMs);
-														dvds[12].setValue(stopTimeMs-startTimeMs);
-														dvds[13].setValue(minJobTime);
-														dvds[14].setValue(maxJobTime);
-														dvds[15].setValue(avgJobTime);
+                        dataTemplate.resetRowArray();
+                        DataValueDescriptor[] dvds = dataTemplate.getRowArray();
+                        try {
+                            dvds[0].setValue(completedStatement.getStatementUuid());
+                            dvds[1].setValue(managementPair.getFirst());
+                            dvds[2].setValue(completedStatement.getUser());
+                            dvds[3].setValue(completedStatement.getTxnId());
+                            dvds[4].setValue(numFailedJobs>0?"FAILED" : numCancelledJobs>0? "CANCELLED":"SUCCESS");
+                            dvds[5].setValue(completedStatement.getSql());
+                            dvds[6].setValue(numJobs);
+                            dvds[7].setValue(successfulJobs);
+                            dvds[8].setValue(numFailedJobs);
+                            dvds[9].setValue(numCancelledJobs);
+                            dvds[10].setValue(startTimeMs);
+                            dvds[11].setValue(stopTimeMs);
+                            dvds[12].setValue(stopTimeMs-startTimeMs);
+                            dvds[13].setValue(minJobTime);
+                            dvds[14].setValue(maxJobTime);
+                            dvds[15].setValue(avgJobTime);
 
-														rows.add(dataTemplate.getClone());
-												} catch (StandardException e) {
-														throw PublicAPI.wrapStandardException(e);
-												}
+                            rows.add(dataTemplate.getClone());
+                        } catch (StandardException e) {
+                            throw PublicAPI.wrapStandardException(e);
+                        }
                     }
                 }
 
 
-								//TODO -sf- make static
-								ResultColumnDescriptor[] columns = new ResultColumnDescriptor[16];
-								columns[0] = new GenericColumnDescriptor("statementUuid",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-								columns[1] = new GenericColumnDescriptor("host",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
-								columns[2] = new GenericColumnDescriptor("userName",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
-								columns[3] = new GenericColumnDescriptor("transactionId",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
-								columns[4] = new GenericColumnDescriptor("status",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
-								columns[5] = new GenericColumnDescriptor("sql",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
-								columns[6] = new GenericColumnDescriptor("numJobs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
-								columns[7] = new GenericColumnDescriptor("successfulJobs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
-								columns[8] = new GenericColumnDescriptor("numFailedJobs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
-								columns[9] = new GenericColumnDescriptor("numCancelledJobs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
-								columns[10] = new GenericColumnDescriptor("startTimeMs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-								columns[11] = new GenericColumnDescriptor("stopTimeMs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-								columns[12] = new GenericColumnDescriptor("elapsedTimeMs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-								columns[13] = new GenericColumnDescriptor("maxJobTime",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-								columns[14] = new GenericColumnDescriptor("minJobTime",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-								columns[15] = new GenericColumnDescriptor("avgJobTime",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DOUBLE));
-								EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
-								Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
-								IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, columns,lastActivation);
-								try {
-										resultsToWrap.openCore();
-								} catch (StandardException e) {
-										throw PublicAPI.wrapStandardException(e);
-								}
-								EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap,false,null,true);
+                //TODO -sf- make static
+                ResultColumnDescriptor[] columns = new ResultColumnDescriptor[16];
+                columns[0] = new GenericColumnDescriptor("statementUuid",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+                columns[1] = new GenericColumnDescriptor("host",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
+                columns[2] = new GenericColumnDescriptor("userName",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
+                columns[3] = new GenericColumnDescriptor("transactionId",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
+                columns[4] = new GenericColumnDescriptor("status",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
+                columns[5] = new GenericColumnDescriptor("sql",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
+                columns[6] = new GenericColumnDescriptor("numJobs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
+                columns[7] = new GenericColumnDescriptor("successfulJobs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
+                columns[8] = new GenericColumnDescriptor("numFailedJobs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
+                columns[9] = new GenericColumnDescriptor("numCancelledJobs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
+                columns[10] = new GenericColumnDescriptor("startTimeMs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+                columns[11] = new GenericColumnDescriptor("stopTimeMs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+                columns[12] = new GenericColumnDescriptor("elapsedTimeMs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+                columns[13] = new GenericColumnDescriptor("maxJobTime",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+                columns[14] = new GenericColumnDescriptor("minJobTime",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+                columns[15] = new GenericColumnDescriptor("avgJobTime",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DOUBLE));
+                EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
+                Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
+                IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, columns,lastActivation);
+                try {
+                    resultsToWrap.openCore();
+                } catch (StandardException e) {
+                    throw PublicAPI.wrapStandardException(e);
+                }
+                EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap,false,null,true);
 
-								resultSets[0] = ers;
+                resultSets[0] = ers;
             }
         });
     }
@@ -406,67 +378,67 @@ public class SpliceAdmin extends BaseAdminProcedures {
             public void operate(List<Pair<String, JMXConnector>> jmxConnector) throws MalformedObjectNameException, IOException, SQLException {
                 List<Pair<String, StatementManagement>> statementManagers = JMXUtils.getStatementManagers(jmxConnector);
 
-								ExecRow template = new ValueRow(9);
-								template.setRowArray(new DataValueDescriptor[]{
-												new SQLLongint(),new SQLVarchar(),new SQLVarchar(),new SQLLongint(),new SQLVarchar(),new SQLInteger(),new SQLInteger(),new SQLInteger(),new SQLLongint()
-								});
+                ExecRow template = new ValueRow(9);
+                template.setRowArray(new DataValueDescriptor[]{
+                        new SQLLongint(),new SQLVarchar(),new SQLVarchar(),new SQLLongint(),new SQLVarchar(),new SQLInteger(),new SQLInteger(),new SQLInteger(),new SQLLongint()
+                });
 
-								List<ExecRow> rows = Lists.newArrayListWithExpectedSize(statementManagers.size());
-								for (Pair<String, StatementManagement> managementPair : statementManagers) {
+                List<ExecRow> rows = Lists.newArrayListWithExpectedSize(statementManagers.size());
+                for (Pair<String, StatementManagement> managementPair : statementManagers) {
                     StatementManagement management = managementPair.getSecond();
                     Collection<StatementInfo> completedStatements = management.getExecutingStatementInfo();
 
                     for (StatementInfo completedStatement : completedStatements) {
 
-                    	// Check for null.  My understanding was that ConcurrentHashMap would guarantee that the element would be there.
-                    	// It appears that the guarantee is that the key element will be there but not necessarily the value element.
-                    	// This was found to be true when running the ITs in parallel.  DB-1342
-                    	if (completedStatement == null) { continue; }
+                        // Check for null.  My understanding was that ConcurrentHashMap would guarantee that the element would be there.
+                        // It appears that the guarantee is that the key element will be there but not necessarily the value element.
+                        // This was found to be true when running the ITs in parallel.  DB-1342
+                        if (completedStatement == null) { continue; }
 
                         Set<JobInfo> completedJobs = completedStatement.getCompletedJobs();
                         Set<JobInfo> runningJobs = completedStatement.getRunningJobs();
-												template.resetRowArray();
-												DataValueDescriptor[] dvds = template.getRowArray();
-												try{
-														dvds[0].setValue(completedStatement.getStatementUuid());
-														dvds[1].setValue(managementPair.getFirst());
-														dvds[2].setValue(completedStatement.getUser());
-														dvds[3].setValue(completedStatement.getTxnId());
-														dvds[4].setValue(completedStatement.getSql());
-														dvds[5].setValue(completedStatement.getNumJobs());
-														dvds[6].setValue(completedJobs!=null?completedJobs.size():0);
-														dvds[7].setValue(runningJobs!=null?runningJobs.size():0);
-														dvds[8].setValue(completedStatement.getStartTimeMs());
-												}catch(StandardException se){
-														throw PublicAPI.wrapStandardException(se);
-												}
-												rows.add(template.getClone());
+                        template.resetRowArray();
+                        DataValueDescriptor[] dvds = template.getRowArray();
+                        try{
+                            dvds[0].setValue(completedStatement.getStatementUuid());
+                            dvds[1].setValue(managementPair.getFirst());
+                            dvds[2].setValue(completedStatement.getUser());
+                            dvds[3].setValue(completedStatement.getTxnId());
+                            dvds[4].setValue(completedStatement.getSql());
+                            dvds[5].setValue(completedStatement.getNumJobs());
+                            dvds[6].setValue(completedJobs!=null?completedJobs.size():0);
+                            dvds[7].setValue(runningJobs!=null?runningJobs.size():0);
+                            dvds[8].setValue(completedStatement.getStartTimeMs());
+                        }catch(StandardException se){
+                            throw PublicAPI.wrapStandardException(se);
+                        }
+                        rows.add(template.getClone());
                     }
                 }
 
-								ResultColumnDescriptor []columnInfo = new ResultColumnDescriptor[9];
-								columnInfo[0] = new GenericColumnDescriptor("statementUuid",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-								columnInfo[1] = new GenericColumnDescriptor("host",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
-								columnInfo[2] = new GenericColumnDescriptor("userName",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
-								columnInfo[3] = new GenericColumnDescriptor("transactionid",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-								columnInfo[4] = new GenericColumnDescriptor("sql",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
-								columnInfo[5] = new GenericColumnDescriptor("numJobs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
-								columnInfo[6] = new GenericColumnDescriptor("completedJobs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
-								columnInfo[7] = new GenericColumnDescriptor("runningJobs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
-								columnInfo[8] = new GenericColumnDescriptor("startTimeMs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+                ResultColumnDescriptor []columnInfo = new ResultColumnDescriptor[9];
+                columnInfo[0] = new GenericColumnDescriptor("statementUuid",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+                columnInfo[1] = new GenericColumnDescriptor("host",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
+                columnInfo[2] = new GenericColumnDescriptor("userName",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
+                columnInfo[3] = new GenericColumnDescriptor("transactionid",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+                columnInfo[4] = new GenericColumnDescriptor("sql",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
+                columnInfo[5] = new GenericColumnDescriptor("numJobs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
+                columnInfo[6] = new GenericColumnDescriptor("completedJobs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
+                columnInfo[7] = new GenericColumnDescriptor("runningJobs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
+                columnInfo[8] = new GenericColumnDescriptor("startTimeMs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
 
 
-								EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
-								Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
-								IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, columnInfo,lastActivation);
-								try {
-										resultsToWrap.openCore();
-								} catch (StandardException e) {
-										throw PublicAPI.wrapStandardException(e);
-								}
-								EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap,false,null,true);
+                EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
+                Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
+                IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, columnInfo,lastActivation);
+                try {
+                    resultsToWrap.openCore();
+                } catch (StandardException e) {
+                    throw PublicAPI.wrapStandardException(e);
+                }
+                EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap,false,null,true);
 
-								resultSets[0] = ers;
+                resultSets[0] = ers;
             }
         });
     }
@@ -590,51 +562,51 @@ public class SpliceAdmin extends BaseAdminProcedures {
             @Override
             public void operate(List<Pair<String, JMXConnector>> connections) throws MalformedObjectNameException, IOException, SQLException {
                 List<ThreadPoolStatus> threadPools = JMXUtils.getMonitoredThreadPools(connections);
-								ExecRow template = new ValueRow(8);
-								template.setRowArray(new DataValueDescriptor[]{
-												new SQLVarchar(),new SQLInteger(),new SQLInteger(),new SQLInteger(),new SQLLongint(),new SQLLongint(),new SQLLongint(),new SQLLongint()
-								});
-								List<ExecRow> rows = Lists.newArrayListWithExpectedSize(threadPools.size());
-								int i=0;
+                ExecRow template = new ValueRow(8);
+                template.setRowArray(new DataValueDescriptor[]{
+                        new SQLVarchar(),new SQLInteger(),new SQLInteger(),new SQLInteger(),new SQLLongint(),new SQLLongint(),new SQLLongint(),new SQLLongint()
+                });
+                List<ExecRow> rows = Lists.newArrayListWithExpectedSize(threadPools.size());
+                int i=0;
                 for (ThreadPoolStatus threadPool : threadPools) {
-										template.resetRowArray();
-										DataValueDescriptor[] dvds = template.getRowArray();
-										try{
-												dvds[0].setValue(connections.get(i).getFirst());
-												dvds[1].setValue(threadPool.getMaxThreadCount());
-												dvds[2].setValue(threadPool.getActiveThreadCount());
-												dvds[3].setValue(threadPool.getPendingTaskCount());
-												dvds[4].setValue(threadPool.getTotalSubmittedTasks());
-												dvds[5].setValue(threadPool.getTotalSuccessfulTasks());
-												dvds[6].setValue(threadPool.getTotalFailedTasks());
-												dvds[7].setValue(threadPool.getTotalRejectedTasks());
-										}catch(StandardException se){
-												throw PublicAPI.wrapStandardException(se);
-										}
-										rows.add(template.getClone());
+                    template.resetRowArray();
+                    DataValueDescriptor[] dvds = template.getRowArray();
+                    try{
+                        dvds[0].setValue(connections.get(i).getFirst());
+                        dvds[1].setValue(threadPool.getMaxThreadCount());
+                        dvds[2].setValue(threadPool.getActiveThreadCount());
+                        dvds[3].setValue(threadPool.getPendingTaskCount());
+                        dvds[4].setValue(threadPool.getTotalSubmittedTasks());
+                        dvds[5].setValue(threadPool.getTotalSuccessfulTasks());
+                        dvds[6].setValue(threadPool.getTotalFailedTasks());
+                        dvds[7].setValue(threadPool.getTotalRejectedTasks());
+                    }catch(StandardException se){
+                        throw PublicAPI.wrapStandardException(se);
+                    }
+                    rows.add(template.getClone());
                     i++;
                 }
-								ResultColumnDescriptor []columnInfo = new ResultColumnDescriptor[8];
-								columnInfo[0] = new GenericColumnDescriptor("host",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
-								columnInfo[1] = new GenericColumnDescriptor("maxThreads",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
-								columnInfo[2] = new GenericColumnDescriptor("activeThreads",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
-								columnInfo[3] = new GenericColumnDescriptor("pendingWrites",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
-								columnInfo[4] = new GenericColumnDescriptor("totalSubmittedWrites",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-								columnInfo[5] = new GenericColumnDescriptor("totalSuccessfulWrites",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-								columnInfo[6] = new GenericColumnDescriptor("totalFailedWrites",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-								columnInfo[7] = new GenericColumnDescriptor("totalRejectedWrites",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+                ResultColumnDescriptor []columnInfo = new ResultColumnDescriptor[8];
+                columnInfo[0] = new GenericColumnDescriptor("host",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
+                columnInfo[1] = new GenericColumnDescriptor("maxThreads",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
+                columnInfo[2] = new GenericColumnDescriptor("activeThreads",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
+                columnInfo[3] = new GenericColumnDescriptor("pendingWrites",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
+                columnInfo[4] = new GenericColumnDescriptor("totalSubmittedWrites",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+                columnInfo[5] = new GenericColumnDescriptor("totalSuccessfulWrites",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+                columnInfo[6] = new GenericColumnDescriptor("totalFailedWrites",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+                columnInfo[7] = new GenericColumnDescriptor("totalRejectedWrites",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
 
-								EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
-								Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
-								IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, columnInfo,lastActivation);
-								try {
-										resultsToWrap.openCore();
-								} catch (StandardException e) {
-										throw PublicAPI.wrapStandardException(e);
-								}
-								EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap,false,null,true);
+                EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
+                Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
+                IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, columnInfo,lastActivation);
+                try {
+                    resultsToWrap.openCore();
+                } catch (StandardException e) {
+                    throw PublicAPI.wrapStandardException(e);
+                }
+                EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap,false,null,true);
 
-								resultSet[0] = ers;
+                resultSet[0] = ers;
             }
         });
     }
@@ -645,66 +617,66 @@ public class SpliceAdmin extends BaseAdminProcedures {
             public void operate(List<Pair<String, JMXConnector>> connections) throws MalformedObjectNameException, IOException, SQLException {
                 List<TieredSchedulerManagement> taskSchedulers = JMXUtils.getTaskSchedulerManagement(connections);
 
-								ExecRow template = new ValueRow(13);
-								template.setRowArray(new DataValueDescriptor[]{
-												new SQLVarchar(),new SQLInteger(),new SQLInteger(),new SQLInteger(),
-												new SQLLongint(),new SQLLongint(),new SQLLongint(),new SQLLongint(),
-												new SQLLongint(),new SQLLongint(),new SQLLongint(),new SQLInteger(), new SQLInteger()
-								});
-								List<ExecRow> rows = Lists.newArrayListWithExpectedSize(taskSchedulers.size());
+                ExecRow template = new ValueRow(13);
+                template.setRowArray(new DataValueDescriptor[]{
+                        new SQLVarchar(),new SQLInteger(),new SQLInteger(),new SQLInteger(),
+                        new SQLLongint(),new SQLLongint(),new SQLLongint(),new SQLLongint(),
+                        new SQLLongint(),new SQLLongint(),new SQLLongint(),new SQLInteger(), new SQLInteger()
+                });
+                List<ExecRow> rows = Lists.newArrayListWithExpectedSize(taskSchedulers.size());
 
                 int i = 0;
                 for (TieredSchedulerManagement taskSchedule : taskSchedulers) {
-										template.resetRowArray();
-										DataValueDescriptor[] dvds = template.getRowArray();
-										try {
-												dvds[0].setValue(connections.get(i).getFirst());
-												dvds[1].setValue(taskSchedule.getTotalWorkerCount());
-												dvds[2].setValue(taskSchedule.getPending());
-												dvds[3].setValue(taskSchedule.getExecuting());
-												dvds[4].setValue(taskSchedule.getTotalSubmittedTasks());
-												dvds[5].setValue(taskSchedule.getTotalCompletedTasks());
-												dvds[6].setValue(taskSchedule.getTotalFailedTasks());
-												dvds[7].setValue(taskSchedule.getTotalCancelledTasks());
-												dvds[8].setValue(taskSchedule.getTotalInvalidatedTasks());
-												dvds[9].setValue(taskSchedule.getTotalShruggedTasks());
-												dvds[10].setValue(taskSchedule.getTotalStolenTasks());
-												dvds[11].setValue(taskSchedule.getMostLoadedTier());
-												dvds[12].setValue(taskSchedule.getLeastLoadedTier());
-										} catch (StandardException e) {
-												throw PublicAPI.wrapStandardException(e);
-										}
+                    template.resetRowArray();
+                    DataValueDescriptor[] dvds = template.getRowArray();
+                    try {
+                        dvds[0].setValue(connections.get(i).getFirst());
+                        dvds[1].setValue(taskSchedule.getTotalWorkerCount());
+                        dvds[2].setValue(taskSchedule.getPending());
+                        dvds[3].setValue(taskSchedule.getExecuting());
+                        dvds[4].setValue(taskSchedule.getTotalSubmittedTasks());
+                        dvds[5].setValue(taskSchedule.getTotalCompletedTasks());
+                        dvds[6].setValue(taskSchedule.getTotalFailedTasks());
+                        dvds[7].setValue(taskSchedule.getTotalCancelledTasks());
+                        dvds[8].setValue(taskSchedule.getTotalInvalidatedTasks());
+                        dvds[9].setValue(taskSchedule.getTotalShruggedTasks());
+                        dvds[10].setValue(taskSchedule.getTotalStolenTasks());
+                        dvds[11].setValue(taskSchedule.getMostLoadedTier());
+                        dvds[12].setValue(taskSchedule.getLeastLoadedTier());
+                    } catch (StandardException e) {
+                        throw PublicAPI.wrapStandardException(e);
+                    }
 
-										rows.add(template.getClone());
+                    rows.add(template.getClone());
                     i++;
                 }
 
-								ResultColumnDescriptor []columnInfo = new ResultColumnDescriptor[13];
-								columnInfo[0] = new GenericColumnDescriptor("host",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
-								columnInfo[1] = new GenericColumnDescriptor("totalWorkers",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
-								columnInfo[2] = new GenericColumnDescriptor("pending",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
-								columnInfo[3] = new GenericColumnDescriptor("running",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
-								columnInfo[4] = new GenericColumnDescriptor("totalSubmitted",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-								columnInfo[5] = new GenericColumnDescriptor("totalCompleted",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-								columnInfo[6] = new GenericColumnDescriptor("totalFailed",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-								columnInfo[7] = new GenericColumnDescriptor("totalCancelled",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-								columnInfo[8] = new GenericColumnDescriptor("totalInvalidated",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-								columnInfo[9] = new GenericColumnDescriptor("totalShrugged",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-								columnInfo[10] = new GenericColumnDescriptor("totalStolen",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-								columnInfo[11] = new GenericColumnDescriptor("mostLoadedTier",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
-								columnInfo[12] = new GenericColumnDescriptor("leastLoadedTier",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
+                ResultColumnDescriptor []columnInfo = new ResultColumnDescriptor[13];
+                columnInfo[0] = new GenericColumnDescriptor("host",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
+                columnInfo[1] = new GenericColumnDescriptor("totalWorkers",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
+                columnInfo[2] = new GenericColumnDescriptor("pending",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
+                columnInfo[3] = new GenericColumnDescriptor("running",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
+                columnInfo[4] = new GenericColumnDescriptor("totalSubmitted",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+                columnInfo[5] = new GenericColumnDescriptor("totalCompleted",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+                columnInfo[6] = new GenericColumnDescriptor("totalFailed",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+                columnInfo[7] = new GenericColumnDescriptor("totalCancelled",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+                columnInfo[8] = new GenericColumnDescriptor("totalInvalidated",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+                columnInfo[9] = new GenericColumnDescriptor("totalShrugged",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+                columnInfo[10] = new GenericColumnDescriptor("totalStolen",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+                columnInfo[11] = new GenericColumnDescriptor("mostLoadedTier",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
+                columnInfo[12] = new GenericColumnDescriptor("leastLoadedTier",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
 
-								EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
-								Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
-								IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, columnInfo,lastActivation);
-								try {
-										resultsToWrap.openCore();
-								} catch (StandardException e) {
-										throw PublicAPI.wrapStandardException(e);
-								}
-								EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap,false,null,true);
+                EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
+                Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
+                IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, columnInfo,lastActivation);
+                try {
+                    resultsToWrap.openCore();
+                } catch (StandardException e) {
+                    throw PublicAPI.wrapStandardException(e);
+                }
+                EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap,false,null,true);
 
-								resultSet[0] = ers;
+                resultSet[0] = ers;
 //                sb.append(") foo (hostname, totalWorkers, pending, running, totalCancelled, "
 //                        + "totalCompleted, totalFailed, totalInvalidated, totalSubmitted,totalShrugged,totalStolen,mostLoadedTier,leastLoadedTier)");
 //                resultSet[0] = executeStatement(sb);
@@ -723,65 +695,65 @@ public class SpliceAdmin extends BaseAdminProcedures {
                 } catch (MalformedObjectNameException e) {
                     throw new SQLException(e);
                 }
-								ExecRow template = new ValueRow(9);
-								template.setRowArray(new DataValueDescriptor[]{
-												new SQLVarchar(),new SQLInteger(),new SQLLongint(),new SQLLongint(),
-												new SQLLongint(),new SQLLongint(),new SQLReal(),new SQLInteger(),new SQLInteger()
-								});
+                ExecRow template = new ValueRow(9);
+                template.setRowArray(new DataValueDescriptor[]{
+                        new SQLVarchar(),new SQLInteger(),new SQLLongint(),new SQLLongint(),
+                        new SQLLongint(),new SQLLongint(),new SQLReal(),new SQLInteger(),new SQLInteger()
+                });
                 int i = 0;
-								List<ExecRow> rows = Lists.newArrayListWithExpectedSize(connections.size());
+                List<ExecRow> rows = Lists.newArrayListWithExpectedSize(connections.size());
                 for (Pair<String, JMXConnector> mxc : connections) {
                     MBeanServerConnection mbsc = mxc.getSecond().getMBeanServerConnection();
 
-										template.resetRowArray();
-										DataValueDescriptor[] dvds = template.getRowArray();
-										try{
-												dvds[0].setValue(connections.get(i).getFirst());
-												dvds[1].setValue(((Integer)mbsc.getAttribute(regionServerStats,"regions")).intValue());
-												dvds[2].setValue(((Long)mbsc.getAttribute(regionServerStats,"fsReadLatencyAvgTime")).longValue());
-												dvds[3].setValue(((Long)mbsc.getAttribute(regionServerStats,"fsWriteLatencyAvgTime")).longValue());
-												dvds[4].setValue(((Long)mbsc.getAttribute(regionServerStats,"writeRequestsCount")).longValue());
-												dvds[5].setValue(((Long)mbsc.getAttribute(regionServerStats,"readRequestsCount")).longValue());
-												dvds[6].setValue(((Float)mbsc.getAttribute(regionServerStats,"requests")).floatValue());
-												dvds[7].setValue(((Integer)mbsc.getAttribute(regionServerStats,"compactionQueueSize")).intValue());
-												dvds[8].setValue(((Integer)mbsc.getAttribute(regionServerStats,"flushQueueSize")).intValue());
-										}catch(StandardException se){
-												throw PublicAPI.wrapStandardException(se);
-										} catch (Exception e) {
-												throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
-										}
-										rows.add(template.getClone());
+                    template.resetRowArray();
+                    DataValueDescriptor[] dvds = template.getRowArray();
+                    try{
+                        dvds[0].setValue(connections.get(i).getFirst());
+                        dvds[1].setValue(((Integer)mbsc.getAttribute(regionServerStats,"regions")).intValue());
+                        dvds[2].setValue(((Long)mbsc.getAttribute(regionServerStats,"fsReadLatencyAvgTime")).longValue());
+                        dvds[3].setValue(((Long)mbsc.getAttribute(regionServerStats,"fsWriteLatencyAvgTime")).longValue());
+                        dvds[4].setValue(((Long)mbsc.getAttribute(regionServerStats,"writeRequestsCount")).longValue());
+                        dvds[5].setValue(((Long)mbsc.getAttribute(regionServerStats,"readRequestsCount")).longValue());
+                        dvds[6].setValue(((Float)mbsc.getAttribute(regionServerStats,"requests")).floatValue());
+                        dvds[7].setValue(((Integer)mbsc.getAttribute(regionServerStats,"compactionQueueSize")).intValue());
+                        dvds[8].setValue(((Integer)mbsc.getAttribute(regionServerStats,"flushQueueSize")).intValue());
+                    }catch(StandardException se){
+                        throw PublicAPI.wrapStandardException(se);
+                    } catch (Exception e) {
+                        throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+                    }
+                    rows.add(template.getClone());
                     i++;
                 }
-								ResultColumnDescriptor []columnInfo = new ResultColumnDescriptor[9];
-								columnInfo[0] = new GenericColumnDescriptor("host",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
-								columnInfo[1] = new GenericColumnDescriptor("regions",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
-								columnInfo[2] = new GenericColumnDescriptor("fsReadLatencyAvgTime",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-								columnInfo[3] = new GenericColumnDescriptor("fsWriteLatencyAvgTime",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-								columnInfo[4] = new GenericColumnDescriptor("writeRequestsCount",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-								columnInfo[5] = new GenericColumnDescriptor("readRequestsCount",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-								columnInfo[6] = new GenericColumnDescriptor("requests",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.REAL));
-								columnInfo[7] = new GenericColumnDescriptor("compactionQueueSize",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
-								columnInfo[8] = new GenericColumnDescriptor("flushQueueSize",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
+                ResultColumnDescriptor []columnInfo = new ResultColumnDescriptor[9];
+                columnInfo[0] = new GenericColumnDescriptor("host",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
+                columnInfo[1] = new GenericColumnDescriptor("regions",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
+                columnInfo[2] = new GenericColumnDescriptor("fsReadLatencyAvgTime",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+                columnInfo[3] = new GenericColumnDescriptor("fsWriteLatencyAvgTime",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+                columnInfo[4] = new GenericColumnDescriptor("writeRequestsCount",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+                columnInfo[5] = new GenericColumnDescriptor("readRequestsCount",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+                columnInfo[6] = new GenericColumnDescriptor("requests",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.REAL));
+                columnInfo[7] = new GenericColumnDescriptor("compactionQueueSize",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
+                columnInfo[8] = new GenericColumnDescriptor("flushQueueSize",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
 
-								EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
-								Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
-								IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, columnInfo,lastActivation);
-								try {
-										resultsToWrap.openCore();
-								} catch (StandardException e) {
-										throw PublicAPI.wrapStandardException(e);
-								}
-								EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap,false,null,true);
+                EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
+                Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
+                IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, columnInfo,lastActivation);
+                try {
+                    resultsToWrap.openCore();
+                } catch (StandardException e) {
+                    throw PublicAPI.wrapStandardException(e);
+                }
+                EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap,false,null,true);
 
-								resultSet[0] = ers;
+                resultSet[0] = ers;
             }
         });
     }
 
     public static void SYSCS_GET_REQUESTS(ResultSet[] resultSet) throws SQLException {
     	derbyFactory.SYSCS_GET_REQUESTS(resultSet);
-    }
+            }
 
     public static void SYSCS_PERFORM_MAJOR_COMPACTION_ON_SCHEMA(String schemaName) throws SQLException {
         // sys query for all table conglomerates in schema
@@ -807,13 +779,13 @@ public class SpliceAdmin extends BaseAdminProcedures {
                 try {
                     admin.majorCompact(Bytes.toBytes(Long.toString(conglomID)));
                 } catch (Exception e) {
-                	SpliceLogUtils.warn(LOG, "SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE failed on %s with this message %s, waiting two seconds and will try again", Long.toString(conglomID),e.getMessage());
-                	try {
-                		Thread.sleep(2000);
-                		admin.majorCompact(Bytes.toBytes(Long.toString(conglomID)));
-                	} catch (Exception secondE) {
-                    	SpliceLogUtils.warn(LOG, "SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE failed on %s with this message %s after waiting 2 seconds, compaction attempt aborted", Long.toString(conglomID),e.getMessage());                			
-                	}
+                    SpliceLogUtils.warn(LOG, "SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE failed on %s with this message %s, waiting two seconds and will try again", Long.toString(conglomID),e.getMessage());
+                    try {
+                        Thread.sleep(2000);
+                        admin.majorCompact(Bytes.toBytes(Long.toString(conglomID)));
+                    } catch (Exception secondE) {
+                        SpliceLogUtils.warn(LOG, "SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE failed on %s with this message %s after waiting 2 seconds, compaction attempt aborted", Long.toString(conglomID),e.getMessage());
+                    }
                 }
             }
         } finally {
@@ -827,14 +799,14 @@ public class SpliceAdmin extends BaseAdminProcedures {
         }
     }
 
-		public static void VACUUM() throws SQLException{
-				Vacuum vacuum = new Vacuum(getDefaultConn());
-				try{
-						vacuum.vacuumDatabase();
-				}finally{
-						vacuum.shutdown();
-				}
-		}
+    public static void VACUUM() throws SQLException{
+        Vacuum vacuum = new Vacuum(getDefaultConn());
+        try{
+            vacuum.vacuumDatabase();
+        }finally{
+            vacuum.shutdown();
+        }
+    }
     public static ResultColumnDescriptor[] SCHEMA_INFO_COLUMNS = new GenericColumnDescriptor[]{
             new GenericColumnDescriptor("SCHEMANAME",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
             new GenericColumnDescriptor("TABLENAME",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
@@ -846,73 +818,73 @@ public class SpliceAdmin extends BaseAdminProcedures {
     };
     public static void SYSCS_GET_SCHEMA_INFO(final ResultSet[] resultSet) throws SQLException {
     	derbyFactory.SYSCS_GET_SCHEMA_INFO(resultSet);
-    }
+            }
 
     /**
      * Prints all the information related to the execution plans of the stored prepared statements (metadata queries).
      */
     public static void SYSCS_GET_STORED_STATEMENT_PLAN_INFO(ResultSet[] rs) throws SQLException
     {
-    	try {
-    		// Wow...  who knew it was so much work to create a ResultSet?  Ouch!  The following code is annoying.
+        try {
+            // Wow...  who knew it was so much work to create a ResultSet?  Ouch!  The following code is annoying.
 
-    		LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
-    		DataDictionary dd = lcc.getDataDictionary();
-    		List list = dd.getAllSPSDescriptors();
-    		ArrayList<ExecRow> rows = new ArrayList<ExecRow>(list.size());
+            LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+            DataDictionary dd = lcc.getDataDictionary();
+            List list = dd.getAllSPSDescriptors();
+            ArrayList<ExecRow> rows = new ArrayList<ExecRow>(list.size());
 
-    		// Describe the format of the input rows (ExecRow).
-    		//
-    		// Columns of "virtual" row:
-    		//   STMTNAME				VARCHAR
-    		//   TYPE					CHAR
-    		//   VALID					BOOLEAN
-    		//   LASTCOMPILED			TIMESTAMP
-    		//   INITIALLY_COMPILABLE	BOOLEAN
-    		//   CONSTANTSTATE			BLOB --> VARCHAR showing existence of plan
-    		DataValueDescriptor[] dvds = new DataValueDescriptor[] {
-    				new SQLVarchar(),
-    				new SQLChar(),
-    				new SQLBoolean(),
-    				new SQLTimestamp(),
-    				new SQLBoolean(),
-    				new SQLVarchar()
-    		};
-    		int numCols = dvds.length;
-			ExecRow dataTemplate = new ValueRow(numCols);
-			dataTemplate.setRowArray(dvds);
+            // Describe the format of the input rows (ExecRow).
+            //
+            // Columns of "virtual" row:
+            //   STMTNAME				VARCHAR
+            //   TYPE					CHAR
+            //   VALID					BOOLEAN
+            //   LASTCOMPILED			TIMESTAMP
+            //   INITIALLY_COMPILABLE	BOOLEAN
+            //   CONSTANTSTATE			BLOB --> VARCHAR showing existence of plan
+            DataValueDescriptor[] dvds = new DataValueDescriptor[] {
+                    new SQLVarchar(),
+                    new SQLChar(),
+                    new SQLBoolean(),
+                    new SQLTimestamp(),
+                    new SQLBoolean(),
+                    new SQLVarchar()
+            };
+            int numCols = dvds.length;
+            ExecRow dataTemplate = new ValueRow(numCols);
+            dataTemplate.setRowArray(dvds);
 
-			// Transform the descriptors into the rows.
-    		for (Iterator li = list.iterator(); li.hasNext(); )
-    		{
-    			SPSDescriptor spsd = (SPSDescriptor) li.next();
-    			ExecPreparedStatement ps = spsd.getPreparedStatement(false);
-    			dvds[0].setValue(spsd.getName());
-    			dvds[1].setValue(spsd.getTypeAsString());
-    			dvds[2].setValue(spsd.isValid());
-    			dvds[3].setValue(spsd.getCompileTime());
-    			dvds[4].setValue(spsd.initiallyCompilable());
-    			dvds[5].setValue(spsd.getPreparedStatement(false) == null ? null : "[object]");
-    			rows.add(dataTemplate.getClone());
-    		}
+            // Transform the descriptors into the rows.
+            for (Iterator li = list.iterator(); li.hasNext(); )
+            {
+                SPSDescriptor spsd = (SPSDescriptor) li.next();
+                ExecPreparedStatement ps = spsd.getPreparedStatement(false);
+                dvds[0].setValue(spsd.getName());
+                dvds[1].setValue(spsd.getTypeAsString());
+                dvds[2].setValue(spsd.isValid());
+                dvds[3].setValue(spsd.getCompileTime());
+                dvds[4].setValue(spsd.initiallyCompilable());
+                dvds[5].setValue(spsd.getPreparedStatement(false) == null ? null : "[object]");
+                rows.add(dataTemplate.getClone());
+            }
 
-    		// Describe the format of the output rows (ResultSet).
-    		ResultColumnDescriptor[]columnInfo = new ResultColumnDescriptor[numCols];
-			columnInfo[0] = new GenericColumnDescriptor("STMTNAME", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 60));
-			columnInfo[1] = new GenericColumnDescriptor("TYPE", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, 4));
-			columnInfo[2] = new GenericColumnDescriptor("VALID", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN));
-			columnInfo[3] = new GenericColumnDescriptor("LASTCOMPILED", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.TIMESTAMP));
-			columnInfo[4] = new GenericColumnDescriptor("INITIALLY_COMPILABLE", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN));
-			columnInfo[5] = new GenericColumnDescriptor("CONSTANTSTATE", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 13));
-			EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
-			Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
-			IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, columnInfo, lastActivation);
-			resultsToWrap.openCore();
-			EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap, false, null, true);
-			rs[0] = ers;
-    	} catch (StandardException se) {
-    		throw PublicAPI.wrapStandardException(se);
-    	}
+            // Describe the format of the output rows (ResultSet).
+            ResultColumnDescriptor[]columnInfo = new ResultColumnDescriptor[numCols];
+            columnInfo[0] = new GenericColumnDescriptor("STMTNAME", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 60));
+            columnInfo[1] = new GenericColumnDescriptor("TYPE", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, 4));
+            columnInfo[2] = new GenericColumnDescriptor("VALID", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN));
+            columnInfo[3] = new GenericColumnDescriptor("LASTCOMPILED", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.TIMESTAMP));
+            columnInfo[4] = new GenericColumnDescriptor("INITIALLY_COMPILABLE", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN));
+            columnInfo[5] = new GenericColumnDescriptor("CONSTANTSTATE", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 13));
+            EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
+            Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
+            IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, columnInfo, lastActivation);
+            resultsToWrap.openCore();
+            EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap, false, null, true);
+            rs[0] = ers;
+        } catch (StandardException se) {
+            throw PublicAPI.wrapStandardException(se);
+        }
     }
 
     /**
@@ -925,64 +897,64 @@ public class SpliceAdmin extends BaseAdminProcedures {
      **/
     public static void SYSCS_GET_ALL_PROPERTIES(ResultSet[] rs) throws SQLException
     {
-    	try {
-    		LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
-    		TransactionController tc = lcc.getTransactionExecute();
+        try {
+            LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+            TransactionController tc = lcc.getTransactionExecute();
 
-    		// Fetch all the properties.
-    		Properties jvmProps = addTypeToProperties(System.getProperties(), "JVM", true);
-    		Properties dbProps = addTypeToProperties(tc.getProperties());  // Includes both database and service properties.
-    		ModuleFactory monitor = Monitor.getMonitorLite();
-    		Properties appProps = addTypeToProperties(monitor.getApplicationProperties(), "APP", false);
+            // Fetch all the properties.
+            Properties jvmProps = addTypeToProperties(System.getProperties(), "JVM", true);
+            Properties dbProps = addTypeToProperties(tc.getProperties());  // Includes both database and service properties.
+            ModuleFactory monitor = Monitor.getMonitorLite();
+            Properties appProps = addTypeToProperties(monitor.getApplicationProperties(), "APP", false);
 
-    		// Merge the properties using the correct search order.
-    		// SEARCH ORDER: JVM, Service, Database, App
-    		appProps.putAll(dbProps);  // dbProps already has been overwritten with service properties.
-    		appProps.putAll(jvmProps);
-    		ArrayList<ExecRow> rows = new ArrayList<ExecRow>(appProps.size());
+            // Merge the properties using the correct search order.
+            // SEARCH ORDER: JVM, Service, Database, App
+            appProps.putAll(dbProps);  // dbProps already has been overwritten with service properties.
+            appProps.putAll(jvmProps);
+            ArrayList<ExecRow> rows = new ArrayList<ExecRow>(appProps.size());
 
-    		// Describe the format of the input rows (ExecRow).
-    		//
-    		// Columns of "virtual" row:
-    		//   KEY			VARCHAR
-    		//   VALUE			VARCHAR
-    		//   TYPE			VARCHAR (JVM, SERVICE, DATABASE, APP)
-    		DataValueDescriptor[] dvds = new DataValueDescriptor[] {
-    				new SQLVarchar(),
-    				new SQLVarchar(),
-    				new SQLVarchar()
-    		};
-    		int numCols = dvds.length;
-    		ExecRow dataTemplate = new ValueRow(numCols);
-    		dataTemplate.setRowArray(dvds);
+            // Describe the format of the input rows (ExecRow).
+            //
+            // Columns of "virtual" row:
+            //   KEY			VARCHAR
+            //   VALUE			VARCHAR
+            //   TYPE			VARCHAR (JVM, SERVICE, DATABASE, APP)
+            DataValueDescriptor[] dvds = new DataValueDescriptor[] {
+                    new SQLVarchar(),
+                    new SQLVarchar(),
+                    new SQLVarchar()
+            };
+            int numCols = dvds.length;
+            ExecRow dataTemplate = new ValueRow(numCols);
+            dataTemplate.setRowArray(dvds);
 
-    		// Transform the properties into rows.  Sort the properties by key first.
-    		ArrayList<String> keyList = new ArrayList(appProps.keySet());
-    		Collections.sort(keyList);
-    		for (Iterator<String> iter = keyList.iterator(); iter.hasNext(); )
-    		{
-    			String key = (String) iter.next();
-    			String[] typedValue = (String[]) appProps.get(key);
-    			dvds[0].setValue(key);
-    			dvds[1].setValue(typedValue[0]);
-    			dvds[2].setValue(typedValue[1]);
-    			rows.add(dataTemplate.getClone());
-    		}
+            // Transform the properties into rows.  Sort the properties by key first.
+            ArrayList<String> keyList = new ArrayList(appProps.keySet());
+            Collections.sort(keyList);
+            for (Iterator<String> iter = keyList.iterator(); iter.hasNext(); )
+            {
+                String key = (String) iter.next();
+                String[] typedValue = (String[]) appProps.get(key);
+                dvds[0].setValue(key);
+                dvds[1].setValue(typedValue[0]);
+                dvds[2].setValue(typedValue[1]);
+                rows.add(dataTemplate.getClone());
+            }
 
-    		// Describe the format of the output rows (ResultSet).
-    		ResultColumnDescriptor[]columnInfo = new ResultColumnDescriptor[numCols];
-    		columnInfo[0] = new GenericColumnDescriptor("KEY", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 50));
-    		columnInfo[1] = new GenericColumnDescriptor("VALUE", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 40));
-    		columnInfo[2] = new GenericColumnDescriptor("TYPE", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 10));
-    		EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
-    		Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
-    		IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, columnInfo, lastActivation);
-    		resultsToWrap.openCore();
-    		EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap, false, null, true);
-    		rs[0] = ers;
-    	} catch (StandardException se) {
-    		throw PublicAPI.wrapStandardException(se);
-    	}
+            // Describe the format of the output rows (ResultSet).
+            ResultColumnDescriptor[]columnInfo = new ResultColumnDescriptor[numCols];
+            columnInfo[0] = new GenericColumnDescriptor("KEY", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 50));
+            columnInfo[1] = new GenericColumnDescriptor("VALUE", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 40));
+            columnInfo[2] = new GenericColumnDescriptor("TYPE", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 10));
+            EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
+            Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
+            IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, columnInfo, lastActivation);
+            resultsToWrap.openCore();
+            EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap, false, null, true);
+            rs[0] = ers;
+        } catch (StandardException se) {
+            throw PublicAPI.wrapStandardException(se);
+        }
     }
 
     /**
@@ -998,25 +970,25 @@ public class SpliceAdmin extends BaseAdminProcedures {
      * @return the new map of typed properties
      */
     private static Properties addTypeToProperties(Properties props, String type, boolean derbySpliceOnly) {
-    	Properties typedProps = new Properties();
-    	if (props != null) {
-    		for (Iterator iter = props.entrySet().iterator(); iter.hasNext(); )
-    		{
-    			Map.Entry prop = (Map.Entry) iter.next();
-    			String key = (String) prop.getKey();
-    			if (derbySpliceOnly && key != null) {
-    				String lowerKey = key.toLowerCase();
-    				if (!lowerKey.startsWith("derby") && !lowerKey.startsWith("splice")) {
-    					continue;
-    				}
-    			}
-    			String[] typedValue = new String[2];
-    			typedValue[0] = (String) prop.getValue();
-    			typedValue[1] = type;
-    			typedProps.put(key, typedValue);
-    		}
-    	}
-    	return typedProps;
+        Properties typedProps = new Properties();
+        if (props != null) {
+            for (Iterator iter = props.entrySet().iterator(); iter.hasNext(); )
+            {
+                Map.Entry prop = (Map.Entry) iter.next();
+                String key = (String) prop.getKey();
+                if (derbySpliceOnly && key != null) {
+                    String lowerKey = key.toLowerCase();
+                    if (!lowerKey.startsWith("derby") && !lowerKey.startsWith("splice")) {
+                        continue;
+                    }
+                }
+                String[] typedValue = new String[2];
+                typedValue[0] = (String) prop.getValue();
+                typedValue[1] = type;
+                typedProps.put(key, typedValue);
+            }
+        }
+        return typedProps;
     }
 
     /**
@@ -1030,27 +1002,27 @@ public class SpliceAdmin extends BaseAdminProcedures {
      * @return the new map of typed properties
      */
     private static Properties addTypeToProperties(Properties props) {
-    	Properties typedProps = new Properties();
-    	if (props != null) {
-    		for (Iterator iter = props.entrySet().iterator(); iter.hasNext(); )
-    		{
-    			Map.Entry prop = (Map.Entry) iter.next();
-    			String key = (String) prop.getKey();
-    			String[] typedValue = new String[2];
-    			typedValue[0] = (String) prop.getValue();
-    			typedValue[1] = PropertyUtil.isServiceProperty(key) ? "SERVICE" : "DATABASE";
-    			typedProps.put(key, typedValue);
-    		}
-    	}
-    	return typedProps;
+        Properties typedProps = new Properties();
+        if (props != null) {
+            for (Iterator iter = props.entrySet().iterator(); iter.hasNext(); )
+            {
+                Map.Entry prop = (Map.Entry) iter.next();
+                String key = (String) prop.getKey();
+                String[] typedValue = new String[2];
+                typedValue[0] = (String) prop.getValue();
+                typedValue[1] = PropertyUtil.isServiceProperty(key) ? "SERVICE" : "DATABASE";
+                typedProps.put(key, typedValue);
+            }
+        }
+        return typedProps;
     }
 
-	/**
-	 * Be Careful when using this, as it will return conglomerate ids for all the indices of a table
-	 * as well as the table itself. While the first conglomerate SHOULD be the main table, there
-	 * really isn't a guarantee, and it shouldn't be relied upon for correctness in all cases.
-	 */
-	public static long[] getConglomids(Connection conn, String schemaName, String tableName) throws SQLException {
+    /**
+     * Be Careful when using this, as it will return conglomerate ids for all the indices of a table
+     * as well as the table itself. While the first conglomerate SHOULD be the main table, there
+     * really isn't a guarantee, and it shouldn't be relied upon for correctness in all cases.
+     */
+    public static long[] getConglomids(Connection conn, String schemaName, String tableName) throws SQLException {
         List<Long> conglomIDs = new ArrayList<Long>();
         if (schemaName == null)
             // default schema
@@ -1097,7 +1069,7 @@ public class SpliceAdmin extends BaseAdminProcedures {
 				 * but it should ALWAYS have a higher conglomerate id, so if we sort the congloms,
 				 * we should return the main table before any of its indices.
 				 */
-				Arrays.sort(congloms);
+        Arrays.sort(congloms);
         return congloms;
     }
 

@@ -535,7 +535,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 
     @Override
     public String toString() {
-        return "GroupedAggregateOperation {source=" + source;
+        return String.format("GroupedAggregateOperation {resultSetNumber=%d, source=%s}", resultSetNumber, source);
     }
 
 
