@@ -600,14 +600,11 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
                     "attempting to elevate an operation txn without specifying a destination table");
 		}
 
-		private TxnView getTransaction() throws StandardException {
-        if(txn==null){
-            TransactionController transactionExecute = activation.getLanguageConnectionContext().getTransactionExecute();
-            Transaction rawStoreXact = ((TransactionManager) transactionExecute).getRawStoreXact();
-            txn = ((BaseSpliceTransaction) rawStoreXact).getActiveStateTxn();
-        }
-        return txn;
-		}
+    private TxnView getTransaction() throws StandardException {
+        TransactionController transactionExecute = activation.getLanguageConnectionContext().getTransactionExecute();
+        Transaction rawStoreXact = ((TransactionManager) transactionExecute).getRawStoreXact();
+        return ((BaseSpliceTransaction) rawStoreXact).getActiveStateTxn();
+    }
 
     public IOStats getStats() {
         return delegate.getStats();
