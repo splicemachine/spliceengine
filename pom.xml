@@ -268,6 +268,7 @@
 			</activation>
 			<properties>
 				<obfuscate.si>obfuscated</obfuscate.si>
+				<obfuscate.si.tag>-obfuscated</obfuscate.si.tag>
 			</properties>
 		</profile>
 

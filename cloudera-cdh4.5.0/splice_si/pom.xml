@@ -39,7 +39,7 @@
 							<appendClassifier>true</appendClassifier>
 							<!-- archive></archive -->
 							<attach>true</attach>
-							<attachArtifactClassifier>obfuscated</attachArtifactClassifier>
+							<attachArtifactClassifier>${obfuscate.si}</attachArtifactClassifier>
 							<attachArtifactType>jar</attachArtifactType>
 							<!-- exclusions></exclusions -->
 							<!-- inFilter></inFilter -->
