@@ -17,7 +17,7 @@ import java.util.Random;
  * Created on: 7/31/13
  */
 @RunWith(Parameterized.class)
-public class MultiFieldEncoderTest {
+public class MultiFieldEncoder_RandomizedTest {
     private static final int NUM_RANDOM_TESTS = 10;
     private static final int MAX_FIELDS_PER_TEST = 10;
 
@@ -101,7 +101,7 @@ public class MultiFieldEncoderTest {
 
     private final List<Pair<TestType,Object>> types;
 
-    public MultiFieldEncoderTest(List<Pair<TestType,Object>> types) {
+    public MultiFieldEncoder_RandomizedTest(List<Pair<TestType, Object>> types) {
         this.types = types;
     }
 
