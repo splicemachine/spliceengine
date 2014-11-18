@@ -118,7 +118,17 @@ public interface TrafficController {
 
     int tryAcquire(int minPermits, int maxPermits);
 
+    /**
+     * @return the number of permits currently available for requesting. This is a snapshot
+     * in time, and should not be used for anything other than monitoring, as it will not reliably
+     * tell you whether or not you can acquire any permits.
+     */
     int availablePermits();
+
+    /**
+     * @return the maximum number of permits that can be stored (e.g. the max throughput of the system)
+     */
+    int maxPermits();
 
     /**
      * Optional method: Set a new max number of permits to use.

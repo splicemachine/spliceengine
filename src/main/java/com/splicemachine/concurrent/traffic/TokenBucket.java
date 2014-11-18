@@ -137,7 +137,7 @@ public class TokenBucket implements TrafficController {
         return ts;
     }
 
-    private void addNewTokens(){
+    private synchronized void addNewTokens(){
         long ct = System.currentTimeMillis();
         long ft = fuzzyTime.get();
         if(ct<=ft) return; //nothing to do
@@ -172,8 +172,13 @@ public class TokenBucket implements TrafficController {
 
     @Override
     public int availablePermits() {
-        addNewTokens(); //add any tokens that weren't available before
-       return numTokens.get();
+        addNewTokens();
+        return numTokens.get();
+    }
+
+    @Override
+    public int maxPermits() {
+        return maxTokens;
     }
 
     @Override
