@@ -432,7 +432,8 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
         if(statementInfo!=null){
             statementInfo.markCompleted();
             try {
-                SpliceDriver.driver().getStatementManager().completedStatement(statementInfo, activation.isTraced(),getTransaction());
+                TxnView recordTxn = txn!=null? txn: getTransaction();
+                SpliceDriver.driver().getStatementManager().completedStatement(statementInfo, activation.isTraced(),recordTxn);
             } catch (IOException e) {
                 throw Exceptions.parseException(e);
             }
