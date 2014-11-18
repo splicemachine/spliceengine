@@ -169,20 +169,42 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 		@Override
 		public void close() throws StandardException {
 				SpliceLogUtils.trace(LOG, "close=%s",closed);
-				if(closed) return; //nothing to do;
+				if(closed) return;
 
 				try{
 						rowProvider.close();
-//						topOperation.close();
+
+                    //if (LOG.isTraceEnabled()) {
+                    //	LOG.trace(String.format("close(): closing topOperation %s, result set number %d", topOperation.getClass().getName(),
+                    //		((com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation)topOperation).getResultSetNumber()));
+                    //}
+
+                    // IMPORTANT: We *DO* want to close the top operation here.
+                    // As the commit history of this class shows, this was previously
+                    // commented out due to unexplained test failures (e.g. TPCH20).
+                    // However, not closing the top operation explicitly was the main
+                    // reason for DB-2136 (ZK nodes representing completed jobs
+                    // not getting purged).
+                    //
+                    // It's not correct to expect the rowProvider.close() call
+                    // a few lines up to also close the operation, although in some cases
+                    // (e.g. SourceRowProvider) that was happening. That is a break in
+                    // encapsulation. The rowProvidor.close() call will close scanners and
+                    // other resources associated with the row provider's iterator-like
+                    // abstraction, but it was not intended to handle the life cycle of
+                    // operations.
+                    //
+                    topOperation.close();
+                    // get rid of the following if redundant
 						JobResults jobResults = topOperation.getJobResults();
 						if(jobResults!=null)
 								jobResults.cleanup();
 				}catch(RuntimeException r){
 						throw Exceptions.parseException(r);
 				}
-//				catch (IOException e) {
-//						throw Exceptions.parseException(e);
-//				}
+				catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
 				boolean xplain = activation.isTraced();
 				if(xplain){
 						String xplainSchema = activation.getLanguageConnectionContext().getXplainSchema();

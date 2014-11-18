@@ -123,6 +123,13 @@ public class UnionOperation extends SpliceBaseOperation {
 				secondResultSet.open();
 		}
 
+        @Override
+        public void close() throws StandardException, IOException {
+            super.close();
+            if (firstResultSet != null) firstResultSet.close();
+            if (secondResultSet != null) secondResultSet.close();
+        }
+
 		@Override
 		public void init(SpliceOperationContext context) throws StandardException, IOException {
 				super.init(context);

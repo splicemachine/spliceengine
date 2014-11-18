@@ -2,6 +2,7 @@ package com.splicemachine.derby.hbase;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.impl.temp.TempTable;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.api.WriteContext;
 import com.splicemachine.pipeline.constraint.ConstraintViolation;
@@ -33,6 +34,18 @@ import java.util.concurrent.ExecutionException;
  */
 public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
     private static final Logger LOG = Logger.getLogger(AbstractSpliceIndexObserver.class);
+    /**
+     * Log component specific to compaction related code, so that this functionality
+     * can be logged in isolation without having to also see the rest of the logging
+     * from this class. To see additional temp table compaction logging,
+     * also use log component: com.splicemachine.derby.impl.temp.TempTable.
+     */
+    private static final Logger LOG_COMPACT = Logger.getLogger(AbstractSpliceIndexObserver.class.getName() + ".Compaction");
+
+    /** See {@link com.splicemachine.derby.impl.temp.TempTable} */
+    private static final String LOG_COMPACT_PRE = TempTable.LOG_COMPACT_PRE;
+
+
     protected long conglomId;
 	protected boolean isTemp;
 	protected long blockingStoreFiles;
@@ -77,11 +90,11 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
 						return super.preCompactScannerOpen(c, store, scanners,scanType,earliestPutTs,s);
 
 				if(blockingStoreFiles<=scanners.size()){
-						LOG.info("Falling back to normal HBase compaction for TEMP--consider increasing the number of blocking store files");
+                        LOG_COMPACT.info(String.format("%s Falling back to normal HBase compaction for TEMP. Consider increasing setting for blockingStoreFiles.", LOG_COMPACT_PRE));
 						return super.preCompactScannerOpen(c,store,scanners,scanType,earliestPutTs,s);
 				}else{
-						if(LOG.isTraceEnabled())
-								LOG.trace("Compacting TEMP using the TEMP compaction mechanism");
+                    if (LOG_COMPACT.isTraceEnabled())
+                        LOG_COMPACT.trace(String.format("%s Compacting TEMP using the TEMP compaction mechanism", LOG_COMPACT_PRE));
 						c.complete();
 						return SpliceDriver.driver().getTempTable().getTempCompactionScanner();
 				}
@@ -108,15 +121,16 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
 				 * back on SOME kind of compaction. Therefore, if we have at least as many candidate files as blockingStoreFiles,
 				 * AND we are unable to remove any from TEMP exposure, then retain them ALL and fall back to normal compaction.
 				 */
-				if(!isTemp ||candidates.size()<=0){
+                int numCandidates = candidates.size();
+				if(!isTemp || numCandidates <= 0){
 						return;
 				}
-				if(LOG.isTraceEnabled())
-						LOG.trace(String.format("Filtering %d StoreFiles",candidates.size()));
+                if (LOG_COMPACT.isTraceEnabled())
+                    LOG_COMPACT.trace(String.format("%s Checking for removable files in list of %d", LOG_COMPACT_PRE, numCandidates));
 				List<StoreFile> copy = Lists.newArrayList(candidates);
 				try {
 						SpliceDriver.driver().getTempTable().filterCompactionFiles(c.getEnvironment().getConfiguration(), copy);
-						if(copy.size()==0){
+						if(copy.size() == 0){ // All candidates have been removed from list - can't delete any files
 								/*
 								 * We need to keep all the files around. This leaves two situations: when we have exceeded the
 								 * blocking store files and when we have not.
@@ -127,16 +141,24 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
 								 * When we exceed blockingStoreFiles, we keep candidates the same, and we will detect that the
 								 * number has exceeded in the preCompactScannerOpen and fall back to the default.
 								 */
-								if(candidates.size()<blockingStoreFiles){
+								if(numCandidates < blockingStoreFiles){
 										//we are free to use the normal TEMP compaction procedure, which does nothing.
-										candidates.clear();
-								}
-								//if the above isn't met, then we do nothing to candidates, because we are falling back to normal TEMP
-								if(LOG.isDebugEnabled())
-										LOG.debug("Blocking Store files exceeded, falling back to default HBase compaction");
+                                    // TODO: Consider compacting some files even if we have not hit blocking limit yet
+                                    candidates.clear();
+								} else {
+                                    // if the above isn't met, then we do nothing to candidates, because we are falling back to normal TEMP
+                                    if (LOG_COMPACT.isDebugEnabled())
+                                        LOG_COMPACT.debug(String.format(
+                                                "%s No removable files found in list of %d. BlockingStoreFiles limit %d exceeded, so proceeding with default HBase compaction",
+                                                LOG_COMPACT_PRE, numCandidates, blockingStoreFiles));
+                                }
 						}else{
-								//there are at least some files to remove using the TEMP structure, so just go with it
-								candidates.retainAll(copy);
+                            // there are at least some files to remove using the TEMP structure, so just go with it
+                            if (LOG_COMPACT.isDebugEnabled())
+                                LOG_COMPACT.debug(String.format(
+                                        "%s %d removable files found in candidate list of %d.",
+                                        LOG_COMPACT_PRE, copy.size(), numCandidates));
+                            candidates.retainAll(copy);
 						}
 
 						c.bypass();

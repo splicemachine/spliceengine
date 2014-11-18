@@ -200,16 +200,6 @@ public class SpliceAdminIT {
     }
 
     @Test
-    @Ignore("Ignoring until we can address SpliceAdmin method's case when there are no jobs")
-    public void testGetActiveJobIDs() throws Exception {
-        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_ACTIVE_JOB_IDS()");
-        ResultSet rs = cs.executeQuery();
-        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_ACTIVE_JOB_IDS()", rs);
-        System.out.println(fr.toString());
-        DbUtils.closeQuietly(rs);
-    }
-
-    @Test
     public void testGetActiveServers() throws Exception {
         CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_ACTIVE_SERVERS()");
         ResultSet rs = cs.executeQuery();
