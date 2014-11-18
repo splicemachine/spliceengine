@@ -1,338 +1,314 @@
 package org.apache.derby.impl.sql.execute.operations;
 
-import com.google.common.collect.Lists;
-import com.splicemachine.derby.test.framework.*;
-import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test_tools.TableCreator;
+import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
-import org.junit.runner.Description;
 
+import java.math.BigDecimal;
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.util.List;
+import java.sql.Statement;
 
-public class UpdateOperationIT extends SpliceUnitTest { 
-	private static Logger LOG = Logger.getLogger(UpdateOperationIT.class);
-	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(UpdateOperationIT.class.getSimpleName());
-	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("LOCATION",spliceSchemaWatcher.schemaName,"(num int, addr varchar(50), zip char(5))");
-    protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher("b",spliceSchemaWatcher.schemaName,"(num int, addr varchar(50), zip char(5))");
-    protected static SpliceTableWatcher nullTableWatcher = new SpliceTableWatcher("NULL_TABLE",spliceSchemaWatcher.schemaName,"(addr varchar(50), zip char(5))");
-    protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher("c",spliceSchemaWatcher.schemaName,"(k int, l int)");
-    protected static SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher("customer",spliceSchemaWatcher.schemaName,"(cust_id int, status boolean)");
-    protected static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher("shipment",spliceSchemaWatcher.schemaName,"(cust_id int)");
-    protected static SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher("tab2",spliceSchemaWatcher.schemaName,"(c1 int not null primary key, c2 int, c3 int)");
-    private static final SpliceTableWatcher nullIndexedTable = new SpliceTableWatcher("nt",spliceSchemaWatcher.schemaName,"(a int, b int)");
-    private static final SpliceIndexWatcher nullIndex = new SpliceIndexWatcher(nullIndexedTable.tableName,spliceSchemaWatcher.schemaName,"nt_idx",spliceSchemaWatcher.schemaName,"(a)",true);
+import static com.splicemachine.test_tools.Rows.row;
+import static com.splicemachine.test_tools.Rows.rows;
+import static org.junit.Assert.assertEquals;
+
+public class UpdateOperationIT {
+
+    private static final String SCHEMA = UpdateOperationIT.class.getSimpleName().toUpperCase();
+
+    private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA);
+    private static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
-            .around(spliceSchemaWatcher)
-            .around(spliceTableWatcher)
-            .around(spliceTableWatcher2)
-            .around(spliceTableWatcher3)
-            .around(nullTableWatcher)
-            .around(spliceTableWatcher4)
-            .around(spliceTableWatcher5)
-            .around(spliceTableWatcher6)
-            .around(nullIndexedTable)
-            .around(nullIndex)
-            .around(new SpliceDataWatcher() {
-        @Override
-        protected void starting(Description description) {
-            try {
-                PreparedStatement insertPs = spliceClassWatcher.prepareStatement("insert into " + spliceTableWatcher + " values(?,?,?)");
-                PreparedStatement insertPs2 = spliceClassWatcher.prepareStatement("insert into " + spliceTableWatcher2 + " values(?,?,?)");
+            .around(spliceSchemaWatcher);
 
-                insertPs.setInt(1, 100);
-                insertPs.setString(2, "100");
-                insertPs.setString(3, "94114");
-                insertPs.executeUpdate();
+    @Rule
+    public final SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
 
-                insertPs2.setInt(1, 250);
-                insertPs2.setString(2, "100");
-                insertPs2.setString(3, "94114");
-                insertPs2.executeUpdate();
+    @BeforeClass
+    public static void createSharedTables() throws Exception {
 
-                insertPs.setInt(1, 200);
-                insertPs.setString(2, "200");
-                insertPs.setString(3, "94509");
-                insertPs.executeUpdate();
+        Connection connection = spliceClassWatcher.getOrCreateConnection();
 
-                insertPs.setInt(1, 300);
-                insertPs.setString(2, "300");
-                insertPs.setString(3, "34166");
-                insertPs.executeUpdate();
+        new TableCreator(connection)
+                .withCreate("create table LOCATION (num int, addr varchar(50), zip char(5))")
+                .withInsert("insert into LOCATION values(?,?,?)")
+                .withRows(rows(
+                                row(100, "100", "94114"),
+                                row(200, "200", "94509"),
+                                row(300, "300", "34166"))
+                )
+                .create();
 
-                // Insert into customer and shipment tables
-                insertPs = spliceClassWatcher.prepareStatement("insert into " + spliceTableWatcher4 + " values(?,?)");
-                insertPs.setInt(1, 1);
-                insertPs.setBoolean(2, true);
-                insertPs.executeUpdate();
-                insertPs.setInt(1, 2);
-                insertPs.setBoolean(2, true);
-                insertPs.executeUpdate();
-                insertPs.setInt(1, 3);
-                insertPs.setBoolean(2, true);
-                insertPs.executeUpdate();
-                insertPs.setInt(1, 4);
-                insertPs.setBoolean(2, true);
-                insertPs.executeUpdate();
-                insertPs.setInt(1, 5);
-                insertPs.setBoolean(2, true);
-                insertPs.executeUpdate();
+        new TableCreator(connection)
+                .withCreate("create table NULL_TABLE (addr varchar(50), zip char(5))")
+                .create();
 
-                insertPs = spliceClassWatcher.prepareStatement("insert into " + spliceTableWatcher5 + " values(?)");
-                insertPs.setInt(1, 2);
-                insertPs.executeUpdate();
-                insertPs.setInt(1, 4);
-                insertPs.executeUpdate();
+        new TableCreator(connection)
+                .withCreate("create table SHIPMENT (cust_id int)")
+                .withInsert("insert into SHIPMENT values(?)")
+                .withRows(rows(row(102), row(104)))
+                .create();
 
-                insertPs = spliceClassWatcher.prepareStatement("insert into "+ spliceTableWatcher6 + " values(?,?,?)");
-                insertPs.setInt(1,6);insertPs.setInt(2,2);insertPs.setInt(3,8); insertPs.execute(); //(6,2,8)
-                insertPs.setInt(1,2);insertPs.setInt(2,8);insertPs.setInt(3,5); insertPs.execute(); //(2,8,5)
-                insertPs.setInt(1,28);insertPs.setInt(2,5);insertPs.setInt(3,9); insertPs.execute(); //(28,5,9)
-                insertPs.setInt(1,3);insertPs.setInt(2,12);insertPs.setInt(3,543); insertPs.execute(); //(3,12,543)
-                insertPs.setInt(1,56);insertPs.setInt(2,2);insertPs.setInt(3,7); insertPs.execute(); //(56,2,7)
-                insertPs.setInt(1,31);insertPs.setInt(2,5);insertPs.setInt(3,7); insertPs.execute(); //(31,5,7)
-                insertPs.setInt(1,-12);insertPs.setInt(2,5);insertPs.setInt(3,2); insertPs.execute(); //(-12,5,2)
+        new TableCreator(connection)
+                .withCreate("create table CUSTOMER (cust_id int, status boolean, level int)")
+                .withInsert("insert into CUSTOMER values(?,?,?)")
+                .withRows(rows(row(101, true, 1), row(102, true, 2), row(103, true, 3), row(104, true, 4), row(105, true, 5)))
+                .create();
+        new TableCreator(connection)
+                .withCreate("create table CUSTOMER_TEMP (cust_id int, status boolean, level int)")
+                .withInsert("insert into CUSTOMER_TEMP values(?,?,?)")
+                .withRows(rows(row(101, true, 1), row(102, true, 2), row(103, true, 3), row(104, true, 4), row(105, true, 5)))
+                .create();
+    }
 
-                PreparedStatement createIndex = spliceClassWatcher.prepareStatement("create index ti on " + spliceTableWatcher6 + "(c1,c2 desc,c3)");
-                createIndex.execute();
+    /*regression test for DB-2204*/
+    @Test
+    public void testUpdateDoubleIndexFieldWorks() throws Exception {
+        methodWatcher.executeUpdate("create table dc (dc decimal(10,2))");
+        methodWatcher.executeUpdate("insert into dc values (10)");
 
-                spliceClassWatcher.getStatement().execute(String.format("insert into %s (a,b) values (null,null)",nullIndexedTable));
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            } finally {
-                spliceClassWatcher.closeAll();
-            }
-        }
-    }).around(new SpliceDataWatcher() {
-                @Override
-                protected void starting(Description description) {
-                    try{
-                        PreparedStatement ps = spliceClassWatcher.prepareStatement("insert into "+ spliceTableWatcher3 +" (k,l) values (?,?)");
-                        ps.setInt(1,1);
-                        ps.setInt(2,2);
-                        ps.execute();
+        TestConnection conn = methodWatcher.getOrCreateConnection();
+        conn.setAutoCommit(false);
 
-                        ps.setInt(1,3);
-                        ps.setInt(2,4);
-                        ps.execute();
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }finally{
-                        spliceClassWatcher.closeAll();
-                    }
-                }
-            });
-	
-	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
+        Statement s = conn.createStatement();
+        s.execute("create index didx on dc (dc)");
+        s.execute("create unique index duniq on dc (dc)");
 
+        int updated = s.executeUpdate("update dc set dc = dc+1.1");
+
+        //make base table and index have expected number of rows
+        assertEquals("Incorrect number of reported updates!", 1, updated);
+        assertEquals(1L, methodWatcher.query("select count(*) from dc"));
+        assertEquals(1L, methodWatcher.query("select count(*) from dc --SPLICE-PROPERTIES index=didx"));
+        assertEquals(1L, methodWatcher.query("select count(*) from dc --SPLICE-PROPERTIES index=duniq"));
+
+        //make sure that the update worked
+        BigDecimal expected = new BigDecimal("11.10");
+        assertEquals("Incorrect value returned!", expected, methodWatcher.query("select dc from dc"));
+        assertEquals("Incorrect value returned!", expected, methodWatcher.query("select dc from dc --SPLICE-PROPERTIES index=didx"));
+        assertEquals("Incorrect value returned!", expected, methodWatcher.query("select dc from dc --SPLICE-PROPERTIES index=duniq"));
+    }
+
+    /*regression test for Bug 889*/
     @Test
     public void testUpdateSetNullLong() throws Exception {
-        /*regression test for Bug 889*/
-        int updated = methodWatcher.getStatement().executeUpdate("update "+ spliceTableWatcher3+" set k = NULL where l = 2");
-        Assert.assertEquals("incorrect num rows updated!",1,updated);
-        ResultSet rs = methodWatcher.executeQuery("select * from "+ spliceTableWatcher3);
-        boolean nullFound=false;
-        int count = 0;
-        while(rs.next()){
-            Integer k = rs.getInt(1);
-            boolean nullK = rs.wasNull();
-            Integer l =  rs.getInt(2);
-            Assert.assertFalse("l should not be null!",rs.wasNull());
-            if(nullK){
-                Assert.assertFalse("Too many null records found!", nullFound);
-                Assert.assertEquals("Incorrect row marked null!",2,l.intValue());
-                nullFound = true;
-            }
-            count++;
-        }
-        Assert.assertEquals("Incorrect row count returned!",2,count);
+
+        new TableCreator(methodWatcher.getOrCreateConnection())
+                .withCreate("create table c (k int, l int)")
+                .withInsert("insert into c (k,l) values (?,?)")
+                .withRows(rows(row(1, 2), row(2, 4)))
+                .create();
+
+        int updated = methodWatcher.executeUpdate("update c set k = NULL where l = 2");
+
+        assertEquals("incorrect num rows updated!", 1L, updated);
+        assertEquals("incorrect num rows present!", 2L, methodWatcher.query("select count(*) from c"));
+
+        ResultSet rs = methodWatcher.executeQuery("select * from c");
+        assertEquals("" +
+                        "K  | L |\n" +
+                        "----------\n" +
+                        "  2  | 4 |\n" +
+                        "NULL | 2 |",
+                TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
     @Test
-	public void testUpdate() throws Exception {
-		int updated= methodWatcher.getStatement().executeUpdate("update "+spliceTableWatcher+" set addr='240' where num=100");
-		Assert.assertEquals("Incorrect num rows updated!",1,updated);
-		ResultSet rs = methodWatcher.executeQuery("select * from "+spliceTableWatcher+" where num = 100");
-		List<String> results = Lists.newArrayListWithCapacity(1);
-		while(rs.next()){
-			Integer num = rs.getInt(1);
-			String addr = rs.getString(2);
-			String zip = rs.getString(3);
-			Assert.assertNotNull("no zip returned!",zip);
-			Assert.assertEquals("Incorrect num returned!",100,num.intValue());
-			Assert.assertEquals("Address incorrect","240",addr);
-			results.add(String.format("num:%d,addr:%s,zip:%s",num,addr,zip));
-		}
-		for(String result:results){
-			LOG.info(result);
-		}
-		Assert.assertEquals("Incorrect rows returned!",1,results.size());
-	}
-
-	@Test
-	public void testUpdateMultipleColumns() throws Exception{
-		int updated = methodWatcher.getStatement().executeUpdate("update "+spliceTableWatcher+" set addr='900',zip='63367' where num=300");
-		Assert.assertEquals("incorrect number of records updated!",1,updated);
-		ResultSet rs = methodWatcher.executeQuery("select * from "+ spliceTableWatcher+ " where num=300");
-		List<String>results = Lists.newArrayList();
-		while(rs.next()){
-			Integer num = rs.getInt(1);
-			String addr = rs.getString(2);
-			String zip = rs.getString(3);
-			Assert.assertEquals("incorrect num!",new Integer(300),num);
-			Assert.assertEquals("Incorrect addr!","900",addr);
-			Assert.assertEquals("incorrect zip!","63367",zip);
-			results.add(String.format("num:%d,addr:%s,zip:%s",num,addr,zip));
-		}
-		Assert.assertEquals("Incorrect rows returned!",1,results.size());
-	}
+    public void testUpdate() throws Exception {
+        int updated = methodWatcher.getStatement().executeUpdate("update LOCATION set addr='240' where num=100");
+        assertEquals("Incorrect num rows updated!", 1, updated);
+        ResultSet rs = methodWatcher.executeQuery("select * from LOCATION where num = 100");
+        assertEquals("" +
+                        "NUM |ADDR | ZIP  |\n" +
+                        "-------------------\n" +
+                        " 100 | 240 |94114 |",
+                TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
 
     @Test
-    public void testWithoutWhere() throws Exception{
-        methodWatcher.prepareStatement("insert into "+nullTableWatcher+" values (null,null)").execute();
+    public void testUpdateMultipleColumns() throws Exception {
+        int updated = methodWatcher.getStatement().executeUpdate("update LOCATION set addr='900',zip='63367' where num=300");
+        assertEquals("incorrect number of records updated!", 1, updated);
+        ResultSet rs = methodWatcher.executeQuery("select * from LOCATION where num=300");
+        assertEquals("" +
+                        "NUM |ADDR | ZIP  |\n" +
+                        "-------------------\n" +
+                        " 300 | 900 |63367 |",
+                TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
 
-        PreparedStatement preparedStatement = methodWatcher.prepareStatement("update " + nullTableWatcher + " set addr = ?, zip = ?");
-        preparedStatement.setString(1,"2269 Concordia Drive");
-        preparedStatement.setString(2,"65203");
+    @Test
+    public void testWithoutWhere() throws Exception {
+        methodWatcher.prepareStatement("insert into NULL_TABLE values (null,null)").execute();
+
+        PreparedStatement preparedStatement = methodWatcher.prepareStatement("update NULL_TABLE set addr = ?, zip = ?");
+        preparedStatement.setString(1, "2269 Concordia Drive");
+        preparedStatement.setString(2, "65203");
         int updated = preparedStatement.executeUpdate();
-        Assert.assertEquals("Incorrect number of records updated",1,updated);
+        assertEquals("Incorrect number of records updated", 1, updated);
 
-        ResultSet rs = methodWatcher.executeQuery("select addr,zip from "+ nullTableWatcher);
-        List<String> results = Lists.newArrayListWithExpectedSize(1);
-        while(rs.next()){
-            String addr = rs.getString(1);
-            String zip = rs.getString(2);
-            Assert.assertEquals("Incorrect address returned!","2269 Concordia Drive",addr);
-            Assert.assertEquals("Incorrect zip returned!","65203",zip);
-            results.add(String.format("addr=%s,zip=%s",addr,zip));
-        }
-        for(String result:results){
-            LOG.info(result);
-        }
-        Assert.assertTrue("No row returned!",results.size()>0);
+        ResultSet rs = methodWatcher.executeQuery("select addr,zip from NULL_TABLE");
+        assertEquals("" +
+                        "ADDR         | ZIP  |\n" +
+                        "-----------------------------\n" +
+                        "2269 Concordia Drive |65203 |",
+                TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
+    /* Regression test for Bug #286 */
     @Test
-    public void testUpdateFromValues() throws Exception{
-        /*
-         * Regression test for Bug #286
-         */
-        int updated= methodWatcher.getStatement().executeUpdate("update " + spliceTableWatcher + " set addr=(values '5') where num=100");
-        Assert.assertEquals("Incorrect num rows updated!", 1, updated);
-        ResultSet rs = methodWatcher.executeQuery("select * from "+spliceTableWatcher+" where num = 100");
-        List<String> results = Lists.newArrayListWithCapacity(1);
-        while(rs.next()){
-            Integer num = rs.getInt(1);
-            String addr = rs.getString(2);
-            String zip = rs.getString(3);
-            Assert.assertNotNull("no zip returned!",zip);
-            Assert.assertEquals("Incorrect num returned!",100,num.intValue());
-            Assert.assertEquals("Address incorrect","5",addr);
-            results.add(String.format("num:%d,addr:%s,zip:%s",num,addr,zip));
-        }
-        for(String result:results){
-            LOG.info(result);
-        }
-        Assert.assertEquals("Incorrect rows returned!", 1, results.size());
+    public void testUpdateFromValues() throws Exception {
+        int updated = methodWatcher.getStatement().executeUpdate("update LOCATION set addr=(values '5') where num=100");
+        assertEquals("Incorrect num rows updated!", 1, updated);
+        ResultSet rs = methodWatcher.executeQuery("select * from LOCATION where num = 100");
+        assertEquals("" +
+                        "NUM |ADDR | ZIP  |\n" +
+                        "-------------------\n" +
+                        " 100 |  5  |94114 |",
+                TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
+    /* regression test for Bug 289 */
     @Test
     public void testUpdateFromSubquery() throws Exception {
-        /* regression test for Bug 289 */
-        int updated = methodWatcher.getStatement().executeUpdate("update "+ spliceTableWatcher2 +" set num=(select "+spliceTableWatcher+".num from "+spliceTableWatcher+" where "+spliceTableWatcher+".num = 100)");
-        Assert.assertEquals("Incorrect num rows updated!",1,updated);
-        ResultSet rs = methodWatcher.executeQuery("select * from "+ spliceTableWatcher2+" where num = 100");
-        List<String> results = Lists.newArrayListWithCapacity(1);
-        while(rs.next()){
-            Integer num = rs.getInt(1);
-            String addr = rs.getString(2);
-            String zip = rs.getString(3);
-            Assert.assertNotNull("no zip returned!",zip);
-            Assert.assertEquals("Incorrect num returned!",100,num.intValue());
-            Assert.assertEquals("Address incorrect","100",addr);
-            results.add(String.format("num:%d,addr:%s,zip:%s",num,addr,zip));
-        }
-        for(String result:results){
-            LOG.info(result);
-        }
-        Assert.assertEquals("Incorrect rows returned!", 1, results.size());
+        new TableCreator(methodWatcher.getOrCreateConnection())
+                .withCreate("create table b (num int, addr varchar(50), zip char(5))")
+                .withInsert("insert into b values(?,?,?)")
+                .withRows(rows(row(25, "100", "94114")))
+                .create();
+
+        int updated = methodWatcher.getStatement().executeUpdate("update b set num=(select LOCATION.num from LOCATION where LOCATION.num = 100)");
+        assertEquals("Incorrect num rows updated!", 1, updated);
+        ResultSet rs = methodWatcher.executeQuery("select * from b where num = 100");
+        assertEquals("" +
+                        "NUM |ADDR | ZIP  |\n" +
+                        "-------------------\n" +
+                        " 100 | 100 |94114 |",
+                TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
+    /* Regression test for Bug 682. */
     @Test
     public void testUpdateSetNullValues() throws Exception {
-        /*
-         * Regression test for Bug 682.
-         */
-        PreparedStatement ps = methodWatcher.prepareStatement("insert into "+ nullTableWatcher +" values (?,?)");
-        ps.setString(1,"900 Green Meadows Road");
+        PreparedStatement ps = methodWatcher.prepareStatement("insert into NULL_TABLE values (?,?)");
+        ps.setString(1, "900 Green Meadows Road");
         ps.setString(2, "65201");
         ps.execute();
 
         //get initial count
-        ResultSet rs = methodWatcher.executeQuery("select * from "+ nullTableWatcher+" where zip = '65201'");
-        int originalCount=0;
-        while(rs.next()){
-            originalCount++;
-        }
+        Long originalCount = methodWatcher.query("select count(*) from NULL_TABLE where zip = '65201'");
 
         //update to set a null entry
-        int numChanged = methodWatcher.prepareStatement("update " + nullTableWatcher + " set zip = null where zip = '65201'").executeUpdate();
-        Assert.assertEquals("Incorrect rows changed",1,numChanged);
+        int numChanged = methodWatcher.executeUpdate("update NULL_TABLE set zip = null where zip = '65201'");
+        assertEquals("Incorrect rows changed", 1, numChanged);
 
-        rs = methodWatcher.executeQuery("select * from "+ nullTableWatcher+" where zip is null");
-        int count=0;
-        while(rs.next()){
-            String zip = rs.getString(2);
-            Assert.assertNull("returned zip is not null!",zip);
-            count++;
-        }
-        Assert.assertEquals("Incorrect row count returned",1,count);
+        ResultSet rs = methodWatcher.executeQuery("select * from NULL_TABLE where zip is null");
+        assertEquals("" +
+                        "ADDR          | ZIP |\n" +
+                        "------------------------------\n" +
+                        "900 Green Meadows Road |NULL |",
+                TestUtils.FormattedResult.ResultFactory.toString(rs));
 
         //make sure old value isn't there anymore
-        rs = methodWatcher.executeQuery("select * from "+nullTableWatcher+" where zip = '65201'");
-        int finalCount=0;
-        while(rs.next()){
-            finalCount++;
-        }
-
-        Assert.assertEquals("Row was not removed from original set",originalCount-1,finalCount);
+        Long finalCount = methodWatcher.query("select count(*) from NULL_TABLE where zip = '65201'");
+        assertEquals("Row was not removed from original set", originalCount.longValue() - 1L, finalCount.longValue());
     }
 
+    /* Regression test for DB-1481, DB-2189 */
     @Test
     public void testUpdateOnAllColumnIndex() throws Exception {
-        /*Regression test for DB-1481*/
-        String query = "update " + spliceTableWatcher6 + " --DERBY-PROPERTIES index=TI\n" + //force the index just to make sure
-                " set c2=11 where c3=7";
-        int rows = methodWatcher.executeUpdate(query);
-        Assert.assertEquals("incorrect num rows updated!", 2, rows);
+        new TableCreator(methodWatcher.getOrCreateConnection())
+                .withCreate("create table tab2 (c1 int not null primary key, c2 int, c3 int)")
+                .withIndex("create index ti on tab2 (c1,c2 desc,c3)")
+                .withInsert("insert into tab2 values(?,?,?)")
+                .withRows(rows(
+                        row(1, 10, 1),
+                        row(2, 20, 1),
+                        row(3, 30, 2),
+                        row(4, 40, 2),
+                        row(5, 50, 3),
+                        row(6, 60, 3),
+                        row(7, 70, 3)
+                ))
+                .create();
 
-        //make sure that every row with c3=7 is updated to be 11
-        ResultSet rs = methodWatcher.executeQuery(String.format("select * from %s where c3=7", spliceTableWatcher6));
-        int count =0;
-        while(rs.next()){
-            int c2 = rs.getInt(2);
-            Assert.assertEquals("Incorrect value for c2!",11,c2);
-            count++;
-        }
-        Assert.assertEquals("Incorrect returned count!",2,count);
+        int rows = methodWatcher.executeUpdate("update tab2 set c2=99 where c3=2");
+
+        assertEquals("incorrect num rows updated!", 2L, rows);
+        assertEquals("incorrect num rows present!", 7L, methodWatcher.query("select count(*) from tab2"));
+        assertEquals("incorrect num rows present!", 7L, methodWatcher.query("select count(*) from tab2 --SPLICE-PROPERTIES index=ti"));
+
+        ResultSet rs1 = methodWatcher.executeQuery("select * from tab2 where c3=2");
+        ResultSet rs2 = methodWatcher.executeQuery("select * from tab2 --SPLICE-PROPERTIES index=ti \n where c3=2");
+
+        String expected = "" +
+                "C1 |C2 |C3 |\n" +
+                "------------\n" +
+                " 3 |99 | 2 |\n" +
+                " 4 |99 | 2 |";
+
+        assertEquals("verify without index", expected, TestUtils.FormattedResult.ResultFactory.toString(rs1));
+        assertEquals("verify using index", expected, TestUtils.FormattedResult.ResultFactory.toString(rs2));
     }
 
     @Test
+    public void updateColumnWhichIsDescendingInIndexAndIsAlsoPrimaryKey() throws Exception {
+        new TableCreator(methodWatcher.getOrCreateConnection())
+                .withCreate("create table tab3 (a int primary key, b int, c int, d int)")
+                .withIndex("create index index_tab3 on tab3 (a desc, b desc, c)")
+                .withInsert("insert into tab3 values(?,?,?,?)")
+                .withRows(rows(
+                        row(10, 10, 10, 10),
+                        row(20, 20, 10, 20),
+                        row(30, 30, 20, 30)
+                ))
+                .create();
+
+        int rows = methodWatcher.executeUpdate("update tab3 set a=99,b=99,c=99 where d=30");
+
+        assertEquals("incorrect num rows updated!", 1L, rows);
+        assertEquals("incorrect num rows present!", 3L, methodWatcher.query("select count(*) from tab3"));
+        assertEquals("incorrect num rows present!", 3L, methodWatcher.query("select count(*) from tab3 --SPLICE-PROPERTIES index=index_tab3"));
+
+        ResultSet rs1 = methodWatcher.executeQuery("select * from tab3 where d=30");
+        ResultSet rs2 = methodWatcher.executeQuery("select * from tab3 --SPLICE-PROPERTIES index=index_tab3 \n where d=30");
+
+        String expected = "" +
+                "A | B | C | D |\n" +
+                "----------------\n" +
+                "99 |99 |99 |30 |";
+
+        assertEquals("verify without index", expected, TestUtils.FormattedResult.ResultFactory.toString(rs1));
+        assertEquals("verify using index", expected, TestUtils.FormattedResult.ResultFactory.toString(rs2));
+    }
+
+    /*
+     * Regression test for DB-2007. Assert that this doesn't explode, and that
+     * the NULL,NULL row isn't modified, so the number of rows modified = 0
+     */
+    @Test
     public void testUpdateOverNullIndexWorks() throws Exception {
-        /*
-         * Regression test for DB-2007. Assert that this doesn't explode, and that
-         * the NULL,NULL row isn't modified, so the number of rows modified = 0
-         */
-        int modified = methodWatcher.executeUpdate("update "+ nullIndexedTable+" set a = a+ 1.1");
-        Assert.assertEquals("Claimed to have modified a row!",0,modified);
+        new TableCreator(methodWatcher.createConnection())
+                .withCreate("create table nt (a int, b int)")
+                .withIndex("create unique index nt_idx on nt (a)")
+                .create();
+
+        methodWatcher.executeUpdate("insert into NT (a,b) values (null,null)");
+
+        int modified = methodWatcher.executeUpdate("update NT set a = a+ 1.1");
+
+//        assertEquals("Claimed to have modified a row!", 0, modified);
+        assertEquals(1L, methodWatcher.query("select count(*) from nt"));
+        assertEquals(1L, methodWatcher.query("select count(*) from nt --SPLICE-PROPERTIES index=nt_idx"));
     }
 
     // If you change one of the following 'update over join' tests,
@@ -343,9 +319,9 @@ public class UpdateOperationIT extends SpliceUnitTest {
         TestConnection conn = methodWatcher.getOrCreateConnection();
         boolean oldAutoCommit = conn.getAutoCommit();
         conn.setAutoCommit(false);
-        try{
-            doTestUpdateOverJoin("BROADCAST",conn);
-        }finally{
+        try {
+            doTestUpdateOverJoin("BROADCAST", conn);
+        } finally {
             conn.rollback();
             conn.setAutoCommit(oldAutoCommit);
         }
@@ -356,24 +332,68 @@ public class UpdateOperationIT extends SpliceUnitTest {
         TestConnection conn = methodWatcher.getOrCreateConnection();
         boolean oldAutoCommit = conn.getAutoCommit();
         conn.setAutoCommit(false);
-        try{
+        try {
             doTestUpdateOverJoin("SORTMERGE", conn);
-        }finally{
+        } finally {
             conn.rollback();
             conn.setAutoCommit(oldAutoCommit);
         }
     }
 
-    private void doTestUpdateOverJoin(String hint,TestConnection connection) throws Exception {
-    	StringBuffer sb = new StringBuffer(200);
-    	sb.append("update %s %s set %s.status = 'false' \n");
-    	sb.append("where not exists ( \n");
-		sb.append("  select 1 \n");
-		sb.append("  from %s %s --SPLICE-PROPERTIES joinStrategy=%s \n");                                                                           
-		sb.append("  where %s.cust_id = %s.cust_id \n");
-		sb.append(") \n");
-		String query = String.format(sb.toString(), spliceTableWatcher4, "customer", "customer", spliceTableWatcher5, "shipment", hint, "customer", "shipment");
-    	int rows = connection.createStatement().executeUpdate(query);
-        Assert.assertEquals("incorrect num rows updated!", 3, rows);
+    private void doTestUpdateOverJoin(String hint, TestConnection connection) throws Exception {
+        StringBuilder sb = new StringBuilder(200);
+        sb.append("update CUSTOMER customer set CUSTOMER.status = 'false' \n");
+        sb.append("where not exists ( \n");
+        sb.append("  select 1 \n");
+        sb.append("  from SHIPMENT shipment --SPLICE-PROPERTIES joinStrategy=%s \n");
+        sb.append("  where CUSTOMER.cust_id = SHIPMENT.cust_id \n");
+        sb.append(") \n");
+        String query = String.format(sb.toString(), hint);
+        int rows = connection.createStatement().executeUpdate(query);
+        assertEquals("incorrect num rows updated!", 3, rows);
     }
+
+    @Test
+    public void testUpdateMultiColumnMultiSubSyntax() throws Exception {
+        StringBuffer sb = new StringBuffer(200);
+        sb.append("update customer \n");
+        sb.append("  set status = 'false', \n");
+        sb.append("  level = ( \n");
+        sb.append("    select level \n");
+        sb.append("    from customer_temp custtemp \n");
+        sb.append("    where custtemp.cust_id = customer.cust_id \n");
+        sb.append("  )");
+        String query = String.format(sb.toString());
+        int rows = methodWatcher.executeUpdate(query);
+        Assert.assertEquals("incorrect num rows updated!", 5, rows);
+    }
+
+    @Test
+    public void testUpdateMultiColumnOneSubSyntaxNoOuterWhere() throws Exception {
+        int rows = doTestUpdateMultiColumnOneSubSyntax(null);
+        Assert.assertEquals("incorrect num rows updated!", 5, rows);
+    }
+
+    @Test
+    public void testUpdateMultiColumnOneSubSyntaxWithOuterWhere() throws Exception {
+        int rows = doTestUpdateMultiColumnOneSubSyntax(" where customer.cust_id <> 105");
+        Assert.assertEquals("incorrect num rows updated!", 4, rows);
+    }
+
+    // Used by previous tests (testUpdateMultiColumnOneSub*)
+    private int doTestUpdateMultiColumnOneSubSyntax(String outerWhere) throws Exception {
+        StringBuffer sb = new StringBuffer(200);
+        sb.append("update customer \n");
+        sb.append("  set (status, level) = ( \n");
+        sb.append("    select customer_temp.status, customer_temp.level \n");
+        sb.append("    from customer_temp \n");
+        sb.append("    where customer_temp.cust_id = customer.cust_id \n");
+        sb.append("  ) ");
+        if (outerWhere != null) {
+            sb.append(outerWhere);
+        }
+        String query = String.format(sb.toString());
+        return methodWatcher.executeUpdate(query);
+    }
+
 }
