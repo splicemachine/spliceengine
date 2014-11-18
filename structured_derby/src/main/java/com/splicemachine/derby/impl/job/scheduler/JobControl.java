@@ -353,7 +353,7 @@ class JobControl implements JobFuture {
             endRow = new byte[nextStart.length];
             System.arraycopy(nextStart,0,endRow,0,endRow.length);
 
-            BytesUtil.unsignedDecrement(endRow, endRow.length - 1);
+//            BytesUtil.unsignedDecrement(endRow, endRow.length - 1);
         }else
             endRow = HConstants.EMPTY_END_ROW;
 
