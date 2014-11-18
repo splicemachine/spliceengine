@@ -46,7 +46,7 @@ public class SchedulerPriorities {
 				if(type==null || type.equals("binaryNormalized")){
 						return SchedulerSetups.binaryNormalizedSetup(numThreads,numTiers,maxPriority);
 				}else if(type.equals("uniform")){
-						return SchedulerSetups.binaryNormalizedSetup(numThreads,numTiers,maxPriority);
+						return SchedulerSetups.uniformSetup(numThreads,numTiers,maxPriority);
 				}else{
 						try {
 								@SuppressWarnings("unchecked") Class<? extends TieredTaskSchedulerSetup> setupClass = (Class<? extends TieredTaskSchedulerSetup>) Class.forName(type);
