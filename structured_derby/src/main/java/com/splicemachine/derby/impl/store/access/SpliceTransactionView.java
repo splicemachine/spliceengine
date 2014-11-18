@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.store.access;
 
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.CannotCommitException;
+import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -72,5 +73,9 @@ public class SpliceTransactionView extends BaseSpliceTransaction {
     public void setActiveState(boolean nested, boolean dependent, TxnView parentTxn) {
         assert state==ACTIVE: "Cannot have an inactive SpliceTransactionView";
         //otherwise, it's a no-op
+    }
+
+    public void setTxn(Txn txn) {
+        this.txn = txn;
     }
 }
