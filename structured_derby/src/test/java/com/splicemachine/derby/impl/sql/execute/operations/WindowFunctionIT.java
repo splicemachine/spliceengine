@@ -150,6 +150,38 @@ public class WindowFunctionIT extends SpliceUnitTest {
         "3, 'Zavaschi', 13999"
     };
 
+    private static String table6Def = "(years INTEGER, month INTEGER, prd_type_id INTEGER, emp_id INTEGER, amount NUMERIC(8, 2), orderdate date default current_date)";
+    public static final String TABLE6_NAME = "ALL_SALES";
+    protected static SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher(TABLE6_NAME,CLASS_NAME, table6Def);
+
+    private static String[] ALL_SALES = {
+        "2006,1,1,21,16034.84",
+        "2006,2,1,21,15644.65",
+        "2006,3,2,21,20167.83",
+        "2006,4,2,21,25056.45",
+        "2006,5,2,21,NULL",
+        "2006,6,1,21,15564.66",
+        "2006,7,1,21,15644.65",
+        "2006,8,1,21,16434.82",
+        "2006,9,1,21,19654.57",
+        "2006,10,1,21,21764.19",
+        "2006,11,1,21,13026.73",
+        "2006,12,2,21,10034.64",
+        "2005,1,2,22,16634.84",
+        "2005,1,2,21,26034.84",
+        "2005,2,1,21,12644.65",
+        "2005,3,1,21,NULL",
+        "2005,4,1,21,25026.45",
+        "2005,5,1,21,17212.66",
+        "2005,6,1,21,15564.26",
+        "2005,7,2,21,62654.82",
+        "2005,8,2,21,26434.82",
+        "2005,9,2,21,15644.65",
+        "2005,10,2,21,21264.19",
+        "2005,11,1,21,13026.73",
+        "2005,12,1,21,10032.64"
+    };
+
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
                                             .around(spliceSchemaWatcher)
@@ -255,7 +287,24 @@ public class WindowFunctionIT extends SpliceUnitTest {
                                                         throw new RuntimeException(e);
                                                     }
                                                 }
-                                            });
+                                            })
+                                            .around(spliceTableWatcher6)
+                                            .around(new SpliceDataWatcher() {
+                                                @Override
+                                                protected void starting(Description description) {
+                                                    PreparedStatement ps;
+                                                    try {
+                                                        for (String row : ALL_SALES) {
+                                                            ps = spliceClassWatcher.prepareStatement(
+                                                                String.format("insert into %s (years, month, prd_type_id, " +
+                                                                                  "emp_id, amount) values (%s)",
+                                                                              spliceTableWatcher6, row));
+                                                            ps.execute();
+                                                        }
+                                                    } catch (Exception e) {
+                                                        throw new RuntimeException(e);
+                                                    }
+                                                }});
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
@@ -1943,6 +1992,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
+
     @Test
     public void testDB2170WithAggOverView() throws Exception {
         String sqlText =
@@ -1966,6 +2016,45 @@ public class WindowFunctionIT extends SpliceUnitTest {
                 " 1980-12-17  | SMITH |1980-12-17 |\n" +
                 " 1981-09-08  |TURNER |1981-09-08 |\n" +
                 " 1981-02-22  | WARD  |1981-02-22 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testSumWithNulls() throws Exception {
+        // DB-2290
+        String sqlText =
+            String.format("SELECT SUM(amount) over (partition by YEAR(OrderDate)) AS TotalOrdered from  %s",
+                          this.getTableReference(TABLE6_NAME));
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "TOTALORDERED |\n" +
+                "--------------\n" +
+                "  451203.58  |\n" +
+                "  451203.58  |\n" +
+                "  451203.58  |\n" +
+                "  451203.58  |\n" +
+                "  451203.58  |\n" +
+                "  451203.58  |\n" +
+                "  451203.58  |\n" +
+                "  451203.58  |\n" +
+                "  451203.58  |\n" +
+                "  451203.58  |\n" +
+                "  451203.58  |\n" +
+                "  451203.58  |\n" +
+                "  451203.58  |\n" +
+                "  451203.58  |\n" +
+                "  451203.58  |\n" +
+                "  451203.58  |\n" +
+                "  451203.58  |\n" +
+                "  451203.58  |\n" +
+                "  451203.58  |\n" +
+                "  451203.58  |\n" +
+                "  451203.58  |\n" +
+                "  451203.58  |\n" +
+                "  451203.58  |\n" +
+                "  451203.58  |\n" +
+                "  451203.58  |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
