@@ -22,21 +22,16 @@ import java.nio.ByteBuffer;
  */
 public class StringEncoding {
 
-	/**
-	 * 
-	 * Wraps the Lucene UnicodeUtil.UTF16toUTF8 bytes serializatiom...
-	 * 
-	 * @param value
-	 * @param desc
-	 * @return
-	 */
+    /**
+     * Wraps the Lucene UnicodeUtil.UTF16toUTF8 bytes serializatiom...
+     */
     public static byte[] toBytes(String value, boolean desc){
-        if(value==null) return new byte[0];
+        if(value==null) return Encoding.EMPTY_BYTE_ARRAY;
         if(value.length()==0) return new byte[]{0x01};
 
         //convert to UTF-8 encoding
         BytesRef result = new BytesRef();
-        UnicodeUtil.UTF16toUTF8(value, 0, value.length(), result);   
+        UnicodeUtil.UTF16toUTF8(value, 0, value.length(), result);
         byte[] returnArray = new byte[result.length];
         for(int i=0;i<result.length;i++){
             byte newD = (byte)(result.bytes[i+result.offset] + 2);
@@ -48,7 +43,7 @@ public class StringEncoding {
     }
     @Deprecated
     public static byte[] toBytesOld(String value, boolean desc){
-        if(value==null) return new byte[0];
+        if(value==null) return Encoding.EMPTY_BYTE_ARRAY;
         if(value.length()==0) return new byte[]{0x01};
 
         //convert to UTF-8 encoding
