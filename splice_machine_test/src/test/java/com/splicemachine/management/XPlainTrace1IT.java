@@ -1,6 +1,5 @@
 package com.splicemachine.management;
 
-import com.google.gson.Gson;
 import com.splicemachine.derby.management.XPlainTreeNode;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.test.SerialTest;
@@ -98,7 +97,7 @@ public class XPlainTrace1IT extends BaseXplainIT {
         XPlainTreeNode operation = xPlainTrace.getOperationTree(statementId);
         String operationType = operation.getOperationType();
         System.out.println(operationType);
-        Assert.assertEquals(0,operationType.compareToIgnoreCase(SpliceXPlainTrace.BROADCASTJOIN));
+        Assert.assertEquals(operationType.toUpperCase(), SpliceXPlainTrace.BROADCASTJOIN.toUpperCase());
         Assert.assertEquals(operation.getInputRows(), 10);
         Assert.assertEquals(operation.getOutputRows(), 10);
         Assert.assertEquals(operation.getWriteRows(), 0);
@@ -120,7 +119,7 @@ public class XPlainTrace1IT extends BaseXplainIT {
         XPlainTreeNode operation = xPlainTrace.getOperationTree(statementId);
         String operationType = operation.getOperationType();
         System.out.println(operationType);
-        Assert.assertEquals(0,operationType.compareToIgnoreCase(SpliceXPlainTrace.MERGESORTJOIN));
+        Assert.assertEquals(operationType.toUpperCase(), SpliceXPlainTrace.MERGESORTJOIN.toUpperCase());
         Assert.assertTrue(operation.getInfo().contains("Join Condition:(T1.I[4:1] = T2.I[4:2])"));
         Assert.assertEquals(nrows,operation.getInputRows());
         Assert.assertEquals(nrows,operation.getOutputRows());
@@ -212,7 +211,7 @@ public class XPlainTrace1IT extends BaseXplainIT {
         XPlainTreeNode topOperation = xPlainTrace.getOperationTree(statementId);
 
         String operationType = topOperation.getOperationType();
-        Assert.assertEquals(0,operationType.compareTo(SpliceXPlainTrace.PROJECTRESTRICT));
+        Assert.assertEquals(operationType, SpliceXPlainTrace.PROJECTRESTRICT);
         Assert.assertEquals(topOperation.getInputRows(), 1);
 
         // Should be ScalarAggregate
@@ -220,7 +219,7 @@ public class XPlainTrace1IT extends BaseXplainIT {
         Assert.assertEquals(children.size(), 1);
 
         XPlainTreeNode child = children.getFirst();
-        Assert.assertEquals(0,child.getOperationType().compareTo(SpliceXPlainTrace.SCALARAGGREGATE));
+        Assert.assertEquals(child.getOperationType(), SpliceXPlainTrace.SCALARAGGREGATE);
         Assert.assertEquals(child.getInputRows(), 10);
         Assert.assertEquals(child.getOutputRows(), 1);
         Assert.assertEquals(child.getWriteRows(), 1);
@@ -256,8 +255,8 @@ public class XPlainTrace1IT extends BaseXplainIT {
         xPlainTrace.turnOnTrace();
 
         String sql = "select t1.i from --SPLICE-PROPERTIES joinOrder=FIXED\n" +
-                      CLASS_NAME + "." + TABLE1 + " t1, " + CLASS_NAME + "." + TABLE2 + " t2 --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP\n" +
-                      "where t1.i = t2.i*2";
+                CLASS_NAME + "." + TABLE1 + " t1, " + CLASS_NAME + "." + TABLE2 + " t2 --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP\n" +
+                "where t1.i = t2.i*2";
         long count = baseConnection.count(sql);
         Assert.assertEquals(5,count);
         long statementId = getLastStatementId();
@@ -266,14 +265,14 @@ public class XPlainTrace1IT extends BaseXplainIT {
         XPlainTreeNode operation = xPlainTrace.getOperationTree(statementId);
         String operationType = operation.getOperationType();
         System.out.println(operationType);
-        Assert.assertEquals(0,operationType.compareTo(SpliceXPlainTrace.PROJECTRESTRICT));
+        Assert.assertEquals(operationType, SpliceXPlainTrace.PROJECTRESTRICT);
         Assert.assertEquals(count ,operation.getInputRows());
         Assert.assertEquals(count ,operation.getOutputRows());
 
         Assert.assertEquals(1,operation.getChildren().size());
         operation = operation.getChildren().getFirst();
         operationType = operation.getOperationType();
-        Assert.assertEquals(0,operationType.compareTo(SpliceXPlainTrace.NESTEDLOOPJOIN));
+        Assert.assertEquals(operationType, SpliceXPlainTrace.NESTEDLOOPJOIN);
         Assert.assertEquals(operation.getInputRows(), nrows);
         Assert.assertEquals(operation.getRemoteScanRows(), count);
         Assert.assertEquals(operation.getOutputRows(), count);
@@ -284,7 +283,7 @@ public class XPlainTrace1IT extends BaseXplainIT {
         // First child should be a bulk table scan operation
         XPlainTreeNode child = operation.getChildren().getLast();
         operationType = child.getOperationType();
-        Assert.assertEquals(0,operationType.compareTo(SpliceXPlainTrace.BULKTABLESCAN));
+        Assert.assertEquals(operationType, SpliceXPlainTrace.BULKTABLESCAN);
         Assert.assertEquals(child.getLocalScanRows(), nrows);
         Assert.assertEquals(child.getOutputRows(), nrows);
 
@@ -292,7 +291,7 @@ public class XPlainTrace1IT extends BaseXplainIT {
         child = operation.getChildren().getFirst();
         operationType = child.getOperationType();
         System.out.println(operationType);
-        Assert.assertEquals(0,operationType.trim().compareToIgnoreCase(SpliceXPlainTrace.PROJECTRESTRICT));
+        Assert.assertEquals(operationType.trim().toUpperCase(), SpliceXPlainTrace.PROJECTRESTRICT.toUpperCase());
 
         child = child.getChildren().getLast();
         operationType = child.getOperationType();
