@@ -63,6 +63,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 		private ModifiedRowProvider modifiedProvider;
 
 		protected DMLWriteInfo writeInfo;
+        protected long writeRowsFiltered;
 
 		public DMLWriteOperation(){
 				super();
@@ -440,4 +441,20 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
             throw new RuntimeException(ErrorState.XACT_INTERNAL_TRANSACTION_EXCEPTION.newException());
         }
 		}
+
+    /**
+     * Gets the number of rows that are "filtered". These are rows that derby thinks should have been
+     * changed, but that we don't change due to some kind of optimization (e.g. not writing data that we know
+     * will fail for some reason). This allows us to generate the "correct" number of rows modified without
+     * actually physically writing it.
+     *
+     * The main usage of this is to enable UpdateOperations to work correctly while still emitting the
+     * same number of rows as we expect(see DB-2007 for more information).
+     *
+     * @return the number of "filtered" rows
+     */
+    public long getFilteredRows(){
+        return writeRowsFiltered;
+
+    }
 }

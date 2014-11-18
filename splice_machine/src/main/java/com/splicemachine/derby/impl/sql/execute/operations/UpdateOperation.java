@@ -109,6 +109,7 @@ public class UpdateOperation extends DMLWriteOperation{
                     break;
                 }
             }
+            if(shouldContinue) writeRowsFiltered++;  //increment the number of rows that we have filtered out
         }while(shouldContinue);
         if(nextSinkRow==null&&resultSupplier!=null)
             resultSupplier.close();
