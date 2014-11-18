@@ -1337,8 +1337,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
                                                             aggregateItem,
                                                             source.getActivation(),
                                                             rowAllocator,
-                                                            maxRowSize,
-                                                            resultSetNumber,
+                resultSetNumber,
                                                             optimizerEstimatedRowCount,
                                                             optimizerEstimatedCost);
 

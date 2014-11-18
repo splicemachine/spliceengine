@@ -71,7 +71,7 @@ public class SpliceViewWatcher extends TestWatcher {
     @Override
     public void finished(Description description) {
         LOG.trace("finished");
-        executeDrop(schemaName, viewName);
+//        executeDrop(schemaName, viewName);
     }
 
     public static void executeDrop(String schemaName,String viewName) {
