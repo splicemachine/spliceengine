@@ -13,9 +13,9 @@ import org.apache.hadoop.hbase.util.Pair;
 import com.carrotsearch.hppc.BitSet;
 
 /**
- * 
+ *
  * This class encapsulates byte[] manipulation with the IR applications.  It relies heavily on HBase's Bytes class.
- * 
+ *
  * @author John Leach
  * @version %I%, %G%
  *
@@ -30,7 +30,6 @@ public class BytesUtil {
      * @param list
      * @return the result byte array
      */
-
     public static byte[] concat(List<byte[]> list) {
         int length = 0;
         for (byte[] bytes : list) {
@@ -46,12 +45,12 @@ public class BytesUtil {
     }
 
     /**
-	 * 
-	 * Increments a byte[]
-	 * 
-	 * @param array
-	 * @param index
-	 */
+     *
+     * Increments a byte[]
+     *
+     * @param array
+     * @param index
+     */
     public static void unsignedIncrement(byte[] array,int index){
         if(array.length<=0) return; //nothing to do
         if(index<0){
@@ -78,7 +77,7 @@ public class BytesUtil {
             array[index]++;
         }
     }
-	
+
     public static void unsignedDecrement(byte[] array, int index){
         if(index<0){
             throw new AssertionError("Unable to decrement "+ Arrays.toString(array)+", as it would violate sort-order");
@@ -101,7 +100,7 @@ public class BytesUtil {
         return s;
     }
 
-		private static void copyInto(byte[][] bytes, byte[] concatedBytes,int initialPos){
+    private static void copyInto(byte[][] bytes, byte[] concatedBytes,int initialPos){
         int offset = initialPos;
         boolean isStart=true;
         for(byte[] nextBytes:bytes){
@@ -117,19 +116,19 @@ public class BytesUtil {
         }
     }
 
-		/**
-		 * Reverses {@link Bytes.toBytes(boolean)}
-		 * @param b array
-		 * @return True or false.
-		 */
-		public static boolean toBoolean(final byte [] b,int offset) {
+    /**
+     * Reverses {@link Bytes.toBytes(boolean)}
+     * @param b array
+     * @return True or false.
+     */
+    public static boolean toBoolean(final byte [] b,int offset) {
 //				if (b.length != 1) {
 //						throw new IllegalArgumentException("Array has wrong size: " + b.length);
 //				}
-				return b[offset] != (byte) 0;
-		}
+        return b[offset] != (byte) 0;
+    }
 
-		/**
+    /**
      * Lexicographical byte[] comparator that places empty byte[] values before non-empty values.
      */
     public static Comparator<byte[]> startComparator = new Comparator<byte[]>() {
@@ -220,7 +219,7 @@ public class BytesUtil {
 
     private static final char[] hexArray = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
     public static String toHex(byte[] bytes) {
-       return toHex(bytes,0,bytes.length);
+        return toHex(bytes,0,bytes.length);
     }
     public static String toHex(byte[] bytes,int offset,int length) {
         if(bytes==null || length<=0) return "";
@@ -234,17 +233,17 @@ public class BytesUtil {
         return new String(hexChars);
     }
 
-		public static byte[] fromHex(String line){
-				if(line==null || line.length()<=0) return null;
-				char[] hexChars = line.toCharArray();
-				byte[] data = new byte[hexChars.length/2];
-				for(int i=0,pos=0;i<hexChars.length-1;i+=2,pos++){
-						char n1 = hexChars[i];
-						char n2 = hexChars[i+1];
-						data[pos] = (byte)((Bytes.toBinaryFromHex((byte)n1)<<4) + Bytes.toBinaryFromHex((byte)n2));
-				}
-				return data;
-		}
+    public static byte[] fromHex(String line){
+        if(line==null || line.length()<=0) return null;
+        char[] hexChars = line.toCharArray();
+        byte[] data = new byte[hexChars.length/2];
+        for(int i=0,pos=0;i<hexChars.length-1;i+=2,pos++){
+            char n1 = hexChars[i];
+            char n2 = hexChars[i+1];
+            data[pos] = (byte)((Bytes.toBinaryFromHex((byte)n1)<<4) + Bytes.toBinaryFromHex((byte)n2));
+        }
+        return data;
+    }
 
     public static String toHex(ByteBuffer bytes) {
         if(bytes==null || bytes.remaining()<=0) return "";
@@ -268,16 +267,16 @@ public class BytesUtil {
         data[offset+3] = (byte)(value);
     }
 
-		public static void longToBytes(long x, byte[] data, int offset){
-				data[offset]   = (byte)(x>>56);
-				data[offset+1] = (byte)(x>>48);
-				data[offset+2] = (byte)(x>>40);
-				data[offset+3] = (byte)(x>>32);
-				data[offset+4] = (byte)(x>>24);
-				data[offset+5] = (byte)(x>>16);
-				data[offset+6] = (byte)(x>>8);
-				data[offset+7] = (byte)(x   );
-		}
+    public static void longToBytes(long x, byte[] data, int offset){
+        data[offset]   = (byte)(x>>56);
+        data[offset+1] = (byte)(x>>48);
+        data[offset+2] = (byte)(x>>40);
+        data[offset+3] = (byte)(x>>32);
+        data[offset+4] = (byte)(x>>24);
+        data[offset+5] = (byte)(x>>16);
+        data[offset+6] = (byte)(x>>8);
+        data[offset+7] = (byte)(x   );
+    }
     public static int bytesToInt(byte[] data, int offset) {
         int value = 0;
         value |= (data[offset] & 0xff)<<24;
@@ -314,26 +313,17 @@ public class BytesUtil {
         return Pair.newPair(bitSet,offset+numBytes+4);
     }
 
-		public static byte[] slice(byte[] data, int offset, int length) {
-				byte[] slice = new byte[length];
-				System.arraycopy(data,offset,slice,0,length);
-				return slice;
-		}
+    public static byte[] slice(byte[] data, int offset, int length) {
+        byte[] slice = new byte[length];
+        System.arraycopy(data,offset,slice,0,length);
+        return slice;
+    }
 
-		public static void main(String...args) throws Exception{
-				String text = "test";
-				byte[] encoded = Bytes.toBytes(text);
-				String hex = BytesUtil.toHex(encoded);
-				byte[] decoded = BytesUtil.fromHex(hex);
-				String decodedStr = Bytes.toString(decoded);
-				System.out.println(decodedStr);
-		}
-
-		public static byte[] longToBytes(long n) {
-				byte[] data = new byte[8];
-				longToBytes(n,data,0);
-				return data;
-		}
+    public static byte[] longToBytes(long n) {
+        byte[] data = new byte[8];
+        longToBytes(n,data,0);
+        return data;
+    }
 
     /**
      * Returns true if the specified KeyValue is contained by the specified range.
