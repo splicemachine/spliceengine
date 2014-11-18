@@ -37,4 +37,21 @@ public class ByteSliceTest {
         assertEquals("1211100F0E0D0C0B0A09080706050403020100", byteSlice.toHexString());
     }
 
+    @Test
+    public void find() {
+        byte[] sourceBytes = new byte[]{1, 2, 3, 4, 5, 6, 7, 8, 9};
+        ByteSlice byteSlice = ByteSlice.wrap(sourceBytes);
+        assertEquals(0, byteSlice.find((byte) 1, 0));
+        assertEquals(1, byteSlice.find((byte) 2, 0));
+        assertEquals(2, byteSlice.find((byte) 3, 0));
+
+        sourceBytes = new byte[]{-1, -1, -1, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, -1, -1, -1, -1, 120};
+        byteSlice = ByteSlice.wrap(sourceBytes, 4, 10);
+        assertEquals(0, byteSlice.find((byte) 0, 0));
+        assertEquals(1, byteSlice.find((byte) 1, 0));
+        assertEquals(2, byteSlice.find((byte) 2, 0));
+        assertEquals(-1, byteSlice.find((byte) 120, 0));
+    }
+
+
 }
