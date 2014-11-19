@@ -12,7 +12,7 @@ import java.util.List;
  *         Date: 7/22/14
  */
 public class AsyncSkippingScanFilter extends ScanFilter {
-    private static final byte[] NAME = Bytes.ISO88591(AsyncSkippingScanFilter.class.getName());
+    private static final byte[] NAME = Bytes.ISO88591("com.splicemachine.derby.impl.sql.execute.operations.SkippingScanFilter");
     private List<Pair<byte[],byte[]>> startStopKeys;
     private List<byte[]> predicates;
 

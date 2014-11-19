@@ -12,7 +12,7 @@ import java.util.List;
  * Date: 7/16/14
  */
 public class AsyncSuccessFilter extends ScanFilter {
-    private static final byte[] NAME =Bytes.ISO88591(AsyncSuccessFilter.class.getName());
+    private static final byte[] NAME = Bytes.ISO88591("com.splicemachine.derby.impl.job.operation.SuccessFilter");
     private List<byte[]> failedTasks;
 
     public AsyncSuccessFilter(List<byte[]> failedTasks) {
