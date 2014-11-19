@@ -5,23 +5,20 @@ import java.util.List;
 
 import com.splicemachine.derby.test.framework.*;
 
-import com.splicemachine.test.SerialTest;
-import org.apache.derby.iapi.reference.ClassName;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
+
 import com.google.common.collect.Lists;
 
 /**
  * @author Scott Fines
  *         Created on: 3/1/13
  */
-//@Category(SerialTest.class)
 public class PrimaryKeyIT extends SpliceUnitTest { 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	public static final String CLASS_NAME = PrimaryKeyIT.class.getSimpleName().toUpperCase();
@@ -76,8 +73,7 @@ public class PrimaryKeyIT extends SpliceUnitTest {
 
 
     @Test(expected=SQLException.class)
-//    @Test(expected=SQLException.class,timeout =10000)
-    public void cannotInsertDuplicatePks() throws Exception{
+    public void testCannotInsertDuplicatePks() throws Exception{
         try {
             PreparedStatement ps = methodWatcher.prepareStatement(INSERT);
             ps.setString(1,"sfines");
@@ -103,7 +99,7 @@ public class PrimaryKeyIT extends SpliceUnitTest {
     }
 
     @Test()
-    public void deleteAndInsertInSameTransaction() throws Exception{
+    public void testDeleteAndInsertInSameTransaction() throws Exception{
         Connection conn = methodWatcher.getOrCreateConnection();
         boolean oldAutoCommit = conn.getAutoCommit();
         conn.setAutoCommit(false);
@@ -145,7 +141,7 @@ public class PrimaryKeyIT extends SpliceUnitTest {
     }
 
     @Test()
-    public void insertAndDeleteInSameTransaction() throws Exception{
+    public void testInsertAndDeleteInSameTransaction() throws Exception{
         Connection conn = methodWatcher.getOrCreateConnection();
         boolean autoCommit = conn.getAutoCommit();
         conn.setAutoCommit(false);
@@ -219,7 +215,7 @@ public class PrimaryKeyIT extends SpliceUnitTest {
     }
 
     @Test(timeout=10000)
-    public void updateKeyColumn() throws Exception{
+    public void testUpdateKeyColumn() throws Exception{
         Connection conn = methodWatcher.getOrCreateConnection();
         boolean oldAutoCommit = conn.getAutoCommit();
         conn.setAutoCommit(false);
@@ -270,7 +266,7 @@ public class PrimaryKeyIT extends SpliceUnitTest {
 
     @Test(timeout=10000)
     // Test for DB-1112
-    public void updateKeyColumnWithSameValue() throws Exception{
+    public void testUpdateKeyColumnWithSameValue() throws Exception{
         Connection conn = methodWatcher.getOrCreateConnection();
         boolean oldAutoCommit = conn.getAutoCommit();
         conn.setAutoCommit(false);
@@ -312,7 +308,7 @@ public class PrimaryKeyIT extends SpliceUnitTest {
     }
 
     @Test(timeout=10000)
-    public void updateNonKeyColumn() throws Exception{
+    public void testUpdateNonKeyColumn() throws Exception{
         Connection conn = methodWatcher.getOrCreateConnection();
         boolean oldAutoCommit = conn.getAutoCommit();
         conn.setAutoCommit(false);
@@ -354,7 +350,7 @@ public class PrimaryKeyIT extends SpliceUnitTest {
     }
 
     @Test(timeout=10000)
-    public void scanningPrimaryKeyTableWithBaseRowLookup() throws Exception{
+    public void testScanningPrimaryKeyTableWithBaseRowLookup() throws Exception{
         PreparedStatement test = methodWatcher.prepareStatement("select * from "+ spliceTableWatcher+" where name = ?");
         test.setString(1,"sfines");
         ResultSet rs = test.executeQuery();
@@ -362,15 +358,24 @@ public class PrimaryKeyIT extends SpliceUnitTest {
     }
 
     @Test(timeout=10000)
-//    @Ignore("Bug 336")
-    public void scanningPrimaryKeyTableByPkOnly() throws Exception{
+    public void testScanningPrimaryKeyTableByPkOnly() throws Exception{
         ResultSet rs = methodWatcher.executeQuery("select name from "+ spliceTableWatcher+" where name = 'sfines'");
         Assert.assertTrue("Cannot lookup sfines by primary key ",rs.next());
     }
 
     @Test(timeout=10000)
     public void testCanRetrievePrimaryKeysFromMetadata() throws Exception{
-        ResultSet rs = methodWatcher.getOrCreateConnection().getMetaData().getPrimaryKeys(null,CLASS_NAME,TABLE_NAME);
+    	doCanRetrievePrimaryKeysFromMetadataLowerCase(null, CLASS_NAME, TABLE_NAME);
+    }
+
+    @Test(timeout=10000)
+    public void testCanRetrievePrimaryKeysFromMetadataLowerCase() throws Exception{
+    	doCanRetrievePrimaryKeysFromMetadataLowerCase(null, CLASS_NAME.toLowerCase(), TABLE_NAME.toLowerCase());
+    }
+
+    // Called by the two tests above to handle variations in schemaName and tableName like upper/lower case
+    private void doCanRetrievePrimaryKeysFromMetadataLowerCase(String catalogName, String schemaName, String tblName) throws Exception{
+        ResultSet rs = methodWatcher.getOrCreateConnection().getMetaData().getPrimaryKeys(catalogName, schemaName, tblName);
         List<String> results = Lists.newArrayList();
         while(rs.next()){
             String tableCat = rs.getString(1);
@@ -384,45 +389,6 @@ public class PrimaryKeyIT extends SpliceUnitTest {
             Assert.assertNotNull("No Pk Name returned",pkName);
             results.add(String.format("cat:%s,schema:%s,table:%s,column:%s,pk:%s,seqNum:%d",
                     tableCat,tableSchem,tableName,colName,pkName,keySeq));
-        }
-        Assert.assertTrue("No Pks returned!",results.size()>0);
-    }
-
-    @Test(timeout=10000)
-    public void testCall() throws Exception{
-        PreparedStatement ps = methodWatcher.prepareStatement("SELECT CAST ('' AS VARCHAR(128)) AS TABLE_CAT, " +
-                "                   S.SCHEMANAME AS TABLE_SCHEM, T.TABLENAME AS TABLE_NAME, " +
-                "                   COLS.COLUMNNAME AS COLUMN_NAME, " +
-                "                   CONS.CONSTRAINTNAME AS PK_NAME " +
-                "        FROM --SPLICE-PROPERTIES joinOrder=FIXED \n " +
-                "                        SYS.SYSTABLES T --SPLICE-PROPERTIES index='SYSTABLES_INDEX1' \n" +
-                "                        , SYS.SYSSCHEMAS S --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP, index ='SYSSCHEMAS_INDEX1'  \n" +
-                "                        , SYS.SYSCONSTRAINTS CONS --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP, index ='SYSCONSTRAINTS_INDEX3'  \n" +
-                "                        , SYS.SYSPRIMARYKEYS KEYS \n" +
-                "                        , SYS.SYSCONGLOMERATES CONGLOMS --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP, index = 'SYSCONGLOMERATES_INDEX1' \n" +
-                "                        , SYS.SYSCOLUMNS COLS --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP, index ='SYSCOLUMNS_INDEX1' \n" +
-                "        WHERE ((1=1) OR ? IS NOT NULL) AND S.SCHEMANAME LIKE ? AND T.TABLENAME=? AND " +
-                "                  T.SCHEMAID = S.SCHEMAID AND   " +
-                "                  T.TABLEID = COLS.REFERENCEID AND T.TABLEID = CONGLOMS.TABLEID AND " +
-                "                  CONS.TABLEID = T.TABLEID AND CONS.TYPE = 'P' AND " +
-                "                  CONS.CONSTRAINTID = KEYS.CONSTRAINTID AND " +
-                "                  KEYS.CONGLOMERATEID = CONGLOMS.CONGLOMERATEID ");
-        ps.setString(1,"%");
-        ps.setString(2,CLASS_NAME);
-        ps.setString(3,TABLE_NAME);
-        ResultSet rs = ps.executeQuery();
-        List<String> results = Lists.newArrayList();
-        while(rs.next()){
-            String tableCat = rs.getString(1);
-            String tableSchem = rs.getString(2);
-            String tableName = rs.getString(3);
-            String colName = rs.getString(4);
-            String pkName = rs.getString(5);
-            Assert.assertNotNull("No Table name returned",tableName);
-            Assert.assertNotNull("No Column name returned",colName);
-            Assert.assertNotNull("No Pk Name returned",pkName);
-            results.add(String.format("cat:%s,schema:%s,table:%s,column:%s,pk:%s",
-                    tableCat,tableSchem,tableName,colName,pkName));
         }
         Assert.assertTrue("No Pks returned!",results.size()>0);
     }
