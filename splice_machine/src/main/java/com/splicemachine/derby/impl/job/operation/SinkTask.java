@@ -12,6 +12,8 @@ import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionView;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -156,7 +158,7 @@ public class SinkTask extends ZkTask {
 								instructions = SpliceUtils.getSpliceObserverInstructions(scan);
             setupTransaction();
             transactionResource.marshallTransaction(getTxn(), instructions);
-			activation = instructions.getActivation(transactionResource.getLcc());
+            activation = instructions.getActivation(transactionResource.getLcc());
             if(activation.isTraced()){
                 Txn txn = getTxn();
                 if(!txn.allowsWrites()){
@@ -164,6 +166,8 @@ public class SinkTask extends ZkTask {
                 }
             }
             instructions.setTxn(getTxn());
+            SpliceTransactionManager stm = (SpliceTransactionManager)transactionResource.getLcc().getTransactionExecute();
+            ((SpliceTransactionView)stm.getRawTransaction()).setTxn(getTxn());
 
 						spliceRuntimeContext = instructions.getSpliceRuntimeContext();
 						spliceRuntimeContext.markAsSink();
