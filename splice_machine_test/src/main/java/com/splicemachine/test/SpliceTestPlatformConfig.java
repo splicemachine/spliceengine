@@ -9,6 +9,7 @@ import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
 import com.splicemachine.si.coprocessors.SIObserver;
 import com.splicemachine.si.coprocessors.TimestampMasterObserver;
 import com.splicemachine.si.coprocessors.TxnLifecycleEndpoint;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HConstants;
@@ -73,9 +74,11 @@ class SpliceTestPlatformConfig {
                                              Integer regionServerInfoPort,
                                              Integer derbyPort,
                                              boolean failTasksRandomly) {
+    	Configuration other = new Configuration();
+    	other.set("fs.default.name", "file:///");
 
-        Configuration config = HBaseConfiguration.create();
-
+        Configuration config = HBaseConfiguration.create(other);
+    	config.set("fs.default.name", "file:///");
         config.set("hbase.rootdir", hbaseRootDirUri);
         config.setLong("hbase.rpc.timeout", MINUTES.toMillis(2));
         config.setLong("hbase.regionserver.lease.period", MINUTES.toMillis(2));
