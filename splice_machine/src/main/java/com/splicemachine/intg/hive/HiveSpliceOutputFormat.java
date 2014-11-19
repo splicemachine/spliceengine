@@ -349,7 +349,6 @@ org.apache.hadoop.mapred.OutputFormat<ImmutableBytesWritable, Put>{
 	public void checkOutputSpecs(FileSystem arg0, JobConf jc)
 			throws IOException {
 		 	String spliceTableName = jc.get(SpliceSerDe.SPLICE_OUTPUT_TABLE_NAME);
-		 	System.out.println("checking outputspec, writing to Splice table: "+spliceTableName);
 		    jc.set(TableOutputFormat.OUTPUT_TABLE, spliceTableName);
 		    Job job = new Job(jc);
 		    JobContext jobContext = ShimLoader.getHadoopShims().newJobContext(job);
@@ -376,7 +375,9 @@ org.apache.hadoop.mapred.OutputFormat<ImmutableBytesWritable, Put>{
 			Class<? extends Writable> valueClass, boolean isCompressed,
 			Properties tableProperties, Progressable progress)
 			throws IOException {
+        System.out.println("getHiveRecordWriter...");
 		String spliceTableName = jc.get(SpliceSerDe.SPLICE_OUTPUT_TABLE_NAME);
+        System.out.println("spliceTableName: "+spliceTableName);
 	    jc.set(TableOutputFormat.OUTPUT_TABLE, spliceTableName);
 	    final boolean walEnabled = HiveConf.getBoolVar(
 	        jc, HiveConf.ConfVars.HIVE_HBASE_WAL_ENABLED);
