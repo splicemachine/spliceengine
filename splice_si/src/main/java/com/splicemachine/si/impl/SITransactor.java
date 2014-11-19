@@ -13,6 +13,7 @@ import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.si.api.*;
 import com.splicemachine.si.data.api.SDataLib;
+import com.splicemachine.si.data.api.SRowLock;
 import com.splicemachine.si.data.api.STableWriter;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -38,7 +39,7 @@ import java.util.Map;
  */
 @SuppressWarnings("unchecked")
 
-public class SITransactor<RowLock,Data,Table,
+public class SITransactor<S,Data,Table,
 				Mutation extends OperationWithAttributes,
 				Put extends Mutation,
 				Get extends OperationWithAttributes,
@@ -49,8 +50,8 @@ public class SITransactor<RowLock,Data,Table,
     /*Singleton field to save memory when we are unable to acquire locks*/
 	private static final OperationStatus NOT_RUN = new OperationStatus(HConstants.OperationStatusCode.NOT_RUN);
 	private final SDataLib<Data,Put, Delete, Get, Scan> dataLib;
-    private final STableWriter<RowLock,Table, Mutation, Put, Delete> dataWriter;
-    private final DataStore<RowLock,Data,Mutation, Put, Delete, Get, Scan, Table> dataStore;
+    private final STableWriter<SRowLock,Table, Mutation, Put, Delete> dataWriter;
+    private final DataStore<SRowLock,Data,Mutation, Put, Delete, Get, Scan, Table> dataStore;
     private final TxnOperationFactory operationFactory;
     private final TxnSupplier transactionStore;
     
@@ -264,7 +265,7 @@ public class SITransactor<RowLock,Data,Table,
                                                 Collection<KVPair> mutations,
                                                 ConstraintChecker constraintChecker) throws IOException {
 				OperationStatus[] finalStatus = new OperationStatus[mutations.size()];
-				Pair<KVPair,RowLock>[] lockPairs = new Pair[mutations.size()];
+				Pair<KVPair,SRowLock>[] lockPairs = new Pair[mutations.size()];
 				TxnFilter constraintState = null;
 				if(constraintChecker!=null)
 						constraintState = new SimpleTxnFilter(transactionStore,txn, NoOpReadResolver.INSTANCE,dataStore);
@@ -277,14 +278,14 @@ public class SITransactor<RowLock,Data,Table,
 						 * 1 of 2 paths (bulk write pipeline and SIObserver). Since both of those will externally ensure that
 						 * the region can't close until after this method is complete, we don't need the calls.
 						 */
-						IntObjectOpenHashMap<Pair<Mutation,RowLock>> writes = checkConflictsForKvBatch(table, rollForwardQueue, lockPairs,
+						IntObjectOpenHashMap<Pair<Mutation,SRowLock>> writes = checkConflictsForKvBatch(table, rollForwardQueue, lockPairs,
 										conflictingChildren, txn,family,qualifier,constraintChecker,constraintState,finalStatus);
 
 						//TODO -sf- this can probably be made more efficient
 						//convert into array for usefulness
-						Pair<Mutation,RowLock>[] toWrite = new Pair[writes.size()];
+						Pair<Mutation,SRowLock>[] toWrite = new Pair[writes.size()];
 						int i=0;
-						for(IntObjectCursor<Pair<Mutation,RowLock>> write:writes){
+						for(IntObjectCursor<Pair<Mutation,SRowLock>> write:writes){
 								toWrite[i] = write.value;
 								i++;
 						}
@@ -294,7 +295,7 @@ public class SITransactor<RowLock,Data,Table,
 
 						//convert the status back into the larger array
 						i=0;
-						for(IntObjectCursor<Pair<Mutation,RowLock>> write:writes){
+						for(IntObjectCursor<Pair<Mutation,SRowLock>> write:writes){
 								finalStatus[write.key] = status[i];
 								i++;
 						}
@@ -310,27 +311,22 @@ public class SITransactor<RowLock,Data,Table,
 				throw new UnsupportedOperationException("IMPLEMENT");
     }
 
-    private void releaseLocksForKvBatch(Table table, Pair<KVPair, RowLock>[] locks){
+    private void releaseLocksForKvBatch(Table table, Pair<KVPair, SRowLock>[] locks){
 				if(locks==null) return;
-				for(Pair<KVPair,RowLock>lock:locks){
-						if(lock==null) continue;
-						try {
-								dataWriter.unLockRow(table,lock.getSecond());
-						} catch (IOException e) {
-								LOG.error("Unable to unlock row "+ Bytes.toStringBinary(lock.getFirst().getRow()),e);
-								//ignore otherwise
-						}
+				for(Pair<KVPair,SRowLock>lock:locks){
+						if(lock==null || lock.getSecond() == null) continue;
+						lock.getSecond().unlock();
 				}
 		}
 
 		private void resolveConflictsForKvBatch(Table table,
-                                            Pair<Mutation,RowLock>[] mutations,
+                                            Pair<Mutation,SRowLock>[] mutations,
                                             LongOpenHashSet[] conflictingChildren,
                                             OperationStatus[] status){
 				for(int i=0;i<mutations.length;i++){
 						try{
 								Put put = (Put)mutations[i].getFirst();
-								RowLock lock = mutations[i].getSecond();
+								SRowLock lock = mutations[i].getSecond();
 								resolveChildConflicts(table,put,lock,conflictingChildren[i]);
 						}catch(Exception ex){
 								status[i]= new OperationStatus(HConstants.OperationStatusCode.FAILURE, ex.getMessage());
@@ -338,18 +334,18 @@ public class SITransactor<RowLock,Data,Table,
 				}
 		}
 
-    private IntObjectOpenHashMap<Pair<Mutation,RowLock>> checkConflictsForKvBatch(Table table,
+    private IntObjectOpenHashMap<Pair<Mutation,SRowLock>> checkConflictsForKvBatch(Table table,
                                                                     RollForward rollForwardQueue,
-                                                                    Pair<KVPair, RowLock>[] dataAndLocks,
+                                                                    Pair<KVPair, SRowLock>[] dataAndLocks,
                                                                     LongOpenHashSet[] conflictingChildren,
                                                                     TxnView transaction,
                                                                     byte[] family, byte[] qualifier,
                                                                     ConstraintChecker constraintChecker,
                                                                     TxnFilter constraintStateFilter,
                                                                     OperationStatus[] finalStatus) throws IOException{
-        IntObjectOpenHashMap<Pair<Mutation,RowLock>> finalMutationsToWrite = IntObjectOpenHashMap.newInstance();
+        IntObjectOpenHashMap<Pair<Mutation,SRowLock>> finalMutationsToWrite = IntObjectOpenHashMap.newInstance();
         for(int i=0;i<dataAndLocks.length;i++){
-            Pair<KVPair,RowLock> baseDataAndLock = dataAndLocks[i];
+            Pair<KVPair,SRowLock> baseDataAndLock = dataAndLocks[i];
             if(baseDataAndLock==null) continue;
 
             ConflictResults conflictResults = ConflictResults.NO_CONFLICT;
@@ -436,7 +432,7 @@ public class SITransactor<RowLock,Data,Table,
 		private static final boolean unsafeWrites = Boolean.getBoolean("splice.unsafe.writes");
 
 
-		private void lockRows(Table table, Collection<KVPair> mutations, Pair<KVPair,RowLock>[] mutationsAndLocks,OperationStatus[] finalStatus) throws IOException {
+		private void lockRows(Table table, Collection<KVPair> mutations, Pair<KVPair,SRowLock>[] mutationsAndLocks,OperationStatus[] finalStatus) throws IOException {
 				/*
 				 * We attempt to lock each row in the collection.
 				 *
@@ -448,7 +444,7 @@ public class SITransactor<RowLock,Data,Table,
 				 */
 				int position=0;
 				for(KVPair mutation:mutations){
-						RowLock lock = dataWriter.tryLock(table,mutation.getRow());
+						SRowLock lock = dataWriter.tryLock(table,mutation.getRow());
 						if(lock!=null)
 								mutationsAndLocks[position] = Pair.newPair(mutation,lock);
 						else
@@ -495,7 +491,7 @@ public class SITransactor<RowLock,Data,Table,
 
 		private void resolveChildConflicts(Table table,
                                        Put put,
-                                       RowLock lock,
+                                       SRowLock lock,
                                        LongOpenHashSet conflictingChildren) throws IOException {
         if (conflictingChildren!=null && !conflictingChildren.isEmpty()) {
             Delete delete = dataStore.copyPutToDelete(put, conflictingChildren);
@@ -670,13 +666,13 @@ public class SITransactor<RowLock,Data,Table,
 				}
 		}
 
-		public static class Builder<RowLock,Data,
+		public static class Builder<SRowLock,Data,
 						Mutation extends OperationWithAttributes,
 						Put extends Mutation,Delete extends OperationWithAttributes,Get extends OperationWithAttributes,Scan extends OperationWithAttributes,
 						Table>{
 				private SDataLib<Data, Put,  Delete,  Get,  Scan> dataLib;
-				private STableWriter<RowLock,Table, Mutation, Put, Delete> dataWriter;
-				private DataStore<RowLock,Data, Mutation, Put, Delete, Get, Scan,Table> dataStore;
+				private STableWriter<SRowLock,Table, Mutation, Put, Delete> dataWriter;
+				private DataStore<SRowLock,Data, Mutation, Put, Delete, Get, Scan,Table> dataStore;
         private TxnSupplier txnStore;
         private TxnOperationFactory operationFactory;
 
@@ -694,7 +690,7 @@ public class SITransactor<RowLock,Data,Table,
 				}
 
 				public Builder dataWriter(
-								STableWriter<RowLock,Table, Mutation, Put, Delete
+								STableWriter<SRowLock,Table, Mutation, Put, Delete
 												> dataWriter) {
 						this.dataWriter = dataWriter;
 						return this;
@@ -705,7 +701,7 @@ public class SITransactor<RowLock,Data,Table,
             return this;
         }
 
-				public Builder dataStore(DataStore<RowLock,Data,
+				public Builder dataStore(DataStore<SRowLock,Data,
 								Mutation, Put, Delete, Get, Scan, Table> dataStore) {
 						this.dataStore = dataStore;
 						return this;
@@ -716,7 +712,7 @@ public class SITransactor<RowLock,Data,Table,
 						return this;
 				}
 
-        public SITransactor<RowLock,
+        public SITransactor<SRowLock,
         		Data,
         		Table,
                 Mutation,
@@ -725,7 +721,7 @@ public class SITransactor<RowLock,Data,Table,
                 Get,
                 Scan> build(){
 						assert txnStore!=null: "No TxnStore set!";
-						return new SITransactor<RowLock,Data,Table,
+						return new SITransactor<SRowLock,Data,Table,
 										Mutation, Put,Delete,Get,Scan>(dataLib,dataWriter, dataStore,
                     operationFactory,txnStore);
 				}

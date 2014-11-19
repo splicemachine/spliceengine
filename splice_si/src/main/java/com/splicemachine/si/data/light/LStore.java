@@ -22,9 +22,10 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class LStore implements STableReader<LTable, LGet, LGet>,
-        STableWriter<Integer,LTable, LTuple, LTuple, LTuple> {
-    private final Map<String, Map<byte[], Integer>> locks = Maps.newTreeMap();
-    private final Map<String, Map<Integer, byte[]>> reverseLocks = Maps.newTreeMap();
+        STableWriter<LRowLock,LTable, LTuple, LTuple, LTuple> {
+
+    private final Map<String, Map<byte[], LRowLock>> locks = Maps.newTreeMap();
+    private final Map<String, Map<LRowLock, byte[]>> reverseLocks = Maps.newTreeMap();
     private final Map<String, List<LTuple>> relations = Maps.newTreeMap();
     private final Clock clock;
 
@@ -176,7 +177,7 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
     }
 
     @Override
-    public void write(LTable table, LTuple put, Integer rowLock) throws IOException {
+    public void write(LTable table, LTuple put, LRowLock rowLock) throws IOException {
         write(table, put);
     }
 
@@ -196,8 +197,8 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
     }
 
     @Override
-    public OperationStatus[] writeBatch(LTable table, Pair<LTuple, Integer>[] puts) throws IOException {
-        for (Pair<LTuple, Integer> p : puts) {
+    public OperationStatus[] writeBatch(LTable table, Pair<LTuple, LRowLock>[] puts) throws IOException {
+        for (Pair<LTuple, LRowLock> p : puts) {
             write(table, p.getFirst());
         }
         OperationStatus[] result = new OperationStatus[puts.length];
@@ -209,7 +210,7 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
 
     @Override
     public boolean checkAndPut(LTable table, final byte[] family, final byte[] qualifier, byte[] expectedValue, LTuple put) throws IOException {
-        Integer lock = null;
+        LRowLock lock = null;
         try {
             lock = lockRow(table, put.key);
             LGet get = new LGet(put.key, put.key, null, null, null);
@@ -237,7 +238,7 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
             }
         } finally {
             if (lock != null) {
-                unLockRow(table, lock);
+                lock.unlock();
             }
         }
     }
@@ -247,20 +248,20 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
     }
 
     @Override
-    public Integer lockRow(LTable sTable, byte[] rowKey) {
+    public LRowLock lockRow(LTable sTable, byte[] rowKey) {
         synchronized (this) {
             String table = sTable.relationIdentifier;
-            Map<byte[], Integer> lockTable = locks.get(table);
-            Map<Integer, byte[]> reverseLockTable = reverseLocks.get(table);
+            Map<byte[], LRowLock> lockTable = locks.get(table);
+            Map<LRowLock, byte[]> reverseLockTable = reverseLocks.get(table);
             if (lockTable == null) {
                 lockTable = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
                 reverseLockTable = Maps.newHashMap();
                 locks.put(table, lockTable);
                 reverseLocks.put(table, reverseLockTable);
             }
-            Integer currentLock = lockTable.get(rowKey);
+            LRowLock currentLock = lockTable.get(rowKey);
             if (currentLock == null) {
-								currentLock = lockIdGenerator.incrementAndGet();
+                    currentLock = new LRowLock(lockIdGenerator.incrementAndGet(), this, sTable);
                 lockTable.put(rowKey, currentLock);
                 reverseLockTable.put(currentLock, rowKey);
                 return currentLock;
@@ -270,11 +271,11 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
     }
 
     @Override
-    public void unLockRow(LTable sTable, Integer lock) {
+    public void unLockRow(LTable sTable, LRowLock lock) {
         synchronized (this) {
             String table = sTable.relationIdentifier;
-            Map<byte[], Integer> lockTable = locks.get(table);
-            Map<Integer, byte[]> reverseLockTable = reverseLocks.get(table);
+            Map<byte[], LRowLock> lockTable = locks.get(table);
+            Map<LRowLock, byte[]> reverseLockTable = reverseLocks.get(table);
             if (lockTable == null) {
                 throw new RuntimeException("unlocking unknown lock: " + table);
             }
@@ -322,7 +323,7 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
     }
 
     @Override
-    public void delete(LTable table, LTuple delete, Integer lock) throws IOException {
+    public void delete(LTable table, LTuple delete, LRowLock lock) throws IOException {
         final String relationIdentifier = table.relationIdentifier;
         final List<LTuple> tuples = relations.get(relationIdentifier);
         final List<LTuple> newTuples = Lists.newArrayList();
@@ -352,7 +353,7 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
     }
 
 		@Override
-		public Integer tryLock(LTable lTable, byte[] rowKey) {
+		public LRowLock tryLock(LTable lTable, byte[] rowKey) {
 				return lockRow(lTable, rowKey);
 		}
 

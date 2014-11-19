@@ -6,6 +6,7 @@ import com.splicemachine.hbase.KVPair;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.data.api.IHTable;
 
+import com.splicemachine.si.data.api.SRowLock;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -18,7 +19,7 @@ import java.util.List;
 /**
  * Wrapper that makes an HBase table comply with an interface that allows regions and tables to be used in a uniform manner.
  */
-public class HbTable implements IHTable<Integer> {
+public class HbTable implements IHTable<SRowLock> {
     final HTableInterface table;
 
     public HbTable(HTableInterface table) {
@@ -70,7 +71,7 @@ public class HbTable implements IHTable<Integer> {
     }
 
 		@Override
-		public Integer tryLock(byte[] rowKey) {
+		public SRowLock tryLock(byte[] rowKey) {
 				try {
 						return lockRow(rowKey);
 				} catch (IOException e) {
@@ -84,7 +85,7 @@ public class HbTable implements IHTable<Integer> {
     }
 
     @Override
-    public void put(Put put, Integer rowLock) throws IOException {
+    public void put(Put put, SRowLock rowLock) throws IOException {
         table.put(put);
     }
 
@@ -99,7 +100,7 @@ public class HbTable implements IHTable<Integer> {
     }
 
     @Override
-    public OperationStatus[] batchPut(Pair<Mutation, Integer>[] puts) throws IOException {
+    public OperationStatus[] batchPut(Pair<Mutation, SRowLock>[] puts) throws IOException {
         throw new RuntimeException("not implemented");
     }
 
@@ -109,17 +110,17 @@ public class HbTable implements IHTable<Integer> {
     }
 
     @Override
-    public void delete(Delete delete, Integer rowLock) throws IOException {
+    public void delete(Delete delete, SRowLock rowLock) throws IOException {
         throw new RuntimeException("not implemented");
     }
 
     @Override
-    public Integer lockRow(byte[] rowKey) throws IOException {
+    public SRowLock lockRow(byte[] rowKey) throws IOException {
         throw new RuntimeException("not implemented");
     }
 
     @Override
-    public void unLockRow(Integer lock) throws IOException {
+    public void unLockRow(SRowLock lock) throws IOException {
         throw new RuntimeException("not implemented");
     }
 

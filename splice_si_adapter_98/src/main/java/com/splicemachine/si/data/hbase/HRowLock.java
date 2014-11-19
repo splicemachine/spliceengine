@@ -19,4 +19,9 @@ public class HRowLock implements SRowLock {
     public HRegion.RowLock getDelegate() {
         return this.delegate;
     }
+
+    @Override
+    public void unlock() {
+        delegate.release();
+    }
 }
