@@ -53,7 +53,8 @@ public class SortedGatheringScannerTest {
 
         final HBaseClient client = SimpleAsyncScanner.HBASE_CLIENT;
         try {
-            AsyncScanner scanner = SortedGatheringScanner.newScanner(1024,
+            @SuppressWarnings("unchecked")
+			AsyncScanner scanner = SortedGatheringScanner.newScanner(1024,
                     Metrics.noOpMetricFactory(), new Function<Scan, Scanner>() {
                         @Override
                         public Scanner apply(Scan scan) {
