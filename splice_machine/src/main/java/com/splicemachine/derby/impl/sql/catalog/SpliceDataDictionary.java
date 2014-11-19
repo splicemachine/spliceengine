@@ -1,6 +1,9 @@
 package com.splicemachine.derby.impl.sql.catalog;
 
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.ddl.DDLChangeType;
+import com.splicemachine.derby.ddl.DDLCoordinationFactory;
+import com.splicemachine.derby.ddl.DDLWatcher;
 import com.splicemachine.derby.hbase.ManifestReader;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.sql.catalog.upgrade.SpliceCatalogUpgradeScripts;
@@ -10,7 +13,9 @@ import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.utils.ZkUtils;
 import org.apache.derby.catalog.AliasInfo;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.db.Database;
@@ -29,6 +34,7 @@ import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.types.*;
 import org.apache.derby.impl.sql.catalog.*;
 import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import com.splicemachine.derby.impl.sql.depend.SpliceDependencyManager;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -347,8 +353,10 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
 		this.dmgr = new SpliceDependencyManager(this);
 	}
 
+    private Properties defaultProperties;
     @Override
     public void boot(boolean create, Properties startParams) throws StandardException {
+        defaultProperties = startParams;
         SpliceLogUtils.trace(LOG, "boot with create=%s,startParams=%s",create,startParams);
         ManifestReader.SpliceMachineVersion spliceMachineVersion = (new ManifestReader()).createVersion();
         if (spliceMachineVersion.getRelease().compareToIgnoreCase("UNKNOWN") != 0) {
@@ -365,9 +373,48 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
         }
 
         super.boot(create, startParams);
+
+        DDLCoordinationFactory.getWatcher().registerDDLListener(new DDLWatcher.DDLListener() {
+            @Override
+            public void startGlobalChange() {
+                //ignore
+            }
+
+            @Override
+            public void finishGlobalChange() {
+                //ignore
+            }
+
+            @Override
+            public void startChange(DDLChange change) throws StandardException {
+                if (change.getChangeType().equals(DDLChangeType.REBOOT_DD)) {
+                    Properties props = updateProperties();
+                    SpliceDataDictionary.super.boot(false, props);
+                }
+            }
+
+            @Override
+            public void finishChange(String changeId) {
+                //ignore
+            }
+        });
     }
 
-	@Override
+    private Properties updateProperties() throws StandardException {
+        Properties service = new Properties(defaultProperties);
+        try {
+            List<String> children = ZkUtils.getChildren(SpliceConstants.zkSpliceDerbyPropertyPath, false);
+            for (String child: children) {
+                String value = Bytes.toString(ZkUtils.getData(SpliceConstants.zkSpliceDerbyPropertyPath + "/" + child));
+                service.setProperty(child, value);
+            }
+        } catch (Exception e) {
+            SpliceLogUtils.logAndThrow(LOG, "getServiceProperties Failed", Exceptions.parseException(e));
+        }
+        return service;
+    }
+
+    @Override
 	public boolean canSupport(Properties startParams) {
 		SpliceLogUtils.trace(LOG, "canSupport startParam=%s",startParams);
 		return super.canSupport(startParams);

@@ -318,14 +318,10 @@ public class SpliceDatabase extends BasicDatabase {
 
             // recreate tables
 
-//            List<String> oldTables = new ArrayList<String>();
             for (HTableDescriptor table : admin.listTables()) {
                 // TODO keep old tables around in case something goes wrong
                 admin.disableTable(table.getName());
                 admin.deleteTable(table.getName());
-//                String renamed = table.getNameAsString() + ".old";
-//                SpliceUtilities.renameTable(admin, table.getNameAsString(), renamed);
-//                oldTables.add(renamed);
             }
 
             for(BackupItem backupItem : backup.getBackupItems()) {
@@ -367,6 +363,11 @@ public class SpliceDatabase extends BasicDatabase {
                 info.failJob();
                 throw t;
             }
+
+
+            DDLChange change = new DDLChange(backup.getBackupTransaction(), DDLChangeType.REBOOT_DD);
+            String id = DDLCoordinationFactory.getController().notifyMetadataChange(change);
+            DDLCoordinationFactory.getController().finishMetadataChange(id);
 
 
         } catch (Throwable t) {
