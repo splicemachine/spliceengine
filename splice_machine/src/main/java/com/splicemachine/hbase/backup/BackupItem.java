@@ -180,7 +180,6 @@ public class BackupItem implements InternalTable {
 		tableDescriptor.write(out);
 		out.flush();
 		out.close();
-		fs.close();
 	}
 
     public void readDescriptorFromFileSystem() throws IOException {
@@ -190,7 +189,6 @@ public class BackupItem implements InternalTable {
         tableDescriptor.readFields(in);
         in.close();
         readRegionsFromFileSystem(fs);
-        fs.close();
     }
 
     private void readRegionsFromFileSystem(FileSystem fs) throws IOException {
@@ -202,7 +200,6 @@ public class BackupItem implements InternalTable {
             HRegionInfo regionInfo = derbyFactory.loadRegionInfoFileContent(fs, stat.getPath());
             addRegionInfo(new RegionInfo(regionInfo, getFamilyPaths(fs, stat.getPath())));
         };
-        fs.close();
     }
 
     private List<Pair<byte[],String>> getFamilyPaths(FileSystem fs, Path root) throws IOException {
