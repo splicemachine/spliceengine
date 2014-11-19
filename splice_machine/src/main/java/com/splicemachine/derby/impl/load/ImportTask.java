@@ -254,8 +254,9 @@ public class ImportTask extends ZkTask{
 						SpliceLogUtils.info(LOG,"Importing %s using transaction %s, which is a child of transaction %s",
 										reader.toString(),txn,txn.getParentTxnView());
         KVPair.Type importType = importContext.isUpsert()? KVPair.Type.UPSERT: KVPair.Type.INSERT;
-        if(shouldParallelize) {
-						return new ParallelImporter(importContext,row, txn,errorReporter,importType);
+        if(!shouldParallelize) {
+                return new SequentialImporter(importContext,row, txn,
+                        SpliceDriver.driver().getTableWriter(),errorReporter,importType);
 				} else
 						return new ParallelImporter(importContext,row,
                     SpliceConstants.maxImportProcessingThreads,
