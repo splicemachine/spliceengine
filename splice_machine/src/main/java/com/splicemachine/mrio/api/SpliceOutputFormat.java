@@ -156,9 +156,9 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 	}
 	
 	public static class SpliceRecordWriter extends RecordWriter<ImmutableBytesWritable, ExecRow> {
-	     
-		private RecordingCallBuffer callBuffer = null;
-		private static final Snowflake snowflake = new Snowflake((short)1);
+
+        private RecordingCallBuffer<KVPair> callBuffer = null;
+        private static final Snowflake snowflake = new Snowflake((short)1);
 		private int[] pkCols = null;
 		private DescriptorSerializer[] serializers = null;
 		private DataHash rowHash = null;
@@ -167,7 +167,7 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 		private DataValueDescriptor[] rowDesc = null;
 		private String taskID = "";
 		private Connection conn = null;
-		private long childTxsID;
+		private long childTxsID = -1;
 		TxnView txn = null;
 	
 		public SpliceRecordWriter(int[]pkCols, ArrayList colTypes) throws IOException{
@@ -187,7 +187,6 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 					tableID = conf.get(SpliceMRConstants.HBASE_OUTPUT_TABLE_NAME);
 				
 			} catch (StandardException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 				throw new IOException(e);
 			} catch (SQLException e) {
@@ -303,15 +302,13 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 					childTxsID = sqlUtil.getChildTransactionID(conn, 
 									parentTxnID, 
 									conf.get(SpliceMRConstants.SPLICE_OUTPUT_TABLE_NAME));
-					
-					/*PreparedStatement ps = conn.prepareStatement("call SYSCS_UTIL.SYSCS_ELEVATE_TRANSACTION(?)");
-					ps.setString(1, "USERTEST");	
-					ps.executeUpdate();*/
 
 					String strSize = conf.get(SpliceMRConstants.SPLICE_WRITE_BUFFER_SIZE);
-					int size = 1024;
+                    //int size = 1024;
+                    int size = 1024;
 					if((strSize != null) && (!strSize.equals("")))
 						size = Integer.valueOf(strSize);
+
 					txn = new ActiveWriteTxn(childTxsID,childTxsID);
 
 					callBuffer = WriteCoordinator.create(conf).writeBuffer(Bytes.toBytes(tableID), 
@@ -325,7 +322,6 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 				KVPair kv = new KVPair();
 				kv.setKey(key);
 				kv.setValue(bdata);	
-				//System.out.println("key:"+new String(key)+" value:"+new String(bdata));
 				callBuffer.add(kv);
 					
 			} catch (StandardException e) {
