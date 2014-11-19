@@ -37,11 +37,16 @@ import java.util.*;
 public class Backup implements InternalTable {
 	public static final String DEFAULT_SCHEMA = "RECOVERY";
 	public static final String DEFAULT_TABLE = "BACKUP";
-	public static final String BACKUP_BASE_FOLDER = "BACKUP";
+    public static final String BACKUP_BASE_FOLDER = "BACKUP";
+    public static final String BACKUP_TEMP_BASE_FOLDER = "BACKUP_TEMP";
+    public static final String BACKUP_OLD_BASE_FOLDER = "BACKUP_OLD";
     public static final String BACKUP_TABLE_FOLDER = "tables";
     public static final String BACKUP_META_FOLDER = "meta";
     public static final String BACKUP_PROPERTIES_FOLDER = "properties";
     private long timestampSource;
+
+    private boolean temporaryBaseFolder; // true if not using default base folder
+
 
 
     /**
@@ -84,6 +89,7 @@ public class Backup implements InternalTable {
 	private Timestamp endBackupTimestamp;	
 	private BackupStatus backupStatus;
 	private String backupFilesystem;
+    private String baseFolder;
 	private BackupScope backupScope;
 	private boolean incrementalBackup;
 	private long incrementalParentBackupID;
@@ -162,21 +168,22 @@ public class Backup implements InternalTable {
 	}
 
 	public Path getBaseBackupFilesystemAsPath() {
-		return new Path(backupFilesystem+"/"+BACKUP_BASE_FOLDER);
+		return new Path(baseFolder);
 	}
 
     public Path getTableBackupFilesystemAsPath() {
-        return new Path(backupFilesystem+"/"+BACKUP_BASE_FOLDER+"/"+BACKUP_TABLE_FOLDER);
+        return new Path(baseFolder+"/"+BACKUP_TABLE_FOLDER);
     }
     public Path getMetaBackupFilesystemAsPath() {
-        return new Path(backupFilesystem+"/"+BACKUP_BASE_FOLDER+"/"+BACKUP_META_FOLDER);
+        return new Path(baseFolder+"/"+BACKUP_META_FOLDER);
     }
     public Path getPropertiesBackupFilesystemAsPath() {
-        return new Path(backupFilesystem+"/"+BACKUP_BASE_FOLDER+"/"+BACKUP_PROPERTIES_FOLDER);
+        return new Path(baseFolder+"/"+BACKUP_PROPERTIES_FOLDER);
     }
 
 	public void setBackupFilesystem(String backupFilesystem) {
 		this.backupFilesystem = backupFilesystem;
+        this.baseFolder = backupFilesystem + "/" + BACKUP_BASE_FOLDER;
 	}
 
 	public BackupScope getBackupScope() {
@@ -401,8 +408,13 @@ public class Backup implements InternalTable {
 	
 	public boolean createBaseBackupDirectory() throws IOException, URISyntaxException {
 		FileSystem fileSystem = FileSystem.get(URI.create(getBackupFilesystem()),SpliceConstants.config);
-		if (!fileSystem.exists(getBaseBackupFilesystemAsPath()))
-			fileSystem.mkdirs(getBaseBackupFilesystemAsPath());
+		if (!fileSystem.exists(getBaseBackupFilesystemAsPath())) {
+            fileSystem.mkdirs(getBaseBackupFilesystemAsPath());
+        } else {
+            // a backup already exists, use a temporary
+            temporaryBaseFolder = true;
+            baseFolder = backupFilesystem + "/" + BACKUP_TEMP_BASE_FOLDER;
+        }
         if (!fileSystem.exists(getTableBackupFilesystemAsPath()))
             fileSystem.mkdirs(getTableBackupFilesystemAsPath());
         if (!fileSystem.exists(getMetaBackupFilesystemAsPath()))
@@ -587,4 +599,25 @@ public class Backup implements InternalTable {
         fileSystem.close();
     }
 
+    public void moveToBaseFolder() throws IOException {
+        if (!temporaryBaseFolder) return;
+
+        FileSystem fileSystem = FileSystem.get(URI.create(getBackupFilesystem()),SpliceConstants.config);
+        Path oldBase = new Path(backupFilesystem + "/" + BACKUP_OLD_BASE_FOLDER);
+        if (fileSystem.exists(oldBase)) {
+            fileSystem.delete(oldBase, true);
+        }
+        Path base = new Path(backupFilesystem + "/" + BACKUP_BASE_FOLDER);
+        fileSystem.rename(base, oldBase);
+
+        fileSystem.rename(getBaseBackupFilesystemAsPath(), base);
+    }
+
+    public boolean isTemporaryBaseFolder() {
+        return temporaryBaseFolder;
+    }
+
+    public void setTemporaryBaseFolder(boolean temporaryBaseFolder) {
+        this.temporaryBaseFolder = temporaryBaseFolder;
+    }
 }
