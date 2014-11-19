@@ -18,6 +18,7 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -33,7 +34,7 @@ import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.utils.SpliceUtilities;
-
+@Ignore
 @Category(value = {SlowTest.class, SerialTest.class})
 public class SaltedTempTableIT extends SpliceUnitTest {
 
