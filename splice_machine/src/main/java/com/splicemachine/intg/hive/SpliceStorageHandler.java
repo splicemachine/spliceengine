@@ -218,5 +218,9 @@ implements HiveMetaHook, HiveStoragePredicateHandler{
             parentConn.commit();
     }
 
+    public static void rollbackParentTxn() throws SQLException{
+        if(parentConn != null)
+            parentConn.rollback();
+    }
 }
 
