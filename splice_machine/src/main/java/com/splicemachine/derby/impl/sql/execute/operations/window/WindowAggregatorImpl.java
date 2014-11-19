@@ -82,9 +82,10 @@ public class WindowAggregatorImpl implements WindowAggregator {
 
     @Override
     public void accumulate(ExecRow nextRow, ExecRow accumulatorRow) throws StandardException {
-		DataValueDescriptor aggCol = accumulatorRow.getColumn(functionColumnId);
-		accumulate(getInputColumns(nextRow, inputColumnIds),aggCol);
-	}
+        DataValueDescriptor aggCol = accumulatorRow.getColumn(functionColumnId);
+        DataValueDescriptor outputCol = accumulatorRow.getColumn(resultColumnId);
+        accumulate(getInputColumns(nextRow, inputColumnIds),aggCol, outputCol);
+    }
 
 	@Override
     public void finish(ExecRow row) throws StandardException{
@@ -92,25 +93,27 @@ public class WindowAggregatorImpl implements WindowAggregator {
 		DataValueDescriptor aggCol = row.getColumn(functionColumnId);
 
         WindowFunction ua = (WindowFunction)aggCol.getObject();
-		if(ua ==null) ua = findOrCreateNewWindowFunction();
+        if(ua ==null) ua = findOrCreateNewWindowFunction(outputCol);
 		
 		DataValueDescriptor result = ua.getResult();
 		if(result ==null) outputCol.setToNull();
 		else outputCol.setValue(result);
 	}
-	
+
     @Override
     public boolean initialize(ExecRow row) throws StandardException {
         UserDataValue aggColumn = (UserDataValue) row.getColumn(functionColumnId);
 
         WindowFunction ua = (WindowFunction) aggColumn.getObject();
+        DataValueDescriptor outputCol = row.getColumn(resultColumnId);
         if (ua == null) {
-            ua = findOrCreateNewWindowFunction();
+            ua = findOrCreateNewWindowFunction(outputCol);
             aggColumn.setValue(ua);
             return true;
         }
         return false;
     }
+
 
     @Override
     public int getResultColumnId() {
@@ -152,36 +155,37 @@ public class WindowAggregatorImpl implements WindowAggregator {
         return functionName;
     }
 
-    private void accumulate(DataValueDescriptor[] inputCols,DataValueDescriptor aggCol)
-        throws StandardException{
+    private void accumulate(DataValueDescriptor[] inputCols,DataValueDescriptor aggCol, DataValueDescriptor outputCol)
+            throws StandardException{
         WindowFunction ua = (WindowFunction)aggCol.getObject();
         if(ua == null){
-            ua = findOrCreateNewWindowFunction();
+            ua = findOrCreateNewWindowFunction(outputCol);
         }
         ua.accumulate(inputCols);
     }
 
-    private SpliceGenericWindowFunction findOrCreateNewWindowFunction() throws StandardException {
+    private SpliceGenericWindowFunction findOrCreateNewWindowFunction(DataValueDescriptor resultType) throws StandardException {
         SpliceGenericWindowFunction aggInstance = cachedAggregator;
-		if (aggInstance == null){
-			try{
-				Class aggClass = cf.loadApplicationClass(windowInfo.getWindowFunctionClassName());
+        if (aggInstance == null){
+            try{
+                Class aggClass = cf.loadApplicationClass(windowInfo.getWindowFunctionClassName());
                 WindowFunction function = (WindowFunction) aggClass.newInstance();
                 function.setup(cf,
-                               windowInfo.getFunctionName(),
-                               windowInfo.getResultDescription().getColumnInfo()[ 0 ].getType()
+                        windowInfo.getFunctionName(),
+                        windowInfo.getResultDescription().getColumnInfo()[ 0 ].getType()
                 );
                 function = function.newWindowFunction();
                 cachedAggregator = (SpliceGenericWindowFunction) function;
+                cachedAggregator.setResultType(resultType);
                 aggInstance = cachedAggregator;
-			} catch(Exception e){
-				throw StandardException.unexpectedUserException(e);
-			}
-		} else {
+            } catch(Exception e){
+                throw StandardException.unexpectedUserException(e);
+            }
+        } else {
             aggInstance.reset();
-		}
-		return aggInstance;
-	}
+        }
+        return aggInstance;
+    }
 
     private static DataValueDescriptor[] getInputColumns(ExecRow row, int[] colIDs) {
         if (colIDs == null) return new DataValueDescriptor[0];
