@@ -96,311 +96,309 @@ import com.splicemachine.pipeline.api.RecordingCallBuffer;
 import com.splicemachine.pipeline.impl.WriteCoordinator;
 
 import org.apache.hadoop.hive.ql.exec.FileSinkOperator.RecordWriter;
+import org.apache.log4j.Logger;
 
 public class HiveSpliceOutputFormat extends OutputFormat implements
-HiveOutputFormat<ImmutableBytesWritable, Put>,
-org.apache.hadoop.mapred.OutputFormat<ImmutableBytesWritable, Put>{
-	private static SQLUtil sqlUtil = null;
-	
-	private static Configuration conf = null;
-	
-	private String spliceTableName;
-	protected static String tableID;
-	private HashMap<List, List> tableStructure;
-	private HashMap<List, List> pks;
-	
-	public Configuration getConf() {
-		return this.conf;
-	}
-	public void setConf(Configuration conf) {
-		this.conf = conf;
-	}
-	
-	@Override
-	public void checkOutputSpecs(JobContext arg0) throws IOException,
-			InterruptedException {
-		// TODO Auto-generated method stub
-		
-	}
+        HiveOutputFormat<ImmutableBytesWritable, Put>,
+        org.apache.hadoop.mapred.OutputFormat<ImmutableBytesWritable, Put>{
+    private static SQLUtil sqlUtil = null;
 
-	@Override
-	public OutputCommitter getOutputCommitter(TaskAttemptContext arg0)
-			throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
-		return new TableOutputCommitter();
-	}
-	
-	public RecordWriter getRecordWriter()
-			throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
-		if(conf == null)
-			throw new IOException("Error: Please set Configuration for SpliceOutputFormat");
-		if(sqlUtil == null)
-			sqlUtil = SQLUtil.getInstance(conf.get(SpliceSerDe.SPLICE_JDBC_STR));
-		spliceTableName = conf.get(TableOutputFormat.OUTPUT_TABLE);
-		
-		tableStructure = sqlUtil.getTableStructure(spliceTableName);
-		pks = sqlUtil.getPrimaryKey(spliceTableName);
-		ArrayList<String> pkColNames = null;
-		ArrayList<String> allColNames = new ArrayList<String>();
-		ArrayList<Integer> allColTypes = new ArrayList<Integer>();
-		Iterator tableiter = tableStructure.entrySet().iterator();
-		Iterator pkiter = pks.entrySet().iterator();
-	    if(tableiter.hasNext()){
-	    	Map.Entry kv = (Map.Entry)tableiter.next();
-	    	allColNames = (ArrayList<String>)kv.getKey(); 
-	    	allColTypes = (ArrayList<Integer>)kv.getValue();
-	    }
-	    if(pkiter.hasNext()){
-	    	Map.Entry kv = (Map.Entry)pkiter.next();
-	    	pkColNames = (ArrayList<String>)kv.getKey(); 	
-	    }
-	    int[]pkCols = new int[pkColNames.size()];
-	    
-	    if(pkColNames == null || pkColNames.size() == 0){
-	    	SpliceRecordWriter spw = new SpliceRecordWriter(null, allColTypes);
-			return spw;
-	    }
-	   
-	    else{
-	    	for (int i = 0; i < pkColNames.size(); i++){
-	    		pkCols[i] = allColNames.indexOf(pkColNames.get(i))+1;
-	    	}
-	    }
-	    
-	    SpliceRecordWriter spw = new SpliceRecordWriter(pkCols, allColTypes);
-		return spw;	
-	}
-	
-	protected static class SpliceRecordWriter implements RecordWriter {
-	     
-		private RecordingCallBuffer callBuffer = null;
-		private static final Snowflake snowflake = new Snowflake((short)1);
-		private int[] pkCols = null;
-		private DescriptorSerializer[] serializers = null;
-		private DataHash rowHash = null;
-		private KeyEncoder keyEncoder = null;
-		private ArrayList<Integer> colTypes = null;
-		private DataValueDescriptor[] rowDesc = null;
-		private String taskID = "";
-		private Connection conn = null;
-		private long childTxsID;
-		
-		
-		private void setTaskID(String taskID){
-			this.taskID = taskID;
-		}
-		
-		public SpliceRecordWriter(int[]pkCols, ArrayList colTypes) throws IOException{
-			
-			System.out.println("Initializing SpliceRecordWriter....");
-			if(conf == null)
-				throw new IOException("Error: Please set Configuration for SpliceRecordWriter");
-			try {
-				this.colTypes = colTypes;
-				this.rowDesc = createDVD();
-				this.taskID = taskID;
-				this.pkCols = pkCols;
-				this.keyEncoder =  getKeyEncoder(null);
-				this.rowHash = getRowHash(null);	
-				tableID = sqlUtil.getConglomID(conf.get(TableOutputFormat.OUTPUT_TABLE));	
-				
-			} catch (StandardException e) {
-				// TODO Auto-generated catch block
-				throw new IOException(e.getCause());
-			} catch (SQLException e) {
-				// TODO Auto-generated catch block
-				throw new IOException(e.getCause());
-			} 
-		}
-		
-		
-		private KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-			HashPrefix prefix;
-			DataHash dataHash;
-			KeyPostfix postfix = NoOpPostfix.INSTANCE;
-			
-			if(pkCols==null){
-				    prefix = new SaltedPrefix(snowflake.newGenerator(100));
-					dataHash = NoOpDataHash.INSTANCE;
-			}else{
-					int[] keyColumns = new int[pkCols.length];
-					for(int i=0;i<keyColumns.length;i++){
-							keyColumns[i] = pkCols[i] -1;
-							
-					}
-					prefix = NoOpPrefix.INSTANCE;
-					
-					DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(true).getSerializers(rowDesc);
-					dataHash = BareKeyHash.encoder(keyColumns,null, serializers);
-			}
-			
-			return new KeyEncoder(prefix,dataHash,postfix);
-	}
-		
-		private int[] getEncodingColumns(int n) {
-	        int[] columns = IntArrays.count(n);
+    private static Configuration conf = null;
 
-	        // Skip primary key columns to save space
-	        if (pkCols != null) {
-	        	
-	            for(int pkCol:pkCols) {
-	                columns[pkCol-1] = -1;
-	            }
-	            return columns;
-	        }
-	        else
-	        	return null;
-	        
-	    }
-		
-		private DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-			//get all columns that are being set
-			int[] columns = getEncodingColumns(colTypes.size());
-			
-			DescriptorSerializer[] serializers = VersionedSerializers.forVersion("2.0",true).getSerializers(rowDesc);
-			return new EntryDataHash(columns,null,serializers);
-	}
-		
-		private DataValueDescriptor[] createDVD() throws StandardException
-		{
-			DataValueDescriptor dvds[] = new DataValueDescriptor[colTypes.size()];
-			for(int pos = 0; pos < colTypes.size(); pos++){
-				dvds[pos] = DataTypeDescriptor.getBuiltInDataTypeDescriptor(colTypes.get(pos)).getNull();
-			}
-			return dvds;			
-		}
-		
-		@Override
-		public void write(Writable valueWritable)
-				throws IOException {
-			// TODO Auto-generated method stub
-			try {		
-				if(callBuffer == null){
-					conn = sqlUtil.createConn();
-					//sqlUtil.disableAutoCommit(conn);
+    private String spliceTableName;
+    protected static String tableID;
+    private HashMap<List, List> tableStructure;
+    private HashMap<List, List> pks;
+    private static Logger Log = Logger.getLogger(HiveSpliceOutputFormat.class.getName());
+
+    public Configuration getConf() {
+        return this.conf;
+    }
+    public void setConf(Configuration conf) {
+        this.conf = conf;
+    }
+
+    @Override
+    public void checkOutputSpecs(JobContext arg0) throws IOException,
+            InterruptedException {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public OutputCommitter getOutputCommitter(TaskAttemptContext arg0)
+            throws IOException, InterruptedException {
+        // TODO Auto-generated method stub
+        return new TableOutputCommitter();
+    }
+
+    public RecordWriter getRecordWriter()
+            throws IOException, InterruptedException {
+        // TODO Auto-generated method stub
+        if(conf == null)
+            throw new IOException("Error: Please set Configuration for SpliceOutputFormat");
+        if(sqlUtil == null)
+            sqlUtil = SQLUtil.getInstance(conf.get(SpliceSerDe.SPLICE_JDBC_STR));
+        spliceTableName = conf.get(TableOutputFormat.OUTPUT_TABLE);
+
+        tableStructure = sqlUtil.getTableStructure(spliceTableName);
+        pks = sqlUtil.getPrimaryKey(spliceTableName);
+        ArrayList<String> pkColNames = null;
+        ArrayList<String> allColNames = new ArrayList<String>();
+        ArrayList<Integer> allColTypes = new ArrayList<Integer>();
+        Iterator tableiter = tableStructure.entrySet().iterator();
+        Iterator pkiter = pks.entrySet().iterator();
+        if(tableiter.hasNext()){
+            Map.Entry kv = (Map.Entry)tableiter.next();
+            allColNames = (ArrayList<String>)kv.getKey();
+            allColTypes = (ArrayList<Integer>)kv.getValue();
+        }
+        if(pkiter.hasNext()){
+            Map.Entry kv = (Map.Entry)pkiter.next();
+            pkColNames = (ArrayList<String>)kv.getKey();
+        }
+        int[]pkCols = new int[pkColNames.size()];
+
+        if(pkColNames == null || pkColNames.size() == 0){
+            SpliceRecordWriter spw = new SpliceRecordWriter(null, allColTypes);
+            return spw;
+        }
+
+        else{
+            for (int i = 0; i < pkColNames.size(); i++){
+                pkCols[i] = allColNames.indexOf(pkColNames.get(i))+1;
+            }
+        }
+
+        SpliceRecordWriter spw = new SpliceRecordWriter(pkCols, allColTypes);
+        return spw;
+    }
+
+    protected static class SpliceRecordWriter implements RecordWriter {
+
+        private RecordingCallBuffer callBuffer = null;
+        private static final Snowflake snowflake = new Snowflake((short)1);
+        private int[] pkCols = null;
+        private DescriptorSerializer[] serializers = null;
+        private DataHash rowHash = null;
+        private KeyEncoder keyEncoder = null;
+        private ArrayList<Integer> colTypes = null;
+        private DataValueDescriptor[] rowDesc = null;
+        private String taskID = "";
+        private Connection conn = null;
+        private long childTxsID;
+
+
+        private void setTaskID(String taskID){
+            this.taskID = taskID;
+        }
+
+        public SpliceRecordWriter(int[]pkCols, ArrayList colTypes) throws IOException{
+
+            Log.info("Initializing SpliceRecordWriter....");
+            if(conf == null)
+                throw new IOException("Error: Please set Configuration for SpliceRecordWriter");
+            try {
+                this.colTypes = colTypes;
+                this.rowDesc = createDVD();
+                this.taskID = taskID;
+                this.pkCols = pkCols;
+                this.keyEncoder =  getKeyEncoder(null);
+                this.rowHash = getRowHash(null);
+                tableID = sqlUtil.getConglomID(conf.get(TableOutputFormat.OUTPUT_TABLE));
+
+            } catch (StandardException e) {
+                throw new IOException(e);
+            } catch (SQLException e) {
+                throw new IOException(e);
+            }
+        }
+
+
+        private KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+            HashPrefix prefix;
+            DataHash dataHash;
+            KeyPostfix postfix = NoOpPostfix.INSTANCE;
+
+            if(pkCols==null){
+                prefix = new SaltedPrefix(snowflake.newGenerator(100));
+                dataHash = NoOpDataHash.INSTANCE;
+            }else{
+                int[] keyColumns = new int[pkCols.length];
+                for(int i=0;i<keyColumns.length;i++){
+                    keyColumns[i] = pkCols[i] -1;
+
+                }
+                prefix = NoOpPrefix.INSTANCE;
+
+                DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(true).getSerializers(rowDesc);
+                dataHash = BareKeyHash.encoder(keyColumns,null, serializers);
+            }
+
+            return new KeyEncoder(prefix,dataHash,postfix);
+        }
+
+        private int[] getEncodingColumns(int n) {
+            int[] columns = IntArrays.count(n);
+
+            // Skip primary key columns to save space
+            if (pkCols != null) {
+
+                for(int pkCol:pkCols) {
+                    columns[pkCol-1] = -1;
+                }
+                return columns;
+            }
+            else
+                return null;
+
+        }
+
+        private DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+            //get all columns that are being set
+            int[] columns = getEncodingColumns(colTypes.size());
+
+            DescriptorSerializer[] serializers = VersionedSerializers.forVersion("2.0",true).getSerializers(rowDesc);
+            return new EntryDataHash(columns,null,serializers);
+        }
+
+        private DataValueDescriptor[] createDVD() throws StandardException
+        {
+            DataValueDescriptor dvds[] = new DataValueDescriptor[colTypes.size()];
+            for(int pos = 0; pos < colTypes.size(); pos++){
+                dvds[pos] = DataTypeDescriptor.getBuiltInDataTypeDescriptor(colTypes.get(pos)).getNull();
+            }
+            return dvds;
+        }
+
+        @Override
+        public void write(Writable valueWritable)
+                throws IOException {
+            // TODO Auto-generated method stub
+            try {
+                if(callBuffer == null){
+                    conn = sqlUtil.createConn();
+                    //sqlUtil.disableAutoCommit(conn);
 					
 					/*childTxsID = sqlUtil.getChildTransactionID(conn, 
 									conf.get(SpliceMRConstants.SPLICE_TRANSACTION_ID), 
 									Long.parseLong(tableID));
 
 					callBuffer = WriteCoordinator.create(conf).writeBuffer(Bytes.toBytes(tableID), 
-									childTxsID, SpliceMRConstants.SPLICE_WRITE_BUFFER_SIZE);*/	
-					childTxsID = sqlUtil.getChildTransactionID(conn, 
-							Long.parseLong(conf.get(SpliceMRConstants.SPLICE_TRANSACTION_ID)), 
-							conf.get(TableOutputFormat.OUTPUT_TABLE));
-					String strSize = conf.get(SpliceMRConstants.SPLICE_WRITE_BUFFER_SIZE);
-					int size = 1024;
-					if((strSize != null) && (!strSize.equals("")))
-						size = Integer.valueOf(strSize);
-					TxnView txn = new ActiveWriteTxn(childTxsID,childTxsID);
-					callBuffer = WriteCoordinator.create(conf).writeBuffer(Bytes.toBytes(tableID), 
-																			txn, size);	
+									childTxsID, SpliceMRConstants.SPLICE_WRITE_BUFFER_SIZE);*/
+                    childTxsID = sqlUtil.getChildTransactionID(conn,
+                            Long.parseLong(conf.get(SpliceMRConstants.SPLICE_TRANSACTION_ID)),
+                            conf.get(TableOutputFormat.OUTPUT_TABLE));
+                    String strSize = conf.get(SpliceMRConstants.SPLICE_WRITE_BUFFER_SIZE);
+                    int size = 1024;
+                    if((strSize != null) && (!strSize.equals("")))
+                        size = Integer.valueOf(strSize);
+                    TxnView txn = new ActiveWriteTxn(childTxsID,childTxsID);
+                    callBuffer = WriteCoordinator.create(conf).writeBuffer(Bytes.toBytes(tableID),
+                            txn, size);
 
-				}		
-				ExecRow value = ((ExecRowWritable)valueWritable).get();
-				byte[] key = this.keyEncoder.getKey(value);
-				rowHash.setRow(value);
-				
-				byte[] bdata = rowHash.encode();
-				KVPair kv = new KVPair();
-				kv.setKey(key);
-				kv.setValue(bdata);	
-				callBuffer.add(kv);
-					
-			} catch (StandardException e) {
-				// TODO Auto-generated catch block
-				throw new IOException(e.getCause());
-				
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				throw new IOException(e.getCause());
-			} 
-		}
+                }
+                ExecRow value = ((ExecRowWritable)valueWritable).get();
+                byte[] key = this.keyEncoder.getKey(value);
+                rowHash.setRow(value);
+
+                byte[] bdata = rowHash.encode();
+                KVPair kv = new KVPair();
+                kv.setKey(key);
+                kv.setValue(bdata);
+                callBuffer.add(kv);
+
+            } catch (StandardException e) {
+                // TODO Auto-generated catch block
+                throw new IOException(e.getCause());
+
+            } catch (Exception e) {
+                // TODO Auto-generated catch block
+                throw new IOException(e.getCause());
+            }
+        }
 
 
-		@Override
-		public void close(boolean abort) throws IOException {
-			// TODO Auto-generated method stub
-			if (!abort) {
-		          //table.flushCommits();
-		        	//Do commit here
-				try {
-					
-					this.callBuffer.close();
-					sqlUtil.commit(conn);
-					
-				} catch (Exception e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-					try {
-						sqlUtil.rollback(conn);
-						throw new IOException("Exception in RecordWriter.close, "+e.getMessage());
-					} catch (SQLException e1) {
-						// TODO Auto-generated catch block
-						throw new IOException("Exception in RecordWriter.close, "+e1.getMessage());
-					}
-				}
-		        }
-		}
-	}
+        @Override
+        public void close(boolean abort) throws IOException {
+            // TODO Auto-generated method stub
+            if (!abort) {
+                //table.flushCommits();
+                //Do commit here
+                try {
 
-	@Override
-	public void checkOutputSpecs(FileSystem arg0, JobConf jc)
-			throws IOException {
-		 	String spliceTableName = jc.get(SpliceSerDe.SPLICE_OUTPUT_TABLE_NAME);
-		    jc.set(TableOutputFormat.OUTPUT_TABLE, spliceTableName);
-		    Job job = new Job(jc);
-		    JobContext jobContext = ShimLoader.getHadoopShims().newJobContext(job);
+                    this.callBuffer.close();
+                    sqlUtil.commit(conn);
 
-		    try {
-		      checkOutputSpecs(jobContext);
-		    } catch (InterruptedException e) {
-		      throw new IOException(e);
-		    }
-		
-	}
+                } catch (Exception e) {
+                    Log.error(e);
+                    try {
+                        sqlUtil.rollback(conn);
+                        Log.error("rolling back child transaction:"+childTxsID);
+                        throw new IOException("Exception in RecordWriter.close, "+e);
+                    } catch (SQLException e1) {
+                        // TODO Auto-generated catch block
+                        Log.error("roll back child transaction failed, child transactionID:"+childTxsID);
+                        throw new IOException("Exception in RecordWriter.close, "+e1);
+                    }
+                }
+            }
+        }
+    }
 
-	@Override
-	public org.apache.hadoop.mapred.RecordWriter<ImmutableBytesWritable, Put> getRecordWriter(
-			FileSystem arg0, JobConf arg1, String arg2, Progressable arg3)
-			throws IOException {
-		// TODO Auto-generated method stub
-		throw new RuntimeException("Error: Hive should not invoke this method.");
-	}
+    @Override
+    public void checkOutputSpecs(FileSystem arg0, JobConf jc) throws IOException {
+        String spliceTableName = jc.get(SpliceSerDe.SPLICE_OUTPUT_TABLE_NAME);
+        jc.set(TableOutputFormat.OUTPUT_TABLE, spliceTableName);
+        Job job = new Job(jc);
+        JobContext jobContext = ShimLoader.getHadoopShims().newJobContext(job);
 
-	@Override
-	public org.apache.hadoop.hive.ql.exec.FileSinkOperator.RecordWriter getHiveRecordWriter(
-			JobConf jc, Path finalOutPath,
-			Class<? extends Writable> valueClass, boolean isCompressed,
-			Properties tableProperties, Progressable progress)
-			throws IOException {
-        System.out.println("getHiveRecordWriter...");
-		String spliceTableName = jc.get(SpliceSerDe.SPLICE_OUTPUT_TABLE_NAME);
-        System.out.println("spliceTableName: "+spliceTableName);
-	    jc.set(TableOutputFormat.OUTPUT_TABLE, spliceTableName);
-	    final boolean walEnabled = HiveConf.getBoolVar(
-	        jc, HiveConf.ConfVars.HIVE_HBASE_WAL_ENABLED);
-	    //final HTable table = new HTable(HBaseConfiguration.create(jc), spliceTableName);
-	    //table.setAutoFlush(false);
-	    setConf(jc);
-	    RecordWriter rw = null;
-	    try {
-			rw = this.getRecordWriter();
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	    return rw;
-	}
+        try {
+            checkOutputSpecs(jobContext);
+        } catch (InterruptedException e) {
+            throw new IOException(e);
+        }
 
-	@Override
-	public org.apache.hadoop.mapreduce.RecordWriter getRecordWriter(
-			TaskAttemptContext arg0) throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	
+    }
+
+    @Override
+    public org.apache.hadoop.mapred.RecordWriter<ImmutableBytesWritable, Put> getRecordWriter(
+            FileSystem arg0, JobConf arg1, String arg2, Progressable arg3)
+            throws IOException {
+        // TODO Auto-generated method stub
+        throw new RuntimeException("Error: Hive should not invoke this method.");
+    }
+
+    @Override
+    public org.apache.hadoop.hive.ql.exec.FileSinkOperator.RecordWriter getHiveRecordWriter(
+            JobConf jc, Path finalOutPath,
+            Class<? extends Writable> valueClass, boolean isCompressed,
+            Properties tableProperties, Progressable progress)
+            throws IOException {
+        String spliceTableName = jc.get(SpliceSerDe.SPLICE_OUTPUT_TABLE_NAME);
+        jc.set(TableOutputFormat.OUTPUT_TABLE, spliceTableName);
+        final boolean walEnabled = HiveConf.getBoolVar(
+                jc, HiveConf.ConfVars.HIVE_HBASE_WAL_ENABLED);
+        //final HTable table = new HTable(HBaseConfiguration.create(jc), spliceTableName);
+        //table.setAutoFlush(false);
+        setConf(jc);
+        RecordWriter rw = null;
+        try {
+            rw = this.getRecordWriter();
+        } catch (InterruptedException e) {
+            Log.error(e);
+            System.exit(1);
+        }
+        return rw;
+    }
+
+    @Override
+    public org.apache.hadoop.mapreduce.RecordWriter getRecordWriter(
+            TaskAttemptContext arg0) throws IOException, InterruptedException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+
 }
 
