@@ -75,8 +75,9 @@ ExecRowWritable>{
 		
 		sqlUtil = SQLUtil.getInstance(conf.get(SpliceSerDe.SPLICE_JDBC_STR));
 		String txnId = sqlUtil.getTransactionID();
-		if(conf.get(SpliceSerDe.SPLICE_TRANSACTION_ID) == null)
-	        conf.set(SpliceSerDe.SPLICE_TRANSACTION_ID, txnId);
+		if(conf.get(SpliceSerDe.SPLICE_TRANSACTION_ID) == null) {
+            conf.set(SpliceSerDe.SPLICE_TRANSACTION_ID, txnId);
+        }
 		trr = new HiveSpliceRecordReader();
 		trr.setConf(conf);
 			
