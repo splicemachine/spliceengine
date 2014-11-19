@@ -39,12 +39,12 @@ implements HiveMetaHook, HiveStoragePredicateHandler{
 	
 	private String getSpliceTableName(Table tbl)
 	{
-		String tableName = tbl.getParameters().get(SpliceSerDe.SPLICE_TABLE_NAME);
+		String tableName = tbl.getParameters().get(SpliceSerDe.SPLICE_INPUT_TABLE_NAME);
 		if(tableName == null)
 		{
 			// Note: Have to look at What is in SerdeInfo.
 			// Now I'm just imitating what HBase does
-			tableName = tbl.getSd().getSerdeInfo().getParameters().get(SpliceSerDe.SPLICE_TABLE_NAME);
+			tableName = tbl.getSd().getSerdeInfo().getParameters().get(SpliceSerDe.SPLICE_INPUT_TABLE_NAME);
 		}
 		 if (tableName == null) {
 		        tableName = tbl.getDbName() + "." + tbl.getTableName();
@@ -61,7 +61,7 @@ implements HiveMetaHook, HiveStoragePredicateHandler{
 	{
 		Properties tableProperties = tableDesc.getProperties();
 
-	    String tableName = tableProperties.getProperty(SpliceSerDe.SPLICE_TABLE_NAME);
+	    String tableName = tableProperties.getProperty(SpliceSerDe.SPLICE_INPUT_TABLE_NAME);
 	    System.out.println("---------- SpliceStorageHandler configureTableJobProperties, "
 	    					+ "tableName getting from tableProperties:"
 	    					+ tableName + "-----------");
@@ -78,7 +78,7 @@ implements HiveMetaHook, HiveStoragePredicateHandler{
 	    }
 	    tableName = tableName.trim();
 	    String connStr = tableProperties.getProperty(SpliceSerDe.SPLICE_JDBC_STR);
-	    jobProperties.put(SpliceSerDe.SPLICE_TABLE_NAME, tableName);
+	    jobProperties.put(SpliceSerDe.SPLICE_INPUT_TABLE_NAME, tableName);
 	    jobProperties.put(SpliceSerDe.SPLICE_JDBC_STR, connStr);
 	    if(sqlUtil == null){
 	    	sqlUtil = SQLUtil.getInstance(connStr);	
