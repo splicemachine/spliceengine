@@ -62,9 +62,6 @@ implements HiveMetaHook, HiveStoragePredicateHandler{
 		Properties tableProperties = tableDesc.getProperties();
 
 	    String tableName = tableProperties.getProperty(SpliceSerDe.SPLICE_INPUT_TABLE_NAME);
-	    System.out.println("---------- SpliceStorageHandler configureTableJobProperties, "
-	    					+ "tableName getting from tableProperties:"
-	    					+ tableName + "-----------");
 	    if (tableName == null) {
 	      tableName =
 	        tableProperties.getProperty(hive_metastoreConstants.META_TABLE_NAME);
@@ -72,9 +69,6 @@ implements HiveMetaHook, HiveStoragePredicateHandler{
 	      if (tableName.startsWith(DEFAULT_PREFIX)) {
 	          tableName = tableName.substring(DEFAULT_PREFIX.length());
 	        }
-	      System.out.println("=========== SpliceStorageHandler configureTableJobProperties, "
-					+ "tableName getting from hive metastore:"
-					+ tableName + "============");
 	    }
 	    tableName = tableName.trim();
 	    String connStr = tableProperties.getProperty(SpliceSerDe.SPLICE_JDBC_STR);
