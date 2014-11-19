@@ -16,14 +16,14 @@ import java.io.IOException;
  */
 public class UniqueConstraintChecker implements BatchConstraintChecker {
 		private static final OperationStatus SUCCESS = new OperationStatus(HConstants.OperationStatusCode.SUCCESS);
+        private final WriteResult result;
 		private final boolean isPrimaryKey;
-
-		private final ConstraintContext constraintContext;
 
 		public UniqueConstraintChecker(boolean isPrimaryKey, ConstraintContext constraintContext) {
 				this.isPrimaryKey = isPrimaryKey;
-				this.constraintContext = constraintContext;
-		}
+                this.result =  new WriteResult(isPrimaryKey? Code.PRIMARY_KEY_VIOLATION : Code.UNIQUE_VIOLATION,constraintContext);
+
+        }
 
 		@Override
 		public OperationStatus checkConstraint(KVPair mutation, Result result) throws IOException {
@@ -35,7 +35,7 @@ public class UniqueConstraintChecker implements BatchConstraintChecker {
 
 		@Override
 		public WriteResult asWriteResult(OperationStatus opStatus){
-				return new WriteResult(isPrimaryKey? Code.PRIMARY_KEY_VIOLATION: Code.UNIQUE_VIOLATION,constraintContext);
+            return result;
 		}
 
 		@Override
