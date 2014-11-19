@@ -264,6 +264,7 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampRe
     	return timestamp;
     }
 
+    @Override
     public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
  		ChannelBuffer buf = (ChannelBuffer)e.getMessage();
  		assert (buf != null);
@@ -290,6 +291,7 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampRe
         super.messageReceived(ctx,  e);
 	}
 
+    @Override
     public void channelConnected(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
     	TimestampUtil.doClientInfo(LOG, "Successfully connected to server");
         synchronized(_state) {
@@ -299,14 +301,27 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampRe
         super.channelConnected(ctx, e);
     }
 
+    @Override
+    public void channelDisconnected(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
+        TimestampUtil.doClientInfo(LOG, "TimestampClient was disconnected from the server");
+        synchronized(_state) {
+            _channel = null;
+            _state.set(State.DISCONNECTED);
+            connectIfNeeded();
+        }
+    }
+
+    @Override
     protected void doTrace(String message, Object... args) {
     	TimestampUtil.doClientTrace(LOG, message, args);
 	}
 
+    @Override
     protected void doDebug(String message, Object... args) {
     	TimestampUtil.doClientDebug(LOG, message, args);
 	}
 
+    @Override
 	protected void doError(String message, Throwable t, Object... args) {
     	TimestampUtil.doClientError(LOG, message, t, args);
     }
@@ -322,10 +337,12 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampRe
         mbs.registerMBean(this, name);
     }
 
+    @Override
 	public long getNumberTimestampRequests() {
 		return _numRequests.get();
 	}
-	
+
+    @Override
  	public double getAvgTimestampRequestDuration() {
  		double a = (double)_totalRequestDuration.get();
  		double b = (double)_numRequests.get();
