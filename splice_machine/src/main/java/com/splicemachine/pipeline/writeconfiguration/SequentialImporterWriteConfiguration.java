@@ -37,26 +37,12 @@ public class SequentialImporterWriteConfiguration extends ForwardingWriteConfigu
 			if(sequentialImporter.isFailed()) return WriteResponse.IGNORE;
 			return super.globalError(t);
 	}
-	
-	@Override
-	public WriteResponse processGlobalResult(BulkWriteResult bulkWriteResult) throws Throwable {
-		WriteResult writeResult = bulkWriteResult.getGlobalResult();
-		if (writeResult.isSuccess())
-			return WriteResponse.SUCCESS;
-		else if (writeResult.isPartial()){
-			IntObjectOpenHashMap<WriteResult> failedRows = bulkWriteResult.getFailedRows();
-			if(failedRows!=null && failedRows.size()>0){
-				return WriteResponse.PARTIAL;
-			}
-			return WriteResponse.IGNORE;
-		}	
-		else if(writeResult.canRetry()) {
-			return WriteResponse.RETRY;
-		}
-		else {
-			throw new RuntimeException("Not Implemented");
-		}
-	}
+
+    @Override
+    public WriteResponse processGlobalResult(BulkWriteResult bulkWriteResult) throws Throwable {
+        if(sequentialImporter.isFailed()) return WriteResponse.IGNORE;
+        return super.processGlobalResult(bulkWriteResult);
+    }
 
 	@Override
 	public WriteResponse partialFailure(BulkWriteResult result, BulkWrite request) throws ExecutionException {

@@ -3,6 +3,7 @@ package com.splicemachine.pipeline.writeconfiguration;
 import java.net.ConnectException;
 import java.util.concurrent.ExecutionException;
 
+import com.carrotsearch.hppc.IntArrayList;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.RegionTooBusyException;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
@@ -50,6 +51,9 @@ public abstract class BaseWriteConfiguration implements WriteConfiguration {
 			if(failedRows!=null && failedRows.size()>0){
 				return WriteResponse.PARTIAL;
 			}
+            IntArrayList notRun = bulkWriteResult.getNotRunRows();
+            if(notRun!=null && notRun.size()>0)
+                return WriteResponse.PARTIAL;
 			return WriteResponse.IGNORE;
 		}	
 		else if (!writeResult.canRetry())

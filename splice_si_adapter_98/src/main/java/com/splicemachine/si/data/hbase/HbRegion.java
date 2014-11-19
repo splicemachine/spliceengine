@@ -104,7 +104,9 @@ public class HbRegion extends BaseHbRegion<SRowLock> {
     @Override
     public SRowLock tryLock(byte[] rowKey) {
         try {
-            return new HRowLock(region.getRowLock(rowKey, false));
+            HRegion.RowLock rowLock = region.getRowLock(rowKey, false);
+            if(rowLock == null) return null;
+            return new HRowLock(rowLock);
         } catch (IOException e) {
             throw new RuntimeException("Unexpected IOException acquiring lock", e);
         }
