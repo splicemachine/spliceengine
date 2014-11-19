@@ -295,7 +295,7 @@ public class HDataLib implements SDataLib<Cell,Put, Delete, Get, Scan> {
 		public Get newGet(byte[] rowKey, List<byte[]> families,List<List<byte[]>> columns, Long effectiveTimestamp,int maxVersions) {
 			Get get = newGet(rowKey,families,columns,effectiveTimestamp);
 			try {
-				get.setMaxVersions(1);
+				get.setMaxVersions(maxVersions);
 			} catch (IOException e) {
 				throw new RuntimeException(e + "Exception setting max versions");
 			}
