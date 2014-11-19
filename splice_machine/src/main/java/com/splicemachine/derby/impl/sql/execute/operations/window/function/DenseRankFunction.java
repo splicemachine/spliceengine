@@ -82,9 +82,4 @@ public class DenseRankFunction extends SpliceGenericWindowFunction implements Wi
 
     }
 
-    @Override
-    public int getTypeFormatId() {
-        return 0;
-    }
-
 }
