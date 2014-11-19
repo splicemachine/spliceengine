@@ -155,21 +155,25 @@ public class MergeJoinOperation extends JoinOperation {
 
     @Override
     protected void updateStats(OperationRuntimeStats stats) {
-        long leftRowsSeen = joiner.getLeftRowsSeen();
-        stats.addMetric(OperationMetric.INPUT_ROWS, leftRowsSeen);
-        TimeView time = timer.getTime();
-        stats.addMetric(OperationMetric.TOTAL_WALL_TIME,time.getWallClockTime());
-        stats.addMetric(OperationMetric.TOTAL_CPU_TIME,time.getCpuTime());
-        stats.addMetric(OperationMetric.TOTAL_USER_TIME, time.getUserTime());
-        stats.addMetric(OperationMetric.FILTERED_ROWS, joiner.getRowsFiltered());
+        if (joiner != null) {
+            long leftRowsSeen = joiner.getLeftRowsSeen();
+            stats.addMetric(OperationMetric.INPUT_ROWS, leftRowsSeen);
+            TimeView time = timer.getTime();
+            stats.addMetric(OperationMetric.TOTAL_WALL_TIME,time.getWallClockTime());
+            stats.addMetric(OperationMetric.TOTAL_CPU_TIME,time.getCpuTime());
+            stats.addMetric(OperationMetric.TOTAL_USER_TIME, time.getUserTime());
+            stats.addMetric(OperationMetric.FILTERED_ROWS, joiner.getRowsFiltered());
+        }
 
-        IOStats rightSideStats = rightRows.getStats();
-        TimeView remoteView = rightSideStats.getTime();
-        stats.addMetric(OperationMetric.REMOTE_SCAN_WALL_TIME,remoteView.getWallClockTime());
-        stats.addMetric(OperationMetric.REMOTE_SCAN_CPU_TIME,remoteView.getCpuTime());
-        stats.addMetric(OperationMetric.REMOTE_SCAN_USER_TIME,remoteView.getUserTime());
-        stats.addMetric(OperationMetric.REMOTE_SCAN_ROWS,rightSideStats.getRows());
-        stats.addMetric(OperationMetric.REMOTE_SCAN_BYTES,rightSideStats.getBytes());
+        if (rightRows != null) {
+            IOStats rightSideStats = rightRows.getStats();
+            TimeView remoteView = rightSideStats.getTime();
+            stats.addMetric(OperationMetric.REMOTE_SCAN_WALL_TIME,remoteView.getWallClockTime());
+            stats.addMetric(OperationMetric.REMOTE_SCAN_CPU_TIME,remoteView.getCpuTime());
+            stats.addMetric(OperationMetric.REMOTE_SCAN_USER_TIME,remoteView.getUserTime());
+            stats.addMetric(OperationMetric.REMOTE_SCAN_ROWS,rightSideStats.getRows());
+            stats.addMetric(OperationMetric.REMOTE_SCAN_BYTES,rightSideStats.getBytes());
+        }
 
         super.updateStats(stats);
     }
