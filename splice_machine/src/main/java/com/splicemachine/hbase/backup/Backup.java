@@ -273,7 +273,7 @@ public class Backup implements InternalTable {
           if (incrementalParentBackupID > 0 && incrementalParentBackupID >= backupTxn.getTxnId())
               throw new SQLException(String.format("createBackup attempted to create a backup with an incremental " +
                       "parent id timestamp larger than the current timestamp {incrementalParentBackupID=%d,transactionID=%d",incrementalParentBackupID,backupTxn.getTxnId()));
-          backupTxn.elevateToWritable(null);
+          backupTxn.elevateToWritable("recovery".getBytes());
 
           Backup backup = new Backup();
           backup.setBackupTransaction(backupTxn);
@@ -450,7 +450,7 @@ public class Backup implements InternalTable {
 	}
 
     public static Backup readBackup(String backupFileSystem, BackupScope backupScope) throws SQLException, IOException, StandardException {
-        Txn backupTxn = TransactionLifecycle.getLifecycleManager().beginTransaction().elevateToWritable(null);
+        Txn backupTxn = TransactionLifecycle.getLifecycleManager().beginTransaction().elevateToWritable("recovery".getBytes());
         Backup backup = new Backup();
         backup.setBeginBackupTimestamp(new Timestamp(System.currentTimeMillis()));
         backup.setBackupScope(backupScope);
@@ -502,6 +502,7 @@ public class Backup implements InternalTable {
             out.write(value);
             out.close();
         }
+        fileSystem.close();
     }
 
     // Write metadata, including timestamp source's last timestamp
@@ -597,6 +598,7 @@ public class Backup implements InternalTable {
 
             SpliceUtils.addProperty(property.getPath().getName(), Bytes.toString(value));
         }
+        fileSystem.close();
     }
 
     public void moveToBaseFolder() throws IOException {
