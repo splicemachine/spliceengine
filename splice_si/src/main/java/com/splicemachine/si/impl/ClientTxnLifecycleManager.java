@@ -23,6 +23,7 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager {
 		@ThreadSafe private final TimestampSource timestampSource;
 		@ThreadSafe private TxnStore store;
 		@ThreadSafe private KeepAliveScheduler keepAliveScheduler;
+        private volatile boolean restoreMode = false;
 
 		public ClientTxnLifecycleManager(@ThreadSafe TimestampSource timestampSource) {
 				this.timestampSource = timestampSource;
@@ -131,7 +132,12 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager {
 				}
 		}
 
-		@Override
+    @Override
+    public void enterRestoreMode() {
+        this.restoreMode = true;
+    }
+
+    @Override
 		public Txn elevateTransaction(Txn txn, byte[] destinationTable) throws IOException {
 				if(!txn.allowsWrites()){
 						//we've elevated from a read-only to a writable, so make sure that we add
@@ -147,12 +153,18 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager {
 
 		@Override
 		public long commit(long txnId) throws IOException {
+                if (restoreMode) {
+                    return -1; // we are in restore mode, don't try to access the store
+                }
 				return store.commit(txnId);
 				//TODO -sf- add the transaction to the global cache?
 		}
 
 		@Override
 		public void rollback(long txnId) throws IOException {
+                if (restoreMode) {
+                    return; // we are in restore mode, don't try to access the store
+                }
 				store.rollback(txnId);
 				//TODO -sf- add the transaction to the global cache?
 		}
