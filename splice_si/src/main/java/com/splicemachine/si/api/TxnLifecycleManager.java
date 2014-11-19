@@ -178,4 +178,9 @@ public interface TxnLifecycleManager {
                          Txn.IsolationLevel isolationLevel,
                          boolean additive,
                          byte[] destinationTable, Txn txnToCommit) throws IOException;
+
+    /**
+     * Puts this manager into Restore Mode, which would be deactivated after a reboot
+     */
+     public void enterRestoreMode();
 }

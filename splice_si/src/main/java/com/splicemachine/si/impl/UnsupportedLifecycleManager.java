@@ -69,4 +69,9 @@ public class UnsupportedLifecycleManager implements TxnLifecycleManager {
 		public Txn chainTransaction(TxnView parentTxn, Txn.IsolationLevel isolationLevel, boolean additive, byte[] destinationTable, Txn txnToCommit) throws IOException {
 				throw new UnsupportedOperationException("Cannot chain a transaction from the UnsupportedLifecycle Manager. Use a real Lifecycle manager instead");
 		}
+
+        @Override
+        public void enterRestoreMode() {
+            throw new UnsupportedOperationException("Cannot enter restore mode from the UnsupportedLifecycle Manager. Use a real Lifecycle manager instead");
+        }
 }

@@ -438,7 +438,7 @@ public class Backup implements InternalTable {
 	}
 
     public static Backup readBackup(String backupFileSystem, BackupScope backupScope) throws SQLException, IOException, StandardException {
-        Txn backupTxn = TransactionLifecycle.getLifecycleManager().beginTransaction();
+        Txn backupTxn = TransactionLifecycle.getLifecycleManager().beginTransaction().elevateToWritable(null);
         Backup backup = new Backup();
         backup.setBeginBackupTimestamp(new Timestamp(System.currentTimeMillis()));
         backup.setBackupScope(backupScope);
