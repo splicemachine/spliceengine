@@ -61,7 +61,7 @@ import com.splicemachine.derby.impl.job.scheduler.StealableTaskScheduler;
 import com.splicemachine.derby.impl.job.scheduler.TieredTaskScheduler;
 import com.splicemachine.derby.impl.job.scheduler.TieredTaskSchedulerSetup;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
-import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequenceKey;
+import com.splicemachine.derby.impl.sql.execute.sequence.AbstractSequenceKey;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.temp.TempTable;
 import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
@@ -137,10 +137,10 @@ public class SpliceDriver extends SIConstants {
 	private StatementManager statementManager;
     private Logging logging;
 
-    private ResourcePool<SpliceSequence,SpliceSequenceKey> sequences = CachedResourcePool.
-            Builder.<SpliceSequence,SpliceSequenceKey>newBuilder().expireAfterAccess(1l,TimeUnit.MINUTES).generator(new ResourcePool.Generator<SpliceSequence,SpliceSequenceKey>() {
+    private ResourcePool<SpliceSequence,AbstractSequenceKey> sequences = CachedResourcePool.
+            Builder.<SpliceSequence,AbstractSequenceKey>newBuilder().expireAfterAccess(1l,TimeUnit.MINUTES).generator(new ResourcePool.Generator<SpliceSequence,AbstractSequenceKey>() {
         @Override
-        public SpliceSequence makeNew(SpliceSequenceKey refKey) throws StandardException {
+        public SpliceSequence makeNew(AbstractSequenceKey refKey) throws StandardException {
         	return refKey.makeNew();
         }
 
@@ -414,7 +414,7 @@ public class SpliceDriver extends SIConstants {
         }
     }
 
-    public ResourcePool<SpliceSequence,SpliceSequenceKey> getSequencePool(){
+    public ResourcePool<SpliceSequence, AbstractSequenceKey> getSequencePool(){
         return sequences;
     }
 

@@ -6,8 +6,8 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.sequence.SpliceIdentityColumnKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
-import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequenceKey;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.marshall.*;
@@ -154,12 +154,12 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 				SpliceSequence sequence;
 				try {
 					if (singleRowResultSet) { // Single Sequence Move
-						sequence = SpliceDriver.driver().getSequencePool().get(new SpliceSequenceKey(sysColumnTable,rlBytes,
-								heapConglom,columnPosition,activation.getLanguageConnectionContext().getDataDictionary(),1l));						
+						sequence = SpliceDriver.driver().getSequencePool().get(new SpliceIdentityColumnKey(sysColumnTable,rlBytes,
+								heapConglom,columnPosition,activation.getLanguageConnectionContext().getDataDictionary(),1l));
 						nextIncrement = sequence.getNext();
 						this.getActivation().getLanguageConnectionContext().setIdentityValue(nextIncrement);
 					} else {
-						sequence = SpliceDriver.driver().getSequencePool().get(new SpliceSequenceKey(sysColumnTable,rlBytes,
+						sequence = SpliceDriver.driver().getSequencePool().get(new SpliceIdentityColumnKey(sysColumnTable,rlBytes,
 								heapConglom,columnPosition,activation.getLanguageConnectionContext().getDataDictionary(),SpliceConstants.sequenceBlockSize));						
 						nextIncrement = sequence.getNext();						
 					}
