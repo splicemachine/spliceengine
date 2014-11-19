@@ -87,6 +87,7 @@ public class RowCountOperationIT extends SpliceUnitTest {
 
 	
 	@Test
+    @Ignore("DB-2274")
 	public void testCountOffset() throws Exception {
 		ResultSet rs = methodWatcher.executeQuery(String.format("select * from %s offset 5 rows",this.getTableReference(TABLE_NAME)));
 		int i=0;
