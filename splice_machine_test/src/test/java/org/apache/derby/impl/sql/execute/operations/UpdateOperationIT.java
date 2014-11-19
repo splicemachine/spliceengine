@@ -1,3 +1,6 @@
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Ignore;
 package org.apache.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
@@ -5,6 +8,8 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_tools.TableCreator;
+
+import org.junit.Assert;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -63,6 +68,7 @@ public class UpdateOperationIT {
                 .withInsert("insert into CUSTOMER values(?,?,?)")
                 .withRows(rows(row(101, true, 1), row(102, true, 2), row(103, true, 3), row(104, true, 4), row(105, true, 5)))
                 .create();
+
         new TableCreator(connection)
                 .withCreate("create table CUSTOMER_TEMP (cust_id int, status boolean, level int)")
                 .withInsert("insert into CUSTOMER_TEMP values(?,?,?)")
@@ -352,6 +358,50 @@ public class UpdateOperationIT {
         int rows = connection.createStatement().executeUpdate(query);
         assertEquals("incorrect num rows updated!", 3, rows);
     }
+
+    @Test
+    public void testUpdateMultiColumnMultiSubSyntax() throws Exception {
+    	StringBuffer sb = new StringBuffer(200);
+    	sb.append("update customer \n");
+    	sb.append("  set status = 'false', \n");
+    	sb.append("  level = ( \n");
+		sb.append("    select level \n");
+		sb.append("    from customer_temp custtemp \n");                                                                           
+		sb.append("    where custtemp.cust_id = customer.cust_id \n");
+		sb.append("  )");
+		String query = String.format(sb.toString());
+    	int rows = methodWatcher.executeUpdate(query);
+        Assert.assertEquals("incorrect num rows updated!", 5, rows);
+    }
+
+    @Test
+    public void testUpdateMultiColumnOneSubSyntaxNoOuterWhere() throws Exception {
+    	int rows = doTestUpdateMultiColumnOneSubSyntax(null);
+        Assert.assertEquals("incorrect num rows updated!", 5, rows);
+    }
+
+    @Test
+    public void testUpdateMultiColumnOneSubSyntaxWithOuterWhere() throws Exception {
+    	int rows = doTestUpdateMultiColumnOneSubSyntax(" where customer.cust_id <> 105");
+        Assert.assertEquals("incorrect num rows updated!", 4, rows);
+    }
+
+    // Used by previous tests (testUpdateMultiColumnOneSub*)
+    private int doTestUpdateMultiColumnOneSubSyntax(String outerWhere) throws Exception {
+    	StringBuffer sb = new StringBuffer(200);
+    	sb.append("update customer \n");
+    	sb.append("  set (status, level) = ( \n");
+		sb.append("    select customer_temp.status, customer_temp.level \n");
+		sb.append("    from customer_temp \n");                                                                           
+		sb.append("    where customer_temp.cust_id = customer.cust_id \n");
+		sb.append("  ) ");
+		if (outerWhere != null) {
+			sb.append(outerWhere);
+		}
+		String query = String.format(sb.toString());
+    	return methodWatcher.executeUpdate(query);
+    }
+
 
     @Test
     public void testUpdateMultiColumnMultiSubSyntax() throws Exception {
