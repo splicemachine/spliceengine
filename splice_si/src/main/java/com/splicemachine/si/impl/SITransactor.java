@@ -301,7 +301,7 @@ public class SITransactor<S,Data,Table,
 						}
 						return finalStatus;
 				} finally {
-						releaseLocksForKvBatch(table, lockPairs);
+						releaseLocksForKvBatch(lockPairs);
 				}
 		}
 
@@ -311,7 +311,7 @@ public class SITransactor<S,Data,Table,
 				throw new UnsupportedOperationException("IMPLEMENT");
     }
 
-    private void releaseLocksForKvBatch(Table table, Pair<KVPair, SRowLock>[] locks){
+    private void releaseLocksForKvBatch(Pair<KVPair, SRowLock>[] locks){
 				if(locks==null) return;
 				for(Pair<KVPair,SRowLock>lock:locks){
 						if(lock==null || lock.getSecond() == null) continue;
@@ -333,6 +333,8 @@ public class SITransactor<S,Data,Table,
 						}
 				}
 		}
+
+    OperationStatus ADDITIVE_WRITE_CONFLICT = new OperationStatus(HConstants.OperationStatusCode.FAILURE, new AdditiveWriteConflict().getMessage());
 
     private IntObjectOpenHashMap<Pair<Mutation,SRowLock>> checkConflictsForKvBatch(Table table,
                                                                     RollForward rollForwardQueue,
@@ -366,7 +368,7 @@ public class SITransactor<S,Data,Table,
                     //we need to check for write conflicts
                     conflictResults = ensureNoWriteConflict(transaction,possibleConflicts);
                 }
-                if (applyConstraint(constraintChecker,constraintStateFilter, i, kvPair, possibleConflicts, finalStatus)){
+                if (applyConstraint(constraintChecker,constraintStateFilter, i, kvPair, possibleConflicts, finalStatus, conflictResults.hasAdditiveConflicts())){
                     //filter this row out, it fails the constraint
                     continue;
                 }
@@ -378,7 +380,7 @@ public class SITransactor<S,Data,Table,
                      * we fail this row with an ADDITIVE_UPSERT_CONFLICT.
                      */
                     if(conflictResults.hasAdditiveConflicts()){
-                       finalStatus[i] = new OperationStatus(HConstants.OperationStatusCode.FAILURE,new AdditiveWriteConflict().getMessage());
+                       finalStatus[i] = ADDITIVE_WRITE_CONFLICT;
                     }
                 }
             }
@@ -395,7 +397,8 @@ public class SITransactor<S,Data,Table,
 																		TxnFilter constraintStateFilter,
 																		int rowPosition,
 																		KVPair mutation, Result row,
-																		OperationStatus[] finalStatus) throws IOException {
+																		OperationStatus[] finalStatus,
+                                                                        boolean additiveConflict) throws IOException {
 				/*
 				 * Attempts to apply the constraint (if there is any). When this method returns true, the row should be filtered
 				 * out.
@@ -419,7 +422,7 @@ public class SITransactor<S,Data,Table,
 										visibleColumns.add(data);
 						}
 				}
-				if(visibleColumns.size()<=0) return false; //no visible values to check
+				if(!additiveConflict && visibleColumns.size()<=0) return false; //no visible values to check
 
 				OperationStatus operationStatus = constraintChecker.checkConstraint(mutation, dataLib.newResult(visibleColumns));
 				if(operationStatus!=null && operationStatus.getOperationStatusCode()!= HConstants.OperationStatusCode.SUCCESS){
