@@ -11,6 +11,7 @@ import com.splicemachine.metrics.Timer;
 import com.splicemachine.stream.BaseCloseableStream;
 import com.splicemachine.stream.CloseableStream;
 import com.splicemachine.stream.StreamException;
+import com.splicemachine.utils.SpliceLogUtils;
 import com.stumbleupon.async.Callback;
 import com.stumbleupon.async.Deferred;
 
@@ -22,6 +23,7 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Callable;
 import java.util.concurrent.LinkedBlockingQueue;
 
 /**
@@ -39,17 +41,19 @@ public class SortedGatheringScanner implements AsyncScanner{
     private final SubScanner[] scanners;
     private List<KeyValue>[] nextAnswers;
     private boolean[] exhaustedScanners;
+    private Callable<Void>[] cleanups = null;
 
     public static AsyncScanner newScanner(int maxQueueSize,
                                           MetricFactory metricFactory,
                                           Function<Scan, Scanner> conversionFunction,
                                           List<Scan> scans,
-                                          Comparator<byte[]> sortComparator) throws IOException {
+                                          Comparator<byte[]> sortComparator,
+                                          Callable<Void>... cleanupActions) throws IOException {
         List<Scanner> scanners = Lists.transform(scans, conversionFunction);
         return new SortedGatheringScanner(scanners,maxQueueSize,sortComparator,metricFactory);
     }
 
-    public SortedGatheringScanner(List<Scanner> scanners, int maxQueueSize, Comparator<byte[]> sortComparator,MetricFactory metricFactory){
+    public SortedGatheringScanner(List<Scanner> scanners, int maxQueueSize, Comparator<byte[]> sortComparator,MetricFactory metricFactory, Callable<Void>... cleanupActions){
         this.timer = metricFactory.newTimer();
         this.remoteBytesCounter = metricFactory.newCounter();
         if(sortComparator==null)
@@ -66,6 +70,7 @@ public class SortedGatheringScanner implements AsyncScanner{
         //noinspection unchecked
         this.nextAnswers = new List[scanners.size()];
         this.exhaustedScanners = new boolean[scanners.size()];
+        this.cleanups = cleanupActions;
     }
 
     @Override
@@ -124,6 +129,16 @@ public class SortedGatheringScanner implements AsyncScanner{
     public void close() {
         for(SubScanner scanner:scanners){
             scanner.close();
+        }
+        if (cleanups == null) return;
+
+        for (Callable<Void> cleanup : cleanups) {
+            try {
+                cleanup.call();
+            } catch (Exception e) {
+                // Can't override close() to throw IOException, so log error
+                SpliceLogUtils.error(LOG, String.format("Failure while trying to call a cleanup action: %s", cleanup), e);
+            }
         }
     }
 
