@@ -1,11 +1,16 @@
 package com.splicemachine.derby.impl.sql.catalog;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.ManifestReader;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.sql.catalog.upgrade.SpliceCatalogUpgradeScripts;
+import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
+import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequenceKey;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.pipeline.exception.Exceptions;
 import org.apache.derby.catalog.AliasInfo;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.db.Database;
@@ -21,11 +26,9 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.ScanQualifier;
 import org.apache.derby.iapi.store.access.AccessFactory;
 import org.apache.derby.iapi.store.access.TransactionController;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.Orderable;
-import org.apache.derby.iapi.types.RowLocation;
-import org.apache.derby.iapi.types.SQLVarchar;
+import org.apache.derby.iapi.types.*;
 import org.apache.derby.impl.sql.catalog.*;
+import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.log4j.Logger;
 import com.splicemachine.derby.impl.sql.depend.SpliceDependencyManager;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -45,6 +48,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
     private volatile TabInfoImpl operationHistoryTable = null;
     private volatile TabInfoImpl taskHistoryTable = null;
     private Splice_DD_Version spliceSoftwareVersion;
+    private HTableInterface spliceSequencesTable;
 
     public static final String SPLICE_DATA_DICTIONARY_VERSION = "SpliceDataDictionaryVersion";
 
@@ -399,6 +403,39 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
 		super.addDescriptor(td, parent, catalogNumber, duplicatesAllowed, tc);
 	}
 
+
+    @Override
+    public void getCurrentValueAndAdvance (String sequenceUUIDstring, NumberDataValue returnValue)
+            throws StandardException {
+
+        try {
+            RowLocation[] rowLocation = new RowLocation[1];
+            SequenceDescriptor[] sequenceDescriptor = new SequenceDescriptor[1];
+
+            LanguageConnectionContext llc = (LanguageConnectionContext)
+                    ContextService.getContextOrNull(LanguageConnectionContext.CONTEXT_ID);
+
+            TransactionController tc = llc.getTransactionExecute();
+            computeSequenceRowLocation(tc, sequenceUUIDstring, rowLocation, sequenceDescriptor);
+
+            byte[] rlBytes = rowLocation[0].getBytes();
+
+            if (spliceSequencesTable == null) {
+                spliceSequencesTable = SpliceAccessManager.getHTable(SpliceConstants.SEQUENCE_TABLE_NAME_BYTES);
+            }
+
+            long start = sequenceDescriptor[0].getStartValue();
+            long increment = sequenceDescriptor[0].getIncrement();
+
+            SpliceSequence sequence = SpliceDriver.driver().getSequencePool().
+                    get(new SpliceSequenceKey(spliceSequencesTable,rlBytes, start, increment, 1l));
+
+            returnValue.setValue(sequence.getNext());
+
+        } catch (Exception e) {
+            throw Exceptions.parseException(e);
+        }
+    }
 	@Override
 	public void addDescriptorArray(TupleDescriptor[] td,
 			TupleDescriptor parent, int catalogNumber, boolean allowDuplicates,
