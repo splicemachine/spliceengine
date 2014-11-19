@@ -28,9 +28,11 @@ public class SumAggregator extends SpliceGenericWindowFunction {
             chunk.setResult(dvds[0].cloneValue(false));
         } else {
             NumberDataValue input = (NumberDataValue)dvds[0];
-            NumberDataValue nv = (NumberDataValue) result;
-            nv.plus(input, nv, nv);
-            chunk.setResult(nv);
+            if (input != null && ! input.isNull()) {
+                NumberDataValue nv = (NumberDataValue) result.cloneValue(false);
+                nv.plus(input, nv, nv);
+                chunk.setResult(nv);
+            }
         }
     }
 
@@ -38,9 +40,11 @@ public class SumAggregator extends SpliceGenericWindowFunction {
     protected void calculateOnRemove(WindowChunk chunk, DataValueDescriptor[] dvds) throws StandardException {
         DataValueDescriptor result = chunk.getResult();
         NumberDataValue input = (NumberDataValue)dvds[0];
-        NumberDataValue nv = (NumberDataValue) result;
-        nv.minus(nv, input, nv);
-        chunk.setResult(nv);
+        if (input != null && ! input.isNull()) {
+            NumberDataValue nv = (NumberDataValue) result.cloneValue(false);
+            nv.minus(nv, input, nv);
+            chunk.setResult(nv);
+        }
     }
 
     @Override
