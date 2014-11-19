@@ -37,11 +37,8 @@ import java.util.List;
  * @author Scott Fines
  * Date: 6/19/14
  */
-public class RegionTxnStore {
+public class RegionTxnStore<TxnInfo,Transaction,TableBuffer,Data,Put extends OperationWithAttributes,Get extends OperationWithAttributes> {
     private static final Logger LOG = Logger.getLogger(RegionTxnStore.class);
-    
-    public class RegionTxnStore<TxnInfo,Transaction,TableBuffer,Data,Put extends OperationWithAttributes,Get extends OperationWithAttributes> {
-	private static final Logger LOG = Logger.getLogger(RegionTxnStore.class);
 		/*
 		 * The region in which to access data
 		 */
@@ -150,14 +147,13 @@ public class RegionTxnStore {
 				Result result = region.get(get);
 				if(result==null) return false; //attempted to keep alive a read-only transaction? a waste, but whatever
 
-				KeyValue stateKv = result.getColumnLatest(FAMILY,V2TxnDecoder.STATE_QUALIFIER_BYTES);
+				Data stateKv = dataLib.getColumnLatest(result, FAMILY, AbstractV2TxnDecoder.STATE_QUALIFIER_BYTES);
                 if (stateKv==null) {
                     // couldn't find the transaction data, it's fine under Restore Mode, issue a warning nonetheless
                     LOG.warn("Couldn't load data for keeping alive transaction " + txnId + ". This isn't an issue under Restore Mode");
                     return false;
                 }
-				Data stateKv = dataLib.getColumnLatest(result, FAMILY, AbstractV2TxnDecoder.STATE_QUALIFIER_BYTES);
-				Txn.State state = Txn.State.decode(dataLib.getDataValueBuffer(stateKv), 
+				Txn.State state = Txn.State.decode(dataLib.getDataValueBuffer(stateKv),
 						dataLib.getDataValueOffset(stateKv), dataLib.getDataValuelength(stateKv));
 				if(state != Txn.State.ACTIVE) return false; //skip the put if we don't need to do it
 				Data oldKAKV = dataLib.getColumnLatest(result, FAMILY, AbstractV2TxnDecoder.KEEP_ALIVE_QUALIFIER_BYTES);

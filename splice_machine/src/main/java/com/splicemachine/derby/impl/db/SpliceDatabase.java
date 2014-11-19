@@ -16,9 +16,9 @@ import com.splicemachine.hbase.HBaseRegionLoads;
 import com.splicemachine.hbase.backup.*;
 import com.google.common.io.Closeables;
 import com.splicemachine.derby.hbase.SpliceMasterObserverRestoreAction;
-import com.splicemachine.si.api.TransactionLifecycle;
 import com.splicemachine.si.api.TxnLifecycleManager;
 import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.si.impl.TransactionTimestamps;
 import com.splicemachine.utils.SpliceUtilities;
 
@@ -446,6 +446,11 @@ public class SpliceDatabase extends BasicDatabase {
             // create metadata, including timestamp source's timestamp
             // this has to be called after all tables have been dumped.
             backup.createMetadata();
+
+            if (backup.isTemporaryBaseFolder()) {
+                backup.moveToBaseFolder();
+            }
+
             backup.markBackupSuccesful();
             backup.writeBackupStatusChange();
         } catch (Throwable e) {
