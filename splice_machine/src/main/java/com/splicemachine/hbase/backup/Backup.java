@@ -471,6 +471,7 @@ public class Backup implements InternalTable {
 //          throw new UnsupportedOperationException("DECODE TRANSACTION");
 		backupStatus = BackupStatus.valueOf(in.readUTF());
 		backupFilesystem = in.readUTF();
+        baseFolder = in.readUTF();
 		backupScope = BackupScope.valueOf(in.readUTF());
 		incrementalBackup = in.readBoolean();
 		incrementalParentBackupID = in.readLong();
@@ -483,6 +484,7 @@ public class Backup implements InternalTable {
 //          throw new UnsupportedOperationException("ENCODE TRANSACTION");
 		out.writeUTF(backupStatus.toString());
 		out.writeUTF(backupFilesystem);
+        out.writeUTF(baseFolder);
 		out.writeUTF(backupScope.toString());
 		out.writeBoolean(incrementalBackup);
 		out.writeLong(incrementalParentBackupID);
