@@ -281,6 +281,10 @@ public class SpliceDriver extends SIConstants {
     	return ce == null?null:((IndexEndpoint) ce.getInstance()).getBaseIndexEndpoint();
     }
     
+    public boolean isStarted(){
+    	return regionServerServices == null? false : true;
+    }
+    
     public void start(RegionServerServices regionServerServices){
     	this.regionServerServices = regionServerServices;
         if(stateHolder.compareAndSet(State.NOT_STARTED,State.INITIALIZING)){
