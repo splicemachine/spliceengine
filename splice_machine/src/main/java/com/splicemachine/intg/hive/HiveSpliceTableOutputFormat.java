@@ -98,147 +98,146 @@ import com.splicemachine.pipeline.api.RecordingCallBuffer;
 import com.splicemachine.pipeline.impl.WriteCoordinator;
 
 import org.apache.hadoop.hive.ql.exec.FileSinkOperator.RecordWriter;
+import org.apache.log4j.Logger;
 
 public class HiveSpliceTableOutputFormat extends OutputFormat implements
-HiveOutputFormat<ImmutableBytesWritable, Put>,
-org.apache.hadoop.mapred.OutputFormat<ImmutableBytesWritable, Put>{
-	private SpliceOutputFormat outputFormat = new SpliceOutputFormat();
-	private static SQLUtil sqlUtil = null;
-	
-	private static Configuration conf = null;
-	
-	private String spliceTableName;
-	protected static String tableID;
-	private HashMap<List, List> tableStructure;
-	private HashMap<List, List> pks;
+        HiveOutputFormat<ImmutableBytesWritable, Put>,
+        org.apache.hadoop.mapred.OutputFormat<ImmutableBytesWritable, Put>{
+    private SpliceOutputFormat outputFormat = new SpliceOutputFormat();
+    private static SQLUtil sqlUtil = null;
+    private static Configuration conf = null;
+    private String spliceTableName;
+    protected static String tableID;
+    private HashMap<List, List> tableStructure;
+    private HashMap<List, List> pks;
+    private static Logger Log = Logger.getLogger(HiveSpliceTableOutputFormat.class.getName());
 
-	public Configuration getConf() {
-		return this.conf;
-	}
-	
-	public void setConf(Configuration conf) {
-		outputFormat.setConf(conf);
-		this.conf = conf;
-	}
-	
-	@Override
-	public void checkOutputSpecs(JobContext arg0) throws IOException,
-			InterruptedException {
-		// TODO Auto-generated method stub
-		
-	}
+    public Configuration getConf() {
+        return this.conf;
+    }
 
-	@Override
-	public OutputCommitter getOutputCommitter(TaskAttemptContext arg0)
-			throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
-		return new TableOutputCommitter();
-	}
-	
-	public RecordWriter getRecordWriter()
-			throws IOException, InterruptedException {
-		return new SpliceRecordWriter();
-	}
-	
-	protected class SpliceRecordWriter implements RecordWriter {
-	     
-		private com.splicemachine.mrio.api.SpliceOutputFormat.SpliceRecordWriter recordWriter;
-		
-		public SpliceRecordWriter() throws IOException, InterruptedException{
-			recordWriter = (com.splicemachine.mrio.api.SpliceOutputFormat.SpliceRecordWriter) outputFormat.getRecordWriter(null);
-		}
-		
-		
-		private KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-			return recordWriter.getKeyEncoder(null);
-	}
-		
-		private int[] getEncodingColumns(int n) {
-	        return recordWriter.getEncodingColumns(n);
-	        
-	    }
-		
-		private DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-			return recordWriter.getRowHash(spliceRuntimeContext);
-	}
-		
-		private DataValueDescriptor[] createDVD() throws StandardException
-		{
-			return recordWriter.createDVD();			
-		}
-		
-		@Override
-		public void write(Writable valueWritable)
-				throws IOException {
-			// TODO Auto-generated method stub	
-			ExecRow value = ((ExecRowWritable)valueWritable).get();
-			recordWriter.write(null, value);
-		}
+    public void setConf(Configuration conf) {
+        outputFormat.setConf(conf);
+        this.conf = conf;
+    }
+
+    @Override
+    public void checkOutputSpecs(JobContext arg0) throws IOException,
+            InterruptedException {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public OutputCommitter getOutputCommitter(TaskAttemptContext arg0)
+            throws IOException, InterruptedException {
+        // TODO Auto-generated method stub
+        return new TableOutputCommitter();
+    }
+
+    public RecordWriter getRecordWriter()
+            throws IOException, InterruptedException {
+        return new SpliceRecordWriter();
+    }
+
+    protected class SpliceRecordWriter implements RecordWriter {
+
+        private com.splicemachine.mrio.api.SpliceOutputFormat.SpliceRecordWriter recordWriter;
+
+        public SpliceRecordWriter() throws IOException, InterruptedException{
+            recordWriter = (com.splicemachine.mrio.api.SpliceOutputFormat.SpliceRecordWriter) outputFormat.getRecordWriter(null);
+        }
 
 
-		@Override
-		public void close(boolean abort) throws IOException {
-			recordWriter.close(null);
-		}
-	}
+        private KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+            return recordWriter.getKeyEncoder(null);
+        }
 
-	@Override
-	public void checkOutputSpecs(FileSystem arg0, JobConf jc)
-			throws IOException {
-		 	
-		 	spliceTableName = jc.get(SpliceSerDe.SPLICE_OUTPUT_TABLE_NAME);
-		 	System.out.println("checking outputspec, writing to Splice table: "+spliceTableName);
-		    jc.set(TableOutputFormat.OUTPUT_TABLE, spliceTableName);
-		    Job job = new Job(jc);
-		    JobContext jobContext = ShimLoader.getHadoopShims().newJobContext(job);
+        private int[] getEncodingColumns(int n) {
+            return recordWriter.getEncodingColumns(n);
 
-		    try {
-		      checkOutputSpecs(jobContext);
-		    } catch (InterruptedException e) {
-		      throw new IOException(e);
-		    }
-		
-	}
+        }
 
-	@Override
-	public org.apache.hadoop.mapred.RecordWriter<ImmutableBytesWritable, Put> getRecordWriter(
-			FileSystem arg0, JobConf arg1, String arg2, Progressable arg3)
-			throws IOException {
-		// TODO Auto-generated method stub
-		throw new RuntimeException("Error: Hive should not invoke this method.");
-	}
+        private DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+            return recordWriter.getRowHash(spliceRuntimeContext);
+        }
 
-	@Override
-	public org.apache.hadoop.hive.ql.exec.FileSinkOperator.RecordWriter getHiveRecordWriter(
-			JobConf jc, Path finalOutPath,
-			Class<? extends Writable> valueClass, boolean isCompressed,
-			Properties tableProperties, Progressable progress)
-			throws IOException {
-		String spliceTableName = jc.get(SpliceSerDe.SPLICE_OUTPUT_TABLE_NAME);
-	    jc.set(TableOutputFormat.OUTPUT_TABLE, spliceTableName);
-	    final boolean walEnabled = HiveConf.getBoolVar(
-	        jc, HiveConf.ConfVars.HIVE_HBASE_WAL_ENABLED);
-	    //final HTable table = new HTable(HBaseConfiguration.create(jc), spliceTableName);
-	    //table.setAutoFlush(false);
-	    setConf(jc);
-	    RecordWriter rw = null;
-	    try {
-			rw = this.getRecordWriter();
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	    return rw;
-	}
+        private DataValueDescriptor[] createDVD() throws StandardException
+        {
+            return recordWriter.createDVD();
+        }
 
-	@Override
-	public org.apache.hadoop.mapreduce.RecordWriter getRecordWriter(
-			TaskAttemptContext arg0) throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	
+        @Override
+        public void write(Writable valueWritable)
+                throws IOException {
+            // TODO Auto-generated method stub
+            ExecRow value = ((ExecRowWritable)valueWritable).get();
+            recordWriter.write(null, value);
+        }
+
+
+        @Override
+        public void close(boolean abort) throws IOException {
+            recordWriter.close(null);
+        }
+    }
+
+    @Override
+    public void checkOutputSpecs(FileSystem arg0, JobConf jc)
+            throws IOException {
+
+        spliceTableName = jc.get(SpliceSerDe.SPLICE_OUTPUT_TABLE_NAME);
+        Log.info("checking outputspec, writing to Splice table: "+spliceTableName);
+        jc.set(TableOutputFormat.OUTPUT_TABLE, spliceTableName);
+        Job job = new Job(jc);
+        JobContext jobContext = ShimLoader.getHadoopShims().newJobContext(job);
+
+        try {
+            checkOutputSpecs(jobContext);
+        } catch (InterruptedException e) {
+            throw new IOException(e);
+        }
+
+    }
+
+    @Override
+    public org.apache.hadoop.mapred.RecordWriter<ImmutableBytesWritable, Put> getRecordWriter(
+            FileSystem arg0, JobConf arg1, String arg2, Progressable arg3)
+            throws IOException {
+        // TODO Auto-generated method stub
+        throw new RuntimeException("Error: Hive should not invoke this method.");
+    }
+
+    @Override
+    public org.apache.hadoop.hive.ql.exec.FileSinkOperator.RecordWriter getHiveRecordWriter(
+            JobConf jc, Path finalOutPath,
+            Class<? extends Writable> valueClass, boolean isCompressed,
+            Properties tableProperties, Progressable progress)
+            throws IOException {
+        String spliceTableName = jc.get(SpliceSerDe.SPLICE_OUTPUT_TABLE_NAME);
+        jc.set(TableOutputFormat.OUTPUT_TABLE, spliceTableName);
+        final boolean walEnabled = HiveConf.getBoolVar(
+                jc, HiveConf.ConfVars.HIVE_HBASE_WAL_ENABLED);
+
+        setConf(jc);
+        RecordWriter rw = null;
+        try {
+            rw = this.getRecordWriter();
+        } catch (InterruptedException e) {
+            Log.error(e);
+            System.exit(1);
+        }
+        return rw;
+    }
+
+    @Override
+    public org.apache.hadoop.mapreduce.RecordWriter getRecordWriter(
+            TaskAttemptContext arg0) throws IOException, InterruptedException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+
 }
 
 
