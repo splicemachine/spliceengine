@@ -36,8 +36,7 @@ public class RowOperation extends SpliceBaseOperation {
 		protected ExecRow cachedRow;
 		private ExecRow rowDefinition;
 		private String rowMethodName; //name of the row method for
-		private Counter rowCounter;
-
+        private boolean rowReturned;
 		/**
 		 * Required for serialization...
 		 */
@@ -85,7 +84,6 @@ public class RowOperation extends SpliceBaseOperation {
 		@Override
 		public void init(SpliceOperationContext context) throws StandardException, IOException {
 				super.init(context);
-				next = false;
 				if (row == null && rowMethodName != null) {
 						if (rowMethodName != null)
 								this.row = new SpliceMethod<ExecRow>(rowMethodName, activation);
@@ -132,36 +130,39 @@ public class RowOperation extends SpliceBaseOperation {
 				if(timer==null){
 						timer = spliceRuntimeContext.newTimer();
 				}
-
 				timer.startTiming();
-				currentRow = null;
-				if (!next) {
-						next = true;
-						currentRow =getRow();
-				}
-				setCurrentRow(currentRow);
-				if(currentRow!=null)
-						timer.tick(1);
-				else {
-						timer.stopTiming();
-						stopExecutionTime = System.currentTimeMillis();
+                currentRow = getRow();
+				if(currentRow!=null) {
+                    rowReturned = true;
+                    timer.tick(1);
+                } else {
+                    timer.stopTiming();
+                    stopExecutionTime = System.currentTimeMillis();
 				}
 				return currentRow;
 		}
 
 		private ExecRow getRow() throws StandardException {
-				if (cachedRow != null) {
-						SpliceLogUtils.trace(LOG,"getRow,cachedRow=%s",cachedRow);
-						return cachedRow;
-				}
-				else if (row != null) {
-						ExecRow currentRow  = row.invoke();
-						if (canCacheRow) {
-								cachedRow = currentRow;
-						}
-						return currentRow;
-				}
-				return null;
+            if (!next) {
+                next = true;
+                if (cachedRow != null) {
+                    SpliceLogUtils.trace(LOG, "getRow,cachedRow=%s", cachedRow);
+                    return cachedRow;
+                }
+
+                if (row != null) {
+                    currentRow = row.invoke();
+                    if (canCacheRow) {
+                        cachedRow = currentRow;
+                    }
+                }
+            }
+            else {
+                if (rowReturned) {
+                    currentRow = null;
+                }
+            }
+            return currentRow;
 		}
 		/**
 		 * This is not operating against a stored table,
@@ -237,11 +238,14 @@ public class RowOperation extends SpliceBaseOperation {
 
 		@Override
 		public ExecRow getExecRowDefinition() throws StandardException {
-				if (rowDefinition == null && getRow() != null){
-						rowDefinition = getRow().getClone();
-						SpliceLogUtils.trace(LOG,"execRowDefinition=%s",row);
-				}
-				return rowDefinition;
+            if (rowDefinition == null) {
+                ExecRow templateRow = getRow();
+                if (templateRow != null) {
+                    rowDefinition = templateRow.getClone();
+                }
+                SpliceLogUtils.trace(LOG,"execRowDefinition=%s",rowDefinition);
+            }
+			return rowDefinition;
 		}
 
 		public int getRowsReturned() {
