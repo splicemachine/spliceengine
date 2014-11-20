@@ -158,36 +158,35 @@ public class SpliceBaseIndexEndpoint {
             if(permits<=0){
                 //we cannot write to this
                 rejectAll(result,size);
-                rejectedCount.incrementAndGet();
+                rejectedCount.addAndGet(size);
                 return result;
             }
-            Map<BulkWrite,Pair<BulkWriteResult,RegionWritePipeline>> writePairMap= Maps.newIdentityHashMap();
+            Map<BulkWrite,Pair<BulkWriteResult,RegionWritePipeline>> writePairMap=Maps.newIdentityHashMap();
             List<BulkWrite> toWrite = Lists.newArrayListWithExpectedSize(size);
             for(int i=0;i<size;i++){
                 BulkWrite bulkWrite = (BulkWrite) buffer[i];
                 assert bulkWrite!=null;
                 RegionWritePipeline writePipeline = SpliceDriver.driver().getWritePipeline(bulkWrite.getEncodedStringName());
+                BulkWriteResult r;
                 if(writePipeline==null){
                     if (LOG.isTraceEnabled())
                         SpliceLogUtils.trace(LOG, "endpoint not found for region %s on region %s", bulkWrite.getEncodedStringName(), rce.getRegion().getRegionNameAsString());
-                    BulkWriteResult r = new BulkWriteResult(WriteResult.notServingRegion());
-                    r.setPosition(i);
-                    writePairMap.put(bulkWrite,Pair.<BulkWriteResult, RegionWritePipeline>newPair(r,null));
+                    r = new BulkWriteResult(WriteResult.notServingRegion());
                 }else if(bulkWrite.getSize()>permits){
+                    rejectedCount.incrementAndGet();
                     //we don't have enough permits to perform this write, so we'll need to back it off
-                    BulkWriteResult r = new BulkWriteResult(WriteResult.pipelineTooBusy(bulkWrite.getEncodedStringName()));
-                    r.setPosition(i);
-
-                    writePairMap.put(bulkWrite, Pair.<BulkWriteResult, RegionWritePipeline>newPair(r, null));
+                    r = new BulkWriteResult(WriteResult.pipelineTooBusy(bulkWrite.getEncodedStringName()));
+                    writePipeline = null;
                 }else{
                     //we might be able to write this one
-                    BulkWriteResult r = new BulkWriteResult();
-                    r.setPosition(i);
-
-                    writePairMap.put(bulkWrite,Pair.newPair(r, writePipeline));
+                    r = new BulkWriteResult();
                     toWrite.add(bulkWrite);
                 }
+                r.setPosition(i);
+                writePairMap.put(bulkWrite, Pair.newPair(r, writePipeline));
             }
+            assert writePairMap.size()==size: "Some BulkWrites were not added to the writePairMap";
+
             Collections.sort(toWrite, bulkWriteComparator);
             int p = 0;
             int availablePermits = permits;
@@ -206,12 +205,30 @@ public class SpliceBaseIndexEndpoint {
                 }
                 p++;
             }
+            if(LOG.isDebugEnabled()){
+                //debug check to make sure that all the BulkWrite are accounted for
+                for(int i=0;i<size;i++){
+                    BulkWrite bw = (BulkWrite)buffer[i];
+                    Pair<BulkWriteResult,RegionWritePipeline> pair = writePairMap.get(bw);
+                    assert pair.getFirst().getPosition()==i: "Incorrect position for bulk write!";
+                }
+            }
             //reject any remaining bulk writes
             for(int j=p;j<toWrite.size();j++){
+                rejectedCount.incrementAndGet();
                 BulkWrite n = toWrite.get(j);
                 Pair<BulkWriteResult,RegionWritePipeline> writePair = writePairMap.get(n);
+                writePair.getFirst().setGlobalStatus(WriteResult.pipelineTooBusy(n.getEncodedStringName()));
                 writePair.setSecond(null);
-                writePair.setFirst(new BulkWriteResult(WriteResult.pipelineTooBusy(n.getEncodedStringName())));
+            }
+
+            if(LOG.isDebugEnabled()){
+                //debug check to make sure that all the BulkWrite are accounted for
+                for(int i=0;i<size;i++){
+                    BulkWrite bw = (BulkWrite)buffer[i];
+                    Pair<BulkWriteResult,RegionWritePipeline> pair = writePairMap.get(bw);
+                    assert pair.getFirst().getPosition()==i: "Incorrect position for bulk write!";
+                }
             }
 
             //complete the writes
@@ -227,7 +244,11 @@ public class SpliceBaseIndexEndpoint {
             }
             Collections.sort(results, resultComparator);
             for(int i=0;i<results.size();i++){
-                result.addResult(results.get(i));
+                BulkWrite bw = (BulkWrite)buffer[i];
+                Pair<BulkWriteResult,RegionWritePipeline> pair = writePairMap.get(bw);
+                BulkWriteResult r = results.get(i);
+                assert r.getPosition()==pair.getFirst().getPosition(): "Incorrect position for bulk write!";
+                result.addResult(r);
             }
             timer.update(System.nanoTime()-start,TimeUnit.NANOSECONDS);
             return result;
