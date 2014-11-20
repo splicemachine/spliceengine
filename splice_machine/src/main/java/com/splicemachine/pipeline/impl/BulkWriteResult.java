@@ -18,8 +18,10 @@ public class BulkWriteResult implements Externalizable {
     private IntArrayList notRunRows;
 	private IntObjectOpenHashMap<WriteResult> failedRows;
 	private WriteContext writeContext;
-	
-	public BulkWriteResult() {
+
+    private transient int position;
+
+    public BulkWriteResult() {
         notRunRows = new IntArrayList();
         failedRows = new IntObjectOpenHashMap<WriteResult>();
     }
@@ -136,5 +138,13 @@ public class BulkWriteResult implements Externalizable {
 		public boolean hasWriteContext() {
 			return writeContext != null;
 		}
+
+    public int getPosition() {
+        return position;
+    }
+
+    public void setPosition(int position) {
+        this.position = position;
+    }
  		
 }

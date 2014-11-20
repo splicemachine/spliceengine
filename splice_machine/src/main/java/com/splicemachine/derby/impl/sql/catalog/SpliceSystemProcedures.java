@@ -202,6 +202,13 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(getWritePipelineInfo);
 
+                    Procedure getWriteOutputInfo = Procedure.newBuilder().name("SYSCS_GET_WRITE_OUTPUT_INFO")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(PipelineAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(getWriteOutputInfo);
+
         			/*
         			 * Procedure get task info for region servers
         			 */

@@ -20,7 +20,12 @@ import javax.management.remote.JMXServiceURL;
 import com.splicemachine.constants.SpliceConstants;
 
 import org.apache.derby.iapi.error.PublicAPI;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.sql.ResultColumnDescriptor;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.impl.jdbc.Util;
+import org.apache.derby.impl.sql.execute.ValueRow;
 import org.apache.derby.jdbc.InternalDriver;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.util.Pair;
@@ -131,6 +136,20 @@ public abstract class BaseAdminProcedures {
             connection.close();
         }
         return result;
+    }
+
+    protected static ExecRow buildExecRow(ResultColumnDescriptor[] columns) throws SQLException {
+        ExecRow template = new ValueRow(columns.length);
+        try {
+            DataValueDescriptor[] rowArray = new DataValueDescriptor[columns.length];
+            for(int i=0;i<columns.length;i++){
+                rowArray[i] = columns[i].getType().getNull();
+            }
+            template.setRowArray(rowArray);
+        } catch (StandardException e) {
+            throw PublicAPI.wrapStandardException(e);
+        }
+        return template;
     }
 
 }
