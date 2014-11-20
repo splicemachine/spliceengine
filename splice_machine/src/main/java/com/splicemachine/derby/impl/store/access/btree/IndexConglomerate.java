@@ -395,7 +395,7 @@ public class IndexConglomerate extends SpliceConglomerate {
      * Print this hbase.
      **/
     public String toString() {
-    	return String.format("IndexConglomerate {id=%s, baseConglomerateId=%d",id==null?"null":id.toString(),baseConglomerateId);
+    	return String.format("IndexConglomerate {id=%s, baseConglomerateId=%d}",id==null?"null":id.toString(),baseConglomerateId);
     }
 
     /**************************************************************************

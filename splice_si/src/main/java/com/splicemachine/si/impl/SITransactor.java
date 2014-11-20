@@ -264,6 +264,7 @@ public class SITransactor<S,Data,Table,
                                                 byte[] family, byte[] qualifier,
                                                 Collection<KVPair> mutations,
                                                 ConstraintChecker constraintChecker) throws IOException {
+//				if (LOG.isTraceEnabled()) LOG.trace(String.format("processInternal: table = %s, txnId = %s", table.toString(), txn.getTxnId()));
 				OperationStatus[] finalStatus = new OperationStatus[mutations.size()];
 				Pair<KVPair,SRowLock>[] lockPairs = new Pair[mutations.size()];
 				TxnFilter constraintState = null;
@@ -462,6 +463,7 @@ public class SITransactor<S,Data,Table,
 																			byte[] family, byte[] column,
 																			TxnView transaction, ConflictResults conflictResults) throws IOException{
 				long txnIdLong = transaction.getTxnId();
+//				if (LOG.isTraceEnabled()) LOG.trace(String.format("table = %s, kvPair = %s, txnId = %s", table.toString(), kvPair.toString(), txnIdLong));
 				Put newPut;
 				if(kvPair.getType() == KVPair.Type.EMPTY_COLUMN){
 						/*
@@ -482,6 +484,7 @@ public class SITransactor<S,Data,Table,
 						newPut = dataLib.toPut(kvPair, family, column, txnIdLong);
 
 				dataStore.suppressIndexing(newPut);
+//				if (LOG.isTraceEnabled()) LOG.trace(String.format("Checking for anti-tombstone condition: kvPair.type is not Delete = %s, conflictResults.hasTombstone = %s", (kvPair.getType()!= KVPair.Type.DELETE), conflictResults.hasTombstone));
 				if(kvPair.getType()!= KVPair.Type.DELETE && conflictResults.hasTombstone)
 						dataStore.setAntiTombstoneOnPut(newPut, txnIdLong);
 
@@ -517,13 +520,19 @@ public class SITransactor<S,Data,Table,
         boolean hasTombstone = hasCurrentTransactionTombstone(updateTransaction,
         		dataLib.getColumnLatest(result, SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES));
         timestampConflicts.tombstone(hasTombstone);
+//        if (LOG.isTraceEnabled()) LOG.trace(String.format("ensureNoWriteConflict: hasTombstone = %s", hasTombstone));
         return timestampConflicts;
     }
 
     private boolean hasCurrentTransactionTombstone(TxnView updateTxn, Data tombstoneValue) throws IOException {
+//        if (LOG.isTraceEnabled()) LOG.trace(String.format("hasCurrentTransactionTombstone: tombstoneValue = %s", tombstoneValue));
         if(tombstoneValue==null) return false; //no tombstone at all
+//        if (LOG.isTraceEnabled()) LOG.trace(String.format("hasCurrentTransactionTombstone: dataStore.isAntiTombstone(tombstoneValue) = %s", dataStore.isAntiTombstone(tombstoneValue)));
         if(dataStore.isAntiTombstone(tombstoneValue)) return false; //actually an anti-tombstone
         TxnView tombstoneTxn = transactionStore.getTransaction(dataLib.getTimestamp(tombstoneValue));
+//        if (LOG.isTraceEnabled()) LOG.trace(String.format("hasCurrentTransactionTombstone: updateTxn = %s", updateTxn));
+//        if (LOG.isTraceEnabled()) LOG.trace(String.format("hasCurrentTransactionTombstone: tombstoneTxn = %s", tombstoneTxn));
+//        if (LOG.isTraceEnabled()) LOG.trace(String.format("hasCurrentTransactionTombstone: updateTxn.conflicts(tombstoneTxn)==ConflictType.NONE = %s", updateTxn.conflicts(tombstoneTxn)==ConflictType.NONE));
         return updateTxn.conflicts(tombstoneTxn)==ConflictType.NONE;
     }
 

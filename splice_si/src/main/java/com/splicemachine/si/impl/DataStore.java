@@ -25,6 +25,7 @@ import static com.splicemachine.constants.SpliceConstants.*;
  * transaction table).
  */
 public class DataStore<RowLock,Data,Mutation, Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes, Scan, IHTable> {
+//    private static final Logger LOG = Logger.getLogger(DataStore.class);
     public final SDataLib<Data,Put, Delete, Get, Scan> dataLib;
 		private final STableReader<IHTable, Get, Scan> reader;
 		private final STableWriter<RowLock,IHTable, Mutation, Put, Delete> writer;
@@ -170,6 +171,7 @@ public class DataStore<RowLock,Data,Mutation, Put extends OperationWithAttribute
 		}
 
 		public void setAntiTombstoneOnPut(Put put, long transactionId) throws IOException {
+//				if (LOG.isTraceEnabled()) LOG.trace(String.format("Flipping on anti-tombstone column: put = %s, txnId = %s, stackTrace = %s", put, transactionId, Arrays.toString(Thread.currentThread().getStackTrace()).replaceAll(", ", "\n\t")));
 				dataLib.addKeyValueToPut(put, userColumnFamily, tombstoneQualifier, transactionId, siAntiTombstoneValue);
 		}
 

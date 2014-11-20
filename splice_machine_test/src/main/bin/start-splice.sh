@@ -76,6 +76,7 @@ HBASE_ROOT_DIR_URI="file://${ROOT_DIR}/db/hbase"
 LOG4J_PATH="file:${ROOT_DIR}/lib/info-log4j.properties"
 if [[ "${DEBUG}" = true ]]; then
     LOG4J_PATH="file:${ROOT_DIR}/lib/hbase-log4j.properties"
+    export SPLICE_SYS_ARGS="-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4000"
 fi
 
 # Config for Cygwin, if necessary
@@ -104,6 +105,7 @@ if [[ ${UNAME} == CYGWIN* ]]; then
 	LOG4J_PATH="file:///$(cygpath --path --windows ${ROOT_DIR}/lib/info-log4j.properties)"
     if [[ -n "${DEBUG}" && "${DEBUG}" -eq "-debug" ]]; then
 		LOG4J_PATH="file:///$(cygpath --path --windows ${ROOT_DIR}/lib/hbase-log4j.properties)"
+		export SPLICE_SYS_ARGS="-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4000"
     fi
 fi
 

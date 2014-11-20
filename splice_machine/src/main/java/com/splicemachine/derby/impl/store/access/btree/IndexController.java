@@ -56,16 +56,21 @@ public class IndexController  extends SpliceController  {
 
 		@Override
 		public int insert(DataValueDescriptor[] row) throws StandardException {
-				SpliceLogUtils.trace(LOG,"insert row");
+				if (LOG.isTraceEnabled()) LOG.trace(String.format("insert row into conglomerate: %s, row: %s", this.getConglomerate(), (row==null ? null : Arrays.toString(row))));
 				HTableInterface htable = getTable();
 				try {
 						boolean[] order = ((IndexConglomerate)this.openSpliceConglomerate.getConglomerate()).getAscDescInfo();
 						byte[] rowKey = generateIndexKey(row, order);
-//            elevateTransaction();
-						Put put = SpliceUtils.createPut(rowKey,((SpliceTransaction)trans).getTxn());
-						encodeRow(row, put,null,null);
-						htable.put(put);
-						return 0;
+						Get get = SpliceUtils.createGet(((SpliceTransaction)trans).getTxn(), rowKey);
+						Result result = htable.get(get);
+						if (result.isEmpty()) {
+							Put put = SpliceUtils.createPut(rowKey,((SpliceTransaction)trans).getTxn());
+							encodeRow(row, put,null,null);
+							htable.put(put);
+							return 0;
+						} else {
+							return ConglomerateController.ROWISDUPLICATE;
+						}
 				} catch (Exception e) {
 						LOG.error(e.getMessage(),e);
 						throw Exceptions.parseException(e);
@@ -74,7 +79,7 @@ public class IndexController  extends SpliceController  {
 
 		@Override
 		public void insertAndFetchLocation(DataValueDescriptor[] row,RowLocation destRowLocation) throws StandardException {
-				SpliceLogUtils.trace(LOG, "insertAndFetchLocation rowLocation %s",destRowLocation);
+				if (LOG.isTraceEnabled()) LOG.trace(String.format("insertAndFetchLocation into conglomerate: %s, row: %s, rowLocation: %s", this.getConglomerate(), (row==null ? null : Arrays.toString(row)), destRowLocation));
 				HTableInterface htable = getTable();
 				try {
 						boolean[] order = ((IndexConglomerate)this.openSpliceConglomerate.getConglomerate()).getAscDescInfo();
@@ -91,7 +96,7 @@ public class IndexController  extends SpliceController  {
 
 		@Override
 		public boolean replace(RowLocation loc, DataValueDescriptor[] row, FormatableBitSet validColumns) throws StandardException {
-				SpliceLogUtils.trace(LOG, "replace rowlocation %s, destRow %s, validColumns ", loc, row, validColumns);
+				if (LOG.isTraceEnabled()) LOG.trace(String.format("replace conglomerate: %s, rowlocation: %s, destRow: %s, validColumns: %s", this.getConglomerate(), loc, (row==null ? null : Arrays.toString(row)), validColumns));
 				HTableInterface htable = getTable();
 				try {
 						boolean[] sortOrder = ((IndexConglomerate) this.openSpliceConglomerate.getConglomerate()).getAscDescInfo();
