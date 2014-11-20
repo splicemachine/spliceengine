@@ -127,7 +127,7 @@ public class SpliceBaseIndexEndpoint {
                 }else{
                     region = TransactionalRegions.nonTransactionalRegion(rce.getRegion());
                 }
-                regionWritePipeline = new RegionWritePipeline(rce.getRegion(),factory,region,pipelineMeter);
+                regionWritePipeline = new RegionWritePipeline(rce,rce.getRegion(),factory,region,pipelineMeter);
                 SpliceDriver.driver().deregisterService(this);
                 return true;
             }
@@ -198,7 +198,7 @@ public class SpliceBaseIndexEndpoint {
                 }else{
                     //we can write this one!
                     Pair<BulkWriteResult,RegionWritePipeline> writePair = writePairMap.get(next);
-                    BulkWriteResult newR = writePair.getSecond().submitBulkWrite(next,indexWriteBufferFactory,rce);
+                    BulkWriteResult newR = writePair.getSecond().submitBulkWrite(next,indexWriteBufferFactory,writePair.getSecond().getRegionCoprocessorEnvironment());
                     newR.setPosition(writePair.getFirst().getPosition());
                     writePair.setFirst(newR);
                     availablePermits-=next.getSize();
