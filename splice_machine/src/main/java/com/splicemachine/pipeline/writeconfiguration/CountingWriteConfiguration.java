@@ -36,51 +36,42 @@ public class CountingWriteConfiguration extends ForwardingWriteConfiguration {
             statusReporter.wrongRegionFlushes.incrementAndGet();
         return super.globalError(t);
     }
-    
+
     @Override
-	public WriteResponse processGlobalResult(BulkWriteResult bulkWriteResult)
-			throws Throwable {
-    	WriteResult result = bulkWriteResult.getGlobalResult();
-    	Code code = result.getCode();
-    	switch (code) {
-		case UNIQUE_VIOLATION:
-    	case CHECK_VIOLATION:
-		case FAILED:
-		case FOREIGN_KEY_VIOLATION:
-		case PRIMARY_KEY_VIOLATION:
-			statusReporter.failedBufferFlushes.incrementAndGet();
-			break;
-		case INDEX_NOT_SETUP_EXCEPTION:
-			break;
-		case INTERRUPTED_EXCEPTON:
-			break;
-		case NOT_NULL:
-			break;
-		case NOT_RUN:
-			break;
-		case NOT_SERVING_REGION:
-			statusReporter.notServingRegionFlushes.incrementAndGet();
-			break;
-		case PARTIAL:
-			break;
-		case PIPELINE_TOO_BUSY:
-			break;
-		case REGION_TOO_BUSY:
-			break;
-		case SUCCESS:
-			break;
-		case WRITE_CONFLICT:
-			statusReporter.writeConflictBufferFlushes.incrementAndGet();
-			break;
-		case WRONG_REGION:
-			statusReporter.wrongRegionFlushes.incrementAndGet();
-			break;
-		default:
-			break;
-    	
-    	}
-		return super.processGlobalResult(bulkWriteResult);
-	}
+    public WriteResponse processGlobalResult(BulkWriteResult bulkWriteResult)
+            throws Throwable {
+        WriteResult result = bulkWriteResult.getGlobalResult();
+        Code code = result.getCode();
+        switch (code) {
+            case UNIQUE_VIOLATION:
+            case CHECK_VIOLATION:
+            case FAILED:
+            case FOREIGN_KEY_VIOLATION:
+            case PRIMARY_KEY_VIOLATION:
+                statusReporter.failedBufferFlushes.incrementAndGet();
+                break;
+            case NOT_SERVING_REGION:
+                statusReporter.notServingRegionFlushes.incrementAndGet();
+                break;
+            case PARTIAL:
+                statusReporter.partialFailures.incrementAndGet();
+                break;
+            case PIPELINE_TOO_BUSY:
+            case REGION_TOO_BUSY:
+                statusReporter.rejectedCount.incrementAndGet();
+                break;
+            case WRITE_CONFLICT:
+                statusReporter.writeConflictBufferFlushes.incrementAndGet();
+                break;
+            case WRONG_REGION:
+                statusReporter.wrongRegionFlushes.incrementAndGet();
+                break;
+            default:
+                break;
+
+        }
+        return super.processGlobalResult(bulkWriteResult);
+    }
 
 	@Override
     public WriteResponse partialFailure(BulkWriteResult result, BulkWrite request) throws ExecutionException {

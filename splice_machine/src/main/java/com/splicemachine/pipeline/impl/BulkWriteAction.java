@@ -65,7 +65,6 @@ public class BulkWriteAction implements Callable<WriteStats> {
 		private final Counter rejectedCounter;
 		private final Counter partialFailureCounter;
 		private PipingCallBuffer retryPipingCallBuffer = null; // retryCallBuffer
-		private long numberOfWritesPerformed = 0;
 
 		public BulkWriteAction(byte[] tableName,
 													 BulkWrites bulkWrites,
@@ -113,45 +112,39 @@ public class BulkWriteAction implements Callable<WriteStats> {
 				this.writeTimer = metricFactory.newTimer();
 		}
 
-		@Override
-		public WriteStats call() throws Exception {
-				statusReporter.numExecutingFlushes.incrementAndGet();
-				reportSize();
-				long start = System.currentTimeMillis();
-				boolean assertAttempt = true;
-				try{
-						Timer totalTimer = metricFactory.newTimer();
-						totalTimer.startTiming();
-						if (LOG.isDebugEnabled())
-								SpliceLogUtils.debug(LOG, "[%d] initialBulkWritesSize=%d, initialKVPairSize=%d",id,bulkWrites.numEntries(),bulkWrites.getKVPairSize());
-						execute(bulkWrites);
-						totalTimer.stopTiming();
-						if(metricFactory.isActive())
-								return new SimpleWriteStats(bulkWrites.getKVPairSize(),bulkWrites.numEntries(),
-												retryCounter.getTotal(),
-												globalErrorCounter.getTotal(),
-												partialFailureCounter.getTotal(),
-												rejectedCounter.getTotal(),
-												sleeper.getSleepStats(),
-												writeTimer.getTime(),
-												totalTimer.getTime());
-						else
-								return WriteStats.NOOP_WRITE_STATS;
-				}
-				catch (Exception e) {
-						assertAttempt = false;
-						throw e;
-				}
-				finally{
-						long timeTakenMs = System.currentTimeMillis() - start;
-						long numRecords = bulkWrites.getKVPairSize();
-						writeConfiguration.writeComplete(timeTakenMs,numRecords);
-						statusReporter.complete(timeTakenMs);
-						// Attempt to dereference
-						bulkWrites.close();
-						bulkWrites = null;
-				}
-		}
+    @Override
+    public WriteStats call() throws Exception {
+        statusReporter.numExecutingFlushes.incrementAndGet();
+        reportSize();
+        long start = System.currentTimeMillis();
+        try{
+            Timer totalTimer = metricFactory.newTimer();
+            totalTimer.startTiming();
+            if (LOG.isDebugEnabled())
+                SpliceLogUtils.debug(LOG, "[%d] initialBulkWritesSize=%d, initialKVPairSize=%d",id,bulkWrites.numEntries(),bulkWrites.getKVPairSize());
+            execute(bulkWrites);
+            totalTimer.stopTiming();
+            if(metricFactory.isActive())
+                return new SimpleWriteStats(bulkWrites.getKVPairSize(),bulkWrites.numEntries(),
+                        retryCounter.getTotal(),
+                        globalErrorCounter.getTotal(),
+                        partialFailureCounter.getTotal(),
+                        rejectedCounter.getTotal(),
+                        sleeper.getSleepStats(),
+                        writeTimer.getTime(),
+                        totalTimer.getTime());
+            else
+                return WriteStats.NOOP_WRITE_STATS;
+        } finally{
+            long timeTakenMs = System.currentTimeMillis() - start;
+            long numRecords = bulkWrites.getKVPairSize();
+            writeConfiguration.writeComplete(timeTakenMs,numRecords);
+            statusReporter.complete(timeTakenMs);
+            // Attempt to dereference
+            bulkWrites.close();
+            bulkWrites = null;
+        }
+    }
 
 		private void reportSize() {
 				boolean success;
@@ -194,138 +187,136 @@ public class BulkWriteAction implements Callable<WriteStats> {
 
 		}
 
-		private void execute(BulkWrites bulkWrites) throws Exception{
-				if (LOG.isDebugEnabled())
-						SpliceLogUtils.debug(LOG, "[%d] execute bulkWrites %s",id, bulkWrites);
-				retryCounter.increment();
-				boolean thrown=false;
-				int numAttempts = 0;
-				int maximumRetries = writeConfiguration.getMaximumRetries();
-				LinkedList<BulkWrites> writesToPerform = Lists.newLinkedList();
-				writesToPerform.add(bulkWrites);
-				do{
-						BulkWrites nextWrite = writesToPerform.removeFirst();
-						retryPipingCallBuffer = null;
-						if (LOG.isDebugEnabled())
-								SpliceLogUtils.debug(LOG, "[%d] next bulkWrites %s",id, bulkWrites);
-						if (nextWrite.getBulkWrites().size() == 0) {
-								if (LOG.isDebugEnabled())
-										SpliceLogUtils.debug(LOG, "no actual writes in BulkWrites %s",nextWrite);
-								continue;
-						}
-						SpliceLogUtils.trace(LOG,"[%d] %s",id,nextWrite);
-						try{
-								BulkWritesInvoker invoker = invokerFactory.newInstance();
-								BulkWritesResult bulkWritesResult;
-								writeTimer.startTiming();
-								bulkWritesResult = invoker.invoke(nextWrite,numAttempts>0);
-								if (LOG.isDebugEnabled())
-										SpliceLogUtils.debug(LOG, "invoke returns results %s",bulkWritesResult);
-								writeTimer.stopTiming();
-								Object[] bulkWriteResultBuffer = bulkWritesResult.getBulkWriteResults().buffer;
-								int ibulkWriteResultBuffer = bulkWritesResult.getBulkWriteResults().size();
-								for (int i = 0; i< ibulkWriteResultBuffer; i++) {
-										BulkWriteResult bulkWriteResult = (BulkWriteResult) bulkWriteResultBuffer[i];
-										WriteResponse globalResponse = writeConfiguration.processGlobalResult(bulkWriteResult);
-										BulkWrite currentBulkWrite = nextWrite.getBulkWrites().get(i);
-										switch (globalResponse) {
-												case SUCCESS:
-														if (LOG.isDebugEnabled()) {
-																SpliceLogUtils.debug(LOG, "[%d] write sucess",id);
-														}
-														numberOfWritesPerformed+=currentBulkWrite.getSize();
-														if(LOG.isDebugEnabled())
-																SpliceLogUtils.debug(LOG,"[%d] numberOfWritesPerformed %d",id,numberOfWritesPerformed);
-														continue;
-												case RETRY:
-														rejectedCounter.increment();
-														statusReporter.rejectedCount.incrementAndGet();
+    private void execute(BulkWrites bulkWrites) throws Exception{
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "[%d] execute bulkWrites %s",id, bulkWrites);
+        retryCounter.increment();
+        boolean thrown=false;
+        int numAttempts = 0;
+        int maximumRetries = writeConfiguration.getMaximumRetries();
+        LinkedList<BulkWrites> writesToPerform = Lists.newLinkedList();
+        writesToPerform.add(bulkWrites);
+        do{
+            BulkWrites nextWrite = writesToPerform.removeFirst();
+            retryPipingCallBuffer = null;
+            if (!shouldWrite(nextWrite)) continue;
+            SpliceLogUtils.trace(LOG,"[%d] %s",id,nextWrite);
+            try{
+                BulkWritesInvoker invoker = invokerFactory.newInstance();
+                writeTimer.startTiming();
+                BulkWritesResult bulkWritesResult = invoker.invoke(nextWrite,numAttempts>0);
+                writeTimer.stopTiming();
+                Object[] bulkWriteResultBuffer = bulkWritesResult.getBulkWriteResults().buffer;
+                int resultBufferSize = bulkWritesResult.getBulkWriteResults().size();
+                for (int i = 0; i< resultBufferSize; i++) {
+                    BulkWriteResult bulkWriteResult = (BulkWriteResult) bulkWriteResultBuffer[i];
+                    WriteResponse globalResponse = writeConfiguration.processGlobalResult(bulkWriteResult);
+                    BulkWrite currentBulkWrite = nextWrite.getBulkWrites().get(i);
+                    switch (globalResponse) {
+                        case SUCCESS:
+//														rowsSuccessfullyWritten +=currentBulkWrite.getSize();
+                            continue;
+                        case THROW_ERROR:
+                            thrown=true;
+                            throw parseIntoException(bulkWriteResult);
+                        case RETRY:
+														/*
+														 * The entire BulkWrite needs to be retried--either because it was rejected outright,
+														 * or because the region moved/split/something else.
+														 */
+                            rejectedCounter.increment();
+                            statusReporter.rejectedCount.incrementAndGet();
 
-														if(LOG.isDebugEnabled()) {
-																SpliceLogUtils.debug(LOG,"[%d] Retry write [%d] after receiving %s",id, numAttempts, bulkWriteResult.getGlobalResult());
-																SpliceLogUtils.debug(LOG,"[%d] Write that caused issue %s",id, currentBulkWrite);
-														}
-														addToRetryCallBuffer(currentBulkWrite.getMutations(),currentBulkWrite.getTxn(),bulkWriteResult.getGlobalResult().refreshCache());
-														sleeper.sleep(PipelineUtils.getWaitTime(maximumRetries - numAttempts + 1, writeConfiguration.getPause()));
-														continue;
-												case PARTIAL:
-														partialFailureCounter.increment();
-														WriteResponse writeResponse = writeConfiguration.partialFailure(bulkWriteResult,currentBulkWrite);
-														switch (writeResponse) {
-																case THROW_ERROR:
-																		thrown=true;
-																		throw parseIntoException(bulkWriteResult);
-																case RETRY:
-																		if(LOG.isDebugEnabled())
-																				SpliceLogUtils.debug(LOG,"[%d] Retrying write after receiving %s",id,writeResponse);
-																		ObjectArrayList<KVPair> toRetry = PipelineUtils.doPartialRetry(currentBulkWrite, bulkWriteResult,errors,id);
-																		numberOfWritesPerformed+=currentBulkWrite.getSize()-toRetry.size();
-																		if(LOG.isDebugEnabled())
-																				SpliceLogUtils.debug(LOG,"[%d] numberOfWritesPerformed %d",id,numberOfWritesPerformed);
-																		addToRetryCallBuffer(toRetry,currentBulkWrite.getTxn(),true);
-																		break;
-																default:
-																		if(LOG.isDebugEnabled())
-																				SpliceLogUtils.debug(LOG,"[%d] Ignoring write after receiving partial error %s",id,writeResponse);
-														}
-														break;
-												case IGNORE:
-														SpliceLogUtils.trace(LOG,"Global response indicates ignoring, so we ignore");
-														break;
-												case THROW_ERROR:
-														thrown=true;
-														throw parseIntoException(bulkWriteResult);
-												default:
-														SpliceLogUtils.error(LOG, "Global Response went down default path, assert");
-														throw new IllegalStateException("Programmer error: Unknown Global response: "+ globalResponse);
+                            if(LOG.isTraceEnabled())
+                                SpliceLogUtils.trace(LOG, "[%d] Retry write {%s} after receiving global result %s", id, currentBulkWrite, bulkWriteResult.getGlobalResult());
 
-										}
-								}
-						} catch (Throwable e) {
-								if(LOG.isDebugEnabled())
-										SpliceLogUtils.debug(LOG, "[%d] Caught Throwable", id);
-								globalErrorCounter.increment();
-								if(thrown)
-										throw new ExecutionException(e);
-								if (e instanceof RegionTooBusyException) {
-										if(LOG.isDebugEnabled())
-												SpliceLogUtils.debug(LOG, "[%d] Retrying write after receiving a RegionTooBusyException", id);
-										sleeper.sleep(PipelineUtils.getWaitTime(maximumRetries - numAttempts + 1, writeConfiguration.getPause()));
-										writesToPerform.add(nextWrite);
-										continue;
-								}
+                            addToRetryCallBuffer(currentBulkWrite.getMutations(),currentBulkWrite.getTxn(),bulkWriteResult.getGlobalResult().refreshCache());
+                            sleeper.sleep(PipelineUtils.getWaitTime(maximumRetries - numAttempts + 1, writeConfiguration.getPause()));
+                            continue;
+                        case PARTIAL:
+                            partialFailureCounter.increment();
+                            WriteResponse writeResponse = writeConfiguration.partialFailure(bulkWriteResult,currentBulkWrite);
+                            switch (writeResponse) {
+                                case THROW_ERROR:
+                                    thrown=true;
+                                    throw parseIntoException(bulkWriteResult);
+                                case RETRY:
+                                    if(LOG.isTraceEnabled()) SpliceLogUtils.trace(LOG, "[%d] Retrying write after receiving %s", id, writeResponse);
 
-								WriteResponse writeResponse = writeConfiguration.globalError(e);
-								switch(writeResponse){
-										case THROW_ERROR:
-												if(LOG.isDebugEnabled())
-														SpliceLogUtils.debug(LOG, "[%d] Throwing error after receiving a Global error %s:%s", id, e.getClass(), e.getMessage());
-												throw new ExecutionException(e);
-										case RETRY:
-												errors.add(e);
-												if(LOG.isDebugEnabled())
-														SpliceLogUtils.debug(LOG, "[%d] Retrying write after receiving a Global error %s:%s", id, e.getClass(), e.getMessage());
-												rejectedCounter.increment();
-												statusReporter.rejectedCount.incrementAndGet();
-												Object[] retryWrites = nextWrite.bulkWrites.buffer;
-												int size = nextWrite.bulkWrites.size();
-												for (int i = 0; i< size; i++) {
-														addToRetryCallBuffer( ((BulkWrite) retryWrites[i]).getMutations(),((BulkWrite) retryWrites[i]).getTxn(),i==0);
-												}
-												sleeper.sleep(PipelineUtils.getWaitTime(maximumRetries - numAttempts + 1, writeConfiguration.getPause()));
-												break;
-										default:
-												if(LOG.isInfoEnabled())
-														LOG.info("Ignoring error ", e);
-								}
-						}
-						numAttempts++;
-						addToWritesToPerform(retryPipingCallBuffer,writesToPerform);
-						retryPipingCallBuffer = null;
-						if (numAttempts > 100 && numAttempts%50==0)
-                            SpliceLogUtils.warn(LOG, "[%d] BulkWriteAction Taking Long Time with [%d] attempts", id,numAttempts);
-				}while(writesToPerform.size()>0);
-		}
+                                    ObjectArrayList<KVPair> toRetry = PipelineUtils.doPartialRetry(currentBulkWrite, bulkWriteResult,errors,id);
+//																		rowsSuccessfullyWritten +=currentBulkWrite.getSize()-toRetry.size();
+                                    addToRetryCallBuffer(toRetry,currentBulkWrite.getTxn(),true);
+                                    sleeper.sleep(PipelineUtils.getWaitTime(maximumRetries-numAttempts+1,writeConfiguration.getPause()));
+                                    break;
+                                default:
+                                    if(LOG.isTraceEnabled())
+                                        SpliceLogUtils.trace(LOG, "[%d] Ignoring write after receiving partial error %s", id, writeResponse);
+                            }
+                            break;
+                        case IGNORE:
+                            SpliceLogUtils.trace(LOG,"Global response indicates ignoring, so we ignore");
+                            break;
+                        default:
+                            SpliceLogUtils.error(LOG, "Global Response went down default path, assert");
+                            throw new IllegalStateException("Programmer error: Unknown Global response: "+ globalResponse);
+                    }
+                }
+            } catch (Throwable e) {
+                if(LOG.isTraceEnabled())
+                    SpliceLogUtils.trace(LOG, "[%d] Caught Throwable", id);
+                globalErrorCounter.increment();
+                if(thrown)
+                    throw new ExecutionException(e);
+                if (e instanceof RegionTooBusyException) {
+                    if(LOG.isTraceEnabled())
+                        SpliceLogUtils.trace(LOG, "[%d] Retrying write after receiving a RegionTooBusyException", id);
+                    sleeper.sleep(PipelineUtils.getWaitTime(maximumRetries - numAttempts + 1, writeConfiguration.getPause()));
+                    writesToPerform.add(nextWrite);
+                    continue;
+                }
+
+                WriteResponse writeResponse = writeConfiguration.globalError(e);
+                switch(writeResponse){
+                    case THROW_ERROR:
+                        if(LOG.isTraceEnabled())
+                            SpliceLogUtils.trace(LOG, "[%d] Throwing error after receiving a Global error %s:%s", id, e.getClass(), e.getMessage());
+                        throw new ExecutionException(e);
+                    case RETRY:
+                        errors.add(e);
+                        if(LOG.isTraceEnabled())
+                            SpliceLogUtils.trace(LOG, "[%d] Retrying write after receiving a Global error %s:%s", id, e.getClass(), e.getMessage());
+                        rejectedCounter.increment();
+                        statusReporter.rejectedCount.incrementAndGet();
+                        Object[] retryWrites = nextWrite.bulkWrites.buffer;
+                        int size = nextWrite.bulkWrites.size();
+                        for (int i = 0; i< size; i++) {
+                            addToRetryCallBuffer( ((BulkWrite) retryWrites[i]).getMutations(),((BulkWrite) retryWrites[i]).getTxn(),i==0);
+                        }
+                        sleeper.sleep(PipelineUtils.getWaitTime(maximumRetries - numAttempts + 1, writeConfiguration.getPause()));
+                        break;
+                    default:
+                        if(LOG.isInfoEnabled())
+                            LOG.info("Ignoring error ", e);
+                }
+            }
+            numAttempts++;
+            addToWritesToPerform(retryPipingCallBuffer,writesToPerform);
+            retryPipingCallBuffer = null;
+            if (numAttempts > 100 && numAttempts%50==0)
+                SpliceLogUtils.warn(LOG, "[%d] BulkWriteAction Taking Long Time with [%d] attempts", id,numAttempts);
+        }while(writesToPerform.size()>0);
+    }
+
+    private boolean shouldWrite(BulkWrites nextWrite) {
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.debug(LOG, "[%d] next bulkWrites %s", id, nextWrite);
+        if (nextWrite.getBulkWrites().size() == 0) {
+            if (LOG.isDebugEnabled())
+                SpliceLogUtils.debug(LOG, "no actual writes in BulkWrites %s",nextWrite);
+            return false;
+        }
+        return true;
+    }
 
 		private Exception parseIntoException(BulkWriteResult response) {
 				IntObjectOpenHashMap<WriteResult> failedRows = response.getFailedRows();

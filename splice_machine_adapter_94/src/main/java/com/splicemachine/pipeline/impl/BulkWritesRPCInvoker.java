@@ -26,6 +26,7 @@ public class BulkWritesRPCInvoker implements BulkWritesInvoker {
 		private static final Class<? extends CoprocessorProtocol>[] protoClassArray = new Class[]{batchProtocolClass};
 		private final HConnection connection;
 		private final byte[] tableName;
+
 		/**
 		 * Connection based invoker for a table
 		 * 
@@ -36,30 +37,31 @@ public class BulkWritesRPCInvoker implements BulkWritesInvoker {
 				this.connection = connection;
 				this.tableName = tableName;
 		}
-		/**
-		 * 
-		 * Sends across BulkWrites to a specific region...
-		 * 
-		 */
-		@Override
-		public BulkWritesResult invoke(BulkWrites writes,boolean refreshCache) throws IOException {
-				assert writes.numEntries() != 0;
-				SpliceBaseIndexEndpoint indexEndpoint = null;
-				// Check for a non-serialized local operation
-				if(SpliceDriver.driver().isStarted())
-					if ((indexEndpoint = SpliceDriver.driver().getSpliceIndexEndpoint( ((BulkWrite) writes.getBuffer()[0]).getEncodedStringName())) != null) {
-							return indexEndpoint.bulkWrite(writes);
-					} 
-				// if SpliceDriver is in another JVM and we cannot call the 'driver.start()' within current JVM
-				Configuration config = SpliceConstants.config;
-				NoRetryExecRPCInvoker invoker = new NoRetryExecRPCInvoker(config,
-				connection,batchProtocolClass,tableName,writes.getRegionKey(),refreshCache);
-				BatchProtocol instance = (BatchProtocol) Proxy.newProxyInstance(config.getClassLoader(),
-									protoClassArray,invoker);
-				return PipelineUtils.fromCompressedBytes(instance.bulkWrites(PipelineUtils.toCompressedBytes(writes)),BulkWritesResult.class);
-				
 
-		}
+    /**
+     * Sends across BulkWrites to a specific region...
+     */
+    @Override
+    public BulkWritesResult invoke(BulkWrites writes, boolean refreshCache) throws IOException {
+        assert writes.numEntries() != 0;
+        SpliceDriver spliceDriver = SpliceDriver.driver();
+
+        if (spliceDriver.isStarted()) {
+            BulkWrite firstBulkWrite = (BulkWrite) writes.getBuffer()[0];
+            SpliceBaseIndexEndpoint indexEndpoint = spliceDriver.getIndexEndpoint(firstBulkWrite.getEncodedStringName());
+            if (indexEndpoint != null) {
+                return indexEndpoint.bulkWrite(writes);
+            }
+        }
+
+        // if SpliceDriver is in another JVM and we cannot call the 'driver.start()' within current JVM
+        Configuration config = SpliceConstants.config;
+        NoRetryExecRPCInvoker invoker = new NoRetryExecRPCInvoker(config,
+                connection, batchProtocolClass, tableName, writes.getRegionKey(), refreshCache);
+        BatchProtocol instance = (BatchProtocol) Proxy.newProxyInstance(config.getClassLoader(),
+                protoClassArray, invoker);
+        return PipelineUtils.fromCompressedBytes(instance.bulkWrites(PipelineUtils.toCompressedBytes(writes)), BulkWritesResult.class);
+    }
 
 		public static final class Factory implements BulkWritesInvoker.Factory{
 				private final HConnection connection;

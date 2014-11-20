@@ -40,31 +40,31 @@ public abstract class BaseWriteConfiguration implements WriteConfiguration {
         else
             return WriteResponse.THROW_ERROR;
     }
-    
-	@Override
-	public WriteResponse processGlobalResult(BulkWriteResult bulkWriteResult) throws Throwable {
-		WriteResult writeResult = bulkWriteResult.getGlobalResult();
-		if (writeResult.isSuccess())
-			return WriteResponse.SUCCESS;
-		else if (writeResult.isPartial()) {
-			IntObjectOpenHashMap<WriteResult> failedRows = bulkWriteResult.getFailedRows();
-			if(failedRows!=null && failedRows.size()>0){
-				return WriteResponse.PARTIAL;
-			}
+
+    @Override
+    public WriteResponse processGlobalResult(BulkWriteResult bulkWriteResult) throws Throwable {
+        WriteResult writeResult = bulkWriteResult.getGlobalResult();
+        if (writeResult.isSuccess())
+            return WriteResponse.SUCCESS;
+        else if (writeResult.isPartial()) {
+            IntObjectOpenHashMap<WriteResult> failedRows = bulkWriteResult.getFailedRows();
+            if(failedRows!=null && failedRows.size()>0){
+                return WriteResponse.PARTIAL;
+            }
             IntArrayList notRun = bulkWriteResult.getNotRunRows();
             if(notRun!=null && notRun.size()>0)
                 return WriteResponse.PARTIAL;
-			return WriteResponse.IGNORE;
-		}	
-		else if (!writeResult.canRetry())
-				throw Exceptions.fromString(writeResult);
-		else if (writeResult.canRetry()) {
-			return WriteResponse.RETRY;
-		}
-		else {
-			return WriteResponse.IGNORE;
-		}
-	}
+						/*
+						 * We got a partial result, but didn't specify which rows needed behavior.
+						 * That's weird, but since we weren't told there would be a problem, we may
+						 * as well ignore
+						 */
+            return WriteResponse.IGNORE;
+        } else if (!writeResult.canRetry())
+            throw Exceptions.fromString(writeResult);
+        else
+            return WriteResponse.RETRY;
+    }
 	
 	@Override
 	public void registerContext(WriteContext context,

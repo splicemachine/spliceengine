@@ -276,13 +276,19 @@ public class SpliceDriver extends SIConstants {
     	return host==null?null:host.findCoprocessorEnvironment(ENDPOINT_CLASS_NAME);
     }
 
-    public SpliceBaseIndexEndpoint getSpliceIndexEndpoint(String encodedRegionName) {
+    public SpliceBaseIndexEndpoint getIndexEndpoint(String encodedRegionName) {
     	CoprocessorEnvironment ce = getSpliceIndexEndpointEnvironment(encodedRegionName);
     	return ce == null?null:((IndexEndpoint) ce.getInstance()).getBaseIndexEndpoint();
     }
-    
+
+    public RegionWritePipeline getWritePipeline(String encodedRegionName) {
+        SpliceBaseIndexEndpoint endpoint = getIndexEndpoint(encodedRegionName);
+        if(endpoint==null) return null;
+        return endpoint.getWritePipeline();
+    }
+
     public boolean isStarted(){
-    	return regionServerServices == null? false : true;
+    	return regionServerServices != null;
     }
     
     public void start(RegionServerServices regionServerServices){
