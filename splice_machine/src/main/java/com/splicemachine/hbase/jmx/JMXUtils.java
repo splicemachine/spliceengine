@@ -37,16 +37,16 @@ public class JMXUtils {
     public static final String TIMESTAMP_MASTER_MANAGEMENT = "com.splicemachine.si.impl.timestamp.generator:type=TimestampMasterManagement";
     public static final String TIMESTAMP_REGION_MANAGEMENT = "com.splicemachine.si.impl.timestamp.request:type=TimestampRegionManagement";
 
-	public static List<Pair<String,JMXConnector>> getMBeanServerConnections(Collection<String> serverConnections) throws IOException {
-		List<Pair<String,JMXConnector>> mbscArray = new ArrayList<Pair<String,JMXConnector>>(serverConnections.size());
-      String regionServerPort = SpliceConstants.config.get("hbase.regionserver.jmx.port","10102");
-		for (String serverName: serverConnections) {
-			JMXServiceURL url = new JMXServiceURL(String.format("service:jmx:rmi://%1$s/jndi/rmi://%1$s:%2$s/jmxrmi",serverName,regionServerPort));
-		    JMXConnector jmxc = JMXConnectorFactory.connect(url, null); 		
-		    mbscArray.add(Pair.newPair(serverName,jmxc));
-		}
-		return mbscArray;
-	}
+    public static List<Pair<String,JMXConnector>> getMBeanServerConnections(Collection<Pair<String,String>> serverConnections) throws IOException {
+        List<Pair<String,JMXConnector>> mbscArray = new ArrayList<Pair<String,JMXConnector>>(serverConnections.size());
+        String regionServerJMXPort = SpliceConstants.config.get("hbase.regionserver.jmx.port","10102");
+        for (Pair<String,String> serverConn: serverConnections) {
+            JMXServiceURL url = new JMXServiceURL(String.format("service:jmx:rmi://%1$s/jndi/rmi://%1$s:%2$s/jmxrmi",serverConn.getFirst(),regionServerJMXPort));
+            JMXConnector jmxc = JMXConnectorFactory.connect(url, null);
+            mbscArray.add(Pair.newPair(serverConn.getSecond(),jmxc));
+        }
+        return mbscArray;
+    }
 
     public static List<Logging> getLoggingManagement(List<Pair<String,JMXConnector>> mbscArray) throws MalformedObjectNameException, IOException {
         List<Logging> activeWrites = new ArrayList<Logging>();

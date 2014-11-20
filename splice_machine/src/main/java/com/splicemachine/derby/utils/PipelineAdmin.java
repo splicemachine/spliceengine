@@ -109,7 +109,7 @@ public class PipelineAdmin extends BaseAdminProcedures{
                 for(ThreadPoolStatus threadPool:threadPools){
                     template.resetRowArray();
                     DataValueDescriptor[] dvds = template.getRowArray();
-                    String host = jmxConnector.get(i).getFirst();
+                    String host = jmxConnector.get(i++).getFirst();
                     try{
                         dvds[0].setValue(host);
                         dvds[3].setValue(threadPool.getMaxThreadCount());
