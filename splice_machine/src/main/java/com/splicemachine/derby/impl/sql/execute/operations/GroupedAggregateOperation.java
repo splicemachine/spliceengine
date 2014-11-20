@@ -171,6 +171,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 		private void buildReduceScan() throws StandardException {
 				try {
 						reduceScan = Scans.buildPrefixRangeScan(uniqueSequenceID, null);
+                        reduceScan.setCacheBlocks(false); // Do not cache Temp Access Here
 				} catch (IOException e) {
 						throw Exceptions.parseException(e);
 				}

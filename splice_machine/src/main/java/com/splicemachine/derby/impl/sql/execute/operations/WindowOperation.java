@@ -194,6 +194,7 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
 
         try {
             reduceScan = Scans.buildPrefixRangeScan(uniqueId, null);
+            reduceScan.setCacheBlocks(false); // Do not use Block Cache, will not be re-used
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
