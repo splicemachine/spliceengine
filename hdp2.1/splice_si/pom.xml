@@ -234,7 +234,6 @@
 								<option>-keep public class com.splicemachine.si.data.api.SDataLib {public *; }</option>
 								<option>-keep public class com.splicemachine.si.data.api.STableReader { public *; }</option>
 								<option>-keep public class com.splicemachine.si.data.api.STableWriter { public *; }</option>
-                <option>-keep public class com.splicemachine.si.data.api.SRowLock { public *; }</option>
 								<option>-keep public class com.splicemachine.si.data.hbase.BaseHbRegion { public *; protected static org.apache.hadoop.hbase.client.Mutation getMutation(com.splicemachine.hbase.KVPair, com.splicemachine.si.api.TxnView); }</option>
 								<option>-keep public class com.splicemachine.si.data.hbase.HRowAccumulator { public *; }</option>
 								<option>-keep public class com.splicemachine.si.data.hbase.HTableReader { public *; }</option>
