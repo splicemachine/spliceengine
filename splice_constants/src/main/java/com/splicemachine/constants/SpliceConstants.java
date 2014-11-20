@@ -18,6 +18,26 @@ import java.util.concurrent.TimeUnit;
 public class SpliceConstants {
     private static final Logger LOG = Logger.getLogger(SpliceConstants.class);
 
+    /**
+     * Flag to force the upgrade process to execute during database boot-up.
+     * This flag should only be true for the master server.  If the upgrade runs on the region server,
+     * it would probably be bad (at least if it ran concurrently with another upgrade).
+     * On region servers, this flag will be temporarily true until the SpliceDriver is started.
+     * The SpliceDriver will set the flag to false for all region servers.
+     * Default is false.
+     */
+    @Parameter public static final String UPGRADE_FORCED = "splice.upgrade.forced";
+    @DefaultValue(UPGRADE_FORCED) public static final boolean DEFAULT_UPGRADE_FORCED = false;
+    public static boolean upgradeForced;
+
+    /**
+     * If the upgrade process is being forced, this tells which version to begin the upgrade process from.
+     * Default is "0.0.0", which means that all upgrades will be executed.
+     */
+    @Parameter public static final String UPGRADE_FORCED_FROM = "splice.upgrade.forced.from";
+    @DefaultValue(UPGRADE_FORCED_FROM) public static final String DEFAULT_UPGRADE_FORCED_FROM = "0.0.0";
+    public static String upgradeForcedFromVersion;
+
     @Parameter public static final String ROLL_FORWARD_SEGMENTS = "splice.rollforward.numSegments";
     @DefaultValue(ROLL_FORWARD_SEGMENTS) public static final int DEFAULT_ROLLFORWARD_SEGMENTS = 4;
     public static int numRollForwardSegments;
@@ -1237,6 +1257,9 @@ public class SpliceConstants {
 
 				interRegionTaskSplitThresholdBytes = config.getLong(INTER_REGION_TASK_SPLIT_THRESHOLD_BYTES,DEFAULT_INTER_REGION_TASK_SPLIT_THRESHOLD_BYTES);
 				maxInterRegionTaskSplits = config.getInt(MAX_INTER_REGION_TASK_SPLITS,DEFAULT_MAX_INTER_REGION_TASK_SPLITS);
+
+				upgradeForced = config.getBoolean(UPGRADE_FORCED, DEFAULT_UPGRADE_FORCED);
+				upgradeForcedFromVersion = config.get(UPGRADE_FORCED_FROM, DEFAULT_UPGRADE_FORCED_FROM);
 
         numRollForwardSegments = config.getInt(ROLL_FORWARD_SEGMENTS,DEFAULT_ROLLFORWARD_SEGMENTS);
         rollForwardRowThreshold = config.getInt(ROLL_FORWARD_ROW_THRESHOLD,DEFAULT_ROLLFOWARD_ROW_THRESHOLD);

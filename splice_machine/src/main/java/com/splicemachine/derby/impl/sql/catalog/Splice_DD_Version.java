@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.catalog;
 
+import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.impl.sql.catalog.DD_Version;
 import org.apache.derby.impl.sql.catalog.DataDictionaryImpl;
 
@@ -12,7 +13,7 @@ import java.io.ObjectOutput;
  */
 public class Splice_DD_Version extends DD_Version {
 
-    private int patchVerionNumer;
+    private int patchVersionNumber;
 
     public Splice_DD_Version() {
 
@@ -22,7 +23,29 @@ public class Splice_DD_Version extends DD_Version {
         this.bootingDictionary = bootingDictionary;
         this.majorVersionNumber = major;
         this.minorVersionNumber = minor;
-        this.patchVerionNumer = patch;
+        this.patchVersionNumber = patch;
+    }
+
+    public Splice_DD_Version (DataDictionaryImpl bootingDictionary, String versionString) throws StandardException {
+    	if (versionString.matches("\\d(\\.\\d)?(\\.\\d)?")) {
+            this.majorVersionNumber = 0;
+            this.minorVersionNumber = 0;
+            this.patchVersionNumber = 0;
+    		String[] versionArray = versionString.split("\\.");
+    		if (versionArray.length > 0) {
+    			this.majorVersionNumber = Integer.parseInt(versionArray[0]);
+    			if (versionArray.length > 1) {
+    				this.minorVersionNumber = Integer.parseInt(versionArray[1]);
+    				if (versionArray.length > 2) {
+    					this.patchVersionNumber = Integer.parseInt(versionArray[2]);
+    				}
+    			}
+    		}
+    		this.bootingDictionary = bootingDictionary;
+    	} else {
+    		// Bad version string...
+    		throw StandardException.newException(String.format("Version string does not match \"major.minor.patch\" pattern: %s", versionString));
+    	}
     }
 
     public int getMajorVersionNumber() {
@@ -34,30 +57,30 @@ public class Splice_DD_Version extends DD_Version {
     }
 
     public int getPatchVersionNumber() {
-        return patchVerionNumer;
+        return patchVersionNumber;
     }
 
     public String toString() {
         StringBuffer sb = new StringBuffer();
-        sb.append(majorVersionNumber).append(".").append(minorVersionNumber).append(".").append(patchVerionNumer);
+        sb.append(majorVersionNumber).append(".").append(minorVersionNumber).append(".").append(patchVersionNumber);
         return sb.toString();
     }
 
     @Override
     public void readExternal( ObjectInput in ) throws IOException {
         super.readExternal(in);
-        patchVerionNumer = in.readInt();
+        patchVersionNumber = in.readInt();
     }
 
     @Override
     public void writeExternal( ObjectOutput out ) throws IOException
     {
         super.writeExternal(out);
-        out.writeInt(patchVerionNumer);
+        out.writeInt(patchVersionNumber);
     }
 
     public long toLong() {
-        return majorVersionNumber * 1000000 + minorVersionNumber * 1000 + patchVerionNumer;
+        return majorVersionNumber * 1000000 + minorVersionNumber * 1000 + patchVersionNumber;
     }
 
 }

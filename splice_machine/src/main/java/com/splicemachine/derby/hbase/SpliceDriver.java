@@ -402,6 +402,14 @@ public class SpliceDriver extends SIConstants {
         	// "SPLICE_*" tables in HBase has been successful.
         	// Not exactly sure why we are catching a generic Exception above.  Possibly there are other valid exceptions???
 
+                /*
+                 * If an upgrade has been forced, we are now finished with it since this bit of code here only runs
+                 * on the region servers and we don't ever run upgrade code on region servers.  Only the master server
+                 * runs upgrade code via the SpliceMasterObserver.  So we mark the flag to false to ensure that the
+                 * region servers don't run the upgrade.
+                 */
+                SpliceConstants.upgradeForced = false;
+
         	// Ensure ZK paths exist.
         	ZkUtils.safeInitializeZooKeeper();
         	// Initialize the table pool so the UUID generator below can access the SPLICE_SEQUENCES table in HBase.

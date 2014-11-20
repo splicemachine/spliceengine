@@ -5,7 +5,6 @@ import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceController;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.pipeline.exception.Exceptions;
-import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.store.raw.Transaction;
@@ -27,8 +26,9 @@ public class HBaseController  extends SpliceController {
 
     @Override
     public int insert(DataValueDescriptor[] row) throws StandardException {
-        SpliceLogUtils.trace(LOG,"insert into conglom %d row %s with txnId %s",
-                openSpliceConglomerate.getConglomerate().getContainerid(),row,trans.getTxnInformation());
+        if (LOG.isTraceEnabled())
+            LOG.trace(String.format("insert into conglom %d row %s with txnId %s",
+                    openSpliceConglomerate.getConglomerate().getContainerid(),(row==null ? null : Arrays.toString(row)),trans.getTxnInformation()));
         HTableInterface htable = getTable();
         try {
             Put put = SpliceUtils.createPut(SpliceUtils.getUniqueKey(), ((SpliceTransaction)trans).getTxn());
@@ -45,8 +45,8 @@ public class HBaseController  extends SpliceController {
     public void insertAndFetchLocation(DataValueDescriptor[] row,
                                        RowLocation destRowLocation) throws StandardException {
         if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"insertAndFetchLocation into conglom %d row %s",
-                    openSpliceConglomerate.getConglomerate().getContainerid(),row==null? null :Arrays.toString(row));
+            LOG.trace(String.format("insertAndFetchLocation into conglom %d row %s",
+                    openSpliceConglomerate.getConglomerate().getContainerid(),row==null? null :Arrays.toString(row)));
 
         HTableInterface htable = getTable();
         try {
@@ -61,7 +61,8 @@ public class HBaseController  extends SpliceController {
 
     @Override
     public boolean replace(RowLocation loc, DataValueDescriptor[] row, FormatableBitSet validColumns) throws StandardException {
-        SpliceLogUtils.trace(LOG,"replace rowLocation %s, destRow %s, validColumns %s",loc,row,validColumns);
+        if (LOG.isTraceEnabled())
+            LOG.trace(String.format("replace rowLocation %s, destRow %s, validColumns %s",loc,(row==null ? null : Arrays.toString(row)),validColumns));
         HTableInterface htable = getTable();
         try {
 

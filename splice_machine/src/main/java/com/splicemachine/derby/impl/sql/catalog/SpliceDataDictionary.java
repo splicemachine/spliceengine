@@ -1,53 +1,76 @@
 package com.splicemachine.derby.impl.sql.catalog;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Properties;
+
+import org.apache.derby.catalog.AliasInfo;
+import org.apache.derby.catalog.UUID;
+import org.apache.derby.iapi.db.Database;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.cache.Cacheable;
+import org.apache.derby.iapi.services.context.ContextService;
+import org.apache.derby.iapi.services.monitor.Monitor;
+import org.apache.derby.iapi.services.sanity.SanityManager;
+import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
+import org.apache.derby.iapi.sql.dictionary.AliasDescriptor;
+import org.apache.derby.iapi.sql.dictionary.ConstraintDescriptor;
+import org.apache.derby.iapi.sql.dictionary.DataDescriptorGenerator;
+import org.apache.derby.iapi.sql.dictionary.DataDictionary;
+import org.apache.derby.iapi.sql.dictionary.ForeignKeyConstraintDescriptor;
+import org.apache.derby.iapi.sql.dictionary.KeyConstraintDescriptor;
+import org.apache.derby.iapi.sql.dictionary.PermissionsDescriptor;
+import org.apache.derby.iapi.sql.dictionary.ReferencedKeyConstraintDescriptor;
+import org.apache.derby.iapi.sql.dictionary.RoleClosureIterator;
+import org.apache.derby.iapi.sql.dictionary.SPSDescriptor;
+import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
+import org.apache.derby.iapi.sql.dictionary.SequenceDescriptor;
+import org.apache.derby.iapi.sql.dictionary.SubKeyConstraintDescriptor;
+import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
+import org.apache.derby.iapi.sql.dictionary.TupleDescriptor;
+import org.apache.derby.iapi.sql.execute.ExecIndexRow;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.sql.execute.ScanQualifier;
+import org.apache.derby.iapi.store.access.AccessFactory;
+import org.apache.derby.iapi.store.access.TransactionController;
+import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.NumberDataValue;
+import org.apache.derby.iapi.types.Orderable;
+import org.apache.derby.iapi.types.RowLocation;
+import org.apache.derby.iapi.types.SQLVarchar;
+import org.apache.derby.impl.sql.catalog.BaseDataDictionary;
+import org.apache.derby.impl.sql.catalog.DataDictionaryImpl;
+import org.apache.derby.impl.sql.catalog.SYSCONSTRAINTSRowFactory;
+import org.apache.derby.impl.sql.catalog.SYSFOREIGNKEYSRowFactory;
+import org.apache.derby.impl.sql.catalog.SYSKEYSRowFactory;
+import org.apache.derby.impl.sql.catalog.SYSSCHEMASRowFactory;
+import org.apache.derby.impl.sql.catalog.SystemProcedureGenerator;
+import org.apache.derby.impl.sql.catalog.TabInfoImpl;
+import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.Logger;
+
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.ddl.DDLChangeType;
-import com.splicemachine.derby.ddl.DDLCoordinationFactory;
-import com.splicemachine.derby.ddl.DDLWatcher;
 import com.splicemachine.derby.hbase.ManifestReader;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.sql.catalog.upgrade.SpliceCatalogUpgradeScripts;
+import com.splicemachine.derby.impl.sql.depend.SpliceDependencyManager;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequenceKey;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.pipeline.exception.Exceptions;
-import com.splicemachine.utils.ZkUtils;
-import org.apache.derby.catalog.AliasInfo;
-import org.apache.derby.catalog.UUID;
-import org.apache.derby.iapi.db.Database;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.cache.Cacheable;
-import org.apache.derby.iapi.services.context.ContextManager;
-import org.apache.derby.iapi.services.context.ContextService;
-import org.apache.derby.iapi.services.monitor.Monitor;
-import org.apache.derby.iapi.services.sanity.SanityManager;
-import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
-import org.apache.derby.iapi.sql.dictionary.*;
-import org.apache.derby.iapi.sql.execute.ExecIndexRow;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.sql.execute.ScanQualifier;
-import org.apache.derby.iapi.store.access.AccessFactory;
-import org.apache.derby.iapi.store.access.TransactionController;
-import org.apache.derby.iapi.types.*;
-import org.apache.derby.impl.sql.catalog.*;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.log4j.Logger;
-import com.splicemachine.derby.impl.sql.depend.SpliceDependencyManager;
 import com.splicemachine.utils.SpliceLogUtils;
-import java.util.Collections;
-import java.util.List;
-import java.util.Properties;
+import com.splicemachine.utils.ZkUtils;
 
 /**
  * @author Scott Fines
  *         Created on: 2/28/13
  */
 public class SpliceDataDictionary extends DataDictionaryImpl {
+
 	protected static final Logger LOG = Logger.getLogger(SpliceDataDictionary.class);
     public static final int SYSPRIMARYKEYS_CATALOG_NUM = 23;
     private volatile TabInfoImpl pkTable = null;
@@ -60,7 +83,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
     public static final String SPLICE_DATA_DICTIONARY_VERSION = "SpliceDataDictionaryVersion";
 
     @Override
-    protected SystemProcedureGenerator getSystemProcedures() {
+    public SystemProcedureGenerator getSystemProcedures() {
         return new SpliceSystemProcedures(this);
     }
 
@@ -206,14 +229,34 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
     }
 
     public void createFujiTables(TransactionController tc) throws StandardException{
-        //create SYSSTATEMENTHISTORY
-        makeCatalog(getStatementHistoryTable(), getSystemSchemaDescriptor(), tc);
+    	SchemaDescriptor systemSchemaDescriptor = getSystemSchemaDescriptor();
 
-        //create SYSOPERATIONHISTORY
-        makeCatalog(getOperationHistoryTable(), getSystemSchemaDescriptor(), tc);
+    	//create SYSSTATEMENTHISTORY
+    	TabInfoImpl stmtHistTabInfo = getStatementHistoryTable();
+    	if (getTableDescriptor(stmtHistTabInfo.getTableName(), systemSchemaDescriptor, tc) == null ) {
+        	if (LOG.isTraceEnabled()) LOG.trace(String.format("Creating system table %s.%s", systemSchemaDescriptor.getSchemaName(), stmtHistTabInfo.getTableName()));
+    		makeCatalog(stmtHistTabInfo, systemSchemaDescriptor, tc);
+    	} else {
+        	if (LOG.isTraceEnabled()) LOG.trace(String.format("Skipping table creation since system table %s.%s already exists.", systemSchemaDescriptor.getSchemaName(), stmtHistTabInfo.getTableName()));
+    	}
 
-        //SYSTASKHISTORY
-        makeCatalog(getTaskHistoryTable(), getSystemSchemaDescriptor(), tc);
+    	//create SYSOPERATIONHISTORY
+    	TabInfoImpl opHistTabInfo = getOperationHistoryTable();
+    	if (getTableDescriptor(opHistTabInfo.getTableName(), systemSchemaDescriptor, tc) == null ) {
+        	if (LOG.isTraceEnabled()) LOG.trace(String.format("Creating system table %s.%s", systemSchemaDescriptor.getSchemaName(), opHistTabInfo.getTableName()));
+    		makeCatalog(opHistTabInfo, systemSchemaDescriptor, tc);
+    	} else {
+        	if (LOG.isTraceEnabled()) LOG.trace(String.format("Skipping table creation since system table %s.%s already exists.", systemSchemaDescriptor.getSchemaName(), opHistTabInfo.getTableName()));
+    	}
+
+    	//SYSTASKHISTORY
+    	TabInfoImpl taskHistTabInfo = getTaskHistoryTable();
+    	if (getTableDescriptor(taskHistTabInfo.getTableName(), systemSchemaDescriptor, tc) == null ) {
+        	if (LOG.isTraceEnabled()) LOG.trace(String.format("Creating system table %s.%s", systemSchemaDescriptor.getSchemaName(), taskHistTabInfo.getTableName()));
+    		makeCatalog(taskHistTabInfo, systemSchemaDescriptor, tc);
+    	} else {
+        	if (LOG.isTraceEnabled()) LOG.trace(String.format("Skipping table creation since system table %s.%s already exists.", systemSchemaDescriptor.getSchemaName(), taskHistTabInfo.getTableName()));
+    	}
     }
 
     @Override
@@ -299,21 +342,26 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
 
     private boolean needToUpgrade(Splice_DD_Version catalogVersion) {
 
-        // Not sure about the current version, do not upgrade
+    	LOG.info(String.format("Splice Software Version = %s", (spliceSoftwareVersion == null ? "null" : spliceSoftwareVersion.toString())));
+    	LOG.info(String.format("Splice Catalog Version = %s", (catalogVersion == null ? "null" : catalogVersion.toString())));
+
+    	// Check if there is a manual override that is forcing an upgrade.
+    	// This flag should only be true for the master server.  If the upgrade runs on the region server,
+    	// it would probably be bad (at least if it ran concurrently with another upgrade).
+    	if (SpliceConstants.upgradeForced) {
+        	LOG.info(String.format("Upgrade has been manually forced from version %s", SpliceConstants.upgradeForcedFromVersion));
+    		return true;
+    	}
+
+    	// Not sure about the current version, do not upgrade
         if (spliceSoftwareVersion == null) {
-        	LOG.info("Splice Software Version = null");
             return false;
-        } else {
-        	LOG.info(String.format("Splice Software Version = %s", spliceSoftwareVersion.toString()));
         }
 
         // This is a pre-Fuji catalog, upgrade it.
         if (catalogVersion == null) {
-        	LOG.info("Splice Catalog Version = null");
         	LOG.info("Upgrade needed since catalog version is null");
             return true;
-        } else {
-        	LOG.info(String.format("Splice Catalog Version = %s", catalogVersion.toString()));
         }
 
         // Compare software version and catalog version
