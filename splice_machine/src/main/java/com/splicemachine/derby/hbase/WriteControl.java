@@ -31,7 +31,7 @@ public class WriteControl {
             if (!threadCount.tryAcquire(10, TimeUnit.MILLISECONDS)) {
                 return -1; //inform the caller that we couldn't even get a thread
             }
-            int acquired = totalThroughputControl.tryAcquire(minPermits, maxPermits);
+            int acquired = dependentThroughputControl.tryAcquire(minPermits, maxPermits);
             /*
              * Acquired will be one of the following states:
              *
@@ -45,7 +45,7 @@ public class WriteControl {
                 minPermits = 0;
                 maxPermits = maxPermits-acquired;
             }
-            return dependentThroughputControl.tryAcquire(minPermits,maxPermits);
+            return totalThroughputControl.tryAcquire(minPermits,maxPermits);
         }catch(InterruptedException ie){
             return 0; //interrupted means reject outright
         }
@@ -82,5 +82,21 @@ public class WriteControl {
 
     public int getAvailableIndependentPermits() {
         return totalThroughputControl.availablePermits();
+    }
+
+    public int getMaxDependentPermits() {
+        return dependentThroughputControl.maxPermits();
+    }
+
+    public int getMaxIndependentPermits() {
+        return totalThroughputControl.maxPermits();
+    }
+
+    public void setMaxIndependentPermits(int newMaxIndependenThroughput) {
+        totalThroughputControl.setMaxPermits(newMaxIndependenThroughput);
+    }
+
+    public void setMaxDependentPermits(int newMaxDependentThroughput) {
+        dependentThroughputControl.setMaxPermits(newMaxDependentThroughput);
     }
 }
