@@ -2,16 +2,18 @@ package com.splicemachine.derby.impl.db;
 
 import javax.security.auth.login.Configuration;
 
-import java.sql.SQLException;
-import java.sql.SQLWarning;
+import java.sql.*;
 import java.util.*;
 import java.util.concurrent.CancellationException;
 
+import com.google.common.collect.Lists;
+import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.ddl.DDLWatcher;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.utils.BaseAdminProcedures;
+import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.hbase.HBaseRegionLoads;
 import com.splicemachine.hbase.backup.*;
 import com.google.common.io.Closeables;
@@ -19,15 +21,12 @@ import com.splicemachine.derby.hbase.SpliceMasterObserverRestoreAction;
 import com.splicemachine.si.api.TxnLifecycleManager;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.TransactionLifecycle;
-import com.splicemachine.si.impl.TransactionTimestamps;
 import com.splicemachine.utils.SpliceUtilities;
 
 import org.apache.derby.iapi.error.ExceptionSeverity;
 import org.apache.derby.iapi.error.ShutdownException;
-
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
-
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.Property;
 import org.apache.derby.iapi.services.context.ContextManager;
@@ -35,20 +34,29 @@ import org.apache.derby.iapi.services.context.ContextService;
 import org.apache.derby.iapi.services.monitor.Monitor;
 import org.apache.derby.iapi.services.property.PropertyFactory;
 import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.ResultColumnDescriptor;
 import org.apache.derby.iapi.sql.conn.ConnectionUtil;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
+import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.ExecutionFactory;
 import org.apache.derby.iapi.store.access.AccessFactory;
 import org.apache.derby.iapi.store.access.TransactionController;
+import org.apache.derby.iapi.types.DataTypeDescriptor;
+import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.RowLocation;
+import org.apache.derby.iapi.types.SQLVarchar;
 import org.apache.derby.impl.db.BasicDatabase;
 import org.apache.derby.impl.jdbc.EmbedConnection;
+import org.apache.derby.impl.jdbc.EmbedResultSet40;
+import org.apache.derby.impl.sql.GenericColumnDescriptor;
+import org.apache.derby.impl.sql.execute.IteratorNoPutResultSet;
+import org.apache.derby.impl.sql.execute.ValueRow;
 import org.apache.derby.shared.common.sanity.SanityManager;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceMasterObserver;
 import com.splicemachine.derby.impl.ast.AssignRSNVisitor;
@@ -313,7 +321,9 @@ public class SpliceDatabase extends BasicDatabase {
     }
 
     @Override
-    public void restore(String restoreDir, boolean wait) throws SQLException {
+    public void restore(String restoreDir, boolean wait) throws SQLException {}
+
+    public static void SYSCS_RESTORE_DATABASE(String restoreDir, ResultSet[] resultSets) {
         HBaseAdmin admin = null;
         String changeId = null;
         try {
@@ -324,11 +334,8 @@ public class SpliceDatabase extends BasicDatabase {
                 admin.createTable(desc);
             }
 
-            EmbedConnection defaultConn = (EmbedConnection) BaseAdminProcedures.getDefaultConn();
-            Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
-            lastActivation.addWarning(
-                    new SQLWarning("Database has to be rebooted after the restore operation",
-                            "01010", ExceptionSeverity.WARNING_SEVERITY));
+            Connection conn = SpliceAdmin.getDefaultConn();
+            LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
 
             // Check for ongoing backup...
             String backupResponse = null;
@@ -391,6 +398,21 @@ public class SpliceDatabase extends BasicDatabase {
                 throw t;
             }
 
+            // Print reboot statement
+            ResultColumnDescriptor[] rcds = new ResultColumnDescriptor[]{
+                    new GenericColumnDescriptor("result", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 30)),
+                    new GenericColumnDescriptor("warnings", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 50))
+            };
+            ExecRow template = new ValueRow(2);
+            template.setRowArray(new DataValueDescriptor[]{new SQLVarchar(), new SQLVarchar()});
+            List<ExecRow> rows = Lists.newArrayList();
+            template.getColumn(1).setValue("Restore completed");
+            template.getColumn(2).setValue("Database has to be rebooted");
+            rows.add(template.getClone());
+            IteratorNoPutResultSet inprs = new IteratorNoPutResultSet(rows,rcds,lcc.getLastActivation());
+            inprs.openCore();
+            resultSets[0] = new EmbedResultSet40(conn.unwrap(EmbedConnection.class),inprs,false,null,true);
+
         } catch (Throwable t) {
             // TODO error handling
             SpliceLogUtils.error(LOG, "Error recovering backup", t);
@@ -405,6 +427,7 @@ public class SpliceDatabase extends BasicDatabase {
             }
             Closeables.closeQuietly(admin);
         }
+
     }
 
     @Override
