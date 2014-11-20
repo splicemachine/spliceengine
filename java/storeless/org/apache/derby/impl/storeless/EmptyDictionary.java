@@ -988,4 +988,53 @@ public class EmptyDictionary implements DataDictionary, ModuleSupportable {
    public SchemaDescriptor getSystemUtilSchemaDescriptor(){
 	return null;
    }
+
+   /**
+    * Update all system schemas to have new authorizationId. This is needed
+    * while upgrading pre-10.2 databases to 10.2 or later versions. From 10.2,
+    * all system schemas would be owned by database owner's authorizationId.
+    * This is also needed for Splice Machine when upgrading from the 0.5 beta
+    * where there is no AnA to 1.0 where AnA is available for the first time.
+    *
+    * @param aid	AuthorizationID of Database Owner
+    * @param tc	TransactionController to use
+    *
+    * @exception StandardException		Thrown on failure
+    */
+   public void updateSystemSchemaAuthorization(
+       String aid, TransactionController tc) throws StandardException {
+       // Auto-generated method stub
+   }
+
+   /**
+	 * Create a system stored procedure.
+	 * PLEASE NOTE:
+	 * This method is currently not used, but will be used when Splice Machine has a SYS_DEBUG schema available
+	 * with tools to debug and repair databases and data dictionaries.
+	 *
+	 * @param schemaName	name of the system schema
+	 * @param procName		name of the system stored procedure
+    * @param tc			TransactionController to use
+    * @throws StandardException
+    */
+   public void createSystemProcedure(
+       String schemaName, String procName, TransactionController tc) throws StandardException {
+       // Auto-generated method stub
+   }
+
+   /**
+	 * Drop a system stored procedure.
+	 * PLEASE NOTE:
+	 * This method is currently not used, but will be used when Splice Machine has a SYS_DEBUG schema available
+	 * with tools to debug and repair databases and data dictionaries.
+	 *
+	 * @param schemaName	name of the system schema
+	 * @param procName		name of the system stored procedure
+    * @param tc			TransactionController to use
+    * @throws StandardException
+    */
+   public void dropSystemProcedure(
+       String schemaName, String procName, TransactionController tc) throws StandardException {
+        // Auto-generated method stub
+   }
 }

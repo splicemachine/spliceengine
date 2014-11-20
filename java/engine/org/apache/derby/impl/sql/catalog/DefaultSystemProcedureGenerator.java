@@ -81,6 +81,89 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
     }
 
     /**
+     * Create a system stored procedure.
+     * PLEASE NOTE:
+     * This method is currently not used, but will be used when Splice Machine has a SYS_DEBUG schema available
+     * with tools to debug and repair databases and data dictionaries.
+     *
+     * @param schemaName	name of the system schema
+     * @param procName		name of the system stored procedure
+     * @param tc			TransactionController to use
+     * @param newlyCreatedRoutines	set of newly created routines
+     * @throws StandardException
+     */
+    public final void createProcedure(
+    	String schemaName,
+    	String procName,
+    	TransactionController tc,
+    	HashSet newlyCreatedRoutines) throws StandardException {
+
+    	if (schemaName == null || procName == null) {
+    		throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND_DURING_EXECUTION, "PROCEDURE", (schemaName + "." + procName));
+    	}
+
+    	// Upper the case since Derby is case sensitive by default.
+    	schemaName = schemaName.toUpperCase();
+    	procName = procName.toUpperCase();
+
+    	SchemaDescriptor sd = dictionary.getSchemaDescriptor(schemaName, tc, true);  // Throws an exception if the schema does not exist.
+    	UUID schemaId = sd.getUUID();
+
+    	// Do not check for an existing procedure.  We want stuff to blow up.
+
+    	// Find the definition of the procedure and create it.
+    	Procedure procedure = findProcedure(schemaId, procName, tc);
+    	if (procedure == null) {
+    		throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND_DURING_EXECUTION, "PROCEDURE", (schemaName + "." + procName));
+    	} else {
+    		if (LOG.isInfoEnabled()) {
+    			LOG.info(String.format("Creating procedure: %s.%s", sd.getSchemaName(), procName));
+    		}
+    		newlyCreatedRoutines.add(procedure.createSystemProcedure(schemaId, dictionary, tc));
+    	}
+    }
+
+    /**
+     * Drop a system stored procedure.
+     * PLEASE NOTE:
+     * This method is currently not used, but will be used when Splice Machine has a SYS_DEBUG schema available
+     * with tools to debug and repair databases and data dictionaries.
+     *
+     * @param schemaName	name of the system schema
+     * @param procName		name of the system stored procedure
+     * @param tc			TransactionController to use
+     * @param newlyCreatedRoutines	set of newly created routines
+     * @throws StandardException
+     */
+    public final void dropProcedure(
+    	String schemaName,
+    	String procName,
+    	TransactionController tc,
+    	HashSet newlyCreatedRoutines) throws StandardException {
+
+    	if (schemaName == null || procName == null) {
+    		throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND_DURING_EXECUTION, "PROCEDURE", (schemaName + "." + procName));
+    	}
+
+    	// Upper the case since Derby is case sensitive by default.
+    	schemaName = schemaName.toUpperCase();
+    	procName = procName.toUpperCase();
+
+    	SchemaDescriptor sd = dictionary.getSchemaDescriptor(schemaName, tc, true);  // Throws an exception if the schema does not exist.
+    	UUID schemaId = sd.getUUID();
+
+    	// Check for existing procedure
+    	String schemaIdStr = schemaId.toString();
+    	AliasDescriptor ad = dictionary.getAliasDescriptor(schemaIdStr, procName, AliasInfo.ALIAS_NAME_SPACE_PROCEDURE_AS_CHAR);
+    	if (ad != null) {  // Drop the procedure if it already exists.
+    		if (LOG.isInfoEnabled()) {
+    			LOG.info(String.format("Dropping already existing procedure: %s.%s", sd.getSchemaName(), procName));
+    		}
+    		dictionary.dropAliasDescriptor(ad, tc);
+    	}
+    }
+
+    /**
 	 * Creates or updates a system stored procedure. If the system stored procedure
 	 * already exists in the data dictionary, the stored procedure will be dropped
 	 * and then created again. This includes functions implemented as
@@ -101,6 +184,10 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
     	if (schemaName == null || procName == null) {
     		throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND_DURING_EXECUTION, "PROCEDURE", (schemaName + "." + procName));
     	}
+
+    	// Upper the case since Derby is case sensitive by default.
+    	schemaName = schemaName.toUpperCase();
+    	procName = procName.toUpperCase();
 
     	// Delete the procedure from SYSALIASES if it already exists.
     	SchemaDescriptor sd = dictionary.getSchemaDescriptor(schemaName, tc, true);  // Throws an exception if the schema does not exist.
@@ -492,6 +579,32 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
                 .catalog("procName")
                 .build()
                 ,
+                /*
+                 * PLEASE NOTE:
+                 * This method is currently not used, but will be used and moved when Splice Machine has a SYS_DEBUG schema available
+                 * with tools to debug and repair databases and data dictionaries.
+                 */
+//                Procedure.newBuilder().name("SYSCS_CREATE_SYSTEM_PROCEDURE")
+//                .numOutputParams(0).numResultSets(0).modifiesSql()
+//                .returnType(null).isDeterministic(false)
+//                .ownerClass(SYSTEM_PROCEDURES)
+//                .catalog("schemaName")
+//                .catalog("procName")
+//                .build()
+//                ,
+                /*
+                 * PLEASE NOTE:
+                 * This method is currently not used, but will be used and moved when Splice Machine has a SYS_DEBUG schema available
+                 * with tools to debug and repair databases and data dictionaries.
+                 */
+//                Procedure.newBuilder().name("SYSCS_DROP_SYSTEM_PROCEDURE")
+//                .numOutputParams(0).numResultSets(0).modifiesSql()
+//                .returnType(null).isDeterministic(false)
+//                .ownerClass(SYSTEM_PROCEDURES)
+//                .catalog("schemaName")
+//                .catalog("procName")
+//                .build()
+//                ,
             Procedure.newBuilder().name("SYSCS_UPDATE_ALL_SYSTEM_PROCEDURES")
                 .numOutputParams(0).numResultSets(0).modifiesSql()
                 .returnType(null).isDeterministic(false)

@@ -218,7 +218,7 @@ public class TabInfoImpl
      *
      * @return String   The table name.
      */
-	String getTableName()
+	public String getTableName()
 	{
 		return crf.getCatalogName();
 	}

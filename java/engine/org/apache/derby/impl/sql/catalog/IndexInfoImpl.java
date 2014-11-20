@@ -22,11 +22,9 @@
 package org.apache.derby.impl.sql.catalog;
 
 import org.apache.derby.iapi.services.sanity.SanityManager;
-
 import org.apache.derby.iapi.sql.dictionary.CatalogRowFactory;
 import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
 import org.apache.derby.iapi.sql.dictionary.IndexRowGenerator;
-
 import org.apache.derby.catalog.UUID;
 
 /**
@@ -137,5 +135,20 @@ class IndexInfoImpl
 	boolean isIndexUnique()
 	{
 		return crf.isIndexUnique(indexNumber);
+	}
+
+	public String toString()
+	{
+		if (SanityManager.DEBUG)
+		{
+			return "name: " + this.getIndexName() +
+				"\n\tconglomerateNumber: " + conglomerateNumber +
+				"\n\tindexNumber: " + indexNumber +
+				"\n";
+		}
+		else
+		{
+			return "";
+		}
 	}
 }

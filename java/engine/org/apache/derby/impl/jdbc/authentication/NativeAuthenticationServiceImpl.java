@@ -490,6 +490,11 @@ public final class NativeAuthenticationServiceImpl
         userName = IdUtil.getUserAuthorizationId( userName ) ;
 
         //
+        // we expect to find a data dictionary
+        //
+        DataDictionary      dd = (DataDictionary) Monitor.getServiceModule( this, DataDictionary.MODULE );
+
+        //
         // Special bootstrap code. If we are creating a credentials database, then
         // we store the DBO's initial credentials in it. We also turn on NATIVE LOCAL authentication
         // forever.
@@ -499,21 +504,24 @@ public final class NativeAuthenticationServiceImpl
             _creatingCredentialsDB = false;
             
             TransactionController   tc = getTransaction();
-            
-            if (LOG.isInfoEnabled()) {
-                LOG.info(String.format("Saving DBO's initial credentials to SYSUSERS table: username=%s", userName));
+
+            // Check if the DBO already exists which may happen if the manual override for
+            // creation of the native credentials database is set.
+            if (dd.getUser(userName) == null) {
+            	if (LOG.isInfoEnabled()) LOG.info(String.format("Saving DBO's initial credentials to SYSUSERS table: username=%s", userName));
+            	SystemProcedures.addUser( userName, userPassword, tc );
+            	// Change the system schemas to be owned by the user.  This is needed for upgrading
+            	// the Splice Machine 0.5 beta where the owner of the system schemas was APP.
+            	// Splice Machine 1.0+ has the SPLICE user as the DBO of the system schemas.
+            	if (LOG.isInfoEnabled()) LOG.info(String.format("Updating the system schemas to be owned by the initial credentials: username=%s", userName));
+            	SystemProcedures.updateSystemSchemaAuthorization(userName, tc);
             }
-            SystemProcedures.addUser( userName, userPassword, tc );
-            
+
             tc.commit();
             
             return true;
         }
         
-        //
-        // we expect to find a data dictionary
-        //
-        DataDictionary      dd = (DataDictionary) Monitor.getServiceModule( this, DataDictionary.MODULE );        
         UserDescriptor      userDescriptor = dd.getUser( userName );
         
         if ( userDescriptor == null )

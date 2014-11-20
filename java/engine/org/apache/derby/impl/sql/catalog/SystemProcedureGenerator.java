@@ -47,4 +47,33 @@ public interface SystemProcedureGenerator {
     		TransactionController tc,
     		HashSet newlyCreatedRoutines) throws StandardException;
 
+    /**
+	 * Create a system stored procedure.
+	 * PLEASE NOTE:
+	 * This method is currently not used, but will be used when Splice Machine has a SYS_DEBUG schema available
+	 * with tools to debug and repair databases and data dictionaries.
+	 *
+	 * @param schemaName	name of the system schema
+	 * @param procName		name of the system stored procedure
+     * @param tc			TransactionController to use
+     * @param newlyCreatedRoutines	set of newly created routines
+     * @throws StandardException
+     */
+	void createProcedure(String schemaName, String procName,
+		TransactionController tc, HashSet newlyCreatedRoutines) throws StandardException;
+
+    /**
+	 * Drop a system stored procedure.
+	 * PLEASE NOTE:
+	 * This method is currently not used, but will be used when Splice Machine has a SYS_DEBUG schema available
+	 * with tools to debug and repair databases and data dictionaries.
+	 *
+	 * @param schemaName	name of the system schema
+	 * @param procName		name of the system stored procedure
+     * @param tc			TransactionController to use
+     * @param newlyCreatedRoutines	set of newly created routines
+     * @throws StandardException
+     */
+	void dropProcedure(String schemaName, String procName,
+		TransactionController tc, HashSet newlyCreatedRoutines) throws StandardException;
 }

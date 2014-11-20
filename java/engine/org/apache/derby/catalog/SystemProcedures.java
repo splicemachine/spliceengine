@@ -1986,6 +1986,76 @@ public class SystemProcedures  {
     }
 
     /**
+	 * Create a system stored procedure.
+	 * PLEASE NOTE:
+	 * This method is currently not used, but will be used when Splice Machine has a SYS_DEBUG schema available
+	 * with tools to debug and repair databases and data dictionaries.
+	 *
+	 * @param schemaName name of the system schema
+	 * @param procName   name of the system stored procedure
+	 * @throws SQLException
+     */
+    public static void SYSCS_CREATE_SYSTEM_PROCEDURE(String schemaName, String procName)
+       throws SQLException
+    {
+        try {
+            LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+            TransactionController     tc  = lcc.getTransactionExecute();
+            DataDictionary            dd =  lcc.getDataDictionary();
+
+            /*
+            ** Inform the data dictionary that we are about to write to it.
+            ** There are several calls to data dictionary "get" methods here
+            ** that might be done in "read" mode in the data dictionary, but
+            ** it seemed safer to do this whole operation in "write" mode.
+            **
+            ** We tell the data dictionary we're done writing at the end of
+            ** the transaction.
+            */
+            dd.startWriting(lcc);
+
+            dd.createSystemProcedure(schemaName, procName, tc);
+        } catch (StandardException se) {
+            throw PublicAPI.wrapStandardException(se);
+        }
+    }
+
+    /**
+	 * Drop a system stored procedure.
+	 * PLEASE NOTE:
+	 * This method is currently not used, but will be used when Splice Machine has a SYS_DEBUG schema available
+	 * with tools to debug and repair databases and data dictionaries.
+	 *
+	 * @param schemaName name of the system schema
+	 * @param procName   name of the system stored procedure
+	 * @throws SQLException
+     */
+    public static void SYSCS_DROP_SYSTEM_PROCEDURE(String schemaName, String procName)
+       throws SQLException
+    {
+        try {
+            LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+            TransactionController     tc  = lcc.getTransactionExecute();
+            DataDictionary            dd =  lcc.getDataDictionary();
+
+            /*
+            ** Inform the data dictionary that we are about to write to it.
+            ** There are several calls to data dictionary "get" methods here
+            ** that might be done in "read" mode in the data dictionary, but
+            ** it seemed safer to do this whole operation in "write" mode.
+            **
+            ** We tell the data dictionary we're done writing at the end of
+            ** the transaction.
+            */
+            dd.startWriting(lcc);
+
+            dd.dropSystemProcedure(schemaName, procName, tc);
+        } catch (StandardException se) {
+            throw PublicAPI.wrapStandardException(se);
+        }
+    }
+
+    /**
 	 * Create or update a system stored procedure.  If the system stored procedure alreadys exists in the data dictionary,
 	 * the stored procedure will be dropped and then created again.
 	 * 
@@ -2298,7 +2368,39 @@ public class SystemProcedures  {
 
         return userDescriptor;
     }
-  
+
+	/**
+	 * Update all system schemas to have new authorizationId. This is needed
+	 * while upgrading pre-10.2 databases to 10.2 or later versions. From 10.2,
+	 * all system schemas would be owned by database owner's authorizationId.
+	 * This is also needed for Splice Machine when upgrading from the 0.5 beta
+	 * where there is no AnA to 1.0 where AnA is available for the first time.
+	 *
+	 * @param aid	AuthorizationID of Database Owner
+	 * @param tc	TransactionController to use
+	 *
+	 * @exception StandardException		Thrown on failure
+	 */
+	public static void updateSystemSchemaAuthorization(String aid, TransactionController tc) throws SQLException {
+		try {
+			LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+			DataDictionary dd = lcc.getDataDictionary();
+
+			/*
+			 ** Inform the data dictionary that we are about to write to it.
+			 ** There are several calls to data dictionary "get" methods here
+			 ** that might be done in "read" mode in the data dictionary, but
+			 ** it seemed safer to do this whole operation in "write" mode.
+			 **
+			 ** We tell the data dictionary we're done writing at the end of
+			 ** the transaction.
+			 */
+			dd.startWriting(lcc);
+			// Change system schemas to be owned by aid
+			dd.updateSystemSchemaAuthorization(aid, tc);
+		} catch (StandardException se) { throw PublicAPI.wrapStandardException(se); }
+	}
+
     /**
      * Reset a user's password.
      */

@@ -159,12 +159,14 @@ import java.util.concurrent.Executors;
 
 import org.apache.derby.iapi.store.access.FileResource;
 import org.apache.derby.impl.sql.execute.JarUtil;
+import org.apache.log4j.Logger;
 
 /** g
  * Standard database implementation of the data dictionary
  * that stores the information in the system catlogs.
  */
 public class DataDictionaryImpl extends BaseDataDictionary {
+    private static final Logger LOG = Logger.getLogger(DataDictionaryImpl.class);
 
 	/**
 	 * Runtime definition of the functions from SYSFUN_FUNCTIONS.
@@ -4450,9 +4452,8 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 		for (java.util.Iterator li = getAllSPSDescriptors().iterator(); li.hasNext(); )
 		{
 			SPSDescriptor spsd = (SPSDescriptor) li.next();
-//			System.out.println(String.format("BEFORE name = %s", spsd.getName()));
+			if (LOG.isTraceEnabled()) LOG.trace(String.format("Compiling SPS: %s.%s", spsd.getSchemaDescriptor().getSchemaName(), spsd.getDescriptorName()));
 			spsd.getPreparedStatement(true);
-//			System.out.println(String.format("AFTER name = %s", spsd.getName()));
 		}
 	}
 
@@ -10592,7 +10593,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 												   !nocompile,		// it is valid, unless nocompile
 												   spsText, //sps text
 												   !nocompile );
-			
+			if (LOG.isTraceEnabled()) LOG.trace(String.format("Creating metadata SPS: %s.%s", spsd.getSchemaDescriptor().getSchemaName(), spsd.getDescriptorName()));
 			addSPSDescriptor(spsd, tc);
 		}
 	}
@@ -13913,6 +13914,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 				continue;
 			}
 
+			if (LOG.isTraceEnabled()) LOG.trace(String.format("Dropping metadata SPS: %s.%s", spsd.getSchemaDescriptor().getSchemaName(), spsd.getDescriptorName()));
 			dropSPSDescriptor(spsd, tc);
 			dropDependentsStoredDependencies(spsd.getUUID(),                                                                                                              tc);
 
@@ -13927,8 +13929,48 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 	 * @throws StandardException
 	 */
 	public void updateMetadataSPSes(TransactionController tc) throws StandardException {
+		if (LOG.isInfoEnabled()) LOG.info("Dropping metadata stored prepared statements.");
 		dropJDBCMetadataSPSes(tc);
+		if (LOG.isInfoEnabled()) LOG.info("Creating metadata stored prepared statements.");
 		createSystemSps(tc);		
+	}
+
+	/**
+	 * Create a system stored procedure.
+	 * PLEASE NOTE:
+	 * This method is currently not used, but will be used when Splice Machine has a SYS_DEBUG schema available
+	 * with tools to debug and repair databases and data dictionaries.
+	 *
+	 * @param schemaName	name of the system schema
+	 * @param procName		name of the system stored procedure
+	 * @param tc			TransactionController to use
+	 * @throws StandardException
+	 */
+	public void createSystemProcedure(String schemaName, String procName, TransactionController tc) throws StandardException {
+        HashSet newlyCreatedRoutines = new HashSet();
+        SystemProcedureGenerator procedureGenerator = getSystemProcedures();
+
+        procedureGenerator.createProcedure(schemaName, procName, tc, newlyCreatedRoutines);
+        grantPublicAccessToSystemRoutines(newlyCreatedRoutines, tc, authorizationDatabaseOwner);
+	}
+
+	/**
+	 * Drop a system stored procedure.
+	 * PLEASE NOTE:
+	 * This method is currently not used, but will be used when Splice Machine has a SYS_DEBUG schema available
+	 * with tools to debug and repair databases and data dictionaries.
+	 *
+	 * @param schemaName	name of the system schema
+	 * @param procName		name of the system stored procedure
+	 * @param tc			TransactionController to use
+	 * @throws StandardException
+	 */
+	public void dropSystemProcedure(String schemaName, String procName, TransactionController tc) throws StandardException {
+        HashSet newlyCreatedRoutines = new HashSet();
+        SystemProcedureGenerator procedureGenerator = getSystemProcedures();
+
+        procedureGenerator.dropProcedure(schemaName, procName, tc, newlyCreatedRoutines);
+        grantPublicAccessToSystemRoutines(newlyCreatedRoutines, tc, authorizationDatabaseOwner);
 	}
 
 	/**
