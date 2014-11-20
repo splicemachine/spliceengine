@@ -603,8 +603,7 @@ public class utilMain implements java.security.PrivilegedAction {
 					fatalException = e;
 				}
 			}
-
-			String st1 = JDBCDisplayUtil.mapNull(e.getSQLState(),langUtil.getTextMessage("IJ_NoSqls"));
+			String st1 = JDBCDisplayUtil.mapNull(e.getSQLState(),langUtil.getTextMessage("IJ_NoSqls"), true);
 			String st2 = JDBCDisplayUtil.mapNull(e.getMessage(),langUtil.getTextMessage("IJ_NoMess"));
 			out.println(langUtil.getTextMessage("IJ_Erro012",  st1, st2, errorCode));
 			doTrace(e);

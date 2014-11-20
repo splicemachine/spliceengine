@@ -746,6 +746,24 @@ public class JDBCDisplayUtil {
 	}
 
 	/**
+		Same as @link {{@link #mapNull(String, String)},
+		but also conditionally allows the provided string s
+		to be considered null if s equals the string<code>null</code>.
+
+		@param s the string to test for null
+		@param nullValue the value to use if s is null
+		@param mapWordNull indicates whether the string <code>null<code>
+		should also be considered to be null
+
+		@return if s is non-null, s; else nullValue.
+	 */
+	static public String mapNull(String s, String nullValue, boolean mapWordNull) {
+		if (s==null) return nullValue;
+		if (mapWordNull && s.equalsIgnoreCase("null")) return nullValue;
+		return s;
+	}
+
+	/**
 		If the property ij.exceptionTrace is true, display the stack
 		trace to the print stream. Otherwise, do nothing.
 
