@@ -24,7 +24,7 @@ public class ConfiguredStream extends SingleStream {
             String hbaseLogDir = PropertyUtil.getSystemProperty("hbase.log.dir");
             if(hbaseLogDir==null)
                 hbaseLogDir="."; //if you don't know where it goes, make it relative to here
-            String logFileName = PropertyUtil.getSystemProperty("splice.log.file","splice.log");
+            String logFileName = PropertyUtil.getSystemProperty("splice.log.file","splice-derby.log");
 
             errorFileLocation = hbaseLogDir+"/"+logFileName;
             System.setProperty(Property.ERRORLOG_FILE_PROPERTY,errorFileLocation);
