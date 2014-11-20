@@ -590,7 +590,7 @@ public class HdfsImport {
 				 * after the fact.
 				 */
 				long onDiskSize = file.getTotalLength();
-				long regionSize = Long.parseLong(SpliceConstants.config.get(HConstants.HREGION_MAX_FILESIZE));
+                long regionSize = SpliceConstants.config.getLong(HConstants.HREGION_MAX_FILESIZE,0);
 				int regionSplitFactor = SpliceConstants.importSplitFactor;
 
 				long spliceSize = onDiskSize*regionSplitFactor;

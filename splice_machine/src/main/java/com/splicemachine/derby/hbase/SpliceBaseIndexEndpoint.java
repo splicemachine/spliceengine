@@ -67,17 +67,6 @@ public class SpliceBaseIndexEndpoint {
             return 0;
         }
     };
-    private static final Comparator<BulkWriteResult> resultComparator = new Comparator<BulkWriteResult>() {
-        @Override
-        public int compare(BulkWriteResult o1, BulkWriteResult o2) {
-            if (o1.getPosition() < o2.getPosition())
-                return -1;
-            if (o1.getPosition() > o2.getPosition())
-                return 1;
-            else
-                return 0;
-        }
-    };
 
     private static final WriteControl writeControl;
     static{
@@ -182,7 +171,6 @@ public class SpliceBaseIndexEndpoint {
                     r = new BulkWriteResult();
                     toWrite.add(bulkWrite);
                 }
-                r.setPosition(i);
                 writePairMap.put(bulkWrite, Pair.newPair(r, writePipeline));
             }
             assert writePairMap.size()==size: "Some BulkWrites were not added to the writePairMap";
@@ -199,19 +187,10 @@ public class SpliceBaseIndexEndpoint {
                     //we can write this one!
                     Pair<BulkWriteResult,RegionWritePipeline> writePair = writePairMap.get(next);
                     BulkWriteResult newR = writePair.getSecond().submitBulkWrite(next,indexWriteBufferFactory,writePair.getSecond().getRegionCoprocessorEnvironment());
-                    newR.setPosition(writePair.getFirst().getPosition());
                     writePair.setFirst(newR);
                     availablePermits-=next.getSize();
                 }
                 p++;
-            }
-            if(LOG.isDebugEnabled()){
-                //debug check to make sure that all the BulkWrite are accounted for
-                for(int i=0;i<size;i++){
-                    BulkWrite bw = (BulkWrite)buffer[i];
-                    Pair<BulkWriteResult,RegionWritePipeline> pair = writePairMap.get(bw);
-                    assert pair.getFirst().getPosition()==i: "Incorrect position for bulk write!";
-                }
             }
             //reject any remaining bulk writes
             for(int j=p;j<toWrite.size();j++){
@@ -222,33 +201,18 @@ public class SpliceBaseIndexEndpoint {
                 writePair.setSecond(null);
             }
 
-            if(LOG.isDebugEnabled()){
-                //debug check to make sure that all the BulkWrite are accounted for
-                for(int i=0;i<size;i++){
-                    BulkWrite bw = (BulkWrite)buffer[i];
-                    Pair<BulkWriteResult,RegionWritePipeline> pair = writePairMap.get(bw);
-                    assert pair.getFirst().getPosition()==i: "Incorrect position for bulk write!";
-                }
-            }
-
             //complete the writes
-            List<BulkWriteResult> results = Lists.newArrayListWithExpectedSize(writePairMap.size());
             for(Map.Entry<BulkWrite,Pair<BulkWriteResult,RegionWritePipeline>> entry:writePairMap.entrySet()){
                 Pair<BulkWriteResult,RegionWritePipeline> pair = entry.getValue();
                 if(pair.getSecond()!=null){
                     BulkWriteResult e = pair.getSecond().finishWrite(pair.getFirst(), entry.getKey());
-                    e.setPosition(pair.getFirst().getPosition());
-                    results.add(e);
-                }else
-                    results.add(entry.getValue().getFirst());
+                    pair.setFirst(e);
+                }
             }
-            Collections.sort(results, resultComparator);
-            for(int i=0;i<results.size();i++){
+            for(int i=0;i< size;i++){
                 BulkWrite bw = (BulkWrite)buffer[i];
                 Pair<BulkWriteResult,RegionWritePipeline> pair = writePairMap.get(bw);
-                BulkWriteResult r = results.get(i);
-                assert r.getPosition()==pair.getFirst().getPosition(): "Incorrect position for bulk write!";
-                result.addResult(r);
+                result.addResult(pair.getFirst());
             }
             timer.update(System.nanoTime()-start,TimeUnit.NANOSECONDS);
             return result;
@@ -256,7 +220,6 @@ public class SpliceBaseIndexEndpoint {
             writeControl.releasePermits(permits);
         }
     }
-
 		private void rejectAll(BulkWritesResult result, int numResults) {
 				this.rejectedMeter.mark();
 				for (int i = 0; i < numResults; i++) {
