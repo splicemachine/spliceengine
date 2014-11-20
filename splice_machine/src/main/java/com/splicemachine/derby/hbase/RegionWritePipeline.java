@@ -30,15 +30,22 @@ public class RegionWritePipeline {
     private final HRegion region;
     private final TransactionalRegion txnRegion;
     private final PipelineMeters pipelineMeters;
+    private final RegionCoprocessorEnvironment rce;
 
-    public RegionWritePipeline(HRegion region,
+    public RegionWritePipeline(RegionCoprocessorEnvironment rce,
+                               HRegion region,
                                WriteContextFactory<TransactionalRegion> ctxFactory,
                                TransactionalRegion txnRegion,
                                PipelineMeters pipelineMeters) {
+        this.rce = rce;
         this.region = region;
         this.ctxFactory = ctxFactory;
         this.txnRegion = txnRegion;
         this.pipelineMeters = pipelineMeters;
+    }
+
+    public RegionCoprocessorEnvironment getRegionCoprocessorEnvironment() {
+        return rce;
     }
 
     public void close(){
