@@ -1,7 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations.export;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.derby.utils.SpliceUtils;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -21,7 +21,7 @@ class ExportFile {
     private final byte[] taskId;
 
     ExportFile(ExportParams exportParams, byte[] taskId) throws IOException {
-        this.fileSystem = FileSystem.get(SpliceUtils.config);
+        this.fileSystem = FileSystem.get(SpliceConstants.config);
         this.exportParams = exportParams;
         this.taskId = taskId;
     }

@@ -1,8 +1,9 @@
 package com.splicemachine.derby.impl.sql.execute.operations.export;
 
+import com.splicemachine.constants.SpliceConstants;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.RandomStringUtils;
-import org.apache.derby.iapi.error.StandardException;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -19,6 +20,12 @@ public class ExportFileTest {
 
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
+
+    @BeforeClass
+    public static void setupConfig() {
+        // necessary for mapr
+        SpliceConstants.config.set("fs.default.name", "file:///");
+    }
 
     @Test
     public void getOutputStream_createsStreamConnectedToExpectedFile() throws IOException {
