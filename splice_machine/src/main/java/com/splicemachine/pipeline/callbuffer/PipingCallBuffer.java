@@ -90,6 +90,7 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, CanRebuild
 
     @Override
     public void add(KVPair element) throws Exception {
+        assert element!=null: "Cannot add a non-null element!";
     	SpliceLogUtils.trace(LOG, "add %s",element);
         rebuildIfNecessary();
         Map.Entry<byte[],Pair<RegionCallBuffer,ServerName>> entry = startKeyToBufferMap.floorEntry(element.getRow());
@@ -127,7 +128,7 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, CanRebuild
     }
 
     private void rebuildIfNecessary() throws Exception {
-        if(startKeyToBufferMap == null || (!rebuildBuffer&&startKeyToBufferMap.size()>0)) return; //no need to rebuild the buffer
+        if(!rebuildBuffer && startKeyToBufferMap != null && startKeyToBufferMap.size()>0) return; //no need to rebuild the buffer
         /*
          * We need to rebuild the buffer. It's possible that there are
          * multiple buffer flushes in flight, some of whom may fail
@@ -140,71 +141,73 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, CanRebuild
          * until after the region map has been rebuilt.
          */
         ObjectArrayList<KVPair> items = getKVPairs();
-        for(Pair<RegionCallBuffer,ServerName> buffer:startKeyToBufferMap.values())
-        	buffer.getFirst().flushBuffer();
-        for(RegionServerCallBuffer buffer:serverToRSBufferMap.values()) {
-        	assert (buffer.getBulkWrites().getKVPairSize() ==0);
-        	buffer.close();        	
-        }
         assert items != null;
+        if(startKeyToBufferMap!=null) {
+            for (Pair<RegionCallBuffer, ServerName> buffer : startKeyToBufferMap.values())
+                buffer.getFirst().flushBuffer();
+            for (RegionServerCallBuffer buffer : serverToRSBufferMap.values()) {
+                assert (buffer.getBulkWrites().getKVPairSize() == 0);
+                buffer.close();
+            }
+        }
         this.startKeyToBufferMap = new TreeMap<byte[],Pair<RegionCallBuffer,ServerName>>(Bytes.BYTES_COMPARATOR);
         this.serverToRSBufferMap = new TreeMap<ServerName,RegionServerCallBuffer>();
         currentHeapSize=0;
-        currentKVPairSize=0;  
-        
+        currentKVPairSize=0;
+
         if (LOG.isDebugEnabled())
-        	SpliceLogUtils.debug(LOG, "rebuilding region map %s",Bytes.toString(tableName));
+            SpliceLogUtils.debug(LOG, "rebuilding region map %s",Bytes.toString(tableName));
         SortedSet<Pair<HRegionInfo,ServerName>> regions = PipelineUtils.getRegions(regionCache, tableName);
         if (LOG.isDebugEnabled()) {
-        	for (Pair<HRegionInfo,ServerName> pair: regions) {
-            	SpliceLogUtils.debug(LOG, "region %s on server %s",pair.getFirst().getRegionNameAsString(), pair.getSecond().getServerName());        		
-        	}
+            for (Pair<HRegionInfo,ServerName> pair: regions) {
+                SpliceLogUtils.debug(LOG, "region %s on server %s",pair.getFirst().getRegionNameAsString(), pair.getSecond().getServerName());
+            }
         }
         for(Pair<HRegionInfo,ServerName> pair:regions){
-        	HRegionInfo region = pair.getFirst();
-        	ServerName serverName = pair.getSecond();
+            HRegionInfo region = pair.getFirst();
+            ServerName serverName = pair.getSecond();
             byte[] startKey = region.getStartKey();
             RegionServerCallBuffer rsc = this.serverToRSBufferMap.get(pair.getSecond());
             // Do we have this RS already?
             if (rsc == null) {
-            	SpliceLogUtils.debug(LOG, "adding RSC %s", pair.getSecond());
+                SpliceLogUtils.debug(LOG, "adding RSC %s", pair.getSecond());
                 rsc = new RegionServerCallBuffer(tableName,writeConfiguration,pair.getSecond(),
-                		writer != null? new RegulatedWriter(writer,new CountingHandler(new OtherWriteHandler(writer), bufferConfiguration),
-                               bufferConfiguration.getMaxFlushesPerRegion()):null,
-                		writeStats);
-            	serverToRSBufferMap.put(pair.getSecond(), rsc);
-            }            
+                        writer != null? new RegulatedWriter(writer,new CountingHandler(new OtherWriteHandler(writer), bufferConfiguration),
+                                bufferConfiguration.getMaxFlushesPerRegion()):null,
+                        writeStats);
+                serverToRSBufferMap.put(pair.getSecond(), rsc);
+            }
             Entry<byte[], Pair<RegionCallBuffer, ServerName>> startKeyToBuffer = this.startKeyToBufferMap.floorEntry(startKey);
             // Total Miss
-        	RegionCallBuffer rcb = null;
-        	if (startKeyToBuffer != null)	
-        		rcb = startKeyToBuffer.getValue().getFirst();            
+            RegionCallBuffer rcb = null;
+            if (startKeyToBuffer != null)
+                rcb = startKeyToBuffer.getValue().getFirst();
             if (startKeyToBuffer == null || rcb.keyOutsideBuffer(startKey)) {
                 if (LOG.isDebugEnabled()) {
-                	SpliceLogUtils.debug(LOG, "lower startKey %s", startKeyToBuffer);
-                	if (rcb!=null) {
-                		SpliceLogUtils.debug(LOG, "region %s", rcb.getHregionInfo().getRegionNameAsString());
-                		SpliceLogUtils.debug(LOG, "region startKey %s", rcb.getHregionInfo().getStartKey());
-                		SpliceLogUtils.debug(LOG, "region endKey %s", rcb.getHregionInfo().getEndKey());
-                		SpliceLogUtils.debug(LOG, "comparison %d", Bytes.compareTo(startKey, rcb.getHregionInfo().getStartKey()));                		
-                	}
-                	SpliceLogUtils.debug(LOG, "startKey %s", startKey);
-                	SpliceLogUtils.debug(LOG, "key outside buffer, add new region (suspect) %s", region.getRegionNameAsString());
+                    SpliceLogUtils.debug(LOG, "lower startKey %s", startKeyToBuffer);
+                    if (rcb!=null) {
+                        SpliceLogUtils.debug(LOG, "region %s", rcb.getHregionInfo().getRegionNameAsString());
+                        SpliceLogUtils.debug(LOG, "region startKey %s", rcb.getHregionInfo().getStartKey());
+                        SpliceLogUtils.debug(LOG, "region endKey %s", rcb.getHregionInfo().getEndKey());
+                        SpliceLogUtils.debug(LOG, "comparison %d", Bytes.compareTo(startKey, rcb.getHregionInfo().getStartKey()));
+                    }
+                    SpliceLogUtils.debug(LOG, "startKey %s", startKey);
+                    SpliceLogUtils.debug(LOG, "key outside buffer, add new region (suspect) %s", region.getRegionNameAsString());
                 }
                 RegionCallBuffer newBuffer = new RegionCallBuffer(rsc,region,txn,preFlushHook);
-                startKeyToBufferMap.put(startKey,Pair.newPair(newBuffer,pair.getSecond())); 
+                startKeyToBufferMap.put(startKey,Pair.newPair(newBuffer,pair.getSecond()));
                 rsc.add(Pair.newPair(startKey, newBuffer));
             } else {
-            	throw new RuntimeException("Not Functional Path");
-            	
+                throw new RuntimeException("Not Functional Path");
+
             }
-     
+
         }
         rebuildBuffer=false;
-		if (LOG.isDebugEnabled())
-        	SpliceLogUtils.debug(LOG, "Adding Items Backs %s", items.size());
-		record = false;
-		assert items != null;
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "Adding Items Backs %s", items.size());
+        record = false;
+        assert items != null;
         this.addAll(items);
         items.release();
         items = null; // dereference

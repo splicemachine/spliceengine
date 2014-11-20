@@ -150,33 +150,6 @@ public class SpliceAdmin extends BaseAdminProcedures {
         resultSet[0] = executeStatement(sb);
     }
 
-    public static void SYSCS_GET_WRITE_INTAKE_INFO(final ResultSet[] resultSet) throws SQLException {
-        operate(new JMXServerOperation() {
-            @Override
-            public void operate(List<Pair<String, JMXConnector>> connections) throws MalformedObjectNameException, IOException, SQLException {
-                List<ActiveWriteHandlersIface> activeWriteHandler = JMXUtils.getActiveWriteHandlers(connections);
-                StringBuilder sb = new StringBuilder("select * from (values ");
-                int i = 0;
-                for (ActiveWriteHandlersIface activeWrite : activeWriteHandler) {
-                    if (i != 0) {
-                        sb.append(", ");
-                    }
-                    sb.append(String.format("('%s',%d,%d,%d,%d,%d,%d,%d)", connections.get(i).getFirst(),
-                            activeWrite.getDependentWriteThreads(),
-                            activeWrite.getDependentWriteCount(),
-                            activeWrite.getIndependentWriteThreads(),
-                            activeWrite.getIndependentWriteCount(),
-                            activeWrite.getCompactionQueueSizeLimit(),
-                            activeWrite.getFlushQueueSizeLimit(),
-                            activeWrite.getIpcReservedPool()));
-                    i++;
-                }
-                sb.append(") foo (hostname, dependentWriteThreads, dependentWriteCount, independentWriteThreads, independentWriteCount, compactionQueueSizeLimit, flushQueueSizeLimit, ipcReserverdPool)");
-                resultSet[0] = executeStatement(sb);
-            }
-        });
-    }
-
     public static void SYSCS_GET_VERSION_INFO(final ResultSet[] resultSet) throws SQLException {
         operate(new JMXServerOperation() {
             @Override
@@ -459,6 +432,14 @@ public class SpliceAdmin extends BaseAdminProcedures {
         });
     }
 
+    public static void SYSCS_GET_WRITE_PIPELINE_INFO(ResultSet[] resultSets) throws SQLException{
+        PipelineAdmin.SYSCS_GET_WRITE_PIPELINE_INFO(resultSets);
+    }
+
+    public static void SYSCS_GET_WRITE_INTAKE_INFO(ResultSet[] resultSets) throws SQLException{
+        PipelineAdmin.SYSCS_GET_WRITE_INTAKE_INFO(resultSets);
+    }
+
     public static void SYSCS_KILL_TRANSACTION(final long transactionId) throws SQLException {
         /*
          * We have to leave this method in place, because Derby will actually STORE a string
@@ -552,61 +533,6 @@ public class SpliceAdmin extends BaseAdminProcedures {
                 }
                 sb.append(") foo (hostname, maxTaskWorkers)");
                 resultSet[0] = executeStatement(sb);
-            }
-        });
-    }
-
-
-    public static void SYSCS_GET_WRITE_PIPELINE_INFO(final ResultSet[] resultSet) throws SQLException {
-        operate(new JMXServerOperation() {
-            @Override
-            public void operate(List<Pair<String, JMXConnector>> connections) throws MalformedObjectNameException, IOException, SQLException {
-                List<ThreadPoolStatus> threadPools = JMXUtils.getMonitoredThreadPools(connections);
-                ExecRow template = new ValueRow(8);
-                template.setRowArray(new DataValueDescriptor[]{
-                        new SQLVarchar(),new SQLInteger(),new SQLInteger(),new SQLInteger(),new SQLLongint(),new SQLLongint(),new SQLLongint(),new SQLLongint()
-                });
-                List<ExecRow> rows = Lists.newArrayListWithExpectedSize(threadPools.size());
-                int i=0;
-                for (ThreadPoolStatus threadPool : threadPools) {
-                    template.resetRowArray();
-                    DataValueDescriptor[] dvds = template.getRowArray();
-                    try{
-                        dvds[0].setValue(connections.get(i).getFirst());
-                        dvds[1].setValue(threadPool.getMaxThreadCount());
-                        dvds[2].setValue(threadPool.getActiveThreadCount());
-                        dvds[3].setValue(threadPool.getPendingTaskCount());
-                        dvds[4].setValue(threadPool.getTotalSubmittedTasks());
-                        dvds[5].setValue(threadPool.getTotalSuccessfulTasks());
-                        dvds[6].setValue(threadPool.getTotalFailedTasks());
-                        dvds[7].setValue(threadPool.getTotalRejectedTasks());
-                    }catch(StandardException se){
-                        throw PublicAPI.wrapStandardException(se);
-                    }
-                    rows.add(template.getClone());
-                    i++;
-                }
-                ResultColumnDescriptor []columnInfo = new ResultColumnDescriptor[8];
-                columnInfo[0] = new GenericColumnDescriptor("host",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
-                columnInfo[1] = new GenericColumnDescriptor("maxThreads",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
-                columnInfo[2] = new GenericColumnDescriptor("activeThreads",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
-                columnInfo[3] = new GenericColumnDescriptor("pendingWrites",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
-                columnInfo[4] = new GenericColumnDescriptor("totalSubmittedWrites",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-                columnInfo[5] = new GenericColumnDescriptor("totalSuccessfulWrites",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-                columnInfo[6] = new GenericColumnDescriptor("totalFailedWrites",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-                columnInfo[7] = new GenericColumnDescriptor("totalRejectedWrites",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-
-                EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
-                Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
-                IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, columnInfo,lastActivation);
-                try {
-                    resultsToWrap.openCore();
-                } catch (StandardException e) {
-                    throw PublicAPI.wrapStandardException(e);
-                }
-                EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap,false,null,true);
-
-                resultSet[0] = ers;
             }
         });
     }
