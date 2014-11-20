@@ -1,6 +1,8 @@
 package com.splicemachine.derby.impl.sql.execute.operations.export;
 
+import com.splicemachine.constants.SpliceConstants;
 import org.apache.derby.iapi.error.StandardException;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -16,6 +18,12 @@ public class ExportPermissionCheckTest {
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
+
+    @BeforeClass
+    public static void setupConfig() {
+        // necessary for mapr
+        SpliceConstants.config.set("fs.default.name", "file:///");
+    }
 
     @Test
     public void verify() throws IOException, StandardException {
