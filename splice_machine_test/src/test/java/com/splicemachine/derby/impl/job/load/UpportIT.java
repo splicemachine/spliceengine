@@ -11,6 +11,7 @@ import com.splicemachine.pipeline.exception.ErrorState;
 
 import org.junit.*;
 import org.junit.rules.RuleChain;
+import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestRule;
 
 import java.io.IOException;
@@ -48,6 +49,8 @@ public class UpportIT extends SpliceUnitTest {
     private static List<int[]> correctPartialData;
     private static TestFileGenerator fullTestFileWithDuplicates;
 
+    @Rule
+    public TemporaryFolder baddir = new TemporaryFolder();
 
     @BeforeClass
     public static void setUpClass() throws Exception {
@@ -80,7 +83,7 @@ public class UpportIT extends SpliceUnitTest {
         statement.setString(2,occupiedTable.tableName);
         statement.setString(3,"a");
         statement.setString(4,fullTestFile.fileName());
-        statement.setString(5,getResourceDirectory());
+        statement.setString(5,baddir.newFolder().getCanonicalPath());
 
         try{
             statement.execute();
@@ -98,7 +101,7 @@ public class UpportIT extends SpliceUnitTest {
         statement.setString(2, nullableBTable.tableName);
         statement.setString(3,"b");
         statement.setString(4,fullTestFile.fileName());
-        statement.setString(5,getResourceDirectory());
+        statement.setString(5,baddir.newFolder().getCanonicalPath());
 
         try{
             statement.execute();
@@ -115,7 +118,7 @@ public class UpportIT extends SpliceUnitTest {
         statement.setString(1,schema.schemaName);
         statement.setString(2,no_pk.tableName);
         statement.setString(3,fullTestFile.fileName());
-        statement.setString(4,getResourceDirectory());
+        statement.setString(4,baddir.newFolder().getCanonicalPath());
 
         try{
             statement.execute();
@@ -142,7 +145,7 @@ public class UpportIT extends SpliceUnitTest {
         statement.setString(1,schema.schemaName);
         statement.setString(2,occupiedTable.tableName);
         statement.setString(3,fullTestFile.fileName());
-        statement.setString(4,getResourceDirectory());
+        statement.setString(4,baddir.newFolder().getCanonicalPath());
 
         ResultSet resultSet = statement.executeQuery();
         //make sure that the bad records list is good
@@ -184,7 +187,7 @@ public class UpportIT extends SpliceUnitTest {
         statement.setString(2,nullableBTable.tableName);
         statement.setString(3,"a");
         statement.setString(4, partialTestFile.fileName());
-        statement.setString(5,getResourceDirectory());
+        statement.setString(5,baddir.newFolder().getCanonicalPath());
 
         ResultSet resultSet = statement.executeQuery();
         //make sure that the bad records list is good
@@ -215,7 +218,7 @@ public class UpportIT extends SpliceUnitTest {
         statement.setString(2,nullableBTable.tableName);
         statement.setString(3,"a");
         statement.setString(4,partialTestFile.fileName());
-        statement.setString(5,getResourceDirectory());
+        statement.setString(5,baddir.newFolder().getCanonicalPath());
 
         ResultSet resultSet = statement.executeQuery();
         //make sure that the bad records list is good
@@ -245,7 +248,7 @@ public class UpportIT extends SpliceUnitTest {
         statement.setString(1,schema.schemaName);
         statement.setString(2,nullableBTable.tableName);
         statement.setString(3,fullTestFile.fileName());
-        statement.setString(4,getResourceDirectory());
+        statement.setString(4,baddir.newFolder().getCanonicalPath());
 
         ResultSet resultSet = statement.executeQuery();
         //make sure that the bad records list is good
@@ -276,7 +279,7 @@ public class UpportIT extends SpliceUnitTest {
         statement.setString(1,schema.schemaName);
         statement.setString(2,nullableBTable.tableName);
         statement.setString(3, fullTestFileWithDuplicates.fileName());
-        statement.setString(4,getResourceDirectory());
+        statement.setString(4,baddir.newFolder().getCanonicalPath());
 
         ResultSet resultSet = statement.executeQuery();
         //make sure that the bad records list is good
@@ -363,5 +366,4 @@ public class UpportIT extends SpliceUnitTest {
         conn.setSchema(schema.schemaName);
         return conn;
     }
-
 }

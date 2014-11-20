@@ -18,14 +18,11 @@
 *.pdf
 *.aux
 *.out
-*.log
 rebuildAll.sh
 rebuild.sh
 out
 redeployDerby.sh
 .DS*
-**/*_BAD*
-**/*._BAD*
 **/*.aux
 **/*.bcf
 **/*.bbl

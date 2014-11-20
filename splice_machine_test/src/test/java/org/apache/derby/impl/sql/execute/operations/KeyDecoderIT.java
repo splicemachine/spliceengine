@@ -9,8 +9,10 @@ import com.google.common.collect.TreeMultiset;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
+import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
@@ -115,7 +117,8 @@ public class KeyDecoderIT extends SpliceUnitTest {
                 @Override
                 protected void starting(Description description) {
                     try {
-                        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA('%s','%s',null,'%s', '|',null,null,null,null,0,null)", SCHEMA_NAME, TABLE1, dataFile));
+                        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA('%s','%s',null,'%s', '|',null,null,null,null,0,%s)",
+                                                                                     SCHEMA_NAME, TABLE1, dataFile, new TemporaryFolder().newFolder().getCanonicalPath()));
                         ps.execute();
                         ps.close();
                         ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s",SCHEMA_NAME,TABLE1));
