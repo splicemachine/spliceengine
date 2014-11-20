@@ -65,16 +65,12 @@ public class UpdateOperationIT {
                 .withInsert("insert into CUSTOMER values(?,?,?)")
                 .withRows(rows(row(101, true, 1), row(102, true, 2), row(103, true, 3), row(104, true, 4), row(105, true, 5)))
                 .create();
+
         new TableCreator(connection)
                 .withCreate("create table CUSTOMER_TEMP (cust_id int, status boolean, level int)")
                 .withInsert("insert into CUSTOMER_TEMP values(?,?,?)")
                 .withRows(rows(row(101, true, 1), row(102, true, 2), row(103, true, 3), row(104, true, 4), row(105, true, 5)))
                 .create();
-        new TableCreator(connection)
-				.withCreate("create table CUSTOMER_TEMP (cust_id int, status boolean, level int)")
-				.withInsert("insert into CUSTOMER_TEMP values(?,?,?)")
-				.withRows(rows(row(101, true, 1), row(102, true, 2), row(103, true, 3), row(104, true, 4), row(105, true, 5)))
-				.create();
     }
 
     /*regression test for DB-2204*/
