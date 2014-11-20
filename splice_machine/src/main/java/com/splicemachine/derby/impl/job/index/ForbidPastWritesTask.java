@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.job.index;
 
 import com.google.common.base.Throwables;
 import com.splicemachine.derby.ddl.TentativeIndexDesc;
+import com.splicemachine.derby.hbase.PipelineContextFactories;
 import com.splicemachine.derby.hbase.SpliceBaseIndexEndpoint;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
@@ -60,18 +61,21 @@ public class ForbidPastWritesTask extends ZkTask {
 
 		@Override public boolean isSplittable() { return false; }
 
-		@Override
+    @Override
     public void doExecute() throws ExecutionException, InterruptedException {
         try{
             //add index to table watcher
             TentativeIndexDesc tentativeIndexDesc = (TentativeIndexDesc)ddlChange.getTentativeDDLDesc();
-            WriteContextFactory contextFactory = SpliceBaseIndexEndpoint.getContextFactory(tentativeIndexDesc.getBaseConglomerateNumber());
-            contextFactory.addIndex(ddlChange, null, null);
+            WriteContextFactory contextFactory = PipelineContextFactories.getWriteContext(tentativeIndexDesc.getBaseConglomerateNumber());
+            try {
+                contextFactory.addIndex(ddlChange, null, null);
+            }finally{
+                contextFactory.close();
+            }
         } catch (Exception e) {
             throw new ExecutionException(Throwables.getRootCause(e));
         }
     }
-
     @Override
     public int getPriority() {
         return SchedulerPriorities.INSTANCE.getBasePriority(ForbidPastWritesTask.class);

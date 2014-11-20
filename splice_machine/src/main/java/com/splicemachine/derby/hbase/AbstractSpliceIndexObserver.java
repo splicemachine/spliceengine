@@ -5,6 +5,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.temp.TempTable;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.api.WriteContext;
+import com.splicemachine.pipeline.api.WriteContextFactory;
 import com.splicemachine.pipeline.constraint.ConstraintViolation;
 import com.splicemachine.pipeline.impl.WriteResult;
 import com.splicemachine.pipeline.constraint.Constraint;
@@ -170,36 +171,40 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
 
 
     protected void mutate(RegionCoprocessorEnvironment rce, KVPair mutation,TxnView txn) throws IOException {
-    	if (LOG.isTraceEnabled())
-    		SpliceLogUtils.trace(LOG, "mutate %s",mutation);
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "mutate %s",mutation);
         //we've already done our write path, so just pass it through
+        WriteContextFactory<TransactionalRegion> ctxFactory = PipelineContextFactories.getWriteContext(conglomId);
         WriteContext context;
         try{
-            context = SpliceBaseIndexEndpoint.factoryMap.get(conglomId).getFirst().createPassThrough(null,txn,region,1,null);
+            context = ctxFactory.createPassThrough(null,txn,region,1,null);
+//            context = SpliceIndexEndpoint.factoryMap.get(conglomId).getFirst().createPassThrough(null,txn,region,1,null);
+            context.sendUpstream(mutation);
+            context.flush();
+            WriteResult mutationResult = context.close().get(mutation);
+            if(mutationResult==null) return; //we didn't actually do anything, so no worries
+            switch (mutationResult.getCode()) {
+                case FAILED:
+                    throw new IOException(mutationResult.getErrorMessage());
+                case PRIMARY_KEY_VIOLATION:
+                    throw ConstraintViolation.create(Constraint.Type.PRIMARY_KEY, mutationResult.getConstraintContext());
+                case UNIQUE_VIOLATION:
+                    throw ConstraintViolation.create(Constraint.Type.UNIQUE, mutationResult.getConstraintContext());
+                case FOREIGN_KEY_VIOLATION:
+                    throw ConstraintViolation.create(Constraint.Type.FOREIGN_KEY, mutationResult.getConstraintContext());
+                case CHECK_VIOLATION:
+                    throw ConstraintViolation.create(Constraint.Type.CHECK, mutationResult.getConstraintContext());
+                case WRITE_CONFLICT:
+                    throw WriteConflict.fromString(mutationResult.getErrorMessage());
+                case NOT_RUN:
+                case SUCCESS:
+                default:
+                    break;
+            }
         }catch(InterruptedException e){
             throw new IOException(e);
-        }
-        context.sendUpstream(mutation);
-        context.flush();
-        WriteResult mutationResult = context.close().get(mutation);
-        if(mutationResult==null) return; //we didn't actually do anything, so no worries
-        switch (mutationResult.getCode()) {
-            case FAILED:
-                throw new IOException(mutationResult.getErrorMessage());
-            case PRIMARY_KEY_VIOLATION:
-                throw ConstraintViolation.create(Constraint.Type.PRIMARY_KEY, mutationResult.getConstraintContext());
-            case UNIQUE_VIOLATION:
-                throw ConstraintViolation.create(Constraint.Type.UNIQUE, mutationResult.getConstraintContext());
-            case FOREIGN_KEY_VIOLATION:
-                throw ConstraintViolation.create(Constraint.Type.FOREIGN_KEY, mutationResult.getConstraintContext());
-            case CHECK_VIOLATION:
-                throw ConstraintViolation.create(Constraint.Type.CHECK, mutationResult.getConstraintContext());
-            case WRITE_CONFLICT:
-                throw WriteConflict.fromString(mutationResult.getErrorMessage());
-		case NOT_RUN:
-		case SUCCESS:
-		default:
-			break;
+        }finally{
+            ctxFactory.close();
         }
     }
 }

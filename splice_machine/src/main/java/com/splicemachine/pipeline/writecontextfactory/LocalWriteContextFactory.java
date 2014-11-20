@@ -255,6 +255,12 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
         }
     }
 
+
+    @Override
+    public void close() {
+        //no-op
+    }
+
     public static LocalWriteContextFactory unmanagedContextFactory(){
         return new LocalWriteContextFactory(-1){
             @Override

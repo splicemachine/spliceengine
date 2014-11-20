@@ -33,4 +33,10 @@ public interface WriteContextFactory<T> {
 
     void addDDLChange(DDLChange ddlChange);
 
+    void close();
+
+    void prepare();
+
+    boolean hasDependentWrite();
+
 }
