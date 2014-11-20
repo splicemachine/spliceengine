@@ -1,60 +1,27 @@
 package com.splicemachine.derby.impl.storage;
 
-import java.io.IOException;
 import java.sql.SQLException;
-
-import com.splicemachine.derby.impl.temp.TempTable;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.log4j.Logger;
 
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.utils.SpliceUtilities;
-
 /**
- * Utility to split the TEMP table.
+ * Permanently desupported. Do not use.
  */
-public class TempSplit{
+public class TempSplit {
+
+    // This stored procedure that calls this has been purged.
+    // As of version 1.0 (Fuji), it will not automatically be
+    // deleted from the data dictionary of an upgraded database.
+    // Therefore, to be safe, leave this backing class here
+    // but throw runtime exception if invoked.
+
     private static final Logger LOG = Logger.getLogger(TempSplit.class);
 
     /**
-     * Split the TEMP table into a fixed number of buckets.
-     *
-     * It disables and removes the TEMP table and creates a new one
-     * with the right split keys.
-     *
-     * @throws SQLException if something goes wrong.
+     * @deprecated No longer supported. No replacement. Throws exception if invoked.
      */
     public static void SYSCS_SPLIT_TEMP() throws SQLException{
 
-        HBaseAdmin admin = SpliceUtilities.getAdmin();
-        try {
-            admin.disableTable(SpliceConstants.TEMP_TABLE_BYTES);
-        } catch (IOException e) {
-            SpliceLogUtils.error(LOG,"Unable to disable the TEMP table",e);
-        }
-
-        try {
-            admin.deleteTable(SpliceConstants.TEMP_TABLE_BYTES);
-        } catch (IOException e) {
-            SpliceLogUtils.error(LOG,"Unable to delete the TEMP table",e);
-        }
-        
-        try {
-            SpliceUtilities.createTempTable(admin);
-        } catch (IOException e) {
-            SpliceLogUtils.error(LOG,"Unable to create the TEMP table",e);
-            return;
-        }
-        
-        try {
-            boolean runs = admin.balancer();
-            if (!runs) {
-                SpliceLogUtils.warn(LOG,"Unable to launch the balancer");
-            }
-        } catch (Exception e) {
-            SpliceLogUtils.error(LOG,"Unable to launch the balancer",e);
-        }
+        throw new UnsupportedOperationException("This procedure is not supported.");
 
     }
 }

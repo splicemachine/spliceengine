@@ -166,13 +166,6 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                     procedures.add(splitProc2);
 
         			/*
-        			 * Procedure to split TEMP table into 16 evenly distributed buckets
-        			 */
-                    Procedure splitTemp = Procedure.newBuilder().name("SYSCS_SPLIT_TEMP")
-                            .numOutputParams(0).numResultSets(0).ownerClass(TempSplit.class.getCanonicalName()).build();
-                    procedures.add(splitTemp);
-
-        			/*
         			 * Procedure get all active services
         			 */
                     Procedure getActiveServers = Procedure.newBuilder().name("SYSCS_GET_ACTIVE_SERVERS")
