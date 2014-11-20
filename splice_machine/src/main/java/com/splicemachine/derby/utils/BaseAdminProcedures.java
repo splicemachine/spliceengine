@@ -52,11 +52,11 @@ public abstract class BaseAdminProcedures {
 	// Just because 'admin' is in the name does not mean anything you deem to be
 	// related to system admin belongs here. We don't want this to be another
 	// dumping around for utility functions.
-	
-    protected static List<String> getServerNames(Collection<ServerName> serverInfo) {
-        List<String> names = new ArrayList<String>(serverInfo.size());
+
+    protected static List<Pair<String,String>> getServerNames(Collection<ServerName> serverInfo) {
+        List<Pair<String,String>> names = new ArrayList<Pair<String,String>>(serverInfo.size());
         for (ServerName sname : serverInfo) {
-            names.add(sname.getHostname());
+            names.add(Pair.newPair(sname.getHostname(),sname.getHostAndPort()));
         }
         return names;
     }
