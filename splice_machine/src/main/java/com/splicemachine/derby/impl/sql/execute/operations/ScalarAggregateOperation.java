@@ -94,6 +94,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 						range[0] = spliceRuntimeContext.getHashBucket();
 						System.arraycopy(uniqueSequenceID,0,range,1,uniqueSequenceID.length);
 						reduceScan = Scans.buildPrefixRangeScan(range, null); //no transaction needed against TEMP
+                        reduceScan.setCacheBlocks(false);
 						//make sure that we filter out failed tasks
             if(failedTasks.size()>0){
                 reduceScan.setFilter(derbyFactory.getSuccessFilter(failedTasks));
