@@ -260,37 +260,32 @@ public class SpliceBaseIndexEndpoint {
 
     public static class ActiveWriteHandlers implements ActiveWriteHandlersIface {
         private static final ActiveWriteHandlers INSTANCE = new ActiveWriteHandlers();
-
         private  ActiveWriteHandlers () {}
 
         public static ActiveWriteHandlers get(){ return INSTANCE; }
         @Override public int getIpcReservedPool() { return ipcReserved; }
-
-        @Override
-        public int getTotalWriteThreads() {
-            return writeControl.maxWriteThreads();
-        }
-
+        @Override public int getTotalWriteThreads() { return writeControl.maxWriteThreads(); }
         @Override public int getOccupiedWriteThreads() { return writeControl.getOccupiedThreads(); }
-
         @Override public double getOverallAvgThroughput() { return pipelineMeter.throughput(); }
         @Override public double get1MThroughput() { return pipelineMeter.oneMThroughput(); }
         @Override public double get5MThroughput() { return pipelineMeter.fiveMThroughput(); }
         @Override public double get15MThroughput() { return pipelineMeter.fifteenMThroughput(); }
+        @Override public long getTotalRejected() { return rejectedCount.get(); }
+        @Override public int getAvailableIndependentPermits() { return writeControl.getAvailableIndependentPermits(); }
+        @Override public int getAvailableDependentPermits() { return writeControl.getAvailableDependentPermits(); }
+
+        @Override public int getMaxIndependentThroughput() { return writeControl.getMaxIndependentPermits(); }
 
         @Override
-        public long getTotalRejected() {
-            return rejectedCount.get();
+        public void setMaxIndependentThroughput(int newMaxIndependenThroughput) {
+            writeControl.setMaxIndependentPermits(newMaxIndependenThroughput);
         }
 
-        @Override
-        public int getAvailableIndependentPermits() {
-            return writeControl.getAvailableIndependentPermits();
-        }
+        @Override public int getMaxDependentThroughput() { return writeControl.getMaxDependentPermits(); }
 
         @Override
-        public int getAvailableDependentPermits() {
-            return writeControl.getAvailableDependentPermits();
+        public void setMaxDependentThroughput(int newMaxDependentThroughput) {
+            writeControl.setMaxDependentPermits(newMaxDependentThroughput);
         }
     }
 
@@ -298,7 +293,7 @@ public class SpliceBaseIndexEndpoint {
     @SuppressWarnings("UnusedDeclaration")
     public interface ActiveWriteHandlersIface {
         public int getIpcReservedPool();
-        int getTotalWriteThreads();
+        public int getTotalWriteThreads();
         public int getOccupiedWriteThreads();
         public double getOverallAvgThroughput();
         public double get1MThroughput();
@@ -306,6 +301,10 @@ public class SpliceBaseIndexEndpoint {
         public double get15MThroughput();
 
         long getTotalRejected();
+        int getMaxIndependentThroughput();
+        void setMaxIndependentThroughput(int newMaxIndependenThroughput);
+        int getMaxDependentThroughput();
+        void setMaxDependentThroughput(int newMaxDependentThroughput);
         int getAvailableIndependentPermits();
         int getAvailableDependentPermits();
     }
