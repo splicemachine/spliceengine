@@ -12,6 +12,7 @@ import com.splicemachine.test.SlowTest;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
+import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestRule;
 
 import java.sql.*;
@@ -94,6 +95,8 @@ public class HdfsImportIT extends SpliceUnitTest {
 						.around(autoIncTableWatcher);
 
     @Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
+	@Rule
+	public TemporaryFolder baddir = new TemporaryFolder();
 
 //    @After
 //    public void tearDownTest() throws Exception{
@@ -115,7 +118,7 @@ public class HdfsImportIT extends SpliceUnitTest {
   @Test
   public void testNewImportDirectory() throws Exception{
 	  // importdir has a subdirectory as well with files in it
-      testNewImport(spliceSchemaWatcher.schemaName,TABLE_2,getResourceDirectory()+"importdir","NAME,TITLE,AGE",getResourceDirectory()+"baddir",0,8);
+      testNewImport(spliceSchemaWatcher.schemaName,TABLE_2,getResourceDirectory()+"importdir","NAME,TITLE,AGE",baddir.newFolder().getCanonicalPath(),0,8);
   }
 
   // more tests to write:
@@ -167,7 +170,7 @@ public class HdfsImportIT extends SpliceUnitTest {
     public void testAlternateDateAndTimeImport() throws Exception {
 		methodWatcher.executeUpdate("delete from "+spliceSchemaWatcher.schemaName + "." + TABLE_12);
         PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA('%s','%s',null,'%s',',',null,null,'MM/dd/yyyy','HH.mm.ss',%d,'%s')",
-        		spliceSchemaWatcher.schemaName,TABLE_12,getResourceDirectory()+"dateAndTime.in",0,getResourceDirectory()+"baddir"));
+        		spliceSchemaWatcher.schemaName,TABLE_12,getResourceDirectory()+"dateAndTime.in",0,baddir.newFolder().getCanonicalPath()));
         ps.execute();
         ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s",spliceSchemaWatcher.schemaName,TABLE_12));
         List<String> results = Lists.newArrayList();
