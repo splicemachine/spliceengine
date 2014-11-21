@@ -1,5 +1,9 @@
 package com.splicemachine.primitives;
 
+
+import java.nio.ByteOrder;
+import java.util.Collection;
+
 /**
  * Utility class which encompasses basic conversion logic.
  *
@@ -47,6 +51,7 @@ public class Bytes {
             return compare(o1,0,o1.length,o2,0,o2.length);
         }
     };
+    public static boolean isLittleEndian = ByteOrder.nativeOrder().equals(ByteOrder.LITTLE_ENDIAN);
 
     /**
      * @return A Simple ByteComparator which performs comparisons using one-byte-at-a-time logic.
@@ -59,19 +64,13 @@ public class Bytes {
     }
 
     /**
-     * Convert a long value to a byte array using big-endian.
+     * Convert a long value to a byte array using the native byte order(usually big-endian).
      *
      * @param val value to convert
      * @return the byte array
      */
     public static byte[] toBytes(long val) {
-        byte [] b = new byte[8];
-        for (int i = 7; i > 0; i--) {
-            b[i] = (byte) val;
-            val >>>= 8;
-        }
-        b[0] = (byte) val;
-        return b;
+        return BigEndianBits.toBytes(val);
     }
 
     /**
@@ -84,34 +83,20 @@ public class Bytes {
      * @throws java.lang.ArrayIndexOutOfBoundsException if {@code data.length-offset <8}.
      */
     public static void toBytes(long x, byte[] data, int offset){
-        data[offset]   = (byte)(x>>56);
-        data[offset+1] = (byte)(x>>48);
-        data[offset+2] = (byte)(x>>40);
-        data[offset+3] = (byte)(x>>32);
-        data[offset+4] = (byte)(x>>24);
-        data[offset+5] = (byte)(x>>16);
-        data[offset+6] = (byte)(x>>8);
-        data[offset+7] = (byte)(x   );
+        BigEndianBits.toBytes(x, data, offset);
     }
 
     /**
-     * Convert an int value to a byte array
+     * Convert an int value to a byte array, using the native byte order of the platform
      * @param val value
      * @return the byte array
      */
     public static byte[] toBytes(int val) {
-        byte [] b = new byte[4];
-        for(int i = 3; i > 0; i--) {
-            b[i] = (byte) val;
-            val >>>= 8;
-        }
-        b[0] = (byte) val;
-        return b;
+        return BigEndianBits.toBytes(val);
     }
 
     /**
-     * Convert a long value into the specified byte array, using big-endian
-     * order.
+     * Convert a long value into the specified byte array, using the native byte order of the platform
      *
      * @param x the value to encode
      * @param data the destination byte[]
@@ -119,10 +104,7 @@ public class Bytes {
      * @throws java.lang.ArrayIndexOutOfBoundsException if {@code data.length-offset <8}.
      */
     public static void toBytes(int x, byte[] data, int offset){
-        data[offset] = (byte)(x>>24);
-        data[offset+1] = (byte)(x>>16);
-        data[offset+2] = (byte)(x>>8);
-        data[offset+3] = (byte)(x   );
+        BigEndianBits.toBytes(x,data,offset);
     }
 
 
@@ -130,18 +112,13 @@ public class Bytes {
         return toInt(bytes,0);
     }
     /**
-     * Converts a byte array to an int value
+     * Converts a byte array to an int value, using the platform byte order
      * @param bytes byte array
      * @param offset offset into array
      * @return the int value
      */
     public static int toInt(byte[] bytes, int offset) {
-        int n = 0;
-        for(int i = offset; i < (offset + 4); i++) {
-            n <<= 8;
-            n ^= bytes[i] & 0xFF;
-        }
-        return n;
+        return BigEndianBits.toInt(bytes,offset);
     }
 
     public static long toLong(byte[] bytes){
@@ -149,23 +126,18 @@ public class Bytes {
     }
 
     /**
-     * Converts a byte array to a long value.
+     * Converts a byte array to a long value, using the platform byte order
      *
      * @param bytes array of bytes
      * @param offset offset into array
      * @return the long value
      */
     public static long toLong(byte[] bytes, int offset) {
-        long l = 0;
-        for(int i = offset; i < offset + 8; i++) {
-            l <<= 8;
-            l ^= bytes[i] & 0xFF;
-        }
-        return l;
+        return BigEndianBits.toLong(bytes, offset);
     }
 
     /**
-     * Converts a byte array to a short value
+     * Converts a byte array to a short value, using the byte order of the platform
      * @param bytes byte array
      * @return the short value
      */
@@ -174,18 +146,34 @@ public class Bytes {
     }
 
     /**
-     * Converts a byte array to a short value
+     * Converts a byte array to a short value, using the sort order of the platform
      * @param bytes byte array
      * @param offset offset into array
      * @return the short value
      * or if there's not enough room in the array at the offset indicated.
      */
     public static short toShort(byte[] bytes, int offset) {
-        short n = 0;
-        n ^= bytes[offset] & 0xFF;
-        n <<= 8;
-        n ^= bytes[offset+1] & 0xFF;
-        return n;
+        return BigEndianBits.toShort(bytes,offset);
     }
 
+    public static byte[] prepend(byte element, byte[] existing){
+        byte[] newBytes = new byte[existing.length+1];
+        newBytes[0] = element;
+        System.arraycopy(existing,0,newBytes,1,existing.length);
+        return newBytes;
+    }
+
+    public static byte[] concatenate(Collection<byte[]> elements){
+        int length = 0;
+        for(byte[] b:elements){
+            length+=b.length;
+        }
+        byte[] result = new byte[length];
+        int position =0;
+        for(byte[] b:elements){
+            System.arraycopy(b,0,result,position,b.length);
+            position+=b.length;
+        }
+        return result;
+    }
 }

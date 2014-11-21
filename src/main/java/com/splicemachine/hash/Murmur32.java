@@ -1,5 +1,8 @@
 package com.splicemachine.hash;
 
+import com.splicemachine.primitives.Bytes;
+import com.splicemachine.primitives.LittleEndianBits;
+
 import java.nio.ByteBuffer;
 
 /**
@@ -28,7 +31,7 @@ public class Murmur32 implements Hash32{
             /*
              * Since a char has two bytes, we create one int by packing together two chars
              */
-            int k1 = EndianNumbers.littleEndianInt(chars,pos);
+            int k1 = LittleEndianBits.toInt(chars, pos);
             h = mutate(h,k1);
             pos+=2;
             visited+=4;
@@ -44,7 +47,7 @@ public class Murmur32 implements Hash32{
         int visited=0;
         int h = seed;
         while(length-pos>=4){
-            int k1 = EndianNumbers.littleEndianInt(bytes, pos);
+            int k1 = LittleEndianBits.toInt(bytes, pos);
             h =mutate(h,k1);
             pos+=4;
             visited+=4;
@@ -87,7 +90,7 @@ public class Murmur32 implements Hash32{
         int bytesVisited=0;
         while(bytes.remaining()>=4){
             bytes.get(block);
-            int k1 = EndianNumbers.littleEndianInt(block, 0);
+            int k1 = LittleEndianBits.toInt(block, 0);
             h =mutate(h, k1);
             bytesVisited+=4;
         }

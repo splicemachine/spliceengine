@@ -1,5 +1,7 @@
 package com.splicemachine.hash;
 
+import com.splicemachine.primitives.LittleEndianBits;
+
 import java.nio.ByteBuffer;
 
 /**
@@ -24,7 +26,7 @@ final class Murmur64 implements Hash64 {
         int pos =0;
         char[] chars = elem.toCharArray();
         while(length-pos>=8){
-            h = hash(h,EndianNumbers.littleEndianLong(chars,pos));
+            h = hash(h, LittleEndianBits.toLong(chars, pos));
             pos+=8;
         }
 
@@ -124,7 +126,7 @@ final class Murmur64 implements Hash64 {
     }
 
     private long updateFull(byte[] data, long h, int dataPosition) {
-        long k =  EndianNumbers.littleEndianLong(data, dataPosition);
+        long k =  LittleEndianBits.toLong(data, dataPosition);
 
         return hash(h, k);
     }
