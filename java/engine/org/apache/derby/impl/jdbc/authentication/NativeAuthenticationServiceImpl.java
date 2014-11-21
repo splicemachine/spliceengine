@@ -33,6 +33,7 @@ import javax.sql.DataSource;
 
 import org.apache.derby.authentication.UserAuthenticator;
 import org.apache.derby.catalog.SystemProcedures;
+import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.SQLWarningFactory;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.Attribute;
@@ -40,8 +41,12 @@ import org.apache.derby.iapi.reference.Property;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.monitor.Monitor;
 import org.apache.derby.iapi.services.property.PropertyUtil;
+import org.apache.derby.iapi.sql.conn.ConnectionUtil;
+import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
+import org.apache.derby.iapi.sql.dictionary.DataDescriptorGenerator;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.sql.dictionary.PasswordHasher;
+import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
 import org.apache.derby.iapi.sql.dictionary.UserDescriptor;
 import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.util.IdUtil;
@@ -505,17 +510,8 @@ public final class NativeAuthenticationServiceImpl
             
             TransactionController   tc = getTransaction();
 
-            // Check if the DBO already exists which may happen if the manual override for
-            // creation of the native credentials database is set.
-            if (dd.getUser(userName) == null) {
-            	if (LOG.isInfoEnabled()) LOG.info(String.format("Saving DBO's initial credentials to SYSUSERS table: username=%s", userName));
-            	SystemProcedures.addUser( userName, userPassword, tc );
-            	// Change the system schemas to be owned by the user.  This is needed for upgrading
-            	// the Splice Machine 0.5 beta where the owner of the system schemas was APP.
-            	// Splice Machine 1.0+ has the SPLICE user as the DBO of the system schemas.
-            	if (LOG.isInfoEnabled()) LOG.info(String.format("Updating the system schemas to be owned by the initial credentials: username=%s", userName));
-            	SystemProcedures.updateSystemSchemaAuthorization(userName, tc);
-            }
+            createDBOUserIfDoesNotExist(userName, userPassword, dd, tc);
+            createDBOSchemaIfDoesNotExist(userName, userPassword, dd, tc);
 
             tc.commit();
             
@@ -593,5 +589,53 @@ public final class NativeAuthenticationServiceImpl
         
         return true;
     }
-    
+
+	/**
+	 * Create the DBO if it does not already exist in the local credentials database.
+	 * @param userName		The DBO user's name used to connect to JBMS system
+	 * @param userPassword	The DBO user's password used to connect to JBMS system
+	 * @param dd			data dictionary to store the user
+	 * @param tc			transaction for this operation
+	 * @throws StandardException
+	 * @throws SQLException
+	 */
+	private void createDBOUserIfDoesNotExist(String userName, String userPassword, DataDictionary dd, TransactionController tc)
+		throws StandardException, SQLException {
+		// Check if the DBO already exists which may happen if the manual override for
+		// creation of the native credentials database is set.
+		if (dd.getUser(userName) == null) {
+			if (LOG.isInfoEnabled()) LOG.info(String.format("Saving DBO's initial credentials to SYSUSERS table: username=%s", userName));
+			SystemProcedures.addUser( userName, userPassword, tc );
+			// Change the system schemas to be owned by the user.  This is needed for upgrading
+			// the Splice Machine 0.5 beta where the owner of the system schemas was APP.
+			// Splice Machine 1.0+ has the SPLICE user as the DBO of the system schemas.
+			if (LOG.isInfoEnabled()) LOG.info("Updating the system schemas to be owned by the DBO");
+			SystemProcedures.updateSystemSchemaAuthorization(userName, tc);
+		}
+	}
+
+	/**
+	 * Create the default schema for the DBO if it does not already exist in the local credentials database.
+	 * @param userName		The DBO user's name used to connect to JBMS system
+	 * @param dd			data dictionary to store the DBO schema
+	 * @param tc			transaction for this operation
+	 * @throws StandardException
+	 * @throws SQLException
+	 */
+	private void createDBOSchemaIfDoesNotExist(String userName, String userPassword, DataDictionary dd, TransactionController tc)
+		throws StandardException, SQLException {
+        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+        DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
+
+        // Check if the DBO schema already exists which may happen if the manual override for
+		// creation of the native credentials database is set.
+		SchemaDescriptor sd = dd.getSchemaDescriptor(userName, tc, false);
+		if (sd == null || sd.getUUID() == null) {
+			if (LOG.isInfoEnabled()) LOG.info("Creating initial schema for DBO");
+			UUID tmpSchemaId = dd.getUUIDFactory().createUUID();
+			dd.startWriting(lcc);
+	        sd = ddg.newSchemaDescriptor(userName, userName, tmpSchemaId);
+	        dd.addDescriptor(sd, null, DataDictionary.SYSSCHEMAS_CATALOG_NUM, false, tc);
+		}
+	}
 }
