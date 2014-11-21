@@ -414,13 +414,22 @@ public class SpliceAdmin extends BaseAdminProcedures {
             @Override
             public void operate(List<Pair<String, JMXConnector>> connections) throws MalformedObjectNameException, IOException, SQLException {
                 List<Pair<String, StatementManagement>> statementManagers = JMXUtils.getStatementManagers(connections);
+                boolean found = false;
                 for (Pair<String, StatementManagement> statementManagementPair : statementManagers) {
                                 /*
 								 * We don't know which server is actually executing the statement (or even
 								 * if it's still running), so just send it out to everyone.
 								 */
-                    statementManagementPair.getSecond().killStatement(statementUuid);
+                    if (statementManagementPair.getSecond().killStatement(statementUuid)) {
+                        found = true;	
+                    }
                 }
+                
+                // Executing statement not found, so throw exception. Typical user error
+				// would be to pass in a transaction id, not a statement uuid.
+				if (!found) {
+					throw new SQLException(String.format("Executing statement not found with statementUuid = %s", statementUuid));
+				}
             }
         });
     }
