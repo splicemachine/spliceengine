@@ -61,6 +61,12 @@ public class IndexController  extends SpliceController  {
 				try {
 						boolean[] order = ((IndexConglomerate)this.openSpliceConglomerate.getConglomerate()).getAscDescInfo();
 						byte[] rowKey = generateIndexKey(row, order);
+						/*
+						 * Check if the rowKey already exists.
+						 * TODO: An optimization would be to not check for existence of a rowKey if the index is non-unique.
+						 *		 Unfortunately, this information is not available here and would need to be passed down from
+						 *		 DataDictionaryImpl through TabInfoImpl.  Something worth looking into in the future.
+						 */
 						Get get = SpliceUtils.createGet(((SpliceTransaction)trans).getTxn(), rowKey);
 						Result result = htable.get(get);
 						if (result.isEmpty()) {
