@@ -365,7 +365,7 @@ public class SITransactor<S,Data,Table,
                  * applied on key elements.
                  */
                 Result possibleConflicts = dataStore.getCommitTimestampsAndTombstonesSingle(table, kvPair.getRow());
-                if(!unsafeWrites && possibleConflicts!=null){
+                if(possibleConflicts!=null){
                     //we need to check for write conflicts
                     conflictResults = ensureNoWriteConflict(transaction,possibleConflicts);
                 }
@@ -432,8 +432,6 @@ public class SITransactor<S,Data,Table,
 				}
 				return false;
 		}
-
-		private static final boolean unsafeWrites = Boolean.getBoolean("splice.unsafe.writes");
 
 
 		private void lockRows(Table table, Collection<KVPair> mutations, Pair<KVPair,SRowLock>[] mutationsAndLocks,OperationStatus[] finalStatus) throws IOException {

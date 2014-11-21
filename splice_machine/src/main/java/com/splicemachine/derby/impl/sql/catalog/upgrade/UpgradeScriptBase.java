@@ -23,6 +23,7 @@ public abstract class UpgradeScriptBase implements UpgradeScript {
         this.tc = tc;
     }
 
+    // TODO: This should get refactored back into DefaultSystemProcedureGenerator or another utility class.
     protected void dropSystemProcedureOrFunction(String sName, String pName, char procedureOrFunction) throws StandardException {
         String schemaName = sName.toUpperCase();
         String procedureName = pName.toUpperCase();
@@ -31,6 +32,7 @@ public abstract class UpgradeScriptBase implements UpgradeScript {
         UUID schemaId = sd.getUUID();
         AliasDescriptor ad = sdd.getAliasDescriptor(schemaId.toString(), procedureName, procedureOrFunction);
         if (ad != null) {  // Drop the procedure if it already exists.
+            if (LOG.isTraceEnabled()) LOG.trace(String.format("Dropping system %s %s.%s", ad.getDescriptorType().toLowerCase(), sName, pName));
             sdd.dropAliasDescriptor(ad, tc);
         }
     }
