@@ -24,7 +24,7 @@ public class UpdatingWriteConfiguration extends ForwardingWriteConfiguration{
 
 	@Override
 	public WriteResponse globalError(Throwable t) throws ExecutionException {
-			if(t instanceof NotServingRegionException || t instanceof WrongRegionException){
+			if(derbyFactory.isNotServingRegionException(t) || derbyFactory.isWrongRegionException(t)){
 					canRebuild.rebuildBuffer();
 			}
 			return super.globalError(t);

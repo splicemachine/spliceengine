@@ -28,15 +28,12 @@ import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.regionserver.RegionServerServices;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.scheduler.BaseJobControl;
 import com.splicemachine.derby.impl.job.scheduler.JobMetrics;
 import com.splicemachine.pipeline.api.BulkWritesInvoker;
 import com.splicemachine.si.api.TransactionalRegion;
-import com.splicemachine.si.api.Txn;
 import com.splicemachine.storage.EntryPredicateFilter;
-import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 
 public interface DerbyFactory<Transaction> {
@@ -71,4 +68,11 @@ public interface DerbyFactory<Transaction> {
 	void SYSCS_GET_REQUESTS(ResultSet[] resultSet) throws SQLException;
 	void SYSCS_GET_SCHEMA_INFO(final ResultSet[] resultSet) throws SQLException;
 	ServerName getServerName(String serverName);
+	boolean isNotServingRegionException(Throwable t);
+	boolean isWrongRegionException(Throwable t);
+	boolean isRegionTooBusyException(Throwable t);
+	boolean isInterruptedException(Throwable t);
+	boolean isConnectException(Throwable t);
+	boolean isIndexNotSetupException (Throwable t);
+	
 }

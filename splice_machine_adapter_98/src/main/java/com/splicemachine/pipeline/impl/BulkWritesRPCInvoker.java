@@ -13,10 +13,10 @@ import java.io.IOException;
  */
 public class BulkWritesRPCInvoker implements BulkWritesInvoker {
 
-    private SpliceIndexEndpointRPCClient indexEndpointRPC;
+    private BulkWriteChannelInvoker bulkWriteChannelInvoker;
 
     public BulkWritesRPCInvoker(HConnection connection, byte[] tableName) {
-        this.indexEndpointRPC = new SpliceIndexEndpointRPCClient(connection, tableName);
+        this.bulkWriteChannelInvoker = new BulkWriteChannelInvoker(connection, tableName);
     }
 
     @Override
@@ -33,8 +33,7 @@ public class BulkWritesRPCInvoker implements BulkWritesInvoker {
                 return indexEndpoint.bulkWrite(writes);
             }
         }
-
-        return indexEndpointRPC.bulkWrite(writes);
+        return bulkWriteChannelInvoker.invoke(writes);
     }
 
 

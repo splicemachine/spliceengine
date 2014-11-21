@@ -1,41 +1,37 @@
 package com.splicemachine.pipeline.writeconfiguration;
 
-import java.net.ConnectException;
 import java.util.concurrent.ExecutionException;
-
 import com.carrotsearch.hppc.IntArrayList;
-import org.apache.hadoop.hbase.NotServingRegionException;
-import org.apache.hadoop.hbase.RegionTooBusyException;
-import org.apache.hadoop.hbase.regionserver.WrongRegionException;
 import org.apache.log4j.Logger;
-
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
+import com.splicemachine.derby.hbase.DerbyFactory;
+import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.api.WriteConfiguration;
 import com.splicemachine.pipeline.api.WriteContext;
 import com.splicemachine.pipeline.api.WriteResponse;
 import com.splicemachine.pipeline.exception.Exceptions;
-import com.splicemachine.pipeline.exception.IndexNotSetUpException;
 import com.splicemachine.pipeline.impl.BulkWriteResult;
 import com.splicemachine.pipeline.impl.WriteResult;
 import com.splicemachine.utils.SpliceLogUtils;
 
 public abstract class BaseWriteConfiguration implements WriteConfiguration {
+	private static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
     private static final Logger LOG = Logger.getLogger(BaseWriteConfiguration.class);
 
     @Override
     public WriteResponse globalError(Throwable t) throws ExecutionException {
-					if(t instanceof RegionTooBusyException){
+					if(derbyFactory.isRegionTooBusyException(t)){
 							return WriteResponse.RETRY;
 					}
-					else if(t instanceof InterruptedException){
+					else if(derbyFactory.isInterruptedException(t)){
 							Thread.currentThread().interrupt();
 							return WriteResponse.IGNORE; //
-					}else if(t instanceof ConnectException
-                || t instanceof WrongRegionException
-                || t instanceof IndexNotSetUpException
-                || t instanceof NotServingRegionException )
+					}else if(derbyFactory.isConnectException(t)
+                || derbyFactory.isWrongRegionException(t)
+                || derbyFactory.isIndexNotSetupException(t)
+                || derbyFactory.isNotServingRegionException(t) )
             return WriteResponse.RETRY;
         else
             return WriteResponse.THROW_ERROR;
