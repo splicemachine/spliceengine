@@ -129,7 +129,7 @@ public class PipelineAdmin extends BaseAdminProcedures{
                 List<SpliceBaseIndexEndpoint.ActiveWriteHandlersIface> activeWriteHandlers = JMXUtils.getActiveWriteHandlers(jmxConnector);
                 int i=0;
                 for(SpliceBaseIndexEndpoint.ActiveWriteHandlersIface writeHandler:activeWriteHandlers){
-                    String host = jmxConnector.get(i).getFirst();
+                    String host = jmxConnector.get(i++).getFirst();
                     ExecRow row = hostRows.get(host);
                     if(row==null)
                         row = buildExecRow(WRITE_PIPELINE_COLUMNS);
