@@ -1,73 +1,77 @@
 <assembly xmlns="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-          xsi:schemaLocation="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.2 http://maven.apache.org/xsd/assembly-1.1.2.xsd">
-    <id>${envClassifier}${obfuscate.si.tag}_complete</id>
+		  xsi:schemaLocation="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.2 http://maven.apache.org/xsd/assembly-1.1.2.xsd">
+	<id>${envClassifier}${obfuscate.si.tag}_complete</id>
 
-    <formats>
-        <format>jar</format>
-    </formats>
+	<formats>
+		<format>jar</format>
+	</formats>
 
-    <includeBaseDirectory>false</includeBaseDirectory>
+	<includeBaseDirectory>false</includeBaseDirectory>
 
-    <dependencySets>
+	<dependencySets>
 
-        <dependencySet>
-            <unpack>true</unpack>
-            <unpackOptions>
-                <excludes>
-                    <exclude>**/hbase-log4j.properties</exclude>
-                    <exclude>**/trace-log4j.properties</exclude>
-                    <exclude>**/splice-site.xml</exclude>
-                </excludes>
-            </unpackOptions>
-            <includes>
-                <!-- splice artifacts -->
-                <include>com.splicemachine:asynchbase</include>
-                <include>com.splicemachine:utilities</include>
-                <include>com.splicemachine:splice_constants-${envClassifier}</include>
-                <include>com.splicemachine:splice_si-${envClassifier}</include>
-                <include>com.splicemachine:splice_machine-${envClassifier}</include>
-                <!-- third party artifacts -->
-                <include>com.carrotsearch:hppc</include>
-                <include>com.esotericsoftware.kryo:kryo</include>
-                <include>com.google.code.gson:gson</include>
-                <include>com.google.protobuf:protobuf-java</include>
-                <include>com.lmax:disruptor</include>
-                <include>com.stumbleupon:async</include>
-                <include>de.javakaffee:kryo-serializers</include>
-                <include>net.sf.ehcache:ehcache-core</include>
-                <include>net.sf.opencsv:opencsv</include>
-                <include>net.sf.supercsv:super-csv</include>
-                <include>org.apache.derby:derby</include>
-                <include>org.apache.derby:derbyclient</include>
-                <include>org.apache.lucene:lucene-core</include>
-                <include>org.codehaus.jsr166-mirror:jsr166y</include>
-            </includes>
-        </dependencySet>
+		<dependencySet>
+			<unpack>true</unpack>
+			<unpackOptions>
+				<excludes>
+					<exclude>**/hbase-log4j.properties</exclude>
+					<exclude>**/trace-log4j.properties</exclude>
+					<exclude>**/splice-site.xml</exclude>
+				</excludes>
+			</unpackOptions>
+			<includes>
+				<!-- splice artifacts -->
+				<include>com.splicemachine:asynchbase</include>
+				<include>com.splicemachine:utilities</include>
+				<include>com.splicemachine:splice_constants-${envClassifier}</include>
+				<include>com.splicemachine:splice_si-${envClassifier}</include>
+				<include>com.splicemachine:splice_si_adapter_9*-${envClassifier}</include>
+				<include>com.splicemachine:splice_si_test-${envClassifier}</include>
+				<include>com.splicemachine:splice_machine-${envClassifier}</include>
+				<include>com.splicemachine:splice_machine_adapter_9*-${envClassifier}</include>
+				<include>com.splicemachine:splice_machine_test-${envClassifier}</include>
+				<!-- third party artifacts -->
+				<include>com.carrotsearch:hppc</include>
+				<include>com.esotericsoftware.kryo:kryo</include>
+				<include>com.google.code.gson:gson</include>
+				<include>com.google.protobuf:protobuf-java</include>
+				<include>com.lmax:disruptor</include>
+				<include>com.stumbleupon:async</include>
+				<include>de.javakaffee:kryo-serializers</include>
+				<include>net.sf.ehcache:ehcache-core</include>
+				<include>net.sf.opencsv:opencsv</include>
+				<include>net.sf.supercsv:super-csv</include>
+				<include>org.apache.derby:derby</include>
+				<include>org.apache.derby:derbyclient</include>
+				<include>org.apache.lucene:lucene-core</include>
+				<include>org.codehaus.jsr166-mirror:jsr166y</include>
+			</includes>
+		</dependencySet>
 
-    </dependencySets>
+	</dependencySets>
 
-    <fileSets>
+	<fileSets>
 
-        <fileSet>
-            <directory>lib/native</directory>
-            <includes>
-                <include>*/**</include>
-            </includes>
-            <outputDirectory>/lib/native</outputDirectory>
-        </fileSet>
+		<fileSet>
+			<directory>lib/native</directory>
+			<includes>
+				<include>*/**</include>
+			</includes>
+			<outputDirectory>/lib/native</outputDirectory>
+		</fileSet>
 
-        <fileSet>
-            <directory>${project.build.outputDirectory}</directory>
-            <outputDirectory>/</outputDirectory>
-            <useDefaultExcludes>true</useDefaultExcludes>
-            <excludes>
-                <exclude>**/hbase-log4j.properties</exclude>
-                <exclude>**/trace-log4j.properties</exclude>
+		<fileSet>
+			<directory>${project.build.outputDirectory}</directory>
+			<outputDirectory>/</outputDirectory>
+			<useDefaultExcludes>true</useDefaultExcludes>
+			<excludes>
+				<exclude>**/hbase-log4j.properties</exclude>
+				<exclude>**/trace-log4j.properties</exclude>
 				<exclude>**/splice-site.xml</exclude>
-            </excludes>
-        </fileSet>
+			</excludes>
+		</fileSet>
 
-    </fileSets>
+	</fileSets>
 
 </assembly>
 
