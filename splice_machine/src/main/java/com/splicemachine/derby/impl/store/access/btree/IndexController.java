@@ -2,6 +2,7 @@
 package com.splicemachine.derby.impl.store.access.btree;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 import com.google.common.io.Closeables;
 import com.splicemachine.derby.impl.storage.KeyValueUtils;
@@ -20,6 +21,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.store.access.ConglomerateController;
 import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
