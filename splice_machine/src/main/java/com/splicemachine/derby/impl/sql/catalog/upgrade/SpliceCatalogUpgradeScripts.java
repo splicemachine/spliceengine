@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.catalog.upgrade;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 import com.splicemachine.derby.impl.sql.catalog.Splice_DD_Version;
 
@@ -51,18 +52,24 @@ public class SpliceCatalogUpgradeScripts {
     	if (LOG.isInfoEnabled()) LOG.info("Updating system prepared statements");
         sdd.updateMetadataSPSes(tc);
 
+        // Set the current version to upgrade from.
+        // This flag should only be true for the master server.
+        Splice_DD_Version currentVersion = catalogVersion;
+        if (SpliceConstants.upgradeForced) {
+            currentVersion = new Splice_DD_Version(null, SpliceConstants.upgradeForcedFromVersion);
+        }
+
         NavigableSet<Splice_DD_Version> keys = scripts.navigableKeySet();
         Iterator<Splice_DD_Version> iterator = keys.iterator();
         while (iterator.hasNext()) {
             Splice_DD_Version version = iterator.next();
-            if (catalogVersion != null) {
-                if (ddComparator.compare(version, catalogVersion) < 0) {
+            if (currentVersion != null) {
+                if (ddComparator.compare(version, currentVersion) < 0) {
                     continue;
                 }
             }
             UpgradeScript script = scripts.get(version);
             script.run();
         }
-
     }
 }
