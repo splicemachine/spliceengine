@@ -145,6 +145,7 @@ class SpliceTestPlatformConfig {
             // Must allow Cygwin instance to config its own rootURI
             configuration.set("hbase.rootdir", hbaseRootDirUri);
         }
+        configuration.set("fs.default.name", "file:///");
         configuration.setInt("hbase.rpc.timeout", 120000);
         configuration.setInt("hbase.regionserver.lease.period", 120000);
         configuration.set("hbase.cluster.distributed", "true");
