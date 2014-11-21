@@ -419,4 +419,21 @@ public class SpliceAdminIT {
         DbUtils.closeQuietly(rs);
     }
 
+    @Test
+    public void testKillStatement() throws Exception {
+    	// Simple test (better than the nothing we've had up till now)
+    	// to test that procedure exists and that it throw error
+    	// if you provide bogus statementUuid argument.
+        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_KILL_STATEMENT(12345)");
+        ResultSet rs = null;
+        try {
+            rs = cs.executeQuery();
+        } catch (Exception e) {
+            Assert.assertTrue(e.getCause().getCause().getMessage().contains("statementUuid"));
+            return;
+        } finally {
+            DbUtils.closeQuietly(rs);
+        }
+        Assert.fail("Expected exception due to invalid statementUuid");
+    }
 }

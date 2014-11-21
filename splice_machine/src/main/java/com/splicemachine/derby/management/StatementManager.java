@@ -104,17 +104,19 @@ public class StatementManager implements StatementManagement{
 		}
 
 		@Override
-		public void killStatement(long statementUuid) {
+		public boolean killStatement(long statementUuid) {
 				for(StatementInfo info:executingStatements){
 						if(info.getStatementUuid()==statementUuid){
 								try {
 										info.cancel();
 								} catch (ExecutionException e) {
-										throw new RuntimeException(e);
+										throw new RuntimeException(
+										        String.format("Exception attempting to cancel statement with statementUuid = %s", statementUuid), e);
 								}
-								return;
+								return true;
 						}
 				}
+				return false;
 		}
 
 		public StatementInfo getExecutingStatementByTxnId(String txnId) {
