@@ -10,7 +10,7 @@
 	<parent>
 		<artifactId>spliceengine-mapr4.0</artifactId>
 		<groupId>com.splicemachine</groupId>
-		<version>1.0.0RC3</version>
+		<version>1.0.0RC4</version>
 	</parent>
 
 	<properties>
