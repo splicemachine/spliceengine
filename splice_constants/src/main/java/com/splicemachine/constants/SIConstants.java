@@ -3,6 +3,7 @@ package com.splicemachine.constants;
 import com.splicemachine.encoding.Encoding;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.util.Bytes;
 
 /**
@@ -153,10 +154,32 @@ public class SIConstants extends SpliceConstants {
     @DefaultValue(COMPLETED_TRANSACTION_CACHE_CONCURRENCY) public static final int DEFAULT_COMPLETED_TRANSACTION_CONCURRENCY = 64;
     public static int completedTransactionConcurrency;
 
-    public static void setParameters(Configuration config){
+    public static void setParameters(){
         committingPause = config.getInt(COMMITTING_PAUSE,DEFAULT_COMMITTING_PAUSE);
         transactionTimeout = config.getInt(TRANSACTION_TIMEOUT,DEFAULT_TRANSACTION_TIMEOUT);
+        transactionTimeout = config.getInt(TRANSACTION_TIMEOUT,DEFAULT_TRANSACTION_TIMEOUT);
         transactionKeepAliveInterval = config.getInt(TRANSACTION_KEEP_ALIVE_INTERVAL,DEFAULT_TRANSACTION_KEEP_ALIVE_INTERVAL);
+        /*
+         * The transaction timeout is the length of time (in milliseconds) after which a transaction is considered
+         * unresponsive, and should be removed.
+         *
+         * Generally speaking, we want to allow enough time to make sure that the server is actually dead without
+         * allowing so much time that transactions are left hanging out (and then requiring that we kill
+         * the transaction manually to perform DDL). This is a bit of a balancing act: thankfully, we have
+         * other systems that we configure as well that we can piggy back on to get a good timeout number.
+         *
+         * The ZooKeeper session timeout marks the absolute limit at which we are able to remain alive--if
+         * we go that time period without checking in with ZooKeeper, then the RegionServer is definitely dead. If
+         * the regionserver is dead, then it can't keep transactions alive, and so the transaction can safely time out.
+         * Of course, we want to make sure that the zookeeper timeout definitely happened, so we add some slop
+         * to the timeout window just to be safe.
+         *
+         */
+        int zkTimeout = config.getInt(HConstants.ZK_SESSION_TIMEOUT,HConstants.DEFAULT_ZK_SESSION_TIMEOUT);
+        int configuredTxnTimeout = config.getInt(TRANSACTION_TIMEOUT,DEFAULT_TRANSACTION_TIMEOUT);
+        if(configuredTxnTimeout<zkTimeout)
+            configuredTxnTimeout = (int)(1.5f*zkTimeout); //add some slop factor so that we are sure that zookeeper timed out first
+        transactionTimeout = configuredTxnTimeout;
         int ipcThreads = SpliceConstants.ipcThreads;
         transactionlockStripes = config.getInt(TRANSACTION_LOCK_STRIPES,ipcThreads);
         activeTransactionCacheSize = config.getInt(ACTIVE_TRANSACTION_CACHE_SIZE,DEFAULT_ACTIVE_TRANSACTION_CACHE_SIZE);
