@@ -235,6 +235,7 @@ public class BulkWriteAction implements Callable<WriteStats> {
                             continue;
                         case PARTIAL:
                             partialFailureCounter.increment();
+
                             WriteResponse writeResponse = writeConfiguration.partialFailure(bulkWriteResult,currentBulkWrite);
                             switch (writeResponse) {
                                 case THROW_ERROR:
@@ -267,7 +268,7 @@ public class BulkWriteAction implements Callable<WriteStats> {
                 globalErrorCounter.increment();
                 if(thrown)
                     throw new ExecutionException(e);
-                if (e instanceof RegionTooBusyException) {
+                if (derbyFactory.isRegionTooBusyException(e)) {
                     if(LOG.isTraceEnabled())
                         SpliceLogUtils.trace(LOG, "[%d] Retrying write after receiving a RegionTooBusyException", id);
                     sleeper.sleep(PipelineUtils.getWaitTime(maximumRetries - numAttempts + 1, writeConfiguration.getPause()));

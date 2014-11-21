@@ -3,6 +3,7 @@ package com.splicemachine.derby.hbase;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.net.ConnectException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -33,6 +34,8 @@ import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HServerLoad;
 import org.apache.hadoop.hbase.HServerLoad.RegionLoad;
+import org.apache.hadoop.hbase.NotServingRegionException;
+import org.apache.hadoop.hbase.RegionTooBusyException;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HConnection;
@@ -49,6 +52,7 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.regionserver.RegionServerServices;
+import org.apache.hadoop.hbase.regionserver.WrongRegionException;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
@@ -70,6 +74,7 @@ import com.splicemachine.hase.debug.HBaseEntryPredicateFilter;
 import com.splicemachine.hbase.HBaseRegionLoads;
 import com.splicemachine.hbase.ThrowIfDisconnected;
 import com.splicemachine.pipeline.api.BulkWritesInvoker.Factory;
+import com.splicemachine.pipeline.exception.IndexNotSetUpException;
 import com.splicemachine.pipeline.impl.BulkWritesRPCInvoker;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.Txn.IsolationLevel;
@@ -463,6 +468,37 @@ public class DerbyFactoryImpl implements DerbyFactory<SparseTxn> {
 		@Override
 		public ServerName getServerName(String serverName) {
 			return new ServerName(serverName);
+		}
+
+		@Override
+		public boolean isNotServingRegionException(Throwable t) {
+			return t instanceof NotServingRegionException;
+		}
+
+		@Override
+		public boolean isWrongRegionException(Throwable t) {
+			return t instanceof WrongRegionException;
+
+		}
+
+		@Override
+		public boolean isRegionTooBusyException(Throwable t) {
+			return t instanceof RegionTooBusyException;
+		}
+
+		@Override
+		public boolean isInterruptedException(Throwable t) {
+			return t instanceof InterruptedException;
+		}
+
+		@Override
+		public boolean isConnectException(Throwable t) {
+			return t instanceof ConnectException;
+		}
+
+		@Override
+		public boolean isIndexNotSetupException(Throwable t) {
+			return t instanceof IndexNotSetUpException;
 		}
 
 		

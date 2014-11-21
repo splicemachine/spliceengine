@@ -3,6 +3,7 @@ package com.splicemachine.derby.hbase;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.net.ConnectException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -31,7 +32,9 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.ClusterStatus;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.RegionLoad;
+import org.apache.hadoop.hbase.RegionTooBusyException;
 import org.apache.hadoop.hbase.ServerLoad;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.TableName;
@@ -42,6 +45,7 @@ import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.hbase.ipc.RemoteWithExtrasException;
 import org.apache.hadoop.hbase.ipc.RpcClient;
 import org.apache.hadoop.hbase.master.MasterServices;
 import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
@@ -51,6 +55,7 @@ import org.apache.hadoop.hbase.regionserver.HRegionFileSystem;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.regionserver.RegionServerServices;
+import org.apache.hadoop.hbase.regionserver.WrongRegionException;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
@@ -71,14 +76,11 @@ import com.splicemachine.hbase.HBaseRegionLoads;
 import com.splicemachine.hbase.HBaseServerUtils;
 import com.splicemachine.hbase.debug.HBaseEntryPredicateFilter;
 import com.splicemachine.pipeline.api.BulkWritesInvoker.Factory;
+import com.splicemachine.pipeline.exception.IndexNotSetUpException;
 import com.splicemachine.pipeline.impl.BulkWritesRPCInvoker;
 import com.splicemachine.si.api.TransactionalRegion;
-import com.splicemachine.si.api.Txn.IsolationLevel;
-import com.splicemachine.si.api.Txn.State;
 import com.splicemachine.si.coprocessor.TxnMessage;
-import com.splicemachine.si.coprocessor.TxnMessage.TxnInfo;
 import com.splicemachine.storage.EntryPredicateFilter;
-import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 
@@ -453,5 +455,42 @@ public class DerbyFactoryImpl implements DerbyFactory<TxnMessage.TxnInfo> {
 		public ServerName getServerName(String serverName) {
 			return ServerName.valueOf(serverName);
 		}
+		
+		private boolean isRemoteWithExtras(Throwable t, String className) {
+			if (t instanceof RemoteWithExtrasException &&
+					((RemoteWithExtrasException) t).getClassName() != null &&
+					((RemoteWithExtrasException) t).getClassName().equals(className))
+				return true;
+			return false;
+		}
+		
+		@Override
+		public boolean isNotServingRegionException(Throwable t) {
+			return t instanceof NotServingRegionException || isRemoteWithExtras(t, NotServingRegionException.class.getCanonicalName());
+		}
 
+		@Override
+		public boolean isWrongRegionException(Throwable t) {
+			return t instanceof WrongRegionException || isRemoteWithExtras(t, WrongRegionException.class.getCanonicalName());
+		}
+
+		@Override
+		public boolean isRegionTooBusyException(Throwable t) {
+			return t instanceof RegionTooBusyException || isRemoteWithExtras(t, RegionTooBusyException.class.getCanonicalName());
+		}
+
+		@Override
+		public boolean isInterruptedException(Throwable t) {
+			return t instanceof InterruptedException || isRemoteWithExtras(t, InterruptedException.class.getCanonicalName());
+		}
+
+		@Override
+		public boolean isConnectException(Throwable t) {
+			return t instanceof ConnectException || isRemoteWithExtras(t, ConnectException.class.getCanonicalName());
+		}
+
+		@Override
+		public boolean isIndexNotSetupException(Throwable t) {
+			return t instanceof IndexNotSetUpException || isRemoteWithExtras(t, IndexNotSetUpException.class.getCanonicalName());
+		}
 }

@@ -1,5 +1,7 @@
 package com.splicemachine.pipeline.writer;
 
+import com.splicemachine.derby.hbase.DerbyFactory;
+import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.pipeline.api.WriteConfiguration;
 import com.splicemachine.pipeline.api.WriteRejectedHandler;
 import com.splicemachine.pipeline.api.WriteResponse;
@@ -9,8 +11,11 @@ import com.splicemachine.pipeline.impl.BulkWrites;
 import com.splicemachine.pipeline.writeconfiguration.ForwardingWriteConfiguration;
 import com.splicemachine.tools.SemaphoreValve;
 import com.splicemachine.tools.Valve;
+
 import org.apache.hadoop.hbase.RegionTooBusyException;
+
 import javax.management.*;
+
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -22,6 +27,7 @@ import java.util.concurrent.Future;
  * Created on: 9/6/13
  */
 public class RegulatedWriter implements Writer{
+	private static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
     private final Writer delegate;
     private final WriteRejectedHandler writeRejectedHandler;
     private final Valve valve;
@@ -87,7 +93,7 @@ public class RegulatedWriter implements Writer{
              * length of time, but we ALSO adjust the valve down, suggesting that it halve its allowed writes. This will
              * (hopefully) prevent us from overloading the server again.
              */
-            if(t instanceof RegionTooBusyException)
+            if(derbyFactory.isRegionTooBusyException(t))
                 valve.adjustValve(Valve.SizeSuggestion.HALVE);
 
             return super.globalError(t);

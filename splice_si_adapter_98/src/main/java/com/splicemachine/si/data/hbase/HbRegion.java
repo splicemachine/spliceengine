@@ -102,14 +102,10 @@ public class HbRegion extends BaseHbRegion<SRowLock> {
     }
 
     @Override
-    public SRowLock tryLock(byte[] rowKey) {
-        try {
+    public SRowLock tryLock(byte[] rowKey) throws IOException {
             HRegion.RowLock rowLock = region.getRowLock(rowKey, false);
             if(rowLock == null) return null;
             return new HRowLock(rowLock);
-        } catch (IOException e) {
-            throw new RuntimeException("Unexpected IOException acquiring lock", e);
-        }
     }
 
     private boolean rowExists(byte[] checkBloomFamily, byte[] rowKey) throws IOException {
@@ -122,14 +118,14 @@ public class HbRegion extends BaseHbRegion<SRowLock> {
 
 	@Override
 	public void put(Put put, SRowLock rowLock) throws IOException {
-		region.put(put);		
+		region.put(put);
 	}
 
 	@Override
 	public void put(Put put, boolean durable) throws IOException {
 		if (!durable)
 			put.setDurability(Durability.SKIP_WAL);
-		region.put(put);		
+		region.put(put);
 	}
 
 	@Override
@@ -159,5 +155,5 @@ public class HbRegion extends BaseHbRegion<SRowLock> {
 		}
 		return region.batchMutate(mutations);
 	}
-	
+
 }

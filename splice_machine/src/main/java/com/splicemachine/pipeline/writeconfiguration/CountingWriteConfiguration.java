@@ -30,9 +30,9 @@ public class CountingWriteConfiguration extends ForwardingWriteConfiguration {
         statusReporter.globalFailures.incrementAndGet();
         if(derbyFactory.isCallTimeoutException(t))
             statusReporter.timedOutFlushes.incrementAndGet();
-        else if(t instanceof NotServingRegionException)
+        else if(derbyFactory.isNotServingRegionException(t))
             statusReporter.notServingRegionFlushes.incrementAndGet();
-        else if(t instanceof WrongRegionException)
+        else if(derbyFactory.isWrongRegionException(t))
             statusReporter.wrongRegionFlushes.incrementAndGet();
         return super.globalError(t);
     }

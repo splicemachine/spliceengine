@@ -124,7 +124,14 @@ public class RegionWritePipeline {
 
             pipelineMeters.mark(size-failed,failed);
             return response;
-        }finally{
+        } catch(NotServingRegionException nsre){
+            return new BulkWriteResult(WriteResult.notServingRegion());
+        }catch(RegionTooBusyException rtbe){
+            return new BulkWriteResult(WriteResult.regionTooBusy());
+        }catch(InterruptedIOException iioe){
+            return new BulkWriteResult(WriteResult.interrupted());
+        }
+        finally{
             region.closeRegionOperation();
         }
     }
