@@ -27,6 +27,7 @@
 				<include>com.splicemachine:splice_si-${envClassifier}</include>
 				<include>com.splicemachine:splice_si_adapter_9*-${envClassifier}</include>
 				<include>com.splicemachine:splice_si_test-${envClassifier}</include>
+				<include>com.splicemachine:splice_protocol-${envClassifier}</include>
 				<include>com.splicemachine:splice_machine-${envClassifier}</include>
 				<include>com.splicemachine:splice_machine_adapter_9*-${envClassifier}</include>
 				<include>com.splicemachine:splice_machine_test-${envClassifier}</include>
