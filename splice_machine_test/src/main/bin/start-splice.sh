@@ -109,6 +109,10 @@ if [[ ${UNAME} == CYGWIN* ]]; then
     fi
 fi
 
+#Remove old log files
+rm -f ${SPLICELOGFILE}
+rm -f ${ZOOLOGFILE}
+
 # Start server with retry logic
 ZOO_WAIT_TIME=60
 SPLICE_MAIN_CLASS="com.splicemachine.test.SpliceSinglePlatform"
