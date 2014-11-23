@@ -55,15 +55,15 @@ public abstract class AbstractV1TxnDecoder<TxnInfo,Transaction,Data,Put extends 
     public Transaction decode(SDataLib<Data,Put,Delete,Get,Scan> dataLib, long txnId,Result result) throws IOException {
     	return decodeInternal(dataLib, txnId, dataLib.getColumnLatest(result,FAMILY,OLD_START_TIMESTAMP_COLUMN),
     			dataLib.getColumnLatest(result,FAMILY,OLD_PARENT_COLUMN),
-    			dataLib.getColumnLatest(result,FAMILY, OLD_READ_UNCOMMITTED_COLUMN),
+    			dataLib.getColumnLatest(result,FAMILY,OLD_DEPENDENT_COLUMN),
+        		dataLib.getColumnLatest(result,FAMILY,OLD_ADDITIVE_COLUMN),
+        		dataLib.getColumnLatest(result,FAMILY,OLD_READ_UNCOMMITTED_COLUMN),
         		dataLib.getColumnLatest(result,FAMILY,OLD_READ_COMMITTED_COLUMN),
-        		dataLib.getColumnLatest(result,FAMILY, OLD_STATUS_COLUMN),
+        		dataLib.getColumnLatest(result,FAMILY,OLD_STATUS_COLUMN),
         		dataLib.getColumnLatest(result,FAMILY,OLD_COMMIT_TIMESTAMP_COLUMN),
         		dataLib.getColumnLatest(result,FAMILY,OLD_GLOBAL_COMMIT_TIMESTAMP_COLUMN),
-        		dataLib.getColumnLatest(result,FAMILY, OLD_KEEP_ALIVE_COLUMN),
-        		dataLib.getColumnLatest(result,FAMILY,OLD_WRITE_TABLE_COLUMN),
-        		dataLib.getColumnLatest(result,FAMILY, OLD_DEPENDENT_COLUMN),
-        		dataLib.getColumnLatest(result,FAMILY,OLD_ADDITIVE_COLUMN));
+        		dataLib.getColumnLatest(result,FAMILY,OLD_KEEP_ALIVE_COLUMN),
+        		dataLib.getColumnLatest(result,FAMILY,OLD_WRITE_TABLE_COLUMN));
 
     }
 
