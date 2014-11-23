@@ -10,12 +10,12 @@
 	<parent>
 		<artifactId>spliceengine-cloudera-cdh5.1.3</artifactId>
 		<groupId>com.splicemachine</groupId>
-		<version>1.0.0RC4</version>
+		<version>1.0.0RC5</version>
 	</parent>
 
 	<dependencies>
-		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_machine_adapter_98-cloudera-cdh5.1.3</artifactId> <version>1.0.0RC4</version></dependency>
-		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_machine_adapter_98-cloudera-cdh5.1.3</artifactId> <version>1.0.0RC4</version><classifier>tests</classifier></dependency>
+		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_machine_adapter_98-cloudera-cdh5.1.3</artifactId> <version>1.0.0RC5</version></dependency>
+		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_machine_adapter_98-cloudera-cdh5.1.3</artifactId> <version>1.0.0RC5</version><classifier>tests</classifier></dependency>
 	</dependencies>
 
 	<profiles>

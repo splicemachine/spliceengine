@@ -10,11 +10,11 @@
 	<parent>
 		<artifactId>spliceengine-hdp2.1</artifactId>
 		<groupId>com.splicemachine</groupId>
-		<version>1.0.0RC4</version>
+		<version>1.0.0RC5</version>
 	</parent>
 
 	<dependencies>
-		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_constants-hdp2.1</artifactId> <version>1.0.0RC4</version>
+		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_constants-hdp2.1</artifactId> <version>1.0.0RC5</version>
  <exclusions>
  	<exclusion>
  		<artifactId>asynchbase</artifactId>
