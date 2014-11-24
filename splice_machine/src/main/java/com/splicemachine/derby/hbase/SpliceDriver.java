@@ -23,6 +23,7 @@ import javax.management.MalformedObjectNameException;
 import javax.management.NotCompliantMBeanException;
 import javax.management.ObjectName;
 
+import com.splicemachine.pipeline.exception.Exceptions;
 import org.apache.derby.drda.NetworkServerControl;
 import org.apache.derby.iapi.db.OptimizerTrace;
 import org.apache.derby.iapi.error.StandardException;
@@ -32,6 +33,7 @@ import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.PleaseHoldException;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.ipc.RemoteWithExtrasException;
 import org.apache.log4j.Logger;
 
 import com.google.common.io.Closeables;
@@ -397,11 +399,22 @@ public class SpliceDriver extends SIConstants {
         	SpliceLogUtils.info(LOG, "Waiting for splice schema creation.");
         	return bootDatabase();
         } catch (Exception e) {
-        	// The exception signaling the start of a successfully running Splice Engine will be a SpliceDoNotRetryIOException.
-        	// When this is returned, it means that a connection to HBase and the creation (or previous existence) of the
-        	// "SPLICE_*" tables in HBase has been successful.
-        	// Not exactly sure why we are catching a generic Exception above.  Possibly there are other valid exceptions???
-
+            if(e.getCause() instanceof RemoteWithExtrasException){
+                e = ((RemoteWithExtrasException)e.getCause()).unwrapRemoteException();
+            }
+            if(e instanceof RemoteWithExtrasException){
+                e = ((RemoteWithExtrasException)e).unwrapRemoteException();
+            }
+            if(e instanceof PleaseHoldException){
+                Thread.sleep(5000);
+                SpliceLogUtils.info(LOG,"Waiting for splice schema creation");
+                return bootDatabase();
+            }else {
+                // The exception signaling the start of a successfully running Splice Engine will be a SpliceDoNotRetryIOException.
+                // When this is returned, it means that a connection to HBase and the creation (or previous existence) of the
+                // "SPLICE_*" tables in HBase has been successful.
+                // Not exactly sure why we are catching a generic Exception above.  Possibly there are other valid exceptions???
+								
                 /*
                  * If an upgrade has been forced, we are now finished with it since this bit of code here only runs
                  * on the region servers and we don't ever run upgrade code on region servers.  Only the master server
@@ -410,19 +423,21 @@ public class SpliceDriver extends SIConstants {
                  */
                 SpliceConstants.upgradeForced = false;
 
-        	// Ensure ZK paths exist.
-        	ZkUtils.safeInitializeZooKeeper();
-        	// Initialize the table pool so the UUID generator below can access the SPLICE_SEQUENCES table in HBase.
-        	new SpliceAccessManager();
-        	// Since SPLICE_SEQUENCES table is set up, initialize the UUID generator, so the new Derby connection below
-        	// can execute an upgrade process if requested and create and store new system objects in the data dictionary tables.
-        	loadUUIDGenerator();
+                // Ensure ZK paths exist.
+                ZkUtils.safeInitializeZooKeeper();
+                // Initialize the table pool so the UUID generator below can access the SPLICE_SEQUENCES table in HBase.
+                new SpliceAccessManager();
+                // Since SPLICE_SEQUENCES table is set up, initialize the UUID generator, so the new Derby connection below
+                // can execute an upgrade process if requested and create and store new system objects in the data dictionary tables.
+                loadUUIDGenerator();
 
-            // Create an embedded connection to Derby.  This essentially boots up Derby by creating an internal connection to it.
-        	// External connections to Derby are created later when the Derby network server is started.
-			EmbedConnectionMaker maker = new EmbedConnectionMaker();
-			connection = maker.createNew();
-			return true;
+                // Create an embedded connection to Derby.  This essentially boots up Derby by creating an internal connection to it.
+                // External connections to Derby are created later when the Derby network server is started.
+                EmbedConnectionMaker maker = new EmbedConnectionMaker();
+                connection = maker.createNew();
+
+                return true;
+            }
         } finally{
         	Closeables.close(admin,true);
         }
