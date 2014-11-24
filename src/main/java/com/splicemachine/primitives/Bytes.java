@@ -2,6 +2,7 @@ package com.splicemachine.primitives;
 
 
 import java.nio.ByteOrder;
+import java.util.Arrays;
 import java.util.Collection;
 
 /**
@@ -49,6 +50,11 @@ public class Bytes {
         @Override
         public int compare(byte[] o1, byte[] o2) {
             return compare(o1,0,o1.length,o2,0,o2.length);
+        }
+
+        @Override
+        public boolean isEmpty(byte[] stop) {
+            return stop==null || stop.length==0;
         }
     };
     public static boolean isLittleEndian = ByteOrder.nativeOrder().equals(ByteOrder.LITTLE_ENDIAN);
@@ -176,4 +182,37 @@ public class Bytes {
         }
         return result;
     }
+
+    public static void unsignedIncrement(byte[] array, int index){
+        if(array.length<=0) return; //nothing to do
+        while(index>=0){
+            int value = array[index] & 0xff;
+            if (value == 255) {
+                array[index] = 0;
+                //we've looped past the entry, so increment the next byte in the array
+                index--;
+            } else {
+                array[index]++;
+                return;
+            }
+        }
+        throw new AssertionError("Unable to increment byte[] "+ Arrays.toString(array) +", incrementing would violate sort order");
+    }
+
+    public static void unsignedDecrement(byte[] array, int index){
+        while(index>=0){
+            int value = array[index] & 0xff;
+            if(value ==0){
+                array[index] = (byte)0xff;
+                index--;
+            }else{
+                array[index]--;
+                return;
+            }
+        }
+        throw new AssertionError("Unable to decrement "+ Arrays.toString(array)+", as it would violate sort-order");
+    }
+
+
+
 }

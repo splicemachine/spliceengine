@@ -90,5 +90,84 @@ public class BigEndianBits {
         else return value;
     }
 
+    public static String toHex(byte[] value, int offset, int length){
+        int remaining = length;
+        StringBuilder sb = new StringBuilder();
+        int pos = offset;
+        while(remaining>=8){
+            long v = BigEndianBits.toLong(value, pos);
+            sb = sb.append(Long.toHexString(v));
+            remaining-=8;
+            pos+=8;
+        }
+        if(remaining==0) return sb.toString();
+        if(remaining>=4){
+            //can append an integer
+            int v = BigEndianBits.toInt(value,pos);
+            sb = sb.append(Integer.toHexString(v));
+            pos+=4;
+            remaining-=4;
+        }
+        if(remaining==0) return sb.toString();
+
+        byte b0 = 0,b1 = 0,b2 = 0;
+        switch(remaining){
+            case 3:
+                b2 = value[pos+2];
+            case 2:
+                b1 = value[pos+1];
+            case 1:
+                b0 = value[pos];
+            default:
+        }
+        int v =  (b0 & 0xff)<<24
+                |(b1 & 0xff)<<16
+                |(b2 & 0xff)<<8;
+        sb = sb.append(Integer.toHexString(v));
+        return sb.toString();
+    }
+
+    public static byte[] fromHex(String hex){
+        int remaining = hex.length();
+        int pos = 0;
+        int strPos = 0;
+        byte[] dataSize = new byte[remaining/2]; //there are 2 characters for each byte
+        while(remaining>=16){
+            long next = Long.parseLong(hex.substring(strPos,strPos+16),16);
+            BigEndianBits.toBytes(next,dataSize,pos);
+            pos+=8;
+            strPos+=16;
+            remaining-=16;
+        }
+        if(remaining==0) return dataSize;
+        while(remaining>=8){
+            int next = (int)(Long.parseLong(hex.substring(strPos,strPos+8),16));
+            BigEndianBits.toBytes(next,dataSize,pos);
+            pos+=4;
+            strPos+=8;
+            remaining-=8;
+        }
+        if(remaining==0) return dataSize;
+        int n = Integer.parseInt(hex.substring(strPos),16);
+        /*
+         * we only have part of an integer at this point, so we have to put it in by hand
+         */
+        byte b0=0,b1=0,b2=0;
+        switch(remaining){
+            case 6:
+                b0 = (byte)((n>>24) & 0xff);
+                dataSize[pos] = b0;
+                pos++;
+            case 4:
+                b1 = (byte)((n>>16) & 0xff);
+                dataSize[pos] = b1;
+                pos++;
+            case 2:
+                b2 = (byte)((n>>8) & 0xff);
+                dataSize[pos] = b2;
+            default:
+        }
+        return dataSize;
+    }
 
 }
