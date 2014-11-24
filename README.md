@@ -12,7 +12,7 @@ SpliceSQL Engine
 #### Building all target platforms and running no tests
 `mvn clean install -DskipTests -Pall`
 
-### To build a specific target first `cd` to the platform target parent directory
+### To build a specific target first cd into to the platform target parent directory
 ##### Options are:
 * `cloudera-cdh4.5.0`
 * `cloudera-cdh5.1.3`
@@ -32,6 +32,21 @@ SpliceSQL Engine
 
 #### Build/Install current platform target and run UTs and ITs
 `mvn clean install -PITs -Dexcluded.categories=`
+
+#### Build and then Run splice in a single node hbase cluster using the local filesystem
+* change to the desired platform directory
+* `cd ${platform}`
+* Build Splice for specified platform
+* `mvn clean install -DskipTests`
+* change to the splice_machine_test directory
+* `cd splice_machine_test`
+* Start Zookeeper
+* `mvn exec:exec -PspliceZoo`
+* Open a separate Tab/Window and start Splice Machine database (an HBase Master and RegionServer in the same JVM)
+* `mvn exec:exec -PspliceFast -DfailTasksRandomly=false`
+* Optional, start the splice machine command line (derby's ij)
+* `mvn exec:java -Dij` or if you have rlwrap installed `rlwrap mvn exec:java -Pij`
+
 
 ##### Other notes:
 * All dependencies will be pulled from splice nexus repo (http://nexus.splicemachine.com/nexus/).
