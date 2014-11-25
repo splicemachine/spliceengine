@@ -3,19 +3,14 @@ package com.splicemachine.derby.hbase;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.impl.job.scheduler.SimpleThreadedTaskScheduler;
 import com.splicemachine.pipeline.api.*;
-import com.splicemachine.pipeline.exception.IndexNotSetUpException;
-import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.impl.BulkWrite;
 import com.splicemachine.pipeline.impl.BulkWriteResult;
 import com.splicemachine.pipeline.impl.BulkWrites;
 import com.splicemachine.pipeline.impl.BulkWritesResult;
 import com.splicemachine.pipeline.impl.WriteResult;
 import com.splicemachine.pipeline.utils.PipelineUtils;
-import com.splicemachine.pipeline.writecontextfactory.LocalWriteContextFactory;
 import com.splicemachine.pipeline.writehandler.IndexWriteBufferFactory;
-import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.TransactionalRegions;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -23,21 +18,14 @@ import com.yammer.metrics.core.Meter;
 import com.yammer.metrics.core.MetricName;
 import com.yammer.metrics.core.Timer;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
-import org.apache.hadoop.hbase.NotServingRegionException;
-import org.apache.hadoop.hbase.RegionTooBusyException;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.regionserver.HRegionServer;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
-import org.cliffc.high_scale_lib.NonBlockingHashMap;
+
 import javax.management.*;
 import java.io.IOException;
-import java.io.InterruptedIOException;
 import java.util.*;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -53,7 +41,7 @@ public class SpliceBaseIndexEndpoint {
 		private static final Logger LOG = Logger.getLogger(SpliceBaseIndexEndpoint.class);
 		public static volatile int ipcReserved = 10;
 
-		private static volatile int taskWorkers = SpliceConstants.taskWorkers;
+//		private static volatile int taskWorkers = SpliceConstants.taskWorkers;
 		//private static volatile int flushQueueSizeBlock = SpliceConstants.flushQueueSizeBlock;
 		//private static volatile int compactionQueueSizeBlock = SpliceConstants.compactionQueueSizeBlock;
 
@@ -74,7 +62,8 @@ public class SpliceBaseIndexEndpoint {
 
         int totalPerSecondThroughput = SpliceConstants.maxIndependentWrites;
         int dependentPerSecondThroughput = SpliceConstants.maxDependentWrites;
-        writeControl = new WriteControl(ipcThreads,totalPerSecondThroughput,dependentPerSecondThroughput);
+        writeControl = WriteController.concurrencyWriteControl(ipcThreads,totalPerSecondThroughput,dependentPerSecondThroughput);
+//        writeControl = WriteController.throughputWriteControl(ipcThreads,totalPerSecondThroughput,dependentPerSecondThroughput);
     }
 
 		private static MetricName receptionName = new MetricName("com.splicemachine","receiverStats","time");
@@ -143,7 +132,8 @@ public class SpliceBaseIndexEndpoint {
         boolean dependent = regionWritePipeline.isDependent();
         int kvPairSize = bulkWrites.numEntries();
         int minSize = bulkWrites.smallestBulkWriteSize();
-        int permits = dependent? writeControl.acquireDependentPermits(minSize,kvPairSize): writeControl.acquireIndependentPermits(minSize,kvPairSize);
+        TrafficControl control = dependent? writeControl.dependentControl(): writeControl.independentControl();
+        int permits = control.tryAcquire(minSize,kvPairSize);
         try {
             if(permits<=0){
                 //we cannot write to this
@@ -218,7 +208,7 @@ public class SpliceBaseIndexEndpoint {
             timer.update(System.nanoTime()-start,TimeUnit.NANOSECONDS);
             return result;
         } finally {
-            writeControl.releasePermits(permits);
+            control.release(permits);
         }
     }
 		private void rejectAll(BulkWritesResult result, int numResults) {
