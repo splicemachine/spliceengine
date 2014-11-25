@@ -50,7 +50,7 @@ public class SpliceWriteControl {
     			return Status.INDEPENDENT;
     	}    
     }
-
+    
     public boolean finishIndependentWrite(int writes) {
     	while (true) {
     		WriteStatus state = writeStatus.get();

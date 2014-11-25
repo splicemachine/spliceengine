@@ -17,16 +17,19 @@ import com.splicemachine.utils.SpliceLogUtils;
 import com.yammer.metrics.core.Meter;
 import com.yammer.metrics.core.MetricName;
 import com.yammer.metrics.core.Timer;
+
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import javax.management.*;
+
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Endpoint to allow special batch operations that the HBase API doesn't explicitly enable
@@ -40,30 +43,12 @@ import java.util.concurrent.atomic.AtomicLong;
 public class SpliceBaseIndexEndpoint {
 		private static final Logger LOG = Logger.getLogger(SpliceBaseIndexEndpoint.class);
 		public static volatile int ipcReserved = 10;
-
-//		private static volatile int taskWorkers = SpliceConstants.taskWorkers;
-		//private static volatile int flushQueueSizeBlock = SpliceConstants.flushQueueSizeBlock;
-		//private static volatile int compactionQueueSizeBlock = SpliceConstants.compactionQueueSizeBlock;
-
-    private static final Comparator<BulkWrite> bulkWriteComparator = new Comparator<BulkWrite>() {
-        @Override
-        public int compare(BulkWrite o1, BulkWrite o2) {
-            if (o1.getSize() > o2.getSize())
-                return -1;
-            else if (o1.getSize() < o2.getSize())
-                return 1;
-            return 0;
-        }
-    };
-
-    private static final WriteControl writeControl;
+		private static final SpliceWriteControl writeControl;
     static{
         int ipcThreads = SpliceConstants.ipcThreads-SpliceConstants.taskWorkers-ipcReserved;
-
-        int totalPerSecondThroughput = SpliceConstants.maxIndependentWrites;
-        int dependentPerSecondThroughput = SpliceConstants.maxDependentWrites;
-        writeControl = WriteController.concurrencyWriteControl(ipcThreads,totalPerSecondThroughput,dependentPerSecondThroughput);
-//        writeControl = WriteController.throughputWriteControl(ipcThreads,totalPerSecondThroughput,dependentPerSecondThroughput);
+        int maxIndependentWrites = SpliceConstants.maxIndependentWrites;
+        int maxDependentWrites = SpliceConstants.maxDependentWrites;
+        writeControl = new SpliceWriteControl((int)ipcThreads/2,(int)ipcThreads/2,maxDependentWrites,maxIndependentWrites);
     }
 
 		private static MetricName receptionName = new MetricName("com.splicemachine","receiverStats","time");
@@ -130,12 +115,11 @@ public class SpliceBaseIndexEndpoint {
 //				List<Pair<BulkWriteResult,RegionWritePipeline>> startPoints = Lists.newArrayListWithExpectedSize(size);
         WriteBufferFactory indexWriteBufferFactory = new IndexWriteBufferFactory();
         boolean dependent = regionWritePipeline.isDependent();
-        int kvPairSize = bulkWrites.numEntries();
-        int minSize = bulkWrites.smallestBulkWriteSize();
-        TrafficControl control = dependent? writeControl.dependentControl(): writeControl.independentControl();
-        int permits = control.tryAcquire(minSize,kvPairSize);
+        SpliceWriteControl.Status status = null;
+        int kvPairSize = (int) bulkWrites.getKVPairSize();
         try {
-            if(permits<=0){
+        	status = (dependent)?writeControl.performDependentWrite(kvPairSize):writeControl.performIndependentWrite(kvPairSize);
+            if(status.equals(SpliceWriteControl.Status.REJECTED)){
                 //we cannot write to this
                 rejectAll(result,size);
                 rejectedCount.addAndGet(size);
@@ -152,11 +136,6 @@ public class SpliceBaseIndexEndpoint {
                     if (LOG.isTraceEnabled())
                         SpliceLogUtils.trace(LOG, "endpoint not found for region %s on region %s", bulkWrite.getEncodedStringName(), rce.getRegion().getRegionNameAsString());
                     r = new BulkWriteResult(WriteResult.notServingRegion());
-                }else if(bulkWrite.getSize()>permits){
-                    rejectedCount.incrementAndGet();
-                    //we don't have enough permits to perform this write, so we'll need to back it off
-                    r = new BulkWriteResult(WriteResult.pipelineTooBusy(bulkWrite.getEncodedStringName()));
-                    writePipeline = null;
                 }else{
                     //we might be able to write this one
                     r = new BulkWriteResult();
@@ -165,33 +144,12 @@ public class SpliceBaseIndexEndpoint {
                 writePairMap.put(bulkWrite, Pair.newPair(r, writePipeline));
             }
             assert writePairMap.size()==size: "Some BulkWrites were not added to the writePairMap";
-
-            Collections.sort(toWrite, bulkWriteComparator);
-            int p = 0;
-            int availablePermits = permits;
-            while(availablePermits>0 && p< toWrite.size()){
-                BulkWrite next = toWrite.get(p);
-                if(next.getSize()>availablePermits){
-                    //we ran out of permits, so we should just break
-                    break;
-                }else{
-                    //we can write this one!
-                    Pair<BulkWriteResult,RegionWritePipeline> writePair = writePairMap.get(next);
-                    BulkWriteResult newR = writePair.getSecond().submitBulkWrite(next,indexWriteBufferFactory,writePair.getSecond().getRegionCoprocessorEnvironment());
-                    writePair.setFirst(newR);
-                    availablePermits-=next.getSize();
-                }
-                p++;
+            for (int i =0;i<toWrite.size(); i++) {
+                BulkWrite next = toWrite.get(i);
+                Pair<BulkWriteResult,RegionWritePipeline> writePair = writePairMap.get(next);
+                BulkWriteResult newR = writePair.getSecond().submitBulkWrite(next,indexWriteBufferFactory,writePair.getSecond().getRegionCoprocessorEnvironment());
+                writePair.setFirst(newR);
             }
-            //reject any remaining bulk writes
-            for(int j=p;j<toWrite.size();j++){
-                rejectedCount.incrementAndGet();
-                BulkWrite n = toWrite.get(j);
-                Pair<BulkWriteResult,RegionWritePipeline> writePair = writePairMap.get(n);
-                writePair.getFirst().setGlobalStatus(WriteResult.pipelineTooBusy(n.getEncodedStringName()));
-                writePair.setSecond(null);
-            }
-
             //complete the writes
             for(Map.Entry<BulkWrite,Pair<BulkWriteResult,RegionWritePipeline>> entry:writePairMap.entrySet()){
                 Pair<BulkWriteResult,RegionWritePipeline> pair = entry.getValue();
@@ -208,7 +166,17 @@ public class SpliceBaseIndexEndpoint {
             timer.update(System.nanoTime()-start,TimeUnit.NANOSECONDS);
             return result;
         } finally {
-            control.release(permits);
+        	switch (status) {
+			case REJECTED:
+				break;
+			case DEPENDENT:
+				writeControl.finishDependentWrite(kvPairSize);
+				break;
+			case INDEPENDENT:
+				writeControl.finishIndependentWrite(kvPairSize);						
+				break;
+        
+        	}
         }
     }
 		private void rejectAll(BulkWritesResult result, int numResults) {
@@ -239,50 +207,80 @@ public class SpliceBaseIndexEndpoint {
 
         public static ActiveWriteHandlers get(){ return INSTANCE; }
         @Override public int getIpcReservedPool() { return ipcReserved; }
-        @Override public int getTotalWriteThreads() { return writeControl.maxWriteThreads(); }
-        @Override public int getOccupiedWriteThreads() { return writeControl.getOccupiedThreads(); }
+        @Override public int getMaxDependentWriteThreads() { return writeControl.maxDependentWriteThreads; }
+        @Override public int getMaxIndependentWriteThreads() { return writeControl.maxIndependentWriteThreads; }
+        @Override public int getMaxDependentWriteCount() { return writeControl.maxDependentWriteCount; }
+        @Override public int getMaxIndependentWriteCount() { return writeControl.maxIndependentWriteCount; }
+
         @Override public double getOverallAvgThroughput() { return pipelineMeter.throughput(); }
         @Override public double get1MThroughput() { return pipelineMeter.oneMThroughput(); }
         @Override public double get5MThroughput() { return pipelineMeter.fiveMThroughput(); }
         @Override public double get15MThroughput() { return pipelineMeter.fifteenMThroughput(); }
         @Override public long getTotalRejected() { return rejectedCount.get(); }
-        @Override public int getAvailableIndependentPermits() { return writeControl.getAvailableIndependentPermits(); }
-        @Override public int getAvailableDependentPermits() { return writeControl.getAvailableDependentPermits(); }
 
-        @Override public int getMaxIndependentThroughput() { return writeControl.getMaxIndependentPermits(); }
-
+        
         @Override
-        public void setMaxIndependentThroughput(int newMaxIndependenThroughput) {
-            writeControl.setMaxIndependentPermits(newMaxIndependenThroughput);
+        public void setMaxIndependentWriteThreads(int newMaxIndependentWriteThreads) {
+            writeControl.maxIndependentWriteCount = newMaxIndependentWriteThreads;
         }
 
-        @Override public int getMaxDependentThroughput() { return writeControl.getMaxDependentPermits(); }
+        @Override
+        public void setMaxDependentWriteThreads(int newMaxDependentWriteThreads) {
+            writeControl.maxDependentWriteCount = newMaxDependentWriteThreads;
+        }
 
         @Override
-        public void setMaxDependentThroughput(int newMaxDependentThroughput) {
-            writeControl.setMaxDependentPermits(newMaxDependentThroughput);
+        public void setMaxIndependentWriteCount(int newMaxIndependentWriteCount) {
+            writeControl.maxIndependentWriteCount = newMaxIndependentWriteCount;
         }
+
+        @Override
+        public void setMaxDependentWriteCount(int newMaxDependentWriteCount) {
+            writeControl.maxDependentWriteCount = newMaxDependentWriteCount;
+        }
+
+		@Override
+		public int getDependentWriteCount() {
+			return writeControl.getWriteStatus().get().getDependentWriteCount();
+		}
+
+		@Override
+		public int getDependentWriteThreads() {
+			return writeControl.getWriteStatus().get().getDependentWriteThreads();
+		}
+		@Override
+		public int getIndependentWriteCount() {
+			return writeControl.getWriteStatus().get().getIndependentWriteCount();
+		}
+
+		@Override
+		public int getIndependentWriteThreads() {
+			return writeControl.getWriteStatus().get().getIndependentWriteThreads();
+		}
+
     }
 
     @MXBean
     @SuppressWarnings("UnusedDeclaration")
     public interface ActiveWriteHandlersIface {
         public int getIpcReservedPool();
-        public int getTotalWriteThreads();
-        public int getOccupiedWriteThreads();
+        int getIndependentWriteThreads();
+		int getIndependentWriteCount();
+		int getDependentWriteThreads();
+		int getDependentWriteCount();
+		void setMaxDependentWriteCount(int newMaxDependentWriteCount);
+		void setMaxIndependentWriteCount(int newMaxIndependentWriteCount);
+		void setMaxDependentWriteThreads(int newMaxDependentWriteThreads);
+		void setMaxIndependentWriteThreads(int newMaxIndependentWriteThreads);
+		int getMaxIndependentWriteCount();
+		int getMaxDependentWriteCount();
+		int getMaxIndependentWriteThreads();
+		int getMaxDependentWriteThreads();
         public double getOverallAvgThroughput();
         public double get1MThroughput();
         public double get5MThroughput();
         public double get15MThroughput();
-
         long getTotalRejected();
-        int getMaxIndependentThroughput();
-        void setMaxIndependentThroughput(int newMaxIndependenThroughput);
-        int getMaxDependentThroughput();
-        void setMaxDependentThroughput(int newMaxDependentThroughput);
-        int getAvailableIndependentPermits();
-        int getAvailableDependentPermits();
     }
-
 
 }
