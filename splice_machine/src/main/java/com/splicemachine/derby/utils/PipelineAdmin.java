@@ -32,12 +32,12 @@ import java.util.Map;
  *         Date: 11/14/14
  */
 public class PipelineAdmin extends BaseAdminProcedures{
-    private static final ResultColumnDescriptor[] WRITE_INTAKE_COLUMNS = new ResultColumnDescriptor[]{
+    private static final ResultColumnDescriptor[] WRITE_INTAKE_COLUMNS = new ResultColumnDescriptor[]{    	
             new GenericColumnDescriptor("host",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
-            new GenericColumnDescriptor("totalWriteThreads",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
-            new GenericColumnDescriptor("activeWriteThreads",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
-            new GenericColumnDescriptor("availableIndependentPermits", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
-            new GenericColumnDescriptor("availableDependentPermits", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
+            new GenericColumnDescriptor("depThreads",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
+            new GenericColumnDescriptor("indThreads",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
+            new GenericColumnDescriptor("depCount",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
+            new GenericColumnDescriptor("indCount",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),            
             new GenericColumnDescriptor("avgThroughput",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DOUBLE)),
             new GenericColumnDescriptor("oneMinAvgThroughput",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DOUBLE)),
             new GenericColumnDescriptor("fiveMinAvgThroughput",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DOUBLE)),
@@ -56,11 +56,11 @@ public class PipelineAdmin extends BaseAdminProcedures{
                     template.resetRowArray();
                     DataValueDescriptor[] dvds = template.getRowArray();
                     try{
-                        dvds[0].setValue(connections.get(i).getFirst());
-                        dvds[1].setValue(writeHandler.getTotalWriteThreads());
-                        dvds[2].setValue(writeHandler.getOccupiedWriteThreads());
-                        dvds[3].setValue(writeHandler.getAvailableIndependentPermits());
-                        dvds[4].setValue(writeHandler.getAvailableDependentPermits());
+                        dvds[0].setValue(connections.get(i).getFirst());     
+                        dvds[1].setValue(writeHandler.getDependentWriteThreads());
+                        dvds[2].setValue(writeHandler.getIndependentWriteThreads());
+                        dvds[3].setValue(writeHandler.getDependentWriteCount());
+                        dvds[4].setValue(writeHandler.getIndependentWriteCount());
                         dvds[5].setValue(writeHandler.getOverallAvgThroughput());
                         dvds[6].setValue(writeHandler.get1MThroughput());
                         dvds[7].setValue(writeHandler.get5MThroughput());
@@ -90,8 +90,8 @@ public class PipelineAdmin extends BaseAdminProcedures{
 
     private static final ResultColumnDescriptor[] WRITE_PIPELINE_COLUMNS = new ResultColumnDescriptor[]{
             new GenericColumnDescriptor("host", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
-            new GenericColumnDescriptor("maxIntakeThreads",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
-            new GenericColumnDescriptor("activeIntakeThreads",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
+            new GenericColumnDescriptor("actDepThreads",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
+            new GenericColumnDescriptor("actIndThreads",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
             new GenericColumnDescriptor("maxOutputThreads",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
             new GenericColumnDescriptor("activeOutputThreads",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
             new GenericColumnDescriptor("rejectedIntakeWriteRequests",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
@@ -135,8 +135,8 @@ public class PipelineAdmin extends BaseAdminProcedures{
                         row = buildExecRow(WRITE_PIPELINE_COLUMNS);
                     DataValueDescriptor[] dvds = row.getRowArray();
                     try{
-                        dvds[1].setValue(writeHandler.getTotalWriteThreads());
-                        dvds[2].setValue(writeHandler.getOccupiedWriteThreads());
+                        dvds[1].setValue(writeHandler.getDependentWriteThreads());
+                        dvds[2].setValue(writeHandler.getIndependentWriteThreads());
                         dvds[5].setValue(writeHandler.getTotalRejected());
                         dvds[7].setValue(writeHandler.getOverallAvgThroughput());
                     } catch (StandardException e) {

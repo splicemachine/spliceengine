@@ -430,12 +430,12 @@ public class SpliceConstants {
 
 		
 		@Parameter private static final String MAX_DEPENDENT_WRITES = "splice.client.write.maxDependentWrites";
-		@DefaultValue(MAX_DEPENDENT_WRITES) public static final int DEFAULT_MAX_DEPENDENT_WRITES = 200000;
+		@DefaultValue(MAX_DEPENDENT_WRITES) public static final int DEFAULT_MAX_DEPENDENT_WRITES = 35000;
 		public static int maxDependentWrites;
 
 		
 		@Parameter private static final String MAX_INDEPENDENT_WRITES = "splice.client.write.maxIndependentWrites";
-		@DefaultValue(MAX_INDEPENDENT_WRITES) public static final int DEFAULT_MAX_INDEPENDENT_WRITES = 200000;
+		@DefaultValue(MAX_INDEPENDENT_WRITES) public static final int DEFAULT_MAX_INDEPENDENT_WRITES = 35000;
 		public static int maxIndependentWrites;
 
 		

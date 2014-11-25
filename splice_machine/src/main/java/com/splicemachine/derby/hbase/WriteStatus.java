@@ -47,6 +47,26 @@ public class WriteStatus {
 	}
 
 
+	public int getDependentWriteThreads() {
+		return dependentWriteThreads;
+	}
+
+
+	public int getIndependentWriteThreads() {
+		return independentWriteThreads;
+	}
+
+
+	public int getDependentWriteCount() {
+		return dependentWriteCount;
+	}
+
+
+	public int getIndependentWriteCount() {
+		return independentWriteCount;
+	}
+
+
 	@Override
 	public boolean equals(Object obj) {
 		WriteStatus stat = (WriteStatus) obj;
@@ -55,7 +75,6 @@ public class WriteStatus {
 				this.independentWriteCount == stat.independentWriteCount &&
 				this.independentWriteThreads == stat.independentWriteThreads;
 	}
-	
 	
 	
 }
