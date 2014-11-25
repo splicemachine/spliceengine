@@ -10,11 +10,11 @@
 	<parent>
 		<artifactId>spliceengine-mapr4.0</artifactId>
 		<groupId>com.splicemachine</groupId>
-		<version>1.0.0RC5</version>
+		<version>1.0.0RC6</version>
 	</parent>
 
 	<dependencies>
-		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_machine-mapr4.0</artifactId> <version>1.0.0RC5</version></dependency>
+		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_machine-mapr4.0</artifactId> <version>1.0.0RC6</version></dependency>
 	</dependencies>
 
 	<build>
