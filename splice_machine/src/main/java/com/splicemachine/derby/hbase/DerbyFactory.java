@@ -74,5 +74,6 @@ public interface DerbyFactory<Transaction> {
 	boolean isInterruptedException(Throwable t);
 	boolean isConnectException(Throwable t);
 	boolean isIndexNotSetupException (Throwable t);
+		boolean isPleaseHoldException(Throwable t);
 	
 }

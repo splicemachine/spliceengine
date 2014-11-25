@@ -3,6 +3,7 @@ package com.splicemachine.derby.hbase;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.lang.Override;
 import java.net.ConnectException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -29,15 +30,7 @@ import org.apache.derby.impl.sql.execute.ValueRow;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.ClusterStatus;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.NotServingRegionException;
-import org.apache.hadoop.hbase.RegionLoad;
-import org.apache.hadoop.hbase.RegionTooBusyException;
-import org.apache.hadoop.hbase.ServerLoad;
-import org.apache.hadoop.hbase.ServerName;
-import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.catalog.MetaReader;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HConnection;
@@ -492,5 +485,16 @@ public class DerbyFactoryImpl implements DerbyFactory<TxnMessage.TxnInfo> {
 		@Override
 		public boolean isIndexNotSetupException(Throwable t) {
 			return t instanceof IndexNotSetUpException || isRemoteWithExtras(t, IndexNotSetUpException.class.getCanonicalName());
+		}
+
+		@Override
+		public boolean isPleaseHoldException(Throwable t){
+				if(t.getCause() instanceof RemoteWithExtrasException){
+						t = ((RemoteWithExtrasException)t.getCause()).unwrapRemoteException();
+				}
+				if(t instanceof RemoteWithExtrasException){
+						t = ((RemoteWithExtrasException)t).unwrapRemoteException();
+				}
+				return t instanceof PleaseHoldException;
 		}
 }
