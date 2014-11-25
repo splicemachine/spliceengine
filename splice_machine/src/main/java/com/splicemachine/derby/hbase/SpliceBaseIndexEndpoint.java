@@ -125,7 +125,8 @@ public class SpliceBaseIndexEndpoint {
     }
 
     public void stop(CoprocessorEnvironment env) {
-        regionWritePipeline.close();
+    	if (regionWritePipeline != null)
+    		regionWritePipeline.close();
     }
 
 
