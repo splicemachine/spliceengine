@@ -33,7 +33,6 @@ import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.PleaseHoldException;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.ipc.RemoteWithExtrasException;
 import org.apache.log4j.Logger;
 
 import com.google.common.io.Closeables;
@@ -399,13 +398,7 @@ public class SpliceDriver extends SIConstants {
         	SpliceLogUtils.info(LOG, "Waiting for splice schema creation.");
         	return bootDatabase();
         } catch (Exception e) {
-            if(e.getCause() instanceof RemoteWithExtrasException){
-                e = ((RemoteWithExtrasException)e.getCause()).unwrapRemoteException();
-            }
-            if(e instanceof RemoteWithExtrasException){
-                e = ((RemoteWithExtrasException)e).unwrapRemoteException();
-            }
-            if(e instanceof PleaseHoldException){
+            if(derbyFactory.isPleaseHoldException(e)){
                 Thread.sleep(5000);
                 SpliceLogUtils.info(LOG,"Waiting for splice schema creation");
                 return bootDatabase();

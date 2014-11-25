@@ -3,6 +3,7 @@ package com.splicemachine.derby.hbase;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.lang.Override;
 import java.net.ConnectException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -29,14 +30,8 @@ import org.apache.derby.impl.sql.execute.ValueRow;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.ClusterStatus;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.HServerLoad;
+import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.HServerLoad.RegionLoad;
-import org.apache.hadoop.hbase.NotServingRegionException;
-import org.apache.hadoop.hbase.RegionTooBusyException;
-import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.HTable;
@@ -501,5 +496,9 @@ public class DerbyFactoryImpl implements DerbyFactory<SparseTxn> {
 			return t instanceof IndexNotSetUpException;
 		}
 
+		@Override
+		public boolean isPleaseHoldException(Throwable t){
+				return t instanceof PleaseHoldException;
+		}
 		
 }
