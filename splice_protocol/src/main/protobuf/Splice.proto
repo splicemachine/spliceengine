@@ -4,8 +4,6 @@ option java_generic_services = true;
 option java_generate_equals_and_hash = true;
 option optimize_for = SPEED;
 
-import "Client.proto";
-
 message SpliceSchedulerRequest {
 	optional bytes taskStart = 1;
 	optional bytes taskEnd = 2;
