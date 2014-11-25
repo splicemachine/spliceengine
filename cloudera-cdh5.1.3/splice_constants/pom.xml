@@ -15,7 +15,7 @@
 
 	<properties>
 		<hadoop.version>2.3.0-cdh5.1.3</hadoop.version>
-		<hbase.version>0.98.1-cdh5.1.3-splice1.0.0</hbase.version>
+		<hbase.version>0.98.1-cdh5.1.3-splice1.0.1</hbase.version>
 		<hive.version>0.12.0-cdh5.1.3</hive.version>
 		<zookeeper.version>3.4.5-cdh5.1.3</zookeeper.version>
 	</properties>
