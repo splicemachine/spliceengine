@@ -14,14 +14,7 @@
 	</parent>
 
 	<dependencies>
-		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_si_adapter_98-hdp2.1</artifactId> <version>1.0.0RC5</version>
- <exclusions>
- 	<exclusion>
- 		<artifactId>derbynet</artifactId>
- 		<groupId>org.apache.derby</groupId>
- 	</exclusion>
- </exclusions>
-		</dependency>
+		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_si_adapter_98-hdp2.1</artifactId> <version>1.0.0RC5</version> <exclusions> <exclusion> <artifactId>derbynet</artifactId> <groupId>org.apache.derby</groupId> </exclusion> </exclusions> </dependency>
 	</dependencies>
 
 </project>

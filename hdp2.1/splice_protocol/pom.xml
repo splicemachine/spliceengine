@@ -14,18 +14,7 @@
 	</parent>
 
 	<dependencies>
-		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_constants-hdp2.1</artifactId> <version>1.0.0RC5</version>
- <exclusions>
- 	<exclusion>
- 		<artifactId>asynchbase</artifactId>
- 		<groupId>com.splicemachine</groupId>
- 	</exclusion>
- 	<exclusion>
- 		<artifactId>async</artifactId>
- 		<groupId>com.stumbleupon</groupId> 
- 	</exclusion> 	
- </exclusions>
-		</dependency>
+		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_constants-hdp2.1</artifactId> <version>1.0.0RC5</version> <exclusions> <exclusion> <artifactId>asynchbase</artifactId> <groupId>com.splicemachine</groupId> </exclusion> <exclusion> <artifactId>async</artifactId> <groupId>com.stumbleupon</groupId> </exclusion> </exclusions> </dependency>
 	</dependencies>
 
 	<build>
@@ -46,6 +35,18 @@
 					</execution>
 				</executions>
 			</plugin>
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jar-plugin</artifactId>
+				<configuration>
+					<excludes>
+						<exclude>**/org/apache/hadoop/hbase/protobuf/generated/*Proto*</exclude>
+						<exclude>**/*.proto</exclude>
+					</excludes>
+				</configuration>
+			</plugin>
+
 		</plugins>
 	</build>
 
