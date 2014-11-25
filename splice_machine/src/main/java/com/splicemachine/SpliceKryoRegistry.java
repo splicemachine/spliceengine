@@ -24,6 +24,9 @@ import com.splicemachine.derby.impl.sql.execute.operations.*;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportParams;
 
+import com.splicemachine.hbase.backup.CreateBackupTask;
+import com.splicemachine.hbase.backup.PurgeTransactionsTask;
+import com.splicemachine.hbase.backup.RestoreBackupTask;
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
 
 import org.apache.derby.catalog.types.AggregateAliasInfo;
@@ -229,7 +232,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
 			   * but that's the nature of the beast.
 			   *
 			   *
-			   * CURRENT HIGHEST VALUE: 199
+			   * CURRENT HIGHEST VALUE: 224
 				 */
     	instance.setReferences(false);
         instance.setRegistrationRequired(true);
@@ -797,7 +800,9 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(TransactionReadTask.class, EXTERNALIZABLE_SERIALIZER,218);
         instance.register(PopulateIndexTask.class, EXTERNALIZABLE_SERIALIZER,219);     
         instance.register(DropColumnTask.class, EXTERNALIZABLE_SERIALIZER,220);
-        instance.register(LoadConglomerateTask.class, EXTERNALIZABLE_SERIALIZER,221);        
-        
+        instance.register(LoadConglomerateTask.class, EXTERNALIZABLE_SERIALIZER,221);
+        instance.register(CreateBackupTask.class, EXTERNALIZABLE_SERIALIZER,222);
+        instance.register(RestoreBackupTask.class, EXTERNALIZABLE_SERIALIZER,223);
+        instance.register(PurgeTransactionsTask.class, EXTERNALIZABLE_SERIALIZER,224);
     }
 }
