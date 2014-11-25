@@ -14,7 +14,7 @@
 	</parent>
 
 	<dependencies>
-		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_machine-hdp2.1</artifactId> <version>1.0.0RC5</version></dependency>
+		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_machine-hdp2.1</artifactId> <version>1.0.0RC5</version> </dependency>
 	</dependencies>
 
 	<build>
