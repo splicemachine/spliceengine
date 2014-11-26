@@ -109,14 +109,34 @@ _startSplice() {
     export CLASSPATH
     LOG4J_CONFIG="-Dlog4j.configuration=$LOG4J_PATH"
 
-    SYS_ARGS="-Xmx5g -Xms1g \
-     -XX:MaxPermSize=256M -XX:+CMSClassUnloadingEnabled -XX:+UseConcMarkSweepGC \
-     -Djava.awt.headless=true \
-     ${LOG4J_CONFIG} \
-     -Djava.net.preferIPv4Stack=true \
-     -Dcom.sun.management.jmxremote.ssl=false \
-     -Dcom.sun.management.jmxremote.authenticate=false \
-     -Dcom.sun.management.jmxremote.port=10102"
+
+    SYS_ARGS="-verbose:gc \
+    -Xdebug \
+    ${LOG4J_CONFIG} \
+    -Djava.net.preferIPv4Stack=true \
+    -Djava.awt.headless=true \
+    -Dzookeeper.sasl.client=false \
+    -Dcom.sun.management.jmxremote.ssl=false \
+    -Dcom.sun.management.jmxremote.authenticate=false \
+    -Dcom.sun.management.jmxremote.port=10102 \
+    -Dsplice.authentication=NATIVE \
+    -Xmx8g \
+    -Xms3g \
+    -Xmn128m \
+    -XX:+UseConcMarkSweepGC \
+    -XX:+UseParNewGC \
+    -XX:NewSize=1024m \
+    -XX:MaxNewSize=1024m \
+    -XX:CMSInitiatingOccupancyFraction=70 \
+    -XX:+UseCMSInitiatingOccupancyOnly \
+    -XX:MaxGCPauseMillis=100 \
+    -XX:MaxPermSize=256M \
+    -XX:+CMSClassUnloadingEnabled \
+    -XX:MaxDirectMemorySize=1g \
+    -enableassertions \
+    -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4000 \
+    -Dderby.language.updateSystemProcs=false \
+    -Dderby.language.logStatementText=false"
 
     if [[ -n ${SPLICE_SYS_ARGS} ]]; then
         SYS_ARGS="${SYS_ARGS} ${SPLICE_SYS_ARGS}"
