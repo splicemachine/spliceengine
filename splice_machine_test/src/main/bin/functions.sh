@@ -134,9 +134,9 @@ _startSplice() {
     -XX:+CMSClassUnloadingEnabled \
     -XX:MaxDirectMemorySize=1g \
     -enableassertions \
-    -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4000 \
     -Dderby.language.updateSystemProcs=false \
     -Dderby.language.logStatementText=false"
+	# -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4000
 
     if [[ -n ${SPLICE_SYS_ARGS} ]]; then
         SYS_ARGS="${SYS_ARGS} ${SPLICE_SYS_ARGS}"
