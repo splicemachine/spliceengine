@@ -6,6 +6,7 @@ import com.splicemachine.testutils.GaussianRandom;
 
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Random;
 
 /**
@@ -15,7 +16,7 @@ import java.util.Random;
 public class IntWaveletQuerySolverDistortionMeasure {
 
 		public static void main(String...args){
-				int max = 4;
+				int max = 16;
 //        int max = 8;
 //        int max = 64;
 //				int max = 128;
@@ -25,17 +26,18 @@ public class IntWaveletQuerySolverDistortionMeasure {
 //				int max = 1<<30;
 				int numElements = 10;
 
-//				List<Integer> ints = Arrays.asList(2,2,0,2,3,5,4,4);
+				List<Integer> ints = Arrays.asList(2,2,0,2,3,5,4,4);
+//        List<Integer> ints = Arrays.asList(1,3,5,11,12,13,0,1);
 //				List<Integer> ints = Arrays.asList(0,0,2,2,2,2,2,3,3);
 //				List<Integer> ints = Arrays.asList(-8,-7,-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7);
-//				performAnalysis(new FixedGenerator(ints.iterator()),max);
+				performAnalysis(new FixedGenerator(ints.iterator()),max);
 
 //        performAnalysis(new EnergyGenerator(numElements,new Random(0l),10,new int[]{20,15,10,17,24,30,50,80,112,90,85,95,100,105,120,133,127,110,95,85,50,44,35,27}),max);
 //				performAnalysis(new UniformGenerator(numElements,max,new Random(0l)),max);
-        GaussianGenerator generator = new GaussianGenerator(numElements,max,new Random(0l));
-        while(generator.hasNext()){
-            System.out.println(generator.next().key);
-        }
+//        GaussianGenerator generator = new GaussianGenerator(numElements,max,new Random(0l));
+//        while(generator.hasNext()){
+//            System.out.println(generator.next().key);
+//        }
 //        performAnalysis(new GaussianGenerator(numElements,max,new Random(0l)),max);
 		}
 
@@ -47,7 +49,8 @@ public class IntWaveletQuerySolverDistortionMeasure {
         }
 				IntIntOpenHashMap actualDistribution = new IntIntOpenHashMap();
 
-				IntGroupedCountBuilder builder = IntGroupedCountBuilder.build(0.1f,maxInteger);
+//				IntGroupedCountBuilder builder = IntGroupedCountBuilder.build(0.1f,maxInteger);
+        GroupedCounter builder = new GroupedCounter(maxInteger);
 
 				while(dataGenerator.hasNext()){
 						IntIntPair pair = dataGenerator.next();

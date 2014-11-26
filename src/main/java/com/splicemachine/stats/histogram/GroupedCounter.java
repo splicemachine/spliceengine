@@ -6,9 +6,9 @@ import com.splicemachine.hash.Hash32;
 import com.splicemachine.hash.HashFunctions;
 import com.splicemachine.primitives.MoreArrays;
 import com.splicemachine.stats.IntUpdateable;
+import com.splicemachine.stats.order.IntMinMaxCollector;
 
 import java.util.Arrays;
-import java.util.Random;
 
 /**
  * A grouping counter. This is a an equivalent to the "GroupedCountSketch"
@@ -25,7 +25,11 @@ class GroupedCounter implements IntUpdateable{
      */
     private final Level[] levels;
     private long sum = 0l;
+    private long count = 0l;
     private final int maxValue;
+    private final int lg;
+
+    private final IntMinMaxCollector boundaryCollector;
 
     public static GroupedCounter newCounter(int maxValue,final float tolerance,final int t){
           assert tolerance<1 && tolerance>0: "Tolerance must be between 0 and 1";
@@ -37,24 +41,26 @@ class GroupedCounter implements IntUpdateable{
            };
     }
 
-    private GroupedCounter(int maxValue){
+    GroupedCounter(int maxValue){
         this.maxValue = maxValue;
         //we allow positive and negative values, so we will have maxValue*2 counters,
         //and lg(maxValue) levels
         int N = 1;
-        int lg =1;
+        int lg =0;
         while(N<=maxValue){
             N<<=1;
             lg++;
         }
-        this.levels = new Level[lg-1];
+        this.lg = lg;
+        this.levels = new Level[lg];
         for(int i=0;i<levels.length;i++){
             levels[i] = newLevel(i,lg);
         }
+        this.boundaryCollector = new IntMinMaxCollector();
     }
 
     protected Level newLevel(int level, int lgN){
-        return new ExactLevel(level,lgN-1);
+        return new ExactLevel(level,lgN);
     }
 
     @Override
@@ -64,12 +70,14 @@ class GroupedCounter implements IntUpdateable{
 
     @Override
     public void update(int item, long count) {
-        sum+=item;
+        sum+=count;
         //update each interval independently
         //noinspection ForLoopReplaceableByForEach
         for(int i=0;i<levels.length;i++){
             levels[i].update(item,count);
         }
+        boundaryCollector.update(item);
+        this.count+=count;
     }
 
     @Override
@@ -93,15 +101,27 @@ class GroupedCounter implements IntUpdateable{
 
     public IntDoubleOpenHashMap getCoefficients(double support){
         IntDoubleOpenHashMap coefs = new IntDoubleOpenHashMap();
-        coefs.put(0,((double)sum)/maxValue);
+        double avg = count/Math.sqrt(1<<(lg));
+        coefs.put(0,avg);
         findHighestCoefs(support,0,0,levels,coefs);
         return coefs;
+    }
+
+    public IntRangeQuerySolver build(double threshold){
+        IntDoubleOpenHashMap coefs = getCoefficients(threshold);
+        int min = boundaryCollector.min();
+        int max = boundaryCollector.max();
+        double[] scales = new double[levels.length];
+        for(int i=0;i<levels.length;i++){
+            scales[i] = levels[i].scale;
+        }
+        return new IntWaveletQuerySolver(min,max,this.count,coefs,lg,scales);
     }
 
     private void findHighestCoefs(double threshold,int level, int g, Level[] levels, IntDoubleOpenHashMap coefs) {
         if(level>=levels.length) return;
         double energy = levels[level].getEnergy(g);
-        if(energy>threshold){
+        if(energy>=threshold){
             int coef = (1<<level)+g;
             coefs.put(coef,levels[level].getValue(g));
             findHighestCoefs(threshold, level+1, 2*g, levels, coefs);
@@ -131,7 +151,7 @@ class GroupedCounter implements IntUpdateable{
             this.na = a*2;
             this.nb = b*2;
 
-            scale = Math.sqrt(a);
+            this.scale = Math.sqrt(a);
         }
 
         protected int group(int value) {
@@ -140,7 +160,7 @@ class GroupedCounter implements IntUpdateable{
 
         protected long signedCount(int value,long count) {
             int ng = (int)(na*value+nb);
-            return ng%2==0?count: -count;
+            return ng%2==0?-count: count;
         }
 
         public abstract long[] getEnergies();
@@ -171,7 +191,8 @@ class GroupedCounter implements IntUpdateable{
 
         @Override
         public double getEnergy(int group) {
-            return scale*Math.abs(counters[group]);
+            long counter = counters[group];
+            return scale*counter*counter;
         }
 
         @Override
@@ -302,11 +323,14 @@ class GroupedCounter implements IntUpdateable{
 //        }
 //        System.out.printf("Est. energy: %d%n",estEnergy);
 
-        int[] signal = new int[]{2,2,0,2,3,5,4,4};
-        int N = 8;
+//        int[] signal = new int[]{0,0,2,2,2,2,2,3,3};
+        int[] signal = new int[]{0,1,2,3,4,5,6,7};
+//        int[] count = new int[]{1,3,5,11,12,13,0,1};
+        int[] count = new int[]{2,2,0,2,3,5,4,4};
+        int N =8;
         GroupedCounter exact = new GroupedCounter(N);
-        for(int s:signal){
-            exact.update(s);
+        for(int i=0;i<signal.length;i++){
+            exact.update(signal[i],count[i]);
         }
 
         System.out.println(Arrays.deepToString(exact.getEnergies()));

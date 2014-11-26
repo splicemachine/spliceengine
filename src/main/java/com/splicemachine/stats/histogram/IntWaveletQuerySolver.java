@@ -1,6 +1,8 @@
 package com.splicemachine.stats.histogram;
 
+import com.carrotsearch.hppc.IntDoubleOpenHashMap;
 import com.carrotsearch.hppc.LongDoubleOpenHashMap;
+import com.carrotsearch.hppc.cursors.IntDoubleCursor;
 
 /**
  * @author Scott Fines
@@ -28,6 +30,25 @@ public class IntWaveletQuerySolver implements IntRangeQuerySolver{
 				this.c1 = new WaveletCoefficient(coefficients.get(1),1,scale,lgN);
 				buildCoefficientTree(c1,coefficients,lgN,scale);
 		}
+
+    IntWaveletQuerySolver(int minValue,
+                          int maxValue,
+                          long totalElements,
+                          IntDoubleOpenHashMap coefficients,
+                          int lgN,
+                          double[] scale) {
+        this.minValue = minValue;
+        this.maxValue = maxValue;
+        this.totalElements = totalElements;
+        this.overallAverage = coefficients.get(0);
+
+        LongDoubleOpenHashMap coeffs = LongDoubleOpenHashMap.newInstance();
+        for(IntDoubleCursor cursor:coefficients){
+            coeffs.put(cursor.key,cursor.value);
+        }
+        this.c1 = new WaveletCoefficient(coefficients.get(1),1,scale,lgN);
+        buildCoefficientTree(c1,coeffs,lgN,scale);
+    }
 
 
 		@Override public int min() { return minValue; }
@@ -120,7 +141,7 @@ public class IntWaveletQuerySolver implements IntRangeQuerySolver{
 				 * which are way off. In this case, however, rounding is more accurate than truncation. We use
 				 * abs() to deal with possibly negative values (although negative values will likely round to 0 anyway).
 				 */
-				return Math.abs(Math.round(estimate));
+				return Math.abs((long)estimate);
 		}
 
 		double estimateEquals(int value){
