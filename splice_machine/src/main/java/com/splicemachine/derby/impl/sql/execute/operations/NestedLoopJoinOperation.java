@@ -175,7 +175,9 @@ public class NestedLoopJoinOperation extends JoinOperation {
 		@Override
 		protected void updateStats(OperationRuntimeStats stats) {
             stats.addMetric(OperationMetric.INPUT_ROWS,rowsSeenLeft);
-            stats.addMetric(OperationMetric.OUTPUT_ROWS,timer.getNumEvents());
+            if (timer != null) {
+                stats.addMetric(OperationMetric.OUTPUT_ROWS, timer.getNumEvents());
+            }
             stats.addMetric(OperationMetric.REMOTE_SCAN_ROWS,rowsSeenRight);
             stats.addMetric(OperationMetric.REMOTE_SCAN_BYTES, bytesReadRight);
             stats.addMetric(OperationMetric.REMOTE_SCAN_WALL_TIME, remoteScanWallTime);
