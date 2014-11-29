@@ -24,9 +24,7 @@ class GroupedCounter implements IntUpdateable{
      * The first index is the level, the second index is the group id
      */
     private final Level[] levels;
-    private long sum = 0l;
     private long count = 0l;
-    private final int maxValue;
     private final int lg;
 
     private final IntMinMaxCollector boundaryCollector;
@@ -36,13 +34,12 @@ class GroupedCounter implements IntUpdateable{
            return new GroupedCounter(maxValue){
                @Override
                protected Level newLevel(int level, int lgN) {
-                   return new SketchLevel(level,lgN-1,t,tolerance);
+                   return new SketchLevel(level,lgN,t,tolerance);
                }
            };
     }
 
     GroupedCounter(int maxValue){
-        this.maxValue = maxValue;
         //we allow positive and negative values, so we will have maxValue*2 counters,
         //and lg(maxValue) levels
         int N = 1;
@@ -70,7 +67,6 @@ class GroupedCounter implements IntUpdateable{
 
     @Override
     public void update(int item, long count) {
-        sum+=count;
         //update each interval independently
         //noinspection ForLoopReplaceableByForEach
         for(int i=0;i<levels.length;i++){
@@ -240,20 +236,21 @@ class GroupedCounter implements IntUpdateable{
 
                 h[i] = HashFunctions.murmur3(1<<(i-1));
                 f[i] = HashFunctions.murmur3(3*i+2);
-                eps[i] = HashFunctions.booleanHash(1<<i);
+                eps[i] = HashFunctions.booleanHash(i);
             }
         }
 
         public void update(int value, long count){
             int group = group(value);
+            long cnt = signedCount(value,count);
             for(int m=0;m<t;m++){
                 int hPos = h[m].hash(group) & (b-1);
                 int fPos = f[m].hash(group) & (c-1);
 
                 if(eps[m].hash(group))
-                    s[m][hPos][fPos]-=count;
+                    s[m][hPos][fPos]+=cnt;
                 else
-                    s[m][hPos][fPos]+=count;
+                    s[m][hPos][fPos]-=cnt;
             }
         }
 
@@ -268,7 +265,15 @@ class GroupedCounter implements IntUpdateable{
 
         @Override
         public double getValue(int group) {
-            throw new UnsupportedOperationException("IMPLEMENT");
+            long[] possibleValues = new long[t];
+            for(int m=0;m<t;m++){
+                int hPos = h[m].hash(group) & (b-1);
+                int fPos = f[m].hash(group) & (c-1);
+                possibleValues[m] = s[m][hPos][fPos];
+            }
+//            return MoreArrays.median(possibleValues);
+//            return (long)(Math.sqrt(MoreArrays.min(possibleValues)));
+            return scale*MoreArrays.median(possibleValues);
         }
 
         @Override
@@ -325,15 +330,36 @@ class GroupedCounter implements IntUpdateable{
 
 //        int[] signal = new int[]{0,0,2,2,2,2,2,3,3};
         int[] signal = new int[]{0,1,2,3,4,5,6,7};
-//        int[] count = new int[]{1,3,5,11,12,13,0,1};
-        int[] count = new int[]{2,2,0,2,3,5,4,4};
+        int[] count = new int[]{1,3,5,11,12,13,0,1};
+//        int[] count = new int[]{2,2,0,2,3,5,4,4};
         int N =8;
         GroupedCounter exact = new GroupedCounter(N);
+//        GroupedCounter sketch = GroupedCounter.newCounter(N,0.5f,8);
         for(int i=0;i<signal.length;i++){
             exact.update(signal[i],count[i]);
+//            sketch.update(signal[i], count[i]);
         }
 
-        System.out.println(Arrays.deepToString(exact.getEnergies()));
-        System.out.println(exact.getCoefficients(0.0d));
+//        System.out.println(Arrays.deepToString(exact.getEnergies()));
+//        System.out.println(exact.getCoefficients(0.0d));
+//        System.out.println(Arrays.deepToString(sketch.getEnergies()));
+//        System.out.println(sketch.getCoefficients(0.0d));
+        IntDoubleOpenHashMap coefficients = exact.getCoefficients(0.0d);
+        IntRangeSolver solver = new IntRangeSolver(N<<1, coefficients);
+        System.out.printf("%-10s    %-10s   %-10s   %-10s%n","Actual","Estimated","Diff","Rel. Err");
+        for(int i=0;i<signal.length;i++){
+            long estimate = solver.estimateEquals(signal[i]);
+            long actual = count[i];
+            long diff= Math.abs(actual-estimate);
+            double relError = diff/(double)actual;
+            System.out.printf("%-10d    %-10d   %-10d   %-10f%n",actual,estimate,diff,relError);
+        }
+        for(int i=-8;i<0;i++){
+            long estimate = solver.estimateEquals(i);
+            long actual = 0;
+            long diff= Math.abs(actual-estimate);
+            double relError = diff/(double)actual;
+            System.out.printf("%-10d    %-10d   %-10d   %-10f%n",actual,estimate,diff,relError);
+        }
     }
 }
