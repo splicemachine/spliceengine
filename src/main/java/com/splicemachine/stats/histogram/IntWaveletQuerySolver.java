@@ -19,7 +19,7 @@ public class IntWaveletQuerySolver implements IntRangeQuerySolver{
 		IntWaveletQuerySolver(int minValue,
 													int maxValue,
 												 long totalElements,
-												 LongDoubleOpenHashMap coefficients,
+												 IntDoubleOpenHashMap coefficients,
 												 int lgN,
 												 double[] scale) {
 				this.minValue = minValue;
@@ -27,28 +27,23 @@ public class IntWaveletQuerySolver implements IntRangeQuerySolver{
 				this.totalElements = totalElements;
 				this.overallAverage = coefficients.get(0);
 
-				this.c1 = new WaveletCoefficient(coefficients.get(1),1,scale,lgN);
-				buildCoefficientTree(c1,coefficients,lgN,scale);
+				this.c1 = new WaveletCoefficient(coefficients.get(1),1,lgN);
+				buildCoefficientTree(c1,coefficients,lgN);
 		}
 
-    IntWaveletQuerySolver(int minValue,
-                          int maxValue,
-                          long totalElements,
-                          IntDoubleOpenHashMap coefficients,
-                          int lgN,
-                          double[] scale) {
-        this.minValue = minValue;
-        this.maxValue = maxValue;
-        this.totalElements = totalElements;
-        this.overallAverage = coefficients.get(0);
+		IntWaveletQuerySolver(int minValue,
+													int maxValue,
+													long totalElements,
+													IntDoubleOpenHashMap coefficients,
+													int lgN) {
+				this.minValue = minValue;
+				this.maxValue = maxValue;
+				this.totalElements = totalElements;
+				this.overallAverage = coefficients.get(0);
 
-        LongDoubleOpenHashMap coeffs = LongDoubleOpenHashMap.newInstance();
-        for(IntDoubleCursor cursor:coefficients){
-            coeffs.put(cursor.key,cursor.value);
-        }
-        this.c1 = new WaveletCoefficient(coefficients.get(1),1,scale,lgN);
-        buildCoefficientTree(c1,coeffs,lgN,scale);
-    }
+				this.c1 = new WaveletCoefficient(coefficients.get(1),1,lgN);
+				buildCoefficientTree(c1,coefficients,lgN);
+		}
 
 
 		@Override public int min() { return minValue; }
@@ -144,7 +139,7 @@ public class IntWaveletQuerySolver implements IntRangeQuerySolver{
 				return Math.abs((long)estimate);
 		}
 
-		double estimateEquals(int value){
+		long estimateEquals(int value){
 				double estimate = overallAverage;
 				WaveletCoefficient coef = c1;
 				while(coef!=null){
@@ -157,7 +152,7 @@ public class IntWaveletQuerySolver implements IntRangeQuerySolver{
 								coef = coef.left;
 						}
 				}
-				return estimate;
+				return (long)estimate;
 		}
 
 
@@ -206,9 +201,8 @@ public class IntWaveletQuerySolver implements IntRangeQuerySolver{
 		}
 
 		private void buildCoefficientTree(WaveletCoefficient coef,
-																			LongDoubleOpenHashMap coefficients,
-																			int lgN,
-																			double[] scale) {
+																			IntDoubleOpenHashMap coefficients,
+																			int lgN) {
 				int leftPos = 2*coef.position;
 				int rightPos = leftPos+1;
 
@@ -217,14 +211,14 @@ public class IntWaveletQuerySolver implements IntRangeQuerySolver{
 				 * causing an infinite loop (and thus stack overflow)
 				 */
 				if(leftPos>0 && coefficients.containsKey(leftPos)){
-						WaveletCoefficient left = new WaveletCoefficient(coefficients.get(leftPos),leftPos,scale,lgN);
+						WaveletCoefficient left = new WaveletCoefficient(coefficients.get(leftPos),leftPos,lgN);
 						coef.left = left;
-						buildCoefficientTree(left,coefficients,lgN,scale);
+						buildCoefficientTree(left,coefficients,lgN);
 				}
 				if(rightPos>0 && coefficients.containsKey(rightPos)){
-						WaveletCoefficient right = new WaveletCoefficient(coefficients.get(rightPos),rightPos,scale,lgN);
+						WaveletCoefficient right = new WaveletCoefficient(coefficients.get(rightPos),rightPos,lgN);
 						coef.right = right;
-						buildCoefficientTree(right,coefficients,lgN,scale);
+						buildCoefficientTree(right,coefficients,lgN);
 				}
 		}
 
@@ -235,20 +229,21 @@ public class IntWaveletQuerySolver implements IntRangeQuerySolver{
 				private final double coefficient;
 				private final int position;
 				private final int size;
+				private final double scale;
 
 				private WaveletCoefficient left;
 				private WaveletCoefficient right;
 
 				private WaveletCoefficient(double coefficient,
 																	 int position,
-																	 double[] scales,
 																	 int lgN) {
 						int level = Integer.SIZE-Integer.numberOfLeadingZeros(position)-1;
 						int k = position ^ Integer.highestOneBit(position);
 						this.size = 1<<(lgN-level);
 						this.start = k*size - (1<<(lgN-1));
 						this.stop = start+size;
-						this.coefficient = (coefficient/scales[level])/size;
+						this.scale = Math.sqrt(size);
+						this.coefficient = coefficient/scale;
 						this.position = position;
 						this.midPoint = (stop-start)/2+start;
 				}

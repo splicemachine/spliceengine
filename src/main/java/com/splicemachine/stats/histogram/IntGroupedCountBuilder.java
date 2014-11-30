@@ -64,11 +64,7 @@ public class IntGroupedCountBuilder implements IntUpdateable {
 		}
 
 		public IntRangeQuerySolver build(double threshold){
-				LongDoubleOpenHashMap coefs = findGreaterThan(threshold);
-				return new IntWaveletQuerySolver(
-								boundaryCollector.min(),
-								boundaryCollector.max(),
-								count, coefs,lg,f);
+				throw new UnsupportedOperationException("IMPLEMENT");
 		}
 
 		private LongDoubleOpenHashMap findGreaterThan(double phi) {

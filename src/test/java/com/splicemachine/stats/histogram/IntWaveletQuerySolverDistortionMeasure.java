@@ -50,7 +50,7 @@ public class IntWaveletQuerySolverDistortionMeasure {
 				IntIntOpenHashMap actualDistribution = new IntIntOpenHashMap();
 
 //				IntGroupedCountBuilder builder = IntGroupedCountBuilder.build(0.1f,maxInteger);
-        GroupedCounter builder = new GroupedCounter(maxInteger);
+        IntHaarTransform builder = new IntHaarTransform(maxInteger);
 
 				while(dataGenerator.hasNext()){
 						IntIntPair pair = dataGenerator.next();
