@@ -125,7 +125,7 @@ class IntHaarTransform implements IntUpdateable{
                 final long exactSize = 8*(1<<level);
                 System.out.printf("%d,%d,%f%n",level,exactSize,sketchSize);
                 if(exactSize<=sketchSize){
-                    return new ExactLevel(level,lgN);
+                    return new DenseExactLevel(level,lgN);
                 }else {
                     System.out.printf("using the sketch%n");
                     return new SketchLevel(level, lgN, t, tolerance);
@@ -152,7 +152,7 @@ class IntHaarTransform implements IntUpdateable{
     }
 
     protected Level newLevel(int level, int lgN){
-        return new ExactLevel(level,lgN);
+        return new DenseExactLevel(level,lgN);
     }
 
     @Override
@@ -206,13 +206,33 @@ class IntHaarTransform implements IntUpdateable{
     }
 
     private static abstract class Level{
+        /*multiplicative factor for determining the dyadic interval to which a value belongs*/
         protected final double a;
+        /*Additive factor for determining the dyadic interval to which a value belongs*/
         protected final double b;
+        /*The height of this level in the tree(counting from 0)*/
         protected final int level;
+        /*The total height of the tree--equivalent to lg(N)*/
         protected final int lg;
+        /*
+         * a and b values for the level "below" this in the tree.
+         *
+         * We use these values to determine whether or not a specific
+         * value falls to the left or the right of the midpoint of its respective
+         * dyadic interval (and hence whether or not to make the additive value
+         * positive or negative).
+         *
+         * Theoretically, we could save on extra doubles by storing a reference
+         * to the next Level in the tree directly here, then calling to the
+         * next level to determine what group it should be. However, that would
+         * introduce an awkwardness with accounting for the lowest level, so
+         * we don't worry about it--particularly since it is the counters, and
+         * not these two doubles which are the main memory cost.
+         */
         private final double na;
         private final double nb;
 
+        /*Constant to scale coefficients at this level by*/
         protected final double scale;
 
         protected Level(int level, int lg) {
@@ -231,25 +251,59 @@ class IntHaarTransform implements IntUpdateable{
         }
 
         protected int group(int value) {
+            /*
+             * return the group which owns this value at this level.
+             *
+             * Here "group" is synonymous with "dyadic interval"; this
+             * method finds n such that the interval [n*2^(l-lgN),(n+1)*2^(l-lgN))
+             * contains value (where l is the level in the tree).
+             */
             return (int)(a*value+b);
         }
 
         protected long signedCount(int value,long count) {
+            /*
+             * Adjust the sign of the count based on whether
+             * or not the value is located on the left or
+             * the right of the midpoint of this dyadic interval.
+             */
             int ng = (int)(na*value+nb);
             return ng%2==0?-count: count;
         }
 
+        /*
+         * Get the energy for the specified group
+         */
         public abstract double getEnergy(int group);
 
+        /*
+         * Get the current coefficient value for the specified group
+         */
         public abstract double getValue(int group);
 
+        /*
+         * Update the counter responsible for the specified value
+         */
         public abstract void update(int value, long count);
     }
 
-    private static class ExactLevel extends Level{
+    /*
+     * A dense counter set which uses 1 long for each possible counter,
+     * even if the counter is never used. This is most efficient when all
+     * the following occur:
+     *
+     * 1. There are a relatively small amount of counters
+     * 2. All counters are likely to be used.
+     *
+     * If condition 1 is violated, then using a SketchLevel is more appropriate.
+     */
+    private static class DenseExactLevel extends Level{
+        /*
+         * A dense array of counters
+         */
         private final long[] counters;
 
-        private ExactLevel(int level, int lg){
+        private DenseExactLevel(int level, int lg){
             super(level,lg);
             this.counters = new long[1<<level];
         }
@@ -368,7 +422,7 @@ class IntHaarTransform implements IntUpdateable{
         int[] signal = new int[]{0,1,2,3,4,5,6,7};
 //        int[] count = new int[]{1,3,5,11,12,13,0,1};
         int[] count = new int[]{2,2,0,2,3,5,4,4};
-        int N =1<<24;
+        int N =128;
 //        IntHaarTransform exact = new IntHaarTransform(N);
         IntHaarTransform sketch = IntHaarTransform.newCounter(N,0.01f,3);
         int total=0;
@@ -377,11 +431,11 @@ class IntHaarTransform implements IntUpdateable{
             total+=count[i];
         }
         System.out.printf("Building the sketch");
-        IntRangeQuerySolver solver = sketch.build(0.0001d);
-//        int rangeSize=5;
-//        for(int i=-N;i<=N;i+=rangeSize){
-//            System.out.printf("[%d,%d),est=%d%n",i,i+rangeSize,
-//                    solver.between(i,i+rangeSize,true,false));
-//        }
+        IntRangeQuerySolver solver = sketch.build(0.0);
+        int rangeSize=5;
+        for(int i=-N;i<=N;i+=rangeSize){
+            System.out.printf("[%d,%d),est=%d%n",i,i+rangeSize,
+                    solver.between(i,i+rangeSize,true,false));
+        }
     }
 }

@@ -125,42 +125,16 @@ class IntRangeSolver implements IntRangeQuerySolver{
         return maxObserved;
     }
 
-    /**
-     * Measures the number of records found in the range [a,b).
-     *
-     * @param a the start of the range
-     * @param b the end of the range
-     * @return the number of elements found in the range [a,b)
-     * @throws java.lang.AssertionError if {@code a > b}
-     */
-    public long estimateBetween(int a, int b){
-        if(a>maxObserved) return 0l; //we didn't see any for sure
-        else if(a==maxObserved) return estimateEquals(a); //we only found elements == max
+    /*******************************************************************/
+    /*private helper methods*/
 
-        if(b<=minObserved) return 0l; //can only find values <b
-
-        if(a==b) return estimateEquals(a);
+    private long estimateBetween(int a, int b){
         assert a<b : "b<a!";
 
-        long sum = 0;
-        if(b>maxObserved) {
-            sum += estimateEquals(maxObserved);
-            b=maxObserved;
-        }
-
-        if(a<minObserved)
-            a = minObserved;
-
-        double betweenEst = sum+(b-a)*avg+levels[0].estimateBetween(a,b);
+        double betweenEst = (b-a)*avg+levels[0].estimateBetween(a,b);
         return (long)betweenEst;
     }
 
-    protected Level newLevel(int lg, int level) {
-        return new Level(lg,level);
-    }
-
-    /*******************************************************************/
-    /*private helper methods*/
     private Level[] buildLevels(int N) {
         int lg =0;
         int s = 1;
@@ -170,7 +144,7 @@ class IntRangeSolver implements IntRangeQuerySolver{
         }
         Level[] levels= new Level[lg];
         for(int i=0;i<levels.length;i++){
-            levels[i] = newLevel(lg,i);
+            levels[i] = new Level(lg,i);
         }
         return levels;
     }
@@ -185,42 +159,69 @@ class IntRangeSolver implements IntRangeQuerySolver{
     }
 
     private class Level{
-        private final int signDrop;
-        private final double levelShift;
+        /*the length of the dyadic intervals at this level*/
+        private final int groupSize;
+        /*The shift to apply when computing the group*/
+        private final double positionalShift;
+        /*Constant to scale coefficients by*/
         private final double scale;
+        /*Shift for finding the proper coefficient*/
         private final int levelPow;
+        /*The height of this level in the tree(counting from 0)*/
         private final int level;
 
         public Level(int lg, int level) {
             this.levelPow = 1<<level;
             this.level = level;
 
-            signDrop = 1<<(lg-level);
-            if(level==0) levelShift=1d/2;
-            else levelShift = 1<<(level-1);
-            scale = Math.sqrt(signDrop);
+            groupSize = 1<<(lg-level);
+            if(level==0) positionalShift =1d/2;
+            else positionalShift = levelPow>>1;
+            scale = Math.sqrt(groupSize);
         }
 
         private boolean signum(int n){
            /*
-            * represents the k_l(n) function
+            * represents the k_l(n) function. Determines
+            * the sign of the added coefficient. When this
+            * returns true, then the coefficient is positive.
+            * Otherwise, the coefficient is negative.
             */
-            return ((n+posShift)/(signDrop>>1)+1)%2!=0;
+            return ((n+posShift)/(groupSize >>1)+1)%2!=0;
         }
 
         private int group(int n){
             /*
-             * represents the g_l(n) function
+             * represents the g_l(n) function. Finds
+             * the group for a specific value
              */
-            return (int)(n/(double)signDrop+levelShift);
+            return (int)(n/(double) groupSize + positionalShift);
         }
 
         private int startValue(int group){
-            double s = group-levelShift;
-            s*=signDrop;
+            /*
+             * Finds the smallest value n such that
+             * group(n) = group.
+             *
+             * Because group(n) uses a floor function,
+             * we can just reverse the algebra of
+             * the group() function here.
+             */
+            double s = group- positionalShift;
+            s*= groupSize;
             return (int)s;
         }
 
+        /*
+         * Estimate the frequency of elements
+         * which fit within the interval [a,b).
+         *
+         * This uses recursion, but the maximum stack size
+         * is the height of the tree, which is lg(N). Since we
+         * are working only with integers here, lg(N) is at most
+         * 32, so the max call stack is only 32; hence, StackOverflowErrors
+         * are not a concern here.
+         */
         private double estimateBetween(int a, int b){
             /*
              * We set it up so that [a,b) will belong in the same
@@ -230,7 +231,7 @@ class IntRangeSolver implements IntRangeQuerySolver{
              */
             int group = group(a);
             int start = startValue(group);
-            int stop = start+signDrop;
+            int stop = start+ groupSize;
             if(a==start && b ==stop) return 0;
 
             int midPoint = (start+stop)/2;
@@ -241,29 +242,33 @@ class IntRangeSolver implements IntRangeQuerySolver{
                  * fit entirely to the right of the midpoint. In this case,
                  * we add (b-a)*coef to the sum of the lower dyadic range values
                  */
-                return estimateNextLevel(a,b)+(b-a)*coef;
+                return betweenNextLevel(a, b)+(b-a)*coef;
             }else if(b<=midPoint){
                 /*
                  * we know that [a,b) fits entirely to the left of the midpoint.
                  * In this case, we subtract (b-a)*coef from the sum of the
                  * lower dyadic range values
                  */
-                return estimateNextLevel(a,b)-(b-a)*coef;
+                return betweenNextLevel(a, b)-(b-a)*coef;
             }else{
                 /*
                  * we straddle the midpoint. In this case, we subtract
                  * the value of (mid-a), and add (b-mid), plus lower values on
                  * each side
                  */
-                double sum = estimateNextLevel(a, midPoint);
+                double sum = betweenNextLevel(a, midPoint);
                 sum-=(midPoint-a)*coef;
-                sum+=estimateNextLevel(midPoint,b);
+                sum+= betweenNextLevel(midPoint, b);
                 sum+=(b-midPoint)*coef;
                 return sum;
             }
         }
 
-        private double estimateNextLevel(int a, int b) {
+        private double betweenNextLevel(int a, int b) {
+            /*
+             * Recursive call to estimate the value of [a,b)
+             * at the next level down in the tree.
+             */
             if(level==levels.length-1) return 0;
             Level next = levels[level+1];
             return next.estimateBetween(a,b);
