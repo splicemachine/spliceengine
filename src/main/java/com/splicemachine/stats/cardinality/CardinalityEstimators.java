@@ -225,11 +225,6 @@ public class CardinalityEstimators {
 				private IntHyperLogLog(BaseLogLogCounter counter) { this.counter = counter; }
 				@Override public long getEstimate() { return counter.getEstimate(); }
 
-				@Override
-				public void done() {
-					//no-op
-				}
-
 				@Override public void update(int item) { update(item,1l); }
 				@Override public void update(int item, long count) { counter.update(item,count); }
 

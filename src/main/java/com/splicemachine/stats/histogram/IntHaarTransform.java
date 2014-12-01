@@ -1,7 +1,6 @@
 package com.splicemachine.stats.histogram;
 
 import com.carrotsearch.hppc.IntDoubleOpenHashMap;
-import com.splicemachine.hash.BooleanHash;
 import com.splicemachine.hash.Hash32;
 import com.splicemachine.hash.HashFunctions;
 import com.splicemachine.primitives.MoreArrays;
@@ -118,19 +117,19 @@ class IntHaarTransform implements IntUpdateable{
 
     public static IntHaarTransform newCounter(int maxValue,final float tolerance,final int t){
         assert tolerance<1 && tolerance>0: "Tolerance must be between 0 and 1";
-        final double sketchSize = 8*t/(Math.pow(tolerance,3));
+        final double sketchSize = 8*t/(Math.pow(tolerance,3))+8*t/tolerance;
         return new IntHaarTransform(maxValue){
 
             @Override
-            protected Level newLevel(int level, int lgN) {
-                final long exactSize = 8*(1<<level);
-                System.out.printf("%d,%d,%f%n",level,exactSize,sketchSize);
+            protected CounterSet newCounterSet(int level) {
+                final long exactSize = 8l*(1<<level);
+                CounterSet counter;
                 if(exactSize<=sketchSize){
-                    return new DenseExactLevel(level,lgN);
+                    counter = new DenseExactCounterSet(level);
                 }else {
-                    System.out.printf("using the sketch%n");
-                    return new SketchLevel(level, lgN, t, tolerance);
+                    counter = new GroupCountSketch(t, tolerance);
                 }
+                return counter;
             }
         };
     }
@@ -140,20 +139,20 @@ class IntHaarTransform implements IntUpdateable{
         //and lg(maxValue) levels
         int N = 1;
         int lg =0;
-        while(N<=maxValue){
+        while(N<=maxValue && N>0){
             N<<=1;
             lg++;
         }
         this.lg = lg;
         this.levels = new Level[lg];
         for(int i=0;i<levels.length;i++){
-            levels[i] = newLevel(i,lg);
+            levels[i] = new Level(i,lg,newCounterSet(i));
         }
         this.boundaryCollector = new IntMinMaxCollector();
     }
 
-    protected Level newLevel(int level, int lgN){
-        return new DenseExactLevel(level,lgN);
+    protected CounterSet newCounterSet(int level){
+        return new DenseExactCounterSet(level);
     }
 
     @Override
@@ -206,7 +205,7 @@ class IntHaarTransform implements IntUpdateable{
         }
     }
 
-    private static abstract class Level{
+    private static class Level{
         /*multiplicative factor for determining the dyadic interval to which a value belongs*/
         protected final double a;
         /*Additive factor for determining the dyadic interval to which a value belongs*/
@@ -236,7 +235,9 @@ class IntHaarTransform implements IntUpdateable{
         /*Constant to scale coefficients at this level by*/
         protected final double scale;
 
-        protected Level(int level, int lg) {
+        private final CounterSet counter;
+
+        protected Level(int level, int lg,CounterSet counterSet) {
             this.level = level;
             this.lg = lg;
             this.a = 1d/(1<<(lg-level));
@@ -249,6 +250,21 @@ class IntHaarTransform implements IntUpdateable{
             this.nb = b*2;
 
             this.scale = Math.sqrt(a);
+            this.counter = counterSet;
+        }
+
+        public void update(int value, long count){
+            int group = group(value);
+            long cnt = signedCount(value,count);
+            counter.update(group,value,cnt);
+        }
+
+        public double getEnergy(int group) {
+            return scale*counter.energy(group);
+        }
+
+        public double getValue(int group) {
+            return scale*counter.value(group);
         }
 
         protected int group(int value) {
@@ -272,150 +288,120 @@ class IntHaarTransform implements IntUpdateable{
             return ng%2==0?-count: count;
         }
 
-        /*
-         * Get the energy for the specified group
-         */
-        public abstract double getEnergy(int group);
-
-        /*
-         * Get the current coefficient value for the specified group
-         */
-        public abstract double getValue(int group);
-
-        /*
-         * Update the counter responsible for the specified value
-         */
-        public abstract void update(int value, long count);
     }
 
-    /*
-     * A dense counter set which uses 1 long for each possible counter,
-     * even if the counter is never used. This is most efficient when all
-     * the following occur:
-     *
-     * 1. There are a relatively small amount of counters
-     * 2. All counters are likely to be used.
-     *
-     * If condition 1 is violated, then using a SketchLevel is more appropriate.
-     */
-    private static class DenseExactLevel extends Level{
-        /*
-         * A dense array of counters
-         */
-        private final long[] counters;
+    private static interface CounterSet{
 
-        private DenseExactLevel(int level, int lg){
-            super(level,lg);
+        double energy(int group);
+        void update(int group, int value, long count);
+        double value(int group);
+    }
+
+    private static class DenseExactCounterSet implements CounterSet{
+        private long[] counters;
+
+        public DenseExactCounterSet(int level) {
             this.counters = new long[1<<level];
         }
 
         @Override
-        public void update(int value, long count){
-            int group = group(value);
-            long cnt = signedCount(value,count);
-            counters[group]+=cnt;
-        }
-
-        @Override
-        public double getEnergy(int group) {
+        public double energy(int group) {
             long counter = counters[group];
-            return scale*counter*counter;
+            return counter*counter;
         }
 
         @Override
-        public double getValue(int group) {
-            return scale*counters[group];
+        public void update(int group, int value, long count) {
+            counters[group]+=count;
+        }
+
+        @Override
+        public double value(int group) {
+            return counters[group];
         }
     }
 
-    private static class SketchLevel extends Level{
-
+    private static class GroupCountSketch implements CounterSet{
         private final int t;
         private final int b;
         private final int c;
 
-        private final long[][][] s;
-
         private final Hash32[] h;
         private final Hash32[] f;
-        private final BooleanHash[] eps;
 
-        public SketchLevel(int level, int lg,int t, float epsilon){
-            super(level,lg);
+        private final long[][][] s;
+        private final long[][] values;
+
+        public GroupCountSketch(int t, float epsilon) {
             this.t = t;
+            float temp = 1/epsilon;
+            int _b = 1;
+            while(_b<temp)
+                _b<<=1;
+            this.b = _b;
+            temp /=epsilon;
 
-            float size = 1/epsilon;
-            int temp = 1;
-            while(temp<size)
-                temp<<=1;
-            this.b = temp;
-            size/=epsilon;
-            while(temp<size){
-                temp<<=1;
+            _b=1;
+            while(_b<temp){
+                _b<<=1;
             }
-            this.c = temp;
+            this.c = _b;
 
             this.s = new long[t][][];
+            this.values = new long[t][];
             this.h = new Hash32[t];
             this.f = new Hash32[t];
-            this.eps = new BooleanHash[t];
             for(int i=0;i<t;i++){
+                this.values[i] = new long[b];
                 s[i] = new long[b][];
                 for(int j=0;j<b;j++){
                     s[i][j] = new long[c];
                 }
 
-                h[i] = HashFunctions.murmur3(1<<(i-1));
+                h[i] = HashFunctions.murmur3(i);
                 f[i] = HashFunctions.murmur3(3*i+2);
-                eps[i] = HashFunctions.booleanHash(i);
-            }
-        }
-
-        public void update(int value, long count){
-            int group = group(value);
-            long cnt = signedCount(value,count);
-            for(int m=0;m<t;m++){
-                int hPos = h[m].hash(group) & (b-1);
-                int fPos = f[m].hash(group) & (c-1);
-
-                if(eps[m].hash(group))
-                    s[m][hPos][fPos]+=cnt;
-                else
-                    s[m][hPos][fPos]-=cnt;
             }
         }
 
         @Override
-        public double getValue(int group) {
+        public double energy(int group) {
             long[] possibleValues = new long[t];
-            for(int m=0;m<t;m++){
-                int hPos = h[m].hash(group) & (b-1);
-                int fPos = f[m].hash(group) & (c-1);
-                possibleValues[m] = s[m][hPos][fPos];
-            }
-            return scale*MoreArrays.median(possibleValues);
-        }
-
-        @Override
-        public double getEnergy(int group) {
-            return scale*estimateEnergy(group);
-        }
-
-        public long estimateEnergy(int group) {
-            long[] possibleValues = new long[t];
-            for(int m=0;m<t;m++){
+            for(int i=0;i<t;i++){
                 long energy = 0l;
-                int hPos = h[m].hash(group) & (b-1);
+                int hPos = h[i].hash(group) & (b-1);
                 for(int j=0;j<c;j++){
-                    long l = s[m][hPos][j];
-                    energy+= l*l;
+                    long l = s[i][hPos][j];
+                    energy+=l*l;
                 }
-                possibleValues[m] = energy;
+                possibleValues[i] = energy;
             }
-            return (long)(Math.sqrt(MoreArrays.median(possibleValues)));
+
+            return Math.sqrt(MoreArrays.median(possibleValues));
+        }
+
+        @Override
+        public void update(int group, int value, long count) {
+            for(int i=0;i<t;i++){
+                int hPos = h[i].hash(group) & (b-1);
+                int fPos = f[i].hash(value) & (c-1);
+                if(h[i].hash(value)%2==0)
+                    s[i][hPos][fPos] +=count;
+                else
+                    s[i][hPos][fPos] -=count;
+                values[i][hPos] +=count;
+            }
+        }
+
+        @Override
+        public double value(int group) {
+            long[] possibleValues = new long[t];
+
+            for(int i=0;i<t;i++){
+                possibleValues[i] = values[i][h[i].hash(group)&(b-1)];
+            }
+            return MoreArrays.min(possibleValues);
         }
     }
-
 
     public static void main(String... args) throws Exception{
 
@@ -423,17 +409,17 @@ class IntHaarTransform implements IntUpdateable{
         int[] signal = new int[]{0,1,2,3,4,5,6,7};
 //        int[] count = new int[]{1,3,5,11,12,13,0,1};
         int[] count = new int[]{2,2,0,2,3,5,4,4};
-        int N =128;
+        int N =8;
 //        IntHaarTransform exact = new IntHaarTransform(N);
-        IntHaarTransform sketch = IntHaarTransform.newCounter(N,0.01f,3);
+        IntHaarTransform sketch = IntHaarTransform.newCounter(N,0.01f,5);
         int total=0;
         for(int i=0;i<signal.length;i++){
             sketch.update(signal[i], count[i]);
             total+=count[i];
         }
-        System.out.printf("Building the sketch");
+        System.out.printf("Building the sketch%n");
         IntRangeQuerySolver solver = sketch.build(0.0);
-        int rangeSize=5;
+        int rangeSize=1;
         for(int i=-N;i<=N;i+=rangeSize){
             System.out.printf("[%d,%d),est=%d%n",i,i+rangeSize,
                     solver.between(i,i+rangeSize,true,false));

@@ -1,7 +1,10 @@
 package com.splicemachine.stats.histogram;
 
+import com.carrotsearch.hppc.IntDoubleOpenHashMap;
 import com.carrotsearch.hppc.IntIntOpenHashMap;
+import com.carrotsearch.hppc.IntLongOpenHashMap;
 import com.carrotsearch.hppc.cursors.IntIntCursor;
+import com.google.common.base.Strings;
 import com.splicemachine.testutils.GaussianRandom;
 
 import java.util.Arrays;
@@ -16,24 +19,24 @@ import java.util.Random;
 public class IntWaveletQuerySolverDistortionMeasure {
 
 		public static void main(String...args){
-				int max = 16;
+//				int max = 16;
 //        int max = 8;
 //        int max = 64;
 //				int max = 128;
 //				int max = 256;
 //				int max = 512;
 //				int max = 65536;
-//				int max = 1<<30;
-				int numElements = 10;
+				int max = Integer.MAX_VALUE;
+				int numElements = 10000000;
 
-				List<Integer> ints = Arrays.asList(2,2,0,2,3,5,4,4);
+//				List<Integer> ints = Arrays.asList(2,2,0,2,3,5,4,4);
 //        List<Integer> ints = Arrays.asList(1,3,5,11,12,13,0,1);
 //				List<Integer> ints = Arrays.asList(0,0,2,2,2,2,2,3,3);
 //				List<Integer> ints = Arrays.asList(-8,-7,-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7);
-				performAnalysis(new FixedGenerator(ints.iterator()),max);
+//				performAnalysis(new FixedGenerator(ints.iterator()),max);
 
 //        performAnalysis(new EnergyGenerator(numElements,new Random(0l),10,new int[]{20,15,10,17,24,30,50,80,112,90,85,95,100,105,120,133,127,110,95,85,50,44,35,27}),max);
-//				performAnalysis(new UniformGenerator(numElements,max,new Random(0l)),max);
+				performAnalysis(new UniformGenerator(numElements,max,new Random()),max);
 //        GaussianGenerator generator = new GaussianGenerator(numElements,max,new Random(0l));
 //        while(generator.hasNext()){
 //            System.out.println(generator.next().key);
@@ -42,15 +45,18 @@ public class IntWaveletQuerySolverDistortionMeasure {
 		}
 
 		protected static void performAnalysis(Iterator<IntIntPair> dataGenerator,int maxInteger) {
-        int max = 2*maxInteger;
+				printFreeMemory();
+				int max = 2*maxInteger;
         if(max<maxInteger){
             //integer overflow
             max = Integer.MAX_VALUE;
         }
 				IntIntOpenHashMap actualDistribution = new IntIntOpenHashMap();
 
-//				IntGroupedCountBuilder builder = IntGroupedCountBuilder.build(0.1f,maxInteger);
-        IntHaarTransform builder = new IntHaarTransform(maxInteger);
+        IntHaarTransform builder = IntHaarTransform.newCounter(maxInteger, .1f, 3);
+				printFreeMemory();
+//				IntHaarTransform builder = IntHaarTransform.newCounter(maxInteger, 0.01f, 0.1f);
+//				IntHaarTransform builder = new IntHaarTransform(maxInteger);
 
 				while(dataGenerator.hasNext()){
 						IntIntPair pair = dataGenerator.next();
@@ -58,28 +64,34 @@ public class IntWaveletQuerySolverDistortionMeasure {
 						builder.update(pair.key,pair.count);
 				}
 
-				IntWaveletQuerySolver querySolver = (IntWaveletQuerySolver)builder.build(0.0d);//build the full thingy
+				System.out.print("Building query solver...");
+				long nt = System.nanoTime();
+				IntRangeQuerySolver querySolver = builder.build(10d);//build the full thingy
+				nt = System.nanoTime()-nt;
+				System.out.printf("done in %f sec%n",((double)nt)/1000d/1000d);
+				printFreeMemory();
 
-				long[] estimated = new long[max];
-				double[] rawEstimates = new double[max];
-				long[] diffs = new long[max];
-				double[] relDiffs = new double[max];
+				IntLongOpenHashMap estimated = new IntLongOpenHashMap(actualDistribution.size(),0.99f);
+				IntDoubleOpenHashMap relDiffs = new IntDoubleOpenHashMap(actualDistribution.size(),0.99f);
+
+//				long[] estimated = new long[max];
+//				long[] diffs = new long[max];
+//				double[] relDiffs = new double[max];
 				for(IntIntCursor entry:actualDistribution){
 						int value = entry.key;
 						int count = entry.value;
 
 						long estimate = querySolver.equal(value);
-						double rawEstimate = querySolver.estimateEquals(value);
 
 						long diff = Math.abs(estimate-count);
 						double relDiff = ((double)diff)/count;
-						diffs[value+maxInteger] = diff;
-						relDiffs[value+maxInteger] = relDiff;
-						estimated[value+maxInteger] = estimate;
-						rawEstimates[value+maxInteger] = rawEstimate;
+//						diffs[value+maxInteger] = diff;
+						relDiffs.put(value,relDiff);
+//						relDiffs[value+maxInteger] = relDiff;
+						estimated.put(value,estimate);
 				}
 
-				System.out.printf("%-10s\t%10s\t%10s\t%10s\t%10s\t%10s%n", "element", "correct", "estimated", "rawEstimate", "diff", "relDiff");
+//				System.out.printf("%-10s\t%10s\t%10s\t%10s\t%10s\t%10s%s%n", "element", "correct", "estimated", "rawEstimate", "diff", "relDiff","diffHist");
 
 				double maxRelError = 0.0d;
 				int maxErrorElement = 0;
@@ -88,50 +100,54 @@ public class IntWaveletQuerySolverDistortionMeasure {
 
 				long maxAbsError = 0l;
 				int maxAbsErrorElement = 0;
-				for(int i=0;i<diffs.length;i++){
-						int pos = i-maxInteger;
-						int actual = actualDistribution.get(pos);
-						long estimate = estimated[i];
-						double rawEstimate = rawEstimates[i];
-						long diff = diffs[i];
-						double relDiff = relDiffs[i];
+				for(IntIntCursor entry:actualDistribution){
+						int actual = entry.value;
+						long estimate = estimated.get(entry.key);
+						double relDiff = relDiffs.get(entry.key);
 //						if((i&127)==0)
-								System.out.printf("%-10d\t%10d\t%10d\t%10f\t%10d%10f%n",pos,actual,estimate,rawEstimate,diff,relDiff);
+//						String symbol = diff<0? "-": "+";
+//								System.out.printf("%-10d\t%10d\t%10d\t%10f\t%10d%10f\t%s%n",pos,actual,estimate,rawEstimate,diff,relDiff, Strings.repeat(symbol, (int) diff));
 
-						if(diff>maxAbsError){
-								maxAbsError = diff;
-								maxAbsErrorElement = pos;
-						}
+//						if(r>maxAbsError){
+//								maxAbsError = diff;
+//								maxAbsErrorElement = pos;
+//						}
 						if(relDiff>maxRelError){
 								maxRelError = relDiff;
-								maxErrorElement = pos;
+								maxErrorElement = entry.key;
 						}
 
 						double oldAvg = avgRelError;
-						avgRelError += (relDiff-avgRelError)/(i+1);
+						avgRelError += (relDiff-avgRelError)/(entry.key+1);
 						relErrorVar += (relDiff-oldAvg)*(relDiff-avgRelError);
 				}
 
-				System.out.println("---");
-				System.out.printf("Num Wavelet Coefficients: %d%n",querySolver.getNumWaveletCoefficients());
+//				System.out.println("---");
+//				System.out.printf("Num Wavelet Coefficients: %d%n",querySolver.getNumWaveletCoefficients());
+
+//				System.out.println("---");
+//				System.out.printf("Max Absolute Error: %d%n",maxAbsError);
+//				System.out.printf("Element with Max Abs error: %d\t%d\t%d%n",maxAbsErrorElement,actualDistribution.get(maxAbsErrorElement),estimated[maxAbsErrorElement+maxInteger]);
 
 				System.out.println("---");
-				System.out.printf("Max Absolute Error: %d%n",maxAbsError);
-				System.out.printf("Element with Max Abs error: %d\t%d\t%d%n",maxAbsErrorElement,actualDistribution.get(maxAbsErrorElement),estimated[maxAbsErrorElement+maxInteger]);
-				System.out.println("---");
-
 				System.out.printf("Max Relative Error: %f%n", maxRelError);
-				System.out.printf("Element with Max Rel. error: %d\t%d\t%d%n",maxErrorElement,actualDistribution.get(maxErrorElement),estimated[maxErrorElement+maxInteger]);
+				System.out.printf("Element with Max Rel. error: %d\t%d\t%d%n",maxErrorElement,actualDistribution.get(maxErrorElement),estimated.get(maxErrorElement));
 				System.out.printf("Avg Relative Error: %f%n",avgRelError);
 				System.out.printf("Std. Dev: %f%n",Math.sqrt(relErrorVar/(2*maxInteger-1)));
 				System.out.println("---");
+				printFreeMemory();
 
-				Arrays.sort(relDiffs);
-				System.out.printf("p25 Rel. Error:%f%n", relDiffs[relDiffs.length / 4]);
-				System.out.printf("p50 Rel. Error:%f%n", relDiffs[relDiffs.length / 2]);
-				System.out.printf("p75 Rel. Error:%f%n", relDiffs[3 * relDiffs.length / 4]);
-				System.out.printf("p95 Rel. Error:%f%n",relDiffs[95*relDiffs.length/100]);
-				System.out.printf("p99 Rel. Error:%f%n",relDiffs[99*relDiffs.length/100]);
+//				Arrays.sort(relDiffs);
+//				System.out.printf("p25 Rel. Error:%f%n", relDiffs[relDiffs.length / 4]);
+//				System.out.printf("p50 Rel. Error:%f%n", relDiffs[relDiffs.length / 2]);
+//				System.out.printf("p75 Rel. Error:%f%n", relDiffs[3 * relDiffs.length / 4]);
+//				System.out.printf("p95 Rel. Error:%f%n",relDiffs[95*relDiffs.length/100]);
+//				System.out.printf("p99 Rel. Error:%f%n",relDiffs[99*relDiffs.length/100]);
+
+		}
+
+		private static void printFreeMemory() {
+				System.out.printf("Free Memory(mb): %d%n", Runtime.getRuntime().freeMemory() / 1024 / 1024l);
 		}
 
 		private static class IntIntPair {
