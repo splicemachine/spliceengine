@@ -2,6 +2,7 @@ package com.splicemachine.stats.collector;
 
 import com.splicemachine.stats.Updateable;
 import com.splicemachine.stats.frequency.FrequencyEstimate;
+import com.splicemachine.stats.histogram.RangeQuerySolver;
 
 import java.util.Set;
 
@@ -11,15 +12,21 @@ import java.util.Set;
  */
 public interface StatsCollector<T extends Comparable<T>> extends Updateable<T> {
 
-    Set<? extends FrequencyEstimate<T>> mostFrequentElements();
+    Set<? extends FrequencyEstimate<T>> mostFrequentElements(int maxSize);
 
-    long numDistinctElements();
+    Set<? extends FrequencyEstimate<T>> heavyHitters(float support);
 
-    long numNonNullElements();
+    long cardinality();
 
-    long numNullElements();
+    long nonNullCount();
 
-    T min();
+    long nullCount();
 
-    T max();
+    T minValue();
+
+    T maxValue();
+
+    RangeQuerySolver<T> querySolver();
+
+    void done();
 }

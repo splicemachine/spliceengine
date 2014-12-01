@@ -120,6 +120,7 @@ class IntHaarTransform implements IntUpdateable{
         assert tolerance<1 && tolerance>0: "Tolerance must be between 0 and 1";
         final double sketchSize = 8*t/(Math.pow(tolerance,3));
         return new IntHaarTransform(maxValue){
+
             @Override
             protected Level newLevel(int level, int lgN) {
                 final long exactSize = 8*(1<<level);
