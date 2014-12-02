@@ -103,6 +103,8 @@ class SpliceTestPlatformConfig {
         config.setInt("hfile.index.block.max.size", 16 * 1024);
         config.setLong("hbase.hregion.memstore.flush.size", 512 * 1024 * 1024L);
         config.setInt("hbase.hstore.compaction.max", 10);
+        config.setFloat("hfile.block.cache.size", 0.25f);
+        config.setFloat("hbase.regionserver.global.memstore.size", 0.25f);
         config.setLong("hbase.hstore.compaction.min.size", 16 * 1024 * 1024L);
         config.setLong("hbase.hstore.compaction.max.size", 248 * 1024 * 1024L);
         config.setInt("hbase.master.lease.thread.wakefrequency", 3000);
@@ -155,6 +157,8 @@ class SpliceTestPlatformConfig {
         configuration.set("hbase.regionserver.handler.count", "60");
         setInt(configuration, "hbase.master.port", masterPort);
         setInt(configuration, "hbase.master.info.port", masterInfoPort);
+        configuration.setFloat("hfile.block.cache.size", 0.25f);
+        configuration.setFloat("hbase.regionserver.global.memstore.size", 0.25f);
         setInt(configuration, "hbase.regionserver.port", regionServerPort);
         setInt(configuration, "hbase.regionserver.info.port", regionServerInfoPort);
         configuration.setInt(SpliceConstants.DERBY_BIND_PORT, derbyPort);

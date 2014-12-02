@@ -126,11 +126,8 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
         inner.setBase(innerCost.cloneMe());
 
         double cost = inner.getEstimatedRowCount() * (SpliceConstants.remoteRead + SpliceConstants.optimizerHashCost) + inner.cost + outer.cost;
-        double rowCount = innerCost.rowCount() * outerCost.rowCount();
-        double singleScanRowCount = outer.getEstimatedRowCount();
-
-        inner.setCost(cost, rowCount, singleScanRowCount);
-
+        double rowCount = Math.max(innerCost.rowCount(),outerCost.rowCount());
+        inner.setCost(cost, rowCount, rowCount);
         inner.setNumberOfRegions(outer.numberOfRegions);
         inner.setRowOrdering(outer.rowOrdering);
 

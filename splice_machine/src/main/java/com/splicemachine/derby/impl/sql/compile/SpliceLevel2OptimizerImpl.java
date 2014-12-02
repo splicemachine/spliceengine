@@ -2047,8 +2047,11 @@ public class SpliceLevel2OptimizerImpl implements Optimizer {
 			** number of rows is the number of rows returned by the innermost
 			** optimizable.
 			*/
+//			System.out.println("current " + currentCost.getEstimatedCost());
+//			System.out.println("best " + ce.getEstimatedCost());
+			
 			currentCost.setCost(
-				currentCost.getEstimatedCost() + ce.getEstimatedCost(),
+				ce.getEstimatedCost(),//currentCost.getEstimatedCost() + ce.getEstimatedCost(),
 				ce.rowCount(),
 				ce.singleScanRowCount());
 
@@ -2634,6 +2637,7 @@ public class SpliceLevel2OptimizerImpl implements Optimizer {
 		// RESOLVE: The following call to memoryUsageOK does not behave
 		// correctly if outerCost.rowCount() is POSITIVE_INFINITY; see
 		// DERBY-1259.
+		/*
 		if( maxMemoryPerTable >0 && ! optimizable.memoryUsageOK( estimatedCost.rowCount() / outerCost.rowCount(), maxMemoryPerTable))
 		{
 			if (optimizerTrace)
@@ -2642,6 +2646,7 @@ public class SpliceLevel2OptimizerImpl implements Optimizer {
 			}
 			return;
 		}
+		*/
 
 		/* Pick the cheapest cost for this particular optimizable. */
 		AccessPath ap = optimizable.getBestAccessPath();

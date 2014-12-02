@@ -49,7 +49,7 @@ public class MergeJoinStrategy extends HashableJoinStrategy {
 	@Override
     public String resultSetMethodName(boolean bulkFetch, boolean multiprobe) {
         if (bulkFetch)
-            return "getBulkTableScanResultSet";
+            return "getBulkTableScanResultSet"; 
         else if (multiprobe)
             return "getMultiProbeTableScanResultSet";
         else
@@ -151,8 +151,9 @@ public class MergeJoinStrategy extends HashableJoinStrategy {
 		inner.setBase(innerCost.cloneMe());
 		SpliceCostEstimateImpl outer = (SpliceCostEstimateImpl) outerCost;
         Preconditions.checkState(outer.numberOfRegions > 0);
+        long rowCount = Math.max(inner.getEstimatedRowCount(), outer.getEstimatedRowCount());
 		double joinCost = inner.getEstimatedRowCount()*SpliceConstants.remoteRead/outer.numberOfRegions;
-		inner.setCost(joinCost+inner.cost+outer.cost, outer.getEstimatedRowCount(), outer.getEstimatedRowCount());
+		inner.setCost(joinCost+inner.cost+outer.cost, rowCount, rowCount);
 		inner.setNumberOfRegions(outer.numberOfRegions);
 		inner.setRowOrdering(outer.rowOrdering);
 		SpliceLogUtils.trace(LOG, "rightResultSetCostEstimate computed cost innerCost=%s",innerCost);
