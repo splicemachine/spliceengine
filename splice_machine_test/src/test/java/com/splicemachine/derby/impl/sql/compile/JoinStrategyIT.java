@@ -124,7 +124,7 @@ public class JoinStrategyIT {
 	@Test
 	public void testLargeSmallTwoWayJoin() {
 		Assert.assertTrue("NLJ is less expensive than MSJ",JoinType.NLJ.calc(LT1(),ST1()) > JoinType.MSJ.calc(LT1(),ST1()));
-		Assert.assertTrue("MSJ is less expensive than BJ",JoinType.MSJ.calc(LT1(),ST1()) > JoinType.BJ.calc(LT1(),ST1()));
+		Assert.assertTrue("MSJ is less expensive than BJ",JoinType.MSJ.calc(LT1(),ST1()) > JoinType.BJ.calc(LT1(),ST1()));		
 		Assert.assertTrue("BJ is less expensive than MJ",JoinType.BJ.calc(LT1(),ST1()) > JoinType.MJ.calc(LT1(),ST1()));
 	}
 
