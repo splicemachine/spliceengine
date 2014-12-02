@@ -502,7 +502,6 @@ public class Backup implements InternalTable {
             out.write(value);
             out.close();
         }
-        fileSystem.close();
     }
 
     // Write metadata, including timestamp source's last timestamp
@@ -598,7 +597,6 @@ public class Backup implements InternalTable {
 
             SpliceUtils.addProperty(property.getPath().getName(), Bytes.toString(value));
         }
-        fileSystem.close();
     }
 
     public void moveToBaseFolder() throws IOException {
