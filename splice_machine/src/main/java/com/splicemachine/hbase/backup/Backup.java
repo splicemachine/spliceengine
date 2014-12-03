@@ -35,7 +35,7 @@ import java.util.*;
  *
  */
 public class Backup implements InternalTable {
-	public static final String DEFAULT_SCHEMA = "RECOVERY";
+	public static final String DEFAULT_SCHEMA = "BACKUP";
 	public static final String DEFAULT_TABLE = "BACKUP";
     public static final String BACKUP_BASE_FOLDER = "BACKUP";
     public static final String BACKUP_TEMP_BASE_FOLDER = "BACKUP_TEMP";
@@ -70,9 +70,9 @@ public class Backup implements InternalTable {
 	public static final String CREATE_TABLE = "create table %s.%s (backup_transaction_id bigint not null, " + 
 	"backup_begin_timestamp timestamp not null, backup_end_timestamp timestamp, backup_status char(1) not null, "
 	+ "backup_filesystem varchar(1024) not null, backup_scope char(1) not null, incremental_backup boolean not null, "
-	+ "incremental_parent_backup_id bigint, PRIMARY KEY (backup_transaction_id) )";	
+	+ "incremental_parent_backup_id bigint, backup_items int, PRIMARY KEY (backup_transaction_id) )";
 	public static final String INSERT_START_BACKUP = "insert into %s.%s (backup_transaction_id, backup_begin_timestamp, backup_status, backup_filesystem, "
-			+ "backup_scope, incremental_backup, incremental_parent_backup_id) values (?,?,?,?,?,?,?)";
+			+ "backup_scope, incremental_backup, incremental_parent_backup_id, backup_items) values (?,?,?,?,?,?,?,?)";
 	public static final String UPDATE_BACKUP_STATUS = "update %s.%s set backup_status = ?, backup_end_timestamp = ? where backup_transaction_id = ?";		
 	public static final String RUNNING_CHECK = "select backup_transaction_id from %s.%s where backup_status = ?";	
 	public static final String SCHEMA_CHECK = "select schemaid from sys.sysschemas where schemaname = ?";
@@ -224,7 +224,8 @@ public class Backup implements InternalTable {
 			preparedStatement.setString(4, getBackupFilesystem());
 			preparedStatement.setString(5, getBackupScope().toString());
 			preparedStatement.setBoolean(6, isIncrementalBackup());
-			preparedStatement.setLong(7, getIncrementalParentBackupID());
+            preparedStatement.setLong(7, getIncrementalParentBackupID());
+            preparedStatement.setInt(8, backupItems.size());
 			preparedStatement.execute();
 			return;
 		} catch (SQLException e) {

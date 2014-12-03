@@ -9,11 +9,21 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
+
+import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.impl.job.JobInfo;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.job.JobFuture;
+import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.Txn;
+import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.fs.*;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Bytes;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.DerbyFactory;
@@ -23,12 +33,13 @@ import org.apache.hadoop.hbase.util.Pair;
 
 public class BackupItem implements InternalTable {
 	public static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
-	public static final String DEFAULT_SCHEMA = "RECOVERY";
+	public static final String DEFAULT_SCHEMA = Backup.DEFAULT_SCHEMA;
 	public static final String DEFAULT_TABLE = "BACKUP_ITEM";
 	public static final String CREATE_TABLE = "create table %s.%s (backup_transaction_id bigint not null, " + 
 	"backup_item varchar(1024) not null, backup_begin_timestamp timestamp not null, backup_end_timestamp timestamp, PRIMARY KEY (backup_transaction_id, backup_item) )";		
-	public static final String INSERT_BACKUP_ITEM = "insert into table %s.%s (backup_transaction_id, backup_item, backup_begin_timestamp)"
+	public static final String INSERT_BACKUP_ITEM = "insert into %s.%s (backup_transaction_id, backup_item, backup_begin_timestamp)"
 			+ " values (?,?,?)";
+    public static final String UPDATE_BACKUP_ITEM_STATUS = "update %s.%s set backup_end_timestamp = ? where backup_transaction_id = ? and backup_item = ?";
 	
 	public BackupItem () {
 		
@@ -114,25 +125,44 @@ public class BackupItem implements InternalTable {
         backupItem = in.readUTF();
         regionInfoList = (List<RegionInfo>) in.readObject();
     }
-	
-	public void insertBackupItem() throws SQLException {
-		Connection connection = null;
-		try {
-			connection = SpliceAdmin.getDefaultConn();
-			PreparedStatement preparedStatement = connection.prepareStatement(String.format(INSERT_BACKUP_ITEM,DEFAULT_SCHEMA,DEFAULT_TABLE));
-			preparedStatement.setLong(1, getBackupTransaction().getTxnId());
-			preparedStatement.setString(2, getBackupItem());
-			preparedStatement.setTimestamp(3, getBackupItemBeginTimestamp());	
-			preparedStatement.execute();
-			return;
-		} catch (SQLException e) {
-			throw e;
-		}  
-		finally {
-			if (connection !=null)
-				connection.close();
-		}
-	}
+
+    public void insertBackupItem() throws SQLException {
+        Connection connection = null;
+        try {
+            connection = SpliceAdmin.getDefaultConn();
+            PreparedStatement preparedStatement = connection.prepareStatement(String.format(INSERT_BACKUP_ITEM,DEFAULT_SCHEMA,DEFAULT_TABLE));
+            preparedStatement.setLong(1, getBackupTransaction().getTxnId());
+            preparedStatement.setString(2, getBackupItem());
+            preparedStatement.setTimestamp(3, getBackupItemBeginTimestamp());
+            preparedStatement.execute();
+            return;
+        } catch (SQLException e) {
+            throw e;
+        }
+        finally {
+            if (connection !=null)
+                connection.close();
+        }
+    }
+
+    public void updateBackupItem() throws SQLException {
+        Connection connection = null;
+        try {
+            connection = SpliceAdmin.getDefaultConn();
+            PreparedStatement preparedStatement = connection.prepareStatement(String.format(UPDATE_BACKUP_ITEM_STATUS,DEFAULT_SCHEMA,DEFAULT_TABLE));
+            preparedStatement.setTimestamp(1, getBackupItemEndTimestamp());
+            preparedStatement.setLong(2, getBackupTransaction().getTxnId());
+            preparedStatement.setString(3, getBackupItem());
+            preparedStatement.execute();
+            return;
+        } catch (SQLException e) {
+            throw e;
+        }
+        finally {
+            if (connection !=null)
+                connection.close();
+        }
+    }
 
     public void recreateItem(HBaseAdmin admin) throws IOException {
         byte[][] splitKeys = computeSplitKeys();
@@ -175,7 +205,7 @@ public class BackupItem implements InternalTable {
 	}
     
 	public void writeDescriptorToFileSystem() throws IOException {
-		FileSystem fs = FileSystem.get(URI.create(getBackupItemFilesystem()),SpliceConstants.config);
+		FileSystem fs = FileSystem.get(URI.create(getBackupItemFilesystem()), SpliceConstants.config);
 		FSDataOutputStream out = fs.create(new Path(getBackupItemFilesystem()+"/.tableinfo"));
 		tableDescriptor.write(out);
 		out.flush();
@@ -225,6 +255,29 @@ public class BackupItem implements InternalTable {
 
     private void addRegionInfo(RegionInfo regionInfo) {
         regionInfoList.add(regionInfo);
+    }
+
+    public void doBackup() throws StandardException {
+        JobInfo info = null;
+        try {
+            setBackupItemBeginTimestamp(new Timestamp(System.currentTimeMillis()));
+            insertBackupItem();
+            createBackupItemFilesystem();
+            writeDescriptorToFileSystem();
+            HTableInterface table = SpliceAccessManager.getHTable(getBackupItemBytes());
+            CreateBackupJob job = new CreateBackupJob(this, table);
+            JobFuture future = SpliceDriver.driver().getJobScheduler().submit(job);
+            info = new JobInfo(job.getJobId(), future.getNumTasks(), System.currentTimeMillis());
+            info.setJobFuture(future);
+            future.completeAll(info);
+            setBackupItemEndTimestamp(new Timestamp(System.currentTimeMillis()));
+            updateBackupItem();
+        } catch (CancellationException ce) {
+            throw Exceptions.parseException(ce);
+        } catch (Exception e) {
+            if (info != null) info.failJob();
+            throw Exceptions.parseException(e);
+        }
     }
 
     public static class RegionInfo implements Externalizable {
