@@ -58,9 +58,6 @@ public class JobControl extends BaseJobControl {
 													instance.submit(controller,request,rpcCallback);
 		
 		                Throwable error = controller.getThrowable();
-										if(error instanceof IncorrectRegionException){
-												//need to resubmit the task
-										}
 		                if(error!=null) throw Exceptions.getIOException(error);
 		
 		                SpliceMessage.SchedulerResponse spliceSchedulerResponse = rpcCallback.get();
