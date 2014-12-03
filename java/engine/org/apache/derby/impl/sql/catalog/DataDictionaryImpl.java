@@ -10522,7 +10522,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
         return new SchemaDescriptor(this,
                                         name,
                                         authorizationDatabaseOwner,
-                                        (UUID) null,
+										uuidFactory.createUUID(),
                                         false);
     }
 	/**
