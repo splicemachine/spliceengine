@@ -10,6 +10,7 @@ import com.splicemachine.pipeline.constraint.ConstraintContext;
 import com.splicemachine.pipeline.constraint.ConstraintViolation;
 import com.splicemachine.pipeline.constraint.Constraints;
 import com.splicemachine.pipeline.impl.WriteResult;
+import com.splicemachine.si.api.CannotCommitException;
 import com.splicemachine.si.impl.WriteConflict;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -235,11 +236,18 @@ public class Exceptions {
     }
 
     public static boolean shouldRetry(Throwable error) {
-        if(error instanceof ConnectException){
+        if (error instanceof ConnectException) {
             //we can safely retry connection refused issued
             return error.getMessage().contains("Connection refused");
         }
-        return !(error instanceof StandardException) && !(error instanceof DoNotRetryIOException);
+        if (error instanceof StandardException) return false;
+        /*
+         * CannotCommitException is a DoNotRetryException because we want the HBase client
+         * to automatically stop retrying if it's encountered (it's a logical error, rather than
+         * environmental). However, we still want to be able to retry tasks etc. that
+         * encounter CannotCommit errors.
+         */
+        return error instanceof CannotCommitException || !(error instanceof DoNotRetryIOException);
     }
 
     public static Throwable getRootCause(Throwable error) {
