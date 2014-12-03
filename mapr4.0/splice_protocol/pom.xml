@@ -10,11 +10,11 @@
 	<parent>
 		<artifactId>spliceengine-mapr4.0</artifactId>
 		<groupId>com.splicemachine</groupId>
-		<version>1.0.0RC8</version>
+		<version>1.0.0RC9</version>
 	</parent>
 
 	<dependencies>
-		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_constants-mapr4.0</artifactId> <version>1.0.0RC8</version>
+		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_constants-mapr4.0</artifactId> <version>1.0.0RC9</version>
 		<exclusions>
 		<exclusion> <groupId>com.splicemachine</groupId> <artifactId>asynchbase</artifactId></exclusion>
 		<exclusion> <groupId>com.stumbleupon</groupId> <artifactId>async</artifactId> </exclusion>
