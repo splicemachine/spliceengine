@@ -1,7 +1,7 @@
 package com.splicemachine.derby.impl.job.scheduler;
 
 import com.google.common.collect.Lists;
-import org.apache.hadoop.hbase.NotServingRegionException;
+import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.stats.TaskStats;
@@ -317,24 +317,16 @@ public abstract class BaseJobControl implements JobFuture {
     void resubmit(RegionTaskControl task,
                   int tryCount) throws ExecutionException {
 				//only submit so many times
-        if(tryCount>=maxResubmissionAttempts) {
+        if(tryCount>=maxResubmissionAttempts){
             Throwable lastError = task.getError();
+            if(lastError!=null)
+                throw new ExecutionException(lastError);
 
-            if (lastError instanceof NotServingRegionException) {
-                // Always retry when a region is closed
-                if (tryCount % 50 == 0) {
-                    LOG.info("retrying " + task.getTaskNode() + " for " + tryCount + " times.");
-                }
-            } else {
-                if (lastError != null)
-                    throw new ExecutionException(lastError);
-
-                //we don't know what went wrong, so blow up with an AttemptsExhausted
-                ExecutionException ee = new ExecutionException(
-                        new AttemptsExhaustedException("Unable to complete task " + task.getTaskNode() + ", it was invalidated more than " + maxResubmissionAttempts + " times"));
-                task.fail(ee.getCause());
-                throw ee;
-            }
+            //we don't know what went wrong, so blow up with an AttemptsExhausted
+            ExecutionException ee = new ExecutionException(
+                    new AttemptsExhaustedException("Unable to complete task "+ task.getTaskNode()+", it was invalidated more than "+ maxResubmissionAttempts+" times"));
+            task.fail(ee.getCause());
+            throw ee;
         }
 
         //get the next higher task
