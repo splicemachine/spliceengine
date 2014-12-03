@@ -77,6 +77,10 @@ public class SIConstants extends SpliceConstants {
 		@DefaultValue(TRANSACTION_TIMEOUT) public static final int DEFAULT_TRANSACTION_TIMEOUT = 10 * DEFAULT_TRANSACTION_KEEP_ALIVE_INTERVAL; //100 minutes
     public static int transactionTimeout;
 
+    @Parameter public static final String TRANSACTION_KEEP_ALIVE_THREADS = "splice.txn.keepAliveThreads";
+    @DefaultValue(TRANSACTION_KEEP_ALIVE_THREADS) public static final int DEFAULT_KEEP_ALIVE_THREADS =4;
+    public static int transactionKeepAliveThreads;
+
     public static final String SI_TRANSACTION_ID_KEY = "A";
     public static final String SI_NEEDED = "B";
     public static final String SI_DELETE_PUT = "D";
@@ -185,5 +189,6 @@ public class SIConstants extends SpliceConstants {
         activeTransactionCacheSize = config.getInt(ACTIVE_TRANSACTION_CACHE_SIZE,DEFAULT_ACTIVE_TRANSACTION_CACHE_SIZE);
         completedTransactionCacheSize = config.getInt(COMPLETED_TRANSACTION_CACHE_SIZE,DEFAULT_COMPLETED_TRANSACTION_CACHE_SIZE);
         completedTransactionConcurrency = config.getInt(COMPLETED_TRANSACTION_CACHE_CONCURRENCY,DEFAULT_COMPLETED_TRANSACTION_CONCURRENCY);
+        transactionKeepAliveThreads = config.getInt(TRANSACTION_KEEP_ALIVE_THREADS,DEFAULT_KEEP_ALIVE_THREADS);
     }
 }
