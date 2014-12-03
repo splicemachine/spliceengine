@@ -950,6 +950,7 @@ public class GenericLanguageConnectionContext
                     // conglomerate associated with it
 
                     TableDescriptor td = tempTableInfo.getTableDescriptor();
+                    invalidateDroppedTempTable( td );
 
                     //remove the conglomerate created for this temp table
                     tran.dropConglomerate(td.getHeapConglomerateId()); 
@@ -1003,10 +1004,7 @@ public class GenericLanguageConnectionContext
                 tempTableInfo.setModifiedInSavepointLevel(-1);
                 TableDescriptor td = tempTableInfo.getTableDescriptor();
 
-                getDataDictionary().getDependencyManager().invalidateFor(
-                        td, DependencyManager.DROP_TABLE, this);
-
-                cleanupTempTableOnCommitOrRollback(td, true);
+                invalidateDroppedTempTable( td );
             } 
             // there is no else here because there is no special processing 
             // required for temp tables declares in earlier work of 
@@ -1014,7 +1012,17 @@ public class GenericLanguageConnectionContext
         }
     
         if (allDeclaredGlobalTempTables.size() == 0)
+        {
             allDeclaredGlobalTempTables = null;
+        }
+    }
+
+    /** Invalidate a dropped temp table */
+    private void    invalidateDroppedTempTable( TableDescriptor td )
+        throws StandardException
+    {
+        getDataDictionary().getDependencyManager().invalidateFor( td, DependencyManager.DROP_TABLE, this );
+        cleanupTempTableOnCommitOrRollback( td, true );
     }
 
     /**
