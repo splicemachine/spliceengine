@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
+
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -30,6 +32,7 @@ import com.splicemachine.si.impl.TxnFilter;
 import com.splicemachine.si.impl.UpdatingTxnFilter;
 import com.splicemachine.si.impl.readresolve.SynchronousReadResolver;
 import com.splicemachine.si.impl.rollforward.SegmentedRollForward;
+import org.apache.log4j.Logger;
 
 /**
  * Task-based structure for Rolling forward a range of data.
@@ -38,6 +41,7 @@ import com.splicemachine.si.impl.rollforward.SegmentedRollForward;
  * Date: 9/4/14
  */
 public class RollForwardTask implements Task {
+    private static final Logger LOG = Logger.getLogger(RollForwardTask.class);
     private volatile boolean cancelled = false;
     private final HRegion region;
     private final byte[] start;
@@ -109,7 +113,7 @@ public class RollForwardTask implements Task {
                 }while(shouldContinue);
             }catch(Exception e){
                 txn.rollback();
-                throw e;
+                SpliceLogUtils.info(LOG,"Stopping RollForward execution because of an error.");
             }finally{
                 context.complete();
                 Closeables.closeQuietly(mrs);
