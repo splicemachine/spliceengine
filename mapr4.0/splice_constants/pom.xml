@@ -15,7 +15,7 @@
 
 	<properties>
 		<hadoop.version>2.4.1-mapr-1408</hadoop.version>
-		<hbase.version>0.98.4-mapr4.0.1-splice1.0.3</hbase.version>
+		<hbase.version>0.98.4-mapr4.0.1-splice1.0.4</hbase.version>
 		<hive.version>0.13.0-mapr-1405</hive.version>
 		<maprfs.version>4.0.1-mapr</maprfs.version>
 		<zookeeper.version>3.4.5-mapr-1406</zookeeper.version>
