@@ -37,6 +37,7 @@ import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.exceptions.RegionMovedException;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.ipc.RemoteWithExtrasException;
 import org.apache.hadoop.hbase.ipc.RpcClient;
@@ -464,7 +465,8 @@ public class DerbyFactoryImpl implements DerbyFactory<TxnMessage.TxnInfo> {
 
 		@Override
 		public boolean isWrongRegionException(Throwable t) {
-			return t instanceof WrongRegionException || isRemoteWithExtras(t, WrongRegionException.class.getCanonicalName());
+			return t instanceof WrongRegionException || isRemoteWithExtras(t, WrongRegionException.class.getCanonicalName()) ||
+				   t instanceof RegionMovedException || isRemoteWithExtras(t, RegionMovedException.class.getCanonicalName());
 		}
 
 		@Override
