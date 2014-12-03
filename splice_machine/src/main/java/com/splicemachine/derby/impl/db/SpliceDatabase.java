@@ -428,7 +428,6 @@ public class SpliceDatabase extends BasicDatabase {
     @Override
     public void backup(String backupDir, boolean wait) throws SQLException {
 
-        JobInfo info = null;
         HBaseAdmin admin = null;
         Backup backup = null;
         try {
@@ -440,27 +439,13 @@ public class SpliceDatabase extends BasicDatabase {
                 throw new SQLException(backupResponse); // TODO i18n
             backup = Backup.createBackup(backupDir,BackupScope.D,-1l);
             backup.createBaseBackupDirectory();
-            backup.insertBackup();
             long start = System.currentTimeMillis();
             admin = SpliceUtilities.getAdmin();
             backup.createBackupItems(admin);
+            backup.insertBackup();
             backup.createProperties();
             for (BackupItem backupItem: backup.getBackupItems()) {
-                backupItem.createBackupItemFilesystem();
-                backupItem.writeDescriptorToFileSystem();
-                HTableInterface table = SpliceAccessManager.getHTable(backupItem.getBackupItemBytes());
-                CreateBackupJob job = new CreateBackupJob(backupItem,table);
-                JobFuture future = SpliceDriver.driver().getJobScheduler().submit(job);
-                info = new JobInfo(job.getJobId(),future.getNumTasks(),start);
-                info.setJobFuture(future);
-                try{
-                    future.completeAll(info);
-                }catch(CancellationException ce){
-                    throw Exceptions.parseException(ce);
-                }catch(Throwable t){
-                    info.failJob();
-                    throw t;
-                }
+                backupItem.doBackup();
             }
 
             // create metadata, including timestamp source's timestamp
@@ -474,7 +459,6 @@ public class SpliceDatabase extends BasicDatabase {
             backup.markBackupSuccesful();
             backup.writeBackupStatusChange();
         } catch (Throwable e) {
-            if(info!=null) info.failJob();
             if (backup != null) {
                 backup.markBackupFailed();
                 backup.writeBackupStatusChange();
