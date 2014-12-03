@@ -152,11 +152,7 @@ However, Equi-width histograms have very poor error characteristics\cite{Piatets
 												Now, suppose that $M_2 = {1,1,1,1,2,2,2,2,4,4,8,8,8,8,8}$. Then $H(4) = 15$ and $c(4) = 6$ is the same as in the case of $M_1$, but the distribution is qualitatively different in both cases.
 \end{exmp}
 
-The problem in the above example is that the domain of possible data values is very large, but the domain of \emph{actual} values is very low. Unfortunately, there is no way to adjust Equi-width histograms based on the realities of data. Sure, we could correct the above example by using a different number of buckets (say, 100), but that would require a priori knowledge of the distribution which we do not possess.
-
-We also cannot dynamically adjust our boundaries to allow for better resolution, because we must leave boundaries fixed for all data sets if we hope to make use of the linearity of Equi-width histograms.
-
-As if that were not enough,As if that were not enough,  Equi-width histograms allow a high \emph{variance} between items within the same bucket--that is, it's possible that a single element in the bucket could have many, many more elements than the others within the bucket, which means that the linear interpolation would have higher error than it could otherwise have.
+The main problem here is that Equi-width histograms allow a high \emph{variance} between items within the same bucket--that is, it's possible that a single element in the bucket could have a much higher frequency than other elements within the same bucket. As a result, the interpolation error is substantially higher than we would like. Fixing the variance problem requires that we adjust the boundaries of the buckets, but those boundaries were chosen without reference to the actual data set and would need to be re-chosen in the same manner. Since we are still fundamentally chosing boundaries the same way, we can never truly escape the variance problem.
 
 \subsection{Equi-Depth Histograms}
 \label{sec:EquiDepth}
@@ -171,7 +167,7 @@ Suppose that $M =\lbrace 1,1,1,1,1,1,1,1,2,2,2,2,4,4,8\rbrace$ is the data set o
 
 The algorithm used in Example-\ref{exmp:EquiDepthHistogram} is not the most efficient, as it requires multiple passes through the data to recompute frequencies for each bucket. However, there are a number of algorithms which have been devised that can compute \emph{approximate} Equi-depth histograms in a single pass; most notably, the algorithms described in \cite{MousaviEquiDepthDataStreams} and \cite{GibbonsFastIncremental}.
 
-Equi-depth histograms eliminate the resolution error that is present in Equi-width histograms, by ensuring that the heights of each individual buckets are bounded, and also because \emph{possible} values are ignored--only values which are actually present are considered\footnote{In practice, we can make an Equi-depth histogram cover the entire domain by placing zeros outside the observed entries}.
+Equi-depth histograms seek eliminate the resolution error that is present in Equi-width histograms, by ensuring that the heights of each individual buckets are bounded, and also because \emph{possible} values are ignored--only values which are actually present are considered\footnote{In practice, we can make an Equi-depth histogram cover the entire domain by placing zeros outside the observed entries}.
 
 Most database products use Equi-depth histograms(see Appendix-\ref{sec:OtherDBs}), because their construction is relatively easy, and the accuracy is fairly acceptable for query optimizer techniques. However, Equi-depth histograms are \emph{not} linear--we cannot merge two Equi-depth histograms together without violating the Equi-depth constraint
 
@@ -183,19 +179,17 @@ As a result, we can only construct an Equi-depth histogram if we don't wish to k
 
 \subsection{V-Optimal Histograms}
 \label{sec:VOptimal}
-Even if Equi-depth histograms were linear, they are subject to unusual errors within a single bucket. In particular, if there is one value within the bucket which has the majority of the recorded instances in the data set, it introduces a more significant error when estimating other values. This is because the \emph{variance} between any two elements in the same bucket is not controlled.
-
-\emph{V-Optimal} histograms attempt to correct this error by choosing boundaries that minimize the variance between items within the same bucket. This means that linear interpolation is essentially guaranteed to have small error, since only values which are present will be accounted for. It can be shown that, even in the worst case, V-Optimal histograms are still very accurate for selectivity estimation\cite{JagadishOptimalHistograms}.
+Even if Equi-depth histograms were linear, they are still subject to a high frequency variance, which causes an increase in error during estimation. \emph{V-Optimal} histograms attempt to correct this error by choosing boundaries that minimize the variance between items within the same bucket. This means that linear interpolation is essentially guaranteed to have small error, since only values which are present will be accounted for. It can be shown that, even in the worst case, V-Optimal histograms are still very accurate for selectivity estimation\cite{JagadishOptimalHistograms}.
 
 Unfortunately, computing a V-Optimal histogram precisely is a complex problem, requiring $O(n^2B)$ operations\cite{JagadishOptimalHistograms}. On the other hand, computing an \emph{approximate} V-Optimal histogram can be performed in $O(n)$ steps\cite{GuhaApproximation,GuhaREHIST}. 
 
-None of these algorithms, however, can make V-Optimal histogram functions linear. Therefore, even though they are superior in error and estimation properties to Equi-depth histograms, they are equally useless for SpliceMachine.
+None of these algorithms, however, can make V-Optimal histogram functions linear. Even though they have the best error characteristics, they are therefore not useful for implementation within SpliceMachine.
 
 \subsection{Wavelet Histograms}
 \label{sec:Wavelets}
 We are stuck between a rock and a hard place. On the one hand, We know that Equi-depth and V-Optimal histograms provide the best accuracy for our purposes. On the other hand, we are confined to using an Equi-width histogram because it is the only linear option. We must choose to either sacrifice the quality of our estimations so that we can easily merge together different regions, or we must sacrifice our desire to maintain independent regions so that we can maintain quality histograms. Neither option is very appealing.
 
-Thankfully, if we reconsider our approach to the problem, we can devise an alternative that can be very accurate, but is also linear, and therefore useful.
+Thankfully, if we reconsider our approach to the problem, we can devise an alternative which is both highly accurate and linear (and therefore useful).
 
 First, we know that what we \emph{truly} want is not a histogram. Instead, we only desire a function $w(x)$ that is an accurate approximation of $p(x)$ \emph{or} $c(x)$, since we should be able to easily convert between $c(x)$ and $p(x)$. Histogramming is a process of making $w$ a piecewise-constant function, but that isn't the only type of function available to us.
 
@@ -220,5 +214,4 @@ In more recent efforts, Cormode et al have managed to construct an algorithm for
 
 This algorithm essentially maintains $\log{n}$ separate \emph{GroupedCountSketch}(\emph{GCS}) data structures. The \emph{GCS} is a three-dimensional array with parameters $t,b$ and $c$, which determine the level of accuracy. As elements are visited, a selection of \emph{GCS} structures are updated, each in an $O(1)$ update operation (using uniform hash functions); the entire process requires $O(\log{n})$ to update. Then, when the wavelet is desired, a threshold is chosen, and only elements from the \emph{GCS} which exceed this threshold are chosen, thus selecting the most significant wavelet coefficients to use. 
 
-The GroupedCountSketch uses relatively little memory to compute, and is also linear and highly accurate. Thus, it is the Histogramming choice for SpliceMachine. In particular, it directly estimates the cumulative distribution $c(x)$.
 

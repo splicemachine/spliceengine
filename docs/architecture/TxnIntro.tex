@@ -1,0 +1,169 @@
+\section{Transactional Structure}
+It is useful to take some time and define transactions cleanly, so that future conversations can use consistent notation and terminology.
+
+Loosely speaking, a transaction is a sequence of events that appears to be single-threaded to the end user, even if there are multiple such transactions concurrently modifying the same data.
+
+More precisely, we choose a \emph{begin timestamp} $T_b$ and a \emph{commit timestamp} $T_c$ to be positive numbers such that $T_c >T_b$ (e.g. the commit timestamp must \emph{always} come after the begin timestamp). Then, we define a \emph{transaction} $T$ to be the interval $[T_b,T_c)$ such that all event which occur between $T_b$ and $T_c$ are viewed sequentially.
+
+Of course, "Sequentially" gets us into some trouble here, but to be clear, let us consider two transactions $T_1 = [T_{b1},T_{c1})$ and $T_2 = [T_{b2},T_{c2})$. We have the following possibilities:
+
+\begin{enumerate}
+				\item $T_{c1} < T_{b2}$. In this case $T_1$ is said to have occurred \emph{before} $T_2$.
+				\item $T_{c2} < T_{b1}$. In this case $T_2$ occurs \emph{before} $T_1$.
+				\item $T_{b1} < T_{b2} < T_{c1}$. In this case, $T_1$ and $T_2$ are said to be occurring \emph{simultaneously}
+\end{enumerate}
+
+Our intuition tells us that, in any "sequential" situation, $T_1$ occuring before $T_2$ implies that any actions taken by $T_1$ should affect $T_2$. In this sense, we say that an action is \emph{visible} to a transaction whenever it can affect the transaction's behavior. So, if $T_1$ occurs before $T_2$, any writes that were made inside of $T_1$ should be visible to $T_2$, in that $T_2$'s queries will be affected by them.
+
+This defines the central rule of transactions: 
+
+\begin{theorem}
+				If a transaction $T_1 = [T_{b1},T_{c1})$ occurs before another transaction $T_2 = [T_{b2},T_{c2})$(that is, $T_{c1} < T_{b2}$), then any actions taken by $T_1$ are visible to $T_2$.
+\end{theorem}
+
+\begin{exmp}[Transaction Visibility]
+				Suppose Alice wishes to write the value "hello" to a row. To do this, she
+				\begin{enumerate}
+					\item acquires begin timestamp $T_{ba} = 1$
+					\item writes data
+					\item acquires commit timestamp $T_{ca} = 2$ and finishes her transaction
+				\end{enumerate}
+				After this is done, Bob wishes to read the same row. To do this, he acquires a begin timestamp $T_{bb} = 3$ and attempts to read the row. Because $T_{ca} < T_{bb}$, Alice's write is visible, so Bob's transaction sees the value "hello".
+\end{exmp}
+
+This rule does not illustrate what is to be done when $T_1$ and $T_2$ occur simultaneously; this is an abiguity which cannot be resolved without assistance from the user.
+
+To deal with this ambiguity,we introduce the concept of \emph{isolation levels}. In essence, an isolation level is simply a user-defined rule for how to deal with simultaneous transaction activity.
+
+Consider those same transactions $T_1$ and $T_2$ again, but suppose that they are occurring simultaneously. There are three possible approaches for a user to take:
+
+\begin{description}
+				\item[Read Uncommitted] Data is visible to $T_2$ whenever $T_{b1} < T_{c2}$.
+				\item[Read Committed] Data is visible to $T_2$ whenever $T_{c1} < T_{c2}$.
+				\item[Repeatable Reads] Data is visible to $T_2$ whenever $T_{c1} < T_{b2}$.
+\end{description}
+
+These three are defined as the three possible isolation levels\footnote{There is a fourth isolation leve, \emph{Serializable}, which is difficult to describe in this document.}.
+
+\subsection{Read Uncommitted Visibility}
+Consider the following example.
+\begin{exmp}[Read Uncommitted Visibility]
+				Suppose that there is a row containing the content "hello". Alice wishes to modify that data, and Bob wishes to read that data, and both are attempting to operate simultaneously in time. Then the following sequence occurs:
+				\begin{enumerate}
+					\item Alice acquires begin timestamp $T_{ba} = 1$.
+					\item Alice writes "goodbye" to row
+					\item Bob acquires begin timestamp $T_{bb} = 2$
+					\item Bob reads row. Because $T_{ba} < T_{bb}$ and Bob is using a Read Uncommitted isolation level, Bob is able to see Alice's changes, so he sees the text "goodbye"
+					\item Alice acquires commit timestamp $T_{ca} = 3$ and commits her write	
+				\end{enumerate}
+\end{exmp}
+In this case, Bob was able to see Alice's writes,even though Alice had not yet committed, a situation we call \emph{dirty reading}. There are advantages to read uncommitted (usually performance), but it is subject to several transactional anomalies.
+
+First, there is a \emph{false reads} issue. Consider this variation on the above example:
+
+\begin{exmp}[Dirty Read Anomaly]
+				Suppose that there is a row containing the content "hello". Alice wishes to modify that data, and Bob wishes to read that data, and both are attempting to operate simultaneously in time. Then the following sequence occurs:
+\begin{enumerate}
+	\item Alice acquires begin timestamp $T_{ba} = 1$.
+	\item Alice writes "goodbye" to row
+	\item Bob acquires begin timestamp $T_{bb} = 2$
+	\item Bob reads row. Because $T_{ba} < T_{bb}$ and Bob is using a Read Uncommitted isolation level, Bob is able to see Alice's changes, so he sees the text "goodbye"
+	\item Alice writes "hello" back to row
+	\item Alice acquires commit timestamp $T_{ca} = 3$ and commits her write	
+\end{enumerate}
+\end{exmp}
+At the end of this operation, the row contains data "hello", but Bob acted upon it as if it were "goodbye", potentially causing incorrect results\footnote{This is even more significant when the possibility of rolling back a transaction is introduced}.
+
+Secondly, there is an ordering issue. Notice in the above example that Alice wrote "goodbye" before Bob attempted to read it. However, the following sequence is equally possible:
+
+\begin{exmp}[Operation Ordering anomaly]
+				Suppose that there is a row containing the content "hello". Alice wishes to modify that data, and Bob wishes to read that data, and both are attempting to operate simultaneously in time. Then the following sequence occurs:
+\begin{enumerate}
+	\item Alice acquires begin timestamp $T_{ba} = 1$.
+	\item Bob acquires begin timestamp $T_{bb} = 2$
+	\item Bob reads row. Because Alice has not yet physically written her data, Bob will see the previous value "hello"
+	\item Alice writes "goodbye" to row
+	\item Alice acquires commit timestamp $T_{ca} = 3$ and commits her write	
+\end{enumerate}
+\end{exmp}
+So read uncommitted can (and often does) result in nondeterministic results--the physical ordering of writes in the implementation determines the results of the query, even within the same transaction.
+
+\subsection{Read Committed Visibility}
+Read Committed is a somewhat stronger isolation level than Read Uncommitted, in that it not only requires data to be written, but that the writing transaction to have committed as well before the data becomes visible.
+
+Consider a similar example as in Read Uncommitted:
+\begin{exmp}[Read Committed Visibility]
+				Suppose that there is a row containing the content "hello". Alice wishes to modify that data, and Bob wishes to read that data, and both are attempting to operate simultaneously. Then the following sequence occurs:
+				\begin{enumerate}
+					\item Alice acquires begin timestamp $T_{ba} = 1$.
+					\item Alice writes "goodbye" to row
+					\item Bob acquires begin timestamp $T_{bb} = 2$
+					\item Bob reads row. Because Bob is reading using Read Committed and Alice has not yet committed, Bob is not able to see Alice's change, and instead sees "hello"
+					\item Alice acquires commit timestamp $T_{ca} = 3$ and commits her write	
+					\item Bob reads row. Because Bob is reading using Read Committed and $T_{ca}$ occurrs before Bob committed (hence $T_{ca} < T_{cb}$), Bob is able to see Alice's change, and sees "goodbye"
+				\end{enumerate}
+\end{exmp}
+With this example, it's easy to see two important factors. First, the dirty read anomaly is impossible. Secondly, Read Committed does \emph{not} eliminate the anomalies with Operation Ordering.
+
+\subsection{Repeatable Reads}
+The Repeatable Reads isolation level imposes a significantly higher restriction on data visibility than Read Committed and Read Uncommitted; not only does data have to be committed (as in Read Committed), but it must also have been committed \emph{before} the reading transaction began. Thus, if we consider the now canonical example, we have
+
+\begin{exmp}[Repeatable Reads Visibility]
+				Suppose that there is a row containing the content "hello". Alice wishes to modify that data, and Bob wishes to read that data, and both are attempting to operate simultaneously. Then the following sequence occurs:
+				\begin{enumerate}
+					\item Alice acquires begin timestamp $T_{ba} = 1$.
+					\item Alice writes "goodbye" to row
+					\item Bob acquires begin timestamp $T_{bb} = 2$
+					\item Bob reads row. Because Bob is reading using Repeatable Reads and Alice has not yet committed, Bob is not able to see Alice's change, and instead sees "hello"
+					\item Alice acquires commit timestamp $T_{ca} = 3$ and commits her write	
+					\item Bob reads row. Because Bob is reading using Repeatable Reads and $T_{ca} > T_{ba}$, Bob is not able to see Alice's change, and instead sees "hello"
+				\end{enumerate}
+\end{exmp}
+This eliminates the ordering issue present in Read Committed and Read Uncommitted levels, and is the highest level of read isolation.
+
+In v0.5, SpliceMachine only supports Read Committed iosolation level, but has been designed with Read Uncommitted and Repeatable Reads in mind for future implementations.
+
+\subsection{Write Conflicts}
+In the normal case of writes, we see the following example
+
+\begin{exmp}[Non-conflicting writes]
+	Suppose that Alice wishes to write "hello". Simultaneously, Bob wishes to write "goodbye" to the same location. Consider the following sequence
+	\begin{enumerate}
+		\item Alice Acquires begin timestamp $T_{ba} = 1$
+		\item Alice writes "hello" to storage
+		\item Alice acquires commit timestamp $T_{ca} = 2$ and commits
+		\item Bob acquires begin timestamp $T_{bb} = 3$
+		\item Bob writes "goodbye" to storage. 
+		\item Bob acquires commit timestamp $T_{cb} = 4$ and commits
+	\end{enumerate}
+\end{exmp}
+This is a perfectly correct and normal scenario--Alice's writes were applied, and then Bob's, in logical sequential order. However, consider this variation:
+\begin{exmp}[Unresolved Conflicting writes]
+	Suppose that Alice wishes to write "hello". Simultaneously, Bob wishes to write "goodbye" to the same location. Consider the following sequence
+	\begin{enumerate}
+		\item Alice Acquires begin timestmamp $T_{ba} = 1$
+		\item Bob acquires begin timestamp $T_{bb} = 3$
+		\item Bob writes "goodbye" to storage. 
+		\item Alice writes "Peekaboo" to storage
+		\item Alice acquires commit timestamp $T_{ca} = 2$ and commits
+		\item Bob acquires commit timestamp $T_{cb} = 4$ and commits
+	\end{enumerate}
+\end{exmp}
+In this situation,there is a disagreement between Alice and Bob for what should be the contents of the row; Bob believes it to be "goodbye", while Alice believes it to be "Peekaboo"! This situation is referred to as a \emph{Write/Write Conflict}, and is an irreconcilable assault on the consistency of the database\footnote{Eventually Consistent databases such as Apache Cassandra and Amazon Dynamo often display this ambiguity--hence the term "eventually consistent"}. To avoid this situation, we have four options: 
+
+\begin{enumerate}
+				\item Make Bob wait for Alice's transaction to complete (e.g. Alice \emph{locks} the row until her transaction is complete)
+				\item Make Alice wait for Bob's transaction to complete (e.g. Bob locks the row until his transaction is complete)
+				\item Throw an error at Bob and force him to deal with the conflict manually
+				\item Throw an error at Alice and force her to deal with the conflict manually
+				\item Allow the ambiguity to be resolved by the reader
+\end{enumerate}
+
+When you consider these options, (1) and (2) are the same, and (3) and (4) are identical, with different victims, while (5) is the approach taken by eventually consistent datastores. 
+
+In most consistent systems, the physical ordering of writes determines whose write succeeds and whose must either wait or fail. For example, if Alice manages to physically write her change before Bob is able to physically write his, then either situation (1) or (3) would apply; if Bob succeeds with his physical write first, then situation (2) or (4) would apply instead. 
+
+In practice, the locked solution above has dramatic consequences for performance and scalability; imagine that Alice's transaction lasted for days; Bob could be waiting for forever for his operation to complete, because of a single row! To avoid perpetual waiting (and the associated deadlocks), SpliceMachine will throw a WriteConflict exception and force end user to manually resolve the conflicting write, rather than attempting to resolve it internally.
+
+So far, this discussion has nothing to do with implementations--as long as these rules are followed, a transactional system can be implemented in any way the developer sees fit. In practice, though, there are really only two major ways of implementing transactional systems: Lock-based, and Snapshot Isolation. SpliceMachine implements a Snapshot Isolation mechanism\footnote{Locks won't be discussed here. If you are interested in how those are implemented, have a look at Derby's lock architecture, or any good database book}.
+
