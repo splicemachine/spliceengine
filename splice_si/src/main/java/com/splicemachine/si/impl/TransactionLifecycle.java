@@ -50,7 +50,8 @@ public class TransactionLifecycle {
 
 						if(ka==null){
 								ka = new QueuedKeepAliveScheduler(SIConstants.transactionKeepAliveInterval/2,
-												SIConstants.transactionKeepAliveInterval,4,txnStore);
+												SIConstants.transactionKeepAliveInterval,
+												SIConstants.transactionKeepAliveThreads,txnStore);
 								keepAliveScheduler = ka;
 						}
 

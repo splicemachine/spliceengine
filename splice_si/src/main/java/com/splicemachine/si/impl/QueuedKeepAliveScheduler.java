@@ -6,6 +6,7 @@ import com.splicemachine.si.api.TransactionTimeoutException;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnStore;
 import com.splicemachine.annotations.ThreadSafe;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -74,6 +75,8 @@ public class QueuedKeepAliveScheduler implements KeepAliveScheduler {
 						long keepAliveTime = System.currentTimeMillis()-lastKeepAliveTime;
 
 						if(keepAliveTime>2*maxKeepAliveIntervalMs){
+								SpliceLogUtils.warn(LOG,"It has been %d ms since the last time we tried to perform" +
+												"a keep alive, which is longer than the maximum interval");
 								/*
 								 * We are the only ones trying to keep this transaction alive. If we know
 								 * for a fact that we had to wait longer than the transaction timeout, then
@@ -87,20 +90,27 @@ public class QueuedKeepAliveScheduler implements KeepAliveScheduler {
 								try{
 										txn.rollback();
 								} catch (IOException e) {
-										LOG.info("Unable to roll back transaction " +
-														txn.getTxnId() + " but nothing to be concerned with, since it has already timed out", e);
+										LOG.info("Unable to roll back transaction " + txn.getTxnId()
+														+ " but nothing to be concerned with, since it has already timed out", e);
 								}
 								return;
 						}
 
 						try {
+								long time = System.nanoTime();
 								boolean reschedule = txnStore.keepAlive(txn.getTxnId());
+								time = System.nanoTime()-time; //measure our latency
 								if(reschedule){
 										//use a random slop factor to load-balance our keep alive requests.
 										threadPool.schedule(this,random.nextLong(maxWaitIntervalMs),TimeUnit.MILLISECONDS);
 										lastKeepAliveTime = System.currentTimeMillis(); //include network latency in our wait period
 								}
+								if(time>0.1*maxKeepAliveIntervalMs)
+										SpliceLogUtils.warn(LOG,"It took longer than 10% of the keep-alive interval to perform" +
+														"keep alive for transaction %d. This may be a sign that load will begin interfering" +
+														"with the transaction system",txn.getTxnId());
 						} catch(TransactionTimeoutException tte){
+								LOG.error("Transaction "+ txn.getTxnId()+" has timed out");
 									/*
 									 * We attempted to keep alive a transaction that has already timed out for a different
 									 * reason. Ensure that the transaction is rolled back
@@ -116,7 +126,7 @@ public class QueuedKeepAliveScheduler implements KeepAliveScheduler {
 								 * This could be a real problem, but we don't have anything that we can really do about this,
 								 * so we just log the error and hope it resolves itself.
 								 */
-								LOG.error("Unable to keep transaction "+txn.getTxnId()+" alive. Will try again in a bit");
+								LOG.error("Unable to keep transaction "+txn.getTxnId()+" alive. Will try again in a bit",e);
 								threadPool.schedule(this,random.nextLong(maxWaitIntervalMs),TimeUnit.MILLISECONDS);
 						}
 				}
