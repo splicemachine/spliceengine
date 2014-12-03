@@ -138,6 +138,8 @@ import com.splicemachine.utils.kryo.ExternalizableSerializer;
 import com.splicemachine.utils.kryo.KryoObjectInput;
 import com.splicemachine.utils.kryo.KryoObjectOutput;
 import com.splicemachine.utils.kryo.KryoPool;
+import org.apache.hadoop.hbase.util.Pair;
+
 /**
  *
  * Maps serializable entities to a Kryo Serializer, so that
@@ -808,5 +810,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(PurgeTransactionsTask.class, EXTERNALIZABLE_SERIALIZER,224);
         instance.register(BackupItem.class, EXTERNALIZABLE_SERIALIZER,225);
         instance.register(Backup.class, EXTERNALIZABLE_SERIALIZER,226);
+        instance.register(BackupItem.RegionInfo.class, EXTERNALIZABLE_SERIALIZER,227);
+        instance.register(Pair.class, 228);
     }
 }

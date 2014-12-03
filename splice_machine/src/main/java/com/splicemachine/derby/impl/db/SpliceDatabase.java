@@ -328,11 +328,6 @@ public class SpliceDatabase extends BasicDatabase {
         String changeId = null;
         try {
             admin = SpliceUtilities.getAdmin();
-            if (!admin.tableExists(SpliceMasterObserver.RESTORE_TABLE)) {
-                HTableDescriptor desc = new HTableDescriptor(SpliceMasterObserver.RESTORE_TABLE);
-                desc.setValue(SpliceMasterObserverRestoreAction.BACKUP_PATH, restoreDir);
-                admin.createTable(desc);
-            }
 
             Connection conn = SpliceAdmin.getDefaultConn();
             LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
