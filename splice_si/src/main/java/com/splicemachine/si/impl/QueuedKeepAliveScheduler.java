@@ -97,9 +97,9 @@ public class QueuedKeepAliveScheduler implements KeepAliveScheduler {
 						}
 
 						try {
-								long time = System.nanoTime();
+								long time = System.currentTimeMillis();
 								boolean reschedule = txnStore.keepAlive(txn.getTxnId());
-								time = System.nanoTime()-time; //measure our latency
+								time = System.currentTimeMillis()-time; //measure our latency
 								if(reschedule){
 										//use a random slop factor to load-balance our keep alive requests.
 										threadPool.schedule(this,random.nextLong(maxWaitIntervalMs),TimeUnit.MILLISECONDS);
