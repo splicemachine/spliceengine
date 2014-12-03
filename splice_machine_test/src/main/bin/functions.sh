@@ -133,7 +133,6 @@ _startSplice() {
     -XX:MaxPermSize=256M \
     -XX:+CMSClassUnloadingEnabled \
     -XX:MaxDirectMemorySize=1g \
-    -enableassertions \
     -Dderby.language.updateSystemProcs=false \
     -Dderby.language.logStatementText=false"
 	# -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4000
@@ -148,7 +147,7 @@ _startSplice() {
     HBASE_REGIONSERVER_INFO_PORT=60030
     SPLICE_PORT=1527
 
-    (java ${SYS_ARGS} -enableassertions "${SPLICE_MAIN_CLASS}" "${HBASE_ROOT_DIR_URI}" ${HBASE_MASTER_PORT} ${HBASE_MASTER_INFO_PORT} ${HBASE_REGIONSERVER_PORT} ${HBASE_REGIONSERVER_INFO_PORT} ${SPLICE_PORT} ${CHAOS} >> "${LOGFILE}" 2>&1 ) &
+    (java ${SYS_ARGS} "${SPLICE_MAIN_CLASS}" "${HBASE_ROOT_DIR_URI}" ${HBASE_MASTER_PORT} ${HBASE_MASTER_INFO_PORT} ${HBASE_REGIONSERVER_PORT} ${HBASE_REGIONSERVER_INFO_PORT} ${SPLICE_PORT} ${CHAOS} >> "${LOGFILE}" 2>&1 ) &
     echo "$!" > ${SPLICE_PID_FILE}
 }
 
