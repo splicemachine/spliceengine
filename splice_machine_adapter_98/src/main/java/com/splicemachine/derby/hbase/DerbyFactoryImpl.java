@@ -1,19 +1,27 @@
 package com.splicemachine.derby.hbase;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.lang.Override;
-import java.net.ConnectException;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.SortedSet;
-
+import com.google.common.collect.Lists;
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
+import com.splicemachine.derby.impl.job.operation.SuccessFilter;
+import com.splicemachine.derby.impl.job.scheduler.BaseJobControl;
+import com.splicemachine.derby.impl.job.scheduler.JobControl;
+import com.splicemachine.derby.impl.job.scheduler.JobMetrics;
+import com.splicemachine.derby.impl.sql.execute.DropIndexConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.SkippingScanFilter;
+import com.splicemachine.derby.impl.store.access.base.SpliceGenericCostController;
+import com.splicemachine.derby.utils.SpliceAdmin;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.hbase.HBaseRegionLoads;
+import com.splicemachine.hbase.HBaseServerUtils;
+import com.splicemachine.hbase.debug.HBaseEntryPredicateFilter;
+import com.splicemachine.pipeline.api.BulkWritesInvoker.Factory;
+import com.splicemachine.pipeline.impl.BulkWritesRPCInvoker;
+import com.splicemachine.si.api.TransactionalRegion;
+import com.splicemachine.si.coprocessor.TxnMessage;
+import com.splicemachine.storage.EntryPredicateFilter;
+import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.iapi.error.StandardException;
@@ -37,46 +45,21 @@ import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.exceptions.RegionMovedException;
 import org.apache.hadoop.hbase.filter.Filter;
-import org.apache.hadoop.hbase.ipc.RemoteWithExtrasException;
-import org.apache.hadoop.hbase.ipc.RpcClient;
 import org.apache.hadoop.hbase.master.MasterServices;
 import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
 import org.apache.hadoop.hbase.protobuf.generated.ClientProtos;
-import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.regionserver.HRegionFileSystem;
-import org.apache.hadoop.hbase.regionserver.InternalScanner;
-import org.apache.hadoop.hbase.regionserver.RegionScanner;
-import org.apache.hadoop.hbase.regionserver.RegionServerServices;
-import org.apache.hadoop.hbase.regionserver.WrongRegionException;
+import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
-import com.google.common.collect.Lists;
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
-import com.splicemachine.derby.impl.job.operation.SuccessFilter;
-import com.splicemachine.derby.impl.job.scheduler.BaseJobControl;
-import com.splicemachine.derby.impl.job.scheduler.JobControl;
-import com.splicemachine.derby.impl.job.scheduler.JobMetrics;
-import com.splicemachine.derby.impl.sql.execute.DropIndexConstantOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.SkippingScanFilter;
-import com.splicemachine.derby.impl.store.access.base.SpliceGenericCostController;
-import com.splicemachine.derby.utils.SpliceAdmin;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.hbase.HBaseRegionLoads;
-import com.splicemachine.hbase.HBaseServerUtils;
-import com.splicemachine.hbase.debug.HBaseEntryPredicateFilter;
-import com.splicemachine.pipeline.api.BulkWritesInvoker.Factory;
-import com.splicemachine.pipeline.exception.IndexNotSetUpException;
-import com.splicemachine.pipeline.impl.BulkWritesRPCInvoker;
-import com.splicemachine.si.api.TransactionalRegion;
-import com.splicemachine.si.coprocessor.TxnMessage;
-import com.splicemachine.storage.EntryPredicateFilter;
-import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.utils.SpliceZooKeeperManager;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.*;
 
 public class DerbyFactoryImpl implements DerbyFactory<TxnMessage.TxnInfo> {
 
@@ -164,14 +147,8 @@ public class DerbyFactoryImpl implements DerbyFactory<TxnMessage.TxnInfo> {
 	public void bulkLoadHFiles(HRegion region, List<Pair<byte[], String>> paths) throws IOException {
 		region.bulkLoadHFiles(paths,true); // TODO
 	}
-	@Override
-	public boolean isCallTimeoutException(Throwable t) {
-		return t instanceof RpcClient.CallTimeoutException;
-	}
-	@Override
-	public boolean isFailedServerException(Throwable t) {
-		return t instanceof RpcClient.FailedServerException;
-	}
+
+
 
 	@Override
 	public Factory getBulkWritesInvoker(HConnection connection, byte[] tableName) {
@@ -449,54 +426,10 @@ public class DerbyFactoryImpl implements DerbyFactory<TxnMessage.TxnInfo> {
 		public ServerName getServerName(String serverName) {
 			return ServerName.valueOf(serverName);
 		}
-		
-		private boolean isRemoteWithExtras(Throwable t, String className) {
-			if (t instanceof RemoteWithExtrasException &&
-					((RemoteWithExtrasException) t).getClassName() != null &&
-					((RemoteWithExtrasException) t).getClassName().equals(className))
-				return true;
-			return false;
-		}
-		
-		@Override
-		public boolean isNotServingRegionException(Throwable t) {
-			return t instanceof NotServingRegionException || isRemoteWithExtras(t, NotServingRegionException.class.getCanonicalName());
-		}
+
 
 		@Override
-		public boolean isWrongRegionException(Throwable t) {
-			return t instanceof WrongRegionException || isRemoteWithExtras(t, WrongRegionException.class.getCanonicalName()) ||
-				   t instanceof RegionMovedException || isRemoteWithExtras(t, RegionMovedException.class.getCanonicalName());
-		}
-
-		@Override
-		public boolean isRegionTooBusyException(Throwable t) {
-			return t instanceof RegionTooBusyException || isRemoteWithExtras(t, RegionTooBusyException.class.getCanonicalName());
-		}
-
-		@Override
-		public boolean isInterruptedException(Throwable t) {
-			return t instanceof InterruptedException || isRemoteWithExtras(t, InterruptedException.class.getCanonicalName());
-		}
-
-		@Override
-		public boolean isConnectException(Throwable t) {
-			return t instanceof ConnectException || isRemoteWithExtras(t, ConnectException.class.getCanonicalName());
-		}
-
-		@Override
-		public boolean isIndexNotSetupException(Throwable t) {
-			return t instanceof IndexNotSetUpException || isRemoteWithExtras(t, IndexNotSetUpException.class.getCanonicalName());
-		}
-
-		@Override
-		public boolean isPleaseHoldException(Throwable t){
-				if(t.getCause() instanceof RemoteWithExtrasException){
-						t = ((RemoteWithExtrasException)t.getCause()).unwrapRemoteException();
-				}
-				if(t instanceof RemoteWithExtrasException){
-						t = ((RemoteWithExtrasException)t).unwrapRemoteException();
-				}
-				return t instanceof PleaseHoldException;
+		public ExceptionTranslator getExceptionHandler() {
+				return Hbase98ExceptionTranslator.INSTANCE;
 		}
 }

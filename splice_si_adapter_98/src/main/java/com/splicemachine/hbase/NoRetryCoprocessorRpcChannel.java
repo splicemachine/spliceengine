@@ -43,7 +43,7 @@ public class NoRetryCoprocessorRpcChannel extends CoprocessorRpcChannel {
 				try {
 						response = callExecService(method, request, responsePrototype);
 				} catch (IOException ioe) {
-						LOG.warn("Call failed on IOException", ioe);
+//						LOG.warn("Call failed on IOException", ioe);
 						if(controller instanceof SpliceRpcController){
 								((SpliceRpcController)controller).setFailed(ioe);
 						}else

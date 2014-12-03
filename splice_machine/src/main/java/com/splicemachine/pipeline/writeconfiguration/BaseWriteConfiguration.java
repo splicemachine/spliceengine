@@ -2,6 +2,7 @@ package com.splicemachine.pipeline.writeconfiguration;
 
 import java.util.concurrent.ExecutionException;
 import com.carrotsearch.hppc.IntArrayList;
+import com.splicemachine.derby.hbase.ExceptionTranslator;
 import org.apache.log4j.Logger;
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
@@ -17,24 +18,34 @@ import com.splicemachine.pipeline.impl.WriteResult;
 import com.splicemachine.utils.SpliceLogUtils;
 
 public abstract class BaseWriteConfiguration implements WriteConfiguration {
-	private static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
+    private static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
     private static final Logger LOG = Logger.getLogger(BaseWriteConfiguration.class);
 
     @Override
     public WriteResponse globalError(Throwable t) throws ExecutionException {
-					if(derbyFactory.isRegionTooBusyException(t)){
-							return WriteResponse.RETRY;
-					}
-					else if(derbyFactory.isInterruptedException(t)){
-							Thread.currentThread().interrupt();
-							return WriteResponse.IGNORE; //
-					}else if(derbyFactory.isConnectException(t)
-                || derbyFactory.isWrongRegionException(t)
-                || derbyFactory.isIndexNotSetupException(t)
-                || derbyFactory.isNotServingRegionException(t) )
+        ExceptionTranslator handler = derbyFactory.getExceptionHandler();
+        if(handler.isInterruptedException(t)){
+            Thread.currentThread().interrupt();
+            return WriteResponse.IGNORE;
+        }
+        else if((handler.canFinitelyRetry(t)||handler.canInfinitelyRetry(t))&&!handler.needsTransactionalRetry(t))
             return WriteResponse.RETRY;
         else
             return WriteResponse.THROW_ERROR;
+
+//        if(handler.isRegionTooBusyException(t)){
+//            return WriteResponse.RETRY;
+//        }
+//        else if(handler.isInterruptedException(t)){
+//            Thread.currentThread().interrupt();
+//            return WriteResponse.IGNORE; //
+//        }else if(handler.isConnectException(t)
+//                || derbyFactory.isWrongRegionException(t)
+//                || derbyFactory.isIndexNotSetupException(t)
+//                || derbyFactory.isNotServingRegionException(t) )
+//            return WriteResponse.RETRY;
+//        else
+//            return WriteResponse.THROW_ERROR;
     }
 
     @Override
@@ -61,11 +72,11 @@ public abstract class BaseWriteConfiguration implements WriteConfiguration {
         else
             return WriteResponse.RETRY;
     }
-	
-	@Override
-	public void registerContext(WriteContext context,
-			ObjectObjectOpenHashMap<KVPair, KVPair> indexToMainMutationMap) {
-		SpliceLogUtils.warn(LOG, "registering Context with a base class");
-	}
-	
+
+    @Override
+    public void registerContext(WriteContext context,
+                                ObjectObjectOpenHashMap<KVPair, KVPair> indexToMainMutationMap) {
+        SpliceLogUtils.warn(LOG, "registering Context with a base class");
+    }
+
 }

@@ -2,6 +2,8 @@ package com.splicemachine.derby.impl.job.scheduler;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.derby.hbase.DerbyFactoryDriver;
+import com.splicemachine.derby.hbase.ExceptionTranslator;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.stats.TaskStats;
@@ -316,9 +318,13 @@ public abstract class BaseJobControl implements JobFuture {
      */
     void resubmit(RegionTaskControl task,
                   int tryCount) throws ExecutionException {
-				//only submit so many times
-        if(tryCount>=maxResubmissionAttempts){
-            Throwable lastError = task.getError();
+        Throwable lastError = task.getError();
+        ExceptionTranslator exceptionHandler = DerbyFactoryDriver.derbyFactory.getExceptionHandler();
+        if(exceptionHandler.canInfinitelyRetry(lastError)
+                ||(exceptionHandler.canFinitelyRetry(lastError)&& tryCount<maxResubmissionAttempts)){
+            doResumbit(task,tryCount);
+        }else{
+				    //only submit so many times
             if(lastError!=null)
                 throw new ExecutionException(lastError);
 
@@ -328,7 +334,9 @@ public abstract class BaseJobControl implements JobFuture {
             task.fail(ee.getCause());
             throw ee;
         }
+    }
 
+    private void doResumbit(RegionTaskControl task, int tryCount) throws ExecutionException {
         //get the next higher task
         RegionTaskControl next = task;
         do{
@@ -338,7 +346,7 @@ public abstract class BaseJobControl implements JobFuture {
              * distinguish between two regions which have the same start/stop key but are
              * distinct task nodes, where here we want to treat those the same.
              */
-        }while(next!=null && Bytes.compareTo(next.getStartRow(),task.getStartRow())==0);
+        }while(next!=null && Bytes.compareTo(next.getStartRow(), task.getStartRow())==0);
 
         tasksToWatch.remove(task);
 

@@ -398,7 +398,7 @@ public class SpliceDriver extends SIConstants {
         	SpliceLogUtils.info(LOG, "Waiting for splice schema creation.");
         	return bootDatabase();
         } catch (Exception e) {
-            if(derbyFactory.isPleaseHoldException(e)){
+            if(derbyFactory.getExceptionHandler().isPleaseHoldException(e)){
                 Thread.sleep(5000);
                 SpliceLogUtils.info(LOG,"Waiting for splice schema creation");
                 return bootDatabase();
