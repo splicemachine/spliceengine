@@ -1,23 +1,27 @@
 Understanding the role of statistics in a relational database is typically tightly connected to undertstanding the role of the query optimizer. In most databases\footnote{See Appendix-\ref{sec:OtherDBs}}, Statistics information is a tool which is used only during the query planning and optimization stage, and is not used at any other stage of the execution process. This view that statistics is only helpful to the query optimizer has significant consequences on how the statistical systems in those databases have been implemented. There are variations, but the central theme of statistics collections in database products to this point is to acquire a small but statistically significant sample of data, and computing a simple set of statistics from this sample. And, because sampling eliminates all boundaries between data partitions (either within a node or between multiple nodes), this approach has the circular effect of forcing database systems to view data only in a global manner\footnote{Or, as in the case with Oracle, to draw a strict distinction between global and local statistics}.
 
-We propose an adjustment to this paradigm. Clearly, the query optimizer will need to maintain a global understanding of data, in order to choose the correct plans. However, in addition to that, SpliceMachine will maintain statistics within boundaries (in particular, within the boundaries of regions). This will allow SpliceMachine to make optimization choices which are not available to the query planner, and therefore to improve throughput and reduce latency by well chosen execution strategies. Further, this approach will lead to a better use of resources;from dynamically sizing in-memory buffers to choosing single-threaded versus concurrent implementations of the same algorithm, we can use statistical information to ensure that SpliceMachine runs more stably and more predictably even under the stress of many different queries.
+We propose an adjustment to this paradigm. Clearly, the query optimizer will need to maintain a global understanding of data, in order to choose the correct plans. However, in addition to that, SpliceMachine will maintain statistics within boundaries (in particular, within the boundaries of regions). This will allow SpliceMachine to make optimization choices which are not available to the query planner, and therefore to improve throughput and reduce latency by well chosen execution strategies. Further, this approach will lead to a better use of resources: we can use statistical information to ensure that SpliceMachine runs more stably and more predictably even under the stress of many different queries.
+
+This document is broken down into five main sections. In the \hyperref[sec:Overview]{\textbf{Overview}}, we will provide a high-level summary of the structure of the statistics module, and how it will be used in SpliceMachine. Then, in the \hyperref[sec:Statistics]{\textbf{Statistics}} module, we will describe the statistics that are to be collected, and how they will be used. The \hyperref[sec:Collection]{\textbf{Collection}} and \hyperref[sec:Storage]{\textbf{Storage}} sections will describe how statistics information will be collected, stored, and accessed in an efficient and low-impact manner. Finally, in \hyperref[sec:OtherDBs]{\textbf{Appendix \ref{sec:OtherDBs}}} we provide context about statistics collection in other databases, and in \hyperref[sec:Algorithms]{\textbf{Appendix \ref{sec:Algorithms}}} we give more details about the selected statistics collection algorithms, and a brief construction of how they work. These appendices provide context as to why certain decisions were made, and how they affect the overall design of SpliceMachine's statistics engine, but do not directly impact the structure of the engine.
 
 \section{Overview}
-There are two main components of the statistics strategy in SpliceMachine:
+\label{sec:Overview}
+There are three main components of the statistics strategy in SpliceMachine:
 
 \begin{description}
 \item[Collection] approaches what statistics are collected and how the collection will occur.
-\item[Distribution and Storage] resolves issues around storing statistical data, and how it can be accessed, both for human administrators and internal systems.
+\item[Storage] resolves issues around storing statistical data so that it may be effectively accessed.
+\item[Access] resolves issues around accessing statistical data quickly, both for human administrators and internal systems
 \end{description}
 
 \subsection{Collection}
-Statistics will be collected through the use of a periodically executed maintenance tasks, which can be triggered on a single region in one of two modes. Manual mode (which will be implemented first), will collect statistics when the administrator issues the appropriate request. There will be some variations on those procedures to ensure that statistics can be collected with varying degrees of thoroughness (and with varying performance characteristics).
+Statistics will be collected through the use of a periodically executed maintenance tasks, which can be triggered on a single region in one of two modes. Manual mode (which will be implemented first), will collect statistics when the administrator issues the appropriate request. There will be some variations on those procedures to ensure that statistics can be collected with varying degrees of thoroughness (and with varying performance characteristics); for example, statistics may be collected on individual tables, schemas, and regions.
 
-Automatic mode, by contrast, will attempt to refresh statistics whenever the system can reasonably detect that a refresh would be helpful. In particular, whenever a region detects that it has received a significant number of successful writes, it will assume that it needs new statistics, and will submit a task for execution. However, this maintenance task will wait to be executed until the region detects a substantial decrease in it's overall write load (Should such a situation never occur, it will eventually execute anyway).
+Automatic mode, by contrast, will attempt to refresh statistics whenever the system can reasonably detect that new statistics be helpful. In particular, whenever a region detects that it has received a significant number of successful writes, it will assume that it needs new statistics, and will submit a task for execution. However, this maintenance task will wait to be executed until the region detects a substantial decrease in it's overall write load (Should such a situation never occur, it will eventually execute anyway).
 
-As automatic mode may choose to use resources at an inopurtune time, it will come with an associated disable call, which an administrator can use to disable automatic collection for high-load databases.
+As automatic mode may choose to use resources at an inopurtune time, it will come with an associated disable call, which an administrator can use to disable automatic collection for high-load databases. It is expected that automatic mode will be a follow-up addition, while manual mode will be implemented first.
 
-\subsection{Distribution and Storage}
+\subsection{Storage}
 Once collected for a given region, Statistics must be made available for the query optimizers on \emph{all} RegionServers to use. 
 
 The most obvious way to do this is to store the data into an HBase table. In particular, there will be two tables: 
@@ -29,24 +33,33 @@ The most obvious way to do this is to store the data into an HBase table. In par
 
 Each region will update specific rows in this table, making the storage format region-specific. This allows individual regions to update themselves without requiring the entire system to update.
 
-These two tables will hold data in binary formats which are efficient to store and can be combined correctly. This has the unfortunate consequence that these tables will not be human readable in any direct sense. To convert between the binary storage points and the human-readable table constructs, we will use \emph{virtual table interfaces}(VTIs) to create two views of the tables:
+These two tables will hold data in binary formats which are efficient to store and can be combined correctly, but will not be human readable in any direct sense. To allow human visibility into the system, we will also create two read-only views:
 
 \begin{description}
 				\item[\texttt{sys\_table\_stats}] will be a human-readable view of the table as a whole
 				\item[\texttt{sys\_column\_stats}] will be a human-readable view of for each individual column
 \end{description}
 
-VTI views will allow users to treat these views exactly as if they were tables, with one exception: these tables (and their views) will be considered read-only; modification of statistics is allowed only by the statistics engine itself.
+Only the statistics engine itself will be able to modify these views.
 
-There is a significant downside to this strategy that we must deal with. We note that table access is a relatively expensive operation to conduct remotely. This is made more difficult when the data may only be present on a single node \footnote{Hotspotting regions is a common HBase performance problem, after all}.  However, we are helped by the realization that statistics updates will occur relatively rarely in our system\footnote{Rarely in this case can be anywhere between once a month for a reference data set to once every hour for high-volume OLTP tables}. Because of this, we can safely cache statistics data locally on each RegionServer on the cluster.
+\subsection{Access}
+There is a significant downside to this strategy that we must deal with. We note that table access is a relatively expensive operation to conduct remotely, and even more expensive when that data is stored in only a single region (which it is reasonable to expect, since a single cluster will have thousands of regions at most). However, we are helped by the realization that statistics updates will occur relatively rarely in our system\footnote{Rarely in this case can be anywhere between once a month for a reference data set to once every hour for high-volume OLTP tables}. Because of this, we can safely cache statistics data locally on each RegionServer on the cluster.
 
-In order to avoid memory (and CPU) penalties in this cache, caching will have three levels. The first level is for regions which are known to reside on a given RegionServer. Those regions will cache their data at a regional level, which will allow them to use region-specific statistics to perform runtime optimizations. 
+In order to avoid memory (and CPU) penalties in this cache, caching will have three levels:
 
-The second level is the remote region level, where statistics for regions which are managed remotely are held. This level of caching is relatively small, since there are relatively few circumstances under which we may wish for statistics for remote regions.
+\begin{description}
+\item[The Local Region Cache] will hold up-to-date statistics information for every region which belongs to the \emph{local} Region Server. This cache is never stale, since statistics data is always local.
+\item[The Remote Region Cache] will hold statistics information for regions which belong to \emph{remote} Region Servers.
+\item[The Global Table Cache] will hold cached statistics which are \emph{global}, and contain only the statistics which occur after merging all region statistics together.
+\end{description}
 
-The third level is the global table level--statistics are merged during table reading, and only a single view of the table as a whole is maintained in the cache. When the cache is refreshed, the entire table's statistics will be read from tables and updated. This will avoid a potentially expensive merging process during query optimization and other situations where a global view is desired.
+\subsection{Obtaining Global Statistics}
+The query optimizer (and human viewers) need to be able to see statistics information which ignores region boundaries--it is only interested in seeing statistics for tables as a whole instead of specific regions. As a result, we must provide a mechanism for merging together the statistics which were generated by each region in the table; we refer to this process as \emph{merging} the statistics.
+
+This process will scan the relevant HBase tables for all related statistics, and merge those results in memory. As this is a relatively expensive process, we will cache the completed results in the Global Table Cache. 
 
 \section{Statistics}
+\label{sec:Statistics}
 The strategy that we've outlined so far has expressed itself in the singular "Statistics", but what, exactly, are these statistics that we plan on collecting, and why are they considered useful for us?
 
 Roughly speaking, we would like to collect anything(and everything) that will give us more information about the data that is stored. We are tolerant to some degree of error in our estimates, as long as we can get accurate enough that we make the correct decisions during optimization. 
@@ -86,65 +99,61 @@ The additional fields attempt to keep track of the distribution of data on a per
 As a note, it is not always strictly necessary to keep all this information stored on disk--for example, the region count can be acquired directly, without reference to any tables.
 
 \subsection{Column Statistics}
-Column Statistics manage information about individual columns, and are often the more interesting (and more difficult) algorithms to implement. While table-level metrics are easy to acquire\footnote{In fact, one could simply maintain the correct values for all table-level metrics and have a reasonable degree of accuracy}, column statistics are significantly more complex.
+Column Statistics manage information about individual columns, and are often the more interesting (and more difficult) algorithms to implement. While table-level metrics are easy to acquire\footnote{In fact, one could simply maintain the correct values for all table-level metrics and have a reasonable degree of accuracy}, column statistics are significantly more complex. 
+
+To start with, we will collect the following statistics:
+
+\begin{enumerate}
+				\item Cardinality
+				\item \emph{Null Fraction} = number of null elements / total number of rows in table
+				\item Frequent Elements
+				\item Wavelet Representation (if data type is ordered)
+				\item Minimum Value (if data type is ordered)
+				\item Frequency of Minimum Value
+				\item Maximum value (if data type is ordered)
+				\item Frequency of Maximum Value
+				\item Mean size of a column (in bytes)
+\end{enumerate}
+
+These statistics will be stored in an intermediate binary format which is easy to merge together\footnote{in particular, the algorithms which generate statistics are all linear functions}.
 
 \subsubsection{Cardinality}
 The first, and simplest, metric that we wish to record is the \emph{cardinality}. Mathematically, \emph{cardinality} is just the number of entries in a set. As we are dealing with multisets(sets which can contain more than one entry with the same value), cardinality is more appropriately stated as the number of \emph{distinct} elements in the data set. 
 
-There are a number of algorithms which can estimate the cardinality of a data set with varying degrees of accuracy. However, the most effective estimation strategy is \emph{HyperLogLog}\cite{Flajolet07hyperloglog:the}. For details on the algorithm itself, see Appendix-\ref{sec:HyperLogLog}.
+There are a number of algorithms which can estimate the cardinality of a data set with varying degrees of accuracy. However, the most effective estimation strategy is \hyperref[sec:HyperLogLog]{\emph{HyperLogLog}}\cite{Flajolet07hyperloglog:the}. 
 
 HyperLogLog essentially strikes a balance between memory consumption and accuracy. A more accurate estimate requires more counters,and thus more total memory. However, once a given accuracy is specified, the space requirements are \emph{constant} with respect to the number of rows processed. Additionally, updates to the data structure are constant-time. 
 
 In practice, each counter requires only a byte of space, so the total memory space is the cost of a single object, a single array, and $2^b$ bytes. If $b=14$, this memory cost is $\approx 16$ kilobytes per column(Heule et. al's adjustments can reduce this cost for low cardinalities\cite{HyperLogLogGoogle}). Thus, over the maximum 1024 columns, the total memory footprint due to cardinality checking is $\approx 2^{b+10}$ bytes(for $b=14$, this is $\approx 16$ megabytes).
 
 \subsubsection{Frequent Elements}
-The next set of statistics to collect for SpliceMachine is referred to as the \emph{frequent elements}\footnote{Also referred to as the \emph{Heavy Hitters}, or the \emph{Iceberg Values}}. Frequent elements are simple the elements which occur most frequently in the data set; collecting them and their exact frequencies allows us to be more accurate for queries in which these frequent elements are involved.
+The next set of statistics to collect for SpliceMachine is referred to as the \emph{Frequent Elements}\footnote{Also referred to as the \emph{Heavy Hitters}, or the \emph{Iceberg Values}}. Frequent elements are simply the elements which occur most frequently in the data set; collecting them and their exact frequencies allows us to be more accurate for queries in which these frequent elements are involved.
 
-There are fewer algorithms available for solving the Frequent elements problem, but there are still a reasonably large number to parse through. However, the \emph{SpaceSaver} algorithm stands out as a particularly effective choice.
+There are fewer algorithms available for solving the Frequent Elements problem, but there are still a reasonably large number to parse through. However, the \hyperref[sec:SpaceSaver]{\emph{SpaceSaver}} algorithm stands out as a particularly effective choice.
 
 The SpaceSaver algorithm keeps an approximate list of heavy hitters using constant space (controlled by the desired accuracy). It does this by keeping not just a fixed-size list of elements, but also a fixed-size list of error estimates, which it can use to eliminate errneously counted heavy hitters\footnote{We elide the details of the algorithm in this section. For those details, see Appendix-\ref{sec:SpaceSaver}}. As a result of the structural designs and a bit of clever data structure organization, SpaceSaver is able to allow constant-time updates with a bounded constant-space memory cost.
 
-\subsubsection{Histograms}
+Generally speaking, if one wishes to keep the top $N$ most frequent elements, then the SpaceSaver algorithm requires $N$ fields (the item itself), plus $2N$ counters (2 for each item in the data structure. 
+
+\subsubsection{Histograms and Wavelets}
 The core of any reasonable statistics structure is the \emph{histogram}. Roughly speaking, a histogram is a summary structure which shows the distribution of ordered data across it's possible domain. Typically, it is used in data visualization tools, but when the need to make visual sense is removed, histograms are allowed to become more exotic in favor of better estimating capacities.
 
-We will avoid discussing histograms in too much depth during this section--for more detail, see Appendix-\ref{sec:Histograms}. However, there are a few crucial points which must be discussed in order to have a full understanding of the problem that Histograms present.
-
-Histograms come in three major forms\footnote{There are actually four or five additional forms, but they amount to variations on the main three}: \emph{Equi-width},\emph{Equi-depth}, and \emph{V-Optimal}.
-
-Equi-width Histograms are usually what people imagine when they think of Histograms: the domain of values is split into a certain number of \emph{buckets}, each of which has a fixed, equal share of the domain of values. Some buckets will have more values than others, but all elements will belong to one and only one bucket. 
-
-Equi-width histograms are trivial to implement, and multiple equi-width histograms can be easily merged together, making for simple distribution. However, they also display poor estimation quality\footnote{In the interest of brevity, details are not provided in this section. See Appendix-\ref{sec:EquiDepth} for evidence in support of these claims.}.
-
-A better choice in terms of error estimation (particular for query optimizer applications) is the \emph{Equi-Depth} histogram. Equi-depth histograms also subdivide the domain of values into a fixed number of buckets; however, the boundaries of these buckets are chosen so that all buckets have (approximately) the same number of entries. In practice, these are quite effective at providing reasonable information for query optimizers to use\footnote{In fact, all databases surveyed in Appendix-\ref{sec:OtherDBs} use an Equi-depth histogram}. 
-
-However, Equi-depth histograms suffer from a significant downside: they cannot be merged without violating the equi-depth histogram constraint (and thus greatly increasing the estimation error). As a result, it is impossible for SpliceMachine to provide an Equi-depth histogram that has both region-level information and global information.
-
-This leaves V-Optimal histograms. a V-Optimal histogram is similar to an Equi-depth histogram, in that it uses a fixed number of buckets, each of which are of variable widths. Unlike an Equi-depth histogram, however, V-Optimal histograms attempt to set bucket boundaries such that the variance between items inside each individual bucket is minimized. This results in the most accurate histogram \footnote{for the purposes of query optimization, at any rate}, but is significantly more difficult to construct. As if the difficulty weren't enough, V-Optimal histograms share the nonlinear characteristics of Equi-depth histograms, making them a poor choice for SpliceMachine.
-
-Thus, at first glance, we are confronted with a tough choice: do we sacrifice our desire for a region-level statistics view so that we may have the accuracy benefits of an Equi-depth of V-Optimal histogram, or do we sacrifice accuracy in our statistics structures so that we may easily merge together histograms?
+Technically speaking, a Histogram is a mechanism for approximation the distribution of data across its domain of possible values. Unfortunately, Histogram data structures on the whole are generally either non-linear (and therefore cannot be merged between two regions) and expensive to construct, or are highly inaccurate\footnote{in some cases, both}. As a result, if we were to use histograms, we must either sacrifice our region-specific architecture (in favor of a global sampling approach), or sacrifice any reasonable accuracy. While we can tolerate \emph{some} inaccuracy in our approximations, we cannot afford to sacrifice it all.
 
 Fortunately, there is a third choice we can make. \emph{Wavelet transforms} are a method of approximating a function using a linear sum of other functions(analogously to Fourier Transforms, although not precisely the same). They are commonly used in signal processing applications where data is considered to be a stream of incoming values whose contribution to the whole is not predictable.
 
 It is only a slight change to transform our way of thinking from a static \emph{set} of data points which must be described using a histogram, into one where we are a \emph{stream} of changes to a \emph{signal}, where the signal in this case is the \emph{cumulative density function} of the data itself--in other words, the signal is the histogram, and we attempt to approximate that signal using Wavelet transforms.
 
-The elegance of Wavelet transforms are that they are linear (and therefore easy to merge\cite{GilbertWaveletHistograms}), and accurate--much more so than random samplig\cite{MatiasWaveletHistogram}. 
+The elegance of Wavelet transforms are that they are linear (and therefore easy to merge\cite{GilbertWaveletHistograms}), and accurate--much more so than random sampling\cite{MatiasWaveletHistogram}. 
 
-The most straightforward algorithm for computing wavelent-based histograms is the \emph{GroupedCount Sketch}\cite{CormodeGroupedCountSketch}, which uses roughly $O(\log{n})$ space and requires roughtly $O(\log{n})$ steps to update.
+We construct our wavelet representation using the \emph{Haar Wavelet Transform}. In effect, this transform maintains a tree of counters, and each update to that tree updates a subset of those total counters. At each level $0\leq l < \log{N}$ of the tree, there are $2^l$ counters. The exact approach therefore uses a total of $N$ counters, which is prohibitive for large domain sizes (like integers and larger). 
 
-\subsection{Summary}
-For our mental convenience, we summarize here which column statistics are to be collected:
+Above a certain level, we switch from an exact approach to one based on the \hyperref[sec:GroupedCountSketch]{\emph{GroupedCountSketch}} data structure. The GroupedCount Sketch uses a fixed amount of memory to store all counters at a specific level, but sacrifices some correctness to do so. This tradeoff is more than acceptable in light of the memory savings gained. This hybrid approach allows us to control the total memory consumed for each histogram on a per-column basis.
 
-\begin{enumerate}
-				\item Cardinality
-				\item \emph{Null Fraction}
-				\item Frequent Elements
-				\item Frequency estimate for Frequent Elements
-				\item Wavelet Histogram (if data type is ordered)
-				\item Minimum Value (if data type is ordered)
-				\item Maximum values (if data type is ordered)
-\end{enumerate}
+Fundamentally, the Haar Transform considers signals by mapping the domain of possible values into the domain of integers--as a result, we must have a way of representing arbitrary byte sequences (such as strings) as scalar values which does not change the sort order. Thankfully, SpliceMachine uses sorted byte array representations of all data types, which means that we can represent an arbitrary sequence of byte arrays as a smaller, arbitrary sequence of 8-byte scalars. Each of these scalars can be treated as a fixed \emph{dimension}, to which we use a multi-dimensional Haar transform (essentially a multi-dimensional tree) to maintain the structure.
 
-where the \emph{Null Fraction} is defined as the number of null values, divided by the total number of rows.
+Finally, once the transform is complete, we can note that most of the counters we kept will be very close to 0 (i.e. they will have very little impact on the final result). As a result, we can maintain a very accurate representation of the distribution using only a few of the final \emph{Haar coefficients}.
+
 
 \subsection{Physical Statistics}
 In addition to logical statistics, we must collect some basic information about the physical world in which we are operating. Because we are durable, a large component of our cost is the cost of reading data off disk; because we are a clustered environment, the second largest power is the cost to write and read data over the network. Thus, we will need to collect disk and network I/O latency. 
@@ -176,6 +185,7 @@ Remote read latency is more difficult to measure. Initially, it will be recorded
 When automatic collection is enabled, a good way of obtaining these measurements is similar to that of PostgreSQL\cite{PGCollector} measures real time performance, and is referred to as \emph{query sampling}. When query sampling is enabled, a random sample of queries is taken\footnote{The sampling logic may be selective--for example, it may only only randomly sample from those queries which are expected to take a very short period of time, so that the added cost is not excessive.}. When a query is chosen, it will record the latency measurements that occurred during the execution of that query. This would allow more accurate variable measurements, but would have an adverse impact on performance for selected queries, so it would also require a shut-off valve to disable it when performance is critical.
 
 \section{Collection}
+\label{sec:Collection}
 Now that we have a clear image of what, precisely, we are collecting within our statistics engine, it behooves us to talk about the collection mechanism itself.
 
 There will ultimately be two modes of collections: \emph{manual} and \emph{automatic}. Manual mode will be implemented first, as it is simpler to implement and test, while automatic mode will be initiated afterwards.
@@ -216,19 +226,18 @@ Our choice is made a bit simpler when we consider how transactional structures w
 Thus, after consideration, it seems clear that we should use a read uncommitted isolation level when collecting statistics.
 
 \section{Storage}
+\label{sec:Storage}
 We would like our statistics to be distributed in a straightforward and durable manner. The simplest way to do this is using an HBase table for storage. Then, when statistics are needed, they can simply be read.
 
 In order to support the region-level isolation that our statistics engine requires, we will need to also separate writes out by individual regions. 
 
 \subsection{Table Statistics}
-Table statistics are stored in the \texttt{sys\_table\_statistics} table, whose schema is as in Table-\ref{table:tableStatistics}; it has an effective primary key of (\texttt{schema\_name},\texttt{table\_name},\texttt{region\_id}).
+Table statistics are stored in the \texttt{sys\_table\_statistics} table, whose schema is as in Table-\ref{table:tableStatistics}; it has an effective primary key of (\texttt{conglom\_id},\texttt{region\_id}).
 
 \begin{table}
 				\begin{tabular}{|l|c|p{6cm}|}
 								\hline
 								\bf{Name}									& \bf{Type}	&	\bf{Description} \\ \hline	
-								\texttt{schema\_name}			&	varchar	&	The Schema of the table \\ \hline
-								\texttt{table\_name}			&	varchar	&	The name of the table \\ \hline
 								\texttt{conglom\_id}			&	bigint	&	The conglomerate id for the table \\ \hline
 								\texttt{region\_id}				&	varchar	&	the region identifier \\ \hline
 								\texttt{num\_rows}				&	bigint	& RowCount \\ \hline
@@ -241,16 +250,15 @@ Table statistics are stored in the \texttt{sys\_table\_statistics} table, whose 
 				\label{table:tableStatistics}
 \end{table}
 
-Note that some table-level statistics (such as server information) are not stored. This is because the location of regions may change frequently, and it is relatively efficient for the system to collect that data on demand rather than storing data which is probably out of data anyway.
+Note that some table-level statistics (such as server information) are not stored. This is because the location of regions may change frequently, and it is relatively efficient for the system to collect that data on demand.
 
-Because \texttt{sys\_table\_statistics} is not directly managed by derby, we expose a read-only VTI view called \texttt{sys\_table\_stats} which is exposed through derby, to allow administrators direct query access to the table.
+It is important to note that \texttt{sys\_table\_statistics} has "virtual" columns--columns which can be considered part of the table, but which are not stored directly; this approach makes it difficult for us to provide direct user access through SQL, which is a very powerful visibility feature. In order to allow administrators such direct SQL access, we expose a read-only view call \texttt{sys\_table\_stats}. The full schema for \texttt{sys\_table\_stats} can be found in Table-\ref{table:tableStats}.
 
 \begin{table}
 				\begin{tabular}{|l|c|p{6cm}|}
 								\hline
 								\bf{Name}														& \bf{Type}	&	\bf{Description} \\ \hline	
-								\texttt{schema\_name}								&	varchar		&	The Schema of the table \\ \hline
-								\texttt{table\_name}								&	varchar		&	The name of the table \\ \hline
+								\texttt{conglom\_id}								&	bigint		&	The conglomerate id for the table \\ \hline
 								\texttt{num\_rows}									&	bigint		&	The number of rows in the table \\ \hline
 								\texttt{mean\_row\_width}						&	integer		&	The mean width of a row (in bytes) 	\\ \hline
 								\texttt{mean\_key\_width}						&	integer		&	The mean width of a key (in bytes) \\ \hline
@@ -273,7 +281,7 @@ Because \texttt{sys\_table\_statistics} is not directly managed by derby, we exp
 				\label{table:tableStats}
 \end{table}
 \subsection{Column Statistics}
-Column Statistics are stored in the \texttt{sys\_column\_statistics} table, which is an internal-only table containing binary representations of column statistics algorithms. The table has a schema as described in Table-\ref{table:columnStatistics}, and has an effective primary key of 
+Column Statistics are stored in the \texttt{sys\_column\_statistics} table, which is an internal-only table containing binary representations of column statistics values\footnote{Note that in many cases we store an intermediate binary representation which makes it easy to merge with other regions, but is often not human-readable}. The table has a schema as described in Table-\ref{table:columnStatistics}, and has an effective primary key of 
 \linebreak(\texttt{conglomerate\_id},\texttt{column\_num},\texttt{region\_id}).
 
 \begin{table}
@@ -287,15 +295,17 @@ Column Statistics are stored in the \texttt{sys\_column\_statistics} table, whic
 								\texttt{null\_frac}				&	real			&	null fraction \\ \hline
 								\texttt{freq\_vals}				&	binary		&	encoded list of most frequent values \\ \hline
 								\texttt{freq\_freqs}			&	binary		&	encoded list of frequencies for most common values \\ \hline
-								\texttt{wavelet\_coeffs}	&	binary		&	encoded list of wavelet coefficients \\ \hline
+								\texttt{distribution}			&	binary		&	binary encoded representation of the distribution \\ \hline
 								\texttt{min\_val}					&	column type	&	the minimum column value	\\	\hline
+								\texttt{freq\_min\_val}		&	column type	&	The frequency of the minimum column value \\ \hline
 								\texttt{max\_val}					&	column type	&	the maximum column value	\\	\hline
+								\texttt{freq\_max\_val}		&	column type	&	The frequency of the maximum column value \\ \hline
 				\end{tabular}
 				\caption{\texttt{sys\_column\_statistics} table schema}
 				\label{table:columnStatistics}
 \end{table}
 
-In order to expose the binary structures in the column stats, we expose a VTI view \linebreak\texttt{sys\_column\_stats} with the schema as in Table-\ref{table:columnStats}. This VTI table is primarily intended for user exploration and visibility more than for functional usability within the system.
+In order to expose the binary structures in the column stats, we expose a read-only view \linebreak\texttt{sys\_column\_stats} with the schema as in Table-\ref{table:columnStats}. This view is intended for user exploration and visibility more than for functional usability within the system.
 
 \begin{table}
 				\begin{tabular}{|l|c|p{6cm}|}
@@ -306,18 +316,48 @@ In order to expose the binary structures in the column stats, we expose a VTI vi
 								\texttt{cardinality}			&	bigint		&	The cardinality estimate \\ \hline
 								\texttt{null\_frac}				&	real			& Null fraction \\ \hline
 								\texttt{freq\_vals}				&	varchar		&	comma-separated list of frequent values, and their frequencies \\ \hline	
-								\texttt{wavelet}					&	varchar		&	functional representation of the wavelent coefficients \\ \hline
-								\texttt{min\_val}					&	column type	&	the minimum column value \\ \hline
-								\texttt{max\_val}					&	column type	& the maximum column value \\ \hline
+								\texttt{distribution}			&	varchar		&	functional representation of the distribution \\ \hline
+								\texttt{min\_val}					&	column type	&	the minimum column value	\\	\hline
+								\texttt{freq\_min\_val}		&	column type	&	The frequency of the minimum column value \\ \hline
+								\texttt{max\_val}					&	column type	&	the maximum column value	\\	\hline
+								\texttt{freq\_max\_val}		&	column type	&	The frequency of the maximum column value \\ \hline
 				\end{tabular}
 				\caption{\texttt{sys\_column\_stats} table schema}
 				\label{table:columnStats}
 \end{table}
 
-\subsection{Physical Statistics}
-Physical statistics are not durably stored, because there are not many values, and they are server-specific rather than table-specific. Instead, physical statistics will be periodically refreshed into an in-memory view. When a refresh is desired, the engine will randomly select a server from a known list of active servers, and will request a refresh of that data. When data is not available for a specific server, the engine will assume that it has a similar set of metrics as another server in the cluster; thus, it will just use a mean value for everything.
+Note that we may collect statistics for any column, but order statistics (min, max, and distribution) will only be collected and stored for columns which are considered orderable. For example, varchars will keep order statistics, but blobs columns will not. For such columns, order statistics will be \texttt{null}.
 
-In order to view these metrics on a per-server level, we expose a VTI table \texttt{sys\_physical\_stats}, which has a schema as in Table-\ref{table:physicalStats}.
+\subsection{Internal Caching of Logical Statistics}
+Because statistics are rarely changed\footnote{"rarely", in this case, can mean anywhere between months and minutes in between changes,depending on configuration}, and because stale statistics are not usually a significant problem for optimization tools, it is possible to maintain a \emph{Statistics Cache} on each node, which can speed up access to logical statistics in useful ways. This cache will have three levels:
+
+\begin{enumerate}
+				\item Local Regions Cache
+				\item Remote Regions Cache
+				\item Table Cache
+\end{enumerate}
+
+All caches except for the Local Regions Cache will be periodically refreshed with a background table scan, which will fetch the latest information for that specific entry. 
+
+\subsubsection{Local Regions Cache}
+Local regions will hold their statistics in the Local Region cache, and every time statistics are updated, they are also written to the Local Regions Cache. As a result, this cache is never stale. When accessing statistics for those particular regions, the Local Regions cache is always consulted, thus avoiding any table reads. This is particularly important for use-cases such as dynamic buffer sizing, which will want the most up-to-date statistics information, but only for a specific region.
+
+\subsubsection{Remote Regions Cache}
+On the other hand, when a region is not accessible locally, but region-level statistics are still desired, the \emph{Remote Regions Cache} will be consulted. This will maintain a small cache of remote Region statistics, which can be used to avoid a table access during remote region statistics gathering.
+
+As the usefulness of remote regions is not generally significant, the Remote Regions Cache is likely to be very small, and will evict rapidly.
+
+\subsubsection{Table Cache}
+When statistics for the entire table are desired in a global, merged sense, a \emph{Table Cache} will be maintained, which will allow the caller to quickly access global statistics for a table without requiring an expensive scan and merge process. This cache will be the primary source of statistics for use in global systems like the query optimizer, and as such will need to be relatively large, in order to maintain an effective set of table statistics for efficient access.
+
+However, the Table Cache will not be useful for region-specific statistics access, as it will not maintain any region-specific information. For that purpose, one will use the Local or Remote Regions Cache.
+
+\subsection{Physical Statistics}
+Because Physical statistics are server-specific rather than data-specific, they are expected to change more rapidly, and the value of storing them for a long time is less obvious. Additionally, we can generally assume that all servers in a single cluster have close to the same level of hardware (and thus have close to the same physical statistics). As a result, we can store only a subset of all needed statistics in an in-memory view, and refresh that view periodically. 
+
+When a refresh is desired, we do not need to contact all region servers. Instead, we will contact a random subset of servers for their latest physical statistics information. When physical statistics are desired, we then use the subset as a representative sample of the whole\footnote{e.g. it will use mean values to represent specific region servers}.
+
+However, physical statistics are useful for a large number of monitoring tools, so it will be very useful to expose a read-only view of this data, called \texttt{sys\_physical\_stats}. This view has a schema described in Table-\ref{table:physicalStats}.
 
 \begin{table}
 				\begin{tabular}{|l|c|p{6cm}|}
@@ -337,24 +377,3 @@ In order to view these metrics on a per-server level, we expose a VTI table \tex
 				\label{table:physicalStats}
 \end{table}
 
-\subsection{Internal Caching}
-It is not desirable for internal optimization tools to perform a remote table lookup in order to acquire statistics that aren't likely to have changed much. Because statistics are rarely changed\footnote{"rarely", in this case, can mean anywhere between months and minutes in between changes,depending on configuration}, and because stale statistics are not a significant problem for SpliceMachine, it is possible to maintain a \emph{Statistics Cache} on each node, which will have three levels:
-
-\begin{enumerate}
-				\item Local Regions Cache
-				\item Remote Regions Cache
-				\item Table Cache
-\end{enumerate}
-
-All caches except for the Local Regions Cache will be periodically refreshed with a background table scan, which will fetch the latest information for that specific entry. 
-
-\subsubsection{Local Regions Cache}
-Local regions will hold their statistics in the Local Region cache, and every time statistics are updated, they are also written to the Local Regions Cache. As a result, this cache is never stale. When accessing statistics for those particular regions, the Local Regions cache is always consulted, thus avoiding any table reads.
-
-\subsubsection{Remote Regions Cache}
-On the other hand, when a region is not accessible, but region-level statistics are still desired, the \emph{Remote Regions Cache} will be consulted. This will maintain a small cache of remote Region statistics, which can be used to avoid a table access during remote region statistics gathering.
-
-As the usefulness of remote regions is not generally significant, the Remote Regions cache is likely to be very small.
-
-\subsubsection{Table Cache}
-When statistics for the entire table are desired in a global, merged sense, a \emph{Table Cache} will be maintained, which will allow the caller to quickly access global statistics for a table without requiring an expensive scan and merge process.

@@ -1,0 +1,61 @@
+\documentclass[10pt]{amsart}
+\usepackage[top=1.5in, bottom=1.25in, left=1.25in, right=1.25in]{geometry}
+
+\usepackage{mathtools}
+\usepackage{hyperref}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{listings}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{defn}{Definition}[section]
+\newtheorem{exmp}{Example}[section]
+
+\begin{document}
+\title{Transactions in SpliceMachine}
+\author{Scott Fines}
+
+Consider a \emph{signal} $a$ to be the stream of incoming integers falling in the range of $[0,N)$ for some $N$\footnote{We will extend this argument to negative numbers after first deriving the proper formula}, arriving in any order.
+
+\begin{exmp}[Example signal]
+\begin{displaymath}
+a = [2,2,0,2,3,5,4,4] (N=8)
+\end{displaymath}
+\end{exmp}
+A signal is just a stream of numbers; it is more helpful for us to consider the stream as a matrix, which is as follows:
+
+\begin{displaymath}
+\begin{array}{ccccccccc}
+	0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\
+	0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\
+	1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
+	0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\
+	0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\
+	0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\
+	0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 \\
+	0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 
+\end{array}
+\end{displaymath}
+Where each row is a counter for the value that the next element in the stream is at. For example, the first row increments the counter in position 3 by 1, which is an indication that we see the value $2$.
+
+When we look at the stream like this, we can see that we are contributing in only specific locations. We proceed with this line of reasoning.
+
+We define a \emph{dyadic range} as
+\begin{defn}[Dyadic Range]
+a \emph{dyadic range} is as follows:
+
+\begin{displaymath}
+d_{l,k} = [k2^{\lg{N}-l},(k+1)2^{\lg{N}-l})
+\end{displaymath}
+for $l=0,...,\lg{n}$ and $k=0,...,2^l-1$
+\end{defn}
+
+We then consider the vector
+
+\begin{displaymath}
+\phi_{l,k}[i] = \begin{cases} 2^{l-lgN} &\mbox{if } i \in d_{l,k} \\ 0 & \mbox{otherwise} \end{cases}
+\end{displaymath}
+for $i=0,...N-1$. This vector essentially "picks out" the contribution of a given element in the signal. We 
+\end{document}

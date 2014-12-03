@@ -1,0 +1,48 @@
+\section{A Brief Theory of Transactions}
+
+This section is intended to provide a brief overview of transactional structures so as to have a standard terminology when discussing particular implementation details.
+
+\subsection{A Transaction as a timeline}
+Loosely speaking, a transaction is a sequence of actions that appear to be sequential to the end user, even if multiple such transactions are concurrently operating against the same data set.
+
+First, we need to define an "event". In a relaxed way, an "event" in a datastore is simply any interaction with the state of the datastore, whether writing or reading data. Because we live in a world confined by physics, any event requires a nonzero amount of time to complete; a transaction is simply a collection of events which occur sequentially.
+
+More precisely, we have
+
+\begin{defn}[Event]
+An \emph{event} is any interaction with the database which begins at a time $b_e$ and ends at a time $c_e$ such that $c_e > b_e$. We represent an event using the interval notation $E[b_e,c_e)$.
+\end{defn}
+
+We can use this to precisely define 
+\begin{defn}[Sequential Events]
+Consider two events $E_1[b_1,c_1)$ and $E_2[b_2,c_2)$. There are three situations:
+
+\begin{enumerate}
+\item $E_1$ is \emph{sequentially before}(Informally, \emph{before}) $E_2$ whenever $c_1 <= b_2$. We denote this by saying that $E_1 < E_2$.
+\item $E_1$ is \emph{sequentially after}(Informally, \emph{after}) $E_2$ whenever $c_2 <= b_1$. We denote this by saying that $E_1 > E_2$. 
+\item $E_1$ and $E_2$ are \emph{simultaneous} whenever they are neither before nor after one another (e.g. either $b_1 <=b_2 < c_1$ or $b_2 <= b_1 < c_2$.
+\end{enumerate}
+\end{defn}
+
+Generally, there are two interesting types of events: \emph{Write events} modify data in one or more table, while \emph{Read events} do not. It is possible for a Write event to also read data\footnote{imagine an insert over a subselect}, but the inverse is not true--a read event \emph{cannot} modify data without first becoming a write event. 
+
+In practice, though, we generally separate read and write events into a distinct sequence of events, which we call\footnote{very ingeniously} a \emph{Event Sequence}. 
+
+There are many ways for us to denote event sequences. A method which is particularly appealing visually
+
+\begin{defn}[Transaction]
+Consider a sequence of events $E=\{E_i[b_i,c_i) | i=1,...,N\}$ such that $E_i < E_{i+1}$ for all events $E_i$. Then a \emph{Transaction} is an interval of time $[T_b,T_c)$ such that $T_b <=b_1$ and $T_c >= c_N$, together with $E$; we call $T_b$ the \emph{begin timestamp}, $T_c$ the \emph{end timestamp}, and $E$ the \emph{Event sequence}. 
+\end{defn}
+
+Formally, we denote a transaction $T=(E,[T_b,T_c))$ as a tuple of both the event sequence and the time interval. However, we will informally denote a transaction as simply $T = [T_b,T_c)$, unless there is need to explicitly distinguish event sequences.
+
+We note that transactions themselves are events, and we will treat them as such whenever convenient. In particular, we will use the same terminology to represent transactions as we do with individual events. Consider two transactions $T_1=[T_{b1},T_{c1})$ and $T_2=[T_{b2},T_{c2})$. Then we will say that
+
+\begin{enumerate}
+\item $T_1$ is \emph{sequentially before} $T_2$ whenever $T_{c1} <= T_{b2}$. This is also denoted by $T_1 < T_2$
+\item $T_1$ is \emph{sequentially after} $T_2$ whenever $T_{c2} <= T_{b1}$. This is denoted by $T_2 < T_1$
+\item $T_1$ and $T_2$ occur \emph{simultaneously} whenever $T_1$ is neither before nor after $T_2$
+\end{enumerate}
+
+
+
