@@ -460,7 +460,7 @@ public class SpliceConstants {
 		 * Default is 20000
 		 */
 		@Parameter private static final String BUFFER_ENTRIES = "splice.client.write.buffer.maxentries";
-		@DefaultValue(BUFFER_ENTRIES)public static final int DEFAULT_MAX_BUFFER_ENTRIES = 20000;
+		@DefaultValue(BUFFER_ENTRIES)public static final int DEFAULT_MAX_BUFFER_ENTRIES = 5000;
 		public static int maxBufferEntries;
 
 		/**
