@@ -2775,7 +2775,7 @@ public class SpliceLevel2OptimizerImpl implements Optimizer {
         // RESOLVE: The following call to memoryUsageOK does not behave
         // correctly if outerCost.rowCount() is POSITIVE_INFINITY; see
         // DERBY-1259.
-        if(maxMemoryPerTable != -1 && ! optimizable.memoryUsageOK( estimatedCost.rowCount() / outerCost.rowCount(),
+        /* if(maxMemoryPerTable != -1 && ! optimizable.memoryUsageOK( estimatedCost.rowCount() / outerCost.rowCount(),
                                          maxMemoryPerTable))
 		{
 			if (optimizerTrace)
@@ -2783,7 +2783,7 @@ public class SpliceLevel2OptimizerImpl implements Optimizer {
 				trace(SKIPPING_DUE_TO_EXCESS_MEMORY, 0, 0, 0.0, null);
 			}
 			return;
-		}
+		} */
 
 		/* Pick the cheapest cost for this particular optimizable. 
 		 * NOTE: Originally, the code only chose the new access path if 
