@@ -1,6 +1,7 @@
 package com.splicemachine.pipeline.writeconfiguration;
 
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
+import com.splicemachine.derby.hbase.ExceptionTranslator;
 import com.splicemachine.pipeline.api.Code;
 import com.splicemachine.pipeline.api.WriteConfiguration;
 import com.splicemachine.pipeline.api.WriteResponse;
@@ -8,8 +9,6 @@ import com.splicemachine.pipeline.impl.ActionStatusReporter;
 import com.splicemachine.pipeline.impl.BulkWrite;
 import com.splicemachine.pipeline.impl.BulkWriteResult;
 import com.splicemachine.pipeline.impl.WriteResult;
-import org.apache.hadoop.hbase.NotServingRegionException;
-import org.apache.hadoop.hbase.regionserver.WrongRegionException;
 
 import java.util.concurrent.ExecutionException;
 
@@ -28,11 +27,12 @@ public class CountingWriteConfiguration extends ForwardingWriteConfiguration {
     @Override
     public WriteResponse globalError(Throwable t) throws ExecutionException {
         statusReporter.globalFailures.incrementAndGet();
-        if(derbyFactory.isCallTimeoutException(t))
+        ExceptionTranslator handler = derbyFactory.getExceptionHandler();
+        if(handler.isCallTimeoutException(t))
             statusReporter.timedOutFlushes.incrementAndGet();
-        else if(derbyFactory.isNotServingRegionException(t))
+        else if(handler.isNotServingRegionException(t))
             statusReporter.notServingRegionFlushes.incrementAndGet();
-        else if(derbyFactory.isWrongRegionException(t))
+        else if(handler.isWrongRegionException(t))
             statusReporter.wrongRegionFlushes.incrementAndGet();
         return super.globalError(t);
     }

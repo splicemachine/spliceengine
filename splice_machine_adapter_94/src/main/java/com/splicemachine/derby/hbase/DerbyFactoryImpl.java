@@ -69,7 +69,6 @@ import com.splicemachine.hase.debug.HBaseEntryPredicateFilter;
 import com.splicemachine.hbase.HBaseRegionLoads;
 import com.splicemachine.hbase.ThrowIfDisconnected;
 import com.splicemachine.pipeline.api.BulkWritesInvoker.Factory;
-import com.splicemachine.pipeline.exception.IndexNotSetUpException;
 import com.splicemachine.pipeline.impl.BulkWritesRPCInvoker;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.Txn.IsolationLevel;
@@ -82,6 +81,10 @@ import com.splicemachine.utils.SpliceZooKeeperManager;
 
 public class DerbyFactoryImpl implements DerbyFactory<SparseTxn> {
 
+				@Override
+								public ExceptionTranslator getExceptionHandler(){
+									return Hbase94ExceptionTranslator.INSTANCE;				
+								}
 	@Override
 	public Filter getAllocatedFilter(byte[] localAddress) {
 		return new AllocatedFilter(localAddress);
@@ -161,16 +164,6 @@ public class DerbyFactoryImpl implements DerbyFactory<SparseTxn> {
 	@Override
 	public void bulkLoadHFiles(HRegion region, List<Pair<byte[], String>> paths) throws IOException {
 		region.bulkLoadHFiles(paths);
-	}
-
-	@Override
-	public boolean isCallTimeoutException(Throwable t) {
-		return t instanceof HBaseClient.CallTimeoutException;
-	}
-
-	@Override
-	public boolean isFailedServerException(Throwable t) {
-		return t instanceof HBaseClient.FailedServerException;
 	}
 
 	@Override
@@ -465,40 +458,5 @@ public class DerbyFactoryImpl implements DerbyFactory<SparseTxn> {
 			return new ServerName(serverName);
 		}
 
-		@Override
-		public boolean isNotServingRegionException(Throwable t) {
-			return t instanceof NotServingRegionException;
-		}
 
-		@Override
-		public boolean isWrongRegionException(Throwable t) {
-			return t instanceof WrongRegionException;
-
-		}
-
-		@Override
-		public boolean isRegionTooBusyException(Throwable t) {
-			return t instanceof RegionTooBusyException;
-		}
-
-		@Override
-		public boolean isInterruptedException(Throwable t) {
-			return t instanceof InterruptedException;
-		}
-
-		@Override
-		public boolean isConnectException(Throwable t) {
-			return t instanceof ConnectException;
-		}
-
-		@Override
-		public boolean isIndexNotSetupException(Throwable t) {
-			return t instanceof IndexNotSetUpException;
-		}
-
-		@Override
-		public boolean isPleaseHoldException(Throwable t){
-				return t instanceof PleaseHoldException;
-		}
-		
 }

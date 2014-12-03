@@ -37,43 +37,36 @@ import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 
 public interface DerbyFactory<Transaction> {
-	Filter getAllocatedFilter(byte[] localAddress);	
-	SpliceBaseOperationRegionScanner getOperationRegionScanner(RegionScanner s,
-			Scan scan, HRegion region, TransactionalRegion txnRegion) throws IOException;	
-	List<HRegion> getOnlineRegions(RegionServerServices services, byte[] tableName) throws IOException;
-	void removeTableFromDescriptors(MasterServices masterServices, String tableName) throws IOException;	
-	HRegionInfo loadRegionInfoFileContent(FileSystem fileSystem, Path path) throws IOException;
-	BaseJobControl getJobControl(CoprocessorJob job, String jobPath,SpliceZooKeeperManager zkManager, int maxResubmissionAttempts, JobMetrics jobMetrics);
-	void writeScanExternal(ObjectOutput output, Scan scan) throws IOException;
-	Scan readScanExternal(ObjectInput in) throws IOException;
-	void checkCallerDisconnect(HRegion region) throws IOException;
-	InternalScanner noOpInternalScanner();
-	void writeRegioninfoOnFilesystem(HRegionInfo regionInfo, Path regiondir,
-		      FileSystem fs, Configuration conf) throws IOException;
-	Path getRegionDir(HRegion region);
-	void bulkLoadHFiles(HRegion region, List<Pair<byte[], String>> paths) throws IOException;
-	boolean isCallTimeoutException(Throwable t);
-	boolean isFailedServerException(Throwable t);
-	BulkWritesInvoker.Factory getBulkWritesInvoker(HConnection connection, byte[] tableName);
-	long computeRowCount(Logger LOG, String tableName,SortedSet<Pair<HRegionInfo, ServerName>> baseRegions, Scan scan);
-	void setMaxCardinalityBasedOnRegionLoad(String tableName, LanguageConnectionContext lcc);
-	Filter getSuccessFilter(List<byte[]> failedTasks);	
-	int getRegionsSizeMB(String tableName);
-	Filter getHBaseEntryPredicateFilter(EntryPredicateFilter epf); 
-	Filter getSkippingScanFilter(List<Pair<byte[], byte[]>> startStopKeys, List<byte[]> predicates);
-	HTableInterface getTable(RegionCoprocessorEnvironment rce, byte[] tableName) throws IOException;
-	int getReduceNumberOfRegions(String tableName, Configuration conf) throws IOException;
-	ConstantAction getDropIndexConstantAction(String fullIndexName,
-    String indexName,String tableName,String schemaName,UUID tableId,long tableConglomerateId);
-	void SYSCS_GET_REQUESTS(ResultSet[] resultSet) throws SQLException;
-	void SYSCS_GET_SCHEMA_INFO(final ResultSet[] resultSet) throws SQLException;
-	ServerName getServerName(String serverName);
-	boolean isNotServingRegionException(Throwable t);
-	boolean isWrongRegionException(Throwable t);
-	boolean isRegionTooBusyException(Throwable t);
-	boolean isInterruptedException(Throwable t);
-	boolean isConnectException(Throwable t);
-	boolean isIndexNotSetupException (Throwable t);
-		boolean isPleaseHoldException(Throwable t);
-	
+		Filter getAllocatedFilter(byte[] localAddress);
+		SpliceBaseOperationRegionScanner getOperationRegionScanner(RegionScanner s,
+																															 Scan scan, HRegion region, TransactionalRegion txnRegion) throws IOException;
+		List<HRegion> getOnlineRegions(RegionServerServices services, byte[] tableName) throws IOException;
+		void removeTableFromDescriptors(MasterServices masterServices, String tableName) throws IOException;
+		HRegionInfo loadRegionInfoFileContent(FileSystem fileSystem, Path path) throws IOException;
+		BaseJobControl getJobControl(CoprocessorJob job, String jobPath,SpliceZooKeeperManager zkManager, int maxResubmissionAttempts, JobMetrics jobMetrics);
+		void writeScanExternal(ObjectOutput output, Scan scan) throws IOException;
+		Scan readScanExternal(ObjectInput in) throws IOException;
+		void checkCallerDisconnect(HRegion region) throws IOException;
+		InternalScanner noOpInternalScanner();
+		void writeRegioninfoOnFilesystem(HRegionInfo regionInfo, Path regiondir,
+																		 FileSystem fs, Configuration conf) throws IOException;
+		Path getRegionDir(HRegion region);
+		void bulkLoadHFiles(HRegion region, List<Pair<byte[], String>> paths) throws IOException;
+		BulkWritesInvoker.Factory getBulkWritesInvoker(HConnection connection, byte[] tableName);
+		long computeRowCount(Logger LOG, String tableName,SortedSet<Pair<HRegionInfo, ServerName>> baseRegions, Scan scan);
+		void setMaxCardinalityBasedOnRegionLoad(String tableName, LanguageConnectionContext lcc);
+		Filter getSuccessFilter(List<byte[]> failedTasks);
+		int getRegionsSizeMB(String tableName);
+		Filter getHBaseEntryPredicateFilter(EntryPredicateFilter epf);
+		Filter getSkippingScanFilter(List<Pair<byte[], byte[]>> startStopKeys, List<byte[]> predicates);
+		HTableInterface getTable(RegionCoprocessorEnvironment rce, byte[] tableName) throws IOException;
+		int getReduceNumberOfRegions(String tableName, Configuration conf) throws IOException;
+		ConstantAction getDropIndexConstantAction(String fullIndexName,
+																							String indexName,String tableName,String schemaName,UUID tableId,long tableConglomerateId);
+		void SYSCS_GET_REQUESTS(ResultSet[] resultSet) throws SQLException;
+		void SYSCS_GET_SCHEMA_INFO(final ResultSet[] resultSet) throws SQLException;
+		ServerName getServerName(String serverName);
+
+		ExceptionTranslator getExceptionHandler();
+
 }

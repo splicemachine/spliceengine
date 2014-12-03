@@ -9,6 +9,7 @@ import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.coprocessor.TaskFutureContext;
 import com.splicemachine.hbase.table.BoundCall;
+import com.splicemachine.hbase.table.IncorrectRegionException;
 import com.splicemachine.hbase.table.SpliceRpcController;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceZooKeeperManager;
@@ -57,6 +58,9 @@ public class JobControl extends BaseJobControl {
 													instance.submit(controller,request,rpcCallback);
 		
 		                Throwable error = controller.getThrowable();
+										if(error instanceof IncorrectRegionException){
+												//need to resubmit the task
+										}
 		                if(error!=null) throw Exceptions.getIOException(error);
 		
 		                SpliceMessage.SchedulerResponse spliceSchedulerResponse = rpcCallback.get();

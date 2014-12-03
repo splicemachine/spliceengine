@@ -93,7 +93,7 @@ public class RegulatedWriter implements Writer{
              * length of time, but we ALSO adjust the valve down, suggesting that it halve its allowed writes. This will
              * (hopefully) prevent us from overloading the server again.
              */
-            if(derbyFactory.isRegionTooBusyException(t))
+            if(derbyFactory.getExceptionHandler().isRegionTooBusyException(t))
                 valve.adjustValve(Valve.SizeSuggestion.HALVE);
 
             return super.globalError(t);

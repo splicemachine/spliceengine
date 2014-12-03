@@ -1,5 +1,7 @@
 package com.splicemachine.pipeline.exception;
 
+import com.splicemachine.derby.hbase.DerbyFactory;
+import com.splicemachine.derby.hbase.ExceptionTranslator;
 import com.splicemachine.si.api.CannotCommitException;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.pipeline.constraint.ConstraintViolation;
@@ -1808,9 +1810,10 @@ public enum ErrorState {
     SPLICE_REGION_OFFLINE("SE004"){
         @Override
         public boolean accepts(Throwable t) {
-            return t instanceof NotServingRegionException
-                    || t instanceof WrongRegionException
-                    || DerbyFactoryDriver.derbyFactory.isFailedServerException(t)
+            ExceptionTranslator handler = DerbyFactoryDriver.derbyFactory.getExceptionHandler();
+            return handler.isNotServingRegionException(t)
+                    || handler.isWrongRegionException(t)
+                    || handler.isFailedServerException(t)
                     || super.accepts(t);
         }
 

@@ -2,15 +2,12 @@ package com.splicemachine.pipeline.writeconfiguration;
 
 import java.util.concurrent.ExecutionException;
 
-import org.apache.hadoop.hbase.NotServingRegionException;
-import org.apache.hadoop.hbase.regionserver.WrongRegionException;
+import com.splicemachine.derby.hbase.ExceptionTranslator;
 
-import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.splicemachine.pipeline.api.CanRebuild;
 import com.splicemachine.pipeline.api.WriteConfiguration;
 import com.splicemachine.pipeline.api.WriteResponse;
-import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.pipeline.impl.BulkWrite;
 import com.splicemachine.pipeline.impl.BulkWriteResult;
 import com.splicemachine.pipeline.impl.WriteResult;
@@ -24,7 +21,8 @@ public class UpdatingWriteConfiguration extends ForwardingWriteConfiguration{
 
 	@Override
 	public WriteResponse globalError(Throwable t) throws ExecutionException {
-			if(derbyFactory.isNotServingRegionException(t) || derbyFactory.isWrongRegionException(t)){
+			ExceptionTranslator handler = derbyFactory.getExceptionHandler();
+			if(handler.isNotServingRegionException(t) || handler.isWrongRegionException(t)){
 					canRebuild.rebuildBuffer();
 			}
 			return super.globalError(t);
