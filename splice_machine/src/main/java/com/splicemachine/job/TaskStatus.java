@@ -44,7 +44,14 @@ public class TaskStatus implements Externalizable{
     }
 
 		public Throwable getError() {
-        return errorTransport.getError();
+        /*
+         * This is put in as a stop-gap measure until we can figure out why
+         * certain exceptions are not being recorded here. Once that happens, we
+         * should probably guarantee that the error transport is never null.
+         */
+        if(errorTransport!=null)
+            return errorTransport.getError();
+        else return null;
     }
 
     public TxnView getTxnInformation() {
