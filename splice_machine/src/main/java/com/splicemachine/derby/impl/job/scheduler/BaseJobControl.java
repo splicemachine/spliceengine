@@ -320,8 +320,7 @@ public abstract class BaseJobControl implements JobFuture {
                   int tryCount) throws ExecutionException {
         Throwable lastError = task.getError();
         ExceptionTranslator exceptionHandler = DerbyFactoryDriver.derbyFactory.getExceptionHandler();
-        if(exceptionHandler.canInfinitelyRetry(lastError)
-                ||(exceptionHandler.canFinitelyRetry(lastError)&& tryCount<maxResubmissionAttempts)){
+        if(tryCount<maxResubmissionAttempts || (lastError!=null && exceptionHandler.canInfinitelyRetry(lastError))){
             doResumbit(task,tryCount);
         }else{
 				    //only submit so many times
