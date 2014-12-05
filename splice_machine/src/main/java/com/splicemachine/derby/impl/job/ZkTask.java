@@ -383,7 +383,12 @@ public abstract class ZkTask implements RegionTask,Externalizable {
 				return jobId;
 		}
 
-		protected static class TaskWatcher implements Watcher {
+    @Override
+    public boolean isMaintenanceTask() {
+        return false;
+    }
+
+    protected static class TaskWatcher implements Watcher {
 				private volatile ZkTask task;
 
 				private TaskWatcher(ZkTask task) {
