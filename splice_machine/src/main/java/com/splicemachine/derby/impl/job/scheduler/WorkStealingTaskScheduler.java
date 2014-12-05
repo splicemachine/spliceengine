@@ -75,7 +75,8 @@ public class WorkStealingTaskScheduler<T extends Task> implements StealableTaskS
 		}
 
 		private int doSubmit(T task) {
-				stats.submittedCount.incrementAndGet();
+				updateSubmittedMetrics(task);
+
 				int waitTime = queueSize.getAndIncrement();
 				pendingTasks.offer(task);
 				return waitTime;
@@ -103,10 +104,9 @@ public class WorkStealingTaskScheduler<T extends Task> implements StealableTaskS
 						success = queueSize.compareAndSet(currentQueueSize,currentQueueSize+1);
 				}while(!success);
 
-				stats.submittedCount.incrementAndGet();
+				updateSubmittedMetrics(task);
 				pendingTasks.offer(task);
-				TaskFuture taskFuture = new ListeningTaskFuture<T>(task,0);
-				return taskFuture;
+				return new ListeningTaskFuture<T>(task,0);
 		}
 
 		@Override
@@ -117,8 +117,11 @@ public class WorkStealingTaskScheduler<T extends Task> implements StealableTaskS
 		@Override
 		public T steal() {
 				T last = pendingTasks.poll();
-				if(last!=null)
+				if(last!=null) {
 						queueSize.decrementAndGet();
+						if(last.isMaintenanceTask())
+								stats.pendingMaintenanceTasks.decrementAndGet();
+				}
 				return last;
 		}
 
@@ -175,6 +178,8 @@ public class WorkStealingTaskScheduler<T extends Task> implements StealableTaskS
 				private final AtomicLong stolenCount = new AtomicLong(0l);
 				private final AtomicLong executeFailureCount = new AtomicLong(0l);
 
+				private final AtomicInteger pendingMaintenanceTasks = new AtomicInteger(0);
+
 				@Override public int getCurrentWorkers() { return executor.getActiveCount(); }
 				@Override public void setCurrentWorkers(int maxWorkers) { setNumWorkers(maxWorkers); }
 				@Override public long getTotalCompletedTasks() { return successCount.get(); }
@@ -182,7 +187,7 @@ public class WorkStealingTaskScheduler<T extends Task> implements StealableTaskS
 				@Override public long getTotalCancelledTasks() { return cancelledCount.get(); }
 				@Override public long getTotalInvalidatedTasks() { return invalidatedCount.get(); }
 				@Override public int getNumExecutingTasks() { return numExecuting.get(); }
-				@Override public int getNumPendingTasks() {  return pendingTasks.size(); }
+				@Override public int getNumPendingTasks() {  return pendingTasks.size()-pendingMaintenanceTasks.get(); }
 
 				@Override public long getTotalStolenTasks() { return stolenCount.get(); }
 				@Override public long getTotalSubmitFailures() { return executeFailureCount.get(); }
@@ -285,7 +290,10 @@ public class WorkStealingTaskScheduler<T extends Task> implements StealableTaskS
 				private void execute(T next, StealableTaskScheduler<T> usedScheduler) {
 						if(WORKER_LOG.isDebugEnabled())
 								WORKER_LOG.debug("Executing task "+ next.getJobId()+":"+Bytes.toLong(next.getTaskId()));
-						next.getTaskStatus().attachListener(stats);
+						if(!next.isMaintenanceTask()) //only attach stats to non-maintenance tasks
+								next.getTaskStatus().attachListener(stats);
+						else
+								stats.pendingMaintenanceTasks.decrementAndGet();
 						try {
 								new TaskCallable<T>(next).call();
 						}catch(InterruptedException ie){
@@ -297,7 +305,8 @@ public class WorkStealingTaskScheduler<T extends Task> implements StealableTaskS
 								}
 								WORKER_LOG.error("Unexpected exception calling task "+ Bytes.toString(next.getTaskId()),e);
 						}finally{
-								next.getTaskStatus().detachListener(stats);
+								if(!next.isMaintenanceTask())
+										next.getTaskStatus().detachListener(stats);
 						}
 				}
 
@@ -323,4 +332,15 @@ public class WorkStealingTaskScheduler<T extends Task> implements StealableTaskS
 						}
 				}
 		}
+
+		private void updateSubmittedMetrics(T task) {
+				/*
+				 * Update the submitted metrics the way we need them to be
+				 */
+				if(!task.isMaintenanceTask())
+						stats.submittedCount.incrementAndGet();
+				else
+						stats.pendingMaintenanceTasks.incrementAndGet();
+		}
+
 }

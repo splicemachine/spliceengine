@@ -87,6 +87,8 @@ public class RollForwardTask implements Task {
     }
     @Override public TaskStatus getTaskStatus() { return status; }
 
+    @Override public boolean isMaintenanceTask() { return true; }
+
     @Override
     public void execute() throws ExecutionException, InterruptedException {
         try {
@@ -113,7 +115,11 @@ public class RollForwardTask implements Task {
                 }while(shouldContinue);
             }catch(Exception e){
                 txn.rollback();
-                SpliceLogUtils.info(LOG,"Stopping RollForward execution because of an error.");
+                if(LOG.isTraceEnabled())
+                    SpliceLogUtils.trace(LOG,"RollForward encountered an exception",e);
+                else if(LOG.isDebugEnabled())
+                    SpliceLogUtils.debug(LOG,"Stopping RollForward execution because of an error: "+e.getMessage());
+                return;
             }finally{
                 context.complete();
                 Closeables.closeQuietly(mrs);

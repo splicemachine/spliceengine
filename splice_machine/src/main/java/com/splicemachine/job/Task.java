@@ -51,4 +51,10 @@ public interface Task {
 		byte[] getParentTaskId();
 
 		String getJobId();
+
+    /**
+     * @return true if the task is a "maintenance" task. Maintenance tasks do not report measurements
+     * to monitoring tools for non-maintenance tasks
+     */
+    boolean isMaintenanceTask();
 }
