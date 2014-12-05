@@ -96,6 +96,7 @@ public class SegmentedRollForward implements RollForward {
 																int numSegments,
 																long rollForwardRowThreshold,
 																long rollForwardTransactionThreshold,
+																final long rollForwardIntervalMs,
 																final @ThreadSafe Action action,
                                 final RollForwardStatus status) {
 				this.region = region;
@@ -145,10 +146,10 @@ public class SegmentedRollForward implements RollForward {
                     action.submitAction(region, maxSegment.getRangeStart(), maxSegment.getRangeEnd(), new Context(maxSegment,status));
 								}finally{
 										//reschedule us for future execution
-										rollForwardScheduler.schedule(this,10l,TimeUnit.SECONDS);
+										rollForwardScheduler.schedule(this,rollForwardIntervalMs,TimeUnit.MILLISECONDS);
 								}
 						}
-				}, 10l, TimeUnit.SECONDS); //force a submission every 10 seconds
+				}, rollForwardIntervalMs, TimeUnit.MILLISECONDS); //force a submission every 10 seconds
 		}
 
 		private RegionSegment[] buildSegments(HRegion region, int numSegments) {

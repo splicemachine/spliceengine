@@ -97,8 +97,9 @@ public class TransactionalRegions {
         int numSegments = SpliceConstants.numRollForwardSegments;
         int rollForwardRowThreshold = SpliceConstants.rollForwardRowThreshold;
         int rollForwardTxnThreshold = SpliceConstants.rollForwardTxnThreshold;
-				return new SegmentedRollForward(region,rollForwardScheduler,numSegments,
-                rollForwardRowThreshold,rollForwardTxnThreshold,rollForwardAction,status);
+        long rollForwardForceInterval = SpliceConstants.rollForwardInterval;
+        return new SegmentedRollForward(region,rollForwardScheduler,numSegments,
+                rollForwardRowThreshold,rollForwardTxnThreshold,rollForwardForceInterval,rollForwardAction,status);
 		}
 
 		private static AsyncReadResolver initializeReadResolver() {
