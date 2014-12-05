@@ -32,6 +32,6 @@ public class SegmentedRollForwardTest {
 
         RollForwardStatus status = new RollForwardStatus();
 
-        SegmentedRollForward rollForward = new SegmentedRollForward(region,noopService,4,1<<10,1<<10,SegmentedRollForward.NOOP_ACTION,status);
+        SegmentedRollForward rollForward = new SegmentedRollForward(region,noopService,4,1<<10,1<<10,10,SegmentedRollForward.NOOP_ACTION,status);
     }
 }
