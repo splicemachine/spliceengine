@@ -25,9 +25,15 @@ public class IntWaveletQuerySolverDistortionMeasure {
 //				int max = 128;
 //				int max = 256;
 //				int max = 512;
+//				int max =1<<10;
+//				int max =1<<11;
+//				int max =1<<12;
+//				int max =1<<13;
+				int max =1<<14;
+//				int max =1<<15;
 //				int max = 65536;
-				int max = Integer.MAX_VALUE;
-				int numElements = 10000000;
+//				int max = Integer.MAX_VALUE;
+				int numElements = 1000000;
 
 //				List<Integer> ints = Arrays.asList(2,2,0,2,3,5,4,4);
 //        List<Integer> ints = Arrays.asList(1,3,5,11,12,13,0,1);
@@ -36,12 +42,12 @@ public class IntWaveletQuerySolverDistortionMeasure {
 //				performAnalysis(new FixedGenerator(ints.iterator()),max);
 
 //        performAnalysis(new EnergyGenerator(numElements,new Random(0l),10,new int[]{20,15,10,17,24,30,50,80,112,90,85,95,100,105,120,133,127,110,95,85,50,44,35,27}),max);
-				performAnalysis(new UniformGenerator(numElements,max,new Random()),max);
+//				performAnalysis(new UniformGenerator(numElements,max,new Random()),max);
 //        GaussianGenerator generator = new GaussianGenerator(numElements,max,new Random(0l));
 //        while(generator.hasNext()){
 //            System.out.println(generator.next().key);
 //        }
-//        performAnalysis(new GaussianGenerator(numElements,max,new Random(0l)),max);
+        performAnalysis(new GaussianGenerator(numElements,max,new Random(0l)),max);
 		}
 
 		protected static void performAnalysis(Iterator<IntIntPair> dataGenerator,int maxInteger) {
@@ -66,30 +72,30 @@ public class IntWaveletQuerySolverDistortionMeasure {
 
 				System.out.print("Building query solver...");
 				long nt = System.nanoTime();
-				IntRangeQuerySolver querySolver = builder.build(10d);//build the full thingy
+				IntRangeQuerySolver querySolver = builder.build(1d);//build the full thingy
 				nt = System.nanoTime()-nt;
 				System.out.printf("done in %f sec%n",((double)nt)/1000d/1000d);
 				printFreeMemory();
 
-				IntLongOpenHashMap estimated = new IntLongOpenHashMap(actualDistribution.size(),0.99f);
-				IntDoubleOpenHashMap relDiffs = new IntDoubleOpenHashMap(actualDistribution.size(),0.99f);
+//				IntLongOpenHashMap estimated = new IntLongOpenHashMap(actualDistribution.size(),0.99f);
+//				IntDoubleOpenHashMap relDiffs = new IntDoubleOpenHashMap(actualDistribution.size(),0.99f);
 
 //				long[] estimated = new long[max];
 //				long[] diffs = new long[max];
 //				double[] relDiffs = new double[max];
-				for(IntIntCursor entry:actualDistribution){
-						int value = entry.key;
-						int count = entry.value;
-
-						long estimate = querySolver.equal(value);
-
-						long diff = Math.abs(estimate-count);
-						double relDiff = ((double)diff)/count;
-//						diffs[value+maxInteger] = diff;
-						relDiffs.put(value,relDiff);
-//						relDiffs[value+maxInteger] = relDiff;
-						estimated.put(value,estimate);
-				}
+//				for(IntIntCursor entry:actualDistribution){
+//						int value = entry.key;
+//						int count = entry.value;
+//
+//						long estimate = querySolver.equal(value);
+//
+//						long diff = Math.abs(estimate-count);
+//						double relDiff = ((double)diff)/count;
+////						diffs[value+maxInteger] = diff;
+//						relDiffs.put(value,relDiff);
+////						relDiffs[value+maxInteger] = relDiff;
+//						estimated.put(value,estimate);
+//				}
 
 //				System.out.printf("%-10s\t%10s\t%10s\t%10s\t%10s\t%10s%s%n", "element", "correct", "estimated", "rawEstimate", "diff", "relDiff","diffHist");
 
@@ -98,12 +104,18 @@ public class IntWaveletQuerySolverDistortionMeasure {
 				double avgRelError = 0.0d;
 				double relErrorVar = 0.0d;
 
-				long maxAbsError = 0l;
-				int maxAbsErrorElement = 0;
+				int numAccurate = 0;
+				int numOff = 0;
+				int i=1;
 				for(IntIntCursor entry:actualDistribution){
 						int actual = entry.value;
-						long estimate = estimated.get(entry.key);
-						double relDiff = relDiffs.get(entry.key);
+						long estimate = querySolver.equal(entry.key);
+						double relDiff = Math.abs((double)actual-estimate)/actual;
+						if(relDiff>0d){
+								numOff++;
+						}else{
+								numAccurate++;
+						}
 //						if((i&127)==0)
 //						String symbol = diff<0? "-": "+";
 //								System.out.printf("%-10d\t%10d\t%10d\t%10f\t%10d%10f\t%s%n",pos,actual,estimate,rawEstimate,diff,relDiff, Strings.repeat(symbol, (int) diff));
@@ -118,8 +130,9 @@ public class IntWaveletQuerySolverDistortionMeasure {
 						}
 
 						double oldAvg = avgRelError;
-						avgRelError += (relDiff-avgRelError)/(entry.key+1);
+						avgRelError += (relDiff-avgRelError)/i;
 						relErrorVar += (relDiff-oldAvg)*(relDiff-avgRelError);
+						i++;
 				}
 
 //				System.out.println("---");
@@ -131,9 +144,12 @@ public class IntWaveletQuerySolverDistortionMeasure {
 
 				System.out.println("---");
 				System.out.printf("Max Relative Error: %f%n", maxRelError);
-				System.out.printf("Element with Max Rel. error: %d\t%d\t%d%n",maxErrorElement,actualDistribution.get(maxErrorElement),estimated.get(maxErrorElement));
+				System.out.printf("Element with Max Rel. error: %d\t%d\t%d%n",maxErrorElement,actualDistribution.get(maxErrorElement),querySolver.equal(maxErrorElement));
 				System.out.printf("Avg Relative Error: %f%n",avgRelError);
-				System.out.printf("Std. Dev: %f%n",Math.sqrt(relErrorVar/(2*maxInteger-1)));
+				System.out.printf("Std. Dev: %f%n",Math.sqrt(relErrorVar/(2l*maxInteger-1)));
+				System.out.printf("Num Accurate: %d%n",numAccurate);
+				System.out.printf("Num Off: %d%n",numOff);
+				System.out.printf("Accuracy Fraction: %f%n",(double)numAccurate/(numAccurate+numOff));
 				System.out.println("---");
 				printFreeMemory();
 
@@ -171,7 +187,7 @@ public class IntWaveletQuerySolverDistortionMeasure {
                 boundary = Integer.MAX_VALUE;
                 maxInt = boundary>>1;
             }else
-                boundary = s;
+                boundary = s-1;
             this.maxInt = maxInt;
 
         }
@@ -193,13 +209,13 @@ public class IntWaveletQuerySolverDistortionMeasure {
              */
             while(true){
                 double d = random.nextDouble();
-                if(d>=1) continue;
+                if(Math.abs(d)>=1) continue;
 
                 d = d*(boundary);
                 if(d<0)
-                    retPair.key = (int)(d)+maxInt;
+                    retPair.key = (int)(d)+maxInt-1;
                 else
-                    retPair.key = (int)(d)-maxInt;
+                    retPair.key = (int)(d)-maxInt+1;
                 retPair.count=1;
                 return retPair;
             }
