@@ -1,6 +1,9 @@
 package com.splicemachine.stats;
 
 /**
+ * Represents costs which are specific to an Index table (such as
+ * lookup costs).
+ *
  * @author Scott Fines
  *         Date: 10/27/14
  */

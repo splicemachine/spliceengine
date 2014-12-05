@@ -3,6 +3,7 @@ package com.splicemachine.stats.order;
 import com.splicemachine.stats.Updateable;
 
 /**
+ *
  * @author Scott Fines
  *         Date: 6/5/14
  */

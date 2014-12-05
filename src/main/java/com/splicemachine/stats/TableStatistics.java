@@ -3,9 +3,6 @@ package com.splicemachine.stats;
 /**
  * Represents information about a specific table.
  *
- * Note that there is a separate TableStatistics entity for an index
- * versus for a base table.
- *
  * @author Scott Fines
  *         Date: 10/27/14
  */
