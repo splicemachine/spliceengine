@@ -51,7 +51,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.NestedLoopLeftOuterJo
 import com.splicemachine.derby.impl.sql.execute.operations.NormalizeOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.OnceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.ProjectRestrictOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.RowCountOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.rowcount.RowCountOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.RowOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.ScalarAggregateOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.SetTransactionOperation;

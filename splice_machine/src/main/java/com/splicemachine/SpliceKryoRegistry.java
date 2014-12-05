@@ -23,6 +23,7 @@ import com.splicemachine.derby.impl.sql.catalog.Splice_DD_Version;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportParams;
+import com.splicemachine.derby.impl.sql.execute.operations.rowcount.RowCountOperation;
 import com.splicemachine.hbase.backup.Backup;
 import com.splicemachine.hbase.backup.BackupItem;
 import com.splicemachine.hbase.backup.CreateBackupTask;

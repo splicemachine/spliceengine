@@ -187,11 +187,6 @@ public class AnyOperation extends SpliceBaseOperation {
 						}
 
 						@Override
-						public SpliceRuntimeContext getSpliceRuntimeContext() {
-								return provider.getSpliceRuntimeContext();
-						}
-
-						@Override
 						public IOStats getIOStats() {
 								return provider.getIOStats();
 						}

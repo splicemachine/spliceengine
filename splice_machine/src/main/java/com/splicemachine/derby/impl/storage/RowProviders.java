@@ -256,49 +256,84 @@ public class RowProviders {
 //				return new OperationJob(scan, instructions, table, readOnly,lcc.getRunTimeStatisticsMode(),statementId,lcc.getXplainSchema());
 //		}
 
-		public static abstract class DelegatingRowProvider implements RowProvider{
+    /**
+     * A RowProvider that implements all methods by delegating to the passed RowProvider.  Extending is a
+     * convenient way to change the behavior of just a few methods of the delegate without proxying.
+     */
+    public static abstract class DelegatingRowProvider implements RowProvider {
 
-				protected final RowProvider provider;
+        protected final RowProvider provider;
 
-				protected DelegatingRowProvider(RowProvider provider) {
-						this.provider = provider;
-				}
+        protected DelegatingRowProvider(RowProvider provider) {
+            this.provider = provider;
+        }
 
-				@Override public void open() throws StandardException {
-						provider.open();
-				}
-				@Override public void close() throws StandardException { provider.close(); }
-				//		@Override public Scan toScan() { return provider.toScan(); }
-				@Override public byte[] getTableName() { return provider.getTableName(); }
-				@Override public int getModifiedRowCount() { return provider.getModifiedRowCount(); }
-				@Override public boolean hasNext() throws StandardException, IOException { return provider.hasNext(); }
+        @Override
+        public void open() throws StandardException {
+            provider.open();
+        }
 
-				@Override
-				public JobResults shuffleRows(SpliceObserverInstructions instructions, Callable<Void>... postCompleteTasks) throws StandardException, IOException {
-						return provider.shuffleRows(instructions,postCompleteTasks);
+        @Override
+        public void close() throws StandardException {
+            provider.close();
+        }
 
-				}
+        @Override
+        public byte[] getTableName() {
+            return provider.getTableName();
+        }
 
-				@Override
-				public List<Pair<JobFuture,JobInfo>> asyncShuffleRows(SpliceObserverInstructions instructions) throws StandardException, IOException {
-						return provider.asyncShuffleRows(instructions);
-				}
+        @Override
+        public int getModifiedRowCount() {
+            return provider.getModifiedRowCount();
+        }
 
-				@Override
-				public JobResults finishShuffle(List<Pair<JobFuture, JobInfo>> jobFuture, Callable<Void>... intermediateCleanupTasks) throws StandardException {
-						return provider.finishShuffle(jobFuture,intermediateCleanupTasks);
-				}
+        @Override
+        public boolean hasNext() throws StandardException, IOException {
+            return provider.hasNext();
+        }
 
-				@Override public RowLocation getCurrentRowLocation() { return provider.getCurrentRowLocation(); }
+        @Override
+        public JobResults shuffleRows(SpliceObserverInstructions instructions, Callable<Void>... postCompleteTasks) throws StandardException, IOException {
+            return provider.shuffleRows(instructions, postCompleteTasks);
+        }
 
-				@Override public String toString() { return String.format("DelegatingRowProvider { provider=%s } ",provider); }
+        @Override
+        public List<Pair<JobFuture, JobInfo>> asyncShuffleRows(SpliceObserverInstructions instructions) throws StandardException, IOException {
+            return provider.asyncShuffleRows(instructions);
+        }
 
-				@Override
-				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema, String regionName) throws IOException {
-					provider.reportStats(statementId,operationId,taskId,xplainSchema,regionName);
-				}
-				@Override public IOStats getIOStats() { return provider.getIOStats(); }
-		}
+        @Override
+        public JobResults finishShuffle(List<Pair<JobFuture, JobInfo>> jobFuture, Callable<Void>... intermediateCleanupTasks) throws StandardException {
+            return provider.finishShuffle(jobFuture, intermediateCleanupTasks);
+        }
+
+        @Override
+        public RowLocation getCurrentRowLocation() {
+            return provider.getCurrentRowLocation();
+        }
+
+        @Override
+        public String toString() {
+            return String.format("DelegatingRowProvider { provider=%s } ", provider);
+        }
+
+        @Override
+        public void reportStats(long statementId, long operationId, long taskId, String xplainSchema, String regionName) throws IOException {
+            provider.reportStats(statementId, operationId, taskId, xplainSchema, regionName);
+        }
+
+        @Override
+        public IOStats getIOStats() {
+            return provider.getIOStats();
+        }
+
+        @Override
+        public SpliceRuntimeContext getSpliceRuntimeContext() {
+            return provider.getSpliceRuntimeContext();
+        }
+
+    }
 
 		public static class SourceRowProvider extends SingleScanRowProvider{
 				private final SpliceOperation source;

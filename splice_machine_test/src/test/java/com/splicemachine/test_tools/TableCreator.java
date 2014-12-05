@@ -9,6 +9,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 
+import static com.google.common.base.Preconditions.checkState;
+
 /**
  * Create tables and optionally insert data.
  *
@@ -78,6 +80,7 @@ public class TableCreator {
         createTable();
         createIndexes();
         if (rowProvider != null) {
+            checkState(insertSql != null, "must provide insert statement if providing rows");
             insertRows();
         }
     }
