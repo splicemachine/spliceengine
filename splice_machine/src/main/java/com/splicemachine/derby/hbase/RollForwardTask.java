@@ -113,6 +113,7 @@ public class RollForwardTask implements Task {
                     rowCount++;
 
                 }while(shouldContinue);
+                txn.commit();
             }catch(Exception e){
                 txn.rollback();
                 if(LOG.isTraceEnabled())
@@ -124,7 +125,6 @@ public class RollForwardTask implements Task {
                 context.complete();
                 Closeables.closeQuietly(mrs);
             }
-            txn.commit();
         } catch (Exception e) {
             throw new ExecutionException(e);
         }
