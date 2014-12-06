@@ -2,6 +2,7 @@ package com.splicemachine.hbase.regioninfocache;
 
 import com.splicemachine.constants.SpliceConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.client.MetaScanner;
 import org.apache.hadoop.hbase.regionserver.RegionServerStoppedException;
@@ -36,34 +37,37 @@ class CacheRefreshRunnable implements Runnable {
 
     @Override
     public void run() {
-
         long startTime = System.currentTimeMillis();
-
         debug(LOG, "Refreshing region cache for table = %s", (updateTableName == null ? "ALL" : Bytes.toString(updateTableName)));
-
-        RegionMetaScannerVisitor visitor = new RegionMetaScannerVisitor(updateTableName);
-
-        try {
-            MetaScanner.metaScan(SpliceConstants.config, visitor);
-
-            Map<byte[], SortedSet<Pair<HRegionInfo, ServerName>>> newRegionInfoMap = visitor.getRegionPairMap();
-
-            regionCache.putAll(newRegionInfoMap);
-
-            debug(LOG, "updated %s cache entries in %s ms ", newRegionInfoMap.size(), System.currentTimeMillis() - startTime);
-
-        } catch (IOException e) {
-            if (e instanceof RegionServerStoppedException) {
-                HBaseRegionCache.getInstance().shutdown();
-                info(LOG, "The region cache is shutting down as the server has stopped");
-            } else {
-                error(LOG, "Unable to update region cache", e);
-            }
-        }
+        doRun(startTime,10);
 
         /* Only update the refresh timestamp if we are loading for all tables */
         if (updateTableName == null) {
             cacheUpdatedTimestamp.set(System.currentTimeMillis());
+        }
+    }
+
+    private void doRun(long startTime,int iteration) {
+        if(iteration<0) {
+            info(LOG,"Giving up refresh after many attempts");
+            return;
+        }
+        RegionMetaScannerVisitor visitor = new RegionMetaScannerVisitor(updateTableName);
+        try {
+            MetaScanner.metaScan(SpliceConstants.config, visitor);
+            Map<byte[], SortedSet<Pair<HRegionInfo, ServerName>>> newRegionInfoMap = visitor.getRegionPairMap();
+            regionCache.putAll(newRegionInfoMap);
+            debug(LOG, "updated %s cache entries in %s ms ", newRegionInfoMap.size(), System.currentTimeMillis() - startTime);
+        } catch (IOException e) {
+            if (e instanceof RegionServerStoppedException) {
+                HBaseRegionCache.getInstance().shutdown();
+                info(LOG, "The region cache is shutting down as the server has stopped");
+            } else if(e instanceof NotServingRegionException){
+                debug(LOG, "META region is not currently available, retrying");
+                doRun(startTime,iteration-1);
+            } else{
+                error(LOG, "Unable to update region cache", e);
+            }
         }
     }
 
