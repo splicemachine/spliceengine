@@ -26,7 +26,8 @@ public abstract class BaseXplainIT {
 
     @AfterClass
     public static void tearDownClass() throws Exception {
-        baseConnection.close();
+        if(baseConnection!=null) //put here in case there's a problem setting up the initial connection
+            baseConnection.close();
     }
 
     @Before

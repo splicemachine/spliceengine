@@ -202,8 +202,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 		}
 
     public boolean next() throws StandardException {
-				if (!scannerInitialized)
-						initialize();
+				initialize();
 				currentRowDeleted = false;
 				try {
 						currentResult = scanner.next();
@@ -315,8 +314,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 		}
 		public void fetchSet(long max_rowcnt, int[] key_column_numbers,BackingStoreHashtable hashTable) throws StandardException {
 				SpliceLogUtils.trace(LOG, "IndexScan fetchSet for number of rows %d", max_rowcnt);
-				if (!scannerInitialized)
-						initialize();
+				initialize();
 				if (max_rowcnt == 0)
 						return;
 				if (max_rowcnt == -1)
@@ -398,8 +396,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 
 		public int fetchNextGroup(DataValueDescriptor[][] row_array, RowLocation[] rowloc_array) throws StandardException {
 				try {
-						if (!scannerInitialized)
-								initialize();
+						initialize();
 						if (scanner == null)
 								return 0;
 						if (row_array == null || row_array.length == 0)
@@ -475,6 +472,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 
 		@Override
 		public void initialize() {
+				if(scannerInitialized) return;
 //		if (LOG.isTraceEnabled())
 //			LOG.trace("initialize on the LazyScan interface");
 				if(table==null)
@@ -483,7 +481,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 						scanner = table.getScanner(scan);
 						this.scannerInitialized = true;
 				} catch (IOException e) {
-						LOG.error("Initializing scanner failed");
+						LOG.error("Initializing scanner failed",e);
 						throw new RuntimeException(e);
 				}
 		}
