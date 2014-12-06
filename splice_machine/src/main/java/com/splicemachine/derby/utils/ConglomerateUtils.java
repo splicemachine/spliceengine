@@ -19,6 +19,7 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.store.access.conglomerate.Conglomerate;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
@@ -313,7 +314,7 @@ public class ConglomerateUtils extends SpliceConstants {
 
     public static void splitConglomerate(byte[] name, byte[] position, long sleepInterval) throws IOException, InterruptedException {
         HBaseAdmin admin = SpliceUtils.getAdmin();
-        admin.split(name,position);
+        safeSplit(name, position, admin);
 
         boolean isSplitting=true;
         while(isSplitting){
@@ -330,6 +331,22 @@ public class ConglomerateUtils extends SpliceConstants {
                 isSplitting = true;
             }
             Thread.sleep(sleepInterval);
+        }
+    }
+
+    private static void safeSplit(byte[] name, byte[] position, HBaseAdmin admin) throws IOException, InterruptedException {
+        int i =10;
+        while(i>=0){
+            try {
+                admin.split(name, position);
+                return;
+            } catch (NotServingRegionException nsre) {
+                if(i!=0) {
+                    //sleep for a second, then try it again
+                    Thread.sleep(1000l);
+                    i--;
+                }else throw nsre; //if it takes 10 seconds to find the split, something is wrong
+            }
         }
     }
 
