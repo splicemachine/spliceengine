@@ -94,13 +94,16 @@ public class RowProviders {
 								}catch(StandardException se){
 										if(cancelOnError){
 												cancelAll(jobs);
+                                            SpliceLogUtils.error(LOG, org.apache.commons.lang.exception.ExceptionUtils.getStackTrace(se));
 												SpliceLogUtils.logAndThrow(LOG, se);
 										}else
 												baseError = se;
 								}
 						}
-						if(baseError!=null)
-								SpliceLogUtils.logAndThrow(LOG,baseError);
+						if(baseError!=null) {
+                            SpliceLogUtils.error(LOG, org.apache.commons.lang.exception.ExceptionUtils.getStackTrace(baseError));
+                            SpliceLogUtils.logAndThrow(LOG, baseError);
+                        }
 				}finally{
 						//perform the intermediate cleanup actions
 						Throwable t = null;
@@ -108,6 +111,7 @@ public class RowProviders {
 								try{
 										cleanupTask.call();
 								} catch (Exception e) {
+                                    SpliceLogUtils.error(LOG, org.apache.commons.lang.exception.ExceptionUtils.getStackTrace(e));
 										if(t==null)
 												t = e;
 								}
@@ -140,12 +144,14 @@ public class RowProviders {
 						job.completeAll(jobInfo);
 						return job.getJobStats();
 				} catch (ExecutionException ee) {
+                        SpliceLogUtils.error(LOG, org.apache.commons.lang.exception.ExceptionUtils.getStackTrace(ee));
 						SpliceLogUtils.error(LOG, ee);
 						if (jobInfo != null) {
 								jobInfo.failJob();
 						}
 						throw Exceptions.parseException(ee.getCause());
 				} catch (InterruptedException e) {
+                        SpliceLogUtils.error(LOG, org.apache.commons.lang.exception.ExceptionUtils.getStackTrace(e));
 						SpliceLogUtils.error(LOG, e);
 						if (jobInfo != null) {
 								jobInfo.failJob();
@@ -202,6 +208,7 @@ public class RowProviders {
 						return Pair.newPair(jobFuture, info);
 
 				} catch (ExecutionException e) {
+                        SpliceLogUtils.error(LOG, org.apache.commons.lang.exception.ExceptionUtils.getStackTrace(e));
 						LOG.error(e);
 						if (info != null){
 								info.failJob();
@@ -348,6 +355,7 @@ public class RowProviders {
 										try{
 												callable.call();
 										}catch(Exception e){
+
 												throw Exceptions.parseException(e);
 										}
 								}
@@ -379,8 +387,10 @@ public class RowProviders {
 						try {
 								nextEntry = source.nextRow(spliceRuntimeContext);
 						} catch (StandardException e) {
+                            SpliceLogUtils.error(LOG, org.apache.commons.lang.exception.ExceptionUtils.getStackTrace(e));
 								SpliceLogUtils.logAndThrowRuntime(log,e);
 						} catch (IOException e) {
+                            SpliceLogUtils.error(LOG, org.apache.commons.lang.exception.ExceptionUtils.getStackTrace(e));
 								SpliceLogUtils.logAndThrowRuntime(log,e);
 						}
 						return nextEntry!=null;
