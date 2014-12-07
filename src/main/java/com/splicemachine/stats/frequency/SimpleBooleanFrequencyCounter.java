@@ -27,8 +27,8 @@ public class SimpleBooleanFrequencyCounter implements BooleanFrequencyCounter {
 
 		@Override
 		public void update(Boolean item, long count) {
-				if(item==Boolean.TRUE) trueFrequency.count++;
-				else falseFrequency.count++;
+				if(item==Boolean.TRUE) trueFrequency.count+=count;
+				else falseFrequency.count+=count;
 		}
 
 		@Override

@@ -3,6 +3,7 @@ package com.splicemachine.stats.collector;
 import com.splicemachine.stats.IntUpdateableBuilder;
 import com.splicemachine.stats.cardinality.IntCardinalityEstimator;
 import com.splicemachine.stats.frequency.FrequencyEstimate;
+import com.splicemachine.stats.frequency.FrequentElements;
 import com.splicemachine.stats.frequency.IntFrequencyCounter;
 import com.splicemachine.stats.histogram.IntRangeQuerySolver;
 import com.splicemachine.stats.order.IntMinMaxCollector;
@@ -63,13 +64,13 @@ public class IntCollector implements IntStatsCollector{
 		}
 
 		@Override
-		public Set<? extends FrequencyEstimate<Integer>> mostFrequentElements(int maxFrequentElements){
-				return frequencyCounter.getMostFrequentElements(maxFrequentElements);
+		public FrequentElements<Integer> mostFrequentElements(int maxFrequentElements){
+				return frequencyCounter.frequentElements(maxFrequentElements);
 		}
 
 		@Override
-		public Set<? extends FrequencyEstimate<Integer>> heavyHitters(float support){
-				return frequencyCounter.getFrequentElements(support);
+		public FrequentElements<Integer> heavyHitters(float support){
+				return frequencyCounter.heavyHitters(support);
 		}
 
 		@Override public long cardinality(){ return cardinalityEstimator.getEstimate(); }
