@@ -44,15 +44,15 @@ public class ByteHeavyHitters implements ByteFrequentElements {
 
     @Override
     public Set<ByteFrequencyEstimate> frequentAfter(byte start, boolean includeStart) {
-        int startPos = ((int)start & 0xff);
+        int startPos = (int)start;
         if(!includeStart) startPos++;
-        return new InnerSet(startPos,256);
+        return new InnerSet(startPos,Byte.MAX_VALUE+1);
     }
 
     @Override
     public Set<ByteFrequencyEstimate> frequentBefore(byte stop, boolean includeStop) {
-        int startPos = (0x80 & 0xff);
-        int stopPos = ((int)stop & 0xff);
+        int startPos = Byte.MIN_VALUE;
+        int stopPos = (int)stop;
         if(includeStop)stopPos++;
         return new InnerSet(startPos,stopPos);
     }
@@ -102,9 +102,11 @@ public class ByteHeavyHitters implements ByteFrequentElements {
         }
         @Override public long error() { return 0; }
 
+        @Override public int compareTo(ByteFrequencyEstimate o) { return o.value()-value; }
+
         @Override
-        public int compareTo(ByteFrequencyEstimate o) {
-            return o.value()-value;
+        public String toString() {
+            return "Frequency("+value+","+count()+")";
         }
     }
 
@@ -117,44 +119,59 @@ public class ByteHeavyHitters implements ByteFrequentElements {
             this.stopPos = stopPos;
         }
 
-        @Override public Iterator<ByteFrequencyEstimate> iterator() { return new Iter(startPos,stopPos); }
+        @Override public Iterator<ByteFrequencyEstimate> iterator() {
+            return new Iter(startPos,stopPos);
+        }
 
         @Override
         public int size() {
             int s=0;
-            for(int i=startPos;i<stopPos;i++){
-                if(counts[i]>=threshold)
+            int distance;
+            if(stopPos>startPos){
+                distance = stopPos-startPos;
+            }else{
+                distance = (256-startPos)+stopPos;
+            }
+            for(int i=0;i<distance;i++){
+                int pos = (startPos+i) & 255;
+                if(counts[pos]>=threshold)
                     s++;
             }
             return s;
         }
+
     }
 
     private class Iter implements Iterator<ByteFrequencyEstimate> {
-        private final int stopPos;
+        private int remaining;
         private int pos;
         private boolean hasNextCalled =false;
 
         public Iter(int startPos, int stopPos) {
-            this.stopPos = stopPos;
-            this.pos = startPos;
+            this.pos = startPos-1;
+            if(startPos< stopPos)
+                remaining = stopPos-startPos;
+            else{
+                remaining = (256-startPos)+stopPos;
+            }
         }
 
         @Override
         public boolean hasNext() {
-            if(hasNextCalled) return pos<stopPos;
+            if(hasNextCalled) return counts[pos]>=threshold;
 
-            while(pos<stopPos && counts[pos]<threshold){
+            do{
                 pos = (pos+1) & 255;
-            }
+                remaining--;
+            }while(remaining>0 && counts[pos] < threshold);
             hasNextCalled=true;
-            return pos<stopPos;
+            return counts[pos] >=threshold;
         }
 
         @Override
         public ByteFrequencyEstimate next() {
             if(!hasNext()) throw new NoSuchElementException();
-            hasNextCalled=false;
+            hasNextCalled = false;
             return cachedFrequencies[pos];
         }
 

@@ -25,7 +25,7 @@ public class EnumeratingByteFrequencyCounter implements ByteFrequencyCounter {
 
 		@Override
 		public void update(byte item, long count) {
-				total++;
+				total+=count;
 				counts[(item & 0xff)]+=count;
 		}
 
