@@ -2,9 +2,6 @@ package com.splicemachine.stats.frequency;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
-import com.splicemachine.hash.Hash32;
-import com.splicemachine.hash.HashFunctions;
-import com.splicemachine.primitives.ByteComparator;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.stats.LongPair;
 import org.junit.Assert;
@@ -42,7 +39,7 @@ public class FixedBytesSSFrequencyCounterTest {
 
 				long totalCount = 0l;
 				for(FrequencyEstimate<byte[]> estimate:estimates){
-						byte[] val = estimate.value();
+						byte[] val = estimate.getValue();
 						long count = estimate.count();
 						long error = estimate.error();
 						totalCount+=count;
@@ -74,14 +71,14 @@ public class FixedBytesSSFrequencyCounterTest {
 
 						@Override
 						public int compare(FrequencyEstimate<byte[]> o1, FrequencyEstimate<byte[]> o2) {
-								return Bytes.basicByteComparator().compare(o1.value(), o2.value());
+								return Bytes.basicByteComparator().compare(o1.getValue(), o2.getValue());
 						}
 				});
 
 				List<byte[]> values = Lists.transform(estimates,new Function<FrequencyEstimate<byte[]>, byte[]>() {
 						@Override
 						public byte[] apply(@Nullable FrequencyEstimate<byte[]> input) {
-								return input.value();
+								return input.getValue();
 						}
 				});
 

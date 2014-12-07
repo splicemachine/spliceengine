@@ -11,7 +11,7 @@ public interface FrequencyEstimate<T> {
 		/**
 		 * @return the value being estimated
 		 */
-		T value();
+		T getValue();
 
 		/**
 		 * @return the (potentially over-)estimated frequency count

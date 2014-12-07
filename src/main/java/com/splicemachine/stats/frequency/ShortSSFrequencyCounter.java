@@ -51,6 +51,16 @@ class ShortSSFrequencyCounter extends SSFrequencyCounter<Short> implements Short
         }
     }
 
+    @Override
+    public ShortFrequentElements heavyHitters(float support) {
+        throw new UnsupportedOperationException("IMPLEMENT");
+    }
+
+    @Override
+    public ShortFrequentElements frequentElements(int k) {
+        throw new UnsupportedOperationException("IMPLEMENT");
+    }
+
     /*****************************************************************************************************************/
     /*private helper methods*/
     private ShortElement doPut(short item, long count){
@@ -105,11 +115,12 @@ class ShortSSFrequencyCounter extends SSFrequencyCounter<Short> implements Short
         return staleElement;
     }
 
-		private class ShortElement extends Element{
+		private class ShortElement extends Element implements ShortFrequencyEstimate{
 				short value;
 				@Override public void setValue(Short value) { this.value = value; }
 				@Override public boolean matchingValue(Short item) { return value == item; }
-				@Override public Short value() { return value; }
+        @Override public short value() { return value; }
+				@Override public Short getValue() { return value; }
 
 				@Override
 				public boolean equals(Object o) {
@@ -120,5 +131,6 @@ class ShortSSFrequencyCounter extends SSFrequencyCounter<Short> implements Short
 				}
 
 				@Override public int hashCode() { return (int) value; }
-		}
+
+    }
 }

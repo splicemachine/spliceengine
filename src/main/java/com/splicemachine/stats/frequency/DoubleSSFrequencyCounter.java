@@ -106,11 +106,21 @@ class DoubleSSFrequencyCounter extends SSFrequencyCounter<Double> implements Dou
 				return hashFunction.hash(val);
 		}
 
-		private class DoubleElement extends Element{
+    @Override
+    public DoubleFrequentElements heavyHitters(float support) {
+        throw new UnsupportedOperationException("IMPLEMENT");
+    }
+
+    @Override
+    public DoubleFrequentElements frequentElements(int k) {
+        throw new UnsupportedOperationException("IMPLEMENT");
+    }
+
+    private class DoubleElement extends Element{
 				private double value;
 				@Override public void setValue(Double value) { this.value = value; }
 				@Override public boolean matchingValue(Double item) { return item == value; }
-				@Override public Double value() { return value; }
+				@Override public Double getValue() { return value; }
 
 				@Override
 				public boolean equals(Object o) {

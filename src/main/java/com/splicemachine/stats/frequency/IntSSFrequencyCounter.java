@@ -103,11 +103,21 @@ class IntSSFrequencyCounter extends SSFrequencyCounter<Integer> implements IntFr
         return staleElement;
     }
 
-		private class IntElement extends Element{
+    @Override
+    public IntFrequentElements heavyHitters(float support) {
+        throw new UnsupportedOperationException("IMPLEMENT");
+    }
+
+    @Override
+    public IntFrequentElements frequentElements(int k) {
+        throw new UnsupportedOperationException("IMPLEMENT");
+    }
+
+    private class IntElement extends Element{
 				private int value;
 				@Override public void setValue(Integer value) { this.value = value;  }
 				@Override public boolean matchingValue(Integer item) { return value == item; }
-				@Override public Integer value() { return value; }
+				@Override public Integer getValue() { return value; }
 
 				@Override
 				public boolean equals(Object o) {

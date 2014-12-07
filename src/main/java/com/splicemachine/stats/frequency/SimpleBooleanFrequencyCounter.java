@@ -55,6 +55,17 @@ public class SimpleBooleanFrequencyCounter implements BooleanFrequencyCounter {
 		}
 
 		@Override
+		public void update(boolean item, long count) {
+				if(item) trueFrequency.count+=count;
+				else falseFrequency.count+=count;
+		}
+
+		@Override
+		public BooleanFrequentElements frequencies() {
+				return new SimpleBooleanFrequentElements(trueFrequency.count,falseFrequency.count);
+		}
+
+		@Override
 		public Set<FrequencyEstimate<Boolean>> getMostFrequentElements(int k) {
 				if(k==0) return Collections.emptySet();
 				if(k==1){
@@ -86,7 +97,7 @@ public class SimpleBooleanFrequencyCounter implements BooleanFrequencyCounter {
 				return Iterators.<FrequencyEstimate<Boolean>>forArray(trueFrequency,falseFrequency);
 		}
 
-		private static class Frequency implements FrequencyEstimate<Boolean>{
+		private static class Frequency implements BooleanFrequencyEstimate{
 				private long count;
 				private final boolean value;
 
@@ -94,8 +105,10 @@ public class SimpleBooleanFrequencyCounter implements BooleanFrequencyCounter {
 						this.value = value;
 				}
 
-				@Override public Boolean value() { return value; }
+				@Override public boolean value() { return value; }
+				@Override public Boolean getValue() { return value; }
 				@Override public long count() { return count; }
 				@Override public long error() { return 0; } //no error! whoo!
 		}
+
 }

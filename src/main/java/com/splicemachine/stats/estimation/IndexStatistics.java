@@ -1,4 +1,6 @@
-package com.splicemachine.stats;
+package com.splicemachine.stats.estimation;
+
+import com.splicemachine.stats.estimation.TableStatistics;
 
 /**
  * Represents costs which are specific to an Index table (such as
@@ -7,7 +9,7 @@ package com.splicemachine.stats;
  * @author Scott Fines
  *         Date: 10/27/14
  */
-public interface IndexStatistics extends TableStatistics{
+public interface IndexStatistics extends TableStatistics {
 
     /**
      * @return the average cost to perform a single table lookup

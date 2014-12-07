@@ -43,6 +43,13 @@ public class EnumeratingByteFrequencyCounter implements ByteFrequencyCounter {
 		}
 
 		@Override
+		public ByteFrequentElements heavyHitters(float support) {
+				long threshold = (long)Math.ceil(support*total);
+
+				return new ByteHeavyHitters(Arrays.copyOf(counts,256),threshold);
+		}
+
+		@Override
 		public Set<? extends FrequencyEstimate<Byte>> getMostFrequentElements(int k) {
 				List<Freq> freqs = Lists.newArrayListWithCapacity(counts.length);
 				for(int i=0;i<counts.length;i++){
@@ -52,9 +59,14 @@ public class EnumeratingByteFrequencyCounter implements ByteFrequencyCounter {
 				return Sets.newTreeSet(freqs.subList(0,k));
 		}
 
+		@Override
+		public ByteFrequentElements frequentElements(int k) {
+				return new ByteFrequencies(counts,k);
+		}
+
 		@Override public Iterator<FrequencyEstimate<Byte>> iterator() { return new Iter(); }
 
-		private static class Freq implements FrequencyEstimate<Byte>,Comparable<Freq>{
+		private static class Freq implements ByteFrequencyEstimate{
 				private byte value;
 				private long count;
 
@@ -63,16 +75,19 @@ public class EnumeratingByteFrequencyCounter implements ByteFrequencyCounter {
 						this.count = count;
 				}
 
-				@Override public Byte value() { return value; }
+				@Override public Byte getValue() { return value; }
 				@Override public long count() { return count; }
 				@Override public long error() { return 0; }
+				@Override public byte value() { return value; }
 
 				@Override
-				public int compareTo(Freq o) {
-						int compare = Longs.compare(count, o.count);
+				@SuppressWarnings("NullableProblems")
+				public int compareTo(ByteFrequencyEstimate o) {
+						int compare = Longs.compare(count, o.count());
 						if(compare!=0) return -1*compare;
-						return value - o.value;
+						return value - o.value();
 				}
+
 		}
 
     private class Iter implements Iterator<FrequencyEstimate<Byte>> {

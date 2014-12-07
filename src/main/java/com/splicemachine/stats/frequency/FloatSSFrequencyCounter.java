@@ -106,11 +106,21 @@ class FloatSSFrequencyCounter extends SSFrequencyCounter<Float> implements Float
 				return hashFunction.hash(rawBits);
 		}
 
-		private class FloatElement extends Element{
+    @Override
+    public FloatFrequentElements heavyHitters(float support) {
+        throw new UnsupportedOperationException("IMPLEMENT");
+    }
+
+    @Override
+    public FloatFrequentElements frequentElements(int k) {
+        throw new UnsupportedOperationException("IMPLEMENT");
+    }
+
+    private class FloatElement extends Element{
 				private float value;
 				@Override public void setValue(Float value) { this.value = value; }
 				@Override public boolean matchingValue(Float item) { return item == value; }
-				@Override public Float value() { return value; }
+				@Override public Float getValue() { return value; }
 
 				@Override
 				public boolean equals(Object o) {

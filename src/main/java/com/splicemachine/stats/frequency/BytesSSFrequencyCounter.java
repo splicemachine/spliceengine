@@ -20,6 +20,16 @@ class BytesSSFrequencyCounter extends SSFrequencyCounter<byte[]> implements Byte
 		}
 
 		@Override
+		public BytesFrequentElements heavyHitters(float support) {
+				throw new UnsupportedOperationException("IMPLEMENT");
+		}
+
+		@Override
+		public BytesFrequentElements frequentElements(int k) {
+				throw new UnsupportedOperationException("IMPLEMENT");
+		}
+
+		@Override
 		protected int hash(byte[] item, Hash32 hashFunction) {
 				return hashFunction.hash(item, 0, item.length);
 		}
@@ -141,7 +151,7 @@ class BytesSSFrequencyCounter extends SSFrequencyCounter<byte[]> implements Byte
 //						return Bytes.equals(value,offset,length,item,0,item.length);
 				}
 
-				@Override public byte[] value() { return value; }
+				@Override public byte[] getValue() { return value; }
 
 				@Override
 				public boolean equals(Object o) {

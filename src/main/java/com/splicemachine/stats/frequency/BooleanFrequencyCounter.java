@@ -8,4 +8,11 @@ import com.splicemachine.stats.BooleanUpdateable;
  * @author Scott Fines
  * Date: 3/27/14
  */
-public interface BooleanFrequencyCounter extends BooleanUpdateable, FrequencyCounter<Boolean> { }
+public interface BooleanFrequencyCounter extends BooleanUpdateable, FrequencyCounter<Boolean> {
+
+    /**
+     * @return the frequency estimates for both true and false. Since Booleans are so
+     * limited in size, this will contain all possible elements.
+     */
+    BooleanFrequentElements frequencies();
+}

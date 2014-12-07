@@ -2,7 +2,6 @@ package com.splicemachine.stats.frequency;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
-import com.splicemachine.hash.Hash32;
 import com.splicemachine.hash.HashFunctions;
 import com.splicemachine.stats.LongPair;
 import org.junit.Assert;
@@ -40,7 +39,7 @@ public class FixedBigDecimalSSFrequencyCounterTest {
 
 				long totalCount = 0l;
 				for(FrequencyEstimate<BigDecimal> estimate:estimates){
-						BigDecimal val = estimate.value();
+						BigDecimal val = estimate.getValue();
 						long count = estimate.count();
 						long error = estimate.error();
 						totalCount+=count;
@@ -72,14 +71,14 @@ public class FixedBigDecimalSSFrequencyCounterTest {
 
 						@Override
 						public int compare(FrequencyEstimate<BigDecimal> o1, FrequencyEstimate<BigDecimal> o2) {
-								return o1.value().compareTo(o2.value());
+								return o1.getValue().compareTo(o2.getValue());
 						}
 				});
 
 				List<BigDecimal> values = Lists.transform(estimates,new Function<FrequencyEstimate<BigDecimal>, BigDecimal>() {
 						@Override
 						public BigDecimal apply(@Nullable FrequencyEstimate<BigDecimal> input) {
-								return input.value();
+								return input.getValue();
 						}
 				});
 

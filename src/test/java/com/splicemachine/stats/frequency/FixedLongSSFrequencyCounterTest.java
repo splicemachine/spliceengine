@@ -40,7 +40,7 @@ public class FixedLongSSFrequencyCounterTest {
 
 				long totalCount = 0l;
 				for(FrequencyEstimate<Long> estimate:estimates){
-						long val = estimate.value();
+						long val = estimate.getValue();
 						long count = estimate.count();
 						long error = estimate.error();
 						totalCount+=count;
@@ -72,14 +72,14 @@ public class FixedLongSSFrequencyCounterTest {
 
 						@Override
 						public int compare(FrequencyEstimate<Long> o1, FrequencyEstimate<Long> o2) {
-								return Longs.compare(o1.value(), o2.value());
+								return Longs.compare(o1.getValue(), o2.getValue());
 						}
 				});
 
 				List<Long> values = Lists.transform(estimates,new Function<FrequencyEstimate<Long>, Long>() {
 						@Override
 						public Long apply(@Nullable FrequencyEstimate<Long> input) {
-								return input.value();
+								return input.getValue();
 						}
 				});
 

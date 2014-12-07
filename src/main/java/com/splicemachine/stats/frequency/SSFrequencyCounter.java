@@ -264,7 +264,7 @@ class SSFrequencyCounter<T> implements FrequencyCounter<T> {
 		 * @return the hash of the element's value;
 		 */
 		protected int hash(Element element, Hash32 hashFunction){
-				return hash(element.value(), hashFunction);
+				return hash(element.getValue(), hashFunction);
 		}
 
 		/**
@@ -523,7 +523,7 @@ class SSFrequencyCounter<T> implements FrequencyCounter<T> {
 
 				@Override public long count() { return bucket.count; }
 				@Override public long error() { return epsilon; }
-				@Override public String toString() { return "("+value()+","+bucket.count+","+epsilon+")"; }
+				@Override public String toString() { return "("+getValue()+","+bucket.count+","+epsilon+")"; }
 
 				/**
 				 * Set the latest value on the element. Subclasses may not necessarily use this,
@@ -551,7 +551,7 @@ class SSFrequencyCounter<T> implements FrequencyCounter<T> {
 
 				@Override public void setValue(T value) { this.value = value; }
 				@Override public boolean matchingValue(T item) { return value.equals(item); }
-				@Override public T value() { return value; }
+				@Override public T getValue() { return value; }
 		}
 
 		/*

@@ -1,4 +1,4 @@
-package com.splicemachine.stats;
+package com.splicemachine.stats.estimation;
 
 /**
  * Represents information about a specific table.

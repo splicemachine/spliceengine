@@ -111,11 +111,22 @@ class LongSSFrequencyCounter extends SSFrequencyCounter<Long> implements LongFre
             longestProbeLength = probeLength;
         return staleElement;
     }
-		private class LongElement extends Element{
+
+    @Override
+    public LongFrequentElements heavyHitters(float support) {
+        throw new UnsupportedOperationException("IMPLEMENT");
+    }
+
+    @Override
+    public LongFrequentElements frequentElements(int k) {
+        throw new UnsupportedOperationException("IMPLEMENT");
+    }
+
+    private class LongElement extends Element{
 				long value;
 				@Override public void setValue(Long value) { this.value = value; }
 				@Override public boolean matchingValue(Long item) { return value == item; }
-				@Override public Long value() { return value; }
+				@Override public Long getValue() { return value; }
 
 				@Override
 				public boolean equals(Object o) {
