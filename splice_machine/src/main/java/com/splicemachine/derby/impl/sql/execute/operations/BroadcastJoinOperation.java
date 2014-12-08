@@ -306,17 +306,7 @@ public class BroadcastJoinOperation extends JoinOperation {
 
             if(runtimeContext.shouldRecordTraceMetrics()) {
                 activation.getLanguageConnectionContext().setStatisticsTiming(true);
-                if (operationChainInfo == null) {
-                    operationChainInfo = new XplainOperationChainInfo(
-                            runtimeContext.getStatementId(),
-                            Bytes.toLong(rightResultSet.getUniqueSequenceID()));
-                }
-                List<XplainOperationChainInfo> operationChain = SpliceBaseOperation.operationChain.get();
-                if (operationChain == null) {
-                    operationChain = Lists.newLinkedList();
-                    SpliceBaseOperation.operationChain.set(operationChain);
-                }
-                operationChain.add(operationChainInfo);
+                addToOperationChain(runtimeContext, null);
             }
 
             rightRowCounter = runtimeContext.newCounter();

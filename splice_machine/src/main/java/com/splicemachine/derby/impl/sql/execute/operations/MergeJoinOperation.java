@@ -1,8 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.*;
@@ -37,6 +35,8 @@ public class MergeJoinOperation extends JoinOperation {
     int[] leftHashKeys;
     int[] rightHashKeys;
     Joiner joiner;
+    private OperationResultSet ors;
+
 
     // for overriding
     protected boolean wasRightOuterJoin = false;
@@ -118,6 +118,8 @@ public class MergeJoinOperation extends JoinOperation {
         setCurrentRow(next);
         if (next == null) {
             timer.tick(joiner.getLeftRowsSeen());
+            ors.close();
+            removeFromOperationChain();
             joiner.close();
             stopExecutionTime = System.currentTimeMillis();
         }
@@ -136,7 +138,15 @@ public class MergeJoinOperation extends JoinOperation {
             ctxWithOverride.addScanStartOverride(getKeyRow(firstLeft, leftHashKeys));
             leftPushBack.pushBack(firstLeft);
         }
-        rightRows = StandardIterators.ioIterator(rightResultSet.executeScan(ctxWithOverride));
+
+        if (shouldRecordStats()) {
+            addToOperationChain(spliceRuntimeContext, null);
+        }
+        ors = new OperationResultSet(activation,rightResultSet);
+        ors.sinkOpen(spliceRuntimeContext.getTxn(),true);
+        ors.executeScan(false,ctxWithOverride);
+        SpliceNoPutResultSet resultSet = ors.getDelegate();
+        rightRows = StandardIterators.ioIterator(resultSet);
         rightRows.open();
         IJoinRowsIterator<ExecRow> mergedRowSource = new MergeJoinRows(leftPushBack, rightRows, leftHashKeys, rightHashKeys);
         StandardSupplier<ExecRow> emptyRowSupplier = new StandardSupplier<ExecRow>() {
@@ -159,6 +169,7 @@ public class MergeJoinOperation extends JoinOperation {
             long leftRowsSeen = joiner.getLeftRowsSeen();
             stats.addMetric(OperationMetric.INPUT_ROWS, leftRowsSeen);
             TimeView time = timer.getTime();
+            stats.addMetric(OperationMetric.OUTPUT_ROWS, timer.getNumEvents());
             stats.addMetric(OperationMetric.TOTAL_WALL_TIME,time.getWallClockTime());
             stats.addMetric(OperationMetric.TOTAL_CPU_TIME,time.getCpuTime());
             stats.addMetric(OperationMetric.TOTAL_USER_TIME, time.getUserTime());

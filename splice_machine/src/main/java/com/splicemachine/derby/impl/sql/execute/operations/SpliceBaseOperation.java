@@ -46,6 +46,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import com.google.common.collect.Lists;
 
 public abstract class SpliceBaseOperation implements SpliceOperation, Externalizable {
 		private static final long serialVersionUID = 4l;
@@ -696,6 +697,28 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
             public String getMethodName() {
                 return methodName;
+            }
+        }
+
+        protected void addToOperationChain(SpliceRuntimeContext spliceRuntimeContext, String methodName) {
+            if (operationChainInfo == null) {
+                operationChainInfo = new XplainOperationChainInfo(
+                        spliceRuntimeContext.getStatementId(),
+                        Bytes.toLong(uniqueSequenceID));
+                operationChainInfo.setMethodName(methodName);
+            }
+            List<XplainOperationChainInfo> operationChain = SpliceBaseOperation.operationChain.get();
+            if (operationChain == null) {
+                operationChain = Lists.newLinkedList();
+                SpliceBaseOperation.operationChain.set(operationChain);
+            }
+            operationChain.add(operationChainInfo);
+        }
+
+        protected void removeFromOperationChain() {
+            List<XplainOperationChainInfo> operationChain = SpliceBaseOperation.operationChain.get();
+            if (operationChain != null && operationChain.size() > 0) {
+                operationChain.remove(operationChain.size() - 1);
             }
         }
 }

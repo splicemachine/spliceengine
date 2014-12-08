@@ -151,15 +151,6 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 				if (projectionMethodName != null)
 						projection = new SpliceMethod<ExecRow>(projectionMethodName,activation);
 
-                List<XplainOperationChainInfo> operationChain = SpliceBaseOperation.operationChain.get();
-
-                // Prepare XplainOperationChainInfo record for subquery
-//                if (operationChain != null && operationChain.size() > 0) {
-//                    This is in a subquery and explain trace is on
-//                    XplainOperationChainInfo parent = operationChain.get(operationChain.size()-1);
-//                    statisticsTimingOn = true;
-//                    }
-
                 startExecutionTime = System.currentTimeMillis();
 		}
 
@@ -256,19 +247,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 								} else {
                                         if (activation.isTraced()) {
                                             // Push the operation Id
-                                            if (operationChainInfo == null) {
-                                                operationChainInfo = new XplainOperationChainInfo(
-                                                    spliceRuntimeContext.getStatementId(),
-                                                    Bytes.toLong(uniqueSequenceID));
-
-                                                operationChainInfo.setMethodName("Subquery:" + restrictionMethodName);
-                                            }
-                                            List<XplainOperationChainInfo> operationChain = SpliceBaseOperation.operationChain.get();
-                                            if (operationChain == null) {
-                                                operationChain = Lists.newLinkedList();
-                                                SpliceBaseOperation.operationChain.set(operationChain);
-                                            }
-                                            operationChain.add(operationChainInfo);
+                                            addToOperationChain(spliceRuntimeContext, "Subquery:" + restrictionMethodName);
                                         }
 										setCurrentRow(candidateRow);
 										try {
@@ -307,12 +286,9 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 								else
 										subqueryTrackingArray = activation.getLanguageConnectionContext().getStatementContext().getSubqueryTrackingArray();
 						}*/
-                        // Remove the last emelemt in the chain since this operation is exiting
-                        List<XplainOperationChainInfo> operationChain = SpliceBaseOperation.operationChain.get();
-                        if (operationChain != null && operationChain.size() > 0) {
-                            operationChain.remove(operationChain.size() - 1);
-                        }
-						nextTime += getElapsedMillis(beginTime);
+                    // Remove the last emelemt in the chain since this operation is exiting
+                    removeFromOperationChain();
+                    nextTime += getElapsedMillis(beginTime);
 				}
 				if(result ==null){
 						timer.stopTiming();

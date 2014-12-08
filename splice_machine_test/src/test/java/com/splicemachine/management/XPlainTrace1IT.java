@@ -39,7 +39,7 @@ public class XPlainTrace1IT extends BaseXplainIT {
     }
 
 
-    @Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
+    @Rule public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
 
 
     @ClassRule
@@ -56,6 +56,10 @@ public class XPlainTrace1IT extends BaseXplainIT {
                             ps.setInt(1,i);
                             ps.execute();
                         }
+                        ps.close();
+                        ps = spliceClassWatcher.prepareStatement("create index t1i on " + CLASS_NAME +".tab1 (i)");
+                        ps.execute();
+                        ps.close();
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
@@ -72,6 +76,10 @@ public class XPlainTrace1IT extends BaseXplainIT {
                             ps.setInt(1,i);
                             ps.execute();
                         }
+                        ps.close();
+                        ps = spliceClassWatcher.prepareStatement("create index t2i on " + CLASS_NAME +".tab2 (i)");
+                        ps.execute();
+                        ps.close();
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
@@ -134,6 +142,36 @@ public class XPlainTrace1IT extends BaseXplainIT {
         Assert.assertEquals(nrows,operation.getOutputRows());
         Assert.assertEquals(2*nrows,operation.getWriteRows());
         Assert.assertEquals(2*nrows,operation.getRemoteScanRows());
+    }
+
+    @Test
+    public void testMergeJoin() throws Exception{
+        try {
+            xPlainTrace.turnOnTrace();
+            String sql = "select * from \n" +
+                    CLASS_NAME + "." + TABLE1 + " t1 --SPLICE-PROPERTIES index=t1i\n" +
+                    "," + CLASS_NAME + "." + TABLE2 + " t2 --SPLICE-PROPERTIES index=t2i, joinStrategy=MERGE\n" +
+                    "where t1.i = t2.i";
+            long count = baseConnection.count(sql);
+            Assert.assertEquals("Incorrect row count with XPLAIN enabled", count, nrows);
+            xPlainTrace.turnOffTrace();
+
+            long statementId = getLastStatementId();
+            XPlainTreeNode operation = xPlainTrace.getOperationTree(statementId);
+            String operationType = operation.getOperationType();
+            Assert.assertEquals(operationType.toUpperCase(), SpliceXPlainTrace.MERGEJOIN.toUpperCase());
+            Assert.assertTrue(operation.getInfo().contains("Join Condition:(T1.I[4:1] = T2.I[4:2])"));
+            Assert.assertEquals(nrows,operation.getInputRows());
+            Assert.assertEquals(nrows,operation.getOutputRows());
+            Assert.assertEquals(nrows,operation.getRemoteScanRows());
+
+            Deque<XPlainTreeNode> children = operation.getChildren();
+            Assert.assertEquals(2, children.size());
+        }
+        finally {
+            methodWatcher.executeUpdate("drop index t1i");
+            methodWatcher.executeUpdate("drop index t2i");
+        }
     }
 
     @Test
