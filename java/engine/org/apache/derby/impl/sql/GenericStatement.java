@@ -143,6 +143,26 @@ public class GenericStatement implements Statement {
         }
 	}
 
+    private boolean isExplainStatement() {
+
+        String s = statementText.trim().toUpperCase();
+        if (s.indexOf("EXPLAIN") == -1) {
+            // If the statement does not contain keyword explain, this is not an explain statement
+            return false;
+        }
+
+        // Strip off all comments before keyword explain
+        while (s.length()> 0 && s.startsWith("--")) {
+            int index = s.indexOf('\n');
+            if (index == -1) {
+                index = s.length();
+            }
+            s = s.substring(index+1).trim();
+        }
+
+        return s.startsWith("EXPLAIN");
+    }
+
 	private PreparedStatement prepMinion(LanguageConnectionContext lcc, boolean cacheMe, Object[] paramDefaults,
 		SchemaDescriptor spsSchema, boolean internalSQL)
 		throws StandardException
@@ -201,7 +221,7 @@ public class GenericStatement implements Statement {
 		 * relevant Derby property) then the value of cacheMe is irrelevant.
 		 */ 
 		boolean foundInCache = false;
-        boolean isExplain = statementText.toUpperCase().startsWith("EXPLAIN ");
+        boolean isExplain = isExplainStatement();
 		if (preparedStmt == null) 
 		{
 			if (cacheMe && !isExplain)
