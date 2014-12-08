@@ -25,6 +25,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -344,14 +345,16 @@ class IndexRowReader {
         }
     }
 
-    private void waitForBlockCompletion() throws StandardException {
+    private void waitForBlockCompletion() throws StandardException,IOException {
         //wait for the first future to return correctly or error-out
         try {
             currentResults = resultFutures.remove(0).get();
         } catch (InterruptedException e) {
-            throw Exceptions.parseException(e);
+            throw new InterruptedIOException(e.getMessage());
         } catch (ExecutionException e) {
-            throw Exceptions.parseException(e);
+            Throwable t = e.getCause();
+            if(t instanceof IOException) throw (IOException)t;
+            else throw Exceptions.parseException(t);
         }
     }
 
