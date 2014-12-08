@@ -149,13 +149,26 @@ public class ByteFrequencies implements ByteFrequentElements {
             return value-o.value();
         }
 
+        @Override
+        public String toString() {
+            return "Frequency("+value+","+count+")";
+        }
     }
     private void push(Frequency frequency) {
+        /*
+         * we only want to push this frequency if it's larger than
+         * the minimum element OR if the size < maxSize. Otherwise,
+         * we just evict this element directly.
+         */
         int pos;
-        if(size>=maxSize) {
-            pos =evict();
-        }else
-            pos = size;
+        if(size<maxSize)
+            pos=size;
+        else if((frequency.count-heap[0].count)>0){
+           pos = evict();
+        }else{
+            //don't bother adding this element, as it would be evicted anyway
+            return;
+        }
         while(pos>=0){
             int parentPos = (pos-1)/2;
             Frequency parent = heap[parentPos];
@@ -203,11 +216,11 @@ public class ByteFrequencies implements ByteFrequentElements {
         while(pos<size){
             int left = 2*pos+1;
             int right = 2*pos+2;
-            if(left>maxSize){
+            if(left>=maxSize){
                 //there are no child elements to choose from, so just clear this entry and break
                 heap[pos] = null;
                 break;
-            }else if(right>maxSize){
+            }else if(right>=maxSize){
                 //there is only the left side of the tree to choose from, so that's the min
                 heap[pos] = heap[left];
                 break;

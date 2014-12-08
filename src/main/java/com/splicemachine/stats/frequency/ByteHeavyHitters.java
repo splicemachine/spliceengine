@@ -102,7 +102,7 @@ public class ByteHeavyHitters implements ByteFrequentElements {
         }
         @Override public long error() { return 0; }
 
-        @Override public int compareTo(ByteFrequencyEstimate o) { return o.value()-value; }
+        @Override public int compareTo(ByteFrequencyEstimate o) { return value - o.value();}
 
         @Override
         public String toString() {
