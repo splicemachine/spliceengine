@@ -199,17 +199,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
             this.leftRow = leftRow;
             probeResultSet = getRightResultSet();
             if (shouldRecordStats()) {
-                if (operationChainInfo == null) {
-                    operationChainInfo = new XplainOperationChainInfo(
-                            spliceRuntimeContext.getStatementId(),
-                            Bytes.toLong(uniqueSequenceID));
-                }
-                List<XplainOperationChainInfo> operationChain = SpliceBaseOperation.operationChain.get();
-                if (operationChain == null) {
-                    operationChain = Lists.newLinkedList();
-                    SpliceBaseOperation.operationChain.set(operationChain);
-                }
-                operationChain.add(operationChainInfo);
+                addToOperationChain(spliceRuntimeContext, null);
             }
             probeResultSet.setParentOperationID(Bytes.toLong(getUniqueSequenceID()));
             SpliceRuntimeContext ctx = probeResultSet.sinkOpen(spliceRuntimeContext.getTxn(),true);
@@ -308,11 +298,8 @@ public class NestedLoopJoinOperation extends JoinOperation {
 				public void close() throws StandardException {
 						beginTime = getCurrentTimeMillis();
 						if(shouldRecordStats()){
-                            List<XplainOperationChainInfo> operationChain = SpliceBaseOperation.operationChain.get();
-                            if (operationChain != null && operationChain.size() > 0) {
-                                operationChain.remove(operationChain.size() - 1);
-                            }
-							//have to set a unique Task id each time to ensure all the rows are written
+                            removeFromOperationChain();
+                            //have to set a unique Task id each time to ensure all the rows are written
 							probeResultSet.getDelegate().setTaskId(SpliceDriver.driver().getUUIDGenerator().nextUUID());
 							//probeResultSet.getDelegate().setScrollId(Bytes.toLong(uniqueSequenceID));
 							if(region!=null)

@@ -213,8 +213,6 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
             cleanupFuture(future);
             if(activation.isTraced()){
                 GenericStorablePreparedStatement preparedStatement = (GenericStorablePreparedStatement) activation.getPreparedStatement();
-                preparedStatement.clearWarnings();
-                preparedStatement.addWarning(StandardException.newWarning(WarningState.XPLAIN_STATEMENT_ID.getSqlState(),statementInfo.getStatementUuid()));
             }
             try {
                 SpliceDriver.driver().getStatementManager().completedStatement(statementInfo, activation.isTraced(),((SpliceTransactionManager) txnControl).getActiveStateTxn());

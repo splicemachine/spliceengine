@@ -19,6 +19,7 @@ public class SpliceXPlainTrace extends XPlainTrace{
     public static final String SCALARAGGREGATE = "ScalarAggregate";
     public static final String NESTEDLOOPJOIN = "NestedLoopJoin";
     public static final String MERGESORTJOIN = "MergeSortJoin";
+    public static final String MERGEJOIN = "MergeJoin";
     public static final String BROADCASTJOIN = "BroadcastJoin";
     public static final String INDEXROWTOBASEROW = "IndexRowToBaseRow";
     public static final String SORT = "SORT";

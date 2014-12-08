@@ -285,7 +285,6 @@ public class XPlainTrace {
      * hash tree node for operation tree construction
      */
     private boolean populateTreeNodeMap() throws SQLException {
-        System.out.println(statementId);
         int count = 0;
         ResultSet rs = getOperationHistory();
         try{
