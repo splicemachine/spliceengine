@@ -66,4 +66,22 @@ public class ExplainPlanIT extends SpliceUnitTest  {
         }
         Assert.assertTrue(count>0);
     }
+
+    @Test
+    public void testExplainTwice() throws Exception {
+        ResultSet rs  = methodWatcher.executeQuery(
+                String.format("-- some comments \n explain\nupdate %s set i = 0 where i = 1", this.getTableReference(TABLE_NAME)));
+        int count1 = 0;
+        while (rs.next()) {
+            ++count1;
+        }
+        rs.close();
+        rs  = methodWatcher.executeQuery(
+                String.format("-- some comments \n explain\nupdate %s set i = 0 where i = 1", this.getTableReference(TABLE_NAME)));
+        int count2 = 0;
+        while (rs.next()) {
+            ++count2;
+        }
+        Assert.assertTrue(count1 == count2);
+    }
 }
