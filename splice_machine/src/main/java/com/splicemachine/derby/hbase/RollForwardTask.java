@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 
+import com.splicemachine.constants.SIConstants;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
@@ -133,7 +134,7 @@ public class RollForwardTask implements Task {
     private MeasuredRegionScanner getRegionScanner(Txn txn,SegmentedRollForward.Context context) throws IOException {
         TxnSupplier txnSupplier = TransactionStorage.getTxnSupplier();
         //want to make sure that we bail the task on error
-        ReadResolver resolver = SynchronousReadResolver.getResolver(region, txnSupplier, TransactionalRegions.getRollForwardStatus(),true);
+        ReadResolver resolver = SynchronousReadResolver.getResolver(region, txnSupplier, TransactionalRegions.getRollForwardStatus(),SpliceBaseIndexEndpoint.independentTrafficControl,true);
         DataStore dataStore = TxnDataStore.getDataStore();
         TxnFilter filer = new UpdatingTxnFilter(txnSupplier,txn,resolver,dataStore,context);
         BaseSIFilter filter = new SIFilter(filer);
@@ -144,7 +145,10 @@ public class RollForwardTask implements Task {
         scan.setFilter(filter);
         scan.setCacheBlocks(false);
 
-        return dataStore.dataLib.getBufferedRegionScanner(region,region.getScanner(scan), scan,16,Metrics.noOpMetricFactory());
+//        return dataStore.dataLib.getBufferedRegionScanner(region,region.getScanner(scan), scan,16,Metrics.noOpMetricFactory());
+        int rollforwardRate = SIConstants.rollForwardRate;
+        return dataStore.dataLib.getRateLimitedRegionScanner(region,
+                region.getScanner(scan), scan, 16, rollforwardRate,Metrics.noOpMetricFactory());
     }
 
     @Override public void cleanup() throws ExecutionException {  }

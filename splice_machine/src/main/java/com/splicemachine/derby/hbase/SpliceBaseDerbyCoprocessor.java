@@ -34,6 +34,8 @@ public class SpliceBaseDerbyCoprocessor {
 
         //make sure the factory is correct
         TransactionalRegions.setActionFactory(RollForwardAction.FACTORY);
+        //use the independent write control from the write pipeline
+        TransactionalRegions.setTrafficControl(SpliceBaseIndexEndpoint.independentTrafficControl);
         if (tableEnvMatch) {
         	SpliceDriver.driver().start(((RegionCoprocessorEnvironment) e).getRegionServerServices());
             runningCoprocessors.incrementAndGet();

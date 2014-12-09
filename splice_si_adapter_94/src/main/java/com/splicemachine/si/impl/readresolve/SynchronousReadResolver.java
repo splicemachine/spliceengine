@@ -8,6 +8,7 @@ import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.rollforward.RollForwardStatus;
 import com.splicemachine.utils.ByteSlice;
+import com.splicemachine.utils.TrafficControl;
 import com.splicemachine.annotations.ThreadSafe;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Put;
@@ -39,33 +40,47 @@ public class SynchronousReadResolver {
      * @return a ReadResolver which uses Synchronous Read Resolution under the hood.
      */
     public static @ThreadSafe ReadResolver getResolver(final HRegion region,final TxnSupplier txnSupplier,final RollForwardStatus status){
-       return getResolver(region,txnSupplier,status,false);
+       return getResolver(region,txnSupplier,status,null,false);
     }
 
-    public static @ThreadSafe ReadResolver getResolver(final HRegion region,final TxnSupplier txnSupplier,final RollForwardStatus status, final boolean failOnError){
+    public static @ThreadSafe ReadResolver getResolver(final HRegion region,
+                                                       final TxnSupplier txnSupplier,
+                                                       final RollForwardStatus status,
+                                                       final TrafficControl trafficControl,
+                                                       final boolean failOnError){
         return new ReadResolver() {
             @Override
             public void resolve(ByteSlice rowKey, long txnId) {
-                SynchronousReadResolver.INSTANCE.resolve(region,rowKey,txnId,txnSupplier,status,failOnError);
+                SynchronousReadResolver.INSTANCE.resolve(region,rowKey,txnId,txnSupplier,status,failOnError,trafficControl);
             }
         };
     }
 
-    boolean resolve(HRegion region, ByteSlice rowKey, long txnId, TxnSupplier supplier,RollForwardStatus status,boolean failOnError) {
+    boolean resolve(HRegion region, ByteSlice rowKey, long txnId, TxnSupplier supplier,RollForwardStatus status,boolean failOnError,TrafficControl trafficControl) {
         try {
             TxnView transaction = supplier.getTransaction(txnId);
             boolean resolved = false;
             if(transaction.getEffectiveState()== Txn.State.ROLLEDBACK){
-                SynchronousReadResolver.INSTANCE.resolveRolledback(region, rowKey, txnId,failOnError);
-                resolved = true;
+                trafficControl.acquire(1);
+                try {
+                    SynchronousReadResolver.INSTANCE.resolveRolledback(region, rowKey, txnId, failOnError);
+                    resolved = true;
+                }finally{
+                    trafficControl.release(1);
+                }
             }else{
                 TxnView t = transaction;
                 while(t.getState()== Txn.State.COMMITTED){
                     t = t.getParentTxnView();
                 }
                 if(t==Txn.ROOT_TRANSACTION){
-                    SynchronousReadResolver.INSTANCE.resolveCommitted(region,rowKey,txnId,transaction.getEffectiveCommitTimestamp(),failOnError);
-                    resolved = true;
+                    trafficControl.acquire(1);
+                    try {
+                        SynchronousReadResolver.INSTANCE.resolveCommitted(region, rowKey, txnId, transaction.getEffectiveCommitTimestamp(), failOnError);
+                        resolved = true;
+                    }finally{
+                        trafficControl.release(1);
+                    }
                 }
             }
             status.rowResolved();
@@ -74,6 +89,10 @@ public class SynchronousReadResolver {
             LOG.info("Unable to fetch transaction for id "+ txnId+", will not resolve",e);
             if(failOnError)
                 throw new RuntimeException(e);
+            return false;
+        } catch (InterruptedException e) {
+            LOG.debug("Interrupted which performing read resolution, will not resolve");
+            Thread.currentThread().interrupt();
             return false;
         }
     }

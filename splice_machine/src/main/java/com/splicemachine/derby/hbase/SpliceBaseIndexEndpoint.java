@@ -14,6 +14,7 @@ import com.splicemachine.pipeline.writehandler.IndexWriteBufferFactory;
 import com.splicemachine.si.impl.TransactionalRegions;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.utils.TrafficControl;
 import com.yammer.metrics.core.Meter;
 import com.yammer.metrics.core.MetricName;
 import com.yammer.metrics.core.Timer;
@@ -29,7 +30,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.LockSupport;
 
 /**
  * Endpoint to allow special batch operations that the HBase API doesn't explicitly enable
@@ -44,11 +45,13 @@ public class SpliceBaseIndexEndpoint {
 		private static final Logger LOG = Logger.getLogger(SpliceBaseIndexEndpoint.class);
 		public static volatile int ipcReserved = 10;
 		private static final SpliceWriteControl writeControl;
+    public static final TrafficControl independentTrafficControl;
     static{
         int ipcThreads = SpliceConstants.ipcThreads-SpliceConstants.taskWorkers-ipcReserved;
         int maxIndependentWrites = SpliceConstants.maxIndependentWrites;
         int maxDependentWrites = SpliceConstants.maxDependentWrites;
-        writeControl = new SpliceWriteControl((int)ipcThreads/2,(int)ipcThreads/2,maxDependentWrites,maxIndependentWrites);
+        writeControl = new SpliceWriteControl(ipcThreads /2, ipcThreads /2,maxDependentWrites,maxIndependentWrites);
+        independentTrafficControl = writeControl.independentTrafficControl();
     }
 
 		private static MetricName receptionName = new MetricName("com.splicemachine","receiverStats","time");

@@ -1,5 +1,7 @@
 package com.splicemachine.derby.hbase;
 
+import com.splicemachine.utils.TrafficControl;
+
 /**
  * @author Scott Fines
  *         Date: 11/25/14

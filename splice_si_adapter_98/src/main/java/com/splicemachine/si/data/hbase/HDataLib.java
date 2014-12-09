@@ -4,10 +4,7 @@ import com.google.common.collect.Iterables;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.hbase.BufferedRegionScanner;
-import com.splicemachine.hbase.CellUtils;
-import com.splicemachine.hbase.KVPair;
-import com.splicemachine.hbase.MeasuredRegionScanner;
+import com.splicemachine.hbase.*;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.si.coprocessors.SICompactionScanner;
 import com.splicemachine.si.data.api.SDataLib;
@@ -514,6 +511,17 @@ public class HDataLib implements SDataLib<Cell,Put, Delete, Get, Scan> {
 				RegionScanner delegate, Scan scan, int bufferSize,
 				MetricFactory metricFactory) {
 			return new BufferedRegionScanner(region,delegate,scan,bufferSize,metricFactory,this);
+		}
+
+		@Override
+		public MeasuredRegionScanner<Cell> getRateLimitedRegionScanner(HRegion region,
+																																	 RegionScanner delegate,
+																																	 Scan scan,
+																																	 int bufferSize,
+																																	 int readsPerSecond,
+																																	 MetricFactory metricFactory) {
+				MeasuredRegionScanner<Cell> d = getBufferedRegionScanner(region,delegate,scan,bufferSize,metricFactory);
+				return new RateLimitedRegionScanner(d,readsPerSecond);
 		}
 
 		@Override
