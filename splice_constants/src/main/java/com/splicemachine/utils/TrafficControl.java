@@ -1,4 +1,4 @@
-package com.splicemachine.derby.hbase;
+package com.splicemachine.utils;
 
 /**
  * @author Scott Fines
@@ -9,6 +9,8 @@ public interface TrafficControl  {
     public void release(int permits);
 
     public int tryAcquire(int minPermits, int maxPermits);
+
+    public void acquire(int permits) throws InterruptedException;
 
     int getAvailablePermits();
 

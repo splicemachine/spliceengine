@@ -158,6 +158,18 @@ public class SIConstants extends SpliceConstants {
     @DefaultValue(COMPLETED_TRANSACTION_CACHE_CONCURRENCY) public static final int DEFAULT_COMPLETED_TRANSACTION_CONCURRENCY = 64;
     public static int completedTransactionConcurrency;
 
+    @Parameter public static final String ROLL_FORWARD_READ_RATE = "splice.txn.rollforward.readThroughput";
+    @DefaultValue(ROLL_FORWARD_READ_RATE) public static final int DEFAULT_ROLL_FORWARD_READ_RATE=10000; //default is 10,000 rows/sec
+    public static int rollForwardRate;
+
+    @Parameter public static final String READ_RESOLVER_THREADS = "splice.txn.readresolver.threads";
+    @DefaultValue(READ_RESOLVER_THREADS) public static final int DEFAULT_READ_RESOLVER_THREADS = 4;
+    public static int readResolverThreads;
+
+    @Parameter public static final String READ_RESOLVER_QUEUE_SIZE = "splice.txn.readresolver.queueSize";
+    @DefaultValue(READ_RESOLVER_QUEUE_SIZE)public static final int DEFAULT_READ_RESOLVER_QUEUE_SIZE=1<<16;
+    public static int readResolverQueueSize;
+
     public static void setParameters(Configuration config){
         committingPause = config.getInt(COMMITTING_PAUSE,DEFAULT_COMMITTING_PAUSE);
         transactionTimeout = config.getInt(TRANSACTION_TIMEOUT,DEFAULT_TRANSACTION_TIMEOUT);
@@ -190,5 +202,9 @@ public class SIConstants extends SpliceConstants {
         completedTransactionCacheSize = config.getInt(COMPLETED_TRANSACTION_CACHE_SIZE,DEFAULT_COMPLETED_TRANSACTION_CACHE_SIZE);
         completedTransactionConcurrency = config.getInt(COMPLETED_TRANSACTION_CACHE_CONCURRENCY,DEFAULT_COMPLETED_TRANSACTION_CONCURRENCY);
         transactionKeepAliveThreads = config.getInt(TRANSACTION_KEEP_ALIVE_THREADS,DEFAULT_KEEP_ALIVE_THREADS);
+        rollForwardRate = config.getInt(ROLL_FORWARD_READ_RATE,DEFAULT_ROLL_FORWARD_READ_RATE);
+
+        readResolverThreads = config.getInt(READ_RESOLVER_THREADS,DEFAULT_READ_RESOLVER_THREADS);
+        readResolverQueueSize = config.getInt(READ_RESOLVER_QUEUE_SIZE,DEFAULT_READ_RESOLVER_QUEUE_SIZE);
     }
 }

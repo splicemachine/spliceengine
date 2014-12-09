@@ -102,7 +102,17 @@ public interface SDataLib<Data,
 	boolean regionScannerNext(RegionScanner regionScanner, List<Data> data) throws IOException;
 	void setThreadReadPoint(RegionScanner delegate);
 	boolean regionScannerNextRaw(RegionScanner regionScanner,List<Data> data) throws IOException;
-	MeasuredRegionScanner<Data> getBufferedRegionScanner(HRegion region, RegionScanner delegate, Scan scan, int bufferSize, MetricFactory metricFactory);	
+	MeasuredRegionScanner<Data> getBufferedRegionScanner(HRegion region,
+																											 RegionScanner delegate,
+																											 Scan scan,
+																											 int bufferSize,
+																											 MetricFactory metricFactory);
+		MeasuredRegionScanner<Data> getRateLimitedRegionScanner(HRegion region,
+																														RegionScanner delegate,
+																														Scan scan,
+																														int bufferSize,
+																														int readsPerSecond,
+																														MetricFactory metricFactory);
 	Filter getActiveTransactionFilter(long beforeTs,long afterTs,byte[] destinationTable);
 	public InternalScanner getCompactionScanner(InternalScanner scanner, SICompactionState state);
 	boolean internalScannerNext(InternalScanner internalScanner,List<Data> data) throws IOException;	

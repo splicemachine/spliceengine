@@ -497,8 +497,12 @@ public class LDataLib implements SDataLib<KeyValue,LTuple, LTuple, LGet, LGet> {
 		public MeasuredRegionScanner<KeyValue> getBufferedRegionScanner(HRegion region,
 				RegionScanner delegate, LGet scan, int bufferSize,
 				MetricFactory metricFactory) {
-			// TODO Auto-generated method stub
-			return null;
+				throw new UnsupportedOperationException("IMPLEMENT");
+		}
+
+		@Override
+		public MeasuredRegionScanner<KeyValue> getRateLimitedRegionScanner(HRegion region, RegionScanner delegate, LGet lGet, int bufferSize, int readsPerSecond, MetricFactory metricFactory) {
+				throw new UnsupportedOperationException("IMPLEMENT");
 		}
 
 		@Override
