@@ -97,6 +97,11 @@ public class XPlainTrace1IT extends BaseXplainIT {
         XPlainTreeNode operation = xPlainTrace.getOperationTree(statementId);
         String operationType = operation.getOperationType();
         System.out.println(operationType);
+        if (operationType.compareToIgnoreCase(SpliceXPlainTrace.PROJECTRESTRICT) == 0) {
+            operation = operation.getChildren().getFirst();
+            operationType = operation.getOperationType();
+            System.out.println(operationType);
+        }
         Assert.assertEquals(operationType.toUpperCase(), SpliceXPlainTrace.BROADCASTJOIN.toUpperCase());
         Assert.assertEquals(operation.getInputRows(), 10);
         Assert.assertEquals(operation.getOutputRows(), 10);
