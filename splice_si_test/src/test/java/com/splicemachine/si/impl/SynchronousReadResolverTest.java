@@ -11,6 +11,8 @@ import com.splicemachine.si.api.TxnLifecycleManager;
 import com.splicemachine.si.api.TxnStore;
 import com.splicemachine.si.impl.readresolve.SynchronousReadResolver;
 import com.splicemachine.si.impl.rollforward.RollForwardStatus;
+import com.splicemachine.utils.GreenLight;
+import com.splicemachine.utils.TrafficControl;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Put;
@@ -36,9 +38,10 @@ public class SynchronousReadResolverTest {
 		@Test
 		public void testResolveRolledBackWorks() throws Exception {
 				HRegion region = MockRegionUtils.getMockRegion();
+				TrafficControl control = GreenLight.INSTANCE;
 
         final TxnStore store = new InMemoryTxnStore(new SimpleTimestampSource(),Long.MAX_VALUE);
-				ReadResolver resolver = SynchronousReadResolver.getResolver(region,store,new RollForwardStatus());
+				ReadResolver resolver = SynchronousReadResolver.getResolver(region,store,new RollForwardStatus(), control, false);
 
         TxnLifecycleManager tc = mock(TxnLifecycleManager.class);
         doAnswer(new Answer<Void>() {
@@ -84,7 +87,7 @@ public class SynchronousReadResolverTest {
 
         final SimpleTimestampSource commitTsGenerator = new SimpleTimestampSource();
         final TxnStore store = new InMemoryTxnStore(commitTsGenerator,Long.MAX_VALUE);
-				ReadResolver resolver = SynchronousReadResolver.getResolver(region,store,new RollForwardStatus());
+				ReadResolver resolver = SynchronousReadResolver.getResolver(region,store,new RollForwardStatus(),GreenLight.INSTANCE,false);
 
         TxnLifecycleManager tc = mock(TxnLifecycleManager.class);
         doAnswer(new Answer<Long>() {
@@ -134,7 +137,7 @@ public class SynchronousReadResolverTest {
 
         SimpleTimestampSource timestampSource = new SimpleTimestampSource();
         TxnStore store = new InMemoryTxnStore(timestampSource,Long.MAX_VALUE);
-				ReadResolver resolver = SynchronousReadResolver.getResolver(region,store,new RollForwardStatus());
+				ReadResolver resolver = SynchronousReadResolver.getResolver(region,store,new RollForwardStatus(),GreenLight.INSTANCE,false);
 
 				ClientTxnLifecycleManager tc = new ClientTxnLifecycleManager(timestampSource);
 				tc.setStore(store);
