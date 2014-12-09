@@ -6,6 +6,8 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.constants.SpliceConstants;
 import org.apache.hadoop.hbase.regionserver.RegionServerStoppedException;
+import org.apache.log4j.Logger;
+
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -29,10 +31,17 @@ public class MonitoredThreadPool implements ThreadPoolStatus {
         this.countingRejectionHandler = countingRejectionHandler;
     }
 
+    private static final Logger LOG = Logger.getLogger(MonitoredThreadPool.class);
     public static MonitoredThreadPool create(){
         ThreadFactory factory = new ThreadFactoryBuilder()
                 .setNameFormat("writerpool-%d")
                 .setDaemon(true)
+                .setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+                    @Override
+                    public void uncaughtException(Thread t, Throwable e) {
+                        LOG.error("["+t.getName()+"]Unexpected error in write pool: ",e);
+                    }
+                })
                 .setPriority(Thread.NORM_PRIORITY).build();
 
         int maxThreads = SpliceConstants.maxThreads;

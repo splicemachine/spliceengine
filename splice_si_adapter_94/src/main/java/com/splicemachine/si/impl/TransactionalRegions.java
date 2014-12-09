@@ -34,6 +34,7 @@ public class TransactionalRegions {
 		private static final ScheduledExecutorService rollForwardScheduler;
     private static final ConcurrentMap<String,DiscardingTransactionalRegion> regionMap = new ConcurrentHashMap<String, DiscardingTransactionalRegion>();
     private static volatile ActionFactory actionFactory = ActionFactory.NOOP_ACTION_FACTORY;
+    private static volatile TrafficControl trafficControl = GreenLight.INSTANCE;
 
     private static final RollForwardStatus status = new RollForwardStatus();
 
@@ -46,6 +47,8 @@ public class TransactionalRegions {
     public static RollForwardManagement getRollForwardManagement(){ return status; }
 
     public static void setActionFactory(ActionFactory factory) { actionFactory = factory; }
+
+    public static void setTrafficControl(TrafficControl control) {trafficControl = control;}
 
     public static TransactionalRegion get(HRegion region){
         String regionNameAsString = region.getRegionNameAsString();
@@ -106,7 +109,10 @@ public class TransactionalRegions {
 				synchronized (lock){
 						AsyncReadResolver arr = readResolver;
 						if(arr==null){
-								arr = new AsyncReadResolver(4,1<<16,TransactionStorage.getTxnSupplier(),status); //TODO -sf- move these to constants
+								arr = new AsyncReadResolver(SIConstants.readResolverThreads,
+                        SIConstants.readResolverQueueSize,
+                        TransactionStorage.getTxnSupplier(),
+                        status,trafficControl);
 								arr.start();
 								readResolver = arr;
 						}

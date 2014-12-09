@@ -1,6 +1,7 @@
 package com.splicemachine.si.impl;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.si.api.*;
@@ -12,6 +13,8 @@ import com.splicemachine.si.impl.rollforward.RollForwardStatus;
 import com.splicemachine.si.impl.rollforward.SegmentedRollForward;
 import com.splicemachine.storage.EntryPredicateFilter;
 
+import com.splicemachine.utils.GreenLight;
+import com.splicemachine.utils.TrafficControl;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
@@ -34,6 +37,7 @@ public class TransactionalRegions {
 		private static final ScheduledExecutorService rollForwardScheduler;
     private static final ConcurrentMap<String,DiscardingTransactionalRegion> regionMap = new ConcurrentHashMap<String, DiscardingTransactionalRegion>();
     private static volatile ActionFactory actionFactory = ActionFactory.NOOP_ACTION_FACTORY;
+    private static volatile TrafficControl trafficControl = GreenLight.INSTANCE;
 
     private static final RollForwardStatus status = new RollForwardStatus();
 
@@ -41,11 +45,13 @@ public class TransactionalRegions {
 				ThreadFactory rollForwardFactory = new ThreadFactoryBuilder().setDaemon(true)
 								.setNameFormat("roll-forward-scheduler-%d").build();
 				rollForwardScheduler = Executors.newScheduledThreadPool(4,rollForwardFactory);
-		}
+    }
 
     public static RollForwardManagement getRollForwardManagement(){ return status; }
 
     public static void setActionFactory(ActionFactory factory) { actionFactory = factory; }
+
+    public static void setTrafficControl(TrafficControl control) {trafficControl = control;}
 
     public static TransactionalRegion get(HRegion region){
         String regionNameAsString = region.getRegionNameAsString();
@@ -106,7 +112,10 @@ public class TransactionalRegions {
 				synchronized (lock){
 						AsyncReadResolver arr = readResolver;
 						if(arr==null){
-								arr = new AsyncReadResolver(4,1<<16,TransactionStorage.getTxnSupplier(),status); //TODO -sf- move these to constants
+								arr = new AsyncReadResolver(SIConstants.readResolverThreads,
+                        SIConstants.readResolverQueueSize,
+                        TransactionStorage.getTxnSupplier(),
+                        status,trafficControl);
 								arr.start();
 								readResolver = arr;
 						}

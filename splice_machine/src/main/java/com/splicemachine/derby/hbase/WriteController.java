@@ -2,6 +2,7 @@ package com.splicemachine.derby.hbase;
 
 import com.splicemachine.concurrent.traffic.TrafficController;
 import com.splicemachine.concurrent.traffic.TrafficShaping;
+import com.splicemachine.utils.TrafficControl;
 
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -230,6 +231,11 @@ public abstract class WriteController implements WriteControl{
             return acquired;
         }
 
+        @Override
+        public void acquire(int permits) throws InterruptedException {
+            throw new UnsupportedOperationException("IMPLEMENT");
+        }
+
         public int releaseAmount(int permitsAcquired) {
             boolean shouldContinue;
             int overflow;
@@ -331,6 +337,11 @@ public abstract class WriteController implements WriteControl{
         public void release(int permits) {
             if(permits<0) return; //we didn't acquire the write thread
             availableThreads.release();
+        }
+
+        @Override
+        public void acquire(int permits) throws InterruptedException {
+            throw new UnsupportedOperationException("IMPLEMENT");
         }
 
         @Override

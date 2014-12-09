@@ -10,6 +10,7 @@ import com.splicemachine.si.api.RollForward;
 import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.impl.rollforward.RollForwardStatus;
 import com.splicemachine.utils.ByteSlice;
+import com.splicemachine.utils.TrafficControl;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.log4j.Logger;
 
@@ -38,10 +39,14 @@ public class AsyncReadResolver  {
 		private volatile boolean stopped;
     private final TxnSupplier txnSupplier;
     private final RollForwardStatus status;
+		private final TrafficControl trafficControl;
 
     public AsyncReadResolver(int maxThreads,int bufferSize,
-                             TxnSupplier txnSupplier,RollForwardStatus status) {
+                             TxnSupplier txnSupplier,
+														 RollForwardStatus status,
+														 TrafficControl trafficControl) {
         this.txnSupplier = txnSupplier;
+				this.trafficControl = trafficControl;
         this.status = status;
         consumerThreads = new ThreadPoolExecutor(maxThreads,maxThreads,
 								60, TimeUnit.SECONDS,
@@ -92,7 +97,13 @@ public class AsyncReadResolver  {
 				@Override
 				public void onEvent(ResolveEvent event, long sequence, boolean endOfBatch) throws Exception {
             try{
-                if(SynchronousReadResolver.INSTANCE.resolve(event.region,event.rowKey,event.txnId,txnSupplier,status,false)){
+                if(SynchronousReadResolver.INSTANCE.resolve(event.region,
+												event.rowKey,
+												event.txnId,
+												txnSupplier,
+												status,
+												false,
+												trafficControl)){
                     event.rollForward.recordResolved(event.rowKey,event.txnId);
                 }
             }catch(Exception e){
