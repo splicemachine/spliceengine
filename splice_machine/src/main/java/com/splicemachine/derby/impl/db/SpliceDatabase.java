@@ -360,6 +360,8 @@ public class SpliceDatabase extends BasicDatabase {
             JobFuture future = null;
             JobInfo info = null;
             long start = System.currentTimeMillis();
+            int totalItems = backup.getBackupItems().size();
+            int completedItems = 0;
             // bulk import the regions
             for (BackupItem backupItem: backup.getBackupItems()) {
                 HTableInterface table = SpliceAccessManager.getHTable(backupItem.getBackupItemBytes());
@@ -375,6 +377,8 @@ public class SpliceDatabase extends BasicDatabase {
                     info.failJob();
                     throw t;
                 }
+                completedItems++;
+                LOG.info(String.format("Restore progress: %d of %d items restored", completedItems, totalItems));
             }
 
             // purge transactions
@@ -407,6 +411,8 @@ public class SpliceDatabase extends BasicDatabase {
             IteratorNoPutResultSet inprs = new IteratorNoPutResultSet(rows,rcds,lcc.getLastActivation());
             inprs.openCore();
             resultSets[0] = new EmbedResultSet40(conn.unwrap(EmbedConnection.class),inprs,false,null,true);
+
+            LOG.info("Restore completed. Database reboot is required.");
 
         } catch (Throwable t) {
             // TODO error handling
