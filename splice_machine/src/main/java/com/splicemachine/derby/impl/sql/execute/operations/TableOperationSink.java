@@ -21,12 +21,15 @@ import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.impl.ActiveWriteTxn;
 import com.splicemachine.pipeline.api.CallBufferFactory;
 import com.splicemachine.pipeline.api.RecordingCallBuffer;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.List;
 
 /**
@@ -35,7 +38,19 @@ import java.util.List;
  */
 public class TableOperationSink implements OperationSink {
     private static final Logger LOG = Logger.getLogger(TableOperationSink.class);
+    private static String hostName; 
+    		
+    
+    static {
+    		try {
+    		hostName = InetAddress.getLocalHost().getHostName(); //TODO -sf- this may not be correct -jl- no clue
+    		} catch (UnknownHostException uhe) {
+    			hostName = "Unknown";
+    			throw new RuntimeException(uhe);
+    		}
 
+    }
+    		
     /**
      * A chain of tasks for identifying parent and child tasks. The last byte[] in
      * the list is the immediate parent of other tasks.
@@ -138,7 +153,6 @@ public class TableOperationSink implements OperationSink {
 						totalTimer.stopTiming();
 						if(spliceRuntimeContext.shouldRecordTraceMetrics() && (rowsRead >0 || rowsWritten > 0)){
 								long taskIdLong = taskId!=null? Bytes.toLong(taskId): SpliceDriver.driver().getUUIDGenerator().nextUUID();
-								String hostName = InetAddress.getLocalHost().getHostName(); //TODO -sf- this may not be correct
 								List<OperationRuntimeStats> operationStats = OperationRuntimeStats.getOperationStats(operation,
 												taskIdLong,statementId,writeBuffer.getWriteStats(),writeTimer.getTime(),spliceRuntimeContext);
 								XplainTaskReporter reporter = SpliceDriver.driver().getTaskReporter();
