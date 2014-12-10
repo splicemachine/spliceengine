@@ -1,8 +1,10 @@
 package com.splicemachine.derby.hbase;
 
 import com.splicemachine.si.api.CannotCommitException;
+import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 
+import java.io.IOException;
 import java.net.SocketTimeoutException;
 
 /**
@@ -25,9 +27,11 @@ public abstract class SkeletonExceptionTranslator implements ExceptionTranslator
     @Override
     public boolean canFinitelyRetry(Throwable t) {
         t = getRootCause(t);
-        return isCallTimeoutException(t)
-                || isConnectException(t)
-                || !(t instanceof DoNotRetryIOException);
+        if(isCallTimeoutException(t)) return true;
+        else if(isConnectException(t)) return true;
+        else if (t instanceof DoNotRetryIOException) return false;
+        else if (t instanceof IOException) return true;
+        else return false;
     }
 
     @Override
