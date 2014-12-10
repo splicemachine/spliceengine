@@ -32,7 +32,7 @@ public class SpliceSchemaWatcher extends TestWatcher {
 			connection = SpliceNetConnection.getConnection();
 			rs = connection.getMetaData().getSchemas(null, schemaName);
 			if (rs.next())
-				executeDrop(schemaName);
+				executeDrop(schemaName, connection);
 			connection.commit();
 			statement = connection.createStatement();
             if (userName != null)
@@ -54,35 +54,63 @@ public class SpliceSchemaWatcher extends TestWatcher {
 		LOG.trace(tag("Finished", schemaName));
 	}
 
+	/**
+	 * Drop the given schema after dropping all dependent objects. Creates a connection.
+	 * @param schemaName the schema to drop
+	 */
 	public static void executeDrop(String schemaName) {
-		LOG.trace(tag("ExecuteDrop", schemaName));
 		Connection connection = null;
-		Statement statement = null;
 		try {
 			connection = SpliceNetConnection.getConnection();
-			ResultSet resultSet = connection.getMetaData().getTables(null, schemaName.toUpperCase(), null, new String[]{"VIEW"});
-			while (resultSet.next()) {
-				SpliceTableWatcher.executeDrop(schemaName, resultSet.getString("TABLE_NAME"), true);
-			}
-            resultSet = connection.getMetaData().getTables(null, schemaName.toUpperCase(), null, null);
-			while (resultSet.next()) {
-				SpliceTableWatcher.executeDrop(schemaName, resultSet.getString("TABLE_NAME"));
-			}
-
-			statement = connection.createStatement();
-			resultSet = connection.getMetaData().getSchemas(null, schemaName.toUpperCase());
-			while (resultSet.next()) {
-				statement.execute("drop schema " + schemaName + " RESTRICT");
-			}
+			executeDrop(schemaName, connection);
 			connection.commit();
 		} catch (Exception e) {
 			LOG.error(tag("error Dropping " + e.getMessage(), schemaName));
 			e.printStackTrace();
 			throw new RuntimeException(e);
 		} finally {
-			DbUtils.closeQuietly(statement);
 			DbUtils.commitAndCloseQuietly(connection);
 		}
+	}
+
+	/**
+	 * Drop the given schema after dropping all dependent objects.
+	 * @param schemaName the schema to drop
+	 * @param connection the open connection to use. Allow passing in a Connection
+	 *                   so that these drops can participate in the same transaction.
+	 * @see com.splicemachine.derby.test.framework.SpliceSchemaWatcher#executeDrop(String)
+	 */
+	public static void executeDrop(String schemaName, Connection connection) {
+		LOG.trace(tag("ExecuteDrop", schemaName));
+		assert connection != null;
+		Statement statement = null;
+		try {
+			ResultSet resultSet = connection.getMetaData().getTables(null, schemaName.toUpperCase(), null, new String[]{"VIEW"});
+			while (resultSet.next()) {
+				SpliceTableWatcher.executeDrop(schemaName, resultSet.getString("TABLE_NAME"), true, connection);
+			}
+			resultSet = connection.getMetaData().getTables(null, schemaName.toUpperCase(), null, null);
+			while (resultSet.next()) {
+				SpliceTableWatcher.executeDrop(schemaName, resultSet.getString("TABLE_NAME"), false, connection);
+			}
+			resultSet = connection.getMetaData().getProcedures(null, schemaName.toUpperCase(), null);
+			statement = connection.createStatement();
+			while (resultSet.next()) {
+				statement.execute(String.format("drop procedure %s.%s",schemaName.toUpperCase(),resultSet.getString("PROCEDURE_NAME")));
+			}
+
+			resultSet = connection.getMetaData().getSchemas(null, schemaName.toUpperCase());
+			while (resultSet.next()) {
+				statement.execute("drop schema " + schemaName + " RESTRICT");
+			}
+		} catch (Exception e) {
+			LOG.error(tag("error Dropping " + e.getMessage(), schemaName));
+			e.printStackTrace();
+			throw new RuntimeException(e);
+		} finally {
+			DbUtils.closeQuietly(statement);
+		}
+
 	}
 
     @Override
