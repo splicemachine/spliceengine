@@ -39,13 +39,19 @@ public class SpliceTableWatcher extends TestWatcher {
 //		executeDrop(schemaName,tableName);
     }
 
-    public static void executeDrop(String schemaName,String tableName, boolean isView) {
+    /**
+     * Drop the given table.
+     * @param schemaName the schema in which the table can be found.
+     * @param tableName the name of the table to drop
+     * @param isView does <code>tableName</code> represent a table or view
+     * @param connection the open connection to use. Allow passing in a Connection
+     *                   so that these drops can participate in the same transaction.
+     * @see com.splicemachine.derby.test.framework.SpliceTableWatcher#executeDrop(String, String)
+     */
+    public static void executeDrop(String schemaName,String tableName, boolean isView, Connection connection) {
         LOG.trace(tag("executeDrop", schemaName, tableName));
-        Connection connection = null;
         Statement statement = null;
-        String tableOrView = isView ? "view" : "table";
         try {
-            connection = SpliceNetConnection.getConnection();
             ResultSet rs = connection.getMetaData().getTables(null, schemaName.toUpperCase(), tableName.toUpperCase(), null);
             if (rs.next()) {
                 statement = connection.createStatement();
@@ -53,19 +59,32 @@ public class SpliceTableWatcher extends TestWatcher {
                     statement.execute(String.format("drop view %s.%s",schemaName.toUpperCase(),tableName.toUpperCase()));
                 }else
                     statement.execute(String.format("drop table if exists %s.%s",schemaName.toUpperCase(),tableName.toUpperCase()));
-                connection.commit();
             }
         } catch (Exception e) {
             LOG.error(tag("error Dropping " + e.getMessage(), schemaName, tableName),e);
             throw new RuntimeException(e);
         } finally {
             DbUtils.closeQuietly(statement);
-            DbUtils.commitAndCloseQuietly(connection);
         }
     }
 
+    /**
+     * Drop the given table. Creates a new connection.
+     * @param schemaName the schema in which the table can be found.
+     * @param tableName the name of the table to drop
+     */
     public static void executeDrop(String schemaName,String tableName) {
-        executeDrop(schemaName, tableName, false);
+        Connection connection = null;
+        try {
+            connection = SpliceNetConnection.getConnection();
+            executeDrop(schemaName, tableName, false, connection);
+            connection.commit();
+        } catch (Exception e) {
+            LOG.error(tag("error Dropping " + e.getMessage(), schemaName, tableName),e);
+            throw new RuntimeException(e);
+        } finally {
+            DbUtils.commitAndCloseQuietly(connection);
+        }
     }
 
     public void importData(String filename) {
