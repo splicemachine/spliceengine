@@ -325,6 +325,21 @@
 								<argument>-Dsplice.authentication=NATIVE</argument>
 								<argument>-Xmx8g</argument>
 								<argument>-Xms1g</argument>
+								
+<!-- G1 Garbage Collection -->								
+								<argument>-XX:MaxPermSize=256M</argument>
+								<argument>-XX:MaxDirectMemorySize=1g</argument>
+								<argument>-XX:+UseG1GC</argument>
+								<argument>-XX:MaxGCPauseMillis=100</argument>
+								<argument>-XX:InitiatingHeapOccupancyPercent=50</argument>
+								<argument>-XX:+ParallelRefProcEnabled</argument>
+								<argument>-XX:-ResizePLAB</argument>
+								<argument>-XX:ParallelGCThreads=8</argument>
+								<argument>-XX:+PrintGCTimeStamps</argument>
+								<argument>-XX:+PrintGCDetails</argument>								
+								
+<!-- CMS Garbage Collection -->
+<!-- 
 								<argument>-Xmn128m</argument>
 								<argument>-XX:+UseConcMarkSweepGC</argument>
 								<argument>-XX:+UseParNewGC</argument>
@@ -336,6 +351,7 @@
 								<argument>-XX:MaxPermSize=256M</argument>
 								<argument>-XX:+CMSClassUnloadingEnabled</argument>
 								<argument>-XX:MaxDirectMemorySize=1g</argument>
+-->
 								<argument>-enableassertions</argument>
 								<argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4000</argument>
 								<!-- Setting the updateSystemProcs option to true causes all of the system stored procedures to be re-created on server startup. -->
