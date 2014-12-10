@@ -236,18 +236,20 @@ public class BackupItem implements InternalTable {
         List<Pair<byte[], String>> famPaths = new ArrayList<Pair<byte[], String>>();
         FileStatus[] status = fs.listStatus(root);
         for (FileStatus stat : status) {
-            if (!stat.isDir() || stat.getPath().getName().equals("region.info")) {
-                continue; // ignore non directories
-            }
-            // we have a family directory, the hfile is inside it
-            byte[] family = Bytes.toBytes(stat.getPath().getName());
+            String name = stat.getPath().getName();
+            // We only care about Splice families, "V" and "P"
+            if (name.equals(SpliceConstants.DEFAULT_FAMILY)
+                    || name.equals(SpliceConstants.SI_PERMISSION_FAMILY)) {
+                // we have a family directory, the hfile is inside it
+                byte[] family = Bytes.toBytes(stat.getPath().getName());
 
-            FileStatus[] familyStatus = fs.listStatus(stat.getPath());
-            for (FileStatus familyStat : familyStatus) {
-                if (familyStat.getPath().getName().startsWith(".")) {
-                    continue; // ignore CRCs
+                FileStatus[] familyStatus = fs.listStatus(stat.getPath());
+                for (FileStatus familyStat : familyStatus) {
+                    if (familyStat.getPath().getName().startsWith(".")) {
+                        continue; // ignore CRCs
+                    }
+                    famPaths.add(new Pair<byte[], String>(family, familyStat.getPath().toString()));
                 }
-                famPaths.add(new Pair<byte[], String>(family, familyStat.getPath().toString()));
             }
         }
         return famPaths;
