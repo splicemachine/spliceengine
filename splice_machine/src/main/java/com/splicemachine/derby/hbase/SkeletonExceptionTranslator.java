@@ -1,5 +1,7 @@
 package com.splicemachine.derby.hbase;
 
+import com.splicemachine.async.ConnectionResetException;
+import com.splicemachine.async.RecoverableException;
 import com.splicemachine.pipeline.exception.ErrorState;
 import com.splicemachine.si.api.CannotCommitException;
 import org.apache.derby.iapi.error.StandardException;
@@ -22,6 +24,7 @@ public abstract class SkeletonExceptionTranslator implements ExceptionTranslator
         if(t instanceof CannotCommitException) return true;
         if(isCallTimeoutException(t)) return true;
         if(t instanceof SocketTimeoutException) return true;
+        if(t instanceof RecoverableException) return true;
         return false;
     }
 
@@ -40,7 +43,8 @@ public abstract class SkeletonExceptionTranslator implements ExceptionTranslator
         t = getRootCause(t);
         if(isNotServingRegionException(t)
                 || isWrongRegionException(t)
-                || isRegionTooBusyException(t)) return true;
+                || isRegionTooBusyException(t)
+                || t instanceof RecoverableException) return true;
         if(t instanceof StandardException){
             StandardException se = (StandardException)t;
             if(ErrorState.SPLICE_REGION_OFFLINE.getSqlState().equals(se.getSqlState())){
