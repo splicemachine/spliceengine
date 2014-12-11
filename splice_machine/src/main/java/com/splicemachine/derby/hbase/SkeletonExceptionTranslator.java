@@ -1,5 +1,6 @@
 package com.splicemachine.derby.hbase;
 
+import com.splicemachine.pipeline.exception.ErrorState;
 import com.splicemachine.si.api.CannotCommitException;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
@@ -37,9 +38,21 @@ public abstract class SkeletonExceptionTranslator implements ExceptionTranslator
     @Override
     public boolean canInfinitelyRetry(Throwable t) {
         t = getRootCause(t);
-        return isNotServingRegionException(t)
+        if(isNotServingRegionException(t)
                 || isWrongRegionException(t)
-                || isRegionTooBusyException(t);
+                || isRegionTooBusyException(t)) return true;
+        if(t instanceof StandardException){
+            StandardException se = (StandardException)t;
+            if(ErrorState.SPLICE_REGION_OFFLINE.getSqlState().equals(se.getSqlState())){
+                /*
+                 * SpliceRegionOffline is an error message that we throw that is a translation
+                 * of a NotServingRegionException, WrongRegionException, or FailedServerException.
+                 * All of these should be retried up to the query timeout (i.e. infinitely)
+                 */
+                return true;
+            }
+        }
+        return false;
     }
 
     protected abstract Throwable getRootCause(Throwable t);
