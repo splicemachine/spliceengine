@@ -15,6 +15,7 @@ import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
+import org.apache.hadoop.hbase.ipc.ServerNotRunningYetException;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
@@ -35,7 +36,8 @@ public class SpliceOperationRegionObserver extends BaseRegionObserver {
     private static Logger LOG = Logger.getLogger(SpliceOperationRegionObserver.class);
     public static String SPLICE_OBSERVER_INSTRUCTIONS = "Z"; // Reducing this so the amount of network traffic will be reduced...
     public static DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
-    private TransactionalRegion txnRegion;
+    /*make volatile to avoid thread visibility issues*/
+    private volatile TransactionalRegion txnRegion;
 
     /**
      * Logs the start of the observer.
@@ -52,11 +54,7 @@ public class SpliceOperationRegionObserver extends BaseRegionObserver {
                 SpliceOperationRegionObserver.this.txnRegion = TransactionalRegions.get(region);
                 return true;
             }
-
-            @Override
-            public boolean shutdown() {
-                return false;
-            }
+            @Override public boolean shutdown() { return false; }
         });
         SpliceLogUtils.info(LOG, "Started CoProcessor %s", SpliceOperationRegionObserver.class);
         super.start(e);
@@ -100,7 +98,7 @@ public class SpliceOperationRegionObserver extends BaseRegionObserver {
     }
 
     protected void setAttributesFromFilter(Scan scan, HbaseAttributeHolder filter) {
-        Map<String,byte[]> attributes = ((HbaseAttributeHolder)filter).getAttributes();
+        Map<String,byte[]> attributes = filter.getAttributes();
         for(Map.Entry<String,byte[]> attribute:attributes.entrySet()){
             if(scan.getAttribute(attribute.getKey())==null)
                 scan.setAttribute(attribute.getKey(),attribute.getValue());
@@ -108,19 +106,19 @@ public class SpliceOperationRegionObserver extends BaseRegionObserver {
     }
 
     /**
-	 * Override the postScannerOpen to wrap the scan with the SpliceOperationRegionScanner.  This allows for cases
-	 * where the hbase scanner will be limited (ProjectRestrictOperation) or where new records would be added (LeftOuterJoin).
-	 */
-	@Override
-	public RegionScanner postScannerOpen(ObserverContext<RegionCoprocessorEnvironment> e, Scan scan,RegionScanner s) throws IOException {
-		if (scan.getAttribute(SPLICE_OBSERVER_INSTRUCTIONS) != null){
-			SpliceLogUtils.trace(LOG, "postScannerOpen called, wrapping SpliceOperationRegionScanner");
-			if (scan.getCaching() < 0) // Async Scanner is corrupting this value..
-				scan.setCaching(SpliceConstants.DEFAULT_CACHE_SIZE);
-			return super.postScannerOpen(e, scan, derbyFactory.getOperationRegionScanner(s,scan,e.getEnvironment().getRegion(),txnRegion));
-		}
-		return super.postScannerOpen(e, scan, s);
-	}
+     * Override the postScannerOpen to wrap the scan with the SpliceOperationRegionScanner.  This allows for cases
+     * where the hbase scanner will be limited (ProjectRestrictOperation) or where new records would be added (LeftOuterJoin).
+     */
+    @Override
+    public RegionScanner postScannerOpen(ObserverContext<RegionCoprocessorEnvironment> e, Scan scan,RegionScanner s) throws IOException {
+        if (scan.getAttribute(SPLICE_OBSERVER_INSTRUCTIONS) != null){
+            SpliceLogUtils.trace(LOG, "postScannerOpen called, wrapping SpliceOperationRegionScanner");
+            if (scan.getCaching() < 0) // Async Scanner is corrupting this value..
+                scan.setCaching(SpliceConstants.DEFAULT_CACHE_SIZE);
+            return super.postScannerOpen(e, scan, derbyFactory.getOperationRegionScanner(s,scan,e.getEnvironment().getRegion(),getTxnRegion()));
+        }
+        return super.postScannerOpen(e, scan, s);
+    }
 
     @Override
     public void postScannerClose(ObserverContext<RegionCoprocessorEnvironment> e, InternalScanner s) throws IOException {
@@ -141,6 +139,25 @@ public class SpliceOperationRegionObserver extends BaseRegionObserver {
             ((SpliceBaseOperationRegionScanner)s).cleanupBatch();
         }
         return super.postScannerNext(e, s, results, limit, hasMore);
+    }
+
+    /******************************************************************************************************************/
+    /*private helper methods*/
+    private TransactionalRegion getTxnRegion() throws IOException{
+        /*
+         * Get the transactional region. in 99.999% of cases, the transactional region is set in the
+         * SpliceDriver.Service before the server allows connections, and we are up and running. However, it
+         * IS possible that we attempt to perform a scan against a region BEFORE the SpliceDriver has finished
+         * its boot sequence. In this case, the txnRegion is null BY DESIGN, in order to avoid a race condition
+         * on startup. As a result, we really can't perform query actions, and we have to bail. We do this
+         * by throwing a retryable IOException back to the client--presumably, at that point, the HBase client
+         * (or AsyncHBase) will automatically retry the request, and allow the boot sequence time to complete.
+         */
+        TransactionalRegion tr = txnRegion; //assign to local variable to avoid double-reading a volatile variable
+        if(tr==null){
+            throw new ServerNotRunningYetException("Server is not yet online, please retry");
+        }
+        return tr;
     }
 }
 
