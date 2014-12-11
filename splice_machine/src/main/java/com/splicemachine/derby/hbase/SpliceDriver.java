@@ -289,7 +289,8 @@ public class SpliceDriver extends SIConstants {
     }
 
     public boolean isStarted(){
-    	return regionServerServices != null;
+        return stateHolder.get()==State.RUNNING;
+//    	return regionServerServices != null;
     }
     
     public void start(RegionServerServices regionServerServices){

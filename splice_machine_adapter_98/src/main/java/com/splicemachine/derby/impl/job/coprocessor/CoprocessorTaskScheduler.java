@@ -27,6 +27,7 @@ import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.ipc.ServerNotRunningYetException;
 import org.apache.hadoop.hbase.protobuf.ResponseConverter;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HRegionUtil;
@@ -146,13 +147,15 @@ public class CoprocessorTaskScheduler extends SpliceSchedulerService implements 
 				return submitAll(task, splitPoints, rce);
     }
 
-    private void validateSubmittability(byte[] taskStart, byte[] taskEnd) throws NotServingRegionException, IncorrectRegionException {
+    private void validateSubmittability(byte[] taskStart, byte[] taskEnd) throws IOException {
         //make sure that the task is fully contained within this region
         HRegion region = rce.getRegion();
         if(region.isClosed()|| region.isClosing())
             throw new NotServingRegionException("Region "+ region.getRegionNameAsString()+" is closing");
         if(!HRegionUtil.containsRange(region, taskStart, taskEnd))
             throw new IncorrectRegionException("Incorrect region for Task submission");
+        if(!SpliceDriver.driver().isStarted())
+            throw new ServerNotRunningYetException("Cannot submit tasks until Server is fully online. Please retry");
     }
 
     @SuppressWarnings("unchecked")
