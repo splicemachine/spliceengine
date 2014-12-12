@@ -26,7 +26,7 @@
   <parent>
     <groupId>org.apache.derby</groupId>
     <artifactId>derby-project</artifactId>
-    <version>10.9.1.0-splice1.0.0RC11</version>
+    <version>10.9.1.0-splice1.0.0RC12</version>
   </parent>
   <artifactId>derbynet</artifactId>
   <name>Apache Derby Network Server</name>
@@ -36,7 +36,7 @@
     <dependency>
       <groupId>org.apache.derby</groupId>
       <artifactId>derby</artifactId>
-      <version>10.9.1.0-splice1.0.0RC11</version>
+      <version>10.9.1.0-splice1.0.0RC12</version>
       <optional>false</optional>
     </dependency>
   </dependencies>
