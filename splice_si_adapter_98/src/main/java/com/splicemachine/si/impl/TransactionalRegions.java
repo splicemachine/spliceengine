@@ -190,8 +190,8 @@ public class TransactionalRegions {
             int count = referenceCount.decrementAndGet();
             if(count==0){
                 delegate.discard();
-                //remove from cache
-                regionMap.remove(name);
+                //remove from cache--don't remove if it's not you it's pointing at
+                regionMap.remove(name,this);
             }
         }
 

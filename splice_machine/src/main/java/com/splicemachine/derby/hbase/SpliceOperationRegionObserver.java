@@ -49,7 +49,6 @@ public class SpliceOperationRegionObserver extends BaseRegionObserver {
         SpliceDriver.driver().registerService(new Service() {
             @Override
             public boolean start() {
-                //TODO -sf- implement RollForward
                 HRegion region = ((RegionCoprocessorEnvironment) e).getRegion();
                 SpliceOperationRegionObserver.this.txnRegion = TransactionalRegions.get(region);
                 return true;
@@ -67,8 +66,10 @@ public class SpliceOperationRegionObserver extends BaseRegionObserver {
     public void stop(CoprocessorEnvironment e) throws IOException {
         SpliceLogUtils.info(LOG, "Stopping the CoProcessor %s",SpliceOperationRegionObserver.class);
         super.stop(e);
-        if(txnRegion!=null)
+        if(txnRegion!=null) {
             txnRegion.discard();
+            txnRegion=null; //dereference to avoid memory leakage
+        }
     }
 
     @Override
@@ -115,7 +116,8 @@ public class SpliceOperationRegionObserver extends BaseRegionObserver {
             SpliceLogUtils.trace(LOG, "postScannerOpen called, wrapping SpliceOperationRegionScanner");
             if (scan.getCaching() < 0) // Async Scanner is corrupting this value..
                 scan.setCaching(SpliceConstants.DEFAULT_CACHE_SIZE);
-            return super.postScannerOpen(e, scan, derbyFactory.getOperationRegionScanner(s,scan,e.getEnvironment().getRegion(),getTxnRegion()));
+            HRegion region = e.getEnvironment().getRegion();
+            return super.postScannerOpen(e, scan, derbyFactory.getOperationRegionScanner(s,scan, region,getTxnRegion(region)));
         }
         return super.postScannerOpen(e, scan, s);
     }
@@ -143,7 +145,7 @@ public class SpliceOperationRegionObserver extends BaseRegionObserver {
 
     /******************************************************************************************************************/
     /*private helper methods*/
-    private TransactionalRegion getTxnRegion() throws IOException{
+    private TransactionalRegion getTxnRegion(HRegion region) throws IOException{
         /*
          * Get the transactional region. in 99.999% of cases, the transactional region is set in the
          * SpliceDriver.Service before the server allows connections, and we are up and running. However, it
@@ -155,7 +157,10 @@ public class SpliceOperationRegionObserver extends BaseRegionObserver {
          */
         TransactionalRegion tr = txnRegion; //assign to local variable to avoid double-reading a volatile variable
         if(tr==null){
-            throw new ServerNotRunningYetException("Server is not yet online, please retry");
+            if(!SpliceDriver.driver().isStarted())
+                throw new ServerNotRunningYetException("Server is not yet online, please retry");
+            tr = TransactionalRegions.get(region);
+            txnRegion = tr;
         }
         return tr;
     }

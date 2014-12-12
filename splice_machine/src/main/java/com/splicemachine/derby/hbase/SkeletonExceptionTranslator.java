@@ -6,6 +6,7 @@ import com.splicemachine.pipeline.exception.ErrorState;
 import com.splicemachine.si.api.CannotCommitException;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
+import org.apache.hadoop.hbase.ipc.ServerNotRunningYetException;
 
 import java.io.IOException;
 import java.net.SocketTimeoutException;
@@ -44,7 +45,8 @@ public abstract class SkeletonExceptionTranslator implements ExceptionTranslator
         if(isNotServingRegionException(t)
                 || isWrongRegionException(t)
                 || isRegionTooBusyException(t)
-                || t instanceof RecoverableException) return true;
+                || t instanceof RecoverableException
+                || t instanceof ServerNotRunningYetException) return true;
         if(t instanceof StandardException){
             StandardException se = (StandardException)t;
             if(ErrorState.SPLICE_REGION_OFFLINE.getSqlState().equals(se.getSqlState())){
