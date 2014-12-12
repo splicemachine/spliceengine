@@ -151,7 +151,7 @@ public class TableOperationSink implements OperationSink {
 						//stop timing events. We do this inside of the try block because we don't care
 						//if the task fails for some reason
 						totalTimer.stopTiming();
-						if(spliceRuntimeContext.shouldRecordTraceMetrics() && (rowsRead >0 || rowsWritten > 0)){
+						if(spliceRuntimeContext.shouldRecordTraceMetrics()){
 								long taskIdLong = taskId!=null? Bytes.toLong(taskId): SpliceDriver.driver().getUUIDGenerator().nextUUID();
 								List<OperationRuntimeStats> operationStats = OperationRuntimeStats.getOperationStats(operation,
 												taskIdLong,statementId,writeBuffer.getWriteStats(),writeTimer.getTime(),spliceRuntimeContext);

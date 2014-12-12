@@ -185,22 +185,28 @@ public class SinkTask extends ZkTask {
 										true,instructions.getTopOperation(), spliceRuntimeContext,getTxn());
 						//init the operation stack
 
-						op.init(opContext);
-				}catch(Exception e){
-						closeQuietly(prepared, transactionResource, opContext);
-						throw new ExecutionException(e);
-				}
+            op.init(opContext);
+        }catch(Exception e){
+            closeQuietly(prepared, transactionResource, opContext);
+            throw new ExecutionException(e);
+        }
         waitTimeNs = System.nanoTime()-prepareTimestamp;
         try{
             doExecute();
         }finally{
             taskWatcher.setTask(null);
             if (activation != null) {
-            	try {
-					activation.close();
-				} catch (StandardException e) {
-				}
-            	activation = null;
+                try {
+                    activation.close();
+                } catch (StandardException e) {
+                    /*
+                     * We swallow this exception because the activation closing could throw
+                     * some random error, but at this point we don't care--we are finished
+                     * performing our actual execution.
+                     */
+                    LOG.info("Swallowing exception during activation close",e);
+                }
+                activation = null;
             }
         }
     }
@@ -214,10 +220,10 @@ public class SinkTask extends ZkTask {
 				}
 		}
 
-		@Override
+    @Override
     public void doExecute() throws ExecutionException, InterruptedException {
         try {
-			SpliceOperation op = instructions.getTopOperation();
+            SpliceOperation op = instructions.getTopOperation();
             Txn txn = getTxn();
             if(LOG.isTraceEnabled()) {
                 SpliceLogUtils.trace(LOG, "Sink[%s]: %s over [%s,%s)", Bytes.toLong(getTaskId()), txn, BytesUtil.toHex(scan.getStartRow()), BytesUtil.toHex(scan.getStopRow()));
@@ -235,10 +241,10 @@ public class SinkTask extends ZkTask {
                 throw (InterruptedException)e;
             else throw new ExecutionException(e);
         }finally{
-						//if we get this far, then we were initialized
-						resetContext(transactionResource,true);
-						closeOperationContext(opContext);
-				}
+            //if we get this far, then we were initialized
+            resetContext(transactionResource,true);
+            closeOperationContext(opContext);
+        }
     }
 
 		@Override
