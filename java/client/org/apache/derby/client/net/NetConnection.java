@@ -1663,6 +1663,14 @@ public class NetConnection extends org.apache.derby.client.am.Connection {
 		this.connectionNull = connectionNull;
 	}
 
+    public void setQueryTimeout(int timeout) {
+        netAgent_.setTimeout(timeout);
+    }
+
+    public int getQueryTimeout(int timeout) {
+        return netAgent_.getTimeout();
+    }
+
     /**
      * Check whether the server has full support for the QRYCLSIMP
      * parameter in OPNQRY.

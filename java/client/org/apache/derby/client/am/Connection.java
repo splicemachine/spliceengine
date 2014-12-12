@@ -730,6 +730,10 @@ public abstract class Connection
         }
     }
 
+    public abstract void setQueryTimeout(int timeout);
+
+    public abstract int getQueryTimeout(int timeout);
+
     /**
      * Check if there are uncommitted operations in the current transaction
      * that prevent us from closing the connection.
