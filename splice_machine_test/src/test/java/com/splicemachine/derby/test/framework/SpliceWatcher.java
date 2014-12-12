@@ -66,7 +66,7 @@ public class SpliceWatcher extends TestWatcher {
      * un-intentionally leaves a connection in an invalid state (mid test) it should fail.
      */
     public TestConnection getOrCreateConnection() throws Exception {
-        if (currentConnection == null) {
+        if (currentConnection == null || currentConnection.isClosed()) {
             createConnection();
         }
         return currentConnection;
