@@ -155,6 +155,8 @@ public class MergeJoinOperation extends JoinOperation {
 
     @Override
     protected void updateStats(OperationRuntimeStats stats) {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "updateStats");
         if (joiner != null) {
             long leftRowsSeen = joiner.getLeftRowsSeen();
             stats.addMetric(OperationMetric.INPUT_ROWS, leftRowsSeen);
@@ -174,6 +176,8 @@ public class MergeJoinOperation extends JoinOperation {
             stats.addMetric(OperationMetric.REMOTE_SCAN_ROWS,rightSideStats.getRows());
             stats.addMetric(OperationMetric.REMOTE_SCAN_BYTES,rightSideStats.getBytes());
         }
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "leftRows %d, rightRows %d, rowsFiltered=%d",joiner.getLeftRowsSeen(), joiner.getRightRowsSeen(),joiner.getRowsFiltered());
 
         super.updateStats(stats);
     }

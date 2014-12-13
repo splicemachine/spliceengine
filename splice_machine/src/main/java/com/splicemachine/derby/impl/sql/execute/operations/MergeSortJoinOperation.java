@@ -219,6 +219,8 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 
 		@Override
 		protected void updateStats(OperationRuntimeStats stats) {
+            if (LOG.isDebugEnabled())
+                SpliceLogUtils.debug(LOG, "updateStats");
             if (scanner != null) {
                 TimeView localTime = scanner.getLocalReadTime();
                 long localRowsRead = scanner.getLocalRowsRead();
@@ -240,6 +242,9 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
                 stats.addMetric(OperationMetric.INPUT_ROWS, joiner.getLeftRowsSeen());
 
             }
+            if (LOG.isDebugEnabled())
+                SpliceLogUtils.debug(LOG, "leftRows %d, rightRows %d, rowsFiltered=%d",joiner.getLeftRowsSeen(), joiner.getRightRowsSeen(),joiner.getRowsFiltered());
+
         }
 
 		@Override
