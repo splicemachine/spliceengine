@@ -29,7 +29,7 @@
     <version>10</version>
   </parent>
   <artifactId>derby-project</artifactId>
-  <version>10.9.1.0-splice1.0.0RC12</version>
+  <version>10.9.1.0-splice1.0.0RC13-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>Apache Derby Project</name>
   <description>Apache Derby is an open source relational database implemented entirely in Java.</description>
