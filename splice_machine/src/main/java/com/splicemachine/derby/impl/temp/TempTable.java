@@ -124,10 +124,21 @@ public class TempTable {
 				long maxClockSkew = c.getLong("hbase.master.maxclockskew", 30000);
 				maxClockSkew*=2; //unfortunate fudge factor to deal with the reality of different system clocks
 
-				long maxToUse = Longs.min(activeTimestamps) - maxClockSkew;
-				if(LOG.isTraceEnabled())
-                    LOG.trace(String.format("%s Looking to remove files with timestamp before: %d", LOG_COMPACT_PRE, maxToUse));
+				// As extra safeguard against incorrectly allowing splice_temp files to be deleted
+				// while pending operations still need them, allow optional extra safeguard to protect
+				// files until they are some duration in the past. This guards against issue in the logic
+				// that handles closing of multiple jobs within a statement. As one example,
+				// there were issues with select count(*) over multiple merge joins, resulting
+				// in incorrect result. This might be removed, or configured to a very low number,
+				// post 1.0.0.
+				long safeguard = c.getLong("splice.compact.temp.safeguard", 6 * 60 * 60 * 1000); // 6 hours;
 
+				long maxToUse = Longs.min(activeTimestamps) - maxClockSkew - safeguard;
+				if(LOG.isTraceEnabled()) {
+                    LOG.trace(String.format("%s Extra safeguard duration is %d millis (%d mins)", LOG_COMPACT_PRE, safeguard, safeguard / 60000));
+                    LOG.trace(String.format("%s Looking to remove files with timestamp before: %d", LOG_COMPACT_PRE, maxToUse));
+				}
+				
 				return maxToUse;
 		}
 
