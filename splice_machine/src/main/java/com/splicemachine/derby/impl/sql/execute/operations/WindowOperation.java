@@ -201,6 +201,8 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
         //make sure that we filter out failed tasks
         if (failedTasks.size() > 0) {
             reduceScan.setFilter(derbyFactory.getSuccessFilter(failedTasks));
+            if (LOG.isTraceEnabled())
+                SpliceLogUtils.debug(LOG,"%d tasks failed", failedTasks.size());
         }
         return reduceScan;
     }
@@ -313,12 +315,12 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
         ExecRow row = source.nextRow(ctx);
 
         if (row != null) {
-            if (LOG.isTraceEnabled())
-                SpliceLogUtils.trace(LOG,"step1Row from scan row=%s", row);
             timer.tick(1);
         }
         else {
             timer.stopTiming();
+            if (LOG.isDebugEnabled())
+                SpliceLogUtils.debug(LOG,"Wrote %d rows in step 1", timer.getNumEvents());
         }
         return row;
     }
@@ -337,11 +339,11 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
         if (row == null) {
             timer.stopTiming();
             windowFunctionIterator.close();
+            if (LOG.isDebugEnabled())
+                SpliceLogUtils.debug(LOG,"Processed %d rows in step 2", timer.getNumEvents());
             return null;
         }
         else {
-            if (LOG.isTraceEnabled())
-                SpliceLogUtils.trace(LOG,"step2Row from scan row=%s", row);
             timer.tick(1);
         }
         return row;
@@ -398,12 +400,12 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
         ExecRow row = getNextRowFromScan(ctx);
 
         if (row != null){
-            if (LOG.isTraceEnabled())
-                SpliceLogUtils.trace(LOG,"nextRow from scan row=%s", row);
             setCurrentRow(row);
         }else{
             timer.stopTiming();
             stopExecutionTime = System.currentTimeMillis();
+            if (LOG.isDebugEnabled())
+                SpliceLogUtils.debug(LOG," output %d rows in step 3", timer.getNumEvents());
         }
         return row;
     }
