@@ -1,5 +1,7 @@
 package com.splicemachine.derby.impl.storage;
 
+import com.splicemachine.async.*;
+import com.splicemachine.async.AsyncScanner;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
@@ -23,15 +25,10 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
-import com.splicemachine.async.AsyncScanner;
-import com.splicemachine.async.GatheringScanner;
-import com.splicemachine.async.KeyValue;
-import com.splicemachine.async.HBaseClient;
-import com.splicemachine.async.SimpleAsyncScanner;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.SortedSet;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -69,20 +66,28 @@ public class AsyncClientScanProvider extends AbstractAsyncScanProvider {
         }
     }
 
+    private static final int PARALLEL_SCAN_REGION_THRESHOLD = 2; //TODO -sf- make this configurable
     @Override
     public void open() {
         SpliceLogUtils.trace(LOG, "open");
         try {
-            final int PARALLEL_SCAN_REGION_THRESHOLD = 2;
             SortedSet<Pair<HRegionInfo,ServerName>> regions = regionCache.getRegionsInRange(tableName, scan.getStartRow(), scan.getStopRow());
             if (regions.size() < PARALLEL_SCAN_REGION_THRESHOLD) {
                 scanner = new SimpleAsyncScanner(DerbyAsyncScannerUtils.convertScanner(scan, tableName, hbaseClient), spliceRuntimeContext);
             } else {
-                scanner = GatheringScanner.newScanner(
+                scanner = SortedGatheringScanner.newScanner(
                         SpliceConstants.DEFAULT_CACHE_SIZE,
                         this.getSpliceRuntimeContext(),
-                        DerbyAsyncScannerUtils.convertFunction(this.tableName, hbaseClient),
-                        ScanDivider.divide(scan, regions));
+                        DerbyAsyncScannerUtils.convertFunction(this.tableName,hbaseClient),
+                        ScanDivider.divide(scan,regions),
+                        Bytes.BYTES_COMPARATOR,
+                        null);
+
+//                scanner = GatheringScanner.newScanner(
+//                        SpliceConstants.DEFAULT_CACHE_SIZE,
+//                        this.getSpliceRuntimeContext(),
+//                        DerbyAsyncScannerUtils.convertFunction(this.tableName, hbaseClient),
+//                        ScanDivider.divide(scan, regions));
             }
             scanner.open();
         } catch (IOException e) {
