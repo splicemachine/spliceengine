@@ -3,7 +3,7 @@
 		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.splicemachine</groupId>
-	<version>1.0.0RC13</version>
+	<version>1.0.0RC14-SNAPSHOT</version>
 	<packaging>pom</packaging>
 	<artifactId>spliceengine-parent</artifactId>
 	<name>${project.artifactId}</name>
@@ -28,7 +28,7 @@
 	</repositories>
 
 	<properties>
-		<derby.version>10.9.1.0-splice1.0.0RC13</derby.version>
+		<derby.version>10.9.1.0-splice1.0.0RC14-SNAPSHOT</derby.version>
 		<excluded.categories>com.splicemachine.test.SlowTest</excluded.categories>
 		<failTasksRandomly>true</failTasksRandomly> <!-- run chaos monkey -->
 		<log4j.config.uri>file:${basedir}/src/main/resources/info-log4j.properties</log4j.config.uri>
@@ -39,7 +39,7 @@
 		<dependencies>
 			<!-- internally built dependencies -->
 			<dependency> <groupId>com.splicemachine</groupId> <artifactId>asynchbase</artifactId> <version>1.5.5</version> <exclusions> <exclusion> <groupId>org.slf4j</groupId> <artifactId>slf4j-api</artifactId> </exclusion> <exclusion> <groupId>org.slf4j</groupId> <artifactId>slf4j-log4j12</artifactId> </exclusion> <exclusion> <groupId>org.slf4j</groupId> <artifactId>log4j-over-slf4j</artifactId> </exclusion> <exclusion> <groupId>com.google.protobuf</groupId> <artifactId>protobuf-java</artifactId> </exclusion> <exclusion> <groupId>com.stumbleupon</groupId> <artifactId>async</artifactId> </exclusion> <exclusion> <groupId>org.apache.zookeeper</groupId> <artifactId>zookeeper</artifactId> </exclusion> </exclusions> </dependency>
-			<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice-web</artifactId> <version>1.0.0RC13</version> <type>tar.gz</type> </dependency>
+			<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice-web</artifactId> <version>1.0.0RC14-SNAPSHOT</version> <type>tar.gz</type> </dependency>
 			<dependency> <groupId>com.splicemachine</groupId> <artifactId>utilities</artifactId> <version>1.1.1</version> </dependency>
 			<dependency> <groupId>org.apache.derby</groupId> <artifactId>derby</artifactId> <version>${derby.version}</version> </dependency>
 			<dependency> <groupId>org.apache.derby</groupId> <artifactId>derbyclient</artifactId> <version>${derby.version}</version> </dependency>
