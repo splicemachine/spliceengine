@@ -78,9 +78,9 @@
     <url>https://issues.apache.org/jira/browse/DERBY</url>
   </issueManagement>
   <scm>
-    <connection>scm:svn:http://svn.apache.org/repos/asf/db/derby/code/trunk</connection>
-    <developerConnection>scm:svn:https://svn.apache.org/repos/asf/db/derby/code/trunk</developerConnection>
-    <url>http://svn.apache.org/viewcvs.cgi/db/derby/code/trunk/?root=Apache-SVN</url>
+    <connection>scm:git:git@github.com:splicemachine/derby.git</connection>
+    <developerConnection>scm:git:git@github.com:splicemachine/derby.git</developerConnection>
+    <url>https://github.com/splicemachine/derby</url>
   </scm>
   <distributionManagement>
     <repository>
