@@ -395,6 +395,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 				jobResults = doShuffle(runtimeContext);
 				JobStatsUtils.logStats(jobResults.getJobStats());
 				failedTasks = new ArrayList<byte[]>(jobResults.getJobStats().getFailedTasks());
+            if (LOG.isDebugEnabled())
+                SpliceLogUtils.debug(LOG,"%d tasks failed", failedTasks.size());
 		}
 
 		protected JobResults doShuffle(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
