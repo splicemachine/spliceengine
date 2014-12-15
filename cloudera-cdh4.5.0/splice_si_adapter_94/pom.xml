@@ -10,11 +10,11 @@
 	<parent>
 		<artifactId>spliceengine-cloudera-cdh4.5.0</artifactId>
 		<groupId>com.splicemachine</groupId>
-		<version>1.0.0RC15</version>
+		<version>1.0.0RC16-SNAPSHOT</version>
 	</parent>
 
 	<dependencies>
-		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_si-cloudera-cdh4.5.0</artifactId> <version>1.0.0RC15</version> <classifier>${obfuscate.si}</classifier> </dependency>
+		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_si-cloudera-cdh4.5.0</artifactId> <version>1.0.0RC16-SNAPSHOT</version> <classifier>${obfuscate.si}</classifier> </dependency>
 	</dependencies>
 
 	<build>
