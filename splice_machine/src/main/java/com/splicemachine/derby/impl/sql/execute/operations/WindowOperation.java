@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import com.google.common.base.Strings;
+import com.splicemachine.encoding.MultiFieldEncoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -320,7 +321,7 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
         else {
             timer.stopTiming();
             if (LOG.isDebugEnabled())
-                SpliceLogUtils.debug(LOG,"Wrote %d rows in step 1", timer.getNumEvents());
+                SpliceLogUtils.debug(LOG, "Wrote %d rows in step 1", timer.getNumEvents());
         }
         return row;
     }
@@ -340,7 +341,7 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
             timer.stopTiming();
             windowFunctionIterator.close();
             if (LOG.isDebugEnabled())
-                SpliceLogUtils.debug(LOG,"Processed %d rows in step 2", timer.getNumEvents());
+                SpliceLogUtils.debug(LOG, "Processed %d rows in step 2", timer.getNumEvents());
             return null;
         }
         else {
@@ -352,7 +353,7 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
     private WindowFunctionIterator createFrameIterator(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
         // Pass in a region aware scanner to make sure the region scanner handles rows of one partition that
         // "overflow" to another region
-        step2Scanner = getResultScanner(windowContext.getPartitionColumns(), spliceRuntimeContext, extraUniqueSequenceID);
+        step2Scanner = getResultScanner(windowContext.getPartitionColumns(), spliceRuntimeContext, getHashPrefix().getPrefixLength());
 
         // create the frame source for the frame buffer
         spliceRuntimeContext.setFirstStepInMultistep(true);
@@ -382,6 +383,12 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
         return new WindowFunctionIterator(frameBuffer);
     }
 
+    private HashPrefix getHashPrefix() {
+
+        return  new PartitionBucketPrefix(new FixedPrefix(uniqueSequenceID), HashFunctions.murmur3(0),
+                SpliceDriver.driver().getTempTable().getCurrentSpread(),
+                windowContext.getPartitionColumns(), sortTemplateRow.getRowArray());
+    }
     @Override
     public ExecRow getNextSinkRow(final SpliceRuntimeContext ctx) throws StandardException, IOException {
 
@@ -451,18 +458,21 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
 
     private SpliceResultScanner getResultScanner(final int[] keyColumns,
                                                  SpliceRuntimeContext ctx,
-                                                 final byte[] uniqueID) throws StandardException {
+                                                 final int prefixOffset) throws StandardException {
 
         final DataValueDescriptor[] cols = sourceExecIndexRow.getRowArray();
         ScanBoundary boundary = new BaseHashAwareScanBoundary(SpliceConstants.DEFAULT_FAMILY_BYTES){
             @Override
             public byte[] getStartKey(Result result) {
                 MultiFieldDecoder fieldDecoder = MultiFieldDecoder.wrap(result.getRow());
-                fieldDecoder.seek(uniqueID.length+2);
+                fieldDecoder.seek(prefixOffset + 1); //skip the prefix value
 
-                int adjusted = DerbyBytesUtil.skip(fieldDecoder, keyColumns, cols);
+                byte[] slice = DerbyBytesUtil.slice(fieldDecoder, keyColumns, cols);
                 fieldDecoder.reset();
-                return fieldDecoder.slice(adjusted+uniqueID.length+2);
+                MultiFieldEncoder encoder = MultiFieldEncoder.create(2);
+                encoder.setRawBytes(fieldDecoder.slice(prefixOffset + 1));
+                encoder.setRawBytes(slice);
+                return encoder.build();
             }
 
             @Override
