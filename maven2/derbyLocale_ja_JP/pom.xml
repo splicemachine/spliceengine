@@ -26,7 +26,7 @@
   <parent>
     <groupId>org.apache.derby</groupId>
     <artifactId>derby-project</artifactId>
-    <version>10.9.1.0-splice1.0.0RC14-SNAPSHOT</version>
+    <version>10.9.1.0-splice1.0.0RC15</version>
   </parent>
   <artifactId>derbyLocale_ja_JP</artifactId>
   <name>Apache Derby messages: Japanese</name>
@@ -36,7 +36,7 @@
     <dependency>
       <groupId>org.apache.derby</groupId>
       <artifactId>derby</artifactId>
-      <version>10.9.1.0-splice1.0.0RC14-SNAPSHOT</version>
+      <version>10.9.1.0-splice1.0.0RC15</version>
       <optional>false</optional>
     </dependency>
   </dependencies>
