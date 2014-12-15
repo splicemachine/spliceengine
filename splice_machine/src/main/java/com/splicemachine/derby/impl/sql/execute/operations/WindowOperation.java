@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import com.google.common.base.Strings;
-import com.splicemachine.encoding.MultiFieldEncoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -199,7 +198,7 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
-        //make sure that we filter out basescan tasks
+        //make sure that we filter out failed tasks
         if (failedTasks.size() > 0) {
             reduceScan.setFilter(derbyFactory.getSuccessFilter(failedTasks));
             if (LOG.isTraceEnabled())
@@ -321,7 +320,7 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
         else {
             timer.stopTiming();
             if (LOG.isDebugEnabled())
-                SpliceLogUtils.debug(LOG, "Wrote %d rows in step 1", timer.getNumEvents());
+                SpliceLogUtils.debug(LOG,"Wrote %d rows in step 1", timer.getNumEvents());
         }
         return row;
     }
@@ -341,7 +340,7 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
             timer.stopTiming();
             windowFunctionIterator.close();
             if (LOG.isDebugEnabled())
-                SpliceLogUtils.debug(LOG, "Processed %d rows in step 2", timer.getNumEvents());
+                SpliceLogUtils.debug(LOG,"Processed %d rows in step 2", timer.getNumEvents());
             return null;
         }
         else {
@@ -353,7 +352,7 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
     private WindowFunctionIterator createFrameIterator(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
         // Pass in a region aware scanner to make sure the region scanner handles rows of one partition that
         // "overflow" to another region
-        step2Scanner = getResultScanner(windowContext.getPartitionColumns(), spliceRuntimeContext, getHashPrefix().getPrefixLength());
+        step2Scanner = getResultScanner(windowContext.getPartitionColumns(), spliceRuntimeContext, extraUniqueSequenceID);
 
         // create the frame source for the frame buffer
         spliceRuntimeContext.setFirstStepInMultistep(true);
@@ -383,12 +382,6 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
         return new WindowFunctionIterator(frameBuffer);
     }
 
-    private HashPrefix getHashPrefix() {
-
-        return  new PartitionBucketPrefix(new FixedPrefix(uniqueSequenceID), HashFunctions.murmur3(0),
-                SpliceDriver.driver().getTempTable().getCurrentSpread(),
-                windowContext.getPartitionColumns(), sortTemplateRow.getRowArray());
-    }
     @Override
     public ExecRow getNextSinkRow(final SpliceRuntimeContext ctx) throws StandardException, IOException {
 
@@ -458,21 +451,18 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
 
     private SpliceResultScanner getResultScanner(final int[] keyColumns,
                                                  SpliceRuntimeContext ctx,
-                                                 final int prefixOffset) throws StandardException {
+                                                 final byte[] uniqueID) throws StandardException {
 
         final DataValueDescriptor[] cols = sourceExecIndexRow.getRowArray();
         ScanBoundary boundary = new BaseHashAwareScanBoundary(SpliceConstants.DEFAULT_FAMILY_BYTES){
             @Override
             public byte[] getStartKey(Result result) {
                 MultiFieldDecoder fieldDecoder = MultiFieldDecoder.wrap(result.getRow());
-                fieldDecoder.seek(prefixOffset + 1); //skip the prefix value
+                fieldDecoder.seek(uniqueID.length+2);
 
-                byte[] slice = DerbyBytesUtil.slice(fieldDecoder, keyColumns, cols);
+                int adjusted = DerbyBytesUtil.skip(fieldDecoder, keyColumns, cols);
                 fieldDecoder.reset();
-                MultiFieldEncoder encoder = MultiFieldEncoder.create(2);
-                encoder.setRawBytes(fieldDecoder.slice(prefixOffset + 1));
-                encoder.setRawBytes(slice);
-                return encoder.build();
+                return fieldDecoder.slice(adjusted+uniqueID.length+2);
             }
 
             @Override
@@ -482,10 +472,10 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
                 return start;
             }
         };
-        if (failedTasks.size() > 0) {
-            baseScan.setFilter(derbyFactory.getSuccessFilter(failedTasks));
-            if (LOG.isTraceEnabled())
-                SpliceLogUtils.debug(LOG,"%d tasks failed", failedTasks.size());
+                if (failedTasks.size() > 0) {
+        	            baseScan.setFilter(derbyFactory.getSuccessFilter(failedTasks));
+        	            if (LOG.isTraceEnabled())
+        	       SpliceLogUtils.debug(LOG,"%d tasks failed", failedTasks.size());
         }
         return RegionAwareScanner.create(null,region,baseScan,SpliceConstants.TEMP_TABLE_BYTES,boundary,ctx);
     }
