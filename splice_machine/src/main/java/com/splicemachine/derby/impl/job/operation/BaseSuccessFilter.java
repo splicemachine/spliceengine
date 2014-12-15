@@ -50,14 +50,16 @@ public abstract class BaseSuccessFilter<Data> extends FilterBase implements Writ
      */
 	public ReturnCode internalFilter(Data keyValue) {
     	postfixOffset = dataLib.getDataRowOffset(keyValue)+dataLib.getDataRowlength(keyValue);
-        for(byte[] failedTask:failedTasks){
+    	int failedTasksSize = failedTasks != null?failedTasks.size():0;
+    	for (int i = 0; i< failedTasksSize; i++) {
+    		byte[] failedTask = failedTasks.get(i);
             int postOffset = postfixOffset-failedTask.length;
             if(Bytes.compareTo(dataLib.getDataRowBuffer(keyValue),postOffset,failedTask.length,failedTask,0,failedTask.length)==0){
                 SpliceLogUtils.trace(LOG,"Found a row from a failed task, skipping");
                 //we have a task which failed
                 return ReturnCode.SKIP;
-            }
-        }
+            }    		
+    	}
         return ReturnCode.INCLUDE;
 	}
 
