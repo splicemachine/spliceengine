@@ -14,7 +14,7 @@
 	<parent>
 		<artifactId>spliceengine-parent</artifactId>
 		<groupId>com.splicemachine</groupId>
-		<version>1.0.0RC15-SNAPSHOT</version>
+		<version>1.0.0RC15</version>
 	</parent>
 		
 	<modules>
