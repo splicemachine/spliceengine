@@ -570,9 +570,11 @@ public class HDataLib implements SDataLib<Cell,Put, Delete, Get, Scan> {
 		@Override
 		public Cell matchKeyValue(Cell[] kvs, byte[] columnFamily,
 				byte[] qualifier) {
-			for(Cell kv:kvs){
+			int size = kvs != null?kvs.length:0;
+			for (int i = 0; i<size; i++) {
+				Cell kv = kvs[i];
 				if(CellUtils.matchingColumn(kv,columnFamily,qualifier))
-						return kv;
+					return kv;
 			}
 			return null;
 		}
@@ -584,9 +586,15 @@ public class HDataLib implements SDataLib<Cell,Put, Delete, Get, Scan> {
 		}
 
 		@Override
-		public Cell matchDataColumn(List<Cell> kvs) {
-			return matchKeyValue(kvs, SpliceConstants.DEFAULT_FAMILY_BYTES,
-					SpliceConstants.PACKED_COLUMN_BYTES);
+		public Cell matchDataColumn(List<Cell> kvs) {			
+			int size = kvs!=null?kvs.size():0;
+			for (int i = 0; i<size;i++) {
+				Cell kv = kvs.get(i);
+				if(CellUtils.matchingColumn(kv,SpliceConstants.DEFAULT_FAMILY_BYTES,
+						SpliceConstants.PACKED_COLUMN_BYTES))
+						return kv;
+			}
+			return null;
 		}
 
 		@Override
