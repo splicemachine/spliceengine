@@ -165,55 +165,55 @@ public abstract class SpliceBaseOperationRegionScanner<Data> implements RegionSc
                     for(OperationRuntimeStats opStats:stats){
                         opStats.setHostName(hostName);
 
-                        reporter.report(opStats,spliceRuntimeContext.getTxn());
-                    }
-                    metricsReported = true;
-                }
-            }
-            return !results.isEmpty();
-        }catch(Exception e){
-            ErrorReporter.get().reportError(SpliceBaseOperationRegionScanner.class,e);
-            cleanupBatch(); // if we throw an exception the postScanner() hook won't be called, so cleanup here
-            LOG.error(String.format("Original SpliceOperationRegionScanner error, region %s",
-                    regionScanner.getRegionInfo().getRegionNameAsString()), e);
-            SpliceLogUtils.logAndThrow(LOG,"Unable to get next row",Exceptions.getIOException(e));
-            return false; //won't happen since logAndThrow will throw an exception
-        }
-    }
+												reporter.report(opStats,spliceRuntimeContext.getTxn());
+										}
+										metricsReported = true;
+								}
+						}
+						return !results.isEmpty();
+				}catch(Exception e){
+						ErrorReporter.get().reportError(SpliceBaseOperationRegionScanner.class,e);
+						cleanupBatch(); // if we throw an exception the postScanner() hook won't be called, so cleanup here
+						LOG.error(String.format("Original SpliceOperationRegionScanner error, region %s",
+										regionScanner.getRegionInfo().getRegionNameAsString()), e);
+						SpliceLogUtils.logAndThrow(LOG,"Unable to get next row",Exceptions.getIOException(e));
+						return false; //won't happen since logAndThrow will throw an exception
+				}
+		}
 
 
 
 		@Override
 		public void close() throws IOException {
 				SpliceLogUtils.trace(LOG, "close");
-        try {
+				try {
             try {
                 topOperation.close();
             } catch (StandardException e) {
                 ErrorReporter.get().reportError(SpliceBaseOperationRegionScanner.class,e);
                 SpliceLogUtils.logAndThrow(LOG, "close direct failed", Exceptions.getIOException(e));
             }finally{
-                if (regionScanner != null) {
-                    regionScanner.close();
-                }
-                try {
-                    context.close();
-                } catch (StandardException e) {
-                    throw Exceptions.getIOException(e);
-                }
-				try {
-					activation.close();
-					activation = null;
-				} catch (StandardException e) {
-					// Close out activation
+						if (regionScanner != null) {
+								regionScanner.close();
+						}
+						try {
+								context.close();
+						} catch (StandardException e) {
+								throw Exceptions.getIOException(e);
+						}
+						try {
+								activation.close();
+								activation = null;
+						} catch (StandardException e) {
+								// Close out activation
+						}
 				}
-            }
-        } finally {
-            if (impl != null) {
-                impl.cleanup();
-            }
-        }
-    }
+		} finally {
+				if (impl != null) {
+						impl.cleanup();
+				}
+		}
+}
 
     @Override
     public HRegionInfo getRegionInfo() {

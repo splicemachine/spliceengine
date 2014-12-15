@@ -10,6 +10,7 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -20,6 +21,17 @@ import java.util.Map;
  * Date: 7/15/14
  */
 public class DerbyAsyncScannerUtils {
+
+    public static List<Scanner> convertScanners(List<Scan> scans,
+                                                byte[] table,
+                                                HBaseClient hBaseClient,
+                                                boolean populateBlockCache){
+        List<Scanner> scanner = new ArrayList<>(scans.size());
+        for(int i=0;i<scans.size();i++){
+            scanner.add(convertScanner(scans.get(i),table,hBaseClient,populateBlockCache));
+        }
+        return scanner;
+    }
 
     public static Scanner convertScanner(Scan scan, byte[] table, HBaseClient hbaseClient){
         return convertScanner(scan, table, hbaseClient, true);
@@ -82,6 +94,7 @@ public class DerbyAsyncScannerUtils {
     public static Function<Scan, Scanner> convertFunction(byte[] table, HBaseClient hbaseClient) {
         return new ConvertFunction(table, hbaseClient);
     }
+
 
     private static class ConvertFunction implements Function<Scan, Scanner> {
         private byte[] tableName;

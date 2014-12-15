@@ -149,7 +149,8 @@ public class SinkTask extends ZkTask {
 				 * 3. execute work
 				 */
 				boolean prepared = false;
-				Activation activation = null;
+				Activation activation;
+        TransactionalRegion txnRegion = TransactionalRegions.get(region);
 				try{
 						transactionResource = new SpliceTransactionResourceImpl();
 						transactionResource.prepareContextManager();
@@ -177,7 +178,6 @@ public class SinkTask extends ZkTask {
 								spliceRuntimeContext.recordTraceMetrics();
 						}
 
-            TransactionalRegion txnRegion = TransactionalRegions.get(region);
             opContext = new SpliceOperationContext(region, txnRegion,
                     scan,activation,
 										instructions.getStatement(),
@@ -194,6 +194,8 @@ public class SinkTask extends ZkTask {
         try{
             doExecute();
         }finally{
+            txnRegion.discard();
+
             taskWatcher.setTask(null);
             if (activation != null) {
                 try {

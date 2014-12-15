@@ -136,11 +136,9 @@ public class MergeJoinOperation extends JoinOperation {
             ctxWithOverride.addScanStartOverride(getKeyRow(firstLeft, leftHashKeys));
             leftPushBack.pushBack(firstLeft);
         }
-        rightRows = StandardIterators
-                        .ioIterator(rightResultSet.executeScan(ctxWithOverride));
+        rightRows = StandardIterators.ioIterator(rightResultSet.executeScan(ctxWithOverride));
         rightRows.open();
-        IJoinRowsIterator<ExecRow> mergedRowSource =
-            new MergeJoinRows(leftPushBack, rightRows, leftHashKeys, rightHashKeys);
+        IJoinRowsIterator<ExecRow> mergedRowSource = new MergeJoinRows(leftPushBack, rightRows, leftHashKeys, rightHashKeys);
         StandardSupplier<ExecRow> emptyRowSupplier = new StandardSupplier<ExecRow>() {
             @Override
             public ExecRow get() throws StandardException {

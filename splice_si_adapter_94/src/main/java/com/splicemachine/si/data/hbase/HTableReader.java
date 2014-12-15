@@ -2,7 +2,6 @@ package com.splicemachine.si.data.hbase;
 
 import com.splicemachine.collections.CloseableIterator;
 import com.splicemachine.constants.SIConstants;
-import com.splicemachine.async.SimpleAsyncScanner;
 import com.splicemachine.si.data.api.HTableSource;
 import com.splicemachine.si.data.api.IHTable;
 import com.splicemachine.si.data.api.STableReader;
@@ -15,11 +14,9 @@ import java.io.IOException;
 
 public class HTableReader implements STableReader<IHTable, Get, Scan> {
     private final HTableSource tableSource;
-    private final IHTable transactionTable;
 
     public HTableReader(HTableSource tableSource) throws IOException {
         this.tableSource = tableSource;
-        this.transactionTable = new TxnTable(tableSource.getTable(SIConstants.TRANSACTION_TABLE), SimpleAsyncScanner.HBASE_CLIENT);
     }
 
     @Override

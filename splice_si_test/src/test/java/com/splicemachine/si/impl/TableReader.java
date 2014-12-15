@@ -1,9 +1,9 @@
 package com.splicemachine.si.impl;
 
-import com.stumbleupon.async.Deferred;
+import com.splicemachine.async.AsyncHbase;
 import com.splicemachine.async.KeyValue;
 import com.splicemachine.async.Scanner;
-import com.splicemachine.async.SimpleAsyncScanner;
+import com.stumbleupon.async.Deferred;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -26,7 +26,7 @@ public class TableReader {
         rolledBackTxns[334-minStamp] = true;
         rolledBackTxns[335-minStamp] = true;
 
-        Scanner scanner = SimpleAsyncScanner.HBASE_CLIENT.newScanner("1472");
+        Scanner scanner = AsyncHbase.HBASE_CLIENT.newScanner("1472");
         try{
             scanner.setTimeRange(minStamp, maxTimestamp);
             scanner.setServerBlockCache(false);
@@ -60,7 +60,7 @@ public class TableReader {
             System.out.printf("committed count: %d%n",nonRolledBackCount);
 
         }finally{
-            SimpleAsyncScanner.HBASE_CLIENT.shutdown();
+            AsyncHbase.HBASE_CLIENT.shutdown();
         }
     }
 }
