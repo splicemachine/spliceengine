@@ -199,7 +199,7 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
-        //make sure that we filter out failed tasks
+        //make sure that we filter out basescan tasks
         if (failedTasks.size() > 0) {
             reduceScan.setFilter(derbyFactory.getSuccessFilter(failedTasks));
             if (LOG.isTraceEnabled())
@@ -482,6 +482,11 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
                 return start;
             }
         };
+        if (failedTasks.size() > 0) {
+            baseScan.setFilter(derbyFactory.getSuccessFilter(failedTasks));
+            if (LOG.isTraceEnabled())
+                SpliceLogUtils.debug(LOG,"%d tasks failed", failedTasks.size());
+        }
         return RegionAwareScanner.create(null,region,baseScan,SpliceConstants.TEMP_TABLE_BYTES,boundary,ctx);
     }
 
