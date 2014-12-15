@@ -458,11 +458,11 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
             @Override
             public byte[] getStartKey(Result result) {
                 MultiFieldDecoder fieldDecoder = MultiFieldDecoder.wrap(result.getRow());
-                fieldDecoder.seek(uniqueID.length+2);
+                fieldDecoder.seek(uniqueID.length+1);
 
                 int adjusted = DerbyBytesUtil.skip(fieldDecoder, keyColumns, cols);
                 fieldDecoder.reset();
-                return fieldDecoder.slice(adjusted+uniqueID.length+2);
+                return fieldDecoder.slice(adjusted+uniqueID.length+1);
             }
 
             @Override
