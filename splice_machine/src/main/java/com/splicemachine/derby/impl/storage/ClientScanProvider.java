@@ -1,7 +1,7 @@
 package com.splicemachine.derby.impl.storage;
 
+import com.splicemachine.async.*;
 import com.splicemachine.async.AsyncScanner;
-import com.splicemachine.async.SimpleAsyncScanner;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
@@ -10,12 +10,15 @@ import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.metrics.BaseIOStats;
 import com.splicemachine.metrics.IOStats;
+import com.splicemachine.metrics.Metrics;
 import com.splicemachine.metrics.TimeView;
 import com.splicemachine.utils.SpliceLogUtils;
 
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derbyTesting.junit.Derby;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
@@ -35,8 +38,10 @@ public class ClientScanProvider extends AbstractScanProvider {
 		private HTableInterface htable;
 		private final Scan scan;
 		private AsyncScanner scanner;
+//		private ResultScanner scanner;
 		private long stopExecutionTime;
 		private long startExecutionTime;
+		private boolean opened= false;
 
 		public ClientScanProvider(String type,
 															byte[] tableName, Scan scan,
@@ -50,6 +55,10 @@ public class ClientScanProvider extends AbstractScanProvider {
 
 		@Override
 		public Result getResult() throws StandardException, IOException {
+				if(!opened) {
+						scanner.open();
+						opened =true;
+				}
 				return scanner.next();
 		}
 
@@ -58,13 +67,14 @@ public class ClientScanProvider extends AbstractScanProvider {
 				SpliceLogUtils.trace(LOG, "open");
 				if(htable==null)
 						htable = SpliceAccessManager.getHTable(tableName);
-				try {
-           scanner = new SimpleAsyncScanner(DerbyAsyncScannerUtils.convertScanner(scan,tableName,SimpleAsyncScanner.HBASE_CLIENT),spliceRuntimeContext);
+//				try {
+//						scanner = new SequentialAsyncScanner(DerbyAsyncScannerUtils.convertScanner(scan,tableName,SimpleAsyncScanner.HBASE_CLIENT),spliceRuntimeContext);
+//           scanner = new SimpleAsyncScanner(DerbyAsyncScannerUtils.convertScanner(scan,tableName,SimpleAsyncScanner.HBASE_CLIENT),spliceRuntimeContext);
+						scanner = new QueueingAsyncScanner(DerbyAsyncScannerUtils.convertScanner(scan,tableName, AsyncHbase.HBASE_CLIENT),spliceRuntimeContext);
 //						scanner = new MeasuredResultScanner(htable, scan, htable.getScanner(scan),spliceRuntimeContext);
-            scanner.open();
-				} catch (IOException e) {
-						SpliceLogUtils.logAndThrowRuntime(LOG,"unable to open table "+ Bytes.toString(tableName),e);
-				}
+//				} catch (IOException e) {
+//						SpliceLogUtils.logAndThrowRuntime(LOG,"unable to open table "+ Bytes.toString(tableName),e);
+//				}
         startExecutionTime = System.currentTimeMillis();
 		}
 

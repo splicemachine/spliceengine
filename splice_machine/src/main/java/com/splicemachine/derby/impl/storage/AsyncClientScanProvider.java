@@ -45,6 +45,8 @@ public class AsyncClientScanProvider extends AbstractAsyncScanProvider {
     private final RegionCache regionCache;
     private final HBaseClient hbaseClient;
 
+    private boolean opened = false;
+
     public AsyncClientScanProvider(String type,
                               byte[] tableName, Scan scan,
                               PairDecoder decoder,
@@ -54,11 +56,15 @@ public class AsyncClientScanProvider extends AbstractAsyncScanProvider {
         this.tableName = tableName;
         this.scan = scan;
         this.regionCache = HBaseRegionCache.getInstance();
-        this.hbaseClient = SimpleAsyncScanner.HBASE_CLIENT;
+        this.hbaseClient = AsyncHbase.HBASE_CLIENT;
     }
 
     @Override
     public List<KeyValue> getResult() throws StandardException, IOException {
+        if(!opened) {
+            scanner.open();
+            opened=true;
+        }
         try {
             return scanner.nextKeyValues();
         } catch (Exception e) {
@@ -73,15 +79,17 @@ public class AsyncClientScanProvider extends AbstractAsyncScanProvider {
         try {
             SortedSet<Pair<HRegionInfo,ServerName>> regions = regionCache.getRegionsInRange(tableName, scan.getStartRow(), scan.getStopRow());
             if (regions.size() < PARALLEL_SCAN_REGION_THRESHOLD) {
-                scanner = new SimpleAsyncScanner(DerbyAsyncScannerUtils.convertScanner(scan, tableName, hbaseClient), spliceRuntimeContext);
+                scanner = new QueueingAsyncScanner(DerbyAsyncScannerUtils.convertScanner(scan, tableName, hbaseClient), spliceRuntimeContext);
             } else {
-                scanner = SortedGatheringScanner.newScanner(
-                        SpliceConstants.DEFAULT_CACHE_SIZE,
-                        this.getSpliceRuntimeContext(),
-                        DerbyAsyncScannerUtils.convertFunction(this.tableName,hbaseClient),
-                        ScanDivider.divide(scan,regions),
-                        Bytes.BYTES_COMPARATOR,
-                        null);
+                List<Scanner> scanners = DerbyAsyncScannerUtils.convertScanners(ScanDivider.divide(scan, regions), this.tableName, hbaseClient, true);
+                scanner = new SortedMultiScanner(scanners,SpliceConstants.DEFAULT_CACHE_SIZE*3,Bytes.BYTES_COMPARATOR,spliceRuntimeContext);
+//                scanner = SortedGatheringScanner.newScanner(
+//                        SpliceConstants.DEFAULT_CACHE_SIZE,
+//                        this.getSpliceRuntimeContext(),
+//                        DerbyAsyncScannerUtils.convertFunction(this.tableName,hbaseClient),
+//                        ScanDivider.divide(scan,regions),
+//                        Bytes.BYTES_COMPARATOR,
+//                        null);
 
 //                scanner = GatheringScanner.newScanner(
 //                        SpliceConstants.DEFAULT_CACHE_SIZE,
@@ -89,10 +97,8 @@ public class AsyncClientScanProvider extends AbstractAsyncScanProvider {
 //                        DerbyAsyncScannerUtils.convertFunction(this.tableName, hbaseClient),
 //                        ScanDivider.divide(scan, regions));
             }
-            scanner.open();
-        } catch (IOException e) {
-            SpliceLogUtils.logAndThrowRuntime(LOG, "unable to open table " + Bytes.toString(tableName), e);
-        } catch (ExecutionException e) {
+//            scanner.open();
+        } catch (IOException | ExecutionException e) {
             SpliceLogUtils.logAndThrowRuntime(LOG, "unable to open table " + Bytes.toString(tableName), e);
         }
         startExecutionTime = System.currentTimeMillis();

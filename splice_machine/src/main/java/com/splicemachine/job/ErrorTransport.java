@@ -124,12 +124,13 @@ public class ErrorTransport implements Externalizable {
             }
 
             /* no-arg constructor */
-            constructor = ConstructorUtils.getAccessibleConstructor(errorClazz, ArrayUtils.EMPTY_CLASS_ARRAY);
-            if (constructor != null) {
-                return (Throwable) ConstructorUtils.invokeConstructor(errorClazz, ArrayUtils.EMPTY_OBJECT_ARRAY);
-            }
-
-            throw new IllegalArgumentException("Could not find valid constructor for class = " + args[0]);
+            return errorClazz.newInstance();
+//            constructor = errorClazz.newInstance();ConstructorUtils.getAccessibleConstructor(errorClazz, ArrayUtils.EMPTY_CLASS_ARRAY);
+//            if (constructor != null) {
+//                return (Throwable) ConstructorUtils.invokeConstructor(errorClazz, ArrayUtils.EMPTY_OBJECT_ARRAY);
+//            }
+//
+//            throw new IllegalArgumentException("Could not find valid constructor for class = " + args[0]);
 
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);

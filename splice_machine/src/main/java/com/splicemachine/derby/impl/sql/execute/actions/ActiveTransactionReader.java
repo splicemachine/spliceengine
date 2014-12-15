@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.google.common.base.Function;
+import com.splicemachine.async.*;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
@@ -25,6 +26,7 @@ import com.splicemachine.si.impl.SIFactoryDriver;
 import com.splicemachine.si.impl.SparseTxn;
 import com.splicemachine.si.impl.TransactionStorage;
 import com.splicemachine.si.impl.TxnViewBuilder;
+import com.splicemachine.stream.Accumulator;
 import com.splicemachine.stream.CloseableStream;
 import com.splicemachine.stream.StreamException;
 import com.splicemachine.stream.Transformer;
@@ -35,13 +37,7 @@ import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
-
-import com.splicemachine.async.AsyncScanner;
-import com.splicemachine.async.KeyValue;
-import com.splicemachine.async.Scanner;
-
-import com.splicemachine.async.SimpleAsyncScanner;
-import com.splicemachine.async.SortedGatheringScanner;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -100,18 +96,15 @@ public class ActiveTransactionReader {
                 public TxnView transform(List<KeyValue> element) throws StreamException {
                 	return siFactory.transform(element);
                 }
-
             });
-        } catch (ExecutionException e) {
-            throw Exceptions.getIOException(e);
-        } catch (InterruptedException e) {
+        } catch (ExecutionException | InterruptedException e) {
             throw Exceptions.getIOException(e);
         }
     }
 
     /*private helper methods*/
     
-    private AsyncScanner configureResultScan(int queueSize, byte[] operationId, boolean[] usedTempBuckets, JobFuture submit) throws IOException {
+    private AsyncScanner configureResultScan(int queueSize, byte[] operationId, boolean[] usedTempBuckets, final JobFuture submit) throws IOException {
         final TempTable tempTable = SpliceDriver.driver().getTempTable();
         RowKeyDistributor keyDistributor = new RowKeyDistributorByHashPrefix(BucketHasher.getHasher(tempTable.getCurrentSpread()));
         keyDistributor = new FilteredRowKeyDistributor(keyDistributor,usedTempBuckets);
@@ -119,28 +112,39 @@ public class ActiveTransactionReader {
         Scan scan = new Scan();
         scan.setStartRow(operationId);
         scan.setStopRow(BytesUtil.unsignedCopyAndIncrement(operationId));
-        Function<Scan, Scanner> convertFunction = DerbyAsyncScannerUtils.convertFunction(tempTable.getTempTableName(), SimpleAsyncScanner.HBASE_CLIENT);
+//        Function<Scan, Scanner> convertFunction = DerbyAsyncScannerUtils.convertFunction(tempTable.getTempTableName(), AsyncHbase.HBASE_CLIENT);
         List<Scan> dividedScans = ScanDivider.divide(scan, keyDistributor);
+        List<Scanner> scanners = DerbyAsyncScannerUtils.convertScanners(dividedScans,tempTable.getTempTableName(),AsyncHbase.HBASE_CLIENT,false);
 
-        final AsyncScanner scanner = SortedGatheringScanner.newScanner(
-        		queueSize,
-        		Metrics.noOpMetricFactory(),
-        		convertFunction,
-        		dividedScans,
+        final AsyncScanner scanner = new SortedMultiScanner(
+                scanners,
+                queueSize,
                 new Comparator<byte[]>() {
                     @Override
                     public int compare(byte[] o1, byte[] o2) {
-                        /*
-                         * We want to ignore the operationUid and bucket id when sorting data. In this
-                         * case, our data starts at location 10 (bucket + opUUid+0x00).length = 10
-                         */
+                                /*
+                                 * We want to ignore the operationUid and bucket id when sorting data. In this
+                                 * case, our data starts at location 10 (bucket + opUUid+0x00).length = 10
+                                 */
                         int prefixLength = 10;
                         return Bytes.compareTo(o1, prefixLength, o1.length - prefixLength, o2, prefixLength, o2.length - prefixLength);
                     }
                 },
-                // Perform proper job cleanup upon scanner close (resolves DB-2257)
-                JobCleanup.cleanupCalls(submit)
-        );
+                Metrics.noOpMetricFactory()){
+            @Override
+            public void close() {
+                try {
+                    super.close();
+                }finally {
+                    //clean up the job since we're done reading it
+                    try {
+                        submit.cleanup();
+                    } catch (ExecutionException e) {
+                        Logger.getLogger(ActiveTransactionReader.class).warn("Unable to cleanup job "+ submit.toString());
+                    }
+                }
+            }
+        };
 
         scanner.open();
         return scanner;
@@ -152,12 +156,8 @@ public class ActiveTransactionReader {
      */
     private static class JobCleanup implements Callable<Void> {
     	private JobFuture future;
-    	
-    	private static JobCleanup[] cleanupCalls(JobFuture future) {
-    		return new JobCleanup[]{new JobCleanup(future)};
-    	}
-    	
-    	private JobCleanup(JobFuture jobFuture) {
+
+        private JobCleanup(JobFuture jobFuture) {
     		future = jobFuture;
     	}
     	
