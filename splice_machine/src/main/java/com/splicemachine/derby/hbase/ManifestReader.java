@@ -148,7 +148,7 @@ public class ManifestReader {
 
         private String[] splitReleaseString(String release) {
             String[] s = release.split("\\.");
-            if(s.length<2){
+            if(s.length<3){
                 return s;
             }
             int count = 0;
