@@ -26,7 +26,7 @@ public class ManifestReaderTest {
 
             while (resEnum.hasMoreElements()) {
                 URL url = (URL) resEnum.nextElement();
-                if (url.getFile().contains("splice") && url.getFile().contains("derbyclient")) {
+                if (url.getFile().contains("splice_machine")) {
                     found = true;
                     InputStream is = null;
                     try {
@@ -54,12 +54,20 @@ public class ManifestReaderTest {
 
     @Test
     public void testSpliceMachineVersion() throws Exception {
-        ManifestReader.SpliceMachineVersion version = new TestManifestReader(new FakeManifest()).createVersion();
-        System.out.println(version);
+        ManifestReader.SpliceMachineVersion version = new TestManifestReader(new FakeManifest("0.5.1-SNAPSHOT")).createVersion();
         Assert.assertEquals("2014-05-27 12:52 -0500", version.getBuildTime());
         Assert.assertEquals("1d073ed3f6", version.getImplementationVersion());
         Assert.assertEquals("0.5.1-SNAPSHOT", version.getRelease());
         Assert.assertEquals("http://www.splicemachine.com", version.getURL());
+        Assert.assertEquals(0, version.getMajorVersionNumber());
+        Assert.assertEquals(5, version.getMinorVersionNumber());
+        Assert.assertEquals(1, version.getPatchVersionNumber());
+
+        version = new TestManifestReader(new FakeManifest("1.0.0")).createVersion();
+        Assert.assertEquals("1.0.0", version.getRelease());
+        Assert.assertEquals(1, version.getMajorVersionNumber());
+        Assert.assertEquals(0, version.getMinorVersionNumber());
+        Assert.assertEquals(0, version.getPatchVersionNumber());
     }
 
     @Ignore // Test for DB-1431
@@ -95,7 +103,7 @@ public class ManifestReaderTest {
 
     public static class FakeManifest extends Manifest {
 
-        public FakeManifest() {
+        public FakeManifest(String releaseVersion) {
             super();
             super.getMainAttributes().putValue("Build-Time", "2014-05-27 12:52 -0500");
             super.getMainAttributes().putValue("Implementation-Version", "1d073ed3f6");
@@ -103,7 +111,7 @@ public class ManifestReaderTest {
             super.getMainAttributes().putValue("Built-By", "Jenkinson");
             super.getMainAttributes().putValue("Manifest-Version", "1.0");
             super.getMainAttributes().putValue("Created-By", "Apache Maven 3.1.1");
-            super.getMainAttributes().putValue("Release", "0.5.1-SNAPSHOT");
+            super.getMainAttributes().putValue("Release", releaseVersion);
             super.getMainAttributes().putValue("URL", "http://www.splicemachine.com");
             super.getMainAttributes().putValue("Archiver-Version", "Plexus Archiver");
         }
