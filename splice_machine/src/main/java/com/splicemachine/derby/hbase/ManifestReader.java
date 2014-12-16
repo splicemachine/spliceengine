@@ -104,41 +104,53 @@ public class ManifestReader {
         public int getMajorVersionNumber() {
             String release = getRelease();
 
-            if (release == null) {
+            if (release == null|| release.length()<=0) {
                 return -1;
             }
             String[] s = splitReleaseString(release);
+            if(s.length<=0) return -1;
 
-            return (new Integer(s[0])).intValue();
+            try {
+                return Integer.parseInt(s[0]);
+            }catch(NumberFormatException nfe){ return -1;}
         }
 
         @Override
         public int getMinorVersionNumber() {
             String release = getRelease();
 
-            if (release == null) {
+            if (release == null|| release.length()<=0) {
                 return -1;
             }
             String[] s = splitReleaseString(release);
 
-            return (new Integer(s[1])).intValue();
+            if(s.length<1) return -1;
+            try {
+                return Integer.parseInt(s[1]);
+            }catch(NumberFormatException nfe){ return -1;}
         }
 
         @Override
         public int getPatchVersionNumber() {
             String release = getRelease();
 
-            if (release == null) {
+            if (release == null|| release.length()<=0) {
                 return -1;
             }
             String[] s = splitReleaseString(release);
-            if (s[2] == null)
+            if (s.length<2 ||s[2] == null)
                 return 0;
-            return (new Integer(s[2])).intValue();
+
+            try {
+                return Integer.parseInt(s[2]);
+            }catch(NumberFormatException nfe){ return -1;}
         }
 
         private String[] splitReleaseString(String release) {
             String[] s = release.split("\\.");
+            if(s.length<2){
+                return s;
+            }
             int count = 0;
             while(Character.isDigit(s[2].charAt(count))) {
                 count++;
