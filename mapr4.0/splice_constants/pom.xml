@@ -10,12 +10,12 @@
 	<parent>
 		<artifactId>spliceengine-mapr4.0</artifactId>
 		<groupId>com.splicemachine</groupId>
-		<version>1.0.0RC16-SNAPSHOT</version>
+		<version>1.0.0</version>
 	</parent>
 
 	<properties>
 		<hadoop.version>2.4.1-mapr-1408</hadoop.version>
-		<hbase.version>0.98.4-mapr4.0.1-splice1.0.4</hbase.version>
+		<hbase.version>0.98.4-mapr4.0.1-splice1.0.0</hbase.version>
 		<hive.version>0.13.0-mapr-1405</hive.version>
 		<maprfs.version>4.0.1-mapr</maprfs.version>
 		<zookeeper.version>3.4.5-mapr-1406</zookeeper.version>
