@@ -152,7 +152,7 @@ public class ManifestReader {
                 return s;
             }
             int count = 0;
-            while(Character.isDigit(s[2].charAt(count))) {
+            while(count < s[2].length() && Character.isDigit(s[2].charAt(count))) {
                 count++;
             }
             if (count == 0)
