@@ -7,6 +7,7 @@ import org.apache.derby.iapi.services.loader.ClassFactory;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.WindowFunction;
 import org.apache.derby.iapi.store.access.ColumnOrdering;
+import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.UserDataValue;
 import org.apache.derby.impl.sql.execute.WindowFunctionInfo;
@@ -19,32 +20,65 @@ import com.splicemachine.derby.impl.sql.execute.operations.window.function.Splic
  *  
  */
 public class WindowAggregatorImpl implements WindowAggregator {
-	private static Logger LOG = Logger.getLogger(WindowAggregatorImpl.class);
-	private final WindowFunctionInfo windowInfo;
+//	private static Logger LOG = Logger.getLogger(WindowAggregatorImpl.class);
 	final int functionColumnId;
 	private final int[] inputColumnIds;
 	private final int resultColumnId;
     private final String functionName;
+    private final FrameDefinition frameDefinition;
 
-	private final ClassFactory cf;
+    private final ClassFactory cf;
+    private final String functionClassName;
+    private final DataTypeDescriptor resultColumnDesc;
 
-	protected SpliceGenericWindowFunction cachedAggregator;
+    private SpliceGenericWindowFunction cachedAggregator;
     private int[] partitionColumns;
     private int[] sortColumns;
     private int[] keyColumns;
     private boolean[] keyOrders;
-    private FrameDefinition frameDefinition;
 
     public WindowAggregatorImpl(WindowFunctionInfo windowInfo, ClassFactory cf) {
-		this.windowInfo = windowInfo;
 		this.cf = cf;
         // all these are one-based
 		this.functionColumnId = windowInfo.getWindowFunctionColNum();
 		this.inputColumnIds = windowInfo.getInputColNums();
 		this.resultColumnId = windowInfo.getOutputColNum();
         this.functionName = windowInfo.getFunctionName();
+        this.functionClassName = windowInfo.getWindowFunctionClassName();
+        this.resultColumnDesc = windowInfo.getResultDescription().getColumnInfo()[ 0 ].getType();
 
-        createDefinition(windowInfo);
+        // create the frame from passed in frame info
+        frameDefinition = FrameDefinition.create(windowInfo.getFrameInfo());
+
+        ColumnOrdering[] partition = windowInfo.getPartitionInfo();
+        partitionColumns = new int[partition.length];
+        int index=0;
+        for(ColumnOrdering partCol : partition){
+            // coming from Derby, these are 1-based column positions
+            // convert to 0-based
+            partitionColumns[index++] = partCol.getColumnId() -1;
+        }
+
+        ColumnOrdering[] orderings = windowInfo.getOrderByInfo();
+        sortColumns = new int[orderings.length];
+        index = 0;
+        for(ColumnOrdering order : orderings){
+            // coming from Derby, these are 1-based column positions
+            // convert to 0-based
+            sortColumns[index++] = order.getColumnId() -1;
+        }
+
+        ColumnOrdering[] keys = windowInfo.getKeyInfo();
+
+        keyColumns = new int[keys.length];
+        keyOrders = new boolean[keys.length];
+        index = 0;
+        for (ColumnOrdering key : keys) {
+            // coming from Derby, these are 1-based column positions
+            // convert to 0-based
+            keyColumns[index] = key.getColumnId() -1;
+            keyOrders[index++] = key.getIsAscending();
+        }
 	}
 
     @Override
@@ -70,14 +104,15 @@ public class WindowAggregatorImpl implements WindowAggregator {
                                 int resultColumnId,
                                 FrameDefinition frameDefinition){
         this.cachedAggregator = (SpliceGenericWindowFunction) cachedAggregator;
-        this.windowInfo =null;
         this.cf=null;
 
         this.functionColumnId = functionColumnId;
         this.inputColumnIds = inputColumnIds;
         this.resultColumnId = resultColumnId;
         this.functionName = cachedAggregator.toString();
+        this.functionClassName = cachedAggregator.toString();
         this.frameDefinition = frameDefinition;
+        this.resultColumnDesc = null;
     }
 
     @Override
@@ -168,11 +203,11 @@ public class WindowAggregatorImpl implements WindowAggregator {
         SpliceGenericWindowFunction aggInstance = cachedAggregator;
         if (aggInstance == null){
             try{
-                Class aggClass = cf.loadApplicationClass(windowInfo.getWindowFunctionClassName());
+                Class aggClass = cf.loadApplicationClass(this.functionClassName);
                 WindowFunction function = (WindowFunction) aggClass.newInstance();
                 function.setup(cf,
-                        windowInfo.getFunctionName(),
-                        windowInfo.getResultDescription().getColumnInfo()[ 0 ].getType()
+                        this.functionName,
+                        this.resultColumnDesc
                 );
                 function = function.newWindowFunction();
                 cachedAggregator = (SpliceGenericWindowFunction) function;
@@ -196,40 +231,5 @@ public class WindowAggregatorImpl implements WindowAggregator {
             newCols[i++] = cols[colID -1]; // colIDs are 1-based; convert to 0-based
         }
         return newCols;
-    }
-
-    private void createDefinition(WindowFunctionInfo windowInfo) {
-        // create the frame from passed in frame info
-        frameDefinition = FrameDefinition.create(windowInfo.getFrameInfo());
-
-        ColumnOrdering[] partition = windowInfo.getPartitionInfo();
-        partitionColumns = new int[partition.length];
-        int index=0;
-        for(ColumnOrdering partCol : partition){
-            // coming from Derby, these are 1-based column positions
-            // convert to 0-based
-            partitionColumns[index++] = partCol.getColumnId() -1;
-        }
-
-        ColumnOrdering[] orderings = windowInfo.getOrderByInfo();
-        sortColumns = new int[orderings.length];
-        index = 0;
-        for(ColumnOrdering order : orderings){
-            // coming from Derby, these are 1-based column positions
-            // convert to 0-based
-            sortColumns[index++] = order.getColumnId() -1;
-        }
-
-        ColumnOrdering[] keys = windowInfo.getKeyInfo();
-
-        keyColumns = new int[keys.length];
-        keyOrders = new boolean[keys.length];
-        index = 0;
-        for (ColumnOrdering key : keys) {
-            // coming from Derby, these are 1-based column positions
-            // convert to 0-based
-            keyColumns[index] = key.getColumnId() -1;
-            keyOrders[index++] = key.getIsAscending();
-        }
     }
 }

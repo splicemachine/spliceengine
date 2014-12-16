@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations.window;
 
 import java.io.IOException;
-import java.util.List;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -11,12 +10,12 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.utils.PartitionAwarePushBackIterator;
 
 /**
- * Created by jyuan on 9/15/14.
+ * @author  jyuan on 9/15/14.
  */
 public class PhysicalGroupFrameBuffer extends BaseFrameBuffer{
 
     public PhysicalGroupFrameBuffer (SpliceRuntimeContext runtimeContext,
-                                     List<WindowAggregator> aggregators,
+                                     WindowAggregator[] aggregators,
                                      PartitionAwarePushBackIterator<ExecRow> source,
                                      FrameDefinition frameDefinition,
                                      int[] sortColumns,
