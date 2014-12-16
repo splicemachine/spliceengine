@@ -184,8 +184,8 @@ public class WindowTestingFramework {
         // create template row given
         ExecRow templateRow = createTemplateRow(inputRowDefinition, function, resultColID,
                                                 inputColumnIDs, aggregatorColID, expectedResultsFunction.getNullReturnValue());
-        List<WindowAggregator> functions = Arrays.asList(new WindowAggregator[] {
-            new WindowAggregatorImpl(function,aggregatorColID, inputColumnIDs,resultColID, frameDefinition)});
+        WindowAggregator[] functions = new WindowAggregator[] {
+            new WindowAggregatorImpl(function,aggregatorColID, inputColumnIDs,resultColID, frameDefinition)};
 
         // iterate thru the partitions creating a frame buffer for each
         List<ExecRow> results = new ArrayList<ExecRow>();

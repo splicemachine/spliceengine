@@ -88,7 +88,6 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
     protected SpliceOperation source;
     protected static List<NodeType> nodeTypes;
     protected ExecIndexRow sortTemplateRow;
-    protected ExecIndexRow sourceExecIndexRow;
     private ExecRow templateRow;
     private List keyValues;
     private PairDecoder rowDecoder;
@@ -165,8 +164,7 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
         baseScan = context.getScan();
         windowContext.init(context);
         sortTemplateRow = windowContext.getSortTemplateRow();
-        sourceExecIndexRow = windowContext.getSourceIndexRow();
-        templateRow = getExecRowDefinition();
+        templateRow = windowContext.getSourceIndexRow();
         serializers = VersionedSerializers.latestVersion(false).getSerializers(templateRow);
         dataHash = null;
         firstStepHashPrefix = null;
@@ -453,7 +451,7 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
                                                  SpliceRuntimeContext ctx,
                                                  final byte[] uniqueID) throws StandardException {
 
-        final DataValueDescriptor[] cols = sourceExecIndexRow.getRowArray();
+        final DataValueDescriptor[] cols = templateRow.getRowArray();
         ScanBoundary boundary = new BaseHashAwareScanBoundary(SpliceConstants.DEFAULT_FAMILY_BYTES){
             @Override
             public byte[] getStartKey(Result result) {
@@ -483,7 +481,7 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
     @Override
     public ExecRow getExecRowDefinition() {
         SpliceLogUtils.trace(LOG,"getExecRowDefinition");
-        return sourceExecIndexRow.getClone();
+        return templateRow.getClone();
     }
 
     @Override

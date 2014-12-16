@@ -18,7 +18,7 @@ abstract public class BaseFrameBuffer implements WindowFrameBuffer{
     protected final SpliceRuntimeContext runtimeContext;
     protected final long frameStart;
     protected final long frameEnd;
-    private final List<WindowAggregator> aggregators;
+    private final WindowAggregator[] aggregators;
     private final ExecRow templateRow;
 
     protected int start;
@@ -31,7 +31,7 @@ abstract public class BaseFrameBuffer implements WindowFrameBuffer{
     protected int[] sortColumns;
 
     public static WindowFrameBuffer createFrameBuffer(SpliceRuntimeContext runtimeContext,
-                                                      List<WindowAggregator> aggregators,
+                                                      WindowAggregator[] aggregators,
                                                       PartitionAwarePushBackIterator<ExecRow> source,
                                                       FrameDefinition frameDefinition,
                                                       int[] sortColumns,
@@ -49,7 +49,7 @@ abstract public class BaseFrameBuffer implements WindowFrameBuffer{
     }
 
     public BaseFrameBuffer (SpliceRuntimeContext runtimeContext,
-                            List<WindowAggregator> aggregators,
+                            WindowAggregator[] aggregators,
                             PartitionAwarePushBackIterator<ExecRow> source,
                             FrameDefinition frameDefinition,
                             int[] sortColumns,

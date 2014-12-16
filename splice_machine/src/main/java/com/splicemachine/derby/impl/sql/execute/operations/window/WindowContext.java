@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations.window;
 
 import java.io.Externalizable;
-import java.util.List;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
@@ -10,7 +9,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.operations.WarningCollector;
 
 /**
- * Created by jyuan on 7/25/14.
+ * @author  jyuan on 7/25/14.
  */
 public interface WindowContext extends WarningCollector,Externalizable {
 
@@ -25,7 +24,7 @@ public interface WindowContext extends WarningCollector,Externalizable {
      * applied to the same <code>ExecRow</code>.
      * @return the list of window functions to be applied to a given row.
      */
-    List<WindowAggregator> getWindowFunctions();
+    WindowAggregator[] getWindowFunctions();
 
     ExecIndexRow getSortTemplateRow() throws StandardException;
 

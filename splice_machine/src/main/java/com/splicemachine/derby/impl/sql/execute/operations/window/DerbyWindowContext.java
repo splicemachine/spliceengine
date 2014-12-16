@@ -3,9 +3,7 @@ package com.splicemachine.derby.impl.sql.execute.operations.window;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.List;
 
-import com.google.common.collect.Lists;
 import org.apache.derby.iapi.error.SQLWarningFactory;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.ClassFactory;
@@ -15,8 +13,6 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.derby.impl.sql.execute.WindowFunctionInfo;
 import org.apache.derby.impl.sql.execute.WindowFunctionInfoList;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
@@ -29,13 +25,13 @@ import com.splicemachine.derby.impl.SpliceMethod;
  *         Date: 7/8/14
  */
 public class DerbyWindowContext implements WindowContext {
-    private static Logger LOG = Logger.getLogger(DerbyWindowContext.class);
+//    private static Logger LOG = Logger.getLogger(DerbyWindowContext.class);
 
 
     private String rowAllocatorMethodName;
     private int aggregateItem;
     private Activation activation;
-    private List<WindowAggregator> windowAggregators;
+    private WindowAggregator[] windowAggregators;
     private SpliceMethod<ExecRow> rowAllocator;
     private ExecIndexRow sortTemplateRow;
     private ExecIndexRow sourceExecIndexRow;
@@ -65,7 +61,7 @@ public class DerbyWindowContext implements WindowContext {
     }
 
     @Override
-    public List<WindowAggregator> getWindowFunctions() {
+    public WindowAggregator[] getWindowFunctions() {
         return windowAggregators;
     }
 
@@ -88,29 +84,29 @@ public class DerbyWindowContext implements WindowContext {
     @Override
     public int[] getKeyColumns() {
         // Any and all aggregators in a window context share the same over() clause
-        return this.windowAggregators.get(0).getKeyColumns();
+        return this.windowAggregators[0].getKeyColumns();
     }
 
     @Override
     public boolean[] getKeyOrders() {
         // Any and all aggregators in a window context share the same over() clause
-        return this.windowAggregators.get(0).getKeyOrders();
+        return this.windowAggregators[0].getKeyOrders();
     }
 
     @Override
     public int[] getPartitionColumns() {
         // Any and all aggregators in a window context share the same over() clause
-        return this.windowAggregators.get(0).getPartitionColumns();
+        return this.windowAggregators[0].getPartitionColumns();
     }
 
     @Override
     public FrameDefinition getFrameDefinition() {
-        return this.windowAggregators.get(0).getFrameDefinition();
+        return this.windowAggregators[0].getFrameDefinition();
     }
 
     @Override
     public int[] getSortColumns() {
-        return this.windowAggregators.get(0).getSortColumns();
+        return this.windowAggregators[0].getSortColumns();
     }
 
     @Override
@@ -132,14 +128,14 @@ public class DerbyWindowContext implements WindowContext {
         this.aggregateItem = in.readInt();
     }
 
-    private static List<WindowAggregator> buildWindowAggregators(WindowFunctionInfoList infos, ClassFactory cf) {
-        List<WindowAggregator> windowAggregators = Lists.newArrayList();
+    private static WindowAggregator[] buildWindowAggregators(WindowFunctionInfoList infos, ClassFactory cf) {
+        WindowAggregator[] windowAggregators = new WindowAggregator[infos.size()];
+        int i=0;
         for (WindowFunctionInfo info : infos){
             // WindowFunctionInfos batched into same context only differ by
             // their functions implementations; all over() clauses are identical
-            windowAggregators.add(new WindowAggregatorImpl(info, cf));
+            windowAggregators[i++] = new WindowAggregatorImpl(info, cf);
         }
-
         return windowAggregators;
     }
 }
