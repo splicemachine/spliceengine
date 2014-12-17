@@ -67,7 +67,15 @@ public class SpliceSchemaWatcher extends TestWatcher {
 		} catch (Exception e) {
 			LOG.error(tag("error Dropping " + e.getMessage(), schemaName));
 			e.printStackTrace();
-			throw new RuntimeException(e);
+            try {
+                if (connection != null) {
+                    connection.rollback();
+                }
+            } catch (SQLException e1) {
+                LOG.error(tag("error Rolling back " + e1.getMessage(), schemaName));
+                e1.printStackTrace();
+            }
+            throw new RuntimeException(e);
 		} finally {
 			DbUtils.commitAndCloseQuietly(connection);
 		}
