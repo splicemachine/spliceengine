@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
+import com.splicemachine.tools.version.SpliceMachineVersion;
 import org.apache.derby.catalog.AliasInfo;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.db.Database;
@@ -51,7 +52,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.hbase.ManifestReader;
+import com.splicemachine.tools.version.ManifestReader;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.sql.catalog.upgrade.SpliceCatalogUpgradeScripts;
 import com.splicemachine.derby.impl.sql.depend.SpliceDependencyManager;
@@ -407,8 +408,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
     public void boot(boolean create, Properties startParams) throws StandardException {
         defaultProperties = startParams;
         SpliceLogUtils.trace(LOG, "boot with create=%s,startParams=%s",create,startParams);
-        ManifestReader.SpliceMachineVersion spliceMachineVersion = (new ManifestReader()).createVersion();
-        if (spliceMachineVersion.getRelease().compareToIgnoreCase("UNKNOWN") != 0) {
+        SpliceMachineVersion spliceMachineVersion = (new ManifestReader()).createVersion();
+        if (!spliceMachineVersion.isUnknown()) {
             spliceSoftwareVersion = new Splice_DD_Version(this, spliceMachineVersion.getMajorVersionNumber(),
                     spliceMachineVersion.getMinorVersionNumber(), spliceMachineVersion.getPatchVersionNumber());
         }
