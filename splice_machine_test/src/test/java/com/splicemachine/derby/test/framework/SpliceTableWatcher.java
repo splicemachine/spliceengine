@@ -81,6 +81,15 @@ public class SpliceTableWatcher extends TestWatcher {
             connection.commit();
         } catch (Exception e) {
             LOG.error(tag("error Dropping " + e.getMessage(), schemaName, tableName),e);
+            e.printStackTrace();
+            try {
+                if (connection != null) {
+                    connection.rollback();
+                }
+            } catch (SQLException e1) {
+                LOG.error(tag("error Rolling back " + e1.getMessage(), schemaName, tableName), e1);
+                e1.printStackTrace();
+            }
             throw new RuntimeException(e);
         } finally {
             DbUtils.commitAndCloseQuietly(connection);
