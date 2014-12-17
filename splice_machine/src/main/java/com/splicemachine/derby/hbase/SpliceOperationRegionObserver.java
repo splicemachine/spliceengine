@@ -17,14 +17,18 @@ import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.ipc.ServerNotRunningYetException;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.HRegionUtil;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
+import org.apache.hadoop.hbase.regionserver.KeyValueScanner;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
+import org.apache.hadoop.hbase.regionserver.Store;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableSet;
 
 /**
  * Region Observer looking for a scan with <i>SpliceServerInstructions</i> set on the attribute map of the scan.
@@ -164,5 +168,29 @@ public class SpliceOperationRegionObserver extends BaseRegionObserver {
         }
         return tr;
     }
+
+    /**
+     * MapReduce Scans will grab store files from the filesystem.  However, we still need to 
+     * grab the memstore scan...
+     * 
+     * @param c
+     * @param store
+     * @param scan
+     * @param targetCols
+     * @param s
+     * @return
+     * @throws IOException
+     */
+	@Override
+	public KeyValueScanner preStoreScannerOpen(
+			ObserverContext<RegionCoprocessorEnvironment> c, Store store,
+			Scan scan, NavigableSet<byte[]> targetCols, KeyValueScanner s)
+			throws IOException {
+		if (scan.getAttribute("MR") != null)
+			s = HRegionUtil.getMemstoreScanner(store);
+		return super.preStoreScannerOpen(c, store, scan, targetCols, s);
+	}
+    
+    
 }
 
