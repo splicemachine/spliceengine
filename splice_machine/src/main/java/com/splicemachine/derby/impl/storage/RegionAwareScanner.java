@@ -71,6 +71,7 @@ public class RegionAwareScanner extends ReopenableScanner implements SpliceResul
     private final Txn txn;
     private final Scan scan;
     private Scan localScan;
+    private long localRows;
 
 		//statistics stuff
 		private final MetricFactory metricFactory;
@@ -172,6 +173,7 @@ public class RegionAwareScanner extends ReopenableScanner implements SpliceResul
             }
             if(keyValues.size()>0){
                 setLastRow(dataLib.getDataRow(keyValues.get(keyValues.size()-1)));
+                localRows++;
                 return new Result(keyValues);
             }else{
                 localExhausted=true;
@@ -207,6 +209,35 @@ public class RegionAwareScanner extends ReopenableScanner implements SpliceResul
                 remoteReadTimer.tick(0);
                 lookAheadExhausted = true;
             }
+        }
+
+        if (LOG.isDebugEnabled()) {
+            SpliceLogUtils.debug(LOG, "read %d rows from remote", remoteReadTimer.getNumEvents());
+            SpliceLogUtils.debug(LOG, "read %d rows from local", localRows);
+            byte[] scanStart = scan.getStartRow();
+            byte[] scanFinish = scan.getStopRow();
+            if (scanStart != null)
+                SpliceLogUtils.debug(LOG,"scanStart         = %s", BytesUtil.toHex(scanStart));
+            if (scanFinish != null)
+                SpliceLogUtils.debug(LOG,"scanStart         = %s", BytesUtil.toHex(scanFinish));
+            if (regionStart != null)
+                SpliceLogUtils.debug(LOG,"regionStart       = %s", BytesUtil.toHex(regionStart));
+            if (regionFinish != null)
+                SpliceLogUtils.debug(LOG,"regionFinish      = %s", BytesUtil.toHex(regionFinish));
+            if (remoteStart!=null)
+                SpliceLogUtils.debug(LOG,"remoteStart       = %s", BytesUtil.toHex(remoteStart));
+            if (remoteFinish != null)
+                SpliceLogUtils.debug(LOG,"remoteFinish      = %s", BytesUtil.toHex(remoteFinish));
+            if (localStart != null)
+                SpliceLogUtils.debug(LOG,"localStart        = %s", BytesUtil.toHex(localStart));
+            if (localFinish != null)
+                SpliceLogUtils.debug(LOG,"localFinish       = %s", BytesUtil.toHex(localFinish));
+            if (localScanner != null)
+                SpliceLogUtils.debug(LOG, "localScanner     = %s", localScanner);
+            if (lookAheadScanner != null)
+                SpliceLogUtils.debug(LOG, "lookAheadScanner = %s", lookAheadScanner);
+            if (lookBehindScanner != null)
+                SpliceLogUtils.debug(LOG, "lookBehindScanner= %s", lookBehindScanner);
         }
         return null;
     }
@@ -332,6 +363,12 @@ public class RegionAwareScanner extends ReopenableScanner implements SpliceResul
     	//deal with the end of the region
         if(Bytes.compareTo(regionFinish,scanFinish)>=0 || regionFinish.length<=0){
             //cool, no remote ends!
+            if (regionFinish != null)
+                SpliceLogUtils.debug(LOG, "handleEndOfRegion(): regionFinish = %s", BytesUtil.toHex(regionFinish));
+
+            if (scanFinish != null)
+                SpliceLogUtils.debug(LOG, "handleEndOfRegion(): scanFinish   = %s", BytesUtil.toHex(scanFinish));
+
             localFinish = scanFinish;
             lookAheadExhausted = true;
         }else{
@@ -380,8 +417,18 @@ public class RegionAwareScanner extends ReopenableScanner implements SpliceResul
         byte[] scanStart = scan.getStartRow();
         byte[] scanStop = scan.getStopRow();
         //deal with the start of the region
-        if(Bytes.compareTo(scanStart,regionStart)>=0||regionStart.length<=0||BytesUtil.intersect(scanStart, scanStop, regionStart, regionFinish) == null){
+        if(Bytes.compareTo(scanStart,regionStart)>0||regionStart.length<=0||BytesUtil.intersect(scanStart, scanStop, regionStart, regionFinish) == null){
             //cool, no remoteStarts!
+            if (LOG.isDebugEnabled()) {
+                if (regionStart != null)
+                    SpliceLogUtils.debug(LOG, "handleStartOfRegion(): regionStart  = %s", BytesUtil.toHex(regionStart));
+                if (regionFinish != null)
+                    SpliceLogUtils.debug(LOG, "handleStartOfRegion(): regionFinish = %s", BytesUtil.toHex(regionFinish));
+                if (scanStart != null)
+                    SpliceLogUtils.debug(LOG, "handleStartOfRegion(): scanStart    = %s", BytesUtil.toHex(scanStart));
+                if (scanStop != null)
+                    SpliceLogUtils.debug(LOG, "handleStartOfRegion(): scanStop     = %s", BytesUtil.toHex(scanStop));
+            }
             localStart = scanStart;
             lookBehindExhausted=true;
         }else{
@@ -392,8 +439,10 @@ public class RegionAwareScanner extends ReopenableScanner implements SpliceResul
             //carry over scan filters
             startScan.setFilter(getCorrectFilter(scan.getFilter(), txn));
             RegionScanner localScanner = null;
+            ResultScanner behindScanner = null;
             try{
-            	localScanner = new BufferedRegionScanner(region,region.getScanner(startScan),startScan,startScan.getCaching(),metricFactory,HTransactorFactory.getTransactor().getDataLib() );
+            	localScanner = new BufferedRegionScanner(region,region.getScanner(startScan),
+                        startScan,startScan.getCaching(),metricFactory,HTransactorFactory.getTransactor().getDataLib());
                 List keyValues = Lists.newArrayList();
                 localScanner.next(keyValues);
                 if (keyValues.isEmpty()) {
@@ -402,28 +451,53 @@ public class RegionAwareScanner extends ReopenableScanner implements SpliceResul
                     lookBehindExhausted=true;
                     return;
                 }
-                Result behindResult = dataLib.newResult(keyValues);
-                byte[] startKey = boundary.getStartKey(behindResult);
+                Result firstRowInRegion = dataLib.newResult(keyValues);
+                byte[] startKey = boundary.getStartKey(firstRowInRegion);
                 if (startKey == null) {
                     localStart = regionStart;
                     lookBehindExhausted=true;
                     return;
                 }
                 	
-                if(Bytes.compareTo(startKey,regionStart)>=0){
+                if(Bytes.compareTo(startKey,regionStart)>0){
                     //the key starts entirely in this region, so we don't need
                     //to worry about lookbehinds or skipping ahead
                     localStart = regionStart;
                     lookBehindExhausted=true;
-                }else if(boundary.shouldLookBehind(startKey)){
-                    localStart = regionStart;
-                    remoteStart = startKey;
-                }else if(boundary.shouldStartLate(startKey)){
-                    localStart = boundary.getStopKey(behindResult);
-                    lookBehindExhausted=true;
+                }else {
+                    // if startKey <= regionStart, need to look back
+                    Scan behindScan = boundary.buildScan(txn, startKey, regionStart);
+                    behindScan.setCaching(1);
+                    behindScan.setBatch(1);
+
+                    behindScanner = table.getScanner(behindScan);
+                    Result r = behindScanner.next();
+                    if (r == null) {
+                        //If no rows are in [startKey, regionStart), then this region begins with a new startKey
+                        if (LOG.isDebugEnabled()) {
+                            SpliceLogUtils.debug(LOG, "Rows with startKey %s starts from the beginning of region %s",
+                                    BytesUtil.toHex(startKey), region.getRegionNameAsString());
+                        }
+                        localStart = regionStart;
+                        lookBehindExhausted=true;
+                    }
+                    else {
+                        // there are rows in the range [startKey, regionStart). These rows must be in a previous region.
+                        // skip rows with this startKey in the current region
+                        if (LOG.isDebugEnabled()) {
+                            SpliceLogUtils.debug(LOG, "Skip rows with startKey %s at the beginning of region %s",
+                                    BytesUtil.toHex(startKey), region.getRegionNameAsString());
+                        }
+                        localStart = boundary.getStopKey(firstRowInRegion);
+                        lookBehindExhausted = true;
+                    }
                 }
             }finally{
-                if(localScanner!=null)localScanner.close();
+                if(localScanner!=null)
+                    localScanner.close();
+
+                if (behindScanner != null)
+                    behindScanner.close();
             }
         }
     }

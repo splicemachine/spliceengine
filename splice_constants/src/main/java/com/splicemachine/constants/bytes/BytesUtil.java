@@ -213,7 +213,7 @@ public class BytesUtil {
     /**
      * @return the value that sorts highest.
      */
-    private static byte[] max(Comparator<byte[]> comparator, byte[] x, byte[] y) {
+    public static byte[] max(Comparator<byte[]> comparator, byte[] x, byte[] y) {
         return (comparator.compare(x, y) <= 0) ? y : x;
     }
 
