@@ -1,3 +1,4 @@
 Manifest-Version: 1.0
 Main-Class: com.splicemachine.perf.runner.TestRunner
+ManifestFinderTest: valueExpectedByManifestFinderTest
 

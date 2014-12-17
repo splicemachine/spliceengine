@@ -23,7 +23,7 @@ import javax.management.MalformedObjectNameException;
 import javax.management.NotCompliantMBeanException;
 import javax.management.ObjectName;
 
-import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.tools.version.ManifestReader;
 import org.apache.derby.drda.NetworkServerControl;
 import org.apache.derby.iapi.db.OptimizerTrace;
 import org.apache.derby.iapi.error.StandardException;
@@ -51,7 +51,7 @@ import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
-import com.splicemachine.derby.hbase.ManifestReader.SpliceMachineVersion;
+import com.splicemachine.tools.version.SpliceMachineVersion;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.scheduler.DistributedJobScheduler;
@@ -506,15 +506,9 @@ public class SpliceDriver extends SIConstants {
             ObjectName txnStoreName = new ObjectName("com.splicemachine.txn:type=TxnStoreManagement");
             mbs.registerMBean(TransactionStorage.getTxnStoreManagement(),txnStoreName);
 
-        } catch (MalformedObjectNameException e) {
+        } catch (MalformedObjectNameException | NotCompliantMBeanException | InstanceAlreadyExistsException | MBeanRegistrationException e) {
             //we want to log the message, but this shouldn't affect startup
             SpliceLogUtils.error(LOG,"Unable to register JMX entries",e);
-        } catch (NotCompliantMBeanException e) {
-            SpliceLogUtils.error(LOG, "Unable to register JMX entries", e);
-        } catch (InstanceAlreadyExistsException e) {
-            SpliceLogUtils.error(LOG, "Unable to register JMX entries", e);
-        } catch (MBeanRegistrationException e) {
-            SpliceLogUtils.error(LOG, "Unable to register JMX entries", e);
         }
     }
 
