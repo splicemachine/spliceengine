@@ -13,7 +13,7 @@ import java.util.List;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import org.apache.hadoop.hbase.util.Pair;
-import com.splicemachine.derby.hbase.ManifestReader.SpliceMachineVersion;
+import com.splicemachine.tools.version.SpliceMachineVersion;
 import com.splicemachine.derby.hbase.SpliceBaseIndexEndpoint.ActiveWriteHandlersIface;
 import com.splicemachine.derby.impl.job.scheduler.StealableTaskSchedulerManagement;
 import com.splicemachine.derby.impl.job.scheduler.TieredSchedulerManagement;
