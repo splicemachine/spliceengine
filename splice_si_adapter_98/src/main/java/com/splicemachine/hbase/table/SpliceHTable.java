@@ -242,10 +242,10 @@ public class SpliceHTable extends HTable {
         }
     }
 
-    private List<Pair<byte[], byte[]>> getKeys(byte[] startKey, byte[] endKey, int attemptCount) throws IOException {
-        if (attemptCount > maxRetries) {
-            SpliceLogUtils.error(LOG, "Unable to obtain full region set from cache");
-            throw new RetriesExhaustedException("Unable to obtain full region set from cache after "
+    private List<Pair<byte[], byte[]>> getKeys(byte[] startKey, byte[] endKey, int attemptCount) throws IOException {    	
+    	
+    	if (attemptCount>50 && attemptCount%50==0) {
+            SpliceLogUtils.warn(LOG, "Unable to obtain full region set from cache after "
                                                     + attemptCount + " attempts on table " + Bytes.toString(tableNameBytes)
                                                     + " with startKey " + Bytes.toStringBinary(startKey) + " and end " +
                                                     "key " + Bytes.toStringBinary(endKey));
