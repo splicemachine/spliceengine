@@ -12,9 +12,16 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.SQLLongint;
 
 /**
- * Implementation of DENSE_RANK -  Ranks each row in a partition. If values in the ranking column
- * are the same, they receive the same rank. The next number in the ranking sequence is then used
- * to rank the row or rows that follow.
+ * Implementation of DENSE_RANK -  Densely ranks each row in a partition.
+ * <p/>
+ * If values in the ranking columns (ORDER BY) are the same, they receive the same rank. Conversely,
+ * when the ranking columns for the current row differ from the ranking columns in the previous row
+ * the current row's rank increases.  That is, dense rank will have a sequence like
+ * <code>1, 2, 3, 3, 3, 4, 5,...</code>
+ * <p/>
+ * Note that, since the rows coming to us have already been sorted by their ranking columns, we don't
+ * need to compare to the point of determining order.  We just need to see if the ranking columns
+ * differ.
  *
  * @author Jeff Cunningham
  *         Date: 8/5/14
@@ -43,7 +50,7 @@ public class DenseRankFunction extends SpliceGenericWindowFunction implements Wi
     protected void calculateOnAdd(WindowChunk chunk, DataValueDescriptor[] dvds) throws StandardException {
         DataValueDescriptor[] previous = chunk.getPrevious();
         if ( isNullOrEmpty(previous) || compareDVDArrays(previous,dvds) != 0) {
-            // if previous result is null or if values differ, rank increases
+            // if previous result is null or if current and previous values differ, rank increases
             rank++;
         }
         // always collect the now previous value

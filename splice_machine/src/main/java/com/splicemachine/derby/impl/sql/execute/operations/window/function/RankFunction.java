@@ -12,8 +12,16 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.SQLLongint;
 
 /**
- * Implementation of RANK -  Ranks each row in a partition. If values in the ranking column are the same,
- * they receive the same rank, however, the next number in the ranking sequence is skipped.
+ * Implementation of RANK -  Sparsely ranks each row in a partition.
+ * <p/>
+ * If values in the ranking columns (ORDER BY) are the same, they receive the same rank. However,
+ * when the ranking columns for the current row differ from the ranking columns in the previous row
+ * the current row's rank increases but interleaving rank numbers are skipped. That is, sparse
+ * rank will have a sequence like <code>1, 2, 3, 3, 3, 6, 7,...</code>
+ * <p/>
+ * Note that, since the rows coming to us have already been sorted by their ranking columns, we don't
+ * need to compare to the point of determining order.  We just need to see if the ranking columns
+ * differ.
  *
  * @author Jeff Cunningham
  *         Date: 8/5/14
@@ -45,18 +53,16 @@ public class RankFunction extends SpliceGenericWindowFunction implements WindowF
 
     @Override
     protected void calculateOnAdd(WindowChunk chunk, DataValueDescriptor[] dvds) throws StandardException {
-        DataValueDescriptor[] result = chunk.getPrevious();
-        if (isNullOrEmpty(result)) {
+        DataValueDescriptor[] previous = chunk.getPrevious();
+        // the row counter always increases
+        rowNum++;
+
+        if (isNullOrEmpty(previous)) {
             // if previous result is null, rank increases
-            rowNum++;
             rank++;
-        } else if (compareDVDArrays(result, dvds) == 0) {
+        } else if (compareDVDArrays(previous, dvds) != 0) {
             // rank increasing as long as values differ
             // if values are equal, only rowNum is increases
-            rowNum++;
-        } else {
-            // values are not equal, inc rank
-            rowNum++;
             if (rank != rowNum) {
                 rank = rowNum;
             }
