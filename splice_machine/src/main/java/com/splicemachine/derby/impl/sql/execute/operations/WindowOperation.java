@@ -481,7 +481,9 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
     @Override
     public ExecRow getExecRowDefinition() {
         SpliceLogUtils.trace(LOG,"getExecRowDefinition");
-        return templateRow.getClone();
+//        return templateRow.getClone();
+        // DEBUG
+        return templateRow;
     }
 
     @Override
