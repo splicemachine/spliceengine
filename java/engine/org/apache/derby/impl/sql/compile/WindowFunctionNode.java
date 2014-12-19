@@ -200,7 +200,7 @@ public abstract class WindowFunctionNode extends AggregateNode {
                 if (lower instanceof VirtualColumnNode) {
                     // If the "lower" expression is a VCN, create a CR pointing to its RC
                     // add to the plan tree
-                    ResultColumn targetRC = ((ColumnReference)node).getSource();
+                    ResultColumn targetRC = ((VirtualColumnNode)lower).getSourceColumn();
 
                     ColumnReference tmpColumnRef = (ColumnReference) getNodeFactory().getNode(
                         C_NodeTypes.COLUMN_REFERENCE,

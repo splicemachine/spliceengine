@@ -53,6 +53,7 @@ import org.apache.derby.iapi.sql.compile.RowOrdering;
 import org.apache.derby.iapi.sql.dictionary.ColumnDescriptor;
 import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
+import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.derby.impl.sql.execute.IndexColumnOrder;
 import org.apache.derby.impl.sql.execute.WindowFunctionInfo;
 import org.apache.derby.impl.sql.execute.WindowFunctionInfoList;
@@ -630,6 +631,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                     // generated nodes are ones we've already created
                     ColumnDescriptor rcDescriptor = rc.getTableColumnDescriptor();
                     if (rcDescriptor == null) {
+                        // Try to wrangle a ColumnDescriptor -- not all nodes have one
                         ValueNode exp = rc.getExpression();
                         if (exp instanceof ResultColumn) {
                             rcDescriptor = ((ResultColumn) exp).getTableColumnDescriptor();
@@ -646,10 +648,23 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                         }
                     }
 
-                    if (rcDescriptor != null &&
-                        rcDescriptor.equals(expression.getSourceResultColumn().getTableColumnDescriptor())) {
-                        // Found a match
-                        matchedRc = rc;
+                    if (rcDescriptor != null) {
+                        if (expression instanceof ColumnReference) {
+                            ResultColumn expRC = ((ColumnReference) expression).getSource();
+                            if (expRC != null) {
+                                ValueNode rcExp = expRC.getExpression();
+                                if (rcExp instanceof BaseColumnNode) {
+                                    // can't use BaseColumnNode to get ColumnDescriptor -- sourceResultColumn is null
+                                    if (rcDescriptor.getColumnName().equals(rcExp.getColumnName())) {
+                                        // Found a match
+                                        matchedRc = rc;
+                                    }
+                                } else if (rcDescriptor.equals(expression.getSourceResultColumn().getTableColumnDescriptor())) {
+                                    // Found a match
+                                    matchedRc = rc;
+                                }
+                            }
+                        }
                     }
                 }
                 if (matchedRc != null) {
