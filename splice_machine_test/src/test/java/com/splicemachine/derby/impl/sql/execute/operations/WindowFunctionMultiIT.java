@@ -1,6 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import static junit.framework.Assert.assertEquals;
+import static org.junit.Assert.assertEquals;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
