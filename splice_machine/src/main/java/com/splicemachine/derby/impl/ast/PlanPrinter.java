@@ -245,12 +245,12 @@ public class PlanPrinter extends AbstractSpliceVisitor {
                         if (exp instanceof VirtualColumnNode) {
                             ResultColumn rc = ((VirtualColumnNode)exp).getSourceColumn();
                             if (rc != null) {
-                                src = rc.getName();
+                                src = rc.getName()+"(from RS "+rc.getResultSetNumber()+")";
                             }
                         } else if (exp instanceof ColumnReference) {
                             ResultColumn rc = ((ColumnReference)exp).getSource();
                             if (rc != null) {
-                                src = rc.getName();
+                                src = rc.getName()+"(from RS "+rc.getResultSetNumber()+")";
                             }
                         } else if (exp instanceof ConstantNode) {
                             DataValueDescriptor dvd = ((ConstantNode)exp).getValue();
