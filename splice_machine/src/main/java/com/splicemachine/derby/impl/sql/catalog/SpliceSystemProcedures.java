@@ -20,6 +20,7 @@ import org.apache.derby.impl.sql.catalog.Procedure;
 
 import com.splicemachine.derby.impl.load.HdfsImport;
 import com.splicemachine.derby.impl.storage.TableSplit;
+import com.splicemachine.derby.impl.storage.TempSplit;
 
 /**
  * System procedure generator implementation class that extends
@@ -171,7 +172,14 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(splitProc2);
 
-        			/*
+                    /*
+        			 * Procedure to disable, recreate, and split SPLICETEMP table into 16 evenly distributed buckets
+        			 */
+					Procedure splitTemp = Procedure.newBuilder().name("SYSCS_SPLIT_TEMP")
+					        .numOutputParams(0).numResultSets(0).ownerClass(TempSplit.class.getCanonicalName()).build();
+					procedures.add(splitTemp);
+
+         			/*
         			 * Procedure get all active services
         			 */
                     Procedure getActiveServers = Procedure.newBuilder().name("SYSCS_GET_ACTIVE_SERVERS")
