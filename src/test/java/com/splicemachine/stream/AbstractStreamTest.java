@@ -4,7 +4,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
-public class BaseStreamTest {
+public class AbstractStreamTest {
 
     @Test
     public void forEach() throws StreamException {
@@ -20,7 +20,7 @@ public class BaseStreamTest {
         assertEquals(-45, accumulator.sum);
     }
 
-    private static class IntegerStream extends BaseStream<Integer> {
+    private static class IntegerStream extends AbstractStream<Integer> {
         int i = 0;
 
         @Override
@@ -28,6 +28,8 @@ public class BaseStreamTest {
             i++;
             return i < 10 ? i : null;
         }
+
+        @Override public void close() throws StreamException {  }
     }
 
     private static class SumAccumulator implements Accumulator<Integer> {

@@ -38,8 +38,8 @@ public class Metrics {
 
 		private static final IOStats NOOP_IO = new IOStats() {
 				@Override public TimeView getTime() { return NOOP_TIME_VIEW; }
-				@Override public long getRows() { return 0; }
-				@Override public long getBytes() { return 0; }
+				@Override public long elementsSeen() { return 0; }
+				@Override public long bytesSeen() { return 0; }
 		};
 
 		private static final TimeMeasure NOOP_TIME_MEASURE = new TimeMeasure() {

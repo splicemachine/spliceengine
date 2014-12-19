@@ -4,7 +4,7 @@ package com.splicemachine.stream;
  * @author Scott Fines
  *         Date: 8/13/14
  */
-class TransformingStream<T,V> extends BaseStream<V> {
+class TransformingStream<T,V> extends AbstractStream<V> {
     private final Stream<T> stream;
     private final Transformer<T, V> transformer;
 
@@ -20,4 +20,6 @@ class TransformingStream<T,V> extends BaseStream<V> {
         return transformer.transform(n);
     }
 
+    @Override
+    public void close() throws StreamException  {stream.close(); }
 }

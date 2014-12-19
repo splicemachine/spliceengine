@@ -1,6 +1,9 @@
 package com.splicemachine.stream;
 
-import java.io.IOException;
+import com.splicemachine.concurrent.traffic.TrafficController;
+import com.splicemachine.metrics.Metrics;
+import com.splicemachine.metrics.Stats;
+
 import java.util.Iterator;
 
 /**
@@ -11,27 +14,94 @@ import java.util.Iterator;
  */
 public class Streams {
 
-    public static <T> Stream<T> of(T...elements){
-        return new ArrayStream<T>(elements);
+    @SafeVarargs public static <T> Stream<T> of(T...elements){ return new ArrayStream<>(elements); }
+    public static <T> Stream<T> wrap(Iterator<T> iterator){ return new IteratorStream<>(iterator); }
+    public static <T> Stream<T> wrap(Iterable<T> iterable){ return new IteratorStream<>(iterable.iterator()); }
+    public static <T> PeekableStream<T> peekingStream(Stream<T> stream){ return new PeekingStream<>(stream); }
+    public static <T> Stream<T> rateLimit(Stream<T> stream,TrafficController rateLimiter){
+        return new RateLimitedStream<T>(stream,rateLimiter);
     }
 
-    public static <T> Stream<T> wrap(Iterator<T> iterator){
-        return new IteratorStream<T>(iterator);
+    @SuppressWarnings("unchecked") public static <T> Stream<T> empty(){ return (Stream<T>)EMPTY; }
+
+    @SuppressWarnings("unchecked") public static <T,V extends Stats> MeasuredStream<T,V> measuredEmpty(){ return (MeasuredStream<T,V>)MEASURED_EMPTY; }
+
+    /******************************************************************************************************************/
+    /*private helper methods and classes*/
+
+    private static final AbstractStream EMPTY =  new AbstractStream() {
+        @Override public Object next() throws StreamException { return null; }
+        @Override public void close() throws StreamException {  }
+    };
+
+    private static final AbstractMeasuredStream MEASURED_EMPTY = new AbstractMeasuredStream() {
+        @Override public Stats getStats() { return Metrics.noOpIOStats(); }
+        @Override public Object next() throws StreamException { return null; }
+        @Override public void close() throws StreamException {  }
+    };
+
+    private static class RateLimitedStream<T> extends AbstractStream<T>{
+        private final Stream<T> delegate;
+        private final TrafficController controller;
+
+        public RateLimitedStream(Stream<T> delegate, TrafficController controller) {
+            this.delegate = delegate;
+            this.controller = controller;
+        }
+
+        @Override
+        public T next() throws StreamException {
+            try {
+                controller.acquire(1);
+            } catch (InterruptedException e) {
+                throw new StreamException(e);
+            }
+            return delegate.next();
+        }
+
+        @Override public void close() throws StreamException { delegate.close(); }
+    }
+    static final class FilteredStream<T> extends ForwardingStream<T>{
+        private final Predicate<T> predicate;
+
+        public FilteredStream(Stream<T> delegate,Predicate<T> predicate) {
+            super(delegate);
+            this.predicate = predicate;
+        }
+
+        @Override
+        public T next() throws StreamException {
+            T n;
+            while((n = delegate.next())!=null){
+                if(predicate.apply(n)) return n;
+            }
+            return null;
+        }
     }
 
-    public static <T> Stream<T> wrap(Iterable<T> iterable){
-        return new IteratorStream<T>(iterable.iterator());
+    static final class LimitedStream<T> extends ForwardingStream<T> {
+        private final long maxSize;
+        private long numReturned;
+
+        public LimitedStream(Stream<T> stream, long maxSize) {
+            super(stream);
+            this.maxSize = maxSize;
+        }
+
+        @Override
+        public T next() throws StreamException {
+            if(numReturned>maxSize) return null;
+            T n = delegate.next();
+            if(n==null)
+                numReturned = maxSize+1; //prevent extraneous calls to the underlying stream
+            return n;
+        }
     }
 
-    public static <T> PeekableStream<T> peekingStream(Stream<T> stream){
-        return new PeekingStream<T>(stream);
-    }
-
-    public static <T> CloseableStream<T> asCloseableStream(Stream<T> stream){
-        return new NoOpCloseableStream<T>(stream);
-    }
-
-    private static class IteratorStream<T> extends BaseStream<T>{
+    private static class IteratorStream<T> extends AbstractStream<T> {
+        /*
+         * Stream representation of an Iterator
+         */
         private final Iterator<T> iterator;
 
         private IteratorStream(Iterator<T> iterator) {
@@ -43,9 +113,14 @@ public class Streams {
             if(!iterator.hasNext()) return null;
             return iterator.next();
         }
+
+        @Override public void close() throws StreamException { }//no-op
     }
 
-    private static class ArrayStream<T> extends BaseStream<T>{
+    private static class ArrayStream<T> extends AbstractStream<T> {
+        /*
+         * Stream representation of a fixed array
+         */
         private final T[] stream;
         private int position = 0;
 
@@ -60,22 +135,31 @@ public class Streams {
             position++;
             return n;
         }
+
+        @Override public void close() throws StreamException {  } //no-op
     }
 
-    private static class PeekingStream<T> extends BaseStream<T> implements PeekableStream<T> {
-        private final Stream<T> stream;
-
+    private static class PeekingStream<T> extends ForwardingStream<T> implements PeekableStream<T> {
+        /*
+         * Peekable version of any stream
+         */
         private T n;
 
         public PeekingStream(Stream<T> stream) {
-            this.stream = stream;
+            super(stream);
         }
 
         @Override
         public T peek() throws StreamException {
             if(n!=null) return n;
-            n = stream.next();
+            n = delegate.next();
             return n;
+        }
+
+        @Override
+        public void take() {
+            assert n!=null: "Called take without first calling peek!";
+            n = null; //strip away n;
         }
 
         @Override
@@ -86,21 +170,4 @@ public class Streams {
         }
     }
 
-    private static class NoOpCloseableStream<T> extends BaseCloseableStream<T> {
-        private final Stream<T> stream;
-
-        public NoOpCloseableStream(Stream<T> stream) {
-            this.stream = stream;
-        }
-
-        @Override
-        public void close() throws IOException {
-            //no-op
-        }
-
-        @Override
-        public T next() throws StreamException {
-            return stream.next();
-        }
-    }
 }

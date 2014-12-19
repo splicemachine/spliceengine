@@ -51,17 +51,4 @@ public class StreamsTest {
 
         assertEquals(null, stream1.peek());
     }
-
-    @Test
-    public void asCloseableStream() throws StreamException, IOException {
-        Stream<String> stream = Streams.of("111", "222", "333");
-
-        CloseableStream<String> stream1 = Streams.asCloseableStream(stream);
-
-        assertEquals("111", stream1.next());
-        assertEquals("222", stream1.next());
-        stream1.close(); // expect this to do nothing
-        assertEquals("333", stream1.next());
-    }
-
 }

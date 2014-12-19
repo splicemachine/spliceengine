@@ -14,8 +14,8 @@ public class MultiStatsView implements IOStats {
 		}
 
 		@Override public TimeView getTime() { return timeView; }
-		@Override public long getRows() { return totalRows; }
-		@Override public long getBytes() { return totalBytes; }
+		@Override public long elementsSeen() { return totalRows; }
+		@Override public long bytesSeen() { return totalBytes; }
 
 		public void update(TimeView time, long totalRows,long totalBytes){
 				this.timeView.update(time);
@@ -25,7 +25,7 @@ public class MultiStatsView implements IOStats {
 
 		public void merge(IOStats other){
 				this.timeView.update(other.getTime());
-				this.totalBytes+=other.getBytes();
-				this.totalRows+=other.getRows();
+				this.totalBytes+=other.bytesSeen();
+				this.totalRows+=other.elementsSeen();
 		}
 }

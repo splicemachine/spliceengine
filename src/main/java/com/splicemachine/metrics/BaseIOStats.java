@@ -17,7 +17,7 @@ public class BaseIOStats implements IOStats{
 
 		@Override public TimeView getTime() { return time; }
 
-		@Override public long getRows() { return rows; }
+		@Override public long elementsSeen() { return rows; }
 
-		@Override public long getBytes() { return bytes; }
+		@Override public long bytesSeen() { return bytes; }
 }
