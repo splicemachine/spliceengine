@@ -1,6 +1,8 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import static junit.framework.Assert.assertEquals;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -150,6 +152,42 @@ public class WindowFunctionIT extends SpliceUnitTest {
             "3, 'Zavaschi', 13999"
     };
 
+    private static String best_addr_freqDef = "(INDIVIDUAL_ID bigint, RESIDENCE_ID bigint, FILE_ID integer, GENERATION_QUALIFIER varchar(15), FIRST_NAME varchar(15), LAST_NAME varchar(15), US_ADDRESS_LINE_1 varchar(100), US_ADDRESS_LINE_2 varchar(100), US_ADDRESS_LINE_3 varchar(100), US_STATE varchar(100), US_CITY varchar(20), US_ZIP  varchar(10), US_ZIP4 varchar(10), BRAND integer, FREQUENCY bigint, RUS_NCOA_EFFECTIVE_DATE timestamp, RSOURCERECORD_POOL integer, RSOURCERECORD_SUM integer, SOURCE_DATE timestamp, RECORD_ID bigint, RWRNK bigint)";
+    public static final String best_addr_freq_NAME = "best_addr_freq";
+    protected static SpliceTableWatcher spliceTableWatcherBest_addr_freq = new SpliceTableWatcher(best_addr_freq_NAME,CLASS_NAME, best_addr_freqDef);
+
+    private static final String best_addr_freq_insert = "insert into %s (INDIVIDUAL_ID, RESIDENCE_ID, FILE_ID, GENERATION_QUALIFIER, FIRST_NAME, LAST_NAME, US_ADDRESS_LINE_1, US_ADDRESS_LINE_2, US_ADDRESS_LINE_3, US_STATE, US_CITY, US_ZIP, US_ZIP4, BRAND, FREQUENCY, RUS_NCOA_EFFECTIVE_DATE, RSOURCERECORD_POOL, RSOURCERECORD_SUM, SOURCE_DATE, RECORD_ID, RWRNK) values (%s)";
+    private static String[] best_addr_freqRows = {
+        "1,  7750, 1, 'a', 'a', 'a',        'Third Street', 'Suite 250', ' ', 'CA', 'San Francisco', '94105', '3333', 222, 1, '1900-01-01 00:00:00.0', 0, 0, NULL, 1, 1",
+        "1, 29308, 1, 'a', 'a', 'a',       'Second Street', 'Suite 300', ' ', 'CA', 'San Francisco', '94105', '2222', 222, 1, '1900-01-01 00:00:00.0', 0, 0, NULL, 1, 1",
+        "1,  7291, 1, 'a', 'a', 'a',       'Second Street', 'Suite 300', ' ', 'CA', 'San Francisco', '94105', '2222', 222, 1, '1900-01-01 00:00:00.0', 0, 0, NULL, 1, 1",
+        "1, 17020, 1, 'a', 'a', 'a',        'Third Street', 'Suite 250', ' ', 'CA', 'San Francisco', '94105', '3333', 222, 1, '1900-01-01 00:00:00.0', 0, 0, NULL, 1, 1",
+        "1, 20091, 1, 'a', 'a', 'a',        'Third Street', 'Suite 250', ' ', 'CA', 'San Francisco', '94105', '3333', 222, 1, '1900-01-01 00:00:00.0', 0, 0, NULL, 1, 1",
+        "1, 15865, 1, 'a', 'a', 'a',         'Turtle Rock',  '---', ' ', 'CA', 'Irvine', '96789', '5555', 222, 1, '1900-01-01 00:00:00.0', 0, 0, NULL, 1, 1",
+        "1, 30459, 1, 'a', 'a', 'a',         'Turtle Rock',  '---', ' ', 'CA', 'Irvine', '96789', '5555', 222, 1, '1900-01-01 00:00:00.0', 0, 0, NULL, 1, 1",
+        "1,   570, 1, 'a', 'a', 'a',       'Howard Street', 'Financial District', ' ', 'CA', 'San Francisco', '94105', '1111', 222, 1, '1900-01-01 00:00:00.0', 0, 0, NULL, 1, 1",
+        "1, 22471, 1, 'a', 'a', 'a',       'Howard Street', 'Financial District', ' ', 'CA', 'San Francisco', '94105', '1111', 222, 1, '1900-01-01 00:00:00.0', 0, 0, NULL, 1, 1",
+        "1,  1337, 1, 'a', 'a', 'a', '19000 Stevens Creek', 'Suite A', ' ', 'CA', 'Cupertino', '95014', '8765', 222, 1, '1900-01-01 00:00:00.0', 0, 0, NULL, 1, 1"
+    };
+
+    private static String best_ids_poolDef = "(INDIVIDUAL_ID bigint, RESIDENCE_ID bigint, HOUSEHOLD_ID bigint, FILE_ID integer, BUSINESS_IND boolean, CREATED_BY varchar(100), CREATED_DATE timestamp, JOB_ID integer, BRAND integer, GENERATION_QUALIFIER varchar(15), FIRST_NAME varchar(25), LAST_NAME varchar(25), RSOURCERECORD_POOL integer, RSOURCERECORD_SUM integer, SOURCE_DATE timestamp, RECORD_ID bigint, US_ADDRESS_LINE_1 varchar(100), US_ADDRESS_LINE_2 varchar(100), US_ADDRESS_LINE_3 varchar(100), US_STATE varchar(100), US_CITY varchar(20), US_ZIP  varchar(10), US_ZIP4 varchar(10), RUS_NCOA_EFFECTIVE_DATE timestamp, RUS_NCOA_MOVE_CODE integer, RADDRESS_QUALITY integer, RPRIORITY integer, RINVALID_MOVE_IND integer, ROWRANK bigint)";
+    public static final String best_ids_pool_NAME = "best_ids_pool";
+    protected static SpliceTableWatcher spliceTableWatcherBest_ids_pool = new SpliceTableWatcher(best_ids_pool_NAME,CLASS_NAME, best_ids_poolDef);
+
+    private static final String best_ids_pool_insert = "insert into %s (INDIVIDUAL_ID ,RESIDENCE_ID ,HOUSEHOLD_ID ,FILE_ID ,BUSINESS_IND ,CREATED_BY ,CREATED_DATE ,JOB_ID ,BRAND ,GENERATION_QUALIFIER ,FIRST_NAME ,LAST_NAME ,RSOURCERECORD_POOL ,RSOURCERECORD_SUM ,SOURCE_DATE ,RECORD_ID ,US_ADDRESS_LINE_1 ,US_ADDRESS_LINE_2 ,US_ADDRESS_LINE_3 ,US_STATE ,US_CITY ,US_ZIP ,US_ZIP4 ,RUS_NCOA_EFFECTIVE_DATE ,RUS_NCOA_MOVE_CODE ,RADDRESS_QUALITY ,RPRIORITY ,RINVALID_MOVE_IND ,ROWRANK ) values (%s)";
+    private static String[] best_ids_poolDefRows = {
+        "1,  8416, 1, 1, NULL, 'a', NULL, 1, 222, 'a', 'a', 'a', 0, 0, NULL, 1, 'Howard Street', 'Financial District', ' ', 'CA', 'San Francisco', '94105', '1111', '1900-01-01 00:00:00.0', 0, 0, 333, 0, 325",
+        "1, 26084, 1, 1, NULL, 'a', NULL, 1, 222, 'a', 'a', 'a', 0, 0, NULL, 1, 'Howard Street', 'Financial District', ' ', 'CA', 'San Francisco', '94105', '1111', '1900-01-01 00:00:00.0', 0, 0, 333, 0, 326",
+        "1, 30183, 1, 1, NULL, 'a', NULL, 1, 222, 'a', 'a', 'a', 0, 0, NULL, 1, 'Howard Street', 'Financial District', ' ', 'CA', 'San Francisco', '94105', '1111', '1900-01-01 00:00:00.0', 0, 0, 333, 0, 328",
+        "1,  4964, 1, 1, NULL, 'a', NULL, 1, 222, 'a', 'a', 'a', 0, 0, NULL, 1, 'Howard Street', 'Financial District', ' ', 'CA', 'San Francisco', '94105', '1111', '1900-01-01 00:00:00.0', 0, 0, 333, 0, 288",
+        "1,  5034, 1, 1, NULL, 'a', NULL, 1, 222, 'a', 'a', 'a', 0, 0, NULL, 1, 'Howard Street', 'Financial District', ' ', 'CA', 'San Francisco', '94105', '1111', '1900-01-01 00:00:00.0', 0, 0, 333, 0, 310",
+        "1, 32175, 1, 1, NULL, 'a', NULL, 1, 222, 'a', 'a', 'a', 0, 0, NULL, 1, 'Howard Street', 'Financial District', ' ', 'CA', 'San Francisco', '94105', '1111', '1900-01-01 00:00:00.0', 0, 0, 333, 0, 311",
+        "1, 21939, 1, 1, NULL, 'a', NULL, 1, 222, 'a', 'a', 'a', 0, 0, NULL, 1, 'Howard Street', 'Financial District', ' ', 'CA', 'San Francisco', '94105', '1111', '1900-01-01 00:00:00.0', 0, 0, 333, 0, 312",
+        "1, 21945, 1, 1, NULL, 'a', NULL, 1, 222, 'a', 'a', 'a', 0, 0, NULL, 1, 'Howard Street', 'Financial District', ' ', 'CA', 'San Francisco', '94105', '1111', '1900-01-01 00:00:00.0', 0, 0, 333, 0, 314",
+        "1, 14527, 1, 1, NULL, 'a', NULL, 1, 222, 'a', 'a', 'a', 0, 0, NULL, 1, 'Howard Street', 'Financial District', ' ', 'CA', 'San Francisco', '94105', '1111', '1900-01-01 00:00:00.0', 0, 0, 333, 0, 315",
+        "1, 19908, 1, 1, NULL, 'a', NULL, 1, 222, 'a', 'a', 'a', 0, 0, NULL, 1, 'Howard Street', 'Financial District', ' ', 'CA', 'San Francisco', '94105', '1111', '1900-01-01 00:00:00.0', 0, 0, 333, 0, 316"
+    };
+
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(spliceSchemaWatcher)
@@ -249,6 +287,40 @@ public class WindowFunctionIT extends SpliceUnitTest {
                                     String.format("insert into %s (ID_Dep, Nome, " +
                                                     "Salario) values (%s)",
                                             spliceTableWatcher5b, row));
+                            ps.execute();
+                        }
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            })
+            .around(spliceTableWatcherBest_addr_freq)
+            .around(new SpliceDataWatcher() {
+                @Override
+                protected void starting(Description description) {
+                    PreparedStatement ps;
+                    try {
+                        for (String row : best_addr_freqRows) {
+                            ps = spliceClassWatcher.prepareStatement(
+                                    String.format(best_addr_freq_insert,
+                                                  spliceTableWatcherBest_addr_freq, row));
+                            ps.execute();
+                        }
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            })
+            .around(spliceTableWatcherBest_ids_pool)
+            .around(new SpliceDataWatcher() {
+                @Override
+                protected void starting(Description description) {
+                    PreparedStatement ps;
+                    try {
+                        for (String row : best_ids_poolDefRows) {
+                            ps = spliceClassWatcher.prepareStatement(
+                                    String.format(best_ids_pool_insert,
+                                                  spliceTableWatcherBest_ids_pool, row));
                             ps.execute();
                         }
                     } catch (Exception e) {
@@ -1168,7 +1240,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
             String s = "SELECT empnum, dept, salary, count(salary) over (Partition by dept) as c from %s";
             String sqlText = String.format(s, this.getTableReference(TABLE_NAME));
             long count = conn.count(sqlText);
-            Assert.assertEquals(EMPTAB_ROWS.length, count);
+            assertEquals(EMPTAB_ROWS.length, count);
             xPlainTrace.turnOffTrace();
 
             ResultSet rs = conn.query("select * from SYS.SYSSTATEMENTHISTORY where transactionid = " + txnId);
@@ -1180,9 +1252,9 @@ public class WindowFunctionIT extends SpliceUnitTest {
             Assert.assertTrue(operation.getOperationType().compareToIgnoreCase(SpliceXPlainTrace.PROJECTRESTRICT)==0);
             operation = operation.getChildren().getFirst();
             Assert.assertTrue(operation.getOperationType().compareToIgnoreCase(SpliceXPlainTrace.WINDOW)==0);
-            Assert.assertEquals(EMPTAB_ROWS.length, operation.getInputRows());
-            Assert.assertEquals(EMPTAB_ROWS.length, operation.getOutputRows());
-            Assert.assertEquals(EMPTAB_ROWS.length * 2, operation.getWriteRows());
+            assertEquals(EMPTAB_ROWS.length, operation.getInputRows());
+            assertEquals(EMPTAB_ROWS.length, operation.getOutputRows());
+            assertEquals(EMPTAB_ROWS.length * 2, operation.getWriteRows());
         }
         catch (Exception e) {
             e.printStackTrace();
@@ -1968,6 +2040,29 @@ public class WindowFunctionIT extends SpliceUnitTest {
                         " 1981-09-08  |TURNER |1981-09-08 |\n" +
                         " 1981-02-22  | WARD  |1981-02-22 |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testDB2472BufferUnderflow() throws Exception {
+        String sqlText =
+                String.format("SELECT  BIP.Individual_ID ,BIP.Residence_ID ,BIP.Household_ID ,BIP.FILE_ID ," +
+                                  "BIP.Record_ID " +
+                                  ",BAF.Generation_Qualifier ,BAF.First_Name as FName ,BAF.Last_Name as LName ," +
+                                  "BAF.US_Address_Line_1 " +
+                                  ",BAF.US_Address_Line_2 ,BAF.US_Address_Line_3 ,BAF.US_State ,BAF.US_City ," +
+                                  "BAF.US_Zip ,BAF.US_Zip4 " +
+                                  ",BIP.Brand ,BIP.created_by ,BIP.created_date ,BIP.job_id ," +
+                                  "RANK() OVER  (PARTITION BY BIP.Individual_ID " +
+                                  "ORDER BY  BIP.rSourceRecord_sum ASC, BIP.Source_Date DESC, BIP.Record_ID desc, " +
+                                  "BIP.Individual_ID ASC ) " +
+                                  "AS rowrnk FROM  %s BAF  INNER JOIN %s BIP ON BAF.individual_id=BIP.individual_id " +
+                                  "WHERE BAF.rwrnk = 1",
+                              this.getTableReference(best_addr_freq_NAME), this.getTableReference(best_ids_pool_NAME));
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+//        System.out.println("\n" + sqlText + "\n" + TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        // Results too large
+        assertNotNull("\n" + sqlText + "\n", TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
 }
