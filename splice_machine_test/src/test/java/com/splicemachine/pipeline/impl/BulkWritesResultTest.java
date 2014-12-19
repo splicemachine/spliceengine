@@ -5,6 +5,7 @@ import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.splicemachine.pipeline.api.Code;
+import com.splicemachine.pipeline.constraint.ConstraintContext;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -16,6 +17,7 @@ public class BulkWritesResultTest {
         IntObjectOpenHashMap<WriteResult> failed = IntObjectOpenHashMap.newInstance();
         failed.put(2,WriteResult.notServingRegion());
         failed.put(1, WriteResult.interrupted());
+        failed.put(6,new WriteResult(Code.UNIQUE_VIOLATION,new ConstraintContext("testTable","uniqueConstraint")));
         result.addResult(new BulkWriteResult(WriteResult.partial(), IntArrayList.from(3,4,5),failed));
 
         byte[] encoded = result.encode();

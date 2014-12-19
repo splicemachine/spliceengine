@@ -155,6 +155,7 @@ public class ConstraintContext implements Externalizable {
             Encoding.decodeLongWithLength(data,offset,false,lengthHolder);
             int l = (int)lengthHolder[0];
             offset+=lengthHolder[1];
+            len+=lengthHolder[1];
             tableName = Encoding.decodeString(data, offset, l,false);
             offset+=l;
             len+=l;
@@ -162,9 +163,10 @@ public class ConstraintContext implements Externalizable {
             Encoding.decodeLongWithLength(data,offset,false,lengthHolder);
             int l = (int)lengthHolder[0];
             offset+=lengthHolder[1];
+            len+=lengthHolder[1];
             constraintName = Encoding.decodeString(data, offset, l,false);
             offset+=l;
-            len+=1;
+            len+=l;
         }
         lengthHolder[0] = len;
         lengthHolder[1] = offset;

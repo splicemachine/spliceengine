@@ -34,6 +34,7 @@ public class BulkWrites implements Externalizable {
 
 		public BulkWrites(TxnView txn){
 				this.txn = txn;
+				this.bulkWrites = ObjectArrayList.newInstance();
 		}
 
 		public BulkWrites(ObjectArrayList<BulkWrite> bulkWrites) {

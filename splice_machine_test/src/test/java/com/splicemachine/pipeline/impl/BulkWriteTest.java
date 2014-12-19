@@ -25,8 +25,8 @@ public class BulkWriteTest {
 				BulkWriteResult result = new BulkWriteResult();
 				result.setGlobalStatus(new WriteResult(Code.FAILED));
 				result.addResult(1, WriteResult.failed("Testing failure"));
-				byte[] bytes = PipelineUtils.toCompressedBytes(result);
-				BulkWriteResult decoded = PipelineUtils.fromCompressedBytes(bytes,BulkWriteResult.class);
+				byte[] bytes = result.encode();
+				BulkWriteResult decoded = BulkWriteResult.decode(bytes,0,bytes.length,new long[2]);
 				IntObjectOpenHashMap<WriteResult> failedRows = result.getFailedRows();
 				Assert.assertNotNull("Incorrect failed rows list!", failedRows.get(1));
 				WriteResult writeResult = failedRows.get(1);
@@ -37,11 +37,11 @@ public class BulkWriteTest {
 		@Test
 		public void testCanEncodeAndDecodeWriteCorrectly() throws Exception {
 				ObjectArrayList<KVPair> list = new ObjectArrayList<KVPair>();
-				KVPair kvPair = new KVPair(Encoding.encode("Hello"),new byte[]{}, KVPair.Type.DELETE);
+				KVPair kvPair = new KVPair(Encoding.encode("Hello"),new byte[]{}, KVPair.Type.UPSERT);
 				list.add(kvPair);
 				BulkWrite write = new BulkWrite(list,"dsfsdfdsf");
-				byte[] bytes = PipelineUtils.toCompressedBytes(write);
-				BulkWrite decoded = PipelineUtils.fromCompressedBytes(bytes,BulkWrite.class);
+				byte[] bytes = write.encode();
+				BulkWrite decoded = BulkWrite.decode(bytes,0,bytes.length,new long[2]);
 				ObjectArrayList<KVPair> decList = decoded.getMutations();
 				KVPair decPair = decList.get(0);
 				Assert.assertEquals("Incorrect pair!","Hello",Encoding.decodeString(decPair.getRow()));

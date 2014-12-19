@@ -102,7 +102,7 @@ public class BulkWrite implements Externalizable {
         int encodedSize = 0;
         for(int i=0;i<mutations.size();i++){
             KVPair pair = (KVPair)buffer[i];
-            byte typeByte = pair.getType().asByte();
+            byte typeByte = (byte)(pair.getType().asByte()-1);
             List<byte[]> typeList = kvPairBytes[typeByte];
             if(typeList==null) {
                 typeList = new ArrayList<>();
@@ -125,7 +125,7 @@ public class BulkWrite implements Externalizable {
         System.arraycopy(regionIdBytes,0,finalBytes,offset,regionIdBytes.length);
         offset+=regionIdBytes.length;
         for(int i=0;i<kvPairBytes.length;i++){
-            byte typeByte = (byte)i;
+            byte typeByte = (byte)(i+1);
             List<byte[]> bytes = kvPairBytes[i];
             if(bytes!=null) {
                 finalBytes[offset] = typeByte;
