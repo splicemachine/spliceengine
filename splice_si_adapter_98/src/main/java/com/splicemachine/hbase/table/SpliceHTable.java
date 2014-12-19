@@ -365,8 +365,16 @@ public class SpliceHTable extends HTable {
         if (exception instanceof IncorrectRegionException || exception instanceof NotServingRegionException) {
             return exception;
         }
-        if (exception.getCause() != null) {
-            return getRegionProblemException(exception.getCause());
+        Throwable cause = exception.getCause();
+        if (cause != null) {
+            if (LOG.isDebugEnabled())
+                SpliceLogUtils.debug(LOG, "The cause of exception %s is %s", cause, exception);
+            if (cause != exception) {
+                return getRegionProblemException(exception.getCause());
+            }
+            else {
+                return exception;
+            }
         }
         return null;
     }

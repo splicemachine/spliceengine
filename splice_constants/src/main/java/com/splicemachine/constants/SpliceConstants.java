@@ -511,6 +511,9 @@ public class SpliceConstants {
         public static double extraQualifierMultiplier;
 
 
+        
+		@Parameter private static final String OPTIMIZER_REMOTE_READ = "splice.optimizer.remoteRead";
+		@DefaultValue(OPTIMIZER_REMOTE_READ) public static final double DEFAULT_OPTIMIZER_REMOTE_READ = 0.1d;
         public static double remoteRead = 0.1;
 
         
@@ -1132,6 +1135,7 @@ public class SpliceConstants {
 				maxConcurrentWrites = config.getInt(MAX_CONCURRENT_WRITES, DEFAULT_MAX_CONCURRENT_WRITES);
 				maxBufferEntries = config.getInt(BUFFER_ENTRIES, DEFAULT_MAX_BUFFER_ENTRIES);
 				maxThreads = config.getInt(WRITE_THREADS_MAX,DEFAULT_WRITE_THREADS_MAX);
+				remoteRead = config.getDouble(OPTIMIZER_REMOTE_READ, DEFAULT_OPTIMIZER_REMOTE_READ);
 				maxTreeThreads = config.getInt(MAX_CONCURRENT_OPERATIONS,DEFAULT_MAX_CONCURRENT_OPERATIONS);
 				siDelayRollForwardMaxSize = config.getInt(SI_DELAY_ROLL_FORWARD_MAX_SIZE, DEFAULT_SI_DELAY_ROLL_FORWARD_MAX_SIZE);
 				ipcThreads = config.getInt("hbase.regionserver.handler.count",maxThreads);
