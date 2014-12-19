@@ -2,6 +2,7 @@ package com.splicemachine.pipeline.constraint;
 
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
+import com.splicemachine.encoding.Encoding;
 import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
 import org.apache.derby.iapi.sql.dictionary.ConstraintDescriptor;
 import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
@@ -105,4 +106,69 @@ public class ConstraintContext implements Externalizable {
     }
 
 
+    public int encodedLength() {
+        int length = 1; //one byte to store the nullability
+        if(tableName!=null)
+            length+=tableName.length()+Encoding.encodedLength(tableName.length());
+        if(constraintName!=null)
+            length+=constraintName.length()+Encoding.encodedLength(constraintName.length());
+        return length;
+    }
+
+    public int encodeInto(byte[] data, int offset){
+        byte nullByte = 0x00;
+        if(tableName!=null)
+            nullByte |= 0x10;
+        if(constraintName!=null)
+            nullByte |= 0x01;
+
+        int l = 0;
+        data[offset] = nullByte;
+        l++; offset++;
+        if(tableName!=null) {
+            int len = Encoding.encode(tableName.length(),data,offset,false);
+            l += len;
+            offset += len;
+            len = Encoding.encodeInto(tableName, data, offset);
+            l += len;
+            offset += len;
+        }
+        if(constraintName!=null) {
+            int len = Encoding.encode(constraintName.length(),data,offset,false);
+            l += len;
+            offset += len;
+            len = Encoding.encodeInto(constraintName, data, offset);
+            l += len;
+        }
+        return l;
+    }
+
+    public static ConstraintContext decode(byte[] data, int offset,long[] lengthHolder){
+        int len = 1;
+        byte nullByte = data[offset];
+        offset++;
+        boolean decodeTable = (nullByte & 0x10)!=0;
+        boolean decodeCName = (nullByte & 0x01)!=0;
+        String tableName = null;
+        String constraintName = null;
+        if(decodeTable) {
+            Encoding.decodeLongWithLength(data,offset,false,lengthHolder);
+            int l = (int)lengthHolder[0];
+            offset+=lengthHolder[1];
+            tableName = Encoding.decodeString(data, offset, l,false);
+            offset+=l;
+            len+=l;
+        }if(decodeCName){
+            Encoding.decodeLongWithLength(data,offset,false,lengthHolder);
+            int l = (int)lengthHolder[0];
+            offset+=lengthHolder[1];
+            constraintName = Encoding.decodeString(data, offset, l,false);
+            offset+=l;
+            len+=1;
+        }
+        lengthHolder[0] = len;
+        lengthHolder[1] = offset;
+
+        return new ConstraintContext(tableName,constraintName);
+    }
 }

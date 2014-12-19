@@ -7,6 +7,7 @@ import java.util.NavigableMap;
 import java.util.TreeMap;
 import java.util.concurrent.Future;
 
+import com.splicemachine.si.api.TxnView;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
@@ -30,16 +31,23 @@ class RegionServerCallBuffer implements CallBuffer<Pair<byte[],RegionCallBuffer>
     private NavigableMap<byte[],RegionCallBuffer> buffers;
     private final List<Future<WriteStats>> outstandingRequests = Lists.newArrayList();
     private final MergingWriteStats writeStats;
-    private WriteConfiguration writeConfiguration;
+		private final TxnView txn;
+		private WriteConfiguration writeConfiguration;
     private byte[] tableName;
 
-    public RegionServerCallBuffer(byte[] tableName, WriteConfiguration writeConfiguration, ServerName serverName, Writer writer, final MergingWriteStats writeStats) {
-    	this.writeConfiguration = writeConfiguration;
+    public RegionServerCallBuffer(byte[] tableName,
+																	TxnView txn,
+																	WriteConfiguration writeConfiguration,
+																	ServerName serverName,
+																	Writer writer,
+																	final MergingWriteStats writeStats) {
+				this.txn = txn;
+				this.writeConfiguration = writeConfiguration;
     	this.tableName = tableName;
     	this.writeStats = writeStats;
     	this.serverName = serverName;
     	this.writer = writer;
-        this.buffers = new TreeMap<byte[], RegionCallBuffer>(Bytes.BYTES_COMPARATOR);
+        this.buffers = new TreeMap<>(Bytes.BYTES_COMPARATOR);
     }
 
     @Override
@@ -82,18 +90,23 @@ class RegionServerCallBuffer implements CallBuffer<Pair<byte[],RegionCallBuffer>
     	
     }
 
-    public BulkWrites getBulkWrites() throws Exception {
-    	BulkWrites bulkWrites = new BulkWrites();
-		for (Entry<byte[], RegionCallBuffer> regionEntry: this.buffers.entrySet()) {
-			if (regionEntry.getValue().getBufferSize() > 0) {
-				bulkWrites.addBulkWrite(regionEntry.getValue().getBulkWrite());
-				regionEntry.getValue().flushBuffer(); // zero out
-			}
+		public BulkWrites getBulkWrites() throws Exception {
+				BulkWrites bulkWrites = new BulkWrites(txn);
+				boolean setRegion = false;
+				for (Entry<byte[], RegionCallBuffer> regionEntry: this.buffers.entrySet()) {
+						if (regionEntry.getValue().getBufferSize() > 0) {
+								if(!setRegion){
+										bulkWrites.setRegionKey(regionEntry.getValue().getHregionInfo().getStartKey());
+										setRegion = true;
+								}
+								bulkWrites.addBulkWrite(regionEntry.getValue().getBulkWrite());
+								regionEntry.getValue().flushBuffer(); // zero out
+						}
+				}
+				if(LOG.isTraceEnabled())
+						SpliceLogUtils.trace(LOG, "flushing %d entries",bulkWrites.numEntries());
+				return bulkWrites;
 		}
-		if(LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "flushing %d entries",bulkWrites.numEntries());
-		return bulkWrites;    	
-    }
     
     @Override
 	public void flushBuffer() throws Exception {

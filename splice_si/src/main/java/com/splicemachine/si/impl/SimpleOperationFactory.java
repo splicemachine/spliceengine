@@ -116,12 +116,22 @@ public class SimpleOperationFactory implements TxnOperationFactory {
     }
 
     @Override
+    public byte[] encodeWriteTxn(TxnView txn) throws IOException {
+        return encodeTransaction(txn);
+    }
+
+    @Override
     public TxnView readTxn(ObjectInput oi) throws IOException {
         int size = oi.readInt();
         byte[] txnData = new byte[size];
         oi.read(txnData);
 
         return decode(txnData);
+    }
+
+    @Override
+    public TxnView decodeTxn(byte[] data, int offset, int length) {
+        return decode(data,offset,length);
     }
 
     /******************************************************************************************************************/
@@ -143,7 +153,11 @@ public class SimpleOperationFactory implements TxnOperationFactory {
 		}
 
     private TxnView decode(byte[] txnData) {
-        MultiFieldDecoder decoder = MultiFieldDecoder.wrap(txnData);
+        return decode(txnData,0,txnData.length);
+    }
+
+    private TxnView decode(byte[] txnData,int offset,int length) {
+        MultiFieldDecoder decoder = MultiFieldDecoder.wrap(txnData,offset,length);
         long beginTs = decoder.decodeNextLong();
         boolean additive = decoder.decodeNextBoolean();
         Txn.IsolationLevel level = Txn.IsolationLevel.fromByte(decoder.decodeNextByte());

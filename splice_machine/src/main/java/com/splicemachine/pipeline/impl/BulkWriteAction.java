@@ -230,7 +230,7 @@ public class BulkWriteAction implements Callable<WriteStats> {
                             if(LOG.isTraceEnabled())
                                 SpliceLogUtils.trace(LOG, "[%d] Retry write {%s} after receiving global result %s", id, currentBulkWrite, bulkWriteResult.getGlobalResult());
 
-                            addToRetryCallBuffer(currentBulkWrite.getMutations(),currentBulkWrite.getTxn(),bulkWriteResult.getGlobalResult().refreshCache());
+                            addToRetryCallBuffer(currentBulkWrite.getMutations(),nextWrite.getTxn(),bulkWriteResult.getGlobalResult().refreshCache());
                             sleeper.sleep(PipelineUtils.getWaitTime(maximumRetries - numAttempts + 1, writeConfiguration.getPause()));
                             continue;
                         case PARTIAL:
@@ -246,7 +246,7 @@ public class BulkWriteAction implements Callable<WriteStats> {
 
                                     ObjectArrayList<KVPair> toRetry = PipelineUtils.doPartialRetry(currentBulkWrite, bulkWriteResult,errors,id);
 //																		rowsSuccessfullyWritten +=currentBulkWrite.getSize()-toRetry.size();
-                                    addToRetryCallBuffer(toRetry,currentBulkWrite.getTxn(),true);
+                                    addToRetryCallBuffer(toRetry,nextWrite.getTxn(),true);
                                     sleeper.sleep(PipelineUtils.getWaitTime(maximumRetries-numAttempts+1,writeConfiguration.getPause()));
                                     break;
                                 default:
@@ -291,7 +291,7 @@ public class BulkWriteAction implements Callable<WriteStats> {
                         Object[] retryWrites = nextWrite.bulkWrites.buffer;
                         int size = nextWrite.bulkWrites.size();
                         for (int i = 0; i< size; i++) {
-                            addToRetryCallBuffer( ((BulkWrite) retryWrites[i]).getMutations(),((BulkWrite) retryWrites[i]).getTxn(),i==0);
+                            addToRetryCallBuffer( ((BulkWrite) retryWrites[i]).getMutations(),nextWrite.getTxn(),i==0);
                         }
                         sleeper.sleep(PipelineUtils.getWaitTime(maximumRetries - numAttempts + 1, writeConfiguration.getPause()));
                         break;

@@ -30,5 +30,9 @@ public interface TxnOperationFactory {
 
     void writeTxn(TxnView txn, ObjectOutput oo) throws IOException;
 
+		byte[] encodeWriteTxn(TxnView txn) throws IOException;
+
     TxnView readTxn(ObjectInput oi) throws IOException;
+
+		TxnView decodeTxn(byte[] data, int offset ,int length) throws IOException;
 }

@@ -53,21 +53,8 @@ public class PipelineConstants extends SIConstants {
 			SpliceLogUtils.info(LOG, "Snappy Installed: Splice Machine's Write Pipeline will compress data over the wire.");
     	supportsNative = false;
     }
-    
-	public static Comparator<BulkWrite> writeComparator = new Comparator<BulkWrite>() {
-        @Override
-        public int compare(BulkWrite o1, BulkWrite o2) {
-            if(o1==null) {
-                if(o2==null) return 1;
-                else return -1;
-            }else if(o2==null)
-                return 1;
 
-            else return Bytes.compareTo(o1.getRegionKey(),o2.getRegionKey());
-        }
-    };
-    
-    public static PreFlushHook noOpFlushHook = new PreFlushHook() {
+		public static PreFlushHook noOpFlushHook = new PreFlushHook() {
         @Override
         public ObjectArrayList<KVPair> transform(ObjectArrayList<KVPair> buffer) throws Exception {
             return buffer.clone();

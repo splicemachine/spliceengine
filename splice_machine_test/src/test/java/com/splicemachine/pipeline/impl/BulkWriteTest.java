@@ -39,7 +39,7 @@ public class BulkWriteTest {
 				ObjectArrayList<KVPair> list = new ObjectArrayList<KVPair>();
 				KVPair kvPair = new KVPair(Encoding.encode("Hello"),new byte[]{}, KVPair.Type.DELETE);
 				list.add(kvPair);
-				BulkWrite write = new BulkWrite(list,new ActiveWriteTxn(1l,1l),Bytes.toBytes("sdfsdf"),"dsfsdfdsf");
+				BulkWrite write = new BulkWrite(list,"dsfsdfdsf");
 				byte[] bytes = PipelineUtils.toCompressedBytes(write);
 				BulkWrite decoded = PipelineUtils.fromCompressedBytes(bytes,BulkWrite.class);
 				ObjectArrayList<KVPair> decList = decoded.getMutations();

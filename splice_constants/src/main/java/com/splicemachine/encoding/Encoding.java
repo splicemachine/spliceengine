@@ -375,6 +375,24 @@ public final class Encoding {
     }
 
     /**
+     * Get the encoded length of the specified value.
+     *
+     * @param value the value to get the length for
+     */
+    public static int encodedLength(int value){
+        return ScalarEncoding.encodedLength(value);
+    }
+
+    /**
+     * Get the encoded length of the specified value.
+     *
+     * @param value the value to get the length for
+     */
+    public static int encodedLength(long value){
+        return ScalarEncoding.encodedLength(value);
+    }
+
+    /**
      * Encode a float into an ascending, order-preserving byte[].
      *
      * Equivalent to {@link #encode(float, boolean)} with {@code desc=false}.
@@ -707,5 +725,16 @@ public final class Encoding {
 
     public static byte[] encodeBytesUnsorted(byte[] array, int offset, int length) {
         return ByteEncoding.encodeUnsorted(array,offset,length);
+    }
+
+    public static int encode(int x, byte[] finalBytes, int offset, boolean desc) {
+       return ScalarEncoding.toBytes(x,finalBytes,offset,desc);
+    }
+
+    public static int encodeInto(String value, byte[] data, int offset) {
+       return encodeInto(value,data,offset,false);
+    }
+    public static int encodeInto(String value, byte[] data, int offset,boolean desc) {
+        return StringEncoding.intoBytes(value,data,offset,desc);
     }
 }

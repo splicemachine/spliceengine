@@ -37,7 +37,7 @@ public class BulkWriteChannelInvoker {
             SpliceMessage.SpliceIndexService service = ProtobufUtil.newServiceStub(SpliceMessage.SpliceIndexService.class, channel);
 
             SpliceMessage.BulkWriteRequest.Builder builder = SpliceMessage.BulkWriteRequest.newBuilder();
-            byte[] requestBytes = PipelineUtils.toCompressedBytes(write);
+            byte[] requestBytes = PipelineUtils.compressWrite(write);
             builder.setBytes(ZeroCopyLiteralByteString.copyFrom(requestBytes));
             SpliceMessage.BulkWriteRequest bwr = builder.build();
 
@@ -60,7 +60,7 @@ public class BulkWriteChannelInvoker {
             SpliceMessage.BulkWriteResponse bulkWriteResponse = doneCallback.get();
             byte[] bytes = bulkWriteResponse.getBytes().toByteArray();
 
-            return PipelineUtils.fromCompressedBytes(bytes, BulkWritesResult.class);
+            return PipelineUtils.decompressResult(bytes);
         } catch (Exception e) {
             throw Exceptions.getIOException(e);
         }

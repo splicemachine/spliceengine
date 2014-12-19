@@ -2,7 +2,9 @@ package com.splicemachine.pipeline.impl;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
+import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.carrotsearch.hppc.procedures.IntObjectProcedure;
+import com.splicemachine.encoding.Encoding;
 import com.splicemachine.pipeline.api.WriteContext;
 import java.io.Externalizable;
 import java.io.IOException;
@@ -146,5 +148,93 @@ public class BulkWriteResult implements Externalizable {
     public void setPosition(int position) {
         this.position = position;
     }
- 		
+
+		public byte[] encode() {
+				int totalLength = getEncodedLength();
+
+				/*
+				 * We now have the length of the final byte array, so create it, then make a pass through
+				 * the data to fill the result
+				 */
+				byte[] finalBytes = new byte[totalLength];
+				int offset = 0;
+				offset += globalStatus.encodeInto(finalBytes,offset);
+				offset = encodeNotRun(finalBytes, offset);
+
+
+				//encode the failed rows
+				for(IntObjectCursor<WriteResult> failedEntry:failedRows){
+						int rowNum = failedEntry.key;
+						WriteResult result = failedEntry.value;
+						offset+=Encoding.encode(rowNum,finalBytes,offset,false);
+						offset+=result.encodeInto(finalBytes,offset);
+				}
+
+				return finalBytes;
+		}
+
+		private int encodeNotRun(byte[] finalBytes, int offset) {
+				//encode the notRunRows
+				int notRunSize = notRunRows.size();
+				int[] notRunBuffer = notRunRows.buffer;
+				offset += Encoding.encode(notRunSize, finalBytes, offset, false);
+				for(int i=0;i<notRunSize;i++){
+						offset+=Encoding.encode(notRunBuffer[i],finalBytes,offset,false);
+				}
+				return offset;
+		}
+
+
+		public static BulkWriteResult decode(byte[] data ,int offset, int length,long[] lengthHolder) throws IOException{
+				int len =0;
+				WriteResult globalResult = WriteResult.decode(data,offset,lengthHolder);
+				offset+=lengthHolder[0];
+				len+=lengthHolder[0];
+				Encoding.decodeLongWithLength(data,offset,false,lengthHolder);
+				offset+=lengthHolder[1];
+				len+=lengthHolder[1];
+				int notRunSize = (int) lengthHolder[0];
+				IntArrayList notRunRows =IntArrayList.newInstanceWithCapacity(notRunSize);
+				for(int i=0;i<notRunSize;i++){
+						Encoding.decodeLongWithLength(data,offset,false,lengthHolder);
+						notRunRows.add((int)lengthHolder[0]);
+						offset+=lengthHolder[1];
+						len+=lengthHolder[1];
+				}
+
+				if(len>=length)
+						return new BulkWriteResult(globalResult,notRunRows,IntObjectOpenHashMap.<WriteResult>newInstance(0,0.9f));
+
+				IntObjectOpenHashMap<WriteResult> failedMap = IntObjectOpenHashMap.newInstance();
+				while(len<length){
+						Encoding.decodeLongWithLength(data,offset,false,lengthHolder);
+						offset+=lengthHolder[1];
+						len+=lengthHolder[1];
+						int key =(int)lengthHolder[0];
+						WriteResult result = WriteResult.decode(data,offset,lengthHolder);
+						offset+=lengthHolder[0];
+						len+=lengthHolder[0];
+						failedMap.put(key,result);
+				}
+				return new BulkWriteResult(globalResult,notRunRows,failedMap);
+		}
+
+		private int getEncodedLength() {
+				int totalLength = globalStatus.encodedLength();
+				//get the number of bytes occupied by the notRunRows buffer
+				int notRunSize = notRunRows.size();
+				int[] notRunBuffer = notRunRows.buffer;
+				totalLength+= Encoding.encodedLength(notRunSize);
+				for(int i=0;i<notRunRows.size();i++){
+						totalLength+= Encoding.encodedLength(notRunBuffer[i]);
+				}
+
+				//get the length of the failed bytes
+				for(IntObjectCursor<WriteResult> failedEntry:failedRows){
+						int rowNum = failedEntry.key;
+						WriteResult writeResult = failedEntry.value;
+						totalLength+=Encoding.encodedLength(rowNum)+writeResult.encodedLength();
+				}
+				return totalLength;
+		}
 }

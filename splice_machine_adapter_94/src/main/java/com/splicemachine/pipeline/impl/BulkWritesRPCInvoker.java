@@ -46,7 +46,7 @@ public class BulkWritesRPCInvoker implements BulkWritesInvoker {
         assert writes.numEntries() != 0;
         SpliceDriver spliceDriver = SpliceDriver.driver();
 
-        if (spliceDriver.isStarted()) {
+        if (!SpliceConstants.forceSerialization && spliceDriver.isStarted()) {
             BulkWrite firstBulkWrite = (BulkWrite) writes.getBuffer()[0];
             SpliceBaseIndexEndpoint indexEndpoint = spliceDriver.getIndexEndpoint(firstBulkWrite.getEncodedStringName());
             if (indexEndpoint != null) {
@@ -60,7 +60,7 @@ public class BulkWritesRPCInvoker implements BulkWritesInvoker {
                 connection, batchProtocolClass, tableName, writes.getRegionKey(), refreshCache);
         BatchProtocol instance = (BatchProtocol) Proxy.newProxyInstance(config.getClassLoader(),
                 protoClassArray, invoker);
-        return PipelineUtils.fromCompressedBytes(instance.bulkWrites(PipelineUtils.toCompressedBytes(writes)), BulkWritesResult.class);
+        return PipelineUtils.decompressResult(instance.bulkWrites(PipelineUtils.compressWrite(writes)));
     }
 
 		public static final class Factory implements BulkWritesInvoker.Factory{

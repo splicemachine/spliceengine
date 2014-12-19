@@ -1,6 +1,8 @@
 package com.splicemachine.pipeline.impl;
 
 import com.carrotsearch.hppc.ObjectArrayList;
+import com.splicemachine.constants.bytes.BytesUtil;
+
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -59,10 +61,51 @@ public class BulkWritesResult implements Externalizable {
 		@Override
 		public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
 				int size = in.readInt();
-				bulkWriteResults = new ObjectArrayList<BulkWriteResult>(size);
+				bulkWriteResults = new ObjectArrayList<>(size);
 				for(int i=0;i<size;i++){
 					bulkWriteResults.add((BulkWriteResult) in.readObject());
 				}
 		}
 
+		public byte[] encode() throws IOException{
+				byte[][] resultData = new byte[bulkWriteResults.size()][];
+				Object[] writeBuffer = bulkWriteResults.buffer;
+				int encodedSize = 4;
+				for(int i=0;i<resultData.length;i++){
+						BulkWriteResult result = (BulkWriteResult)writeBuffer[i];
+						byte[] encodedResult = result.encode();
+						resultData[i] = encodedResult;
+						encodedSize+=encodedResult.length+4;
+				}
+
+				byte[] finalBytes = new byte[encodedSize];
+				int offset=0;
+				BytesUtil.intToBytes(resultData.length,finalBytes,0);
+				offset+=4;
+
+				for(int i=0;i<resultData.length;i++){
+						byte[] data = resultData[i];
+						BytesUtil.intToBytes(data.length,finalBytes,offset);
+						offset+=4;
+						System.arraycopy(data,0,finalBytes,offset,data.length);
+						offset+=data.length;
+				}
+				return finalBytes;
+		}
+
+		public static BulkWritesResult decode(byte[] data) throws IOException{
+				int offset = 0;
+				int resultsLength = BytesUtil.bytesToInt(data, offset);
+				offset+=4;
+				ObjectArrayList<BulkWriteResult> results = ObjectArrayList.newInstanceWithCapacity(resultsLength);
+				long[] lengthHolder = new long[2];
+				for(int i=0;i<resultsLength;i++){
+						int len = BytesUtil.bytesToInt(data, offset);
+						offset+=4;
+						BulkWriteResult result = BulkWriteResult.decode(data,offset,len,lengthHolder);
+						results.add(result);
+						offset+=len;
+				}
+				return new BulkWritesResult(results);
+		}
 }

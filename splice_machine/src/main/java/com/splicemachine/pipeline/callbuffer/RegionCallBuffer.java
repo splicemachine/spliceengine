@@ -101,7 +101,7 @@ public class RegionCallBuffer implements CallBuffer<KVPair> {
 	}
 	
 	public BulkWrite getBulkWrite() throws Exception {
-		return new BulkWrite(preFlushHook.transform(buffer),txn,hregionInfo.getStartKey(),hregionInfo.getEncodedName());
+		return new BulkWrite(preFlushHook.transform(buffer),hregionInfo.getEncodedName());
 	}	
 	
 	public boolean keyOutsideBuffer(byte[] key) {

@@ -1,5 +1,6 @@
 package com.splicemachine.pipeline.impl;
 
+import com.splicemachine.encoding.Encoding;
 import com.splicemachine.pipeline.api.Code;
 import com.splicemachine.pipeline.constraint.Constraint;
 import com.splicemachine.pipeline.constraint.ConstraintContext;
@@ -60,6 +61,75 @@ public class WriteResult implements Externalizable{
             errorMessage = in.readUTF();
         if(in.readBoolean())
             constraintContext = (ConstraintContext)in.readObject();
+    }
+
+    public int encodedLength() {
+        int length = 1;
+        length+=1; //one byte to store whether errorMessage AND ConstraintContext are not null--
+        if(errorMessage!=null)
+            length+=errorMessage.length()+Encoding.encodedLength(errorMessage.length());
+        if(constraintContext!=null)
+            length+=constraintContext.encodedLength();
+
+        return length;
+    }
+
+    public int  encodeInto(byte[] data, int offset){
+        int l = 2;
+        data[offset] = code.encode();
+        offset++;
+        byte nullByte = 0x00;
+        if(errorMessage!=null){
+            nullByte |= 0x10;
+        }
+        if(constraintContext!=null) {
+            nullByte |= 0x01;
+        }
+        data[offset] = nullByte;
+        offset++;
+
+        if(errorMessage!=null) {
+            int len = Encoding.encode(errorMessage.length(), data, offset, false);
+            offset+= len;
+            l+=len;
+            Encoding.encodeInto(errorMessage, data, offset);
+            l+=errorMessage.length();
+            offset+=errorMessage.length();
+        }
+        if(constraintContext!=null) {
+            int len = constraintContext.encodeInto(data, offset);
+            l+= len;
+        }
+        return l;
+    }
+
+    public static WriteResult decode(byte[] data, int offset,long[] lengthHolder) throws IOException{
+        int l = 2;
+        Code code = Code.decode(data,offset,lengthHolder);
+        offset++;
+        byte nb = data[offset];
+        boolean decodeError = (nb & 0x10) !=0;
+        boolean decodeConstraint = (nb & 0x01) !=0;
+        offset++;
+        String errorMessage = null;
+        ConstraintContext ctx = null;
+        if(decodeError){
+            Encoding.decodeLongWithLength(data,offset, false, lengthHolder);
+            int s = (int)lengthHolder[0];
+            offset+=lengthHolder[1];
+            l+=lengthHolder[1];
+            errorMessage = Encoding.decodeString(data,offset,s,false);
+            offset+=errorMessage.length();
+            l+=errorMessage.length();
+        }
+        if(decodeConstraint){
+            ctx= ConstraintContext.decode(data,offset,lengthHolder);
+            l+=lengthHolder[0];
+            offset+=lengthHolder[0];
+        }
+        lengthHolder[0] = l;
+        lengthHolder[1] = offset;
+        return new WriteResult(code,errorMessage,ctx);
     }
 
     public String getErrorMessage() {

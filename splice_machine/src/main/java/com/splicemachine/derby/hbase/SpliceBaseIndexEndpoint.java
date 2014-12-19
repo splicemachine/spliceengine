@@ -11,6 +11,7 @@ import com.splicemachine.pipeline.impl.BulkWritesResult;
 import com.splicemachine.pipeline.impl.WriteResult;
 import com.splicemachine.pipeline.utils.PipelineUtils;
 import com.splicemachine.pipeline.writehandler.IndexWriteBufferFactory;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.TransactionalRegions;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -30,7 +31,6 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.LockSupport;
 
 /**
  * Endpoint to allow special batch operations that the HBase API doesn't explicitly enable
@@ -110,6 +110,7 @@ public class SpliceBaseIndexEndpoint {
     public BulkWritesResult bulkWrite(BulkWrites bulkWrites) throws IOException {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "bulkWrite %s ",bulkWrites);
+        TxnView txn = bulkWrites.getTxn();
         BulkWritesResult result = new BulkWritesResult();
         Object[] buffer = bulkWrites.getBulkWrites().buffer;
         int size =  bulkWrites.getBulkWrites().size();
@@ -133,11 +134,11 @@ public class SpliceBaseIndexEndpoint {
             for(int i=0;i<size;i++){
                 BulkWrite bulkWrite = (BulkWrite) buffer[i];
                 assert bulkWrite!=null;
-                RegionWritePipeline writePipeline = SpliceDriver.driver().getWritePipeline(bulkWrite.getEncodedStringName());
+                RegionWritePipeline writePipeline = SpliceDriver.driver().getWritePipeline(bulkWrite.getRegionIdentifier());
                 BulkWriteResult r;
                 if(writePipeline==null){
                     if (LOG.isTraceEnabled())
-                        SpliceLogUtils.trace(LOG, "endpoint not found for region %s on region %s", bulkWrite.getEncodedStringName(), rce.getRegion().getRegionNameAsString());
+                        SpliceLogUtils.trace(LOG, "endpoint not found for region %s on region %s", bulkWrite.getRegionIdentifier(), rce.getRegion().getRegionNameAsString());
                     r = new BulkWriteResult(WriteResult.notServingRegion());
                 }else{
                     //we might be able to write this one
@@ -150,7 +151,7 @@ public class SpliceBaseIndexEndpoint {
             for (int i =0;i<toWrite.size(); i++) {
                 BulkWrite next = toWrite.get(i);
                 Pair<BulkWriteResult,RegionWritePipeline> writePair = writePairMap.get(next);
-                BulkWriteResult newR = writePair.getSecond().submitBulkWrite(next,indexWriteBufferFactory,writePair.getSecond().getRegionCoprocessorEnvironment());
+                BulkWriteResult newR = writePair.getSecond().submitBulkWrite(next, txn, indexWriteBufferFactory,writePair.getSecond().getRegionCoprocessorEnvironment());
                 writePair.setFirst(newR);
             }
             //complete the writes
@@ -191,8 +192,8 @@ public class SpliceBaseIndexEndpoint {
 
     public byte[] bulkWrites(byte[] bulkWriteBytes) throws IOException {
         assert bulkWriteBytes != null;
-        BulkWrites bulkWrites = PipelineUtils.fromCompressedBytes(bulkWriteBytes, BulkWrites.class);
-        return PipelineUtils.toCompressedBytes(bulkWrite(bulkWrites));
+        BulkWrites bulkWrites = PipelineUtils.decompressWrite(bulkWriteBytes);
+        return PipelineUtils.compressResult(bulkWrite(bulkWrites));
     }
 
 		public static void registerJMX(MBeanServer mbs) throws MalformedObjectNameException, NotCompliantMBeanException, InstanceAlreadyExistsException, MBeanRegistrationException {

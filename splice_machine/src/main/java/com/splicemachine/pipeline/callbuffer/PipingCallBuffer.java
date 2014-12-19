@@ -171,9 +171,9 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, CanRebuild
             // Do we have this RS already?
             if (rsc == null) {
                 SpliceLogUtils.debug(LOG, "adding RSC %s", pair.getSecond());
-                rsc = new RegionServerCallBuffer(tableName,writeConfiguration,pair.getSecond(),
+                rsc = new RegionServerCallBuffer(tableName, txn, writeConfiguration, pair.getSecond(),
                         writer != null? new RegulatedWriter(writer,new CountingHandler(new OtherWriteHandler(writer), bufferConfiguration),
-                                bufferConfiguration.getMaxFlushesPerRegion()):null,
+                                                bufferConfiguration.getMaxFlushesPerRegion()):null,
                         writeStats);
                 serverToRSBufferMap.put(pair.getSecond(), rsc);
             }

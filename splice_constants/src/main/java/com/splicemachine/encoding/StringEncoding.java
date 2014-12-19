@@ -41,6 +41,7 @@ public class StringEncoding {
         }
         return returnArray;
     }
+
     @Deprecated
     public static byte[] toBytesOld(String value, boolean desc){
         if(value==null) return Encoding.EMPTY_BYTE_ARRAY;
@@ -88,4 +89,9 @@ public class StringEncoding {
         return getString(dataToCopy,desc);
     }
 
+    public static int intoBytes(String value, byte[] data, int offset,boolean desc) {
+        byte[] d= toBytes(value,desc);
+        System.arraycopy(d,0,data,offset,d.length);
+        return d.length;
+    }
 }

@@ -9,6 +9,7 @@ import com.splicemachine.pipeline.impl.BulkWrite;
 import com.splicemachine.pipeline.impl.BulkWriteResult;
 import com.splicemachine.pipeline.impl.WriteResult;
 import com.splicemachine.si.api.TransactionalRegion;
+import com.splicemachine.si.api.TxnView;
 import com.yammer.metrics.core.Meter;
 import com.yammer.metrics.core.MetricName;
 import org.apache.hadoop.hbase.NotServingRegionException;
@@ -58,9 +59,9 @@ public class RegionWritePipeline {
     private static final BulkWriteResult INDEX_NOT_SETUP = new BulkWriteResult(null,WriteResult.indexNotSetup());
 
     public BulkWriteResult submitBulkWrite(BulkWrite toWrite,
+                                           TxnView txn,
                                                    WriteBufferFactory writeBufferFactory,
                                                    RegionCoprocessorEnvironment rce) throws IOException{
-        assert toWrite.getTxn()!=null: "No transaction specified!";
 
         /*
          * We don't need to actually start a region operation here,
@@ -75,7 +76,7 @@ public class RegionWritePipeline {
 
         WriteContext context;
         try{
-            context =  ctxFactory.create(writeBufferFactory, toWrite.getTxn(),txnRegion,rce);
+            context =  ctxFactory.create(writeBufferFactory, txn,txnRegion,rce);
         } catch (InterruptedException e) {
             return INTERRUPTED;
         } catch (IndexNotSetUpException e) {

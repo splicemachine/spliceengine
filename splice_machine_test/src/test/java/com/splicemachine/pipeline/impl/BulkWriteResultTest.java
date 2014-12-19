@@ -53,8 +53,8 @@ public class BulkWriteResultTest {
 				}
 				BulkWriteResult result = new BulkWriteResult(new WriteResult(Code.PARTIAL),notRunRows,failedRows);
 
-				byte[] data = PipelineUtils.toCompressedBytes(result);
-				BulkWriteResult decoded = PipelineUtils.fromCompressedBytes(data, BulkWriteResult.class);
+				byte[] data = result.encode();
+				BulkWriteResult decoded = BulkWriteResult.decode(data,0,data.length,new long[2]);
 				Assert.assertEquals(notRunRows, decoded.getNotRunRows());
 				IntObjectOpenHashMap<WriteResult> decodedFailedRows = decoded.getFailedRows();
 				Assert.assertEquals("Incorrect decoded size!", failedRows.size(), decodedFailedRows.size());

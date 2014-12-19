@@ -1,5 +1,6 @@
 package com.splicemachine.pipeline.impl;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceBaseIndexEndpoint;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.pipeline.api.BulkWritesInvoker;
@@ -24,9 +25,9 @@ public class BulkWritesRPCInvoker implements BulkWritesInvoker {
         assert writes.numEntries() != 0;
         SpliceDriver spliceDriver = SpliceDriver.driver();
 
-        if (spliceDriver.isStarted()) {
+        if (!SpliceConstants.forceSerialization && spliceDriver.isStarted()) {
             BulkWrite firstBulkWrite = (BulkWrite) writes.getBuffer()[0];
-            String encodedRegionName = firstBulkWrite.getEncodedStringName();
+            String encodedRegionName = firstBulkWrite.getRegionIdentifier();
             SpliceBaseIndexEndpoint indexEndpoint = spliceDriver.getIndexEndpoint(encodedRegionName);
 
             if (indexEndpoint != null) {

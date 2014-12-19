@@ -68,7 +68,8 @@ public class SpliceConstants {
     @DefaultValue(MAX_DDL_WAIT) public static final int DEFAULT_NUM_HCONNECTIONS=5;
     public static int numHConnections;
 
-    public enum AuthenticationType {NONE,LDAP,NATIVE,CUSTOM};
+
+		public enum AuthenticationType {NONE,LDAP,NATIVE,CUSTOM};
 
 		@Parameter public static final String SEQUENTIAL_IMPORT_THREASHOLD="splice.import.sequentialFileSize";
 		@DefaultValue(SEQUENTIAL_IMPORT_THREASHOLD) public static final long DEFAULT_SEQUENTIAL_IMPORT_THRESHOLD = 1024*1024*1024; //defaults to 1GB
@@ -856,6 +857,11 @@ public class SpliceConstants {
 		@DefaultValue(DEBUG_DUMP_CLASS_FILE) public static final boolean DEFAULT_DUMP_CLASS_FILE=false;
 		public static boolean dumpClassFile;
 
+
+		@Parameter private static final String DEBUG_FORCE_SERIALIZATION="splice.debug.forceSerialization";
+		@DefaultValue(DEBUG_FORCE_SERIALIZATION) public static final boolean DEFAULT_FORCE_SERIALIZATION=false;
+		public static boolean forceSerialization;
+
 		/**
 		 * For debugging statements issued in derby.  This is on by default, but will hurt you in the case of an OLTP
 		 * workload.
@@ -1273,6 +1279,8 @@ public class SpliceConstants {
         maxDdlWait = config.getInt(MAX_DDL_WAIT,DEFAULT_MAX_DDL_WAIT);
         
         numHConnections = config.getInt(NUM_CLIENT_HCONNECTIONS,DEFAULT_NUM_HCONNECTIONS);
+
+				forceSerialization = config.getBoolean(DEBUG_FORCE_SERIALIZATION,DEFAULT_FORCE_SERIALIZATION);
 		}
 
 		public static void reloadConfiguration(Configuration configuration) {

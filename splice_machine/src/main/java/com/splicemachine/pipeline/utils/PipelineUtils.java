@@ -13,10 +13,7 @@ import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.regioninfocache.RegionCache;
 import com.splicemachine.hbase.table.SpliceHTableUtil;
-import com.splicemachine.pipeline.impl.BulkWrite;
-import com.splicemachine.pipeline.impl.BulkWriteResult;
-import com.splicemachine.pipeline.impl.WriteFailedException;
-import com.splicemachine.pipeline.impl.WriteResult;
+import com.splicemachine.pipeline.impl.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.kryo.KryoObjectInput;
 import com.splicemachine.utils.kryo.KryoObjectOutput;
@@ -25,7 +22,10 @@ import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
+import org.apache.hadoop.io.compress.Compressor;
 import org.apache.log4j.Logger;
+import org.xerial.snappy.Snappy;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -129,7 +129,34 @@ public class PipelineUtils extends PipelineConstants {
 		public static String getHostName() {
 				return hostName;
 		}
-		
+
+		public static byte[] compressWrite(BulkWrites bulkWrite) throws IOException{
+				byte[] data = bulkWrite.encode();
+				if(supportsNative){
+						return Snappy.compress(data);
+				}else return data;
+		}
+
+		public static BulkWrites decompressWrite(byte[] data) throws IOException{
+				if(supportsNative){
+						data = Snappy.uncompress(data);
+				}
+				return BulkWrites.decode(data);
+		}
+
+		public static byte[] compressResult(BulkWritesResult result) throws IOException{
+				byte[] data = result.encode();
+				if(supportsNative)
+						return Snappy.compress(data);
+				else return data;
+		}
+
+		public static BulkWritesResult decompressResult(byte[] bytes) throws IOException {
+				if(supportsNative)
+						bytes = Snappy.uncompress(bytes);
+				return BulkWritesResult.decode(bytes);
+		}
+
 		public static byte[] toCompressedBytes(Object object) throws IOException {
 			Output output = null;
 			OutputStream compressedOutput = null;
@@ -150,10 +177,6 @@ public class PipelineUtils extends PipelineConstants {
 				Closeables.closeQuietly(output);
 				Closeables.closeQuietly(compressedOutput);
 				Closeables.closeQuietly(baos);
-				output = null;
-				compressedOutput = null;
-				baos = null;
-				koo = null;
 			}
 		}
 
@@ -177,10 +200,8 @@ public class PipelineUtils extends PipelineConstants {
 				Closeables.closeQuietly(input);
 				Closeables.closeQuietly(compressedInput);
 				Closeables.closeQuietly(bais);
-				input = null;
-				compressedInput = null;
-				bais = null;
 			}
 		}
-		
-}    
+
+
+}
