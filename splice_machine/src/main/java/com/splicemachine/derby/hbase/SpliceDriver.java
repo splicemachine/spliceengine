@@ -5,6 +5,7 @@ import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.concurrent.MoreExecutors;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
+import com.splicemachine.derby.ddl.DDLWatcher;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.scheduler.*;
@@ -60,7 +61,10 @@ import java.sql.Connection;
 import java.util.List;
 import java.util.Properties;
 import java.util.Random;
-import java.util.concurrent.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -77,7 +81,7 @@ public class SpliceDriver {
     private static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
     private static final TempTable tempTable = new TempTable(SpliceConstants.TEMP_TABLE_BYTES);
     private static final SpliceMachineVersion spliceVersion = new ManifestReader().createVersion();
-    private static final SpliceDriver INSTANCE = new SpliceDriver();
+    private static volatile SpliceDriver INSTANCE;
 
     private final AtomicReference<State> stateHolder = new AtomicReference<>(State.NOT_STARTED);
     private final MetricsRegistry spliceMetricsRegistry = new MetricsRegistry();
@@ -89,6 +93,7 @@ public class SpliceDriver {
     private final TaskScheduler threadTaskScheduler;
     private final ExecutorService lifecycleExecutor;
     private final WriteCoordinator writerPool;
+    private final DDLWatcher ddlWatcher;
 
     private RegionServerServices regionServerServices;
     private JmxReporter metricsReporter;
@@ -100,32 +105,51 @@ public class SpliceDriver {
     private StatementManager statementManager;
     private Logging logging;
 
-    private ResourcePool<SpliceSequence, AbstractSequenceKey> sequences = CachedResourcePool.
+    private final ResourcePool<SpliceSequence, AbstractSequenceKey> sequences = CachedResourcePool.
             Builder.<SpliceSequence, AbstractSequenceKey>newBuilder()
-            .expireAfterAccess(1l, TimeUnit.MINUTES)
+            .expireAfterAccess(1, TimeUnit.MINUTES)
             .generator(new SpliceSequenceAbstractSequenceKeyGenerator()).build();
 
-    private SpliceDriver() {
-        lifecycleExecutor = MoreExecutors.namedSingleThreadExecutor("splice-lifecycle-manager");
-        props.put(EmbedConnection.INTERNAL_CONNECTION, "true");
-        try {
-            writerPool = WriteCoordinator.create(SpliceUtils.config);
-            TieredTaskSchedulerSetup setup = SchedulerPriorities.INSTANCE.getSchedulerSetup();
-            TieredTaskScheduler.OverflowHandler overflowHandler = new SpliceDriverOverflowHandler();
-            StealableTaskScheduler<RegionTask> overflowScheduler = new ExpandingTaskScheduler<>();
-            threadTaskScheduler = new TieredTaskScheduler(setup, overflowHandler, overflowScheduler);
-            jobScheduler = new DistributedJobScheduler(ZkUtils.getZkManager(), SpliceUtils.config);
-            taskMonitor = new ZkTaskMonitor(SpliceConstants.zkSpliceTaskPath, ZkUtils.getRecoverableZooKeeper());
-
-            /* Make version information available to code in the derby codebase. */
-            System.setProperty(Property.SPLICE_RELEASE, spliceVersion.getRelease());
-            System.setProperty(Property.SPLICE_VERSION_HASH, spliceVersion.getImplementationVersion());
-            System.setProperty(Property.SPLICE_BUILD_TIME, spliceVersion.getBuildTime());
-            System.setProperty(Property.SPLICE_URL, spliceVersion.getURL());
-
-        } catch (Exception e) {
-            throw new RuntimeException("Unable to boot Splice Driver", e);
+    public static SpliceDriver driver() {
+        /* Lazy init so that unit test can create instance with mock fields that starts quickly. */
+        if (INSTANCE == null) {
+            synchronized (SpliceDriver.class) {
+                try {
+                    INSTANCE = new SpliceDriver();
+                } catch (IOException e) {
+                    throw new RuntimeException("Unable to start SpliceDriver", e);
+                }
+            }
         }
+        return INSTANCE;
+    }
+
+    private SpliceDriver() throws IOException {
+        this(
+                new ZkTaskMonitor(SpliceConstants.zkSpliceTaskPath, ZkUtils.getRecoverableZooKeeper()),
+                WriteCoordinator.create(SpliceUtils.config),
+                DDLCoordinationFactory.getWatcher()
+        );
+    }
+
+    protected SpliceDriver(ZkTaskMonitor taskMonitor, WriteCoordinator writeCoordinator, DDLWatcher ddlWatcher) {
+        this.lifecycleExecutor = MoreExecutors.namedSingleThreadExecutor("splice-lifecycle-manager");
+        this.taskMonitor = taskMonitor;
+        this.ddlWatcher = ddlWatcher;
+        this.writerPool = writeCoordinator;
+        props.put(EmbedConnection.INTERNAL_CONNECTION, "true");
+
+        TieredTaskSchedulerSetup setup = SchedulerPriorities.INSTANCE.getSchedulerSetup();
+        TieredTaskScheduler.OverflowHandler overflowHandler = new SpliceDriverOverflowHandler();
+        StealableTaskScheduler<RegionTask> overflowScheduler = new ExpandingTaskScheduler<>();
+        threadTaskScheduler = new TieredTaskScheduler(setup, overflowHandler, overflowScheduler);
+        jobScheduler = new DistributedJobScheduler(ZkUtils.getZkManager(), SpliceUtils.config);
+
+        /* Make version information available to code in the derby codebase. */
+        System.setProperty(Property.SPLICE_RELEASE, spliceVersion.getRelease());
+        System.setProperty(Property.SPLICE_VERSION_HASH, spliceVersion.getImplementationVersion());
+        System.setProperty(Property.SPLICE_BUILD_TIME, spliceVersion.getBuildTime());
+        System.setProperty(Property.SPLICE_URL, spliceVersion.getURL());
     }
 
     public XplainTaskReporter getTaskReporter() {
@@ -189,10 +213,6 @@ public class SpliceDriver {
         this.services.remove(service);
     }
 
-    public static SpliceDriver driver() {
-        return INSTANCE;
-    }
-
     private HRegion getOnlineRegion(String encodedRegionName) {
         return regionServerServices.getFromOnlineRegions(encodedRegionName);
     }
@@ -233,7 +253,7 @@ public class SpliceDriver {
 
                         registerDebugTools();
 
-                        DDLCoordinationFactory.getWatcher().start();
+                        ddlWatcher.start();
 
                         writerPool.start();
 
@@ -437,7 +457,7 @@ public class SpliceDriver {
         }
     }
 
-    private boolean startServices() {
+    protected boolean startServices() {
         /* atomically start services and update state to State.INITIALIZING_SERVICES */
         synchronized (this.services) {
             try {
