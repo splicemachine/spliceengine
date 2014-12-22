@@ -13,7 +13,7 @@ if [[ ${UNAME} == CYGWIN* ]]; then
     fi
 else
     # server still running - must stop first
-	SPID=$(ps -ef | awk '/SpliceSinglePlatform/ && !/awk/ {print $2}')
+	SPID=$(ps -ef | awk '/SpliceTestPlatform/ && !/awk/ {print $2}')
 	ZPID=$(ps -ef | awk '/ZooKeeperServerMain/ && !/awk/ {print $2}')
     if [[ -n ${SPID} || -n ${ZPID} ]]; then
         echo "Splice still running and must be shut down. Run stop-splice.sh"

@@ -43,46 +43,16 @@ class SpliceTestPlatformConfig {
     /*
      * Create an HBase config object suitable for use in our test platform.
      */
-    public static Configuration createForITs(String hbaseRootDirUri,
-                                             Integer masterPort,
-                                             Integer masterInfoPort,
-                                             Integer regionServerPort,
-                                             Integer regionServerInfoPort,
-                                             Integer derbyPort,
-                                             boolean failTasksRandomly) {
+    public static Configuration create(String hbaseRootDirUri,
+                                       Integer masterPort,
+                                       Integer masterInfoPort,
+                                       Integer regionServerPort,
+                                       Integer regionServerInfoPort,
+                                       Integer derbyPort,
+                                       boolean failTasksRandomly) {
 
         Configuration config = HBaseConfiguration.create();
 
-        //set a low value threshold for gz file size on import
-        config.setLong(SpliceConstants.SEQUENTIAL_IMPORT_FILESIZE_THREASHOLD, MiB);
-        config.setDouble(SpliceConstants.DEBUG_TASK_FAILURE_RATE, 0.05d);
-        config.setBoolean(SpliceConstants.DEBUG_FAIL_TASKS_RANDOMLY, failTasksRandomly);
-
-        setBaselineConfigurationOptions(config, hbaseRootDirUri, masterPort, masterInfoPort, regionServerPort, regionServerInfoPort, derbyPort);
-        config.reloadConfiguration();
-        SIConstants.reloadConfiguration(config);
-        return config;
-    }
-
-    public static Configuration createForDemoApp(String hbaseRootDirUri,
-                                                 Integer masterPort,
-                                                 Integer masterInfoPort,
-                                                 Integer regionServerPort,
-                                                 Integer regionServerInfoPort,
-                                                 Integer derbyPort,
-                                                 boolean failTasksRandomly) {
-
-        Configuration config = HBaseConfiguration.create();
-
-        setBaselineConfigurationOptions(config, hbaseRootDirUri, masterPort, masterInfoPort, regionServerPort, regionServerInfoPort, derbyPort);
-        config.reloadConfiguration();
-        SIConstants.reloadConfiguration(config);
-        return config;
-    }
-
-    private static void setBaselineConfigurationOptions(Configuration config, String hbaseRootDirUri, Integer masterPort,
-                                                        Integer masterInfoPort, Integer regionServerPort,
-                                                        Integer regionServerInfoPort, Integer derbyPort) {
         //
         // Coprocessors
         //
@@ -167,9 +137,20 @@ class SpliceTestPlatformConfig {
         // Splice
         //
 
+        //set a low value threshold for gz file size on import
+        config.setLong(SpliceConstants.SEQUENTIAL_IMPORT_FILESIZE_THREASHOLD, MiB);
+
         //wait 15 seconds before bailing on bad ddl statements
         config.setLong("splice.ddl.drainingWait.maximum", SECONDS.toMillis(15));
+
+        config.setDouble(SpliceConstants.DEBUG_TASK_FAILURE_RATE, 0.05d);
+        config.setBoolean(SpliceConstants.DEBUG_FAIL_TASKS_RANDOMLY, failTasksRandomly);
+
+        config.reloadConfiguration();
+        SIConstants.reloadConfiguration(config);
+        return config;
     }
+
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
