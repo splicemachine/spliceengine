@@ -22,7 +22,7 @@ public class SpliceTestPlatform {
             Integer derbyPort = Integer.valueOf(args[5]);
             boolean failTasksRandomly = Boolean.valueOf(args[6]);
 
-            Configuration config = SpliceTestPlatformConfig.createForITs(
+            Configuration config = SpliceTestPlatformConfig.create(
                     hbaseRootDirUri,
                     masterPort,
                     masterInfoPort,
