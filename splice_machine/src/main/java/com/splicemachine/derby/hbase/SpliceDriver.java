@@ -1,68 +1,15 @@
 package com.splicemachine.derby.hbase;
 
-import java.io.IOException;
-import java.lang.management.ManagementFactory;
-import java.net.InetAddress;
-import java.sql.Connection;
-import java.util.List;
-import java.util.Properties;
-import java.util.Random;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-
-import javax.management.InstanceAlreadyExistsException;
-import javax.management.MBeanRegistrationException;
-import javax.management.MBeanServer;
-import javax.management.MalformedObjectNameException;
-import javax.management.NotCompliantMBeanException;
-import javax.management.ObjectName;
-
-import com.splicemachine.tools.version.ManifestReader;
-import org.apache.derby.drda.NetworkServerControl;
-import org.apache.derby.iapi.db.OptimizerTrace;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.reference.Property;
-import org.apache.derby.impl.jdbc.EmbedConnection;
-import org.apache.hadoop.hbase.HColumnDescriptor;
-import org.apache.hadoop.hbase.HTableDescriptor;
-import org.apache.hadoop.hbase.PleaseHoldException;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.log4j.Logger;
-
 import com.google.common.io.Closeables;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.yammer.metrics.core.MetricsRegistry;
-import com.yammer.metrics.reporting.JmxReporter;
-
-import org.apache.hadoop.hbase.CoprocessorEnvironment;
-import org.apache.hadoop.hbase.ServerName;
-import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.regionserver.RegionCoprocessorHost;
-import org.apache.hadoop.hbase.regionserver.RegionServerServices;
-import org.apache.hadoop.hbase.util.Bytes;
-
 import com.splicemachine.SpliceKryoRegistry;
-import com.splicemachine.constants.SIConstants;
+import com.splicemachine.concurrent.MoreExecutors;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
-import com.splicemachine.tools.version.SpliceMachineVersion;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
-import com.splicemachine.derby.impl.job.scheduler.DistributedJobScheduler;
-import com.splicemachine.derby.impl.job.scheduler.ExpandingTaskScheduler;
-import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
-import com.splicemachine.derby.impl.job.scheduler.SchedulerTracer;
-import com.splicemachine.derby.impl.job.scheduler.StealableTaskScheduler;
-import com.splicemachine.derby.impl.job.scheduler.TieredTaskScheduler;
-import com.splicemachine.derby.impl.job.scheduler.TieredTaskSchedulerSetup;
-import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
+import com.splicemachine.derby.impl.job.scheduler.*;
 import com.splicemachine.derby.impl.sql.execute.sequence.AbstractSequenceKey;
+import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.temp.TempTable;
 import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
@@ -71,19 +18,16 @@ import com.splicemachine.derby.management.XplainTaskReporter;
 import com.splicemachine.derby.utils.ErrorReporter;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.SpliceMetrics;
-import com.splicemachine.job.JobScheduler;
-import com.splicemachine.job.Task;
-import com.splicemachine.job.TaskMonitor;
-import com.splicemachine.job.TaskScheduler;
-import com.splicemachine.job.TaskSchedulerManagement;
-import com.splicemachine.job.ZkTaskMonitor;
-import com.splicemachine.si.impl.TransactionStorage;
-import com.splicemachine.si.impl.TransactionalRegions;
+import com.splicemachine.job.*;
 import com.splicemachine.pipeline.api.Service;
 import com.splicemachine.pipeline.impl.WriteCoordinator;
+import com.splicemachine.si.impl.TransactionStorage;
+import com.splicemachine.si.impl.TransactionalRegions;
 import com.splicemachine.tools.CachedResourcePool;
 import com.splicemachine.tools.EmbedConnectionMaker;
 import com.splicemachine.tools.ResourcePool;
+import com.splicemachine.tools.version.ManifestReader;
+import com.splicemachine.tools.version.SpliceMachineVersion;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceUtilities;
 import com.splicemachine.utils.ZkUtils;
@@ -91,6 +35,33 @@ import com.splicemachine.utils.kryo.KryoPool;
 import com.splicemachine.utils.logging.LogManager;
 import com.splicemachine.utils.logging.Logging;
 import com.splicemachine.uuid.Snowflake;
+import com.yammer.metrics.core.MetricsRegistry;
+import com.yammer.metrics.reporting.JmxReporter;
+import org.apache.derby.drda.NetworkServerControl;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.reference.Property;
+import org.apache.derby.impl.jdbc.EmbedConnection;
+import org.apache.hadoop.hbase.CoprocessorEnvironment;
+import org.apache.hadoop.hbase.HColumnDescriptor;
+import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.PleaseHoldException;
+import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.RegionCoprocessorHost;
+import org.apache.hadoop.hbase.regionserver.RegionServerServices;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.Logger;
+
+import javax.management.*;
+import java.io.IOException;
+import java.lang.management.ManagementFactory;
+import java.net.InetAddress;
+import java.sql.Connection;
+import java.util.List;
+import java.util.Properties;
+import java.util.Random;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * A central/important class in our application. One instance per JVM.  Starts major services including network server
@@ -99,117 +70,85 @@ import com.splicemachine.uuid.Snowflake;
  * @author Scott Fines
  *         Created on: 3/1/13
  */
-public class SpliceDriver extends SIConstants {
+public class SpliceDriver {
+
+    private static final String ENDPOINT_CLASS_NAME = "com.splicemachine.derby.hbase.SpliceIndexEndpoint";
     private static final Logger LOG = Logger.getLogger(SpliceDriver.class);
-    private static DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
-    private final List<Service> services = new CopyOnWriteArrayList<Service>();
-    protected RegionServerServices regionServerServices;
-    private JmxReporter metricsReporter;
-	private Connection connection;
-	private XplainTaskReporter taskReporter;
-	public static String ENDPOINT_CLASS_NAME = "com.splicemachine.derby.hbase.SpliceIndexEndpoint";
-	public XplainTaskReporter getTaskReporter() {
-		return taskReporter;
-	}
-
-	public static enum State{
-        NOT_STARTED,
-        INITIALIZING,
-        RUNNING,
-        STARTUP_FAILED, SHUTDOWN
-    }
-
+    private static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
+    private static final TempTable tempTable = new TempTable(SpliceConstants.TEMP_TABLE_BYTES);
+    private static final SpliceMachineVersion spliceVersion = new ManifestReader().createVersion();
     private static final SpliceDriver INSTANCE = new SpliceDriver();
-    private static SpliceMachineVersion spliceVersion;
-    private AtomicReference<State> stateHolder = new AtomicReference<State>(State.NOT_STARTED);
-    private volatile Properties props = new Properties();
-    private volatile NetworkServerControl server;
-    private volatile WriteCoordinator writerPool;
-    private volatile CountDownLatch initalizationLatch = new CountDownLatch(1);
-    private ExecutorService executor;
-    private TaskScheduler threadTaskScheduler;
-    private JobScheduler jobScheduler;
-    private TaskMonitor taskMonitor;
-	private SnowflakeLoader snowLoader;
-    private volatile Snowflake snowflake;
+
+    private final AtomicReference<State> stateHolder = new AtomicReference<>(State.NOT_STARTED);
     private final MetricsRegistry spliceMetricsRegistry = new MetricsRegistry();
-	//-sf- when we need to, replace this with a list
-	private final TempTable tempTable;
-	private StatementManager statementManager;
+    private final List<Service> services = new CopyOnWriteArrayList<>();
+    private final Properties props = new Properties();
+    private final SnowflakeLoader snowLoader = new SnowflakeLoader();
+    private final TaskMonitor taskMonitor;
+    private final JobScheduler jobScheduler;
+    private final TaskScheduler threadTaskScheduler;
+    private final ExecutorService lifecycleExecutor;
+    private final WriteCoordinator writerPool;
+
+    private RegionServerServices regionServerServices;
+    private JmxReporter metricsReporter;
+    private Connection connection;
+    private XplainTaskReporter taskReporter;
+
+    private volatile NetworkServerControl server;
+    private volatile Snowflake snowflake;
+    private StatementManager statementManager;
     private Logging logging;
 
-    private ResourcePool<SpliceSequence,AbstractSequenceKey> sequences = CachedResourcePool.
-            Builder.<SpliceSequence,AbstractSequenceKey>newBuilder().expireAfterAccess(1l,TimeUnit.MINUTES).generator(new ResourcePool.Generator<SpliceSequence,AbstractSequenceKey>() {
-        @Override
-        public SpliceSequence makeNew(AbstractSequenceKey refKey) throws StandardException {
-        	return refKey.makeNew();
-        }
+    private ResourcePool<SpliceSequence, AbstractSequenceKey> sequences = CachedResourcePool.
+            Builder.<SpliceSequence, AbstractSequenceKey>newBuilder()
+            .expireAfterAccess(1l, TimeUnit.MINUTES)
+            .generator(new SpliceSequenceAbstractSequenceKeyGenerator()).build();
 
-        @Override
-        public void close(SpliceSequence entity) throws Exception{
-            entity.close();
-        }
-    }).build();
-
-    private SpliceDriver(){
-        ThreadFactory factory = new ThreadFactoryBuilder().setNameFormat("splice-lifecycle-manager").build();
-        executor = Executors.newSingleThreadExecutor(factory);
+    private SpliceDriver() {
+        lifecycleExecutor = MoreExecutors.namedSingleThreadExecutor("splice-lifecycle-manager");
         props.put(EmbedConnection.INTERNAL_CONNECTION, "true");
         try {
-            snowLoader = new SnowflakeLoader();
             writerPool = WriteCoordinator.create(SpliceUtils.config);
-						TieredTaskSchedulerSetup setup = SchedulerPriorities.INSTANCE.getSchedulerSetup();
-						TieredTaskScheduler.OverflowHandler overflowHandler = new TieredTaskScheduler.OverflowHandler() {
-								@Override
-								public OverflowPolicy shouldOverflow(Task t) {
-										if(t.getParentTaskId()!=null) return OverflowPolicy.OVERFLOW;
-										else return OverflowPolicy.ENQUEUE;
-								}
-						};
-						StealableTaskScheduler<RegionTask> overflowScheduler =new ExpandingTaskScheduler<RegionTask>();
-            threadTaskScheduler = new TieredTaskScheduler(setup,overflowHandler,overflowScheduler);
-            jobScheduler = new DistributedJobScheduler(ZkUtils.getZkManager(),SpliceUtils.config);
-            taskMonitor = new ZkTaskMonitor(SpliceConstants.zkSpliceTaskPath,ZkUtils.getRecoverableZooKeeper());
-			tempTable = new TempTable(SpliceConstants.TEMP_TABLE_BYTES);
-			initializeVersion();
+            TieredTaskSchedulerSetup setup = SchedulerPriorities.INSTANCE.getSchedulerSetup();
+            TieredTaskScheduler.OverflowHandler overflowHandler = new SpliceDriverOverflowHandler();
+            StealableTaskScheduler<RegionTask> overflowScheduler = new ExpandingTaskScheduler<>();
+            threadTaskScheduler = new TieredTaskScheduler(setup, overflowHandler, overflowScheduler);
+            jobScheduler = new DistributedJobScheduler(ZkUtils.getZkManager(), SpliceUtils.config);
+            taskMonitor = new ZkTaskMonitor(SpliceConstants.zkSpliceTaskPath, ZkUtils.getRecoverableZooKeeper());
+
+            /* Make version information available to code in the derby codebase. */
+            System.setProperty(Property.SPLICE_RELEASE, spliceVersion.getRelease());
+            System.setProperty(Property.SPLICE_VERSION_HASH, spliceVersion.getImplementationVersion());
+            System.setProperty(Property.SPLICE_BUILD_TIME, spliceVersion.getBuildTime());
+            System.setProperty(Property.SPLICE_URL, spliceVersion.getURL());
+
         } catch (Exception e) {
-            throw new RuntimeException("Unable to boot Splice Driver",e);
+            throw new RuntimeException("Unable to boot Splice Driver", e);
         }
     }
 
-	/**
-	 * Initialize the version of the Splice Machine software that is running.
-	 */
-	private void initializeVersion() {
-		spliceVersion = new ManifestReader().createVersion();
-		/*
-		 * ------------------
-		 * Hack alert...
-		 * ------------------
-		 * We need to get the Splice version included in most all exceptions thrown by Derby/Splice.
-		 * This will help debugging stack traces when issues are filed by customers.
-		 * And we've got our usual challenge of:
-		 *     How do we get Splice info passed into Derby without moving a dozen classes from Splice into Derby?
-		 * So we are setting the Splice version at boot time into Java system properties which will be accessed
-		 * by the StandardException class in Derby.
-		 */
-		System.setProperty(Property.SPLICE_RELEASE, spliceVersion.getRelease());
-		System.setProperty(Property.SPLICE_VERSION_HASH, spliceVersion.getImplementationVersion());
-		System.setProperty(Property.SPLICE_BUILD_TIME, spliceVersion.getBuildTime());
-		System.setProperty(Property.SPLICE_URL, spliceVersion.getURL());
-	}
+    public XplainTaskReporter getTaskReporter() {
+        return taskReporter;
+    }
 
     /**
      * Return the version of the Splice Machine software that is running.
      * This is not the version of the data dictionary which may be lower than the software version if the dictionary has not been upgraded yet.
+     *
      * @return version of the Splice Machine software
      */
     public SpliceMachineVersion getVersion() {
         return spliceVersion;
     }
 
-		public StatementManager getStatementManager(){ return statementManager; }
-    public ZkTaskMonitor getTaskMonitor() { return (ZkTaskMonitor)taskMonitor; }
+    public StatementManager getStatementManager() {
+        return statementManager;
+    }
+
+    public ZkTaskMonitor getTaskMonitor() {
+        return (ZkTaskMonitor) taskMonitor;
+    }
 
     public WriteCoordinator getTableWriter() {
         return writerPool;
@@ -219,88 +158,75 @@ public class SpliceDriver extends SIConstants {
         return props;
     }
 
-		public TempTable getTempTable() {
-				return tempTable;
-		}
+    public TempTable getTempTable() {
+        return tempTable;
+    }
 
-		public <T extends Task> TaskScheduler<T> getTaskScheduler() {
-        return (TaskScheduler<T>)threadTaskScheduler;
+    public <T extends Task> TaskScheduler<T> getTaskScheduler() {
+        return (TaskScheduler<T>) threadTaskScheduler;
     }
 
     public TaskSchedulerManagement getTaskSchedulerManagement() {
         //this only works IF threadTaskScheduler implements the interface!
-        return (TaskSchedulerManagement)threadTaskScheduler;
+        return (TaskSchedulerManagement) threadTaskScheduler;
     }
 
-    public <J extends CoprocessorJob> JobScheduler<J> getJobScheduler(){
-        return (JobScheduler<J>)jobScheduler;
+    public <J extends CoprocessorJob> JobScheduler<J> getJobScheduler() {
+        return (JobScheduler<J>) jobScheduler;
     }
 
-    public void registerService(Service service){
+    public void registerService(Service service) {
         this.services.add(service);
         //If the service is registered after we've successfully started up, let it know on the same thread.
-        if(stateHolder.get()==State.RUNNING)
+        if (stateHolder.get() == State.RUNNING)
             service.start();
     }
 
-    public void deregisterService(Service service){
+    public void deregisterService(Service service) {
         this.services.remove(service);
     }
 
-    public static SpliceDriver driver(){
+    public static SpliceDriver driver() {
         return INSTANCE;
     }
 
-    public State getCurrentState(){
-        return stateHolder.get();
-    }
-    
-    public ServerName getServerName() {
-    	return regionServerServices.getServerName();
-    }
-    
-    public List<HRegion> getOnlineRegionsForTable(byte[] tableName) throws IOException {
-    	return derbyFactory.getOnlineRegions(regionServerServices,tableName);
-    }
-
-    public HRegion getOnlineRegion(String encodedRegionName)  {
-    	return regionServerServices.getFromOnlineRegions(encodedRegionName);
+    public HRegion getOnlineRegion(String encodedRegionName) {
+        return regionServerServices.getFromOnlineRegions(encodedRegionName);
     }
 
     public RegionCoprocessorHost getCoprocessorHost(String encodedRegionName) {
-    	HRegion region = getOnlineRegion(encodedRegionName);
-    	return region==null?null:region.getCoprocessorHost();    	
+        HRegion region = getOnlineRegion(encodedRegionName);
+        return region == null ? null : region.getCoprocessorHost();
     }
-    
+
     public CoprocessorEnvironment getSpliceIndexEndpointEnvironment(String encodedRegionName) {
-    	RegionCoprocessorHost host = getCoprocessorHost(encodedRegionName);
-    	return host==null?null:host.findCoprocessorEnvironment(ENDPOINT_CLASS_NAME);
+        RegionCoprocessorHost host = getCoprocessorHost(encodedRegionName);
+        return host == null ? null : host.findCoprocessorEnvironment(ENDPOINT_CLASS_NAME);
     }
 
     public SpliceBaseIndexEndpoint getIndexEndpoint(String encodedRegionName) {
-    	CoprocessorEnvironment ce = getSpliceIndexEndpointEnvironment(encodedRegionName);
-    	return ce == null?null:((IndexEndpoint) ce.getInstance()).getBaseIndexEndpoint();
+        CoprocessorEnvironment ce = getSpliceIndexEndpointEnvironment(encodedRegionName);
+        return ce == null ? null : ((IndexEndpoint) ce.getInstance()).getBaseIndexEndpoint();
     }
 
     public RegionWritePipeline getWritePipeline(String encodedRegionName) {
         SpliceBaseIndexEndpoint endpoint = getIndexEndpoint(encodedRegionName);
-        if(endpoint==null) return null;
+        if (endpoint == null) return null;
         return endpoint.getWritePipeline();
     }
 
-    public boolean isStarted(){
-        return stateHolder.get()==State.RUNNING;
-//    	return regionServerServices != null;
+    public boolean isStarted() {
+        return stateHolder.get() == State.RUNNING;
     }
-    
-    public void start(RegionServerServices regionServerServices){
-    	this.regionServerServices = regionServerServices;
-        if(stateHolder.compareAndSet(State.NOT_STARTED,State.INITIALIZING)){
-            executor.submit(new Callable<Void>(){
+
+    public void start(RegionServerServices regionServerServices) {
+        this.regionServerServices = regionServerServices;
+        if (stateHolder.compareAndSet(State.NOT_STARTED, State.INITIALIZING)) {
+            lifecycleExecutor.submit(new Callable<Void>() {
                 @Override
                 public Void call() throws Exception {
-                    try{
-                        SpliceLogUtils.info(LOG,"Booting the SpliceDriver");
+                    try {
+                        SpliceLogUtils.info(LOG, "Booting the SpliceDriver");
 
                         registerDebugTools();
 
@@ -309,14 +235,13 @@ public class SpliceDriver extends SIConstants {
                         writerPool.start();
 
                         //all we have to do is create it, it will register itself for us
-                        SpliceMetrics metrics = new SpliceMetrics();
+                        new SpliceMetrics();
 
-                        boolean setRunning = true;
                         SpliceLogUtils.debug(LOG, "Booting Database");
-                        setRunning = bootDatabase();
-                        if(!setRunning){
-                        	abortStartup();
-                        	return null;
+                        boolean setRunning = bootDatabase();
+                        if (!setRunning) {
+                            abortStartup();
+                            return null;
                         }
 
                         taskReporter = new XplainTaskReporter();
@@ -330,7 +255,7 @@ public class SpliceDriver extends SIConstants {
                         SpliceLogUtils.debug(LOG, "Starting Services");
                         setRunning = startServices();
                         SpliceLogUtils.debug(LOG, "Done Starting Services");
-                        if(!setRunning) {
+                        if (!setRunning) {
                             abortStartup();
                             return null;
                         }
@@ -344,16 +269,16 @@ public class SpliceDriver extends SIConstants {
                         SpliceLogUtils.debug(LOG, "Starting Server");
                         setRunning = startServer();
                         SpliceLogUtils.debug(LOG, "Done Starting Server");
-                        if(!setRunning) {
+                        if (!setRunning) {
                             abortStartup();
                             return null;
-                        } else
+                        } else {
                             stateHolder.set(State.RUNNING);
-                        initalizationLatch.countDown();
+                        }
                         return null;
-                    }catch(Exception e){
-                        SpliceLogUtils.error(LOG,"Unable to boot Splice Machine",e);
-                        ErrorReporter.get().reportError(SpliceDriver.class,e);
+                    } catch (Exception e) {
+                        SpliceLogUtils.error(LOG, "Unable to boot Splice Machine", e);
+                        ErrorReporter.get().reportError(SpliceDriver.class, e);
                         throw e;
                     }
                 }
@@ -363,17 +288,17 @@ public class SpliceDriver extends SIConstants {
 
     //registers configured debug and/or testing tools
     private void registerDebugTools() {
-        if(!SpliceConstants.debugFailTasksRandomly) return; //nothing to do
+        if (!SpliceConstants.debugFailTasksRandomly) return; //nothing to do
 
         final double testTaskFailureRate = SpliceConstants.debugTaskFailureRate;
-        if(testTaskFailureRate<=0||testTaskFailureRate>1)
+        if (testTaskFailureRate <= 0 || testTaskFailureRate > 1)
             return; //don't fail anything if the rate is out of our range
 
         final Random random = new Random(System.currentTimeMillis());
         SchedulerTracer.registerTaskStart(new Callable<Void>() {
             @Override
             public Void call() throws Exception {
-                if(random.nextDouble()<testTaskFailureRate)
+                if (random.nextDouble() < testTaskFailureRate)
                     throw new Exception("Intentional task invalidation");
                 return null;
             }
@@ -381,34 +306,34 @@ public class SpliceDriver extends SIConstants {
     }
 
     private boolean bootDatabase() throws Exception {
-    	HBaseAdmin admin = null;
-    	connection = null;
-        try{
-        	// The HBaseAdmin creates a connection to the ZooKeeper ensemble and thereafter into the HBase cluster.
-        	admin = SpliceUtilities.getAdmin(config);
-        	HTableDescriptor desc = new HTableDescriptor(SpliceMasterObserver.INIT_TABLE);
-        	desc.addFamily(new HColumnDescriptor(Bytes.toBytes("FOO")));
-        	// Create the special "SPLICE_INIT" table which triggers the creation of the SpliceMasterObserver and ultimately
-        	// triggers the creation of the "SPLICE_*" HBase tables.  This is an asynchronous call and so we "loop" via a
-        	// "please hold" exception and a recursive call to bootDatabase() along with a sleep.
-        	admin.createTable(desc);
+        HBaseAdmin admin = null;
+        connection = null;
+        try {
+            // The HBaseAdmin creates a connection to the ZooKeeper ensemble and thereafter into the HBase cluster.
+            admin = SpliceUtilities.getAdmin(SpliceConstants.config);
+            HTableDescriptor desc = new HTableDescriptor(SpliceMasterObserver.INIT_TABLE);
+            desc.addFamily(new HColumnDescriptor(Bytes.toBytes("FOO")));
+            // Create the special "SPLICE_INIT" table which triggers the creation of the SpliceMasterObserver and ultimately
+            // triggers the creation of the "SPLICE_*" HBase tables.  This is an asynchronous call and so we "loop" via a
+            // "please hold" exception and a recursive call to bootDatabase() along with a sleep.
+            admin.createTable(desc);
 
-        	return false;
-        }  catch (PleaseHoldException pe) {
-        	Thread.sleep(5000);
-        	SpliceLogUtils.info(LOG, "Waiting for splice schema creation.");
-        	return bootDatabase();
+            return false;
+        } catch (PleaseHoldException pe) {
+            Thread.sleep(5000);
+            SpliceLogUtils.info(LOG, "Waiting for splice schema creation.");
+            return bootDatabase();
         } catch (Exception e) {
-            if(derbyFactory.getExceptionHandler().isPleaseHoldException(e)){
+            if (derbyFactory.getExceptionHandler().isPleaseHoldException(e)) {
                 Thread.sleep(5000);
-                SpliceLogUtils.info(LOG,"Waiting for splice schema creation");
+                SpliceLogUtils.info(LOG, "Waiting for splice schema creation");
                 return bootDatabase();
-            }else {
+            } else {
                 // The exception signaling the start of a successfully running Splice Engine will be a SpliceDoNotRetryIOException.
                 // When this is returned, it means that a connection to HBase and the creation (or previous existence) of the
                 // "SPLICE_*" tables in HBase has been successful.
                 // Not exactly sure why we are catching a generic Exception above.  Possibly there are other valid exceptions???
-								
+
                 /*
                  * If an upgrade has been forced, we are now finished with it since this bit of code here only runs
                  * on the region servers and we don't ever run upgrade code on region servers.  Only the master server
@@ -432,58 +357,55 @@ public class SpliceDriver extends SIConstants {
 
                 return true;
             }
-        } finally{
-        	Closeables.close(admin,true);
+        } finally {
+            Closeables.close(admin, true);
         }
     }
 
-    public ResourcePool<SpliceSequence, AbstractSequenceKey> getSequencePool(){
+    public ResourcePool<SpliceSequence, AbstractSequenceKey> getSequencePool() {
         return sequences;
     }
 
-    public void shutdown(){
-        executor.submit(new Callable<Void>() {
+    public void shutdown() {
+        lifecycleExecutor.submit(new Callable<Void>() {
             @Override
             public Void call() throws Exception {
-                try{
-                    SpliceLogUtils.info(LOG,"Shutting down connections");
-                    if(server!=null) server.shutdown();
+                try {
+                    SpliceLogUtils.info(LOG, "Shutting down connections");
+                    if (server != null) server.shutdown();
 
-                    SpliceLogUtils.info(LOG,"Shutting down services");
-                    for(Service service:services){
+                    SpliceLogUtils.info(LOG, "Shutting down services");
+                    for (Service service : services) {
                         service.shutdown();
                     }
 
-                    if(metricsReporter!=null) metricsReporter.shutdown();
-                    SpliceLogUtils.info(LOG,"Destroying internal Engine");
-                    if(stateHolder!=null) stateHolder.set(State.SHUTDOWN);
-                }catch(Exception e){
+                    if (metricsReporter != null) metricsReporter.shutdown();
+                    SpliceLogUtils.info(LOG, "Destroying internal Engine");
+                    stateHolder.set(State.SHUTDOWN);
+                } catch (Exception e) {
                     SpliceLogUtils.error(LOG,
-                            "Unable to shut down properly, this may affect the next time the service is started",e);
+                            "Unable to shut down properly, this may affect the next time the service is started", e);
                 }
                 return null;
             }
         });
     }
 
-/********************************************************************************************/
-    /*private helper methods*/
-
-    private void registerJMX()  {
+    private void registerJMX() {
         MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
-        try{
+        try {
 
-						ObjectName statementInfoName = new ObjectName("com.splicemachine.statement:type=StatementManagement");
-						mbs.registerMBean(statementManager,statementInfoName);
+            ObjectName statementInfoName = new ObjectName("com.splicemachine.statement:type=StatementManagement");
+            mbs.registerMBean(statementManager, statementInfoName);
             ObjectName loggingInfoName = new ObjectName("com.splicemachine.utils.logging:type=LogManager");
-            mbs.registerMBean(logging,loggingInfoName);
+            mbs.registerMBean(logging, loggingInfoName);
 
             writerPool.registerJMX(mbs);
 
             SpliceBaseIndexEndpoint.registerJMX(mbs);
 
             new ManifestReader().registerJMX(mbs);
-            
+
             //registry metricsRegistry
             metricsReporter = new JmxReporter(spliceMetricsRegistry);
             metricsReporter.start();
@@ -493,36 +415,36 @@ public class SpliceDriver extends SIConstants {
 
             //register TaskMonitor
             ObjectName taskMonitorName = new ObjectName("com.splicemachine.job:type=TaskMonitor");
-            mbs.registerMBean(taskMonitor,taskMonitorName);
+            mbs.registerMBean(taskMonitor, taskMonitorName);
 
             //register JobScheduler
             ObjectName jobSchedulerName = new ObjectName("com.splicemachine.job:type=JobSchedulerManagement");
-            mbs.registerMBean(jobScheduler.getJobMetrics(),jobSchedulerName);
+            mbs.registerMBean(jobScheduler.getJobMetrics(), jobSchedulerName);
 
             //register transaction stuff
             ObjectName rollForwardName = new ObjectName("com.splicemachine.txn:type=RollForwardManagement");
-            mbs.registerMBean(TransactionalRegions.getRollForwardManagement(),rollForwardName);
+            mbs.registerMBean(TransactionalRegions.getRollForwardManagement(), rollForwardName);
 
             ObjectName txnStoreName = new ObjectName("com.splicemachine.txn:type=TxnStoreManagement");
-            mbs.registerMBean(TransactionStorage.getTxnStoreManagement(),txnStoreName);
+            mbs.registerMBean(TransactionStorage.getTxnStoreManagement(), txnStoreName);
 
         } catch (MalformedObjectNameException | NotCompliantMBeanException | InstanceAlreadyExistsException | MBeanRegistrationException e) {
             //we want to log the message, but this shouldn't affect startup
-            SpliceLogUtils.error(LOG,"Unable to register JMX entries",e);
+            SpliceLogUtils.error(LOG, "Unable to register JMX entries", e);
         }
     }
 
-     private boolean startServices() {
-        try{
+    private boolean startServices() {
+        try {
             SpliceLogUtils.info(LOG, "Splice Engine is Running, Enabling Services");
-            boolean started=true;
-            for(Service service:services){
-                started = started &&service.start();
+            boolean started = true;
+            for (Service service : services) {
+                started = started && service.start();
             }
             return started;
-        }catch(Exception e){
+        } catch (Exception e) {
             //just in case the outside services decide to blow up on me
-            SpliceLogUtils.error(LOG,"Unable to start services, aborting startup",e);
+            SpliceLogUtils.error(LOG, "Unable to start services, aborting startup", e);
             return false;
         }
     }
@@ -533,50 +455,65 @@ public class SpliceDriver extends SIConstants {
 
     private boolean startServer() {
         SpliceLogUtils.info(LOG, "Services successfully started, enabling JDBC connections...");
-        try{
-            server = new NetworkServerControl(InetAddress.getByName(derbyBindAddress),derbyBindPort);
+        try {
+            server = new NetworkServerControl(InetAddress.getByName(SpliceConstants.derbyBindAddress), SpliceConstants.derbyBindPort);
             server.setLogConnections(true);
             server.start(new DerbyOutputLoggerWriter());
-            SpliceLogUtils.info(LOG,"Ready to accept JDBC connections on %s:%s", derbyBindAddress, derbyBindPort);
+            SpliceLogUtils.info(LOG, "Ready to accept JDBC connections on %s:%s", SpliceConstants.derbyBindAddress, SpliceConstants.derbyBindPort);
             return true;
-        }catch(Exception e){
-            SpliceLogUtils.error(LOG,"Unable to start Client/Server Protocol",e);
+        } catch (Exception e) {
+            SpliceLogUtils.error(LOG, "Unable to start Client/Server Protocol", e);
             return false;
         }
     }
-    
-    public Snowflake getUUIDGenerator(){
+
+    public Snowflake getUUIDGenerator() {
         return snowflake;
     }
 
     public void loadUUIDGenerator() throws IOException {
-        snowflake =  snowLoader.load();
+        snowflake = snowLoader.load();
     }
 
-    public MetricsRegistry getRegistry(){
+    public MetricsRegistry getRegistry() {
         return spliceMetricsRegistry;
     }
 
-		public Connection getInternalConnection(){
-				return connection;
-		}
-    
-    public static void setOptimizerTrace(boolean onOrOff) {
-    	SpliceLogUtils.trace(LOG, "setOptimizerTrace %s", onOrOff);
-    	OptimizerTrace.setOptimizerTrace(onOrOff);
+    public Connection getInternalConnection() {
+        return connection;
     }
 
-    public static void writeOptimizerTraceOutput(String filename) throws StandardException {
-    	SpliceLogUtils.trace(LOG, "writeOptimizerTraceOutput %s", filename);
-    	OptimizerTrace.writeOptimizerTraceOutputText(filename);
-    }
-
-    public static KryoPool getKryoPool(){
+    public static KryoPool getKryoPool() {
         return SpliceKryoRegistry.getInstance();
-    }    
-    
-	public WriteCoordinator getWriterPool() {
-		return writerPool;
-	}
+    }
 
+    public WriteCoordinator getWriterPool() {
+        return writerPool;
+    }
+
+    private static enum State {
+        NOT_STARTED,
+        INITIALIZING,
+        RUNNING,
+        STARTUP_FAILED, SHUTDOWN
+    }
+
+    private static class SpliceSequenceAbstractSequenceKeyGenerator implements ResourcePool.Generator<SpliceSequence, AbstractSequenceKey> {
+        @Override
+        public SpliceSequence makeNew(AbstractSequenceKey refKey) throws StandardException {
+            return refKey.makeNew();
+        }
+
+        @Override
+        public void close(SpliceSequence entity) throws Exception {
+            entity.close();
+        }
+    }
+
+    private static class SpliceDriverOverflowHandler implements TieredTaskScheduler.OverflowHandler {
+        @Override
+        public OverflowPolicy shouldOverflow(Task t) {
+            return t.getParentTaskId() == null ? OverflowPolicy.ENQUEUE : OverflowPolicy.OVERFLOW;
+        }
+    }
 }
