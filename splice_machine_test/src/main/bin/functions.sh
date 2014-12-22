@@ -176,7 +176,7 @@ _stop() {
         echo "${PID_FILE} is not running."
         #echo "Double check and kill any straggler"
         if [[ "$PID_FILE" = *"splice_pid"* ]]; then
-            S=$(ps -ef | awk '/SpliceTestPlatform|SpliceSinglePlatform/ && !/awk/ {print $2}')
+            S=$(ps -ef | awk '/SpliceTestPlatform/ && !/awk/ {print $2}')
         fi
         if [[ "$PID_FILE" = *"zoo_pid"* ]]; then
             S=$(ps -ef | awk '/ZooKeeperServerMain/ && !/awk/ {print $2}')
