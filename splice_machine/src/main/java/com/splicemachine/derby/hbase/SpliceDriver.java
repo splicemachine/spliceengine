@@ -176,10 +176,13 @@ public class SpliceDriver {
     }
 
     public void registerService(Service service) {
-        this.services.add(service);
-        //If the service is registered after we've successfully started up, let it know on the same thread.
-        if (stateHolder.get() == State.RUNNING)
-            service.start();
+        // Start the service on the calling thread if we are registering it after service initialization.
+        synchronized (this.services) {
+            if (stateHolder.get().isPostServiceStartState()) {
+                service.start();
+            }
+            this.services.add(service);
+        }
     }
 
     public void deregisterService(Service service) {
@@ -190,16 +193,16 @@ public class SpliceDriver {
         return INSTANCE;
     }
 
-    public HRegion getOnlineRegion(String encodedRegionName) {
+    private HRegion getOnlineRegion(String encodedRegionName) {
         return regionServerServices.getFromOnlineRegions(encodedRegionName);
     }
 
-    public RegionCoprocessorHost getCoprocessorHost(String encodedRegionName) {
+    private RegionCoprocessorHost getCoprocessorHost(String encodedRegionName) {
         HRegion region = getOnlineRegion(encodedRegionName);
         return region == null ? null : region.getCoprocessorHost();
     }
 
-    public CoprocessorEnvironment getSpliceIndexEndpointEnvironment(String encodedRegionName) {
+    private CoprocessorEnvironment getSpliceIndexEndpointEnvironment(String encodedRegionName) {
         RegionCoprocessorHost host = getCoprocessorHost(encodedRegionName);
         return host == null ? null : host.findCoprocessorEnvironment(ENDPOINT_CLASS_NAME);
     }
@@ -435,17 +438,22 @@ public class SpliceDriver {
     }
 
     private boolean startServices() {
-        try {
-            SpliceLogUtils.info(LOG, "Splice Engine is Running, Enabling Services");
-            boolean started = true;
-            for (Service service : services) {
-                started = started && service.start();
+        /* atomically start services and update state to State.INITIALIZING_SERVICES */
+        synchronized (this.services) {
+            try {
+                SpliceLogUtils.info(LOG, "Splice Engine is Running, Enabling Services");
+                boolean started = true;
+                for (Service service : services) {
+                    started = started && service.start();
+                }
+                return started;
+            } catch (Exception e) {
+                //just in case the outside services decide to blow up on me
+                SpliceLogUtils.error(LOG, "Unable to start services, aborting startup", e);
+                return false;
+            } finally {
+                stateHolder.set(State.INITIALIZED_SERVICES);
             }
-            return started;
-        } catch (Exception e) {
-            //just in case the outside services decide to blow up on me
-            SpliceLogUtils.error(LOG, "Unable to start services, aborting startup", e);
-            return false;
         }
     }
 
@@ -492,10 +500,11 @@ public class SpliceDriver {
     }
 
     private static enum State {
-        NOT_STARTED,
-        INITIALIZING,
-        RUNNING,
-        STARTUP_FAILED, SHUTDOWN
+        NOT_STARTED, INITIALIZING, INITIALIZED_SERVICES, RUNNING, STARTUP_FAILED, SHUTDOWN;
+
+        public boolean isPostServiceStartState() {
+            return INITIALIZED_SERVICES.equals(this) || RUNNING.equals(this);
+        }
     }
 
     private static class SpliceSequenceAbstractSequenceKeyGenerator implements ResourcePool.Generator<SpliceSequence, AbstractSequenceKey> {
