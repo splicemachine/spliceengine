@@ -11,7 +11,6 @@ import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.UserDataValue;
 import org.apache.derby.impl.sql.execute.WindowFunctionInfo;
-import org.apache.log4j.Logger;
 
 import com.splicemachine.derby.impl.sql.execute.operations.window.function.SpliceGenericWindowFunction;
 

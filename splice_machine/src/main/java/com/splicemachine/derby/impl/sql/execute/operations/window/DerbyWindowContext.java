@@ -8,7 +8,6 @@ import org.apache.derby.iapi.error.SQLWarningFactory;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.ClassFactory;
 import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.execute.ExecIndexRow;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.derby.impl.sql.execute.WindowFunctionInfo;
@@ -33,8 +32,8 @@ public class DerbyWindowContext implements WindowContext {
     private Activation activation;
     private WindowAggregator[] windowAggregators;
     private SpliceMethod<ExecRow> rowAllocator;
-    private ExecIndexRow sortTemplateRow;
-    private ExecIndexRow sourceExecIndexRow;
+    private ExecRow sortTemplateRow;
+    private ExecRow sourceExecIndexRow;
 
     public DerbyWindowContext() {
     }
@@ -66,7 +65,7 @@ public class DerbyWindowContext implements WindowContext {
     }
 
     @Override
-    public ExecIndexRow getSortTemplateRow() throws StandardException {
+    public ExecRow getSortTemplateRow() throws StandardException {
         if(sortTemplateRow==null){
             sortTemplateRow = activation.getExecutionFactory().getIndexableRow(rowAllocator.invoke());
         }
@@ -74,7 +73,7 @@ public class DerbyWindowContext implements WindowContext {
     }
 
     @Override
-    public ExecIndexRow getSourceIndexRow() {
+    public ExecRow getSourceIndexRow() {
         if(sourceExecIndexRow==null){
             sourceExecIndexRow = activation.getExecutionFactory().getIndexableRow(sortTemplateRow);
         }

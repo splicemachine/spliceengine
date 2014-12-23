@@ -4,6 +4,7 @@ import java.io.Externalizable;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
+import org.apache.derby.iapi.sql.execute.ExecRow;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.operations.WarningCollector;
@@ -26,9 +27,9 @@ public interface WindowContext extends WarningCollector,Externalizable {
      */
     WindowAggregator[] getWindowFunctions();
 
-    ExecIndexRow getSortTemplateRow() throws StandardException;
+    ExecRow getSortTemplateRow() throws StandardException;
 
-    ExecIndexRow getSourceIndexRow();
+    ExecRow getSourceIndexRow();
 
     /**
      * All aggregators in this list of window functions will
