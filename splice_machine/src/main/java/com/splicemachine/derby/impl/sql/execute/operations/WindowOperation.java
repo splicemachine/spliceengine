@@ -87,7 +87,7 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
     private Scan baseScan;
     protected SpliceOperation source;
     protected static List<NodeType> nodeTypes;
-    protected ExecIndexRow sortTemplateRow;
+    protected ExecRow sortTemplateRow;
     private ExecRow templateRow;
     private List keyValues;
     private PairDecoder rowDecoder;
@@ -374,7 +374,7 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
             frameSource,
             windowContext.getFrameDefinition(),
             windowContext.getSortColumns(),
-            templateRow);
+            templateRow.getClone());
 
         // create and return the frame iterator
         return new WindowFunctionIterator(frameBuffer);
@@ -481,8 +481,6 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
     @Override
     public ExecRow getExecRowDefinition() {
         SpliceLogUtils.trace(LOG,"getExecRowDefinition");
-//        return templateRow.getClone();
-        // DEBUG
         return templateRow;
     }
 
