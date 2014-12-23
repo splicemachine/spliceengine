@@ -28,7 +28,7 @@
 	</repositories>
 
 	<properties>
-		<derby.version>1.0.0</derby.version>
+		<derby.version>1.0.1-SNAPSHOT</derby.version>
 		<excluded.categories>com.splicemachine.test.SlowTest</excluded.categories>
 		<failTasksRandomly>true</failTasksRandomly> <!-- run chaos monkey -->
 		<log4j.config.uri>file:${basedir}/src/main/resources/info-log4j.properties</log4j.config.uri>
