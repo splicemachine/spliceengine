@@ -38,7 +38,7 @@ while getopts "dh" flag ; do
 done
 
 # server still running? - must stop first
-S=$(ps -ef | awk '/SpliceSinglePlatform/ && !/awk/ {print $2}')
+S=$(ps -ef | awk '/SpliceTestPlatform/ && !/awk/ {print $2}')
 Z=$(ps -ef | awk '/ZooKeeperServerMain/ && !/awk/ {print $2}')
 if [[ -e "${ROOT_DIR}"/splice_pid || -e "${ROOT_DIR}"/zoo_pid || -n ${S} || -n ${Z} ]]; then
     echo "Splice is currently running and must be shut down. Run stop-splice.sh"
@@ -115,5 +115,5 @@ rm -f ${ZOOLOGFILE}
 
 # Start server with retry logic
 ZOO_WAIT_TIME=60
-SPLICE_MAIN_CLASS="com.splicemachine.test.SpliceSinglePlatform"
+SPLICE_MAIN_CLASS="com.splicemachine.test.SpliceTestPlatform"
 _retrySplice "${ROOT_DIR}" "${SPLICELOGFILE}" "${ZOOLOGFILE}" "${LOG4J_PATH}" "${ZOO_DIR}" ${ZOO_WAIT_TIME} "${HBASE_ROOT_DIR_URI}" "${CP}" ${SPLICE_MAIN_CLASS} "FALSE"

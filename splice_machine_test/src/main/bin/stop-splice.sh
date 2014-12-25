@@ -8,9 +8,9 @@ _stopServer "${ROOT_DIR}" "${ROOT_DIR}"
 
 # Check for stragglers
 SIG=15
-S=$(ps -ef | awk '/SpliceSinglePlatform/ && !/awk/ {print $2}')
+S=$(ps -ef | awk '/SpliceTestPlatform/ && !/awk/ {print $2}')
 if [[ -n ${S} ]]; then
-    echo "Found SpliceSinglePlatform straggler. Killing."
+    echo "Found SpliceTestPlatform straggler. Killing."
     for pid in ${S}; do
         kill -${SIG} ${pid}
     done
