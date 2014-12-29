@@ -261,9 +261,6 @@ public class HdfsImport {
                         insertColumnList, fileName, columnDelimiter,
                         characterDelimiter, timestampFormat, dateFormat, timeFormat, lcc, maxBadRecords, badRecordDirectory,isUpsert);
                 IteratorNoPutResultSet rs = new IteratorNoPutResultSet(Arrays.asList(resultRow),IMPORT_RESULT_COLUMNS,activation);
-//								if(fileName.endsWith(".gz")) {
-//										considerFileSizeWarning(fileName, activation);
-//								}
                 rs.open();
                 results[0] = new EmbedResultSet40(embedConnection,rs,false,null,true);
 
@@ -280,34 +277,6 @@ public class HdfsImport {
             }
         }
     }
-
-    private static void considerFileSizeWarning(String fileName, Activation activation) throws SQLException {
-        /*
-         * -sf- this message is fairly useless for a number of reasons:
-         *
-         * 1. It's not contained in messages.xml, which means that it's not internationalized. This means
-         * that throwing this warning will be nonsensical in non-english environments.
-         *
-         * 2. The warning doesn't appear until AFTER the file has finished importing. Information is only
-         * useful if it's actionable, and telling someone that a file is really big and might take a while to
-         * import *after* that file has been imported is not actionable, or useful in any way shape or form.
-         *
-         * 3. SQLWarnings should only be used when we are informing the user that something *potentially* bad
-         * has occurred, but that it doesn't violate any of our internal semantics--effectively, we are warning
-         * the user that they may have screwed something up (truncation warnings, that kind of thing). This warning
-         * does not fit within that stated purpose; as a result, it falls into the category of annoying chatty
-         * nonsense.
-         */
-				long fileSizeBytes = getFileSizeBytes(fileName);
-				if(SpliceConstants.sequentialImportFileSizeThreshold < fileSizeBytes){
-						//TODO -sf- This isn't internationalized, need to put this into messages.xml
-						String temp = "To load a large single file of data faster, " +
-										"it is best to break up the file into multiple files, " +
-										"put those files in a single directory, then import that directory.  " +
-										"See http://doc.splicemachine.com for more information.";
-						activation.addWarning(new SQLWarning(temp, "01010", ExceptionSeverity.WARNING_SEVERITY));
-				}
-		}
 
 		private static long getFileSizeBytes(String filePath) throws SQLException {
 				try {

@@ -137,9 +137,6 @@ class SpliceTestPlatformConfig {
         // Splice
         //
 
-        //set a low value threshold for gz file size on import
-        config.setLong(SpliceConstants.SEQUENTIAL_IMPORT_FILESIZE_THREASHOLD, MiB);
-
         //wait 15 seconds before bailing on bad ddl statements
         config.setLong("splice.ddl.drainingWait.maximum", SECONDS.toMillis(15));
 

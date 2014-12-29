@@ -510,34 +510,5 @@ public class HdfsImportIT extends SpliceUnitTest {
         }
 		Assert.assertEquals("10 Records not imported",10,i);
 	}
-	
-	@Test
-	@Category(SlowTest.class)
-  @Ignore("meaningless test")
-	public void testGZImportWithWarning() throws Exception {
-	  String location = getResourceDirectory()+"t1M.tbl.gz";
-		PreparedStatement ps = spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)",spliceSchemaWatcher.schemaName,TABLE_14,location));
-		ps.execute();
-		SQLWarning warning = ps.getWarnings();
-		String twarning = warning.getMessage();
-		Assert.assertTrue(twarning.contains("To load a large single file of data faster,"));
-	}
-    
 
-	@Test
-	public void testGZImportWithoutWarning() throws Exception {
-	    String location = getResourceDirectory()+"t1K.tbl.gz";
-	    String twarning="";
-		PreparedStatement ps = spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)",spliceSchemaWatcher.schemaName,TABLE_14,location));
-		ps.execute();
-		SQLWarning warning = ps.getWarnings();
-		if(warning!=null){
-			twarning = warning.getMessage();
-			if(twarning==null){
-				twarning="";
-			}
-		}
-		Assert.assertFalse(twarning.contains("To load a large single file of data faster,"));
-	}
-	
 }
