@@ -181,7 +181,7 @@ public class DecoderIT {
     }
 
     private Iterable<String> readRows(String csvLocation) {
-        List<String> lines = new LinkedList<String>();
+        List<String> lines = new LinkedList<>();
         BufferedReader in = null;
         try {
             in = new BufferedReader(new FileReader(csvLocation));

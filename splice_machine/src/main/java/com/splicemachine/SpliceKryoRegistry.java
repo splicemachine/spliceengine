@@ -682,12 +682,10 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
 								LongBufferedSumAggregator aggregator = new LongBufferedSumAggregator(64); //todo -sf- make configurable
 								try {
 										aggregator.readExternal(new KryoObjectInput(input, kryo));
-								} catch (IOException e) {
-										throw new RuntimeException(e);
-								} catch (ClassNotFoundException e) {
+								} catch (IOException | ClassNotFoundException e) {
 										throw new RuntimeException(e);
 								}
-								return aggregator;
+                            return aggregator;
 						}
 				},158);
 
@@ -706,12 +704,10 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
 								DoubleBufferedSumAggregator aggregator = new DoubleBufferedSumAggregator(64); //todo -sf- make configurable
 								try {
 										aggregator.readExternal(new KryoObjectInput(input, kryo));
-								} catch (IOException e) {
-										throw new RuntimeException(e);
-								} catch (ClassNotFoundException e) {
+								} catch (IOException | ClassNotFoundException e) {
 										throw new RuntimeException(e);
 								}
-								return aggregator;
+                            return aggregator;
 						}
 				},159);
 
@@ -730,12 +726,10 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
 								DecimalBufferedSumAggregator aggregator = new DecimalBufferedSumAggregator(64); //todo -sf- make configurable
 								try {
 										aggregator.readExternal(new KryoObjectInput(input, kryo));
-								} catch (IOException e) {
-										throw new RuntimeException(e);
-								} catch (ClassNotFoundException e) {
+								} catch (IOException | ClassNotFoundException e) {
 										throw new RuntimeException(e);
 								}
-								return aggregator;
+                            return aggregator;
 						}
 				},160);
 
@@ -754,12 +748,10 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
 								FloatBufferedSumAggregator aggregator = new FloatBufferedSumAggregator(64); //todo -sf- make configurable
 								try {
 										aggregator.readExternal(new KryoObjectInput(input, kryo));
-								} catch (IOException e) {
-										throw new RuntimeException(e);
-								} catch (ClassNotFoundException e) {
+								} catch (IOException | ClassNotFoundException e) {
 										throw new RuntimeException(e);
 								}
-								return aggregator;
+                            return aggregator;
 						}
 				},161);
 

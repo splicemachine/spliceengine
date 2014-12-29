@@ -23,7 +23,7 @@ public class KryoPool {
     private volatile KryoRegistry kryoRegistry;
 
     public KryoPool(int poolSize) {
-        this.instances = new ArrayBlockingQueue<Kryo>(poolSize);
+        this.instances = new ArrayBlockingQueue<>(poolSize);
     }
 
     public void setKryoRegistry(KryoRegistry kryoRegistry){

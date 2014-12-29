@@ -149,8 +149,7 @@ public class SpliceHTable extends HTable {
         Throwable {
         List<Pair<byte[], byte[]>> keysToUse = getKeysDealWithSameStartStopKey(startKey, endKey, 0);
 
-        KeyedCompletionService<ExecContext, R> completionService = new KeyedCompletionService<ExecContext,
-            R>(tableExecutor);
+        KeyedCompletionService<ExecContext, R> completionService = new KeyedCompletionService<>(tableExecutor);
         int outstandingFutures = 0;
         for (Pair<byte[], byte[]> key : keysToUse) {
             if (LOG.isDebugEnabled())

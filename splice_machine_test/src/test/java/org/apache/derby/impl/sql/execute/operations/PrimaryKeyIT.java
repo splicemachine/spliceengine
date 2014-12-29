@@ -287,18 +287,16 @@ public class PrimaryKeyIT extends SpliceUnitTest {
 
             PreparedStatement validator = conn.prepareStatement(SELECT_BY_NAME);
             validator.setString(1,"dgf");
-            ResultSet rs = validator.executeQuery();
-            try{
+            try (ResultSet rs = validator.executeQuery()) {
                 int matchCount = 0;
-                while(rs.next()){
-                    if("dgf".equalsIgnoreCase(rs.getString(1))){
+                while (rs.next()) {
+                    if ("dgf".equalsIgnoreCase(rs.getString(1))) {
                         matchCount++;
                         Assert.assertEquals("Column incorrect!", 5, rs.getInt(2));
                     }
                 }
-                Assert.assertEquals("Incorrect number of updated rows!",1,matchCount);
-            }finally{
-                rs.close();
+                Assert.assertEquals("Incorrect number of updated rows!", 1, matchCount);
+            } finally {
                 validator.close();
             }
         }finally{
@@ -326,19 +324,16 @@ public class PrimaryKeyIT extends SpliceUnitTest {
                 @Override
                 public void execute(PreparedStatement validator) throws Exception {
                     validator.setString(1,"mzweben");
-                    ResultSet rs = validator.executeQuery();
-                    try{
-                        int matchCount =0;
-                        while(rs.next()){
-                            if("mzweben".equalsIgnoreCase(rs.getString(1))){
+                    try (ResultSet rs = validator.executeQuery()) {
+                        int matchCount = 0;
+                        while (rs.next()) {
+                            if ("mzweben".equalsIgnoreCase(rs.getString(1))) {
                                 matchCount++;
                                 int val = rs.getInt(2);
-                                Assert.assertEquals("Column incorrect!",20,val);
+                                Assert.assertEquals("Column incorrect!", 20, val);
                             }
                         }
-                        Assert.assertEquals("Incorrect number of updated rows!",1,matchCount);
-                    }finally{
-                        rs.close();
+                        Assert.assertEquals("Incorrect number of updated rows!", 1, matchCount);
                     }
 
                 }

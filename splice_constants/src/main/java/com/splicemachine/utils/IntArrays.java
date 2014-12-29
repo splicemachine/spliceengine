@@ -50,7 +50,7 @@ public class IntArrays {
      */
     public static int[] complementMap(int[] filterMap, int size) {
         // track columns we need to filter
-        HashSet<Integer> columnsToFilter = new HashSet<Integer>(filterMap.length);
+        HashSet<Integer> columnsToFilter = new HashSet<>(filterMap.length);
         // determine the number of columns to filter
         int numMissingFields = 0;
         for (int i=0; i<filterMap.length; i++) {

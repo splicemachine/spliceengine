@@ -398,7 +398,7 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
     }
 
 	public String toString() {
-		StringBuffer strbuf = new StringBuffer();
+		StringBuilder strbuf = new StringBuilder();
 		strbuf.append( "CREATE CONSTRAINT " + constraintName );
 		strbuf.append("\n=========================\n");
 		if (columnNames == null)

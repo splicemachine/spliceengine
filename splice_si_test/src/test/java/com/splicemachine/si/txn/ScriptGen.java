@@ -14,7 +14,7 @@ public class ScriptGen {
         System.out.println("create table person (id int, age int);");
         System.out.println("autocommit off;");
 
-        Set<Integer> ids = new HashSet<Integer>();
+        Set<Integer> ids = new HashSet<>();
         final Random random = new Random();
         for (int i = 0; i< OP_COUNT; i++) {
             String op = null;

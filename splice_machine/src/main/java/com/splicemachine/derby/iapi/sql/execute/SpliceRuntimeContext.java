@@ -192,7 +192,7 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
 
     @Override
     public String toString() {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         sb.append("SpliceRuntimeContext {  ");
         sb.append(", hashBucket=");
         sb.append(hashBucket);

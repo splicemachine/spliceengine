@@ -62,8 +62,8 @@ public class ColumnOrdering {
 			Integer col = (Integer) columns.get(i);
 			Integer tab = (Integer) tables.get(i);
 
-			if (tab.intValue() == tableNumber &&
-				col.intValue() == columnNumber) {
+			if (tab == tableNumber &&
+                    col == columnNumber) {
 
 				return true;
 			}
@@ -88,8 +88,8 @@ public class ColumnOrdering {
 	 */
 	void addColumn(int tableNumber, int columnNumber)
 	{
-		tables.add(new Integer(tableNumber));
-		columns.add(new Integer(columnNumber));
+		tables.add(tableNumber);
+		columns.add(columnNumber);
 	}
 
 	/**
@@ -104,7 +104,7 @@ public class ColumnOrdering {
 		for (int i = tables.size() - 1; i >= 0; i--)
 		{
 			Integer tab = (Integer) tables.get(i);
-			if (tab.intValue() == tableNumber)
+			if (tab == tableNumber)
 			{
 				tables.remove(i);
 				columns.remove(i);
@@ -141,7 +141,7 @@ public class ColumnOrdering {
 		for (int i = 0; i < tables.size(); i++) {
 			Integer tab = (Integer) tables.get(i);
 			
-			if (tab.intValue() == tableNumber)
+			if (tab == tableNumber)
 				return true;
 		}
 
@@ -156,7 +156,7 @@ public class ColumnOrdering {
 		for (int i = 0; i < tables.size(); i++) {
 			Integer tab = (Integer) tables.get(i);
 			
-			if (tab.intValue() != tableNumber)
+			if (tab != tableNumber)
 				return true;
 		}
 

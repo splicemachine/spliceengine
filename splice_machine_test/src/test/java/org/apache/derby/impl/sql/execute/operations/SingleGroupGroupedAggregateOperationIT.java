@@ -77,7 +77,7 @@ public class SingleGroupGroupedAggregateOperationIT extends SpliceUnitTest {
             });
 
     @Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
-    private static Map<String,Stats> unameStats = new HashMap<String,Stats>();
+    private static Map<String,Stats> unameStats = new HashMap<>();
     private static final int size = 10;
 
 

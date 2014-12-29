@@ -19,7 +19,7 @@ public class XPlainTraceLegend {
     private static final int LENGTH = 30;
     public XPlainTraceLegend() {
 
-        legendMap = new TreeMap<String, LegendEntry>();
+        legendMap = new TreeMap<>();
         populateLegendMap();
     }
 

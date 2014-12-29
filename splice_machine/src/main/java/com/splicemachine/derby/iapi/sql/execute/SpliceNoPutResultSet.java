@@ -199,13 +199,10 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 						JobResults jobResults = topOperation.getJobResults();
 						if(jobResults!=null)
 								jobResults.cleanup();
-				}catch(RuntimeException r){
+				}catch(RuntimeException | IOException r){
 						throw Exceptions.parseException(r);
 				}
-				catch (IOException e) {
-						throw Exceptions.parseException(e);
-				}
-				boolean xplain = activation.isTraced();
+            boolean xplain = activation.isTraced();
 				if(xplain){
 						String xplainSchema = activation.getLanguageConnectionContext().getXplainSchema();
 						long statementId = topOperation.getStatementId();

@@ -17,7 +17,7 @@ Put extends OperationWithAttributes,Delete,Get extends OperationWithAttributes, 
     private final  SICompactionState compactionState;
     private final InternalScanner delegate;
     private final SDataLib<Data,Put,Delete,Get,Scan> dataLib;
-    List<Data> rawList = new ArrayList<Data>();
+    List<Data> rawList = new ArrayList<>();
 
     public BaseSICompactionScanner(SICompactionState compactionState,
                                InternalScanner scanner, SDataLib<Data,Put,Delete,Get,Scan> dataLib) {

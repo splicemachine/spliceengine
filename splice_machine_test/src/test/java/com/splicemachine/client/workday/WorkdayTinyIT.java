@@ -84,10 +84,10 @@ public class WorkdayTinyIT extends SpliceUnitTest {
 //    }
 
     private static List<List<String>> serializeResultSet(ResultSet rs) throws SQLException {
-        List<List<String>> actualRowVals = new ArrayList<List<String>>();
+        List<List<String>> actualRowVals = new ArrayList<>();
         int nCols = rs.getMetaData().getColumnCount();
         while (rs.next()) {
-            List<String> row = new ArrayList<String>(nCols);
+            List<String> row = new ArrayList<>(nCols);
             for (int i=1; i<=nCols; i++) {
                 row.add(rs.getObject(i).toString());
             }
@@ -149,7 +149,7 @@ public class WorkdayTinyIT extends SpliceUnitTest {
             // exec the query
             ResultSet rs = methodWatcher.executeQuery(BUG_712_QUERY_8);
             List<List<String>> actualRowVals = serializeResultSet(rs);
-            List<List<String>> expectedRowVals = new ArrayList<List<String>>();
+            List<List<String>> expectedRowVals = new ArrayList<>();
             expectedRowVals.add(Arrays.asList("3", "933"));
             assertValuesEqual(expectedRowVals, actualRowVals);
         } finally {

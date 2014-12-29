@@ -126,8 +126,8 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 		pks = sqlUtil.getPrimaryKey(spliceTableName);
 		
 		ArrayList<String> pkColNames = null;
-		ArrayList<String> allColNames = new ArrayList<String>();
-		ArrayList<Integer> allColTypes = new ArrayList<Integer>();
+		ArrayList<String> allColNames = new ArrayList<>();
+		ArrayList<Integer> allColTypes = new ArrayList<>();
 		Iterator tableiter = tableStructure.entrySet().iterator();
 		Iterator pkiter = pks.entrySet().iterator();
 	    if(tableiter.hasNext()){
@@ -186,15 +186,11 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 				else
 					tableID = conf.get(SpliceMRConstants.HBASE_OUTPUT_TABLE_NAME);
 				
-			} catch (StandardException e) {
+			} catch (StandardException | SQLException e) {
 				e.printStackTrace();
 				throw new IOException(e);
-			} catch (SQLException e) {
-				e.printStackTrace();
-				// TODO Auto-generated catch block
-				throw new IOException(e);
-			} 
-		}
+			}
+        }
 		
 		@Override
 		public void close(TaskAttemptContext arg0) throws IOException
@@ -324,10 +320,6 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 				kv.setValue(bdata);	
 				callBuffer.add(kv);
 					
-			} catch (StandardException e) {
-				// TODO Auto-generated catch block
-				throw new IOException(e);
-				
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				throw new IOException(e);

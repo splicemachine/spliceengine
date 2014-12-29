@@ -43,27 +43,25 @@ public class Query {
         try{
             final QueryAccumulator accumulator = new QueryAccumulator();
             accumulator.start();
-            CompletionService<Void> completionService = new ExecutorCompletionService<Void>(testRunner);
+            CompletionService<Void> completionService = new ExecutorCompletionService<>(testRunner);
             for(int i=0;i<threads;i++){
                 completionService.submit(new Callable<Void>() {
                     @Override
                     public Void call() throws Exception {
-                        Connection conn = connectionPool.acquire();
                         PreparedStatement ps = null;
-                        try{
+                        try (Connection conn = connectionPool.acquire()) {
                             ps = conn.prepareStatement(query);
-                            for(int j=0;j<samplesPerThread;j++){
+                            for (int j = 0; j < samplesPerThread; j++) {
                                 fillParameters(ps);
                                 long start = System.nanoTime();
                                 long numRecords = processResults(ps.executeQuery());
 
-                                accumulator.tick(numRecords,System.nanoTime()-start);
+                                accumulator.tick(numRecords, System.nanoTime() - start);
                             }
                             return null;
-                        }finally{
-//                            if(ps!=null)ps.close();
-                            conn.close();
                         }
+//                            if(ps!=null)ps.close();
+
                     }
                 });
             }

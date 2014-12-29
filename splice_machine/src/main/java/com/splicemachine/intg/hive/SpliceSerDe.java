@@ -37,7 +37,7 @@ public class SpliceSerDe implements SerDe {
     public static final String SPLICE_OUTPUT_TABLE_NAME = "splice_output_tableName";
     public static final String SPLICE_JDBC_STR = "splice_jdbc";
     protected static final String SPLICE_TRANSACTION_ID = "transaction_id";
-    private List<Object> row = new ArrayList<Object>();
+    private List<Object> row = new ArrayList<>();
     private SQLUtil sqlUtil = null;
     private LazySimpleSerDe.SerDeParameters serdeParams;
     private int[] pkCols = null;
@@ -93,7 +93,7 @@ public class SpliceSerDe implements SerDe {
 
 
     private void preReadTableStructure(String tableName) {
-        HashMap<List, List> tableStructure = new HashMap<List, List>();
+        HashMap<List, List> tableStructure = new HashMap<>();
 
         tableStructure = sqlUtil.getTableStructure(tableName);
 

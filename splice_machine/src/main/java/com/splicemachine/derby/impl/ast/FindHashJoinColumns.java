@@ -84,6 +84,6 @@ public class FindHashJoinColumns extends AbstractSpliceVisitor {
             }
         }
 
-        return new Pair<List<Integer>, List<Integer>>(leftIndices, rightIndices);
+        return new Pair<>(leftIndices, rightIndices);
     }
 }

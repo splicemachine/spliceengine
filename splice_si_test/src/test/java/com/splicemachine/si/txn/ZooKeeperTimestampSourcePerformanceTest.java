@@ -108,7 +108,7 @@ public class ZooKeeperTimestampSourcePerformanceTest {
                                        Supplier<Timer> timerSupplier,
                                        ExecutorService executorService,
                                        boolean globalTimer) throws InterruptedException, IOException {
-        CompletionService<Void> executor = new ExecutorCompletionService<Void>(executorService);
+        CompletionService<Void> executor = new ExecutorCompletionService<>(executorService);
         long start = System.currentTimeMillis();
         try{
             for(int i=0;i<numThreads;i++){

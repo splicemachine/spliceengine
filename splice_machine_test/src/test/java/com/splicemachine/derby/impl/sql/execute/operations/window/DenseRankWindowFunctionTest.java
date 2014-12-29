@@ -35,7 +35,7 @@ public class DenseRankWindowFunctionTest extends WindowTestingFramework {
         int[] orderByColIDs = new int[] {2};    // 1-based
 
         // define the shape of the input rows
-        List<TestColumnDefinition> rowDefinition = new ArrayList<TestColumnDefinition>(
+        List<TestColumnDefinition> rowDefinition = new ArrayList<>(
             Arrays.asList(new TestColumnDefinition[]{
                 new IntegerColumnDefinition(),
                 new DoubleColumnDefinition().setVariant(13),
@@ -60,17 +60,14 @@ public class DenseRankWindowFunctionTest extends WindowTestingFramework {
     public void testEmptyOrderByColumns() throws Exception {
 
         // define the shape of the input rows
-        List<TestColumnDefinition> rowDefinition = new ArrayList<TestColumnDefinition>(
+        List<TestColumnDefinition> rowDefinition = new ArrayList<>(
             Arrays.asList(new TestColumnDefinition[]{
                 new IntegerColumnDefinition()}));
 
         try {
             helpTestColumns(5, 100, new int[]{1}, new int[0], rowDefinition, true);
             Assert.fail("Expected exception - no ranking rows.");
-        } catch (IOException e) {
-            // shouldn't happen
-            Assert.fail(e.getMessage());
-        } catch (StandardException e) {
+        } catch (IOException | StandardException e) {
             // shouldn't happen
             Assert.fail(e.getMessage());
         } catch (RuntimeException e) {
@@ -82,7 +79,7 @@ public class DenseRankWindowFunctionTest extends WindowTestingFramework {
     public void testEmptyPartitionColumns() throws Exception {
 
         // define the shape of the input rows
-        List<TestColumnDefinition> rowDefinition = new ArrayList<TestColumnDefinition>(
+        List<TestColumnDefinition> rowDefinition = new ArrayList<>(
             Arrays.asList(new TestColumnDefinition[]{
                 new IntegerColumnDefinition(),
                 new DoubleColumnDefinition().setVariant(13)}));
@@ -94,7 +91,7 @@ public class DenseRankWindowFunctionTest extends WindowTestingFramework {
     public void testTimestampColumn() throws Exception {
 
         // define the shape of the input rows
-        List<TestColumnDefinition> rowDefinition = new ArrayList<TestColumnDefinition>(
+        List<TestColumnDefinition> rowDefinition = new ArrayList<>(
             Arrays.asList(new TestColumnDefinition[]{
                 new IntegerColumnDefinition(),
                 new DoubleColumnDefinition().setVariant(13),
@@ -108,7 +105,7 @@ public class DenseRankWindowFunctionTest extends WindowTestingFramework {
     public void testStringColumn() throws Exception {
 
         // define the shape of the input rows
-        List<TestColumnDefinition> rowDefinition = new ArrayList<TestColumnDefinition>(
+        List<TestColumnDefinition> rowDefinition = new ArrayList<>(
             Arrays.asList(new TestColumnDefinition[]{
                 new IntegerColumnDefinition(),
                 new DoubleColumnDefinition().setVariant(13),
@@ -122,7 +119,7 @@ public class DenseRankWindowFunctionTest extends WindowTestingFramework {
     public void testThreeOrderByColumns() throws Exception {
 
         // define the shape of the input rows
-        List<TestColumnDefinition> rowDefinition = new ArrayList<TestColumnDefinition>(
+        List<TestColumnDefinition> rowDefinition = new ArrayList<>(
             Arrays.asList(new TestColumnDefinition[]{
                 new IntegerColumnDefinition(),
                 new DoubleColumnDefinition().setVariant(13).setColumnName("partition_and_input1"),

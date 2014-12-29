@@ -67,7 +67,7 @@ public class SpliceUDAVariance<K extends Double> implements Aggregator<K,K,Splic
     }
 
     public K terminate() {
-        Double r = new Double(variance);
+        Double r = variance;
         return (K) r;
     }
 

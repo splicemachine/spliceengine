@@ -7,7 +7,7 @@ import org.junit.Test;
 public class SpliceUDAVarianceTest {
     @Test
     public void varianceSmallDataset() {
-        SpliceStddevSamp<Double> stddevSamp = new SpliceStddevSamp<Double>();
+        SpliceStddevSamp<Double> stddevSamp = new SpliceStddevSamp<>();
         for (Double val : new double[]{4, 7, 13, 16}) {
             stddevSamp.accumulate(val);
         }
@@ -19,9 +19,9 @@ public class SpliceUDAVarianceTest {
     public void testNumericalAccuracy() {
         SpliceStddevSamp<Double> stddevSamp;
         for (Double constant : new double[]{0, 1E4, 1E6, 1E8, 1E10, 1E12}) {
-            Double constantPlus0 = new Double(constant + 0);
-            Double constantPlus1 = new Double(constant + 1);
-            stddevSamp = new SpliceStddevSamp<Double>();
+            Double constantPlus0 = constant + 0;
+            Double constantPlus1 = constant + 1;
+            stddevSamp = new SpliceStddevSamp<>();
             for (int i = 0; i < 10000000; ++i) {
                 stddevSamp.accumulate(constantPlus0);
                 stddevSamp.accumulate(constantPlus1);
@@ -35,9 +35,9 @@ public class SpliceUDAVarianceTest {
     public void testNumericalAccuracyStableVariance() {
         SpliceUDAStableVariance<Double> variance;
         for (Double constant : new double[]{0, 1E4, 1E6, 1E8, 1E10, 1E12}) {
-            Double constantPlus0 = new Double(constant + 0);
-            Double constantPlus1 = new Double(constant + 1);
-            variance = new SpliceUDAStableVariance<Double>();
+            Double constantPlus0 = constant + 0;
+            Double constantPlus1 = constant + 1;
+            variance = new SpliceUDAStableVariance<>();
             for (int i = 0; i < 10000000; ++i) {
                 variance.accumulate(constantPlus0);
                 variance.accumulate(constantPlus1);

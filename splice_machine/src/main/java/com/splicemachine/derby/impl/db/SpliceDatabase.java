@@ -239,7 +239,7 @@ public class SpliceDatabase extends BasicDatabase {
 
         // If you add a visitor, be careful of ordering.
 
-        List<Class<? extends ISpliceVisitor>> afterOptVisitors = new ArrayList<Class<? extends ISpliceVisitor>>();
+        List<Class<? extends ISpliceVisitor>> afterOptVisitors = new ArrayList<>();
         afterOptVisitors.add(UnsupportedFormsDetector.class);
         afterOptVisitors.add(AssignRSNVisitor.class);
         afterOptVisitors.add(RowLocationColumnVisitor.class);
@@ -249,7 +249,7 @@ public class SpliceDatabase extends BasicDatabase {
         afterOptVisitors.add(PlanPrinter.class);
         afterOptVisitors.add(XPlainTraceVisitor.class);
 
-        List<Class<? extends ISpliceVisitor>> afterBindVisitors = new ArrayList<Class<? extends ISpliceVisitor>>(1);
+        List<Class<? extends ISpliceVisitor>> afterBindVisitors = new ArrayList<>(1);
         afterBindVisitors.add(RepeatedPredicateVisitor.class);
 
         lctx.setASTVisitor(new SpliceASTWalker(Collections.EMPTY_LIST, afterBindVisitors, afterOptVisitors));

@@ -191,8 +191,8 @@ public class SpliceObserverInstructions implements Externalizable {
 				}
 
 				public static ActivationContext create(Activation activation,SpliceOperation topOperation){
-						List<SpliceOperation> operations = new ArrayList<SpliceOperation>();
-						Map<String,Integer> setOps = new HashMap<String,Integer>(operations.size());
+						List<SpliceOperation> operations = new ArrayList<>();
+						Map<String,Integer> setOps = new HashMap<>(operations.size());
 						topOperation.generateAllOperationStack(operations);
                         for(Field field:activation.getClass().getDeclaredFields()){
 								if(!field.isAccessible())field.setAccessible(true); //make it accessible to me
@@ -290,7 +290,7 @@ public class SpliceObserverInstructions implements Externalizable {
 			/*
 			 * Set the populated operations with their comparable operation
 			 */
-								List<SpliceOperation> ops = new ArrayList<SpliceOperation>();
+								List<SpliceOperation> ops = new ArrayList<>();
 								topOperation.generateAllOperationStack(ops);
 								for(String setField:setOps.keySet()){
 										SpliceOperation op = ops.get(setOps.get(setField));
@@ -308,14 +308,10 @@ public class SpliceObserverInstructions implements Externalizable {
 								activation.getLanguageConnectionContext().pushStatementContext(statementAtomic,
 												statementReadOnly,stmtText,pvs,stmtRollBackParentContext,stmtTimeout);
 								return activation;
-						}catch (IOException e) {
-								SpliceLogUtils.logAndThrowRuntime(LOG,e);
-						} catch (IllegalAccessException e) {
-								SpliceLogUtils.logAndThrowRuntime(LOG,e);
-						} catch (NoSuchFieldException e) {
+						}catch (IOException | NoSuchFieldException | IllegalAccessException e) {
 								SpliceLogUtils.logAndThrowRuntime(LOG,e);
 						}
-						return null;
+                    return null;
 				}
 
 		}

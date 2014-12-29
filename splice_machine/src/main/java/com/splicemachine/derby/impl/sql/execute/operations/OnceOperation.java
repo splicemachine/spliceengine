@@ -115,7 +115,7 @@ public class OnceOperation extends SpliceBaseOperation {
 				source.init(context);
 
 				if(emptyRowFun == null) {
-						emptyRowFun = new SpliceMethod<ExecRow>(emptyRowFunMethodName, activation);
+						emptyRowFun = new SpliceMethod<>(emptyRowFunMethodName, activation);
 				}
 		}
 
@@ -213,7 +213,7 @@ public class OnceOperation extends SpliceBaseOperation {
 		@Override
 		public List<SpliceOperation> getSubOperations() {
 				SpliceLogUtils.trace(LOG, "getSubOperations");
-				List<SpliceOperation> operations = new ArrayList<SpliceOperation>();
+				List<SpliceOperation> operations = new ArrayList<>();
 				operations.add(source);
 				return operations;
 		}

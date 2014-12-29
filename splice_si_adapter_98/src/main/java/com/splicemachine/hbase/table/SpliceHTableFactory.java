@@ -87,7 +87,7 @@ public class SpliceHTableFactory implements HTableInterfaceFactory {
         }
         long keepAliveTime = conf.getLong("hbase.hconnection.threads.keepalivetime", 60);
         LinkedBlockingQueue<Runnable> workQueue =
-                new LinkedBlockingQueue<Runnable>(maxThreads *
+                new LinkedBlockingQueue<>(maxThreads *
                         conf.getInt(HConstants.HBASE_CLIENT_MAX_TOTAL_TASKS,
                                 HConstants.DEFAULT_HBASE_CLIENT_MAX_TOTAL_TASKS));
         return new ThreadPoolExecutor(coreThreads,  maxThreads, keepAliveTime, TimeUnit.SECONDS,

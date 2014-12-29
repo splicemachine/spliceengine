@@ -53,18 +53,18 @@ public class SimpleThreadedTaskScheduler<T extends Task> implements TaskSchedule
                 .setDaemon(true)
                 .setUncaughtExceptionHandler(new ExceptionLogger()).build();
         ThreadPoolExecutor executor = new TaskThreadPool(maxWorkers,maxWorkers,60,TimeUnit.SECONDS,
-                new BalancedBlockingQueue<Runnable>(numPriorityLevels,tasksPerLevel,priorityMapper),
+                new BalancedBlockingQueue<>(numPriorityLevels,tasksPerLevel,priorityMapper),
                 factory);
         executor.allowCoreThreadTimeOut(true);
 
-        return new SimpleThreadedTaskScheduler<T>(executor);
+        return new SimpleThreadedTaskScheduler<>(executor);
     }
 
     @Override
     public TaskFuture submit(T task) throws ExecutionException {
         ListeningFuture future = new ListeningFuture(task,statsListener.numPending.get());
         task.getTaskStatus().attachListener(statsListener);
-        future.future = executor.submit(new TaskCallable<T>(task));
+        future.future = executor.submit(new TaskCallable<>(task));
         return future;
     }
 
@@ -208,7 +208,7 @@ public class SimpleThreadedTaskScheduler<T extends Task> implements TaskSchedule
         @Override
         protected <T> RunnableFuture<T> newTaskFor(Callable<T> callable) {
             if(callable instanceof TaskCallable)
-                return new PriorityTaskRunnableFuture<T>(callable,((TaskCallable)callable).getPriority());
+                return new PriorityTaskRunnableFuture<>(callable,((TaskCallable)callable).getPriority());
             //when in doubt, just default to the original
             return super.newTaskFor(callable);
         }

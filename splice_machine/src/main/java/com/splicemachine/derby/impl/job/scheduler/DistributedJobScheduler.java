@@ -54,10 +54,6 @@ public class DistributedJobScheduler implements JobScheduler<CoprocessorJob>{
         try{
             String jobPath = createJobNode(job);
             return submitTasks(job,jobPath);
-        } catch (InterruptedException e) {
-            throw new ExecutionException(e);
-        } catch (KeeperException e) {
-            throw new ExecutionException(e);
         } catch (Exception e) {
             throw new ExecutionException(e);
         }
@@ -97,14 +93,10 @@ public class DistributedJobScheduler implements JobScheduler<CoprocessorJob>{
 								i++;
 						}
 						return jobs;
-				} catch (ZooKeeperConnectionException e) {
-						throw new ExecutionException(e);
-				} catch (InterruptedException e) {
-						throw new ExecutionException(e);
-				} catch (KeeperException e) {
+				} catch (ZooKeeperConnectionException | KeeperException | InterruptedException e) {
 						throw new ExecutionException(e);
 				}
-		}
+        }
 
 		/********************************************************************************************/
     /*Private helper methods*/

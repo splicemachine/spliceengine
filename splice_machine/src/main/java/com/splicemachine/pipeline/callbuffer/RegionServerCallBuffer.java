@@ -39,7 +39,7 @@ class RegionServerCallBuffer implements CallBuffer<Pair<byte[],RegionCallBuffer>
     	this.writeStats = writeStats;
     	this.serverName = serverName;
     	this.writer = writer;
-        this.buffers = new TreeMap<byte[], RegionCallBuffer>(Bytes.BYTES_COMPARATOR);
+        this.buffers = new TreeMap<>(Bytes.BYTES_COMPARATOR);
     }
 
     @Override

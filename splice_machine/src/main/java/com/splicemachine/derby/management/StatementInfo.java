@@ -57,14 +57,14 @@ public class StatementInfo {
         this.txn = txn.getTxnId();
 
         if(numSinks>0){
-            runningJobIds = new CopyOnWriteArraySet<JobInfo>();
-            completedJobIds = new CopyOnWriteArraySet<JobInfo>();
+            runningJobIds = new CopyOnWriteArraySet<>();
+            completedJobIds = new CopyOnWriteArraySet<>();
 //            runningJobIds = Collections.newSetFromMap(new ConcurrentHashMap<JobInfo, Boolean>());
 //            completedJobIds = Collections.newSetFromMap(new ConcurrentHashMap<JobInfo, Boolean>());
         }else{
             runningJobIds = completedJobIds = null;
         }
-        this.operationInfo = new CopyOnWriteArraySet<OperationInfo>();
+        this.operationInfo = new CopyOnWriteArraySet<>();
 //        this.operationInfo = Collections.newSetFromMap(new ConcurrentHashMap<OperationInfo, Boolean>());
 
 //				if(numSinks>0){

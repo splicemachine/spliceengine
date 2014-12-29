@@ -24,8 +24,8 @@ public class ExpandingTaskScheduler<T extends Task> implements StealableTaskSche
 
 		@Override
 		public TaskFuture submit(T task) throws ExecutionException {
-				executor.submit(new TaskCallable<T>(task));
-				return new ListeningTaskFuture<T>(task,0);
+				executor.submit(new TaskCallable<>(task));
+				return new ListeningTaskFuture<>(task,0);
 		}
 
 		@Override

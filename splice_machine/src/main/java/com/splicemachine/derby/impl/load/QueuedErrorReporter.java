@@ -46,7 +46,7 @@ public class QueuedErrorReporter implements ImportErrorReporter {
 															 long maxWaitTimeMs,
 															 RowErrorLogger rowLogger, PairDecoder pairDecoder) {
 				this.maxWaitTimeMs = maxWaitTimeMs;
-				this.queue = new ArrayBlockingQueue<ErrorRow>(maxQueuedRows);
+				this.queue = new ArrayBlockingQueue<>(maxQueuedRows);
 				QueueWorker worker = new QueueWorker(rowLogger,pairDecoder);
 				loggerThreads.submit(worker);
 		}

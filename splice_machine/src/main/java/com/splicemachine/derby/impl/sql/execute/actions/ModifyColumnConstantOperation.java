@@ -694,7 +694,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         // drop any generated columns which reference this column
         ColumnDescriptorList generatedColumnList = td.getGeneratedColumns();
         int generatedColumnCount = generatedColumnList.size();
-        List<String> cascadedDroppedColumns = new ArrayList<String>(generatedColumnCount);
+        List<String> cascadedDroppedColumns = new ArrayList<>(generatedColumnCount);
         for ( int i = 0; i < generatedColumnCount; i++ ) {
             ColumnDescriptor generatedColumn = generatedColumnList.elementAt( i );
             String[] referencedColumnNames = generatedColumn.getDefaultInfo().getReferencedColumnNames();

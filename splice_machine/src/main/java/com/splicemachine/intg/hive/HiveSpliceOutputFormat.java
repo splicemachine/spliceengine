@@ -144,8 +144,8 @@ public class HiveSpliceOutputFormat extends OutputFormat implements
         tableStructure = sqlUtil.getTableStructure(spliceTableName);
         pks = sqlUtil.getPrimaryKey(spliceTableName);
         ArrayList<String> pkColNames = null;
-        ArrayList<String> allColNames = new ArrayList<String>();
-        ArrayList<Integer> allColTypes = new ArrayList<Integer>();
+        ArrayList<String> allColNames = new ArrayList<>();
+        ArrayList<Integer> allColTypes = new ArrayList<>();
         Iterator tableiter = tableStructure.entrySet().iterator();
         Iterator pkiter = pks.entrySet().iterator();
         if(tableiter.hasNext()){
@@ -207,9 +207,7 @@ public class HiveSpliceOutputFormat extends OutputFormat implements
                 this.rowHash = getRowHash(null);
                 tableID = sqlUtil.getConglomID(conf.get(TableOutputFormat.OUTPUT_TABLE));
 
-            } catch (StandardException e) {
-                throw new IOException(e);
-            } catch (SQLException e) {
+            } catch (StandardException | SQLException e) {
                 throw new IOException(e);
             }
         }
@@ -307,10 +305,6 @@ public class HiveSpliceOutputFormat extends OutputFormat implements
                 kv.setKey(key);
                 kv.setValue(bdata);
                 callBuffer.add(kv);
-
-            } catch (StandardException e) {
-                // TODO Auto-generated catch block
-                throw new IOException(e.getCause());
 
             } catch (Exception e) {
                 // TODO Auto-generated catch block

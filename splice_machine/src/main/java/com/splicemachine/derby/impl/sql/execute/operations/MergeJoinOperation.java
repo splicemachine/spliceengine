@@ -127,7 +127,7 @@ public class MergeJoinOperation extends JoinOperation {
     private Joiner initJoiner(final SpliceRuntimeContext<ExecRow> spliceRuntimeContext)
             throws StandardException, IOException {
         StandardPushBackIterator<ExecRow> leftPushBack =
-                new StandardPushBackIterator<ExecRow>(StandardIterators.wrap(leftResultSet));
+                new StandardPushBackIterator<>(StandardIterators.wrap(leftResultSet));
         ExecRow firstLeft = leftPushBack.next(spliceRuntimeContext);
         SpliceRuntimeContext<ExecRow> ctxWithOverride = spliceRuntimeContext.copy();
         ctxWithOverride.unMarkAsSink();

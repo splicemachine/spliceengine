@@ -41,7 +41,7 @@ public class SpliceCatalogUpgradeScripts {
                     return 1;
             }
         };
-        scripts = new TreeMap<Splice_DD_Version, UpgradeScript>(ddComparator);
+        scripts = new TreeMap<>(ddComparator);
         scripts.put(new Splice_DD_Version(sdd, 1, 0, 0), new UpgradeScriptForFuji(sdd, tc));
     }
 

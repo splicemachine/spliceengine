@@ -40,9 +40,8 @@ public class ExportOperationSink implements OperationSink {
     public TaskStats sink(SpliceRuntimeContext spliceRuntimeContext) throws Exception {
         long rowsRead = 0;
         long rowsWritten = 0;
-        ExportExecRowWriter rowWriter = initializeExecRowWriter();
 
-        try {
+        try (ExportExecRowWriter rowWriter = initializeExecRowWriter()) {
             totalTimer.startTiming();
             ExecRow row;
             while ((row = operation.getNextSinkRow(spliceRuntimeContext)) != null) {
@@ -60,7 +59,7 @@ public class ExportOperationSink implements OperationSink {
             return handleException(e);
         } finally {
             operation.close();
-            rowWriter.close();
+
         }
         return new TaskStats(totalTimer.getTime().getWallClockTime(), rowsRead, rowsWritten, new boolean[0]);
     }

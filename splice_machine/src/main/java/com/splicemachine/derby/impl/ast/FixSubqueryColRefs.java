@@ -35,7 +35,7 @@ public class FixSubqueryColRefs extends AbstractSpliceVisitor {
     }
 
     public FixSubqueryColRefs(){
-        correlatedSubQs = new HashMap<Integer, List<SubqueryNode>>();
+        correlatedSubQs = new HashMap<>();
     }
 
     @Override

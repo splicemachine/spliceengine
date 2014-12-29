@@ -105,7 +105,7 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation impl
 		@Override
 		public List<SpliceOperation> getSubOperations() {
 				SpliceLogUtils.trace(LOG, "getSubOperations");
-				List<SpliceOperation> operations = new ArrayList<SpliceOperation>();
+				List<SpliceOperation> operations = new ArrayList<>();
 				operations.add(source);
 				return operations;
 		}

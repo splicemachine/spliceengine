@@ -129,14 +129,10 @@ public abstract class BaseReadAheadRegionScanner<Put extends OperationWithAttrib
 								SpliceLogUtils.trace(LOGGER,"Batch empty at sequence %d, attempting to read new batch",nextSequence);
 						availableSequence = consumerBarrier.waitFor(nextSequence);
 						return getFromBatch(result, nextSequence);
-				} catch (AlertException e) {
-						throw new IOException(e);
-				} catch (InterruptedException e) {
-						throw new IOException(e);
-				} catch (TimeoutException e) {
+				} catch (AlertException | TimeoutException | InterruptedException e) {
 						throw new IOException(e);
 				}
-		}
+        }
 
 		protected boolean getFromBatch(List<Data> result, long nextSequence) {
 				if(nextSequence<=availableSequence){

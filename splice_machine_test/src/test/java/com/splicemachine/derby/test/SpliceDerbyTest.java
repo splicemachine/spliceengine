@@ -21,7 +21,7 @@ public class SpliceDerbyTest {
     protected static String protocol = "jdbc:derby:splice/";
     protected static Properties props = new Properties();
 	protected static Connection conn = null;
-	protected static List<Statement> statements = new ArrayList<Statement>();
+	protected static List<Statement> statements = new ArrayList<>();
 	
     protected static void loadDriver() {
         try {

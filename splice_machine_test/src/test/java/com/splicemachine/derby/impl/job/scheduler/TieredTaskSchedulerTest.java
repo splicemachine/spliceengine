@@ -28,7 +28,7 @@ import static org.mockito.Mockito.when;
 public class TieredTaskSchedulerTest {
 		@Test(timeout= 1000)
 		public void testLowerPriorityTierStealsFromHigher() throws Exception {
-				ConstrainedTaskScheduler<Task> cScheduler = new ConstrainedTaskScheduler<Task>(new ExpandingTaskScheduler<Task>(),
+				ConstrainedTaskScheduler<Task> cScheduler = new ConstrainedTaskScheduler<>(new ExpandingTaskScheduler<>(),
 								Collections.<ConstrainedTaskScheduler.Constraint<Task>>emptyList(),true);
 
 				final AtomicBoolean overflowCheck = new AtomicBoolean(false);
@@ -39,7 +39,7 @@ public class TieredTaskSchedulerTest {
 								return OverflowPolicy.ENQUEUE;
 						}
 				};
-				final TieredTaskScheduler<Task> taskScheduler = new TieredTaskScheduler<Task>(
+				final TieredTaskScheduler<Task> taskScheduler = new TieredTaskScheduler<>(
 								new PresetTieredTaskSchedulerSetup(new int[]{0,1},new int[]{1,1}), overflowHandler,cScheduler);
 				try{
 
@@ -120,7 +120,7 @@ public class TieredTaskSchedulerTest {
 
 		@Test(timeout= 1000)
 		public void testHigherPriorityTasksShrugToLowerPriorityTiers() throws Exception {
-				ConstrainedTaskScheduler<Task> cScheduler = new ConstrainedTaskScheduler<Task>(new ExpandingTaskScheduler<Task>(),
+				ConstrainedTaskScheduler<Task> cScheduler = new ConstrainedTaskScheduler<>(new ExpandingTaskScheduler<>(),
 								Collections.<ConstrainedTaskScheduler.Constraint<Task>>emptyList(),true);
 
 				TieredTaskScheduler.OverflowHandler overflowHandler = new TieredTaskScheduler.OverflowHandler() {
@@ -130,7 +130,7 @@ public class TieredTaskSchedulerTest {
 								return OverflowPolicy.REJECT;
 						}
 				};
-				final TieredTaskScheduler<Task> taskScheduler = new TieredTaskScheduler<Task>(
+				final TieredTaskScheduler<Task> taskScheduler = new TieredTaskScheduler<>(
 								new PresetTieredTaskSchedulerSetup(new int[]{0,1},new int[]{1,1}), overflowHandler,cScheduler);
 				try{
 
@@ -189,7 +189,7 @@ public class TieredTaskSchedulerTest {
 
 		@Test(timeout= 1000)
 		public void testMultipleTasksEnqueue() throws Exception {
-				ConstrainedTaskScheduler<Task> cScheduler = new ConstrainedTaskScheduler<Task>(new ExpandingTaskScheduler<Task>(),
+				ConstrainedTaskScheduler<Task> cScheduler = new ConstrainedTaskScheduler<>(new ExpandingTaskScheduler<>(),
 								Collections.<ConstrainedTaskScheduler.Constraint<Task>>emptyList(),true);
 				final AtomicBoolean queued = new AtomicBoolean(false);
 				TieredTaskScheduler.OverflowHandler overflowHandler = new TieredTaskScheduler.OverflowHandler() {
@@ -200,7 +200,7 @@ public class TieredTaskSchedulerTest {
 								return OverflowPolicy.ENQUEUE;
 						}
 				};
-				final TieredTaskScheduler<Task> taskScheduler = new TieredTaskScheduler<Task>(
+				final TieredTaskScheduler<Task> taskScheduler = new TieredTaskScheduler<>(
 								new PresetTieredTaskSchedulerSetup(new int[]{1},new int[]{1}), overflowHandler,cScheduler);
 				try{
 
@@ -258,7 +258,7 @@ public class TieredTaskSchedulerTest {
 		@Test
 //		@Test(timeout= 1000)
 		public void testSubtaskSubmissionOverflows() throws Exception {
-				ConstrainedTaskScheduler<Task> cScheduler = new ConstrainedTaskScheduler<Task>(new ExpandingTaskScheduler<Task>(),
+				ConstrainedTaskScheduler<Task> cScheduler = new ConstrainedTaskScheduler<>(new ExpandingTaskScheduler<>(),
 								Collections.<ConstrainedTaskScheduler.Constraint<Task>>emptyList(),true);
 				TieredTaskScheduler.OverflowHandler overflowHandler = new TieredTaskScheduler.OverflowHandler() {
 						@Override
@@ -269,7 +269,7 @@ public class TieredTaskSchedulerTest {
 										return OverflowPolicy.REJECT;
 						}
 				};
-				final TieredTaskScheduler<Task> taskScheduler = new TieredTaskScheduler<Task>(
+				final TieredTaskScheduler<Task> taskScheduler = new TieredTaskScheduler<>(
 								new PresetTieredTaskSchedulerSetup(new int[]{1},new int[]{1}), overflowHandler,cScheduler);
 				try{
 						final CountDownLatch subLatch = new CountDownLatch(1);
@@ -326,7 +326,7 @@ public class TieredTaskSchedulerTest {
 
 		@Test(timeout= 1000)
 		public void testSubmissionWorks() throws Exception {
-				ConstrainedTaskScheduler<Task> cScheduler = new ConstrainedTaskScheduler<Task>(new ExpandingTaskScheduler<Task>(),
+				ConstrainedTaskScheduler<Task> cScheduler = new ConstrainedTaskScheduler<>(new ExpandingTaskScheduler<>(),
 								Collections.<ConstrainedTaskScheduler.Constraint<Task>>emptyList(),true);
 				TieredTaskScheduler.OverflowHandler overflowHandler = new TieredTaskScheduler.OverflowHandler() {
 						@Override
@@ -334,7 +334,7 @@ public class TieredTaskSchedulerTest {
 								return OverflowPolicy.REJECT;
 						}
 				};
-				final TieredTaskScheduler<Task> taskScheduler = new TieredTaskScheduler<Task>(
+				final TieredTaskScheduler<Task> taskScheduler = new TieredTaskScheduler<>(
 								new PresetTieredTaskSchedulerSetup(new int[]{1},new int[]{1}), overflowHandler,cScheduler);
 				try{
 
@@ -369,7 +369,7 @@ public class TieredTaskSchedulerTest {
 		private TaskStatus createTaskStatus() {
 				TaskStatus mockStatus = mock(TaskStatus.class);
 				doNothing().when(mockStatus).attachListener(any(TaskStatus.StatusListener.class));
-				final AtomicReference<Status> status = new AtomicReference<Status>(Status.PENDING);
+				final AtomicReference<Status> status = new AtomicReference<>(Status.PENDING);
 				when(mockStatus.getStatus()).thenReturn(status.get());
 				doAnswer(new Answer<Void>() {
 						@Override

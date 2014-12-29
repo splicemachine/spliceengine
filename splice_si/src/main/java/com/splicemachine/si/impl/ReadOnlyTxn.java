@@ -14,7 +14,7 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class ReadOnlyTxn extends AbstractTxn {
 		private volatile TxnView parentTxn;
-		private AtomicReference<State> state = new AtomicReference<State>(State.ACTIVE);
+		private AtomicReference<State> state = new AtomicReference<>(State.ACTIVE);
 		private final TxnLifecycleManager tc;
 		private final boolean additive;
 

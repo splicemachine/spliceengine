@@ -163,9 +163,9 @@ public class RowCountOperation extends SpliceBaseOperation{
 				super.init(context);
 				source.init(context);
 				if(offsetMethodName!=null)
-						offsetMethod = new SpliceMethod<DataValueDescriptor>(offsetMethodName, activation);
+						offsetMethod = new SpliceMethod<>(offsetMethodName, activation);
 				if(fetchFirstMethodName!=null)
-						fetchFirstMethod = new SpliceMethod<DataValueDescriptor>(fetchFirstMethodName, activation);
+						fetchFirstMethod = new SpliceMethod<>(fetchFirstMethodName, activation);
 				firstTime=true;
 				rowsFetched=0;
 
@@ -464,12 +464,10 @@ public class RowCountOperation extends SpliceBaseOperation{
 						table = SpliceAccessManager.getHTable(getTableName());
 						try {
 								splitScansAroundRegionBarriers();
-						} catch (ExecutionException e) {
-								throw new RuntimeException(e);
-						} catch (IOException e) {
+						} catch (ExecutionException | IOException e) {
 								throw new RuntimeException(e);
 						}
-				}
+                }
 
 				@Override
 				public byte[] getTableName() {
@@ -532,7 +530,7 @@ public class RowCountOperation extends SpliceBaseOperation{
 								}
 						});
 
-						offsetScans = new LinkedList<Scan>();
+						offsetScans = new LinkedList<>();
 						for(Pair<byte[],byte[]> region:ranges){
 								Scan scan = new Scan();
 								scan.setStartRow(region.getFirst());

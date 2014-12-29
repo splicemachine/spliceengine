@@ -185,7 +185,7 @@ public class ThreeTableEquiJoinIT {
 
 
         List<Map> results1 = TestUtils.resultSetToMaps(rs1);
-        LinkedList<Map> results2 = new LinkedList<Map>(TestUtils.resultSetToMaps(rs2));
+        LinkedList<Map> results2 = new LinkedList<>(TestUtils.resultSetToMaps(rs2));
 
         Assert.assertEquals(10, results1.size());
         Assert.assertEquals(10, results2.size());

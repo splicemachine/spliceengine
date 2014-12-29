@@ -116,7 +116,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>{
 																					boolean isCountStar) throws IOException {
 										TxnFilter<Data> txnFilter = region.unpackedFilter(txn);
 
-										HRowAccumulator<Data> hRowAccumulator = new HRowAccumulator<Data>(dataLib,predicateFilter, getRowEntryDecoder(), accumulator, isCountStar);
+										HRowAccumulator<Data> hRowAccumulator = new HRowAccumulator<>(dataLib,predicateFilter, getRowEntryDecoder(), accumulator, isCountStar);
 										//noinspection unchecked
 										return new PackedTxnFilter<Data>(txnFilter, hRowAccumulator){
 												@Override

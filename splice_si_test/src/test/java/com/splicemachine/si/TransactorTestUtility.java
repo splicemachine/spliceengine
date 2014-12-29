@@ -383,7 +383,7 @@ public class TransactorTestUtility {
 
 		private static String resultToKeyValueString(TestTransactionSetup transactorSetup, SDataLib dataLib,
 																								 Result result, boolean decodeTimestamps) {
-			Map<Long, String> timestampDecoder = new HashMap<Long,String>();
+			Map<Long, String> timestampDecoder = new HashMap<>();
 			final StringBuilder s = new StringBuilder();
 			byte[] packedColumns = result.getValue(transactorSetup.family, SIConstants.PACKED_COLUMN_BYTES);
 			long timestamp = result.getColumnLatest(transactorSetup.family, SIConstants.PACKED_COLUMN_BYTES).getTimestamp();

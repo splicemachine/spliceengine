@@ -19,7 +19,7 @@ public class BulkWrites implements Externalizable {
     public ObjectArrayList<BulkWrite> bulkWrites;
     
     public BulkWrites() { 
-    	bulkWrites = new ObjectArrayList<BulkWrite>();
+    	bulkWrites = new ObjectArrayList<>();
     }
 
     public BulkWrites(ObjectArrayList<BulkWrite> bulkWrites) {
@@ -42,7 +42,7 @@ public class BulkWrites implements Externalizable {
 
     @Override
     public String toString() {
-    	StringBuffer sb = new StringBuffer();
+    	StringBuilder sb = new StringBuilder();
     	sb.append("BulkWrites{");
 		Object[] buffer = bulkWrites.buffer;
 		int iBuffer = bulkWrites.size();
@@ -78,7 +78,7 @@ public class BulkWrites implements Externalizable {
     }
     
     public ObjectArrayList<KVPair> getAllCombinedKeyValuePairs() {
-    	ObjectArrayList<KVPair> pairs = new ObjectArrayList<KVPair>();
+    	ObjectArrayList<KVPair> pairs = new ObjectArrayList<>();
     	Object[] buffer = bulkWrites.buffer;
         int iBuffer = bulkWrites.size();
         for (int i = 0; i< iBuffer; i++) {

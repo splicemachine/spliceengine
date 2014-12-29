@@ -37,7 +37,7 @@ public class HBaseRegionLoads {
     private static final AtomicBoolean started = new AtomicBoolean(false);
     private static final AtomicReference<Map<String, Map<String,RegionLoad>>> cache =
         // The cache is a map from tablename to map of regionname to RegionLoad
-        new AtomicReference<Map<String, Map<String,RegionLoad>>>();
+        new AtomicReference<>();
 
     private static final Runnable updater = new Runnable() {
         @Override
@@ -109,11 +109,8 @@ public class HBaseRegionLoads {
         try {
             // Check to see if this admin instance still good
             admin.isMasterRunning();
-        } catch (MasterNotRunningException e) {
+        } catch (MasterNotRunningException | ZooKeeperConnectionException e) {
             // If not, close & get a new one
-            Closeables.closeQuietly(admin);
-            admin = SpliceUtilities.getAdmin();
-        } catch (ZooKeeperConnectionException e) {
             Closeables.closeQuietly(admin);
             admin = SpliceUtilities.getAdmin();
         }

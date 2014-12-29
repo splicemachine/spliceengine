@@ -427,7 +427,7 @@ public class Backup implements InternalTable {
 
 	public void addBackupItem(BackupItem backupItem) {
 		if (backupItems == null)
-			backupItems = new ArrayList<BackupItem>();
+			backupItems = new ArrayList<>();
 		backupItems.add(backupItem);
 	}
 

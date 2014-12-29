@@ -82,10 +82,10 @@ public class TransactionResolver<Transaction,TableBuffer> {
         while(bSize<bufferSize)
             bSize<<=1;
 
-        disruptor = new Disruptor<TxnResolveEvent<Transaction>>(new EventFactory<TxnResolveEvent<Transaction>>() {
+        disruptor = new Disruptor<>(new EventFactory<TxnResolveEvent<Transaction>>() {
 			@Override
 			public TxnResolveEvent<Transaction> newInstance() {
-	                return new TxnResolveEvent<Transaction>();
+	                return new TxnResolveEvent<>();
 			}
         },bSize,consumerThreads,
                 ProducerType.MULTI,

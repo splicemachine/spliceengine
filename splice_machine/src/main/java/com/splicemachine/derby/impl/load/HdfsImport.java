@@ -366,16 +366,13 @@ public class HdfsImport {
 						SpliceRuntimeContext runtimeContext = new SpliceRuntimeContext(childTransaction);
 						runtimeContext.setStatementInfo(statementInfo);
 						return importer.executeShuffle(runtimeContext,childTransaction);
-				} catch(AssertionError ae){
+				} catch(AssertionError | CancellationException ae){
 						rollback =true;
 						throw PublicAPI.wrapStandardException(Exceptions.parseException(ae));
 				} catch(StandardException e) {
 						rollback = true;
 						throw PublicAPI.wrapStandardException(e);
-				}catch(CancellationException ce){
-						rollback = true;
-						throw PublicAPI.wrapStandardException(Exceptions.parseException(ce));
-				}finally{
+				} finally{
 						//put this stuff first to avoid a memory leak
             if(rollback){
 								try {
@@ -496,14 +493,12 @@ public class HdfsImport {
 												new SQLLongint(numBadRecords)
 								});
 								return result;
-						} catch (InterruptedException e) {
+						} catch (InterruptedException | IOException e) {
 								throw Exceptions.parseException(e);
 						} catch (ExecutionException e) {
 								throw Exceptions.parseException(e.getCause());
 						} // still need to cancel all other jobs ? // JL
-						catch (IOException e) {
-								throw Exceptions.parseException(e);
-						} finally{
+                        finally{
 								Closeables.closeQuietly(table);
 								for(Pair<JobFuture,JobInfo> future:jobFutures){
 										try {

@@ -20,7 +20,7 @@ public class BoundedConcurrentLinkedQueue<E> implements BlockingQueue<E> {
 
     public BoundedConcurrentLinkedQueue(int maxSize) {
         this.maxSize = maxSize;
-        this.delegate = new ConcurrentLinkedQueue<E>();
+        this.delegate = new ConcurrentLinkedQueue<>();
     }
 
     @Override

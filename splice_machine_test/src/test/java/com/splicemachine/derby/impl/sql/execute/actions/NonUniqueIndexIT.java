@@ -174,19 +174,16 @@ public class NonUniqueIndexIT extends SpliceUnitTest {
         //now check that we can get data out for the proper key
         ps = methodWatcher.prepareStatement("select * from "+ spliceTableWatcher3+ " where name = ?");
         ps.setString(1,name);
-        ResultSet resultSet = ps.executeQuery();
-        try{
+        try (ResultSet resultSet = ps.executeQuery()) {
             List<String> results = Lists.newArrayListWithExpectedSize(1);
-            while(resultSet.next()){
+            while (resultSet.next()) {
                 String retName = resultSet.getString(1);
                 int val = resultSet.getInt(2);
-                Assert.assertEquals("Incorrect name returned!",name,retName);
-                Assert.assertEquals("Incorrect value returned!",value,val);
-                results.add(String.format("name:%s,value:%d",retName,val));
+                Assert.assertEquals("Incorrect name returned!", name, retName);
+                Assert.assertEquals("Incorrect value returned!", value, val);
+                results.add(String.format("name:%s,value:%d", retName, val));
             }
-            Assert.assertEquals("Incorrect number of rows returned!",1,results.size());
-        }finally{
-            resultSet.close();
+            Assert.assertEquals("Incorrect number of rows returned!", 1, results.size());
         }
     }
     /**
@@ -210,19 +207,16 @@ public class NonUniqueIndexIT extends SpliceUnitTest {
         preparedStatement = methodWatcher.prepareStatement("select * from "+ spliceTableWatcher8+" where oid = ?");
         preparedStatement.setBigDecimal(1,oid);
 
-        ResultSet resultSet = preparedStatement.executeQuery();
-        try{
+        try (ResultSet resultSet = preparedStatement.executeQuery()) {
             List<String> results = Lists.newArrayListWithExpectedSize(1);
-            while(resultSet.next()){
+            while (resultSet.next()) {
                 BigDecimal retOid = resultSet.getBigDecimal(1);
                 String retName = resultSet.getString(2);
-                Assert.assertEquals("Incorrect name returned!",name,retName);
-                Assert.assertEquals("Incorrect oid returned!",oid,retOid);
-                results.add(String.format("name:%s,value:%s",retName,retOid));
+                Assert.assertEquals("Incorrect name returned!", name, retName);
+                Assert.assertEquals("Incorrect oid returned!", oid, retOid);
+                results.add(String.format("name:%s,value:%s", retName, retOid));
             }
-            Assert.assertEquals("Incorrect number of rows returned!",1,results.size());
-        }finally{
-            resultSet.close();
+            Assert.assertEquals("Incorrect number of rows returned!", 1, results.size());
         }
     }
 
@@ -386,7 +380,7 @@ public class NonUniqueIndexIT extends SpliceUnitTest {
         ResultSet rs = methodWatcher.executeQuery("select j,i from " + TABLE_NAME_10 + "  --SPLICE-PROPERTIES index=" + INDEX_J);
         List<Pair<Integer,Integer>> rows = Lists.newArrayList();
         while(rs.next()) {
-            Pair<Integer, Integer> par = new Pair<Integer, Integer>();
+            Pair<Integer, Integer> par = new Pair<>();
             par.setFirst((Integer) rs.getObject(1));
             par.setSecond((Integer) rs.getObject(2));
             rows.add(par);
@@ -394,7 +388,7 @@ public class NonUniqueIndexIT extends SpliceUnitTest {
         assertEquals(3, rows.size());
         assertTrue(rows.contains(new Pair<Integer,Integer>(null, 1)));
         assertTrue(rows.contains(new Pair<Integer,Integer>(null, 4)));
-        assertTrue(rows.contains(new Pair<Integer,Integer>(3, 2)));
+        assertTrue(rows.contains(new Pair<>(3, 2)));
     }
 
     @Test

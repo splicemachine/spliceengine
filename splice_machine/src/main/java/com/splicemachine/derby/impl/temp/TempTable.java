@@ -48,7 +48,7 @@ public class TempTable {
 
 		public TempTable(byte[] tempTableName) {
 				this.tempTableName = tempTableName;
-				this.spread = new AtomicReference<SpreadBucket>(SpreadBucket.SIXTEEN);
+				this.spread = new AtomicReference<>(SpreadBucket.SIXTEEN);
 		}
 
 		public SpreadBucket getCurrentSpread() {

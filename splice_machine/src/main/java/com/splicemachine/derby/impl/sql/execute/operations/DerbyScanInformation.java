@@ -133,7 +133,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
     @Override
     public ExecRow getResultRow() throws StandardException {
         if(resultRowAllocator==null)
-            resultRowAllocator = new SpliceMethod<ExecRow>(resultRowAllocatorMethodName,activation);
+            resultRowAllocator = new SpliceMethod<>(resultRowAllocatorMethodName,activation);
         return resultRowAllocator.invoke();
     }
 
@@ -412,14 +412,14 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
         if(sameStartStopPosition)
             return null;
         if(stopKeyGetter==null &&stopKeyGetterMethodName!=null)
-            stopKeyGetter = new SpliceMethod<ExecIndexRow>(stopKeyGetterMethodName,activation);
+            stopKeyGetter = new SpliceMethod<>(stopKeyGetterMethodName,activation);
 
         return stopKeyGetter==null?null: stopKeyGetter.invoke();
     }
 
     protected ExecIndexRow getStartPosition() throws StandardException {
         if(startKeyGetter==null &&startKeyGetterMethodName!=null)
-            startKeyGetter = new SpliceMethod<ExecIndexRow>(startKeyGetterMethodName,activation);
+            startKeyGetter = new SpliceMethod<>(startKeyGetterMethodName,activation);
 
         if(startKeyGetter!=null)
             return startKeyGetter.invoke();

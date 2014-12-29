@@ -22,7 +22,7 @@ import java.util.LinkedList;
 public class SpliceTransaction extends BaseSpliceTransaction {
     private static Logger LOG = Logger.getLogger(SpliceTransaction.class);
 
-		private Deque<Pair<String,Txn>> txnStack = new LinkedList<Pair<String, Txn>>();
+		private Deque<Pair<String,Txn>> txnStack = new LinkedList<>();
 
 		public SpliceTransaction(CompatibilitySpace compatibilitySpace,
 														 SpliceTransactionFactory spliceTransactionFactory,

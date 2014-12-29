@@ -154,9 +154,6 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
         	if (LOG.isTraceEnabled())
         		SpliceLogUtils.trace(LOG, "performing delete on row %s", BytesUtil.toHex(indexDelete.getRow()));
             indexBuffer.add(indexDelete);
-        } catch (IOException e) {
-            failed=true;
-            ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName()+":"+e.getMessage()));
         } catch (Exception e) {
             failed=true;
             ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName()+":"+e.getMessage()));

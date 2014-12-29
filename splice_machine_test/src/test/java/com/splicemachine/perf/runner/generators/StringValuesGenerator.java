@@ -44,7 +44,7 @@ public class StringValuesGenerator implements ColumnDataGenerator {
                 return null;
             }
 
-            List<String> vals = new ArrayList<String>();
+            List<String> vals = new ArrayList<>();
             in.beginObject();
             while(in.hasNext()){
                 String name = in.nextName();

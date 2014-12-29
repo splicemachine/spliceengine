@@ -39,7 +39,7 @@ public class XPlainTraceJsonPrinter extends XPlainTraceBasePrinter{
         this.topOperation = topOperation;
         this.dataTemplate = new ValueRow(1);
         this.dataTemplate.setRowArray(new DataValueDescriptor[]{new SQLClob()});
-        this.rows = new ArrayList<ExecRow>(1);
+        this.rows = new ArrayList<>(1);
         this.mode = mode;
     }
 

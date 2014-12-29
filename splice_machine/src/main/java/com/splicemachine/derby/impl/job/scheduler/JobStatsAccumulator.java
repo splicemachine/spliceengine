@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  *         Created on: 9/17/13
  */
 final class JobStatsAccumulator implements JobStats {
-    private List<TaskStats> taskStats = new ArrayList<TaskStats>();
+    private List<TaskStats> taskStats = new ArrayList<>();
     private List<byte[]> failedTasks = Collections.synchronizedList(Lists.<byte[]>newArrayListWithExpectedSize(0));
 
     private final AtomicInteger tasks = new AtomicInteger(0);

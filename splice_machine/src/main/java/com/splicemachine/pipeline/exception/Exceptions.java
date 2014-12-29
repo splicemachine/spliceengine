@@ -346,7 +346,7 @@ public class Exceptions {
                 else if("arguments".equals(nextName)){
                     if(in.peek()!=JsonToken.NULL){
                         in.beginArray();
-                        objectStrings = new ArrayList<String>();
+                        objectStrings = new ArrayList<>();
                         while(in.peek()!=JsonToken.END_ARRAY){
                             objectStrings.add(in.nextString());
                         }

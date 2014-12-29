@@ -77,7 +77,7 @@ public class ConstrainedTaskScheduler<T extends Task> implements StealableTaskSc
 				this.delegate = delegate;
 				this.constraints = constraints;
 				this.rejectionHandler = rejectionHandler;
-				this.overflowConstraint = !enableOverflow? null: new TasksPerJobConstraint<T>(this, 1, Predicates.<T>alwaysTrue());
+				this.overflowConstraint = !enableOverflow? null: new TasksPerJobConstraint<>(this, 1, Predicates.<T>alwaysTrue());
 		}
 
 		@Override
@@ -87,7 +87,7 @@ public class ConstrainedTaskScheduler<T extends Task> implements StealableTaskSc
 						switch (actionTaken) {
 								case DEFERRED:
 										task.getTaskStatus().setStatus(Status.PENDING);
-										return new ListeningTaskFuture<T>(task,numRunning.get());
+										return new ListeningTaskFuture<>(task,numRunning.get());
 								case REJECT:
 										rejectionHandler.rejected(task);
 						}

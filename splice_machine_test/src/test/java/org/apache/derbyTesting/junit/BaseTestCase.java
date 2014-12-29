@@ -521,7 +521,7 @@ public abstract class BaseTestCase
 	        for (int i = 0; i < expectedString.length; i++) {
 	            assertTrue("Could not find expectedString:" +
 	                    expectedString[i] + " in output:" + output,
-	                    output.indexOf(expectedString[i]) >= 0);
+                        output.contains(expectedString[i]));
 	        }
 	    }
 	}
@@ -712,7 +712,7 @@ public abstract class BaseTestCase
     }
 
     public static final boolean runsWithEmma() {
-        return getSystemProperty("java.class.path").indexOf("emma.jar") != -1;
+        return getSystemProperty("java.class.path").contains("emma.jar");
     }
 
 
@@ -768,7 +768,7 @@ public abstract class BaseTestCase
 
                         String sysHome = getSystemProperty("derby.system.home");
 
-                        StringBuffer arbitraryRAFFileNameB = new StringBuffer();
+                        StringBuilder arbitraryRAFFileNameB = new StringBuilder();
 
                         arbitraryRAFFileNameB.append(sysHome);
                         arbitraryRAFFileNameB.append(File.separatorChar);
@@ -780,15 +780,13 @@ public abstract class BaseTestCase
                         new File(sysHome).mkdirs(); // e.g. "system"
                         new File(arbitraryRAFFileName).createNewFile();
 
-                        RandomAccessFile f = new RandomAccessFile(
-                            arbitraryRAFFileName, "r");
-
-                        try {
+                        try (RandomAccessFile f = new RandomAccessFile(
+                                arbitraryRAFFileName, "r")) {
                             Thread.currentThread().interrupt();
                             f.read();
                         } finally {
                             Thread.interrupted(); // clear flag
-                            f.close();
+
                         }
 
                         return null;

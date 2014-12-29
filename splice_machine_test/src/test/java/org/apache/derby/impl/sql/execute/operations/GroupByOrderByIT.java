@@ -116,15 +116,15 @@ public class GroupByOrderByIT {
     private static int verifyColumns(ResultSet rs, List<String> expectedColNames,
                                      List<String> excludedColNames, boolean print) throws Exception {
         ResultSetMetaData meta = rs.getMetaData();
-        List<String> actualColNames = new ArrayList<String>(meta.getColumnCount());
+        List<String> actualColNames = new ArrayList<>(meta.getColumnCount());
         for (int i = 0; i < meta.getColumnCount(); i++) {
             actualColNames.add(meta.getColumnName(i+1));
         }
 
-        List<String> errors = new ArrayList<String>();
-        List<List<String>> rows = new ArrayList<List<String>>();
+        List<String> errors = new ArrayList<>();
+        List<List<String>> rows = new ArrayList<>();
         while (rs.next()) {
-            List<String> row = new ArrayList<String>();
+            List<String> row = new ArrayList<>();
             for (int j = 0; j < actualColNames.size(); j++) {
                 String expectedColName = expectedColNames.get(j);
                 String actualColumn = rs.getObject(j+1).toString();

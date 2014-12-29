@@ -145,12 +145,10 @@ public class ZkUtils {
 	public static void setData(String path, byte[] data, int version) throws IOException{
 		try {
 			getRecoverableZooKeeper().setData(path,data,version);
-		} catch (KeeperException e) {
-			throw new IOException(e);
-		} catch (InterruptedException e) {
+		} catch (KeeperException | InterruptedException e) {
 			throw new IOException(e);
 		}
-	}
+    }
 
 	/**
 	 * Gets data from ZooKeeper.
@@ -164,42 +162,34 @@ public class ZkUtils {
 	public static byte[] getData(String path) throws IOException{
 		try{
 			return getRecoverableZooKeeper().getData(path,false,null);
-		} catch (InterruptedException e) {
-			throw new IOException(e);
-		} catch (KeeperException e) {
+		} catch (InterruptedException | KeeperException e) {
 			throw new IOException(e);
 		}
-	}
+    }
 
 	public static byte[] getData(String path, Watcher watcher, Stat stat) throws IOException{
 		try{
 			return getRecoverableZooKeeper().getData(path,watcher,stat);
-		} catch (InterruptedException e) {
-			throw new IOException(e);
-		} catch (KeeperException e) {
+		} catch (InterruptedException | KeeperException e) {
 			throw new IOException(e);
 		}
-	}
+    }
 
 	public static List<String> getChildren(String path, boolean watch) throws IOException{
 		try{
 			return getRecoverableZooKeeper().getChildren(path, watch);
-		} catch (InterruptedException e) {
-			throw new IOException(e);
-		} catch (KeeperException e) {
+		} catch (InterruptedException | KeeperException e) {
 			throw new IOException(e);
 		}
-	}
+    }
 
 	public static List<String> getChildren(String path, Watcher watcher) throws IOException{
 		try{
 			return getRecoverableZooKeeper().getChildren(path, watcher);
-		} catch (InterruptedException e) {
-			throw new IOException(e);
-		} catch (KeeperException e) {
+		} catch (InterruptedException | KeeperException e) {
 			throw new IOException(e);
 		}
-	}
+    }
 
 	
 	/**

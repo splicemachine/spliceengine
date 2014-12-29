@@ -321,7 +321,7 @@ public class IndexRowToBaseRowOperationIT extends SpliceUnitTest {
 				"order by " +
 				"t.tablename");
 
-		final Map<String,String> correctSort = new TreeMap<String,String>();
+		final Map<String,String> correctSort = new TreeMap<>();
 		List<String> results = Lists.newArrayList();
 		ResultSet rs = ps.executeQuery();
 		while(rs.next()){

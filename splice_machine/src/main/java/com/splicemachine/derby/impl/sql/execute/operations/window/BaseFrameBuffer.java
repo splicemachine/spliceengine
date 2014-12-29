@@ -68,7 +68,7 @@ abstract public class BaseFrameBuffer implements WindowFrameBuffer{
         // The frame definition will not change over the life of this frame buffer
         this.frameStart = frameDefinition.getFrameStart().getValue();
         this.frameEnd = frameDefinition.getFrameEnd().getValue();
-        this.rows = new ArrayList<ExecRow>();
+        this.rows = new ArrayList<>();
     }
 
     @Override
@@ -127,7 +127,7 @@ abstract public class BaseFrameBuffer implements WindowFrameBuffer{
     }
 
     protected void reset() throws StandardException, IOException {
-        rows = new ArrayList<ExecRow>();
+        rows = new ArrayList<>();
 
         // Initialize window functions
         for (WindowAggregator aggregator : this.aggregators) {

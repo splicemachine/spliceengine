@@ -71,7 +71,7 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampRe
      */
 	private ConcurrentMap<Short, ClientCallback> _clientCallbacks = null;
 
-    private AtomicReference<State> _state = new AtomicReference<State>(State.DISCONNECTED);
+    private AtomicReference<State> _state = new AtomicReference<>(State.DISCONNECTED);
 
     private ClientBootstrap _bootstrap = null;
     
@@ -101,7 +101,7 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampRe
 
     	_port = SpliceConstants.timestampServerBindPort;
     	
-    	_clientCallbacks = new ConcurrentHashMap<Short, ClientCallback>();
+    	_clientCallbacks = new ConcurrentHashMap<>();
 
         ExecutorService workerExecutor = Executors.newCachedThreadPool(new ThreadFactoryBuilder().setNameFormat("timestampClient-worker-%d").setDaemon(true).build());
         ExecutorService bossExecutor = Executors.newCachedThreadPool(new ThreadFactoryBuilder().setNameFormat("timestampClient-boss-%d").setDaemon(true).build());

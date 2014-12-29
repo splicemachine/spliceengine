@@ -86,7 +86,7 @@ public class RowOperation extends SpliceBaseOperation {
 				super.init(context);
 				if (row == null && rowMethodName != null) {
 						if (rowMethodName != null)
-								this.row = new SpliceMethod<ExecRow>(rowMethodName, activation);
+								this.row = new SpliceMethod<>(rowMethodName, activation);
 				}
 				startExecutionTime = System.currentTimeMillis();
 		}

@@ -36,7 +36,7 @@ public class BulkWriteTest {
 
 		@Test
 		public void testCanEncodeAndDecodeWriteCorrectly() throws Exception {
-				ObjectArrayList<KVPair> list = new ObjectArrayList<KVPair>();
+				ObjectArrayList<KVPair> list = new ObjectArrayList<>();
 				KVPair kvPair = new KVPair(Encoding.encode("Hello"),new byte[]{}, KVPair.Type.DELETE);
 				list.add(kvPair);
 				BulkWrite write = new BulkWrite(list,new ActiveWriteTxn(1l,1l),Bytes.toBytes("sdfsdf"),"dsfsdfdsf");

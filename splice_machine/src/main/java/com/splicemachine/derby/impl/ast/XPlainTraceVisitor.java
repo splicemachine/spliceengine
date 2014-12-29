@@ -20,7 +20,7 @@ public class XPlainTraceVisitor extends AbstractSpliceVisitor  {
     private static TreeSet<String> xplainTables;
 
     static{
-        xplainTables = new TreeSet<String>();
+        xplainTables = new TreeSet<>();
 
         xplainTables.add("SYSSTATEMENTHISTORY");
         xplainTables.add("SYSOPERATIONHISTORY");

@@ -20,7 +20,7 @@ import static org.mockito.Mockito.*;
 
 public class WorkStealingTaskScheduler_WorkerTest {
 
-    WorkStealingTaskScheduler<Task> scheduler = new WorkStealingTaskScheduler<Task>(1, 100L, null, Lists.<StealableTaskScheduler<Task>>newArrayList(), "name");
+    WorkStealingTaskScheduler<Task> scheduler = new WorkStealingTaskScheduler<>(1, 100L, null, Lists.<StealableTaskScheduler<Task>>newArrayList(), "name");
 
     @After
     public void after() {
@@ -32,7 +32,7 @@ public class WorkStealingTaskScheduler_WorkerTest {
 
         final CountDownLatch executeLatch = new CountDownLatch(1);
         final CountDownLatch cancelLatch = new CountDownLatch(1);
-        final AtomicReference<Thread> executingThread = new AtomicReference<Thread>();
+        final AtomicReference<Thread> executingThread = new AtomicReference<>();
 
         Task mockTask = mock(Task.class);
         when(mockTask.getTaskStatus()).thenReturn(new TaskStatus(Status.PENDING, null));

@@ -66,8 +66,6 @@ public class BaseSIFilterPacked<Data> extends FilterBase implements HasPredicate
 						initFilterStateIfNeeded();
 						ReturnCode code= filterState.filterKeyValue(keyValue);
 						return code;
-				} catch (IOException e) {
-						throw new RuntimeException(e);
 				} catch (Exception e) {
 					throw new RuntimeException(e);
 				}

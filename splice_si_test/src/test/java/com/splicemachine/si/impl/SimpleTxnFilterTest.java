@@ -300,7 +300,7 @@ public class SimpleTxnFilterTest {
 				DataStore ds = getMockDataStore();
 				TxnView myTxn = new InheritingTxnView(Txn.ROOT_TRANSACTION,4l,4l,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.State.ACTIVE);
 
-				final Pair<ByteSlice,Long> rolledBackTs = new Pair<ByteSlice,Long >();
+				final Pair<ByteSlice,Long> rolledBackTs = new Pair<>();
 				ReadResolver resolver = getRollBackReadResolver(rolledBackTs);
 
 				SimpleTxnFilter filter = new SimpleTxnFilter(baseStore,myTxn,resolver,ds);
@@ -323,7 +323,7 @@ public class SimpleTxnFilterTest {
 				DataStore ds = getMockDataStore();
 				TxnView myTxn = new InheritingTxnView(Txn.ROOT_TRANSACTION,readTs,readTs,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.State.ACTIVE);
 
-				final Pair<ByteSlice,Pair<Long,Long>> committedTs = new Pair<ByteSlice, Pair<Long, Long>>();
+				final Pair<ByteSlice,Pair<Long,Long>> committedTs = new Pair<>();
 				ReadResolver resolver = getCommitReadResolver(committedTs,baseStore);
 
 				SimpleTxnFilter filter = new SimpleTxnFilter(baseStore,myTxn,resolver,ds);

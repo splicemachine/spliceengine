@@ -337,7 +337,7 @@ import java.util.concurrent.ConcurrentNavigableMap;
 	        values = null;
 	        descendingMap = null;
 	        randomSeed = seedGenerator.nextInt() | 0x0100; // ensure nonzero
-	        head = new HeadIndex<K,V>(new Node<K,V>(null, BASE_HEADER, null),
+	        head = new HeadIndex<>(new Node<K,V>(null, BASE_HEADER, null),
 	                                  null, null, 1);
 	    }
 
@@ -425,7 +425,7 @@ import java.util.concurrent.ConcurrentNavigableMap;
 	         * @return true if successful
 	         */
 	        boolean appendMarker(Node<K,V> f) {
-	            return casNext(f, new Node<K,V>(f));
+	            return casNext(f, new Node<>(f));
 	        }
 
 	        /**
@@ -471,7 +471,7 @@ import java.util.concurrent.ConcurrentNavigableMap;
 	            V v = getValidValue();
 	            if (v == null)
 	                return null;
-	            return new AbstractMap.SimpleImmutableEntry<K,V>(key, v);
+	            return new AbstractMap.SimpleImmutableEntry<>(key, v);
 	        }
 
 	        // UNSAFE mechanics
@@ -624,7 +624,7 @@ import java.util.concurrent.ConcurrentNavigableMap;
 	        if (key == null)
 	            throw new NullPointerException();
 	        if (comparator != null)
-	            return new ComparableUsingComparator<K>((K)key, comparator);
+	            return new ComparableUsingComparator<>((K)key, comparator);
 	        else
 	            return (Comparable<? super K>)key;
 	    }
@@ -842,7 +842,7 @@ import java.util.concurrent.ConcurrentNavigableMap;
 	                    // else c < 0; fall through
 	                }
 
-	                Node<K,V> z = new Node<K,V>(kkey, value, n);
+	                Node<K,V> z = new Node<>(kkey, value, n);
 	                if (!b.casNext(n, z))
 	                    break;         // restart if lost race to append to b
 	                int level = randomLevel();
@@ -886,7 +886,7 @@ import java.util.concurrent.ConcurrentNavigableMap;
 	        if (level <= max) {
 	            Index<K,V> idx = null;
 	            for (int i = 1; i <= level; ++i)
-	                idx = new Index<K,V>(z, idx, null);
+	                idx = new Index<>(z, idx, null);
 	            addIndex(idx, h, level);
 
 	        } else { // Add a new level
@@ -902,7 +902,7 @@ import java.util.concurrent.ConcurrentNavigableMap;
 	            Index<K,V>[] idxs = (Index<K,V>[])new Index[level+1];
 	            Index<K,V> idx = null;
 	            for (int i = 1; i <= level; ++i)
-	                idxs[i] = idx = new Index<K,V>(z, idx, null);
+	                idxs[i] = idx = new Index<>(z, idx, null);
 
 	            HeadIndex<K,V> oldh;
 	            int k;
@@ -916,7 +916,7 @@ import java.util.concurrent.ConcurrentNavigableMap;
 	                HeadIndex<K,V> newh = oldh;
 	                Node<K,V> oldbase = oldh.node;
 	                for (int j = oldLevel+1; j <= level; ++j)
-	                    newh = new HeadIndex<K,V>(oldbase, newh, idxs[j], j);
+	                    newh = new HeadIndex<>(oldbase, newh, idxs[j], j);
 	                if (casHead(oldh, newh)) {
 	                    k = oldLevel;
 	                    break;
@@ -1127,7 +1127,7 @@ import java.util.concurrent.ConcurrentNavigableMap;
 	            if (!n.appendMarker(f) || !b.casNext(n, f))
 	                findFirst(); // retry
 	            clearIndexToFirst();
-	            return new AbstractMap.SimpleImmutableEntry<K,V>(n.key, (V)v);
+	            return new AbstractMap.SimpleImmutableEntry<>(n.key, (V)v);
 	        }
 	    }
 
@@ -1272,7 +1272,7 @@ import java.util.concurrent.ConcurrentNavigableMap;
 	                    if (head.right == null)
 	                        tryReduceLevel();
 	                }
-	                return new AbstractMap.SimpleImmutableEntry<K,V>(key, (V)v);
+	                return new AbstractMap.SimpleImmutableEntry<>(key, (V)v);
 	            }
 	        }
 	    }
@@ -1428,7 +1428,7 @@ import java.util.concurrent.ConcurrentNavigableMap;
 
 	        // Track the current rightmost node at each level. Uses an
 	        // ArrayList to avoid committing to initial or maximum level.
-	        ArrayList<Index<K,V>> preds = new ArrayList<Index<K,V>>();
+	        ArrayList<Index<K,V>> preds = new ArrayList<>();
 
 	        // initialize
 	        for (int i = 0; i <= h.level; ++i)
@@ -1449,15 +1449,15 @@ import java.util.concurrent.ConcurrentNavigableMap;
 	            V v = e.getValue();
 	            if (k == null || v == null)
 	                throw new NullPointerException();
-	            Node<K,V> z = new Node<K,V>(k, v, null);
+	            Node<K,V> z = new Node<>(k, v, null);
 	            basepred.next = z;
 	            basepred = z;
 	            if (j > 0) {
 	                Index<K,V> idx = null;
 	                for (int i = 1; i <= j; ++i) {
-	                    idx = new Index<K,V>(z, idx, null);
+	                    idx = new Index<>(z, idx, null);
 	                    if (i > h.level)
-	                        h = new HeadIndex<K,V>(h.node, h, idx, i);
+	                        h = new HeadIndex<>(h.node, h, idx, i);
 
 	                    if (i < preds.size()) {
 	                        preds.get(i).right = idx;
@@ -1517,7 +1517,7 @@ import java.util.concurrent.ConcurrentNavigableMap;
 
 	        HeadIndex<K,V> h = head;
 	        Node<K,V> basepred = h.node;
-	        ArrayList<Index<K,V>> preds = new ArrayList<Index<K,V>>();
+	        ArrayList<Index<K,V>> preds = new ArrayList<>();
 	        for (int i = 0; i <= h.level; ++i)
 	            preds.add(null);
 	        Index<K,V> q = h;
@@ -1537,15 +1537,15 @@ import java.util.concurrent.ConcurrentNavigableMap;
 	            V val = (V) v;
 	            int j = randomLevel();
 	            if (j > h.level) j = h.level + 1;
-	            Node<K,V> z = new Node<K,V>(key, val, null);
+	            Node<K,V> z = new Node<>(key, val, null);
 	            basepred.next = z;
 	            basepred = z;
 	            if (j > 0) {
 	                Index<K,V> idx = null;
 	                for (int i = 1; i <= j; ++i) {
-	                    idx = new Index<K,V>(z, idx, null);
+	                    idx = new Index<>(z, idx, null);
 	                    if (i > h.level)
-	                        h = new HeadIndex<K,V>(h.node, h, idx, i);
+	                        h = new HeadIndex<>(h.node, h, idx, i);
 
 	                    if (i < preds.size()) {
 	                        preds.get(i).right = idx;
@@ -1784,7 +1784,7 @@ import java.util.concurrent.ConcurrentNavigableMap;
 
 	    public ConcurrentNavigableMap<K,V> descendingMap() {
 	        ConcurrentNavigableMap<K,V> dm = descendingMap;
-	        return (dm != null) ? dm : (descendingMap = new SubMap<K,V>
+	        return (dm != null) ? dm : (descendingMap = new SubMap<>
 	                                    (this, null, false, null, false, true));
 	    }
 
@@ -1947,7 +1947,7 @@ import java.util.concurrent.ConcurrentNavigableMap;
 	                                              boolean toInclusive) {
 	        if (fromKey == null || toKey == null)
 	            throw new NullPointerException();
-	        return new SubMap<K,V>
+	        return new SubMap<>
 	            (this, fromKey, fromInclusive, toKey, toInclusive, false);
 	    }
 
@@ -1960,7 +1960,7 @@ import java.util.concurrent.ConcurrentNavigableMap;
 	                                               boolean inclusive) {
 	        if (toKey == null)
 	            throw new NullPointerException();
-	        return new SubMap<K,V>
+	        return new SubMap<>
 	            (this, null, false, toKey, inclusive, false);
 	    }
 
@@ -1973,7 +1973,7 @@ import java.util.concurrent.ConcurrentNavigableMap;
 	                                               boolean inclusive) {
 	        if (fromKey == null)
 	            throw new NullPointerException();
-	        return new SubMap<K,V>
+	        return new SubMap<>
 	            (this, fromKey, inclusive, null, false, false);
 	    }
 
@@ -2234,7 +2234,7 @@ import java.util.concurrent.ConcurrentNavigableMap;
 	            Node<K,V> n = next;
 	            V v = nextValue;
 	            advance();
-	            return new AbstractMap.SimpleImmutableEntry<K,V>(n.key, v);
+	            return new AbstractMap.SimpleImmutableEntry<>(n.key, v);
 	        }
 	    }
 
@@ -2262,7 +2262,7 @@ import java.util.concurrent.ConcurrentNavigableMap;
 
 	    static final <E> List<E> toList(Collection<E> c) {
 	        // Using size() here would be a pessimization.
-	        List<E> list = new ArrayList<E>();
+	        List<E> list = new ArrayList<>();
 	        for (E e : c)
 	            list.add(e);
 	        return list;
@@ -2321,14 +2321,14 @@ import java.util.concurrent.ConcurrentNavigableMap;
 	                                      boolean fromInclusive,
 	                                      E toElement,
 	                                      boolean toInclusive) {
-	            return new KeySet<E>(m.subMap(fromElement, fromInclusive,
+	            return new KeySet<>(m.subMap(fromElement, fromInclusive,
 	                                          toElement,   toInclusive));
 	        }
 	        public NavigableSet<E> headSet(E toElement, boolean inclusive) {
-	            return new KeySet<E>(m.headMap(toElement, inclusive));
+	            return new KeySet<>(m.headMap(toElement, inclusive));
 	        }
 	        public NavigableSet<E> tailSet(E fromElement, boolean inclusive) {
-	            return new KeySet<E>(m.tailMap(fromElement, inclusive));
+	            return new KeySet<>(m.tailMap(fromElement, inclusive));
 	        }
 	        public NavigableSet<E> subSet(E fromElement, E toElement) {
 	            return subSet(fromElement, true, toElement, false);
@@ -2608,7 +2608,7 @@ import java.util.concurrent.ConcurrentNavigableMap;
 	                    return null;
 	                V v = m.doRemove(k, null);
 	                if (v != null)
-	                    return new AbstractMap.SimpleImmutableEntry<K,V>(k, v);
+	                    return new AbstractMap.SimpleImmutableEntry<>(k, v);
 	            }
 	        }
 
@@ -2622,7 +2622,7 @@ import java.util.concurrent.ConcurrentNavigableMap;
 	                    return null;
 	                V v = m.doRemove(k, null);
 	                if (v != null)
-	                    return new AbstractMap.SimpleImmutableEntry<K,V>(k, v);
+	                    return new AbstractMap.SimpleImmutableEntry<>(k, v);
 	            }
 	        }
 
@@ -2647,7 +2647,7 @@ import java.util.concurrent.ConcurrentNavigableMap;
 	                K k = n.key;
 	                V v = n.getValidValue();
 	                if (v != null)
-	                    return new AbstractMap.SimpleImmutableEntry<K,V>(k, v);
+	                    return new AbstractMap.SimpleImmutableEntry<>(k, v);
 	            }
 	        }
 
@@ -2820,7 +2820,7 @@ import java.util.concurrent.ConcurrentNavigableMap;
 	                        throw new IllegalArgumentException("key out of range");
 	                }
 	            }
-	            return new SubMap<K,V>(m, fromKey, fromInclusive,
+	            return new SubMap<>(m, fromKey, fromInclusive,
 	                                   toKey, toInclusive, isDescending);
 	        }
 
@@ -2860,7 +2860,7 @@ import java.util.concurrent.ConcurrentNavigableMap;
 	        }
 
 	        public SubMap<K,V> descendingMap() {
-	            return new SubMap<K,V>(m, lo, loInclusive,
+	            return new SubMap<>(m, lo, loInclusive,
 	                                   hi, hiInclusive, !isDescending);
 	        }
 
@@ -3064,7 +3064,7 @@ import java.util.concurrent.ConcurrentNavigableMap;
 	                Node<K,V> n = next;
 	                V v = nextValue;
 	                advance();
-	                return new AbstractMap.SimpleImmutableEntry<K,V>(n.key, v);
+	                return new AbstractMap.SimpleImmutableEntry<>(n.key, v);
 	            }
 	        }
 	    }

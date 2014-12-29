@@ -54,7 +54,7 @@ public abstract class BaseAdminProcedures {
 	// dumping around for utility functions.
 
     protected static List<Pair<String,String>> getServerNames(Collection<ServerName> serverInfo) {
-        List<Pair<String,String>> names = new ArrayList<Pair<String,String>>(serverInfo.size());
+        List<Pair<String,String>> names = new ArrayList<>(serverInfo.size());
         for (ServerName sname : serverInfo) {
             names.add(Pair.newPair(sname.getHostname(),sname.getHostAndPort()));
         }
@@ -75,9 +75,7 @@ public abstract class BaseAdminProcedures {
         try {
             connections = JMXUtils.getMBeanServerConnections(getServerNames(serverNames));
             operation.operate(connections);
-        } catch (MalformedObjectNameException e) {
-            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
-        } catch (IOException e) {
+        } catch (MalformedObjectNameException | IOException e) {
             throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
         } finally {
             if (connections != null) {
@@ -105,9 +103,7 @@ public abstract class BaseAdminProcedures {
             JMXServiceURL url = new JMXServiceURL(String.format("service:jmx:rmi://%1$s/jndi/rmi://%1$s:%2$s/jmxrmi",serverName,port));
             JMXConnector jmxc = JMXConnectorFactory.connect(url, null);
             operation.operate(Arrays.asList(Pair.newPair(serverName,jmxc)));
-        } catch (IOException e) {
-            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
-        } catch (MalformedObjectNameException e) {
+        } catch (IOException | MalformedObjectNameException e) {
             throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
         }
     }

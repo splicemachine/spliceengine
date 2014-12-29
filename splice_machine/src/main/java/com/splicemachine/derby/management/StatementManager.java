@@ -35,7 +35,7 @@ public class StatementManager implements StatementManagement{
 		private volatile XplainOperationReporter operationReporter;
 
 		public StatementManager() throws StandardException {
-				this.completedStatements = new AtomicReferenceArray<StatementInfo>(SpliceConstants.pastStatementBufferSize);
+				this.completedStatements = new AtomicReferenceArray<>(SpliceConstants.pastStatementBufferSize);
 		}
 
     private void setupXplainReporters() throws StandardException {

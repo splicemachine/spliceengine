@@ -17,7 +17,7 @@ public class CsvUtil {
 
     public static Collection<String> insertString(String dirName, String fileName, int colNum, String chars) {
         List<String> lines = fileToLines(dirName + fileName, "--");
-        List<String> outLines = new ArrayList<String>(lines.size());
+        List<String> outLines = new ArrayList<>(lines.size());
 
         StringBuilder aLine = new StringBuilder();
         for (String line : lines) {
@@ -41,7 +41,7 @@ public class CsvUtil {
 
     public static Collection<String> makeUnique(String dirName, String fileName, int[] colNums) {
         List<String> lines = fileToLines(dirName + fileName, "--");
-        Map<String, String> unique = new HashMap<String, String>(lines.size());
+        Map<String, String> unique = new HashMap<>(lines.size());
 
         StringBuilder key = new StringBuilder();
         for (String line : lines) {
@@ -65,7 +65,7 @@ public class CsvUtil {
                                                                 String fileName,
                                                                 int col,
                                                                 String colVal) {
-        List<String> linesWithValue = new ArrayList<String>();
+        List<String> linesWithValue = new ArrayList<>();
         for (String line : fileToLines(dirName + fileName, "--")) {
             String[] cols = line.split(",");
             if (cols.length > col && cols[col].equalsIgnoreCase(colVal)) {
@@ -109,7 +109,7 @@ public class CsvUtil {
 
     // TODO - this impl blows memory, of course, when there's too many lines in the file
     public static List<String> fileToLines(String filePath, String commentPattern) {
-        List<String> lines = new LinkedList<String>();
+        List<String> lines = new LinkedList<>();
         BufferedReader in = null;
         try {
             in = new BufferedReader(new FileReader(filePath));

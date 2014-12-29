@@ -55,7 +55,7 @@ public class SpliceRetryingCallerFactory  {
     public <T> SpliceRpcRetryingCaller<T> newCaller() {
         // We store the values in the factory instance. This way, constructing new objects
         //  is cheap as it does not require parsing a complex structure.
-        return new SpliceRpcRetryingCaller<T>(pause, retries,socketTimeout);
+        return new SpliceRpcRetryingCaller<>(pause, retries,socketTimeout);
     }
 
     public static SpliceRetryingCallerFactory instantiate(Configuration configuration) {
@@ -126,7 +126,7 @@ public class SpliceRetryingCallerFactory  {
                 throws IOException, RuntimeException {
             this.callTimeout = callTimeout;
             List<RetriesExhaustedException.ThrowableWithExtraContext> exceptions =
-                    new ArrayList<RetriesExhaustedException.ThrowableWithExtraContext>();
+                    new ArrayList<>();
             this.globalStartTime = EnvironmentEdgeManager.currentTimeMillis();
             for (int tries = 0;; tries++) {
                 long expectedSleep = 0;

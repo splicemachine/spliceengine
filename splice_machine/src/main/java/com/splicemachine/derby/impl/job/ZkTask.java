@@ -194,11 +194,7 @@ public abstract class ZkTask implements RegionTask,Externalizable {
                     return path;
                 }
             });
-        } catch (InterruptedException e) {
-            throw new ExecutionException(e);
-        } catch (KeeperException e) {
-            throw new ExecutionException(e);
-        } catch (IOException e) {
+        } catch (InterruptedException | IOException | KeeperException e) {
             throw new ExecutionException(e);
         }
 
@@ -227,9 +223,7 @@ public abstract class ZkTask implements RegionTask,Externalizable {
             });
             if(stat==null)
                 markCancelled(false);
-        } catch (InterruptedException e) {
-            throw new ExecutionException(e);
-        } catch (KeeperException e) {
+        } catch (InterruptedException | KeeperException e) {
             throw new ExecutionException(e);
         }
     }
@@ -264,9 +258,7 @@ public abstract class ZkTask implements RegionTask,Externalizable {
                     return null;
                 }
             });
-        } catch (IOException e) {
-            throw new ExecutionException(e);
-        } catch (InterruptedException e) {
+        } catch (IOException | InterruptedException e) {
             throw new ExecutionException(e);
         } catch (KeeperException e) {
             if(e.code()== KeeperException.Code.NONODE&&cancelOnError){

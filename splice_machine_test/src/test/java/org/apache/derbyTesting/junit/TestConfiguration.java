@@ -1113,11 +1113,9 @@ public final class TestConfiguration {
         this.hostName = DEFAULT_HOSTNAME;
         this.port = basePort;
         this.isVerbose = Boolean.valueOf(
-            getSystemProperties().getProperty(KEY_VERBOSE)).
-            booleanValue();
+                getSystemProperties().getProperty(KEY_VERBOSE));
         this.doTrace = Boolean.valueOf(
-            getSystemProperties().getProperty(KEY_TRACE)).
-            booleanValue();
+                getSystemProperties().getProperty(KEY_TRACE));
         
         this.jdbcClient = JDBCClient.getDefaultEmbedded();
         this.ssl = null;
@@ -1324,8 +1322,8 @@ public final class TestConfiguration {
                                          DEFAULT_USER_PASSWORD);
         connectionAttributes = new Properties();
         hostName = props.getProperty(KEY_HOSTNAME, DEFAULT_HOSTNAME);
-        isVerbose = Boolean.valueOf(props.getProperty(KEY_VERBOSE)).booleanValue();
-        doTrace =  Boolean.valueOf(props.getProperty(KEY_TRACE)).booleanValue();
+        isVerbose = Boolean.valueOf(props.getProperty(KEY_VERBOSE));
+        doTrace = Boolean.valueOf(props.getProperty(KEY_TRACE));
         port = basePort;
         jmxPort = getNextAvailablePort();
         println("basePort=" + basePort + ", bogusPort=" + bogusPort +
@@ -1530,7 +1528,7 @@ public final class TestConfiguration {
      * are no attributes)
      */
     String getConnectionAttributesString() {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         Enumeration e = connectionAttributes.propertyNames();
         boolean first = true;
         while (e.hasMoreElements()) {
@@ -1913,7 +1911,7 @@ public final class TestConfiguration {
      */
     File getFailureFolder(TestCase test){
         
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
       
         sb.append("fail");
         sb.append(File.separatorChar);
@@ -1955,7 +1953,7 @@ public final class TestConfiguration {
                     if (folder.exists()) {
                         // do something
                     }            
-                    return new Boolean(folder.mkdirs());
+                    return folder.mkdirs();
                 }
             }
              );            

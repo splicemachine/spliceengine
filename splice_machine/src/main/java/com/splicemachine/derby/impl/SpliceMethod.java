@@ -18,7 +18,7 @@ public class SpliceMethod<T> {
     protected Method method;
     private static final HashMap<String,GeneratedMethod> directs;
     static {
-        directs = new HashMap<String,GeneratedMethod>(10);
+        directs = new HashMap<>(10);
         for (int i = 0; i < 10; i++) {
             directs.put("e"+i, new DirectCall(i));
         }

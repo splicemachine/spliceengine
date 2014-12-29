@@ -61,68 +61,53 @@ public class CoprocessorTxnStore implements TxnStore{
 
 		@Override
 		public void recordNewTransaction(Txn txn) throws IOException {
-				HTableInterface table = tableFactory.createHTableInterface(SpliceConstants.config, SIConstants.TRANSACTION_TABLE_BYTES);
-				try{
-						byte[] rowKey = TxnUtils.getRowKey(txn.getTxnId());
-						TxnLifecycleProtocol txnLifecycleProtocol = table.coprocessorProxy(TxnLifecycleProtocol.class, rowKey);
-						txnLifecycleProtocol.recordTransaction(txn.getTxnId(),encode(txn));
-            txnsCreated.incrementAndGet(); //only record stats if the record succeeds
-				}finally{
-						table.close();
-				}
+            try (HTableInterface table = tableFactory.createHTableInterface(SpliceConstants.config, SIConstants.TRANSACTION_TABLE_BYTES)) {
+                byte[] rowKey = TxnUtils.getRowKey(txn.getTxnId());
+                TxnLifecycleProtocol txnLifecycleProtocol = table.coprocessorProxy(TxnLifecycleProtocol.class, rowKey);
+                txnLifecycleProtocol.recordTransaction(txn.getTxnId(), encode(txn));
+                txnsCreated.incrementAndGet(); //only record stats if the record succeeds
+            }
 		}
 
 
 		@Override
 		public void rollback(long txnId) throws IOException {
-				HTableInterface table = tableFactory.createHTableInterface(SpliceConstants.config, SIConstants.TRANSACTION_TABLE_BYTES);
-				try{
-						byte[] rowKey = getTransactionRowKey(txnId);
-						TxnLifecycleProtocol txnLifecycleProtocol = table.coprocessorProxy(TxnLifecycleProtocol.class, rowKey);
-						txnLifecycleProtocol.rollback(txnId);
-            rollbacks.incrementAndGet();
-				}finally{
-						table.close();
-				}
+            try (HTableInterface table = tableFactory.createHTableInterface(SpliceConstants.config, SIConstants.TRANSACTION_TABLE_BYTES)) {
+                byte[] rowKey = getTransactionRowKey(txnId);
+                TxnLifecycleProtocol txnLifecycleProtocol = table.coprocessorProxy(TxnLifecycleProtocol.class, rowKey);
+                txnLifecycleProtocol.rollback(txnId);
+                rollbacks.incrementAndGet();
+            }
 		}
 
 		@Override
 		public long commit(long txnId) throws IOException {
-				HTableInterface table = tableFactory.createHTableInterface(SpliceConstants.config, SIConstants.TRANSACTION_TABLE_BYTES);
-				try{
-						byte[] rowKey = getTransactionRowKey(txnId);
-						TxnLifecycleProtocol txnLifecycleProtocol = table.coprocessorProxy(TxnLifecycleProtocol.class, rowKey);
-            long commit = txnLifecycleProtocol.commit(txnId);
-            commits.incrementAndGet();
-            return commit;
-				}finally{
-						table.close();
-				}
+            try (HTableInterface table = tableFactory.createHTableInterface(SpliceConstants.config, SIConstants.TRANSACTION_TABLE_BYTES)) {
+                byte[] rowKey = getTransactionRowKey(txnId);
+                TxnLifecycleProtocol txnLifecycleProtocol = table.coprocessorProxy(TxnLifecycleProtocol.class, rowKey);
+                long commit = txnLifecycleProtocol.commit(txnId);
+                commits.incrementAndGet();
+                return commit;
+            }
 		}
 
 		@Override
 		public boolean keepAlive(long txnId) throws IOException {
-				HTableInterface table = tableFactory.createHTableInterface(SpliceConstants.config, SIConstants.TRANSACTION_TABLE_BYTES);
-				try{
-						byte[] rowKey = getTransactionRowKey(txnId);
-						TxnLifecycleProtocol txnLifecycleProtocol = table.coprocessorProxy(TxnLifecycleProtocol.class, rowKey);
-						return txnLifecycleProtocol.keepAlive(txnId);
-				}finally{
-						table.close();
-				}
+            try (HTableInterface table = tableFactory.createHTableInterface(SpliceConstants.config, SIConstants.TRANSACTION_TABLE_BYTES)) {
+                byte[] rowKey = getTransactionRowKey(txnId);
+                TxnLifecycleProtocol txnLifecycleProtocol = table.coprocessorProxy(TxnLifecycleProtocol.class, rowKey);
+                return txnLifecycleProtocol.keepAlive(txnId);
+            }
 		}
 
 		@Override
 		public void elevateTransaction(Txn txn, byte[] newDestinationTable) throws IOException {
-				HTableInterface table = tableFactory.createHTableInterface(SpliceConstants.config, SIConstants.TRANSACTION_TABLE_BYTES);
-				try{
-						byte[] rowKey = getTransactionRowKey(txn.getTxnId());
-						TxnLifecycleProtocol txnLifecycleProtocol = table.coprocessorProxy(TxnLifecycleProtocol.class, rowKey);
-						txnLifecycleProtocol.elevateTransaction(txn.getTxnId(),newDestinationTable);
-            elevations.incrementAndGet();
-				}finally{
-						table.close();
-				}
+            try (HTableInterface table = tableFactory.createHTableInterface(SpliceConstants.config, SIConstants.TRANSACTION_TABLE_BYTES)) {
+                byte[] rowKey = getTransactionRowKey(txn.getTxnId());
+                TxnLifecycleProtocol txnLifecycleProtocol = table.coprocessorProxy(TxnLifecycleProtocol.class, rowKey);
+                txnLifecycleProtocol.elevateTransaction(txn.getTxnId(), newDestinationTable);
+                elevations.incrementAndGet();
+            }
 		}
 
 		@Override
@@ -132,61 +117,57 @@ public class CoprocessorTxnStore implements TxnStore{
 
 		@Override
 		public long[] getActiveTransactionIds(final long minTxnId, final long maxTxnId, final byte[] writeTable) throws IOException {
-				HTableInterface table = tableFactory.createHTableInterface(SpliceConstants.config,SIConstants.TRANSACTION_TABLE_BYTES);
-				try{
-						Map<byte[],byte[]> data = table.coprocessorExec(TxnLifecycleProtocol.class, HConstants.EMPTY_START_ROW, HConstants.EMPTY_END_ROW, new Batch.Call<TxnLifecycleProtocol, byte[]>() {
-								@Override
-								public byte[] call(TxnLifecycleProtocol instance) throws IOException {
-										return instance.getActiveTransactionIds(minTxnId, maxTxnId, writeTable);
-								}
-						});
+            try (HTableInterface table = tableFactory.createHTableInterface(SpliceConstants.config, SIConstants.TRANSACTION_TABLE_BYTES)) {
+                Map<byte[], byte[]> data = table.coprocessorExec(TxnLifecycleProtocol.class, HConstants.EMPTY_START_ROW, HConstants.EMPTY_END_ROW, new Batch.Call<TxnLifecycleProtocol, byte[]>() {
+                    @Override
+                    public byte[] call(TxnLifecycleProtocol instance) throws IOException {
+                        return instance.getActiveTransactionIds(minTxnId, maxTxnId, writeTable);
+                    }
+                });
 
-						LongOpenHashSet txns = LongOpenHashSet.newInstance(); //TODO -sf- do we really need to check for duplicates? In case of Transaction table splits?
-						MultiFieldDecoder decoder = MultiFieldDecoder.create();
-						for(byte[] packed:data.values()){
-								decoder.set(packed);
-								while(decoder.available())
-										txns.add(decoder.decodeNextLong());
-						}
-						long[] finalTxns = txns.toArray();
-						Arrays.sort(finalTxns);
-						return finalTxns;
+                LongOpenHashSet txns = LongOpenHashSet.newInstance(); //TODO -sf- do we really need to check for duplicates? In case of Transaction table splits?
+                MultiFieldDecoder decoder = MultiFieldDecoder.create();
+                for (byte[] packed : data.values()) {
+                    decoder.set(packed);
+                    while (decoder.available())
+                        txns.add(decoder.decodeNextLong());
+                }
+                long[] finalTxns = txns.toArray();
+                Arrays.sort(finalTxns);
+                return finalTxns;
 
-				} catch (Throwable throwable) {
-						throw new IOException(throwable);
-				} finally{
-						table.close();
-				}
+            } catch (Throwable throwable) {
+                throw new IOException(throwable);
+            }
 		}
 
     @Override
     public List<TxnView> getActiveTransactions(final long minTxnid, final long maxTxnId, final byte[] activeTable) throws IOException {
-        HTableInterface table = tableFactory.createHTableInterface(SpliceConstants.config,SIConstants.TRANSACTION_TABLE_BYTES);
-        try{
-            Map<byte[],List<byte[]>> data = table.coprocessorExec(TxnLifecycleProtocol.class, HConstants.EMPTY_START_ROW, HConstants.EMPTY_END_ROW,
+        try (HTableInterface table = tableFactory.createHTableInterface(SpliceConstants.config, SIConstants.TRANSACTION_TABLE_BYTES)) {
+            Map<byte[], List<byte[]>> data = table.coprocessorExec(TxnLifecycleProtocol.class, HConstants.EMPTY_START_ROW, HConstants.EMPTY_END_ROW,
                     new Batch.Call<TxnLifecycleProtocol, List<byte[]>>() {
-                @Override
-                public List<byte[]> call(TxnLifecycleProtocol instance) throws IOException {
-                    return instance.getActiveTransactions(minTxnid, maxTxnId, activeTable);
-                }
-            });
+                        @Override
+                        public List<byte[]> call(TxnLifecycleProtocol instance) throws IOException {
+                            return instance.getActiveTransactions(minTxnid, maxTxnId, activeTable);
+                        }
+                    });
 
             List<TxnView> txns = Lists.newArrayList();
             MultiFieldDecoder txnDecoder = MultiFieldDecoder.create();
 
-            for(List<byte[]> packed:data.values()){
-                for(byte[] bytes:packed){
+            for (List<byte[]> packed : data.values()) {
+                for (byte[] bytes : packed) {
                     txnDecoder.set(bytes);
                     txns.add(decode(txnDecoder, true));
                 }
             }
-            Collections.sort(txns,new Comparator<TxnView>() {
+            Collections.sort(txns, new Comparator<TxnView>() {
                 @Override
                 public int compare(TxnView o1, TxnView o2) {
-                    if(o1==null){
-                        if(o2==null) return 0;
+                    if (o1 == null) {
+                        if (o2 == null) return 0;
                         else return -1;
-                    }else if (o2==null) return 1;
+                    } else if (o2 == null) return 1;
                     return Longs.compare(o1.getTxnId(), o2.getTxnId());
                 }
             });
@@ -194,8 +175,6 @@ public class CoprocessorTxnStore implements TxnStore{
 
         } catch (Throwable throwable) {
             throw new IOException(throwable);
-        } finally{
-            table.close();
         }
     }
 
@@ -207,19 +186,15 @@ public class CoprocessorTxnStore implements TxnStore{
 		@Override
 		public TxnView getTransaction(long txnId, boolean getDestinationTables) throws IOException {
         lookups.incrementAndGet(); //we are performing a lookup, so increment the counter
-				HTableInterface table =
-								tableFactory.createHTableInterface(SpliceConstants.config,
-												SIConstants.TRANSACTION_TABLE_BYTES);
-				try{
-						byte[] rowKey = TxnUtils.getRowKey(txnId);
-						TxnLifecycleProtocol txnLifecycleProtocol = table.coprocessorProxy(TxnLifecycleProtocol.class, rowKey);
+            try (HTableInterface table = tableFactory.createHTableInterface(SpliceConstants.config,
+                    SIConstants.TRANSACTION_TABLE_BYTES)) {
+                byte[] rowKey = TxnUtils.getRowKey(txnId);
+                TxnLifecycleProtocol txnLifecycleProtocol = table.coprocessorProxy(TxnLifecycleProtocol.class, rowKey);
 
-						byte[] transaction = txnLifecycleProtocol.getTransaction(txnId, getDestinationTables);
-						if(transaction==null||transaction.length<=0) return null; //no transaction found
-						return decode(transaction);
-				}finally{
-						table.close();
-				}
+                byte[] transaction = txnLifecycleProtocol.getTransaction(txnId, getDestinationTables);
+                if (transaction == null || transaction.length <= 0) return null; //no transaction found
+                return decode(transaction);
+            }
 		}
 
     /*caching methods--since we don't have a cache, these are no-ops*/

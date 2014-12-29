@@ -83,7 +83,7 @@ public class RowProviders {
 																						 boolean cancelOnError,Callable<Void>...intermediateCleanupTasks) throws StandardException {
 				JobResults results = null;
 				StandardException baseError = null;
-				List<JobStats> stats = new LinkedList<JobStats>();
+				List<JobStats> stats = new LinkedList<>();
 
 				long start = System.nanoTime();
 
@@ -386,14 +386,11 @@ public class RowProviders {
 						//if(populated==true) return true;
 						try {
 								nextEntry = source.nextRow(spliceRuntimeContext);
-						} catch (StandardException e) {
-                            SpliceLogUtils.error(LOG, org.apache.commons.lang.exception.ExceptionUtils.getStackTrace(e));
-								SpliceLogUtils.logAndThrowRuntime(log,e);
-						} catch (IOException e) {
+						} catch (StandardException | IOException e) {
                             SpliceLogUtils.error(LOG, org.apache.commons.lang.exception.ExceptionUtils.getStackTrace(e));
 								SpliceLogUtils.logAndThrowRuntime(log,e);
 						}
-						return nextEntry!=null;
+                    return nextEntry!=null;
 				}
 
 				@Override
@@ -474,7 +471,7 @@ public class RowProviders {
 						List<Pair<JobFuture,JobInfo>> firstFutures = firstRowProvider.asyncShuffleRows(instructions);
 						List<Pair<JobFuture,JobInfo>> secondFutures = secondRowProvider.asyncShuffleRows(instructions);
 
-						List<Pair<JobFuture,JobInfo>> l = new LinkedList<Pair<JobFuture,JobInfo>>();
+						List<Pair<JobFuture,JobInfo>> l = new LinkedList<>();
 						l.addAll(firstFutures);
 						l.addAll(secondFutures);
 						return l;

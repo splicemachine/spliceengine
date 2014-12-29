@@ -48,7 +48,7 @@ public class ConnectionPool implements ConnectionPoolStatus {
                            boolean fairPool) {
         this.connectionMaker = connectionMaker;
         this.permits = new DynamicSemaphore(poolSize,fairPool);
-        this.alreadyCreatedConnections = new ArrayBlockingQueue<Connection>(poolSize);
+        this.alreadyCreatedConnections = new ArrayBlockingQueue<>(poolSize);
     }
 
     public static ConnectionPool create(Supplier connectionMaker,int poolSize){

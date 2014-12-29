@@ -103,7 +103,7 @@ public class SaltedTempTableIT extends SpliceUnitTest {
         List<HRegionInfo> regions = admin.getTableRegions(SpliceConstants.TEMP_TABLE_BYTES);
         int totalRegions = regions.size();
         HTable table = new HTable(conf, SpliceConstants.TEMP_TABLE_BYTES);
-        List<HRegionInfo> emptyRegions = new ArrayList<HRegionInfo>();
+        List<HRegionInfo> emptyRegions = new ArrayList<>();
         for (HRegionInfo region : regions) {
             if (!isThereDataInRegion(region, table)) {
                 emptyRegions.add(region);

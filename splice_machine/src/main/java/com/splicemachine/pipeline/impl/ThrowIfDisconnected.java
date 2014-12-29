@@ -27,9 +27,7 @@ import java.lang.reflect.Method;
                     public void invoke(RpcCallContext target, String message) throws IOException {
                         try {
                             throwIfD.invoke(target);
-                        } catch (IllegalAccessException e) {
-                            throw Exceptions.getIOException(e);
-                        } catch (InvocationTargetException e) {
+                        } catch (IllegalAccessException | InvocationTargetException e) {
                             throw Exceptions.getIOException(e);
                         }
                     }
@@ -44,9 +42,7 @@ import java.lang.reflect.Method;
                         public void invoke(RpcCallContext target, String message) throws IOException {
                             try {
                                 throwIfD.invoke(target, message);
-                            } catch (IllegalAccessException e) {
-                                throw Exceptions.getIOException(e);
-                            } catch (InvocationTargetException e) {
+                            } catch (IllegalAccessException | InvocationTargetException e) {
                                 throw Exceptions.getIOException(e);
                             }
                         }

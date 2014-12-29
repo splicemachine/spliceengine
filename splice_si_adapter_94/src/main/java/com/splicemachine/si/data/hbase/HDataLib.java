@@ -44,7 +44,7 @@ public class HDataLib implements SDataLib<KeyValue,Put, Delete, Get, Scan> {
 
 		@Override
     public byte[] newRowKey(Object... args) {
-        List<byte[]> bytes = new ArrayList<byte[]>();
+        List<byte[]> bytes = new ArrayList<>();
         for (Object a : args) {
             bytes.add(convertToBytes(a, a.getClass()));
         }

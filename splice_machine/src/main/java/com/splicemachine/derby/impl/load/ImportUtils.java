@@ -287,9 +287,7 @@ public class ImportUtils {
 										String[] ugi = badLogInfo.getUserAndGroup();
 										throw ErrorState.LANG_NO_READ_PERMISSION.newException(ugi[0],ugi[1],path.toString());
 								}
-						}catch(FileNotFoundException fnfe){
-								throw Exceptions.parseException(fnfe);
-						}catch(IOException ioe){
+						} catch(IOException ioe){
 								throw Exceptions.parseException(ioe);
 						}
 				}
@@ -306,9 +304,7 @@ public class ImportUtils {
 										String[] ugi = badLogInfo.getUserAndGroup();
 										throw ErrorState.LANG_NO_WRITE_PERMISSION.newException(ugi[0],ugi[1],path.toString());
 								}
-						}catch(FileNotFoundException fnfe){
-								throw Exceptions.parseException(fnfe);
-						}catch(IOException ioe){
+						} catch(IOException ioe){
 								throw Exceptions.parseException(ioe);
 						}
 				}

@@ -56,9 +56,9 @@ public abstract class BaseJobControl implements JobFuture {
         this.zkManager = zkManager;
         this.jobMetrics = jobMetrics;
         this.stats = new JobStatsAccumulator(job.getJobId());
-        this.tasksToWatch = new ConcurrentSkipListSet<RegionTaskControl>();
+        this.tasksToWatch = new ConcurrentSkipListSet<>();
 
-        this.changedTasks = new LinkedBlockingQueue<RegionTaskControl>();
+        this.changedTasks = new LinkedBlockingQueue<>();
         this.failedTasks = Collections.newSetFromMap(new ConcurrentHashMap<RegionTaskControl, Boolean>());
         this.completedTasks = Collections.newSetFromMap(new ConcurrentHashMap<RegionTaskControl, Boolean>());
         this.cancelledTasks = Collections.newSetFromMap(new ConcurrentHashMap<RegionTaskControl, Boolean>());

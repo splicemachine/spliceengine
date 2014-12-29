@@ -23,7 +23,7 @@ public class RandomUniqueIntGenerator implements ColumnDataGenerator{
     private final int start;
     private final int finish;
 
-    private final ConcurrentSkipListSet<Integer> ints = new ConcurrentSkipListSet<Integer>();
+    private final ConcurrentSkipListSet<Integer> ints = new ConcurrentSkipListSet<>();
 
     public RandomUniqueIntGenerator(int start, int finish) {
         this.start = start;

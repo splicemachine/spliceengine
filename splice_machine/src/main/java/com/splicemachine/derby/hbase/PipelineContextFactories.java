@@ -21,9 +21,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class PipelineContextFactories {
     private static final DiscardingWriteContext<TransactionalRegion> UNMANAGED_CTX_FACTORY
-            = new DiscardingWriteContext<TransactionalRegion>(-1l, LocalWriteContextFactory.unmanagedContextFactory());
+            = new DiscardingWriteContext<>(-1l, LocalWriteContextFactory.unmanagedContextFactory());
     private static final ConcurrentMap<Long,DiscardingWriteContext<TransactionalRegion>> ctxMap
-            = new ConcurrentHashMap<Long, DiscardingWriteContext<TransactionalRegion>>();
+            = new ConcurrentHashMap<>();
     static{
         UNMANAGED_CTX_FACTORY.register(); //always hold on to the unmanaged factory so that it never closes
         ctxMap.put(-1l,UNMANAGED_CTX_FACTORY);
@@ -32,7 +32,7 @@ public class PipelineContextFactories {
     public static WriteContextFactory<TransactionalRegion> getWriteContext(long conglomerateId){
         DiscardingWriteContext<TransactionalRegion> ctxFactory = ctxMap.get(conglomerateId);
         if(ctxFactory==null){
-            DiscardingWriteContext<TransactionalRegion> newFactory = new DiscardingWriteContext<TransactionalRegion>(conglomerateId, new LocalWriteContextFactory(conglomerateId));
+            DiscardingWriteContext<TransactionalRegion> newFactory = new DiscardingWriteContext<>(conglomerateId, new LocalWriteContextFactory(conglomerateId));
             DiscardingWriteContext<TransactionalRegion> oldFactory = ctxMap.putIfAbsent(conglomerateId, newFactory);
             if(oldFactory!=null)
                 ctxFactory = oldFactory;

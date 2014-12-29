@@ -34,11 +34,7 @@ public abstract class DataValueDescriptorSerializer<T extends DataValueDescripto
             if(!input.readBoolean())
                 readValue(kryo,input,dvd);
             return dvd;
-        } catch (InstantiationException e) {
-            throw new RuntimeException(e);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
-        } catch (StandardException e) {
+        } catch (InstantiationException | StandardException | IllegalAccessException e) {
             throw new RuntimeException(e);
         }
     }

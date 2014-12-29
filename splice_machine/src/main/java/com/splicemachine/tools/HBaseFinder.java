@@ -77,39 +77,39 @@ public class HBaseFinder {
         //TODO -sf- read zookeeper info from other place besides classpath?
         Configuration configuration = SpliceConstants.config;
 
-        HTable table = new HTable(configuration,tableName);
         ResultScanner scanner = null;
-        try{
+        try (HTable table = new HTable(configuration, tableName)) {
             scanner = table.getScanner(scan);
             Result result;
             EntryDecoder entryDecoder = new EntryDecoder();
             EntryAccumulator accumulator = edf.newAccumulator();
-            int numResults=0;
-            do{
+            int numResults = 0;
+            do {
                 result = scanner.next();
-                if(result==null) continue;
+                if (result == null) continue;
                 edf.reset();
                 byte[] row = result.getRow();
                 String rowBytes = Bytes.toStringBinary(row);
-                for(KeyValue kv:result.raw()){
-                    if(!kv.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES)) continue; //skip non-data columns
+                for (KeyValue kv : result.raw()) {
+                    if (!kv.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES))
+                        continue; //skip non-data columns
                     long ts = kv.getTimestamp();
                     byte[] value = kv.getValue();
-                    if(value.length<=0) continue;
+                    if (value.length <= 0) continue;
                     entryDecoder.set(value);
-                    if(edf.match(entryDecoder,accumulator)){
+                    if (edf.match(entryDecoder, accumulator)) {
                         numResults++;
-                        System.out.printf("row:\t%s%n",rowBytes);
-                        System.out.printf("encoded row:\t%s%n",Bytes.toStringBinary(Encoding.encodeBytesUnsorted(row)));
-                        System.out.printf("\t%-20d\t%s%n",ts,Bytes.toStringBinary(value));
+                        System.out.printf("row:\t%s%n", rowBytes);
+                        System.out.printf("encoded row:\t%s%n", Bytes.toStringBinary(Encoding.encodeBytesUnsorted(row)));
+                        System.out.printf("\t%-20d\t%s%n", ts, Bytes.toStringBinary(value));
                     }
                 }
-            }while(result!=null);
-            System.out.printf("Returned %d results%n",numResults);
-        }finally{
-            if(scanner!=null)
+            } while (result != null);
+            System.out.printf("Returned %d results%n", numResults);
+        } finally {
+            if (scanner != null)
                 scanner.close();
-            table.close();
+
         }
     }
 }

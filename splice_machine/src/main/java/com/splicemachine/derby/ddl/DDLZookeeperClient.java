@@ -85,9 +85,7 @@ class DDLZookeeperClient {
         try {
             String changeId = ZkUtils.create(CHANGES_PATH + "/", changeData, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT_SEQUENTIAL);
             return changeId.substring(changeId.lastIndexOf('/') + 1);
-        } catch (KeeperException e) {
-            throw Exceptions.parseException(e);
-        } catch (InterruptedException e) {
+        } catch (KeeperException | InterruptedException e) {
             throw Exceptions.parseException(e);
         }
     }

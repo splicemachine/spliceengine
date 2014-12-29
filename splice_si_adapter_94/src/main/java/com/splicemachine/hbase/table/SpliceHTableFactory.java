@@ -21,7 +21,7 @@ public class SpliceHTableFactory implements HTableInterfaceFactory {
 	private static Logger LOG = Logger.getLogger(SpliceHTableFactory.class);
 	private boolean autoFlush = true;
     private ThreadPoolExecutor tableExecutor;
-    protected IntObjectOpenHashMap<HConnection> connections = new IntObjectOpenHashMap<HConnection>();
+    protected IntObjectOpenHashMap<HConnection> connections = new IntObjectOpenHashMap<>();
     protected static AtomicInteger increment = new AtomicInteger();  
 
 	public SpliceHTableFactory() {

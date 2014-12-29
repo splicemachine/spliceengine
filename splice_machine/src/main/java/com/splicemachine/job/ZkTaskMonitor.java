@@ -32,7 +32,7 @@ import org.apache.zookeeper.data.Stat;
 public class ZkTaskMonitor implements TaskMonitor{
     private static final Logger LOG = Logger.getLogger(ZkTaskMonitor.class);
     private final RecoverableZooKeeper zooKeeper;
-		private final Map<String,Set<? extends Task>> runningTaskMap = new ConcurrentHashMap<String, Set<? extends Task>>();
+		private final Map<String,Set<? extends Task>> runningTaskMap = new ConcurrentHashMap<>();
 
     public ZkTaskMonitor(String baseQueueNode,RecoverableZooKeeper zooKeeper) {
         this.zooKeeper = zooKeeper;
@@ -127,10 +127,7 @@ public class ZkTaskMonitor implements TaskMonitor{
             }
             LOG.debug("Error getting task status:",e);
             throw new RuntimeException(e);
-        } catch (ClassNotFoundException e) {
-            LOG.debug("Error getting task status:",e);
-            throw new RuntimeException(e);
-        } catch (IOException e) {
+        } catch (ClassNotFoundException | IOException e) {
             LOG.debug("Error getting task status:",e);
             throw new RuntimeException(e);
         }

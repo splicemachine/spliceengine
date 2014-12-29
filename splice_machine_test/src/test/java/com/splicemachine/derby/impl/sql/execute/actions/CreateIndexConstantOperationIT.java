@@ -80,7 +80,7 @@ public class CreateIndexConstantOperationIT extends SpliceUnitTest {
         methodWatcher.getStatement().execute("insert into"+this.getPaddedTableReference(TABLE_NAME_2)+" (TaskId, empId, StartedAt, FinishedAt) values (1234,'JC',0500,0600)");
         methodWatcher.getStatement().execute("insert into"+this.getPaddedTableReference(TABLE_NAME_2)+" (TaskId, empId, StartedAt, FinishedAt) values (1235,'JC',0601,0630)");
         ResultSet resultSet = methodWatcher.executeQuery(format("select * from %s where taskId = 1234",this.getPaddedTableReference(TABLE_NAME_2)));
-        List<String> results = new ArrayList<String>();
+        List<String> results = new ArrayList<>();
         while(resultSet.next()){
             int taskId = resultSet.getInt(1);
             String empId = resultSet.getString(2);

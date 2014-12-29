@@ -346,7 +346,7 @@ public class RegionTxnStore<TxnInfo,Transaction,TableBuffer,Data,Put extends Ope
 
         final RegionScanner scanner = dataLib.getBufferedRegionScanner(region,baseScanner,scan,1024, Metrics.noOpMetricFactory());
         
-        return new RegionScanIterator<Data,Put,Delete,Get,Scan,Transaction>(scanner,new RegionScanIterator.IOFunction<Transaction,Data>() {
+        return new RegionScanIterator<>(scanner,new RegionScanIterator.IOFunction<Transaction,Data>() {
             @Override
             public Transaction apply(@Nullable List<Data> keyValues) throws IOException{
                 return decode(keyValues);
@@ -363,7 +363,7 @@ public class RegionTxnStore<TxnInfo,Transaction,TableBuffer,Data,Put extends Ope
         RegionScanner baseScanner = region.getScanner(scan);
 
         final RegionScanner scanner = dataLib.getBufferedRegionScanner(region,baseScanner,scan,1024, Metrics.noOpMetricFactory());
-        return new RegionScanIterator<Data,Put,Delete,Get,Scan,Transaction>(scanner,new RegionScanIterator.IOFunction<Transaction,Data>() {
+        return new RegionScanIterator<>(scanner,new RegionScanIterator.IOFunction<Transaction,Data>() {
             @Override
             public Transaction apply(@Nullable List<Data> keyValues) throws IOException{
                 Transaction txn = newTransactionDecoder.decode(dataLib,keyValues);

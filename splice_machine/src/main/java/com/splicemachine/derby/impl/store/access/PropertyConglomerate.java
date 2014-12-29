@@ -64,7 +64,7 @@ public class PropertyConglomerate {
 				create = true;
 			} else {
 				try {
-					propertiesConglomId = Long.valueOf(id).longValue();
+					propertiesConglomId = Long.valueOf(id);
 				} catch (NumberFormatException nfe) {
 					throw Monitor.exceptionStartingModule(nfe) ;
 				}

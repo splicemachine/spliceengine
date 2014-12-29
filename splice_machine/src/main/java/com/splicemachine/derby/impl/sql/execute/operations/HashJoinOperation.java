@@ -28,7 +28,7 @@ public class HashJoinOperation extends NestedLoopJoinOperation {
 	protected NestedLoopIterator nestedLoopIterator;
 	
 	static {
-		nodeTypes = new ArrayList<NodeType>();
+		nodeTypes = new ArrayList<>();
 		nodeTypes.add(NodeType.MAP);	
 		nodeTypes.add(NodeType.SCROLL);
 	}
@@ -132,7 +132,7 @@ public class HashJoinOperation extends NestedLoopJoinOperation {
 	@Override
 	public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
 		SpliceLogUtils.trace(LOG, "executeScan");
-		final List<SpliceOperation> operationStack = new ArrayList<SpliceOperation>();
+		final List<SpliceOperation> operationStack = new ArrayList<>();
 		this.generateLeftOperationStack(operationStack);
 		SpliceOperation regionOperation = operationStack.get(0);
 		final RowProvider rowProvider;

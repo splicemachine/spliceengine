@@ -163,7 +163,7 @@ public class TieredTaskScheduler<T extends Task> implements TaskScheduler<T> {
 						long pollTime = schedulerSetup.pollTimeForPriority(minPriority);
 						List<StealableTaskScheduler<T>> higherPriority = Lists.newArrayList(priorityList);
 						higherPriority.add(0,overflowScheduler);
-						WorkStealingTaskScheduler<T> scheduler = new WorkStealingTaskScheduler<T>(numThreads,
+						WorkStealingTaskScheduler<T> scheduler = new WorkStealingTaskScheduler<>(numThreads,
 										pollTime,
 										comparator,
 										higherPriority,

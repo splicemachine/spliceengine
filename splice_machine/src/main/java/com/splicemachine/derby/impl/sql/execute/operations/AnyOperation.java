@@ -134,7 +134,7 @@ public class AnyOperation extends SpliceBaseOperation {
         super.init(context);
         source.init(context);
         if(emptyRowFun==null)
-            emptyRowFun = new SpliceMethod<ExecRow>(emptyRowFunName,activation);
+            emptyRowFun = new SpliceMethod<>(emptyRowFunName,activation);
     }
 
     private ExecRow getRowWithNulls() throws StandardException {

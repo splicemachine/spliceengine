@@ -35,7 +35,7 @@ public class ConstraintHandler implements WriteHandler {
 
     @Override
     public void next(KVPair mutation, WriteContext ctx) {
-        if(visitedRows==null) visitedRows = new ObjectOpenHashSet<KVPair>();
+        if(visitedRows==null) visitedRows = new ObjectOpenHashSet<>();
         if(failed)
             ctx.notRun(mutation);
         if(!HRegion.rowIsInRange(ctx.getRegion().getRegionInfo(),mutation.getRow())){

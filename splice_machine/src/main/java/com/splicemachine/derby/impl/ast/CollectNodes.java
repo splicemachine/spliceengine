@@ -22,7 +22,7 @@ public class CollectNodes<T> implements Visitor {
 
     public CollectNodes(Predicate<? super Visitable> pred) {
         this.pred = pred;
-        nodeList = new LinkedList<T>();
+        nodeList = new LinkedList<>();
     }
 
     public boolean visitChildrenFirst(Visitable node) {
@@ -57,7 +57,7 @@ public class CollectNodes<T> implements Visitor {
     }
 
     public static <T> CollectNodesBuilder<T> collector(Predicate<? super Visitable> pred){
-        return new CollectNodesBuilder<T>(pred);
+        return new CollectNodesBuilder<>(pred);
     }
 
 
@@ -66,7 +66,7 @@ public class CollectNodes<T> implements Visitor {
         private Visitor wrapped;
 
         public CollectNodesBuilder(Predicate<? super Visitable> pred){
-            collector = new CollectNodes<T>(pred);
+            collector = new CollectNodes<>(pred);
             wrapped = collector;
         }
 

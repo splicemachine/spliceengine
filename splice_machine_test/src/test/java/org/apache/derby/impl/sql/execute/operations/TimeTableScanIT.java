@@ -69,7 +69,7 @@ public class TimeTableScanIT extends SpliceUnitTest {
 							Date date = new Date(next.getTime());
 							ps.setDate(4,date);
 							ps.executeUpdate();
-							resultsMap.put(id,new Pair<Timestamp, Float>(next,value));
+							resultsMap.put(id,new Pair<>(next,value));
 						}
 					}
 					//insert data into ints table

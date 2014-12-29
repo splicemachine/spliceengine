@@ -15,7 +15,7 @@ public class BulkWritesResult implements Externalizable {
 	
 	
 	public BulkWritesResult() {
-		this.bulkWriteResults = new ObjectArrayList<BulkWriteResult>();
+		this.bulkWriteResults = new ObjectArrayList<>();
     }
 
 	public BulkWritesResult(ObjectArrayList<BulkWriteResult> bulkWriteResults){
@@ -36,7 +36,7 @@ public class BulkWritesResult implements Externalizable {
 
 	@Override
     public String toString() {
-        StringBuffer sb = new StringBuffer("BulkWritesResult{");
+        StringBuilder sb = new StringBuilder("BulkWritesResult{");
         		int isize = bulkWriteResults.size();
         		for (int i = 0; i<isize; i++) {
         			sb.append(bulkWriteResults.get(i));
@@ -59,7 +59,7 @@ public class BulkWritesResult implements Externalizable {
 		@Override
 		public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
 				int size = in.readInt();
-				bulkWriteResults = new ObjectArrayList<BulkWriteResult>(size);
+				bulkWriteResults = new ObjectArrayList<>(size);
 				for(int i=0;i<size;i++){
 					bulkWriteResults.add((BulkWriteResult) in.readObject());
 				}

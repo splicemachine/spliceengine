@@ -33,7 +33,7 @@ public class DistributedScanner implements SpliceResultScanner {
         this.scanners = scanners;
         this.scannerResultCache = new List[scanners.length];
         for (int i = 0; i < this.scannerResultCache.length; i++) {
-            this.scannerResultCache[i] = new ArrayList<Result>();
+            this.scannerResultCache[i] = new ArrayList<>();
         }
     }
 
@@ -85,7 +85,7 @@ public class DistributedScanner implements SpliceResultScanner {
     public Result[] next(int nbRows) throws IOException {
         // Identical to HTable.ClientScanner implementation
         // Collect values to be returned here
-        ArrayList<Result> resultSets = new ArrayList<Result>(nbRows);
+        ArrayList<Result> resultSets = new ArrayList<>(nbRows);
         for (int i = 0; i < nbRows; i++) {
             Result next = next();
             if (next != null) {

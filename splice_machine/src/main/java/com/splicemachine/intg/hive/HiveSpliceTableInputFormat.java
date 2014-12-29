@@ -43,7 +43,7 @@ ExecRowWritable>{
     private  HiveSpliceRecordReader trr = null;
     private List<Integer> colTypes = null;
     private List<String> allColNames = null;
-    private HashMap<List, List> tableStructure = new HashMap<List, List>();
+    private HashMap<List, List> tableStructure = new HashMap<>();
 	private Connection parentConn = null;
  
 	

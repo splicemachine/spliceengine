@@ -77,7 +77,7 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
                 colsToReturn.set(i);
             }
         }
-        List<Scan> scans = new ArrayList<Scan>(probeValues.length);
+        List<Scan> scans = new ArrayList<>(probeValues.length);
         for (int i = 0; i < probeValues.length; i++) {
             probeValue = probeValues[i];
             Scan scan = getScan(txn);

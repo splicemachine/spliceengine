@@ -70,17 +70,14 @@ public class IndividualPrimaryKeyScanTest {
         PreparedStatement ps = methodWatcher.prepareStatement("select * from "+ spliceTableWatcher+" where i_id = ?");
         for(int i=1;i<=5000;i++){
             ps.setInt(1,i);
-            ResultSet resultSet = ps.executeQuery();
-            try{
+            try (ResultSet resultSet = ps.executeQuery()) {
                 int count = 0;
                 Assert.assertTrue(resultSet.next());
-                do{
+                do {
                     count++;
-                }while(resultSet.next());
+                } while (resultSet.next());
 
-                Assert.assertEquals("More than one row returned!",1,count);
-            }finally{
-                resultSet.close();
+                Assert.assertEquals("More than one row returned!", 1, count);
             }
         }
     }
@@ -96,17 +93,14 @@ public class IndividualPrimaryKeyScanTest {
         for(int i=1;i<=5000;i++){
             ps.setInt(1,i+1);
             ps.setInt(2,i-1);
-            ResultSet resultSet = ps.executeQuery();
-            try{
+            try (ResultSet resultSet = ps.executeQuery()) {
                 int count = 0;
                 Assert.assertTrue(resultSet.next());
-                do{
+                do {
                     count++;
-                }while(resultSet.next());
+                } while (resultSet.next());
 
-                Assert.assertEquals("More than one row returned!",1,count);
-            }finally{
-                resultSet.close();
+                Assert.assertEquals("More than one row returned!", 1, count);
             }
         }
     }

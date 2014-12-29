@@ -34,7 +34,7 @@ public class SchedulerPriorities {
 
 		private SchedulerPriorities(Configuration config){
 				this.config = config;
-				this.basePriorityMap = new NonBlockingHashMap<Class<?>, Integer>();
+				this.basePriorityMap = new NonBlockingHashMap<>();
 				this.numTiers = config.getInt(SpliceConstants.NUM_PRIORITY_TIERS,SpliceConstants.DEFAULT_NUM_PRIORITY_TIERS);
 				this.maxPriority = config.getInt(SpliceConstants.MAX_PRIORITY,SpliceConstants.DEFAULT_MAX_PRIORITY);
 				setupPriorities();
@@ -52,14 +52,10 @@ public class SchedulerPriorities {
 						try {
 								@SuppressWarnings("unchecked") Class<? extends TieredTaskSchedulerSetup> setupClass = (Class<? extends TieredTaskSchedulerSetup>) Class.forName(type);
 								return setupClass.newInstance();
-						} catch (ClassNotFoundException e) {
-								throw new RuntimeException(e);
-						} catch (InstantiationException e) {
-								throw new RuntimeException(e);
-						} catch (IllegalAccessException e) {
+						} catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
 								throw new RuntimeException(e);
 						}
-				}
+                }
 		}
 
 		public int getBaseSystemPriority(){

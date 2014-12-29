@@ -108,18 +108,12 @@ public class WordCount2File {
 					job.commit();
 				}
 					
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (ClassNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}catch (SQLException e) {
+			} catch (InterruptedException | SQLException | ClassNotFoundException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-			
-		}
+
+    }
 
 }
 

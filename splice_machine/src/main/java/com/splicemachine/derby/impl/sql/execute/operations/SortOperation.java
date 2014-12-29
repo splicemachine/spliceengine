@@ -125,7 +125,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 
 		@Override
 		public List<SpliceOperation> getSubOperations() {
-				List<SpliceOperation> ops = new ArrayList<SpliceOperation>();
+				List<SpliceOperation> ops = new ArrayList<>();
 				ops.add(source);
 				return ops;
 		}

@@ -207,7 +207,7 @@ public class HRegionUtil {
 	    List<StoreFile> storeFiles;
 	      storeFiles = store.getStorefiles();
 	      HFileBlockIndex.BlockIndexReader fileReader;
-	      List<byte[]> cutPoints = new ArrayList<byte[]>();
+	      List<byte[]> cutPoints = new ArrayList<>();
 	      for (StoreFile file: storeFiles) {
 	    	  if (file != null) {
 	    		  fileReader = file.createReader().getHFileReader().getDataBlockIndexReader();

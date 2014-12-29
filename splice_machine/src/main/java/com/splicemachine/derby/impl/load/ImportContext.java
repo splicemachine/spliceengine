@@ -247,7 +247,7 @@ public class ImportContext implements Externalizable{
 				private Long tableId;
 				private String columnDelimiter = null;
 				private String stripString;
-				Map<Integer,Integer> indexToTypeMap = new HashMap<Integer, Integer>();
+				Map<Integer,Integer> indexToTypeMap = new HashMap<>();
 				private String timestampFormat;
 				private long byteOffset;
 				private int bytesToRead;

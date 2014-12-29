@@ -223,7 +223,7 @@ public class UpdateOperationIT {
 
         //make sure old value isn't there anymore
         Long finalCount = methodWatcher.query("select count(*) from NULL_TABLE where zip = '65201'");
-        assertEquals("Row was not removed from original set", originalCount.longValue() - 1L, finalCount.longValue());
+        assertEquals("Row was not removed from original set", originalCount - 1L, finalCount.longValue());
     }
 
     /* Regression test for DB-1481, DB-2189 */
@@ -358,7 +358,7 @@ public class UpdateOperationIT {
 
     @Test
     public void testUpdateMultiColumnMultiSubSyntax() throws Exception {
-    	StringBuffer sb = new StringBuffer(200);
+    	StringBuilder sb = new StringBuilder(200);
     	sb.append("update customer \n");
     	sb.append("  set status = 'false', \n");
     	sb.append("  level = ( \n");
@@ -385,7 +385,7 @@ public class UpdateOperationIT {
 
     // Used by previous tests (testUpdateMultiColumnOneSub*)
     private int doTestUpdateMultiColumnOneSubSyntax(String outerWhere) throws Exception {
-        StringBuffer sb = new StringBuffer(200);
+        StringBuilder sb = new StringBuilder(200);
         sb.append("update customer \n");
         sb.append("  set (status, level) = ( \n");
         sb.append("    select customer_temp.status, customer_temp.level \n");

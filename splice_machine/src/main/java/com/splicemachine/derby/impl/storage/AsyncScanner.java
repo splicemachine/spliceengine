@@ -54,7 +54,7 @@ public class AsyncScanner implements SpliceResultScanner, Callback<ArrayList<Arr
 
         //TODO -sf- use a different HBaseClient singleton pattern so it can be shutdown easily
         this.scanner = AsyncScannerUtils.convertScanner(scan,table,HBASE_CLIENT,populateBlockCache);
-        this.resultQueue = new LinkedList<List<KeyValue>>();
+        this.resultQueue = new LinkedList<>();
     }
 
     @Override

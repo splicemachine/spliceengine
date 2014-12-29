@@ -18,7 +18,7 @@ public class CollectChildrenVisitor implements Visitor {
     List<ResultSetNode> children;
 
     public CollectChildrenVisitor(){
-        children = new LinkedList<ResultSetNode>();
+        children = new LinkedList<>();
     }
 
     @Override

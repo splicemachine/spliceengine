@@ -220,7 +220,7 @@ public class Scans extends SpliceUtils {
 				}
 
 
-				ObjectArrayList<Predicate> andedOrPreds = new ObjectArrayList<Predicate>();
+				ObjectArrayList<Predicate> andedOrPreds = new ObjectArrayList<>();
 				for(int i=1;i<qualifiers.length;i++){
 						Qualifier[] orQuals = qualifiers[i];
 						ObjectArrayList<Predicate> orPreds = ObjectArrayList.newInstanceWithCapacity(orQuals.length);

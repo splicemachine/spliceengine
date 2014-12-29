@@ -118,7 +118,7 @@ public abstract class SpliceGenericWindowFunction implements WindowFunction {
     public void reset() {
         WindowChunk chunk = new WindowChunk();
         first = last = chunk;
-        chunks = new ArrayList<WindowChunk>();
+        chunks = new ArrayList<>();
         chunks.add(chunk);
     }
 

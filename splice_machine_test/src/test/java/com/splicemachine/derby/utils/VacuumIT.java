@@ -34,17 +34,14 @@ public class VacuumIT {
 				/*
 				 * Simple test to make sure that Vacuum works and doesn't delete anything <1168.
 				 */
-				HBaseAdmin admin = new HBaseAdmin(SpliceConstants.config);
-				try{
-						HTableDescriptor[] beforeTables = admin.listTables();
-						CallableStatement callableStatement = methodRule.prepareCall("call SYSCS_UTIL.VACUUM()");
-						callableStatement.execute();
-						HTableDescriptor[] afterTables = admin.listTables();
-						//TODO -sf- make this a real test
-						System.out.println(Arrays.toString(beforeTables));
-						System.out.println(Arrays.toString(afterTables));
-				}finally{
-						admin.close();
-				}
+            try (HBaseAdmin admin = new HBaseAdmin(SpliceConstants.config)) {
+                HTableDescriptor[] beforeTables = admin.listTables();
+                CallableStatement callableStatement = methodRule.prepareCall("call SYSCS_UTIL.VACUUM()");
+                callableStatement.execute();
+                HTableDescriptor[] afterTables = admin.listTables();
+                //TODO -sf- make this a real test
+                System.out.println(Arrays.toString(beforeTables));
+                System.out.println(Arrays.toString(afterTables));
+            }
 		}
 }

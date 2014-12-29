@@ -177,7 +177,7 @@ public class BlockImportJob extends FileImportJob{
         }
 
         //create a map from Server to a SINGLE region
-        Map<ServerName,HRegionInfo> regionsToReturn = new HashMap<ServerName,HRegionInfo>();
+        Map<ServerName,HRegionInfo> regionsToReturn = new HashMap<>();
         for(HRegionInfo info:regionLocations.keySet()){
             ServerName serverName = regionLocations.get(info);
             HRegionInfo existing = regionsToReturn.get(serverName);

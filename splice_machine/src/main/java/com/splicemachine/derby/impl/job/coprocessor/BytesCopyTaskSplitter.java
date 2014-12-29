@@ -21,7 +21,7 @@ public class BytesCopyTaskSplitter implements TaskSplitter {
 		@Override
 		public Collection<SizedInterval> split(RegionTask task, byte[] taskStart, byte[] taskStop) throws IOException {								
 				List<byte[]> splits = getCutPoints(region, taskStart, taskStop);
-				List<SizedInterval> intervals = new ArrayList<SizedInterval>();
+				List<SizedInterval> intervals = new ArrayList<>();
 				int length = splits.size();
 				if (length == 0)
 					return Collections.singletonList(new SizedInterval(taskStart,taskStop,0));

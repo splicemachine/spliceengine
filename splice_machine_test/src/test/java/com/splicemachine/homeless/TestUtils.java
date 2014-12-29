@@ -60,7 +60,7 @@ public class TestUtils {
 
     private static List<Map> resultSetToOrderedMaps(ResultSet rs) throws SQLException{
 
-        List<Map> results = new ArrayList<Map>();
+        List<Map> results = new ArrayList<>();
 
         while(rs.next()){
             results.add(resultSetToOrderedMap(rs));
@@ -70,7 +70,7 @@ public class TestUtils {
     }
 
     private static Map<String, Object> resultSetToOrderedMap(ResultSet rs) throws SQLException {
-        Map<String, Object> result = new LinkedHashMap<String, Object>();
+        Map<String, Object> result = new LinkedHashMap<>();
         ResultSetMetaData rsmd = rs.getMetaData();
         int cols = rsmd.getColumnCount();
 
@@ -83,7 +83,7 @@ public class TestUtils {
 
     public static List<Map> resultSetToMaps(ResultSet rs) throws SQLException{
 
-        List<Map> results = new ArrayList<Map>();
+        List<Map> results = new ArrayList<>();
         BasicRowProcessor brp = new BasicRowProcessor();
 
         while(rs.next()){
@@ -94,7 +94,7 @@ public class TestUtils {
     }
 
     public static List<Object[]> resultSetToArrays(ResultSet rs) throws SQLException {
-        List<Object[]> results = new ArrayList<Object[]>();
+        List<Object[]> results = new ArrayList<>();
         BasicRowProcessor brp = new BasicRowProcessor();
 
         while (rs.next()){
@@ -256,7 +256,7 @@ public class TestUtils {
 
         @Override
         public String toString() {
-            Map<Integer,Integer> colWidth = new HashMap<Integer, Integer>(this.columns.size());
+            Map<Integer,Integer> colWidth = new HashMap<>(this.columns.size());
             StringBuilder buf = new StringBuilder(query);
             buf.append("\n");
             int totalLength = 0;
@@ -302,7 +302,7 @@ public class TestUtils {
                 pad.append(' ');
             }
             String back = pad.toString();
-            return new Pair<String, String>(front,back);
+            return new Pair<>(front,back);
         }
 
         private int getMaxWidth(int min, int colIndex) {
@@ -327,12 +327,12 @@ public class TestUtils {
              * @param columnSeparator regex on which to parse the column and row strings.   @return FormattedResult
              */
             public static FormattedResult convert(String query, String columnStr, List<String> rows, String columnSeparator) {
-                List<String> columns = new ArrayList<String>();
-                List<List<String>> rowKeyToRows = new ArrayList<List<String>>();
+                List<String> columns = new ArrayList<>();
+                List<List<String>> rowKeyToRows = new ArrayList<>();
                 columns.addAll(Arrays.asList(columnStr.split(columnSeparator)));
 
                 for (String rowStr : rows) {
-                    List<String> row = new ArrayList<String>();
+                    List<String> row = new ArrayList<>();
                     for (String columnValue : rowStr.split(columnSeparator)) {
                         row.add((columnValue.contains("(null)") ? "NULL" : columnValue.trim()));
                     }
@@ -358,14 +358,14 @@ public class TestUtils {
              * the ResultSet you are verifying is already ordered and thus should be the same every time.
              */
             public static FormattedResult convert(String query, ResultSet rs, boolean sort) throws Exception {
-                List<String> columns = new ArrayList<String>();
-                List<List<String>> rows = new ArrayList<List<String>>();
+                List<String> columns = new ArrayList<>();
+                List<List<String>> rows = new ArrayList<>();
                 ResultSetMetaData metaData = rs.getMetaData();
                 int nCols = metaData.getColumnCount();
 
                 boolean gotColumnNames = false;
                 while (rs.next()) {
-                    List<String> row = new ArrayList<String>();
+                    List<String> row = new ArrayList<>();
                     for (int i = 1; i <= nCols; i++) {
                         if (! gotColumnNames) {
                             columns.add(metaData.getColumnName(i).trim());

@@ -21,7 +21,7 @@ public class IndexSharedPreFlushHook implements PreFlushHook {
 		private List<Pair<WriteContext,ObjectObjectOpenHashMap<KVPair,KVPair>>> sharedMainMutationList;
 
 		public IndexSharedPreFlushHook() {
-				sharedMainMutationList = new ArrayList<Pair<WriteContext,ObjectObjectOpenHashMap<KVPair,KVPair>>>();
+				sharedMainMutationList = new ArrayList<>();
 		}
 
 		public void registerContext(WriteContext context, ObjectObjectOpenHashMap<KVPair,KVPair> indexToMainMutationMap) {

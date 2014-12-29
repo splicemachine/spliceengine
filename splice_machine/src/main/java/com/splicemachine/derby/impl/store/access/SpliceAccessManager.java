@@ -73,7 +73,7 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
     private ConglomerateDescriptorCache conglomerateDescriptorCache = ConglomerateDescriptorCache.INSTANCE;
     private volatile DDLFilter ddlDemarcationPoint = null;
     private volatile boolean cacheDisabled = false;
-    private ConcurrentMap<String, DDLChange> ongoingDDLChanges = new ConcurrentHashMap<String, DDLChange>();
+    private ConcurrentMap<String, DDLChange> ongoingDDLChanges = new ConcurrentHashMap<>();
     private static final HTableInterfaceFactory autoFlushTableFactory = new SpliceHTableFactory(false);
     private static final HTableInterfaceFactory tableFactory = new SpliceHTableFactory();
 
@@ -177,7 +177,7 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
 				}
 				catch (java.lang.ArrayIndexOutOfBoundsException e) {
 						// just in case language passes in a bad factory id.
-						throw StandardException.newException(SQLState.STORE_CONGLOMERATE_DOES_NOT_EXIST, new Long(conglom_id));
+						throw StandardException.newException(SQLState.STORE_CONGLOMERATE_DOES_NOT_EXIST, conglom_id);
 				}
 		}
 
@@ -242,7 +242,7 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
 		 **/
 	/* package */ Conglomerate conglomCacheFind(TransactionManager xact_mgr,long conglomid) throws StandardException {
 				Conglomerate conglom       = null;
-				Long         conglomid_obj = new Long(conglomid);
+				Long         conglomid_obj = conglomid;
 				boolean bypassCache = cacheDisabled || !canSeeDDLDemarcationPoint(xact_mgr);
 				if (bypassCache) {
 						return getFactoryFromConglomId(conglomid).readConglomerate(xact_mgr, new ContainerKey(0, conglomid));
@@ -312,7 +312,7 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
 						Conglomerate    new_conglom)
 						throws StandardException
 		{
-				Long         conglomid_obj = new Long(conglomid);
+				Long         conglomid_obj = conglomid;
 
 				synchronized (conglom_cache)
 				{
@@ -350,7 +350,7 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
 				{
 						// insert the updated entry.
 						CacheableConglomerate conglom_entry = (CacheableConglomerate)
-										conglom_cache.create(new Long(conglomid), conglom);
+										conglom_cache.create(conglomid, conglom);
 						conglom_cache.release(conglom_entry);
 				}
 
@@ -371,7 +371,7 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
 				synchronized (conglom_cache)
 				{
 						CacheableConglomerate conglom_entry = (CacheableConglomerate)
-										conglom_cache.findCached(new Long(conglomid));
+										conglom_cache.findCached(conglomid);
 
 						if (conglom_entry != null)
 								conglom_cache.remove(conglom_entry);

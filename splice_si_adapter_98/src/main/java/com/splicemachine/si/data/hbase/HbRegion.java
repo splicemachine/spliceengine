@@ -86,7 +86,7 @@ public class HbRegion extends BaseHbRegion<SRowLock> {
 
     @Override
     public void unLockRow(SRowLock lock) throws IOException {
-        List<HRegion.RowLock> locks = new ArrayList<HRegion.RowLock>(1);
+        List<HRegion.RowLock> locks = new ArrayList<>(1);
         locks.add(lock.getDelegate());
         region.releaseRowLocks(locks);
     }

@@ -10,7 +10,7 @@ public class SpliceWriteControl {
 		public enum Status {
 				DEPENDENT, INDEPENDENT, REJECTED
 		}
-		private AtomicReference<WriteStatus> writeStatus = new AtomicReference<WriteStatus>(new WriteStatus(0,0,0,0));
+		private AtomicReference<WriteStatus> writeStatus = new AtomicReference<>(new WriteStatus(0,0,0,0));
 		protected int maxDependentWriteThreads;
 		protected int maxIndependentWriteThreads;
 		protected int maxDependentWriteCount;
@@ -78,7 +78,7 @@ public class SpliceWriteControl {
 		}
 
 		private class IndepTraffic implements TrafficControl{
-				private final ThreadLocal<SpliceWriteControl.Status> statusThread = new ThreadLocal<SpliceWriteControl.Status>();
+				private final ThreadLocal<SpliceWriteControl.Status> statusThread = new ThreadLocal<>();
 
 				@Override
 				public void release(int permits) {

@@ -153,13 +153,11 @@ public class Vacuum {
 					timeRemaining-=(System.currentTimeMillis()-time);
 					tryNum++;
 				} while (timeRemaining>0);
-			} catch (IOException e) {
-				throw Exceptions.parseException(e);
-			} catch (StreamException e) {
+			} catch (IOException | StreamException e) {
 				throw Exceptions.parseException(e);
 			}
 
-			return activeTxn;
+            return activeTxn;
 		} // end waitForConcurrentTransactions
 
 		public void shutdown() throws SQLException {

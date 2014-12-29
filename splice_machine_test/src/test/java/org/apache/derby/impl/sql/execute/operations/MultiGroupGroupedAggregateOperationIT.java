@@ -83,9 +83,9 @@ public class MultiGroupGroupedAggregateOperationIT extends SpliceUnitTest {
 	
 	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 	
-	private static Map<Pair,Stats> pairStats = new HashMap<Pair,Stats>();
-	private static Map<String,Stats> unameStats = new HashMap<String,Stats>();
-	private static Map<String,Stats> fruitStats = new HashMap<String,Stats>();
+	private static Map<Pair,Stats> pairStats = new HashMap<>();
+	private static Map<String,Stats> unameStats = new HashMap<>();
+	private static Map<String,Stats> fruitStats = new HashMap<>();
     private static Stats totalStats = new Stats();
 	
 	private static final int size = 2;

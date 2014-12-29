@@ -19,7 +19,7 @@ public class BytesUtilTest {
 
     @Test
     public void isKeyValueInRange() {
-        Pair<byte[], byte[]> range = new Pair<byte[], byte[]>(B, D);
+        Pair<byte[], byte[]> range = new Pair<>(B, D);
         assertTrue(BytesUtil.isKeyValueInRange(new KeyValue(B, 1L), range));
         assertTrue(BytesUtil.isKeyValueInRange(new KeyValue(C, 1L), range));
         assertTrue(BytesUtil.isKeyValueInRange(new KeyValue(D, 1L), range));
@@ -29,7 +29,7 @@ public class BytesUtilTest {
 
     @Test
     public void isKeyValueInRange_unbounded() {
-        Pair<byte[], byte[]> range = new Pair<byte[], byte[]>(new byte[]{}, new byte[]{});
+        Pair<byte[], byte[]> range = new Pair<>(new byte[]{}, new byte[]{});
         assertTrue(BytesUtil.isKeyValueInRange(new KeyValue(A, 1L), range));
         assertTrue(BytesUtil.isKeyValueInRange(new KeyValue(B, 1L), range));
         assertTrue(BytesUtil.isKeyValueInRange(new KeyValue(C, 1L), range));
@@ -39,7 +39,7 @@ public class BytesUtilTest {
 
     @Test
     public void isKeyValueInRange_unboundedUpper() {
-        Pair<byte[], byte[]> range = new Pair<byte[], byte[]>(C, new byte[]{});
+        Pair<byte[], byte[]> range = new Pair<>(C, new byte[]{});
         assertFalse(BytesUtil.isKeyValueInRange(new KeyValue(A, 1L), range));
         assertFalse(BytesUtil.isKeyValueInRange(new KeyValue(B, 1L), range));
         assertTrue(BytesUtil.isKeyValueInRange(new KeyValue(C, 1L), range));
@@ -49,7 +49,7 @@ public class BytesUtilTest {
 
     @Test
     public void isKeyValueInRange_unboundedLower() {
-        Pair<byte[], byte[]> range = new Pair<byte[], byte[]>(new byte[]{}, C);
+        Pair<byte[], byte[]> range = new Pair<>(new byte[]{}, C);
         assertTrue(BytesUtil.isKeyValueInRange(new KeyValue(A, 1L), range));
         assertTrue(BytesUtil.isKeyValueInRange(new KeyValue(B, 1L), range));
         assertTrue(BytesUtil.isKeyValueInRange(new KeyValue(C, 1L), range));

@@ -40,7 +40,7 @@ public class RowNumberWindowFunctionTest extends WindowTestingFramework {
         ExpectedResultsFunction expectedResultsFunction = new RowNumberFunct(partitionColIDs, orderByColIDs);
 
         // define the shape of the input rows
-        List<TestColumnDefinition> rowDefinition = new ArrayList<TestColumnDefinition>(
+        List<TestColumnDefinition> rowDefinition = new ArrayList<>(
             Arrays.asList(new TestColumnDefinition[]{
                 new IntegerColumnDefinition(),
                 new DoubleColumnDefinition().setVariant(13),
@@ -82,7 +82,7 @@ public class RowNumberWindowFunctionTest extends WindowTestingFramework {
         ExpectedResultsFunction expectedResultsFunction = new RowNumberFunct(partitionColIDs, orderByColIDs);
 
         // define the shape of the input rows
-        List<TestColumnDefinition> rowDefinition = new ArrayList<TestColumnDefinition>(
+        List<TestColumnDefinition> rowDefinition = new ArrayList<>(
             Arrays.asList(new TestColumnDefinition[]{
                 new IntegerColumnDefinition(),
                 new DoubleColumnDefinition().setVariant(13),

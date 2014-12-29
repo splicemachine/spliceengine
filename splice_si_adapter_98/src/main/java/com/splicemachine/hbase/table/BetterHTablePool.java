@@ -83,7 +83,7 @@ public class BetterHTablePool {
                             long cleanerTime,TimeUnit cleanerTimeUnit,
                             int maxSize,
                             int coreSize) {
-        tablePool = new ConcurrentHashMap<String, TablePool>();
+        tablePool = new ConcurrentHashMap<>();
         this.coreSize = coreSize;
         this.maxSize = maxSize;
         this.tableFactory = tableFactory;
@@ -133,8 +133,8 @@ public class BetterHTablePool {
         private final AtomicInteger outstandingCount = new AtomicInteger(0);
 
         private TablePool(String tableName,int maxSize, int coreSize) {
-            this.tables = new LinkedBlockingQueue<HTable>();
-            this.tablesToClose = new LinkedBlockingQueue<HTable>();
+            this.tables = new LinkedBlockingQueue<>();
+            this.tablesToClose = new LinkedBlockingQueue<>();
             this.maxSize = maxSize;
             this.coreSize = coreSize;
             this.tableName = tableName;
