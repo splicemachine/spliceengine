@@ -23,11 +23,11 @@ public class BulkWriteResult implements Externalizable {
 
     public BulkWriteResult() {
         notRunRows = new IntArrayList();
-        failedRows = new IntObjectOpenHashMap<WriteResult>();
+        failedRows = new IntObjectOpenHashMap<>();
     }
 	public BulkWriteResult(WriteContext writeContext, WriteResult globalStatus) {
         notRunRows = new IntArrayList();
-        failedRows = new IntObjectOpenHashMap<WriteResult>();
+        failedRows = new IntObjectOpenHashMap<>();
         this.writeContext = writeContext;
         this.globalStatus = globalStatus;
     }
@@ -108,7 +108,7 @@ public class BulkWriteResult implements Externalizable {
 				}
 
 				int failedSize = in.readInt();
-				failedRows = new IntObjectOpenHashMap<WriteResult>(failedSize);
+				failedRows = new IntObjectOpenHashMap<>(failedSize);
 				for(int i=0;i<failedSize;i++){
 						int rowNum = in.readInt();
 						if(in.readBoolean()){

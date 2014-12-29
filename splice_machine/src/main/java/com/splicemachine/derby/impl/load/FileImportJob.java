@@ -78,12 +78,9 @@ public class FileImportJob extends ImportJob{
     private Pair<byte[],byte[]> getTaskBoundary(ImportContext ctx) throws IOException{
         byte[] tableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
 				List<HRegionInfo> regions;
-				HBaseAdmin admin = new HBaseAdmin(SpliceConstants.config);
-				try{
-						regions = admin.getTableRegions(tableBytes);
-				}finally{
-						admin.close();
-				}
+        try (HBaseAdmin admin = new HBaseAdmin(SpliceConstants.config)) {
+            regions = admin.getTableRegions(tableBytes);
+        }
 
 				HRegionInfo regionToSubmit = null;
 				if(regions!=null&&regions.size()>0) {

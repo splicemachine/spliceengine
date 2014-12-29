@@ -96,9 +96,9 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
     private Iterator<Result> runScan(LTable table, LGet get) {
         List<LTuple> tuples = relations.get(table.relationIdentifier);
         if (tuples == null) {
-            tuples = new ArrayList<LTuple>();
+            tuples = new ArrayList<>();
         }
-        List<LTuple> results = new ArrayList<LTuple>();
+        List<LTuple> results = new ArrayList<>();
         for (LTuple t : tuples) {
             if (get.startTupleKey == null || (Arrays.equals(t.key,(byte[])get.startTupleKey)) ||
                     ((Bytes.compareTo(t.key, get.startTupleKey) > 0) &&
@@ -187,7 +187,7 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
             final String relationIdentifier = table.relationIdentifier;
             List<LTuple> newTuples = relations.get(relationIdentifier);
             if (newTuples == null) {
-                newTuples = new ArrayList<LTuple>();
+                newTuples = new ArrayList<>();
             }
             for (LTuple t : puts) {
                 newTuples = writeSingle(t, newTuples);
@@ -378,7 +378,7 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
     @SuppressWarnings("unchecked")
 		public void compact(Transactor transactor, String tableName) throws IOException {
         final List<LTuple> rows = relations.get(tableName);
-        final List<LTuple> newRows = new ArrayList<LTuple>(rows.size());
+        final List<LTuple> newRows = new ArrayList<>(rows.size());
 //        final SICompactionState compactionState = new SICompactionState()
 //        for (LTuple row : rows) {
 //            final ArrayList<KeyValue> mutatedValues = Lists.newArrayList();

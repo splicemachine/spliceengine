@@ -34,7 +34,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
         protected byte[] rightResultSetUniqueSequenceID;
 
 		static {
-				nodeTypes = new ArrayList<NodeType>();
+				nodeTypes = new ArrayList<>();
 				nodeTypes.add(NodeType.MAP);
 				nodeTypes.add(NodeType.SCROLL);
 		}

@@ -46,9 +46,9 @@ public class WorkStealingTaskScheduler<T extends Task> implements StealableTaskS
 				this.pollTimeout = pollTimeoutMs;
 
 				if(taskComparator!=null)
-						this.pendingTasks = new PriorityBlockingQueue<T>(numThreads,taskComparator);
+						this.pendingTasks = new PriorityBlockingQueue<>(numThreads,taskComparator);
 				else
-						this.pendingTasks = new LinkedBlockingQueue<T>();
+						this.pendingTasks = new LinkedBlockingQueue<>();
 
 				ThreadFactory factory = new ThreadFactoryBuilder()
 								.setNameFormat(schedulerName+"-thread-%d")
@@ -71,7 +71,7 @@ public class WorkStealingTaskScheduler<T extends Task> implements StealableTaskS
 		@Override
 		public TaskFuture submit(T task) throws ExecutionException {
 				int waitTime = doSubmit(task);
-				return new ListeningTaskFuture<T>(task,waitTime);
+				return new ListeningTaskFuture<>(task,waitTime);
 		}
 
 		private int doSubmit(T task) {
@@ -106,7 +106,7 @@ public class WorkStealingTaskScheduler<T extends Task> implements StealableTaskS
 
 				updateSubmittedMetrics(task);
 				pendingTasks.offer(task);
-				return new ListeningTaskFuture<T>(task,0);
+				return new ListeningTaskFuture<>(task,0);
 		}
 
 		@Override
@@ -295,7 +295,7 @@ public class WorkStealingTaskScheduler<T extends Task> implements StealableTaskS
 						else
 								stats.pendingMaintenanceTasks.decrementAndGet();
 						try {
-								new TaskCallable<T>(next).call();
+								new TaskCallable<>(next).call();
 						}catch(InterruptedException ie){
 								interrupted(next, usedScheduler);
 						}catch (Throwable e) {

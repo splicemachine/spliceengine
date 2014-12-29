@@ -72,7 +72,7 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
     // Machinery for pulling up predicates (for hash-based joins)
 
     private JoinNode pullUpPreds(JoinNode j, AccessPath ap) throws StandardException {
-        List<Predicate> toPullUp = new LinkedList<Predicate>();
+        List<Predicate> toPullUp = new LinkedList<>();
 
         // Collect PRs, FBTs until a binary node (Union, Join) found, or end
         Iterable<ResultSetNode> rightsUntilBinary = Iterables.filter(
@@ -127,7 +127,7 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
 
     private List<? extends Predicate> pullPredsFromIndex(IndexToBaseRowNode rsn,
                                                          com.google.common.base.Predicate<Predicate> shouldPull) throws StandardException {
-        List<Predicate> pulled = new LinkedList<Predicate>();
+        List<Predicate> pulled = new LinkedList<>();
         if (rsn.restrictionList != null) {
             for (int i = rsn.restrictionList.size() - 1; i >= 0; i--) {
                 Predicate p = (Predicate)rsn.restrictionList.getOptPredicate(i);
@@ -148,7 +148,7 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
     public List<Predicate> pullPredsFromPR(ProjectRestrictNode pr,
                                            com.google.common.base.Predicate<Predicate> shouldPull)
             throws StandardException {
-        List<Predicate> pulled = new LinkedList<Predicate>();
+        List<Predicate> pulled = new LinkedList<>();
         if (pr.restrictionList != null) {
             for (int i = pr.restrictionList.size() - 1; i >= 0; i--) {
                 Predicate p = (Predicate)pr.restrictionList.getOptPredicate(i);
@@ -170,7 +170,7 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
                                               com.google.common.base.Predicate<Predicate> shouldPull,
                                               boolean shouldRemove)
             throws StandardException {
-        List<Predicate> pulled = new LinkedList<Predicate>();
+        List<Predicate> pulled = new LinkedList<>();
         PredicateList pl = new PredicateList();
         t.pullOptPredicates(pl);
         for (int i = 0, s = pl.size(); i < s; i++) {
@@ -200,7 +200,7 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
     public JoinNode rewriteNLJColumnRefs(JoinNode j) throws StandardException {
     	if (LOG.isDebugEnabled())
     		SpliceLogUtils.debug(LOG, "rewriteNLJColumnRefs joinNode=%s", j);
-        List<Predicate> joinPreds = new LinkedList<Predicate>();
+        List<Predicate> joinPreds = new LinkedList<>();
 
         // Collect PRs, FBTs until a binary node (Union, Join) found, or end
         Iterable<ResultSetNode> rightsUntilBinary = Iterables.filter(

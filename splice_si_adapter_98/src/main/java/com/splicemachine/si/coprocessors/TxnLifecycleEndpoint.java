@@ -45,7 +45,7 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
 		private TimestampSource timestampSource;
     private volatile boolean isTxnTable = false;
 
-    public static CountedReference<TransactionResolver> resolverRef = new CountedReference<TransactionResolver>(new Supplier<TransactionResolver>() {
+    public static CountedReference<TransactionResolver> resolverRef = new CountedReference<>(new Supplier<TransactionResolver>() {
         @Override
         public TransactionResolver get() {
             return new TransactionResolver(TransactionStorage.getTxnSupplier(),2,128);

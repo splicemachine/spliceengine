@@ -109,7 +109,7 @@ public class CompositeJobResults implements JobResults{
 
 				@Override
 				public List<TaskStats> getTaskStats() {
-						List<TaskStats> allTaskStats = new ArrayList<TaskStats>();
+						List<TaskStats> allTaskStats = new ArrayList<>();
 						for(JobStats stat:stats){
 								allTaskStats.addAll(stat.getTaskStats());
 						}

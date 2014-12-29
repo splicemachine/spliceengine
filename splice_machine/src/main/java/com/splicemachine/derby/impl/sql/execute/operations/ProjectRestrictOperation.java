@@ -139,7 +139,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 				}
 				cloneMap = ((boolean[])statement.getSavedObject(cloneMapItem));
 				if (this.constantRestrictionMethodName != null) {
-						SpliceMethod<DataValueDescriptor> constantRestriction = new SpliceMethod<DataValueDescriptor>(constantRestrictionMethodName,activation);
+						SpliceMethod<DataValueDescriptor> constantRestriction = new SpliceMethod<>(constantRestrictionMethodName,activation);
 						DataValueDescriptor restrictBoolean = constantRestriction.invoke();
 						shortCircuitOpen  = (restrictBoolean == null) || ((!restrictBoolean.isNull()) && restrictBoolean.getBoolean());
 
@@ -147,9 +147,9 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 
 				}
 				if (restrictionMethodName != null)
-						restriction = new SpliceMethod<DataValueDescriptor>(restrictionMethodName,activation);
+						restriction = new SpliceMethod<>(restrictionMethodName,activation);
 				if (projectionMethodName != null)
-						projection = new SpliceMethod<ExecRow>(projectionMethodName,activation);
+						projection = new SpliceMethod<>(projectionMethodName,activation);
 
                 List<XplainOperationChainInfo> operationChain = SpliceBaseOperation.operationChain.get();
 

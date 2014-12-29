@@ -26,7 +26,7 @@ public class DualHashHashTableTest {
             }
         };
         int size = 8;
-        DualHashHashTable<Integer> hashTable = new DualHashHashTable<Integer>(size,intHasher,intHasher);
+        DualHashHashTable<Integer> hashTable = new DualHashHashTable<>(size,intHasher,intHasher);
 
         List<Integer> correct = Lists.newArrayList();
         for(int i=0;i<size;i++){

@@ -27,14 +27,11 @@ public class ImportData {
 			Statement stmt = conn.createStatement();
 			stmt.execute(sqlStat);
 			
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (ClassNotFoundException e) {
+		} catch (SQLException | ClassNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-	}
+    }
 	
 	public void insertData(String filePath, String splitCha, String connStr)
 	{
@@ -68,17 +65,10 @@ public class ImportData {
 	            line = br.readLine();
 	        }
 			
-		} catch (SQLException e1) {
+		} catch (SQLException | ClassNotFoundException | IOException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		finally{
+		} finally{
 			if(br != null)
 				try {
 					br.close();

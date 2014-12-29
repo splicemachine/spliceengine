@@ -53,7 +53,7 @@ public class CallStatementOperation extends NoRowsOperation {
 		public CallStatementOperation(GeneratedMethod methodCall,Activation a) throws StandardException  {
 				super(a);
 				methodName = (methodCall!= null) ? methodCall.getMethodName() : null;
-				this.methodCall = new SpliceMethod<Object>(methodName,activation);
+				this.methodCall = new SpliceMethod<>(methodName,activation);
 				recordConstructorTime();
 		}
 
@@ -69,7 +69,7 @@ public class CallStatementOperation extends NoRowsOperation {
 		@Override
 		public void init(SpliceOperationContext context) throws StandardException, IOException {
 				super.init(context);
-				methodCall = new SpliceMethod<Object>(methodName,activation);
+				methodCall = new SpliceMethod<>(methodName,activation);
 		}
 
 		@Override

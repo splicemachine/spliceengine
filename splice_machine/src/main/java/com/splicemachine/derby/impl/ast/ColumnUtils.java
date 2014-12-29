@@ -24,7 +24,7 @@ public class ColumnUtils {
      */
     public static Map<Pair<Integer, Integer>, ResultColumn> rsnChainMap(ResultColumnList rcl)
             throws StandardException {
-        Map<Pair<Integer, Integer>, ResultColumn> chain = new HashMap<Pair<Integer, Integer>, ResultColumn>();
+        Map<Pair<Integer, Integer>, ResultColumn> chain = new HashMap<>();
         List<ResultColumn> cols = RSUtils.collectNodes(rcl, ResultColumn.class);
 
         for (ResultColumn rc : cols) {
@@ -45,7 +45,7 @@ public class ColumnUtils {
      */
     public static List<Pair<Integer, Integer>> rsnChain(ResultColumn rc)
             throws StandardException {
-        List<Pair<Integer, Integer>> chain = new ArrayList<Pair<Integer, Integer>>();
+        List<Pair<Integer, Integer>> chain = new ArrayList<>();
 
         ValueNode expression = rc.getExpression();
         while (expression != null) {

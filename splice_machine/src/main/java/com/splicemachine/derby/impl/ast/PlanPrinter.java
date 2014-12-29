@@ -38,7 +38,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
 
     public static final String spaces = "  ";
     private boolean explain = false;
-    public static ThreadLocal<HashMap<String, String[]>> planMap = new ThreadLocal<HashMap<String, String[]>>();
+    public static ThreadLocal<HashMap<String, String[]>> planMap = new ThreadLocal<>();
 
     // Only visit root node
 
@@ -67,7 +67,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
             String plan = treeToString(rsn);
             HashMap<String, String[]> m = planMap.get();
             if (m == null) {
-                m = new HashMap<String, String[]>();
+                m = new HashMap<>();
                 planMap.set(m);
             }
             m.put(query, plan.split("\n"));
@@ -94,7 +94,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
     }
 
     public static Map prune(Map m){
-        List<Object> toPrune = new LinkedList<Object>();
+        List<Object> toPrune = new LinkedList<>();
         for (Map.Entry e: (Set<Map.Entry<Object,Object>>)m.entrySet()){
             Object val = e.getValue();
             if (val == null ||
@@ -111,7 +111,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
 
     public static String infoToString(Map<String,Object> info)
             throws StandardException {
-        Map<String,Object> copy = new HashMap<String, Object>(info);
+        Map<String,Object> copy = new HashMap<>(info);
         Object clazz = copy.get("class");
         Object results = copy.get("results");
         int level = (Integer)copy.get("level");
@@ -144,7 +144,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
 
     public static Map<String,Object> nodeInfo(final ResultSetNode rsn, final int level)
             throws StandardException {
-        Map<String,Object> info = new HashMap<String, Object>();
+        Map<String,Object> info = new HashMap<>();
         CostEstimate co = rsn.getFinalCostEstimate().getBase();
         info.put("class", JoinInfo.className.apply(rsn));
         info.put("n", rsn.getResultSetNumber());
@@ -179,7 +179,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
             @Override
             public Map apply(SubqueryNode subq) {
                 try {
-                    HashMap<String, Object> subInfo = new HashMap<String, Object>();
+                    HashMap<String, Object> subInfo = new HashMap<>();
                     subInfo.put("node", nodeInfo(subq.getResultSet(), 1));
                     subInfo.put("expression?", subq.getSubqueryType() ==
                             SubqueryNode.EXPRESSION_SUBQUERY);
@@ -225,12 +225,12 @@ public class PlanPrinter extends AbstractSpliceVisitor {
     }
 
     public static List<Map<String, Object>> getResultColumnInfo(ResultSetNode rsn) throws StandardException {
-        List<Map<String, Object>> resultColumns = new ArrayList<Map<String, Object>>();
+        List<Map<String, Object>> resultColumns = new ArrayList<>();
         ResultColumnList resultColumnList = rsn.getResultColumns();
         if (resultColumnList != null && resultColumnList.size() > 0) {
             ResultColumn[] columns = resultColumnList.getColumnsAsArray();
             for (ResultColumn resultColumn : columns) {
-                Map<String, Object> columnInfo = new LinkedHashMap<String, Object>();
+                Map<String, Object> columnInfo = new LinkedHashMap<>();
                 if (resultColumn != null) {
                     columnInfo.put("column", resultColumn.getName());
                     columnInfo.put("position", resultColumn.getColumnPosition());
@@ -271,7 +271,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
     public static List<Map<String,Object>> linearizeNodeInfoTree(Map<String, Object> info)
             throws StandardException {
         List<Map<String,Object>> children = (List<Map<String,Object>>)info.get("children");
-        List<Map<String,Object>> nodes = new LinkedList<Map<String, Object>>();
+        List<Map<String,Object>> nodes = new LinkedList<>();
         nodes.add(info);
         for (Map<String,Object> child : Lists.reverse(children)) {
             nodes.addAll(linearizeNodeInfoTree(child));
@@ -281,14 +281,14 @@ public class PlanPrinter extends AbstractSpliceVisitor {
 
     public static String treeToString(Map<String,Object> nodeInfo)
             throws StandardException {
-        List<Pair<Integer,Map>> subs = new LinkedList<Pair<Integer, Map>>();
+        List<Pair<Integer,Map>> subs = new LinkedList<>();
         StringBuilder sb = new StringBuilder();
         List<Map<String,Object>> nodes = linearizeNodeInfoTree(nodeInfo);
         for (Map<String,Object> node: nodes){
             List<Map> subqs = (List<Map>)node.get("subqueries");
             if (subqs != null){
                 for (Map subInfo: subqs){
-                    subs.add(new Pair<Integer,Map>((Integer)node.get("n"), subInfo));
+                    subs.add(new Pair<>((Integer)node.get("n"), subInfo));
                 }
             }
             sb.append(infoToString(node));

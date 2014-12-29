@@ -26,9 +26,9 @@ public class UnsafeCallBuffer<E> implements CallBuffer<E>{
         this.bufferConfiguration = bufferConfiguration;
 
         if(bufferConfiguration.getMaxEntries()>0)
-            buffer = new ObjectArrayList<E>(bufferConfiguration.getMaxEntries());
+            buffer = new ObjectArrayList<>(bufferConfiguration.getMaxEntries());
         else
-            buffer = new ObjectArrayList<E>();
+            buffer = new ObjectArrayList<>();
     }
 
     @Override

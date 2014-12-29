@@ -19,8 +19,8 @@ public class JobMetrics implements JobSchedulerManagement{
     final AtomicLong totalCancelledJobs = new AtomicLong(0l);
     final AtomicInteger numRunningJobs = new AtomicInteger(0);
 
-    private Map<String, String> jobSQLMap = new ConcurrentHashMap<String, String>();
-    private Map<String, Pair<String,String>> taskJobStatusMap = new ConcurrentHashMap<String, Pair<String,String>>();
+    private Map<String, String> jobSQLMap = new ConcurrentHashMap<>();
+    private Map<String, Pair<String,String>> taskJobStatusMap = new ConcurrentHashMap<>();
 
     void jobFinished(Status finalState){
         numRunningJobs.decrementAndGet();

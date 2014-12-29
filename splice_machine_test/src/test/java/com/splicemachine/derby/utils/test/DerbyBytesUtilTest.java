@@ -137,7 +137,7 @@ public class DerbyBytesUtilTest {
 
 	public DataValueDescriptor[] generateDataValueDescriptors(Object... objects)
 			throws StandardException {
-		List<DataValueDescriptor> descriptors = new ArrayList<DataValueDescriptor>();
+		List<DataValueDescriptor> descriptors = new ArrayList<>();
 		for (Object object : objects)
 			descriptors.add(generateDataValueDescriptor(object));
 		return descriptors.toArray(new DataValueDescriptor[descriptors.size()]);

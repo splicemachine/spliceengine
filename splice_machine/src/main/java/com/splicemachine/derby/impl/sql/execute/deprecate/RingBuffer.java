@@ -21,7 +21,7 @@ public class RingBuffer<T extends ExecRow> implements Iterable<T>{
 	private int pos;
 	
 	public RingBuffer(int size){
-		elements = new ArrayList<T>(size);
+		elements = new ArrayList<>(size);
 		this.maxSize = size;
 		this.pos = 0;
 	}

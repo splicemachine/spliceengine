@@ -28,7 +28,7 @@ public class MergeJoinRows implements IJoinRowsIterator<ExecRow> {
     final StandardIterator<ExecRow> leftRS;
     final StandardPushBackIterator<ExecRow> rightRS;
     final int[] joinKeys;
-    List<ExecRow> currentRights = new LinkedList<ExecRow>();
+    List<ExecRow> currentRights = new LinkedList<>();
     Pair<ExecRow, Iterator<ExecRow>> pair;
     private int leftRowsSeen;
     private int rightRowsSeen;
@@ -47,7 +47,7 @@ public class MergeJoinRows implements IJoinRowsIterator<ExecRow> {
                          StandardIterator<ExecRow> rightRS,
                          int[] leftKeys, int[] rightKeys) {
         this.leftRS = leftRS;
-        this.rightRS = new StandardPushBackIterator<ExecRow>(rightRS);
+        this.rightRS = new StandardPushBackIterator<>(rightRS);
 
         assert(leftKeys.length == rightKeys.length);
         joinKeys = new int[leftKeys.length * 2];
@@ -57,7 +57,7 @@ public class MergeJoinRows implements IJoinRowsIterator<ExecRow> {
             joinKeys[i * 2] = leftKeys[i] + 1;
             joinKeys[i * 2 + 1] = rightKeys[i] + 1;
         }
-        pair = new Pair<ExecRow, Iterator<ExecRow>>();
+        pair = new Pair<>();
     }
 
     private int compare(ExecRow left, ExecRow right) throws StandardException {
@@ -80,7 +80,7 @@ public class MergeJoinRows implements IJoinRowsIterator<ExecRow> {
             return currentRights.iterator();
         }
         // If not, look for the ones that do
-        currentRights = new LinkedList<ExecRow>();
+        currentRights = new LinkedList<>();
         ExecRow right;
         while ((right = rightRS.next(null)) != null){
             rightRowsSeen++;

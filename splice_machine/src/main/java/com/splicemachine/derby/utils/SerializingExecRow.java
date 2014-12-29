@@ -69,8 +69,8 @@ public class SerializingExecRow implements ExecRow, Externalizable  {
 		 *      <jdbc type of the descriptor>
 		 */
 		DataValueDescriptor[] dvds = getRowArray();
-		Map<DataValueDescriptor,Integer> nonNullEntries = new HashMap<DataValueDescriptor,Integer>(dvds.length);
-        Map<Integer,DataValueDescriptor> nullEntries = new HashMap<Integer,DataValueDescriptor>(dvds.length);
+		Map<DataValueDescriptor,Integer> nonNullEntries = new HashMap<>(dvds.length);
+        Map<Integer,DataValueDescriptor> nullEntries = new HashMap<>(dvds.length);
 		for(int pos=0;pos<dvds.length;pos++){
 			DataValueDescriptor dvd = dvds[pos];
 			if(dvd!=null&&!dvd.isNull()){

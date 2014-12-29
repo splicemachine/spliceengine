@@ -83,14 +83,14 @@ public class OperationUtils {
     }
 
 	public static List<SpliceOperation> getOperationStack(SpliceOperation op){
-		List<SpliceOperation> ops = new LinkedList<SpliceOperation>();
+		List<SpliceOperation> ops = new LinkedList<>();
 		generateLeftOperationStack(op,ops);
 		return ops;
 	}
 
 		public static NoPutResultSet executeScan(SpliceOperation operation,Logger log,Txn txn) throws StandardException {
 				SpliceLogUtils.trace(log,"executeScan");
-				final List<SpliceOperation> operationStack = new ArrayList<SpliceOperation>();
+				final List<SpliceOperation> operationStack = new ArrayList<>();
 				operation.generateLeftOperationStack(operationStack);
 				SpliceLogUtils.trace(log, "operationStack=%s",operationStack);
 				SpliceOperation regionOperation = operationStack.get(0);

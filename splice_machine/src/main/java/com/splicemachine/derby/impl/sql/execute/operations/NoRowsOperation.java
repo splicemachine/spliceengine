@@ -77,7 +77,7 @@ public abstract class NoRowsOperation extends SpliceBaseOperation {
 
 	@Override
 	public List<SpliceOperation> getSubOperations() {
-		return new ArrayList<SpliceOperation>(0);
+		return new ArrayList<>(0);
 	}
 	
 	public final Activation getActivation() {

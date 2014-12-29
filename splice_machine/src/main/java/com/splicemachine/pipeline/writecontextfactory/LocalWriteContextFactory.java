@@ -71,9 +71,9 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
     private static final int writeBatchSize = Integer.MAX_VALUE;
 
     private final long congomId;
-    private final List<LocalWriteFactory> indexFactories = new CopyOnWriteArrayList<LocalWriteFactory>();
-    private final Set<ConstraintFactory> constraintFactories = new CopyOnWriteArraySet<ConstraintFactory>();
-    private final Set<DropColumnFactory> dropColumnFactories = new CopyOnWriteArraySet<DropColumnFactory>();
+    private final List<LocalWriteFactory> indexFactories = new CopyOnWriteArrayList<>();
+    private final Set<ConstraintFactory> constraintFactories = new CopyOnWriteArraySet<>();
+    private final Set<DropColumnFactory> dropColumnFactories = new CopyOnWriteArraySet<>();
 
     private final ReentrantLock initializationLock = new ReentrantLock();
     /*
@@ -82,7 +82,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
      */
     private final ResettableCountDownLatch tableWriteLatch = new ResettableCountDownLatch(1);
 
-    protected final AtomicReference<State> state = new AtomicReference<State>(State.WAITING_TO_START);
+    protected final AtomicReference<State> state = new AtomicReference<>(State.WAITING_TO_START);
 
     public void prepare(){
         state.compareAndSet(State.WAITING_TO_START, State.READY_TO_START);
@@ -356,13 +356,10 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
                         "off so that other writes can try again",e);
                 state.set(State.READY_TO_START);
                 throw new IndexNotSetUpException(e);
-            } catch (StandardException e) {
+            } catch (StandardException | IOException e) {
                 SpliceLogUtils.error(LOG,"Unable to set up index management for table "+ congomId+", aborting",e);
                 state.set(State.FAILED_SETUP);
-            }catch(IOException ioe){
-                SpliceLogUtils.error(LOG,"Unable to set up index management for table "+ congomId+", aborting",ioe);
-                state.set(State.FAILED_SETUP);
-            }finally{
+            } finally{
                 initializationLock.unlock();
 
                 transactionResource.resetContextManager();

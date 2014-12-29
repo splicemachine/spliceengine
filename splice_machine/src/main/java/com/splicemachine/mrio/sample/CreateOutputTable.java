@@ -15,14 +15,11 @@ public class CreateOutputTable {
 			Statement stmt = conn.createStatement();
 			stmt.execute(sqlStat);
 			
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (ClassNotFoundException e) {
+		} catch (SQLException | ClassNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-	}
+    }
 	
 	public static void main(String[] args) throws Exception {
 		

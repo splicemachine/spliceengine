@@ -62,7 +62,7 @@ public class MonitoredThreadPool implements ThreadPoolStatus {
 
     public <V> ListenableFuture<V> submit(Callable<V> task){
         numPendingTasks.incrementAndGet();
-        return this.listeningService.submit(new WatchingCallable<V>(task));
+        return this.listeningService.submit(new WatchingCallable<>(task));
     }
 
     @Override public int getPendingTaskCount() { return numPendingTasks.get(); }

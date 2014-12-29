@@ -42,13 +42,13 @@ public class XPlainTrace {
 
 
     protected XPlainTrace() {
-        xPlainTreeNodeMap = new HashMap<Long, XPlainTreeNode>(10);
+        xPlainTreeNodeMap = new HashMap<>(10);
         sequenceId = 0;
     }
 
     public XPlainTrace(long sId, int mode, String format) throws SQLException {
         this.statementId = sId;
-        xPlainTreeNodeMap = new HashMap<Long, XPlainTreeNode>(10);
+        xPlainTreeNodeMap = new HashMap<>(10);
         sequenceId = 0;
         connection = SpliceXplainUtils.getDefaultConn();
         this.mode = mode;
@@ -170,7 +170,7 @@ public class XPlainTrace {
                 if (children.size() == 0) {
                     continue;
                 }
-                HashMap<String, XPlainTreeNode> regionScanMap = new HashMap<String, XPlainTreeNode>();
+                HashMap<String, XPlainTreeNode> regionScanMap = new HashMap<>();
 
                 while (children.size() > 0) {
                     XPlainTreeNode first = children.removeFirst();
@@ -211,9 +211,8 @@ public class XPlainTrace {
     }
 
     private void populateMetrics() throws SQLException, IllegalAccessException{
-        ResultSet rs = getTaskHistory();
-        try{
-            HashMap<String, XPlainTreeNode> regionMap = new HashMap<String, XPlainTreeNode>();
+        try (ResultSet rs = getTaskHistory()) {
+            HashMap<String, XPlainTreeNode> regionMap = new HashMap<>();
             while (rs.next()) {
                 int index = rs.findColumn("OPERATIONID");
                 Long operationId = rs.getLong(index);
@@ -231,8 +230,6 @@ public class XPlainTrace {
                     node.setAttributes(rs);
                 }
             }
-        }finally{
-            rs.close();
         }
     }
 
@@ -287,8 +284,7 @@ public class XPlainTrace {
     private boolean populateTreeNodeMap() throws SQLException {
         System.out.println(statementId);
         int count = 0;
-        ResultSet rs = getOperationHistory();
-        try{
+        try (ResultSet rs = getOperationHistory()) {
             while (rs.next()) {
                 count++;
                 Long operationId = rs.getLong(1);
@@ -299,8 +295,6 @@ public class XPlainTrace {
                 node.setInfo(rs.getString(5));
                 xPlainTreeNodeMap.put(operationId, node);
             }
-        }finally{
-            rs.close();
         }
         return count != 0;
     }

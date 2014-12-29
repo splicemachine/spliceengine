@@ -60,9 +60,9 @@ public class RepeatedPredicateVisitor extends AbstractSpliceVisitor {
      */
     private Map<ValueNode,Integer> nodesWithMultipleOccurrences(ValueNode pred) throws StandardException {
 
-        Map<ValueNode, Integer> m = new HashMap<ValueNode,Integer>();
+        Map<ValueNode, Integer> m = new HashMap<>();
 
-        List<ValueNode> binNodes = new LinkedList<ValueNode>();
+        List<ValueNode> binNodes = new LinkedList<>();
         binNodes.addAll(RSUtils.collectNodes(pred, BinaryRelationalOperatorNode.class));
         binNodes.addAll(RSUtils.collectNodes(pred, BinaryListOperatorNode.class));
 

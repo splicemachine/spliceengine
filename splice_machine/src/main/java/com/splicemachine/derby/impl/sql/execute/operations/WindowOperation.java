@@ -359,7 +359,7 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
 
         PartitionAwareIterator<ExecRow> iterator =
             StandardIterators.wrap(step2Scanner, rowDecoder, windowContext.getPartitionColumns(), templateRow.getRowArray());
-        PartitionAwarePushBackIterator<ExecRow> frameSource = new PartitionAwarePushBackIterator<ExecRow>(iterator);
+        PartitionAwarePushBackIterator<ExecRow> frameSource = new PartitionAwarePushBackIterator<>(iterator);
 
         // test the frame source
         if (! frameSource.test(spliceRuntimeContext)) {
@@ -522,7 +522,7 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
     @Override
     public List<SpliceOperation> getSubOperations() {
         SpliceLogUtils.trace(LOG, "getSubOperations");
-        List<SpliceOperation> operations = new ArrayList<SpliceOperation>();
+        List<SpliceOperation> operations = new ArrayList<>();
         operations.add(source);
         return operations;
     }

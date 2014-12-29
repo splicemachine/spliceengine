@@ -30,7 +30,7 @@ public class AndPredicate implements Predicate{
     }
 
     public AndPredicate(ObjectArrayList<Predicate> ands) {
-        this.ands = new ObjectArrayList<Predicate>(ands);
+        this.ands = new ObjectArrayList<>(ands);
     }
 
     @Override

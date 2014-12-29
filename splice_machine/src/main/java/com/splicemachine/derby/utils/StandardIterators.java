@@ -37,11 +37,11 @@ public class StandardIterators {
     }
 
     public static <T> StandardIterator<T> wrap(Iterable<T> data) {
-        return new IteratorStandardIterator<T>(data.iterator());
+        return new IteratorStandardIterator<>(data.iterator());
     }
 
     public static <T> IOStandardIterator<T> noIO(Iterable<T> data) {
-        return new IteratorStandardIterator<T>(data.iterator());
+        return new IteratorStandardIterator<>(data.iterator());
     }
 
     public static StandardIterator<ExecRow> wrap(SpliceOperation op) {
@@ -59,11 +59,11 @@ public class StandardIterators {
         return new SpliceResultScannerPartitionAwareIterator(resultScanner, decoder, partitionKeyColumns, dvds);
     }
     public static <T> StandardIterator<T> wrap(Callable<T> callable) {
-        return new CallableStandardIterator<T>(callable);
+        return new CallableStandardIterator<>(callable);
     }
 
     public static <T> StandardIterator<T> wrap(Callable<T> callable, StandardCloseable c) {
-        return new CallableStandardIterator<T>(callable, c);
+        return new CallableStandardIterator<>(callable, c);
     }
 
     public static IOStandardIterator<ExecRow> ioIterator(SpliceNoPutResultSet resultSet) {
@@ -283,10 +283,8 @@ public class StandardIterators {
                 IOException {
             try {
                 return callable.call();
-            } catch (StandardException se) {
+            } catch (StandardException | IOException se) {
                 throw se;
-            } catch (IOException ioe) {
-                throw ioe;
             } catch (Exception e) {
                 throw Exceptions.parseException(e);
             }

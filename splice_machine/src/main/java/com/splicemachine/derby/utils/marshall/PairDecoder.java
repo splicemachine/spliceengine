@@ -44,14 +44,11 @@ public class PairDecoder<Data> {
 						dataLib.getDataValuelength(data));
 				rowDecoder.decode(templateRow);
 				return templateRow;
-			} catch (StandardException se) {
+			} catch (StandardException | KryoException se) {
 				System.out.println("template Row " + templateRow);
 				throw se;
-			} catch (KryoException ke) {
-				System.out.println("template Row " + templateRow);
-				throw ke;
 			}
-		}
+        }
 
 		public ExecRow decode(KVPair kvPair) throws StandardException{
 				templateRow.resetRowArray();

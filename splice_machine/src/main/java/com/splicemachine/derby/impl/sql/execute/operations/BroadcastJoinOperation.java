@@ -54,7 +54,7 @@ public class BroadcastJoinOperation extends JoinOperation {
 
 
     static {
-        nodeTypes = new ArrayList<NodeType>();
+        nodeTypes = new ArrayList<>();
         nodeTypes.add(NodeType.MAP);
         nodeTypes.add(NodeType.SCROLL);
         broadcastJoinCache = CacheBuilder.newBuilder()
@@ -154,7 +154,7 @@ public class BroadcastJoinOperation extends JoinOperation {
         if (rhsFuture == null)
             submitRightHandSideLookup(ctx);
         StandardPushBackIterator<ExecRow> leftRows =
-            new StandardPushBackIterator<ExecRow>(StandardIterators.wrap(new Callable<ExecRow>() {
+            new StandardPushBackIterator<>(StandardIterators.wrap(new Callable<ExecRow>() {
                 @Override
                 public ExecRow call() throws Exception {
                     ExecRow row = leftResultSet.nextRow(ctx);
@@ -302,7 +302,7 @@ public class BroadcastJoinOperation extends JoinOperation {
                 throws StandardException, IOException {
             ByteBuffer hashKey;
             List<ExecRow> rows;
-            Map<ByteBuffer, List<ExecRow>> cache = new HashMap<ByteBuffer, List<ExecRow>>();
+            Map<ByteBuffer, List<ExecRow>> cache = new HashMap<>();
 
             if(runtimeContext.shouldRecordTraceMetrics()) {
                 activation.getLanguageConnectionContext().setStatisticsTiming(true);

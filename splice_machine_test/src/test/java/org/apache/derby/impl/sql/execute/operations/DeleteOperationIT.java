@@ -188,7 +188,7 @@ public class DeleteOperationIT extends SpliceUnitTest {
     }
 
     private void doTestDeleteOverJoin(String hint, SpliceTableWatcher customerTable) throws Exception {
-    	StringBuffer sb = new StringBuffer(200);
+    	StringBuilder sb = new StringBuilder(200);
     	sb.append("delete from %s %s \n");
     	sb.append("where not exists ( \n");
 		sb.append("  select 1 \n");

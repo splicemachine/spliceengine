@@ -91,7 +91,7 @@ public class RowLocationColumnVisitor extends AbstractSpliceVisitor {
 		
 		ResultSetNode currentNode = prnUpper;
 		List<ResultSetNode> children = null;
-		List<ResultSetNode> pathToLeaf = new ArrayList<ResultSetNode>();
+		List<ResultSetNode> pathToLeaf = new ArrayList<>();
 		while (true) {
 			children = RSUtils.getChildren(currentNode); // only returns RSN children
 			int size = children.size();

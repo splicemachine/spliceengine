@@ -41,10 +41,10 @@ public class SpliceInputFormat extends InputFormat<ImmutableBytesWritable, ExecR
 	private Configuration conf = null;
 	private final Log LOG = LogFactory.getLog(TableInputFormat.class);
     private  static SpliceInputFormat inputFormat = null;
-	private  HashMap<List, List> tableStructure = new HashMap<List, List>();
+	private  HashMap<List, List> tableStructure = new HashMap<>();
     private  SQLUtil sqlUtil = null;
-    private  ArrayList<String> colNames = new ArrayList<String>();
-    private  ArrayList<Integer>colTypes = new ArrayList<Integer>();
+    private  ArrayList<String> colNames = new ArrayList<>();
+    private  ArrayList<Integer>colTypes = new ArrayList<>();
 
     private  String tableID = null;
     private  String tableName = null;

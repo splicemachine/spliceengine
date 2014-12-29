@@ -135,7 +135,7 @@ public class InsertOperationIT extends SpliceUnitTest {
 				List<String> correctNames = Arrays.asList("ab","de","fg");
 				Collections.sort(correctNames);
 				ResultSet rs = methodWatcher.executeQuery("select * from "+sameLengthTable);
-				List<String> names = new ArrayList<String>();
+				List<String> names = new ArrayList<>();
 				while(rs.next()){
 						names.add(rs.getString(1));
 				}
@@ -150,7 +150,7 @@ public class InsertOperationIT extends SpliceUnitTest {
 				List<String> correctNames = Arrays.asList("gdavis","mzweben","rreimer");
 				Collections.sort(correctNames);
 				ResultSet rs = methodWatcher.executeQuery("select * from"+this.getPaddedTableReference("T"));
-				List<String> names = new ArrayList<String>();
+				List<String> names = new ArrayList<>();
 				while(rs.next()){
 						names.add(rs.getString(1));
 				}
@@ -185,7 +185,7 @@ public class InsertOperationIT extends SpliceUnitTest {
 				s.execute("insert into"+this.getPaddedTableReference("B")+"(name) select name from"+this.getPaddedTableReference("G"));
 				methodWatcher.commit();
 				ResultSet rs = methodWatcher.executeQuery("select * from"+this.getPaddedTableReference("B"));
-				List<String> names = new ArrayList<String>();
+				List<String> names = new ArrayList<>();
 				while(rs.next()){
 						LOG.info("name="+rs.getString(1));
 						names.add(rs.getString(1));

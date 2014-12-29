@@ -100,18 +100,12 @@ public class SpliceTableOutputFormatIT {
 			initParentTxn();
 			outputFormat.setConf(conf);
 			
-		} catch (InstantiationException e) {
+		} catch (InstantiationException | ClassNotFoundException | IllegalAccessException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} catch (IllegalAccessException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} 
-		
-	}
+		}
+
+    }
 	
 	@Test
 	public void testTableRecordReaderScanner() throws IOException, InterruptedException, StandardException, SQLException, InstantiationException, IllegalAccessException, ClassNotFoundException{

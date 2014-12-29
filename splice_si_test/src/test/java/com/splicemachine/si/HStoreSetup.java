@@ -69,7 +69,7 @@ public class HStoreSetup implements StoreSetup {
         }
     }
 
-    public static Map<String, HRegion> regionMap = new HashMap<String, HRegion>();
+    public static Map<String, HRegion> regionMap = new HashMap<>();
 
     private TestHTableSource setupHTableSource(int basePort, boolean usePacked) {
         try {

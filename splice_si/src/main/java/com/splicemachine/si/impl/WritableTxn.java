@@ -28,7 +28,7 @@ public class WritableTxn extends AbstractTxn {
 		private TxnLifecycleManager tc;
 		private boolean isAdditive;
 		private volatile State state = State.ACTIVE;
-		private Set<byte[]> tableWrites = new CopyOnWriteArraySet<byte[]>();
+		private Set<byte[]> tableWrites = new CopyOnWriteArraySet<>();
 
 		public WritableTxn() {
 			

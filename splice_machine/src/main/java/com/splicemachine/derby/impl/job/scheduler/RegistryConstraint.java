@@ -16,7 +16,7 @@ public abstract class RegistryConstraint<T extends Task> implements ConstrainedT
 		protected final ConcurrentSkipListSet<T> checkedTasks;
 
 		protected RegistryConstraint(Comparator<T> sortOrder) {
-				this.checkedTasks = new ConcurrentSkipListSet<T>(sortOrder);
+				this.checkedTasks = new ConcurrentSkipListSet<>(sortOrder);
 		}
 
 		@Override

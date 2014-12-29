@@ -43,7 +43,7 @@ public class SpliceUtilities extends SIConstants {
 		try {
 			admin = getAdmin();
 			try {
-				servers = new ArrayList<ServerName>(admin.getClusterStatus()
+				servers = new ArrayList<>(admin.getClusterStatus()
 						.getServers());
 			} catch (IOException e) {
 				throw new SQLException(e);

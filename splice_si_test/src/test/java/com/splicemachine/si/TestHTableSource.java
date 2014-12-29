@@ -18,7 +18,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class TestHTableSource implements HTableSource {
-		private Map<String, HTable> hTables = new HashMap<String, HTable>();
+		private Map<String, HTable> hTables = new HashMap<>();
 
 		private final HBaseTestingUtility testCluster;
 		private final String[] families;

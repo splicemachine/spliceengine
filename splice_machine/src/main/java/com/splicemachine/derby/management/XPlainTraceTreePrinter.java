@@ -43,8 +43,8 @@ public class XPlainTraceTreePrinter extends XPlainTraceBasePrinter{
         this.connection = connection;
         this.dataTemplate = new ValueRow(1);
         this.dataTemplate.setRowArray(new DataValueDescriptor[]{new SQLClob()});
-        this.rows = new ArrayList<ExecRow>(20);
-        this.trunks = new TreeMap<Integer, Integer>();
+        this.rows = new ArrayList<>(20);
+        this.trunks = new TreeMap<>();
         this.topOperation = topOperation;
         this.legend = new XPlainTraceLegend();
     }
@@ -132,7 +132,7 @@ public class XPlainTraceTreePrinter extends XPlainTraceBasePrinter{
 
         if (operation.getChildren().size() == 2) {
             int rightChild = operation.getChildren().getLast().getSequenceId();
-            trunks.put(new Integer(level+1), rightChild);
+            trunks.put(level + 1, rightChild);
         }
 
         for (XPlainTreeNode child:operation.getChildren()) {

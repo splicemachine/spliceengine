@@ -59,7 +59,7 @@ public class SpliceMasterObserverRestoreAction {
                 }
 
             });
-            List<HRegionInfo> regions = new ArrayList<HRegionInfo>();
+            List<HRegionInfo> regions = new ArrayList<>();
             for (FileStatus regionDir : regionDirectories) {
                 if (LOG.isInfoEnabled())
                     SpliceLogUtils.info(LOG, "Restoring region" + regionDir.getPath().toString());

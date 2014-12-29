@@ -228,7 +228,7 @@ public class IndexUpsertWriteHandlerTest {
 
 
         BufferConfiguration bufferConfiguration = getConstantBufferConfiguration();
-        CallBuffer<KVPair> writingBuffer = new UnsafeCallBuffer<KVPair>(bufferConfiguration,new CallBuffer.Listener<KVPair>() {
+        CallBuffer<KVPair> writingBuffer = new UnsafeCallBuffer<>(bufferConfiguration,new CallBuffer.Listener<KVPair>() {
             @Override
             public long heapSize(KVPair element) {
                 return element.getSize();

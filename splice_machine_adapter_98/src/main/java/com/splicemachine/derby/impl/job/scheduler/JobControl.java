@@ -53,7 +53,7 @@ public class JobControl extends BaseJobControl {
 		            @Override
 		            public TaskFutureContext[] call(byte[] startKey, byte[] stopKey, SpliceMessage.SpliceSchedulerService instance) throws IOException {
 		                SpliceMessage.SpliceSchedulerRequest request = encodeTask(startKey, stopKey, task,tryCount);
-													BlockingRpcCallback<SpliceMessage.SchedulerResponse> rpcCallback = new BlockingRpcCallback<SpliceMessage.SchedulerResponse>();
+													BlockingRpcCallback<SpliceMessage.SchedulerResponse> rpcCallback = new BlockingRpcCallback<>();
 													SpliceRpcController controller = new SpliceRpcController();
 													instance.submit(controller,request,rpcCallback);
 		

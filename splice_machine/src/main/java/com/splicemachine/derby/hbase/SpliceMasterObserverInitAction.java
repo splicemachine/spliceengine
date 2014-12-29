@@ -27,7 +27,7 @@ import java.util.concurrent.atomic.AtomicReference;
 class SpliceMasterObserverInitAction {
 
     private static final Logger LOG = Logger.getLogger(SpliceMasterObserver.class);
-    private static final AtomicReference<State> state = new AtomicReference<State>();
+    private static final AtomicReference<State> state = new AtomicReference<>();
 
     private volatile Future<Void> createFuture;
     private ExecutorService executor;
@@ -51,11 +51,9 @@ class SpliceMasterObserverInitAction {
             evaluateState();
             createSplice();
             throw new PleaseHoldException("pre create succeeded");
-        } catch (PleaseHoldException phe) {
+        } catch (PleaseHoldException | DoNotRetryIOException phe) {
             // Expected when state != RUNNING, catch at this level to avoid logging full stack trace.
             throw phe;
-        } catch (DoNotRetryIOException dnr) {
-            throw dnr;
         } catch (Exception e) {
             SpliceLogUtils.logAndThrow(LOG, "preCreateTable Error", Exceptions.getIOException(e));
         }

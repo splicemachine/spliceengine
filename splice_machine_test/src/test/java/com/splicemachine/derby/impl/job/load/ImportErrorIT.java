@@ -317,9 +317,6 @@ public class ImportErrorIT extends SpliceUnitTest {
             ps.setString(2,table);
             ps.setNull(3, Types.VARCHAR);
             ps.setString(4,location);
-        } catch (SQLException e) {
-            e.printStackTrace();
-            Assert.fail("Incorrect setup for prepared statement");
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail("Incorrect setup for prepared statement");

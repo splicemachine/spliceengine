@@ -146,14 +146,8 @@ public class ConglomerateUtils extends SpliceConstants {
             setMethod = bin.getClass().getDeclaredMethod("setBlockDataMode",boolean.class);
             setMethod.setAccessible(true);
             setMethod.invoke(bin,false);
-        } catch (InvocationTargetException e) {
+        } catch (InvocationTargetException | NoSuchFieldException | IllegalAccessException | NoSuchMethodException e) {
             throw new IOException(e); //shouldn't happen, because nothing goofy is going on
-        } catch (NoSuchMethodException e) {
-            throw new IOException(e); //shouldn't happen, since we are messing with java.io classes
-        } catch (IllegalAccessException e) {
-            throw new IOException(e); //shouldn't happen, since we are messing with java.io classes
-        } catch (NoSuchFieldException e) {
-            throw new IOException(e); //shouldn't happen, since we are messing with java.io classes
         } finally{
             if(binField!=null)
                 binField.setAccessible(false);

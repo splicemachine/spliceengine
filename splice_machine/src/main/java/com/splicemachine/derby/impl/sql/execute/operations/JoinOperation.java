@@ -153,7 +153,7 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 		@Override
 		public List<SpliceOperation> getSubOperations() {
 				SpliceLogUtils.trace(LOG, "getSubOperations");
-				List<SpliceOperation> operations = new ArrayList<SpliceOperation>();
+				List<SpliceOperation> operations = new ArrayList<>();
 				operations.add(leftResultSet);
 				operations.add(rightResultSet);
 				return operations;

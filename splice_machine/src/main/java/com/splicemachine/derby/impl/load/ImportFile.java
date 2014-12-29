@@ -125,7 +125,7 @@ class ImportFile {
 		 */
 		private static ArrayList<Path> getInputPaths(String input) {
 				String [] list = StringUtils.split(input);
-				ArrayList<Path> result = new ArrayList<Path>();
+				ArrayList<Path> result = new ArrayList<>();
 				for (String aList : list) {
 						result.add(new Path(StringUtils.unEscapeString(aList)));
 				}
@@ -153,7 +153,7 @@ class ImportFile {
 
 				// creates a MultiPathFilter with the hiddenFileFilter and the
 				// user provided one (if any).
-				List<PathFilter> filters = new ArrayList<PathFilter>();
+				List<PathFilter> filters = new ArrayList<>();
 				filters.add(hiddenFileFilter);
 				PathFilter inputFilter = new MultiPathFilter(filters);
 				

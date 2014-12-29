@@ -31,7 +31,7 @@ public class AsyncTableWritingMetricsReporter implements RuntimeMetricsReporter{
 				this.writerThreads = new ThreadPoolExecutor(reporterThreads,
 								reporterThreads,60l, TimeUnit.SECONDS,new LinkedBlockingQueue<Runnable>(),factory);
 				this.destinationTable = destinationTable;
-				this.statsQueue = new LinkedBlockingDeque<OperationRuntimeStats>();
+				this.statsQueue = new LinkedBlockingDeque<>();
 		}
 
 		@Override

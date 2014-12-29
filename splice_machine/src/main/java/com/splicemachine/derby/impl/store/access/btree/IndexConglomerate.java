@@ -114,7 +114,7 @@ public class IndexConglomerate extends SpliceConglomerate {
     	} 
     	
         // Check input arguments
-        allowDuplicates = (Boolean.valueOf(properties.getProperty(PROPERTY_ALLOWDUPLICATES, "false"))).booleanValue();
+        allowDuplicates = Boolean.valueOf(properties.getProperty(PROPERTY_ALLOWDUPLICATES, "false"));
 
         property_value = properties.getProperty(PROPERTY_NKEYFIELDS);
         if (property_value == null)
@@ -134,8 +134,8 @@ public class IndexConglomerate extends SpliceConglomerate {
         }
 
         property_value = properties.getProperty(PROPERTY_UNIQUE_WITH_DUPLICATE_NULLS, "false");
-        uniqueWithDuplicateNulls = new Boolean (property_value).booleanValue();
-        maintainParentLinks = (Boolean.valueOf(properties.getProperty(PROPERTY_PARENTLINKS, "true"))).booleanValue();
+        uniqueWithDuplicateNulls = new Boolean(property_value);
+        maintainParentLinks = Boolean.valueOf(properties.getProperty(PROPERTY_PARENTLINKS, "true"));
 
         if (SanityManager.DEBUG) {
             SanityManager.ASSERT((nUniqueColumns == nKeyFields) || (nUniqueColumns == (nKeyFields - 1)));

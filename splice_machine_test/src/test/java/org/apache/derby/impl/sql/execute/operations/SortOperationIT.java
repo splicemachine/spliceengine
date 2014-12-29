@@ -159,7 +159,7 @@ public class SortOperationIT extends SpliceUnitTest {
     @Test
 	public void testSortOperationByKey1Ascending() throws Exception {
 		ResultSet rs = methodWatcher.executeQuery(format("select name,value1,value2 from %s order by name",this.getTableReference(TABLE_NAME_1)));
-		List<Triplet> returnedByName = new ArrayList<Triplet>();
+		List<Triplet> returnedByName = new ArrayList<>();
 		while(rs.next()){
 			Triplet triple = new Triplet(rs.getString(1),rs.getString(2),rs.getString(3));
 			returnedByName.add(triple);
@@ -170,7 +170,7 @@ public class SortOperationIT extends SpliceUnitTest {
 	@Test
 	public void testSortOperationByKey2Ascending() throws Exception {
 		ResultSet rs = methodWatcher.executeQuery(format("select name,value1,value2 from %s order by value1",this.getTableReference(TABLE_NAME_1)));
-		List<Triplet> returnedByValue = new ArrayList<Triplet>();
+		List<Triplet> returnedByValue = new ArrayList<>();
 		while(rs.next()){
 			Triplet triple = new Triplet(rs.getString(1),rs.getString(2),rs.getString(3));
 			returnedByValue.add(triple);
@@ -181,12 +181,12 @@ public class SortOperationIT extends SpliceUnitTest {
 	@Test
 	public void testSortOperationByKey1Descending() throws Exception {
 		ResultSet rs = methodWatcher.executeQuery(format("select name,value1,value2 from %s order by name desc",this.getTableReference(TABLE_NAME_1)));
-		List<Triplet> returnedByName = new ArrayList<Triplet>();
+		List<Triplet> returnedByName = new ArrayList<>();
 		while(rs.next()){
 			Triplet triple = new Triplet(rs.getString(1),rs.getString(2),rs.getString(3));
 			returnedByName.add(triple);
 		}
-		List<Triplet> reversedByName = new ArrayList<Triplet>(correctByName.size());
+		List<Triplet> reversedByName = new ArrayList<>(correctByName.size());
 		for(int i=correctByName.size()-1;i>=0;i--){
 			reversedByName.add(correctByName.get(i));
 		}
@@ -197,7 +197,7 @@ public class SortOperationIT extends SpliceUnitTest {
 	public void testSortOperationByKey1DescendingLimited() throws Exception {
         //Regression test for Bug 856
 		ResultSet rs = methodWatcher.executeQuery(format("select name,value1,value2 from %s order by name desc {limit 1}",this.getTableReference(TABLE_NAME_1)));
-		List<Triplet> returnedByName = new ArrayList<Triplet>();
+		List<Triplet> returnedByName = new ArrayList<>();
 		while(rs.next()){
 			Triplet triple = new Triplet(rs.getString(1),rs.getString(2),rs.getString(3));
 			returnedByName.add(triple);
@@ -210,12 +210,12 @@ public class SortOperationIT extends SpliceUnitTest {
 	@Test
 	public void testSortOperationByKey2Descending() throws Exception {
 		ResultSet rs = methodWatcher.executeQuery(format("select name,value1,value2 from %s order by value1 desc",this.getTableReference(TABLE_NAME_1)));
-		List<Triplet> returnedByValue = new ArrayList<Triplet>();
+		List<Triplet> returnedByValue = new ArrayList<>();
 		while(rs.next()){
 			Triplet triple = new Triplet(rs.getString(1),rs.getString(2),rs.getString(3));
 			returnedByValue.add(triple);
 		}
-		List<Triplet> reversedByValue = new ArrayList<Triplet>(correctByValue1.size());
+		List<Triplet> reversedByValue = new ArrayList<>(correctByValue1.size());
 		for(int i=correctByValue1.size()-1;i>=0;i--){
 			reversedByValue.add(correctByValue1.get(i));
 		}
@@ -225,12 +225,12 @@ public class SortOperationIT extends SpliceUnitTest {
 	@Test
 	public void testSortOperationByKey1DescendingKey2Ascending() throws Exception {
 		ResultSet rs = methodWatcher.executeQuery(format("select name,value1,value2 from %s order by name desc, value1 asc",this.getTableReference(TABLE_NAME_1)));
-		List<Triplet> returnedByName = new ArrayList<Triplet>();
+		List<Triplet> returnedByName = new ArrayList<>();
 		while(rs.next()){
 			Triplet triple = new Triplet(rs.getString(1),rs.getString(2),rs.getString(3));
 			returnedByName.add(triple);
 		}
-		List<Triplet> reversedByName = new ArrayList<Triplet>(correctByName.size());
+		List<Triplet> reversedByName = new ArrayList<>(correctByName.size());
 		for(int i=correctByName.size()-1;i>=0;i--){
 			reversedByName.add(correctByName.get(i));
 		}
@@ -240,7 +240,7 @@ public class SortOperationIT extends SpliceUnitTest {
 	@Test
 	public void testSortOperationByKey1AscendingKey2Descending() throws Exception {
 		ResultSet rs = methodWatcher.executeQuery(format("select name,value1,value2 from %s order by name asc, value1 desc",this.getTableReference(TABLE_NAME_1)));
-		List<Triplet> returnedByValue = new ArrayList<Triplet>();
+		List<Triplet> returnedByValue = new ArrayList<>();
 		while(rs.next()){
 			Triplet triple = new Triplet(rs.getString(1),rs.getString(2),rs.getString(3));
 			returnedByValue.add(triple);
@@ -251,7 +251,7 @@ public class SortOperationIT extends SpliceUnitTest {
 	@Test
 	public void testOrderByFloat() throws Exception {
 		ResultSet rs = methodWatcher.executeQuery(format("select * from %s order by age",this.getTableReference(TABLE_NAME_2)));
-		List<String> returnedByName = new ArrayList<String>();
+		List<String> returnedByName = new ArrayList<>();
 		while(rs.next()){
 			String v = rs.getString(1) + "," + rs.getFloat(2);
 			returnedByName.add(v);
@@ -289,7 +289,7 @@ public class SortOperationIT extends SpliceUnitTest {
         // Tests for columns returning in reverse order (age, name not name, age) which actually causes Derby Network protocol exception
 //        try {
             ResultSet rs = methodWatcher.executeQuery(format("select distinct name, age from %s order by age", this.getTableReference(TABLE_NAME_2)));
-            List<String> returnedByName = new ArrayList<String>();
+            List<String> returnedByName = new ArrayList<>();
             Map<String,Float> correctResults = Maps.newHashMap();
             correctResults.put("bob",1.2f);
             correctResults.put("tom",13.4667f);

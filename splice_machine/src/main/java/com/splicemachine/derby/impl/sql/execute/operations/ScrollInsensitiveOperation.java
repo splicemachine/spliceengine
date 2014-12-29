@@ -20,7 +20,7 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
 	private static Logger LOG = Logger.getLogger(ScrollInsensitiveOperation.class);
 	protected static List<NodeType> nodeTypes; 
 	static {
-		nodeTypes = new ArrayList<NodeType>();
+		nodeTypes = new ArrayList<>();
 		nodeTypes.add(NodeType.SCROLL);
 		nodeTypes.add(NodeType.MAP);		
 	}
@@ -62,7 +62,7 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
 	public List<SpliceOperation> getSubOperations() {
 		if (LOG.isTraceEnabled())
 			LOG.trace("getSubOperations");
-		List<SpliceOperation> operations = new ArrayList<SpliceOperation>();
+		List<SpliceOperation> operations = new ArrayList<>();
 		operations.add((SpliceOperation) source);
 		return operations;
 	}

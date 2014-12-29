@@ -56,7 +56,7 @@ public class AsyncReadResolver  {
 				int bSize =1;
 				while(bSize<bufferSize)
 						bSize<<=1;
-				disruptor = new Disruptor<ResolveEvent>(new ResolveEventFactory(),bSize,consumerThreads,
+				disruptor = new Disruptor<>(new ResolveEventFactory(),bSize,consumerThreads,
 								ProducerType.MULTI,
 								new BlockingWaitStrategy()); //we want low latency here, but it might cost too much in CPU
 				disruptor.handleEventsWith(new ResolveEventHandler());

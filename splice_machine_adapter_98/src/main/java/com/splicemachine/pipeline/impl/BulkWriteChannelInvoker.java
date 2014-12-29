@@ -41,7 +41,7 @@ public class BulkWriteChannelInvoker {
             builder.setBytes(ZeroCopyLiteralByteString.copyFrom(requestBytes));
             SpliceMessage.BulkWriteRequest bwr = builder.build();
 
-            BlockingRpcCallback<SpliceMessage.BulkWriteResponse> doneCallback = new BlockingRpcCallback<SpliceMessage.BulkWriteResponse>();
+            BlockingRpcCallback<SpliceMessage.BulkWriteResponse> doneCallback = new BlockingRpcCallback<>();
             SpliceRpcController controller = new SpliceRpcController();
 
             service.bulkWrite(controller, bwr, doneCallback);

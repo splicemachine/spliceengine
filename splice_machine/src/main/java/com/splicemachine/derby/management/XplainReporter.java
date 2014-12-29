@@ -46,7 +46,7 @@ public abstract class XplainReporter<T> {
 				this.LOG = Logger.getLogger(this.getClass());
 				ThreadFactory factory = new ThreadFactoryBuilder().setDaemon(true).build();
 				this.writers = Executors.newFixedThreadPool(numWorkers,factory);
-				this.taskQueue = new LinkedBlockingQueue<Pair<String, T>>();
+				this.taskQueue = new LinkedBlockingQueue<>();
 				final Txn txn;
 				try {
 						txn = TransactionLifecycle.getLifecycleManager().beginTransaction("xplain".getBytes());
@@ -68,8 +68,6 @@ public abstract class XplainReporter<T> {
 																callBuffer.close();
 														}
 
-												} catch (IOException e) {
-														LOG.info("Error closing buffer from cache", e);
 												} catch (Exception e) {
 														LOG.info("Error closing buffer from cache", e);
 												}

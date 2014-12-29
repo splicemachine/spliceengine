@@ -731,8 +731,7 @@ public class SITransactor<S,Data,Table,
                 Get,
                 Scan> build(){
 						assert txnStore!=null: "No TxnStore set!";
-						return new SITransactor<SRowLock,Data,Table,
-										Mutation, Put,Delete,Get,Scan>(dataLib,dataWriter, dataStore,
+						return new SITransactor<>(dataLib,dataWriter, dataStore,
                     operationFactory,txnStore);
 				}
 

@@ -105,8 +105,8 @@ public class SpliceTransactionManager implements XATransactionController,
         this.rawtran = theRawTran;
         this.parent_tran = parent_tran;
         accessmanager = myaccessmanager;
-        scanControllers = new ArrayList<ScanController>();
-        conglomerateControllers = new ArrayList<ConglomerateController>();
+        scanControllers = new ArrayList<>();
+        conglomerateControllers = new ArrayList<>();
 
         sorts = null; // allocated on demand.
         freeSortIds = null; // allocated on demand.
@@ -639,7 +639,7 @@ public class SpliceTransactionManager implements XATransactionController,
         long conglomId = conglom.getContainerid();
         if ((temporaryFlag & TransactionController.IS_TEMPORARY) == TransactionController.IS_TEMPORARY) {
             if (tempCongloms == null)
-                tempCongloms = new HashMap<Long, Conglomerate>();
+                tempCongloms = new HashMap<>();
             tempCongloms.put(conglomId, conglom);
         } else {
             accessmanager.conglomCacheAddEntry(conglomId, conglom);
@@ -1340,8 +1340,8 @@ public class SpliceTransactionManager implements XATransactionController,
 
         // Add the sort to the sorts vector
         if (sorts == null) {
-            sorts = new ArrayList<Sort>();
-            freeSortIds = new ArrayList<Integer>();
+            sorts = new ArrayList<>();
+            freeSortIds = new ArrayList<>();
         }
 
         int sortid;
@@ -1483,7 +1483,7 @@ public class SpliceTransactionManager implements XATransactionController,
 
         // Keep track of it so we can release on close.
         if (sortControllers == null)
-            sortControllers = new ArrayList<SortController>();
+            sortControllers = new ArrayList<>();
         sortControllers.add(sc);
 
         return sc;

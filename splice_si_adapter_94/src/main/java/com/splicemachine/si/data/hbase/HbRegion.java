@@ -156,7 +156,7 @@ public class HbRegion extends BaseHbRegion<HbRowLock> {
 		Pair<Mutation, Integer>[] pairsToProcess = new Pair[data.size()];
 		int i=0;
 		for(KVPair pair:data){
-				pairsToProcess[i] = new Pair<Mutation, Integer>(getMutation(pair,txn), null);
+				pairsToProcess[i] = new Pair<>(getMutation(pair,txn), null);
 				i++;
 		}
 		return region.batchMutate(pairsToProcess);

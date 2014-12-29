@@ -170,9 +170,7 @@ public class ZooKeeperStatTimestampSource implements TimestampSource {
                     resetCounterNode();
                 }
             }
-        } catch (InterruptedException e) {
-            throw new RuntimeException("Unable to get timestamp",e);
-        } catch (KeeperException e) {
+        } catch (InterruptedException | KeeperException e) {
             throw new RuntimeException("Unable to get timestamp",e);
         }
     }
@@ -224,13 +222,11 @@ public class ZooKeeperStatTimestampSource implements TimestampSource {
             byte[] data = rzk.getData(highBitsTransactionPath, false, highBitStat);
             counterTransactionPath = Bytes.toString(data);
             setHighBits(highBitStat.getVersion());
-        } catch (KeeperException e) {
+        } catch (KeeperException | InterruptedException e) {
             /*
              * Note: We assume that the highBitsTransactionPath has been safely created
              * externally to us.
              */
-            throw new RuntimeException("Unable to initialize the TimestampSource", e);
-        } catch (InterruptedException e) {
             throw new RuntimeException("Unable to initialize the TimestampSource", e);
         }
     }

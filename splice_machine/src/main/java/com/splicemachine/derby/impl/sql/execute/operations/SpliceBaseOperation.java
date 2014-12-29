@@ -54,7 +54,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
         protected static final SDataLib dataLib = SIFactoryDriver.siFactory.getDataLib();
 		protected static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
 		public static ThreadLocal<List<XplainOperationChainInfo>> operationChain =
-                new ThreadLocal<List<XplainOperationChainInfo>>();
+                new ThreadLocal<>();
         protected XplainOperationChainInfo operationChainInfo;
 		/* Run time statistics variables */
 		public int numOpens;
@@ -394,7 +394,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
          */
 				jobResults = doShuffle(runtimeContext);
 				JobStatsUtils.logStats(jobResults.getJobStats());
-				failedTasks = new ArrayList<byte[]>(jobResults.getJobStats().getFailedTasks());
+				failedTasks = new ArrayList<>(jobResults.getJobStats().getFailedTasks());
             if (LOG.isDebugEnabled())
                 SpliceLogUtils.debug(LOG,"%d tasks failed", failedTasks.size());
 		}
@@ -445,7 +445,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
 		protected List<SpliceOperation> getOperationStack(){
 				if(leftOperationStack==null){
-						leftOperationStack = new LinkedList<SpliceOperation>();
+						leftOperationStack = new LinkedList<>();
 						generateLeftOperationStack(leftOperationStack);
 				}
 				return leftOperationStack;

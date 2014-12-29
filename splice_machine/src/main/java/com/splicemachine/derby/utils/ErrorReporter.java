@@ -30,7 +30,7 @@ public class ErrorReporter implements ErrorReport{
     private final AtomicLong totalIOExceptions = new AtomicLong(0l);
     private final AtomicLong totalExecutionErrors = new AtomicLong(0l);
 
-    private final BlockingQueue<ErrorInfo> mostRecentErrors = new ArrayBlockingQueue<ErrorInfo>(100,true);
+    private final BlockingQueue<ErrorInfo> mostRecentErrors = new ArrayBlockingQueue<>(100,true);
 
     private ErrorReporter(){}
 

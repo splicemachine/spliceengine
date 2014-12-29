@@ -31,7 +31,7 @@ public class BroadCastJoinRows implements IJoinRowsIterator<ExecRow> {
                              Function<ExecRow,List<ExecRow>> rightSideLookup) {
         this.leftRows = leftRows;
         this.rightSideLookup = rightSideLookup;
-        this.pair = new Pair<ExecRow, Iterator<ExecRow>>();
+        this.pair = new Pair<>();
     }
 
     @Override

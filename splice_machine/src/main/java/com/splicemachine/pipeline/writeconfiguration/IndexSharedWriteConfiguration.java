@@ -30,7 +30,7 @@ public class IndexSharedWriteConfiguration extends BaseWriteConfiguration {
 		private AtomicInteger completedCount = new AtomicInteger(0);
 
 		public IndexSharedWriteConfiguration() {
-				sharedMainMutationList = new CopyOnWriteArrayList<Pair<WriteContext, ObjectObjectOpenHashMap<KVPair, KVPair>>>();
+				sharedMainMutationList = new CopyOnWriteArrayList<>();
 		}
 		@Override
 		public void registerContext(WriteContext context, ObjectObjectOpenHashMap<KVPair,KVPair> indexToMainMutationMap) {

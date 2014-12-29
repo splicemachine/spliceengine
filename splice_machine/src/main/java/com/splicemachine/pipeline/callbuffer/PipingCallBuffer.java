@@ -80,8 +80,8 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, CanRebuild
         this.txn = txn;
         this.regionCache = regionCache;
         this.writeConfiguration = new UpdatingWriteConfiguration(writeConfiguration,this); 
-        this.startKeyToBufferMap = new TreeMap<byte[],Pair<RegionCallBuffer,ServerName>>(Bytes.BYTES_COMPARATOR);
-        this.serverToRSBufferMap = new TreeMap<ServerName,RegionServerCallBuffer>();
+        this.startKeyToBufferMap = new TreeMap<>(Bytes.BYTES_COMPARATOR);
+        this.serverToRSBufferMap = new TreeMap<>();
         this.bufferConfiguration = bufferConfiguration;
         this.preFlushHook = preFlushHook;
 		MetricFactory metricFactory = writeConfiguration!=null? writeConfiguration.getMetricFactory(): Metrics.noOpMetricFactory();
@@ -150,8 +150,8 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, CanRebuild
                 buffer.close();
             }
         }
-        this.startKeyToBufferMap = new TreeMap<byte[],Pair<RegionCallBuffer,ServerName>>(Bytes.BYTES_COMPARATOR);
-        this.serverToRSBufferMap = new TreeMap<ServerName,RegionServerCallBuffer>();
+        this.startKeyToBufferMap = new TreeMap<>(Bytes.BYTES_COMPARATOR);
+        this.serverToRSBufferMap = new TreeMap<>();
         currentHeapSize=0;
         currentKVPairSize=0;
 
@@ -283,7 +283,7 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, CanRebuild
 	public List<BulkWrites> getBulkWrites() throws Exception {
 		SpliceLogUtils.trace(LOG, "getBulkWrites");
         rebuildIfNecessary();
-        List<BulkWrites> writes = new ArrayList<BulkWrites>();   
+        List<BulkWrites> writes = new ArrayList<>();
         for(RegionServerCallBuffer buffer:serverToRSBufferMap.values())
         	writes.add(buffer.getBulkWrites());
         return writes;
@@ -291,7 +291,7 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, CanRebuild
 	
 	public ObjectArrayList<KVPair> getKVPairs() throws Exception {
 		SpliceLogUtils.trace(LOG, "getKVPairs");
-		ObjectArrayList<KVPair> kvPairs = new ObjectArrayList<KVPair>();
+		ObjectArrayList<KVPair> kvPairs = new ObjectArrayList<>();
         for(Pair<RegionCallBuffer,ServerName> buffer:startKeyToBufferMap.values()) {
         	kvPairs.addAll(buffer.getFirst().getBuffer());
         }

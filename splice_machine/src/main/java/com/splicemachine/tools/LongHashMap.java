@@ -51,7 +51,7 @@ public abstract class LongHashMap<T> {
             entry = elements[i];
             if(entry==null){
                 //we have encountered an empty slot, insert!
-                entry = new LongEntry<T>();
+                entry = new LongEntry<>();
                 elements[i] = entry;
             }else if(entry.empty){
                 //also empty, but we're re-using the object
@@ -112,7 +112,7 @@ public abstract class LongHashMap<T> {
         return new LongHashMap<T>(s) {
             @Override
             protected LongEntry<T> outOfSpace(LongEntry<T> entry, long key, T value) {
-                LongEntry<T> toEvict = new LongEntry<T>(entry);
+                LongEntry<T> toEvict = new LongEntry<>(entry);
                 entry.key = key;
                 entry.entry = value;
                 entry.empty = false;
@@ -140,7 +140,7 @@ public abstract class LongHashMap<T> {
                         }
                     }
                 }
-                LongEntry<T> next = new LongEntry<T>();
+                LongEntry<T> next = new LongEntry<>();
                 next.empty=false;
                 next.key = key;
                 next.entry = value;

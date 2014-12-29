@@ -126,10 +126,10 @@ public class KeyDecoderIT extends SpliceUnitTest {
                             Timestamp day = rs.getTimestamp(4);
                             DAYS.add(day);
 
-                            Long ad_id = new Long(rs.getLong(2));
+                            Long ad_id = rs.getLong(2);
                             AD_IDS.add(ad_id);
 
-                            Long row_id = new Long(rs.getLong(1));
+                            Long row_id = rs.getLong(1);
                             ROW_IDS.add(row_id);
                         }
                         Assert.assertEquals(DAYS.size(), 10);
@@ -173,7 +173,7 @@ public class KeyDecoderIT extends SpliceUnitTest {
         TreeMultiset<Long> ad_ids = TreeMultiset.create();
         ResultSet rs = methodWatcher.executeQuery(format("select ad_id from %s.%s",SCHEMA_NAME,TABLE1));
         while (rs.next()) {
-            Long ad_id = new Long(rs.getLong(1));
+            Long ad_id = rs.getLong(1);
             ad_ids.add(ad_id);
         }
         Assert.assertEquals(ad_ids.size(), AD_IDS.size());
@@ -189,7 +189,7 @@ public class KeyDecoderIT extends SpliceUnitTest {
         TreeMultiset<Long> row_ids = TreeMultiset.create();
         ResultSet rs = methodWatcher.executeQuery(format("select row_id from %s.%s",SCHEMA_NAME,TABLE1));
         while (rs.next()) {
-            Long row_id = new Long(rs.getLong(1));
+            Long row_id = rs.getLong(1);
             row_ids.add(row_id);
         }
         Assert.assertEquals(row_ids.size(), AD_IDS.size());

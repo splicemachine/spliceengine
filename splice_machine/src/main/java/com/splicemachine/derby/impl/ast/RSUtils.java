@@ -134,7 +134,7 @@ public class RSUtils {
     public static List<ResultSetNode> getLeafNodes(ResultSetNode rsn)
             throws StandardException {
         List<ResultSetNode> rsns = getSelfAndDescendants(rsn);
-        List<ResultSetNode> leaves = new LinkedList<ResultSetNode>();
+        List<ResultSetNode> leaves = new LinkedList<>();
         for (ResultSetNode r : rsns) {
             if (leafRSNs.contains(r.getClass())) {
                 leaves.add(r);

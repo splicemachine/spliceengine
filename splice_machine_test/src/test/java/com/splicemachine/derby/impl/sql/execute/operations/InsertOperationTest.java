@@ -273,11 +273,9 @@ public class InsertOperationTest {
                     //noinspection ConstantConditions
 										hash.setRow(input);
 										dataBytes =hash.encode();
-                } catch (StandardException e) {
+                } catch (StandardException | IOException e) {
                     throw new RuntimeException(e);
-                } catch (IOException e) {
-										throw new RuntimeException(e);
-								}
+                }
                 if(!usePrimaryKeys)
                     return new KVPair(snowflake.nextUUIDBytes(),dataBytes);
                 else{
@@ -291,12 +289,10 @@ public class InsertOperationTest {
 												byte[] encode = keyHash.encode();
 
                         return new KVPair(encode,dataBytes);
-                    } catch (StandardException e) {
+                    } catch (StandardException | IOException e) {
                         throw new RuntimeException(e);
-                    } catch (IOException e) {
-												throw new RuntimeException(e);
-										}
-								}
+                    }
+                }
 
             }
         }));

@@ -271,9 +271,9 @@ public abstract class jvm {
 		majorVersion = javaVersion.substring(0, i);
 		minorVersion = javaVersion.substring(i+1, j);
 		Integer minor = new Integer(minorVersion);
-		iminor = minor.intValue();
+		iminor = minor;
 		Integer major = new Integer(majorVersion);
-		imajor = major.intValue();
+		imajor = major;
 		
 		String jvmName = System.getProperty("jvm");
 		
@@ -321,13 +321,13 @@ public abstract class jvm {
 		{
 			// it's a url so should just have forward slashes
 			String location = zip[i].getLocation().replace('\\','/');
-			if (location.indexOf("derbynet.jar") != -1)
+			if (location.contains("derbynet.jar"))
 			{
 				isJar[0] = true;
 				return location.substring(0,location.lastIndexOf(sep));
 			}
-			else if ((location.indexOf("classes") != -1) &&
-					 location.indexOf(".jar") == -1)
+			else if ((location.contains("classes")) &&
+                    !location.contains(".jar"))
 			{
 				isJar[0] = false;
 				return location;

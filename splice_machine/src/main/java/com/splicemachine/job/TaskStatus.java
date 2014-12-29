@@ -64,12 +64,12 @@ public class TaskStatus implements Externalizable{
     }
 
     public TaskStatus(){
-       this.listeners = new CopyOnWriteArraySet<StatusListener>();
+       this.listeners = new CopyOnWriteArraySet<>();
     }
 
     public TaskStatus(Status status, Throwable error) {
         this();
-        this.status = new AtomicReference<Status>(status);
+        this.status = new AtomicReference<>(status);
         if(error!=null){
             error = Exceptions.getRootCause(error);
             errorTransport = ErrorTransport.newTransport(error);
@@ -169,7 +169,7 @@ public class TaskStatus implements Externalizable{
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        status = new AtomicReference<Status>(Status.valueOf(in.readUTF()));
+        status = new AtomicReference<>(Status.valueOf(in.readUTF()));
         if(status.get()==Status.FAILED){
             errorTransport = (ErrorTransport)in.readObject();
         }

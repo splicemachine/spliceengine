@@ -133,7 +133,7 @@ public class ScanDividerTest {
     }
 
     private static SortedSet<Pair<HRegionInfo,ServerName>> getTestRegions(int count) {
-    	SortedSet<Pair<HRegionInfo,ServerName>> regions = new TreeSet<Pair<HRegionInfo,ServerName>>(new RegionCacheComparator());
+    	SortedSet<Pair<HRegionInfo,ServerName>> regions = new TreeSet<>(new RegionCacheComparator());
         int startKey = 10;
         int endKey = 20;
         for (int i = 0; i < count; i++) {

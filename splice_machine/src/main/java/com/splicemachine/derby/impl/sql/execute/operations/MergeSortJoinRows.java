@@ -37,14 +37,14 @@ import java.util.List;
 public class MergeSortJoinRows implements IJoinRowsIterator<ExecRow> {
 
     StandardPushBackIterator<JoinSideExecRow> source;
-    List<ExecRow> currentRights = new ArrayList<ExecRow>();
+    List<ExecRow> currentRights = new ArrayList<>();
     byte[] currentRightHash;
     private int leftRowsSeen;
     private int rightRowsSeen;
 
 
     public MergeSortJoinRows(StandardIterator<JoinSideExecRow> source){
-        this.source = new StandardPushBackIterator<JoinSideExecRow>(source);
+        this.source = new StandardPushBackIterator<>(source);
     }
 
     Pair<byte[],List<ExecRow>> accumulateRights() throws StandardException, IOException {
@@ -56,7 +56,7 @@ public class MergeSortJoinRows implements IJoinRowsIterator<ExecRow> {
                     // must use getRow().getClone() b/c underlying source mutates
                     currentRights.add(row.getRow().getClone());
                 } else {
-                    currentRights = new ArrayList<ExecRow>();
+                    currentRights = new ArrayList<>();
                     currentRights.add(row.getRow().getClone());
                     currentRightHash = row.getHash();
                 }
@@ -65,7 +65,7 @@ public class MergeSortJoinRows implements IJoinRowsIterator<ExecRow> {
                 break;
             }
         }
-        return new Pair<byte[],List<ExecRow>>(currentRightHash, currentRights);
+        return new Pair<>(currentRightHash, currentRights);
     }
 
     Pair<ExecRow,Iterator<ExecRow>> nextLeftAndRights() throws StandardException, IOException {
@@ -75,7 +75,7 @@ public class MergeSortJoinRows implements IJoinRowsIterator<ExecRow> {
             leftRowsSeen++;
             List<ExecRow> rightRows = left.sameHash(rights.getFirst()) ?
                                         rights.getSecond() : (List<ExecRow>)Collections.EMPTY_LIST;
-            return new Pair<ExecRow,Iterator<ExecRow>>(left.getRow(), rightRows.iterator());
+            return new Pair<>(left.getRow(), rightRows.iterator());
         }
         return null;
     }

@@ -97,12 +97,10 @@ public class TimestampOracle implements TimestampMasterManagement {
 			} catch (Exception e) {
 		        TimestampUtil.doServerError(LOG, "Unable to register Timestamp Generator with JMX. Service will function but metrics will not be available.");
 			}
-		} catch (KeeperException e) {
-			throw new TimestampIOException(e);
-		} catch (InterruptedException e) {
+		} catch (KeeperException | InterruptedException e) {
 			throw new TimestampIOException(e);
 		}
-	}
+    }
 
 	public long getNextTimestamp() throws TimestampIOException {
 		long nextTS = _timestampCounter.getAndIncrement();
@@ -124,12 +122,10 @@ public class TimestampOracle implements TimestampMasterManagement {
                 _maxReservedTimestamp = nextMax;
                 _numBlocksReserved.incrementAndGet(); // JMX metric
                 TimestampUtil.doServerDebug(LOG, "Next timestamp block reserved with max = %s", _maxReservedTimestamp);
-            } catch (KeeperException e) {
+            } catch (KeeperException | InterruptedException e) {
                 throw new TimestampIOException(e);
-            } catch (InterruptedException e) {
-                throw new TimestampIOException(e);
-			}
-		}
+            }
+        }
 	}
 
 	private void registerJMX() throws MalformedObjectNameException, NotCompliantMBeanException, InstanceAlreadyExistsException, MBeanRegistrationException {

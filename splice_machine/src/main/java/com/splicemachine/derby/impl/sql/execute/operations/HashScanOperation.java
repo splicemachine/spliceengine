@@ -56,7 +56,7 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 		public String stopPositionString;
 
 		static {
-				nodeTypes = new ArrayList<NodeType>();
+				nodeTypes = new ArrayList<>();
 				nodeTypes.add(NodeType.SCAN);
 				nodeTypes.add(NodeType.MAP);
 				nodeTypes.add(NodeType.REDUCE);
@@ -155,7 +155,7 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 		@Override
 		public List<SpliceOperation> getSubOperations() {
 				SpliceLogUtils.trace(LOG, "getSubOperations");
-				return new ArrayList<SpliceOperation>();
+				return new ArrayList<>();
 		}
 
 		@Override

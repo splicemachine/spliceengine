@@ -20,7 +20,7 @@ public class LogManager implements Logging {
 
     @Override
     public List<String> getLoggerNames() {
-        List<String> loggerNames = new ArrayList<String>();
+        List<String> loggerNames = new ArrayList<>();
         Enumeration loggers = LOGGER.getLoggerRepository().getCurrentLoggers();
         while (loggers.hasMoreElements()) {
             String loggerName = ((Logger) loggers.nextElement()).getName();

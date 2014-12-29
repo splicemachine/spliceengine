@@ -19,7 +19,7 @@ public class XPlainPlanNode {
         this.rowCount = rowCount;
         this.cost = cost;
         this.level = level;
-        children = new ArrayList<XPlainPlanNode>(2);
+        children = new ArrayList<>(2);
     }
 
     public double getRowCount() {

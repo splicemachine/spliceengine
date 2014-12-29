@@ -250,7 +250,7 @@ public class SpliceTableScannerTest {
 				//noinspection unchecked
 				
 				
-				List<KeyValue> testkvs = new ArrayList<KeyValue>();
+				List<KeyValue> testkvs = new ArrayList<>();
 				
 				testkvs.add(dataKv);
 				testkvs.add(siKv);

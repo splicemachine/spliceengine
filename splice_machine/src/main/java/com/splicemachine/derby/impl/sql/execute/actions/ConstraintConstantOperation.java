@@ -138,7 +138,7 @@ public abstract class ConstraintConstantOperation extends DDLSingleTableConstant
 		LanguageConnectionContext		lcc,
 		boolean							isCheckConstraint ) throws StandardException {
 			SpliceLogUtils.error(LOG, "validateConstraint %s using qualifier {%s}",constraintName, constraintText);
-		StringBuffer checkStmt = new StringBuffer();
+		StringBuilder checkStmt = new StringBuilder();
 		/* should not use select sum(not(<check-predicate>) ? 1: 0) because
 		 * that would generate much more complicated code and may exceed Java
 		 * limits if we have a large number of check constraints, beetle 4347

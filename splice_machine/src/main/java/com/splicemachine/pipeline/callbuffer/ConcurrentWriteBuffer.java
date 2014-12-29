@@ -37,7 +37,7 @@ public class ConcurrentWriteBuffer implements CallBuffer<KVPair> {
 		public ConcurrentWriteBuffer(int maxEntries,
 																 CallBuffer<KVPair> delegateBuffer){
 				this.maxEntries = maxEntries;
-				this.queue = new ConcurrentLinkedQueue<KVPair>();
+				this.queue = new ConcurrentLinkedQueue<>();
 				this.delegateBuffer = delegateBuffer;
 		}
 

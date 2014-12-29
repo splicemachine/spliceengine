@@ -49,11 +49,7 @@ public class ActivationSerializer {
     public static Activation readInto(ObjectInput in, Activation destination) throws IOException, StandardException {
         try {
             return new Visitor(destination).read(in);
-        } catch (IllegalAccessException e) {
-            throw new IOException(e);
-        } catch (NoSuchFieldException e) {
-            throw new IOException(e);
-        } catch (ClassNotFoundException e) {
+        } catch (IllegalAccessException | ClassNotFoundException | NoSuchFieldException e) {
             throw new IOException(e);
         }
     }

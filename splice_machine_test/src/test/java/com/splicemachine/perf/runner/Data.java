@@ -51,14 +51,11 @@ public class Data {
     public void createIndices() throws Exception {
         SpliceLogUtils.info(LOG,"Creating indices");
         if(indices!=null){
-            Connection conn = connectionPool.acquire();
-            try{
-                for(Index index:indices){
+            try (Connection conn = connectionPool.acquire()) {
+                for (Index index : indices) {
                     index.create(conn);
                 }
                 conn.commit();
-            }finally{
-                conn.close();
             }
         }
     }
@@ -77,7 +74,7 @@ public class Data {
     public void runQueries() throws Exception {
         ExecutorService queryRunner = Executors.newFixedThreadPool(concurrentQueries);
         try{
-            CompletionService<Result> runningQueries = new ExecutorCompletionService<Result>(queryRunner);
+            CompletionService<Result> runningQueries = new ExecutorCompletionService<>(queryRunner);
             for(final Query query:queries){
                 runningQueries.submit(new Callable<Result>() {
                     @Override
@@ -102,22 +99,19 @@ public class Data {
     public void dropTables(boolean explodeOnError) throws Exception {
         SpliceLogUtils.info(LOG, "dropping tables");
         PreparedStatement dropStatement;
-        Connection conn = connectionPool.acquire();
-        try{
-            for(Table table:tables){
-                try{
-                    dropStatement = conn.prepareStatement("drop table "+ table.getName());
+        try (Connection conn = connectionPool.acquire()) {
+            for (Table table : tables) {
+                try {
+                    dropStatement = conn.prepareStatement("drop table " + table.getName());
                     dropStatement.execute();
-                }catch(SQLException se){
-                    if(explodeOnError)
+                } catch (SQLException se) {
+                    if (explodeOnError)
                         throw se;
                     else
-                        SpliceLogUtils.warn(LOG,"Encountered error dropping tables:"+se.getMessage());
+                        SpliceLogUtils.warn(LOG, "Encountered error dropping tables:" + se.getMessage());
                 }
             }
             conn.commit();
-        }finally{
-            conn.close();
         }
     }
 

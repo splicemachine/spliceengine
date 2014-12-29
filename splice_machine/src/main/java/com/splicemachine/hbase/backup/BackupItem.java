@@ -55,7 +55,7 @@ public class BackupItem implements InternalTable {
 	private String backupItem;
 	private Timestamp backupItemBeginTimestamp;
 	private Timestamp backupItemEndTimestamp;
-    private List<RegionInfo> regionInfoList = new ArrayList<RegionInfo>();
+    private List<RegionInfo> regionInfoList = new ArrayList<>();
 
     public HTableDescriptor getTableDescriptor() {
         return tableDescriptor;
@@ -233,7 +233,7 @@ public class BackupItem implements InternalTable {
     }
 
     private List<Pair<byte[],String>> getFamilyPaths(FileSystem fs, Path root) throws IOException {
-        List<Pair<byte[], String>> famPaths = new ArrayList<Pair<byte[], String>>();
+        List<Pair<byte[], String>> famPaths = new ArrayList<>();
         FileStatus[] status = fs.listStatus(root);
         for (FileStatus stat : status) {
             if (!stat.isDir() || stat.getPath().getName().equals("region.info")) {
@@ -247,7 +247,7 @@ public class BackupItem implements InternalTable {
                 if (familyStat.getPath().getName().startsWith(".")) {
                     continue; // ignore CRCs
                 }
-                famPaths.add(new Pair<byte[], String>(family, familyStat.getPath().toString()));
+                famPaths.add(new Pair<>(family, familyStat.getPath().toString()));
             }
         }
         return famPaths;

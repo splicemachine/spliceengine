@@ -245,7 +245,7 @@ public class DerbyFactoryImpl implements DerbyFactory<TxnMessage.TxnInfo> {
 		}
 		
 	    private static Map<ServerName, ServerLoad> getLoad() throws SQLException {
-	        Map<ServerName, ServerLoad> serverLoadMap = new HashMap<ServerName, ServerLoad>();
+	        Map<ServerName, ServerLoad> serverLoadMap = new HashMap<>();
 	        HBaseAdmin admin = null;
 	        try {
 	            admin = SpliceUtils.getAdmin();
@@ -268,7 +268,7 @@ public class DerbyFactoryImpl implements DerbyFactory<TxnMessage.TxnInfo> {
 	    }
 	    
 	    private static Map<String, RegionLoad> getRegionLoad() throws SQLException {
-	        Map<String, RegionLoad> regionLoads = new HashMap<String, RegionLoad>();
+	        Map<String, RegionLoad> regionLoads = new HashMap<>();
 	        HBaseAdmin admin = null;
 	        admin = SpliceUtils.getAdmin();
 	        try {

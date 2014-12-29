@@ -54,12 +54,12 @@ public class SpliceTableRecordReaderImp{
 	private ResultScanner scanner = null;
 	private Scan scan = null;
 	private SQLUtil sqlUtil = null;
-	private HashMap<List, List> tableStructure = new HashMap<List, List>();
-	private HashMap<List, List> pks = new HashMap<List, List>();
-	private ArrayList<String> colNames = new ArrayList<String>();
-    private ArrayList<Integer>colTypes = new ArrayList<Integer>();
-    private ArrayList<String>pkColNames = new ArrayList<String>();
-    private ArrayList<Integer>pkColIds = new ArrayList<Integer>();
+	private HashMap<List, List> tableStructure = new HashMap<>();
+	private HashMap<List, List> pks = new HashMap<>();
+	private ArrayList<String> colNames = new ArrayList<>();
+    private ArrayList<Integer>colTypes = new ArrayList<>();
+    private ArrayList<String>pkColNames = new ArrayList<>();
+    private ArrayList<Integer>pkColIds = new ArrayList<>();
     private SpliceTableScannerBuilder builder= null;   
     private SpliceTableScanner tableScanner = null;
     private Configuration conf = null;
@@ -78,12 +78,10 @@ public class SpliceTableRecordReaderImp{
 		try {
 			this.tableScanner.close();
 			this.scanner.close();
-		} catch (StandardException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
+		} catch (StandardException | IOException e) {
 			e.printStackTrace();
 		}
-	}
+    }
 
 	public void restart(byte[] firstRow) throws IOException {
 		Scan newscan = new Scan(scan);
@@ -108,13 +106,11 @@ public class SpliceTableRecordReaderImp{
 				tableScanner = this.builder.build();
 			}
 	
-		} catch (NumberFormatException e) {
-			throw new IOException(e);
-		} catch (StandardException e) {
+		} catch (NumberFormatException | StandardException e) {
 			throw new IOException(e);
 		}
-		
-	}
+
+    }
 
 	public void init() throws IOException {
 		restart(scan.getStartRow());

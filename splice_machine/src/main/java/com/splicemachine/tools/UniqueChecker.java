@@ -16,7 +16,7 @@ public class UniqueChecker<T> {
     private final ConcurrentSkipListMap<T,Long> backData;
 
     public UniqueChecker(Comparator<T> comparator) {
-        this.backData = new ConcurrentSkipListMap<T, Long>(comparator);
+        this.backData = new ConcurrentSkipListMap<>(comparator);
     }
 
     public long check(T entity){

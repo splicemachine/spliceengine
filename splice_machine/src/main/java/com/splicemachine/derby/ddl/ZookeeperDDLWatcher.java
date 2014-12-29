@@ -46,14 +46,14 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
      */
     private static final long MAXIMUM_DDL_WAIT_MS = TimeUnit.SECONDS.toMillis(2*SpliceConstants.maxDdlWait);
 
-    private Set<String> seenDDLChanges = new HashSet<String>();
-    private Map<String, Long> changesTimeouts = new HashMap<String, Long>();
-    private Map<String, DDLChange> currentDDLChanges = new HashMap<String, DDLChange>();
-    private Map<String, DDLChange> tentativeDDLs = new ConcurrentHashMap<String, DDLChange>();
+    private Set<String> seenDDLChanges = new HashSet<>();
+    private Map<String, Long> changesTimeouts = new HashMap<>();
+    private Map<String, DDLChange> currentDDLChanges = new HashMap<>();
+    private Map<String, DDLChange> tentativeDDLs = new ConcurrentHashMap<>();
 
     private String id;
 
-    private Set<DDLListener> ddlListeners = new CopyOnWriteArraySet<DDLListener>();
+    private Set<DDLListener> ddlListeners = new CopyOnWriteArraySet<>();
 
     private ExecutorService refreshThread = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder()
             .setNameFormat("ZooKeeperDDLWatcherRefresher").setDaemon(true).build());
@@ -164,7 +164,7 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
 
     @Override
     public Set<DDLChange> getTentativeDDLs() {
-        return new HashSet<DDLChange>(tentativeDDLs.values());
+        return new HashSet<>(tentativeDDLs.values());
     }
 
     @Override
@@ -186,7 +186,7 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
         // Get all ongoing DDL changes
         List<String> ongoingDDLChangeIDs = getOngoingDDLChangeIDs(this);
         boolean currentWasEmpty = currentDDLChanges.isEmpty();
-        Set<DDLChange> newChanges = new HashSet<DDLChange>();
+        Set<DDLChange> newChanges = new HashSet<>();
 
         // remove finished ddl changes
         clearFinishedChanges(ongoingDDLChangeIDs);

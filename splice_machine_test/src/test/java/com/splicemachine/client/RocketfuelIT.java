@@ -78,15 +78,12 @@ public class RocketfuelIT {
 				int numChecked=0;
 				for(Long adId:correctAdIds){
 						ps.setLong(1,adId);
-						ResultSet rs = ps.executeQuery();
-						try{
-								Assert.assertTrue(rs.next());
-								if(rs.getLong(1)!=1){
-										System.out.printf("AdId %d has count %d%n",adId,rs.getLong(1));
-								}
-						}finally{
-								rs.close();
-						}
+                    try (ResultSet rs = ps.executeQuery()) {
+                        Assert.assertTrue(rs.next());
+                        if (rs.getLong(1) != 1) {
+                            System.out.printf("AdId %d has count %d%n", adId, rs.getLong(1));
+                        }
+                    }
 						numChecked++;
 						if(numChecked%100==0)
 								System.out.printf("Checked %d rows%n",numChecked);

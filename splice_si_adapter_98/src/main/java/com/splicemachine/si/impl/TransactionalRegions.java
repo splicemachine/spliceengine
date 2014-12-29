@@ -35,7 +35,7 @@ public class TransactionalRegions {
 		private static volatile AsyncReadResolver readResolver;
 
 		private static final ScheduledExecutorService rollForwardScheduler;
-    private static final ConcurrentMap<String,DiscardingTransactionalRegion> regionMap = new ConcurrentHashMap<String, DiscardingTransactionalRegion>();
+    private static final ConcurrentMap<String,DiscardingTransactionalRegion> regionMap = new ConcurrentHashMap<>();
     private static volatile ActionFactory actionFactory = ActionFactory.NOOP_ACTION_FACTORY;
     private static volatile TrafficControl trafficControl = GreenLight.INSTANCE;
 

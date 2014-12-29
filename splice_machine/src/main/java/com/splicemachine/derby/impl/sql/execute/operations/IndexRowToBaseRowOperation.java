@@ -164,9 +164,9 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 				try {
 						if(restrictionMethodName !=null){
 								SpliceLogUtils.trace(LOG,"%s:restrictionMethodName=%s",indexName,restrictionMethodName);
-								restriction = new SpliceMethod<DataValueDescriptor>(restrictionMethodName,activation);
+								restriction = new SpliceMethod<>(restrictionMethodName,activation);
 						}
-						SpliceMethod<ExecRow> generatedMethod = new SpliceMethod<ExecRow>(resultRowAllocatorMethodName,activation);
+						SpliceMethod<ExecRow> generatedMethod = new SpliceMethod<>(resultRowAllocatorMethodName,activation);
 						final GenericPreparedStatement gp = (GenericPreparedStatement)activation.getPreparedStatement();
 						final Object[] saved = gp.getSavedObjects();
 						scoci = (StaticCompiledOpenConglomInfo)saved[scociItem];

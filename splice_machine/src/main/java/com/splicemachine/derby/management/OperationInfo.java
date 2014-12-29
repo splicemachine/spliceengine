@@ -23,7 +23,7 @@ public class OperationInfo {
 		private long statementId;
 		private volatile int numFailedTasks = -1;
         private String info;
-		private Set<JobInfo> jobs = new CopyOnWriteArraySet<JobInfo>();
+		private Set<JobInfo> jobs = new CopyOnWriteArraySet<>();
 
 		public OperationInfo(long operationUuid,
 												 long statementId,

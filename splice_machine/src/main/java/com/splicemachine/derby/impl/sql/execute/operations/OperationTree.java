@@ -119,14 +119,10 @@ public class OperationTree {
                     // run dependent sinks & wait for completion
                     invokeAll(depTasks);
                     runSettingThreadLocals(sink, ctx);
-                } catch (SQLException e) {
+                } catch (SQLException | IOException | StandardException e) {
                     throw new RuntimeException(Exceptions.parseException(e));
-                } catch (StandardException e) {
-                    throw new RuntimeException(Exceptions.parseException(e));
-                } catch (IOException e) {
-										 throw new RuntimeException(Exceptions.parseException(e));
-								 }
-						}
+                }
+            }
         };
     }
 

@@ -87,7 +87,7 @@ public class RestoreBackupTask extends ZkTask {
 
     // Copy store files to preserve them since HBase's bulkload moves the files directly in place to avoid extra copies
     private List<Pair<byte[], String>> copyStoreFiles(List<Pair<byte[], String>> famPaths) throws IOException {
-        List<Pair<byte[], String>> copy = new ArrayList<Pair<byte[], String>>(famPaths.size());
+        List<Pair<byte[], String>> copy = new ArrayList<>(famPaths.size());
         FileSystem fs = region.getFilesystem();
         for (Pair<byte[], String> pair : famPaths) {
             Path srcPath = new Path(pair.getSecond());
@@ -95,7 +95,7 @@ public class RestoreBackupTask extends ZkTask {
             Path localDir = derbyFactory.getRegionDir(region);
             Path tmpPath = getRandomFilename(fs, localDir);
             FileUtil.copy(srcFs, srcPath, fs, tmpPath, false, SpliceConstants.config);
-            copy.add(new Pair<byte[], String>(pair.getFirst(), tmpPath.toString()));
+            copy.add(new Pair<>(pair.getFirst(), tmpPath.toString()));
         }
         return copy;
     }

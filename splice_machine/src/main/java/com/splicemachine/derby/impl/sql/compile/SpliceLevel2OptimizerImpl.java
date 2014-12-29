@@ -674,7 +674,7 @@ public class SpliceLevel2OptimizerImpl implements Optimizer {
 								  int joinOrderNumber, int[] joinOrder) {
 		if (LOG.isTraceEnabled())
 			SpliceLogUtils.trace(LOG, "buildJoinOrder %s, addJoinOrder=%s, joinOrderNumber=%d, joinOrder=%s",prefix, addJoinOrderNumber, joinOrderNumber, Arrays.toString(joinOrder));
-		StringBuffer joinOrderString = new StringBuffer();
+		StringBuilder joinOrderString = new StringBuilder();
         joinOrderString.append(prefix);
 		for (int i = 0; i <= joinPosition; i++) {
 			joinOrderString.append(" ").append(joinOrder[i]);

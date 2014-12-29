@@ -93,7 +93,7 @@ public class DualHashHashTable<T> {
         for(i=0;i<buffer.length;i++){
             RingBuffer<T> list = buffer[pos];
             if(list==null){
-                list = new RingBuffer<T>(1);
+                list = new RingBuffer<>(1);
                 buffer[pos] = list;
                 list.add(t);
                 incrementSize(entryHasher);

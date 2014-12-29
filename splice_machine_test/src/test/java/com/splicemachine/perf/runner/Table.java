@@ -68,16 +68,13 @@ public class Table {
         ImportResult stats = new ImportResult();
         long start = System.nanoTime();
         for(String file: files){
-            Connection connection = connectionPool.acquire();
-            try{
+            try (Connection connection = connectionPool.acquire()) {
                 SpliceLogUtils.debug(LOG, "Loading data from file %s", file);
                 long fileStart = System.nanoTime();
-                PreparedStatement s = connection.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA(null,'"+name.toUpperCase()+"',null,null,'"+file+"',',',null,null)");
+                PreparedStatement s = connection.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA(null,'" + name.toUpperCase() + "',null,null,'" + file + "',',',null,null)");
                 s.execute();
                 long stop = System.nanoTime();
-                stats.addTime(file,stop-fileStart);
-            }finally{
-                connection.close();
+                stats.addTime(file, stop - fileStart);
             }
         }
         stats.finalize(System.nanoTime()-start);
@@ -267,7 +264,7 @@ public class Table {
     }
 
     private class ImportResult implements Result{
-        private final Map<String,Long> filePaths = new HashMap<String, Long>();
+        private final Map<String,Long> filePaths = new HashMap<>();
         private long totalTime;
 
         public void addTime(String fileName, long nanos){

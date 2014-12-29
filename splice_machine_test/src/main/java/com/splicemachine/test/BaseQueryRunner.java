@@ -91,7 +91,7 @@ public abstract class BaseQueryRunner {
 
     protected void execute(int threads, File outputDir, int iterations, String connectString) throws Exception {
         ExecutorService threadPool = Executors.newFixedThreadPool(threads);
-        CompletionService<RunStats> completionService = new ExecutorCompletionService<RunStats>(threadPool);
+        CompletionService<RunStats> completionService = new ExecutorCompletionService<>(threadPool);
         List<Connection> connections = Lists.newArrayListWithCapacity(threads);
         try{
 
@@ -222,45 +222,44 @@ public abstract class BaseQueryRunner {
         @Override
         public RunStats call() throws Exception {
             startLatch.await();
-            PreparedStatement ps = getPreparedStatement();
-            try{
+            try (PreparedStatement ps = getPreparedStatement()) {
                 int sampleSize;
-                if(iterations<100)
+                if (iterations < 100)
                     sampleSize = iterations;
-                else if(iterations<10000)
-                    sampleSize = iterations/10; //store 10% of the iterations up to 10000
+                else if (iterations < 10000)
+                    sampleSize = iterations / 10; //store 10% of the iterations up to 10000
                 else
-                    sampleSize = iterations/100; //store 1% of iterations after that
+                    sampleSize = iterations / 100; //store 1% of iterations after that
                 LatencyTimer timer = Metrics.sampledLatencyTimer(sampleSize);
                 int numErrors = 0;
-                int onePercentIter = iterations/10;
+                int onePercentIter = iterations / 10;
                 int s = 1;
-                while(s<onePercentIter){
-                    s<<=1;
+                while (s < onePercentIter) {
+                    s <<= 1;
                 }
-                for(int i=0;i<iterations;i++){
+                for (int i = 0; i < iterations; i++) {
                     timer.startTiming();
-                    try{
-                        executeIteration(i,ps);
-                    }catch(SQLException se){
+                    try {
+                        executeIteration(i, ps);
+                    } catch (SQLException se) {
                         numErrors++;
-                        reportError(i,se);
-                    }finally{
+                        reportError(i, se);
+                    } finally {
                         timer.tick(1);
                     }
-                    if((i & (s-1))==0){
+                    if ((i & (s - 1)) == 0) {
                         outputWriter.flush();
-                        System.out.printf("[Thread-%d] Completed %d iterations%n",threadId,i+1);
+                        System.out.printf("[Thread-%d] Completed %d iterations%n", threadId, i + 1);
                     }
                 }
-                return new RunStats(iterations,timer.getDistribution(),numErrors,threadId);
-            }catch(Exception e){
+                return new RunStats(iterations, timer.getDistribution(), numErrors, threadId);
+            } catch (Exception e) {
                 e.printStackTrace();
                 throw e;
-            } finally{
+            } finally {
                 outputWriter.flush();
                 Closeables.closeQuietly(outputWriter);
-                ps.close();
+
             }
         }
 

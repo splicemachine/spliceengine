@@ -14,7 +14,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 public class HashLeftOuterJoinOperation extends NestedLoopLeftOuterJoinOperation {
 	private static Logger LOG = Logger.getLogger(HashLeftOuterJoinOperation.class);
 	static {
-		nodeTypes = new ArrayList<NodeType>();
+		nodeTypes = new ArrayList<>();
 		nodeTypes.add(NodeType.MAP);	
 		nodeTypes.add(NodeType.SCROLL);
 	}

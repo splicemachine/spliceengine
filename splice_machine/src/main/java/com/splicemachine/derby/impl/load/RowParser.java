@@ -56,7 +56,7 @@ public class RowParser {
 				if(ctxTimeFormat ==null)
 						ctxTimeFormat = "HH:mm:ss";
 				this.timeFormatStr = ctxTimeFormat;
-				columnTimestampFormats = new HashMap<String,String>();
+				columnTimestampFormats = new HashMap<>();
 				if(timestampFormat != null && timestampFormat.contains("@")) {
 						String[] tmp = timestampFormat.split("\\|");
 						for (String aTmp : tmp) {

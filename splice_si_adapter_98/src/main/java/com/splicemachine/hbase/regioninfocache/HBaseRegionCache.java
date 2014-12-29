@@ -51,7 +51,7 @@ public class HBaseRegionCache implements RegionCache {
     }
 
     private HBaseRegionCache(long cacheUpdatePeriod, ScheduledExecutorService cacheUpdater) {
-        this.regionCache = new ConcurrentSkipListMap<byte[], SortedSet<Pair<HRegionInfo, ServerName>>>(Bytes.BYTES_COMPARATOR);
+        this.regionCache = new ConcurrentSkipListMap<>(Bytes.BYTES_COMPARATOR);
         this.cacheUpdater = cacheUpdater;
         this.cacheUpdatePeriod = cacheUpdatePeriod;
         this.status = new HBaseRegionCacheStatus(cacheUpdatedTimestamp, cacheRefreshRunnable, regionCache, cacheUpdatePeriod);

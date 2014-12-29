@@ -134,9 +134,6 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
             if(keepState)
                 this.indexToMainMutationMap.put(indexPair,mutation);
             indexBuffer.add(indexPair);
-        } catch (IOException e) {
-            failed=true;
-            ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName() + ":" + e.getMessage()));
         } catch (Exception e) {
             failed=true;
             ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName() + ":" + e.getMessage()));
@@ -389,9 +386,6 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
 
             ctx.sendUpstream(mutation);
             return null;
-        } catch (IOException e) {
-            failed=true;
-            ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName() + ":" + e.getMessage()));
         } catch (Exception e) {
             failed=true;
             ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName()+":"+e.getMessage()));

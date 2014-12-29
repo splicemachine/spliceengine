@@ -82,7 +82,7 @@ public class PipelineConstants extends SIConstants {
 		}
 	};
 
-	public static final ObjectArrayList<KVPair> emptyList = new ObjectArrayList<KVPair>();
+	public static final ObjectArrayList<KVPair> emptyList = new ObjectArrayList<>();
 
 		
 }

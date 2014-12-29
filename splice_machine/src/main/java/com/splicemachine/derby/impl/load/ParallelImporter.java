@@ -81,7 +81,7 @@ public class ParallelImporter implements Importer{
                 .build();
         	processingPool = Executors.newFixedThreadPool(numProcessingThreads, processingFactory);
 
-				processingQueue = new BoundedConcurrentLinkedQueue<String[]>(maxImportReadBufferSize);
+				processingQueue = new BoundedConcurrentLinkedQueue<>(maxImportReadBufferSize);
 
 				if(importCtx.shouldRecordStats()){
 						metricFactory = Metrics.samplingMetricFactory(SpliceConstants.sampleTimingSize);

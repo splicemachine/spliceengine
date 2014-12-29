@@ -92,7 +92,7 @@ public class PredicateUtils {
      * Return a List of Predicates for a Derby PredicateList
      */
     public static List<Predicate> PLtoList(PredicateList pl) {
-        List<Predicate> preds = new ArrayList<Predicate>(pl.size());
+        List<Predicate> preds = new ArrayList<>(pl.size());
         for (int i = 0, s = pl.size(); i < s; i++) {
             OptimizablePredicate p = pl.getOptPredicate(i);
             preds.add((Predicate) p);

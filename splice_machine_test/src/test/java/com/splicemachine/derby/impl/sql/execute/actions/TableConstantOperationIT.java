@@ -125,8 +125,7 @@ public class TableConstantOperationIT extends SpliceUnitTest {
 
     @Test(expected=SQLException.class)
     public void testCreateDropTable() throws Exception {
-        Connection connection = methodWatcher.createConnection();
-        try{
+        try (Connection connection = methodWatcher.createConnection()) {
             SQLClosures.execute(connection, new SQLClosures.SQLAction<Statement>() {
                 @Override
                 public void execute(Statement statement) throws Exception {
@@ -135,17 +134,17 @@ public class TableConstantOperationIT extends SpliceUnitTest {
                 }
             });
             connection.commit();
-            SQLClosures.query(connection,String.format("select * from %s.%s",tableSchema.schemaName,EMP_NAME_TABLE2),new SQLClosures.SQLAction<ResultSet>() {
+            SQLClosures.query(connection, String.format("select * from %s.%s", tableSchema.schemaName, EMP_NAME_TABLE2), new SQLClosures.SQLAction<ResultSet>() {
                 @Override
                 public void execute(ResultSet resultSet) throws Exception {
                     Assert.assertEquals(5, resultSetSize(resultSet));
                 }
             });
 
-            SQLClosures.execute(connection,new SQLClosures.SQLAction<Statement>() {
+            SQLClosures.execute(connection, new SQLClosures.SQLAction<Statement>() {
                 @Override
                 public void execute(Statement statement) throws Exception {
-                    statement.execute(String.format("drop table %s",tableSchema.schemaName + "." + EMP_NAME_TABLE2));
+                    statement.execute(String.format("drop table %s", tableSchema.schemaName + "." + EMP_NAME_TABLE2));
                 }
             });
             connection.commit();
@@ -156,8 +155,6 @@ public class TableConstantOperationIT extends SpliceUnitTest {
                     statement.executeQuery(String.format("select * from %s", tableSchema.schemaName + "." + EMP_NAME_TABLE2));
                 }
             });
-        }finally{
-            connection.close();
         }
     }
 
@@ -178,41 +175,38 @@ public class TableConstantOperationIT extends SpliceUnitTest {
 
     @Test(expected = SQLException.class)
     public void testRenameTable() throws Exception {
-        Connection connection = methodWatcher.createConnection();
-        try{
-            SQLClosures.query(connection,String.format("select * from %s.%s",tableSchema.schemaName,EMP_PRIV_TABLE1),new SQLClosures.SQLAction<ResultSet>() {
+        try (Connection connection = methodWatcher.createConnection()) {
+            SQLClosures.query(connection, String.format("select * from %s.%s", tableSchema.schemaName, EMP_PRIV_TABLE1), new SQLClosures.SQLAction<ResultSet>() {
                 @Override
                 public void execute(ResultSet resultSet) throws Exception {
                     Assert.assertEquals(5, resultSetSize(resultSet));
                 }
             });
 
-            SQLClosures.execute(connection,new SQLClosures.SQLAction<Statement>() {
+            SQLClosures.execute(connection, new SQLClosures.SQLAction<Statement>() {
                 @Override
                 public void execute(Statement statement) throws Exception {
-                    statement.execute(String.format("rename table %s.%s to %s",tableSchema.schemaName,EMP_PRIV_TABLE1,"real_private"));
+                    statement.execute(String.format("rename table %s.%s to %s", tableSchema.schemaName, EMP_PRIV_TABLE1, "real_private"));
                 }
             });
             connection.commit();
 
-            try{
-                SQLClosures.execute(connection,new SQLClosures.SQLAction<Statement>() {
+            try {
+                SQLClosures.execute(connection, new SQLClosures.SQLAction<Statement>() {
                     @Override
                     public void execute(Statement statement) throws Exception {
                         statement.executeQuery(String.format("select * from %s.%s", tableSchema.schemaName, EMP_PRIV_TABLE1));
                         Assert.fail("Expected exception but didn't get one.");
                     }
                 });
-            }finally{
-                SQLClosures.query(connection,String.format("select * from %s.%s",tableSchema.schemaName,"real_private"),new SQLClosures.SQLAction<ResultSet>() {
+            } finally {
+                SQLClosures.query(connection, String.format("select * from %s.%s", tableSchema.schemaName, "real_private"), new SQLClosures.SQLAction<ResultSet>() {
                     @Override
                     public void execute(ResultSet resultSet) throws Exception {
                         Assert.assertEquals(5, resultSetSize(resultSet));
                     }
                 });
             }
-        }finally{
-            connection.close();
         }
     }
 
@@ -259,8 +253,7 @@ public class TableConstantOperationIT extends SpliceUnitTest {
 
     @Test(expected=SQLException.class)
      public void testRenameTableWithView() throws Exception {
-        Connection connection = methodWatcher.createConnection();
-        try{
+        try (Connection connection = methodWatcher.createConnection()) {
             connection.setAutoCommit(false);
             SQLClosures.query(connection, String.format("select * from %s", empNamePrivView.toString()), new SQLClosures.SQLAction<ResultSet>() {
                 @Override
@@ -277,8 +270,6 @@ public class TableConstantOperationIT extends SpliceUnitTest {
             });
 
             connection.rollback();
-        }finally{
-            connection.close();
         }
     }
 }

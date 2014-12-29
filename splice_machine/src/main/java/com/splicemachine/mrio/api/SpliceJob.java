@@ -94,14 +94,11 @@ public class SpliceJob extends Job {
 				
 			} catch (SQLException e1) {
 				throw new IOException(e1);
-			} catch (InstantiationException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (IllegalAccessException e) {
+			} catch (InstantiationException | IllegalAccessException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-		System.out.println("Submitting job...");
+        System.out.println("Submitting job...");
 		super.submit();
 		System.out.println("Submitted job...");
 

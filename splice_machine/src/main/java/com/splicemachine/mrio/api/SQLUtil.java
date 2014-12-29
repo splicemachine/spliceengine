@@ -79,9 +79,9 @@ public class SQLUtil {
 	   **/
 	  public HashMap<List, List> getPrimaryKey(String tableName){
 		  //System.out.println("getting pk");
-		  HashMap<List, List> pks = new HashMap<List, List>();
-		  ArrayList<String> names = new ArrayList<String>();
-		  ArrayList<Integer> types = new ArrayList<Integer>();
+		  HashMap<List, List> pks = new HashMap<>();
+		  ArrayList<String> names = new ArrayList<>();
+		  ArrayList<Integer> types = new ArrayList<>();
 		  try{
 			  
 			  String   catalog           = null;
@@ -131,9 +131,9 @@ public class SQLUtil {
 	   * */
 	  public HashMap<List, List> getTableStructure(String tableName){
 		  //System.out.println("getting table structure");
-		  HashMap<List, List> colType = new HashMap<List, List>();
-		  ArrayList<String> names = new ArrayList<String>();
-		  ArrayList<Integer> types = new ArrayList<Integer>();
+		  HashMap<List, List> colType = new HashMap<>();
+		  ArrayList<String> names = new ArrayList<>();
+		  ArrayList<Integer> types = new ArrayList<>();
 		  try{
 			 
 			  String   catalog           = null;
@@ -197,7 +197,7 @@ public class SQLUtil {
 			  throw new SQLException("Splice table not known, please specify Splice tableName. "
 			  							+ "pattern: schemaName.tableName");
           long[] conglomIds = SpliceAdmin.getConglomids(connect, schema, tblName);
-          StringBuffer str = new StringBuffer();
+          StringBuilder str = new StringBuilder();
           str.append(conglomIds[0]);
 
           return str.toString();
@@ -316,7 +316,7 @@ public class SQLUtil {
 		  if(str == null || str.trim().equals(""))
 			  return null;
 		  else{
-			 HashMap<String, String> res = new HashMap<String, String>();
+			 HashMap<String, String> res = new HashMap<>();
 			 
 			 String[]tmp = str.split("\\.");
 			

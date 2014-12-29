@@ -289,7 +289,7 @@ public class MergeJoinStrategy extends HashableJoinStrategy {
 		 int[] baseColumnPositionsRightSide = irg.baseColumnPositions();
 		 Vector leftSideOrdering = rowOrdering.getVector();
 		 int size = predicateList.size();
-		 List<BinaryRelationalOperatorNode> joinOperators = new ArrayList<BinaryRelationalOperatorNode>();
+		 List<BinaryRelationalOperatorNode> joinOperators = new ArrayList<>();
 		 for (int i = 0; i<size; i++) {
 			 Predicate pred = (Predicate) predicateList.getOptPredicate(i);
 			 if (pred.isJoinPredicate()) {

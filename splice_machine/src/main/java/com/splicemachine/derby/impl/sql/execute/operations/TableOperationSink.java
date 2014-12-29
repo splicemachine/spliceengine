@@ -55,7 +55,7 @@ public class TableOperationSink implements OperationSink {
      * A chain of tasks for identifying parent and child tasks. The last byte[] in
      * the list is the immediate parent of other tasks.
      */
-    public static final ThreadLocal<List<byte[]>> taskChain = new ThreadLocal<List<byte[]>>();
+    public static final ThreadLocal<List<byte[]>> taskChain = new ThreadLocal<>();
     private final CallBufferFactory<KVPair> tableWriter;
     private final SinkingOperation operation;
     private final byte[] taskId;

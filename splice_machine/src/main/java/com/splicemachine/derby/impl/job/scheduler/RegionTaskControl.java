@@ -143,13 +143,7 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
                 }else{
                     taskStatus = TaskStatus.fromBytes(data);
                 }
-            } catch (InterruptedException e) {
-                throw new ExecutionException(e);
-            } catch (KeeperException e) {
-                throw new ExecutionException(e);
-            } catch (ClassNotFoundException e) {
-                throw new ExecutionException(e);
-            } catch (IOException e) {
+            } catch (InterruptedException | IOException | ClassNotFoundException | KeeperException e) {
                 throw new ExecutionException(e);
             }
         }

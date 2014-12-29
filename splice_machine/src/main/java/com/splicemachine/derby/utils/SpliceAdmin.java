@@ -106,12 +106,12 @@ public class SpliceAdmin extends BaseAdminProcedures {
         operate(new JMXServerOperation() {
             @Override
             public void operate(List<Pair<String, JMXConnector>> connections) throws MalformedObjectNameException, IOException, SQLException {
-                Set<String> uniqueLoggerNames = new HashSet<String>();
+                Set<String> uniqueLoggerNames = new HashSet<>();
                 for (Logging logger : JMXUtils.getLoggingManagement(connections)) {
                     uniqueLoggerNames.addAll(logger.getLoggerNames());
                 }
                 StringBuilder sb = new StringBuilder("select * from (values ");
-                List<String> loggerNames = new ArrayList<String>(uniqueLoggerNames);
+                List<String> loggerNames = new ArrayList<>(uniqueLoggerNames);
                 Collections.sort(loggerNames);
                 for (String logger : loggerNames) {
                     sb.append(String.format("('%s')", logger));
@@ -750,7 +750,7 @@ public class SpliceAdmin extends BaseAdminProcedures {
             LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
             DataDictionary dd = lcc.getDataDictionary();
             List list = dd.getAllSPSDescriptors();
-            ArrayList<ExecRow> rows = new ArrayList<ExecRow>(list.size());
+            ArrayList<ExecRow> rows = new ArrayList<>(list.size());
 
             // Describe the format of the input rows (ExecRow).
             //
@@ -830,7 +830,7 @@ public class SpliceAdmin extends BaseAdminProcedures {
             // SEARCH ORDER: JVM, Service, Database, App
             appProps.putAll(dbProps);  // dbProps already has been overwritten with service properties.
             appProps.putAll(jvmProps);
-            ArrayList<ExecRow> rows = new ArrayList<ExecRow>(appProps.size());
+            ArrayList<ExecRow> rows = new ArrayList<>(appProps.size());
 
             // Describe the format of the input rows (ExecRow).
             //
@@ -942,7 +942,7 @@ public class SpliceAdmin extends BaseAdminProcedures {
      * really isn't a guarantee, and it shouldn't be relied upon for correctness in all cases.
      */
     public static long[] getConglomids(Connection conn, String schemaName, String tableName) throws SQLException {
-        List<Long> conglomIDs = new ArrayList<Long>();
+        List<Long> conglomIDs = new ArrayList<>();
         if (schemaName == null)
             // default schema
             schemaName = "APP";

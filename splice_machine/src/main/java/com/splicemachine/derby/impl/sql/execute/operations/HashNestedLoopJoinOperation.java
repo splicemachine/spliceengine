@@ -283,7 +283,7 @@ public class HashNestedLoopJoinOperation extends JoinOperation{
 
     private void nextBatch(SpliceRuntimeContext context) throws IOException, StandardException {
         if(leftRowBuffer==null)
-            leftRowBuffer = new RingBuffer<ExecRow>(SpliceConstants.hashNLJLeftRowBufferSize);
+            leftRowBuffer = new RingBuffer<>(SpliceConstants.hashNLJLeftRowBufferSize);
         if(rightHashTable==null){
             DualHashHashTable.EntryHasher<ExecRow> rightEntryHasher = new DualHashHashTable.EntryHasher<ExecRow>() {
                 @Override
@@ -332,7 +332,7 @@ public class HashNestedLoopJoinOperation extends JoinOperation{
                 }
             };
 
-            rightHashTable = new DualHashHashTable<ExecRow>(SpliceConstants.hashNLJRightHashTableSize, rightEntryHasher, leftEntryHasher);
+            rightHashTable = new DualHashHashTable<>(SpliceConstants.hashNLJRightHashTableSize, rightEntryHasher, leftEntryHasher);
         } else {
             rightHashTable.clear();
         }

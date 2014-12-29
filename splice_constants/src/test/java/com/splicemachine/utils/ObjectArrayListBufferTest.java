@@ -16,8 +16,8 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 
 public class ObjectArrayListBufferTest {
-	protected static Map<String,String> map = new HashMap<String,String>();
-	protected static ObjectObjectOpenHashMap<String,String> backingMap = new ObjectObjectOpenHashMap<String,String>();
+	protected static Map<String,String> map = new HashMap<>();
+	protected static ObjectObjectOpenHashMap<String,String> backingMap = new ObjectObjectOpenHashMap<>();
 
 	static {
 		map.put("John", "Leach");

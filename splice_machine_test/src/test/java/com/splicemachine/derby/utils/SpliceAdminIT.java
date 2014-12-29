@@ -112,13 +112,13 @@ public class SpliceAdminIT {
         tableWatcher.create(Description.createSuiteDescription(CLASS_NAME, "testGetConglomerateIDs"));
         List<Map> tableCluster = TestUtils.tableLookupByNumberNoPrint(methodWatcher);
 
-        List<Long> actualConglomIDs = new ArrayList<Long>();
+        List<Long> actualConglomIDs = new ArrayList<>();
         long[] conglomids = SpliceAdmin.getConglomids(methodWatcher.getOrCreateConnection(),CLASS_NAME,TABLE_NAME);
         Assert.assertTrue(conglomids.length > 0);
         for (long conglomID : conglomids) {
             actualConglomIDs.add(conglomID);
         }
-        List<Long> expectedConglomIDs = new ArrayList<Long>();
+        List<Long> expectedConglomIDs = new ArrayList<>();
         for( Map m : tableCluster){
             if (m.get("TABLENAME").equals(TABLE_NAME)) {
                 expectedConglomIDs.add((Long) m.get("CONGLOMERATENUMBER"));
@@ -139,13 +139,13 @@ public class SpliceAdminIT {
         tableWatcher.create(Description.createSuiteDescription(CLASS_NAME, "testGetConglomerateIDsAllInSchema"));
         List<Map> tableCluster = TestUtils.tableLookupByNumberNoPrint(methodWatcher);
 
-        List<Long> actualConglomIDs = new ArrayList<Long>();
+        List<Long> actualConglomIDs = new ArrayList<>();
         long[] conglomids = SpliceAdmin.getConglomids(methodWatcher.getOrCreateConnection(),CLASS_NAME,null);
         Assert.assertTrue(conglomids.length > 0);
         for (long conglomID : conglomids) {
             actualConglomIDs.add(conglomID);
         }
-        List<Long> expectedConglomIDs = new ArrayList<Long>();
+        List<Long> expectedConglomIDs = new ArrayList<>();
         for( Map m : tableCluster){
             expectedConglomIDs.add((Long) m.get("CONGLOMERATENUMBER"));
         }

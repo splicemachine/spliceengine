@@ -893,18 +893,15 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
         long timeAvailable = maxWait;
         long activeTxnId = -1l;
         do{
-            CloseableStream<TxnView> activeTxns = transactionReader.getActiveTransactions();
-            try{
+            try (CloseableStream<TxnView> activeTxns = transactionReader.getActiveTransactions()) {
                 TxnView txn;
-                while((txn = activeTxns.next())!=null){
-                    if(!txn.descendsFrom(userTxn)){
+                while ((txn = activeTxns.next()) != null) {
+                    if (!txn.descendsFrom(userTxn)) {
                         activeTxnId = txn.getTxnId();
                     }
                 }
             } catch (StreamException e) {
                 throw new IOException(e.getCause());
-            } finally{
-                activeTxns.close();
             }
             if(activeTxnId<0) return activeTxnId;
             /*

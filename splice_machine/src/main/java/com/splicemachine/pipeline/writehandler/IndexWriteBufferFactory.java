@@ -14,7 +14,7 @@ public class IndexWriteBufferFactory implements WriteBufferFactory {
     private ObjectObjectOpenHashMap<byte[],CallBuffer<KVPair>> sharedCallBufferMap;
 
     public IndexWriteBufferFactory() {
-    	sharedCallBufferMap = new ObjectObjectOpenHashMap<byte[],CallBuffer<KVPair>>();
+    	sharedCallBufferMap = new ObjectObjectOpenHashMap<>();
     }
     @Override
     public CallBuffer<KVPair> getWriteBuffer(byte[] conglomBytes,

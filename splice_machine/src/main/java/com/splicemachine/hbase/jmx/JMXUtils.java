@@ -38,7 +38,7 @@ public class JMXUtils {
     public static final String TIMESTAMP_REGION_MANAGEMENT = "com.splicemachine.si.impl.timestamp.request:type=TimestampRegionManagement";
 
     public static List<Pair<String,JMXConnector>> getMBeanServerConnections(Collection<Pair<String,String>> serverConnections) throws IOException {
-        List<Pair<String,JMXConnector>> mbscArray = new ArrayList<Pair<String,JMXConnector>>(serverConnections.size());
+        List<Pair<String,JMXConnector>> mbscArray = new ArrayList<>(serverConnections.size());
         String regionServerJMXPort = SpliceConstants.config.get("hbase.regionserver.jmx.port","10102");
         for (Pair<String,String> serverConn: serverConnections) {
             JMXServiceURL url = new JMXServiceURL(String.format("service:jmx:rmi://%1$s/jndi/rmi://%1$s:%2$s/jmxrmi",serverConn.getFirst(),regionServerJMXPort));
@@ -49,7 +49,7 @@ public class JMXUtils {
     }
 
     public static List<Logging> getLoggingManagement(List<Pair<String,JMXConnector>> mbscArray) throws MalformedObjectNameException, IOException {
-        List<Logging> activeWrites = new ArrayList<Logging>();
+        List<Logging> activeWrites = new ArrayList<>();
         for (Pair<String,JMXConnector> mbsc: mbscArray) {
             activeWrites.add(getNewMXBeanProxy(mbsc.getSecond(),LOGGING_MANAGEMENT,Logging.class));
         }
@@ -61,7 +61,7 @@ public class JMXUtils {
 	}
 	
 	public static List<ThreadPoolStatus> getMonitoredThreadPools(List<Pair<String,JMXConnector>> mbscArray) throws MalformedObjectNameException, IOException {
-		List<ThreadPoolStatus> monitoredThreadPools = new ArrayList<ThreadPoolStatus>();
+		List<ThreadPoolStatus> monitoredThreadPools = new ArrayList<>();
 		for (Pair<String,JMXConnector> mbsc: mbscArray) {
 			monitoredThreadPools.add(getNewMBeanProxy(mbsc.getSecond(),MONITORED_THREAD_POOL,ThreadPoolStatus.class));
 		}
@@ -69,7 +69,7 @@ public class JMXUtils {
 	}
 
     public static List<ActiveWriteHandlersIface> getActiveWriteHandlers(List<Pair<String,JMXConnector>> mbscArray) throws MalformedObjectNameException, IOException {
-        List<ActiveWriteHandlersIface> activeWrites = new ArrayList<ActiveWriteHandlersIface>();
+        List<ActiveWriteHandlersIface> activeWrites = new ArrayList<>();
         for (Pair<String,JMXConnector> mbsc: mbscArray) {
             activeWrites.add(getNewMBeanProxy(mbsc.getSecond(),ACTIVE_WRITE_HANDLERS,ActiveWriteHandlersIface.class));
         }
@@ -77,7 +77,7 @@ public class JMXUtils {
     }
 
     public static List<SpliceMachineVersion> getSpliceMachineVersion(List<Pair<String,JMXConnector>> mbscArray) throws MalformedObjectNameException, IOException {
-        List<SpliceMachineVersion> versions = new ArrayList<SpliceMachineVersion>();
+        List<SpliceMachineVersion> versions = new ArrayList<>();
         for (Pair<String,JMXConnector> mbsc: mbscArray) {
             versions.add(getNewMBeanProxy(mbsc.getSecond(), SPLICEMACHINE_VERSION, SpliceMachineVersion.class));
         }
@@ -87,7 +87,7 @@ public class JMXUtils {
     public static List<Pair<String,JobSchedulerManagement>> getJobSchedulerManagement(List<Pair<String,JMXConnector>> mbscArray) throws MalformedObjectNameException, IOException {
         List<Pair<String,JobSchedulerManagement>> jobMonitors = Lists.newArrayListWithCapacity(mbscArray.size());
         for (Pair<String,JMXConnector> mbsc: mbscArray) {
-            jobMonitors.add(new Pair<String, JobSchedulerManagement>(mbsc.getFirst(),getNewMBeanProxy(mbsc.getSecond(), JOB_SCHEDULER_MANAGEMENT, JobSchedulerManagement.class)));
+            jobMonitors.add(new Pair<>(mbsc.getFirst(),getNewMBeanProxy(mbsc.getSecond(), JOB_SCHEDULER_MANAGEMENT, JobSchedulerManagement.class)));
         }
         return jobMonitors;
     }
@@ -118,7 +118,7 @@ public class JMXUtils {
 	}
 
     public static List<TimestampMasterManagement> getTimestampMasterManagement(List<Pair<String,JMXConnector>> connections) throws MalformedObjectNameException, IOException {
-        List<TimestampMasterManagement> managers = new ArrayList<TimestampMasterManagement>();
+        List<TimestampMasterManagement> managers = new ArrayList<>();
         for (Pair<String,JMXConnector> connection : connections) {
             managers.add(getNewMXBeanProxy(connection.getSecond(), TIMESTAMP_MASTER_MANAGEMENT, TimestampMasterManagement.class));
         }
