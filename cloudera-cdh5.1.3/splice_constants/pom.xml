@@ -18,6 +18,7 @@
 		<hbase.version>0.98.1-cdh5.1.3-splice1.0.0</hbase.version>
 		<hive.version>0.12.0-cdh5.1.3</hive.version>
 		<zookeeper.version>3.4.5-cdh5.1.3</zookeeper.version>
+		<spark.version>1.0.0-cdh5.1.3</spark.version>
 	</properties>
 
 	<dependencies>
