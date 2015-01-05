@@ -19,6 +19,7 @@
 		<hive.version>0.13.0-mapr-1405</hive.version>
 		<maprfs.version>4.0.1-mapr</maprfs.version>
 		<zookeeper.version>3.4.5-mapr-1406</zookeeper.version>
+		<spark.version></spark.version>
 	</properties>
 
 	<dependencies>
