@@ -651,6 +651,33 @@ class ij {
 		}
 	}
 
+    /**
+       Verify that a procedure exists within a schema. Throws an exception
+       if procedure does not exist.
+       
+       @param schema Schema for the table
+       @param proc  Name of procedure to check for existence of
+     */
+    public void verifyProcedureExists(String schema, String proc) 
+    throws SQLException {
+        if(schema == null)
+            return;
+
+        ResultSet rs = null;
+        try {
+            DatabaseMetaData dbmd = theConnection.getMetaData();
+            rs = dbmd.getProcedures(null,schema,proc);
+            if(!rs.next())
+                throw ijException.noSuchProcedure(proc);
+        } finally {
+            try {
+                if(rs!=null)
+                    rs.close();
+            } catch (SQLException e) {
+            }
+        }
+    }
+
 	/**
 	   Return a resultset of tables (or views, procs...) in the given schema. 
 
@@ -815,6 +842,42 @@ class ij {
 			throw e;
 		}
 	}
+
+    /**
+       Return a resultset of procedure columns from database metadata
+     */
+    public ijResult showProcedureColumns(String schema, String proc) throws SQLException {
+        ResultSet rs = null;
+        try {
+            haveConnection();
+            verifyProcedureExists(schema,proc);
+
+            DatabaseMetaData dbmd = theConnection.getMetaData();
+            rs = dbmd.getProcedureColumns(null,schema,proc,null);
+
+            // Small subset of the result set fields available
+            int[] displayColumns = new int[] {
+                rs.findColumn("COLUMN_NAME"),
+                rs.findColumn("TYPE_NAME"),
+                rs.findColumn("ORDINAL_POSITION")
+            };
+
+            int[] columnWidths = new int[] {
+                32,
+                16,
+                16,
+            };
+
+            return new ijResultSetResult(rs, displayColumns, columnWidths);
+        } catch (SQLException e) {
+            try {
+                if(rs!=null)
+                    rs.close();
+            } catch (SQLException se) {
+            }
+            throw e;
+        }
+    }
 
     /**
        Return a resultset of primary keys from database metadata
@@ -1074,9 +1137,6 @@ class ij {
 			throw e;
 		}
 	}
-
-
-
 
 	/**
 	   Outputs the names of all fields of given table. Outputs field
@@ -1374,6 +1434,7 @@ TOKEN [IGNORE_CASE] :
 |   <PRIMARYKEYS: "primarykeys">
 |	<PROCEDURE: "procedure">
 |	<PROCEDURES: "procedures">
+|   <PROCEDURECOLS: "procedurecols">
 |	<PROPERTIES: "properties">
 |	<PROTOCOL: "protocol">
 |	<QUIT: "quit">
@@ -1986,9 +2047,8 @@ throws SQLException
 	}
 }
 
-
 /**
- * Handles DESCRIBE table
+ * Handles DESCRIBE <table> and DESCRIBE PROCEDURE <procedure>
  */
 ijResult
 DescTableStatement()
@@ -2000,11 +2060,29 @@ throws SQLException
 	Token  s = null;
 	String schema;
 	String table;
+    String proc;
 }
 {
+
 	<DESCRIBE>
 	(
-
+        /* DESCRIBE PROCEDURE is a splice specific enhancement */
+        <PROCEDURE>
+            [ i = caIdentifier() ( <PERIOD> i2 = caIdentifier() ) ]
+        {
+            if (i2 == null) {
+                schema = null;
+                proc = i;
+            } else {
+                schema = i;
+                proc = i2;
+            }
+            if (schema == null) {
+                schema = util.getSelectedSchema(theConnection);
+            }
+            return showProcedureColumns(schema, proc);
+        }
+    |
 		( i = caIdentifier() ( <PERIOD> i2 = caIdentifier() )? )
 		{
 			if (i2 == null) {
@@ -2145,6 +2223,7 @@ throws SQLException
 	String schema  = null;
 	String tblname = null;
 	String str     = null;
+    String strProc = null;
 	String[] types = null;
 	Token t = null;
 	Token v = null;
@@ -2203,6 +2282,27 @@ throws SQLException
         if(schema == null && tblname != null)
             schema = util.getSelectedSchema(theConnection);
         return showPrimaryKeys(schema,tblname);
+    }
+|   <PROCEDURECOLS>
+        [ (<IN> schema=caIdentifier()    [ <FROM> strProc=caIdentifier() ] ) |
+          (<FROM> tblname=caIdentifier() [ <PERIOD> str=caIdentifier() ] ) ]
+    {
+        if(strProc != null) {
+            tblname = strProc;
+        }
+        
+        if(str != null) {
+            // if absolute table reference given then use it
+            schema = tblname;
+            tblname = str;
+        }
+
+        // If user specifies a table name, then assume schema is
+        // current schema. Note that getSelectedSchema may return
+        // null for some DBMSes.
+        if(schema == null && tblname != null)
+            schema = util.getSelectedSchema(theConnection);
+        return showProcedureColumns(schema,tblname);
     }
 |	<PROCEDURES>
 		[ <IN> schema=caIdentifier() ]
@@ -4044,6 +4144,7 @@ keyword() :
 |	tok = <PREVIOUS>
 |	tok = <PROCEDURE>
 |	tok = <PROCEDURES>
+|   tok = <PROCEDURECOLS>
 |	tok = <PROPERTIES>
 |	tok = <PROTOCOL>
 |	tok = <QUIT>
