@@ -7,11 +7,8 @@ package com.splicemachine.mrio.api;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SIFilterFactory;
-import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.metrics.MetricFactory;
-
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.client.HTable;
@@ -31,7 +28,6 @@ import org.apache.hadoop.hbase.client.Scan;
 		private	FormatableBitSet accessedKeys;
 		private	String indexName;
 		private	String tableVersion;
-
 		private SIFilterFactory filterFactory;
 		private boolean[] keyColumnSortOrder;
 		private HTable htable;
