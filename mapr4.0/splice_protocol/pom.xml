@@ -14,13 +14,7 @@
 	</parent>
 
 	<dependencies>
-		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_constants-mapr4.0</artifactId> <version>1.0.1-SNAPSHOT</version>
-		<exclusions>
-		<exclusion> <groupId>com.splicemachine</groupId> <artifactId>asynchbase</artifactId></exclusion>
-		<exclusion> <groupId>com.stumbleupon</groupId> <artifactId>async</artifactId> </exclusion>
-		</exclusions>
-		</dependency>
-
+		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_constants-mapr4.0</artifactId> <version>1.0.1-SNAPSHOT</version> <exclusions> <exclusion> <groupId>com.splicemachine</groupId> <artifactId>asynchbase</artifactId></exclusion> <exclusion> <groupId>com.stumbleupon</groupId> <artifactId>async</artifactId> </exclusion> </exclusions> </dependency>
 	</dependencies>
 
 	<build>
