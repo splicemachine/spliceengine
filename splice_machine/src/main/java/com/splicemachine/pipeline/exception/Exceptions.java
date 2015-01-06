@@ -59,7 +59,10 @@ public class Exceptions {
         }else if(rootCause instanceof ConstraintViolation.PrimaryKeyViolation
                 || rootCause instanceof ConstraintViolation.UniqueConstraintViolation){
             return createStandardExceptionForConstraintError(SQLState.LANG_DUPLICATE_KEY_CONSTRAINT, (ConstraintViolation.ConstraintViolationException) e);
-        }else if (rootCause instanceof com.splicemachine.async.RemoteException){
+        } else if(rootCause instanceof ConstraintViolation.ForeignKeyConstraintViolation) {
+            return createStandardExceptionForConstraintError(SQLState.LANG_FK_VIOLATION, (ConstraintViolation.ConstraintViolationException) rootCause);
+        }
+        else if (rootCause instanceof com.splicemachine.async.RemoteException){
             com.splicemachine.async.RemoteException re = (com.splicemachine.async.RemoteException)rootCause;
             String fullMessage = re.getMessage();
             String type = re.getType();
@@ -102,7 +105,7 @@ public class Exceptions {
                 exceptionClass = Exception.class;
             }
             String json = fullMessage.substring(openBraceIndex,fullMessage.indexOf(CLOSE_BRACE)+1);
-            return parseException((Exception)gson.fromJson(json,exceptionClass));
+            return parseException((Exception) gson.fromJson(json, exceptionClass));
         } else if(rootCause instanceof DoNotRetryIOException ){
 						if(rootCause.getMessage()!=null && rootCause.getMessage().contains("rpc timeout")) {
 								return StandardException.newException(MessageId.QUERY_TIMEOUT, "Increase hbase.rpc.timeout");
@@ -143,10 +146,10 @@ public class Exceptions {
     public static StandardException createStandardExceptionForConstraintError(String errorCode, ConstraintViolation.ConstraintViolationException e){
 
         ConstraintContext cc = e.getConstraintContext();
-        StandardException newException = null;
+        StandardException newException;
 
         if(cc != null){
-            newException = StandardException.newException(errorCode, cc.getConstraintName(), cc.getTableName());
+            newException = StandardException.newException(errorCode, cc.getMessages());
         }else{
             newException = StandardException.newException(errorCode);
         }

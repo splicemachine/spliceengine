@@ -2,6 +2,7 @@ package com.splicemachine.pipeline.writeconfiguration;
 
 import java.util.concurrent.ExecutionException;
 
+import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.hbase.ExceptionTranslator;
 
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
@@ -21,7 +22,7 @@ public class UpdatingWriteConfiguration extends ForwardingWriteConfiguration{
 
 	@Override
 	public WriteResponse globalError(Throwable t) throws ExecutionException {
-			ExceptionTranslator handler = derbyFactory.getExceptionHandler();
+			ExceptionTranslator handler = DerbyFactoryDriver.derbyFactory.getExceptionHandler();
 			if(handler.isNotServingRegionException(t) || handler.isWrongRegionException(t)){
 					canRebuild.rebuildBuffer();
 			}

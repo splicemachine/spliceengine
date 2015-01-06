@@ -1,13 +1,5 @@
 package com.splicemachine.derby.impl.sql.execute.AlterTable;
 
-/**
- * Created with IntelliJ IDEA.
- * User: jyuan
- * Date: 2/7/14
- * Time: 11:12 AM
- * To change this template use File | Settings | File Templates.
- */
-
 import com.google.common.io.Closeables;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
@@ -30,6 +22,11 @@ import org.apache.derby.impl.sql.execute.ValueRow;
 import java.io.Closeable;
 import java.io.IOException;
 import java.sql.SQLException;
+
+/**
+ * User: jyuan
+ * Date: 2/7/14
+ */
 public class RowTransformer<Data> implements Closeable {
 	private static SDataLib dataLib = SIFactoryDriver.siFactory.getDataLib();
     private UUID tableId;
@@ -43,7 +40,6 @@ public class RowTransformer<Data> implements Closeable {
 	private KeyHashDecoder keyDecoder;
     private PairEncoder entryEncoder;
     private int[] oldColumnOrdering;
-    private int[] newColumnOrdering;
     private int[] baseColumnMap;
     int[] formatIds;
     DataValueDescriptor[] kdvds;
@@ -93,11 +89,11 @@ public class RowTransformer<Data> implements Closeable {
 
         // initialize encoder
         oldColumnOrdering = DataDictionaryUtils.getColumnOrdering(txn, tableId);
-        newColumnOrdering = DataDictionaryUtils.getColumnOrderingAfterDropColumn(oldColumnOrdering, droppedColumnPosition);
+        int[] newColumnOrdering = DataDictionaryUtils.getColumnOrderingAfterDropColumn(oldColumnOrdering, droppedColumnPosition);
 
         KeyEncoder encoder;
 				DescriptorSerializer[] newSerializers = VersionedSerializers.forVersion(tableVersion, true).getSerializers(newRow);
-        if(newColumnOrdering!=null&& newColumnOrdering.length>0){
+        if(newColumnOrdering !=null&& newColumnOrdering.length>0){
 						//must use dense encodings in the key
 						DescriptorSerializer[] denseSerializers = VersionedSerializers.forVersion(tableVersion, false).getSerializers(newRow);
 						encoder = new KeyEncoder(NoOpPrefix.INSTANCE, BareKeyHash.encoder(newColumnOrdering, null, denseSerializers), NoOpPostfix.INSTANCE);
@@ -107,7 +103,7 @@ public class RowTransformer<Data> implements Closeable {
         int[] columns = IntArrays.count(newRow.nColumns());
 
         if (newColumnOrdering != null && newColumnOrdering.length > 0) {
-            for (int col:newColumnOrdering) {
+            for (int col: newColumnOrdering) {
                 columns[col] = -1;
             }
         }
@@ -178,6 +174,7 @@ public class RowTransformer<Data> implements Closeable {
         return newPair;
     }
 
+    @Override
 		public void close() {
 				Closeables.closeQuietly(keyDecoder);
 				Closeables.closeQuietly(rowDecoder);

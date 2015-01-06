@@ -3,29 +3,44 @@ package com.splicemachine.pipeline.impl;
 import com.splicemachine.pipeline.api.Code;
 import com.splicemachine.pipeline.constraint.Constraint;
 import com.splicemachine.pipeline.constraint.ConstraintContext;
+
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
 /**
+ * Immutable class representing the result of one KV write.
+ *
  * @author Scott Fines
  *         Created on: 8/8/13
  */
-public class WriteResult implements Externalizable{
+public class WriteResult implements Externalizable {
+
     private static final long serialVersionUID = 1l;
+
+    private static final WriteResult NOT_RUN_RESULT = new WriteResult(Code.NOT_RUN);
+    private static final WriteResult SUCCESS_RESULT = new WriteResult(Code.SUCCESS);
+    private static final WriteResult PARTIAL_RESULT = new WriteResult(Code.PARTIAL);
+    private static final WriteResult INTERRUPTED = new WriteResult(Code.INTERRUPTED_EXCEPTION);
+    private static final WriteResult INDEX_NOT_SETUP = new WriteResult(Code.INDEX_NOT_SETUP_EXCEPTION);
+    private static final WriteResult WRONG_REGION = new WriteResult(Code.WRONG_REGION);
+    private static final WriteResult NOT_SERVING_REGION = new WriteResult(Code.NOT_SERVING_REGION);
+    private static final WriteResult REGION_TO_BUSY = new WriteResult(Code.REGION_TOO_BUSY);
+
     private Code code;
     private String errorMessage;
     private ConstraintContext constraintContext;
 
-    public WriteResult() { }
+    public WriteResult() {
+    }
 
     public WriteResult(Code code, String errorMessage) {
         this.code = code;
         this.errorMessage = errorMessage;
     }
 
-    public WriteResult(Code code, ConstraintContext constraintContext){
+    public WriteResult(Code code, ConstraintContext constraintContext) {
         this.code = code;
         this.constraintContext = constraintContext;
     }
@@ -38,28 +53,6 @@ public class WriteResult implements Externalizable{
         this.code = code;
         this.constraintContext = context;
         this.errorMessage = errorMessage;
-    }
-
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        out.writeUTF(code.name());
-        out.writeBoolean(errorMessage!=null);
-        if(errorMessage != null){
-            out.writeUTF(errorMessage);
-        }
-        out.writeBoolean(constraintContext!=null);
-        if(constraintContext!=null){
-            out.writeObject(constraintContext);
-        }
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        code = Code.valueOf(in.readUTF());
-        if(in.readBoolean())
-            errorMessage = in.readUTF();
-        if(in.readBoolean())
-            constraintContext = (ConstraintContext)in.readObject();
     }
 
     public String getErrorMessage() {
@@ -77,9 +70,11 @@ public class WriteResult implements Externalizable{
     public boolean canRetry() {
         return code.canRetry();
     }
+
     public boolean isPartial() {
         return code.isPartial();
     }
+
     public boolean isSuccess() {
         return code.isSuccess();
     }
@@ -88,34 +83,52 @@ public class WriteResult implements Externalizable{
         return code.refreshCache();
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    // static factory methods
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    private static final WriteResult NOT_RUN_RESULT = new WriteResult(Code.NOT_RUN);
+    public static WriteResult failed(String message) {
+        return new WriteResult(Code.FAILED, message);
+    }
+
+    public static WriteResult pipelineTooBusy(String regionNameAsString) {
+        return new WriteResult(Code.PIPELINE_TOO_BUSY, "pipeline for regionserver owning region " + regionNameAsString + " is too busy");
+    }
+
     public static WriteResult notRun() {
         return NOT_RUN_RESULT;
     }
 
-    private static final WriteResult SUCCESS_RESULT = new WriteResult(Code.SUCCESS);
     public static WriteResult success() {
         return SUCCESS_RESULT;
     }
 
-    private static final WriteResult PARTIAL_RESULT = new WriteResult(Code.PARTIAL);
     public static WriteResult partial() {
         return PARTIAL_RESULT;
     }
 
-    private static final WriteResult INTERRUPED = new WriteResult(Code.INTERRUPTED_EXCEPTON);
-    public static WriteResult interrupted(){ return INTERRUPED;}
+    public static WriteResult interrupted() {
+        return INTERRUPTED;
+    }
 
-    private static final WriteResult INDEX_NOT_SETUP = new WriteResult(Code.INDEX_NOT_SETUP_EXCEPTION);
-    public static WriteResult indexNotSetup(){ return INDEX_NOT_SETUP;}
+    public static WriteResult indexNotSetup() {
+        return INDEX_NOT_SETUP;
+    }
 
-    public static WriteResult failed(String message) {
-        return new WriteResult(Code.FAILED,message);
+    public static WriteResult wrongRegion() {
+        return WRONG_REGION;
+    }
+
+    public static WriteResult notServingRegion() {
+        return NOT_SERVING_REGION;
+    }
+
+    public static WriteResult regionTooBusy() {
+        return REGION_TO_BUSY;
     }
 
     public static Code convertType(Constraint.Type type) {
-        switch(type){
+        switch (type) {
             case PRIMARY_KEY:
                 return Code.PRIMARY_KEY_VIOLATION;
             case UNIQUE:
@@ -129,29 +142,34 @@ public class WriteResult implements Externalizable{
         }
     }
 
-    public static WriteResult wrongRegion() {
-        return new WriteResult(Code.WRONG_REGION);
-    }
-
-    public static WriteResult notServingRegion() {
-        return new WriteResult(Code.NOT_SERVING_REGION);
-    }
-
-    public static WriteResult regionTooBusy() {
-        return new WriteResult(Code.REGION_TOO_BUSY);
-    }
-
-    public static WriteResult pipelineTooBusy(String regionNameAsString) {
-        return new WriteResult(Code.PIPELINE_TOO_BUSY,"pipeling for regionserver owning region "+ regionNameAsString+" is too busy");
-    }
-
     @Override
     public String toString() {
-        return "WriteResult{ "+
+        return "WriteResult{ " +
                 "code=" + code +
                 ", errorMessage=" + errorMessage +
                 " }";
+    }
 
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        out.writeUTF(code.name());
+        out.writeBoolean(errorMessage != null);
+        if (errorMessage != null) {
+            out.writeUTF(errorMessage);
+        }
+        out.writeBoolean(constraintContext != null);
+        if (constraintContext != null) {
+            out.writeObject(constraintContext);
+        }
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        code = Code.valueOf(in.readUTF());
+        if (in.readBoolean())
+            errorMessage = in.readUTF();
+        if (in.readBoolean())
+            constraintContext = (ConstraintContext) in.readObject();
     }
 
 }

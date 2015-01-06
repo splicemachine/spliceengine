@@ -1,28 +1,24 @@
 package com.splicemachine.pipeline.constraint;
 
-import java.io.IOException;
-import java.util.Collection;
-import com.splicemachine.si.api.TxnView;
-import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import com.carrotsearch.hppc.ObjectOpenHashSet;
 import com.splicemachine.hbase.KVPair;
+import com.splicemachine.si.api.TxnView;
+import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+
+import java.io.IOException;
 
 /**
  * A Constraint on a Table.
  *
  * @author Scott Fines
- * Created on: 2/28/13
+ *         Created on: 2/28/13
  */
 public interface Constraint {
 
-    String DELETE_BEFORE_WRITE = "dbw";
-
-		BatchConstraintChecker asChecker();
-
-		/**
+    /**
      * The type of the Constraint
      */
-    public static enum Type{
+    public static enum Type {
         /**
          * a PrimaryKey constraint. This is a unique, non-null constraint on one or more columns in the row.
          */
@@ -55,37 +51,33 @@ public interface Constraint {
     }
 
     /**
+     * The result of the Constraint
+     */
+    public static enum Result {
+        SUCCESS,
+        FAILURE,
+        ADDITIVE_WRITE_CONFLICT
+    }
+
+    /**
+     * Not sure why the logic in our BatchConstraintChecker (extends ConstraintChecker) can't be in our
+     * Constraint implementations directly.
+     */
+    BatchConstraintChecker asChecker();
+
+    /**
      * @return the type of constraint
      */
     Type getType();
 
     /**
-     * Validate that the constraint is satisfied on the given mutation. This may
-     * perform IO if need be to obtain other results.
-     *
-     * @param mutation the mutation to validate
-     * @param rce the environment for the mutation
-     * @return true if the mutation passes the constraint, false otherwise.
-     *
-     * @throws IOException if something goes wrong during the validation.
+     * Validate constraint is satisfied on the given mutation.  This method appears to currently be used only within the
+     * context of a given BatchWrite -- used to validate the mutations within that batch do not violate the constraint.
+     * BatchConstraintChecker is then used to fully validate the constraint.
      */
-	ValidationType validate(KVPair mutation,TxnView txn,RegionCoprocessorEnvironment rce, ObjectOpenHashSet<KVPair> priorValues) throws IOException;
-    /**
-     * Validate that the constraint is satisfied on all the mutations.
-     *
-     * @param mutations the mutations to validate
-     * @param rce the environment for the mutations
-     * @return the Mutations which failed validation
-     * @throws IOException if something goes wrong during the validation
-     */
-    Collection<KVPair> validate(Collection<KVPair> mutations, TxnView txn, RegionCoprocessorEnvironment rce,ObjectOpenHashSet<KVPair> priorValues) throws IOException;
+    Result validate(KVPair mutation, TxnView txn, RegionCoprocessorEnvironment rce, ObjectOpenHashSet<KVPair> priorValues) throws IOException;
 
     ConstraintContext getConstraintContext();
 
-    enum ValidationType {
-        SUCCESS,
-        FAILURE,
-        ADDITIVE_WRITE_CONFLICT //for upserts
-    }
 }
 

@@ -1,7 +1,8 @@
 package com.splicemachine.derby.hbase;
 
 import com.splicemachine.derby.impl.sql.execute.index.SpliceIndexProtocol;
-import com.splicemachine.pipeline.api.WriteContextFactory;
+import com.splicemachine.pipeline.writecontextfactory.WriteContextFactory;
+import com.splicemachine.pipeline.writecontextfactory.WriteContextFactoryManager;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.LazyTxnView;
@@ -20,7 +21,7 @@ public class SpliceIndexManagementEndpoint extends BaseEndpointCoprocessor imple
     @Override
     public void dropIndex(long indexConglomId,long baseConglomId,long txnId) throws IOException {
         TxnView transaction = new LazyTxnView(txnId,TransactionStorage.getTxnSupplier());
-        WriteContextFactory<TransactionalRegion> writeContext = PipelineContextFactories.getWriteContext(baseConglomId);
+        WriteContextFactory<TransactionalRegion> writeContext = WriteContextFactoryManager.getWriteContext(baseConglomId);
         try {
             writeContext.dropIndex(indexConglomId, transaction);
         }finally{

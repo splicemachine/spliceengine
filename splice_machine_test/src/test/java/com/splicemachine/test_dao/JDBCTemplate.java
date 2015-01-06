@@ -15,7 +15,8 @@ import static java.lang.System.currentTimeMillis;
 import static org.junit.Assert.assertFalse;
 
 /**
- * Provides high level query operations via jdbc.
+ * Provides high level query operations via methods that do not throw checked exceptions and which handle low
+ * level JDBC operations, such as creating and closing Statements and ResultSets, internally.
  *
  * Modeled after the spring-framework class of the same name.
  */
@@ -35,7 +36,7 @@ public class JDBCTemplate {
      * </pre>
      */
     public <T> List<T> query(String sql, final RowMapper<T> rowMapper, Object... args) {
-        return execute(new ResultSetExtractor<List<T>>() {
+        return executeQuery(new ResultSetExtractor<List<T>>() {
             @Override
             public List<T> extractData(ResultSet resultSet) throws SQLException {
                 List<T> resultList = Lists.newArrayList();
@@ -55,7 +56,7 @@ public class JDBCTemplate {
      * </pre>
      */
     public <T> T queryForObject(final String sql, final RowMapper<T> rowMapper, Object... args) {
-        return execute(new ResultSetExtractor<T>() {
+        return executeQuery(new ResultSetExtractor<T>() {
             @Override
             public T extractData(ResultSet resultSet) throws SQLException {
                 T result = null;
@@ -104,7 +105,7 @@ public class JDBCTemplate {
      * Pass sql, parameters, and a ResultSetExtractor and this method takes care of converting exception to unchecked
      * and closing resultSet and statement.
      */
-    public <T> T execute(ResultSetExtractor<T> preparedStatementCallback, String sql, Object... args) {
+    public <T> T executeQuery(ResultSetExtractor<T> preparedStatementCallback, String sql, Object... args) {
         ResultSet resultSet = null;
         PreparedStatement preparedStatement = null;
         try {
@@ -119,6 +120,25 @@ public class JDBCTemplate {
             DbUtils.closeQuietly(preparedStatement);
         }
     }
+
+    /**
+     * Pass sql, parameters, returns number of rows updated.
+     */
+    public int executeUpdate(String sql, Object... args) {
+        ResultSet resultSet = null;
+        PreparedStatement preparedStatement = null;
+        try {
+            preparedStatement = connection.prepareStatement(sql);
+            setArgs(preparedStatement, args);
+            return preparedStatement.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        } finally {
+            DbUtils.closeQuietly(resultSet);
+            DbUtils.closeQuietly(preparedStatement);
+        }
+    }
+
 
     private void setArgs(PreparedStatement preparedStatement, Object[] args) throws SQLException {
         if (args != null) {

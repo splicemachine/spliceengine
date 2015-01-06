@@ -1,48 +1,31 @@
 package com.splicemachine.pipeline.writecontextfactory;
 
-import com.carrotsearch.hppc.BitSet;
 import com.google.common.collect.Lists;
 import com.splicemachine.concurrent.ResettableCountDownLatch;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.ddl.*;
-import com.splicemachine.derby.impl.sql.execute.LocalWriteFactory;
+import com.splicemachine.derby.ddl.DDLChangeType;
+import com.splicemachine.derby.ddl.DDLCoordinationFactory;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
-import com.splicemachine.si.api.TransactionalRegion;
-import com.splicemachine.si.api.TxnView;
-import com.splicemachine.si.impl.DDLFilter;
-import com.splicemachine.si.impl.HTransactorFactory;
-import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.pipeline.api.WriteBufferFactory;
 import com.splicemachine.pipeline.api.WriteContext;
-import com.splicemachine.pipeline.api.WriteContextFactory;
-import com.splicemachine.pipeline.api.WriteHandler;
-import com.splicemachine.pipeline.constraint.BatchConstraintChecker;
-import com.splicemachine.pipeline.constraint.ChainConstraintChecker;
-import com.splicemachine.pipeline.constraint.Constraint;
-import com.splicemachine.pipeline.constraint.ConstraintContext;
-import com.splicemachine.pipeline.constraint.PrimaryKey;
-import com.splicemachine.pipeline.constraint.UniqueConstraint;
+import com.splicemachine.pipeline.constraint.*;
 import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.pipeline.ddl.TentativeDDLDesc;
-import com.splicemachine.pipeline.writecontext.PipelineWriteContext;
-import com.splicemachine.pipeline.writehandler.ConstraintHandler;
-import com.splicemachine.pipeline.writehandler.DropColumnHandler;
-import com.splicemachine.pipeline.writehandler.IndexDeleteWriteHandler;
-import com.splicemachine.pipeline.writehandler.IndexUpsertWriteHandler;
-import com.splicemachine.pipeline.writehandler.RegionWriteHandler;
-import com.splicemachine.pipeline.writehandler.SnapshotIsolatedWriteHandler;
-import com.splicemachine.pipeline.writehandler.UniqueIndexUpsertWriteHandler;
 import com.splicemachine.pipeline.exception.IndexNotSetUpException;
-
+import com.splicemachine.pipeline.writecontext.PipelineWriteContext;
+import com.splicemachine.pipeline.writehandler.IndexCallBufferFactory;
+import com.splicemachine.pipeline.writehandler.RegionWriteHandler;
+import com.splicemachine.si.api.TransactionalRegion;
+import com.splicemachine.si.api.TxnView;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.catalog.IndexDescriptor;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.context.ContextService;
 import org.apache.derby.iapi.sql.dictionary.*;
-import org.apache.derby.impl.sql.execute.ColumnInfo;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -55,128 +38,136 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 
-import com.splicemachine.derby.ddl.DDLCoordinationFactory;
-import com.splicemachine.derby.ddl.TentativeDropColumnDesc;
-import com.splicemachine.derby.ddl.TentativeIndexDesc;
 /**
+ * One instance of this class will exist per conglomerateId per JVM.  Holds state about whether its conglomerate
+ * has indexes and constraints, has columns that have been dropped, ect-- necessary information for performing writes
+ * on the represented table.
+ *
  * @author Scott Fines
- * Created on: 4/30/13
+ *         Created on: 4/30/13
  */
-public class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegion> {
+class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegion> {
     private static final Logger LOG = Logger.getLogger(LocalWriteContextFactory.class);
 
     private static final long STARTUP_LOCK_BACKOFF_PERIOD = SpliceConstants.startupLockWaitPeriod;
 
-    //TODO -sf- hook this into JMX
-    private static final int writeBatchSize = Integer.MAX_VALUE;
+    private final long conglomId;
+    private final List<LocalWriteFactory> indexFactories = new CopyOnWriteArrayList<>();
+    private final Set<ConstraintFactory> constraintFactories = new CopyOnWriteArraySet<>();
+    private final Set<DropColumnFactory> dropColumnFactories = new CopyOnWriteArraySet<>();
 
-    private final long congomId;
-    private final List<LocalWriteFactory> indexFactories = new CopyOnWriteArrayList<LocalWriteFactory>();
-    private final Set<ConstraintFactory> constraintFactories = new CopyOnWriteArraySet<ConstraintFactory>();
-    private final Set<DropColumnFactory> dropColumnFactories = new CopyOnWriteArraySet<DropColumnFactory>();
+    private final List<ForeignKeyInterceptWriteFactory> foreignKeyInterceptWriteFactories = new CopyOnWriteArrayList<>();
+    /* We always *check* FK existence only once per conglom, on a primary key, or a on unique index conglom */
+    private ForeignKeyCheckWriteFactory foreignKeyCheckWriteFactory;
 
     private final ReentrantLock initializationLock = new ReentrantLock();
-    /*
-     * Latch for blocking writes during the updating of table metadata (adding constraints, indices,
-     * etc).
-     */
+
+    /* Latch for blocking writes during the updating of table metadata (adding constraints, indices, etc). */
     private final ResettableCountDownLatch tableWriteLatch = new ResettableCountDownLatch(1);
 
-    protected final AtomicReference<State> state = new AtomicReference<State>(State.WAITING_TO_START);
+    protected final AtomicReference<State> state = new AtomicReference<>(State.WAITING_TO_START);
 
-    public void prepare(){
+    public LocalWriteContextFactory(long conglomId) {
+        this.conglomId = conglomId;
+        tableWriteLatch.countDown();
+    }
+
+    @Override
+    public void prepare() {
         state.compareAndSet(State.WAITING_TO_START, State.READY_TO_START);
     }
 
-    public LocalWriteContextFactory(long congomId) {
-        this.congomId = congomId;
-        tableWriteLatch.countDown();
+    @Override
+    public WriteContext create(IndexCallBufferFactory indexSharedCallBuffer,
+                               TxnView txn, TransactionalRegion rce,
+                               RegionCoprocessorEnvironment env) throws IOException, InterruptedException {
+        PipelineWriteContext context = new PipelineWriteContext(indexSharedCallBuffer, txn, rce, env);
+        BatchConstraintChecker checker = buildConstraintChecker();
+        context.addLast(new RegionWriteHandler(rce, tableWriteLatch, checker));
+        addIndexAndForeignKeyWriteHandlers(1000, context);
+        return context;
     }
-    
-    
-	@Override
-	public WriteContext create(WriteBufferFactory indexSharedCallBuffer,
-			TxnView txn, TransactionalRegion rce,
-			RegionCoprocessorEnvironment env) throws IOException,
-			InterruptedException {
-        PipelineWriteContext context = new PipelineWriteContext(indexSharedCallBuffer,txn,rce,env);
-		BatchConstraintChecker checker = buildConstraintChecker();
-        context.addLast(new RegionWriteHandler(rce, tableWriteLatch, writeBatchSize, checker));
-        addIndexInformation(1000, context);
+
+    @Override
+    public WriteContext create(IndexCallBufferFactory indexSharedCallBuffer,
+                               TxnView txn, TransactionalRegion region, int expectedWrites,
+                               RegionCoprocessorEnvironment env) throws IOException, InterruptedException {
+        PipelineWriteContext context = new PipelineWriteContext(indexSharedCallBuffer, txn, region, env);
+        BatchConstraintChecker checker = buildConstraintChecker();
+        context.addLast(new RegionWriteHandler(region, tableWriteLatch, checker));
+        addIndexAndForeignKeyWriteHandlers(expectedWrites, context);
         return context;
-	}
+    }
 
-	@Override
-	public WriteContext create(WriteBufferFactory indexSharedCallBuffer,
-			TxnView txn, TransactionalRegion region, int expectedWrites,
-			RegionCoprocessorEnvironment env) throws IOException,
-			InterruptedException {
-        PipelineWriteContext context = new PipelineWriteContext(indexSharedCallBuffer,txn,region,env);
-				BatchConstraintChecker checker = buildConstraintChecker();
-        context.addLast(new RegionWriteHandler(region, tableWriteLatch, writeBatchSize,checker));
-        addIndexInformation(expectedWrites, context);
-        return context;
-	}
-    
+    private BatchConstraintChecker buildConstraintChecker() {
+        if (constraintFactories.isEmpty()) {
+            return null;
+        }
+        List<BatchConstraintChecker> checkers = Lists.newArrayListWithCapacity(constraintFactories.size());
+        for (ConstraintFactory factory : constraintFactories) {
+            checkers.add(factory.getConstraintChecker());
+        }
+        return new ChainConstraintChecker(checkers);
+    }
 
-		private BatchConstraintChecker buildConstraintChecker() {
-				if(constraintFactories.size()<=0) return null;
-				List<BatchConstraintChecker> checkers = Lists.newArrayListWithCapacity(constraintFactories.size());
-				for(ConstraintFactory factory:constraintFactories){
-						checkers.add(factory.getConstraintChecker());
-				}
-				return new ChainConstraintChecker(checkers);
-		}
-
-		private void addIndexInformation(int expectedWrites, PipelineWriteContext context) throws IOException, InterruptedException {
+    private void addIndexAndForeignKeyWriteHandlers(int expectedWrites, PipelineWriteContext context) throws IOException, InterruptedException {
         TxnView txn = context.getTxn();
         switch (state.get()) {
             case READY_TO_START:
-                SpliceLogUtils.trace(LOG, "Index management for conglomerate %d " +
-                        "has not completed, attempting to start now", congomId);
+                SpliceLogUtils.trace(LOG, "Index management for conglomerate %d has not completed, attempting to start now", conglomId);
                 start(txn);
                 break;
             case STARTING:
-                SpliceLogUtils.trace(LOG,"Index management is starting up");
+                SpliceLogUtils.trace(LOG, "Index management is starting up");
                 start(txn);
                 break;
             case FAILED_SETUP:
                 //since we haven't done any writes yet, it's safe to just explore
-                throw new DoNotRetryIOException("Failed write setup for congolomerate "+congomId);
+                throw new DoNotRetryIOException("Failed write setup for conglomerate " + conglomId);
             case SHUTDOWN:
-                throw new IOException("management for conglomerate "+ congomId+" is shutdown");
+                throw new IOException("management for conglomerate " + conglomId + " is shutdown");
         }
         //only add constraints and indices when we are in a RUNNING state
-        if(state.get()== State.RUNNING){
+        if (state.get() == State.RUNNING) {
             //add Constraint checks before anything else
-						if(SpliceConstants.constraintsEnabled){
-								for(ConstraintFactory constraintFactory:constraintFactories){
-										context.addLast(constraintFactory.create());
-								}
-						}
-
-            //add index handlers
-            for(LocalWriteFactory indexFactory:indexFactories){
-                indexFactory.addTo(context,true,expectedWrites);
+            if (SpliceConstants.constraintsEnabled) {
+                for (ConstraintFactory constraintFactory : constraintFactories) {
+                    context.addLast(constraintFactory.create());
+                }
             }
 
-            for(DropColumnFactory dropColumnFactory:dropColumnFactories) {
-                dropColumnFactory.addTo(context,true,expectedWrites);
+            //add index handlers
+            for (LocalWriteFactory indexFactory : indexFactories) {
+                indexFactory.addTo(context, true, expectedWrites);
+            }
+
+            for (DropColumnFactory dropColumnFactory : dropColumnFactories) {
+                dropColumnFactory.addTo(context, true, expectedWrites);
+            }
+
+            // FK intercept
+            for (LocalWriteFactory fkFactory : foreignKeyInterceptWriteFactories) {
+                fkFactory.addTo(context, false, expectedWrites);
+            }
+
+            // FK check
+            if (foreignKeyCheckWriteFactory != null) {
+                foreignKeyCheckWriteFactory.addTo(context, false, expectedWrites);
             }
         }
     }
 
     @Override
-    public WriteContext createPassThrough(WriteBufferFactory indexSharedCallBuffer, TxnView txn, TransactionalRegion region, int expectedWrites, RegionCoprocessorEnvironment env) throws IOException, InterruptedException {
-        PipelineWriteContext context = new PipelineWriteContext(indexSharedCallBuffer,txn,region, env);
-        addIndexInformation(expectedWrites, context);
+    public WriteContext createPassThrough(IndexCallBufferFactory indexSharedCallBuffer, TxnView txn, TransactionalRegion region, int expectedWrites, RegionCoprocessorEnvironment env) throws IOException, InterruptedException {
+        PipelineWriteContext context = new PipelineWriteContext(indexSharedCallBuffer, txn, region, env);
+        addIndexAndForeignKeyWriteHandlers(expectedWrites, context);
         return context;
     }
 
     @Override
-    public void dropIndex(long indexConglomId,TxnView txn) {
+    public void dropIndex(long indexConglomId, TxnView txn) {
         //ensure that all writes that need to be paused are paused
-        synchronized (tableWriteLatch){
+        synchronized (tableWriteLatch) {
             tableWriteLatch.reset();
 
             /*
@@ -184,35 +175,35 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
              * existing transactions may be still using it. Instead,
              * we replace it with a wrapped transaction
              */
-            try{
-                synchronized (indexFactories){
-                    for(int i=0;i<indexFactories.size();i++){
+            try {
+                synchronized (indexFactories) {
+                    for (int i = 0; i < indexFactories.size(); i++) {
                         LocalWriteFactory factory = indexFactories.get(i);
-                        if(factory.getConglomerateId()==indexConglomId){
-                            DropIndexFactory wrappedFactory = new DropIndexFactory(txn,factory, indexConglomId);
-                            indexFactories.set(i,wrappedFactory);
+                        if (factory.getConglomerateId() == indexConglomId) {
+                            DropIndexFactory wrappedFactory = new DropIndexFactory(txn, factory, indexConglomId);
+                            indexFactories.set(i, wrappedFactory);
                             return;
                         }
                     }
                     //it hasn't been added yet, so make sure that we add the index
-                    indexFactories.add(new DropIndexFactory(txn,null, indexConglomId));
+                    indexFactories.add(new DropIndexFactory(txn, null, indexConglomId));
                 }
-            }finally{
+            } finally {
                 tableWriteLatch.countDown();
             }
         }
     }
 
     private void replace(LocalWriteFactory newFactory) {
-        synchronized (indexFactories){
-            for(int i=0;i<indexFactories.size();i++){
+        synchronized (indexFactories) {
+            for (int i = 0; i < indexFactories.size(); i++) {
                 LocalWriteFactory localWriteFactory = indexFactories.get(i);
-                if(localWriteFactory.equals(newFactory)){
-                    if(localWriteFactory instanceof DropIndexFactory){
-                        DropIndexFactory dropIndexFactory = (DropIndexFactory)localWriteFactory;
-                        if(dropIndexFactory.delegate==null)
-                           dropIndexFactory.setDelegate(newFactory);
-                    }else
+                if (localWriteFactory.equals(newFactory)) {
+                    if (localWriteFactory instanceof DropIndexFactory) {
+                        DropIndexFactory dropIndexFactory = (DropIndexFactory) localWriteFactory;
+                        if (dropIndexFactory.getDelegate() == null)
+                            dropIndexFactory.setDelegate(newFactory);
+                    } else
                         indexFactories.set(i, newFactory);
 
                     return;
@@ -223,13 +214,13 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
     }
 
     @Override
-    public void addIndex(DDLChange ddlChange, int[] columnOrdring, int[] formatIds) {
-        synchronized (tableWriteLatch){
+    public void addIndex(DDLChange ddlChange, int[] columnOrdering, int[] formatIds) {
+        synchronized (tableWriteLatch) {
             tableWriteLatch.reset();
-            try{
-                IndexFactory index = IndexFactory.create(ddlChange, columnOrdring, formatIds);
+            try {
+                IndexFactory index = IndexFactory.create(ddlChange, columnOrdering, formatIds);
                 replace(index);
-            }finally{
+            } finally {
                 tableWriteLatch.countDown();
             }
         }
@@ -239,9 +230,9 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
     public void addDDLChange(DDLChange ddlChange) {
 
         DDLChangeType ddlChangeType = ddlChange.getChangeType();
-        synchronized (tableWriteLatch){
+        synchronized (tableWriteLatch) {
             tableWriteLatch.reset();
-            try{
+            try {
                 switch (ddlChangeType) {
                     case DROP_COLUMN:
                         dropColumnFactories.add(DropColumnFactory.create(ddlChange));
@@ -249,7 +240,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
                     default:
                         break;
                 }
-            }finally{
+            } finally {
                 tableWriteLatch.countDown();
             }
         }
@@ -261,8 +252,8 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
         //no-op
     }
 
-    public static LocalWriteContextFactory unmanagedContextFactory(){
-        return new LocalWriteContextFactory(-1){
+    public static LocalWriteContextFactory unmanagedContextFactory() {
+        return new LocalWriteContextFactory(-1) {
             @Override
             public void prepare() {
                 state.set(State.NOT_MANAGED);
@@ -270,119 +261,74 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
         };
     }
 
-    /*
-     * State management indicator
-     */
-    private enum State{
-        /*
-         * Mutations which see this state will emit a warning, but will still be allowed through.
-         * Allowing mutations through during this phase prevents deadlocks when initialized the Database
-         * for the first time. After the Derby DataDictionary is properly instantiated, no index set should
-         * remain in this state for long.
-         */
-        WAITING_TO_START,
-        /*
-         * Indicates that the Index Set is able to start whenever it feels like it (typically before the
-         * first mutation to the main table). IndexSets in this state believe that the Derby DataDictionary
-         * has properly instantiated.
-         */
-        READY_TO_START,
-        /*
-         * Indicates that this set is currently in the process of intantiating all the indices, constraints, and
-         * so forth, and that all mutations should block until set up is complete.
-         */
-        STARTING,
-        /*
-         * Indicates that initialization failed in some fatal way. Mutations encountering this state
-         * will blow back on the caller with a DoNotRetryIOException
-         */
-        FAILED_SETUP,
-        /*
-         * The IndexSet is running, and index management is going smoothly
-         */
-        RUNNING,
-        /*
-         * the IndexSet is shutdown. Mutations will explode upon encountering this.
-         */
-        SHUTDOWN,
-        /*
-         * This IndexSet does not manage Mutations.
-         */
-        NOT_MANAGED
-    }
-
-    private void start(TxnView txn) throws IOException,InterruptedException{
+    private void start(TxnView txn) throws IOException, InterruptedException {
         /*
          * Ready to Start => switch to STARTING
          * STARTING => continue through to block on the lock
          * Any other state => return, because we don't need to perform this method.
          */
-        if(!state.compareAndSet(State.READY_TO_START,State.STARTING)){
-            if(state.get()!=State.STARTING) return;
+        if (!state.compareAndSet(State.READY_TO_START, State.STARTING)) {
+            if (state.get() != State.STARTING) return;
         }
 
         //someone else may have initialized this if so, we don't need to repeat, so return
-        if(state.get()!=State.STARTING) return;
+        if (state.get() != State.STARTING) return;
 
-        SpliceLogUtils.debug(LOG,"Setting up index for conglomerate %d",congomId);
+        SpliceLogUtils.debug(LOG, "Setting up index for conglomerate %d", conglomId);
 
-        if(!initializationLock.tryLock(STARTUP_LOCK_BACKOFF_PERIOD, TimeUnit.MILLISECONDS)){
-            throw new IndexNotSetUpException("Unable to initialize index management for table "+ congomId
-                    +" within a sufficient time frame. Please wait a bit and try again");
+        if (!initializationLock.tryLock(STARTUP_LOCK_BACKOFF_PERIOD, TimeUnit.MILLISECONDS)) {
+            throw new IndexNotSetUpException("Unable to initialize index management for table " + conglomId
+                    + " within a sufficient time frame. Please wait a bit and try again");
         }
         ContextManager currentCm = ContextService.getFactory().getCurrentContextManager();
         SpliceTransactionResourceImpl transactionResource;
         try {
             transactionResource = new SpliceTransactionResourceImpl();
             transactionResource.prepareContextManager();
-            try{
+            try {
                 transactionResource.marshallTransaction(txn);
 
-                DataDictionary dataDictionary= transactionResource.getLcc().getDataDictionary();
-                ConglomerateDescriptor conglomerateDescriptor = dataDictionary.getConglomerateDescriptor(congomId);
+                DataDictionary dataDictionary = transactionResource.getLcc().getDataDictionary();
+                ConglomerateDescriptor conglomerateDescriptor = dataDictionary.getConglomerateDescriptor(conglomId);
 
                 if (conglomerateDescriptor != null) {
                     dataDictionary.getExecutionFactory().newExecutionContext(ContextService.getFactory().getCurrentContextManager());
                     //Hbase scan
                     TableDescriptor td = dataDictionary.getTableDescriptor(conglomerateDescriptor.getTableID());
 
-                    if(td!=null){
-                        startDirect(dataDictionary,td,conglomerateDescriptor);
+                    if (td != null) {
+                        startDirect(dataDictionary, td, conglomerateDescriptor);
                     }
                 }
                 state.set(State.RUNNING);
             } catch (SQLException e) {
-                SpliceLogUtils.error(LOG,"Unable to acquire a database connection, aborting write, but backing" +
-                        "off so that other writes can try again",e);
+                SpliceLogUtils.error(LOG, "Unable to acquire a database connection, aborting write, but backing" +
+                        "off so that other writes can try again", e);
                 state.set(State.READY_TO_START);
                 throw new IndexNotSetUpException(e);
-            } catch (StandardException e) {
-                SpliceLogUtils.error(LOG,"Unable to set up index management for table "+ congomId+", aborting",e);
+            } catch (StandardException | IOException e) {
+                SpliceLogUtils.error(LOG, "Unable to set up index management for table " + conglomId + ", aborting", e);
                 state.set(State.FAILED_SETUP);
-            }catch(IOException ioe){
-                SpliceLogUtils.error(LOG,"Unable to set up index management for table "+ congomId+", aborting",ioe);
-                state.set(State.FAILED_SETUP);
-            }finally{
+            } finally {
                 initializationLock.unlock();
 
                 transactionResource.resetContextManager();
             }
         } catch (SQLException e) {
-            SpliceLogUtils.error(LOG,"Unable to acquire a database connection, aborting write, but backing" +
-                    "off so that other writes can try again",e);
+            SpliceLogUtils.error(LOG, "Unable to acquire a database connection, aborting write, but backing" +
+                    "off so that other writes can try again", e);
             state.set(State.READY_TO_START);
             throw new IndexNotSetUpException(e);
         } finally {
-            if(currentCm!=null)
+            if (currentCm != null)
                 ContextService.getFactory().setCurrentContextManager(currentCm);
         }
     }
 
-    private void startDirect(DataDictionary dataDictionary,TableDescriptor td,ConglomerateDescriptor cd) throws StandardException,IOException{
-//        indexFactories.clear();
+    private void startDirect(DataDictionary dataDictionary, TableDescriptor td, ConglomerateDescriptor cd) throws StandardException, IOException {
         boolean isSysConglomerate = td.getSchemaDescriptor().getSchemaName().equals("SYS");
-        if(isSysConglomerate){
-            SpliceLogUtils.trace(LOG,"Index management for SYS tables disabled, relying on external index management");
+        if (isSysConglomerate) {
+            SpliceLogUtils.trace(LOG, "Index management for SYS tables disabled, relying on external index management");
             state.set(State.NOT_MANAGED);
             return;
         }
@@ -393,25 +339,25 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
         int[] formatIds;
         ColumnDescriptorList cdList = td.getColumnDescriptorList();
         int size = cdList.size();
-        formatIds= new int[size];
+        formatIds = new int[size];
         for (int j = 0; j < cdList.size(); ++j) {
             ColumnDescriptor columnDescriptor = cdList.elementAt(j);
             formatIds[j] = columnDescriptor.getType().getNull().getTypeFormatId();
         }
         ConstraintDescriptorList constraintDescriptors = dataDictionary.getConstraintDescriptors(td);
-        for(int i=0;i<constraintDescriptors.size();i++){
+        for (int i = 0; i < constraintDescriptors.size(); i++) {
             ConstraintDescriptor cDescriptor = constraintDescriptors.elementAt(i);
             org.apache.derby.catalog.UUID conglomerateId = cDescriptor.getConglomerateId();
-            if(conglomerateId != null && td.getConglomerateDescriptor(conglomerateId).getConglomerateNumber()!=congomId)
+            if (conglomerateId != null && td.getConglomerateDescriptor(conglomerateId).getConglomerateNumber() != conglomId)
                 continue;
 
-            switch(cDescriptor.getConstraintType()){
+            switch (cDescriptor.getConstraintType()) {
                 case DataDictionary.PRIMARYKEY_CONSTRAINT:
                     int[] referencedColumns = cDescriptor.getReferencedColumns();
-                    if (referencedColumns != null && referencedColumns.length > 0){
+                    if (referencedColumns != null && referencedColumns.length > 0) {
                         columnOrdering = new int[referencedColumns.length];
 
-                        for (int j = 0; j < referencedColumns.length; ++j){
+                        for (int j = 0; j < referencedColumns.length; ++j) {
                             columnOrdering[j] = referencedColumns[j] - 1;
                         }
                     }
@@ -421,8 +367,13 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
                 case DataDictionary.UNIQUE_CONSTRAINT:
                     buildUniqueConstraint(cDescriptor);
                     break;
+                case DataDictionary.FOREIGNKEY_CONSTRAINT:
+                    ForeignKeyConstraintDescriptor fkConstraintDescriptor = (ForeignKeyConstraintDescriptor) cDescriptor;
+                    buildForeignKeyInterceptWriteFactory(dataDictionary, fkConstraintDescriptor);
+                    buildForeignKeyCheckWriteFactory(dataDictionary, fkConstraintDescriptor);
+                    break;
                 default:
-                    LOG.warn("Unknown Constraint on table "+ congomId+": type = "+ cDescriptor.getConstraintType());
+                    LOG.warn("Unknown Constraint on table " + conglomId + ": type = " + cDescriptor.getConstraintType());
             }
         }
 
@@ -431,21 +382,21 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
         for (Object conglom : congloms) {
             ConglomerateDescriptor conglomDesc = (ConglomerateDescriptor) conglom;
             if (conglomDesc.isIndex()) {
-                if (conglomDesc.getConglomerateNumber() == congomId) {
+                if (conglomDesc.getConglomerateNumber() == conglomId) {
                     //we are an index, so just map a constraint rather than an attached index
                     addIndexConstraint(td, conglomDesc);
                     indexFactories.clear(); //safe to clear here because we don't chain indices
                     break;
                 } else {
-                    replace(buildIndex(conglomDesc,constraintDescriptors,columnOrdering,formatIds));
+                    replace(buildIndex(conglomDesc, constraintDescriptors, columnOrdering, formatIds));
                 }
             }
         }
 
         //check ourself for any additional constraints, but only if it's not present already
-        if(!congloms.contains(cd)&&cd.isIndex()){
+        if (!congloms.contains(cd) && cd.isIndex()) {
             //if we have a constraint, use it
-            addIndexConstraint(td,cd);
+            addIndexConstraint(td, cd);
             indexFactories.clear();
         }
 
@@ -456,7 +407,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
             if (txn.getEffectiveState().isFinal()) {
                 DDLCoordinationFactory.getController().finishMetadataChange(ddlChange.getChangeId());
             } else {
-                switch (ddlChange.getChangeType()){
+                switch (ddlChange.getChangeType()) {
                     case CHANGE_PK:
                     case ADD_CHECK:
                     case CREATE_FK:
@@ -465,17 +416,17 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
                     case DROP_TABLE:
                         break; //TODO -sf- implement
                     case CREATE_INDEX:
-                        assert ddlDesc!=null: "Cannot have a null ddl descriptor!";
-                        if(ddlDesc.getBaseConglomerateNumber()==congomId)
-                            replace(IndexFactory.create(ddlChange,columnOrdering,formatIds));
+                        assert ddlDesc != null : "Cannot have a null ddl descriptor!";
+                        if (ddlDesc.getBaseConglomerateNumber() == conglomId)
+                            replace(IndexFactory.create(ddlChange, columnOrdering, formatIds));
                         break;
                     case DROP_COLUMN:
-                        assert ddlDesc!=null: "Cannot have a null ddl descriptor!";
-                        if(ddlDesc.getBaseConglomerateNumber()==congomId)
+                        assert ddlDesc != null : "Cannot have a null ddl descriptor!";
+                        if (ddlDesc.getBaseConglomerateNumber() == conglomId)
                             dropColumnFactories.add(DropColumnFactory.create(ddlChange));
                     case DROP_INDEX:
-                        assert ddlDesc!=null: "Cannot have a null ddl descriptor!";
-                        if(ddlDesc.getBaseConglomerateNumber()==congomId)
+                        assert ddlDesc != null : "Cannot have a null ddl descriptor!";
+                        if (ddlDesc.getBaseConglomerateNumber() == conglomId)
                             dropIndex(ddlDesc.getConglomerateNumber(), txn);
 
                 }
@@ -483,28 +434,58 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
         }
     }
 
+    /* Factories for intercepting writes to FK backing indexes. */
+    private void buildForeignKeyInterceptWriteFactory(DataDictionary dataDictionary, ForeignKeyConstraintDescriptor fkConstraintDesc) throws StandardException {
+        ReferencedKeyConstraintDescriptor referencedConstraint = fkConstraintDesc.getReferencedConstraint();
+        long keyConglomerateId;
+        // FK references unique constraint.
+        if (referencedConstraint.getConstraintType() == DataDictionary.UNIQUE_CONSTRAINT) {
+            keyConglomerateId = referencedConstraint.getIndexConglomerateDescriptor(dataDictionary).getConglomerateNumber();
+        }
+        // FK references primary key constraint.
+        else {
+            keyConglomerateId = referencedConstraint.getTableDescriptor().getHeapConglomerateId();
+        }
+        ConstraintContext constraintContext = ConstraintContext.foreignKey(fkConstraintDesc);
+        byte[] hbaseTableNameBytes = Bytes.toBytes(String.valueOf(keyConglomerateId));
+        ForeignKeyInterceptWriteFactory factory = new ForeignKeyInterceptWriteFactory(hbaseTableNameBytes, constraintContext);
+        foreignKeyInterceptWriteFactories.add(factory);
+    }
+
+    /* Factories for checking referenced FK primary key or unique index. */
+    private void buildForeignKeyCheckWriteFactory(DataDictionary dataDictionary, ForeignKeyConstraintDescriptor fkConstrainDesc) throws StandardException {
+        ReferencedKeyConstraintDescriptor ref = fkConstrainDesc.getReferencedConstraint();
+        long referencedConglomerateId = ref.getIndexConglomerateDescriptor(dataDictionary).getConglomerateNumber();
+        int constraintColumnCount = ref.getReferencedColumns().length;
+        WriteContextFactory<TransactionalRegion> referencedWriteContext = WriteContextFactoryManager.getWriteContext(referencedConglomerateId);
+        ForeignKeyCheckWriteFactory foreignKeyCheckWriteFactory = new ForeignKeyCheckWriteFactory(constraintColumnCount);
+        referencedWriteContext.setForeignKeyCheckWriteFactory(foreignKeyCheckWriteFactory);
+    }
+
     private void buildUniqueConstraint(ConstraintDescriptor cd) throws StandardException {
-        constraintFactories.add(new ConstraintFactory(UniqueConstraint.create(new ConstraintContext(cd))));
+        ConstraintContext cc = ConstraintContext.unique(cd);
+        constraintFactories.add(new ConstraintFactory(UniqueConstraint.create(cc)));
     }
 
     private void addIndexConstraint(TableDescriptor td, ConglomerateDescriptor conglomDesc) {
         IndexDescriptor indexDescriptor = conglomDesc.getIndexDescriptor().getIndexDescriptor();
-        if(indexDescriptor.isUnique()){
+        if (indexDescriptor.isUnique()) {
             //make sure it's not already in the constraintFactories
-            for(ConstraintFactory constraintFactory:constraintFactories){
-               if(constraintFactory.localConstraint.getType()== Constraint.Type.UNIQUE){
-                   return; //we've found a local unique constraint, don't need to add it more than once
-               }
+            for (ConstraintFactory constraintFactory : constraintFactories) {
+                if (constraintFactory.getLocalConstraint().getType() == Constraint.Type.UNIQUE) {
+                    return; //we've found a local unique constraint, don't need to add it more than once
+                }
             }
-            constraintFactories.add(new ConstraintFactory(UniqueConstraint.create(new ConstraintContext(td, conglomDesc))));
+            ConstraintContext cc = ConstraintContext.unique(td, conglomDesc);
+            constraintFactories.add(new ConstraintFactory(UniqueConstraint.create(cc)));
         }
     }
 
-    private IndexFactory buildIndex(ConglomerateDescriptor conglomDesc,ConstraintDescriptorList constraints,
+    private IndexFactory buildIndex(ConglomerateDescriptor conglomDesc, ConstraintDescriptorList constraints,
                                     int[] columnOrdering, int[] typeIds) {
         IndexRowGenerator irg = conglomDesc.getIndexDescriptor();
         IndexDescriptor indexDescriptor = irg.getIndexDescriptor();
-        if(indexDescriptor.isUnique())
+        if (indexDescriptor.isUnique())
             return IndexFactory.create(conglomDesc.getConglomerateNumber(), indexDescriptor, columnOrdering, typeIds);
 
         /*
@@ -518,7 +499,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
             if (constraint.getConstraintType() == DataDictionary.UNIQUE_CONSTRAINT &&
                     (conglomerateId != null && conglomerateId.equals(conglomDesc.getUUID()))) {
                 return IndexFactory.create(conglomDesc.getConglomerateNumber(), indexDescriptor,
-                                           true, false, columnOrdering, typeIds);
+                        true, false, columnOrdering, typeIds);
             }
         }
 
@@ -526,286 +507,18 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
     }
 
     private ConstraintFactory buildPrimaryKey(ConstraintDescriptor cDescriptor) {
-        return new ConstraintFactory(new PrimaryKey(new ConstraintContext(cDescriptor)));
+        ConstraintContext cc = ConstraintContext.primaryKey(cDescriptor);
+        return new ConstraintFactory(new PrimaryKeyConstraint(cc));
     }
 
-    private static class ConstraintFactory{
-        private final Constraint localConstraint;
-
-        private ConstraintFactory(Constraint localConstraint) {
-            this.localConstraint = localConstraint;
-        }
-
-        public WriteHandler create(){
-            return new ConstraintHandler(localConstraint);
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (!(o instanceof ConstraintFactory)) return false;
-
-            ConstraintFactory that = (ConstraintFactory) o;
-
-            return localConstraint.equals(that.localConstraint);
-        }
-
-        @Override
-        public int hashCode() {
-            return localConstraint.hashCode();
-        }
-
-				public BatchConstraintChecker getConstraintChecker() {
-						return localConstraint.asChecker();
-				}
-		}
-
-    private static class IndexFactory implements LocalWriteFactory{
-        private final long indexConglomId;
-        private final byte[] indexConglomBytes;
-        private final boolean isUnique;
-        private final boolean isUniqueWithDuplicateNulls;
-        private BitSet indexedColumns;
-        private int[] mainColToIndexPosMap;
-        private BitSet descColumns;
-        private DDLChange ddlChange;
-        private int[] baseTableColumnOrdering;
-        private int[] formatIds;
-
-        private IndexFactory(long indexConglomId){
-            this.indexConglomId = indexConglomId;
-            this.indexConglomBytes = Long.toString(indexConglomId).getBytes();
-            this.isUnique=false;
-            isUniqueWithDuplicateNulls = false;
-        }
-
-        private IndexFactory(long indexConglomId,BitSet indexedColumns,int[] mainColToIndexPosMap,boolean isUnique,
-                             boolean isUniqueWithDuplicateNulls,BitSet descColumns, DDLChange ddlChange,
-                             int[] columnOrdering, int[] formatIds) {
-            this.indexConglomId = indexConglomId;
-            this.indexConglomBytes = Long.toString(indexConglomId).getBytes();
-            this.isUnique=isUnique;
-            this.isUniqueWithDuplicateNulls=isUniqueWithDuplicateNulls;
-            this.indexedColumns=indexedColumns;
-            this.mainColToIndexPosMap=mainColToIndexPosMap;
-            this.descColumns = descColumns;
-            this.ddlChange = ddlChange;
-            this.baseTableColumnOrdering = columnOrdering;
-            this.formatIds = formatIds;
-        }
-
-        public static IndexFactory create(long conglomerateNumber,int[] indexColsToMainColMap,boolean isUnique,boolean isUniqueWithDuplicateNulls,BitSet descColumns,
-                                          int[] columnOrdering, int[] formatIds){
-            BitSet indexedCols = getIndexedCols(indexColsToMainColMap);
-            int[] mainColToIndexPosMap = getMainColToIndexPosMap(indexColsToMainColMap, indexedCols);
-
-            return new IndexFactory(conglomerateNumber,indexedCols,mainColToIndexPosMap,isUnique, isUniqueWithDuplicateNulls,
-                    descColumns, null, columnOrdering, formatIds);
-        }
-
-        public static IndexFactory create(DDLChange ddlChange, int[] columnOrdering, int[] formatIds){
-            TentativeIndexDesc tentativeIndexDesc = (TentativeIndexDesc)ddlChange.getTentativeDDLDesc();
-            int[] indexColsToMainColMap = tentativeIndexDesc.getIndexColsToMainColMap();
-            BitSet indexedCols = getIndexedCols(indexColsToMainColMap);
-            int[] mainColToIndexPosMap = getMainColToIndexPosMap(indexColsToMainColMap, indexedCols);
-
-            return new IndexFactory(tentativeIndexDesc.getConglomerateNumber(),indexedCols,mainColToIndexPosMap,tentativeIndexDesc.isUnique(),
-                                    tentativeIndexDesc.isUniqueWithDuplicateNulls(),tentativeIndexDesc.getDescColumns(), ddlChange,
-                                    columnOrdering, formatIds);
-        }
-
-        private static int[] getMainColToIndexPosMap(int[] indexColsToMainColMap, BitSet indexedCols) {
-            int[] mainColToIndexPosMap = new int[(int)indexedCols.length()];
-            for(int indexCol=0;indexCol<indexColsToMainColMap.length;indexCol++){
-                int mainCol = indexColsToMainColMap[indexCol];
-                mainColToIndexPosMap[mainCol-1] = indexCol;
-            }
-            return mainColToIndexPosMap;
-        }
-
-        private static BitSet getIndexedCols(int[] indexColsToMainColMap) {
-            BitSet indexedCols = new BitSet();
-            for(int indexCol:indexColsToMainColMap){
-                indexedCols.set(indexCol-1);
-            }
-            return indexedCols;
-        }
-
-        public static IndexFactory create(long conglomerateNumber, IndexDescriptor indexDescriptor,
-                                          int[] columnOrdering, int[] formatIds) {
-            return create(conglomerateNumber, indexDescriptor,indexDescriptor.isUnique(),
-                          indexDescriptor.isUniqueWithDuplicateNulls(), columnOrdering, formatIds);
-        }
-
-        public static IndexFactory create(long conglomerateNumber, IndexDescriptor indexDescriptor,boolean isUnique,
-                                          boolean isUniqueWithDuplicateNulls, int[] columnOrdering, int[] formatIds) {
-            int[] indexColsToMainColMap = indexDescriptor.baseColumnPositions();
-
-            //get the descending columns
-            boolean[] ascending = indexDescriptor.isAscending();
-            BitSet descColumns = new BitSet();
-            for(int i=0;i<ascending.length;i++){
-                if(!ascending[i])
-                    descColumns.set(i);
-            }
-            return create(conglomerateNumber,indexColsToMainColMap,isUnique,isUniqueWithDuplicateNulls,descColumns,
-                    columnOrdering,formatIds);
-        }
-
-        @Override
-        public void addTo(PipelineWriteContext ctx,boolean keepState,int expectedWrites) throws IOException {
-            IndexDeleteWriteHandler deleteHandler =
-                    new IndexDeleteWriteHandler(indexedColumns, mainColToIndexPosMap, indexConglomBytes, descColumns,
-                            keepState, isUnique, isUniqueWithDuplicateNulls, expectedWrites, baseTableColumnOrdering, formatIds);
-            IndexUpsertWriteHandler writeHandler;
-            if (isUnique) {
-                writeHandler = new UniqueIndexUpsertWriteHandler(indexedColumns, mainColToIndexPosMap,
-                        indexConglomBytes, descColumns, keepState, isUniqueWithDuplicateNulls, expectedWrites,
-                        baseTableColumnOrdering, formatIds);
-            } else {
-                writeHandler = new IndexUpsertWriteHandler(indexedColumns, mainColToIndexPosMap, indexConglomBytes,
-                        descColumns, keepState, false, false, expectedWrites, baseTableColumnOrdering, formatIds);
-            }
-            if (ddlChange == null) {
-                ctx.addLast(deleteHandler);
-                ctx.addLast(writeHandler);
-            } else {
-                DDLFilter ddlFilter = HTransactorFactory.getTransactionReadController()
-                        .newDDLFilter(ddlChange.getTxn());
-                ctx.addLast(new SnapshotIsolatedWriteHandler(deleteHandler, ddlFilter));
-                ctx.addLast(new SnapshotIsolatedWriteHandler(writeHandler, ddlFilter));
-            }
-        }
-
-        @Override
-        public long getConglomerateId() {
-            return indexConglomId;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if(o instanceof IndexFactory){
-                IndexFactory that = (IndexFactory) o;
-
-                return indexConglomId == that.indexConglomId;
-            }else if(o instanceof DropIndexFactory){
-                DropIndexFactory that = (DropIndexFactory) o;
-
-                return indexConglomId == that.delegate.getConglomerateId();
-
-            }else return false;
-        }
-
-        @Override
-        public int hashCode() {
-            return (int) (indexConglomId ^ (indexConglomId >>> 32));
-        }
-
-        public static IndexFactory wrap(long indexConglomId) {
-            return new IndexFactory(indexConglomId);
-        }
+    @Override
+    public void setForeignKeyCheckWriteFactory(ForeignKeyCheckWriteFactory foreignKeyCheckWriteFactory) {
+        this.foreignKeyCheckWriteFactory = foreignKeyCheckWriteFactory;
     }
 
-    private static class DropIndexFactory implements LocalWriteFactory{
-        private TxnView txn;
-        private volatile LocalWriteFactory delegate;
-        private long indexConglomId;
-
-        private DropIndexFactory(TxnView txn, LocalWriteFactory delegate, long indexConglomId) {
-            this.txn = txn;
-            this.delegate = delegate;
-            this.indexConglomId = indexConglomId;
-        }
-
-        @Override
-        public void addTo(PipelineWriteContext ctx, boolean keepState, int expectedWrites) throws IOException {
-            if(delegate==null) return; //no delegate, so nothing to do just yet
-            /*
-             * We only want to add an entry if one of the following holds:
-             *
-             * 1. txn is not yet committed
-             * 2. ctx.txn.beginTimestamp < txn.commitTimestamp
-             */
-            long commitTs = txn.getEffectiveCommitTimestamp();
-            boolean shouldAdd = commitTs < 0 || ctx.getTxn().getBeginTimestamp() < commitTs;
-
-            if(shouldAdd) delegate.addTo(ctx,keepState,expectedWrites);
-        }
-
-        public void setDelegate(LocalWriteFactory delegate){
-           this.delegate = delegate;
-        }
-
-        @Override public long getConglomerateId() {
-            return indexConglomId;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if(o instanceof DropIndexFactory)
-                return ((DropIndexFactory)o).indexConglomId==indexConglomId;
-            else return o instanceof IndexFactory && ((IndexFactory) o).getConglomerateId() == indexConglomId;
-        }
-
-        @Override public int hashCode() { return delegate.hashCode(); }
-    }
-
-    private static class DropColumnFactory implements LocalWriteFactory{
-        private UUID tableId;
-        private TxnView txn;
-        private long newConglomId;
-        private ColumnInfo[] columnInfos;
-        private int droppedColumnPosition;
-        private DDLChange ddlChange;
-
-        public DropColumnFactory(UUID tableId,
-                                 TxnView txn,
-                                 long newConglomId,
-                                 ColumnInfo[] columnInfos,
-                                 int droppedColumnPosition,
-                                 DDLChange ddlChange) {
-            this.tableId = tableId;
-            this.txn = txn;
-            this.newConglomId = newConglomId;
-            this.columnInfos = columnInfos;
-            this.droppedColumnPosition = droppedColumnPosition;
-            this.ddlChange = ddlChange;
-        }
-
-        public static DropColumnFactory create(DDLChange ddlChange) {
-            if (ddlChange.getChangeType() != DDLChangeType.DROP_COLUMN)
-                return null;
-
-            TentativeDropColumnDesc desc = (TentativeDropColumnDesc)ddlChange.getTentativeDDLDesc();
-
-            UUID tableId = desc.getTableId();
-            TxnView txn = ddlChange.getTxn();
-            long newConglomId = desc.getConglomerateNumber();
-            ColumnInfo[] columnInfos = desc.getColumnInfos();
-            int droppedColumnPosition = desc.getDroppedColumnPosition();
-            return new DropColumnFactory(tableId, txn, newConglomId, columnInfos, droppedColumnPosition, ddlChange);
-        }
-
-        @Override
-        public void addTo(PipelineWriteContext ctx,boolean keepState, int expectedWrites) throws IOException{
-            DropColumnHandler handler = new DropColumnHandler(tableId, newConglomId, txn, columnInfos, droppedColumnPosition);
-            if (ddlChange == null) {
-                ctx.addLast(handler);
-            } else {
-                    DDLFilter ddlFilter = HTransactorFactory.getTransactionReadController().newDDLFilter(ddlChange.getTxn());
-                ctx.addLast(new SnapshotIsolatedWriteHandler(handler, ddlFilter));
-            }
-        }
-
-        @Override public long getConglomerateId() { return newConglomId; }
-    }
-    
+    @Override
     public boolean hasDependentWrite() {
-    	return indexFactories.size() > 0;
+        return !indexFactories.isEmpty();
     }
 
-
-	
 }

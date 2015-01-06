@@ -9,8 +9,8 @@ import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.metrics.TimeView;
 import com.splicemachine.metrics.Timer;
+import com.splicemachine.pipeline.impl.WriteCoordinator;
 import com.splicemachine.si.api.TxnView;
-import com.splicemachine.pipeline.api.CallBufferFactory;
 import com.splicemachine.pipeline.api.WriteStats;
 import com.splicemachine.pipeline.impl.MergingWriteStats;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -71,7 +71,7 @@ public class ParallelImporter implements Importer{
                             TxnView txn,
                             int numProcessingThreads,
                             int maxImportReadBufferSize,
-                            CallBufferFactory<KVPair> factory,
+                            WriteCoordinator writeCoordinator,
                             final ImportErrorReporter errorReporter,KVPair.Type importType){
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "ThreadingCallBuffer#init called");
@@ -90,7 +90,7 @@ public class ParallelImporter implements Importer{
 
         futures = Lists.newArrayList();
         for(int i=0;i<numProcessingThreads;i++){
-						SequentialImporter importer = new SequentialImporter(importCtx,template.getClone(),txn, factory,
+						SequentialImporter importer = new SequentialImporter(importCtx,template.getClone(),txn, writeCoordinator,
                     errorReporter,importType) {
 								@Override
 								public boolean isFailed() {

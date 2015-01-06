@@ -1,7 +1,5 @@
 package com.splicemachine.derby.impl.load;
 
-import com.carrotsearch.hppc.IntObjectOpenHashMap;
-import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.google.common.io.Closeables;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.marshall.PairEncoder;
@@ -10,26 +8,19 @@ import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.metrics.TimeView;
 import com.splicemachine.metrics.Timer;
+import com.splicemachine.pipeline.impl.WriteCoordinator;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.uuid.UUIDGenerator;
-import com.splicemachine.pipeline.api.CallBufferFactory;
 import com.splicemachine.pipeline.api.RecordingCallBuffer;
 import com.splicemachine.pipeline.api.WriteConfiguration;
-import com.splicemachine.pipeline.api.WriteResponse;
 import com.splicemachine.pipeline.api.WriteStats;
-import com.splicemachine.pipeline.impl.BulkWrite;
-import com.splicemachine.pipeline.writeconfiguration.ForwardingWriteConfiguration;
-import com.splicemachine.pipeline.exception.ErrorState;
-import com.splicemachine.pipeline.impl.BulkWriteResult;
-import com.splicemachine.pipeline.impl.WriteResult;
 import com.splicemachine.pipeline.writeconfiguration.SequentialImporterWriteConfiguration;
 
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.concurrent.ExecutionException;
 
 /**
  * @author Scott Fines
@@ -52,7 +43,7 @@ public class SequentialImporter implements Importer{
     public SequentialImporter(ImportContext importContext,
                               ExecRow templateRow,
                               TxnView txn,
-                              CallBufferFactory<KVPair> callBufferFactory,
+                              WriteCoordinator writeCoordinator,
                               final ImportErrorReporter errorReporter,
                               KVPair.Type importType){
 				this.importContext = importContext;
@@ -65,9 +56,9 @@ public class SequentialImporter implements Importer{
 						metricFactory = Metrics.noOpMetricFactory();
 
 				WriteConfiguration config = new SequentialImporterWriteConfiguration(
-						callBufferFactory.defaultWriteConfiguration(), this,metricFactory, errorReporter);
+						writeCoordinator.defaultWriteConfiguration(), this,metricFactory, errorReporter);
 							
-				writeBuffer = callBufferFactory.writeBuffer(importContext.getTableName().getBytes(), txn,config);
+				writeBuffer = writeCoordinator.writeBuffer(importContext.getTableName().getBytes(), txn,config);
 		}
 
 		@Override

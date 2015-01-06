@@ -25,8 +25,8 @@ import com.splicemachine.job.JobResults;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.job.SimpleJobResults;
 import com.splicemachine.metrics.MetricFactory;
+import com.splicemachine.pipeline.impl.WriteCoordinator;
 import com.splicemachine.si.api.Txn;
-import com.splicemachine.pipeline.api.CallBufferFactory;
 import com.splicemachine.pipeline.api.RecordingCallBuffer;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.storage.index.BitIndex;
@@ -326,9 +326,9 @@ public class InsertOperationTest {
                 return null;
             }
         }).when(outputBuffer).add(any(KVPair.class));
-        final CallBufferFactory<KVPair> bufferFactory = mock(CallBufferFactory.class);
-        when(bufferFactory.writeBuffer(any(byte[].class), any(Txn.class))).thenReturn(outputBuffer);
-				when(bufferFactory.writeBuffer(any(byte[].class), any(Txn.class),any(MetricFactory.class))).thenReturn(outputBuffer);
+        final WriteCoordinator writeCoordinator = mock(WriteCoordinator.class);
+        when(writeCoordinator.writeBuffer(any(byte[].class), any(Txn.class))).thenReturn(outputBuffer);
+				when(writeCoordinator.writeBuffer(any(byte[].class), any(Txn.class),any(MetricFactory.class))).thenReturn(outputBuffer);
 
         RowProvider mockProvider = mock(RowProvider.class);
         when(mockProvider.shuffleRows(any(SpliceObserverInstructions.class))).thenAnswer(new Answer<JobResults>(){
@@ -340,7 +340,7 @@ public class InsertOperationTest {
                 SpliceOperation op = observerInstructions.getTopOperation();
 
 								Txn mockTxn = Txn.ROOT_TRANSACTION;
-                TableOperationSink opSink = new TableOperationSink(Bytes.toBytes("TEST_TASK"),(DMLWriteOperation)op,bufferFactory,mockTxn,-1l,0l, Bytes.toBytes("1184"));
+                TableOperationSink opSink = new TableOperationSink(Bytes.toBytes("TEST_TASK"),(DMLWriteOperation)op,writeCoordinator,mockTxn,-1l,0l, Bytes.toBytes("1184"));
 
                 TaskStats sink = opSink.sink(new SpliceRuntimeContext(table,kryoPool));
                 JobStats stats = mock(JobStats.class);

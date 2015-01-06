@@ -9,7 +9,7 @@ import org.apache.hadoop.hbase.DoNotRetryIOException;
  * @author Scott Fines
  * Created on: 3/1/13
  */
-public class ConstraintViolation extends DoNotRetryIOException{
+public class ConstraintViolation extends DoNotRetryIOException {
 
     private final Constraint.Type type;
 
@@ -44,12 +44,14 @@ public class ConstraintViolation extends DoNotRetryIOException{
         switch (type) {
             case PRIMARY_KEY:
                 return new PrimaryKeyViolation("Duplicate Primary Key", constraintContext);
+            case FOREIGN_KEY:
+                return new ForeignKeyConstraintViolation(constraintContext);
             case UNIQUE:
                 return new UniqueConstraintViolation("Violated Unique Constraint", constraintContext);
             case NOT_NULL:
                 return new NotNullConstraintViolation("Non Null Constraint Violated", constraintContext);
             default:
-                return null; //TODO -sf- implement foreign and check constraints
+                throw new IllegalStateException("Programmer error, unexpected constraint type = " + type);
         }
     }
 
@@ -115,4 +117,16 @@ public class ConstraintViolation extends DoNotRetryIOException{
             return "NotNullConstraintViolation["+super.toString()+"]";
         }
     }
+
+    public static class ForeignKeyConstraintViolation extends ConstraintViolationException{
+        @Deprecated
+        public ForeignKeyConstraintViolation() { }
+        public ForeignKeyConstraintViolation(ConstraintContext cc) { super("", cc); }
+
+        @Override
+        public String toString(){
+            return "ForeignKeyConstraintViolation["+super.toString()+"]";
+        }
+    }
+
 }

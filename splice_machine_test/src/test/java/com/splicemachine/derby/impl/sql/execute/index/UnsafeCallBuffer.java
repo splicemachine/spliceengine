@@ -1,4 +1,4 @@
-package com.splicemachine.pipeline.callbuffer;
+package com.splicemachine.derby.impl.sql.execute.index;
 
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.pipeline.api.BufferConfiguration;
@@ -95,16 +95,6 @@ public class UnsafeCallBuffer<E> implements CallBuffer<E>{
     }
 
 	@Override
-	public void incrementHeap(long heap) throws Exception {
-		throw new RuntimeException("Not Implemented");
-	}
-
-	@Override
-	public void incrementCount(int count) throws Exception {
-		throw new RuntimeException("Not Implemented");
-	}
-
-	@Override
 	public PreFlushHook getPreFlushHook() {
 		return null;
 	}
@@ -113,4 +103,32 @@ public class UnsafeCallBuffer<E> implements CallBuffer<E>{
 	public WriteConfiguration getWriteConfiguration() {
 		return null;
 	}
+
+    /**
+     * Listener for Buffer filling Events
+     *
+     * @param <T> the type of the entry in the buffer
+     */
+    public static interface Listener<T> {
+        /**
+         * Determine the heap size of the Buffer.
+         *
+         * @param element the element to get the heap size for
+         * @return the heap size of the specified element
+         */
+        long heapSize(T element);
+
+        /**
+         * The Buffer has been flushed into the entry list. Time to
+         * do the expensive operation.
+         *
+         * Note: the entries list is decoupled from the buffer itself. That is,
+         * it represents the state of the buffer when {@code bufferFlushed} is called,
+         * entries added to the buffer after that will not be present in the entries list.
+         *
+         * @param entries the entries to operate against (the contents of the entire buffer).
+         * @throws Exception if the operation fails in some say.
+         */
+        void bufferFlushed(ObjectArrayList<T> entries, CallBuffer<T> source) throws Exception;
+    }
 }

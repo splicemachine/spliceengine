@@ -34,14 +34,12 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.api.BufferConfiguration;
 import com.splicemachine.pipeline.api.CallBuffer;
-import com.splicemachine.pipeline.callbuffer.UnsafeCallBuffer;
 import com.splicemachine.pipeline.writecontext.PipelineWriteContext;
 import com.splicemachine.pipeline.writehandler.IndexDeleteWriteHandler;
 import com.splicemachine.pipeline.writehandler.IndexUpsertWriteHandler;
@@ -228,7 +226,7 @@ public class IndexUpsertWriteHandlerTest {
 
 
         BufferConfiguration bufferConfiguration = getConstantBufferConfiguration();
-        CallBuffer<KVPair> writingBuffer = new UnsafeCallBuffer<KVPair>(bufferConfiguration,new CallBuffer.Listener<KVPair>() {
+        CallBuffer<KVPair> writingBuffer = new UnsafeCallBuffer<KVPair>(bufferConfiguration,new UnsafeCallBuffer.Listener<KVPair>() {
             @Override
             public long heapSize(KVPair element) {
                 return element.getSize();

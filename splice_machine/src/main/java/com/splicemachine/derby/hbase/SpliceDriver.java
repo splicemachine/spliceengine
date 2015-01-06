@@ -92,7 +92,7 @@ public class SpliceDriver {
     private final JobScheduler jobScheduler;
     private final TaskScheduler threadTaskScheduler;
     private final ExecutorService lifecycleExecutor;
-    private final WriteCoordinator writerPool;
+    private final WriteCoordinator writeCoordinator;
     private final DDLWatcher ddlWatcher;
 
     private RegionServerServices regionServerServices;
@@ -136,7 +136,7 @@ public class SpliceDriver {
         this.lifecycleExecutor = MoreExecutors.namedSingleThreadExecutor("splice-lifecycle-manager");
         this.taskMonitor = taskMonitor;
         this.ddlWatcher = ddlWatcher;
-        this.writerPool = writeCoordinator;
+        this.writeCoordinator = writeCoordinator;
         props.put(EmbedConnection.INTERNAL_CONNECTION, "true");
 
         TieredTaskSchedulerSetup setup = SchedulerPriorities.INSTANCE.getSchedulerSetup();
@@ -175,7 +175,7 @@ public class SpliceDriver {
     }
 
     public WriteCoordinator getTableWriter() {
-        return writerPool;
+        return writeCoordinator;
     }
 
     public Properties getProperties() {
@@ -255,7 +255,7 @@ public class SpliceDriver {
 
                         ddlWatcher.start();
 
-                        writerPool.start();
+                        writeCoordinator.start();
 
                         //all we have to do is create it, it will register itself for us
                         new SpliceMetrics();
@@ -423,7 +423,7 @@ public class SpliceDriver {
             ObjectName loggingInfoName = new ObjectName("com.splicemachine.utils.logging:type=LogManager");
             mbs.registerMBean(logging, loggingInfoName);
 
-            writerPool.registerJMX(mbs);
+            writeCoordinator.registerJMX(mbs);
 
             SpliceBaseIndexEndpoint.registerJMX(mbs);
 
@@ -513,10 +513,6 @@ public class SpliceDriver {
 
     public static KryoPool getKryoPool() {
         return SpliceKryoRegistry.getInstance();
-    }
-
-    public WriteCoordinator getWriterPool() {
-        return writerPool;
     }
 
     private static enum State {

@@ -335,10 +335,9 @@ public class RowProviders {
 
     }
 
-		public static class SourceRowProvider extends SingleScanRowProvider{
+		public static abstract class SourceRowProvider extends SingleScanRowProvider{
 				private final SpliceOperation source;
 				private final Logger log;
-				//private boolean populated = false;
 				private ExecRow nextEntry;
 
 				private SourceRowProvider(SpliceOperation source, Logger log, SpliceRuntimeContext spliceRuntimeContext) {
@@ -348,34 +347,10 @@ public class RowProviders {
 				}
 
 				@Override
-				public void open() {
-					    /* Leave commented out for reference, but we never get here anyway.
-                         * The only usage of SourceRowProvider is theanonymous inner class
-                         * returned by openedSourceProvider, where open() is a no-op.
-						try {
-								source.open();
-						} catch (StandardException e) {
-								SpliceLogUtils.logAndThrowRuntime(log,e);
-						} catch (IOException e) {
-								SpliceLogUtils.logAndThrowRuntime(log,e);
-						}
-						*/
-				}
+				public abstract void open();
 
 				@Override
-				public void close() {
-					    /* Leave commented out for reference, but we are not supposed to
-                         * close operations here anyway. See DB-2136. We close the operation
-                         * from SpliceNoPutResultSet.
-						try {
-								source.close();
-						} catch (StandardException e) {
-								SpliceLogUtils.logAndThrowRuntime(log,e);
-						} catch (IOException e) {
-								SpliceLogUtils.logAndThrowRuntime(log,e);
-						}
-					    */
-				}
+				public abstract void close();
 
 				@Override
 				public JobResults shuffleRows(SpliceObserverInstructions instructions, Callable<Void>... postCompleteTasks) throws StandardException, IOException {
@@ -385,7 +360,8 @@ public class RowProviders {
 						try {
 								OperationSink opSink = OperationSinkFactory.create((SinkingOperation) op, null, instructions.getTxn(),
                                         spliceRuntimeContext.getStatementInfo().getStatementUuid(), 0L);
-								JobStats stats = new LocalTaskJobStats(opSink.sink(spliceRuntimeContext));
+                            TaskStats taskStats = opSink.sink(spliceRuntimeContext);
+                            JobStats stats = new LocalTaskJobStats(taskStats);
 								for(Callable<Void> callable:postCompleteTasks){
 										try{
 												callable.call();
@@ -418,23 +394,17 @@ public class RowProviders {
 
 				@Override
 				public boolean hasNext() {
-						//if(populated==true) return true;
 						try {
 								nextEntry = source.nextRow(spliceRuntimeContext);
-						} catch (StandardException e) {
-                            SpliceLogUtils.error(LOG, org.apache.commons.lang.exception.ExceptionUtils.getStackTrace(e));
-								SpliceLogUtils.logAndThrowRuntime(log,e);
-						} catch (IOException e) {
+						} catch (StandardException | IOException e) {
                             SpliceLogUtils.error(LOG, org.apache.commons.lang.exception.ExceptionUtils.getStackTrace(e));
 								SpliceLogUtils.logAndThrowRuntime(log,e);
 						}
-						return nextEntry!=null;
+                    return nextEntry!=null;
 				}
 
 				@Override
 				public ExecRow next() {
-						//if(!populated) return null;
-						//populated=false;
 						return nextEntry;
 				}
 

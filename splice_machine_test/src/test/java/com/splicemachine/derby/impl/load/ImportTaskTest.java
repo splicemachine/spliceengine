@@ -5,9 +5,9 @@ import com.google.common.collect.Lists;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.hbase.KVPair;
+import com.splicemachine.pipeline.impl.WriteCoordinator;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.impl.ActiveWriteTxn;
-import com.splicemachine.pipeline.api.CallBufferFactory;
 import com.splicemachine.pipeline.api.RecordingCallBuffer;
 import com.splicemachine.pipeline.api.WriteConfiguration;
 import com.splicemachine.utils.kryo.KryoPool;
@@ -509,12 +509,12 @@ public class ImportTaskTest {
             }
         }).when(testingBuffer).add(any(KVPair.class));
 
-        @SuppressWarnings("unchecked") CallBufferFactory<KVPair> fakeBufferFactory = mock(CallBufferFactory.class);
-        when(fakeBufferFactory.writeBuffer(any(byte[].class),any(Txn.class))).thenReturn(testingBuffer);
-				when(fakeBufferFactory.writeBuffer(any(byte[].class),any(Txn.class),any(WriteConfiguration.class))).thenReturn(testingBuffer);
+        WriteCoordinator mockWriteCoordinator = mock(WriteCoordinator.class);
+        when(mockWriteCoordinator.writeBuffer(any(byte[].class),any(Txn.class))).thenReturn(testingBuffer);
+				when(mockWriteCoordinator.writeBuffer(any(byte[].class),any(Txn.class),any(WriteConfiguration.class))).thenReturn(testingBuffer);
         final Snowflake snowflake = new Snowflake((short)1);
 				KryoPool kryoPool = KryoPool.defaultPool();
-				Importer importer = new SequentialImporter(ctx,template,new ActiveWriteTxn(1l,1l),fakeBufferFactory, FailAlwaysReporter.INSTANCE, KVPair.Type.INSERT){
+				Importer importer = new SequentialImporter(ctx,template,new ActiveWriteTxn(1l,1l),mockWriteCoordinator, FailAlwaysReporter.INSTANCE, KVPair.Type.INSERT){
 						@Override
 						protected UUIDGenerator getRandomGenerator() {
 								return snowflake.newGenerator(lines.size());

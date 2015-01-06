@@ -2,17 +2,13 @@ package com.splicemachine.derby.impl.job.index;
 
 import com.google.common.base.Throwables;
 import com.splicemachine.derby.ddl.TentativeIndexDesc;
-import com.splicemachine.derby.hbase.PipelineContextFactories;
-import com.splicemachine.derby.hbase.SpliceBaseIndexEndpoint;
+import com.splicemachine.pipeline.writecontextfactory.WriteContextFactoryManager;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
-import com.splicemachine.pipeline.api.WriteContextFactory;
+import com.splicemachine.pipeline.writecontextfactory.WriteContextFactory;
 import com.splicemachine.pipeline.ddl.DDLChange;
-import com.splicemachine.utils.SpliceZooKeeperManager;
-
-import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -66,7 +62,7 @@ public class ForbidPastWritesTask extends ZkTask {
         try{
             //add index to table watcher
             TentativeIndexDesc tentativeIndexDesc = (TentativeIndexDesc)ddlChange.getTentativeDDLDesc();
-            WriteContextFactory contextFactory = PipelineContextFactories.getWriteContext(tentativeIndexDesc.getBaseConglomerateNumber());
+            WriteContextFactory contextFactory = WriteContextFactoryManager.getWriteContext(tentativeIndexDesc.getBaseConglomerateNumber());
             try {
                 contextFactory.addIndex(ddlChange, null, null);
             }finally{

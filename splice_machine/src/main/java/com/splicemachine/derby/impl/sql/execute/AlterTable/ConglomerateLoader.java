@@ -2,11 +2,9 @@ package com.splicemachine.derby.impl.sql.execute.AlterTable;
 
 import com.google.common.base.Throwables;
 import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
-import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.pipeline.api.RecordingCallBuffer;
 import com.splicemachine.pipeline.api.WriteStats;
@@ -19,8 +17,6 @@ import java.util.concurrent.ExecutionException;
  *
  * User: jyuan
  * Date: 2/6/14
- * Time: 10:36 AM
- * To change this template use File | Settings | File Templates.
  */
 public class ConglomerateLoader {
 
@@ -28,7 +24,6 @@ public class ConglomerateLoader {
     private long toConglomId;
     private TxnView txn;
 
-    private BufferedRegionScanner brs;
     private RecordingCallBuffer<KVPair> writeBuffer;
     private boolean initialized = false;
     private boolean isTraced;

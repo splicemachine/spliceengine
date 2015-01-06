@@ -1,108 +1,119 @@
 package com.splicemachine.pipeline.constraint;
 
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
-import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
-import org.apache.derby.iapi.sql.dictionary.ConstraintDescriptor;
-import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.sql.dictionary.*;
 
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.Arrays;
 
+/**
+ * Immutable class representing a named constraint on a named table.
+ */
 public class ConstraintContext implements Externalizable {
 
-    private String tableName;
-    private String constraintName;
+    /* The message args which will be passed to our StandardException factory method for creating a constraint
+     * violation message appropriate for the constraint. */
+    private String[] messageArgs;
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    // convenient factory methods for various types of constraints
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    public static ConstraintContext empty() {
+        return new ConstraintContext(null);
+    }
+
+    public static ConstraintContext unique(ConstraintDescriptor cd) {
+        String tableName = cd.getTableDescriptor().getName();
+        String constraintName = cd.getConstraintName();
+        return new ConstraintContext(constraintName, tableName);
+    }
+
+    public static ConstraintContext unique(TableDescriptor td, ConglomerateDescriptor conglomDesc) {
+        String tableName = td.getName();
+        String constraintName = conglomDesc.getConglomerateName();
+        return new ConstraintContext(constraintName, tableName);
+    }
+
+    public static ConstraintContext primaryKey(ConstraintDescriptor cDescriptor) {
+        String tableName = cDescriptor.getTableDescriptor().getName();
+        String constraintName = cDescriptor.getConstraintName();
+        return new ConstraintContext(constraintName, tableName);
+    }
+
+    public static ConstraintContext foreignKey(ForeignKeyConstraintDescriptor fkConstraintDesc) throws StandardException {
+        String tableName = fkConstraintDesc.getTableDescriptor().getName();
+        String constraintName = fkConstraintDesc.getConstraintName();
+        ColumnDescriptorList columnDescriptors = fkConstraintDesc.getColumnDescriptors();
+        String columnNames = Joiner.on(",").join(Lists.transform(columnDescriptors, new ColumnDescriptorNameFunction()));
+        return new ConstraintContext(constraintName, tableName, "INSERT", "(" + columnNames + ")");
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    /* For serialization */
     @Deprecated
-    public ConstraintContext(){};
-
-    public ConstraintContext(ConstraintDescriptor cd){
-        tableName = cd.getTableDescriptor().getName();
-        constraintName = cd.getConstraintName();
+    public ConstraintContext() {
     }
 
-    public ConstraintContext(TableDescriptor td, ConglomerateDescriptor cd){
-        tableName = td.getName();
-        constraintName = cd.getConglomerateName();
+    /* private: Use factory methods above instead for clarity */
+    private ConstraintContext(String... messageArgs) {
+        this.messageArgs = messageArgs;
     }
 
-		public ConstraintContext(String tableName, String constraintName){
-				this.tableName = tableName;
-				this.constraintName = constraintName;
-		}
-
-    public String getTableName() {
-        return tableName;
-    }
-
-    public String getConstraintName() {
-        return constraintName;
-    }
-
-
-    @Override
-    public void writeExternal(ObjectOutput objectOutput) throws IOException {
-        objectOutput.writeBoolean(tableName != null);
-        if(tableName != null){
-            objectOutput.writeUTF(tableName);
-        }
-
-        objectOutput.writeBoolean(constraintName != null);
-
-        if(constraintName != null){
-            objectOutput.writeUTF(constraintName);
-        }
-    }
-
-		public void write(Output output) throws IOException{
-				output.writeBoolean(tableName!=null);
-				if(tableName!=null){
-						output.writeString(tableName);
-				}
-
-				output.writeBoolean(constraintName!=null);
-				if(constraintName!=null)
-						output.writeString(constraintName);
-		}
-
-		public static ConstraintContext fromBytes(Input input) throws IOException{
-				String tableName = input.readBoolean()?input.readString():null;
-				String constraintName = input.readBoolean()?input.readString(): null;
-				return new ConstraintContext(tableName,constraintName);
-		}
-
-    @Override
-    public void readExternal(ObjectInput objectInput) throws IOException, ClassNotFoundException {
-
-        if(objectInput.readBoolean()){
-            tableName = objectInput.readUTF();
-        }
-
-        if(objectInput.readBoolean()){
-            constraintName = objectInput.readUTF();
-        }
+    public String[] getMessages() {
+        return messageArgs;
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof ConstraintContext)) return false;
-
-        ConstraintContext that = (ConstraintContext) o;
-
-        return constraintName.equals(that.constraintName) && tableName.equals(that.tableName);
-
+        return (this == o) || (o instanceof ConstraintContext) &&
+                Arrays.equals(this.messageArgs, ((ConstraintContext) o).messageArgs);
     }
 
     @Override
     public int hashCode() {
-        int result = tableName.hashCode();
-        result = 31 * result + constraintName.hashCode();
-        return result;
+        return Arrays.hashCode(messageArgs);
     }
 
+    @Override
+    public void readExternal(ObjectInput objectInput) throws IOException, ClassNotFoundException {
+        short len = objectInput.readShort();
+        if (len > 0) {
+            messageArgs = new String[len];
+        }
+        for (int i = 0; i < messageArgs.length; i++) {
+            messageArgs[i] = objectInput.readUTF();
+        }
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput objectOutput) throws IOException {
+        short len = (short) (messageArgs == null ? 0 : messageArgs.length);
+        objectOutput.writeShort(len);
+        for (int i = 0; i < len; i++) {
+            objectOutput.writeUTF(messageArgs[i]);
+        }
+    }
+
+    @Override
+    public String toString() {
+        return "ConstraintContext{" +
+                "messageArgs=" + Arrays.toString(messageArgs) +
+                '}';
+    }
+
+    private static class ColumnDescriptorNameFunction implements Function<ColumnDescriptor, String> {
+        @Override
+        public String apply(ColumnDescriptor columnDescriptor) {
+            return columnDescriptor.getColumnName();
+        }
+    }
 
 }
