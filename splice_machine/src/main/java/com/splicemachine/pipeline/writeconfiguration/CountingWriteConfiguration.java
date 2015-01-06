@@ -1,6 +1,7 @@
 package com.splicemachine.pipeline.writeconfiguration;
 
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
+import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.hbase.ExceptionTranslator;
 import com.splicemachine.pipeline.api.Code;
 import com.splicemachine.pipeline.api.WriteConfiguration;
@@ -27,7 +28,7 @@ public class CountingWriteConfiguration extends ForwardingWriteConfiguration {
     @Override
     public WriteResponse globalError(Throwable t) throws ExecutionException {
         statusReporter.globalFailures.incrementAndGet();
-        ExceptionTranslator handler = derbyFactory.getExceptionHandler();
+        ExceptionTranslator handler = DerbyFactoryDriver.derbyFactory.getExceptionHandler();
         if(handler.isCallTimeoutException(t))
             statusReporter.timedOutFlushes.incrementAndGet();
         else if(handler.isNotServingRegionException(t))

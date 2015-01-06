@@ -9,30 +9,24 @@ import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;
  * @author John Leach
  */
 public class SpliceDerbyCoprocessor extends BaseEndpointCoprocessor {
-	public SpliceBaseDerbyCoprocessor impl;
+    private SpliceBaseDerbyCoprocessor impl;
 
     /**
      * Logs the start of the observer and runs the SpliceDriver if needed...
-     * 
-     * @see com.splicemachine.derby.hbase.SpliceDriver
-     * 
      */
     @Override
     public void start(CoprocessorEnvironment e) {
-    	impl = new SpliceBaseDerbyCoprocessor();
-    	impl.start(e);
+        impl = new SpliceBaseDerbyCoprocessor();
+        impl.start(e);
         super.start(e);
     }
 
     /**
      * Logs the stop of the observer and shutdowns the SpliceDriver if needed...
-     * 
-     * @see com.splicemachine.derby.hbase.SpliceDriver
-     * 
      */
     @Override
     public void stop(CoprocessorEnvironment e) {
-    	impl.stop(e);
+        impl.stop(e);
     }
 
 }

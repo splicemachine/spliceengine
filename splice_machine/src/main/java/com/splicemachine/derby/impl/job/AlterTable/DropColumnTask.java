@@ -2,28 +2,25 @@ package com.splicemachine.derby.impl.job.AlterTable;
 
 import com.google.common.base.Throwables;
 import com.splicemachine.derby.ddl.TentativeDropColumnDesc;
-import com.splicemachine.derby.hbase.PipelineContextFactories;
-import com.splicemachine.derby.hbase.SpliceBaseIndexEndpoint;
+import com.splicemachine.pipeline.writecontextfactory.WriteContextFactoryManager;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
-import com.splicemachine.pipeline.api.WriteContextFactory;
+import com.splicemachine.pipeline.writecontextfactory.WriteContextFactory;
 import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.concurrent.ExecutionException;
 
 /**
- * Created with IntelliJ IDEA.
  * User: jyuan
  * Date: 3/11/14
- * Time: 4:57 PM
- * To change this template use File | Settings | File Templates.
  */
 public class DropColumnTask extends ZkTask {
 
@@ -31,20 +28,22 @@ public class DropColumnTask extends ZkTask {
     private long oldConglomId;
     private long newConglomId;
 
-    public DropColumnTask(){}
+    public DropColumnTask() {
+    }
+
     public DropColumnTask(String jobId,
                           long oldConglomId,
                           long newConglomId,
                           DDLChange ddlChange) {
-        super(jobId, OperationJob.operationTaskPriority,null);
+        super(jobId, OperationJob.operationTaskPriority, null);
         this.oldConglomId = oldConglomId;
         this.newConglomId = newConglomId;
         this.ddlChange = ddlChange;
     }
 
     @Override
-    public void prepareTask(byte[] start, byte[] stop,RegionCoprocessorEnvironment rce, SpliceZooKeeperManager zooKeeper) throws ExecutionException {
-        super.prepareTask(start,stop,rce, zooKeeper);
+    public void prepareTask(byte[] start, byte[] stop, RegionCoprocessorEnvironment rce, SpliceZooKeeperManager zooKeeper) throws ExecutionException {
+        super.prepareTask(start, stop, rce, zooKeeper);
     }
 
     @Override
@@ -57,19 +56,24 @@ public class DropColumnTask extends ZkTask {
         return true;
     }
 
-		@Override public RegionTask getClone() { throw new UnsupportedOperationException("Should not clone DropColumnTasks!"); }
+    @Override
+    public RegionTask getClone() {
+        throw new UnsupportedOperationException("Should not clone DropColumnTasks!");
+    }
 
-		@Override public boolean isSplittable() { return false; }
+    @Override
+    public boolean isSplittable() {
+        return false;
+    }
 
     @Override
     public void doExecute() throws ExecutionException, InterruptedException {
-        try{
-            TentativeDropColumnDesc tentativeDropColumnDesc = (TentativeDropColumnDesc)ddlChange.getTentativeDDLDesc();
-            WriteContextFactory contextFactory = PipelineContextFactories.getWriteContext(tentativeDropColumnDesc.getBaseConglomerateNumber());
-//            WriteContextFactory contextFactory = SpliceIndexEndpoint.getContextFactory(tentativeDropColumnDesc.getBaseConglomerateNumber());
+        try {
+            TentativeDropColumnDesc tentativeDropColumnDesc = (TentativeDropColumnDesc) ddlChange.getTentativeDDLDesc();
+            WriteContextFactory contextFactory = WriteContextFactoryManager.getWriteContext(tentativeDropColumnDesc.getBaseConglomerateNumber());
             try {
                 contextFactory.addDDLChange(ddlChange);
-            }finally{
+            } finally {
                 contextFactory.close();
             }
         } catch (Exception e) {

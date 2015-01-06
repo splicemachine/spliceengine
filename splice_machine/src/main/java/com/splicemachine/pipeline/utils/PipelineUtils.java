@@ -17,6 +17,7 @@ import com.splicemachine.pipeline.impl.BulkWrite;
 import com.splicemachine.pipeline.impl.BulkWriteResult;
 import com.splicemachine.pipeline.impl.WriteFailedException;
 import com.splicemachine.pipeline.impl.WriteResult;
+import com.splicemachine.tools.HostnameUtil;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.kryo.KryoObjectInput;
 import com.splicemachine.utils.kryo.KryoObjectOutput;
@@ -33,8 +34,6 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 
@@ -44,14 +43,7 @@ import java.util.concurrent.ExecutionException;
  */
 public class PipelineUtils extends PipelineConstants {
     private static final Logger LOG = Logger.getLogger(PipelineUtils.class);
-	static{
-		try {
-				hostName = InetAddress.getLocalHost().getHostName();
-		} catch (UnknownHostException e) {
-				throw new RuntimeException(e);
-		}
-	}
-
+	private static final String hostName = HostnameUtil.getHostname();
 
     public static ObjectArrayList<KVPair> doPartialRetry(BulkWrite bulkWrite, BulkWriteResult response, List<Throwable> errors, long id) throws Exception {
         IntArrayList notRunRows = response.getNotRunRows();
@@ -105,7 +97,7 @@ public class PipelineUtils extends PipelineConstants {
     public static long getWaitTime(int tryNum,long pause) {
         return SpliceHTableUtil.getWaitTime(tryNum,pause);
     }
-    
+
     public static SortedSet<Pair<HRegionInfo,ServerName>> getRegions(RegionCache regionCache, byte[] tableName) throws IOException, ExecutionException, InterruptedException {
         SortedSet<Pair<HRegionInfo,ServerName>> regions = regionCache.getRegions(tableName);
         if(regions.size()<=0){
@@ -120,11 +112,8 @@ public class PipelineUtils extends PipelineConstants {
             if(regions.size()<=0)
                 throw new IOException("Unable to get region information for table "+ Bytes.toString(tableName));
         }
-        return regions;    	
-    }    
-    
-	private static final String hostName;
-
+        return regions;
+    }
     
 		public static String getHostName() {
 				return hostName;

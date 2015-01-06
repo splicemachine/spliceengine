@@ -27,8 +27,6 @@ public class ForwardRecordingCallBuffer<E> implements RecordingCallBuffer<E> {
 		@Override public double getAverageSizePerFlush() { return delegate.getAverageSizePerFlush(); }
 		@Override public CallBuffer<E> unwrap() { return delegate.unwrap(); }
 		@Override public WriteStats getWriteStats() { return delegate.getWriteStats(); }
-		@Override public void incrementHeap(long heap) throws Exception { delegate.incrementHeap(heap); }
-		@Override public void incrementCount(int count) throws Exception { delegate.incrementCount(count); }
 		@Override public PreFlushHook getPreFlushHook() {return delegate.getPreFlushHook(); }
 		@Override public WriteConfiguration getWriteConfiguration() { return delegate.getWriteConfiguration();}
 

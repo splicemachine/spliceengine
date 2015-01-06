@@ -624,7 +624,12 @@ public enum ErrorState {
                     t instanceof ConstraintViolation.PrimaryKeyViolation;
         }
     },
-    LANG_FK_VIOLATION( "23503"),
+    LANG_FK_VIOLATION("23503") {
+        @Override
+        public boolean accepts(Throwable t) {
+            return super.accepts(t) || t instanceof ConstraintViolation.ForeignKeyConstraintViolation;
+        }
+    },
     LANG_CHECK_CONSTRAINT_VIOLATED( "23513"),
 
     // From SQL/XML[2006] spec), there are others, but

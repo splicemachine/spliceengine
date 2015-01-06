@@ -1,8 +1,7 @@
 package com.splicemachine.pipeline.api;
+
 /**
  * Class that enumerates the error code.
- *
- *
  */
 public enum Code {
     /*Logical behavior codes*/
@@ -59,7 +58,7 @@ public enum Code {
      * server is shutting down, but is not required to. In this case, the pipeline
      * should back off for a little bit, then try again to the same server just to see
      */
-    INTERRUPTED_EXCEPTON{      @Override public boolean canRetry() { return true; }},
+    INTERRUPTED_EXCEPTION {      @Override public boolean canRetry() { return true; }},
     REGION_TOO_BUSY{           @Override public boolean canRetry() { return true; }},
     /**
      * Indicates that this write was unable to proceed because the rate limiter

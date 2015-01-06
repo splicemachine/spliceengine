@@ -26,7 +26,7 @@ public class BulkWritesRPCInvoker implements BulkWritesInvoker {
 
         if (spliceDriver.isStarted()) {
             BulkWrite firstBulkWrite = (BulkWrite) writes.getBuffer()[0];
-            String encodedRegionName = firstBulkWrite.getEncodedStringName();
+            String encodedRegionName = firstBulkWrite.getEncodedRegionName();
             SpliceBaseIndexEndpoint indexEndpoint = spliceDriver.getIndexEndpoint(encodedRegionName);
 
             if (indexEndpoint != null) {

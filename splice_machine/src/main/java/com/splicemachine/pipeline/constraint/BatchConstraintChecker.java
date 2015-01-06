@@ -9,6 +9,6 @@ import org.apache.hadoop.hbase.regionserver.OperationStatus;
  *         Date: 3/14/14
  */
 public interface BatchConstraintChecker extends ConstraintChecker {
-		public WriteResult asWriteResult(OperationStatus status);
-		public boolean matches(OperationStatus status);
+    public WriteResult asWriteResult(OperationStatus status);
+    public boolean matches(OperationStatus status);
 }

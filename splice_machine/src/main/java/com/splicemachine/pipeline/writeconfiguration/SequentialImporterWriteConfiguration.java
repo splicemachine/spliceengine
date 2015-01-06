@@ -83,4 +83,4 @@ public class SequentialImporterWriteConfiguration extends ForwardingWriteConfigu
 		return String.format("SequentialImporterWriteConfiguration{delegate=%s}",delegate);
 	}
 
-};
+}

@@ -7,13 +7,11 @@ import com.splicemachine.derby.utils.marshall.DataHash;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.KVPair;
+import com.splicemachine.pipeline.impl.WriteCoordinator;
 import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.api.TxnView;
 import com.splicemachine.pipeline.api.CallBuffer;
-import com.splicemachine.pipeline.api.CallBufferFactory;
 import com.splicemachine.pipeline.callbuffer.ConcurrentWriteBuffer;
 import com.splicemachine.pipeline.exception.ErrorState;
-import com.splicemachine.si.impl.HTransactorFactory;
 import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.storage.EntryEncoder;
 
@@ -79,8 +77,8 @@ public abstract class XplainReporter<T> {
 										public CallBuffer<KVPair> load(String schema) throws Exception {
 												//TODO -sf- deal with transactions correctly
 												long conglomId = getConglomerateId(schema,tableName);
-												CallBufferFactory<KVPair> nonThreadSafeBufferFactory = SpliceDriver.driver().getTableWriter();
-												return new ConcurrentWriteBuffer(10, nonThreadSafeBufferFactory.writeBuffer(
+                                                WriteCoordinator writeCoordinator = SpliceDriver.driver().getTableWriter();
+												return new ConcurrentWriteBuffer(10, writeCoordinator.writeBuffer(
 																Bytes.toBytes(Long.toString(conglomId)),
 																txn,
 																10));

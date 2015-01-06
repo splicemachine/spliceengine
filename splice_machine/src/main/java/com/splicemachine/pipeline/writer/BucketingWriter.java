@@ -16,15 +16,13 @@ import java.util.List;
  * Created on: 8/8/13
  */
 public abstract class BucketingWriter extends PipelineConstants implements Writer{
+
     protected final RegionCache regionCache;
     protected final HConnection connection;
 
     protected BucketingWriter(RegionCache regionCache, HConnection connection) {
         this.regionCache = regionCache;
         this.connection = connection;
-    }
-    private Exception getError(List<Throwable> errors) {
-        return new RetriesExhaustedWithDetailsException(errors,Collections.<Row>emptyList(),Collections.<String>emptyList());
     }
 
 }

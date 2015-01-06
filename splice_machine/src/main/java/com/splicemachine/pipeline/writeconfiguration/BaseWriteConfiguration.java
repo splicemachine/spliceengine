@@ -1,13 +1,11 @@
 package com.splicemachine.pipeline.writeconfiguration;
 
-import java.util.concurrent.ExecutionException;
 import com.carrotsearch.hppc.IntArrayList;
-import com.splicemachine.derby.hbase.ExceptionTranslator;
-import org.apache.log4j.Logger;
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
 import com.splicemachine.derby.hbase.DerbyFactory;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
+import com.splicemachine.derby.hbase.ExceptionTranslator;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.api.WriteConfiguration;
 import com.splicemachine.pipeline.api.WriteContext;
@@ -16,6 +14,9 @@ import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.pipeline.impl.BulkWriteResult;
 import com.splicemachine.pipeline.impl.WriteResult;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.log4j.Logger;
+
+import java.util.concurrent.ExecutionException;
 
 public abstract class BaseWriteConfiguration implements WriteConfiguration {
     private static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
@@ -24,28 +25,13 @@ public abstract class BaseWriteConfiguration implements WriteConfiguration {
     @Override
     public WriteResponse globalError(Throwable t) throws ExecutionException {
         ExceptionTranslator handler = derbyFactory.getExceptionHandler();
-        if(handler.isInterruptedException(t)){
+        if (handler.isInterruptedException(t)) {
             Thread.currentThread().interrupt();
             return WriteResponse.IGNORE;
-        }
-        else if((handler.canFinitelyRetry(t)||handler.canInfinitelyRetry(t))&&!handler.needsTransactionalRetry(t))
+        } else if ((handler.canFinitelyRetry(t) || handler.canInfinitelyRetry(t)) && !handler.needsTransactionalRetry(t))
             return WriteResponse.RETRY;
         else
             return WriteResponse.THROW_ERROR;
-
-//        if(handler.isRegionTooBusyException(t)){
-//            return WriteResponse.RETRY;
-//        }
-//        else if(handler.isInterruptedException(t)){
-//            Thread.currentThread().interrupt();
-//            return WriteResponse.IGNORE; //
-//        }else if(handler.isConnectException(t)
-//                || derbyFactory.isWrongRegionException(t)
-//                || derbyFactory.isIndexNotSetupException(t)
-//                || derbyFactory.isNotServingRegionException(t) )
-//            return WriteResponse.RETRY;
-//        else
-//            return WriteResponse.THROW_ERROR;
     }
 
     @Override
@@ -55,17 +41,17 @@ public abstract class BaseWriteConfiguration implements WriteConfiguration {
             return WriteResponse.SUCCESS;
         else if (writeResult.isPartial()) {
             IntObjectOpenHashMap<WriteResult> failedRows = bulkWriteResult.getFailedRows();
-            if(failedRows!=null && failedRows.size()>0){
+            if (failedRows != null && failedRows.size() > 0) {
                 return WriteResponse.PARTIAL;
             }
             IntArrayList notRun = bulkWriteResult.getNotRunRows();
-            if(notRun!=null && notRun.size()>0)
+            if (notRun != null && notRun.size() > 0)
                 return WriteResponse.PARTIAL;
-						/*
-						 * We got a partial result, but didn't specify which rows needed behavior.
-						 * That's weird, but since we weren't told there would be a problem, we may
-						 * as well ignore
-						 */
+            /*
+             * We got a partial result, but didn't specify which rows needed behavior.
+             * That's weird, but since we weren't told there would be a problem, we may
+             * as well ignore
+             */
             return WriteResponse.IGNORE;
         } else if (!writeResult.canRetry())
             throw Exceptions.fromString(writeResult);
@@ -74,8 +60,7 @@ public abstract class BaseWriteConfiguration implements WriteConfiguration {
     }
 
     @Override
-    public void registerContext(WriteContext context,
-                                ObjectObjectOpenHashMap<KVPair, KVPair> indexToMainMutationMap) {
+    public void registerContext(WriteContext context, ObjectObjectOpenHashMap<KVPair, KVPair> indexToMainMutationMap) {
         SpliceLogUtils.warn(LOG, "registering Context with a base class");
     }
 

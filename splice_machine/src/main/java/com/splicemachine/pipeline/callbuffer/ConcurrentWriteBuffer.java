@@ -24,113 +24,100 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * flush. Adding elements to the queue is non-blocking.
  *
  * @author Scott Fines
- * Date: 1/21/14
+ *         Date: 1/21/14
  */
 public class ConcurrentWriteBuffer implements CallBuffer<KVPair> {
-		private final ConcurrentLinkedQueue<KVPair> queue;
-		private final int maxEntries;
+    private final ConcurrentLinkedQueue<KVPair> queue;
+    private final int maxEntries;
 
-		private final CallBuffer<KVPair> delegateBuffer;
-		private volatile boolean closed = false;
-		private final AtomicBoolean flushing = new AtomicBoolean(false);
+    private final CallBuffer<KVPair> delegateBuffer;
+    private volatile boolean closed = false;
+    private final AtomicBoolean flushing = new AtomicBoolean(false);
 
-		public ConcurrentWriteBuffer(int maxEntries,
-																 CallBuffer<KVPair> delegateBuffer){
-				this.maxEntries = maxEntries;
-				this.queue = new ConcurrentLinkedQueue<KVPair>();
-				this.delegateBuffer = delegateBuffer;
-		}
+    public ConcurrentWriteBuffer(int maxEntries, CallBuffer<KVPair> delegateBuffer) {
+        this.maxEntries = maxEntries;
+        this.queue = new ConcurrentLinkedQueue<>();
+        this.delegateBuffer = delegateBuffer;
+    }
 
-		@Override
-		public void add(KVPair element) throws Exception {
-				assert !closed :"Incorrectly adding to closed buffer!";
-				if(closed) return;
-				queue.offer(element);
-				if(queue.size()>maxEntries){
-					flushBuffer();
-				}
-		}
+    @Override
+    public void add(KVPair element) throws Exception {
+        assert !closed : "Incorrectly adding to closed buffer!";
+        if (closed) return;
+        queue.offer(element);
+        if (queue.size() > maxEntries) {
+            flushBuffer();
+        }
+    }
 
-		@Override
-		public void addAll(KVPair[] elements) throws Exception {
-				assert !closed :"Incorrectly adding to closed buffer!";
-				if(closed) return;
-				for(KVPair kvPair:elements){
-						queue.offer(kvPair);
-				}
-				if(queue.size()>maxEntries)
-						flushBuffer();
-		}
+    @Override
+    public void addAll(KVPair[] elements) throws Exception {
+        assert !closed : "Incorrectly adding to closed buffer!";
+        if (closed) return;
+        for (KVPair kvPair : elements) {
+            queue.offer(kvPair);
+        }
+        if (queue.size() > maxEntries)
+            flushBuffer();
+    }
 
-		@Override
-		public void addAll(ObjectArrayList<KVPair> elements) throws Exception {
-				assert !closed :"Incorrectly adding to closed buffer!";
-				if(closed) return;
-				Object[] buffer = elements.buffer;
-				int size = elements.size();
-				for(int i=0;i<size;i++){
-						queue.offer((KVPair) buffer[i]);
-				}
-				if(queue.size()>maxEntries)
-						flushBuffer();
-		}
+    @Override
+    public void addAll(ObjectArrayList<KVPair> elements) throws Exception {
+        assert !closed : "Incorrectly adding to closed buffer!";
+        if (closed) return;
+        Object[] buffer = elements.buffer;
+        int size = elements.size();
+        for (int i = 0; i < size; i++) {
+            queue.offer((KVPair) buffer[i]);
+        }
+        if (queue.size() > maxEntries)
+            flushBuffer();
+    }
 
-		@Override
-		public void flushBuffer() throws Exception {
-				if(closed) return;
-				if(!flushing.compareAndSet(false,true)) return; //someone else is already flushing, so don't bother
-				try{
+    @Override
+    public void flushBuffer() throws Exception {
+        if (closed) return;
+        if (!flushing.compareAndSet(false, true)) return; //someone else is already flushing, so don't bother
+        try {
 
-						int size = queue.size();
-						if(size<=0) return; //nothing to do if we don't have anything to flush
+            int size = queue.size();
+            if (size <= 0) return; //nothing to do if we don't have anything to flush
 
-						ObjectArrayList<KVPair> pairs = ObjectArrayList.newInstanceWithCapacity(size);
-						for(int i=0;i<size;i++){
-								KVPair next = queue.poll();
-								if(next==null) break;
-								pairs.add(next);
-						}
+            ObjectArrayList<KVPair> pairs = ObjectArrayList.newInstanceWithCapacity(size);
+            for (int i = 0; i < size; i++) {
+                KVPair next = queue.poll();
+                if (next == null) break;
+                pairs.add(next);
+            }
 
-						if(pairs.size()<=0) return; //nothing to do now if there's nothing to flush
+            if (pairs.size() <= 0) return; //nothing to do now if there's nothing to flush
 
-						synchronized (delegateBuffer){
-								delegateBuffer.addAll(pairs);
-								delegateBuffer.flushBuffer();
-						}
-				}finally{
-						//allow other flushes to proceed.
-						flushing.set(false);
-				}
-		}
+            synchronized (delegateBuffer) {
+                delegateBuffer.addAll(pairs);
+                delegateBuffer.flushBuffer();
+            }
+        } finally {
+            //allow other flushes to proceed.
+            flushing.set(false);
+        }
+    }
 
-		@Override
-		public void close() throws Exception {
-				closed=true;
-				synchronized (delegateBuffer){
-						delegateBuffer.flushBuffer();
-						delegateBuffer.close();
-				}
-		}
+    @Override
+    public void close() throws Exception {
+        closed = true;
+        synchronized (delegateBuffer) {
+            delegateBuffer.flushBuffer();
+            delegateBuffer.close();
+        }
+    }
 
-		@Override
-		public void incrementHeap(long heap) throws Exception {
-			// TODO Auto-generated method stub
-			
-		}
+    @Override
+    public PreFlushHook getPreFlushHook() {
+        return delegateBuffer.getPreFlushHook();
+    }
 
-		@Override
-		public void incrementCount(int count) throws Exception {
-			// TODO Auto-generated method stub
-			
-		}
-
-		@Override
-		public PreFlushHook getPreFlushHook() {
-			return delegateBuffer.getPreFlushHook();
-		}
-
-		@Override
-		public WriteConfiguration getWriteConfiguration() {
-			return delegateBuffer.getWriteConfiguration();
-		}
+    @Override
+    public WriteConfiguration getWriteConfiguration() {
+        return delegateBuffer.getWriteConfiguration();
+    }
 }

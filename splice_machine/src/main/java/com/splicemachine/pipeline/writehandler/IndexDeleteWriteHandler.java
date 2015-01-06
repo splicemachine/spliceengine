@@ -26,7 +26,9 @@ import java.util.List;
  * Created on: 5/1/13
  */
 public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
-    static final Logger LOG = Logger.getLogger(IndexDeleteWriteHandler.class);
+
+    private static final Logger LOG = Logger.getLogger(IndexDeleteWriteHandler.class);
+
     private final IndexTransformer transformer;
     private CallBuffer<KVPair> indexBuffer;
     private final int expectedWrites;
@@ -115,7 +117,6 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
         }
 	}
 
-
     private void delete(KVPair mutation, WriteContext ctx) {
     	if (LOG.isTraceEnabled())
     		SpliceLogUtils.trace(LOG, "delete with %s", mutation);
@@ -154,9 +155,6 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
         	if (LOG.isTraceEnabled())
         		SpliceLogUtils.trace(LOG, "performing delete on row %s", BytesUtil.toHex(indexDelete.getRow()));
             indexBuffer.add(indexDelete);
-        } catch (IOException e) {
-            failed=true;
-            ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName()+":"+e.getMessage()));
         } catch (Exception e) {
             failed=true;
             ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName()+":"+e.getMessage()));
@@ -167,6 +165,7 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
 	public void next(List<KVPair> mutations, WriteContext ctx) {
 		throw new RuntimeException("Not Supported");
 	}
+
 	@Override
 	public void flush(WriteContext ctx) throws IOException {
     	if (LOG.isDebugEnabled())

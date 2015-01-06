@@ -47,13 +47,9 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
 				HRegion region = rce.getRegion();
 				try{
 						this.tableName = region.getTableDesc().getNameAsString();
-						//make sure we only split around SI regions
-						Long.parseLong(tableName);
-
-//						splitter = new BytesCopyTaskSplitter(region);
-            splitter = NoOpTaskSplitter.INSTANCE; //don't split me!
+                        this.splitter = NoOpTaskSplitter.INSTANCE; //don't split me!
 				}catch(NumberFormatException nfe){
-						splitter = NoOpTaskSplitter.INSTANCE;
+						this.splitter = NoOpTaskSplitter.INSTANCE;
 				}
 				runningTasks = SpliceDriver.driver().getTaskMonitor().registerRegion(region.getRegionInfo().getRegionNameAsString());
 				taskScheduler = SpliceDriver.driver().getTaskScheduler();

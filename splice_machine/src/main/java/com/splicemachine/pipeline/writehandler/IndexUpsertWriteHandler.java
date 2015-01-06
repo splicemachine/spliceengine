@@ -19,7 +19,6 @@ import com.splicemachine.storage.*;
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.client.Get;
@@ -32,7 +31,7 @@ import java.util.List;
 
 /**
  * @author Scott Fines
- * Created on: 5/1/13
+ *         Created on: 5/1/13
  */
 public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
     static final Logger LOG = Logger.getLogger(IndexUpsertWriteHandler.class);
@@ -60,85 +59,84 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
                                    boolean uniqueWithDuplicateNulls,
                                    int expectedWrites,
                                    int[] columnOrdering,
-                                   int[] formatIds){
-        super(indexedColumns,mainColToIndexPos,indexConglomBytes,descColumns,keepState);
-    	if (LOG.isDebugEnabled())
-    		SpliceLogUtils.debug(LOG, "instance");
+                                   int[] formatIds) {
+        super(indexedColumns, mainColToIndexPos, indexConglomBytes, descColumns, keepState);
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "instance");
 
         this.expectedWrites = expectedWrites;
-        nonUniqueIndexColumn = (BitSet)translatedIndexColumns.clone();
+        nonUniqueIndexColumn = (BitSet) translatedIndexColumns.clone();
         nonUniqueIndexColumn.set(translatedIndexColumns.length());
         pkColumns = new BitSet();
         this.formatIds = formatIds;
         this.columnOrdering = columnOrdering;
         if (columnOrdering != null) {
-            for (int col:columnOrdering) {
+            for (int col : columnOrdering) {
                 pkColumns.set(col);
             }
         }
-        pkIndexColumns = (BitSet)pkColumns.clone();
+        pkIndexColumns = (BitSet) pkColumns.clone();
         pkIndexColumns.and(indexedColumns);
 
-				boolean[] destKeySortOrder = new boolean[formatIds.length];
-				Arrays.fill(destKeySortOrder,true);
-				for(int i=descColumns.nextSetBit(0);i>=0;i=descColumns.nextSetBit(i+1)){
-						destKeySortOrder[i] = false;
-				}
-				int[] keyDecodingMap = new int[(int)indexedColumns.length()];
-				Arrays.fill(keyDecodingMap,-1);
-				for(int i=indexedColumns.nextSetBit(0);i>=0;i = indexedColumns.nextSetBit(i+1)){
-						keyDecodingMap[i] = mainColToIndexPos[i];
-				}
-				this.transformer = new IndexTransformer(unique,uniqueWithDuplicateNulls,null,
-								columnOrdering,formatIds,null,keyDecodingMap,destKeySortOrder);
+        boolean[] destKeySortOrder = new boolean[formatIds.length];
+        Arrays.fill(destKeySortOrder, true);
+        for (int i = descColumns.nextSetBit(0); i >= 0; i = descColumns.nextSetBit(i + 1)) {
+            destKeySortOrder[i] = false;
+        }
+        int[] keyDecodingMap = new int[(int) indexedColumns.length()];
+        Arrays.fill(keyDecodingMap, -1);
+        for (int i = indexedColumns.nextSetBit(0); i >= 0; i = indexedColumns.nextSetBit(i + 1)) {
+            keyDecodingMap[i] = mainColToIndexPos[i];
+        }
+        this.transformer = new IndexTransformer(unique, uniqueWithDuplicateNulls, null,
+                columnOrdering, formatIds, null, keyDecodingMap, destKeySortOrder);
     }
 
     @Override
-	public boolean updateIndex(KVPair mutation, WriteContext ctx) {
-    	if (LOG.isTraceEnabled())
-    		SpliceLogUtils.trace(LOG, "updateIndex with %s", mutation);
-    	
+    public boolean updateIndex(KVPair mutation, WriteContext ctx) {
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "updateIndex with %s", mutation);
+
         ensureBufferReader(mutation, ctx);
 
-        if(mutation.getType()== KVPair.Type.DELETE) {
-        	if (LOG.isTraceEnabled())
-        		SpliceLogUtils.trace(LOG, "updateIndex ignore delete %s", mutation);
-        	return true; //send upstream without acting on it
+        if (mutation.getType() == KVPair.Type.DELETE) {
+            if (LOG.isTraceEnabled())
+                SpliceLogUtils.trace(LOG, "updateIndex ignore delete %s", mutation);
+            return true; //send upstream without acting on it
         }
 
-        return upsert(mutation,ctx);
+        return upsert(mutation, ctx);
     }
 
     private void ensureBufferReader(KVPair mutation, WriteContext ctx) {
-        if(indexBuffer==null){
-            try{
-                indexBuffer = getWriteBuffer(ctx,expectedWrites);
-            }catch(Exception e){
+        if (indexBuffer == null) {
+            try {
+                indexBuffer = getWriteBuffer(ctx, expectedWrites);
+            } catch (Exception e) {
                 ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName() + ":" + e.getMessage()));
-                failed=true;
+                failed = true;
             }
         }
     }
 
     private boolean upsert(KVPair mutation, WriteContext ctx) {
-    	if (LOG.isTraceEnabled())
-    		SpliceLogUtils.trace(LOG, "upsert %s", mutation);
-       KVPair put = update(mutation, ctx);
-        if(put==null) return false; //we updated the table, and the index during the update process
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "upsert %s", mutation);
+        KVPair put = update(mutation, ctx);
+        if (put == null) {
+            return false; //we updated the table, and the index during the update process
+        }
 
-        try{
+        try {
             KVPair indexPair = transformer.translate(mutation);
-        	if (LOG.isTraceEnabled())
-        		SpliceLogUtils.trace(LOG, "performing upsert on row %s", BytesUtil.toHex(indexPair.getRow()));
-            
-            if(keepState)
-                this.indexToMainMutationMap.put(indexPair,mutation);
+            if (LOG.isTraceEnabled())
+                SpliceLogUtils.trace(LOG, "performing upsert on row %s", BytesUtil.toHex(indexPair.getRow()));
+
+            if (keepState)
+                this.indexToMainMutationMap.put(indexPair, mutation);
             indexBuffer.add(indexPair);
-        } catch (IOException e) {
-            failed=true;
-            ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName() + ":" + e.getMessage()));
         } catch (Exception e) {
-            failed=true;
+            failed = true;
             ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName() + ":" + e.getMessage()));
         }
         return true;
@@ -150,64 +148,64 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
         return keyDecoder;
     }
 
-    private void buildKeyMap (KVPair mutation) throws StandardException {
+    private void buildKeyMap(KVPair mutation) throws StandardException {
 
         // if index key column set and primary key column set do not intersect,
         // no need to build a key map
-        pkIndexColumns = (BitSet)pkColumns.clone();
+        pkIndexColumns = (BitSet) pkColumns.clone();
         pkIndexColumns.and(indexedColumns);
 
-        if(pkIndexColumns.cardinality() > 0)
-        {
+        if (pkIndexColumns.cardinality() > 0) {
             int len = columnOrdering.length;
             createKeyDecoder();
             if (kdvds == null) {
                 kdvds = new DataValueDescriptor[len];
-                for(int i = 0; i < len; ++i) {
+                for (int i = 0; i < len; ++i) {
                     kdvds[i] = LazyDataValueFactory.getLazyNull(formatIds[columnOrdering[i]]);
                 }
             }
-            if(pkIndex == null)
+            if (pkIndex == null)
                 pkIndex = new KeyData[len];
             keyDecoder.set(mutation.getRow());
             for (int i = 0; i < len; ++i) {
                 int offset = keyDecoder.offset();
                 DerbyBytesUtil.skip(keyDecoder, kdvds[i]);
-                int size = keyDecoder.offset()-1-offset;
+                int size = keyDecoder.offset() - 1 - offset;
                 pkIndex[i] = new KeyData(offset, size);
             }
         }
         if (columnOrdering != null && columnOrdering.length > 0) {
             reverseColumnOrdering = new int[formatIds.length];
-            for (int i = 0; i < columnOrdering.length; ++i){
+            for (int i = 0; i < columnOrdering.length; ++i) {
                 reverseColumnOrdering[columnOrdering[i]] = i;
             }
         }
     }
+
     private KVPair update(KVPair mutation, WriteContext ctx) {
-    	if (LOG.isTraceEnabled())
-    		SpliceLogUtils.trace(LOG, "update mutation=%s",BytesUtil.toHex(mutation.getRow()));
-        //TODO -sf- move this logic into IndexTransformer
-        switch(mutation.getType()){
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "update mutation=%s", BytesUtil.toHex(mutation.getRow()));
+        switch (mutation.getType()) {
             case UPDATE:
             case UPSERT:
-                return doUpdate(mutation,ctx);
+                return doUpdate(mutation, ctx);
             default:
                 return mutation;
         }
     }
 
     private KVPair doUpdate(KVPair mutation, WriteContext ctx) {
-        if(newPutDecoder==null)
+        if (newPutDecoder == null) {
             newPutDecoder = new EntryDecoder();
+        }
 
         newPutDecoder.set(mutation.getValue());
 
         BitIndex updateIndex = newPutDecoder.getCurrentIndex();
         boolean needsIndexUpdating = false;
-        for(int i=updateIndex.nextSetBit(0);i>=0;i=updateIndex.nextSetBit(i+1)){
-            if(indexedColumns.get(i)){
-                needsIndexUpdating=true;
+        for (int i = updateIndex.nextSetBit(0); i >= 0; i = updateIndex.nextSetBit(i + 1)) {
+            if (indexedColumns.get(i)) {
+                needsIndexUpdating = true;
                 break;
             }
         }
@@ -220,9 +218,9 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
          * If we are an UPDATE, then we know that the record MUST exist, so
          * we can skip even the local fetch.
          */
-        if(mutation.getType()!= KVPair.Type.UPSERT && !needsIndexUpdating){
-        	if (LOG.isTraceEnabled())
-        		SpliceLogUtils.trace(LOG, "update mutation, index does not need updating");
+        if (mutation.getType() != KVPair.Type.UPSERT && !needsIndexUpdating) {
+            if (LOG.isTraceEnabled())
+                SpliceLogUtils.trace(LOG, "update mutation, index does not need updating");
             //nothing in the index has changed, whoo!
             ctx.sendUpstream(mutation);
             return null;
@@ -240,27 +238,27 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
          * 4. Delete the old index row
          * 5. Insert the new index row
          */
-        try{
+        try {
             byte[] row = mutation.getRow();
             Get oldGet = SpliceUtils.createGet(ctx.getTxn(), row);
             //TODO -sf- when it comes time to add additional (non-indexed data) to the index, you'll need to add more fields than just what's in indexedColumns
-            EntryPredicateFilter filter = new EntryPredicateFilter(indexedColumns, new ObjectArrayList<Predicate>(),true);
-            oldGet.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,filter.toBytes());
+            EntryPredicateFilter filter = new EntryPredicateFilter(indexedColumns, new ObjectArrayList<Predicate>(), true);
+            oldGet.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL, filter.toBytes());
 
             Result r = ctx.getRegion().get(oldGet);
-            if(r==null||r.isEmpty()){
+            if (r == null || r.isEmpty()) {
                 /*
                  * There is no entry in the main table, so this is an insert, regardless of what it THINKS it is
                  */
                 return mutation;
-            }else if(mutation.getType()== KVPair.Type.UPSERT && !needsIndexUpdating){
+            } else if (mutation.getType() == KVPair.Type.UPSERT && !needsIndexUpdating) {
                 //we didn't change the index, and the row exists, we can skip!
                 return null;
             }
 
             ByteEntryAccumulator newKeyAccumulator = transformer.getKeyAccumulator();
             newKeyAccumulator.reset();
-            if(newPutDecoder==null)
+            if (newPutDecoder == null)
                 newPutDecoder = new EntryDecoder();
 
             newPutDecoder.set(mutation.getValue());
@@ -271,70 +269,70 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
             try {
                 newDecoder = newPutDecoder.getEntryDecoder();
 
-                if(oldDataDecoder==null)
+                if (oldDataDecoder == null)
                     oldDataDecoder = new EntryDecoder();
 
                 oldDataDecoder.set(r.getValue(SpliceConstants.DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES));
                 BitIndex oldIndex = oldDataDecoder.getCurrentIndex();
                 oldDecoder = oldDataDecoder.getEntryDecoder();
-                oldKeyAccumulator = new ByteEntryAccumulator(null,transformer.isUnique()?translatedIndexColumns:nonUniqueIndexColumn);
+                oldKeyAccumulator = new ByteEntryAccumulator(null, transformer.isUnique() ? translatedIndexColumns : nonUniqueIndexColumn);
 
                 buildKeyMap(mutation);
                 // fill in index columns that are being changed by the mutation. We can assume here that no primary key column is being
                 // changed, because otherwise, we won't be here
-                BitSet remainingIndexColumns = (BitSet)indexedColumns.clone();
-                for (int newPos=updateIndex.nextSetBit(0);newPos>=0 && newPos<=indexedColumns.length();newPos=updateIndex.nextSetBit(newPos+1)){
-                    if(indexedColumns.get(newPos)){
+                BitSet remainingIndexColumns = (BitSet) indexedColumns.clone();
+                for (int newPos = updateIndex.nextSetBit(0); newPos >= 0 && newPos <= indexedColumns.length(); newPos = updateIndex.nextSetBit(newPos + 1)) {
+                    if (indexedColumns.get(newPos)) {
                         int mappedPosition = mainColToIndexPosMap[newPos];
-                        ByteSlice keySlice = newKeyAccumulator.getField(mappedPosition,true);
-                        newPutDecoder.nextField(newDecoder,newPos,keySlice);
-                        if(this.descColumns.get(newPos)) {
+                        ByteSlice keySlice = newKeyAccumulator.getField(mappedPosition, true);
+                        newPutDecoder.nextField(newDecoder, newPos, keySlice);
+                        if (this.descColumns.get(newPos)) {
                             keySlice.set(keySlice.getByteCopy());
                             keySlice.reverse();
                         }
-                        occupy(newKeyAccumulator,updateIndex,newPos);
+                        occupy(newKeyAccumulator, updateIndex, newPos);
                         remainingIndexColumns.clear(newPos);
                     }
                 }
 
                 // Inspect each primary key column. If it is an index column, then set it value to the index row key
                 if (columnOrdering != null) {
-                    for(int i = 0; i < columnOrdering.length; ++i) {
+                    for (int i = 0; i < columnOrdering.length; ++i) {
                         int pos = reverseColumnOrdering[i];
                         if (remainingIndexColumns.get(pos)) {
                             int indexPos = mainColToIndexPosMap[i];
                             newKeyAccumulator.add(indexPos, keyDecoder.array(), pkIndex[i].getOffset(), pkIndex[i].getSize());
-                            occupy(newKeyAccumulator,kdvds[pos],i);
+                            occupy(newKeyAccumulator, kdvds[pos], i);
                             oldKeyAccumulator.add(indexPos, keyDecoder.array(), pkIndex[i].getOffset(), pkIndex[i].getSize());
-                            occupy(oldKeyAccumulator,kdvds[pos],i);
+                            occupy(oldKeyAccumulator, kdvds[pos], i);
                             remainingIndexColumns.clear(pos);
                         }
                     }
                 }
 
                 // Inspect each column in the old value. If it is an index column, then set its value to the index row key
-                for(int oldPos=oldIndex.nextSetBit(0);oldPos>=0&&oldPos<=indexedColumns.length();oldPos=oldIndex.nextSetBit(oldPos+1)){
+                for (int oldPos = oldIndex.nextSetBit(0); oldPos >= 0 && oldPos <= indexedColumns.length(); oldPos = oldIndex.nextSetBit(oldPos + 1)) {
                     if (indexedColumns.get(oldPos)) {
                         int mappedPosition = mainColToIndexPosMap[oldPos];
-                        ByteSlice oldKeySlice = oldKeyAccumulator.getField(mappedPosition,true);
-                        oldDataDecoder.nextField(oldDecoder,oldPos,oldKeySlice);
-                        if(this.descColumns.get(oldPos)) {
+                        ByteSlice oldKeySlice = oldKeyAccumulator.getField(mappedPosition, true);
+                        oldDataDecoder.nextField(oldDecoder, oldPos, oldKeySlice);
+                        if (this.descColumns.get(oldPos)) {
                             oldKeySlice.set(oldKeySlice.getByteCopy());
                             oldKeySlice.reverse();
                         }
-                        occupy(oldKeyAccumulator,oldIndex,oldPos);
+                        occupy(oldKeyAccumulator, oldIndex, oldPos);
                         if (remainingIndexColumns.get(oldPos)) {
-                            ByteSlice keySlice = newKeyAccumulator.getField(mappedPosition,true);
-                            keySlice.set(oldKeySlice,descColumns.get(oldPos));
-                            occupy(newKeyAccumulator,oldIndex,oldPos);
+                            ByteSlice keySlice = newKeyAccumulator.getField(mappedPosition, true);
+                            keySlice.set(oldKeySlice, descColumns.get(oldPos));
+                            occupy(newKeyAccumulator, oldIndex, oldPos);
                             remainingIndexColumns.clear(oldPos);
                         }
                     }
                 }
             } finally {
-                if(oldDecoder!=null)
+                if (oldDecoder != null)
                     oldDecoder.close();
-                if(newDecoder!=null)
+                if (newDecoder != null)
                     newDecoder.close();
             }
 
@@ -349,7 +347,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
              * In practice, this means that we must iterate over the old data, and check it against the new data.
              * If they are the same, then needn't change anything.
              */
-            if(newKeyAccumulator.fieldsMatch(oldKeyAccumulator)){
+            if (newKeyAccumulator.fieldsMatch(oldKeyAccumulator)) {
                 //our fields match exactly, nothing to update! don't insert into the index either
                 return null;
             }
@@ -359,42 +357,36 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
 
             //delete the old record
             byte[] encodedRow = Encoding.encodeBytesUnsorted(row);
-            if(!transformer.isUnique()){
-                oldKeyAccumulator.add((int)translatedIndexColumns.length(),encodedRow,0,encodedRow.length);
+            if (!transformer.isUnique()) {
+                oldKeyAccumulator.add((int) translatedIndexColumns.length(), encodedRow, 0, encodedRow.length);
             }
 
             byte[] existingIndexRowKey = oldKeyAccumulator.finish();
 
             KVPair indexDelete = KVPair.delete(existingIndexRowKey);
-            if(keepState)
-                this.indexToMainMutationMap.put(indexDelete,mutation);
-            doDelete(ctx,indexDelete);
+            if (keepState)
+                this.indexToMainMutationMap.put(indexDelete, mutation);
+            doDelete(ctx, indexDelete);
 
             //insert the new
             byte[] newIndexRowKey = transformer.getIndexRowKey(encodedRow, !transformer.isUnique());
 
-            //if(!transformer.isUnique()) {
-						EntryEncoder rowEncoder = transformer.getRowEncoder();
-						MultiFieldEncoder entryEncoder = rowEncoder.getEntryEncoder();
-						entryEncoder.reset();
-						entryEncoder.setRawBytes(encodedRow);
-//                newRowAccumulator.add((int)translatedIndexColumns.length(),encodedRow,0,encodedRow.length);
-            //}
+            EntryEncoder rowEncoder = transformer.getRowEncoder();
+            MultiFieldEncoder entryEncoder = rowEncoder.getEntryEncoder();
+            entryEncoder.reset();
+            entryEncoder.setRawBytes(encodedRow);
             byte[] indexValue = rowEncoder.encode();
-            KVPair newPut = new KVPair(newIndexRowKey,indexValue);
-            if(keepState)
+            KVPair newPut = new KVPair(newIndexRowKey, indexValue);
+            if (keepState)
                 indexToMainMutationMap.put(newPut, mutation);
-            
+
             indexBuffer.add(newPut);
 
             ctx.sendUpstream(mutation);
             return null;
-        } catch (IOException e) {
-            failed=true;
-            ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName() + ":" + e.getMessage()));
         } catch (Exception e) {
-            failed=true;
-            ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName()+":"+e.getMessage()));
+            failed = true;
+            ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName() + ":" + e.getMessage()));
         }
 
         //if we get an exception, then return null so we don't try and insert anything
@@ -403,39 +395,39 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
 
     private void occupy(EntryAccumulator accumulator, DataValueDescriptor dvd, int position) {
         int mappedPosition = mainColToIndexPosMap[position];
-        if(DerbyBytesUtil.isScalarType(dvd, null))
+        if (DerbyBytesUtil.isScalarType(dvd, null))
             accumulator.markOccupiedScalar(mappedPosition);
-        else if(DerbyBytesUtil.isDoubleType(dvd))
+        else if (DerbyBytesUtil.isDoubleType(dvd))
             accumulator.markOccupiedDouble(mappedPosition);
-        else if(DerbyBytesUtil.isFloatType(dvd))
+        else if (DerbyBytesUtil.isFloatType(dvd))
             accumulator.markOccupiedFloat(mappedPosition);
         else
             accumulator.markOccupiedUntyped(mappedPosition);
     }
 
-		private void occupy(EntryAccumulator accumulator, BitIndex index, int position) {
-				int mappedPosition = mainColToIndexPosMap[position];
-				if(index.isScalarType(position))
-						accumulator.markOccupiedScalar(mappedPosition);
-				else if(index.isDoubleType(position))
-						accumulator.markOccupiedDouble(mappedPosition);
-				else if(index.isFloatType(position))
-						accumulator.markOccupiedFloat(mappedPosition);
-				else
-						accumulator.markOccupiedUntyped(mappedPosition);
-		}
+    private void occupy(EntryAccumulator accumulator, BitIndex index, int position) {
+        int mappedPosition = mainColToIndexPosMap[position];
+        if (index.isScalarType(position))
+            accumulator.markOccupiedScalar(mappedPosition);
+        else if (index.isDoubleType(position))
+            accumulator.markOccupiedDouble(mappedPosition);
+        else if (index.isFloatType(position))
+            accumulator.markOccupiedFloat(mappedPosition);
+        else
+            accumulator.markOccupiedUntyped(mappedPosition);
+    }
 
     protected void doDelete(final WriteContext ctx, final KVPair delete) throws Exception {
-    	if (LOG.isTraceEnabled())
-    		SpliceLogUtils.trace(LOG, "do delete %s",BytesUtil.toHex(delete.getRow()));
-        ensureBufferReader(delete,ctx);
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "do delete %s", BytesUtil.toHex(delete.getRow()));
+        ensureBufferReader(delete, ctx);
         indexBuffer.add(delete);
     }
 
-	@Override
-	public void next(List<KVPair> mutations, WriteContext ctx) {
-		throw new RuntimeException("Not Supported");
-	}
+    @Override
+    public void next(List<KVPair> mutations, WriteContext ctx) {
+        throw new RuntimeException("Not Supported");
+    }
 
     private static class KeyData {
         private int offset;
@@ -454,33 +446,33 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
             return size;
         }
     }
+
     @Override
     protected void subFlush(WriteContext ctx) throws Exception {
-        if(indexBuffer!=null){
+        if (indexBuffer != null) {
             indexBuffer.flushBuffer();
-           // indexBuffer.close(); // Do not block
+            // indexBuffer.close(); // Do not block
         }
     }
 
-	
-	@Override
-	public void flush(WriteContext ctx) throws IOException {
-    	if (LOG.isDebugEnabled())
-    		SpliceLogUtils.debug(LOG, "flush");
-		super.flush(ctx);
-	}
+    @Override
+    public void flush(WriteContext ctx) throws IOException {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "flush");
+        super.flush(ctx);
+    }
 
-	@Override
-	public void close(WriteContext ctx) throws IOException {
-    	if (LOG.isDebugEnabled())
-    		SpliceLogUtils.debug(LOG, "close");
-		super.close(ctx);
-	}
+    @Override
+    public void close(WriteContext ctx) throws IOException {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "close");
+        super.close(ctx);
+    }
 
-	@Override
-	public void subClose(WriteContext ctx) throws Exception {
-        if(indexBuffer!=null){
+    @Override
+    public void subClose(WriteContext ctx) throws Exception {
+        if (indexBuffer != null) {
             indexBuffer.close(); // Blocks
         }
-	}
+    }
 }

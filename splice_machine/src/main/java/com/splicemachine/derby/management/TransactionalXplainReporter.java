@@ -9,6 +9,7 @@ import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.api.RecordingCallBuffer;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.pipeline.impl.WriteCoordinator;
+import com.splicemachine.pipeline.utils.PipelineConstants;
 import com.splicemachine.si.api.ReadOnlyModificationException;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.storage.EntryEncoder;
@@ -65,7 +66,7 @@ public abstract class TransactionalXplainReporter<T> {
         String conglom = getConglomIdString();
         WriteCoordinator tableWriter = SpliceDriver.driver().getTableWriter();
         RecordingCallBuffer<KVPair> callBuffer = tableWriter.synchronousWriteBuffer(conglom.getBytes(),
-                txn, WriteCoordinator.noOpFlushHook, tableWriter.defaultWriteConfiguration());
+                txn, PipelineConstants.noOpFlushHook, tableWriter.defaultWriteConfiguration());
         try{
             callBuffer.add(new KVPair(keyHash.encode(),pairHash.encode()));
             callBuffer.flushBuffer();

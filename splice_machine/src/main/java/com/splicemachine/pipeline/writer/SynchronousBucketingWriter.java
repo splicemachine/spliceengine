@@ -25,7 +25,6 @@ import java.util.concurrent.TimeoutException;
 public class SynchronousBucketingWriter extends BucketingWriter{
     private final ActionStatusReporter statusMonitor;
     private ActionStatusMonitor monitor;
-    private WriteConfiguration countingWriteConfiguration;
 
     public SynchronousBucketingWriter(RegionCache regionCache, HConnection connection) {
         super(regionCache, connection);
@@ -38,7 +37,7 @@ public class SynchronousBucketingWriter extends BucketingWriter{
     public Future<WriteStats> write(byte[] tableName,
 							BulkWrites bulkWrites,
 							WriteConfiguration writeConfiguration) throws ExecutionException {
-        this.countingWriteConfiguration = new CountingWriteConfiguration(writeConfiguration,statusMonitor);
+        WriteConfiguration countingWriteConfiguration = new CountingWriteConfiguration(writeConfiguration, statusMonitor);
         BulkWriteAction action = new BulkWriteAction(tableName,
                 bulkWrites,
                 regionCache,

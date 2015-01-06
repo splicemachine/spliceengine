@@ -7,6 +7,7 @@ import com.carrotsearch.hppc.ObjectArrayList;
  *         Created on: 3/18/13
  */
 public interface CallBuffer<E> {
+
     /**
      * Adds an entry to the buffer, flushing the buffer if it's full.
      *
@@ -20,21 +21,20 @@ public interface CallBuffer<E> {
      *
      * @param elements the elements to add
      * @throws Exception if the buffer is flushed, and then something goes wrong during
-     * the buffer flush operation.
+     *                   the buffer flush operation.
      */
     void addAll(E[] elements) throws Exception;
 
-    
     PreFlushHook getPreFlushHook();
-    
+
     WriteConfiguration getWriteConfiguration();
-    
+
     /**
      * Bulk adds multiple elements to the buffer, flushing it if it's full.
      *
      * @param elements the elements to add
      * @throws Exception if the buffer is flushed, and then something goes wrong during
-     * the buffer flush operation.
+     *                   the buffer flush operation.
      */
     void addAll(ObjectArrayList<E> elements) throws Exception;
 
@@ -43,7 +43,7 @@ public interface CallBuffer<E> {
      *
      * @throws Exception if something goes wrong during the flush operation.
      */
-    void flushBuffer()  throws Exception;
+    void flushBuffer() throws Exception;
 
     /**
      * Close the buffer.
@@ -52,36 +52,4 @@ public interface CallBuffer<E> {
      */
     void close() throws Exception;
 
-    
-    void incrementHeap(long heap) throws Exception;
-
-    void incrementCount(int count) throws Exception;    
-    
-    /**
-     * Listener for Buffer filling Events
-     *
-     * @param <T> the type of the entry in the buffer
-     */
-    public interface Listener<T>{
-        /**
-         * Determine the heap size of the Buffer.
-         *
-         * @param element the element to get the heap size for
-         * @return the heap size of the specified element
-         */
-        long heapSize(T element);
-
-        /**
-         * The Buffer has been flushed into the entry list. Time to
-         * do the expensive operation.
-         *
-         * Note: the entries list is decoupled from the buffer itself. That is,
-         * it represents the state of the buffer when {@code bufferFlushed} is called,
-         * entries added to the buffer after that will not be present in the entries list.
-         *
-         * @param entries the entries to operate against (the contents of the entire buffer).
-         * @throws Exception if the operation fails in some say.
-         */
-        void bufferFlushed(ObjectArrayList<T> entries,CallBuffer<T> source) throws Exception;
-    }
 }
