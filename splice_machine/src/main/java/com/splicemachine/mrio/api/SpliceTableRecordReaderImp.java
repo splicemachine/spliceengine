@@ -2,50 +2,27 @@ package com.splicemachine.mrio.api;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.NavigableMap;
-
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HTable;
-import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
-import org.apache.hadoop.hbase.mapreduce.TableInputFormat;
-import org.apache.hadoop.hbase.mapreduce.TableRecordReader;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-
-import com.google.common.collect.Lists;
-import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.metrics.Metrics;
-import com.splicemachine.si.api.RowAccumulator;
-import com.splicemachine.si.api.SIFilter;
-import com.splicemachine.si.data.hbase.HRowAccumulator;
-import com.splicemachine.storage.EntryAccumulator;
 import com.splicemachine.storage.EntryDecoder;
-import com.splicemachine.storage.EntryPredicateFilter;
-import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.constants.SIConstants;
-import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.impl.sql.execute.operations.scanner.SIFilterFactory;
-
 import org.apache.derby.iapi.types.*;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.impl.sql.execute.ValueRow;
-
 
 public class SpliceTableRecordReaderImp{
 
@@ -95,7 +72,7 @@ public class SpliceTableRecordReaderImp{
 		if(htable != null)
 			try {
 				this.scanner = this.htable.getScanner(newscan);
-				
+							
 			} catch (IOException e1) {
 				
 				throw e1;
