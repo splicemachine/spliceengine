@@ -127,6 +127,7 @@
 				</plugin>
 
 				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-compiler-plugin</artifactId>
 					<configuration>
 						<source>1.7</source>
@@ -161,6 +162,7 @@
 			</plugin>
 
 			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
 				<configuration>
 					<argLine>-Xms256M -Xmx1024M</argLine>
@@ -180,6 +182,7 @@
 			</plugin>
 
 			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-failsafe-plugin</artifactId>
 				<executions>
 					<!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: SERIAL -->
