@@ -275,4 +275,12 @@ public class SpliceUtils extends SpliceUtilities {
             dest.setAttribute(attribute.getKey(),attribute.getValue());
         }
     }
+
+    public static int[] getFormatIds(DataValueDescriptor[] dvds) {
+        int[] ids = new int [dvds.length];
+        for (int i = 0; i < dvds.length; ++i) {
+            ids[i] = dvds[i].getTypeFormatId();
+        }
+        return ids;
+    }
 }

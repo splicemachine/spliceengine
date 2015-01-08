@@ -15,6 +15,7 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.spark.api.java.JavaRDD;
 
 /**
  * 
@@ -232,4 +233,17 @@ public interface SpliceOperation extends StandardCloseable {
     double getEstimatedCost();
 
     double getEstimatedRowCount();
+
+    /**
+     * @return true if this operation can provide an RDD that could be operated on using Spark
+     */
+    public boolean providesRDD();
+
+    /**
+     * @return true if this top operation expects the results as a Spark RDD
+     */
+    public boolean expectsRDD();
+
+    public JavaRDD<ExecRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException;
+
 }

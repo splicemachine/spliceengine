@@ -39,6 +39,7 @@ import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+import org.apache.spark.api.java.JavaRDD;
 
 import java.io.*;
 import java.sql.SQLWarning;
@@ -670,6 +671,21 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
         }
 
         public String getInfo() {return info;}
+
+        @Override
+        public boolean providesRDD() {
+            return false;
+        }
+
+        @Override
+        public boolean expectsRDD() {
+            return providesRDD();
+        }
+
+        @Override
+        public JavaRDD<ExecRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+            throw new UnsupportedOperationException();
+        }
 
         public class XplainOperationChainInfo {
 

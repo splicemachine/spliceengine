@@ -35,6 +35,7 @@ import java.util.Map;
 public class SpliceOperationRegionObserver extends BaseRegionObserver {
     private static Logger LOG = Logger.getLogger(SpliceOperationRegionObserver.class);
     public static String SPLICE_OBSERVER_INSTRUCTIONS = "Z"; // Reducing this so the amount of network traffic will be reduced...
+    public static String SPLICE_OBSERVER_CACHING = "C";
     public static DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
     /*make volatile to avoid thread visibility issues*/
     private volatile TransactionalRegion txnRegion;
