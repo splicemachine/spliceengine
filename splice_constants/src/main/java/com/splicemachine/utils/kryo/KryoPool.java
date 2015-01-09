@@ -34,7 +34,8 @@ public class KryoPool {
         //try getting an instance that already exists
         Kryo next = instances.poll();
         if(next==null){
-            next = new Kryo(new DefaultClassResolver(),new MapReferenceResolver(),new FastestStreamFactory());            
+            next = new Kryo(new DefaultClassResolver(),new MapReferenceResolver());            
+//            next = new Kryo(new DefaultClassResolver(),new MapReferenceResolver(),new FastestStreamFactory());            
             if(kryoRegistry!=null)
                 kryoRegistry.register(next);
         }

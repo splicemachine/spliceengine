@@ -1,6 +1,10 @@
 package org.apache.hadoop.hbase.regionserver;
 
+import java.io.IOException;
+import java.util.List;
+
 import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.cliffc.high_scale_lib.Counter;
 
@@ -59,4 +63,8 @@ public class BaseHRegionUtil {
 
         return true;
     }
+    
+    public static RegionScanner getScanner(HRegion region, Scan scan, List<KeyValueScanner> keyValueScanners) throws IOException {
+    	   return region.getScanner(scan, keyValueScanners);
+     }
 }

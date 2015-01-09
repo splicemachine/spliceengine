@@ -89,6 +89,8 @@ public class SpliceInputFormat extends InputFormat<ImmutableBytesWritable, ExecR
 				sqlUtil = SQLUtil.getInstance(conf.get(SpliceMRConstants.SPLICE_JDBC_STR));
 			tableID = sqlUtil.getConglomID(tableName);
 			conf.set(TableInputFormat.INPUT_TABLE, tableID);
+			System.out.println("hmm " + conf.get("hbase.mapreduce.scan"));
+			System.out.println("hmm " + conf.get("hbase.mapreduce.scan").length());			
 			this.tableInputFormat.setConf(conf);
 		} catch (SQLException e1) {
 			e1.printStackTrace();
@@ -105,6 +107,8 @@ public class SpliceInputFormat extends InputFormat<ImmutableBytesWritable, ExecR
 	public List<InputSplit> getSplits(JobContext context) throws IOException {
 		if (LOG.isTraceEnabled())
 			SpliceLogUtils.trace(LOG, "getSplits with context=%s",context);
+		if (tableInputFormat.getScan() == null)
+			tableInputFormat.setScan(new Scan());
 		return tableInputFormat.getSplits(context);
 		
 	}
