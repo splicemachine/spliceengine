@@ -188,9 +188,13 @@ class SYSTABLESRowFactory extends CatalogRowFactory
 					tabSType = "V";
 					break;		
 
+			    case TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE:
+					tabSType = "X";
+					break;		
+
 			    case TableDescriptor.SYNONYM_TYPE:
 					tabSType = "A";
-					break;		
+					break;
 
 			    default:
 					if (SanityManager.DEBUG)
@@ -381,6 +385,9 @@ class SYSTABLESRowFactory extends CatalogRowFactory
 			case 'A' :
 				tableTypeEnum = TableDescriptor.SYNONYM_TYPE;
 				break;
+			case 'X' :
+				tableTypeEnum = TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE;
+				break;
 			default:
 				if (SanityManager.DEBUG)
 				SanityManager.THROWASSERT("Fourth column value invalid");
@@ -393,6 +400,11 @@ class SYSTABLESRowFactory extends CatalogRowFactory
 		schemaUUID = getUUIDFactory().recreateUUID(schemaUUIDString);
 		
 		schema = dd.getSchemaDescriptor(schemaUUID, isolationLevel, null);
+
+        // DEBUG: If table is temp table, (SESSION) schema will be null
+        if (schema == null && (tableTypeEnum == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE)) {
+            schema = dd.getDeclaredGlobalTemporaryTablesSchemaDescriptor();
+        }
 
 		/* 5th column is LOCKGRANULARITY (char(1)) */
 		col = row.getColumn(SYSTABLES_LOCKGRANULARITY);

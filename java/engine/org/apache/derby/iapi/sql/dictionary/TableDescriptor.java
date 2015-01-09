@@ -21,7 +21,6 @@
 
 package org.apache.derby.iapi.sql.dictionary;
 
-import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
 
@@ -31,11 +30,11 @@ import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.Property;
 import org.apache.derby.iapi.reference.SQLState;
+import org.apache.derby.iapi.services.context.ContextService;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
-import org.apache.derby.iapi.services.sanity.SanityManager;
-import org.apache.derby.iapi.services.context.ContextService;
 import org.apache.derby.iapi.services.property.PropertyUtil;
+import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.sql.StatementType;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.depend.DependencyManager;
@@ -138,7 +137,6 @@ public class TableDescriptor extends TupleDescriptor
 	private boolean					onRollbackDeleteRows; //true means on rollback delete rows. This is the only value supported.
     private boolean                 indexStatsUpToDate = true;
     private String                  indexStatsUpdateReason;
-	SchemaDescriptor				schema;
 	String							tableName;
 	UUID							oid;
 	int								tableType;
@@ -168,8 +166,9 @@ public class TableDescriptor extends TupleDescriptor
 	ConstraintDescriptorList		constraintDescriptorList;
 	private	GenericDescriptorList	triggerDescriptorList;
 	ViewDescriptor					viewDescriptor;
+    private SchemaDescriptor schemaDesctiptor;
 
-	private FormatableBitSet referencedColumnMapGet() {
+    private FormatableBitSet referencedColumnMapGet() {
 
         LanguageConnectionContext lcc =
             (LanguageConnectionContext)ContextService.getContextOrNull(
@@ -256,7 +255,7 @@ public class TableDescriptor extends TupleDescriptor
 	{
 		super( dataDictionary );
 
-		this.schema = schema;
+		this.schemaDesctiptor = schema;
 		this.tableName = tableName;
 		this.tableType = tableType;
 		this.lockGranularity = lockGranularity;
@@ -279,7 +278,7 @@ public class TableDescriptor extends TupleDescriptor
 	 */
 	public String	getSchemaName()
 	{
-		return schema.getSchemaName();
+		return schemaDesctiptor.getSchemaName();
 	}
 
 	/**
@@ -289,7 +288,7 @@ public class TableDescriptor extends TupleDescriptor
 	 */
 	public SchemaDescriptor getSchemaDescriptor()
 	{
-		return schema;
+		return schemaDesctiptor;
 	}
 
 	/**
@@ -923,7 +922,7 @@ public class TableDescriptor extends TupleDescriptor
 		if (SanityManager.DEBUG)
 		{
 			String tempString =
-				"\n" + "schema: " + schema + "\n" +
+				"\n" + "schema: " + schemaDesctiptor + "\n" +
 				"tableName: " + tableName + "\n" +
 				"oid: " + oid + " tableType: " + tableType + "\n" +
 				"conglomerateDescriptorList: " + conglomerateDescriptorList + "\n" +
@@ -1562,6 +1561,9 @@ public class TableDescriptor extends TupleDescriptor
 				") not expected to get called");
 		}
 	}
-    
+
+    public void setSchemaDesctiptor(SchemaDescriptor schemaDesctiptor) {
+        this.schemaDesctiptor = schemaDesctiptor;
+    }
 }
 

@@ -263,7 +263,15 @@ public final class TransactionResourceImpl
 	 */
 	void clearLcc()
 	{
-		lcc = null;
+        // DEBUG: Is this the place where session temp tables should be cleaned up?
+        try {
+            lcc.resetFromPool();
+        } catch (StandardException e) {
+            // ignore, closing
+            // FIXME
+            e.printStackTrace();
+        }
+        lcc = null;
 	}
 
 	final void setupContextStack()

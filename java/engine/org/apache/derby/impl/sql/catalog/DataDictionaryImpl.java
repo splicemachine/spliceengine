@@ -2078,6 +2078,10 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 				retval = cacheEntry.getTableDescriptor();
 				// bind in previous command might have set refernced cols
 				retval.setReferencedColumnMap(null);
+                if (retval.getSchemaDescriptor() == null) {
+                    // TODO: added this because SESSION schema was null in TD. Check if using SESSION schema before setting here?
+                    retval.setSchemaDesctiptor(sd);
+                }
 				nameTdCache.release(cacheEntry);
 			}
 			return retval;

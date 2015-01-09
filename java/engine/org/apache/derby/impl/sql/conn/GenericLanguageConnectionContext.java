@@ -1626,6 +1626,8 @@ public class GenericLanguageConnectionContext
     boolean                 dropAndRedeclare)
          throws StandardException
     {
+        // DEBUG: need to upgrade txn to write possibly
+        getDataDictionary().startWriting(this);
         TransactionController tc = getTransactionExecute();
 
         //create new conglomerate with same properties as the old conglomerate 
