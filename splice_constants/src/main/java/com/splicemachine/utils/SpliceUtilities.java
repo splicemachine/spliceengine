@@ -3,11 +3,13 @@ package com.splicemachine.utils;
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.constants.bytes.BytesUtil;
 
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.apache.hadoop.hbase.io.compress.*;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
@@ -258,9 +260,11 @@ public class SpliceUtilities extends SIConstants {
 	}
 
 	static {
-		PREFIXES = new byte[16][];
-		for (int i = 0; i < 16; i++) {
-			PREFIXES[i] = new byte[] { (byte) (i * 0x10) };
+		PREFIXES = new byte[tempTableBucketCount][];
+		final int x = 256 / tempTableBucketCount;
+		for (int i = 0; i < tempTableBucketCount; i++) {
+			PREFIXES[i] = new byte[] { (byte) (i * x) };
+			// System.out.println("prefix " + i + " = " + BytesUtil.debug(PREFIXES[i]));
 		}
 	}
 

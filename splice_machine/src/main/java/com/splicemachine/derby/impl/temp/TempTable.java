@@ -1,10 +1,12 @@
 package com.splicemachine.derby.impl.temp;
 
 import com.google.common.primitives.Longs;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.DerbyFactory;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.marshall.SpreadBucket;
+import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.uuid.Snowflake;
 
 import org.apache.hadoop.conf.Configuration;
@@ -48,7 +50,13 @@ public class TempTable {
 
 		public TempTable(byte[] tempTableName) {
 				this.tempTableName = tempTableName;
-				this.spread = new AtomicReference<SpreadBucket>(SpreadBucket.SIXTEEN);
+				
+				SpreadBucket spreadBucket = SpreadBucket.getValue(SpliceConstants.tempTableBucketCount);
+				if (spreadBucket == null) {
+					throw new RuntimeException("Temp table spread bucket was NULL. Unable to initialize.");
+				}
+				SpliceLogUtils.info(LOG, "Temp Table initial bucket count: %d", spreadBucket.getNumBuckets());
+				this.spread = new AtomicReference<SpreadBucket>(spreadBucket);
 		}
 
 		public SpreadBucket getCurrentSpread() {
