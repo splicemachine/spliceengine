@@ -1058,6 +1058,10 @@ public class SpliceConstants {
 		@DefaultValue(PAST_STATEMENT_BUFFER_SIZE) public static final int DEFAULT_PAST_STATEMENT_BUFFER_SIZE = 100;
 		public static int pastStatementBufferSize;
 
+		@Parameter public static final String TEMP_TABLE_BUCKET_COUNT = "splice.temp.bucketCount";
+		@DefaultValue(TEMP_TABLE_BUCKET_COUNT) public static int DEFAULT_TEMP_TABLE_BUCKET_COUNT = 16;
+		public static int tempTableBucketCount;
+
 		public static final String TEMP_MAX_FILE_SIZE = "splice.temp.maxFileSize";
 		public static long tempTableMaxFileSize;
 
@@ -1241,6 +1245,8 @@ public class SpliceConstants {
 
 				pastStatementBufferSize = config.getInt(PAST_STATEMENT_BUFFER_SIZE,DEFAULT_PAST_STATEMENT_BUFFER_SIZE);
 
+				tempTableBucketCount = config.getInt(TEMP_TABLE_BUCKET_COUNT, DEFAULT_TEMP_TABLE_BUCKET_COUNT);
+				
 				sequentialImportThreashold = config.getLong(SEQUENTIAL_IMPORT_THREASHOLD,DEFAULT_SEQUENTIAL_IMPORT_THRESHOLD);
 
 				constraintsEnabled = config.getBoolean(CONSTRAINTS_ENABLED,DEFAULT_CONSTRAINTS_ENABLED);
