@@ -639,8 +639,10 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                             exp.getSourceResultColumn().getTableColumnDescriptor() == null) {
                             // DB-2170, WF over a view, has RC->VCN->RC->VCN->...->JavaToSQLValueNode and
                             // all RCs had null TableColumnDescriptors. Have to get creative (and approximate)
-                            if (rc.columnTypeAndLengthMatch(expression.getSourceResultColumn()) &&
-                                 rc.columnNameMatches(expression.getSourceResultColumn().exposedName)) {
+                            ResultColumn expressionRC = expression.getSourceResultColumn();
+                            if (expressionRC != null &&
+                                rc.columnTypeAndLengthMatch(expressionRC) &&
+                                rc.columnNameMatches(expressionRC.exposedName)) {
                                 matchedRc = rc;
                             }
                         } else {
@@ -659,7 +661,8 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                                         // Found a match
                                         matchedRc = rc;
                                     }
-                                } else if (rcDescriptor.equals(expression.getSourceResultColumn().getTableColumnDescriptor())) {
+                                } else if (expression.getSourceResultColumn() != null &&
+                                    rcDescriptor.equals(expression.getSourceResultColumn().getTableColumnDescriptor())) {
                                     // Found a match
                                     matchedRc = rc;
                                 }
