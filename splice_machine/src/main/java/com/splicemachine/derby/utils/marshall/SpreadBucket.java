@@ -58,14 +58,16 @@ public enum SpreadBucket {
         }
         
         public static SpreadBucket getValue(int numBuckets) {
+        	// We don't yet have support for all these variations. They are coming soon,
+        	// but until then we guard against invalid choice.
         	switch (numBuckets) {
-        	case 4: return FOUR;
-        	case 8: return EIGHT;
+        	// case 4: return FOUR;
+        	// case 8: return EIGHT;
         	case 16: return SIXTEEN;
         	case 32: return THIRTY_TWO;
-        	case 64: return SIXTY_FOUR;
-        	case 128: return ONE_TWENTY_EIGHT;
-        	case 256: return TWO_FIFTY_SIX;
+        	// case 64: return SIXTY_FOUR;
+        	// case 128: return ONE_TWENTY_EIGHT;
+        	// case 256: return TWO_FIFTY_SIX;
         	default: return SIXTEEN;
         	}
         }
