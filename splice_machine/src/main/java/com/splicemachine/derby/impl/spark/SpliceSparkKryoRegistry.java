@@ -377,7 +377,6 @@ public class SpliceSparkKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(AnyOperation.class, EXTERNALIZABLE_SERIALIZER,77);
         instance.register(RowOperation.class, EXTERNALIZABLE_SERIALIZER,78);
         instance.register(OnceOperation.class, EXTERNALIZABLE_SERIALIZER,79);
-        instance.register(RowCountOperation.class, EXTERNALIZABLE_SERIALIZER,80);
         instance.register(BroadcastJoinOperation.class, EXTERNALIZABLE_SERIALIZER,81);
         instance.register(BroadcastLeftOuterJoinOperation.class, EXTERNALIZABLE_SERIALIZER,82);
         instance.register(DerbyOperationInformation.class,EXTERNALIZABLE_SERIALIZER,83);
