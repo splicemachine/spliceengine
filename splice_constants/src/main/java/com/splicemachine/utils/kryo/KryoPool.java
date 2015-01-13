@@ -2,7 +2,6 @@ package com.splicemachine.utils.kryo;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.util.DefaultClassResolver;
-import com.esotericsoftware.kryo.util.FastestStreamFactory;
 import com.esotericsoftware.kryo.util.MapReferenceResolver;
 import com.splicemachine.constants.SpliceConstants;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -35,7 +34,6 @@ public class KryoPool {
         Kryo next = instances.poll();
         if(next==null){
             next = new Kryo(new DefaultClassResolver(),new MapReferenceResolver());            
-//            next = new Kryo(new DefaultClassResolver(),new MapReferenceResolver(),new FastestStreamFactory());            
             if(kryoRegistry!=null)
                 kryoRegistry.register(next);
         }
