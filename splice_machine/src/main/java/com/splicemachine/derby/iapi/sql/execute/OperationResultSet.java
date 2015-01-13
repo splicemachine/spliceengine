@@ -3,6 +3,7 @@ package com.splicemachine.derby.iapi.sql.execute;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.impl.spark.RDDRowProvider;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
@@ -129,7 +130,12 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 
     public void executeScan(boolean useProbe, SpliceRuntimeContext context) throws StandardException {
         try{
-            delegate = useProbe? topOperation.executeProbeScan(): topOperation.executeScan(context);
+            if (context.useSpark()) {
+                delegate = new SpliceNoPutResultSet(topOperation.getActivation(), topOperation,
+                        new RDDRowProvider(topOperation.getRDD(context, topOperation), context));
+            } else {
+                delegate = useProbe ? topOperation.executeProbeScan() : topOperation.executeScan(context);
+            }
             delegate.setScrollId(scrollUuid);
             delegate.openCore();
         }catch(RuntimeException re){
@@ -184,7 +190,13 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
                 runtimeContext.setParentTaskId(taskChain.get(taskChain.size() - 1));
             }
 
-            OperationTree.sink(topOperation, runtimeContext);
+            // enable Spark if the whole stack supports it
+            if (topOperation.expectsRDD()) {
+                runtimeContext.setUseSpark(true);
+            } else {
+                OperationTree.sink(topOperation, runtimeContext);
+            }
+
             return runtimeContext;
         }catch(RuntimeException e){
             throw Exceptions.parseException(e);

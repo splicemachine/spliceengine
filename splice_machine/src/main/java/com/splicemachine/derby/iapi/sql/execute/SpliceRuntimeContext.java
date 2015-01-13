@@ -27,10 +27,12 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
 		private boolean isSink;
 		private Row scanStartOverride;
 		private byte[] currentTaskId;
-      private byte[] parentTaskId;
+        private byte[] parentTaskId;
 		/*Only non-null on the node where the JDBC connection is held*/
 		private transient StatementInfo statementInfo;
 		private boolean firstStepInMultistep;
+        private boolean useSpark;
+
 		/*
 		 * Hash bucket to use for sink operations which do not spread data themselves.
 		 *
@@ -126,6 +128,7 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
 				copy.statementInfo = statementInfo;
                 copy.statementId = statementId;
 				copy.recordTraceMetrics = recordTraceMetrics;
+                copy.useSpark = useSpark;
         copy.txn = txn;
 				return copy;
 		}
@@ -171,6 +174,7 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
             out.writeLong(statementInfo.getStatementUuid());
         }
         TransactionOperations.getOperationFactory().writeTxn(txn,out);
+        out.writeBoolean(useSpark);
     }
 
     @Override
@@ -187,6 +191,7 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
             this.statementId = in.readLong();
         }
         this.txn = TransactionOperations.getOperationFactory().readTxn(in);
+        this.useSpark = in.readBoolean();
     }
 
 
@@ -365,5 +370,12 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
 				}
 
 		}
+        public boolean useSpark() {
+            return useSpark;
+        }
+
+        public void setUseSpark(boolean useSpark) {
+            this.useSpark = useSpark;
+        }
 
 }
