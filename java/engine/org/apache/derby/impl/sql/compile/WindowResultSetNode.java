@@ -580,7 +580,16 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 
         ResultColumn childRC = rcToChildRcl.rc;
         if (childRC == null) {
-            childRC = recursiveSourcePuller(((SingleChildResultSetNode)childResultSetNode).getChildResult(), expression);
+            if (childResultSetNode instanceof SingleChildResultSetNode) {
+                childRC = recursiveSourcePuller(((SingleChildResultSetNode)childResultSetNode).getChildResult(),
+                                                    expression);
+            } else if (childResultSetNode instanceof JoinNode) {
+                // TODO: Not sure if we should pursue matches beyond join nodes
+                childRC = recursiveSourcePuller(((JoinNode) childResultSetNode).getLogicalLeftResultSet(), expression);
+                if (childRC == null) {
+                    childRC = recursiveSourcePuller(((JoinNode) childResultSetNode).getLogicalRightResultSet(), expression);
+                }
+            }
         } else {
             return childRC;
         }
@@ -645,7 +654,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                                 rc.columnNameMatches(expressionRC.exposedName)) {
                                 matchedRc = rc;
                             }
-                        } else {
+                        } else if (exp.getSourceResultColumn() != null) {
                             rcDescriptor = exp.getSourceResultColumn().getTableColumnDescriptor();
                         }
                     }
@@ -754,7 +763,11 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                     // which have already been remapped, pull up column reference and replace operand
                     ResultColumn source = recursiveSourcePuller(((SingleChildResultSetNode)childResult).childResult,
                                                                 exp);
-                    resultColumn.setExpression(source.getExpression());
+                    if (source != null) {
+                        // If it's null, we didn't find it - use current result column
+                        // expression (even tho we said it's missing)
+                        resultColumn.setExpression(source.getExpression());
+                    }
                 }
                 resultColumn.markGenerated();
                 resultColumn.bindResultColumnToExpression();
