@@ -34,11 +34,13 @@ public enum SpreadBucket {
                 @Override public byte bucket(int hashValue) { return (byte)((byte)hashValue & 0xFC); }
                 @Override public int getNumBuckets() { return 64; }
                 @Override public byte getMask() { return (byte)0xFC; }
+                @Override public int bucketIndex(byte b) { return ((byte)(b >> 2) & 0x3f); }
         },
         ONE_TWENTY_EIGHT{
                 @Override public byte bucket(int hashValue) { return (byte)((byte)hashValue & 0xFE); }
                 @Override public int getNumBuckets() { return 128; }
                 @Override public byte getMask() { return (byte)0XFE; }
+                @Override public int bucketIndex(byte b) { return ((byte)(b >> 1) & 0x7f); }
         },
         TWO_FIFTY_SIX{
                 @Override public byte bucket(int hashValue) { return (byte)((byte)hashValue & 0xFF); }
@@ -65,8 +67,8 @@ public enum SpreadBucket {
         	// case 8: return EIGHT;
         	case 16: return SIXTEEN;
         	case 32: return THIRTY_TWO;
-        	// case 64: return SIXTY_FOUR;
-        	// case 128: return ONE_TWENTY_EIGHT;
+        	case 64: return SIXTY_FOUR;
+        	case 128: return ONE_TWENTY_EIGHT;
         	// case 256: return TWO_FIFTY_SIX;
         	default: return SIXTEEN;
         	}
