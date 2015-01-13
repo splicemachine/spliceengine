@@ -11,7 +11,8 @@ public class SpreadBucketTest {
 
     private SpreadBucket bucket16 = SpreadBucket.SIXTEEN;
     private SpreadBucket bucket32 = SpreadBucket.THIRTY_TWO;
-
+    private SpreadBucket bucket64 = SpreadBucket.SIXTY_FOUR;
+    private SpreadBucket bucket128 = SpreadBucket.ONE_TWENTY_EIGHT;
     @Test
     public void bucketIndex() throws Exception {
         assertEquals(8, bucket16.bucketIndex((byte) -128));
@@ -35,7 +36,6 @@ public class SpreadBucketTest {
 
     @Test
     public void bucketIndex32() throws Exception {
-        // assertEquals(8, bucket32.bucketIndex((byte) -128));
         assertEquals(0, bucket32.bucketIndex((byte) 0x00));
         assertEquals(1, bucket32.bucketIndex((byte) 0x08));
         assertEquals(2, bucket32.bucketIndex((byte) 0x10));
@@ -70,6 +70,31 @@ public class SpreadBucketTest {
         assertEquals(31, bucket32.bucketIndex((byte) 0xf8));
     }
 
+    @Test
+    public void bucketIndex64() throws Exception {
+        assertEquals(0, bucket64.bucketIndex((byte) 0x00));
+        assertEquals(1, bucket64.bucketIndex((byte) 0x04));
+        assertEquals(2, bucket64.bucketIndex((byte) 0x08));
+        assertEquals(3, bucket64.bucketIndex((byte) 0x0c));
+        assertEquals(4, bucket64.bucketIndex((byte) 0x10));
+        assertEquals(5, bucket64.bucketIndex((byte) 0x14));
+        assertEquals(6, bucket64.bucketIndex((byte) 0x18));
+        assertEquals(7, bucket64.bucketIndex((byte) 0x1c));
+    }
+    
+    @Test
+    public void bucketIndex128() throws Exception {
+        assertEquals(0, bucket128.bucketIndex((byte) 0x00));
+        assertEquals(1, bucket128.bucketIndex((byte) 0x02));
+        assertEquals(2, bucket128.bucketIndex((byte) 0x04));
+        assertEquals(3, bucket128.bucketIndex((byte) 0x06));
+        assertEquals(4, bucket128.bucketIndex((byte) 0x08));
+        assertEquals(5, bucket128.bucketIndex((byte) 0x0a));
+        assertEquals(6, bucket128.bucketIndex((byte) 0x0c));
+        assertEquals(7, bucket128.bucketIndex((byte) 0x0e));
+        assertEquals(8, bucket128.bucketIndex((byte) 0x10));
+    }
+    
     @Test
     public void bucket() throws Exception {
         assertEquals("11000000", bitFormat.format(SpreadBucket.FOUR.bucket(Integer.MAX_VALUE)));
