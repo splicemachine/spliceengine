@@ -2,7 +2,6 @@ package com.splicemachine.utils.kryo;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.UnsafeInput;
 import java.io.IOException;
 import java.io.ObjectInput;
 
