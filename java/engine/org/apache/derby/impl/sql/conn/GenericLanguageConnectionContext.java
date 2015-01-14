@@ -1,12 +1,28 @@
 package org.apache.derby.impl.sql.conn;
 
+import org.apache.derby.catalog.DependableFinder;
 import org.apache.derby.iapi.reference.ContextId;
 import org.apache.derby.iapi.services.context.Context;
 import org.apache.derby.iapi.services.context.ContextImpl;
 import org.apache.derby.iapi.services.cache.CacheManager;
 
+import org.apache.derby.iapi.sql.ResultDescription;
+import org.apache.derby.iapi.sql.Row;
+import org.apache.derby.iapi.sql.StatementType;
+import org.apache.derby.iapi.sql.execute.CursorResultSet;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.sql.execute.ExecutionFactory;
+import org.apache.derby.iapi.sql.execute.NoPutResultSet;
+import org.apache.derby.iapi.sql.execute.TemporaryRowHolder;
+import org.apache.derby.iapi.store.access.ConglomerateController;
+import org.apache.derby.iapi.store.access.ScanController;
 import org.apache.derby.iapi.transaction.TransactionControl;
+import org.apache.derby.iapi.types.DataTypeDescriptor;
+import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.impl.sql.compile.CompilerContextImpl;
+import org.apache.derby.impl.sql.execute.BaseActivation;
+import org.apache.derby.impl.sql.execute.GenericConstantActionFactory;
+import org.apache.derby.impl.sql.execute.GenericExecutionFactory;
 import org.apache.derby.impl.sql.execute.InternalTriggerExecutionContext;
 import org.apache.derby.impl.sql.execute.AutoincrementCounter;
 import org.apache.derby.impl.sql.GenericStatement;
@@ -64,6 +80,7 @@ import org.apache.derby.iapi.sql.execute.RunTimeStatistics;
 import org.apache.derby.iapi.db.TriggerExecutionContext;
 import org.apache.derby.iapi.reference.Property;
 
+import java.sql.SQLWarning;
 import java.util.*;
 
 /**
@@ -856,7 +873,11 @@ public class GenericLanguageConnectionContext
         DependencyManager dm = getDataDictionary().getDependencyManager();
         StandardException topLevelStandardException = null;
 
-        // collect all the exceptions we might receive while dropping the 
+        // DEBUG: belongs with new drop table code...
+        GenericExecutionFactory execFactory = (GenericExecutionFactory) getLanguageConnectionFactory().getExecutionFactory();
+        GenericConstantActionFactory constantActionFactory = execFactory.getConstantActionFactory();
+
+        // collect all the exceptions we might receive while dropping the
         // temporary tables and throw them as one chained exception at the end.
         for (TempTableInfo allDeclaredGlobalTempTable : allDeclaredGlobalTempTables) {
             try {
@@ -867,9 +888,16 @@ public class GenericLanguageConnectionContext
                 // the following 2 lines of code has been copied from 
                 // DropTableConstantAction. If there are any changes made there
                 // in future, we should check if they need to be made here too.
-                dm.invalidateFor(td, DependencyManager.DROP_TABLE, this);
-                tran.dropConglomerate(td.getHeapConglomerateId());
-
+                // DEBUG: remove when real drop table code is working
+//                dm.invalidateFor(td, DependencyManager.DROP_TABLE, this);
+//                tran.dropConglomerate(td.getHeapConglomerateId());
+                ConstantAction action = constantActionFactory.getDropTableConstantAction(td.getQualifiedName(),
+                                                                                         td.getName(),
+                                                                                         td.getSchemaDescriptor(),
+                                                                                         td.getHeapConglomerateId(),
+                                                                                         td.getUUID(), StatementType.DROP_CASCADE);
+                action.executeConstantAction(new DropTableActivation(this, td));
+                // DEBUG: end
             } catch (StandardException e) {
                 if (topLevelStandardException == null) {
                     // always keep the first exception unchanged
@@ -919,6 +947,63 @@ public class GenericLanguageConnectionContext
 
         if (topLevelStandardException != null) 
             throw topLevelStandardException;
+    }
+
+    /**
+     * Code murder most foul; DropTableConstantOperation requires an Activation to do its work.
+     * That's the only reason for creating this dummy implementation of Activation.  Especially troublesome
+     * since the action only needs a LanguageConnectionContext and the TableDescriptor of the table to drop.
+     * <p/>
+     * Note: I'm assuming, because this class extends BaseActivation, it will properly serialize and
+     * work across region servers.
+     */
+    private static class DropTableActivation extends BaseActivation {
+
+        public DropTableActivation(LanguageConnectionContext lcc, TableDescriptor td) throws StandardException {
+            super();
+            initFromContext(lcc);
+            setDDLTableDescriptor(td);
+        }
+
+        @Override
+        protected int getExecutionCount() {
+            return 0;
+        }
+
+        @Override
+        protected void setExecutionCount(int newValue) {
+
+        }
+
+        @Override
+        protected Vector getRowCountCheckVector() {
+            return null;
+        }
+
+        @Override
+        protected void setRowCountCheckVector(Vector newValue) {
+
+        }
+
+        @Override
+        protected int getStalePlanCheckInterval() {
+            return 0;
+        }
+
+        @Override
+        protected void setStalePlanCheckInterval(int newValue) {
+
+        }
+
+        @Override
+        public ResultSet execute() throws StandardException {
+            return null;
+        }
+
+        @Override
+        public void postConstructor() throws StandardException {
+
+        }
     }
 
     /**
