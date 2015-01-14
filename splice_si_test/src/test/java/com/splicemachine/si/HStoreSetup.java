@@ -25,6 +25,7 @@ import com.splicemachine.utils.SpliceUtilities;
 import com.splicemachine.utils.ZkUtils;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.Get;
@@ -38,9 +39,16 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map.Entry;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 public class HStoreSetup implements StoreSetup {
     static int nextBasePort = 12000;
+  protected static final Log LOG = LogFactory.getLog(HStoreSetup.class);
 
     static int getNextBasePort() {
         synchronized (HStoreSetup.class) {
@@ -86,7 +94,37 @@ public class HStoreSetup implements StoreSetup {
 						TransactionTimestamps.setTimestampSource(timestampSource);
 						Configuration configuration = testCluster.getConfiguration();
 						configuration.set("hbase.coprocessor.region.classes", TxnLifecycleEndpoint.class.getName());
-						SpliceConstants.config = configuration;
+	    configuration.set(FileSystem.FS_DEFAULT_NAME_KEY,"file:///");
+            configuration.set("fs.defaultFS", "file:///");
+            configuration.set("fs.default.name", "file:///");
+            configuration.set("fs.name.default", "file:///");					
+    Iterator<Entry<String,String>> it = configuration.iterator();
+    while(it.hasNext()){
+      Entry<String,String> en = it.next();
+      String value = en.getValue();
+      if(value.indexOf("mapr") >=0 ){
+        //LOG.error("UNSET "+en.getKey()+":"+ value);
+        //configuration.unset(en.getKey());
+      }
+    }       
+    //configuration.unset("fs.hdfs.impl");
+    //configuration.unset("fs.defaultFS");
+    configuration.unset("fs.maprfs.impl");
+    System.setProperty("zookeeper.sasl.client", "false");   
+    System.setProperty("zookeeper.sasl.serverconfig", "fake");
+    it = configuration.iterator();
+    while(it.hasNext()){
+      Entry<String,String> en = it.next();
+      String value = en.getValue();
+      //if(value.indexOf("mapr") >=0 ){
+        LOG.error(en.getKey()+":"+ value);
+        //configuration.unset(en.getKey());
+      //}
+    }      
+    //configuration.unset("fs.hdfs.impl");
+    //configuration.unset("fs.defaultFS");
+    //configuration.unset("fs.maprfs.impl"); 
+            SpliceConstants.config = configuration;
             setTestingUtilityPorts(testCluster, basePort);
 
             testCluster.startMiniCluster(1);
