@@ -21,15 +21,15 @@ public class AsyncSkippingScanFilter extends ScanFilter {
         this.predicates = sf.getPredicates();
     }
 
-    @Override byte[] name() { return NAME; }
+    @Override public byte[] name() { return NAME; }
 
     @Override
-    byte[] serialize() {
+    public byte[] serialize() {
         throw new UnsupportedOperationException("IMPLEMENT FOR 0.96+");
     }
 
     @Override
-    void serializeOld(ChannelBuffer buf) {
+    public void serializeOld(ChannelBuffer buf) {
         buf.writeByte((byte)NAME.length);
         buf.writeBytes(NAME);
         buf.writeInt(startStopKeys.size());
@@ -49,7 +49,7 @@ public class AsyncSkippingScanFilter extends ScanFilter {
     }
 
     @Override
-    int predictSerializedSize() {
+    public int predictSerializedSize() {
         int size = 5+NAME.length;
         for(int i=0;i<startStopKeys.size();i++){
             Pair<byte[], byte[]> pair = startStopKeys.get(i);
