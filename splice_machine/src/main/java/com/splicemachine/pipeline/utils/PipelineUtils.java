@@ -9,6 +9,7 @@ import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.google.common.collect.Lists;
 import com.google.common.io.Closeables;
+import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.regioninfocache.RegionCache;
@@ -124,7 +125,7 @@ public class PipelineUtils extends PipelineConstants {
 			OutputStream compressedOutput = null;
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
 			KryoObjectOutput koo;
-			KryoPool pool = SpliceDriver.getKryoPool();
+			KryoPool pool = SpliceKryoRegistry.getInstance();
 			Kryo kryo = pool.get();
 			try {
 				compressedOutput = PipelineUtils.getSnappyOutputStream(baos);
@@ -151,7 +152,7 @@ public class PipelineUtils extends PipelineConstants {
 			ByteArrayInputStream bais = null;
 			InputStream compressedInput = null;
 			KryoObjectInput koi;
-			KryoPool pool = SpliceDriver.getKryoPool();
+			KryoPool pool = SpliceKryoRegistry.getInstance();
 			Kryo kryo = pool.get();
 			try {
 				bais = new ByteArrayInputStream(bytes);

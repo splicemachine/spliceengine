@@ -111,7 +111,6 @@ public class RollForwardTask implements Task {
                     }
                     kvs.clear();
                     shouldContinue = mrs.next(kvs);
-                    if(kvs.size()<0) break;
                     rowCount++;
 
                 }while(shouldContinue);
