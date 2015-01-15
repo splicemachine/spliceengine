@@ -370,7 +370,7 @@ public class SpliceHTable extends HTable {
         if (exception.getCause() != null && level < TERMINAL_LEVEL) {
             return getRegionProblemException(exception.getCause(), ++level);
         }
-        return null;
+        return exception;
     }
 
     private static void logAndThrowCause(Exception ee) throws Throwable {
