@@ -21,25 +21,10 @@
 
 package org.apache.derby.iapi.sql.dictionary;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.sanity.SanityManager;
-
 import org.apache.derby.catalog.UUID;
-
-import org.apache.derby.iapi.sql.dictionary.ConstraintDescriptor;
-import org.apache.derby.iapi.sql.dictionary.ReferencedKeyConstraintDescriptor;
-import org.apache.derby.iapi.sql.dictionary.DataDictionary;
-import org.apache.derby.iapi.sql.dictionary.KeyConstraintDescriptor;
-import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
-
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.sanity.SanityManager;
-
-import org.apache.derby.catalog.UUID;
-
 import java.util.ArrayList;
 
-public class ConstraintDescriptorList extends ArrayList
+public class ConstraintDescriptorList extends ArrayList<ConstraintDescriptor>
 {
 
 	private boolean scanned;
@@ -257,7 +242,7 @@ public class ConstraintDescriptorList extends ArrayList
 	 */
 	public ConstraintDescriptorList getSubList(int type)
 	{
-		ConstraintDescriptor cd = null;
+		ConstraintDescriptor cd;
 		ConstraintDescriptorList cdl = new ConstraintDescriptorList();
 		int size = size();
 
