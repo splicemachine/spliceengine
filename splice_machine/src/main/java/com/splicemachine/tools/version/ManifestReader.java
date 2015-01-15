@@ -5,6 +5,7 @@ import com.splicemachine.hbase.jmx.JMXUtils;
 import javax.management.*;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 
 /**
@@ -49,7 +50,9 @@ public class ManifestReader {
 
     private static Map<String, String> toMap(Manifest manifest) {
         Map<String, String> rawMap = new HashMap<>();
-        for (Map.Entry<Object, Object> entry : manifest.getMainAttributes().entrySet()) {
+        Attributes mainAttributes = manifest.getMainAttributes();
+        if(mainAttributes==null) return rawMap;
+        for (Map.Entry<Object, Object> entry : mainAttributes.entrySet()) {
             rawMap.put(entry.getKey().toString(), (String) entry.getValue());
         }
         return rawMap;
