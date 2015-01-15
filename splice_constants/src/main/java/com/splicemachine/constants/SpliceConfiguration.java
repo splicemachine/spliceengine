@@ -22,12 +22,17 @@ public class SpliceConfiguration {
 	public static Configuration create(){
 		Configuration conf = HBaseConfiguration.create();
 		addSpliceResources(conf);
-		return conf;
+                // MapR 4.0 issue (overrides default hdfs)
+                conf.set("fs.hdfs.impl", "org.apache.hadoop.hdfs.DistributedFileSystem");
+		conf.set("fs.defaultFS", "file:///");
+                return conf;
 	}
 
 	public static Configuration create(Configuration other){
 		Configuration conf = create();
 		HBaseConfiguration.merge(conf, other);
+                conf.set("fs.hdfs.impl", "org.apache.hadoop.hdfs.DistributedFileSystem");
+                conf.set("fs.defaultFS", "file:///");
 		return conf;
 	}
 }

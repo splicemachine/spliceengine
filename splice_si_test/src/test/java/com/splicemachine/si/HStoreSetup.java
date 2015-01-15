@@ -94,13 +94,13 @@ public class HStoreSetup implements StoreSetup {
 						TransactionTimestamps.setTimestampSource(timestampSource);
 						Configuration configuration = testCluster.getConfiguration();
 						configuration.set("hbase.coprocessor.region.classes", TxnLifecycleEndpoint.class.getName());
+    // -> MapR work-around
     configuration.set(FileSystem.FS_DEFAULT_NAME_KEY,"file:///");
-    configuration.set("fs.defaultFS", "file:///");
     configuration.set("fs.default.name", "file:///");
-    configuration.set("fs.name.default", "file:///");					
-    configuration.unset("fs.maprfs.impl");
+    configuration.set("fs.hdfs.impl", "org.apache.hadoop.hdfs.DistributedFileSystem");
     System.setProperty("zookeeper.sasl.client", "false");   
     System.setProperty("zookeeper.sasl.serverconfig", "fake");
+    // <- MapR work-around
             SpliceConstants.config = configuration;
             setTestingUtilityPorts(testCluster, basePort);
 
