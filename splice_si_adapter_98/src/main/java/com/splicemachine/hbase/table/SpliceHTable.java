@@ -116,7 +116,7 @@ public class SpliceHTable extends HTable {
                 doExecute(protocol, callable, callback, context);
                 return; //exec successfully executed
             } catch (IOException ee) {
-                Throwable wrongRegionCause = getRegionProblemException(ee);
+                Throwable wrongRegionCause = getRegionProblemException(ee, 1);
                 SpliceLogUtils.debug(LOG, "Exception caught when submitting coprocessor exec", wrongRegionCause);
                 if (wrongRegionCause != null) {
 										/*
@@ -174,7 +174,7 @@ public class SpliceHTable extends HTable {
                 outstandingFutures--;
                 completedFuture.get();
             } catch (ExecutionException ee) {
-                Throwable wrongRegionCause = getRegionProblemException(ee);
+                Throwable wrongRegionCause = getRegionProblemException(ee, 1);
                 SpliceLogUtils.debug(LOG, "Exception caught when submitting coprocessor exec", wrongRegionCause);
                 if (wrongRegionCause != null) {
 										/*
@@ -357,7 +357,9 @@ public class SpliceHTable extends HTable {
      * Return the exception (or cause) if an IncorrectRegionException or NotServingRegionException, otherwise
      * return null.
      */
-    private static Throwable getRegionProblemException(Throwable exception) {
+    // DEBUG: DB-2574 - Recursive decent into the abyss.  Added this termination condition to see if we can get real error.
+    private static final int TERMINAL_LEVEL = 25;
+    private static Throwable getRegionProblemException(Throwable exception, int level) {
         if (exception instanceof RemoteWithExtrasException) {
             // deal with RemoteWithExtras exception out of the protocol buffers.
             exception = ((RemoteWithExtrasException) exception).unwrapRemoteException();
@@ -365,8 +367,8 @@ public class SpliceHTable extends HTable {
         if (exception instanceof IncorrectRegionException || exception instanceof NotServingRegionException) {
             return exception;
         }
-        if (exception.getCause() != null) {
-            return getRegionProblemException(exception.getCause());
+        if (exception.getCause() != null && level < TERMINAL_LEVEL) {
+            return getRegionProblemException(exception.getCause(), ++level);
         }
         return null;
     }
