@@ -11,29 +11,12 @@ package com.splicemachine.mrio.api;
 
 import java.io.IOException;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.mapreduce.TableInputFormat;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.JobStatus;
-import org.apache.hadoop.mapreduce.Job.JobState;
-
-import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.api.Txn.IsolationLevel;
-import com.splicemachine.si.api.TxnView;
-import com.splicemachine.si.impl.ActiveWriteTxn;
-import com.splicemachine.si.impl.TransactionLifecycle;
-import com.splicemachine.si.impl.WritableTxn;
-
-import java.sql.ResultSet;
 
 public class SpliceJob extends Job {
-
 	private static SQLUtil sqlUtil = null;
 	private static Connection conn = null;
 	private Configuration conf = null;
