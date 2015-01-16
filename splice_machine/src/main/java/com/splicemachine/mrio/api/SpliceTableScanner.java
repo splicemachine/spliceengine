@@ -64,7 +64,6 @@ import com.splicemachine.storage.Indexed;
 import com.splicemachine.utils.ByteSlice;
 
 public class SpliceTableScanner<Data> implements StandardIterator<ExecRow>{
-	
 	private final Timer timer;
 	private final Counter filterCounter;
 	private ResultScanner resultScanner;
@@ -75,12 +74,10 @@ public class SpliceTableScanner<Data> implements StandardIterator<ExecRow>{
 	private SIFilter<Data> siFilter;
 	private EntryPredicateFilter predicateFilter;
 	private List<Data> keyValues;
-
 	private RowLocation currentRowLocation;
 	private final boolean[] keyColumnSortOrder;
 	private String indexName;
 	private ByteSlice slice = new ByteSlice();
-
 	private boolean isKeyed = true;
 	private KeyIndex primaryKeyIndex;
 	private MultiFieldDecoder keyDecoder;
@@ -88,7 +85,6 @@ public class SpliceTableScanner<Data> implements StandardIterator<ExecRow>{
 	private ExecRowAccumulator keyAccumulator;
 	private int[] keyDecodingMap;
 	private FormatableBitSet accessedKeys;
-
 	private final SIFilterFactory<Data> filterFactory;
 	private Timer readTimer;
 	private final Filter scanFilters;
@@ -179,15 +175,9 @@ public class SpliceTableScanner<Data> implements StandardIterator<ExecRow>{
 													EntryDecoder rowEntryDecoder,
 													EntryAccumulator accumulator,
 													boolean isCountStar) throws IOException{
-
 									Txn baseTxn = ReadOnlyTxn.create(transactionID, Txn.IsolationLevel.SNAPSHOT_ISOLATION,null);
-									
-									//TxnFilter iFilterState = HTransactorFactory.getTransactionReadController().newFilterState(null, baseTxn);
 									TxnFilter iFilterState = HTransactorFactory.getTransactionReadController().newFilterState(NoOpReadResolver.INSTANCE, baseTxn);
-									//TxnFilter iFilterState = null;
-									
 									HRowAccumulator hRowAccumulator = new HRowAccumulator(dataLib,predicateFilter, getRowEntryDecoder(), accumulator, isCountStar);
-									
 									return new PackedTxnFilter<Data>(iFilterState, hRowAccumulator){
 											@Override
 											public Filter.ReturnCode doAccumulate(Data dataKeyValue) throws IOException {
@@ -211,8 +201,7 @@ public class SpliceTableScanner<Data> implements StandardIterator<ExecRow>{
 					};
 			}
 			else
-					this.filterFactory = filterFactory;
-			
+					this.filterFactory = filterFactory;			
 			this.htable = htable;
 			this.colTypes = colTypes;
 			this.pkColNames = pkColNames;
