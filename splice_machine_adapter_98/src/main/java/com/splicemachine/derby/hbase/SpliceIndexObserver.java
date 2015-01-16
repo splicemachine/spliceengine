@@ -5,20 +5,34 @@ import com.splicemachine.hbase.KVPair;
 import com.splicemachine.si.api.*;
 import com.splicemachine.utils.SpliceLogUtils;
 
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Durability;
+import org.apache.hadoop.hbase.client.IsolationLevel;
 import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.io.FSDataInputStreamWrapper;
+import org.apache.hadoop.hbase.io.Reference;
+import org.apache.hadoop.hbase.io.hfile.CacheConfig;
+import org.apache.hadoop.hbase.regionserver.HStore;
+//import org.apache.hadoop.hbase.regionserver.InternalScan;
+import org.apache.hadoop.hbase.regionserver.KeyValueScanner;
+import org.apache.hadoop.hbase.regionserver.RegionScanner;
+import org.apache.hadoop.hbase.regionserver.Store;
+import org.apache.hadoop.hbase.regionserver.StoreScanner;
+import org.apache.hadoop.hbase.regionserver.StoreFile.Reader;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.NavigableSet;
 
 /**
  * Region Observer for managing indices.
@@ -68,4 +82,32 @@ public class SpliceIndexObserver extends AbstractSpliceIndexObserver {
         }
         super.preDelete(e, delete, edit, durability);
     }
+    
+    
+
+	@Override
+	public Reader preStoreFileReaderOpen(
+			ObserverContext<RegionCoprocessorEnvironment> ctx, FileSystem fs,
+			Path p, FSDataInputStreamWrapper in, long size,
+			CacheConfig cacheConf, Reference r, Reader reader)
+			throws IOException {
+		// TODO Auto-generated method stub
+		return super.preStoreFileReaderOpen(ctx, fs, p, in, size, cacheConf, r, reader);
+	}
+	
+	
+	@Override
+	public KeyValueScanner preStoreScannerOpen(
+			ObserverContext<RegionCoprocessorEnvironment> c, Store store,
+			Scan scan, NavigableSet<byte[]> targetCols, KeyValueScanner s)
+			throws IOException {
+//		if (scan.getAttribute("MR") != null) {
+//			System.out.println("booh");
+//			InternalScan iscan = new InternalScan(scan);
+//			iscan.checkOnlyMemStore();
+//		      return new StoreScanner(store, store.getScanInfo(), iscan, targetCols,
+//		    	        ((HStore)store).getHRegion().getReadpoint(IsolationLevel.READ_UNCOMMITTED));		
+//		} 
+		return super.preStoreScannerOpen(c, store, scan, targetCols, s);
+	}
 }

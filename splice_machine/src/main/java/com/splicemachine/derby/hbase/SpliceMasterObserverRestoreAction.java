@@ -2,6 +2,7 @@ package com.splicemachine.derby.hbase;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.hadoop.fs.*;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HTableDescriptor;
@@ -9,8 +10,10 @@ import org.apache.hadoop.hbase.catalog.CatalogTracker;
 import org.apache.hadoop.hbase.catalog.MetaEditor;
 import org.apache.hadoop.hbase.master.MasterFileSystem;
 import org.apache.hadoop.hbase.master.MasterServices;
+import org.apache.hadoop.hbase.regionserver.HBasePrivateUtils;
 import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.net.URI;
 import java.util.*;
@@ -32,7 +35,7 @@ public class SpliceMasterObserverRestoreAction {
         String backupDirectory = desc.getValue(BACKUP_PATH);
         SpliceLogUtils.info(LOG, "restoring database, dir=" + backupDirectory);
         MasterFileSystem fileSystemManager = masterServices.getMasterFileSystem();
-        CatalogTracker catalogTracker = masterServices.getCatalogTracker();
+        CatalogTracker catalogTracker = HBasePrivateUtils.getCatalogTracker(masterServices);
         FileSystem fs = fileSystemManager.getFileSystem();
         Map<String, HTableDescriptor> descriptors = masterServices.getTableDescriptors().getAll();
         for (String tableName : descriptors.keySet()) {

@@ -77,7 +77,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>{
 		private final SDataLib dataLib;
 
 
-		SITableScanner(final SDataLib dataLib, MeasuredRegionScanner<Data> scanner,
+		protected SITableScanner(final SDataLib dataLib, MeasuredRegionScanner<Data> scanner,
 									 final TransactionalRegion region,
 													final ExecRow template,
 													MetricFactory metricFactory,
