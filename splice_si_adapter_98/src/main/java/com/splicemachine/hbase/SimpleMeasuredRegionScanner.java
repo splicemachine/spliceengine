@@ -89,13 +89,11 @@ public class SimpleMeasuredRegionScanner implements MeasuredRegionScanner<Cell> 
 
 	@Override
 	public long getMaxResultSize() {
-		// TODO Auto-generated method stub
 		return delegate.getMaxResultSize();
 	}
 
 	@Override
 	public boolean internalNextRaw(List<Cell> results) throws IOException {
-		// TODO Auto-generated method stub
 		return delegate.nextRaw(results);
 	}
 }
