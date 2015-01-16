@@ -7,8 +7,6 @@ package com.splicemachine.mrio.api;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectInputStream;
@@ -19,32 +17,24 @@ import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
 import org.apache.hadoop.hbase.mapreduce.HRegionPartitioner;
-import org.apache.hadoop.hbase.mapreduce.MultiTableInputFormat;
 import org.apache.hadoop.hbase.mapreduce.TableInputFormat;
 import org.apache.hadoop.hbase.mapreduce.TableOutputFormat;
 import org.apache.hadoop.hbase.mapreduce.TableReducer;
-import org.apache.hadoop.hbase.security.User;
+import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
 import org.apache.hadoop.hbase.util.Base64;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.ZKUtil;
-import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
@@ -53,6 +43,7 @@ import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.util.StringUtils;
 
+import com.google.protobuf.InvalidProtocolBufferException;
 import com.splicemachine.derby.hbase.DerbyFactory;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 
@@ -133,7 +124,7 @@ public class SpliceTableMapReduceUtil {
     job.setInputFormatClass(inputFormatClass);
     if (outputValueClass != null) job.setMapOutputValueClass(outputValueClass);
     if (outputKeyClass != null) job.setMapOutputKeyClass(outputKeyClass);
-    job.setMapperClass(mapper);
+    if (mapper != null) job.setMapperClass(mapper);
     job.getConfiguration().set(SpliceMRConstants.SPLICE_INPUT_TABLE_NAME, table);
     job.getConfiguration().set(TableInputFormat.SCAN, convertScanToString(scan));
     if (addDependencyJars) {
@@ -225,14 +216,18 @@ public class SpliceTableMapReduceUtil {
    * @return The scan saved in a Base64 encoded string.
    * @throws IOException When writing the scan fails.
    */
-  static String convertScanToString(Scan scan) throws IOException {
+  public static String convertScanToString(Scan scan) throws IOException {
+	  System.out.println("Scan to convert? " + scan);
 	  ObjectOutput dos = null;
 	  try {
 	    ByteArrayOutputStream out = new ByteArrayOutputStream();
 	    dos = new ObjectOutputStream(out);
 	    derbyFactory.writeScanExternal(dos, scan);
 	    dos.flush();
-	    return Base64.encodeBytes(out.toByteArray());
+	    String stringy = Base64.encodeBytes(out.toByteArray());
+		  System.out.println("Scan to convert? " + stringy);
+		  System.out.println("Scan to convert? " + stringy.length());
+		  return stringy;
 	  } finally {
     	if (dos!=null)
     		dos.close();
@@ -246,7 +241,7 @@ public class SpliceTableMapReduceUtil {
    * @return The newly created Scan instance.
    * @throws IOException When reading the scan instance fails.
    */
-  static Scan convertStringToScan(String base64) throws IOException {
+  public static Scan convertStringToScan(String base64) throws IOException {
 	  ObjectInput dis = null;
     try {
 	    ByteArrayInputStream bis = new ByteArrayInputStream(Base64.decode(base64));
@@ -257,7 +252,7 @@ public class SpliceTableMapReduceUtil {
 			dis.close();
 	}
   }
-
+  
   /**
    * Use this before submitting a TableReduce job. It will
    * appropriately set up the JobConf.
