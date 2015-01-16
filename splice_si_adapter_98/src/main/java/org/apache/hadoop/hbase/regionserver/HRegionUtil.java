@@ -247,7 +247,7 @@ public class HRegionUtil extends BaseHRegionUtil {
                         SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES,
                         HConstants.LATEST_TIMESTAMP,
                         HConstants.EMPTY_BYTE_ARRAY);
-                return checkMemstore(hstore.memstore.kvset, key, kv) || checkMemstore(hstore.memstore.snapshot, key, kv);
+                return checkMemstore(HBasePrivateUtils.getKvset(hstore), key, kv) || checkMemstore(HBasePrivateUtils.getSnapshot(hstore), key, kv);
             } catch (IOException ioe) {
                 ioe.printStackTrace();
                 throw ioe;
