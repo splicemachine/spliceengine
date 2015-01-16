@@ -21,8 +21,7 @@ public abstract class BaseRegionMetaScannerVisitor implements MetaScanner.MetaSc
 
     /* We don't need a concurrent data structure here, but we do need one that does not depend
      * on hashCode of the keys being consistent with equality, which is not the case for byte arrays */
-    protected Map<byte[], SortedSet<Pair<HRegionInfo, ServerName>>> regionPairMap =
-            new TreeMap<byte[], SortedSet<Pair<HRegionInfo, ServerName>>>(Bytes.BYTES_COMPARATOR);
+    protected Map<byte[], SortedSet<Pair<HRegionInfo, ServerName>>> regionPairMap = new TreeMap<>(Bytes.BYTES_COMPARATOR);
 
     protected byte[] updateTableName;
 
@@ -49,7 +48,7 @@ public abstract class BaseRegionMetaScannerVisitor implements MetaScanner.MetaSc
         }
 
         if (isRegionAvailable(regionInfo)) {
-            checkNotNull(infoPair.getSecond(), "never expect ServerName object to be null");
+            checkNotNull(infoPair.getSecond(), "never expect ServerName object to be null, table=" + Bytes.toString(currentTableName));
             SortedSet<Pair<HRegionInfo, ServerName>> regionsForTable = regionPairMap.get(currentTableName);
             if (regionsForTable == null) {
                 regionsForTable = Sets.newTreeSet(COMPARATOR);
