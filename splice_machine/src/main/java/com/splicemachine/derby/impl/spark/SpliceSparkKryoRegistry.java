@@ -64,6 +64,7 @@ import org.apache.derby.impl.sql.execute.*;
 import org.apache.derby.impl.sql.execute.IndexRow;
 import org.apache.derby.impl.store.access.PC_XenaVersion;
 import org.apache.spark.SerializableWritable;
+import org.apache.spark.scheduler.CompressedMapStatus;
 import org.apache.spark.scheduler.MapStatus;
 import org.apache.spark.storage.BlockManagerId;
 import org.apache.spark.storage.StorageLevel;
@@ -112,7 +113,7 @@ public class SpliceSparkKryoRegistry implements KryoPool.KryoRegistry{
     @Override
     public void register(Kryo instance) {
     	instance.setReferences(false);
-        instance.setRegistrationRequired(true);
+        instance.setRegistrationRequired(false); //TODO set to true
 
         instance.register(ValueRow.class, new SparkValueRowSerializer<ValueRow>(){
 						@Override
@@ -652,5 +653,6 @@ public class SpliceSparkKryoRegistry implements KryoPool.KryoRegistry{
 //        instance.register(WrappedArray.ofShort.class, 193);
 //        instance.register(WrappedArray.ofUnit.class, 194);
         instance.register(Object[].class,189);
+        instance.register(CompressedMapStatus.class,190);
     }
 }
