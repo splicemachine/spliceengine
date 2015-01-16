@@ -213,7 +213,7 @@ public class UpdateOperation extends DMLWriteOperation{
 				final int[] colPositionMap = getColumnPositionMap(heapList);
 
 				//if we haven't modified any of our primary keys, then we can just change it directly
-				DescriptorSerializer[] serializers = VersionedSerializers.forVersion(writeInfo.getTableVersion(),true).getSerializers(getExecRowDefinition());
+				DescriptorSerializer[] serializers = VersionedSerializers.forVersion(writeInfo.getTableVersion(),false).getSerializers(getExecRowDefinition());
 				if(!modifiedPrimaryKeys){
 						return new NonPkRowHash(colPositionMap,null, serializers, heapList);
 				}
@@ -540,7 +540,7 @@ public class UpdateOperation extends DMLWriteOperation{
                 encoder.reset();
                 decoder.set(rowKey);
 								if(serializers==null)
-										serializers = VersionedSerializers.forVersion(tableVersion,true).getSerializers(currentRow);
+										serializers = VersionedSerializers.forVersion(tableVersion,false).getSerializers(currentRow);
                 int i = 0;
                 for (int col:keyColumns) {
                     if (col > 0) {

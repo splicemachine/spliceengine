@@ -71,6 +71,10 @@ public class UpdateOperationIT {
                 .withInsert("insert into CUSTOMER_TEMP values(?,?,?)")
                 .withRows(rows(row(101, true, 1), row(102, true, 2), row(103, true, 3), row(104, true, 4), row(105, true, 5)))
                 .create();
+
+        new TableCreator(connection)
+                .withCreate("create table NULL_TABLE2 (col1 varchar(50), col2 char(5), col3 int)")
+                .create();
     }
 
     /*regression test for DB-2204*/
@@ -224,6 +228,49 @@ public class UpdateOperationIT {
         //make sure old value isn't there anymore
         Long finalCount = methodWatcher.query("select count(*) from NULL_TABLE where zip = '65201'");
         assertEquals("Row was not removed from original set", originalCount.longValue() - 1L, finalCount.longValue());
+    }
+
+    /* Regression test for Bug 2572. */
+    @Test
+    public void testUpdateSetALLNullValues() throws Exception {
+        PreparedStatement ps = methodWatcher.prepareStatement("insert into NULL_TABLE2 values (?,?,?)");
+        ps.setString(1, "900 Green Meadows Road");
+        ps.setString(2, "65201");
+        ps.setInt(3, 10);
+        ps.execute();
+
+        //get initial count
+        Long count = methodWatcher.query("select count(*) from NULL_TABLE2 where col3 = 10");
+
+        //update to set 1st column null
+        int numChanged = methodWatcher.executeUpdate("update NULL_TABLE2 set col1 = null where col3 = 10");
+        assertEquals("Incorrect rows changed", count.longValue(), numChanged);
+
+        ResultSet rs = methodWatcher.executeQuery("select * from NULL_TABLE2 where col3 = 10");
+        assertEquals("" +
+                "COL1 |COL2  |COL3 |\n" +
+                "-------------------\n" +
+                "NULL |65201 | 10  |",
+                TestUtils.FormattedResult.ResultFactory.toString(rs));
+
+        numChanged = methodWatcher.executeUpdate("update NULL_TABLE2 set col2 = null where col3 = 10");
+        assertEquals("Incorrect rows changed", count.longValue(), numChanged);
+        rs = methodWatcher.executeQuery("select * from NULL_TABLE2 where col3 = 10");
+        assertEquals("" +
+                        "COL1 |COL2 |COL3 |\n" +
+                        "------------------\n" +
+                        "NULL |NULL | 10  |",
+                TestUtils.FormattedResult.ResultFactory.toString(rs));
+
+        numChanged = methodWatcher.executeUpdate("update NULL_TABLE2 set col3 = null where col3 = 10");
+        assertEquals("Incorrect rows changed", count.longValue(), numChanged);
+        rs = methodWatcher.executeQuery("select * from NULL_TABLE2 where col3 is null");
+        assertEquals("" +
+                        "COL1 |COL2 |COL3 |\n" +
+                        "------------------\n" +
+                        "NULL |NULL |NULL |",
+                TestUtils.FormattedResult.ResultFactory.toString(rs));
+
     }
 
     /* Regression test for DB-1481, DB-2189 */
