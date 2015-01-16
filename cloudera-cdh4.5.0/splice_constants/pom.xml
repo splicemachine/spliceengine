@@ -34,5 +34,6 @@
 		<dependency> <groupId>org.apache.hive</groupId> <artifactId>hive-serde</artifactId> <version>${hive.version}</version> </dependency>
 		<dependency> <groupId>org.apache.hive</groupId> <artifactId>hive-service</artifactId> <version>${hive.version}</version> </dependency>
 		<dependency> <groupId>org.apache.zookeeper</groupId> <artifactId>zookeeper</artifactId> <version>${zookeeper.version}</version></dependency>
+		<!-- dependency> <groupId>org.apache.spark</groupId> <artifactId>spark-assembly-hadoop2.0.0-cdh4.5.0</artifactId> <version>1.2.0</version></dependency -->
 	</dependencies>
 </project>
