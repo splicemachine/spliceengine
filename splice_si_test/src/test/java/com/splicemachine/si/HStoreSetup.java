@@ -25,6 +25,7 @@ import com.splicemachine.utils.SpliceUtilities;
 import com.splicemachine.utils.ZkUtils;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.Get;
@@ -90,7 +91,7 @@ public class HStoreSetup implements StoreSetup {
     configuration.set(FileSystem.FS_DEFAULT_NAME_KEY,"file:///");
     configuration.set("fs.default.name", "file:///");
     configuration.set("fs.hdfs.impl", "org.apache.hadoop.hdfs.DistributedFileSystem");
-    System.setProperty("zookeeper.sasl.client", "false");   
+    System.setProperty("zookeeper.sasl.client", "false");
     System.setProperty("zookeeper.sasl.serverconfig", "fake");
     // <- MapR work-around
             SpliceConstants.config = configuration;
