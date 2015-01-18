@@ -88,11 +88,11 @@ public class SequentialImporter implements Importer{
 						for (String l: line)
 							l = null; // Dereference
 						line = null; // Dereference
+						count++;
 						if(row==null) continue; //unable to parse the row, so skip it.
 						if(entryEncoder==null)
 								entryEncoder = ImportUtils.newEntryEncoder(row,importContext,getRandomGenerator(),importType);
 						writeBuffer.add(entryEncoder.encode(row));
-						count++;
 				}
 				if(count>0)
 						writeTimer.tick(count);
