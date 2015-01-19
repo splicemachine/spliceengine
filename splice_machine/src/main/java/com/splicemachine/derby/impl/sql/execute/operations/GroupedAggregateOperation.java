@@ -10,9 +10,11 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.iapi.storage.ScanBoundary;
+import com.splicemachine.derby.impl.spark.RDDUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.EmptyRowSupplier;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.GroupedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SourceIterator;
+import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.*;
 import com.splicemachine.derby.impl.storage.*;
 import com.splicemachine.derby.impl.temp.TempTable;
@@ -39,11 +41,15 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.ArrayUtil;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.execute.ExecIndexRow;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
+import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.api.java.JavaRDD;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -566,5 +572,95 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         return "Grouped" + super.prettyPrint(indentLevel);
     }
 
+    @Override
+    public boolean providesRDD() {
+        return ((SpliceOperation) source).providesRDD();
+    }
 
+    public JavaRDD<ExecRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+        JavaRDD<ExecRow> rdd = source.getRDD(spliceRuntimeContext, this);
+        int[] groupByCols = groupedAggregateContext.getGroupingKeys();
+        JavaPairRDD<ExecRow, ExecRow> keyedRDD = RDDUtils.getKeyedRDD(rdd, groupByCols);
+        final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this, spliceRuntimeContext);
+        JavaPairRDD<ExecRow, ExecRow> resultRDD = keyedRDD.reduceByKey(new Aggregator(this, soi));
+        JavaRDD<ExecRow> keylessRDD = resultRDD.values();
+        JavaRDD<ExecRow> finished = keylessRDD.map(new Finisher(this, soi));
+
+        return finished;
+    }
+
+    private static final class Finisher extends SparkOperation<GroupedAggregateOperation, ExecRow, ExecRow> {
+        public Finisher() {
+        }
+
+        public Finisher(GroupedAggregateOperation spliceOperation, SpliceObserverInstructions soi) {
+            super(spliceOperation, soi);
+        }
+
+        @Override
+        public ExecRow call(ExecRow row) throws Exception {
+            if (!(row instanceof ExecIndexRow)) {
+                op.sourceExecIndexRow.execRowToExecIndexRow(row);
+                row = (ExecIndexRow) op.sourceExecIndexRow.getClone();
+            }
+            if (!op.isInitialized(row)) {
+                op.initializeVectorAggregation(row);
+            }
+            op.finishAggregation(row);
+            return row;
+        }
+
+    }
+
+    private static final class Aggregator extends SparkOperation2<GroupedAggregateOperation, ExecRow, ExecRow, ExecRow> {
+        private static final long serialVersionUID = -4879775024011078994L;
+
+        public Aggregator() {
+        }
+
+        public Aggregator(GroupedAggregateOperation spliceOperation, SpliceObserverInstructions soi) {
+            super(spliceOperation, soi);
+        }
+
+        @Override
+        public ExecRow call(ExecRow t1, ExecRow t2) throws Exception {
+            if (RDDUtils.LOG.isDebugEnabled()) {
+                RDDUtils.LOG.debug(String.format("Reducing %s and %s", t1, t2));
+            }
+            if (!(t1 instanceof ExecIndexRow)) {
+                op.sourceExecIndexRow.execRowToExecIndexRow(t1);
+                t1 = (ExecIndexRow) op.sourceExecIndexRow.getClone();
+            }
+            if (!op.isInitialized(t1)) {
+                op.initializeVectorAggregation(t1);
+            }
+            aggregate(t2, (ExecIndexRow) t1);
+            return t1.getClone();
+        }
+
+        private void aggregate(ExecRow next, ExecIndexRow agg) throws StandardException {
+            if (op.isInitialized(next)) {
+                if (RDDUtils.LOG.isDebugEnabled()) {
+                    RDDUtils.LOG.debug(String.format("Merging %s with %s", next, agg));
+                }
+                for (SpliceGenericAggregator aggregate : op.aggregates) {
+                    aggregate.merge(next, agg);
+                }
+            } else {
+                op.sourceExecIndexRow.execRowToExecIndexRow(next);
+                next = op.sourceExecIndexRow.getClone();
+                if (RDDUtils.LOG.isDebugEnabled()) {
+                    RDDUtils.LOG.debug(String.format("Aggregating %s to %s", next, agg));
+                }
+                for (SpliceGenericAggregator aggregate : op.aggregates) {
+                    aggregate.initialize(next);
+                    aggregate.accumulate(next, agg);
+                }
+                if (RDDUtils.LOG.isDebugEnabled()) {
+                    RDDUtils.LOG.debug(String.format("Result %s", agg));
+                }
+            }
+        }
+
+    }
 }

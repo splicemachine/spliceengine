@@ -575,8 +575,8 @@ public class SpliceSparkKryoRegistry implements KryoPool.KryoRegistry{
 
             @Override
             public void write(Kryo kryo, Output output, Tuple2 object) {
-                kryo.writeClassAndObject(output, object._1);
-                kryo.writeClassAndObject(output, object._2);
+                kryo.writeClassAndObject(output, object._1());
+                kryo.writeClassAndObject(output, object._2());
             }
         }, 176);
         instance.register(MapStatus.class, 177);
