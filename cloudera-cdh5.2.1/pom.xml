@@ -11,7 +11,6 @@
 		<envClassifier>cloudera-cdh5.2.1</envClassifier>
 		<!-- platform component versions -->
 		<hadoop.version>2.5.0-cdh5.2.1</hadoop.version>
-		<hbase.version>0.98.6-cdh5.2.1</hbase.version>
 		<hbase.version>0.98.6-cdh5.2.1-splice1.0.1-SNAPSHOT</hbase.version>
 		<hive.version>0.13.1-cdh5.2.1</hive.version>
 		<zookeeper.version>3.4.5-cdh5.2.1</zookeeper.version>

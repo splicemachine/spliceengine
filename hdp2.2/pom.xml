@@ -11,8 +11,7 @@
 		<envClassifier>hdp2.2</envClassifier>
 		<!-- platform component versions -->
 		<hadoop.version>2.6.0.2.2.0.0-2041</hadoop.version>
-		<hbase.version>0.98.4.2.2.0.0-2041-hadoop2</hbase.version>
-		<!--hbase.version>0.98.0-hdp2.2.0-splice1.0.0</hbase.version-->
+		<hbase.version>0.98.4-hdp2.2.0-splice1.0.1-SNAPSHOT</hbase.version>
 		<hive.version>0.14.0.2.2.0.0-2041</hive.version>
 		<zookeeper.version>3.4.6.2.2.0.0-2041</zookeeper.version>
 	</properties>
