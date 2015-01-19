@@ -15,7 +15,6 @@
 		<!--hbase.version>0.98.0-hdp2.2.0-splice1.0.0</hbase.version-->
 		<hive.version>0.14.0.2.2.0.0-2041</hive.version>
 		<zookeeper.version>3.4.6.2.2.0.0-2041</zookeeper.version>
-		<spark.version>1.2.0.2.2.0.0-82</spark.version>
 	</properties>
 
 	<parent>
