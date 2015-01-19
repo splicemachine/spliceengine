@@ -22,7 +22,6 @@ public class SpliceNetConnection {
     public static final String DEFAULT_USER = "splice";
     public static final String DEFAULT_USER_PASSWORD = "admin";
 
-    private static boolean storedStatementsCompiled;
     private static boolean driverClassLoaded;
 
     public static Connection getConnection() throws SQLException {
@@ -33,7 +32,6 @@ public class SpliceNetConnection {
         String url = String.format(DB_URL_LOCAL, userName, password);
         loadDriver();
         Connection connection = DriverManager.getConnection(url, new Properties());
-//            compileAllInvalidStoredStatements(connection);
         return connection;
     }
 
@@ -46,18 +44,6 @@ public class SpliceNetConnection {
             } catch (SQLException e) {
                 throw new IllegalStateException("Unable to load the JDBC driver.");
             }
-        }
-    }
-
-    /**
-     * Temporary workaround for bug DB-1342 to allow ITs to run concurrently. Call stored procedure to compile all
-     * system stored statements  Do this once per IT JVM.  See bug DB-1342 for details.  This method/call can be removed
-     * when we fix 1342.
-     */
-    public static synchronized void compileAllInvalidStoredStatements(Connection connection) throws SQLException {
-        if (!storedStatementsCompiled) {
-            connection.prepareCall("call SYSCS_UTIL.SYSCS_RECOMPILE_INVALID_STORED_STATEMENTS()").execute();
-            storedStatementsCompiled = true;
         }
     }
 

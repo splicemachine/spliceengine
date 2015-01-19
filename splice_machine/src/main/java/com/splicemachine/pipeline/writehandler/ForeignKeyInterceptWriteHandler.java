@@ -92,6 +92,13 @@ public class ForeignKeyInterceptWriteHandler implements WriteHandler {
         return "ForeignKeyInterceptWriteHandler{parentTable='" + parentTableNameString + '\'' + '}';
     }
 
+    /**
+     * We apply the details of the foreign key violation exception message here in the InterceptWriteHandler because
+     * there is one instance of this class per FK, and only this class has all of the info necessary for exception
+     * message creation (on the other hand there is only one CheckWriteHandler per table, it doesn't know which FK
+     * actually fails the check). This code looks fragile but it is validated by every single FK IT test method.
+     * Breakages in this method would result in all FK ITs failing.
+     */
     private void addInfoToException(ExecutionException originalException) throws ConstraintViolation.ForeignKeyConstraintViolation {
         Throwable t = originalException;
         while ((t = t.getCause()) != null) {

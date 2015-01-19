@@ -10,15 +10,16 @@ import java.io.IOException;
  */
 class ForeignKeyCheckWriteFactory implements LocalWriteFactory {
 
-    private int constraintColumnCount;
+    /* formatIds for just the columns in the FK  */
+    private int[] formatIds;
 
-    ForeignKeyCheckWriteFactory(int constraintColumnCount) {
-        this.constraintColumnCount = constraintColumnCount;
+    ForeignKeyCheckWriteFactory(int[] formatIds) {
+        this.formatIds = formatIds;
     }
 
     @Override
     public void addTo(PipelineWriteContext ctx, boolean keepState, int expectedWrites) throws IOException {
-        ctx.addLast(new ForeignKeyCheckWriteHandler(ctx.getTransactionalRegion(), ctx.getCoprocessorEnvironment(), constraintColumnCount));
+        ctx.addLast(new ForeignKeyCheckWriteHandler(ctx.getTransactionalRegion(), ctx.getCoprocessorEnvironment(), formatIds));
     }
 
     @Override

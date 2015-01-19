@@ -379,8 +379,7 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
 
         //get Constraints list
         ConglomerateDescriptorList congloms = td.getConglomerateDescriptorList();
-        for (Object conglom : congloms) {
-            ConglomerateDescriptor conglomDesc = (ConglomerateDescriptor) conglom;
+        for (ConglomerateDescriptor conglomDesc : congloms) {
             if (conglomDesc.isIndex()) {
                 if (conglomDesc.getConglomerateNumber() == conglomId) {
                     //we are an index, so just map a constraint rather than an attached index
@@ -456,9 +455,14 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
     private void buildForeignKeyCheckWriteFactory(DataDictionary dataDictionary, ForeignKeyConstraintDescriptor fkConstrainDesc) throws StandardException {
         ReferencedKeyConstraintDescriptor ref = fkConstrainDesc.getReferencedConstraint();
         long referencedConglomerateId = ref.getIndexConglomerateDescriptor(dataDictionary).getConglomerateNumber();
-        int constraintColumnCount = ref.getReferencedColumns().length;
+        ColumnDescriptorList backingIndexColDescriptors = ref.getColumnDescriptors();
+        int backingIndexFormatIds[] = new int[backingIndexColDescriptors.size()];
+        int col = 0;
+        for(ColumnDescriptor columnDescriptor : backingIndexColDescriptors) {
+            backingIndexFormatIds[col++] = columnDescriptor.getType().getNull().getTypeFormatId();
+        }
         WriteContextFactory<TransactionalRegion> referencedWriteContext = WriteContextFactoryManager.getWriteContext(referencedConglomerateId);
-        ForeignKeyCheckWriteFactory foreignKeyCheckWriteFactory = new ForeignKeyCheckWriteFactory(constraintColumnCount);
+        ForeignKeyCheckWriteFactory foreignKeyCheckWriteFactory = new ForeignKeyCheckWriteFactory(backingIndexFormatIds);
         referencedWriteContext.setForeignKeyCheckWriteFactory(foreignKeyCheckWriteFactory);
     }
 
