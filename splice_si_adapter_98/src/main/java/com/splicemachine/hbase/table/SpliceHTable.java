@@ -368,7 +368,7 @@ public class SpliceHTable extends HTable {
         Throwable cause = exception.getCause();
         if (cause != null) {
             if (LOG.isDebugEnabled())
-                SpliceLogUtils.debug(LOG, "The cause of exception %s is %s", cause, exception);
+                SpliceLogUtils.debug(LOG, "The cause of exception %s is %s", exception, cause);
             if (cause != exception) {
                 return getRegionProblemException(exception.getCause());
             }
