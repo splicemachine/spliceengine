@@ -11,13 +11,10 @@
 		<envClassifier>mapr4.0</envClassifier>
 		<!-- platform component versions -->
 		<hadoop.version>2.4.1-mapr-1408</hadoop.version>
-                <!--hadoop.version>2.4.1</hadoop.version-->
 		<hbase.version>0.98.4-mapr4.0.1-splice1.0.1-SNAPSHOT</hbase.version>
 		<hive.version>0.13.0-mapr-1405</hive.version>
 		<maprfs.version>4.0.1-mapr</maprfs.version>
 		<zookeeper.version>3.4.5-mapr-1406</zookeeper.version>
-		<!--zookeeper.version>3.4.5</zookeeper.version-->
-                <spark.version></spark.version>
 	</properties>
 
 
