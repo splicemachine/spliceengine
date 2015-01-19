@@ -49,7 +49,7 @@ public class JDBCTemplate {
     }
 
     /**
-     * Query for a list of objects.  Example:
+     * Query for single objects.  Example:
      *
      * <pre>
      *      Car car = queryForObject("select * from CAR where color=? and year=?", new CarRowMapper(), "red", 2014);
@@ -68,6 +68,44 @@ public class JDBCTemplate {
             }
         }, sql, args);
     }
+
+    /**
+     * Get the results from a single column as a list.   Example:
+     *
+     * <pre>
+     *     List<String> peopleNames = query("select name from person where age > ?", String.class, 21);
+     * </pre>
+     */
+    public <T> List<T> query(String sql, Object... args) {
+        return query(sql, new SingleColumnRowMapper<T>(), args);
+    }
+
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    // update
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    /**
+     * Pass sql, parameters, returns number of rows updated.
+     */
+    public int executeUpdate(String sql, Object... args) {
+        ResultSet resultSet = null;
+        PreparedStatement preparedStatement = null;
+        try {
+            preparedStatement = connection.prepareStatement(sql);
+            setArgs(preparedStatement, args);
+            return preparedStatement.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        } finally {
+            DbUtils.closeQuietly(resultSet);
+            DbUtils.closeQuietly(preparedStatement);
+        }
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    // query retry and timeout
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     /**
      * Same as query() method in this class, but retries for up to the specified time.
@@ -101,18 +139,22 @@ public class JDBCTemplate {
         return null;
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    // private
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
     /**
      * Pass sql, parameters, and a ResultSetExtractor and this method takes care of converting exception to unchecked
      * and closing resultSet and statement.
      */
-    public <T> T executeQuery(ResultSetExtractor<T> preparedStatementCallback, String sql, Object... args) {
+    private <T> T executeQuery(ResultSetExtractor<T> resultSetExtractor, String sql, Object... args) {
         ResultSet resultSet = null;
         PreparedStatement preparedStatement = null;
         try {
             preparedStatement = connection.prepareStatement(sql);
             setArgs(preparedStatement, args);
             resultSet = preparedStatement.executeQuery();
-            return preparedStatementCallback.extractData(resultSet);
+            return resultSetExtractor.extractData(resultSet);
         } catch (SQLException e) {
             throw new RuntimeException(e);
         } finally {
@@ -120,25 +162,6 @@ public class JDBCTemplate {
             DbUtils.closeQuietly(preparedStatement);
         }
     }
-
-    /**
-     * Pass sql, parameters, returns number of rows updated.
-     */
-    public int executeUpdate(String sql, Object... args) {
-        ResultSet resultSet = null;
-        PreparedStatement preparedStatement = null;
-        try {
-            preparedStatement = connection.prepareStatement(sql);
-            setArgs(preparedStatement, args);
-            return preparedStatement.executeUpdate();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        } finally {
-            DbUtils.closeQuietly(resultSet);
-            DbUtils.closeQuietly(preparedStatement);
-        }
-    }
-
 
     private void setArgs(PreparedStatement preparedStatement, Object[] args) throws SQLException {
         if (args != null) {
@@ -148,8 +171,16 @@ public class JDBCTemplate {
         }
     }
 
-    public static interface ResultSetExtractor<T> {
+    /* implementations encapsulate how many rows to expect, what do do if there are too many rows, etc.  Public
+     * RowMapper is used to transform each row into an object */
+    private static interface ResultSetExtractor<T> {
         T extractData(ResultSet rs) throws SQLException;
     }
 
+    private static class SingleColumnRowMapper<T> implements RowMapper<T> {
+        @Override
+        public T map(ResultSet resultSet) throws SQLException {
+            return (T) resultSet.getObject(1);
+        }
+    }
 }

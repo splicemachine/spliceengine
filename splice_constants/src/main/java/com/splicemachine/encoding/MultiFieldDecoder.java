@@ -12,7 +12,7 @@ import java.math.BigDecimal;
  * Created on: 6/12/13
  */
 public class MultiFieldDecoder {
-		private byte[] data;
+    private byte[] data;
     private int currentOffset;
     private int length;
     private long[] intValueLength;
@@ -20,7 +20,7 @@ public class MultiFieldDecoder {
 
     private MultiFieldDecoder(){
         this.currentOffset=-1;
-		}
+    }
 
     public static MultiFieldDecoder create(){
         return new MultiFieldDecoder();
@@ -30,9 +30,9 @@ public class MultiFieldDecoder {
         return wrap(row,0,row.length);
     }
 
-		public static MultiFieldDecoder wrap(ByteSlice slice){
-				return wrap(slice.array(),slice.offset(),slice.length());
-		}
+    public static MultiFieldDecoder wrap(ByteSlice slice){
+        return wrap(slice.array(),slice.offset(),slice.length());
+    }
 
     public static MultiFieldDecoder wrap(byte[] row, int offset, int length) {
         MultiFieldDecoder next = new MultiFieldDecoder();
@@ -260,24 +260,6 @@ public class MultiFieldDecoder {
         currentOffset++;
         return retData;
     }
-//    public byte[] getNextRawBytes(){
-//        if(!available()) return new byte[]{};
-//        if(currentOffset>=offset&&data[currentOffset]==0x00) {
-//            currentOffset++;
-//            return new byte[]{};
-//        }
-//        int offset = currentOffset>=0?currentOffset:0;
-//        //read off the length
-//        Encoding.decodeLongWithLength(data,currentOffset,false,intValueLength);
-//        int length = (int)intValueLength[0];
-//        int offsetAdjust = (int)intValueLength[1];
-//        currentOffset+=offsetAdjust;
-//        currentOffset+=length+1; //adjust the data field
-//
-//        byte[] bytes = new byte[length];
-//        System.arraycopy(data,offset,bytes,0,length);
-//        return bytes;
-//    }
 
     public boolean decodeNextBoolean() {
         return decodeNextBoolean(false);
@@ -294,7 +276,7 @@ public class MultiFieldDecoder {
         return value;
     }
 
-		public int skip() {
+    public int skip() {
         //read out raw bytes, and throw them away
         if(!available())
             return 0; //off the end of the array, so nothing to skip
@@ -341,14 +323,12 @@ public class MultiFieldDecoder {
     }
 
     public boolean nextIsNullDouble() {
-        if(!available()) return true;
-        //look at the next 8 bytes and see if they equal the double entry
-        return check2ByteNull(Encoding.encodedNullDouble());
+        return !available() || check2ByteNull(Encoding.encodedNullDouble());
     }
 
     public boolean nextIsNullFloat(){
-				return !available() || check2ByteNull(Encoding.encodedNullFloat());
-		}
+        return !available() || check2ByteNull(Encoding.encodedNullFloat());
+    }
 
     public int skipDouble() {
         if(!available()) return 0;
@@ -419,11 +399,11 @@ public class MultiFieldDecoder {
                 return;
             }
         }
-        currentOffset += expectedLength+1; //not found before the end of the xpectedLength
+        currentOffset += expectedLength + 1; //not found before the end of the expectedLength
     }
     
     private boolean check2ByteNull(byte[] nullValue) {
-    	return nullValue[0] == data[currentOffset] && nullValue[1] == data[currentOffset+1];
+        return nullValue[0] == data[currentOffset] && nullValue[1] == data[currentOffset+1];
     }
 
     public long readOrSkipNextLong(long defaultValue) {

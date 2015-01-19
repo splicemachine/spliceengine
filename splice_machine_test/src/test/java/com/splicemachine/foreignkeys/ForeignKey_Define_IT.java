@@ -42,35 +42,35 @@ public class ForeignKey_Define_IT {
 
 
     @Test
-    public void crateTable_colLevel() throws Exception {
+    public void createTable_colLevel() throws Exception {
         methodWatcher.executeUpdate("create table A (id int, a int, b int, c int, primary key(id))");
         methodWatcher.executeUpdate("create table B (a int, a_id int CONSTRAINT id_fk REFERENCES A(id))");
         verifyForeignKey();
     }
 
     @Test
-    public void crateTable_colLevel_noConstraintName() throws Exception {
+    public void createTable_colLevel_noConstraintName() throws Exception {
         methodWatcher.executeUpdate("create table A (id int, a int, b int, c int, primary key(id))");
         methodWatcher.executeUpdate("create table B (a int, a_id int REFERENCES A(id))");
         verifyForeignKey();
     }
 
     @Test
-    public void crateTable_colLevel_implicitReferencedColumn() throws Exception {
+    public void createTable_colLevel_implicitReferencedColumn() throws Exception {
         methodWatcher.executeUpdate("create table A (id int, a int, b int, c int, primary key(id))");
         methodWatcher.executeUpdate("create table B (a int, a_id int REFERENCES A)");
         verifyForeignKey();
     }
 
     @Test
-    public void crateTable_colLevel_referencingUnique() throws Exception {
+    public void createTable_colLevel_referencingUnique() throws Exception {
         methodWatcher.executeUpdate("create table A (id int unique, a int, b int, c int)");
         methodWatcher.executeUpdate("create table B (a int, a_id int CONSTRAINT id_fk REFERENCES A(id))");
         verifyForeignKey();
     }
 
     @Test
-    public void crateTable_colLevel_referencingNonUniqueFails() throws Exception {
+    public void createTable_colLevel_referencingNonUniqueFails() throws Exception {
         expectedException.expect(SQLException.class);
         expectedException.expectMessage("Constraint 'ID_FK' is invalid: there is no unique or primary key constraint on table '\"FOREIGNKEY_DEFINE_IT\".\"A\"' that matches the number and types of the columns in the foreign key.");
 

@@ -11,7 +11,7 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 /**
- * Utility methods that take numbers, serializer, deserialize, and assert result equals initial number.
+ * Utility methods that take numbers, serialize, deserialize, and assert result equals initial number.
  */
 public class EncodingTestUtil {
 
