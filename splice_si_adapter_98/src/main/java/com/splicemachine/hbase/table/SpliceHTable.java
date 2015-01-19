@@ -357,7 +357,6 @@ public class SpliceHTable extends HTable {
      * Return the exception (or cause) if an IncorrectRegionException or NotServingRegionException, otherwise
      * return null.
      */
-    // DEBUG: DB-2574 - Recursive decent into the abyss.  Added this termination condition to see if we can get real error.
     private static final int TERMINAL_LEVEL = 25;
     private static Throwable getRegionProblemException(Throwable exception, int level) {
         if (exception instanceof RemoteWithExtrasException) {
@@ -369,6 +368,11 @@ public class SpliceHTable extends HTable {
         }
         if (exception.getCause() != null && level < TERMINAL_LEVEL) {
             return getRegionProblemException(exception.getCause(), ++level);
+        } else {
+            // DB-2574 - Recursive decent into the abyss.  Added this termination condition to see if we can get real error.
+            // log an ERROR showing that we've hit the bottom and have a recursive exception
+            LOG.error("We have bottomed out at "+TERMINAL_LEVEL+" levels getting the cause of an exception. "+
+                "We are halting to prevent StackOverflow but the exception probably has a self reference in it.", exception);
         }
         return exception;
     }
