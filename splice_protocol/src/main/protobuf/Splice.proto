@@ -64,9 +64,9 @@ message WriteResult {
     REGION_TOO_BUSY = 9;
     NOT_RUN = 10;
     NOT_NULL = 11;
-  }				
-  optional Code code = 1;	
-  optional string errorMessage = 2;				
+  }
+  optional Code code = 1;
+  optional string errorMessage = 2;
   optional ConstraintContext constraintContext = 3;
 }
 
@@ -90,7 +90,7 @@ message DropIndexResponse {
 
 service SpliceIndexService {
 	rpc bulkWrite(BulkWriteRequest)
-	  returns (BulkWriteResponse); 
+	  returns (BulkWriteResponse);
 }
 
 service MultiRowService {

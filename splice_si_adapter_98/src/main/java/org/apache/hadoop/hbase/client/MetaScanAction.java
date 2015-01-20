@@ -11,6 +11,10 @@ import java.io.IOException;
  */
 public class MetaScanAction {
 
+    public static void metaScan(MetaScanner.MetaScannerVisitor visitor,HConnection connection,TableName tableName) throws IOException {
+        MetaScanner.metaScan(SpliceConstants.config,(ClusterConnection)connection,visitor,tableName);
+    }
+
     public static void metaScan(MetaScanner.MetaScannerVisitor visitor,TableName tableName) throws IOException {
         MetaScanner.metaScan(SpliceConstants.config,(ClusterConnection)HConnectionManager.getConnection(SpliceConstants.config),visitor,tableName);
     }

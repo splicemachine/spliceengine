@@ -145,9 +145,7 @@ public class TransactionAdminTest {
         rowHash.setRow(value);
 
         byte[] bdata = rowHash.encode();
-        KVPair kv = new KVPair();
-        kv.setKey(key);
-        kv.setValue(bdata);
+        KVPair kv = new KVPair(key,bdata);
         //System.out.println("key:"+new String(key)+" value:"+new String(bdata));
         callBuffer.add(kv);
 

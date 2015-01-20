@@ -46,12 +46,12 @@ public class ForeignKeyCheckWriteHandler implements WriteHandler {
     public void next(KVPair kvPair, WriteContext ctx) {
         // I only do foreign key checks.
         if (kvPair.getType() == KVPair.Type.FOREIGN_KEY_CHECK) {
-            if (!region.rowInRange(kvPair.getRow())) {
+            if (!region.rowInRange(kvPair.getRowKey())) {
                 // The row would not longer be in this region, if it did/does exist.
                 ctx.failed(kvPair, WriteResult.wrongRegion());
             } else {
                 try {
-                    byte[] targetRowKey = getCheckRowKey(kvPair.getRow());
+                    byte[] targetRowKey = getCheckRowKey(kvPair.getRowKey());
                     // targetRowKey == null means that the referencing row contained at least one null, in which
                     // case FK rules say it can never be a violation, the insert/update is allowed.
                     if (targetRowKey != null) {

@@ -1,5 +1,9 @@
 package com.splicemachine.pipeline.impl;
 
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.Serializer;
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
 import com.splicemachine.pipeline.api.Code;
 import com.splicemachine.pipeline.constraint.Constraint;
 import com.splicemachine.pipeline.constraint.ConstraintContext;

@@ -39,7 +39,7 @@ import java.util.Map;
  */
 @SuppressWarnings("unchecked")
 
-public class SITransactor<S,Data,Table,
+public class SITransactor<Data,Table,
 				Mutation extends OperationWithAttributes,
 				Put extends Mutation,
 				Get extends OperationWithAttributes,
@@ -155,7 +155,7 @@ public class SITransactor<S,Data,Table,
 										kvPairs = Lists.newArrayList();
 										columnMap.put(column,kvPairs);
 								}
-								kvPairs.add(new KVPair(row,value,isDelete? KVPair.Type.DELETE : KVPair.Type.INSERT));
+								kvPairs.add(new KVPair(row, value, isDelete ? KVPair.Type.DELETE : KVPair.Type.INSERT));
 						}
 						if(isSIDataOnly){
 							/*
@@ -180,7 +180,7 @@ public class SITransactor<S,Data,Table,
 										kvPairs = Lists.newArrayList();
 										columnMap.put(column,kvPairs);
 								}
-								kvPairs.add(new KVPair(row,value,isDelete? KVPair.Type.DELETE : KVPair.Type.EMPTY_COLUMN));
+								kvPairs.add(new KVPair(row, value, isDelete ? KVPair.Type.DELETE : KVPair.Type.EMPTY_COLUMN));
 						}
 				}
 				final Map<byte[],OperationStatus> statusMap = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
@@ -196,12 +196,12 @@ public class SITransactor<S,Data,Table,
 												@Override
 												public boolean apply(@Nullable KVPair input) {
 														assert input != null;
-														return !statusMap.containsKey(input.getRow()) || statusMap.get(input.getRow()).getOperationStatusCode() == HConstants.OperationStatusCode.SUCCESS;
+														return !statusMap.containsKey(input.getRowKey()) || statusMap.get(input.getRowKey()).getOperationStatusCode() == HConstants.OperationStatusCode.SUCCESS;
 												}
 										}));										
 										OperationStatus[] statuses = processKvBatch(table,null,family,qualifier,kvPairs,txnId,ConstraintChecker.NO_CONSTRAINT);
 										for(int i=0;i<statuses.length;i++){
-												byte[] row = kvPairs.get(i).getRow();
+												byte[] row = kvPairs.get(i).getRowKey();
 												OperationStatus status = statuses[i];
 												if(statusMap.containsKey(row)){
 														OperationStatus oldStatus = statusMap.get(row);
@@ -364,7 +364,8 @@ public class SITransactor<S,Data,Table,
                  * We know that this is the case because there is no constraint checker (constraint checkers are only
                  * applied on key elements.
                  */
-                Result possibleConflicts = dataStore.getCommitTimestampsAndTombstonesSingle(table, kvPair.getRow());
+								//todo -sf remove the Row key copy here
+                Result possibleConflicts = dataStore.getCommitTimestampsAndTombstonesSingle(table, kvPair.getRowKey());
                 if(possibleConflicts!=null){
                     //we need to check for write conflicts
                     conflictResults = ensureNoWriteConflict(transaction,possibleConflicts);
@@ -446,7 +447,7 @@ public class SITransactor<S,Data,Table,
 				 */
 				int position=0;
 				for(KVPair mutation:mutations){
-						SRowLock lock = dataWriter.tryLock(table,mutation.getRow());
+						SRowLock lock = dataWriter.tryLock(table,mutation.rowKeySlice());
 						if(lock!=null)
 								mutationsAndLocks[position] = Pair.newPair(mutation,lock);
 						else
@@ -473,10 +474,10 @@ public class SITransactor<S,Data,Table,
 						 * from actual Splice system, we end up with a KVPair that has a non-empty byte[]
 						 * for the values column (but which is nulls everywhere)
 						 */
-						newPut = dataLib.newPut(kvPair.getRow());
+						newPut = dataLib.newPut(kvPair.rowKeySlice());
 						dataStore.setTombstonesOnColumns(table,txnIdLong,newPut);
 				}else if(kvPair.getType()== KVPair.Type.DELETE){
-						newPut = dataLib.newPut(kvPair.getRow());
+						newPut = dataLib.newPut(kvPair.rowKeySlice());
 						dataStore.setTombstoneOnPut(newPut,txnIdLong);
 				}else
 						newPut = dataLib.toPut(kvPair, family, column, txnIdLong);
@@ -486,9 +487,8 @@ public class SITransactor<S,Data,Table,
 				if(kvPair.getType()!= KVPair.Type.DELETE && conflictResults.hasTombstone)
 						dataStore.setAntiTombstoneOnPut(newPut, txnIdLong);
 
-				byte[]row = kvPair.getRow();
         if(rollForwardQueue!=null)
-            rollForwardQueue.submitForResolution(row,txnIdLong);
+            rollForwardQueue.submitForResolution(kvPair.rowKeySlice(),txnIdLong);
 				return newPut;
 		}
 
@@ -722,8 +722,8 @@ public class SITransactor<S,Data,Table,
 						return this;
 				}
 
-        public SITransactor<SRowLock,
-        		Data,
+        public SITransactor<
+								Data,
         		Table,
                 Mutation,
                 Put,
@@ -731,8 +731,7 @@ public class SITransactor<S,Data,Table,
                 Get,
                 Scan> build(){
 						assert txnStore!=null: "No TxnStore set!";
-						return new SITransactor<SRowLock,Data,Table,
-										Mutation, Put,Delete,Get,Scan>(dataLib,dataWriter, dataStore,
+						return new SITransactor<>(dataLib,dataWriter, dataStore,
                     operationFactory,txnStore);
 				}
 

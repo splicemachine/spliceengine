@@ -1,137 +1,134 @@
 package com.splicemachine.pipeline.impl;
 
-import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
-import com.carrotsearch.hppc.procedures.IntObjectProcedure;
+import com.carrotsearch.hppc.IntOpenHashSet;
+import com.carrotsearch.hppc.cursors.IntCursor;
+import com.carrotsearch.hppc.cursors.IntObjectCursor;
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.Serializer;
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
 import com.splicemachine.pipeline.api.WriteContext;
-
-import java.io.Externalizable;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 
 /**
  * @author Scott Fines
- *         Created on: 8/8/13
+ * Created on: 8/8/13 
  */
-public class BulkWriteResult implements Externalizable {
+public class BulkWriteResult {
+		private WriteResult globalStatus;
+		private IntOpenHashSet notRunRows;
+		private IntObjectOpenHashMap<WriteResult> failedRows;
 
-    private WriteResult globalStatus;
-    private IntArrayList notRunRows;
-    private IntObjectOpenHashMap<WriteResult> failedRows;
-    private WriteContext writeContext;
+		private transient WriteContext writeContext;
+		private transient int position;
 
-    public BulkWriteResult() {
-        notRunRows = new IntArrayList();
-        failedRows = new IntObjectOpenHashMap<>();
-    }
+		public BulkWriteResult() {
+				notRunRows = new IntOpenHashSet();
+				failedRows = new IntObjectOpenHashMap<>();
+		}
 
-    public BulkWriteResult(WriteContext writeContext, WriteResult globalStatus) {
-        notRunRows = new IntArrayList();
-        failedRows = new IntObjectOpenHashMap<>();
-        this.writeContext = writeContext;
-        this.globalStatus = globalStatus;
-    }
+		public BulkWriteResult(WriteContext writeContext, WriteResult globalStatus) {
+				notRunRows = new IntOpenHashSet();
+				failedRows = new IntObjectOpenHashMap<>();
+				this.writeContext = writeContext;
+				this.globalStatus = globalStatus;
+		}
 
-    public BulkWriteResult(WriteResult globalStatus, IntArrayList notRunRows, IntObjectOpenHashMap<WriteResult> failedRows) {
-        this.notRunRows = notRunRows;
-        this.failedRows = failedRows;
-        this.globalStatus = globalStatus;
-    }
+		public BulkWriteResult(WriteResult globalStatus, IntOpenHashSet notRunRows,IntObjectOpenHashMap<WriteResult> failedRows){
+				this.notRunRows = notRunRows;
+				this.failedRows = failedRows;
+				this.globalStatus = globalStatus;
+		}
 
-    public BulkWriteResult(WriteResult globalStatus) {
-        this();
-        this.globalStatus = globalStatus;
-    }
+		public BulkWriteResult(WriteResult globalStatus){
+				this();
+				this.globalStatus = globalStatus;
+		}
 
-    public IntObjectOpenHashMap<WriteResult> getFailedRows() {
-        return failedRows;
-    }
+		public IntObjectOpenHashMap<WriteResult> getFailedRows() {
+				return failedRows;
+		}
 
-    public IntArrayList getNotRunRows() {
-        return notRunRows;
-    }
+		public IntOpenHashSet getNotRunRows() {
+				return notRunRows;
+		}
 
-    public void addResult(int pos, WriteResult result) {
-        switch (result.getCode()) {
-            case SUCCESS:
-                return; //return nothing for success
-            case NOT_RUN:
-                notRunRows.add(pos);
-                break;
-            default:
-                failedRows.put(pos, result);
-        }
-    }
+		public void addResult(int pos, WriteResult result) {
+				switch (result.getCode()) {
+						case SUCCESS:
+								return; //return nothing for success
+						case NOT_RUN:
+								notRunRows.add(pos);
+								break;
+						default:
+								failedRows.put(pos,result);
+				}
+		}
 
-    @Override
-    public String toString() {
-        return "BulkWriteResult{" +
-                "globalStatus=" + (globalStatus == null ? "null" : globalStatus.toString()) +
-                "notRunRows=" + (notRunRows == null ? "null" : notRunRows.size()) +
-                ", failedRows=" + (failedRows == null ? "null" : failedRows.size()) +
-                '}';
-    }
+		public WriteResult getGlobalResult() {
+				return globalStatus;
+		}
 
-    @Override
-    public void writeExternal(final ObjectOutput out) throws IOException {
-        out.writeObject(globalStatus);
-        out.writeInt(notRunRows.size());
-        int size = notRunRows.size();
-        int[] notRunBuffer = notRunRows.buffer;
-        for (int i = 0; i < size; i++) {
-            int row = notRunBuffer[i];
-            out.writeInt(row);
-        }
-        out.writeInt(failedRows.size());
-        failedRows.forEach(new IntObjectProcedure<WriteResult>() {
-            @Override
-            public void apply(int key, WriteResult value) {
-                try {
-                    out.writeInt(key);
-                    out.writeBoolean(value != null);
-                    if (value != null)
-                        out.writeObject(value);
-                } catch (IOException e) {
-                    throw new RuntimeException(e); //shouldn't happen, because we only go to byte[]
-                }
-            }
-        });
-    }
+		public void setGlobalStatus(WriteResult globalStatus) {
+				this.globalStatus = globalStatus;
+		}
 
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        globalStatus = (WriteResult) in.readObject();
-        int notRunSize = in.readInt();
-        notRunRows = IntArrayList.newInstanceWithCapacity(notRunSize);
-        for (int i = 0; i < notRunSize; i++) {
-            notRunRows.add(in.readInt());
-        }
+		public WriteContext getWriteContext() {
+				return writeContext;
+		}
 
-        int failedSize = in.readInt();
-        failedRows = new IntObjectOpenHashMap<>(failedSize);
-        for (int i = 0; i < failedSize; i++) {
-            int rowNum = in.readInt();
-            if (in.readBoolean()) {
-                failedRows.put(rowNum, (WriteResult) in.readObject());
-            }
-        }
-    }
+		public int getPosition() {
+				return position;
+		}
 
-    public WriteResult getGlobalResult() {
-        return globalStatus;
-    }
+		public void setPosition(int position) {
+				this.position = position;
+		}
 
-    public void setGlobalStatus(WriteResult globalStatus) {
-        this.globalStatus = globalStatus;
-    }
+		@Override
+		public String toString() {
+				return "BulkWriteResult{" +
+								"globalStatus=" + (globalStatus==null?"null":globalStatus.toString()) +
+								"notRunRows=" + (notRunRows==null?"null":notRunRows.size()) +
+								", failedRows=" + (failedRows==null?"null":failedRows.size()) +
+								'}';
+		}
 
-    public void setFailedRows(IntObjectOpenHashMap<WriteResult> failedRows) {
-        this.failedRows = failedRows;
-    }
+		public static Serializer<BulkWriteResult> kryoSerializer(){
+				return SERIALIZER;
+		}
 
-    public WriteContext getWriteContext() {
-        return writeContext;
-    }
+		private static final Serializer<BulkWriteResult> SERIALIZER = new Serializer<BulkWriteResult>() {
+				@Override
+				public void write(Kryo kryo, Output output, BulkWriteResult object) {
+						kryo.writeObject(output,object.globalStatus);
+						output.writeInt(object.notRunRows.size());
+						for(IntCursor cursor:object.notRunRows){
+								output.writeInt(cursor.value);
+						}
+						output.writeInt(object.failedRows.size());
+						for(IntObjectCursor<WriteResult> c:object.failedRows){
+								output.writeInt(c.key);
+								kryo.writeObject(output,c.value);
+						}
+				}
 
+				@Override
+				public BulkWriteResult read(Kryo kryo, Input input, Class<BulkWriteResult> type) {
+						WriteResult globalStatus = kryo.readObject(input,WriteResult.class);
+						int notRunSize = input.readInt();
+						IntOpenHashSet notRunRows = new IntOpenHashSet(notRunSize);
+						for(int i=0;i<notRunSize;i++){
+								notRunRows.add(input.readInt());
+						}
+						int failedSize = input.readInt();
+						IntObjectOpenHashMap<WriteResult> failedRows = new IntObjectOpenHashMap<>(failedSize,0.9f);
+						for(int i=0;i<failedSize;i++){
+								int k = input.readInt();
+								WriteResult result = kryo.readObject(input,WriteResult.class);
+								failedRows.put(k,result);
+						}
+						return new BulkWriteResult(globalStatus,notRunRows,failedRows);
+				}
+		};
 }

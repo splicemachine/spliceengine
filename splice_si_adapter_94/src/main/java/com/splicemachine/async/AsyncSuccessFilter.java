@@ -16,15 +16,15 @@ public class AsyncSuccessFilter extends ScanFilter {
         this.failedTasks = failedTasks;
     }
 
-    @Override byte[] name() { return NAME; }
+    @Override public byte[] name() { return NAME; }
 
     @Override
-    byte[] serialize() {
+    public byte[] serialize() {
         throw new UnsupportedOperationException("IMPLEMENT FOR 0.96+");
     }
 
     @Override
-    void serializeOld(ChannelBuffer buf) {
+    public void serializeOld(ChannelBuffer buf) {
         buf.writeByte((byte)NAME.length);
         buf.writeBytes(NAME);
 
@@ -36,7 +36,7 @@ public class AsyncSuccessFilter extends ScanFilter {
     }
 
     @Override
-    int predictSerializedSize() {
+    public int predictSerializedSize() {
         int size = 5+NAME.length;
         for(byte[] n :failedTasks){
             size+=n.length+4;

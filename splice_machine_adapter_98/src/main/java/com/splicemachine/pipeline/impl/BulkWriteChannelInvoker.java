@@ -37,7 +37,8 @@ public class BulkWriteChannelInvoker {
             SpliceMessage.SpliceIndexService service = ProtobufUtil.newServiceStub(SpliceMessage.SpliceIndexService.class, channel);
 
             SpliceMessage.BulkWriteRequest.Builder builder = SpliceMessage.BulkWriteRequest.newBuilder();
-            byte[] requestBytes = PipelineUtils.toCompressedBytes(write);
+            byte[] requestBytes = PipelineEncoding.encode(write);
+//            byte[] requestBytes = PipelineUtils.toCompressedBytes(write);
             builder.setBytes(ZeroCopyLiteralByteString.copyFrom(requestBytes));
             SpliceMessage.BulkWriteRequest bwr = builder.build();
 

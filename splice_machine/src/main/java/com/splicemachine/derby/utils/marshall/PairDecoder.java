@@ -55,7 +55,7 @@ public class PairDecoder<Data> {
 
 		public ExecRow decode(KVPair kvPair) throws StandardException{
 				templateRow.resetRowArray();
-				keyDecoder.decode(kvPair.getRow(),0,kvPair.getRow().length,templateRow);
+				keyDecoder.decode(kvPair.getRowKey(),0,kvPair.getRowKey().length,templateRow);
 				rowDecoder.set(kvPair.getValue(),0,kvPair.getValue().length);
 				rowDecoder.decode(templateRow);
 				return templateRow;

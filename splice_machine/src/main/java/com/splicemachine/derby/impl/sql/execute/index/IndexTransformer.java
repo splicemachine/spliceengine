@@ -100,7 +100,7 @@ public class IndexTransformer {
         if (srcPrimaryKeyIndices != null) {
             //we have key columns to check
             MultiFieldDecoder keyDecoder = getSrcKeyDecoder();
-            keyDecoder.set(mutation.getRow());
+            keyDecoder.set(mutation.getRowKey());
             for (int sourceKeyColumnPos : srcPrimaryKeyIndices) {
                 int indexKeyPos = sourceKeyColumnPos < indexKeyEncodingMap.length ? indexKeyEncodingMap[sourceKeyColumnPos] : -1;
                 if (indexKeyPos < 0) {
@@ -159,7 +159,7 @@ public class IndexTransformer {
         }
 
         //add the row key to the end of the index key
-        byte[] srcRowKey = Encoding.encodeBytesUnsorted(mutation.getRow());
+        byte[] srcRowKey = Encoding.encodeBytesUnsorted(mutation.getRowKey());
 
         EntryEncoder rowEncoder = getRowEncoder();
         MultiFieldEncoder entryEncoder = rowEncoder.getEntryEncoder();

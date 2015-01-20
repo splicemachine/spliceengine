@@ -29,7 +29,6 @@ import com.splicemachine.metrics.TimeView;
 import com.splicemachine.metrics.Timer;
 import com.splicemachine.pipeline.api.RecordingCallBuffer;
 import com.splicemachine.pipeline.callbuffer.ForwardRecordingCallBuffer;
-import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.storage.EntryPredicateFilter;
@@ -276,7 +275,7 @@ public class UpdateOperation extends DMLWriteOperation{
 								@Override
 								public void add(KVPair element) throws Exception {
 										byte[] oldLocation = ((RowLocation) currentRow.getColumn(currentRow.nColumns()).getObject()).getBytes();
-                                        if (!Bytes.equals(oldLocation, element.getRow())) {
+                                        if (!Bytes.equals(oldLocation, element.getRowKey())) {
                                             // only add the delete if we aren't overwriting the same row
 										    delegate.add(new KVPair(oldLocation, HConstants.EMPTY_BYTE_ARRAY, KVPair.Type.DELETE));
                                         }

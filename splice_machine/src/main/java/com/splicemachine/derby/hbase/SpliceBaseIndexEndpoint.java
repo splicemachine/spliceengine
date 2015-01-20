@@ -2,6 +2,8 @@ package com.splicemachine.derby.hbase;
 
 import com.google.common.collect.Maps;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.pipeline.api.*;
+import com.splicemachine.pipeline.impl.*;
 import com.splicemachine.pipeline.api.Service;
 import com.splicemachine.pipeline.writecontextfactory.WriteContextFactory;
 import com.splicemachine.pipeline.impl.*;
@@ -22,6 +24,9 @@ import org.apache.log4j.Logger;
 
 import javax.management.*;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -106,25 +111,27 @@ public class SpliceBaseIndexEndpoint {
 
     public BulkWritesResult bulkWrite(BulkWrites bulkWrites) throws IOException {
         if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "bulkWrite %s ", bulkWrites);
-        BulkWritesResult result = new BulkWritesResult();
-        Object[] buffer = bulkWrites.getBulkWrites().buffer;
-        int size = bulkWrites.getBulkWrites().size();
-        long startTimeNs = System.nanoTime();
-        IndexCallBufferFactory indexCallBufferFactory = new IndexCallBufferFactory();
+            SpliceLogUtils.trace(LOG, "bulkWrite %s ",bulkWrites);
+//        BulkWritesResult result = new BulkWritesResult();
+        Collection<BulkWrite> bws = bulkWrites.getBulkWrites();
+        int size =  bulkWrites.getBulkWrites().size();
+        List<BulkWriteResult> result = new ArrayList<>(size);
+        // start
+//				List<Pair<BulkWriteResult,RegionWritePipeline>> startPoints = Lists.newArrayListWithExpectedSize(size);
+        IndexCallBufferFactory indexWriteBufferFactory = new IndexCallBufferFactory();
         boolean dependent = regionWritePipeline.isDependent();
-        SpliceWriteControl.Status status = null;
-        int kvPairSize = (int) bulkWrites.getKVPairSize();
+        SpliceWriteControl.Status status;
+        int kvPairSize = bulkWrites.numEntries();
+        status = (dependent) ? writeControl.performDependentWrite(kvPairSize) : writeControl.performIndependentWrite(kvPairSize);
+        if (status.equals(SpliceWriteControl.Status.REJECTED)) {
+            //we cannot write to this
+            rejectAll(result, size);
+            rejectedCount.addAndGet(size);
+            return new BulkWritesResult(result);
+        }
         try {
-            status = (dependent) ? writeControl.performDependentWrite(kvPairSize) : writeControl.performIndependentWrite(kvPairSize);
-            if (status.equals(SpliceWriteControl.Status.REJECTED)) {
-                //we cannot write to this
-                rejectAll(result, size);
-                rejectedCount.addAndGet(size);
-                return result;
-            }
 
-            Map<BulkWrite, Pair<BulkWriteResult, RegionWritePipeline>> writePairMap = getBulkWritePairMap(buffer, size);
+            Map<BulkWrite, Pair<BulkWriteResult, RegionWritePipeline>> writePairMap = getBulkWritePairMap(bws, size);
 
             //
             // Submit the bulk writes for which we found a RegionWritePipeline.
@@ -134,7 +141,7 @@ public class SpliceBaseIndexEndpoint {
                 RegionWritePipeline writePipeline = pair.getSecond();
                 if (writePipeline != null) {
                     BulkWrite bulkWrite = entry.getKey();
-                    BulkWriteResult submitResult = writePipeline.submitBulkWrite(bulkWrite, indexCallBufferFactory, writePipeline.getRegionCoprocessorEnvironment());
+                    BulkWriteResult submitResult = writePipeline.submitBulkWrite(bulkWrites.getTxn(), bulkWrite,indexWriteBufferFactory, writePipeline.getRegionCoprocessorEnvironment());
                     pair.setFirst(submitResult);
                 }
             }
@@ -156,13 +163,11 @@ public class SpliceBaseIndexEndpoint {
             //
             // Collect the overall results.
             //
-            for (int i = 0; i < size; i++) {
-                BulkWrite bw = (BulkWrite) buffer[i];
-                Pair<BulkWriteResult, RegionWritePipeline> pair = writePairMap.get(bw);
-                result.addResult(pair.getFirst());
+            for (Map.Entry<BulkWrite,Pair<BulkWriteResult,RegionWritePipeline>> entry: writePairMap.entrySet()) {
+                Pair<BulkWriteResult, RegionWritePipeline> pair = entry.getValue();
+                result.add(pair.getFirst());
             }
-            timer.update(System.nanoTime() - startTimeNs, TimeUnit.NANOSECONDS);
-            return result;
+            return new BulkWritesResult(result);
         } finally {
             switch (status) {
                 case REJECTED:
@@ -177,41 +182,39 @@ public class SpliceBaseIndexEndpoint {
             }
         }
     }
+		private void rejectAll(Collection<BulkWriteResult> result, int numResults) {
+				this.rejectedMeter.mark();
+				for (int i = 0; i < numResults; i++) {
+						result.add(new BulkWriteResult(WriteResult.pipelineTooBusy(rce.getRegion().getRegionNameAsString())));
+				}
+		}
 
     /**
      * Just builds this map:  BulkWrite -> (BulkWriteResult, RegionWritePipeline) where the RegionWritePipeline may
      * be null for some BulkWrites.
      */
-    private Map<BulkWrite, Pair<BulkWriteResult, RegionWritePipeline>> getBulkWritePairMap(Object[] buffer, int size) {
+    private Map<BulkWrite, Pair<BulkWriteResult, RegionWritePipeline>> getBulkWritePairMap(Collection<BulkWrite> buffer, int size) {
         Map<BulkWrite, Pair<BulkWriteResult, RegionWritePipeline>> writePairMap = Maps.newIdentityHashMap();
-        for (int i = 0; i < size; i++) {
-            BulkWrite bulkWrite = (BulkWrite) buffer[i];
-            assert bulkWrite != null;
-            RegionWritePipeline writePipeline = SpliceDriver.driver().getWritePipeline(bulkWrite.getEncodedRegionName());
+        for(BulkWrite bw:buffer){
+            RegionWritePipeline writePipeline = SpliceDriver.driver().getWritePipeline(bw.getEncodedStringName());
             BulkWriteResult writeResult;
             if (writePipeline != null) {
                 //we might be able to write this one
                 writeResult = new BulkWriteResult();
             } else {
                 if (LOG.isTraceEnabled())
-                    SpliceLogUtils.trace(LOG, "endpoint not found for region %s on region %s", bulkWrite.getEncodedRegionName(), rce.getRegion().getRegionNameAsString());
+                    SpliceLogUtils.trace(LOG, "endpoint not found for region %s on region %s", bw.getEncodedStringName(), rce.getRegion().getRegionNameAsString());
                 writeResult = new BulkWriteResult(WriteResult.notServingRegion());
             }
-            writePairMap.put(bulkWrite, Pair.newPair(writeResult, writePipeline));
+            writePairMap.put(bw, Pair.newPair(writeResult, writePipeline));
         }
         return writePairMap;
     }
 
-    private void rejectAll(BulkWritesResult result, int numResults) {
-        this.rejectedMeter.mark();
-        for (int i = 0; i < numResults; i++) {
-            result.addResult(new BulkWriteResult(WriteResult.pipelineTooBusy(rce.getRegion().getRegionNameAsString())));
-        }
-    }
-
     public byte[] bulkWrites(byte[] bulkWriteBytes) throws IOException {
         assert bulkWriteBytes != null;
-        BulkWrites bulkWrites = PipelineUtils.fromCompressedBytes(bulkWriteBytes, BulkWrites.class);
+        BulkWrites bulkWrites = PipelineEncoding.decode(bulkWriteBytes);
+//        BulkWrites bulkWrites = PipelineUtils.fromCompressedBytes(bulkWriteBytes,BulkWrites.class);
         return PipelineUtils.toCompressedBytes(bulkWrite(bulkWrites));
     }
 
@@ -330,39 +333,22 @@ public class SpliceBaseIndexEndpoint {
     @SuppressWarnings("UnusedDeclaration")
     public interface ActiveWriteHandlersIface {
         public int getIpcReservedPool();
-
         int getIndependentWriteThreads();
-
-        int getIndependentWriteCount();
-
-        int getDependentWriteThreads();
-
-        int getDependentWriteCount();
-
-        void setMaxDependentWriteCount(int newMaxDependentWriteCount);
-
-        void setMaxIndependentWriteCount(int newMaxIndependentWriteCount);
-
-        void setMaxDependentWriteThreads(int newMaxDependentWriteThreads);
-
-        void setMaxIndependentWriteThreads(int newMaxIndependentWriteThreads);
-
-        int getMaxIndependentWriteCount();
-
-        int getMaxDependentWriteCount();
-
-        int getMaxIndependentWriteThreads();
-
-        int getMaxDependentWriteThreads();
-
+		int getIndependentWriteCount();
+		int getDependentWriteThreads();
+		int getDependentWriteCount();
+		void setMaxDependentWriteCount(int newMaxDependentWriteCount);
+		void setMaxIndependentWriteCount(int newMaxIndependentWriteCount);
+		void setMaxDependentWriteThreads(int newMaxDependentWriteThreads);
+		void setMaxIndependentWriteThreads(int newMaxIndependentWriteThreads);
+		int getMaxIndependentWriteCount();
+		int getMaxDependentWriteCount();
+		int getMaxIndependentWriteThreads();
+		int getMaxDependentWriteThreads();
         public double getOverallAvgThroughput();
-
         public double get1MThroughput();
-
         public double get5MThroughput();
-
         public double get15MThroughput();
-
         long getTotalRejected();
     }
 

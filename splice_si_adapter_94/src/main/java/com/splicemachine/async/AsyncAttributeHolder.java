@@ -20,15 +20,15 @@ public class AsyncAttributeHolder extends ScanFilter {
         this.attributes = attributes;
     }
 
-    @Override byte[] name() { return NAME; }
+    @Override public byte[] name() { return NAME; }
 
     @Override
-    byte[] serialize() {
+    public byte[] serialize() {
         throw new UnsupportedOperationException("IMPLEMENT PROTOBUFS FOR 0.96");
     }
 
     @Override
-    void serializeOld(ChannelBuffer buf) {
+    public void serializeOld(ChannelBuffer buf) {
         buf.writeByte((byte)NAME.length);
         buf.writeBytes(NAME);
 
@@ -42,7 +42,7 @@ public class AsyncAttributeHolder extends ScanFilter {
     }
 
     @Override
-    int predictSerializedSize() {
+    public int predictSerializedSize() {
         int size = 1+NAME.length+1;
         for(Map.Entry<String,byte[]> entry:attributes.entrySet()){
             size+=entry.getKey().length()+1+entry.getValue().length+4;

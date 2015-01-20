@@ -6,6 +6,7 @@ import com.splicemachine.si.impl.DataStore;
 import com.splicemachine.si.impl.SICompactionState;
 import com.splicemachine.si.impl.TxnFilter;
 import com.splicemachine.storage.EntryPredicateFilter;
+import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 
@@ -43,7 +44,9 @@ public interface TransactionalRegion {
      */
     boolean isClosed();
 
-    boolean rowInRange(byte[] row);
+		boolean rowInRange(byte[] row);
+
+		boolean rowInRange(ByteSlice slice);
 
     boolean containsRange(byte[] start, byte[] stop);
 

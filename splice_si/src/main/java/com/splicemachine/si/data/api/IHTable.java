@@ -4,6 +4,7 @@ import com.splicemachine.collections.CloseableIterator;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.si.api.TxnView;
 
+import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Mutation;
@@ -38,4 +39,6 @@ public interface IHTable<RowLock> {
     void closeOperation() throws IOException;
     OperationStatus[] batchMutate(Collection<KVPair> data,TxnView txn) throws IOException;
 	RowLock tryLock(byte[] rowKey) throws IOException;
+
+    RowLock tryLock(ByteSlice rowKey) throws IOException;
 }

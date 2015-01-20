@@ -10,6 +10,7 @@ import com.splicemachine.si.api.Clock;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
+import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
@@ -357,7 +358,12 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
 				return lockRow(lTable, rowKey);
 		}
 
-		/**
+    @Override
+    public LRowLock tryLock(LTable lTable, ByteSlice rowKey) throws IOException {
+        return lockRow(lTable,rowKey.getByteCopy());
+    }
+
+    /**
      * Only carry over KeyValues that are not being replaced by incoming KeyValues.
      */
     private void filterOutKeyValuesBeingReplaced(List<KeyValue> values, LTuple t, List<KeyValue> newValues) {

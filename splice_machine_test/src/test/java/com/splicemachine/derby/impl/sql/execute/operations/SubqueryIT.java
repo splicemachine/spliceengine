@@ -8,7 +8,6 @@ import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.perf.runner.qualifiers.Result;
 import com.splicemachine.pipeline.exception.ErrorState;
 
-import org.apache.derby.iapi.error.StandardException;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -350,7 +349,7 @@ public class SubqueryIT {
         Assert.assertEquals(8, TestUtils.resultSetToArrays(rs).size());
     }
 
-    @Test
+    @Test(timeout=10000)
     public void testAggWithDoublyNestedCorrelatedSubquery() throws Exception {
     	// As of work in progress for 2547, this one IT fails (actually it never comes back)
     	// when splice.temp.bucketCount is set to 32. All other enabled ITs pass.
@@ -471,9 +470,9 @@ public class SubqueryIT {
 				/*Regression test for DB-945*/
 			try{
 					methodWatcher.executeQuery("select ( select t1.k from t1 where t1.k = t2.k union all select t5.k from t5 where t5.k = t2.k),k from t2");
-			}catch(StandardException se){
+			}catch(SQLException se){
 					String correctSqlState = ErrorState.LANG_SCALAR_SUBQUERY_CARDINALITY_VIOLATION.getSqlState();
-					Assert.assertEquals("Incorrect sql state returned!",correctSqlState,se.getSqlState());
+					Assert.assertEquals("Incorrect sql state returned!",correctSqlState,se.getSQLState());
 			}
 		}
 

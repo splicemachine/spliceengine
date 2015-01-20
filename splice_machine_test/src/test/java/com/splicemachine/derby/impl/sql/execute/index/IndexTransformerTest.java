@@ -39,7 +39,7 @@ public class IndexTransformerTest {
 
         KVPair indexKV = idx.translate(srcKvPair);
 
-        verifyResultingIndexRowKey(indexKV.getRow(), srcRowKey, false, new Integer[]{null});
+        verifyResultingIndexRowKey(indexKV.getRowKey(), srcRowKey, false, new Integer[]{null});
     }
 
     @Test
@@ -57,7 +57,7 @@ public class IndexTransformerTest {
 
         KVPair indexKV = idx.translate(srcKvPair);
 
-        verifyResultingIndexRowKey(indexKV.getRow(), srcRowKey, true, 111);
+        verifyResultingIndexRowKey(indexKV.getRowKey(), srcRowKey, true, 111);
     }
 
     @Test
@@ -75,7 +75,7 @@ public class IndexTransformerTest {
 
         KVPair indexKV = idx.translate(srcKvPair);
 
-        verifyResultingIndexRowKey(indexKV.getRow(), srcRowKey, true, 111, null, 333, null);
+        verifyResultingIndexRowKey(indexKV.getRowKey(), srcRowKey, true, 111, null, 333, null);
     }
 
     @Test
@@ -93,7 +93,7 @@ public class IndexTransformerTest {
 
         KVPair indexKV = idx.translate(srcKvPair);
 
-        verifyResultingIndexRowKey(indexKV.getRow(), srcRowKey, true, null, 333, null, 111);
+        verifyResultingIndexRowKey(indexKV.getRowKey(), srcRowKey, true, null, 333, null, 111);
     }
 
     @Test
@@ -111,7 +111,7 @@ public class IndexTransformerTest {
 
         KVPair indexKV = idx.translate(srcKvPair);
 
-        verifyResultingIndexRowKey(indexKV.getRow(), srcRowKey, true, null, null, 333, 111);
+        verifyResultingIndexRowKey(indexKV.getRowKey(), srcRowKey, true, null, null, 333, 111);
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -132,7 +132,7 @@ public class IndexTransformerTest {
 
         KVPair indexKV = idx.translate(srcKvPair);
 
-        verifyResultingIndexRowKey(indexKV.getRow(), srcRowKey, false, -11111);
+        verifyResultingIndexRowKey(indexKV.getRowKey(), srcRowKey, false, -11111);
     }
 
     @Test
@@ -151,7 +151,7 @@ public class IndexTransformerTest {
 
         KVPair indexKV = idx.translate(srcKvPair);
 
-        verifyResultingIndexRowKey(indexKV.getRow(), srcRowKey, false, 1111, 2222);
+        verifyResultingIndexRowKey(indexKV.getRowKey(), srcRowKey, false, 1111, 2222);
     }
 
     @Test
@@ -172,7 +172,7 @@ public class IndexTransformerTest {
 
         KVPair indexKV = idx.translate(srcKvPair);
 
-        verifyResultingIndexRowKey(indexKV.getRow(), srcRowKey, false, 1111);
+        verifyResultingIndexRowKey(indexKV.getRowKey(), srcRowKey, false, 1111);
     }
 
     @Test
@@ -191,7 +191,7 @@ public class IndexTransformerTest {
 
         KVPair indexKV = transformer.translate(srcKvPair);
 
-        verifyResultingIndexRowKey(indexKV.getRow(), srcRowKey, false, new Integer[]{null});
+        verifyResultingIndexRowKey(indexKV.getRowKey(), srcRowKey, false, new Integer[]{null});
     }
 
     @Test
@@ -211,7 +211,7 @@ public class IndexTransformerTest {
 
         KVPair indexKV = idx.translate(srcKvPair);
 
-        verifyResultingIndexRowKey(indexKV.getRow(), srcRowKey, false, 111111, 222222);
+        verifyResultingIndexRowKey(indexKV.getRowKey(), srcRowKey, false, 111111, 222222);
     }
 
     @Test
@@ -231,7 +231,7 @@ public class IndexTransformerTest {
 
         KVPair indexKV = idx.translate(srcKvPair);
 
-        verifyResultingIndexRowKey(indexKV.getRow(), srcRowKey, false, 1111111, 2222222);
+        verifyResultingIndexRowKey(indexKV.getRowKey(), srcRowKey, false, 1111111, 2222222);
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

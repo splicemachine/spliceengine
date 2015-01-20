@@ -13,6 +13,7 @@ import com.splicemachine.si.impl.rollforward.RollForwardStatus;
 import com.splicemachine.si.impl.rollforward.SegmentedRollForward;
 import com.splicemachine.storage.EntryPredicateFilter;
 
+import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.GreenLight;
 import com.splicemachine.utils.TrafficControl;
 import org.apache.hadoop.hbase.regionserver.HRegion;
@@ -157,6 +158,12 @@ public class TransactionalRegions {
         @Override public SICompactionState compactionFilter() throws IOException { return delegate.compactionFilter(); }
         @Override public boolean isClosed() { return delegate.isClosed(); }
         @Override public boolean rowInRange(byte[] row) { return delegate.rowInRange(row); }
+
+        @Override
+        public boolean rowInRange(ByteSlice slice) {
+            return delegate.rowInRange(slice);
+        }
+
         @Override public boolean containsRange(byte[] start, byte[] stop) { return delegate.containsRange(start, stop); }
         @Override public String getTableName() { return delegate.getTableName(); }
         @Override public void updateWriteRequests(long writeRequests) { delegate.updateWriteRequests(writeRequests); }

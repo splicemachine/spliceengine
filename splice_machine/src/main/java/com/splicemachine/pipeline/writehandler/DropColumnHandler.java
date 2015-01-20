@@ -1,6 +1,8 @@
 package com.splicemachine.pipeline.writehandler;
 
 import com.google.common.io.Closeables;
+import com.splicemachine.constants.SIConstants;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.execute.AlterTable.ConglomerateLoader;
 import com.splicemachine.derby.impl.sql.execute.AlterTable.RowTransformer;
 import com.splicemachine.hbase.KVPair;
@@ -43,7 +45,7 @@ public class DropColumnHandler implements WriteHandler {
                 newPair = mutation;
             } else {
                 // create a KeyValue for the mutation
-                KeyValue kv = mutation.toKeyValue();
+                KeyValue kv = new KeyValue(mutation.getRowKey(), SpliceConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES,mutation.getValue());
                 newPair = rowTransformer.transform(kv);
             }
             loader.add(newPair);

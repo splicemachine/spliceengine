@@ -9,6 +9,7 @@ import com.splicemachine.pipeline.impl.BulkWriteResult;
 import com.splicemachine.pipeline.impl.WriteResult;
 import com.splicemachine.pipeline.writehandler.IndexCallBufferFactory;
 import com.splicemachine.si.api.TransactionalRegion;
+import com.splicemachine.si.api.TxnView;
 import com.yammer.metrics.core.Meter;
 import com.yammer.metrics.core.MetricName;
 import org.apache.hadoop.hbase.NotServingRegionException;
@@ -18,6 +19,7 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 
 import java.io.IOException;
 import java.io.InterruptedIOException;
+import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -60,10 +62,12 @@ public class RegionWritePipeline {
         txnRegion.discard();
     }
 
-    public BulkWriteResult submitBulkWrite(BulkWrite toWrite,
-                                           IndexCallBufferFactory writeBufferFactory,
-                                           RegionCoprocessorEnvironment rce) throws IOException {
-        assert toWrite.getTxn() != null : "No transaction specified!";
+
+    public BulkWriteResult submitBulkWrite(TxnView txn,
+                                           BulkWrite toWrite,
+                                                   IndexCallBufferFactory writeBufferFactory,
+                                                   RegionCoprocessorEnvironment rce) throws IOException{
+        assert txn!=null: "No transaction specified!";
 
         /*
          * We don't need to actually start a region operation here,
@@ -78,16 +82,15 @@ public class RegionWritePipeline {
 
         WriteContext context;
         try {
-            context = ctxFactory.create(writeBufferFactory, toWrite.getTxn(), txnRegion, rce);
+            context = ctxFactory.create(writeBufferFactory, txn, txnRegion, rce);
         } catch (InterruptedException e) {
             return INTERRUPTED;
         } catch (IndexNotSetUpException e) {
             return INDEX_NOT_SETUP;
         }
-        Object[] kvPairBuffer = toWrite.getBuffer();
-        int size = toWrite.getSize();
-        for (int i = 0; i < size; i++) {
-            context.sendUpstream((KVPair) kvPairBuffer[i]);
+        Collection<KVPair> kvPairs = toWrite.getMutations();
+        for(KVPair kvPair:kvPairs){
+            context.sendUpstream(kvPair);
         }
         return new BulkWriteResult(context, WriteResult.success());
     }
@@ -112,13 +115,15 @@ public class RegionWritePipeline {
             BulkWriteResult response = new BulkWriteResult();
             int failed = 0;
             int size = write.getSize();
-            Object[] writeBuffer = write.getBuffer();
-            for (int i = 0; i < size; i++) {
+            Collection<KVPair> kvPairs = write.getMutations();
+            int i=0;
+            for(KVPair kvPair:kvPairs){
                 //we know the write contains only KVPair entities
-                @SuppressWarnings("SuspiciousMethodCalls") WriteResult result = rowResultMap.get(writeBuffer[i]);
-                if (!result.isSuccess())
+                @SuppressWarnings("SuspiciousMethodCalls") WriteResult result = rowResultMap.get(kvPair);
+                if(!result.isSuccess())
                     failed++;
-                response.addResult(i, result);
+                response.addResult(i,result);
+                i++;
             }
             if (failed > 0) {
                 response.setGlobalStatus(WriteResult.partial());
@@ -133,7 +138,7 @@ public class RegionWritePipeline {
             return new BulkWriteResult(WriteResult.regionTooBusy());
         } catch (InterruptedIOException iioe) {
             return new BulkWriteResult(WriteResult.interrupted());
-        } finally {
+        } finally{
             region.closeRegionOperation();
         }
     }

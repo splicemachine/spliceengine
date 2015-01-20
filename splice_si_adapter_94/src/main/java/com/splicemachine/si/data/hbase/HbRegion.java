@@ -7,6 +7,7 @@ import com.splicemachine.hbase.KVPair;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.data.api.IHTable;
 
+import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
@@ -90,7 +91,13 @@ public class HbRegion extends BaseHbRegion<HbRowLock> {
             return new HbRowLock(lock,region);
 		}
 
-		@Override
+    @Override
+    public HbRowLock tryLock(ByteSlice rowKey) throws IOException {
+        //unfortunate byte[] copy here AGAIN
+        return tryLock(rowKey.getByteCopy());
+    }
+
+    @Override
     public void put(Put put) throws IOException {
         region.put(put);
     }
@@ -151,12 +158,25 @@ public class HbRegion extends BaseHbRegion<HbRowLock> {
 	public String toString() {
 		return region.getRegionNameAsString();
 	}
-	@Override
+
+    @Override
+    protected Put newPut(ByteSlice rowKey) {
+        /*
+         * HBase 0.94- does not have a constructor for Puts which accepts a length and offset,
+         * so we have to make a copy here. Unfortunately, HBase will then make *another* copy
+         * of the row key during the constructor, resulting in 2 wasted array copies. Until someone
+         * can go in and create a new constructor for us, we will have to just deal with this rather
+         * crappy scenario
+         */
+        return new Put(rowKey.getByteCopy());
+    }
+
+    @Override
 	public OperationStatus[] batchMutate(Collection<KVPair> data,TxnView txn) throws IOException {
-		Pair<Mutation, Integer>[] pairsToProcess = new Pair[data.size()];
+		@SuppressWarnings("unchecked") Pair<Mutation, Integer>[] pairsToProcess = new Pair[data.size()];
 		int i=0;
 		for(KVPair pair:data){
-				pairsToProcess[i] = new Pair<Mutation, Integer>(getMutation(pair,txn), null);
+				pairsToProcess[i] = new Pair<>(getMutation(pair,txn), null);
 				i++;
 		}
 		return region.batchMutate(pairsToProcess);

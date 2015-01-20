@@ -13,6 +13,7 @@ import org.apache.hadoop.hbase.ipc.CoprocessorProtocol;
 
 import java.io.IOException;
 import java.lang.reflect.Proxy;
+import java.util.Iterator;
 
 /**
  * Invoker for remote procedure call for coprocessor.
@@ -44,8 +45,10 @@ public class BulkWritesRPCInvoker implements BulkWritesInvoker {
         SpliceDriver spliceDriver = SpliceDriver.driver();
 
         if (spliceDriver.isStarted()) {
-            BulkWrite firstBulkWrite = (BulkWrite) writes.getBuffer()[0];
-            SpliceBaseIndexEndpoint indexEndpoint = spliceDriver.getIndexEndpoint(firstBulkWrite.getEncodedRegionName());
+						Iterator<BulkWrite> iterator = writes.getBulkWrites().iterator();
+						assert iterator.hasNext(): "Invoked a write with no BulkWrite entities!";
+            BulkWrite firstBulkWrite = iterator.next();
+            SpliceBaseIndexEndpoint indexEndpoint = spliceDriver.getIndexEndpoint(firstBulkWrite.getEncodedStringName());
             if (indexEndpoint != null) {
                 return indexEndpoint.bulkWrite(writes);
             }
@@ -53,11 +56,11 @@ public class BulkWritesRPCInvoker implements BulkWritesInvoker {
 
         // if the region is in another JVM
         Configuration config = SpliceConstants.config;
-        NoRetryExecRPCInvoker invoker = new NoRetryExecRPCInvoker(config, connection, batchProtocolClass, tableName, writes.getRegionKey(), refreshCache);
-        BatchProtocol instance = (BatchProtocol) Proxy.newProxyInstance(config.getClassLoader(), protoClassArray, invoker);
-        byte[] compressedWriteBytes = PipelineUtils.toCompressedBytes(writes);
-        byte[] compressedResponseBytes = instance.bulkWrites(compressedWriteBytes);
-        return PipelineUtils.fromCompressedBytes(compressedResponseBytes, BulkWritesResult.class);
+        NoRetryExecRPCInvoker invoker = new NoRetryExecRPCInvoker(config,
+                connection, batchProtocolClass, tableName, writes.getRegionKey(), refreshCache);
+        BatchProtocol instance = (BatchProtocol) Proxy.newProxyInstance(config.getClassLoader(),
+                protoClassArray, invoker);
+        return PipelineUtils.fromCompressedBytes(instance.bulkWrites(PipelineEncoding.encode(writes)), BulkWritesResult.class);
     }
 
     public static final class Factory implements BulkWritesInvoker.Factory {

@@ -10,7 +10,7 @@ public class SpliceWriteControl {
     private final TrafficControl independentTraffic;
 
     public static enum Status {
-        DEPENDENT, INDEPENDENT, REJECTED
+        DEPENDENT, INDEPENDENT, nul, REJECTED
     }
 
     private final AtomicReference<WriteStatus> writeStatus = new AtomicReference<>(new WriteStatus(0, 0, 0, 0));

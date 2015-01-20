@@ -41,6 +41,22 @@ public class StringEncoding {
         }
         return returnArray;
     }
+
+    public static int toBytes(String value, boolean desc, byte[] buffer, int offset){
+        if(value==null || value.length()==0) return 0;
+
+        //convert to UTF-8 encoding
+        BytesRef result = new BytesRef();
+        UnicodeUtil.UTF16toUTF8(value, 0, value.length(), result);
+        for(int i=0;i<result.length;i++){
+            byte newD = (byte)(result.bytes[i+result.offset] + 2);
+            if(desc)
+                newD ^= 0xff; //reverse the sign bit so that data is reversed in 2's complement
+            buffer[offset+i] = newD;
+        }
+        return value.length();
+    }
+
     @Deprecated
     public static byte[] toBytesOld(String value, boolean desc){
         if(value==null) return Encoding.EMPTY_BYTE_ARRAY;

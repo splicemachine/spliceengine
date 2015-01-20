@@ -17,7 +17,7 @@ public class ForwardRecordingCallBuffer<E> implements RecordingCallBuffer<E> {
 		public ForwardRecordingCallBuffer(RecordingCallBuffer<E> delegate) { this.delegate = delegate; }
 		@Override public void add(E element) throws Exception { delegate.add(element); }
 		@Override public void addAll(E[] elements) throws Exception { delegate.addAll(elements); }
-		@Override public void addAll(ObjectArrayList<E> elements) throws Exception { delegate.addAll(elements); }
+		@Override public void addAll(Iterable<E> elements) throws Exception { delegate.addAll(elements); }
 		@Override public void flushBuffer() throws Exception { delegate.flushBuffer(); }
 		@Override public void close() throws Exception { delegate.close(); }
 		@Override public long getTotalElementsAdded() { return delegate.getTotalElementsAdded(); }
@@ -27,6 +27,7 @@ public class ForwardRecordingCallBuffer<E> implements RecordingCallBuffer<E> {
 		@Override public double getAverageSizePerFlush() { return delegate.getAverageSizePerFlush(); }
 		@Override public CallBuffer<E> unwrap() { return delegate.unwrap(); }
 		@Override public WriteStats getWriteStats() { return delegate.getWriteStats(); }
+
 		@Override public PreFlushHook getPreFlushHook() {return delegate.getPreFlushHook(); }
 		@Override public WriteConfiguration getWriteConfiguration() { return delegate.getWriteConfiguration();}
 
