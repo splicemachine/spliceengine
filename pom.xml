@@ -246,7 +246,7 @@
 				<module>cloudera-cdh4.5.0</module>
 				<module>cloudera-cdh5.1.3</module>
 				<module>cloudera-cdh5.2.1</module>
-				<!-- module>cloudera-cdh5.3.0</module -->
+				<module>cloudera-cdh5.3.0</module>
 				<module>hdp2.1</module>
 				<module>hdp2.2</module>
 				<module>mapr4.0</module>
