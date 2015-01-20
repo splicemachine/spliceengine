@@ -21,6 +21,7 @@ import org.apache.hadoop.hbase.io.FSDataInputStreamWrapper;
 import org.apache.hadoop.hbase.io.Reference;
 import org.apache.hadoop.hbase.io.hfile.CacheConfig;
 import org.apache.hadoop.hbase.regionserver.HStore;
+import org.apache.hadoop.hbase.regionserver.InternalScan;
 //import org.apache.hadoop.hbase.regionserver.InternalScan;
 import org.apache.hadoop.hbase.regionserver.KeyValueScanner;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
@@ -101,13 +102,14 @@ public class SpliceIndexObserver extends AbstractSpliceIndexObserver {
 			ObserverContext<RegionCoprocessorEnvironment> c, Store store,
 			Scan scan, NavigableSet<byte[]> targetCols, KeyValueScanner s)
 			throws IOException {
-//		if (scan.getAttribute("MR") != null) {
-//			System.out.println("booh");
-//			InternalScan iscan = new InternalScan(scan);
-//			iscan.checkOnlyMemStore();
-//		      return new StoreScanner(store, store.getScanInfo(), iscan, targetCols,
-//		    	        ((HStore)store).getHRegion().getReadpoint(IsolationLevel.READ_UNCOMMITTED));		
-//		} 
+/*		if (scan.getAttribute("MR") != null) {
+			System.out.println("booh");
+			InternalScan iscan = new InternalScan(scan);
+			iscan.checkOnlyMemStore();
+		      return new StoreScanner(store, store.getScanInfo(), iscan, targetCols,
+		    	        ((HStore)store).getHRegion().getReadpoint(IsolationLevel.READ_UNCOMMITTED));		
+		} 
+		*/
 		return super.preStoreScannerOpen(c, store, scan, targetCols, s);
 	}
 }
