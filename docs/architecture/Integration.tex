@@ -10,9 +10,8 @@ Facebook Analytics team was the first team to scan store files directly for an
 OLAP use case.  The process required a flush of the memstore of each region and
 expected no concurrent writes.  Their approach while illustrative tears at the
 very purpose of Splice Machine (Hadoop Concurrency).  The following subsections
-will lay out a novel approach to solving both concurrency while providing a
+will lay out a novel approach to addressing concurrency while providing a
 scalable analytics approach for various processes and tools.
-
 
 \subsubsection{Direct Store File Access}
 Accessing store files directly allows analytical systems to bypass the following
@@ -50,8 +49,7 @@ public class ClientSideRegionScanner extends AbstractClientScanner {
 This external API swallows one of the most important pieces of functionality
 that Regions can perform, that of a store scan merged with a memory based
 scanner during scanner creation.  The key is to wrap the scanner creation piece
-inside your own implementation of ClientSideRegionScanner.  The first core piece
-of code, is getting access to the region.
+inside your own implementation of ClientSideRegionScanner.  
 
 \begin{lstlisting}[language=java]
   
@@ -66,12 +64,6 @@ of code, is getting access to the region.
   }
 \end{lstlisting}
 
-The second key functionality is to attach an external scanner to the merge with
-the existing store files.  This will allow data still inside the memstore to be
-added to the existing store file data.
-
-
-
 \subsubsection{Memstore Only Access}
 The data available via the Store File Access approach currently has the
 following limitations.
@@ -83,7 +75,8 @@ following limitations.
 
 HBase has a partial implementation of a memstore only scanner that can be used
 with a few patches to the InternalScan Implementation.  A memstore only scan is
-attached below.
+attached below with an attribute determining whether the scan logic should go
+against the memstore only.
 
 \begin{lstlisting}[language=java]
 
@@ -115,7 +108,7 @@ public class SpliceMemstoreKeyValueScanner implements KeyValueScanner,
 InternalScanner {
 \end{lstlisting}
 
-Once this interfaces is implemented, the next step would be to merge those
+Once this interface is implemented, the next step would be to merge those
 results back into the StoreScanner.
 
 \begin{lstlisting}[language=java]
@@ -137,8 +130,9 @@ public class SpliceClientSideRegionScanner implements RegionScanner {
 \subsubsection{Deterministic Input Splits}
 HBase's current TableSplit implementation splits via region.  Splice Machine has
 found this not to be desirable since the region size can be highly variable. 
-The goal would be to have this input split a configurable estimate of number of
-bytes.  Example code can be found in the HRegionUtil#getBlocksToRead method.
+The goal would be to have this input split a configurable number of HBase
+Blocks (Bytes).  Example code can be found in the HRegionUtil.getBlocksToRead
+method.
 
 \subsubsection{Accurate Concurrent Splice Record Reader}
 Even though we can create a scanner that has both the memstore and the store
@@ -150,6 +144,7 @@ SplitRegionScanner.
 
 \subsubsection{Hive SerDe}
 
-Please see Yannan's prior work.  TODO
+Please see Yannan's prior work.  Splice Machine will still need a Serde with
+hive but should use the InputFormat above.  TODO
 
 %End Integration Chapter
