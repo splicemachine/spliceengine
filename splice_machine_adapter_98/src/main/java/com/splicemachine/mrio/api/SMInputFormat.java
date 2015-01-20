@@ -2,7 +2,6 @@ package com.splicemachine.mrio.api;
 
 import java.io.IOException;
 import java.util.List;
-
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
@@ -11,7 +10,6 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
 import org.apache.hadoop.hbase.mapreduce.SpliceMapreduceUtils;
 import org.apache.hadoop.hbase.mapreduce.TableInputFormat;
-import org.apache.hadoop.hbase.mapreduce.TableMapReduceUtil;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -20,7 +18,6 @@ import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.utils.SpliceLogUtils;
 
 public class SMInputFormat extends InputFormat<ImmutableBytesWritable, ExecRow> implements Configurable {
