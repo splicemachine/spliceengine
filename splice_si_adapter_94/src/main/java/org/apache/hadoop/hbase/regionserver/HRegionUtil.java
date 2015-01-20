@@ -22,7 +22,7 @@ import org.cliffc.high_scale_lib.Counter;
  * @author johnleach
  *
  */
-public class HRegionUtil {
+public class HRegionUtil extends BaseHRegionUtil{
 	public static KeyExists keyExists;
 
 		public static void lockStore(Store store) {

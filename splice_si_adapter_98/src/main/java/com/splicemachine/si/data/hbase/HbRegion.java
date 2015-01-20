@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.List;
 import com.splicemachine.collections.CloseableIterator;
 import com.splicemachine.hbase.KVPair;
+import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Durability;
@@ -106,6 +107,12 @@ public class HbRegion extends BaseHbRegion<SRowLock> {
             HRegion.RowLock rowLock = region.getRowLock(rowKey, false);
             if(rowLock == null) return null;
             return new HRowLock(rowLock);
+    }
+
+    @Override
+    public SRowLock tryLock(ByteSlice rowKey) throws IOException {
+        //TODO -sf- HBase requires us to make a copy here, can we avoid that?
+        return tryLock(rowKey.getByteCopy());
     }
 
     private boolean rowExists(byte[] checkBloomFamily, byte[] rowKey) throws IOException {

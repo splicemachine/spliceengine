@@ -6,6 +6,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
@@ -16,6 +17,7 @@ import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.splicemachine.pipeline.impl.BulkWrite;
 import com.splicemachine.pipeline.writehandler.IndexCallBufferFactory;
 import com.splicemachine.si.api.*;
 import com.splicemachine.si.impl.ActiveWriteTxn;
@@ -88,7 +90,6 @@ public class IndexedPipelineTest {
         //get a fake PipingWriteBuffer
         final TxnView txn = new ActiveWriteTxn(1l,1l);
         final ObjectArrayList<KVPair> indexedRows = ObjectArrayList.newInstance();
-        final Writer fakeWriter = mockSuccessWriter(indexedRows);
 
         final RegionCache fakeCache = mockRegionCache();
 
@@ -170,7 +171,6 @@ public class IndexedPipelineTest {
         //get a fake PipingWriteBuffer
 //        final String txnId = "1";
         final ObjectArrayList<KVPair> indexedRows = ObjectArrayList.newInstance();
-        final Writer fakeWriter = mockSuccessWriter(indexedRows);
 
         final RegionCache fakeCache = mockRegionCache();
 
@@ -268,7 +268,6 @@ public class IndexedPipelineTest {
 
         //get a fake PipingWriteBuffer
         final ObjectArrayList<KVPair> indexedRows = ObjectArrayList.newInstance();
-        final Writer fakeWriter = mockSuccessWriter(indexedRows);
 
         final RegionCache fakeCache = mockRegionCache();
 
@@ -365,7 +364,6 @@ public class IndexedPipelineTest {
 
         //get a fake PipingWriteBuffer
         final ObjectArrayList<KVPair> indexedRows = ObjectArrayList.newInstance();
-        final Writer fakeWriter = mockSuccessWriter(indexedRows);
 
         final RegionCache fakeCache = mockRegionCache();
 
@@ -448,7 +446,6 @@ public class IndexedPipelineTest {
 
         //get a fake PipingWriteBuffer
         final ObjectArrayList<KVPair> indexedRows = ObjectArrayList.newInstance();
-        final Writer fakeWriter = mockSuccessWriter(indexedRows);
 
         final RegionCache fakeCache = mockRegionCache();
 
@@ -520,14 +517,17 @@ public class IndexedPipelineTest {
         assertMainAndIndexRowsMatch(mainTableWrites, indexedRows, mainTablePairs, finishedResults, transformer);
     }
 
-    private Writer mockSuccessWriter(final ObjectArrayList<KVPair> indexedRows) throws ExecutionException {
+    private Writer mockSuccessWriter(final Collection<KVPair> indexedRows) throws ExecutionException {
         Writer fakeWriter = mock(Writer.class);
         when(fakeWriter.write(any(byte[].class),any(BulkWrites.class),any(WriteConfiguration.class)))
                 .then(new Answer<Future<WriteStats>>() {
                     @Override
                     public Future<WriteStats> answer(InvocationOnMock invocation) throws Throwable {
                         BulkWrites write = (BulkWrites) invocation.getArguments()[1];
-                        indexedRows.addAll(write.getAllCombinedKeyValuePairs());
+                        Collection<BulkWrite> bws = write.getBulkWrites();
+                        for(BulkWrite bw:bws){
+                            indexedRows.addAll(bw.getMutations());
+                        }
 
                         @SuppressWarnings("unchecked") Future<WriteStats> future = mock(Future.class);
                         when(future.get()).thenReturn(WriteStats.NOOP_WRITE_STATS);
@@ -583,14 +583,14 @@ public class IndexedPipelineTest {
         	Object[] writeBuffer = mainTableWrites.buffer;
         	for (int j = 0; j<mainTableWrites.size();j++) {
         		Mutation finalMutation = (Mutation) writeBuffer[j];
-                found = Bytes.equals(finalMutation.getRow(), mainTablePair.getRow());
+                found = Bytes.equals(finalMutation.getRow(), mainTablePair.getRowKey());
                 if(found)
                     break;
             }
             Assert.assertTrue("Row was not found in main table!", found);
 
             KVPair transformedRow = transformer.translate(mainTablePair);
-            byte[] indexRow = transformedRow.getRow();
+            byte[] indexRow = transformedRow.getRowKey();
             int zeroIndex = 0;
             for(int k=0;k<indexRow.length;k++){
                 if(indexRow[k]==0){
@@ -602,7 +602,7 @@ public class IndexedPipelineTest {
         	Object[] indexBuffer = indexedRows.buffer;
         	for (int l=0;l<indexedRows.size();l++) {
         		KVPair finalMutation = (KVPair) indexBuffer[l];
-                byte[] mutationRow = finalMutation.getRow();
+                byte[] mutationRow = finalMutation.getRowKey();
                 found=true;
                 for(int m=0;m<zeroIndex&&m<mutationRow.length;m++){
                     if(indexRow[m]!=mutationRow[m]){

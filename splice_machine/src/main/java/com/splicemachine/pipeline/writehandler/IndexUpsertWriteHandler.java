@@ -129,11 +129,11 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
 
         try {
             KVPair indexPair = transformer.translate(mutation);
-            if (LOG.isTraceEnabled())
-                SpliceLogUtils.trace(LOG, "performing upsert on row %s", BytesUtil.toHex(indexPair.getRow()));
-
-            if (keepState)
-                this.indexToMainMutationMap.put(indexPair, mutation);
+        	if (LOG.isTraceEnabled())
+        		SpliceLogUtils.trace(LOG, "performing upsert on row %s", BytesUtil.toHex(indexPair.getRowKey()));
+            
+            if(keepState)
+                this.indexToMainMutationMap.put(indexPair,mutation);
             indexBuffer.add(indexPair);
         } catch (Exception e) {
             failed = true;
@@ -166,7 +166,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
             }
             if (pkIndex == null)
                 pkIndex = new KeyData[len];
-            keyDecoder.set(mutation.getRow());
+            keyDecoder.set(mutation.getRowKey());
             for (int i = 0; i < len; ++i) {
                 int offset = keyDecoder.offset();
                 DerbyBytesUtil.skip(keyDecoder, kdvds[i]);
@@ -184,7 +184,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
 
     private KVPair update(KVPair mutation, WriteContext ctx) {
         if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "update mutation=%s", BytesUtil.toHex(mutation.getRow()));
+            SpliceLogUtils.trace(LOG, "update mutation=%s", BytesUtil.toHex(mutation.getRowKey()));
         switch (mutation.getType()) {
             case UPDATE:
             case UPSERT:
@@ -238,8 +238,8 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
          * 4. Delete the old index row
          * 5. Insert the new index row
          */
-        try {
-            byte[] row = mutation.getRow();
+        try{
+            byte[] row = mutation.getRowKey();
             Get oldGet = SpliceUtils.createGet(ctx.getTxn(), row);
             //TODO -sf- when it comes time to add additional (non-indexed data) to the index, you'll need to add more fields than just what's in indexedColumns
             EntryPredicateFilter filter = new EntryPredicateFilter(indexedColumns, new ObjectArrayList<Predicate>(), true);
@@ -418,9 +418,9 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
     }
 
     protected void doDelete(final WriteContext ctx, final KVPair delete) throws Exception {
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "do delete %s", BytesUtil.toHex(delete.getRow()));
-        ensureBufferReader(delete, ctx);
+    	if (LOG.isTraceEnabled())
+    		SpliceLogUtils.trace(LOG, "do delete %s",BytesUtil.toHex(delete.getRowKey()));
+        ensureBufferReader(delete,ctx);
         indexBuffer.add(delete);
     }
 

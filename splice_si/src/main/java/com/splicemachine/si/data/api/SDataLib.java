@@ -40,6 +40,7 @@ public interface SDataLib<Data,
 	<T> T decode(byte[] value, int offset,int length, Class<T> type);
 	List<Data> listResult(Result result);
 	Put newPut(byte[] key);
+		Put newPut(ByteSlice key);
     Put newPut(byte[] key, Integer lock);
     void addKeyValueToPut(Put put, byte[] family, byte[] qualifier, long timestamp, byte[] value);
     Iterable<Data> listPut(Put put);

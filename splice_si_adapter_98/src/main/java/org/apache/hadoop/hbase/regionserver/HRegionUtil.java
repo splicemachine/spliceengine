@@ -110,6 +110,23 @@ public class HRegionUtil extends BaseHRegionUtil {
         return true;
     }
 
+    /**
+     * Determines if the specified row is within the row range specified by the
+     * specified HRegionInfo
+     *
+     * @param info HRegionInfo that specifies the row range
+     * @param row row to be checked
+     * @return true if the row is within the range specified by the HRegionInfo
+     */
+    public static boolean containsRow(HRegionInfo info,byte[] row, int rowOffset,int rowLength){
+        byte[] startKey = info.getStartKey();
+        byte[] endKey = info.getEndKey();
+        return ((startKey.length == 0) ||
+                (Bytes.compareTo(startKey,0,startKey.length, row,rowOffset,rowLength) <= 0)) &&
+                ((endKey.length == 0) ||
+                        (Bytes.compareTo(endKey,0,endKey.length,row,rowOffset,rowLength) > 0));
+    }
+
     public static boolean containsRange(HRegion region, byte[] taskStart, byte[] taskEnd) {
         byte[] regionStart = region.getStartKey();
 

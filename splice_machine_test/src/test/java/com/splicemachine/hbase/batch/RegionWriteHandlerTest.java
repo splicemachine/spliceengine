@@ -80,7 +80,7 @@ public class RegionWriteHandlerTest {
             Object[] buffer2 = pairs.buffer;
             for (int j = 0; j< pairs.size(); j++) {
             	KVPair pair = (KVPair) buffer2[j];
-                found = Bytes.equals(mutation.getRow(),pair.getRow());
+                found = Bytes.equals(mutation.getRow(),pair.getRowKey());
                 if(found)
                     break;
             }
@@ -93,11 +93,11 @@ public class RegionWriteHandlerTest {
             Object[] buffer2 = successfulPuts.buffer;
             for (int j = 0; j< pairs.size(); j++) {
             	Mutation mutation = (Mutation) buffer2[j];
-                found = Bytes.equals(mutation.getRow(),pair.getRow());
+                found = Bytes.equals(mutation.getRow(),pair.getRowKey());
                 if(found)
                     break;
             }
-            Assert.assertTrue("Row "+ BytesUtil.toHex(pair.getRow())+" magically appeared",found);
+            Assert.assertTrue("Row "+ BytesUtil.toHex(pair.getRowKey())+" magically appeared",found);
         }
     }
 
@@ -219,7 +219,7 @@ public class RegionWriteHandlerTest {
             Object[] buffer2 = results.buffer;
             for (int j =0 ; j<results.size(); j++) {
             	Mutation mutation = (Mutation)buffer2[j];
-                found = Bytes.equals(mutation.getRow(),success.getRow());
+                found = Bytes.equals(mutation.getRow(),success.getRowKey());
                 if(found)
                     break;
             }
@@ -237,7 +237,7 @@ public class RegionWriteHandlerTest {
             Object[] buffer2 = results.buffer;
             for (int j =0 ; j<results.size(); j++) {
             	Mutation mutation = (Mutation)buffer2[j];
-                found = Bytes.equals(mutation.getRow(), failure.getRow());
+                found = Bytes.equals(mutation.getRow(), failure.getRowKey());
                 if(found)
                     break;
             }
@@ -292,7 +292,7 @@ public class RegionWriteHandlerTest {
             Object[] buffer2 = results.buffer;
             for (int j =0 ; j<results.size(); j++) {
             	Mutation mutation = (Mutation)buffer2[j];
-                found = Bytes.equals(mutation.getRow(),success.getRow());
+                found = Bytes.equals(mutation.getRow(),success.getRowKey());
                 if(found)
                     break;
             }
@@ -309,7 +309,7 @@ public class RegionWriteHandlerTest {
             Object[] buffer2 = results.buffer;
             for (int j =0 ; j<results.size(); j++) {
             	Mutation mutation = (Mutation)buffer2[j];
-                found = Bytes.equals(mutation.getRow(), failure.getRow());
+                found = Bytes.equals(mutation.getRow(), failure.getRowKey());
                 if(found)
                     break;
             }

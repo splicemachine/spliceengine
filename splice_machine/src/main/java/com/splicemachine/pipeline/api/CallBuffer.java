@@ -2,6 +2,8 @@ package com.splicemachine.pipeline.api;
 
 import com.carrotsearch.hppc.ObjectArrayList;
 
+import java.util.Collection;
+
 /**
  * @author Scott Fines
  *         Created on: 3/18/13
@@ -36,7 +38,7 @@ public interface CallBuffer<E> {
      * @throws Exception if the buffer is flushed, and then something goes wrong during
      *                   the buffer flush operation.
      */
-    void addAll(ObjectArrayList<E> elements) throws Exception;
+    void addAll(Iterable<E> elements) throws Exception;
 
     /**
      * Flush the buffer.

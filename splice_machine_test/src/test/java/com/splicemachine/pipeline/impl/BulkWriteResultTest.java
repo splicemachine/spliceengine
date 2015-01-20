@@ -1,14 +1,11 @@
 package com.splicemachine.pipeline.impl;
 
-import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
+import com.carrotsearch.hppc.IntOpenHashSet;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.google.common.collect.Lists;
 import com.splicemachine.pipeline.api.Code;
-import com.splicemachine.pipeline.impl.BulkWriteResult;
-import com.splicemachine.pipeline.impl.WriteResult;
 import com.splicemachine.pipeline.utils.PipelineUtils;
-
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -43,7 +40,7 @@ public class BulkWriteResultTest {
 
 		@Test
 		public void testCanSerializeFailedRowsCorrectly() throws Exception {
-				IntArrayList notRunRows = IntArrayList.newInstanceWithCapacity(10);
+				IntOpenHashSet notRunRows = IntOpenHashSet.newInstanceWithCapacity(10,0.75f);
 				for(int i=10;i<15;i++){
 						notRunRows.add(i);
 				}

@@ -1,9 +1,13 @@
 package com.splicemachine.hbase.regioninfocache;
 
+import com.splicemachine.concurrent.LongStripedSynchronizer;
+import com.splicemachine.constants.SpliceConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.HConnection;
+import org.apache.hadoop.hbase.client.HConnectionManager;
 import org.apache.hadoop.hbase.client.MetaScanAction;
 import org.apache.hadoop.hbase.regionserver.RegionServerStoppedException;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -14,6 +18,7 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Lock;
 
 import static com.splicemachine.utils.SpliceLogUtils.*;
 
@@ -28,11 +33,27 @@ class CacheRefreshRunnable implements Runnable {
     private final Map<byte[], SortedSet<Pair<HRegionInfo, ServerName>>> regionCache;
     private final AtomicLong cacheUpdatedTimestamp;
     private final byte[] updateTableName;
+    private final HConnection connection;
 
-    CacheRefreshRunnable(Map<byte[], SortedSet<Pair<HRegionInfo, ServerName>>> regionCache, AtomicLong cacheUpdatedTimestamp, byte[] updateTableName) {
+    CacheRefreshRunnable(Map<byte[], SortedSet<Pair<HRegionInfo, ServerName>>> regionCache,
+                         HConnection connection,
+                         AtomicLong cacheUpdatedTimestamp, byte[] updateTableName) {
         this.regionCache = regionCache;
         this.cacheUpdatedTimestamp = cacheUpdatedTimestamp;
         this.updateTableName = updateTableName;
+        this.connection = connection;
+    }
+
+    CacheRefreshRunnable(Map<byte[], SortedSet<Pair<HRegionInfo, ServerName>>> regionCache,
+                         AtomicLong cacheUpdatedTimestamp, byte[] updateTableName) {
+        this.regionCache = regionCache;
+        this.cacheUpdatedTimestamp = cacheUpdatedTimestamp;
+        this.updateTableName = updateTableName;
+        try {
+            connection = HConnectionManager.getConnection(SpliceConstants.config);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -54,7 +75,11 @@ class CacheRefreshRunnable implements Runnable {
         }
         RegionMetaScannerVisitor visitor = new RegionMetaScannerVisitor(updateTableName);
         try {
-            MetaScanAction.metaScan(visitor,TableName.valueOf(updateTableName));
+            if(updateTableName!=null)
+                MetaScanAction.metaScan(visitor,connection,TableName.valueOf(updateTableName));
+            else
+                MetaScanAction.metaScan(visitor,connection, null);
+
             Map<byte[], SortedSet<Pair<HRegionInfo, ServerName>>> newRegionInfoMap = visitor.getRegionPairMap();
             regionCache.putAll(newRegionInfoMap);
             debug(LOG, "updated %s cache entries in %s ms ", newRegionInfoMap.size(), System.currentTimeMillis() - startTime);

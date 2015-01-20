@@ -1,61 +1,31 @@
 package com.splicemachine.pipeline.impl;
 
-import com.carrotsearch.hppc.ObjectArrayList;
-
-import java.io.Externalizable;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
+import java.util.Collection;
 
 /**
  * @author Scott Fines
- *         Created on: 8/8/13
+ * Created on: 8/8/13
  */
-public class BulkWritesResult implements Externalizable {
+public class BulkWritesResult {
+		private Collection<BulkWriteResult> bulkWriteResults;
 
-    private ObjectArrayList<BulkWriteResult> bulkWriteResults;
+		public BulkWritesResult(Collection<BulkWriteResult> bulkWriteResults){
+				this.bulkWriteResults = bulkWriteResults;
+		}
 
-    public BulkWritesResult() {
-        this.bulkWriteResults = new ObjectArrayList<>();
-    }
+		public Collection<BulkWriteResult> getBulkWriteResults() {
+				return bulkWriteResults;
+		}
 
-    public void addResult(BulkWriteResult result) {
-        bulkWriteResults.add(result);
-    }
-
-    public ObjectArrayList<BulkWriteResult> getBulkWriteResults() {
-        return bulkWriteResults;
-    }
-
-    @Override
-    public String toString() {
-        StringBuilder sb = new StringBuilder("BulkWritesResult{");
-        int isize = bulkWriteResults.size();
-        for (int i = 0; i < isize; i++) {
-            sb.append(bulkWriteResults.get(i));
-            if (i != isize - 1)
-                sb.append(",");
-        }
-        return sb.toString();
-    }
-
-    @Override
-    public void writeExternal(final ObjectOutput out) throws IOException {
-        out.writeInt(bulkWriteResults.size());
-        Object[] buffer = bulkWriteResults.buffer;
-        int size = bulkWriteResults.size();
-        for (int i = 0; i < size; i++) {
-            out.writeObject(buffer[i]);
-        }
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        int size = in.readInt();
-        bulkWriteResults = new ObjectArrayList<>(size);
-        for (int i = 0; i < size; i++) {
-            bulkWriteResults.add((BulkWriteResult) in.readObject());
-        }
-    }
-
+		@Override
+		public String toString() {
+				StringBuilder sb = new StringBuilder("BulkWritesResult{");
+				boolean first = true;
+				for (BulkWriteResult result:bulkWriteResults) {
+						if(first) first=false;
+						else sb.append(",");
+						sb.append(result);
+				}
+				return sb.toString();
+		}
 }

@@ -1,11 +1,12 @@
 package com.splicemachine.pipeline.callbuffer;
 
-import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.api.CallBuffer;
 import com.splicemachine.pipeline.api.PreFlushHook;
 import com.splicemachine.pipeline.api.WriteConfiguration;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -61,18 +62,17 @@ public class ConcurrentWriteBuffer implements CallBuffer<KVPair> {
             flushBuffer();
     }
 
-    @Override
-    public void addAll(ObjectArrayList<KVPair> elements) throws Exception {
-        assert !closed : "Incorrectly adding to closed buffer!";
-        if (closed) return;
-        Object[] buffer = elements.buffer;
-        int size = elements.size();
-        for (int i = 0; i < size; i++) {
-            queue.offer((KVPair) buffer[i]);
-        }
-        if (queue.size() > maxEntries)
-            flushBuffer();
-    }
+		@Override
+		public void addAll(Iterable<KVPair> elements) throws Exception {
+				assert !closed :"Incorrectly adding to closed buffer!";
+				if(closed) return;
+
+				for(KVPair element:elements){
+						queue.offer(element);
+				}
+				if(queue.size()>maxEntries)
+						flushBuffer();
+		}
 
     @Override
     public void flushBuffer() throws Exception {
@@ -83,12 +83,12 @@ public class ConcurrentWriteBuffer implements CallBuffer<KVPair> {
             int size = queue.size();
             if (size <= 0) return; //nothing to do if we don't have anything to flush
 
-            ObjectArrayList<KVPair> pairs = ObjectArrayList.newInstanceWithCapacity(size);
-            for (int i = 0; i < size; i++) {
-                KVPair next = queue.poll();
-                if (next == null) break;
-                pairs.add(next);
-            }
+						Collection<KVPair> pairs = new ArrayList<>(size);
+						for(int i=0;i<size;i++){
+								KVPair next = queue.poll();
+								if(next==null) break;
+								pairs.add(next);
+						}
 
             if (pairs.size() <= 0) return; //nothing to do now if there's nothing to flush
 
@@ -102,22 +102,22 @@ public class ConcurrentWriteBuffer implements CallBuffer<KVPair> {
         }
     }
 
-    @Override
-    public void close() throws Exception {
-        closed = true;
-        synchronized (delegateBuffer) {
-            delegateBuffer.flushBuffer();
-            delegateBuffer.close();
-        }
-    }
+		@Override
+		public void close() throws Exception {
+				closed=true;
+				synchronized (delegateBuffer){
+						delegateBuffer.flushBuffer();
+						delegateBuffer.close();
+				}
+		}
 
-    @Override
-    public PreFlushHook getPreFlushHook() {
-        return delegateBuffer.getPreFlushHook();
-    }
+		@Override
+		public PreFlushHook getPreFlushHook() {
+			return delegateBuffer.getPreFlushHook();
+		}
 
-    @Override
-    public WriteConfiguration getWriteConfiguration() {
-        return delegateBuffer.getWriteConfiguration();
-    }
+		@Override
+		public WriteConfiguration getWriteConfiguration() {
+			return delegateBuffer.getWriteConfiguration();
+		}
 }

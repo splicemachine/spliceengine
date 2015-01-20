@@ -7,6 +7,7 @@ import com.google.protobuf.RpcCallback;
 import com.google.protobuf.RpcController;
 import com.google.protobuf.Service;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
@@ -22,13 +23,12 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.Collection;
-import com.splicemachine.pipeline.Pipeline;
 
 /**
  * @author Scott Fines
  *         Date: 1/14/15
  */
-public class MultiRowEndpoint extends Pipeline.MultiRowService implements CoprocessorService,Coprocessor {
+public class MultiRowEndpoint extends SpliceMessage.MultiRowService implements CoprocessorService,Coprocessor {
     private static final Logger LOG = Logger.getLogger(MultiRowEndpoint.class);
     private HRegion region;
 
@@ -41,8 +41,8 @@ public class MultiRowEndpoint extends Pipeline.MultiRowService implements Coproc
 
     @Override
     public void bulkWrite(RpcController controller,
-                          Pipeline.MultiRowRequest request,
-                          RpcCallback<Pipeline.MultiRowResponse> done) {
+                          SpliceMessage.MultiRowRequest request,
+                          RpcCallback<SpliceMessage.MultiRowResponse> done) {
         try {
             done.run(bulkWrite(request.getTimestamp(),request.getKvsList()));
         } catch (IOException e) {
@@ -57,17 +57,17 @@ public class MultiRowEndpoint extends Pipeline.MultiRowService implements Coproc
 
     /************************************************************************************************/
     /*private helper methods*/
-    private Pipeline.MultiRowResponse bulkWrite(final long timestamp,Collection<Pipeline.KV> kvsList) throws IOException{
-        kvsList = Collections2.filter(kvsList, new Predicate<Pipeline.KV>() {
+    private SpliceMessage.MultiRowResponse bulkWrite(final long timestamp,Collection<SpliceMessage.KV> kvsList) throws IOException{
+        kvsList = Collections2.filter(kvsList, new Predicate<SpliceMessage.KV>() {
             @Override
-            public boolean apply(Pipeline.KV kv) {
+            public boolean apply(SpliceMessage.KV kv) {
                 return HRegion.rowIsInRange(region.getRegionInfo(),kv.getRow().toByteArray());
             }
         });
         SpliceLogUtils.trace(LOG,"Writing %d records to HBase",kvsList.size());
-        Collection<Put> puts = Collections2.transform(kvsList, new Function<Pipeline.KV, Put>() {
+        Collection<Put> puts = Collections2.transform(kvsList, new Function<SpliceMessage.KV, Put>() {
             @Override
-            public Put apply(Pipeline.KV kv) {
+            public Put apply(SpliceMessage.KV kv) {
                 Put put = new Put(kv.getRow().toByteArray());
                 put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,
                         SpliceConstants.PACKED_COLUMN_BYTES,
@@ -83,7 +83,7 @@ public class MultiRowEndpoint extends Pipeline.MultiRowService implements Coproc
             i++;
         }
         OperationStatus[] operationStatuses = region.batchMutate(mutations);
-        Pipeline.MultiRowResponse.Builder response = Pipeline.MultiRowResponse.newBuilder();
+        SpliceMessage.MultiRowResponse.Builder response = SpliceMessage.MultiRowResponse.newBuilder();
         for(int j=0;j<operationStatuses.length;j++){
             response.addSuccessFlags(operationStatuses[j].getOperationStatusCode() == HConstants.OperationStatusCode.SUCCESS);
         }

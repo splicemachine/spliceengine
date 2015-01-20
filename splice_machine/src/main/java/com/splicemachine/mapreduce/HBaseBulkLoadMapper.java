@@ -39,7 +39,7 @@ public class HBaseBulkLoadMapper extends Mapper<LongWritable, Text,
 				try {
 						ExecRow execRow = rowParser.process(parsedRow,importContext.getColumnInformation());
 						KVPair kvPair = entryEncoder.encode(execRow);
-						byte[] row = kvPair.getRow();
+						byte[] row = kvPair.getRowKey();
 						outputKey.set(row);
 						outputValue.set(kvPair.getValue());
 						context.write(outputKey,outputValue);

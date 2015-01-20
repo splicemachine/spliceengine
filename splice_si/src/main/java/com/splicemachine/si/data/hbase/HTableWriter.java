@@ -2,6 +2,7 @@ package com.splicemachine.si.data.hbase;
 
 import com.splicemachine.si.data.api.IHTable;
 import com.splicemachine.si.data.api.STableWriter;
+import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
@@ -45,6 +46,11 @@ public class HTableWriter<HbRowLock> implements STableWriter<HbRowLock, IHTable<
 
     @Override
     public HbRowLock tryLock(IHTable<HbRowLock> ihTable, byte[] rowKey) throws IOException {
+        return ihTable.tryLock(rowKey);
+    }
+
+    @Override
+    public HbRowLock tryLock(IHTable<HbRowLock> ihTable, ByteSlice rowKey) throws IOException {
         return ihTable.tryLock(rowKey);
     }
 

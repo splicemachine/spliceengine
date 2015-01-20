@@ -4,6 +4,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.hbase.KVPair;
+import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.TrafficControl;
 import com.splicemachine.utils.GreenLight;
 import com.splicemachine.si.api.*;
@@ -157,6 +158,9 @@ public class TransactionalRegions {
         @Override public SICompactionState compactionFilter() throws IOException { return delegate.compactionFilter(); }
         @Override public boolean isClosed() { return delegate.isClosed(); }
         @Override public boolean rowInRange(byte[] row) { return delegate.rowInRange(row); }
+
+        @Override public boolean rowInRange(ByteSlice slice) { return delegate.rowInRange(slice); }
+
         @Override public boolean containsRange(byte[] start, byte[] stop) { return delegate.containsRange(start, stop); }
         @Override public String getTableName() { return delegate.getTableName(); }
         @Override public void updateWriteRequests(long writeRequests) { delegate.updateWriteRequests(writeRequests); }

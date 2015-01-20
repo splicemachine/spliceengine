@@ -12,7 +12,7 @@ import java.io.ObjectOutput;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
-public class ByteSlice implements Externalizable {
+public class ByteSlice implements Externalizable,Comparable<ByteSlice> {
 		private static final byte[] EMPTY_BYTE_ARRAY = new byte[]{};
 		private byte[] buffer;
 		private int offset;
@@ -28,6 +28,9 @@ public class ByteSlice implements Externalizable {
 				}
 		}
 
+		public static ByteSlice cachedEmpty(){
+			return new CachedByteSlice();
+		}
 
 		public static ByteSlice empty(){
 				return new ByteSlice(null,0,0);
@@ -39,6 +42,23 @@ public class ByteSlice implements Externalizable {
 				return new ByteSlice(data,0,data.length);
 		}
 
+		public static ByteSlice cachedWrap(byte[] data){
+				return new CachedByteSlice(data);
+		}
+
+		/**
+		 * Equivalent to {@link #wrap(byte[], int, int)}, but caches array copies
+		 * for efficient memory usage.
+		 *
+		 * @param data the data buffer to hold
+		 * @param offset the offset in the buffer
+		 * @param length the length of the data block
+		 * @return a ByteSlice which keeps a cache of the byte array copy
+		 */
+		public static ByteSlice cachedWrap(byte[] data, int offset,int length){
+				return new CachedByteSlice(data,offset,length);
+		}
+
 		public static ByteSlice wrap(byte[] data, int offset, int length) {
 				return new ByteSlice(data,offset,length);
 		}
@@ -48,7 +68,7 @@ public class ByteSlice implements Externalizable {
 				return new ByteSlice(rowKey,0,rowKey.length);
 		}
 
-		private ByteSlice(byte[] buffer, int offset, int length) {
+		protected ByteSlice(byte[] buffer, int offset, int length) {
 				this.buffer = buffer;
 				this.offset = offset;
 				this.length = length;
@@ -160,6 +180,11 @@ public class ByteSlice implements Externalizable {
 				if (length != that.length) return false;
 //				if (offset != that.offset) return false;
 				return ArrayUtil.equals(buffer, offset, that.buffer, that.offset, length);
+		}
+
+		@Override
+		public int compareTo(ByteSlice o) {
+				return compareTo(o.buffer,o.offset,o.length);
 		}
 
 		public int compareTo(byte[] bytes,int offset, int length) {

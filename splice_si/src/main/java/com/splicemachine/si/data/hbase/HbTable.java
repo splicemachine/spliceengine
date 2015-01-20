@@ -7,6 +7,7 @@ import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.data.api.IHTable;
 
 import com.splicemachine.si.data.api.SRowLock;
+import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -79,7 +80,12 @@ public class HbTable implements IHTable<SRowLock> {
 				}
 		}
 
-		@Override
+    @Override
+    public SRowLock tryLock(ByteSlice rowKey) throws IOException {
+        return lockRow(rowKey.getByteCopy());
+    }
+
+    @Override
     public void put(Put put) throws IOException {
         table.put(put);
     }

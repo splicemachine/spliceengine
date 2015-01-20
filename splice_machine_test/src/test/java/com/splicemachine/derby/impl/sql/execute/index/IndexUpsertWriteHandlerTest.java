@@ -18,6 +18,8 @@ import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.splicemachine.SpliceKryoRegistry;
+import com.splicemachine.constants.SIConstants;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 
@@ -113,9 +115,9 @@ public class IndexUpsertWriteHandlerTest {
                 byte[] rowKey = get.getRow();
                 //get the KVPair on the main table with this row key
                 for(KVPair pair:pairs){
-                    if(Arrays.equals(pair.getRow(),rowKey)){
+                    if(Arrays.equals(pair.getRowKey(),rowKey)){
                         //convert to a Result object
-                        KeyValue kv = pair.toKeyValue();
+                        KeyValue kv = new KeyValue(pair.getRowKey(), SpliceConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES,pair.getValue());
                         return new Result(Arrays.asList(kv));
                     }
                 }
@@ -125,7 +127,7 @@ public class IndexUpsertWriteHandlerTest {
         when(context.getRegion()).thenReturn(mockRegion);
 
         for(KVPair pairToDelete:deletedPairs){
-            KVPair toDelete = new KVPair(pairToDelete.getRow(),pairToDelete.getValue(), KVPair.Type.DELETE);
+            KVPair toDelete = KVPair.delete(pairToDelete.getRowKey());
             deleteHandler.updateIndex(toDelete,context);
         }
 
@@ -209,7 +211,7 @@ public class IndexUpsertWriteHandlerTest {
         //make sure that every main row is found by doing a lookup on every index row
         MultiFieldDecoder decoder = MultiFieldDecoder.create();
         for(KVPair indexPair:indexPairs){
-            decoder.set(indexPair.getRow());
+            decoder.set(indexPair.getRowKey());
             DataValueDescriptor dvd = LazyDataValueFactory.getLazyNull(80);
             DerbyBytesUtil.skip(decoder, dvd);//skip data, go to byte[]
             int offset = decoder.offset();
@@ -226,39 +228,11 @@ public class IndexUpsertWriteHandlerTest {
 
 
         BufferConfiguration bufferConfiguration = getConstantBufferConfiguration();
-        CallBuffer<KVPair> writingBuffer = new UnsafeCallBuffer<KVPair>(bufferConfiguration,new UnsafeCallBuffer.Listener<KVPair>() {
-            @Override
-            public long heapSize(KVPair element) {
-                return element.getSize();
-            }
 
-            @Override
-            public void bufferFlushed(ObjectArrayList<KVPair> entries, CallBuffer<KVPair> source) throws Exception {
-            	Object[] buffer = entries.buffer;
-            	int size = entries.size();
-            	for (int i = 0; i<size; i++) {
-            		KVPair pair = (KVPair) buffer[i];
-                    if(pair.getType()== KVPair.Type.DELETE){
-                        Iterator<KVPair> itereator = indexPairs.iterator();
-                        while(itereator.hasNext()){
-                            KVPair existingPair = itereator.next();
-                            if(Arrays.equals(pair.getRow(),existingPair.getRow())){
-                                itereator.remove();
-                                break;
-                            }
-                        }
-                    }else{
-                        indexPairs.add(pair);
-                    }
-                }
-            }
-        });
-
-        
-        when(testCtx.getSharedWriteBuffer(
-                any(byte[].class),
-                any(ObjectObjectOpenHashMap.class),
-                any(int.class), any(boolean.class), any(TxnView.class))).thenReturn(writingBuffer);
+//        when(testCtx.getSharedWriteBuffer(
+//                any(byte[].class),
+//                any(ObjectObjectOpenHashMap.class),
+//                any(int.class), any(boolean.class), any(TxnView.class))).thenReturn(writingBuffer);
         return testCtx;
     }
 

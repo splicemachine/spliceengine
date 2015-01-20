@@ -129,7 +129,7 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
          * 3. issue a delete against the index table
          */
         try {
-            Get get = SpliceUtils.createGet(ctx.getTxn(), mutation.getRow());
+            Get get = SpliceUtils.createGet(ctx.getTxn(), mutation.getRowKey());
             EntryPredicateFilter predicateFilter = new EntryPredicateFilter(indexedColumns, new ObjectArrayList<Predicate>(),true);
             get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
             Result result = ctx.getRegion().get(get);
@@ -153,7 +153,7 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
             if(keepState)
                 this.indexToMainMutationMap.put(indexDelete,mutation);
         	if (LOG.isTraceEnabled())
-        		SpliceLogUtils.trace(LOG, "performing delete on row %s", BytesUtil.toHex(indexDelete.getRow()));
+        		SpliceLogUtils.trace(LOG, "performing delete on row %s", BytesUtil.toHex(indexDelete.getRowKey()));
             indexBuffer.add(indexDelete);
         } catch (Exception e) {
             failed=true;

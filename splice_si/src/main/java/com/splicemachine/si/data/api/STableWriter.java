@@ -1,5 +1,6 @@
 package com.splicemachine.si.data.api;
 
+import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Pair;
 
@@ -25,6 +26,9 @@ public interface STableWriter<RowLock,Table, Mutation, Put, Delete> {
 		 * @return the id of the lock acquired, or {@code null} if the lock was not able to be acquired.
 		 */
 		RowLock tryLock(Table table, byte[] rowKey) throws IOException;
+
+    RowLock tryLock(Table table, ByteSlice rowKey) throws IOException;
+
 		//TODO -sf- can we replace this with an actual Lock abstraction?
     RowLock lockRow(Table Table, byte[] rowKey) throws IOException;
     void unLockRow(Table Table, RowLock lock) throws IOException;

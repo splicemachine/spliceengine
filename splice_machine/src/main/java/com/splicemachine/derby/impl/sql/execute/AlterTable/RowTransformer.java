@@ -135,7 +135,7 @@ public class RowTransformer<Data> implements Closeable {
 				oldRow.resetRowArray();
 				DataValueDescriptor[] oldFields = oldRow.getRowArray();
 				if (oldFields.length != 0) {
-						keyDecoder.set(kvPair.getRow(), 0, kvPair.getRow().length);
+						keyDecoder.set(kvPair.getRowKey(), 0, kvPair.getRowKey().length);
 						keyDecoder.decode(oldRow);
 
 						rowDecoder.set(kvPair.getValue(),0,kvPair.getValue().length);
@@ -146,7 +146,7 @@ public class RowTransformer<Data> implements Closeable {
 				KVPair newPair = entryEncoder.encode(newRow);
 
 				// preserve the old row key
-				newPair.setKey(kvPair.getRow());
+				newPair.setKey(kvPair.getRowKey());
 				return newPair;
 		}
 

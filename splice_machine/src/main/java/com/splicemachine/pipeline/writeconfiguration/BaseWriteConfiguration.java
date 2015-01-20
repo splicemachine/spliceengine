@@ -1,6 +1,9 @@
 package com.splicemachine.pipeline.writeconfiguration;
 
 import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.hppc.IntOpenHashSet;
+import com.splicemachine.derby.hbase.ExceptionTranslator;
+import org.apache.log4j.Logger;
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
 import com.splicemachine.derby.hbase.DerbyFactory;
@@ -44,8 +47,8 @@ public abstract class BaseWriteConfiguration implements WriteConfiguration {
             if (failedRows != null && failedRows.size() > 0) {
                 return WriteResponse.PARTIAL;
             }
-            IntArrayList notRun = bulkWriteResult.getNotRunRows();
-            if (notRun != null && notRun.size() > 0)
+            IntOpenHashSet notRun = bulkWriteResult.getNotRunRows();
+            if(notRun!=null && notRun.size()>0)
                 return WriteResponse.PARTIAL;
             /*
              * We got a partial result, but didn't specify which rows needed behavior.

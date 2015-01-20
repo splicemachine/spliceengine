@@ -1,7 +1,6 @@
 package com.splicemachine.pipeline.writeconfiguration;
 
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
-import com.carrotsearch.hppc.ObjectArrayList;
 import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.splicemachine.constants.SpliceConstants;
@@ -17,6 +16,7 @@ import com.splicemachine.pipeline.impl.WriteResult;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
@@ -67,7 +67,7 @@ public class IndexSharedWriteConfiguration extends BaseWriteConfiguration {
                 return WriteResponse.RETRY;
             }
             else {
-                ObjectArrayList<KVPair> indexMutations = request.getMutations();
+                List<KVPair> indexMutations = request.mutationsList();
                 for (IntObjectCursor<WriteResult> cursor : failedRows) {
                     int row = cursor.key;
                     KVPair kvPair = indexMutations.get(row);

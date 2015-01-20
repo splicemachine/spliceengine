@@ -468,7 +468,7 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
 
     private void buildUniqueConstraint(ConstraintDescriptor cd) throws StandardException {
         ConstraintContext cc = ConstraintContext.unique(cd);
-        constraintFactories.add(new ConstraintFactory(UniqueConstraint.create(cc)));
+        constraintFactories.add(new ConstraintFactory(new UniqueConstraint(cc)));
     }
 
     private void addIndexConstraint(TableDescriptor td, ConglomerateDescriptor conglomDesc) {
@@ -481,7 +481,7 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
                 }
             }
             ConstraintContext cc = ConstraintContext.unique(td, conglomDesc);
-            constraintFactories.add(new ConstraintFactory(UniqueConstraint.create(cc)));
+            constraintFactories.add(new ConstraintFactory(new UniqueConstraint(cc)));
         }
     }
 

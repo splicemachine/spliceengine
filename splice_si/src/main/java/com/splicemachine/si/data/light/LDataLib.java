@@ -143,7 +143,12 @@ public class LDataLib implements SDataLib<KeyValue,LTuple, LTuple, LGet, LGet> {
         return newPut(key, null);
     }
 
-    @Override
+		@Override
+		public LTuple newPut(ByteSlice slice) {
+				return newPut(slice.getByteCopy(),null);
+		}
+
+				@Override
     public LTuple newPut(byte[] key, Integer lock) {
         return new LTuple(key, new ArrayList<KeyValue>(), lock);
     }
@@ -278,8 +283,8 @@ public class LDataLib implements SDataLib<KeyValue,LTuple, LTuple, LGet, LGet> {
 
 		@Override
 		public LTuple toPut(KVPair kvPair, byte[] family, byte[] column, long longTransactionId) {
-				KeyValue kv = new KeyValue(kvPair.getRow(),family,column,longTransactionId,kvPair.getValue());
-				LTuple tuple = new LTuple(kvPair.getRow(),Lists.newArrayList(kv));
+				KeyValue kv = new KeyValue(kvPair.getRowKey(),family,column,longTransactionId,kvPair.getValue());
+				LTuple tuple = new LTuple(kvPair.getRowKey(),Lists.newArrayList(kv));
 				return tuple;
 		}
 

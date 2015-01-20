@@ -5,13 +5,7 @@ import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Properties;
-import java.util.TreeMap;
+import java.util.*;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.Serializer;
@@ -30,6 +24,8 @@ import com.splicemachine.hbase.backup.CreateBackupTask;
 import com.splicemachine.hbase.backup.PurgeTransactionsTask;
 import com.splicemachine.hbase.backup.RestoreBackupTask;
 
+import com.splicemachine.si.api.TransactionOperations;
+import com.splicemachine.si.api.TxnView;
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
 
 import org.apache.derby.catalog.types.AggregateAliasInfo;
@@ -626,8 +622,42 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
 
         instance.register(AggregateAliasInfo.class, EXTERNALIZABLE_SERIALIZER,140);
         instance.register(UserDefinedAggregator.class, EXTERNALIZABLE_SERIALIZER,141);
-        instance.register(BulkWrite.class,EXTERNALIZABLE_SERIALIZER,142);
-        instance.register(KVPair.class,EXTERNALIZABLE_SERIALIZER,143);
+        instance.register(BulkWrite.class, new Serializer<BulkWrite>() {
+            @Override
+            public void write(Kryo kryo, Output output, BulkWrite object) {
+                output.writeString(object.getEncodedStringName());
+                kryo.writeClassAndObject(output, object.getMutations());
+            }
+
+            @Override
+            public BulkWrite read(Kryo kryo, Input input, Class type) {
+                String eSn = input.readString();
+                Collection<KVPair> kvPairs = (Collection<KVPair>)kryo.readClassAndObject(input);
+                return new BulkWrite(kvPairs, eSn);
+            }
+        }, 142);
+        instance.register(KVPair.class, new Serializer<KVPair>() {
+            @Override
+            public void write(Kryo kryo, Output output, KVPair object) {
+                output.writeByte(object.getType().asByte());
+                byte[] rowKey = object.getRowKey();
+                output.writeInt(rowKey.length);
+                output.writeBytes(rowKey);
+                byte[] value = object.getValue();
+                output.writeInt(value.length);
+                output.writeBytes(value);
+            }
+
+            @Override
+            public KVPair read(Kryo kryo, Input input, Class type) {
+                KVPair.Type t = KVPair.Type.decode(input.readByte());
+                byte[] rowKey = new byte[input.readInt()];
+                input.readBytes(rowKey);
+                byte[] value = new byte[input.readInt()];
+                input.readBytes(value);
+                return new KVPair(rowKey,value,t);
+            }
+        }, 143);
         instance.register(SpliceStddevPop.class,144);
         instance.register(SpliceStddevSamp.class,145);
         instance.register(Properties.class, new MapSerializer(), 146);
@@ -788,9 +818,36 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(DropIndexDDLDesc.class,EXTERNALIZABLE_SERIALIZER,201);
         instance.register(SQLRowId.class, EXTERNALIZABLE_SERIALIZER,202);
         instance.register(Splice_DD_Version.class, EXTERNALIZABLE_SERIALIZER,203);
-        instance.register(BulkWriteResult.class, EXTERNALIZABLE_SERIALIZER,204);
-        instance.register(BulkWritesResult.class, EXTERNALIZABLE_SERIALIZER,205);
-        instance.register(BulkWrites.class, EXTERNALIZABLE_SERIALIZER,206);
+        instance.register(BulkWriteResult.class, BulkWriteResult.kryoSerializer(),204);
+        instance.register(BulkWritesResult.class, new Serializer<BulkWritesResult>() {
+            @Override
+            public void write(Kryo kryo, Output output, BulkWritesResult object) {
+                kryo.writeClassAndObject(output,object.getBulkWriteResults());
+            }
+
+            @Override
+            public BulkWritesResult read(Kryo kryo, Input input, Class type) {
+                Collection<BulkWriteResult> results = (Collection<BulkWriteResult>) kryo.readClassAndObject(input);
+                return new BulkWritesResult(results);
+            }
+        }, 205);
+        instance.register(BulkWrites.class, new Serializer<BulkWrites>() {
+            @Override
+            public void write(Kryo kryo, Output output, BulkWrites object) {
+                byte[] txnBytes = TransactionOperations.getOperationFactory().encode(object.getTxn());
+                output.writeInt(txnBytes.length);
+                output.write(txnBytes);
+                kryo.writeClassAndObject(output,object.getBulkWrites());
+            }
+
+            @Override
+            public BulkWrites read(Kryo kryo, Input input, Class type) {
+                byte[] txnBytes = input.readBytes(input.readInt());
+                TxnView txn = TransactionOperations.getOperationFactory().decode(txnBytes,0,txnBytes.length);
+                Collection<BulkWrite> bws = (Collection<BulkWrite>)kryo.readClassAndObject(input);
+                return new BulkWrites(bws,txn);
+            }
+        }, 206);
         instance.register(ActiveWriteTxn.class, EXTERNALIZABLE_SERIALIZER,207);
         instance.register(RootTransaction.class, EXTERNALIZABLE_SERIALIZER,208);        
         instance.register(WriteResult.class, EXTERNALIZABLE_SERIALIZER,209);                

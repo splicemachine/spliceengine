@@ -320,9 +320,11 @@ public class PopulateIndexTask extends ZkTask {
             byte[] row = dataLib.getDataRow(kv);
             byte[] data = dataLib.getDataValue(kv);
             if(mainPair==null)
-                mainPair = new KVPair();
-            mainPair.setKey(row);
-            mainPair.setValue(data);
+                mainPair = new KVPair(row,data);
+            else {
+                mainPair.setKey(row);
+                mainPair.setValue(data);
+            }
             KVPair pair = transformer.translate(mainPair);
 
             writeBuffer.add(pair);

@@ -40,7 +40,7 @@ public class ForeignKeyInterceptWriteHandler implements WriteHandler {
     @Override
     public void next(KVPair mutation, WriteContext ctx) {
         if (isForeignKeyInterceptNecessary(mutation.getType())) {
-            KVPair kvPair = new KVPair(mutation.getRow(), HConstants.EMPTY_BYTE_ARRAY, KVPair.Type.FOREIGN_KEY_CHECK);
+            KVPair kvPair = new KVPair(mutation.getRowKey(), HConstants.EMPTY_BYTE_ARRAY, KVPair.Type.FOREIGN_KEY_CHECK);
             try {
                 initTargetCallBuffer(ctx);
                 referencedTableCallBuffer.add(kvPair);

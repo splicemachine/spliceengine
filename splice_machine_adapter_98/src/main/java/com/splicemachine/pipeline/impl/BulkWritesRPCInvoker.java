@@ -6,6 +6,7 @@ import com.splicemachine.pipeline.api.BulkWritesInvoker;
 import org.apache.hadoop.hbase.client.HConnection;
 
 import java.io.IOException;
+import java.util.Iterator;
 
 /**
  * @author Scott Fines
@@ -26,10 +27,13 @@ public class BulkWritesRPCInvoker implements BulkWritesInvoker {
         if(!forceRemote) {
             SpliceDriver spliceDriver = SpliceDriver.driver();
 
-        if (spliceDriver.isStarted()) {
-            BulkWrite firstBulkWrite = (BulkWrite) writes.getBuffer()[0];
-            String encodedRegionName = firstBulkWrite.getEncodedRegionName();
-            SpliceBaseIndexEndpoint indexEndpoint = spliceDriver.getIndexEndpoint(encodedRegionName);
+            if (spliceDriver.isStarted()) {
+                Iterator<BulkWrite> iterator = writes.getBulkWrites().iterator();
+                assert iterator.hasNext(): "invoked a write with no BulkWrite entities!";
+
+                BulkWrite firstBulkWrite = iterator.next();
+                String encodedRegionName = firstBulkWrite.getEncodedStringName();
+                SpliceBaseIndexEndpoint indexEndpoint = spliceDriver.getIndexEndpoint(encodedRegionName);
 
                 if (indexEndpoint != null) {
                     return indexEndpoint.bulkWrite(writes);

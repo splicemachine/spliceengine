@@ -7,6 +7,7 @@ import com.splicemachine.concurrent.ResettableCountDownLatch;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.DerbyFactory;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.api.Code;
 import com.splicemachine.pipeline.api.WriteContext;
@@ -16,6 +17,7 @@ import com.splicemachine.pipeline.impl.WriteResult;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.impl.WriteConflict;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.yammer.metrics.core.*;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.RegionTooBusyException;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
@@ -24,20 +26,19 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author Scott Fines
  *         Created on: 4/30/13
  */
 public class RegionWriteHandler implements WriteHandler {
-
-    private static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
-    private static final Logger LOG = Logger.getLogger(RegionWriteHandler.class);
-
+    protected static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
+    static final Logger LOG = Logger.getLogger(RegionWriteHandler.class);
     private final TransactionalRegion region;
     private List<KVPair> mutations = Lists.newArrayList();
-    private final ResettableCountDownLatch writeLatch;
-    private final BatchConstraintChecker constraintChecker;
+    private ResettableCountDownLatch writeLatch;
+    private BatchConstraintChecker constraintChecker;
 
     public RegionWriteHandler(TransactionalRegion region,
                               ResettableCountDownLatch writeLatch,
@@ -57,11 +58,10 @@ public class RegionWriteHandler implements WriteHandler {
          * another write-pipeline when the Region actually does it's writing
          */
         if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "next kvPair=%s, ctx=%s", kvPair, ctx);
-
-        if (region.isClosed())
-            ctx.failed(kvPair, WriteResult.notServingRegion());
-        else if (!region.rowInRange(kvPair.getRow()))
+            SpliceLogUtils.trace(LOG, "next kvPair=%s, ctx=%s",kvPair,ctx);
+        if(region.isClosed())
+            ctx.failed(kvPair,WriteResult.notServingRegion());
+        else if(!region.rowInRange(kvPair.rowKeySlice()))
             ctx.failed(kvPair, WriteResult.wrongRegion());
         else {
             mutations.add(kvPair);

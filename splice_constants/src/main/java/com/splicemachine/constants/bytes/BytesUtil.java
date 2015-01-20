@@ -339,6 +339,6 @@ public class BytesUtil {
     }
 
     public static boolean isRowInRange(byte[] row,byte[] start, byte[] stopKey){
-        return startComparator.compare(row,start)<0 || endComparator.compare(row,stopKey)>0;
+        return startComparator.compare(row,start)>=0 && endComparator.compare(row,stopKey)<0;
     }
 }

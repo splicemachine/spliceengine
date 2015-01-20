@@ -8,6 +8,7 @@ import com.splicemachine.si.data.hbase.HRowAccumulator;
 import com.splicemachine.si.data.hbase.HbRegion;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
+import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HRegionUtil;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
@@ -70,10 +71,15 @@ public class TxnRegion implements TransactionalRegion {
         return new SICompactionState(dataStore, txnSupplier, rollForward);
     }
 
-    @Override
-    public boolean rowInRange(byte[] row) {
-        return HRegion.rowIsInRange(region.getRegionInfo(), row);
-    }
+		@Override
+		public boolean rowInRange(byte[] row) {
+				return HRegion.rowIsInRange(region.getRegionInfo(),row);
+		}
+
+		@Override
+		public boolean rowInRange(ByteSlice slice) {
+				return HRegionUtil.containsRow(region.getRegionInfo(),slice.array(),slice.offset(),slice.length());
+		}
 
     @Override
     public boolean isClosed() {

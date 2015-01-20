@@ -91,4 +91,11 @@ public class StddevIT extends SpliceUnitTest {
         }
         rs.close();
     }
+
+    @Test
+    public void testRepeated() throws Exception {
+        for(int i=0;i<100;i++){
+            test();
+        }
+    }
 }

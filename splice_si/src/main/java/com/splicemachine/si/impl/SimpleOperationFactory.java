@@ -85,9 +85,8 @@ public class SimpleOperationFactory implements TxnOperationFactory {
 		public TxnView fromReads(OperationWithAttributes op) throws IOException {
 				byte[] txnData = op.getAttribute(SIConstants.SI_TRANSACTION_ID_KEY);
 				if(txnData==null) return null; //non-transactional
-        return decode(txnData);
+        return decode(txnData,0,txnData.length);
 		}
-
 
     @Override
 		public TxnView fromWrites(OperationWithAttributes op) throws IOException {
@@ -110,7 +109,7 @@ public class SimpleOperationFactory implements TxnOperationFactory {
 
     @Override
     public void writeTxn(TxnView txn, ObjectOutput oo) throws IOException {
-        byte[] txnData = encodeTransaction(txn);
+        byte[] txnData = encode(txn);
         oo.writeInt(txnData.length);
         oo.write(txnData);
     }
@@ -121,29 +120,25 @@ public class SimpleOperationFactory implements TxnOperationFactory {
         byte[] txnData = new byte[size];
         oi.read(txnData);
 
-        return decode(txnData);
+        return decode(txnData,0,txnData.length);
     }
 
-    /******************************************************************************************************************/
-		/*private helper functions*/
-		private void encodeForWrites(OperationWithAttributes op, TxnView txn) {
-        byte[] data =encodeTransaction(txn);
-				op.setAttribute(SIConstants.SI_TRANSACTION_ID_KEY,data);
-        op.setAttribute(SIConstants.SI_NEEDED,SIConstants.SI_NEEDED_VALUE_BYTES);
-		}
+    @Override
+    public byte[] encode(TxnView txn) {
+        MultiFieldEncoder encoder = MultiFieldEncoder.create(5)
+                .encodeNext(txn.getTxnId())
+                .encodeNext(txn.isAdditive())
+                .encodeNext(txn.getIsolationLevel().encode())
+                .encodeNext(txn.allowsWrites());
 
-		private void encodeForReads(OperationWithAttributes op, TxnView txn,boolean isCountStar) {
-				if(isCountStar)
-						op.setAttribute(SIConstants.SI_COUNT_STAR,SIConstants.TRUE_BYTES);
+        LongArrayList parentTxnIds = LongArrayList.newInstance();
+        byte[] build = encodeParentIds(txn, parentTxnIds);
+        encoder.setRawBytes(build);
+        return encoder.build();
+    }
 
-        byte[] data = encodeTransaction(txn);
-
-				op.setAttribute(SIConstants.SI_TRANSACTION_ID_KEY,data);
-        op.setAttribute(SIConstants.SI_NEEDED,SIConstants.SI_NEEDED_VALUE_BYTES);
-		}
-
-    private TxnView decode(byte[] txnData) {
-        MultiFieldDecoder decoder = MultiFieldDecoder.wrap(txnData);
+    public TxnView decode(byte[] data, int offset,int length){
+        MultiFieldDecoder decoder = MultiFieldDecoder.wrap(data,offset,length);
         long beginTs = decoder.decodeNextLong();
         boolean additive = decoder.decodeNextBoolean();
         Txn.IsolationLevel level = Txn.IsolationLevel.fromByte(decoder.decodeNextByte());
@@ -163,18 +158,23 @@ public class SimpleOperationFactory implements TxnOperationFactory {
             return new ReadOnlyTxn(beginTs,beginTs,level,parent,UnsupportedLifecycleManager.INSTANCE,additive);
     }
 
-    private byte[] encodeTransaction(TxnView txn) {
-        MultiFieldEncoder encoder = MultiFieldEncoder.create(5)
-                .encodeNext(txn.getTxnId())
-                .encodeNext(txn.isAdditive())
-                .encodeNext(txn.getIsolationLevel().encode())
-                .encodeNext(txn.allowsWrites());
+    /******************************************************************************************************************/
+		/*private helper functions*/
+		private void encodeForWrites(OperationWithAttributes op, TxnView txn) {
+        byte[] data =encode(txn);
+				op.setAttribute(SIConstants.SI_TRANSACTION_ID_KEY,data);
+        op.setAttribute(SIConstants.SI_NEEDED,SIConstants.SI_NEEDED_VALUE_BYTES);
+		}
 
-        LongArrayList parentTxnIds = LongArrayList.newInstance();
-        byte[] build = encodeParentIds(txn, parentTxnIds);
-        encoder.setRawBytes(build);
-        return encoder.build();
-    }
+		private void encodeForReads(OperationWithAttributes op, TxnView txn,boolean isCountStar) {
+				if(isCountStar)
+						op.setAttribute(SIConstants.SI_COUNT_STAR,SIConstants.TRUE_BYTES);
+
+        byte[] data = encode(txn);
+
+				op.setAttribute(SIConstants.SI_TRANSACTION_ID_KEY,data);
+        op.setAttribute(SIConstants.SI_NEEDED,SIConstants.SI_NEEDED_VALUE_BYTES);
+		}
 
     private byte[] encodeParentIds(TxnView txn, LongArrayList parentTxnIds) {
         /*

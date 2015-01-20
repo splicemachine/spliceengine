@@ -276,9 +276,7 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 				rowHash.setRow(value);
 				
 				byte[] bdata = rowHash.encode();
-				KVPair kv = new KVPair();
-				kv.setKey(key);
-				kv.setValue(bdata);	
+				KVPair kv = new KVPair(key,bdata);
 				callBuffer.add(kv);
 					
 			} catch (StandardException e) {

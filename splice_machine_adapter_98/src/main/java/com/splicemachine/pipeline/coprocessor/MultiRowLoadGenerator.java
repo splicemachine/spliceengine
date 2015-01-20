@@ -27,9 +27,9 @@ import org.apache.zookeeper.ClientCnxn;
 import org.apache.zookeeper.ZooKeeper;
 
 import java.io.IOException;
-import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @author Scott Fines
@@ -38,10 +38,10 @@ import java.util.concurrent.*;
 public class MultiRowLoadGenerator {
     private static final Logger LOG = Logger.getLogger(MultiRowLoadGenerator.class);
 
-    private static final int BUFFER_SIZE = 1024;
+    private static final int BUFFER_SIZE = 8192;
     private static final int rowByteSize = 128;
-    private static final int numIterations = 100000000;
-    private static final int numThreads = 10;
+    private static final int numIterations = 10000;
+    private static final int numThreads = 1;
 
     public static void main(String...args)throws Exception{
         configureLogging();
@@ -55,7 +55,7 @@ public class MultiRowLoadGenerator {
 
         ExecutorService executor = Executors.newFixedThreadPool(numThreads,new ThreadFactoryBuilder()
                 .setDaemon(true).setNameFormat("writer-%d").build());
-        CompletionService service = new ExecutorCompletionService(executor);
+        CompletionService<Void> service = new ExecutorCompletionService<>(executor);
         SpliceLogUtils.info(LOG,"Beginning execution on %d threads",numThreads);
         try {
             Snowflake snowflake = new Snowflake((short) 1);
@@ -77,17 +77,16 @@ public class MultiRowLoadGenerator {
         Logger.getLogger(ZooKeeper.class).setLevel(Level.ERROR);
         Logger.getLogger(RecoverableZooKeeper.class).setLevel(Level.ERROR);
 
-        Logger.getLogger(MultiRowLoadGenerator.class).setLevel(Level.DEBUG);
+        Logger.getLogger(MultiRowLoadGenerator.class).setLevel(Level.INFO);
     }
 
     private static void cleanOldData(HBaseAdmin admin, String tableName) throws IOException {
         HTableDescriptor tableDescriptor;
         try {
             tableDescriptor = admin.getTableDescriptor(tableName.getBytes());
-            return;
-//            we found a table, so delete it
-//            admin.disableTable(tableName);
-//            admin.deleteTable(tableName);
+//            return;
+            admin.disableTable(tableName);
+            admin.deleteTable(tableName);
         }catch(TableNotFoundException tnfe){
             tableDescriptor = new HTableDescriptor(TableName.valueOf(tableName));
             tableDescriptor.addCoprocessor("com.splicemachine.pipeline.coprocessor.MultiRowEndpoint");
@@ -102,6 +101,8 @@ public class MultiRowLoadGenerator {
         private final Configuration configuration;
         private final Snowflake.Generator snowflake;
         private final String tableName;
+        private final AtomicLong totalBytesFlushed = new AtomicLong(0);
+        private final AtomicLong totalNetworkCalls = new AtomicLong(0);
 
         public LoadTask(Configuration configuration, Snowflake snowflake, String tableName) {
             this.configuration = configuration;
@@ -119,7 +120,7 @@ public class MultiRowLoadGenerator {
 
             byte[] rowData = new byte[rowByteSize];
             try(HTableInterface table = new SpliceHTable(tableName.getBytes(),configuration,true)){
-                SpliceLogUtils.debug(LOG, "Beginning load of %d records", numIterations);
+                SpliceLogUtils.info(LOG, "Beginning load of %d records", numIterations);
                 for(int i=0;i<numIterations;i++) {
                     byte[] key = snowflake.nextBytes();
                     random.nextBytes(rowData);
@@ -144,10 +145,15 @@ public class MultiRowLoadGenerator {
                 flush(table,buffer,bufferPos);
                 SpliceLogUtils.debug(LOG,"Load complete");
             }
+
+            if(LOG.isInfoEnabled()){
+                double avgBytesPerNetworkCall = ((double)totalBytesFlushed.get())/totalNetworkCalls.get();
+                LOG.info("Avg Bytes/Network Call: "+avgBytesPerNetworkCall);
+            }
             return null;
         }
 
-        private void flush(HTableInterface table, final SpliceMessage.KV[] buffer,int size) throws Exception {
+        private void flush(HTableInterface table, final SpliceMessage.KV[] buffer,final int size) throws Exception {
             byte[] minKey= null;
             byte[] maxKey = null;
             for(int i=0;i<size;i++){
@@ -162,7 +168,7 @@ public class MultiRowLoadGenerator {
 
             SpliceLogUtils.trace(LOG,"flushing %d records",size);
             try {
-                Map<byte[], SpliceMessage.MultiRowResponse> multiRowResponseMap = table.coprocessorService(SpliceMessage.MultiRowService.class, minKey, maxKey, new BoundCall<SpliceMessage.MultiRowService, SpliceMessage.MultiRowResponse>() {
+                table.coprocessorService(SpliceMessage.MultiRowService.class, HConstants.EMPTY_START_ROW,HConstants.EMPTY_END_ROW, new BoundCall<SpliceMessage.MultiRowService, SpliceMessage.MultiRowResponse>() {
                     @Override
                     public SpliceMessage.MultiRowResponse call(SpliceMessage.MultiRowService instance) throws IOException {
                         throw new UnsupportedOperationException();
@@ -172,14 +178,20 @@ public class MultiRowLoadGenerator {
                     public SpliceMessage.MultiRowResponse call(byte[] startKey, byte[] stopKey, SpliceMessage.MultiRowService instance) throws IOException {
                         SpliceMessage.MultiRowRequest.Builder mrwb = SpliceMessage.MultiRowRequest.newBuilder();
                         mrwb = mrwb.setTimestamp(1l);
-                        for (SpliceMessage.KV kv : buffer) {
-                            BytesUtil.isRowInRange(kv.getRow().toByteArray(), startKey, stopKey);
-                            mrwb.addKvs(kv);
+                        long totalBytes = 0;
+                        for(int i=0;i<size;i++){
+                            SpliceMessage.KV kv = buffer[i];
+                            if(BytesUtil.isRowInRange(kv.getKey().toByteArray(),startKey,stopKey)) {
+                                totalBytes += kv.getRow().size() + kv.getKey().size();
+                                mrwb.addKvs(kv);
+                            }
                         }
+                        LoadTask.this.totalBytesFlushed.addAndGet(totalBytes);
+                        LoadTask.this.totalNetworkCalls.incrementAndGet();
 
                         SpliceRpcController controller = new SpliceRpcController();
                         BlockingRpcCallback<SpliceMessage.MultiRowResponse> responseCallback = new BlockingRpcCallback<>();
-                        return doWrite(instance, mrwb, controller, responseCallback,0,null);
+                        return doWrite(instance, mrwb, controller, responseCallback, 0, null);
                     }
                 });
 

@@ -1,150 +1,107 @@
 package com.splicemachine.pipeline.impl;
 
-import com.carrotsearch.hppc.ObjectArrayList;
-import com.splicemachine.hbase.KVPair;
+import com.splicemachine.si.api.TxnView;
 
-import java.io.Externalizable;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
+import java.util.ArrayList;
+import java.util.Collection;
 
 /**
+ *
  * Extension of BulkWrites to wrap for a region server.
  *
  * @author Scott Fines
- *         Created on: 8/8/13
+ * Created on: 8/8/13
  */
-public class BulkWrites implements Externalizable {
-    private static final long serialVersionUID = 1l;
-    public ObjectArrayList<BulkWrite> bulkWrites;
+public class BulkWrites {
+		private Collection<BulkWrite> bulkWrites;
+		private TxnView txn;
+		/*
+		 *a key to indicate which region to send the write to. This is really just
+		 * any region which is present on the destination region server
+		 */
+		private transient byte[] regionKey;
 
-    public BulkWrites() {
-        bulkWrites = new ObjectArrayList<>();
-    }
+		public BulkWrites() {
+				bulkWrites = new ArrayList<>(0);
+		}
 
-    public BulkWrites(ObjectArrayList<BulkWrite> bulkWrites) {
-        this.bulkWrites = bulkWrites;
-    }
+		public BulkWrites(Collection<BulkWrite> bulkWrites,TxnView txn) {
+			this(bulkWrites,txn,null);
+		}
 
-    public byte[] getRegionKey() {
-        assert bulkWrites != null && bulkWrites.size() > 0;
-        return bulkWrites.get(0).getRegionKey();
-    }
+		public BulkWrites(Collection<BulkWrite> bulkWrites,TxnView txn,byte[] regionKey) {
+				this.bulkWrites = bulkWrites;
+				this.txn = txn;
+				this.regionKey = regionKey;
+		}
 
-    public ObjectArrayList<BulkWrite> getBulkWrites() {
-        return bulkWrites;
-    }
+		public byte[] getRegionKey() {
+				return regionKey;
+		}
 
-    public void addBulkWrite(BulkWrite bulkWrite) {
-        bulkWrites.add(bulkWrite);
-    }
+		public Collection<BulkWrite> getBulkWrites() {
+				return bulkWrites;
+		}
 
-    @Override
-    public String toString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("BulkWrites{");
-        Object[] buffer = bulkWrites.buffer;
-        int iBuffer = bulkWrites.size();
-        for (int i = 0; i < iBuffer; i++) {
-            sb.append(buffer[i]);
-            if (i != iBuffer - 1)
-                sb.append(",");
-        }
-        sb.append("}");
-        return sb.toString();
-    }
+		public TxnView getTxn() {
+				return txn;
+		}
 
-    public long getKVPairSize() {
-        long size = 0;
-        Object[] buffer = bulkWrites.buffer;
-        int iBuffer = bulkWrites.size();
-        for (int i = 0; i < iBuffer; i++) {
-            BulkWrite bulkWrite = (BulkWrite) buffer[i];
-            size += bulkWrite.getSize();
-        }
-        return size;
-    }
+		public int getBufferHeapSize() {
+				int size = 0;
+				for(BulkWrite bw:bulkWrites){
+						size+=bw.getBufferSize();
+				}
+				return size;
+		}
 
-    public long getBufferHeapSize() {
-        long heap = 0l;
-        Object[] buffer = bulkWrites.buffer;
-        int iBuffer = bulkWrites.size();
-        for (int i = 0; i < iBuffer; i++) {
-            BulkWrite bulkWrite = (BulkWrite) buffer[i];
-            heap += bulkWrite.getBufferSize();
-        }
-        return heap;
-    }
+		/**
+		 * @return the number of rows in the bulk write
+		 */
+		public int numEntries() {
+				int size = 0;
+				for(BulkWrite bw:bulkWrites){
+						size+=bw.getSize();
+				}
+				return size;
+		}
 
-    public ObjectArrayList<KVPair> getAllCombinedKeyValuePairs() {
-        ObjectArrayList<KVPair> pairs = new ObjectArrayList<>();
-        Object[] buffer = bulkWrites.buffer;
-        int iBuffer = bulkWrites.size();
-        for (int i = 0; i < iBuffer; i++) {
-            BulkWrite bulkWrite = (BulkWrite) buffer[i];
-            pairs.addAll(bulkWrite.getMutations());
-        }
-        return pairs;
-    }
+		/**
+		 * @return the number of regions in this write
+		 */
+		public int numRegions(){
+				return bulkWrites.size();
+		}
 
-    public Object[] getBuffer() {
-        return bulkWrites.buffer;
-    }
 
-    /**
-     * @return the number of rows in the bulk write
-     */
-    public int numEntries() {
-        int numEntries = 0;
-        int size = bulkWrites.size();
-        Object[] buffer = bulkWrites.buffer;
-        for (int i = 0; i < size; i++) {
-            BulkWrite bw = (BulkWrite) buffer[i];
-            numEntries += bw.getSize();
-        }
-        return numEntries;
-    }
+		@Override
+		public String toString() {
+				StringBuilder sb = new StringBuilder();
+				sb.append("BulkWrites{");
+				boolean first = true;
+				for(BulkWrite bw:bulkWrites){
+						if(first) first=false;
+						else sb.append(",");
+						sb.append(bw);
+				}
+				sb.append("}");
+				return sb.toString();
+		}
 
-    /**
-     * @return the number of regions in this write
-     */
-    public int numRegions() {
-        return bulkWrites.size();
-    }
+		@Override
+		public boolean equals(Object o) {
+				if (this == o) return true;
+				if (o == null || getClass() != o.getClass()) return false;
 
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        Object[] buffer = bulkWrites.buffer;
-        int iBuffer = bulkWrites.size();
-        out.writeInt(iBuffer);
-        for (int i = 0; i < iBuffer; i++) {
-            out.writeObject(buffer[i]);
-        }
-    }
+				BulkWrites that = (BulkWrites) o;
 
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        int size = in.readInt();
-        bulkWrites = ObjectArrayList.newInstanceWithCapacity(size);
-        for (int i = 0; i < size; i++) {
-            bulkWrites.add((BulkWrite) in.readObject());
-        }
-    }
+				return bulkWrites.equals(that.bulkWrites);
 
-    @Override
-    public boolean equals(Object obj) {
-        return (this == obj) || (obj instanceof BulkWrites) && this.bulkWrites.equals(((BulkWrites) obj).bulkWrites);
-    }
+		}
 
-    public void close() {
-        int isize = bulkWrites.size();
-        Object[] buffer = bulkWrites.buffer;
-        for (int i = 0; i < isize; i++) {
-            BulkWrite bulkWrite = (BulkWrite) buffer[i];
-            bulkWrite.mutations = null;
-            bulkWrite = null;
-        }
-        bulkWrites = null;
-    }
+		@Override
+		public int hashCode() {
+				return bulkWrites.hashCode();
+		}
 
 }

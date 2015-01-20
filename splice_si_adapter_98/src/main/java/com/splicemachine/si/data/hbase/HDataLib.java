@@ -134,7 +134,12 @@ public class HDataLib implements SDataLib<Cell,Put, Delete, Get, Scan> {
         return new Put(key);
     }
 
-    @Override
+		@Override
+		public Put newPut(ByteSlice key) {
+				return new Put(key.array(),key.offset(),key.length());
+		}
+
+		@Override
     public Put newPut(byte[] key, Integer lock) {
         return new Put(key, lock);
     }
@@ -279,13 +284,32 @@ public class HDataLib implements SDataLib<Cell,Put, Delete, Get, Scan> {
 
 		@Override
 		public KVPair toKVPair(Put put) {
-				return new KVPair(put.getRow(),put.get(SpliceConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES).get(0).getValue());
+				return new KVPair(put.getRow(),
+								put.get(SpliceConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES).get(0).getValue());
 		}
 
 		@Override
 		public Put toPut(KVPair kvPair, byte[] family, byte[] column, long longTransactionId) {
-        Put put = kvPair.toPut(family, column, longTransactionId);
-        return put;
+				ByteSlice rowKey = kvPair.rowKeySlice();
+				ByteSlice val = kvPair.valueSlice();
+				Put put = newPut(rowKey);
+				KeyValue kv = new KeyValue(rowKey.array(),rowKey.offset(),rowKey.length(),
+								family,0,family.length,
+								column,0,column.length,
+								longTransactionId,
+								KeyValue.Type.Put,val.array(),val.offset(),val.length());
+				try {
+						put.add(kv);
+				} catch (IOException ignored) {
+						/*
+						 * This exception only appears to occur if the row in the Cell does not match
+						 * the row that's set in the Put. This is definitionally not the case for the above
+						 * code block, so we shouldn't have to worry about this error. As a result, throwing
+						 * a RuntimeException here is legitimate
+						 */
+						throw new RuntimeException(ignored);
+				}
+				return put;
 		}
 
 		@Override

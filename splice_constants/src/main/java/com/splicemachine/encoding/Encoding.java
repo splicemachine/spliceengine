@@ -184,6 +184,11 @@ public final class Encoding {
         return (byte)ScalarEncoding.toLong(data,offset, desc);
     }
 
+    public static byte decodeByte(byte[] data, int offset,boolean desc,long[] lengthHolder){
+        ScalarEncoding.toLong(data,offset, desc,lengthHolder);
+        return (byte)lengthHolder[0];
+    }
+
     /**
      * Encode a short into an ascending, order-preserving encoding.
      *
@@ -247,6 +252,11 @@ public final class Encoding {
         return (short)ScalarEncoding.toLong(data,offset,desc);
     }
 
+    public static short decodeShort(byte[] data, int offset,boolean desc,long[] lengthHolder){
+        ScalarEncoding.toLong(data, offset, desc, lengthHolder);
+        return (short)lengthHolder[0];
+    }
+
     /**
      * Encode an integer into an ascending, order-preserving encoding.
      *
@@ -259,6 +269,21 @@ public final class Encoding {
         return ScalarEncoding.toBytes(value,false);
     }
 
+    public static int encode(int value, byte[] buffer, int offset){
+        return encode(value,buffer,offset,false);
+    }
+
+    public static int encode(int value, byte[] buffer, int offset, boolean desc){
+        return ScalarEncoding.toBytes(value,buffer,offset,desc);
+    }
+
+    public static int encodedLength(int value){
+        return ScalarEncoding.encodedLength(value,false);
+    }
+
+    public static int encodedLength(int value,boolean desc){
+        return ScalarEncoding.encodedLength(value,desc);
+    }
 
     /**
      * Decode an ascending, order-preserving encoding into an integer.
@@ -311,6 +336,10 @@ public final class Encoding {
         return (int)ScalarEncoding.toLong(data,offset,desc);
     }
 
+    public static int decodeInt(byte[] data, int offset,boolean desc,long[] lengthHolder){
+        ScalarEncoding.toLong(data,offset,desc,lengthHolder);
+        return (int)lengthHolder[0];
+    }
 
     /**
      * Encode a long into an ascending, order-preserving byte representation of {@code value}.
@@ -566,6 +595,14 @@ public final class Encoding {
      */
     public static byte[] encode(String value){
         return StringEncoding.toBytes(value, false);
+    }
+
+    public static int encode(String value, byte[] buffer, int offset){
+        return StringEncoding.toBytes(value, false, buffer, offset);
+    }
+
+    public static int encode(String value, byte[] buffer, int offset,boolean desc){
+        return StringEncoding.toBytes(value,desc,buffer,offset);
     }
 
     /**
