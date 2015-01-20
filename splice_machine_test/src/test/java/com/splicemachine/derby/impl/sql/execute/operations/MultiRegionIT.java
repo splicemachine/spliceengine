@@ -9,9 +9,11 @@ import com.splicemachine.test.SerialTest;
 import com.splicemachine.test.SlowTest;
 import com.splicemachine.test_dao.StatementHistory;
 import com.splicemachine.test_dao.StatementHistoryDAO;
+
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -21,8 +23,10 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
+import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -116,6 +120,15 @@ public class MultiRegionIT {
 
         // turn ON auto trace
         conn.createStatement().execute("call SYSCS_UTIL.SYSCS_SET_AUTO_TRACE(1)");
+
+        // while we are here, test SYSCS_GET_MAX_TASKS
+        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_AUTO_TRACE()");
+        ResultSet rs = cs.executeQuery();
+        boolean value = false;
+        while (rs.next()) {
+            value = rs.getBoolean(1);
+        }
+        Assert.assertEquals(true, value);
 
         StatementHistory history = statementHistoryDAO.findStatement("stddev_samp", 6, TimeUnit.SECONDS);
         assertNull("expected not to find it because auto trace was off", history);
