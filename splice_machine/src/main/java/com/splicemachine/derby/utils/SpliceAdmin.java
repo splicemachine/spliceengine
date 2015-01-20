@@ -1144,12 +1144,25 @@ public class SpliceAdmin extends BaseAdminProcedures {
         lcc.setAutoTrace(enable==0?false:true);
     }
 
-    public static boolean SYSCS_GET_AUTO_TRACE() throws Exception{
+    public static void SYSCS_GET_AUTO_TRACE(final ResultSet[] resultSet) throws Exception{
         LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
-        boolean isAutoTraced = lcc.isAutoTraced();
 
-        return isAutoTraced;
-    }
+		ResultSetBuilder rsBuilder = new ResultSetBuilder();
+		try {
+			rsBuilder.getColumnBuilder()
+				.addColumn("AUTO_TRACE", Types.BOOLEAN);
+
+	        boolean isAutoTraced = lcc.isAutoTraced();
+
+			RowBuilder rowBuilder = rsBuilder.getRowBuilder();
+			rowBuilder.getDvd(0).setValue(isAutoTraced);
+			rowBuilder.addRow();
+			
+			resultSet[0] = rsBuilder.buildResultSet((EmbedConnection)getDefaultConn());
+		} catch (StandardException se) {
+			throw PublicAPI.wrapStandardException(se);
+		}
+	}
 
     public static void SYSCS_SET_XPLAIN_TRACE(int enable) throws SQLException, StandardException {
         LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
