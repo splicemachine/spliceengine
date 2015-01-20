@@ -42,6 +42,8 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.hbase.filter.CompareFilter.CompareOp;
+
 
 /**
  * Better implementation of an HTablePool.
@@ -178,6 +180,12 @@ public class BetterHTablePool {
             this.pool = pool;
         }
 
+        public boolean checkAndMutate(byte[] row, byte[] family, byte[] qualifier, CompareOp compareOp,
+        	      byte[] value, RowMutations mutation) throws IOException {
+        	throw new RuntimeException("Not Supported");
+        }
+
+        
         @Override public void close() throws IOException {
             pool.release(table);
         }
@@ -219,6 +227,7 @@ public class BetterHTablePool {
            return table.getRegionsInRange(startKey, endKey);
         }
 
+        
         @Override public byte[] getTableName() { return table.getTableName(); }
 
         @Override
