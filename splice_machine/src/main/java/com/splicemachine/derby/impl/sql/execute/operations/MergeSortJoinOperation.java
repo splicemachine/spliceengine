@@ -7,6 +7,7 @@ import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.SpliceMethod;
+import com.splicemachine.derby.impl.spark.RDDUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils.JoinSide;
 import com.splicemachine.derby.impl.storage.DistributedClientScanProvider;
 import com.splicemachine.derby.impl.storage.RowProviders;
@@ -29,15 +30,21 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.SQLInteger;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
+import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.api.java.JavaRDD;
+import scala.Tuple2;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 
 
@@ -439,4 +446,137 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         return scanner;
     }
 
+    public boolean providesRDD() {
+        return leftResultSet.providesRDD() && rightResultSet.providesRDD();
+    };
+
+    @Override
+    public JavaRDD<ExecRow> getRDD(SpliceRuntimeContext runtimeContext, SpliceOperation top) throws StandardException {
+        SpliceRuntimeContext spliceLRuntimeContext = runtimeContext.copy();
+        spliceLRuntimeContext.addLeftRuntimeContext(resultSetNumber);
+        spliceLRuntimeContext.setStatementInfo(runtimeContext.getStatementInfo());
+        SpliceRuntimeContext spliceRRuntimeContext = runtimeContext.copy();
+        spliceRRuntimeContext.addRightRuntimeContext(resultSetNumber);
+        spliceRRuntimeContext.setStatementInfo(runtimeContext.getStatementInfo());
+
+        JavaPairRDD<ExecRow, ExecRow> leftRDD = RDDUtils.getKeyedRDD(leftResultSet.getRDD(spliceLRuntimeContext, leftResultSet), leftHashKeys);
+        JavaPairRDD<ExecRow, ExecRow> rightRDD = RDDUtils.getKeyedRDD(rightResultSet.getRDD(spliceRRuntimeContext, rightResultSet), rightHashKeys);
+
+        final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this, runtimeContext);
+        return joinRDDs(leftRDD, rightRDD, soi)
+//                .cache().sortByKey(new RowComparator())
+                .values().map(new SetupActivation(this, soi));
+    }
+
+    protected JavaPairRDD<ExecRow, ExecRow> joinRDDs(JavaPairRDD<ExecRow, ExecRow> leftRDD,
+                                                     JavaPairRDD<ExecRow, ExecRow> rightRDD,
+                                                     SpliceObserverInstructions soi) {
+        boolean outer = isOuter();
+        return leftRDD.cogroup(rightRDD).flatMapValues(new SparkJoiner(this, soi, outer));
+    }
+
+    protected boolean isOuter() {
+        return false;
+    }
+
+    private static final class SparkJoiner extends SparkOperation<MergeSortJoinOperation, Tuple2<Iterable<ExecRow>, Iterable<ExecRow>>, Iterable<ExecRow>> {
+        boolean outer;
+        SpliceRuntimeContext context;
+
+        public SparkJoiner() {
+        }
+
+        public SparkJoiner(MergeSortJoinOperation spliceOperation, SpliceObserverInstructions soi, boolean outer) {
+            super(spliceOperation, soi);
+            this.outer = outer;
+            this.context = new SpliceRuntimeContext();
+        }
+
+        @Override
+        public Iterable<ExecRow> call(Tuple2<Iterable<ExecRow>, Iterable<ExecRow>> source) throws Exception {
+            List<ExecRow> results = new ArrayList<ExecRow>();
+            if (RDDUtils.LOG.isDebugEnabled()) {
+                RDDUtils.LOG.debug("Matching " + source._1() + " with " + source._2());
+            }
+            Joiner joiner = createSparkMergeJoiner(outer, source);
+            joiner.open();
+            ExecRow row;
+            while ((row = joiner.nextRow(context)) != null) {
+                results.add(row.getClone());
+            }
+            return results;
+        }
+
+        private Joiner createSparkMergeJoiner(boolean outer, Tuple2<Iterable<ExecRow>, Iterable<ExecRow>> source) {
+            SparkMergeSortJoinRows joinRows = new SparkMergeSortJoinRows(source);
+
+            SpliceLogUtils.debug(LOG, ">>>     MergeSortJoin Getting MergeSortJoiner for ",(outer ? "" : "non "),"outer join");
+            StandardSupplier<ExecRow> emptyRowSupplier = new StandardSupplier<ExecRow>() {
+                @Override
+                public ExecRow get() throws StandardException {
+                    return op.getEmptyRow();
+                }
+            };
+            return new Joiner(joinRows, op.mergedRow, outer, op.wasRightOuterJoin, op.leftNumCols, op.rightNumCols,
+                    op.oneRowRightSide, op.notExistsRightSide, emptyRowSupplier, new SpliceRuntimeContext());
+        }
+
+        @Override
+        public void writeExternal(ObjectOutput out) throws IOException {
+            super.writeExternal(out);
+            out.writeBoolean(outer);
+        }
+
+        @Override
+        public void readExternalInContext(ObjectInput in) throws IOException, ClassNotFoundException {
+            outer = in.readBoolean();
+            context = new SpliceRuntimeContext();
+        }
+    }
+
+    private class RowComparator implements Comparator<ExecRow>, Serializable {
+
+        private static final long serialVersionUID = -7005014411999208729L;
+//        private boolean[] descColumns; //descColumns[i] = false => column[i] sorted descending, else sorted ascending
+
+        public RowComparator() {
+//            this.descColumns = descColumns;
+        }
+
+        @Override
+        public int compare(ExecRow o1, ExecRow o2) {
+            DataValueDescriptor[] a1 = o1.getRowArray();
+            DataValueDescriptor[] a2 = o2.getRowArray();
+            for (int i = 0; i < a1.length; ++i) {
+                DataValueDescriptor c1 = a1[i];
+                DataValueDescriptor c2 = a2[i];
+                int result;
+                try {
+                    result = c1.compare(c2);
+                } catch (StandardException e) {
+                    throw new RuntimeException(e);
+                }
+                if (result != 0) {
+                    return result;
+                }
+            }
+            return 0;
+        }
+
+    }
+
+    private static class SetupActivation extends SparkOperation<MergeSortJoinOperation, ExecRow, ExecRow> {
+        public SetupActivation() {
+        }
+
+        public SetupActivation(MergeSortJoinOperation spliceOperation, SpliceObserverInstructions soi) {
+            super(spliceOperation, soi);
+        }
+
+        @Override
+        public ExecRow call(ExecRow execRow) throws Exception {
+            op.setCurrentRow(execRow);
+            return execRow;
+        }
+    }
 }

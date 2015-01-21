@@ -1,11 +1,15 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.google.common.collect.Lists;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.spark.RDDUtils;
+import com.splicemachine.derby.impl.spark.SpliceSpark;
+import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.scalar.ScalarAggregateScan;
 import com.splicemachine.derby.impl.sql.execute.operations.scalar.ScalarAggregator;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
@@ -24,8 +28,11 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.execute.ExecIndexRow;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.impl.sql.execute.IndexValueRow;
 import org.apache.log4j.Logger;
+import org.apache.spark.api.java.JavaRDD;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -290,4 +297,81 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 				return "Scalar"+super.prettyPrint(indentLevel);
 		}
 
+
+    @Override
+    public boolean providesRDD() {
+        return ((SpliceOperation) source).providesRDD();
+    }
+
+    @Override
+    public JavaRDD<ExecRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+        JavaRDD<ExecRow> rdd = source.getRDD(spliceRuntimeContext, this);
+        final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this, spliceRuntimeContext);
+
+        ExecRow result = rdd.fold(null, new SparkAggregator(this, soi));
+        if (result == null) {
+            return SpliceSpark.getContext().parallelize(Lists.newArrayList(getExecRowDefinition()));
+        }
+
+        if (!(result instanceof ExecIndexRow)) {
+            sourceExecIndexRow.execRowToExecIndexRow(result);
+            initializeVectorAggregation(result);
+        }
+        finishAggregation(result);
+        return SpliceSpark.getContext().parallelize(Lists.newArrayList(result));
+    }
+
+    private static final class SparkAggregator extends SparkOperation2<ScalarAggregateOperation, ExecRow, ExecRow, ExecRow> {
+        private static final long serialVersionUID = -4150499166764796082L;
+
+
+        public SparkAggregator() {
+        }
+
+        public SparkAggregator(ScalarAggregateOperation spliceOperation, SpliceObserverInstructions soi) {
+            super(spliceOperation, soi);
+        }
+
+        @Override
+        public ExecRow call(ExecRow t1, ExecRow t2) throws Exception {
+            if (t2 == null) {
+                return t1;
+            }
+            if (t1 == null) {
+                return t2;
+            }
+            if (RDDUtils.LOG.isDebugEnabled()) {
+                RDDUtils.LOG.debug(String.format("Reducing %s and %s", t1, t2));
+            }
+            if (!(t1 instanceof ExecIndexRow)) {
+                t1 = new IndexValueRow(t1);
+            }
+            if (!op.isInitialized(t1)) {
+                op.initializeVectorAggregation(t1);
+            }
+            aggregate(t2, (ExecIndexRow) t1);
+            return t1;
+        }
+
+        private void aggregate(ExecRow next, ExecIndexRow agg) throws StandardException {
+            if (next instanceof ExecIndexRow) {
+                if (RDDUtils.LOG.isDebugEnabled()) {
+                    RDDUtils.LOG.debug(String.format("Merging %s with %s", next, agg));
+                }
+                for (SpliceGenericAggregator aggregate : op.aggregates) {
+                    aggregate.merge(next, agg);
+                }
+            } else {
+                next = new IndexValueRow(next);
+                if (RDDUtils.LOG.isDebugEnabled()) {
+                    RDDUtils.LOG.debug(String.format("Aggregating %s to %s", next, agg));
+                }
+                for (SpliceGenericAggregator aggregate : op.aggregates) {
+//					aggregate.initialize(next);
+                    aggregate.accumulate(next, agg);
+                }
+            }
+        }
+
+    }
 }

@@ -1,10 +1,12 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.hbase.*;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.spark.RDDUtils;
+import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.impl.storage.AsyncClientScanProvider;
@@ -30,9 +32,21 @@ import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
 import org.apache.derby.iapi.types.RowLocation;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
+import org.apache.hadoop.hbase.mapreduce.ScanUtil;
+import org.apache.hadoop.hbase.mapreduce.TableInputFormat;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.JavaSparkContext;
+import scala.Tuple2;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -42,6 +56,7 @@ import java.util.List;
 import java.util.Properties;
 
 public class TableScanOperation extends ScanOperation {
+        protected static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
 		private static final long serialVersionUID = 3l;
 
 		private static Logger LOG = Logger.getLogger(TableScanOperation.class);
@@ -364,4 +379,75 @@ public class TableScanOperation extends ScanOperation {
 				}
 				return cols;
 		}
+
+        @Override
+        public boolean providesRDD() {
+            return SpliceSpark.sparkActive() &&  Integer.parseInt(tableName) > 1169;
+        }
+
+        @Override
+        public JavaRDD<ExecRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+            Scan scan = getNonSIScan(spliceRuntimeContext);
+            SpliceUtils.setInstructions(scan, activation, top, spliceRuntimeContext);
+            scan.setAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_CACHING, Bytes.toBytes(4096));
+            JavaSparkContext ctx = SpliceSpark.getContext();
+            Configuration conf = HBaseConfiguration.create();
+            conf.set(TableInputFormat.INPUT_TABLE, tableName);
+            try {
+                conf.set(TableInputFormat.SCAN, ScanUtil.convert(scan));
+            } catch (IOException e) {
+                LOG.error("Error while setting up scan", e);
+                throw Exceptions.parseException(e);
+            }
+
+            JavaPairRDD<ImmutableBytesWritable, Result> rawRDD = ctx.newAPIHadoopRDD(conf, TableInputFormat.class,
+                    ImmutableBytesWritable.class, Result.class);
+            SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, top, spliceRuntimeContext);
+            return rawRDD.map(new SparkDecoder(this, soi, top));
+        }
+
+        private static final class SparkDecoder extends SparkOperation<TableScanOperation, Tuple2<ImmutableBytesWritable, Result>, ExecRow> {
+            private SpliceOperation top;
+            private KeyHashDecoder decoder;
+            private static final long serialVersionUID = 3958079974858059941L;
+            transient ExecRow template;
+
+            public SparkDecoder() {
+            }
+
+            public SparkDecoder(TableScanOperation tableScanOperation, SpliceObserverInstructions soi, SpliceOperation top) {
+                super(tableScanOperation, soi);
+                this.top = top;
+            }
+
+            @Override
+            public void readExternalInContext(ObjectInput in) throws IOException, ClassNotFoundException {
+                top = (SpliceOperation) in.readObject();
+                try {
+                    top.init(context);
+                    template = top.getExecRowDefinition();
+                    int[] rowColumns = IntArrays.count(template.nColumns());
+                    DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(template);
+                    decoder = BareKeyHash.decoder(rowColumns, null, serializers);
+                } catch (StandardException e) {
+                    LOG.error("Error while generating decoder", e);
+                    throw new RuntimeException(e);
+                }
+            }
+
+            @Override
+            public void writeExternal(ObjectOutput out) throws IOException {
+                super.writeExternal(out);
+                out.writeObject(top);
+            }
+
+            @Override
+            public ExecRow call(Tuple2<ImmutableBytesWritable, Result> t) throws Exception {
+                ExecRow row = derbyFactory.getSparkUtils().decode(template, decoder, t._2());
+                if (RDDUtils.LOG.isDebugEnabled()) {
+                    RDDUtils.LOG.debug("Returning row: " + row + " with id " + System.identityHashCode(row));
+                }
+                return row;
+            }
+        }
 }

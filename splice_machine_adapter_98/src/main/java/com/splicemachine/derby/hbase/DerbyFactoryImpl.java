@@ -9,6 +9,7 @@ import com.splicemachine.derby.impl.job.scheduler.JobControl;
 import com.splicemachine.derby.impl.job.scheduler.JobMetrics;
 import com.splicemachine.derby.impl.sql.execute.DropIndexConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.SkippingScanFilter;
+import com.splicemachine.derby.impl.sql.execute.operations.SparkUtilsImpl;
 import com.splicemachine.derby.impl.store.access.base.SpliceGenericCostController;
 import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -432,4 +433,10 @@ public class DerbyFactoryImpl implements DerbyFactory<TxnMessage.TxnInfo> {
 		public ExceptionTranslator getExceptionHandler() {
 				return Hbase98ExceptionTranslator.INSTANCE;
 		}
+
+        @Override
+        public SparkUtils getSparkUtils() {
+            return new SparkUtilsImpl();
+        }
+
 }

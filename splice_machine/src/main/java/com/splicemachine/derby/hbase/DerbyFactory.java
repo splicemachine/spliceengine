@@ -69,4 +69,5 @@ public interface DerbyFactory<Transaction> {
 
 		ExceptionTranslator getExceptionHandler();
 
+        SparkUtils getSparkUtils();
 }
