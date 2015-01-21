@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.derby.impl.sql.execute.IndexValueRow;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.GroupedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.GroupedAggregateBuffer;
@@ -17,6 +16,7 @@ import org.apache.derby.iapi.types.SQLInteger;
 import org.apache.derby.iapi.types.UserType;
 import org.apache.derby.impl.sql.execute.AggregatorInfo;
 import org.apache.derby.impl.sql.execute.CountAggregator;
+import org.apache.derby.impl.sql.execute.IndexValueRow;
 import org.apache.derby.impl.sql.execute.ValueRow;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
