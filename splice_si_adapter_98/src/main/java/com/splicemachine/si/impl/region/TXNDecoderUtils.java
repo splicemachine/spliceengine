@@ -17,6 +17,8 @@ public class TXNDecoderUtils {
         if(destinationTables!=null){
             destTableBuffer = ZeroCopyLiteralByteString.wrap(CellUtil.cloneValue(destinationTables));
         }
+        if (level == null)
+        	level = Txn.IsolationLevel.SNAPSHOT_ISOLATION;
         TxnMessage.TxnInfo.Builder info = TxnMessage.TxnInfo.newBuilder().setIsolationLevel(level.encode())
         		.setTxnId(txnId).setBeginTs(beginTs).setParentTxnid(parentTs);
         if (destTableBuffer !=null)
