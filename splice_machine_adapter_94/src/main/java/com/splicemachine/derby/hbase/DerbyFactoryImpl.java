@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
 
+import com.splicemachine.derby.impl.sql.execute.operations.SparkUtilsImpl;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.iapi.error.StandardException;
@@ -458,5 +459,8 @@ public class DerbyFactoryImpl implements DerbyFactory<SparseTxn> {
 			return new ServerName(serverName);
 		}
 
-
+        @Override
+        public SparkUtils getSparkUtils() {
+            return new SparkUtilsImpl();
+        }
 }

@@ -16,6 +16,7 @@ import com.splicemachine.pipeline.exception.Exceptions;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.spark.api.java.JavaRDD;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -247,4 +248,22 @@ public class UnionOperation extends SpliceBaseOperation {
 				return firstResultSet.isReferencingTable(tableNumber) || secondResultSet.isReferencingTable(tableNumber);
 
 		}
+
+    @Override
+    public boolean providesRDD() {
+        return firstResultSet.providesRDD() && secondResultSet.providesRDD();
+    }
+
+    public JavaRDD<ExecRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+        SpliceRuntimeContext left = spliceRuntimeContext.copy();
+        SpliceRuntimeContext right = spliceRuntimeContext.copy();
+        left.addPath(resultSetNumber, SpliceRuntimeContext.Side.LEFT);
+        right.addPath(resultSetNumber, SpliceRuntimeContext.Side.RIGHT);
+        JavaRDD<ExecRow> firstRDD = firstResultSet.getRDD(spliceRuntimeContext, top);
+        JavaRDD<ExecRow> secondRDD = secondResultSet.getRDD(spliceRuntimeContext, top);
+
+        JavaRDD<ExecRow> result = firstRDD.union(secondRDD);
+//        RDDUtils.printRDD("Union result", result);
+        return result;
+    }
 }
