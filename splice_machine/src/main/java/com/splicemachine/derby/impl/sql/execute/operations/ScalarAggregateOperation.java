@@ -9,7 +9,6 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.spark.RDDUtils;
 import com.splicemachine.derby.impl.spark.SpliceSpark;
-import com.splicemachine.derby.impl.sql.execute.IndexValueRow;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.scalar.ScalarAggregateScan;
 import com.splicemachine.derby.impl.sql.execute.operations.scalar.ScalarAggregator;
@@ -31,6 +30,7 @@ import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.impl.sql.execute.IndexValueRow;
 import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaRDD;
 

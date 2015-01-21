@@ -65,9 +65,12 @@ public class SpliceSpark {
             if (!spliceStaticComponentsSetup) {
                 new EmbeddedDriver();
                 new SpliceAccessManager();
-                SpliceDriver.driver().start(null); // TODO might cause NPEs....
-                if (SpliceDriver.driver().getUUIDGenerator() == null) {
-                    SpliceDriver.driver().loadUUIDGenerator();
+                SpliceDriver driver = SpliceDriver.driver();
+                if (!driver.isStarted()) {
+                    driver.start(null); // TODO might cause NPEs....
+                }
+                if (driver.getUUIDGenerator() == null) {
+                    driver.loadUUIDGenerator();
                 }
                 spliceStaticComponentsSetup = true;
             }
