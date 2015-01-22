@@ -427,6 +427,53 @@ public class ForeignKey_Check_Insert_IT {
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     //
+    // multiple FK per table
+    //
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @Test
+    public void multipleForeignKeysOnChildTable() throws Exception {
+
+        new TableCreator(connection())
+                .withCreate("create table P (a varchar(9), b float, c double, d int, e bigint, " +
+                        "CONSTRAINT u1 UNIQUE(a), CONSTRAINT u2 UNIQUE(b), CONSTRAINT u3 UNIQUE(c), CONSTRAINT u4 UNIQUE(d), CONSTRAINT u5 UNIQUE(e))")
+                .withInsert("insert into P values(?,?,?,?,?)")
+                .withRows(rows(
+                        row("aaa", 1.0f, 3.2d, 3, 6L),
+                        row("bbb", 6.2f, 6.4d, 6, 12L)
+                ))
+                .create();
+
+        new TableCreator(connection())
+                .withCreate("create table C (a varchar(9), b float, c double, d int, e bigint," +
+                        "CONSTRAINT fk1 FOREIGN KEY(a) REFERENCES P(a)," +
+                        "CONSTRAINT fk2 FOREIGN KEY(b) REFERENCES P(b)," +
+                        "CONSTRAINT fk3 FOREIGN KEY(c) REFERENCES P(c)," +
+                        "CONSTRAINT fk4 FOREIGN KEY(d) REFERENCES P(d)," +
+                        "CONSTRAINT fk5 FOREIGN KEY(e) REFERENCES P(e)" +
+                        ")")
+                .withInsert("insert into C values(?,?,?,?,?)")
+                .withRows(rows(
+                        row("aaa", 1.0f, 3.2d, 3, 6L),
+                        row("bbb", 6.2f, 6.4d, 6, 12L)
+                ))
+                .create();
+
+        // Just asserting that we were able to insert into child non-matching rows with null in FK-cols.
+        assertEquals(2L, methodWatcher.query("select count(*) from C"));
+
+        // this works
+        methodWatcher.getStatement().execute("insert into C values ('aaa', 1.0, 3.2, 3, 6)");
+
+        assertInsertFail("insert into C values ('ZZZ', 1.0, 3.2, 3, 6)", "INSERT on table 'C' caused a violation of foreign key constraint 'FK1' for key (A).  The statement has been rolled back.");
+        assertInsertFail("insert into C values ('aaa', -1.0, 3.2, 3, 6)", "INSERT on table 'C' caused a violation of foreign key constraint 'FK2' for key (B).  The statement has been rolled back.");
+        assertInsertFail("insert into C values ('aaa', 1.0, -3.2, 3, 6)", "INSERT on table 'C' caused a violation of foreign key constraint 'FK3' for key (C).  The statement has been rolled back.");
+        assertInsertFail("insert into C values ('aaa', 1.0, 3.2, -3, 6)", "INSERT on table 'C' caused a violation of foreign key constraint 'FK4' for key (D).  The statement has been rolled back.");
+        assertInsertFail("insert into C values ('aaa', 1.0, 3.2, 3, -6)", "INSERT on table 'C' caused a violation of foreign key constraint 'FK5' for key (E).  The statement has been rolled back.");
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    //
     // helper methods
     //
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

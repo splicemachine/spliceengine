@@ -276,6 +276,7 @@ public class MultiFieldDecoder {
         return value;
     }
 
+    /* Sets currentOffset to beginning of next field, returns change in offset. */
     public int skip() {
         //read out raw bytes, and throw them away
         if(!available())
@@ -330,6 +331,7 @@ public class MultiFieldDecoder {
         return !available() || check2ByteNull(Encoding.encodedNullFloat());
     }
 
+    /* Sets currentOffset to beginning of next field, returns change in offset. */
     public int skipDouble() {
         if(!available()) return 0;
         int offset = currentOffset;
@@ -343,6 +345,7 @@ public class MultiFieldDecoder {
         return currentOffset-offset;
     }
 
+    /* Sets currentOffset to beginning of next field, returns change in offset. */
     public int skipFloat(){
         if(!available()) return 0;
         int offset = currentOffset;
@@ -355,17 +358,19 @@ public class MultiFieldDecoder {
         }
         return currentOffset-offset;
     }
-    
+
+    /* Sets currentOffset to beginning of next field, returns change in offset. */
     public int skipLong() {
-        if(!available())
+        if (!available())
             return 0;
-        if(currentOffset>=0 &&data[currentOffset]==0x00){
+        int offset = currentOffset;
+        if (currentOffset >= 0 && data[currentOffset] == 0x00) {
             currentOffset++;
             return 0;
         }
         int i = ScalarEncoding.toLongLength(data, currentOffset, false);
-        currentOffset+=i+1;        	
-        return i;
+        currentOffset += i + 1;
+        return currentOffset - offset;
     }
 
 /*********************************************************************************************************************/

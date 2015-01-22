@@ -210,4 +210,27 @@ public class MultiFieldDecoderTest {
         assertEquals(v, v1, Math.pow(10, -6));
         assertEquals("goodbye", goodbye);
     }
+
+    @Test
+    public void testThat_skipLong_skipFloat_skipDouble_returnCorrectOffsetDelta() {
+        MultiFieldEncoder encoder = MultiFieldEncoder.create(7);
+        encoder.encodeNext("a");
+        encoder.encodeNext(123_456_789_012L); // encoded as 6 bytes
+        encoder.encodeNext(1L);               // encoded as 1 byte
+        encoder.encodeNext("a");
+        encoder.encodeNext(3.14159f);
+        encoder.encodeNext("a");
+        encoder.encodeNext(3.14159d);
+        byte[] bytes = encoder.build();
+
+        MultiFieldDecoder decoder = MultiFieldDecoder.wrap(bytes);
+        assertEquals(2, decoder.skip());
+        assertEquals(7, decoder.skipLong());
+        assertEquals(2, decoder.skipLong());
+        assertEquals(2, decoder.skip());
+        assertEquals(5, decoder.skipFloat());
+        assertEquals(2, decoder.skip());
+        assertEquals(9, decoder.skipDouble());
+    }
+
 }
