@@ -15,6 +15,14 @@ public class ScalarEncoding_FixedTest {
     private BitFormat bitFormat = new BitFormat(false);
 
     @Test
+    public void testLongWithEncodingThatContainsZeroByte() {
+        byte[] bytes = ScalarEncoding.toBytes(-9219236770852362184L, false);
+        assertEquals("[4, -128, 14, -79, 0, -91, 32, 40, 56]", Arrays.toString(bytes));
+        long orig = ScalarEncoding.toLong(bytes, false);
+        assertEquals(-9219236770852362184L, orig);
+    }
+
+    @Test
     public void testEncodeDecodeInteger() throws Exception {
         byte[] data = new byte[]{(byte) 0xE0, (byte) 0x47, (byte) 0x66};
         int val = Encoding.decodeInt(data);

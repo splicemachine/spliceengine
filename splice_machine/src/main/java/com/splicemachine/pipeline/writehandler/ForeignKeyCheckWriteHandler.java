@@ -23,20 +23,19 @@ import java.util.List;
  */
 public class ForeignKeyCheckWriteHandler implements WriteHandler {
 
-    private TransactionalRegion region;
-    private TxnOperationFactory txnOperationFactory;
-    private RegionCoprocessorEnvironment env;
+    private final TransactionalRegion region;
+    private final TxnOperationFactory txnOperationFactory;
+    private final RegionCoprocessorEnvironment env;
 
     /* FormatIds of just the FK columns. */
-    private int formatIds[];
-    private MultiFieldDecoder multiFieldDecoder;
+    private final int formatIds[];
+    private final MultiFieldDecoder multiFieldDecoder;
 
     public ForeignKeyCheckWriteHandler(TransactionalRegion region, RegionCoprocessorEnvironment env, int[] formatIds) {
         this.region = region;
         this.env = env;
         this.formatIds = formatIds;
         this.txnOperationFactory = TransactionOperations.getOperationFactory();
-
         this.multiFieldDecoder = MultiFieldDecoder.create();
     }
 
@@ -123,6 +122,8 @@ public class ForeignKeyCheckWriteHandler implements WriteHandler {
                 position += multiFieldDecoder.skipDouble();
             } else if (formatIds[i] == StoredFormatIds.SQL_REAL_ID) {
                 position += multiFieldDecoder.skipFloat();
+            } else if (formatIds[i] == StoredFormatIds.SQL_LONGINT_ID) {
+                position += multiFieldDecoder.skipLong();
             } else {
                 position += multiFieldDecoder.skip();
             }
