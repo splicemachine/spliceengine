@@ -5,40 +5,12 @@ import org.apache.hadoop.hbase.DoNotRetryIOException;
 /**
  * Indicates a Constraint Violation
  *
- * TODO -sf- this isn't a very clean implementation
  * @author Scott Fines
  * Created on: 3/1/13
  */
-public class ConstraintViolation extends DoNotRetryIOException {
+public final class ConstraintViolation {
 
-    private final Constraint.Type type;
-
-    private ConstraintViolation(Constraint.Type type){
-        super();
-       this.type = type;
-    }
-
-    private ConstraintViolation(Constraint.Type type, String message) {
-        super(message);
-        this.type = type;
-    }
-
-    private ConstraintViolation(Constraint.Type type, String message, Throwable cause ) {
-        super(message, cause);
-        this.type = type;
-    }
-
-    public Constraint.Type getType() {return type;}
-
-    public static ConstraintViolation failedSetup(String tableName){
-        return new ConstraintViolation(Constraint.Type.NONE,
-                "Failed to set up index management for table "+ tableName);
-    }
-
-    public static ConstraintViolation shutdown(String tableName){
-        return new ConstraintViolation(Constraint.Type.NONE,
-                "Index management for table "+ tableName+ " has been shutdown");
-    }
+    private ConstraintViolation() {}
 
     public static DoNotRetryIOException create(Constraint.Type type, ConstraintContext constraintContext) {
         switch (type) {
@@ -73,9 +45,7 @@ public class ConstraintViolation extends DoNotRetryIOException {
     }
 
     public static class PrimaryKeyViolation extends ConstraintViolationException{
-        /**
-         * Used for serialization, DO NOT USE
-         */
+        /* Used for serialization, DO NOT USE */
         @Deprecated
         public PrimaryKeyViolation() { super(); }
         public PrimaryKeyViolation(String message) { super(message); }
@@ -89,9 +59,7 @@ public class ConstraintViolation extends DoNotRetryIOException {
     }
 
     public static class UniqueConstraintViolation extends ConstraintViolationException{
-        /**
-         * Used for serialization, DO NOT USE
-         */
+        /* Used for serialization, DO NOT USE */
         @Deprecated
         public UniqueConstraintViolation() {super(); }
         public UniqueConstraintViolation(String message) { super(message); }

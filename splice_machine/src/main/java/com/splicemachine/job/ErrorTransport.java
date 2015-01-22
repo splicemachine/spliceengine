@@ -1,5 +1,8 @@
 package com.splicemachine.job;
 
+import com.splicemachine.pipeline.constraint.ConstraintContext;
+import com.splicemachine.pipeline.constraint.ConstraintViolation;
+import com.splicemachine.pipeline.constraint.Constraints;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.commons.lang.ArrayUtils;
@@ -79,6 +82,12 @@ public class ErrorTransport implements Externalizable {
         if (LOG.isTraceEnabled()) {
             SpliceLogUtils.trace(LOG, "New Throwable  %s", t.getClass());
         }
+        if(t instanceof ConstraintViolation.ConstraintViolationException) {
+            // Have to convert ConstraintViolationException to StandardException before sending over the wire, otherwise
+            // will lose information critical for end-user error message.
+            StandardException se = Exceptions.toStandardException((ConstraintViolation.ConstraintViolationException) t);
+            return newTransport(se);
+        }
         t = Exceptions.getRootCause(t);
         if (t instanceof StandardException) {
             return newTransport((StandardException) t);
@@ -125,22 +134,7 @@ public class ErrorTransport implements Externalizable {
 
             /* no-arg constructor */
             return errorClazz.newInstance();
-//            constructor = errorClazz.newInstance();ConstructorUtils.getAccessibleConstructor(errorClazz, ArrayUtils.EMPTY_CLASS_ARRAY);
-//            if (constructor != null) {
-//                return (Throwable) ConstructorUtils.invokeConstructor(errorClazz, ArrayUtils.EMPTY_OBJECT_ARRAY);
-//            }
-//
-//            throw new IllegalArgumentException("Could not find valid constructor for class = " + args[0]);
-
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
-        } catch (InvocationTargetException e) {
-            throw new RuntimeException(e);
-        } catch (NoSuchMethodException e) {
-            throw new RuntimeException(e);
-        } catch (InstantiationException e) {
-            throw new RuntimeException(e);
-        } catch (IllegalAccessException e) {
+        } catch (ClassNotFoundException | InvocationTargetException | NoSuchMethodException | InstantiationException | IllegalAccessException e) {
             throw new RuntimeException(e);
         }
     }

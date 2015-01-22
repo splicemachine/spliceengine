@@ -52,7 +52,7 @@ public class ConstraintContext implements Externalizable {
         String constraintName = fkConstraintDesc.getConstraintName();
         ColumnDescriptorList columnDescriptors = fkConstraintDesc.getColumnDescriptors();
         String columnNames = Joiner.on(",").join(Lists.transform(columnDescriptors, new ColumnDescriptorNameFunction()));
-        return new ConstraintContext(constraintName, tableName, "INSERT", "(" + columnNames + ")");
+        return new ConstraintContext(constraintName, tableName, "Operation", "(" + columnNames + ")");
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -62,8 +62,8 @@ public class ConstraintContext implements Externalizable {
     public ConstraintContext() {
     }
 
-    /* private: Use factory methods above instead for clarity */
-    private ConstraintContext(String... messageArgs) {
+    /* Use factory methods above instead for clarity */
+    public ConstraintContext(String... messageArgs) {
         this.messageArgs = messageArgs;
     }
 

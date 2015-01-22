@@ -36,34 +36,28 @@ import java.util.List;
  *         Created on: 3/5/13
  */
 public class Exceptions {
+
     private static final Logger LOG = Logger.getLogger(Exceptions.class);
-    private static final Gson gson;
+    private static final Gson gson = new GsonBuilder().registerTypeAdapter(StandardException.class,new StandardExceptionAdapter()).create();
     private static final String OPEN_BRACE = "{";
     private static final String CLOSE_BRACE="}";
-
-    static{
-        GsonBuilder gsonBuilder = new GsonBuilder().registerTypeAdapter(StandardException.class,new StandardExceptionAdapter());
-        gson = gsonBuilder.create();
-    }
 
     private static final String COLON = ":";
 
     private Exceptions(){} //can't make me
 
-    public static StandardException parseException(Throwable e){
+    public static StandardException parseException(Throwable e) {
         Throwable rootCause = Throwables.getRootCause(e);
-        if(rootCause instanceof StandardException) return (StandardException)rootCause;
-
-        if(rootCause instanceof RetriesExhaustedWithDetailsException){
-            return parseException((RetriesExhaustedWithDetailsException)rootCause);
-        }else if(rootCause instanceof ConstraintViolation.PrimaryKeyViolation
-                || rootCause instanceof ConstraintViolation.UniqueConstraintViolation){
-            return createStandardExceptionForConstraintError(SQLState.LANG_DUPLICATE_KEY_CONSTRAINT, (ConstraintViolation.ConstraintViolationException) e);
-        } else if(rootCause instanceof ConstraintViolation.ForeignKeyConstraintViolation) {
-            return createStandardExceptionForConstraintError(SQLState.LANG_FK_VIOLATION, (ConstraintViolation.ConstraintViolationException) rootCause);
+        if (rootCause instanceof StandardException) {
+            return (StandardException) rootCause;
         }
-        else if (rootCause instanceof com.splicemachine.async.RemoteException){
-            com.splicemachine.async.RemoteException re = (com.splicemachine.async.RemoteException)rootCause;
+
+        if (rootCause instanceof RetriesExhaustedWithDetailsException) {
+            return parseException((RetriesExhaustedWithDetailsException) rootCause);
+        } else if (rootCause instanceof ConstraintViolation.ConstraintViolationException) {
+            return toStandardException((ConstraintViolation.ConstraintViolationException) rootCause);
+        } else if (rootCause instanceof com.splicemachine.async.RemoteException) {
+            com.splicemachine.async.RemoteException re = (com.splicemachine.async.RemoteException) rootCause;
             String fullMessage = re.getMessage();
             String type = re.getType();
             try{
@@ -112,8 +106,6 @@ public class Exceptions {
 						}
         } else if(rootCause instanceof SpliceStandardException){
             return ((SpliceStandardException)rootCause).generateStandardException();
-        } else if(rootCause instanceof com.splicemachine.async.RemoteException){
-            return parseException(getRemoteIOException((com.splicemachine.async.RemoteException)rootCause));
         }else if(rootCause instanceof RemoteException){
             rootCause = ((RemoteException)rootCause).unwrapRemoteException();
         }
@@ -143,18 +135,21 @@ public class Exceptions {
         return state != ErrorState.DATA_UNEXPECTED_EXCEPTION;
     }
 
-    public static StandardException createStandardExceptionForConstraintError(String errorCode, ConstraintViolation.ConstraintViolationException e){
-
-        ConstraintContext cc = e.getConstraintContext();
-        StandardException newException;
-
-        if(cc != null){
-            newException = StandardException.newException(errorCode, cc.getMessages());
-        }else{
-            newException = StandardException.newException(errorCode);
+    public static StandardException toStandardException(ConstraintViolation.ConstraintViolationException violationException) {
+        String errorCode;
+        if (violationException instanceof ConstraintViolation.PrimaryKeyViolation || violationException instanceof ConstraintViolation.UniqueConstraintViolation) {
+            errorCode = SQLState.LANG_DUPLICATE_KEY_CONSTRAINT;
+        } else if (violationException instanceof ConstraintViolation.ForeignKeyConstraintViolation) {
+            errorCode = SQLState.LANG_FK_VIOLATION;
+        } else {
+            throw new IllegalStateException("wasn't expecting: " + violationException.getClass().getSimpleName());
         }
-
-        return newException;
+        ConstraintContext cc = violationException.getConstraintContext();
+        if (cc != null) {
+            return StandardException.newException(errorCode, cc.getMessages());
+        } else {
+            return StandardException.newException(errorCode);
+        }
     }
 
     public static IOException getIOException(StandardException se){
@@ -315,15 +310,6 @@ public class Exceptions {
                 }
                 out.endArray();
             }
-
-            //TODO -sf- add a Throwable-only constructor to StandardException
-//            Throwable cause = value.getCause();
-//            if(cause==null||cause == value)
-//                out.name("cause").nullValue();
-//            else{
-//                out.name("cause");
-//                gson.toJson(cause, cause.getClass(), out);
-//            }
             out.endObject();
         }
 
@@ -359,12 +345,6 @@ public class Exceptions {
                 }
             }
 
-//            Throwable cause;
-//            in.nextName();
-//            if(in.peek()== JsonToken.NULL)
-//                in.nextNull();
-//            else
-//                cause = gson.fromJson(in,Throwable.class);
             in.endObject();
 
             StandardException se;
