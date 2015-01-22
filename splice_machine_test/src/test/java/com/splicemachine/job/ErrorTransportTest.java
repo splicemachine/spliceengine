@@ -1,5 +1,7 @@
 package com.splicemachine.job;
 
+import com.splicemachine.pipeline.constraint.ConstraintContext;
+import com.splicemachine.pipeline.constraint.ConstraintViolation;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.junit.Test;
@@ -54,6 +56,25 @@ public class ErrorTransportTest {
     }
 
     @Test
+    public void constraintViolation() throws Exception {
+        // given
+        ConstraintContext constraintContext = new ConstraintContext("a", "b", "c", "d");
+        Exception origException = new ConstraintViolation.ForeignKeyConstraintViolation(constraintContext);
+        ErrorTransport origTransport = ErrorTransport.newTransport(origException);
+        assertEquals(StandardException.class, origTransport.getError().getClass());
+        assertFalse(origTransport.shouldRetry());
+
+        // when
+        ErrorTransport transportRoundTrip = serializeAndDeserialize(origTransport);
+
+        // then
+        StandardException exceptionRoundTrip = (StandardException) transportRoundTrip.getError();
+        assertEquals("c on table 'b' caused a violation of foreign key constraint 'a' for key d.  The statement has been rolled back.", exceptionRoundTrip.getMessage());
+        assertFalse(transportRoundTrip.shouldRetry());
+    }
+
+
+    @Test
     public void arbitraryThrowable() throws Exception {
         // given
         Exception origException = new IllegalStateException("testMessage");
@@ -106,16 +127,15 @@ public class ErrorTransportTest {
     }
 
     @Test
-    @Ignore("Ignored until I figure out what this does")
-    public void arbitraryThrowable_withoutNoPublicConstructor() throws Exception {
+    public void arbitraryThrowable_withoutPublicConstructor() throws Exception {
         // given
         Exception origException = new NoPublicConstructor();
         ErrorTransport origTransport = ErrorTransport.newTransport(origException);
         try {
             origTransport.getError().getClass();
             fail();
-        } catch (IllegalArgumentException e) {
-            assertEquals("Could not find valid constructor for class = com.splicemachine.job.ErrorTransportTest$NoPublicConstructor", e.getMessage());
+        } catch (RuntimeException e) {
+            assertEquals("java.lang.IllegalAccessException: Class com.splicemachine.job.ErrorTransport can not access a member of class com.splicemachine.job.ErrorTransportTest$NoPublicConstructor with modifiers \"private\"", e.getMessage());
         }
     }
 

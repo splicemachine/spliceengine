@@ -8,7 +8,6 @@ import com.splicemachine.pipeline.api.WriteHandler;
 import com.splicemachine.pipeline.constraint.ConstraintContext;
 import com.splicemachine.pipeline.constraint.ConstraintViolation;
 import com.splicemachine.pipeline.impl.WriteCoordinator;
-import com.splicemachine.pipeline.impl.WriteFailedException;
 import com.splicemachine.pipeline.impl.WriteResult;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
@@ -40,15 +39,23 @@ public class ForeignKeyInterceptWriteHandler implements WriteHandler {
 
     @Override
     public void next(KVPair mutation, WriteContext ctx) {
-        KVPair kvPair = new KVPair(mutation.getRow(), HConstants.EMPTY_BYTE_ARRAY, KVPair.Type.FOREIGN_KEY_CHECK);
-        try {
-            initTargetCallBuffer(ctx);
-            referencedTableCallBuffer.add(kvPair);
-            ctx.sendUpstream(mutation);
-            ctx.success(mutation);
-        } catch (Exception e) {
-            ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName() + ":" + e.getMessage()));
+        if (isForeignKeyInterceptNecessary(mutation.getType())) {
+            KVPair kvPair = new KVPair(mutation.getRow(), HConstants.EMPTY_BYTE_ARRAY, KVPair.Type.FOREIGN_KEY_CHECK);
+            try {
+                initTargetCallBuffer(ctx);
+                referencedTableCallBuffer.add(kvPair);
+                ctx.success(mutation);
+            } catch (Exception e) {
+                ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName() + ":" + e.getMessage()));
+                return;
+            }
         }
+        ctx.sendUpstream(mutation);
+    }
+
+    /* This WriteHandler doesn't do anything when, for example, we delete from the FK backing index. */
+    private boolean isForeignKeyInterceptNecessary(KVPair.Type type) {
+        return type == KVPair.Type.INSERT || type == KVPair.Type.UPDATE || type == KVPair.Type.UPSERT;
     }
 
     @Override
@@ -60,8 +67,6 @@ public class ForeignKeyInterceptWriteHandler implements WriteHandler {
     public void flush(WriteContext ctx) throws IOException {
         try {
             referencedTableCallBuffer.flushBuffer();
-        } catch (WriteFailedException wfe) {
-            ctx.failed(null, WriteResult.failed(wfe.getMessage()));
         } catch (Exception e) {
             throw new IOException(e);
         }
@@ -71,8 +76,6 @@ public class ForeignKeyInterceptWriteHandler implements WriteHandler {
     public void close(WriteContext ctx) throws IOException {
         try {
             referencedTableCallBuffer.close();
-        } catch (WriteFailedException wfe) {
-            ctx.failed(null, WriteResult.failed(wfe.getMessage()));
         } catch (ExecutionException e) {
             addInfoToException(e);
         } catch (Exception e) {

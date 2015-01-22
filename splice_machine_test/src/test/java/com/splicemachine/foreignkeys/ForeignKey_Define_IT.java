@@ -9,9 +9,7 @@ import org.junit.rules.ExpectedException;
 import java.sql.SQLException;
 import java.sql.SQLIntegrityConstraintViolationException;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 /**
  * Foreign Key tests for *defining* FKs.
@@ -183,6 +181,24 @@ public class ForeignKey_Define_IT {
         verifyForeignKey();
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    // dropping
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @Test
+    public void dropTable_FailsIfTableWithDependentFKExists() throws Exception {
+        methodWatcher.executeUpdate("create table A (a int, b int, constraint pk1 primary key(a))");
+        methodWatcher.executeUpdate("create table B (a int, CONSTRAINT fk1 FOREIGN KEY(a) REFERENCES A(a))");
+        try {
+            methodWatcher.executeUpdate("drop table A");
+            fail("Should not be able to drop A");
+        } catch (Exception e) {
+            assertEquals("Operation 'DROP CONSTRAINT' cannot be performed on object 'PK1' because CONSTRAINT 'FK1' is dependent on that object.", e.getMessage());
+        }
+        // This order should succeed.
+        methodWatcher.executeUpdate("drop table B");
+        methodWatcher.executeUpdate("drop table A");
+    }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     //
@@ -198,7 +214,7 @@ public class ForeignKey_Define_IT {
             methodWatcher.executeUpdate("insert into B values (-1,-1)");
             fail("Expected to be unable to delete from A while B has referencing row");
         } catch (SQLIntegrityConstraintViolationException e) {
-            assertTrue(e.getMessage(), e.getMessage().startsWith("INSERT on table 'B' caused a violation of foreign key constraint"));
+            assertTrue(e.getMessage(), e.getMessage().startsWith("Operation on table 'B' caused a violation of foreign key constraint"));
         }
         assertEquals(6L, methodWatcher.query("select count(*) from A"));
         assertEquals(3L, methodWatcher.query("select count(*) from B"));
