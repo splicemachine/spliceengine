@@ -295,7 +295,7 @@ public class ForeignKey_Check_Insert_IT {
         new TableCreator(connection())
                 .withCreate("create table C (a int, b int, CONSTRAINT fk FOREIGN KEY (a) REFERENCES P(a))")
                 .withInsert("insert into C values(?,?)")
-                .withRows(rows(row(null, 1), row(100,1), row(null, -1))).create();
+                .withRows(rows(row(null, 1), row(100, 1), row(null, -1))).create();
 
         // Just asserting that we were able to insert into child non-matching rows with null in FK-cols.
         assertEquals(3L, methodWatcher.query("select count(*) from C"));
@@ -470,6 +470,27 @@ public class ForeignKey_Check_Insert_IT {
         assertInsertFail("insert into C values ('aaa', 1.0, -3.2, 3, 6)", "INSERT on table 'C' caused a violation of foreign key constraint 'FK3' for key (C).  The statement has been rolled back.");
         assertInsertFail("insert into C values ('aaa', 1.0, 3.2, -3, 6)", "INSERT on table 'C' caused a violation of foreign key constraint 'FK4' for key (D).  The statement has been rolled back.");
         assertInsertFail("insert into C values ('aaa', 1.0, 3.2, 3, -6)", "INSERT on table 'C' caused a violation of foreign key constraint 'FK5' for key (E).  The statement has been rolled back.");
+    }
+
+    @Test
+    public void multipleTablesReferencingSameTable() throws Exception {
+        new TableCreator(connection())
+                .withCreate("create table P (a int primary key, b int)")
+                .withInsert("insert into P values(?,?)")
+                .withRows(rows(row(100, 100), row(200, 200), row(300, 300))).create();
+
+        new TableCreator(connection())
+                .withCreate("create table C1 (a int CONSTRAINT c_fk_1 REFERENCES P, b int)")
+                .withInsert("insert into C1 values(?,?)")
+                .withRows(rows(row(100, 100), row(200, 200), row(300, 300))).create();
+
+        new TableCreator(connection())
+                .withCreate("create table C2 (a int CONSTRAINT c_fk_2 REFERENCES P, b int)")
+                .withInsert("insert into C2 values(?,?)")
+                .withRows(rows(row(100, 100), row(200, 200), row(300, 300))).create();
+
+        assertInsertFail("insert into C1 values (-100, 100)", "INSERT on table 'C1' caused a violation of foreign key constraint 'C_FK_1' for key (A).  The statement has been rolled back.");
+        assertInsertFail("insert into C2 values (-100, 100)", "INSERT on table 'C2' caused a violation of foreign key constraint 'C_FK_2' for key (A).  The statement has been rolled back.");
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
