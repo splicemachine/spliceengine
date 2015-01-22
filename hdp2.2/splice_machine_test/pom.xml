@@ -14,12 +14,7 @@
 	</parent>
 
 	<dependencies>
-		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_machine_adapter_98-hdp2.2</artifactId> <version>1.0.1-SNAPSHOT</version> <exclusions> <exclusion> <artifactId>xercesImpl</artifactId> <groupId>xerces</groupId> </exclusion> <exclusion> <artifactId>jasper-compiler</artifactId> <groupId>tomcat</groupId> </exclusion> <exclusion> <artifactId>jasper-runtime</artifactId> <groupId>tomcat</groupId> </exclusion>
- <exclusion>
- 	<artifactId>servlet-api-2.5</artifactId>
- 	<groupId>org.mortbay.jetty</groupId>
- </exclusion>
- </exclusions> </dependency>
+		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_machine_adapter_98-hdp2.2</artifactId> <version>1.0.1-SNAPSHOT</version> <exclusions> <exclusion> <artifactId>xercesImpl</artifactId> <groupId>xerces</groupId> </exclusion> <exclusion> <artifactId>jasper-compiler</artifactId> <groupId>tomcat</groupId> </exclusion> <exclusion> <artifactId>jasper-runtime</artifactId> <groupId>tomcat</groupId> </exclusion> <exclusion> <artifactId>servlet-api-2.5</artifactId> <groupId>org.mortbay.jetty</groupId> </exclusion> </exclusions> </dependency>
 		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_machine_adapter_98-hdp2.2</artifactId> <version>1.0.1-SNAPSHOT</version> <classifier>tests</classifier> </dependency>
 	</dependencies>
 
@@ -330,8 +325,9 @@
 								<argument>-Dsplice.authentication=NATIVE</argument>
 								<argument>-Xmx8g</argument>
 								<argument>-Xms1g</argument>
-								
-<!-- G1 Garbage Collection -->								
+
+								<!-- G1 Garbage Collection -->
+<!--
 								<argument>-XX:MaxPermSize=256M</argument>
 								<argument>-XX:MaxDirectMemorySize=1g</argument>
 								<argument>-XX:+UseG1GC</argument>
@@ -341,10 +337,9 @@
 								<argument>-XX:-ResizePLAB</argument>
 								<argument>-XX:ParallelGCThreads=8</argument>
 								<argument>-XX:+PrintGCTimeStamps</argument>
-								<argument>-XX:+PrintGCDetails</argument>								
-								
-<!-- CMS Garbage Collection -->
-<!-- 
+								<argument>-XX:+PrintGCDetails</argument>
+-->
+								<!-- CMS Garbage Collection -->
 								<argument>-Xmn128m</argument>
 								<argument>-XX:+UseConcMarkSweepGC</argument>
 								<argument>-XX:+UseParNewGC</argument>
@@ -356,7 +351,6 @@
 								<argument>-XX:MaxPermSize=256M</argument>
 								<argument>-XX:+CMSClassUnloadingEnabled</argument>
 								<argument>-XX:MaxDirectMemorySize=1g</argument>
--->
 								<argument>-enableassertions</argument>
 								<argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4000</argument>
 								<!-- Setting the updateSystemProcs option to true causes all of the system stored procedures to be re-created on server startup. -->
@@ -438,23 +432,6 @@
 							<executable>maven</executable>
 						</configuration>
 					</plugin>
-					
-					
-					       <plugin>
-            <artifactId>maven-dependency-plugin</artifactId>
-            <executions>
-              <execution>
-                <phase>install</phase>
-                <goals>
-                  <goal>copy-dependencies</goal>
-                </goals>
-                <configuration>
-                  <outputDirectory>${project.build.directory}/lib</outputDirectory>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-					
 				</plugins>
 			</build>
 		</profile>
