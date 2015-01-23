@@ -439,10 +439,7 @@ public class CoprocessorTxnStore implements TxnStore{
 		}
 
 		private byte[] getTransactionRowKey(long txnId) {
-				byte[] newRowKey = new byte[10];
-				newRowKey[0] = (byte)(txnId & (SpliceConstants.TRANSACTION_TABLE_BUCKET_COUNT-1)); //assign the bucket
-				BytesUtil.longToBytes(txnId, newRowKey, 2);
-				return newRowKey;
+			return TxnUtils.getRowKey(txnId);
 		}
 
     private TxnMessage.TxnLifecycleService getLifecycleService(HTableInterface table, byte[] rowKey) throws IOException {
