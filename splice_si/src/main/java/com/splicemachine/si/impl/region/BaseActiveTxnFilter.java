@@ -121,7 +121,7 @@ public abstract class BaseActiveTxnFilter<Data> extends FilterBase implements Wr
             		datalib.getDataValuelength(kv));
                         
             
-            fieldDecoder.skip();
+            fieldDecoder.skipLong();
             long pTxnId = fieldDecoder.decodeNextLong();
             isChild = pTxnId>0;            
         }else if(datalib.matchingQualifier(kv,AbstractV1TxnDecoder.OLD_PARENT_COLUMN)){

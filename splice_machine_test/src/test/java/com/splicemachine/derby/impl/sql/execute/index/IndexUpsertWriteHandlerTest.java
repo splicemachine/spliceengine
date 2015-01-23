@@ -6,11 +6,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
@@ -23,6 +19,8 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 
+import com.splicemachine.pipeline.api.PreFlushHook;
+import com.splicemachine.pipeline.api.WriteConfiguration;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.KeyValue;
@@ -134,6 +132,7 @@ public class IndexUpsertWriteHandlerTest {
         //make sure that the index pairs size hasn't been changed until finish is called
         Assert.assertEquals("Incorrect row size before finish is called!",pairs.size(),indexPairs.size());
 
+        deleteHandler.flush(context);
         deleteHandler.close(context);
 
         Assert.assertEquals("Incorrect row size after finish is called!",pairs.size()-deletedPairs.size(),indexPairs.size());
@@ -197,6 +196,7 @@ public class IndexUpsertWriteHandlerTest {
         Assert.assertEquals("Rows are written before being finalized!", 0, indexPairs.size());
 
         //finalize
+        writeHandler.flush(testCtx);
         writeHandler.close(testCtx);
 
         //make sure everything got written through
@@ -228,11 +228,32 @@ public class IndexUpsertWriteHandlerTest {
 
 
         BufferConfiguration bufferConfiguration = getConstantBufferConfiguration();
+        CallBuffer<KVPair> buffer = new TestCallBuffer<KVPair>(1024,1024) {
+            @Override protected long heapSize(KVPair element) { return element.getSize(); }
 
-//        when(testCtx.getSharedWriteBuffer(
-//                any(byte[].class),
-//                any(ObjectObjectOpenHashMap.class),
-//                any(int.class), any(boolean.class), any(TxnView.class))).thenReturn(writingBuffer);
+            @Override
+            protected void doFlush(List<KVPair> toFlush) {
+                for(KVPair pair:toFlush){
+                    if(pair.getType()== KVPair.Type.DELETE){
+                        Iterator<KVPair> iterator = indexPairs.iterator();
+                        while(iterator.hasNext()){
+                            KVPair existingPair = iterator.next();
+                            if(Arrays.equals(pair.getRowKey(),existingPair.getRowKey())){
+                                iterator.remove();
+                                break;
+                            }
+                        }
+                    }else
+                        indexPairs.add(pair);
+                }
+            }
+        };
+
+
+        when(testCtx.getSharedWriteBuffer(
+                any(byte[].class),
+                any(ObjectObjectOpenHashMap.class),
+                any(int.class), any(boolean.class), any(TxnView.class))).thenReturn(buffer);
         return testCtx;
     }
 
@@ -276,5 +297,68 @@ public class IndexUpsertWriteHandlerTest {
                     /*no-op*/
                 }
             };
+    }
+
+
+    private static abstract class TestCallBuffer<E> implements CallBuffer<E>{
+        private List<E> list;
+        private long heapSize;
+        private final int maxEntries;
+        private final long maxHeapSize;
+
+        public TestCallBuffer(int maxEntries, long maxHeapSize) {
+            this.maxEntries = maxEntries;
+            this.maxHeapSize = maxHeapSize;
+            this.list = new ArrayList<>(maxEntries);
+        }
+
+        @Override
+        public void add(E element) throws Exception {
+            list.add(element);
+            heapSize+=heapSize(element);
+            flushIfNeeded();
+        }
+
+
+        @Override
+        public void addAll(E[] elements) throws Exception {
+            for(E element:elements){
+                list.add(element);
+                heapSize+=heapSize(element);
+            }
+            flushIfNeeded();
+        }
+
+
+        @Override public PreFlushHook getPreFlushHook() { return null; }
+        @Override public WriteConfiguration getWriteConfiguration() { return null; }
+
+        @Override
+        public void addAll(Iterable<E> elements) throws Exception {
+            for(E element:elements){
+                list.add(element);
+                heapSize+=heapSize(element);
+            }
+            flushIfNeeded();
+        }
+
+        @Override public void close() throws Exception {  }
+
+        @Override
+        public void flushBuffer() throws Exception {
+            List<E> toFlush = list;
+            list = new ArrayList<>(maxEntries);
+            doFlush(toFlush);
+            heapSize=0;
+        }
+
+        protected abstract long heapSize(E element);
+
+        protected abstract void doFlush(List<E> toFlush);
+
+        private void flushIfNeeded() throws Exception {
+            if(heapSize>maxHeapSize || list.size()>maxEntries)
+                flushBuffer();
+        }
     }
 }
