@@ -43,8 +43,9 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
 		private RegionTxnStore regionStore;
 		private HRegion region;
 		private TimestampSource timestampSource;
-    private volatile boolean isTxnTable = false;
-
+		private volatile boolean isTxnTable = false;
+		private String regionNameAsString;
+		
     public static CountedReference<TransactionResolver> resolverRef = new CountedReference<TransactionResolver>(new Supplier<TransactionResolver>() {
         @Override
         public TransactionResolver get() {
@@ -68,6 +69,7 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
             timestampSource = TransactionTimestamps.getTimestampSource();
             isTxnTable = true;
         }
+        regionNameAsString = region.getRegionNameAsString();        
 		}
 
 		@Override
@@ -276,7 +278,7 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
 								     * If it has, we need to ensure that our lock is released (if it has been
 	   							   * acquired).
     								 */
-                    HBaseServerUtils.checkCallerDisconnect(region, region.getRegionNameAsString());
+                    HBaseServerUtils.checkCallerDisconnect(region, regionNameAsString);
 								}catch(IOException ioe){
 										if(!shouldContinue) //the lock was acquired, so it needs to be unlocked
                         unlock(lock);
