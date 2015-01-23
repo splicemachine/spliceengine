@@ -109,7 +109,11 @@ public class RowProviders {
 						Throwable t = null;
 						for(Callable<Void> cleanupTask:intermediateCleanupTasks){
 								try{
-										cleanupTask.call();
+										// DB-2444: skip the sub operation job cleanup for now.
+									    // All the operations will still get cleaned up for a query
+									    // by the topOperation.close() invocation from SpliceNoPutResultSet.
+										//
+										// cleanupTask.call();
 								} catch (Exception e) {
                                     SpliceLogUtils.error(LOG, org.apache.commons.lang.exception.ExceptionUtils.getStackTrace(e));
 										if(t==null)

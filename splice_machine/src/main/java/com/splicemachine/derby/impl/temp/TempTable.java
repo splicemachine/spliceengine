@@ -139,7 +139,7 @@ public class TempTable {
 				// there were issues with select count(*) over multiple merge joins, resulting
 				// in incorrect result. This might be removed, or configured to a very low number,
 				// post 1.0.0.
-				long safeguard = c.getLong("splice.compact.temp.safeguard", 6 * 60 * 60 * 1000); // 6 hours;
+				long safeguard = c.getLong("splice.compact.temp.safeguard", 0); // milliseconds;
 
 				long maxToUse = Longs.min(activeTimestamps) - maxClockSkew - safeguard;
 				if(LOG.isTraceEnabled()) {
