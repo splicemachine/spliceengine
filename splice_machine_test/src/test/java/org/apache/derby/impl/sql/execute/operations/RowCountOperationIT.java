@@ -296,6 +296,13 @@ public class RowCountOperationIT {
     }
 
     @Test
+    public void testRepeatedOverJoin_offset() throws Exception {
+        for(int i=0;i<10;i++){
+            overJoin_offset();
+        }
+    }
+
+    @Test
     public void overJoin_nextXRowsOnly() throws Exception {
         validateUnOrdered(3, "select A.a from A join B on A.a=B.a fetch next 3 rows only");
     }

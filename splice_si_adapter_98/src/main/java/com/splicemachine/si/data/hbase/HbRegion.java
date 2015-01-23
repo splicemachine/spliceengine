@@ -28,7 +28,7 @@ import com.splicemachine.si.data.api.SRowLock;
  * Wrapper that makes an HBase region comply with a standard interface that abstracts across regions and tables.
  */
 public class HbRegion extends BaseHbRegion<SRowLock> {
-//    static final Logger LOG = Logger.getLogger(HbRegion.class);
+    //    static final Logger LOG = Logger.getLogger(HbRegion.class);
     static final Result EMPTY_RESULT = Result.create(Collections.<Cell>emptyList());
     final HRegion region;
     public HbRegion(HRegion region) {
@@ -80,7 +80,7 @@ public class HbRegion extends BaseHbRegion<SRowLock> {
         final SRowLock lock = new HRowLock(region.getRowLock(rowKey, true));
         if (lock == null) {
             throw new RuntimeException("Unable to obtain row lock on region of table " + region.getTableDesc()
-                                                                                               .getNameAsString());
+                    .getNameAsString());
         }
         return lock;
     }
@@ -104,9 +104,9 @@ public class HbRegion extends BaseHbRegion<SRowLock> {
 
     @Override
     public SRowLock tryLock(byte[] rowKey) throws IOException {
-            HRegion.RowLock rowLock = region.getRowLock(rowKey, false);
-            if(rowLock == null) return null;
-            return new HRowLock(rowLock);
+        HRegion.RowLock rowLock = region.getRowLock(rowKey, false);
+        if(rowLock == null) return null;
+        return new HRowLock(rowLock);
     }
 
     @Override
@@ -123,44 +123,49 @@ public class HbRegion extends BaseHbRegion<SRowLock> {
         return EMPTY_RESULT;
     }
 
-	@Override
-	public void put(Put put, SRowLock rowLock) throws IOException {
-		region.put(put);
-	}
+    @Override
+    protected Put newPut(ByteSlice rowKey) {
+        return new Put(rowKey.array(),rowKey.offset(),rowKey.length());
+    }
 
-	@Override
-	public void put(Put put, boolean durable) throws IOException {
-		if (!durable)
-			put.setDurability(Durability.SKIP_WAL);
-		region.put(put);
-	}
+    @Override
+    public void put(Put put, SRowLock rowLock) throws IOException {
+        region.put(put);
+    }
 
-	@Override
-	public OperationStatus[] batchPut(Pair<Mutation, SRowLock>[] puts)
-			throws IOException {
-		Mutation[] mutations = new Mutation[puts.length];
-		int i=0;
-		for(Pair<Mutation, SRowLock> pair:puts){
-				mutations[i] = pair.getFirst();
-				i++;
-		}
-		return region.batchMutate(mutations);
-	}
+    @Override
+    public void put(Put put, boolean durable) throws IOException {
+        if (!durable)
+            put.setDurability(Durability.SKIP_WAL);
+        region.put(put);
+    }
 
-	@Override
-	public void delete(Delete delete, SRowLock rowLock) throws IOException {
-		region.delete(delete);
-	}
+    @Override
+    public OperationStatus[] batchPut(Pair<Mutation, SRowLock>[] puts)
+            throws IOException {
+        Mutation[] mutations = new Mutation[puts.length];
+        int i=0;
+        for(Pair<Mutation, SRowLock> pair:puts){
+            mutations[i] = pair.getFirst();
+            i++;
+        }
+        return region.batchMutate(mutations);
+    }
 
-	@Override
-	public OperationStatus[] batchMutate(Collection<KVPair> data,TxnView txn) throws IOException {
-		Mutation[] mutations = new Mutation[data.size()];
-		int i=0;
-		for(KVPair pair:data){
-				mutations[i] = getMutation(pair,txn);
-				i++;
-		}
-		return region.batchMutate(mutations);
-	}
+    @Override
+    public void delete(Delete delete, SRowLock rowLock) throws IOException {
+        region.delete(delete);
+    }
+
+    @Override
+    public OperationStatus[] batchMutate(Collection<KVPair> data,TxnView txn) throws IOException {
+        Mutation[] mutations = new Mutation[data.size()];
+        int i=0;
+        for(KVPair pair:data){
+            mutations[i] = getMutation(pair,txn);
+            i++;
+        }
+        return region.batchMutate(mutations);
+    }
 
 }
