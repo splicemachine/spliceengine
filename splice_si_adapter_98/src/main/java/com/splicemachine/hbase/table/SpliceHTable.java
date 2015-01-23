@@ -51,7 +51,7 @@ public class SpliceHTable extends HTable {
     private final TableName tableName;
     private final RegionCache regionCache;
     private final int maxRetries = SpliceConstants.numRetries;
-    private boolean noRetry = false;
+    private boolean noRetry = true;
 
 
     public SpliceHTable(byte[] tableName, Configuration configuration,boolean retryAutomatically) throws IOException{
@@ -384,10 +384,11 @@ public class SpliceHTable extends HTable {
      * return null.
      */
     private static Throwable getRegionProblemException(Throwable exception) {
+        exception = Throwables.getRootCause(exception);
         if (exception instanceof RemoteWithExtrasException) {
             // deal with RemoteWithExtras exception out of the protocol buffers.
             exception = ((RemoteWithExtrasException) exception).unwrapRemoteException();
-            exception = Throwables.getRootCause(exception);
+//            exception = Throwables.getRootCause(exception);
         }
         if (exception instanceof IncorrectRegionException || exception instanceof NotServingRegionException) {
             return exception;

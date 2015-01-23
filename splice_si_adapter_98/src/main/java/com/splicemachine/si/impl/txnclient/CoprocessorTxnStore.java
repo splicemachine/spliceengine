@@ -32,6 +32,7 @@ import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
 import org.apache.hadoop.hbase.ipc.CoprocessorRpcChannel;
 import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
+import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
 import java.util.*;
@@ -438,11 +439,8 @@ public class CoprocessorTxnStore implements TxnStore{
 				return encoder.build();
 		}
 
-		private byte[] getTransactionRowKey(long txnId) {
-				byte[] newRowKey = new byte[10];
-				newRowKey[0] = (byte)(txnId & (SpliceConstants.TRANSACTION_TABLE_BUCKET_COUNT-1)); //assign the bucket
-				BytesUtil.longToBytes(txnId, newRowKey, 2);
-				return newRowKey;
+		private static byte[] getTransactionRowKey(long txnId) {
+				return TxnUtils.getRowKey(txnId);
 		}
 
     private TxnMessage.TxnLifecycleService getLifecycleService(HTableInterface table, byte[] rowKey) throws IOException {
@@ -462,5 +460,9 @@ public class CoprocessorTxnStore implements TxnStore{
             throw (IOException)t;
         else throw new IOException(t);
 
-    }		
+    }
+
+    public static void main(String...args)  throws Exception{
+        System.out.println(Bytes.toStringBinary(getTransactionRowKey(4063485)));
+    }
 }
