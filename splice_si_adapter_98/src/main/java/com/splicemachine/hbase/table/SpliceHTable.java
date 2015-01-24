@@ -9,20 +9,23 @@ import java.util.SortedSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 import com.google.common.base.Preconditions;
+import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.protobuf.Service;
-import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.HRegionLocation;
-import org.apache.hadoop.hbase.NotServingRegionException;
-import org.apache.hadoop.hbase.ServerName;
-import org.apache.hadoop.hbase.TableName;
+import com.splicemachine.hbase.regioninfocache.HBaseRegionCache;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.RetriesExhaustedException;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 import org.apache.hadoop.hbase.client.Row;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
+import org.apache.hadoop.hbase.ipc.CoprocessorRpcChannel;
+import org.apache.hadoop.hbase.ipc.RegionCoprocessorRpcChannel;
 import org.apache.hadoop.hbase.ipc.RemoteWithExtrasException;
 import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -48,7 +51,19 @@ public class SpliceHTable extends HTable {
     private final TableName tableName;
     private final RegionCache regionCache;
     private final int maxRetries = SpliceConstants.numRetries;
+    private boolean noRetry = false;
 
+
+    public SpliceHTable(byte[] tableName, Configuration configuration,boolean retryAutomatically) throws IOException{
+        super(configuration, TableName.valueOf(tableName));
+        Logger.getLogger(SpliceHTable.class).trace("Initialized super");
+        this.regionCache = HBaseRegionCache.getInstance();
+        this.tableNameBytes = tableName;
+        this.tableName = TableName.valueOf(tableName);
+        this.tableExecutor = Executors.newCachedThreadPool(new DaemonThreadFactory("table-thread"));
+        this.connection = super.connection;
+        this.noRetry = !retryAutomatically;
+    }
 
     public SpliceHTable(byte[] tableName, HConnection connection, ExecutorService pool,
                         RegionCache regionCache) throws IOException {
@@ -340,7 +355,11 @@ public class SpliceHTable extends HTable {
                                                ExecContext context) throws Exception {
         Pair<byte[], byte[]> keys = context.keyBoundary;
         byte[] startKeyToUse = keys.getFirst();
-        NoRetryCoprocessorRpcChannel channel = new NoRetryCoprocessorRpcChannel(connection, tableName, startKeyToUse);
+        CoprocessorRpcChannel channel;
+        if(noRetry)
+            channel = new NoRetryCoprocessorRpcChannel(connection, tableName, startKeyToUse);
+        else
+            channel = new RegionCoprocessorRpcChannel(connection,tableName,startKeyToUse);
         T instance = ProtobufUtil.newServiceStub(protocol, channel);
         R result;
         if (callable instanceof BoundCall) {
@@ -348,9 +367,16 @@ public class SpliceHTable extends HTable {
         } else
             result = callable.call(instance);
         if (callback != null)
-            callback.update(channel.getRegionName(), startKeyToUse, result);
+            callback.update(getRegionName(channel), startKeyToUse, result);
 
         return result;
+    }
+
+    private byte[] getRegionName(CoprocessorRpcChannel channel) {
+        if(noRetry)
+            return ((NoRetryCoprocessorRpcChannel)channel).getRegionName();
+        else
+            return ((RegionCoprocessorRpcChannel)channel).getLastRegion();
     }
 
     /**
@@ -361,6 +387,7 @@ public class SpliceHTable extends HTable {
         if (exception instanceof RemoteWithExtrasException) {
             // deal with RemoteWithExtras exception out of the protocol buffers.
             exception = ((RemoteWithExtrasException) exception).unwrapRemoteException();
+            exception = Throwables.getRootCause(exception);
         }
         if (exception instanceof IncorrectRegionException || exception instanceof NotServingRegionException) {
             return exception;
