@@ -3,7 +3,7 @@
 		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.splicemachine</groupId>
-	<version>1.0.1-SNAPSHOT</version>
+	<version>1.0.1</version>
 	<packaging>pom</packaging>
 	<artifactId>spliceengine-parent</artifactId>
 	<name>${project.artifactId}</name>
@@ -17,7 +17,7 @@
 	<parent>
 		<groupId>com.splicemachine</groupId>
 		<artifactId>splice-maven-parent</artifactId>
-		<version>1.0.0</version>
+		<version>1.0.1</version>
 	</parent>
 
 	<repositories>
@@ -28,7 +28,7 @@
 	</repositories>
 
 	<properties>
-		<derby.version>1.0.1-SNAPSHOT</derby.version>
+		<derby.version>1.0.1</derby.version>
 		<excluded.categories>com.splicemachine.test.SlowTest</excluded.categories>
 		<failTasksRandomly>true</failTasksRandomly> <!-- run chaos monkey -->
 		<log4j.config.uri>file:${basedir}/src/main/resources/info-log4j.properties</log4j.config.uri>
