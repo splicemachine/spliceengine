@@ -12,6 +12,7 @@ import java.io.IOException;
  *         Date: 1/31/14
  */
 public class BulkWritesRPCInvoker implements BulkWritesInvoker {
+    public static volatile boolean forceRemote = false;
 
     private BulkWriteChannelInvoker bulkWriteChannelInvoker;
 
@@ -22,15 +23,17 @@ public class BulkWritesRPCInvoker implements BulkWritesInvoker {
     @Override
     public BulkWritesResult invoke(final BulkWrites writes, boolean refreshCache) throws IOException {
         assert writes.numEntries() != 0;
-        SpliceDriver spliceDriver = SpliceDriver.driver();
+        if(!forceRemote) {
+            SpliceDriver spliceDriver = SpliceDriver.driver();
 
         if (spliceDriver.isStarted()) {
             BulkWrite firstBulkWrite = (BulkWrite) writes.getBuffer()[0];
             String encodedRegionName = firstBulkWrite.getEncodedRegionName();
             SpliceBaseIndexEndpoint indexEndpoint = spliceDriver.getIndexEndpoint(encodedRegionName);
 
-            if (indexEndpoint != null) {
-                return indexEndpoint.bulkWrite(writes);
+                if (indexEndpoint != null) {
+                    return indexEndpoint.bulkWrite(writes);
+                }
             }
         }
         return bulkWriteChannelInvoker.invoke(writes);

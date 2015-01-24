@@ -337,4 +337,8 @@ public class BytesUtil {
         return (start.length == 0 || Bytes.compareTo(start, 0, start.length, kvBuffer, rowKeyOffset, rowKeyLength) <= 0) &&
                 (stop.length == 0 || Bytes.compareTo(stop, 0, stop.length, kvBuffer, rowKeyOffset, rowKeyLength) >= 0);
     }
+
+    public static boolean isRowInRange(byte[] row,byte[] start, byte[] stopKey){
+        return startComparator.compare(row,start)<0 || endComparator.compare(row,stopKey)>0;
+    }
 }

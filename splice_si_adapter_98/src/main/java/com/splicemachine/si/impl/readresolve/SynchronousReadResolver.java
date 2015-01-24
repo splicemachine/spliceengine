@@ -11,6 +11,8 @@ import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.annotations.ThreadSafe;
 
 import com.splicemachine.utils.TrafficControl;
+import org.apache.hadoop.hbase.NotServingRegionException;
+import org.apache.hadoop.hbase.RegionTooBusyException;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Durability;
 import org.apache.hadoop.hbase.client.Put;
@@ -121,9 +123,11 @@ public class SynchronousReadResolver {
         try{
             region.put(put);
         } catch (IOException e) {
-            LOG.info("Exception encountered when attempting to resolve a row as committed",e);
-            if(failOnError)
-                throw new RuntimeException(e);
+            if (!(e instanceof RegionTooBusyException) && !(e instanceof NotServingRegionException)) {
+                LOG.info("Exception encountered when attempting to resolve a row as committed",e);
+                if(failOnError)
+                    throw new RuntimeException(e);
+            }
         }
     }
 

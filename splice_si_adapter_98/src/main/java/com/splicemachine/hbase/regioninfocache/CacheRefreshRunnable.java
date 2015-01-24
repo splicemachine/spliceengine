@@ -1,10 +1,10 @@
 package com.splicemachine.hbase.regioninfocache;
 
-import com.splicemachine.constants.SpliceConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.ServerName;
-import org.apache.hadoop.hbase.client.MetaScanner;
+import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.MetaScanAction;
 import org.apache.hadoop.hbase.regionserver.RegionServerStoppedException;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
@@ -54,7 +54,7 @@ class CacheRefreshRunnable implements Runnable {
         }
         RegionMetaScannerVisitor visitor = new RegionMetaScannerVisitor(updateTableName);
         try {
-            MetaScanner.metaScan(SpliceConstants.config, visitor);
+            MetaScanAction.metaScan(visitor,TableName.valueOf(updateTableName));
             Map<byte[], SortedSet<Pair<HRegionInfo, ServerName>>> newRegionInfoMap = visitor.getRegionPairMap();
             regionCache.putAll(newRegionInfoMap);
             debug(LOG, "updated %s cache entries in %s ms ", newRegionInfoMap.size(), System.currentTimeMillis() - startTime);

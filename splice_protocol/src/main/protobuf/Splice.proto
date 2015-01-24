@@ -93,6 +93,24 @@ service SpliceIndexService {
 	  returns (BulkWriteResponse); 
 }
 
+service MultiRowService {
+    rpc bulkWrite(MultiRowRequest) returns (MultiRowResponse);
+}
+
+message MultiRowRequest {
+    repeated KV kvs = 1;
+    required uint64 timestamp = 2;
+}
+
+message MultiRowResponse {
+    repeated bool successFlags = 1;
+}
+
+message KV {
+    required bytes key = 1;
+    required bytes row = 2;
+}
+
 service SpliceIndexManagementService {
 	rpc dropIndex(DropIndexRequest) 
 	  returns (DropIndexResponse);	
