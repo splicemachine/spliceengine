@@ -21,6 +21,8 @@
 
 package org.apache.derby.impl.jdbc;
 
+import org.apache.derby.iapi.error.ErrorStringBuilder;
+import org.apache.derby.iapi.services.stream.HeaderPrintWriter;
 import org.apache.derby.jdbc.InternalDriver;
 
 import org.apache.derby.iapi.services.context.Context;
@@ -259,17 +261,16 @@ public final class TransactionResourceImpl
 	}
 
 	/**
-	 * Resolve: probably superfluous
+	 * Clean up server state.
 	 */
 	void clearLcc()
 	{
-        // DEBUG: Is this the place where session temp tables should be cleaned up?
         try {
+			// Session temp tables are cleaned up
             lcc.resetFromPool();
         } catch (StandardException e) {
-            // ignore, closing
-            // FIXME
-            e.printStackTrace();
+            // log but don't throw, closing
+			Util.logSQLException(e);
         }
         lcc = null;
 	}

@@ -401,7 +401,7 @@ class SYSTABLESRowFactory extends CatalogRowFactory
 		
 		schema = dd.getSchemaDescriptor(schemaUUID, isolationLevel, null);
 
-        // DEBUG: If table is temp table, (SESSION) schema will be null
+        // If table is temp table, (SESSION) schema will be null
         if (schema == null && (tableTypeEnum == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE)) {
             schema = dd.getDeclaredGlobalTemporaryTablesSchemaDescriptor();
         }

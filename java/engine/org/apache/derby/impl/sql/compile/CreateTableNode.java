@@ -136,11 +136,8 @@ public class CreateTableNode extends DDLStatementNode
 		throws StandardException
 	{
 		tableType = TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE;
-		// DEBUG:
-//		newObjectName = tempTableSchemaNameCheck(newObjectName);
 		lockGranularity = TableDescriptor.DEFAULT_LOCK_GRANULARITY;
 		implicitCreateSchema = true;
-		// DEBUG: end
 
 		this.onCommitDeleteRows = ((Boolean) onCommitDeleteRows).booleanValue();
 		this.onRollbackDeleteRows = ((Boolean) onRollbackDeleteRows).booleanValue();

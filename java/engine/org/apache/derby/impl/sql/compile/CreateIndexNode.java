@@ -156,12 +156,6 @@ public class CreateIndexNode extends DDLStatementNode
 
 		td = getTableDescriptor(tableName);
 
-		//throw an exception if user is attempting to create an index on a temporary table
-		if (td.getTableType() == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE)
-		{
-				throw StandardException.newException(SQLState.LANG_NOT_ALLOWED_FOR_DECLARED_GLOBAL_TEMP_TABLE);
-		}
-
 		//If total number of indexes on the table so far is more than 32767, then we need to throw an exception
 /*		if (td.getTotalNumberOfIndexes() > Limits.DB2_MAX_INDEXES_ON_TABLE)
 		{

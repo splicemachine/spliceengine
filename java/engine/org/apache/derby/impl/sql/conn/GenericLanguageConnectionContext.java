@@ -873,31 +873,23 @@ public class GenericLanguageConnectionContext
         DependencyManager dm = getDataDictionary().getDependencyManager();
         StandardException topLevelStandardException = null;
 
-        // DEBUG: belongs with new drop table code...
         GenericExecutionFactory execFactory = (GenericExecutionFactory) getLanguageConnectionFactory().getExecutionFactory();
         GenericConstantActionFactory constantActionFactory = execFactory.getConstantActionFactory();
 
         // collect all the exceptions we might receive while dropping the
         // temporary tables and throw them as one chained exception at the end.
-        for (TempTableInfo allDeclaredGlobalTempTable : allDeclaredGlobalTempTables) {
+        for (TempTableInfo globalTempTable : allDeclaredGlobalTempTables) {
             try {
-                TempTableInfo tempTableInfo = allDeclaredGlobalTempTable;
 
-                TableDescriptor td = tempTableInfo.getTableDescriptor();
+                TableDescriptor td = globalTempTable.getTableDescriptor();
 
-                // the following 2 lines of code has been copied from 
-                // DropTableConstantAction. If there are any changes made there
-                // in future, we should check if they need to be made here too.
-                // DEBUG: remove when real drop table code is working
-//                dm.invalidateFor(td, DependencyManager.DROP_TABLE, this);
-//                tran.dropConglomerate(td.getHeapConglomerateId());
+                // Drop the temp table via normal drop table action
                 ConstantAction action = constantActionFactory.getDropTableConstantAction(td.getQualifiedName(),
                                                                                          td.getName(),
                                                                                          td.getSchemaDescriptor(),
                                                                                          td.getHeapConglomerateId(),
                                                                                          td.getUUID(), StatementType.DROP_CASCADE);
                 action.executeConstantAction(new DropTableActivation(this, td));
-                // DEBUG: end
             } catch (StandardException e) {
                 if (topLevelStandardException == null) {
                     // always keep the first exception unchanged
@@ -950,9 +942,10 @@ public class GenericLanguageConnectionContext
     }
 
     /**
-     * Code murder most foul; DropTableConstantOperation requires an Activation to do its work.
-     * That's the only reason for creating this dummy implementation of Activation.  Especially troublesome
-     * since the action only needs a LanguageConnectionContext and the TableDescriptor of the table to drop.
+     * DropTableConstantOperation requires an Activation to do its work.<br/>
+     * That's the only reason for creating this dummy implementation of Activation.
+     * The action only needs a LanguageConnectionContext and the TableDescriptor of the table to drop
+     * in this activation.
      * <p/>
      * Note: I'm assuming, because this class extends BaseActivation, it will properly serialize and
      * work across region servers.
@@ -960,50 +953,35 @@ public class GenericLanguageConnectionContext
     private static class DropTableActivation extends BaseActivation {
 
         public DropTableActivation(LanguageConnectionContext lcc, TableDescriptor td) throws StandardException {
+            // Just pass the only pertinent info to BaseActivation
             super();
             initFromContext(lcc);
             setDDLTableDescriptor(td);
         }
 
         @Override
-        protected int getExecutionCount() {
-            return 0;
-        }
+        protected int getExecutionCount() { return 0; }
 
         @Override
-        protected void setExecutionCount(int newValue) {
-
-        }
+        protected void setExecutionCount(int newValue) {}
 
         @Override
-        protected Vector getRowCountCheckVector() {
-            return null;
-        }
+        protected Vector getRowCountCheckVector() { return null; }
 
         @Override
-        protected void setRowCountCheckVector(Vector newValue) {
-
-        }
+        protected void setRowCountCheckVector(Vector newValue) {}
 
         @Override
-        protected int getStalePlanCheckInterval() {
-            return 0;
-        }
+        protected int getStalePlanCheckInterval() { return 0; }
 
         @Override
-        protected void setStalePlanCheckInterval(int newValue) {
-
-        }
+        protected void setStalePlanCheckInterval(int newValue) {}
 
         @Override
-        public ResultSet execute() throws StandardException {
-            return null;
-        }
+        public ResultSet execute() throws StandardException { return null; }
 
         @Override
-        public void postConstructor() throws StandardException {
-
-        }
+        public void postConstructor() throws StandardException {}
     }
 
     /**
@@ -1711,7 +1689,7 @@ public class GenericLanguageConnectionContext
     boolean                 dropAndRedeclare)
          throws StandardException
     {
-        // DEBUG: need to upgrade txn to write possibly
+        // need to upgrade txn to write
         getDataDictionary().startWriting(this);
         TransactionController tc = getTransactionExecute();
 
@@ -2497,8 +2475,6 @@ public class GenericLanguageConnectionContext
     {
         CompilerContext cc;
         boolean         firstCompilerContext = false;
-
-        //  DEBUG   END
 
         cc = (CompilerContext) (getContextManager().getContext(CompilerContext.CONTEXT_ID));
 

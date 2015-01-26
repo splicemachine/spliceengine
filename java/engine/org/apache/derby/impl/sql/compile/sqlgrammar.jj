@@ -2525,6 +2525,7 @@ TOKEN [IGNORE_CASE] :
 |	<LEADING: "leading">
 |	<LEFT: "left">
 |	<LIKE: "like">
+|	<LOCAL: "local">
 |	<LOWER: "lower">
 |	<MATCH: "match">
 |	<MAX: "max">
@@ -3307,6 +3308,7 @@ createStatements() throws StandardException :
             statementNode = triggerDefinition() |
             statementNode = synonymDefinition() |
             statementNode = roleDefinition() |
+        	statementNode = localTemporaryTableDeclaration() |
             statementNode = sequenceDefinition()
         )
         {
@@ -4078,9 +4080,11 @@ LocksOrCursors() :
 /* 
  * <A NAME="globalTemporaryTableDeclaration">globalTemporaryTableDeclaration</A>
 
+    This is the generic DERBY syntax for temp tables
+
 	declareTableClauses contains the NOT LOGGED, on commit and on rollback clauses.
 
-	0 - Boolean - NOT LOGGED clause
+	0 - Boolean - NOT LOGGED clause - ignored, no temp tables are logged
 	1 - Boolean - on commit behavior
 	2 - Boolean - on rollback behavior
  */
@@ -4096,9 +4100,47 @@ globalTemporaryTableDeclaration() throws StandardException :
 		tableElementList = tableElementList()
 		( declareTableClause(declareTableClauses) ) +
 	{
-		// NOT LOGGED is mandatory
-		if (declareTableClauses[0] == null)
-				throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR, "MISSING NOT LOGGED");
+		// NOT LOGGED is allways true
+		// if ON COMMIT behavior not explicitly specified in DECLARE command, resort to default ON COMMIT DELETE ROWS
+		if (declareTableClauses[1] == null)
+				declareTableClauses[1] = Boolean.TRUE;
+		// if ON ROLLBACK behavior not explicitly specified in DECLARE command, resort to default ON ROLLBACK DELETE ROWS
+		if (declareTableClauses[2] == null)
+				declareTableClauses[2] = Boolean.TRUE;
+		return (StatementNode) nodeFactory.getNode(
+								C_NodeTypes.CREATE_TABLE_NODE,
+								tableName,
+								tableElementList,
+								(Properties)null,
+								(Boolean) declareTableClauses[1],
+								(Boolean) declareTableClauses[2],
+								getContextManager());
+	}
+}
+
+/*
+ * <A NAME="localTemporaryTableDeclaration">localTemporaryTableDeclaration</A>
+	CREATE LOCAL TEMPORARY TABLE...
+
+	This is Tableau - specific syntax for temp tables
+
+	0 - Boolean - NOT LOGGED clause - ignored, no temp tables are logged
+	1 - Boolean - on commit behavior
+	2 - Boolean - on rollback behavior
+ */
+StatementNode
+localTemporaryTableDeclaration() throws StandardException :
+{
+	TableName			tableName;
+	TableElementList tableElementList;
+	Object[] declareTableClauses = new Object[3];
+}
+{
+	<LOCAL> <TEMPORARY> <TABLE> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
+		tableElementList = tableElementList()
+		( declareTableClause(declareTableClauses) ) +
+	{
+		// NOT LOGGED is allways true
 		// if ON COMMIT behavior not explicitly specified in DECLARE command, resort to default ON COMMIT DELETE ROWS
 		if (declareTableClauses[1] == null)
 				declareTableClauses[1] = Boolean.TRUE;
@@ -15131,6 +15173,7 @@ reservedKeyword() :
 |	tok = <LEADING>
 |	tok = <LEFT>
 |	tok = <LIKE>
+|	tok = <LOCAL>
 |	tok = <LOWER>
 |	tok = <MATCH>
 |	tok = <MAX>

@@ -106,12 +106,39 @@ public abstract class Util  {
 	 * @param se SQLException to log
 	 */
 	public static void logSQLException(SQLException se) {
+		if (se == null)
+			return;
+		logException(se, se.getMessage());
+    }
+
+	/**
+	 * Log an StandardException to the error log or to the console if there is no
+	 * error log available.
+	 * This method could perhaps be optimized to have a static shared
+	 * ErrorStringBuilder and synchronize the method, but this works for now.
+	 *
+	 * @param se SQLException to log
+	 */
+	public static void logSQLException(StandardException se) {
+    	if (se == null)
+    		return;
+    	logException(se, se.getMessage());
+    }
+
+	/**
+	 * Log an SQLException to the error log or to the console if there is no
+	 * error log available.
+	 * This method could perhaps be optimized to have a static shared
+	 * ErrorStringBuilder and synchronize the method, but this works for now.
+	 *
+	 * @param se SQLException to log
+	 */
+	private static void logException(Exception se, String sqlstate) {
     	if (se == null)
     		return;
     	String message = se.getMessage();
-    	String sqlstate = se.getSQLState();
-    	if ((sqlstate != null) && (sqlstate.equals(SQLState.LOGIN_FAILED)) && 
-    			(message != null) && (message.equals("Connection refused : java.lang.OutOfMemoryError")))				
+    	if ((sqlstate != null) && (sqlstate.equals(SQLState.LOGIN_FAILED)) &&
+    			(message != null) && (message.equals("Connection refused : java.lang.OutOfMemoryError")))
     		return;
 
     	HeaderPrintWriter errorStream = Monitor.getStream();
@@ -120,12 +147,11 @@ public abstract class Util  {
     		return;
     	}
     	ErrorStringBuilder	errorStringBuilder = new ErrorStringBuilder(errorStream.getHeader());
-    	errorStringBuilder.append("\nERROR " +  se.getSQLState() + ": "  + se.getMessage() + "\n");
+    	errorStringBuilder.append("\nERROR " +  sqlstate + ": "  + se.getMessage() + "\n");
     	errorStringBuilder.stackTrace(se);
     	errorStream.print(errorStringBuilder.get().toString());
     	errorStream.flush();
     	errorStringBuilder.reset();
-
     }
 
 	
