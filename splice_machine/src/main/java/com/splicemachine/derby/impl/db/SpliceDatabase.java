@@ -347,7 +347,9 @@ public class SpliceDatabase extends BasicDatabase {
                 admin.deleteTable(table.getName());
             }
 
-            for(BackupItem backupItem : backup.getBackupItems()) {
+            HashMap<String, BackupItem> backUpItems = backup.getBackupItems();
+            for (String key : backUpItems.keySet()) {
+                BackupItem backupItem = backUpItems.get(key);
                 backupItem.recreateItem(admin);
             }
 
@@ -357,7 +359,8 @@ public class SpliceDatabase extends BasicDatabase {
             int totalItems = backup.getBackupItems().size();
             int completedItems = 0;
             // bulk import the regions
-            for (BackupItem backupItem: backup.getBackupItems()) {
+            for (String key : backUpItems.keySet()) {
+                BackupItem backupItem = backUpItems.get(key);
                 HTableInterface table = SpliceAccessManager.getHTable(backupItem.getBackupItemBytes());
                 RestoreBackupJob job = new RestoreBackupJob(backupItem,table);
                 future = SpliceDriver.driver().getJobScheduler().submit(job);
@@ -462,20 +465,21 @@ public class SpliceDatabase extends BasicDatabase {
     // TODO: add backup for schema:table(s)
     //
     @Override
-    public void backup(String backupDir, boolean wait) throws SQLException {
-    	
+    public void backup(String backupDir, long parent_backup_id, boolean wait) throws SQLException {
+
         HBaseAdmin admin = null;
         Backup backup = null;
         try {
 
             // Check for ongoing backup...
+            // TODO: move backup table to sys schema. Use zookeeper to make sure only one backup or restore job is executing
             String backupResponse = null;
             Backup.validateBackupSchema();
             if ( (backupResponse = BackupUtils.isBackupRunning()) != null)
                 throw new SQLException(backupResponse); // TODO i18n
-            backup = Backup.createBackup(backupDir,BackupScope.D,-1l);
+
+            backup = Backup.createBackup(backupDir, BackupScope.D, parent_backup_id);
             backup.createBaseBackupDirectory();
-            long start = System.currentTimeMillis();
             admin = SpliceUtilities.getAdmin();
             backup.createBackupItems(admin);
             backup.insertBackup();
@@ -483,7 +487,9 @@ public class SpliceDatabase extends BasicDatabase {
             // Create snapshots first for all tables in backup list
             createSnapshots( Long.toString(backup.getBackupTimestamp()));
             
-            for (BackupItem backupItem: backup.getBackupItems()) {
+            HashMap<String, BackupItem> backupItems = backup.getBackupItems();
+            for (String key : backupItems.keySet()) {
+                BackupItem backupItem =  backupItems.get(key);
                 backupItem.doBackup();
             }
 

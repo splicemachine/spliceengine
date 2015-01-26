@@ -71,7 +71,7 @@ public class HBaseStore implements ModuleControl, ModuleSupportable {
 	public void failover(String dbname) {
 		SpliceLogUtils.trace(LOG,"failover");						
 	}
-	public void backup(String  backupDir, boolean wait) {
+	public void backup(String  backupDir, long parent_backup_id, boolean wait) {
 		SpliceLogUtils.trace(LOG,"backup");								
 	}
 	public void backupAndEnableLogArchiveMode(String backupDir,boolean deleteOnlineArchivedLogFiles,boolean wait) throws StandardException {

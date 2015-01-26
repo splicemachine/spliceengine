@@ -96,24 +96,19 @@ public class CreateBackupTask extends ZkTask {
 
     @Override
     public void doExecute() throws ExecutionException, InterruptedException {
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, 
-            		String.format("executing %S backup on region %s",
-            				backupItem.getBackup().isIncrementalBackup()?"incremental":"full", region.toString()));
-        try {
-
-            if(backupItem.getBackup().isIncrementalBackup()){
-            	doIncrementalBackup();
-            } else{
-            	doFullBackup();
-            }
-        	writeRegioninfoOnFilesystem();
-
-        } catch (IOException e) {
-            throw new ExecutionException(e);
-        }
-        
-        // TODO: insert backup item
+        if (backupItem.getLastBackupTimestamp() == -1)
+            fullBackup();
+        else
+            incrementalBackup();
+        //try {
+        //	System.out.println("inserting Backup?");
+        //backupItem.insertBackupItem(); Not Working Yet
+/*	    		} catch (SQLException e) {
+	    			System.out.println("inserting Backup Exception?");
+	    			e.printStackTrace();
+					new ExecutionException(e);
+				}
+				*/
     }
 
     private void writeRegioninfoOnFilesystem() throws IOException
@@ -189,6 +184,28 @@ public class CreateBackupTask extends ZkTask {
     @Override
     public int getPriority() {
         return SchedulerPriorities.INSTANCE.getBasePriority(CreateBackupTask.class);
+    }
+
+    private void fullBackup() throws ExecutionException, InterruptedException {
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, String.format("executing %S backup on region %s",backupItem.getBackup().isIncrementalBackup()?"incremental":"full", region.toString()));
+        try {
+            FileSystem fs = FileSystem.get(URI.create(backupFileSystem), SpliceConstants.config);
+            BackupUtils.fullBackupRegion(region, backupItem.getBackupItemFilesystem(), fs);
+        } catch (IOException e) {
+            throw new ExecutionException(e);
+        }
+    }
+
+    private void incrementalBackup() throws ExecutionException, InterruptedException {
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, String.format("executing %S backup on region %s",backupItem.getBackup().isIncrementalBackup()?"incremental":"full", region.toString()));
+        try {
+            FileSystem fs = FileSystem.get(URI.create(backupFileSystem), SpliceConstants.config);
+            BackupUtils.incrementalBackupRegion(region, backupItem.getBackupItemFilesystem(), fs);
+        } catch (IOException e) {
+            throw new ExecutionException(e);
+        }
     }
 }
 
