@@ -25,7 +25,6 @@ import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.derby.iapi.sql.execute.ConstantAction;
 import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.impl.sql.execute.ConstraintInfo;
-import org.apache.derby.impl.sql.execute.IndexConstantAction;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.utils.SpliceLogUtils;
@@ -115,6 +114,7 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
 	 *
 	 * @exception StandardException		Thrown on failure
 	 */
+    @Override
 	public void executeConstantAction( Activation activation ) throws StandardException {
 		SpliceLogUtils.trace(LOG, "executeConstantAction");
 		ConglomerateDescriptor		conglomDesc = null;
@@ -237,7 +237,7 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
 										 dd, 
 										 (ForeignKeyConstraintDescriptor)conDesc, 
 										 referencedConstraint,
-										 ((CreateIndexConstantOperation)indexAction).getIndexTemplateRow());
+										 ((CreateIndexConstantOperation)indexAction).getIndexTemplateRow(), lcc);
 				}
 				
 				/* Create stored dependency on the referenced constraint */
@@ -397,8 +397,9 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
     	return constraintText; 
     }
 
+    @Override
 	public String toString() {
-		StringBuffer strbuf = new StringBuffer();
+		StringBuilder strbuf = new StringBuilder();
 		strbuf.append( "CREATE CONSTRAINT " + constraintName );
 		strbuf.append("\n=========================\n");
 		if (columnNames == null)

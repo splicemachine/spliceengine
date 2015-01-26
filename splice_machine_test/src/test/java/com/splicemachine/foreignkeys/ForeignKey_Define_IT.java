@@ -3,12 +3,16 @@ package com.splicemachine.foreignkeys;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.test_dao.TableDAO;
+import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
 import org.junit.rules.ExpectedException;
 
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.SQLIntegrityConstraintViolationException;
 
+import static com.splicemachine.test_tools.Rows.row;
+import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.*;
 
 /**
@@ -182,7 +186,69 @@ public class ForeignKey_Define_IT {
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    // dropping
+    // via alter table - existing data
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @Test
+    public void alterTable_existingData_success() throws Exception {
+        Connection connection = methodWatcher.getOrCreateConnection();
+
+        new TableCreator(connection)
+                .withCreate("create table A (id int, a int, b int, c int, primary key(id))")
+                .withInsert("insert into A values(?,?,?,?)")
+                .withRows(rows(row(1, 1, 1, 1), row(2, 2, 2, 2), row(3, 3, 3, 3))).create();
+        new TableCreator(connection)
+                .withCreate("create table B (a int, a_id int)")
+                .withInsert("insert into B values(?,?)")
+                .withRows(rows(row(1, 1), row(2, 2), row(3, 3))).create();
+
+        methodWatcher.executeUpdate("ALTER TABLE B ADD CONSTRAINT FK_1 FOREIGN KEY (a_id) REFERENCES A(id)");
+    }
+
+    @Test
+    public void alterTable_existingData_success_withNulls() throws Exception {
+        Connection connection = methodWatcher.getOrCreateConnection();
+
+        new TableCreator(connection)
+                .withCreate("create table A (a int, b int, c int, d int, primary key(b,c))")
+                .withInsert("insert into A values(?,?,?,?)")
+                .withRows(rows(row(1, 1, 1, 1), row(2, 2, 2, 2), row(3, 3, 3, 3))).create();
+
+        new TableCreator(connection)
+                .withCreate("create table B (a int, b int, c int)")
+                .withInsert("insert into B values(?,?,?)")
+                .withRows(rows(row(1, 1, 1), row(2, 2, 2), row(null, -1, -1), row(-1, 2, null))).create();
+
+        methodWatcher.executeUpdate("ALTER TABLE B ADD CONSTRAINT FK_1 FOREIGN KEY (a,c) REFERENCES A(b,c)");
+    }
+
+    @Test
+    public void alterTable_existingData_fails_ifFkConstraintViolatedByExistingData() throws Exception {
+        Connection connection = methodWatcher.getOrCreateConnection();
+
+        new TableCreator(connection)
+                .withCreate("create table A (id int, a int, b int, c int, primary key(id))")
+                .withInsert("insert into A values(?,?,?,?)")
+                .withRows(rows(row(1, 1, 1, 1), row(2, 2, 2, 2), row(3, 3, 3, 3))).create();
+
+        new TableCreator(connection)
+                .withCreate("create table B (a int, a_id int)")
+                .withInsert("insert into B values(?,?)")
+                .withRows(rows(row(1, 1), row(2, 2), row(-1, -1))).create();
+
+        try {
+            methodWatcher.executeUpdate("ALTER TABLE B ADD CONSTRAINT FK_1 FOREIGN KEY (a_id) REFERENCES A(id)");
+            fail("expected exception");
+        } catch (Exception e) {
+            assertEquals("Foreign key constraint 'FK_1' cannot be added to or enabled on table \"FOREIGNKEY_DEFINE_IT\".\"B\" because one or more foreign keys do not have matching referenced keys.", e.getMessage());
+        }
+
+        // This should succeed, the FK should not be in place.
+        methodWatcher.executeUpdate("insert into B values(100,100)");
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    // dropping table
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @Test

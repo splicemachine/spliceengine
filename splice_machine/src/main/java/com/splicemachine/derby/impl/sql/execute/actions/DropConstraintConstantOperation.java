@@ -21,17 +21,15 @@ import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
 
 /**
- *	This class  describes actions that are ALWAYS performed for a
- *	drop constraint at Execution time.
- *
- *	@version 0.1
+ *	This class describes actions that are ALWAYS performed for a drop constraint at Execution time.
  */
-
 public class DropConstraintConstantOperation extends ConstraintConstantOperation {
-	private static final Logger LOG = Logger.getLogger(DropConstraintConstantOperation.class);
-	private boolean cascade;		// default false
-	private String constraintSchemaName;
-    private int verifyType;
+
+    private static final Logger LOG = Logger.getLogger(DropConstraintConstantOperation.class);
+
+    private final boolean cascade;
+	private final String constraintSchemaName;
+    private final int verifyType;
 
 	// CONSTRUCTORS
 
@@ -56,12 +54,13 @@ public class DropConstraintConstantOperation extends ConstraintConstantOperation
 					   int					behavior,
                        int                  verifyType) {
 		super(constraintName, DataDictionary.DROP_CONSTRAINT, tableName, tableId, tableSchemaName, indexAction);
-		cascade = (behavior == StatementType.DROP_CASCADE);
+		this.cascade = (behavior == StatementType.DROP_CASCADE);
 		this.constraintSchemaName = constraintSchemaName;
         this.verifyType = verifyType;
 	}
 
-	public	String	toString() {
+    @Override
+	public String toString() {
 		if (constraintName == null)
 			return "DROP PRIMARY KEY";
 		String ss = constraintSchemaName == null ? schemaName : constraintSchemaName;
@@ -75,12 +74,11 @@ public class DropConstraintConstantOperation extends ConstraintConstantOperation
 	 *
 	 * @exception StandardException		Thrown on failure
 	 */
-	public void executeConstantAction( Activation activation ) throws StandardException {
+    @Override
+	public void executeConstantAction(Activation activation ) throws StandardException {
 		SpliceLogUtils.trace(LOG, "executeConstantAction");
-		ConstraintDescriptor		conDesc = null;
+		ConstraintDescriptor		conDesc;
 		TableDescriptor				td;
-		UUID							indexId = null;
-		String						indexUUIDString;
 
 		LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
 		DataDictionary dd = lcc.getDataDictionary();
@@ -136,7 +134,7 @@ public class DropConstraintConstantOperation extends ConstraintConstantOperation
 			String errorName = constraintName == null ? "PRIMARY KEY" :
 								(constraintSd.getSchemaName() + "."+ constraintName);
 
-			throw StandardException.newException(SQLState.LANG_DROP_NON_EXISTENT_CONSTRAINT, 
+			throw StandardException.newException(SQLState.LANG_DROP_NON_EXISTENT_CONSTRAINT,
 						errorName,
 						td.getQualifiedName());
 		}
@@ -161,7 +159,7 @@ public class DropConstraintConstantOperation extends ConstraintConstantOperation
             break;
         }
 
-		boolean cascadeOnRefKey = (cascade && 
+		boolean cascadeOnRefKey = (cascade &&
 						conDesc instanceof ReferencedKeyConstraintDescriptor);
 		if (!cascadeOnRefKey)
 		{

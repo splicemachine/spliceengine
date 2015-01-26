@@ -205,9 +205,9 @@ public class SpliceCreateTableOperation extends CreateTableConstantOperation {
         if(constraintActions ==null)
             return super.getTableConglomerateDescriptor(td,conglomId,sd,ddg);
 
-        for(CreateConstraintConstantOperation constantAction:constraintActions){
+        for(ConstraintConstantOperation constantAction:constraintActions){
             if(constantAction.getConstraintType()== DataDictionary.PRIMARYKEY_CONSTRAINT){
-                int [] pkColumns = constantAction.genColumnPositions(td,true);
+                int [] pkColumns = ((CreateConstraintConstantOperation)constantAction).genColumnPositions(td, true);
                 boolean[] ascending = new boolean[pkColumns.length];
                 for(int i=0;i<ascending.length;i++){
                    ascending[i] = true;

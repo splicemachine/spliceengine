@@ -56,9 +56,10 @@ public class SpliceGenericConstantActionFactory extends GenericConstantActionFac
     }
 
     @Override
-    public ConstantAction[] createConstraintConstantActionArray(int size) {
+    public ConstraintConstantOperation[] createConstraintConstantActionArray(int size) {
     	SpliceLogUtils.trace(LOG, "createConstraintConstantActionArray with size {%d}",size);
-    	return new CreateConstraintConstantOperation[size];
+        // Will sometimes hold DropConstraintConstantOperation, sometimes CreateConstraintConstantOperation
+    	return new ConstraintConstantOperation[size];
     }
     		    
     @Override
