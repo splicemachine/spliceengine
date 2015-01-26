@@ -8,8 +8,11 @@ import com.google.common.io.Closeables;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.utils.ConglomerateUtils;
+import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.utils.SpliceLogUtils;
+
+import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.cache.ClassSize;
@@ -37,12 +40,16 @@ import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.impl.store.access.conglomerate.ConglomerateUtil;
 import org.apache.derby.impl.store.access.conglomerate.OpenConglomerateScratchSpace;
+import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceScan;
+import com.splicemachine.utils.SpliceUtilities;
+
 /**
  * A hbase object corresponds to an instance of a hbase conglomerate.  
  *
@@ -125,9 +132,11 @@ public class HBaseConglomerate extends SpliceConglomerate {
 		 **/
 		public void drop(TransactionManager xact_manager) throws StandardException {
 				SpliceLogUtils.trace(LOG, "drop with account manager %s",xact_manager);
-				//xact_manager.getRawStoreXact().dropContainer(id);
-				//FIXME: need a new API on RawTransaction
-				//xact_manager.getRawStoreXact().dropHTable(Long.toString(id.getContainerId()));
+			try {
+				SpliceUtilities.deleteTable(SpliceUtilities.getAdmin(), id.getContainerId());
+			} catch (IOException e) {
+				throw Exceptions.parseException(e);
+			}
 		}
 
 		public boolean fetchMaxOnBTree(
@@ -203,20 +212,6 @@ public class HBaseConglomerate extends SpliceConglomerate {
 				if (LOG.isTraceEnabled())
 						LOG.trace("getStaticCompiledConglomInfo ");
 				return(this);
-		}
-
-
-		/**
-		 * Is this conglomerate temporary?
-		 * <p>
-		 *
-		 * @return whether conglomerate is temporary or not.
-		 **/
-		public boolean isTemporary()
-		{
-				if (LOG.isTraceEnabled())
-						LOG.trace("isTemporary ");
-				return false;
 		}
 
 
@@ -396,6 +391,7 @@ public class HBaseConglomerate extends SpliceConglomerate {
 		 **/
 		public void writeExternal(ObjectOutput out) throws IOException {
 				FormatIdUtil.writeFormatIdInteger(out, conglom_format_id);
+				FormatIdUtil.writeFormatIdInteger(out, tmpFlag);
 				out.writeInt((int) id.getSegmentId());
 				out.writeLong(id.getContainerId());
 				out.writeInt(format_ids.length);
@@ -421,6 +417,7 @@ public class HBaseConglomerate extends SpliceConglomerate {
 //        SpliceLogUtils.trace(LOG,"localReadExternal");
 				// read the format id of this conglomerate.
 				conglom_format_id = FormatIdUtil.readFormatIdInteger(in);
+				tmpFlag = FormatIdUtil.readFormatIdInteger(in);
 				int segmentid = in.readInt();
 				long containerid = in.readLong();
 				id = new ContainerKey(segmentid, containerid);

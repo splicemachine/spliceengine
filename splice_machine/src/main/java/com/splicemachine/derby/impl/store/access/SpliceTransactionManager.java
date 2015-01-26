@@ -775,7 +775,9 @@ public class SpliceTransactionManager implements XATransactionController,
 
         Conglomerate conglom = findExistingConglomerate(conglomId);
 
-        conglom.drop(this);
+        if (conglom.isTemporary()) {
+            conglom.drop(this);
+        }
 
         if (conglomId < 0) {
             if (tempCongloms != null)

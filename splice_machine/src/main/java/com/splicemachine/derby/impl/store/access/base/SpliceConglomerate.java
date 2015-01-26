@@ -12,6 +12,7 @@ import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.cache.ClassSize;
 import org.apache.derby.iapi.store.access.ColumnOrdering;
 import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
+import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.store.access.conglomerate.Conglomerate;
 import org.apache.derby.iapi.store.raw.ContainerKey;
 import org.apache.derby.iapi.store.raw.RawStoreFactory;
@@ -25,6 +26,7 @@ import org.apache.log4j.Logger;
 public abstract class SpliceConglomerate extends GenericConglomerate implements Conglomerate, StaticCompiledOpenConglomInfo {
 	protected static Logger LOG = Logger.getLogger(SpliceConglomerate.class);
 	protected int conglom_format_id;
+	protected int tmpFlag;
 	protected ContainerKey id;
 	protected int[]    format_ids;
 	protected int[]   collation_ids;
@@ -70,7 +72,8 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
 		this.format_ids = ConglomerateUtil.createFormatIds(template);
 		this.conglom_format_id = conglom_format_id;
 		collation_ids = ConglomerateUtil.createCollationIds(format_ids.length, collationIds);
-		hasCollatedTypes = hasCollatedColumns(collation_ids);		   
+		hasCollatedTypes = hasCollatedColumns(collation_ids);
+		this.tmpFlag = tmpFlag;
 		
 		try {
 			((SpliceTransaction)rawtran).setActiveState(false, false, null);
@@ -126,6 +129,19 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
 
 	public boolean isNull() {
 		return id == null;
+	}
+
+	/**
+	 * Is this conglomerate temporary?
+	 * <p>
+	 *
+	 * @return whether conglomerate is temporary or not.
+	 **/
+	public boolean isTemporary()
+	{
+		if (LOG.isTraceEnabled())
+			LOG.trace("isTemporary ");
+		return (tmpFlag & TransactionController.IS_TEMPORARY) == TransactionController.IS_TEMPORARY;
 	}
 
 	public void restoreToNull() {
