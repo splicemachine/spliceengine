@@ -8,6 +8,10 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.SortedSet;
 
+import javax.management.MalformedObjectNameException;
+import javax.management.ObjectName;
+import javax.management.remote.JMXConnector;
+
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.execute.ConstantAction;
@@ -28,6 +32,7 @@ import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.regionserver.RegionServerServices;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
+
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.scheduler.BaseJobControl;
 import com.splicemachine.derby.impl.job.scheduler.JobMetrics;
@@ -38,8 +43,7 @@ import com.splicemachine.utils.SpliceZooKeeperManager;
 
 public interface DerbyFactory<Transaction> {
 		Filter getAllocatedFilter(byte[] localAddress);
-		SpliceBaseOperationRegionScanner getOperationRegionScanner(RegionScanner s,
-																															 Scan scan, HRegion region, TransactionalRegion txnRegion) throws IOException;
+		SpliceBaseOperationRegionScanner getOperationRegionScanner(RegionScanner s, Scan scan, HRegion region, TransactionalRegion txnRegion) throws IOException;
 		List<HRegion> getOnlineRegions(RegionServerServices services, byte[] tableName) throws IOException;
 		void removeTableFromDescriptors(MasterServices masterServices, String tableName) throws IOException;
 		HRegionInfo loadRegionInfoFileContent(FileSystem fileSystem, Path path) throws IOException;
@@ -48,8 +52,7 @@ public interface DerbyFactory<Transaction> {
 		Scan readScanExternal(ObjectInput in) throws IOException;
 		void checkCallerDisconnect(HRegion region) throws IOException;
 		InternalScanner noOpInternalScanner();
-		void writeRegioninfoOnFilesystem(HRegionInfo regionInfo, Path regiondir,
-																		 FileSystem fs, Configuration conf) throws IOException;
+		void writeRegioninfoOnFilesystem(HRegionInfo regionInfo, Path regiondir, FileSystem fs, Configuration conf) throws IOException;
 		Path getRegionDir(HRegion region);
 		void bulkLoadHFiles(HRegion region, List<Pair<byte[], String>> paths) throws IOException;
 		BulkWritesInvoker.Factory getBulkWritesInvoker(HConnection connection, byte[] tableName);
@@ -61,13 +64,12 @@ public interface DerbyFactory<Transaction> {
 		Filter getSkippingScanFilter(List<Pair<byte[], byte[]>> startStopKeys, List<byte[]> predicates);
 		HTableInterface getTable(RegionCoprocessorEnvironment rce, byte[] tableName) throws IOException;
 		int getReduceNumberOfRegions(String tableName, Configuration conf) throws IOException;
-		ConstantAction getDropIndexConstantAction(String fullIndexName,
-																							String indexName,String tableName,String schemaName,UUID tableId,long tableConglomerateId);
+		ConstantAction getDropIndexConstantAction(String fullIndexName, String indexName,String tableName,String schemaName,UUID tableId,long tableConglomerateId);
 		void SYSCS_GET_REQUESTS(ResultSet[] resultSet) throws SQLException;
 		void SYSCS_GET_SCHEMA_INFO(final ResultSet[] resultSet) throws SQLException;
+	    void SYSCS_GET_REGION_SERVER_STATS_INFO(final ResultSet[] resultSet, List<Pair<String, JMXConnector>> connections) throws SQLException;
+		ObjectName getRegionServerStatistics() throws MalformedObjectNameException;
 		ServerName getServerName(String serverName);
-
 		ExceptionTranslator getExceptionHandler();
-
         SparkUtils getSparkUtils();
 }

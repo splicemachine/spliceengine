@@ -14,9 +14,7 @@ import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.logging.Logging;
 
-import javax.management.MBeanServerConnection;
 import javax.management.MalformedObjectNameException;
-import javax.management.ObjectName;
 import javax.management.remote.JMXConnector;
 
 import java.io.IOException;
@@ -66,8 +64,8 @@ import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.pipeline.exception.ErrorState;
-import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.pipeline.threadpool.ThreadPoolStatus;
+
 /**
  * @author Jeff Cunningham
  *
@@ -618,75 +616,16 @@ public class SpliceAdmin extends BaseAdminProcedures {
         operate(new JMXServerOperation() {
             @Override
             public void operate(List<Pair<String, JMXConnector>> connections) throws MalformedObjectNameException, IOException, SQLException {
-
-                ObjectName regionServerStats = null;
-                try {
-                    regionServerStats = JMXUtils.getRegionServerStatistics();
-                } catch (MalformedObjectNameException e) {
-                    throw new SQLException(e);
-                }
-                ExecRow template = new ValueRow(9);
-                template.setRowArray(new DataValueDescriptor[]{
-                        new SQLVarchar(),new SQLInteger(),new SQLLongint(),new SQLLongint(),
-                        new SQLLongint(),new SQLLongint(),new SQLReal(),new SQLInteger(),new SQLInteger()
-                });
-                int i = 0;
-                List<ExecRow> rows = Lists.newArrayListWithExpectedSize(connections.size());
-                for (Pair<String, JMXConnector> mxc : connections) {
-                    MBeanServerConnection mbsc = mxc.getSecond().getMBeanServerConnection();
-
-                    template.resetRowArray();
-                    DataValueDescriptor[] dvds = template.getRowArray();
-                    try{
-                        dvds[0].setValue(connections.get(i).getFirst());
-                        dvds[1].setValue(((Integer)mbsc.getAttribute(regionServerStats,"regions")).intValue());
-                        dvds[2].setValue(((Long)mbsc.getAttribute(regionServerStats,"fsReadLatencyAvgTime")).longValue());
-                        dvds[3].setValue(((Long)mbsc.getAttribute(regionServerStats,"fsWriteLatencyAvgTime")).longValue());
-                        dvds[4].setValue(((Long)mbsc.getAttribute(regionServerStats,"writeRequestsCount")).longValue());
-                        dvds[5].setValue(((Long)mbsc.getAttribute(regionServerStats,"readRequestsCount")).longValue());
-                        dvds[6].setValue(((Float)mbsc.getAttribute(regionServerStats,"requests")).floatValue());
-                        dvds[7].setValue(((Integer)mbsc.getAttribute(regionServerStats,"compactionQueueSize")).intValue());
-                        dvds[8].setValue(((Integer)mbsc.getAttribute(regionServerStats,"flushQueueSize")).intValue());
-                    }catch(StandardException se){
-                        throw PublicAPI.wrapStandardException(se);
-                    } catch (Exception e) {
-                        throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
-                    }
-                    rows.add(template.getClone());
-                    i++;
-                }
-                ResultColumnDescriptor []columnInfo = new ResultColumnDescriptor[9];
-                columnInfo[0] = new GenericColumnDescriptor("host",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
-                columnInfo[1] = new GenericColumnDescriptor("regions",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
-                columnInfo[2] = new GenericColumnDescriptor("fsReadLatencyAvgTime",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-                columnInfo[3] = new GenericColumnDescriptor("fsWriteLatencyAvgTime",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-                columnInfo[4] = new GenericColumnDescriptor("writeRequestsCount",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-                columnInfo[5] = new GenericColumnDescriptor("readRequestsCount",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-                columnInfo[6] = new GenericColumnDescriptor("requests",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.REAL));
-                columnInfo[7] = new GenericColumnDescriptor("compactionQueueSize",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
-                columnInfo[8] = new GenericColumnDescriptor("flushQueueSize",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
-
-                EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
-                Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
-                IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, columnInfo,lastActivation);
-                try {
-                    resultsToWrap.openCore();
-                } catch (StandardException e) {
-                    throw PublicAPI.wrapStandardException(e);
-                }
-                EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap,false,null,true);
-
-                resultSet[0] = ers;
+            	derbyFactory.SYSCS_GET_REGION_SERVER_STATS_INFO(resultSet, connections);
             }
         });
     }
 
     public static void SYSCS_GET_REQUESTS(ResultSet[] resultSet) throws SQLException {
     	derbyFactory.SYSCS_GET_REQUESTS(resultSet);
-            }
+	}
 
     public static void SYSCS_PERFORM_MAJOR_COMPACTION_ON_SCHEMA(String schemaName) throws SQLException {
-        // sys query for all table conglomerates in schema
         SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE(schemaName, null);
     }
 

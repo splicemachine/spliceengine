@@ -6,14 +6,19 @@ import javax.management.ObjectName;
 import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
+
 import org.apache.hadoop.hbase.util.Pair;
 import com.splicemachine.tools.version.SpliceMachineVersion;
+import com.splicemachine.derby.hbase.DerbyFactory;
+import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.hbase.SpliceBaseIndexEndpoint.ActiveWriteHandlersIface;
 import com.splicemachine.derby.impl.job.scheduler.StealableTaskSchedulerManagement;
 import com.splicemachine.derby.impl.job.scheduler.TieredSchedulerManagement;
@@ -25,12 +30,14 @@ import com.splicemachine.pipeline.threadpool.ThreadPoolStatus;
 import com.splicemachine.utils.logging.Logging;
 
 public class JMXUtils {
-    public static final String LOGGING_MANAGEMENT = "com.splicemachine.utils.logging:type=LogManager";
+
+	protected static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
+
+	public static final String LOGGING_MANAGEMENT = "com.splicemachine.utils.logging:type=LogManager";
     public static final String MONITORED_THREAD_POOL = "com.splicemachine.writer.async:type=ThreadPoolStatus";
     public static final String GLOBAL_TASK_SCHEDULER_MANAGEMENT = "com.splicemachine.job:type=TieredSchedulerManagement";
     public static final String TIER_TASK_SCHEDULER_MANAGEMENT_BASE = "com.splicemachine.job.tasks.tier-";
 	public static final String STATEMENT_MANAGEMENT_BASE = "com.splicemachine.statement:type=StatementManagement";
-    public static final String REGION_SERVER_STATISTICS = "hadoop:service=RegionServer,name=RegionServerStatistics";
     public static final String ACTIVE_WRITE_HANDLERS = "com.splicemachine.derby.hbase:type=ActiveWriteHandlers";
     public static final String JOB_SCHEDULER_MANAGEMENT = "com.splicemachine.job:type=JobSchedulerManagement";
     public static final String SPLICEMACHINE_VERSION = "com.splicemachine.version:type=SpliceMachineVersion";
@@ -57,7 +64,8 @@ public class JMXUtils {
     }
 
 	public static ObjectName getRegionServerStatistics() throws MalformedObjectNameException {
-		return getDynamicMBean(REGION_SERVER_STATISTICS);
+		// Need to delegate even this part, because in HBase .98 the MBeans were changed
+		return derbyFactory.getRegionServerStatistics();
 	}
 	
 	public static List<ThreadPoolStatus> getMonitoredThreadPools(List<Pair<String,JMXConnector>> mbscArray) throws MalformedObjectNameException, IOException {
