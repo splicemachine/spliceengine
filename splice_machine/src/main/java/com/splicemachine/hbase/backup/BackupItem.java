@@ -8,6 +8,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -19,6 +20,7 @@ import com.splicemachine.job.JobFuture;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.types.SQLTimestamp;
 import org.apache.hadoop.fs.*;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HTableDescriptor;
@@ -40,7 +42,8 @@ public class BackupItem implements InternalTable {
 	public static final String INSERT_BACKUP_ITEM = "insert into %s.%s (backup_transaction_id, backup_item, backup_begin_timestamp)"
 			+ " values (?,?,?)";
     public static final String UPDATE_BACKUP_ITEM_STATUS = "update %s.%s set backup_end_timestamp = ? where backup_transaction_id = ? and backup_item = ?";
-	
+    public static final String QUERY_BACKUP_ITEM = "select * from %s.%s where backup_transaction_id=?";
+
 	public BackupItem () {
 		
 	}
@@ -55,6 +58,8 @@ public class BackupItem implements InternalTable {
 	private String backupItem;
 	private Timestamp backupItemBeginTimestamp;
 	private Timestamp backupItemEndTimestamp;
+    private SQLTimestamp lastBackupTimestamp;
+
     private List<RegionInfo> regionInfoList = new ArrayList<RegionInfo>();
 
     public HTableDescriptor getTableDescriptor() {
@@ -116,6 +121,7 @@ public class BackupItem implements InternalTable {
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeObject(backup); // TODO Needs to be replaced with protobuf
         out.writeUTF(backupItem);
+        out.writeObject(lastBackupTimestamp);
         out.writeObject(regionInfoList);
     }
 
@@ -123,6 +129,7 @@ public class BackupItem implements InternalTable {
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         backup = (Backup) in.readObject(); // TODO Needs to be replaced with protobuf
         backupItem = in.readUTF();
+        lastBackupTimestamp = (SQLTimestamp)in.readObject();
         regionInfoList = (List<RegionInfo>) in.readObject();
     }
 
@@ -257,6 +264,21 @@ public class BackupItem implements InternalTable {
 
     private void addRegionInfo(RegionInfo regionInfo) {
         regionInfoList.add(regionInfo);
+    }
+
+    public void setLastBackupTimestamp() throws StandardException{
+        Backup parentBackup = backup.getIncrementalParentBackup();
+        if (parentBackup != null) {
+            HashMap<String, BackupItem> backupItems = parentBackup.getBackupItems();
+            BackupItem item = backupItems.get(backupItem);
+            if (item != null) {
+                lastBackupTimestamp = new SQLTimestamp(item.getBackupItemBeginTimestamp());
+            }
+        }
+    }
+
+    public SQLTimestamp getLastBackupTimestamp() {
+        return lastBackupTimestamp;
     }
 
     public void doBackup() throws StandardException {

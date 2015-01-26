@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import com.splicemachine.derby.hbase.DerbyFactory;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.hbase.backup.BackupUtils;
 import com.splicemachine.tools.version.SpliceMachineVersion;
 import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.job.scheduler.StealableTaskSchedulerManagement;
@@ -62,6 +63,7 @@ import com.splicemachine.db.impl.jdbc.ResultSetBuilder.RowBuilder;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.db.iapi.db.Factory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
@@ -1195,5 +1197,11 @@ public class SpliceAdmin extends BaseAdminProcedures {
         LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
         lcc.setRunTimeStatisticsMode(enable != 0 ? true : false);
         lcc.setStatisticsTiming(enable != 0 ? true : false);
+    }
+
+    public static void SYSCS_INCREMENTAL_BACKUP_DATABASE(long parent_backup_id) throws SQLException, StandardException {
+
+        String backupDir = BackupUtils.getBackupDirectory(parent_backup_id);
+        Factory.getDatabaseOfConnection().backup(backupDir, parent_backup_id, true);
     }
 }
