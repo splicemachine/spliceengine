@@ -4,9 +4,9 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.lang.Override;
-import java.net.ConnectException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -15,17 +15,29 @@ import java.util.Map;
 import java.util.SortedSet;
 
 import com.splicemachine.derby.impl.sql.execute.operations.SparkUtilsImpl;
+import javax.management.MBeanServerConnection;
+import javax.management.MalformedObjectNameException;
+import javax.management.ObjectName;
+import javax.management.remote.JMXConnector;
+
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.ResultColumnDescriptor;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.execute.ConstantAction;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.SQLInteger;
+import org.apache.derby.iapi.types.SQLLongint;
+import org.apache.derby.iapi.types.SQLReal;
+import org.apache.derby.iapi.types.SQLVarchar;
 import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.derby.impl.jdbc.EmbedResultSet;
 import org.apache.derby.impl.jdbc.EmbedResultSet40;
+import org.apache.derby.impl.sql.GenericColumnDescriptor;
 import org.apache.derby.impl.sql.execute.IteratorNoPutResultSet;
 import org.apache.derby.impl.sql.execute.ValueRow;
 import org.apache.hadoop.conf.Configuration;
@@ -40,7 +52,6 @@ import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.filter.Filter;
-import org.apache.hadoop.hbase.ipc.HBaseClient;
 import org.apache.hadoop.hbase.ipc.HBaseServer;
 import org.apache.hadoop.hbase.ipc.RpcCallContext;
 import org.apache.hadoop.hbase.master.MasterServices;
@@ -48,7 +59,6 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.regionserver.RegionServerServices;
-import org.apache.hadoop.hbase.regionserver.WrongRegionException;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
@@ -64,28 +74,32 @@ import com.splicemachine.derby.impl.job.scheduler.JobMetrics;
 import com.splicemachine.derby.impl.sql.execute.DropIndexConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.SkippingScanFilter;
 import com.splicemachine.derby.impl.store.access.base.SpliceGenericCostController;
+import com.splicemachine.derby.utils.BaseAdminProcedures;
 import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hase.debug.HBaseEntryPredicateFilter;
 import com.splicemachine.hbase.HBaseRegionLoads;
 import com.splicemachine.hbase.ThrowIfDisconnected;
+import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.pipeline.api.BulkWritesInvoker.Factory;
+import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.pipeline.impl.BulkWritesRPCInvoker;
 import com.splicemachine.si.api.TransactionalRegion;
-import com.splicemachine.si.api.Txn.IsolationLevel;
-import com.splicemachine.si.api.Txn.State;
 import com.splicemachine.si.impl.SparseTxn;
 import com.splicemachine.storage.EntryPredicateFilter;
-import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
+import com.splicemachine.derby.hbase.Hbase94ExceptionTranslator;
 
 public class DerbyFactoryImpl implements DerbyFactory<SparseTxn> {
 
-				@Override
-								public ExceptionTranslator getExceptionHandler(){
-									return Hbase94ExceptionTranslator.INSTANCE;				
-								}
+	protected static final String REGION_SERVER_STATISTICS = "hadoop:service=RegionServer,name=RegionServerStatistics";
+
+    @Override
+	public ExceptionTranslator getExceptionHandler(){
+		return Hbase94ExceptionTranslator.INSTANCE;				
+	}
+
 	@Override
 	public Filter getAllocatedFilter(byte[] localAddress) {
 		return new AllocatedFilter(localAddress);
@@ -454,7 +468,76 @@ public class DerbyFactoryImpl implements DerbyFactory<SparseTxn> {
 			
 		}
 
-		@Override
+	    public void SYSCS_GET_REGION_SERVER_STATS_INFO(final ResultSet[] resultSet, List<Pair<String, JMXConnector>> connections) throws SQLException {
+			ObjectName regionServerStats = null;
+            try {
+                regionServerStats = JMXUtils.getRegionServerStatistics();
+            } catch (MalformedObjectNameException e) {
+                throw new SQLException(e);
+            }
+            ExecRow template = new ValueRow(9);
+            template.setRowArray(new DataValueDescriptor[]{
+                    new SQLVarchar(),new SQLInteger(),new SQLLongint(),new SQLLongint(),
+                    new SQLLongint(),new SQLLongint(),new SQLReal(),new SQLInteger(),new SQLInteger()
+            });
+            int i = 0;
+            List<ExecRow> rows = Lists.newArrayListWithExpectedSize(connections.size());
+            for (Pair<String, JMXConnector> mxc : connections) {
+        		MBeanServerConnection mbsc;
+            	try {
+            		mbsc = mxc.getSecond().getMBeanServerConnection();
+            	} catch (IOException e) {
+            		throw new SQLException(e);
+            	}
+                template.resetRowArray();
+                DataValueDescriptor[] dvds = template.getRowArray();
+                try{
+                    dvds[0].setValue(connections.get(i).getFirst());
+                    dvds[1].setValue(((Integer)mbsc.getAttribute(regionServerStats,"regions")).intValue());
+                    dvds[2].setValue(((Long)mbsc.getAttribute(regionServerStats,"fsReadLatencyAvgTime")).longValue());
+                    dvds[3].setValue(((Long)mbsc.getAttribute(regionServerStats,"fsWriteLatencyAvgTime")).longValue());
+                    dvds[4].setValue(((Long)mbsc.getAttribute(regionServerStats,"writeRequestsCount")).longValue());
+                    dvds[5].setValue(((Long)mbsc.getAttribute(regionServerStats,"readRequestsCount")).longValue());
+                    dvds[6].setValue(((Float)mbsc.getAttribute(regionServerStats,"requests")).floatValue());
+                    dvds[7].setValue(((Integer)mbsc.getAttribute(regionServerStats,"compactionQueueSize")).intValue());
+                    dvds[8].setValue(((Integer)mbsc.getAttribute(regionServerStats,"flushQueueSize")).intValue());
+                }catch(StandardException se){
+                    throw PublicAPI.wrapStandardException(se);
+                } catch (Exception e) {
+                    throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+                }
+                rows.add(template.getClone());
+                i++;
+            }
+            ResultColumnDescriptor[] columnInfo = new ResultColumnDescriptor[9];
+            columnInfo[0] = new GenericColumnDescriptor("host",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
+            columnInfo[1] = new GenericColumnDescriptor("regions",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
+            columnInfo[2] = new GenericColumnDescriptor("fsReadLatencyAvgTime",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+            columnInfo[3] = new GenericColumnDescriptor("fsWriteLatencyAvgTime",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+            columnInfo[4] = new GenericColumnDescriptor("writeRequestsCount",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+            columnInfo[5] = new GenericColumnDescriptor("readRequestsCount",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+            columnInfo[6] = new GenericColumnDescriptor("requests",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.REAL));
+            columnInfo[7] = new GenericColumnDescriptor("compactionQueueSize",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
+            columnInfo[8] = new GenericColumnDescriptor("flushQueueSize",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
+
+            EmbedConnection defaultConn = (EmbedConnection) BaseAdminProcedures.getDefaultConn();
+            Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
+            IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, columnInfo,lastActivation);
+            try {
+                resultsToWrap.openCore();
+            } catch (StandardException e) {
+                throw PublicAPI.wrapStandardException(e);
+            }
+            EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap,false,null,true);
+
+            resultSet[0] = ers;
+	    }
+
+		public ObjectName getRegionServerStatistics() throws MalformedObjectNameException {
+			return JMXUtils.getDynamicMBean(REGION_SERVER_STATISTICS);
+		}
+		
+	    @Override
 		public ServerName getServerName(String serverName) {
 			return new ServerName(serverName);
 		}
