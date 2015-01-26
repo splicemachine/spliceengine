@@ -3391,7 +3391,7 @@ Guide.
 
             <msg>
                 <name>X0Y45.S</name>
-                <text>Foreign key constraint '{0}' cannot be added to or enabled on table {1} because one or more foreign keys do not have matching referenced keys.  </text>
+                <text>Foreign key constraint '{0}' cannot be added to or enabled on table {1} because one or more foreign keys do not have matching referenced keys.</text>
                 <arg>constraintName</arg>
                 <arg>tableName</arg>
             </msg>
