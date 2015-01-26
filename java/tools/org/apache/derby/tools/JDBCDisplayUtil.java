@@ -61,7 +61,7 @@ public class JDBCDisplayUtil {
 
 	// used to control display
 	static final private int MINWIDTH = 4;
-	static private int maxWidth = 128;
+	static private int maxWidth = 256;
     static public boolean showSelectCount = false;
 
     static {
