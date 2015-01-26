@@ -22,6 +22,7 @@ import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.io.hfile.*;
 import org.apache.hadoop.hbase.regionserver.StoreFile;
 import org.apache.hadoop.hbase.regionserver.StoreFile.*;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 public class SpliceUtilities extends SIConstants {
@@ -95,6 +96,19 @@ public class SpliceUtilities extends SIConstants {
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		} 
+	}
+
+	public static void deleteTable(HBaseAdmin admin, HTableDescriptor table) throws IOException {
+		deleteTable(admin, table.getName());
+	}
+
+	public static void deleteTable(HBaseAdmin admin, long conglomerateID) throws IOException {
+		deleteTable(admin, Bytes.toBytes(Long.toString(conglomerateID)));
+	}
+
+	public static void deleteTable(HBaseAdmin admin, byte[] id) throws IOException {
+		admin.disableTable(id);
+		admin.deleteTable(id);
 	}
 
 	public static HTableDescriptor generateDefaultSIGovernedTable(

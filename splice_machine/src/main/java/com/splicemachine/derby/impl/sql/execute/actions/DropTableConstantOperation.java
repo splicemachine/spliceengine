@@ -71,27 +71,6 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
       DataDictionary dd = lcc.getDataDictionary();
       DependencyManager dm = dd.getDependencyManager();
       TransactionController tc = lcc.getTransactionExecute();
-        // DEBUG: don't do anything special for temp tables. Let them get dropped like a regular table
-//      if ((sd != null) && sd.getSchemaName().equals(SchemaDescriptor.STD_DECLARED_GLOBAL_TEMPORARY_TABLES_SCHEMA_NAME)) {
-//          td = lcc.getTableDescriptorForDeclaredGlobalTempTable(tableName); //check if this is a temp table before checking data dictionary
-//
-//          if (td == null) //td null here means it is not a temporary table. Look for table in physical SESSION schema
-//              td = dd.getTableDescriptor(tableName, sd, tc);
-//
-//          if (td == null) {
-//              //td null means tableName is not a temp table and it is not a physical table in SESSION schema
-//              throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND_DURING_EXECUTION, fullTableName);
-//          }
-
-          // TODO: This would be the expression to trigger dropping temp physical htable, if we implement that,
-          // tho it would be the last instruction (heap dropCongomerate) below
-//          if (td.getTableType() ==  TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE) {
-//              dm.invalidateFor(td, DependencyManager.DROP_TABLE, lcc);
-//              tc.dropConglomerate(td.getHeapConglomerateId());
-//              lcc.dropDeclaredGlobalTempTable(tableName);
-//              return;
-//          }
-//      }
 
       /*
        * Inform the data dictionary that we are about to write to it.
@@ -205,7 +184,7 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
        * for open cursor, beetle 4393.
        */
       tc.dropConglomerate(heapId);
-  }
+    }
 
     private void dropAllConstraintDescriptors(TableDescriptor td, Activation activation) throws StandardException {
         ConstraintDescriptor				cd;

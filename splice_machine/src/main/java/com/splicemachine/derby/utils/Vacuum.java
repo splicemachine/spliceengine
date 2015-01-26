@@ -9,6 +9,8 @@ import com.splicemachine.stream.CloseableStream;
 import com.splicemachine.stream.StreamException;
 import com.splicemachine.pipeline.exception.ErrorState;
 import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.utils.SpliceUtilities;
+
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.store.access.TransactionController;
@@ -36,7 +38,7 @@ public class Vacuum {
 		public Vacuum(Connection connection) throws SQLException {
 				this.connection = connection;
 				try {
-						this.admin = new HBaseAdmin(SpliceConstants.config);
+						this.admin = SpliceUtilities.getAdmin();
 				} catch (Exception e) {
 						throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
 				} 
@@ -73,8 +75,7 @@ public class Vacuum {
 										long tableConglom = Long.parseLong(Bytes.toString(table.getName()));
 										if(tableConglom<1168l) continue; //ignore system tables
 										if(!activeConglomerates.contains(tableConglom)){
-												admin.disableTable(table.getName());
-												admin.deleteTable(table.getName());
+											SpliceUtilities.deleteTable(admin, table);
 										}
 								}catch(NumberFormatException nfe){
 										/*

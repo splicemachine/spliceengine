@@ -243,20 +243,6 @@ public class IndexConglomerate extends SpliceConglomerate {
 
 
     /**
-     * Is this conglomerate temporary?
-     * <p>
-     *
-	 * @return whether conglomerate is temporary or not.
-     **/
-    public boolean isTemporary()
-    {
-    	if (LOG.isTraceEnabled())
-    		LOG.trace("isTemporary ");
-        return false;
-    }
-
-
-    /**
      * Bulk load into the conglomerate.
      * <p>
      *
@@ -635,6 +621,7 @@ public class IndexConglomerate extends SpliceConglomerate {
 	
 	public void btreeWriteExternal(ObjectOutput out)  throws IOException {
 	        FormatIdUtil.writeFormatIdInteger(out, conglom_format_id);
+	        FormatIdUtil.writeFormatIdInteger(out, tmpFlag);
 			out.writeLong(id.getContainerId());
 			out.writeInt((int) id.getSegmentId());
 			out.writeInt((nKeyFields));
@@ -646,6 +633,7 @@ public class IndexConglomerate extends SpliceConglomerate {
 	
 	public void btreeReadExternal(ObjectInput in) throws IOException, ClassNotFoundException {
 	        conglom_format_id = FormatIdUtil.readFormatIdInteger(in);
+	        tmpFlag = FormatIdUtil.readFormatIdInteger(in);
 			long containerid         = in.readLong();
 			int segmentid			= in.readInt();
 			nKeyFields          = in.readInt();

@@ -172,18 +172,16 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
             collation_ids[ix] = col_info.dataType.getCollationType();
         }
 
-		    /*
-		     * Inform the data dictionary that we are about to write to it.
-				 * There are several calls to data dictionary "get" methods here
-				 * that might be done in "read" mode in the data dictionary, but
-				 * it seemed safer to do this whole operation in "write" mode.
-				 *
-				 * We tell the data dictionary we're done writing at the end of
-				 * the transaction.
-				 */
-        // FIXME: temp table must be in writable txn, as well as physical table, to be created
-//        if ( tableType != TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE )
-            dd.startWriting(lcc);
+        /*
+         * Inform the data dictionary that we are about to write to it.
+         * There are several calls to data dictionary "get" methods here
+         * that might be done in "read" mode in the data dictionary, but
+         * it seemed safer to do this whole operation in "write" mode.
+         *
+         * We tell the data dictionary we're done writing at the end of
+         * the transaction.
+         */
+        dd.startWriting(lcc);
 
 		    /* create the conglomerate to hold the table's rows
 		     * RESOLVE - If we ever have a conglomerate creator
@@ -200,12 +198,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                         (TransactionController.IS_TEMPORARY | TransactionController.IS_KEPT) :
                         TransactionController.IS_DEFAULT);
 
-        // DEBUG: we don't need to treat temp tables any differently here - they could be going into any named schema
-        SchemaDescriptor sd;
-//        if (tableType == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE)
-//            sd = dd.getSchemaDescriptor(schemaName, tc, true);
-//        else
-            sd = DDLConstantOperation.getSchemaDescriptorForCreate(dd, activation, schemaName);
+        SchemaDescriptor sd = DDLConstantOperation.getSchemaDescriptorForCreate(dd, activation, schemaName);
 
         //
         // Create a new table descriptor.
@@ -214,13 +207,11 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
 
         if ( tableType != TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE ) {
             td = ddg.newTableDescriptor(tableName, sd, tableType, lockGranularity);
-            dd.addDescriptor(td, sd, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc);
         } else {
             td = ddg.newTableDescriptor(tableName, sd, tableType, onCommitDeleteRows, onRollbackDeleteRows);
             td.setUUID(dd.getUUIDFactory().createUUID());
-            // DEBUG: temp tables need to be in data dict too.  TODO: factor next line out, if so.
-            dd.addDescriptor(td, sd, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc);
         }
+        dd.addDescriptor(td, sd, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc);
 
         // Save the TableDescriptor off in the Activation
         activation.setDDLTableDescriptor(td);
@@ -277,11 +268,8 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
             cdlArray[ix] = columnDescriptor;
         }
 
-        // DEBUG: experiment - we need descriptor for temp table also ?
-//        if ( tableType != TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE ) {
-            dd.addDescriptorArray(cdlArray, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM,
-                    false, tc);
-//        }
+        dd.addDescriptorArray(cdlArray, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM,
+                false, tc);
 
         // now add the column descriptors to the table.
         ColumnDescriptorList cdl = td.getColumnDescriptorList();
@@ -295,10 +283,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
          *          was provided.
          */
         ConglomerateDescriptor cgd = getTableConglomerateDescriptor(td, conglomId, sd, ddg);
-        // DEBUG: experiment - we need descriptor for temp table also ?
-//        if ( tableType != TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE ) {
-            dd.addDescriptor(cgd, sd, DataDictionary.SYSCONGLOMERATES_CATALOG_NUM, false, tc);
-//        }
+        dd.addDescriptor(cgd, sd, DataDictionary.SYSCONGLOMERATES_CATALOG_NUM, false, tc);
 
         // add the newly added conglomerate to the table descriptor
         ConglomerateDescriptorList conglomList = td.getConglomerateDescriptorList();
