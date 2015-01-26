@@ -451,31 +451,40 @@ public class ForeignKey_Check_Insert_Update_IT {
     //
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+    /* This test also tests FKs of all column types */
     @Test
     public void multipleForeignKeysOnChildTable() throws Exception {
 
         new TableCreator(connection())
-                .withCreate("create table P (a varchar(9), b float, c double, d int, e bigint, " +
-                        "CONSTRAINT u1 UNIQUE(a), CONSTRAINT u2 UNIQUE(b), CONSTRAINT u3 UNIQUE(c), CONSTRAINT u4 UNIQUE(d), CONSTRAINT u5 UNIQUE(e))")
-                .withInsert("insert into P values(?,?,?,?,?)")
+                .withCreate("create table P (a varchar(9), b real, c double, d int, e bigint, f smallint, g decimal(11, 2), h date, i time, j timestamp," +
+                        "CONSTRAINT u0 UNIQUE(a), CONSTRAINT u1 UNIQUE(b), CONSTRAINT u2 UNIQUE(c), CONSTRAINT u3 UNIQUE(d), " +
+                        "CONSTRAINT u4 UNIQUE(e), CONSTRAINT u5 UNIQUE(f), CONSTRAINT u6 UNIQUE(g), CONSTRAINT u7 UNIQUE(h)," +
+                        "CONSTRAINT u8 UNIQUE(i), CONSTRAINT u9 UNIQUE(j)" +
+                        ")")
+                .withInsert("insert into P values(?,?,?,?,?,?,?,?,?,?)")
                 .withRows(rows(
-                        row("aaa", 1.0f, 3.2d, 3, 6L),
-                        row("bbb", 6.2f, 6.4d, 6, 12L)
+                        row("aaa", 1.0f, 3.2d, 3, 6L, 126 , 333333333.33, "2015-01-27", "09:15:30", "2000-02-02 02:02:02.002"),
+                        row("bbb", 6.2f, 6.4d, 6, 12L, 127, 444444444.44, "2015-01-28", "13:15:30", "2001-02-02 02:02:02.002")
                 ))
                 .create();
 
         new TableCreator(connection())
-                .withCreate("create table C (a varchar(9), b float, c double, d int, e bigint," +
-                        "CONSTRAINT fk1 FOREIGN KEY(a) REFERENCES P(a)," +
-                        "CONSTRAINT fk2 FOREIGN KEY(b) REFERENCES P(b)," +
-                        "CONSTRAINT fk3 FOREIGN KEY(c) REFERENCES P(c)," +
-                        "CONSTRAINT fk4 FOREIGN KEY(d) REFERENCES P(d)," +
-                        "CONSTRAINT fk5 FOREIGN KEY(e) REFERENCES P(e)" +
+                .withCreate("create table C (a varchar(9), b real, c double, d int, e bigint, f smallint, g decimal(11, 2), h date, i time, j timestamp," +
+                        "CONSTRAINT fk0 FOREIGN KEY(a) REFERENCES P(a)," +
+                        "CONSTRAINT fk1 FOREIGN KEY(b) REFERENCES P(b)," +
+                        "CONSTRAINT fk2 FOREIGN KEY(c) REFERENCES P(c)," +
+                        "CONSTRAINT fk3 FOREIGN KEY(d) REFERENCES P(d)," +
+                        "CONSTRAINT fk4 FOREIGN KEY(e) REFERENCES P(e)," +
+                        "CONSTRAINT fk5 FOREIGN KEY(f) REFERENCES P(f)," +
+                        "CONSTRAINT fk6 FOREIGN KEY(g) REFERENCES P(g)," +
+                        "CONSTRAINT fk7 FOREIGN KEY(h) REFERENCES P(h)," +
+                        "CONSTRAINT fk8 FOREIGN KEY(i) REFERENCES P(i)," +
+                        "CONSTRAINT fk9 FOREIGN KEY(j) REFERENCES P(j)" +
                         ")")
-                .withInsert("insert into C values(?,?,?,?,?)")
+                .withInsert("insert into C values(?,?,?,?,?,?,?,?,?,?)")
                 .withRows(rows(
-                        row("aaa", 1.0f, 3.2d, 3, 6L),
-                        row("bbb", 6.2f, 6.4d, 6, 12L)
+                        row("aaa", 1.0f, 3.2d, 3, 6L, 126, 333333333.33, "2015-01-27", "09:15:30", "2000-02-02 02:02:02.002"),
+                        row("bbb", 6.2f, 6.4d, 6, 12L, 127, 444444444.44, "2015-01-28", "09:15:30", "2000-02-02 02:02:02.002")
                 ))
                 .create();
 
@@ -483,19 +492,28 @@ public class ForeignKey_Check_Insert_Update_IT {
         assertEquals(2L, methodWatcher.query("select count(*) from C"));
 
         // this works
-        methodWatcher.getStatement().execute("insert into C values ('aaa', 1.0, 3.2, 3, 6)");
+        methodWatcher.getStatement().execute("insert into C values ('aaa', 1.0, 3.2, 3, 6, 126, 333333333.33, '2015-01-27', '09:15:30', '2000-02-02 02:02:02.002')");
 
-        assertQueryFail("insert into C values ('ZZZ', 1.0, 3.2, 3, 6)", "Operation on table 'C' caused a violation of foreign key constraint 'FK1' for key (A).  The statement has been rolled back.");
-        assertQueryFail("insert into C values ('aaa', -1.0, 3.2, 3, 6)", "Operation on table 'C' caused a violation of foreign key constraint 'FK2' for key (B).  The statement has been rolled back.");
-        assertQueryFail("insert into C values ('aaa', 1.0, -3.2, 3, 6)", "Operation on table 'C' caused a violation of foreign key constraint 'FK3' for key (C).  The statement has been rolled back.");
-        assertQueryFail("insert into C values ('aaa', 1.0, 3.2, -3, 6)", "Operation on table 'C' caused a violation of foreign key constraint 'FK4' for key (D).  The statement has been rolled back.");
-        assertQueryFail("insert into C values ('aaa', 1.0, 3.2, 3, -6)", "Operation on table 'C' caused a violation of foreign key constraint 'FK5' for key (E).  The statement has been rolled back.");
+        assertQueryFail("insert into C values ('ZZZ', 1.0, 3.2, 3, 6, 126, 333333333.33, '2015-01-27', '09:15:30', '2000-02-02 02:02:02.002')", "Operation on table 'C' caused a violation of foreign key constraint 'FK0' for key (A).  The statement has been rolled back.");
+        assertQueryFail("insert into C values ('aaa', -1.0, 3.2, 3, 6, 126, 333333333.33, '2015-01-27', '09:15:30', '2000-02-02 02:02:02.002')", "Operation on table 'C' caused a violation of foreign key constraint 'FK1' for key (B).  The statement has been rolled back.");
+        assertQueryFail("insert into C values ('aaa', 1.0, -3.2, 3, 6, 126, 333333333.33, '2015-01-27', '09:15:30', '2000-02-02 02:02:02.002')", "Operation on table 'C' caused a violation of foreign key constraint 'FK2' for key (C).  The statement has been rolled back.");
+        assertQueryFail("insert into C values ('aaa', 1.0, 3.2, -3, 6, 126, 333333333.33, '2015-01-27', '09:15:30', '2000-02-02 02:02:02.002')", "Operation on table 'C' caused a violation of foreign key constraint 'FK3' for key (D).  The statement has been rolled back.");
+        assertQueryFail("insert into C values ('aaa', 1.0, 3.2, 3, -6, 126, 333333333.33, '2015-01-27', '09:15:30', '2000-02-02 02:02:02.002')", "Operation on table 'C' caused a violation of foreign key constraint 'FK4' for key (E).  The statement has been rolled back.");
+        assertQueryFail("insert into C values ('aaa', 1.0, 3.2, 3,  6, -126, 333333333.33, '2015-01-27', '09:15:30', '2000-02-02 02:02:02.002')", "Operation on table 'C' caused a violation of foreign key constraint 'FK5' for key (F).  The statement has been rolled back.");
+        assertQueryFail("insert into C values ('aaa', 1.0, 3.2, 3,  6, 126, -333333333.33, '2015-01-27', '09:15:30', '2000-02-02 02:02:02.002')", "Operation on table 'C' caused a violation of foreign key constraint 'FK6' for key (G).  The statement has been rolled back.");
+        assertQueryFail("insert into C values ('aaa', 1.0, 3.2, 3,  6, 126, 333333333.33, '1999-12-31', '09:15:30', '2000-02-02 02:02:02.002')", "Operation on table 'C' caused a violation of foreign key constraint 'FK7' for key (H).  The statement has been rolled back.");
+        assertQueryFail("insert into C values ('aaa', 1.0, 3.2, 3,  6, 126, 333333333.33, '2015-01-27', '01:01:01', '2000-02-02 02:02:02.002')", "Operation on table 'C' caused a violation of foreign key constraint 'FK8' for key (I).  The statement has been rolled back.");
 
-        assertQueryFail("update C set a='ZZZ'", "Operation on table 'C' caused a violation of foreign key constraint 'FK1' for key (A).  The statement has been rolled back.");
-        assertQueryFail("update C set b=-1", "Operation on table 'C' caused a violation of foreign key constraint 'FK2' for key (B).  The statement has been rolled back.");
-        assertQueryFail("update C set c=-1", "Operation on table 'C' caused a violation of foreign key constraint 'FK3' for key (C).  The statement has been rolled back.");
-        assertQueryFail("update C set d=-1", "Operation on table 'C' caused a violation of foreign key constraint 'FK4' for key (D).  The statement has been rolled back.");
-        assertQueryFail("update C set e=-1", "Operation on table 'C' caused a violation of foreign key constraint 'FK5' for key (E).  The statement has been rolled back.");
+        assertQueryFail("update C set a='ZZZ'", "Operation on table 'C' caused a violation of foreign key constraint 'FK0' for key (A).  The statement has been rolled back.");
+        assertQueryFail("update C set b=-1", "Operation on table 'C' caused a violation of foreign key constraint 'FK1' for key (B).  The statement has been rolled back.");
+        assertQueryFail("update C set c=-1", "Operation on table 'C' caused a violation of foreign key constraint 'FK2' for key (C).  The statement has been rolled back.");
+        assertQueryFail("update C set d=-1", "Operation on table 'C' caused a violation of foreign key constraint 'FK3' for key (D).  The statement has been rolled back.");
+        assertQueryFail("update C set e=-1", "Operation on table 'C' caused a violation of foreign key constraint 'FK4' for key (E).  The statement has been rolled back.");
+        assertQueryFail("update C set f=-1", "Operation on table 'C' caused a violation of foreign key constraint 'FK5' for key (F).  The statement has been rolled back.");
+        assertQueryFail("update C set g=-1", "Operation on table 'C' caused a violation of foreign key constraint 'FK6' for key (G).  The statement has been rolled back.");
+        assertQueryFail("update C set h='2007-01-01'", "Operation on table 'C' caused a violation of foreign key constraint 'FK7' for key (H).  The statement has been rolled back.");
+        assertQueryFail("update C set i='02:02:02'", "Operation on table 'C' caused a violation of foreign key constraint 'FK8' for key (I).  The statement has been rolled back.");
+        assertQueryFail("update C set j='1999-12-12 12:12:12.012'", "Operation on table 'C' caused a violation of foreign key constraint 'FK9' for key (J).  The statement has been rolled back.");
     }
 
     @Test

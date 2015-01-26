@@ -31,7 +31,8 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
     private String					schemaName;
     private int						tableType;
     private ColumnInfo[]			columnInfo;
-    protected CreateConstraintConstantOperation[]	constraintActions;
+    // Contains CreateConstraintConstantOperation elements, but array ref is ConstraintConstantOperation[]
+    protected ConstraintConstantOperation[]	constraintActions;
     private Properties				properties;
 
     /**
@@ -62,7 +63,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         this.tableName = tableName;
         this.tableType = tableType;
         this.columnInfo = columnInfo;
-        this.constraintActions = (CreateConstraintConstantOperation[]) constraintActions;
+        this.constraintActions = (ConstraintConstantOperation[]) constraintActions;
         this.properties = properties;
         this.lockGranularity = lockGranularity;
         this.onCommitDeleteRows = onCommitDeleteRows;
@@ -146,9 +147,9 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         List<String> pkColumnNames = null;
         ColumnOrdering[] columnOrdering = null;
         if (constraintActions != null) {
-            for(CreateConstraintConstantOperation constantAction:constraintActions){
+            for(ConstraintConstantOperation constantAction:constraintActions){
                 if(constantAction.getConstraintType()== DataDictionary.PRIMARYKEY_CONSTRAINT){
-                    pkColumnNames = Arrays.asList(constantAction.columnNames);
+                    pkColumnNames = Arrays.asList(((CreateConstraintConstantOperation) constantAction).columnNames);
                     columnOrdering = new IndexColumnOrder[pkColumnNames.size()];
                 }
             }
@@ -303,16 +304,16 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
              * Do everything but FK constraints first,
              * then FK constraints on 2nd pass.
              */
-            for (CreateConstraintConstantOperation constraintAction : constraintActions) {
+            for (ConstraintConstantOperation constraintAction : constraintActions) {
                 // skip fks
-                if (!constraintAction.isForeignKeyConstraint()) {
+                if (!((CreateConstraintConstantOperation) constraintAction).isForeignKeyConstraint()) {
                     constraintAction.executeConstantAction(activation);
                 }
             }
 
-            for (CreateConstraintConstantOperation constraintAction : constraintActions) {
+            for (ConstraintConstantOperation constraintAction : constraintActions) {
                 // only foreign keys
-                if (constraintAction.isForeignKeyConstraint()) {
+                if (((CreateConstraintConstantOperation) constraintAction).isForeignKeyConstraint()) {
                     constraintAction.executeConstantAction(activation);
                 }
             }

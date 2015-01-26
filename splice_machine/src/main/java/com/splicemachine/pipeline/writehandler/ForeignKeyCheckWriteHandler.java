@@ -94,7 +94,7 @@ public class ForeignKeyCheckWriteHandler implements WriteHandler {
      * referenced primary key or unique index:
      *
      * (1)
-     * If the FK backing indexes is non-unique (the default, always the case if there is not also a unique constraint
+     * If the FK backing index is non-unique (the default, always the case if there is not also a unique constraint
      * on the FK column) then there will be more columns (appended) in the KVPair rowKey than exist in the referenced
      * primary-key/index because of the way we encode rowKeys in non-unique indexes. Unfortunate because in that case we
      * create a new byte array for each KV. DB-2582 exists to see if we can avoid this (possible performance optimization).
@@ -109,6 +109,7 @@ public class ForeignKeyCheckWriteHandler implements WriteHandler {
      *
      * rowKeyIn          = [65, 67, 0 54, 45, 0, bytes, to, make, index-entry, unique]
      * formatIds.length  = 2
+     * return value      = [65, 67, 0 54, 45]
      */
     private byte[] getCheckRowKey(byte[] rowKeyIn) {
 
@@ -122,7 +123,7 @@ public class ForeignKeyCheckWriteHandler implements WriteHandler {
                 position += multiFieldDecoder.skipDouble();
             } else if (formatIds[i] == StoredFormatIds.SQL_REAL_ID) {
                 position += multiFieldDecoder.skipFloat();
-            } else if (formatIds[i] == StoredFormatIds.SQL_LONGINT_ID) {
+            } else if (isEncodedAsLong(formatIds[i])) {
                 position += multiFieldDecoder.skipLong();
             } else {
                 position += multiFieldDecoder.skip();
@@ -136,6 +137,12 @@ public class ForeignKeyCheckWriteHandler implements WriteHandler {
         byte[] checkRowKey = new byte[lastKeyIndex + 1];
         System.arraycopy(rowKeyIn, 0, checkRowKey, 0, lastKeyIndex + 1);
         return checkRowKey;
+    }
+
+    /* Should probably be a method on SerializerMap, so we can ask a given encoding version. All are the same for now however.  */
+    private static boolean isEncodedAsLong(int formatId) {
+        return formatId == StoredFormatIds.SQL_LONGINT_ID || formatId == StoredFormatIds.SQL_DATE_ID
+                || formatId == StoredFormatIds.SQL_TIME_ID || formatId == StoredFormatIds.SQL_TIMESTAMP_ID;
     }
 
 }

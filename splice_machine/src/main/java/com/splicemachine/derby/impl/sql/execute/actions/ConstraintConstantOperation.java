@@ -1,5 +1,9 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
@@ -7,10 +11,7 @@ import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.sql.PreparedStatement;
 import org.apache.derby.iapi.sql.ResultSet;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
-import org.apache.derby.iapi.sql.dictionary.DataDictionary;
-import org.apache.derby.iapi.sql.dictionary.ForeignKeyConstraintDescriptor;
-import org.apache.derby.iapi.sql.dictionary.ReferencedKeyConstraintDescriptor;
-import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
+import org.apache.derby.iapi.sql.dictionary.*;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.ConstantAction;
 import org.apache.derby.iapi.store.access.TransactionController;
@@ -19,13 +20,15 @@ import org.apache.derby.iapi.types.NumberDataValue;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.utils.SpliceLogUtils;
+
+import java.util.List;
+
 /**
  *	This class  describes actions that are ALWAYS performed for a
  *	constraint creation at Execution time.
  *
  *	@version 0.1
  */
-
 public abstract class ConstraintConstantOperation extends DDLSingleTableConstantOperation {
 	private static final Logger LOG = Logger.getLogger(ConstraintConstantOperation.class);
 	protected String constraintName;
@@ -95,24 +98,82 @@ public abstract class ConstraintConstantOperation extends DDLSingleTableConstant
 	 * table locking at level 2.  Pass in the scans to
 	 * the BulkRIChecker.  If any rows fail, barf.
 	 *
-	 * @param	tc		transaction controller
-	 * @param	dd		data dictionary
-	 * @param	fk		foreign key constraint
-	 * @param	refcd	referenced key
-	 * @param 	indexTemplateRow	index template row
+	 * @param    tc        transaction controller
+	 * @param    dd        data dictionary
+	 * @param    fkConstraint        foreign key constraint
+	 * @param    parentKeyConstraint    referenced key
+	 * @param    indexTemplateRow    index template row
 	 *
-	 * @exception StandardException on error
+	 * @param lcc
+     * @exception StandardException on error
 	 */
-	static void validateFKConstraint (
-		TransactionController tc,
-		DataDictionary dd,
-		ForeignKeyConstraintDescriptor fk,
-		ReferencedKeyConstraintDescriptor refcd,
-		ExecRow indexTemplateRow) throws StandardException {
-		SpliceLogUtils.error(LOG, "validateFKConstraint called, no foreign key validation in Splice Machine");
-		// XXX TODO Implement Foreign Key Validation, removed for
-		// stability
-	}
+    static void validateFKConstraint(
+            TransactionController tc,
+            DataDictionary dd,
+            ForeignKeyConstraintDescriptor fkConstraint,
+            ReferencedKeyConstraintDescriptor parentKeyConstraint,
+            ExecRow indexTemplateRow, LanguageConnectionContext lcc) throws StandardException {
+
+        TableDescriptor childTd = fkConstraint.getTableDescriptor();
+        TableDescriptor parentTd = parentKeyConstraint.getTableDescriptor();
+
+        ColumnDescriptorNameFunction childNameFunction = new ColumnDescriptorNameFunction(childTd);
+        ColumnDescriptorNameFunction parentNameFunction = new ColumnDescriptorNameFunction(parentTd);
+
+        ColumnDescriptorList childColumns = fkConstraint.getColumnDescriptors();
+        ColumnDescriptorList parentColumns = parentKeyConstraint.getColumnDescriptors();
+
+        assert childColumns.size() == parentColumns.size();
+
+        Joiner commaJoiner = Joiner.on(",");
+        Joiner andJoiner = Joiner.on(" AND ");
+
+        // Find rows in C with non-null FK columns that do not exist in referenced columns of P.
+        //
+        // Example:
+        //
+        //  create table P(a int, b int, c int, d int, e int, f int, primary key(b,c));
+        //  create table C(x int, y int, z int);
+        //  alter table C add constraint fk1 foreign key(y,z) references P(b,c);
+        //
+        //        select distinct C.y,C.z
+        //         from C
+        //    left join P on C.y = P.b and C.z = P.c
+        //        where C.y is not null and C.z is not null
+        //          and P.b is null and P.c is null;
+        //
+        List<String> joinClauseParts = Lists.newArrayList();
+        List<String> whereClauseParts = Lists.newArrayList();
+        for (int i = 0; i < parentColumns.size(); i++) {
+            joinClauseParts.add(childNameFunction.apply(childColumns.get(i)) + " = " + parentNameFunction.apply(parentColumns.get(i)));
+            whereClauseParts.add(childNameFunction.apply(childColumns.get(i)) + " is not null");
+            whereClauseParts.add(parentNameFunction.apply(parentColumns.get(i)) + " is null");
+        }
+
+        StringBuilder query = new StringBuilder();
+        query.append("SELECT DISTINCT " + commaJoiner.join(Iterables.transform(childColumns, childNameFunction)));
+        query.append(" FROM " + childTd.getName());
+        query.append(" LEFT JOIN " + parentTd.getName() + " ON ");
+        query.append(andJoiner.join(joinClauseParts));
+        query.append(" WHERE ");
+        query.append(andJoiner.join(whereClauseParts));
+        query.append(" FETCH FIRST ROW ONLY");
+
+        ResultSet rs = null;
+        try {
+            PreparedStatement ps = lcc.prepareInternalStatement(query.toString());
+            rs = ps.executeSubStatement(lcc, false, 0L);
+            ExecRow row = rs.getNextRow();
+            if (row != null) {
+                throw StandardException.newException(SQLState.LANG_ADD_FK_CONSTRAINT_VIOLATION,
+                        fkConstraint.getConstraintName(), childTd.getQualifiedName());
+            }
+        } finally {
+            if (rs != null) {
+                rs.close();
+            }
+        }
+    }
 
 	/**
 	 * Evaluate a check constraint or not null column constraint.  
@@ -138,7 +199,7 @@ public abstract class ConstraintConstantOperation extends DDLSingleTableConstant
 		LanguageConnectionContext		lcc,
 		boolean							isCheckConstraint ) throws StandardException {
 			SpliceLogUtils.error(LOG, "validateConstraint %s using qualifier {%s}",constraintName, constraintText);
-		StringBuffer checkStmt = new StringBuffer();
+		StringBuilder checkStmt = new StringBuilder();
 		/* should not use select sum(not(<check-predicate>) ? 1: 0) because
 		 * that would generate much more complicated code and may exceed Java
 		 * limits if we have a large number of check constraints, beetle 4347
@@ -167,8 +228,7 @@ public abstract class ConstraintConstantOperation extends DDLSingleTableConstant
 				}
 			}
 
-			DataValueDescriptor[] rowArray = row.getRowArray();
-			Number value = ((Number)((NumberDataValue)row.getRowArray()[0]).getObject());
+			Number value = ((Number)(row.getRowArray()[0]).getObject());
 			/*
 			** Value may be null if there are no rows in the
 			** table.
@@ -177,7 +237,7 @@ public abstract class ConstraintConstantOperation extends DDLSingleTableConstant
 			{	
 				//check constraint violated
 				if (isCheckConstraint)
-					throw StandardException.newException(SQLState.LANG_ADD_CHECK_CONSTRAINT_FAILED, 
+					throw StandardException.newException(SQLState.LANG_ADD_CHECK_CONSTRAINT_FAILED,
 						constraintName, td.getQualifiedName(), value.toString());
 				/*
 				 * for not null constraint violations exception will be thrown in caller
@@ -196,4 +256,18 @@ public abstract class ConstraintConstantOperation extends DDLSingleTableConstant
 		}
 		return true;
 	}
+
+    private static class ColumnDescriptorNameFunction implements Function<ColumnDescriptor, String> {
+
+        private TableDescriptor tableDescriptor;
+
+        private ColumnDescriptorNameFunction(TableDescriptor tableDescriptor) {
+            this.tableDescriptor = tableDescriptor;
+        }
+
+        @Override
+        public String apply(ColumnDescriptor columnDescriptor) {
+            return tableDescriptor.getName() + "." + columnDescriptor.getColumnName();
+        }
+    }
 }

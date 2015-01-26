@@ -66,6 +66,7 @@ public class SetConstraintsConstantOperation extends DDLConstantOperation {
 	 *
 	 * @exception StandardException		Thrown on failure
 	 */
+    @Override
 	public void executeConstantAction( Activation activation ) throws StandardException
 	{
 		ConstraintDescriptor		cd;
@@ -138,7 +139,7 @@ public class SetConstraintsConstantOperation extends DDLConstantOperation {
 			{
 				if (cd instanceof ForeignKeyConstraintDescriptor)
 				{
-					validateFKConstraint((ForeignKeyConstraintDescriptor)cd, dd, tc, lcc.getContextManager());
+					validateFKConstraint((ForeignKeyConstraintDescriptor)cd, dd, tc, lcc);
 				}
 				/*
 				** For check constraints, we build up a list of check constriants
@@ -203,7 +204,7 @@ public class SetConstraintsConstantOperation extends DDLConstantOperation {
 					{
 						dm.invalidateFor(fkcd.getTableDescriptor(), 
 									DependencyManager.SET_CONSTRAINTS_ENABLE, lcc);
-						validateFKConstraint(fkcd, dd, tc, lcc.getContextManager());
+						validateFKConstraint(fkcd, dd, tc, lcc);
 						fkcd.setEnabled();
 						dd.updateConstraintDescriptor(fkcd, 
 								fkcd.getUUID(), 
@@ -303,7 +304,7 @@ public class SetConstraintsConstantOperation extends DDLConstantOperation {
 		ForeignKeyConstraintDescriptor	fk,
 		DataDictionary					dd,
 		TransactionController			tc,
-		ContextManager					cm
+        LanguageConnectionContext       lcc
 	)
 		throws StandardException
 	{
@@ -321,7 +322,7 @@ public class SetConstraintsConstantOperation extends DDLConstantOperation {
 		** The moment of truth
 		*/
 		ConstraintConstantOperation.validateFKConstraint(tc, dd, fk, 
-							fk.getReferencedConstraint(), indexTemplateRow);
+							fk.getReferencedConstraint(), indexTemplateRow, lcc);
 	}
 			
 	/*
