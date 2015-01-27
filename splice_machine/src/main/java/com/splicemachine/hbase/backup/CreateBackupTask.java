@@ -96,7 +96,9 @@ public class CreateBackupTask extends ZkTask {
 
     @Override
     public void doExecute() throws ExecutionException, InterruptedException {
-        if (backupItem.getLastBackupTimestamp() == -1)
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, String.format("executing %S backup on region %s",backupItem.getBackup().isIncrementalBackup()?"incremental":"full", region.toString()));
+        if (backupItem.getLastBackupTimestamp() == 0)
             fullBackup();
         else
             incrementalBackup();

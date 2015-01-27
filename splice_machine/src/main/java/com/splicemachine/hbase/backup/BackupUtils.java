@@ -1,10 +1,10 @@
 package com.splicemachine.hbase.backup;
 
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.Collection;
 import java.util.concurrent.ExecutionException;
 
@@ -13,13 +13,13 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.*;
 
 import com.google.common.base.Throwables;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.DerbyFactory;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
-import org.apache.hadoop.hbase.regionserver.HRegionFileSystem;
+import org.apache.hadoop.hbase.io.hfile.CacheConfig;
 
 public class BackupUtils {
 	public static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
@@ -61,15 +61,52 @@ public class BackupUtils {
 
 	}
 
-    public static void incrementalBackupRegion(HRegion region, String backupDirectory, FileSystem backupFileSystem) throws ExecutionException{
-        try {
-            HRegionFileSystem hRegionFileSystem = region.getRegionFileSystem();
-            Collection<String> families = hRegionFileSystem.getFamilies();
-        }
-        catch (IOException e) {
-            throw new ExecutionException(e);
-        }
+    public static void incrementalBackupRegion(HRegion region, BackupItem backupItem, FileSystem backupFileSystem) throws ExecutionException{
 
+        try {
+            region.flushcache();
+            region.startRegionOperation();
+
+            String backupDirectory = backupItem.getBackupItemFilesystem();
+            FileSystem fs = region.getFilesystem();
+            HRegionFileSystem hRegionFileSystem = region.getRegionFileSystem();
+            boolean copied = false;
+            Collection<String> families = hRegionFileSystem.getFamilies();
+            for (String family : families) {
+                Collection<StoreFileInfo> storeFileInfos = hRegionFileSystem.getStoreFiles(family);
+                if (storeFileInfos != null) {
+                    for (StoreFileInfo storeFileInfo : storeFileInfos) {
+                        StoreFile storeFile = new StoreFile(fs, storeFileInfo, SpliceConstants.config,
+                                new CacheConfig(SpliceConstants.config), BloomType.NONE);
+                        StoreFile.Reader reader = storeFile.createReader();
+                        Long minTimeStamp = storeFile.getMinimumTimestamp();
+                        Long maxTimeStamp = reader.getMaxTimestamp();
+                        long lastBackupTimestamp = backupItem.getLastBackupTimestamp();
+                        if (minTimeStamp > lastBackupTimestamp && maxTimeStamp > lastBackupTimestamp) {
+                            copied = true;
+                            Path srcPath = storeFileInfo.getPath();
+                            String s = srcPath.getName();
+                            String regionName = derbyFactory.getRegionDir(region).getName();
+                            Path destPath = new Path(backupDirectory+"/"+ regionName + "/" + family + "/" + s);
+                            FileUtil.copy(fs, srcPath, fs, destPath, false, SpliceConstants.config);
+                        }
+                    }
+                }
+            }
+            if (copied) {
+                derbyFactory.writeRegioninfoOnFilesystem(region.getRegionInfo(), new Path(backupDirectory+"/"+derbyFactory.getRegionDir(region).getName()+"/"+REGION_INFO), backupFileSystem, SpliceConstants.config);
+            }
+        }
+        catch (Exception e) {
+            throw new ExecutionException(Throwables.getRootCause(e));
+        }
+        finally {
+            try {
+                region.closeRegionOperation();
+            } catch (Exception e) {
+                throw new ExecutionException(Throwables.getRootCause(e));
+            }
+        }
     }
 
 	public static void createBackupTables() throws SQLException {

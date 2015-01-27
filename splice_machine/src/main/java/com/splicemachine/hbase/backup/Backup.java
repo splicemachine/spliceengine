@@ -96,8 +96,17 @@ public class Backup implements InternalTable {
     private boolean incrementalBackup;
     private long incrementalParentBackupID;
     private Backup incrementalParentBackup;
+    private long backupId;
     private HashMap<String, BackupItem> backupItems;
     private long backupTimestamp;
+
+    public long getBackupId() {
+        return backupId;
+    }
+
+    public void setBackupId(long backupId) {
+        this.backupId = backupId;
+    }
 
     public String getBackupVersion() {
         return backupVersion;
@@ -282,6 +291,7 @@ public class Backup implements InternalTable {
                 return;
             }
             incrementalParentBackup = new Backup();
+            incrementalParentBackup.setBackupId(incrementalParentBackupID);
             rs.close();
 
             preparedStatement = connection.prepareStatement(

@@ -58,7 +58,7 @@ public class BackupItem implements InternalTable {
 	private String backupItem;
 	private Timestamp backupItemBeginTimestamp;
 	private Timestamp backupItemEndTimestamp;
-    private SQLTimestamp lastBackupTimestamp;
+    private long lastBackupTimestamp;
 
     private List<RegionInfo> regionInfoList = new ArrayList<RegionInfo>();
 
@@ -121,7 +121,8 @@ public class BackupItem implements InternalTable {
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeObject(backup); // TODO Needs to be replaced with protobuf
         out.writeUTF(backupItem);
-        out.writeObject(lastBackupTimestamp);
+        out.writeLong(lastBackupTimestamp);
+        //out.writeObject(lastBackupTimestamp);
         out.writeObject(regionInfoList);
     }
 
@@ -129,7 +130,7 @@ public class BackupItem implements InternalTable {
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         backup = (Backup) in.readObject(); // TODO Needs to be replaced with protobuf
         backupItem = in.readUTF();
-        lastBackupTimestamp = (SQLTimestamp)in.readObject();
+        lastBackupTimestamp = in.readLong();
         regionInfoList = (List<RegionInfo>) in.readObject();
     }
 
@@ -272,12 +273,12 @@ public class BackupItem implements InternalTable {
             HashMap<String, BackupItem> backupItems = parentBackup.getBackupItems();
             BackupItem item = backupItems.get(backupItem);
             if (item != null) {
-                lastBackupTimestamp = new SQLTimestamp(item.getBackupItemBeginTimestamp());
+                lastBackupTimestamp = parentBackup.getBackupId();
             }
         }
     }
 
-    public SQLTimestamp getLastBackupTimestamp() {
+    public long getLastBackupTimestamp() {
         return lastBackupTimestamp;
     }
 
