@@ -85,9 +85,6 @@ public class SequentialImporter implements Importer{
 								break;
 						}
 						ExecRow row = rowParser.process(line,importContext.getColumnInformation());
-						for (String l: line)
-							l = null; // Dereference
-						line = null; // Dereference
 						count++;
 						if(row==null) continue; //unable to parse the row, so skip it.
 						if(entryEncoder==null)

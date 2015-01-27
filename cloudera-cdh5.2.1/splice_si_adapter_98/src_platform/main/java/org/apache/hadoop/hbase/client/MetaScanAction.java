@@ -2,6 +2,9 @@ package org.apache.hadoop.hbase.client;
 
 import com.splicemachine.constants.SpliceConstants;
 import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.HConnection;
+import org.apache.hadoop.hbase.client.HConnectionManager;
+import org.apache.hadoop.hbase.client.MetaScanner;
 
 import java.io.IOException;
 
@@ -12,10 +15,10 @@ import java.io.IOException;
 public class MetaScanAction {
 
     public static void metaScan(MetaScanner.MetaScannerVisitor visitor,HConnection connection,TableName tableName) throws IOException {
-        MetaScanner.metaScan(SpliceConstants.config,(ClusterConnection)connection,visitor,tableName);
+        MetaScanner.metaScan(SpliceConstants.config,connection,visitor,tableName);
     }
 
     public static void metaScan(MetaScanner.MetaScannerVisitor visitor,TableName tableName) throws IOException {
-        MetaScanner.metaScan(SpliceConstants.config,(ClusterConnection)HConnectionManager.getConnection(SpliceConstants.config),visitor,tableName);
+        MetaScanner.metaScan(SpliceConstants.config, HConnectionManager.getConnection(SpliceConstants.config),visitor,tableName);
     }
 }
