@@ -113,14 +113,12 @@
 								<option>-keep public class com.splicemachine.si.impl.DDLFilter { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.PackedTxnFilter { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.PushBackIterator { public *; }</option>
-								<option>-keep public class com.splicemachine.si.impl.Transaction { public *; }</option>
-								<option>-keep public class com.splicemachine.si.impl.TransactionStore { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.RowAccumulator { public *; }</option>
 								<option>-keep public class com.splicemachine.si.data.hbase.HRowAccumulator { public *; }</option>
 								<option>-keep public class com.splicemachine.si.data.hbase.IHTable { public *; }</option>
 								<option>-keep public class com.splicemachine.si.coprocessors.SIObserver { public *; }</option>
 								<option>-keep public class com.splicemachine.si.coprocessors.SIFilter { public *; }</option>
-								<option>-keep public class com.splicemachine.si.coprocessors.RollForwardQueueMap { public *; }</option>
+								<!--<option>-keep public class com.splicemachine.si.api.TxnView { public *; }</option>-->
 								<option>-keep public class com.splicemachine.si.coprocessors.TimestampMasterObserver { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.timestamp.TimestampMasterManagement { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.timestamp.TimestampRegionManagement { public *; }</option>
@@ -139,7 +137,6 @@
 								<!-- ### Method: beginTransaction ### -->
 								<option>-keep public class com.splicemachine.si.impl.SITransactionManager { public *; }</option>
 								<!-- ### Needed as return value from TransactionManager.beginTransaction() ### -->
-								<option>-keep public class com.splicemachine.si.impl.TransactionId { public *; }</option>
 								<!-- ### Needed as return value from HTransactorFactory.getTransactorStatus() in SpliceDriver.registerJMX(). ### -->
 								<option>-keep public class com.splicemachine.si.jmx.ManagedTransactor { public *; }</option>
 								<!-- ### Needed as return value from HTransactorFactory.getTransactorStatus() in SpliceDriver.registerJMX(). ### -->
@@ -149,13 +146,10 @@
 								<!-- ### Method, newFilterState, needed by ij for SELECT queries. TODO: only need method? ### -->
 								<option>-keep public class com.splicemachine.si.api.TransactionReadController { public *; }</option>
 								<!-- ### Method, newFilterState, needs this as a parameter. ### -->
-								<option>-keep public class com.splicemachine.si.api.RollForwardQueue { public *; }</option>
 								<!-- ### Method, newFilterState, needs this as a parameter. ### -->
 								<option>-keep public class com.splicemachine.si.impl.TxnFilter { public *; }</option>
 								<!-- ### Method, newFilterState, needs this as a parameter. ### -->
-								<option>-keep public class com.splicemachine.si.impl.FilterState { public *; }</option>
 								<!-- ### Needed by ij for INSERT statements. ### -->
-								<option>-keep public class com.splicemachine.si.data.hbase.HbRegion { public *; }</option>
 								<!-- ### Needed for ITs. ### -->
 								<option>-keep public class com.splicemachine.si.api.TransactionStatus { public *; }</option>
 								<option>-keep public class com.splicemachine.si.api.TransactorListener { public *; }</option>
@@ -234,12 +228,12 @@
 								<option>-keep public class com.splicemachine.si.data.api.SDataLib {public *; }</option>
 								<option>-keep public class com.splicemachine.si.data.api.STableReader { public *; }</option>
 								<option>-keep public class com.splicemachine.si.data.api.STableWriter { public *; }</option>
-                <option>-keep public class com.splicemachine.si.data.api.SRowLock { public *; }</option>
-								<option>-keep public class com.splicemachine.si.data.hbase.BaseHbRegion { public *; protected static org.apache.hadoop.hbase.client.Mutation getMutation(com.splicemachine.hbase.KVPair, com.splicemachine.si.api.TxnView); }</option>
+								<option>-keep public class com.splicemachine.si.data.api.SRowLock { public *; }</option>
 								<option>-keep public class com.splicemachine.si.data.hbase.HRowAccumulator { public *; }</option>
 								<option>-keep public class com.splicemachine.si.data.hbase.HTableReader { public *; }</option>
 								<option>-keep public class com.splicemachine.si.data.hbase.HTableWriter { public *; }</option>
-								<option>-keep public class com.splicemachine.si.data.hbase.HbRegion { public *; }</option>
+								<option>-keep public class com.splicemachine.si.data.hbase.BaseHbRegion { public *; protected *;}</option>
+								<option>-keep public class com.splicemachine.si.data.hbase.HbRegion { public *; protected *;}</option>
 								<option>-keep public class com.splicemachine.si.data.hbase.HbTable { public *; }</option>
 								<option>-keep public class com.splicemachine.si.data.light.IncrementingClock { public *; }</option>
 								<option>-keep public class com.splicemachine.si.data.light.LDataLib { public *; }</option>
