@@ -113,14 +113,12 @@
 								<option>-keep public class com.splicemachine.si.impl.DDLFilter { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.PackedTxnFilter { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.PushBackIterator { public *; }</option>
-								<option>-keep public class com.splicemachine.si.impl.Transaction { public *; }</option>
-								<option>-keep public class com.splicemachine.si.impl.TransactionStore { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.RowAccumulator { public *; }</option>
 								<option>-keep public class com.splicemachine.si.data.hbase.HRowAccumulator { public *; }</option>
 								<option>-keep public class com.splicemachine.si.data.hbase.IHTable { public *; }</option>
 								<option>-keep public class com.splicemachine.si.coprocessors.SIObserver { public *; }</option>
 								<option>-keep public class com.splicemachine.si.coprocessors.SIFilter { public *; }</option>
-								<option>-keep public class com.splicemachine.si.coprocessors.RollForwardQueueMap { public *; }</option>
+								<option>keep public class com.splicemachine.si.api.TxnView</option>
 								<option>-keep public class com.splicemachine.si.coprocessors.TimestampMasterObserver { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.timestamp.TimestampMasterManagement { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.timestamp.TimestampRegionManagement { public *; }</option>
