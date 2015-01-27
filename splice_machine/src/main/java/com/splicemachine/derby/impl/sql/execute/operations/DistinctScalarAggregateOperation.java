@@ -42,6 +42,7 @@ import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.hash.HashFunctions;
 import com.splicemachine.pipeline.exception.Exceptions;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -52,6 +53,7 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -103,6 +105,13 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
     private DistinctAggregateBuffer buffer;
     private SpliceResultScanner scanner;
 
+    protected static final String NAME = DistinctScalarAggregateOperation.class.getSimpleName().replaceAll("Operation","");
+
+	@Override
+	public String getName() {
+			return NAME;
+	}
+    
     @SuppressWarnings("UnusedDeclaration")
     public DistinctScalarAggregateOperation(){}
 

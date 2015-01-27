@@ -49,6 +49,14 @@ public class UnionOperation extends SpliceBaseOperation {
 		private Boolean isLeft = null;
 		private static List<NodeType> sequentialNodeTypes = Arrays.asList(NodeType.SCAN);
 
+	    protected static final String NAME = UnionOperation.class.getSimpleName().replaceAll("Operation","");
+
+		@Override
+		public String getName() {
+				return NAME;
+		}
+
+		
 		@SuppressWarnings("UnusedDeclaration")
 		public UnionOperation(){
 				super();

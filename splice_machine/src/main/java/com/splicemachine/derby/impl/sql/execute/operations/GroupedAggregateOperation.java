@@ -37,6 +37,7 @@ import com.splicemachine.metrics.TimeView;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.pipeline.exception.Exceptions;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.ArrayUtil;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -70,6 +71,13 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
     private SpliceResultScanner scanner;
     private boolean[] usedTempBuckets;
     private long outputRows = 0;
+    protected static final String NAME = GroupedAggregateOperation.class.getSimpleName().replaceAll("Operation","");
+
+	@Override
+	public String getName() {
+			return NAME;
+	}
+
 
     public GroupedAggregateOperation() {
         super();

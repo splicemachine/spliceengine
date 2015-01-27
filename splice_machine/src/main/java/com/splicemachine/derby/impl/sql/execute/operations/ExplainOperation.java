@@ -11,6 +11,7 @@ import com.splicemachine.derby.impl.storage.RowProviders;
 import com.splicemachine.derby.management.XPlainPlanNode;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -36,7 +37,13 @@ public class ExplainOperation extends SpliceBaseOperation {
     private static final int INIT_SIZE = 30;
     private int pos = 0;
     private String[] plan;
+    protected static final String NAME = ExplainOperation.class.getSimpleName().replaceAll("Operation","");
 
+	@Override
+	public String getName() {
+			return NAME;
+	}
+	
     static {
         nodeTypes = Arrays.asList(NodeType.MAP, NodeType.SCAN);
     }

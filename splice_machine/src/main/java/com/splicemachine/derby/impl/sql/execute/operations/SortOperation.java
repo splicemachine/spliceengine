@@ -25,6 +25,7 @@ import com.splicemachine.metrics.TimeView;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -33,6 +34,7 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.store.access.ColumnOrdering;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -58,6 +60,15 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 		private Properties sortProperties = new Properties();
 		private MultiFieldDecoder decoder;
 		private long rowsRead;
+		
+	    protected static final String NAME = SortOperation.class.getSimpleName().replaceAll("Operation","");
+
+		@Override
+		public String getName() {
+				return NAME;
+		}
+
+		
 		static {
 				nodeTypes = Arrays.asList(NodeType.REDUCE, NodeType.SCAN);
 		}

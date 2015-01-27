@@ -25,6 +25,7 @@ import com.splicemachine.metrics.TimeView;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -54,6 +55,14 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
         private ScalarAggregator scanAggregator;
 		private ScalarAggregator sinkAggregator;
 
+	    protected static final String NAME = ScalarAggregateOperation.class.getSimpleName().replaceAll("Operation","");
+
+		@Override
+		public String getName() {
+				return NAME;
+		}
+
+		
 		public ScalarAggregateOperation () {
 				super();
 		}

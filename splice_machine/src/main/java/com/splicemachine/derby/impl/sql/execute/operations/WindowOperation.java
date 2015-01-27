@@ -6,7 +6,9 @@ import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
 import com.google.common.base.Strings;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -16,6 +18,7 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
+
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
@@ -103,6 +106,14 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
         nodeTypes = Arrays.asList(NodeType.REDUCE, NodeType.SINK);
     }
 
+    protected static final String NAME = WindowOperation.class.getSimpleName().replaceAll("Operation","");
+
+	@Override
+	public String getName() {
+			return NAME;
+	}
+
+    
     public WindowOperation() {}
 
     public WindowOperation(

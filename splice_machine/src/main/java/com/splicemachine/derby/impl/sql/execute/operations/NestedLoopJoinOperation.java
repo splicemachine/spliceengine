@@ -12,6 +12,7 @@ import com.splicemachine.metrics.IOStats;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.metrics.*;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -19,6 +20,7 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -33,6 +35,14 @@ public class NestedLoopJoinOperation extends JoinOperation {
 		protected static List<NodeType> nodeTypes;
         protected byte[] rightResultSetUniqueSequenceID;
 
+        protected static final String NAME = NestedLoopJoinOperation.class.getSimpleName().replaceAll("Operation","");
+
+    	@Override
+    	public String getName() {
+    			return NAME;
+    	}
+
+        
 		static {
 				nodeTypes = new ArrayList<NodeType>();
 				nodeTypes.add(NodeType.MAP);

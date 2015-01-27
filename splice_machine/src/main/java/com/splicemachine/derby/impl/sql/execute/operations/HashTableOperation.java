@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.base.Strings;
+
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.error.StandardException;
@@ -12,8 +13,10 @@ import org.apache.derby.iapi.store.access.BackingStoreHashtable;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.io.FormatableIntHolder;
 import org.apache.derby.catalog.types.ReferencedColumnsDescriptorImpl;
+
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
@@ -57,6 +60,14 @@ public class HashTableOperation extends SpliceBaseOperation  {
 	private BackingStoreHashtable ht;
     public NoPutResultSet[] subqueryTrackingArray;
 
+    protected static final String NAME = HashTableOperation.class.getSimpleName().replaceAll("Operation","");
+
+	@Override
+	public String getName() {
+			return NAME;
+	}
+
+    
     //
     // class interface
     //

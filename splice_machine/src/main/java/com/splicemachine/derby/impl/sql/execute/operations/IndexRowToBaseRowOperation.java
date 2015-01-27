@@ -21,6 +21,7 @@ import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.yammer.metrics.core.MetricName;
 import com.yammer.metrics.core.Timer;
+
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.catalog.types.ReferencedColumnsDescriptorImpl;
 import org.apache.derby.iapi.error.StandardException;
@@ -91,6 +92,13 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 		private final Timer totalTimer = SpliceDriver.driver().getRegistry().newTimer(scanName,TimeUnit.MILLISECONDS,TimeUnit.SECONDS);
 		private IndexRowReader reader;
 		private String mainTableVersion;
+
+	    protected static final String NAME = IndexRowToBaseRowOperation.class.getSimpleName().replaceAll("Operation","");
+
+		@Override
+		public String getName() {
+				return NAME;
+		}
 
 
 		public IndexRowToBaseRowOperation () {
@@ -540,10 +548,6 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 								.toString();
 		}
 
-		@Override
-		public String getName() {
-				return super.getName();
-		}
 
         @Override
         public int[] getAccessedNonPkColumns() throws StandardException{

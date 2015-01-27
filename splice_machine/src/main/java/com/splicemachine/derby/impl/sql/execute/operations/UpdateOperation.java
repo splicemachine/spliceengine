@@ -64,6 +64,13 @@ public class UpdateOperation extends DMLWriteOperation{
     private int[] colPositionMap;
     private FormatableBitSet heapList;
 
+    protected static final String NAME = UpdateOperation.class.getSimpleName().replaceAll("Operation","");
+
+	@Override
+	public String getName() {
+			return NAME;
+	}
+	
     @SuppressWarnings("UnusedDeclaration")
 		public UpdateOperation() {
 				super();
