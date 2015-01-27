@@ -160,12 +160,18 @@ public class SpliceBaseIndexEndpoint {
                 }
             }
 
-            //
-            // Collect the overall results.
-            //
-            for (Map.Entry<BulkWrite,Pair<BulkWriteResult,RegionWritePipeline>> entry: writePairMap.entrySet()) {
-                Pair<BulkWriteResult, RegionWritePipeline> pair = entry.getValue();
-                result.add(pair.getFirst());
+            /*
+             * Collect the overall results.
+             *
+             * It is IMPERATIVE that we collect results in the *same iteration order*
+             * as we received the writes, otherwise we won't be interpreting the correct
+             * results on the other side; the end result will be extraneous errors, but only at scale,
+             * so you won't necessarily see the errors in the ITs and you'll think everything is fine,
+             * but it's not. I assure you.
+             */
+            for(BulkWrite bw:bws){
+                Pair<BulkWriteResult,RegionWritePipeline> results = writePairMap.get(bw);
+                result.add(results.getFirst());
             }
             return new BulkWritesResult(result);
         } finally {
