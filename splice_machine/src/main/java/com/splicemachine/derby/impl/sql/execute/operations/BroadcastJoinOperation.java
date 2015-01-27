@@ -9,10 +9,6 @@ import com.google.common.cache.RemovalNotification;
 import com.google.common.collect.Lists;
 import com.splicemachine.concurrent.SameThreadExecutorService;
 import com.splicemachine.derby.iapi.sql.execute.*;
-import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.StandardIterators;
@@ -26,12 +22,14 @@ import com.splicemachine.metrics.*;
 import com.splicemachine.metrics.Timer;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -51,6 +49,13 @@ public class BroadcastJoinOperation extends JoinOperation {
     private Joiner joiner;
     protected volatile Map<ByteBuffer, List<ExecRow>> rightSideMap;
     protected static final Cache<Integer, Map<ByteBuffer, List<ExecRow>>> broadcastJoinCache;
+
+    protected static final String NAME = BroadcastJoinOperation.class.getSimpleName().replaceAll("Operation","");
+
+	@Override
+	public String getName() {
+			return NAME;
+	}
 
 
     static {

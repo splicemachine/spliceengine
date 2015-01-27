@@ -61,6 +61,14 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		public NoPutResultSet[] subqueryTrackingArray;
 		private ExecRow execRowDefinition;
 
+	    protected static final String NAME = ProjectRestrictOperation.class.getSimpleName().replaceAll("Operation","");
+
+		@Override
+		public String getName() {
+				return NAME;
+		}
+
+		
 		@SuppressWarnings("UnusedDeclaration")
 		public ProjectRestrictOperation() { super(); }
 

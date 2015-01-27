@@ -99,6 +99,14 @@ public class DependentOperation extends ScanOperation {
 	public boolean oneRowScan;
 	protected long	rowsThisScan;
 
+    protected static final String NAME = DependentOperation.class.getSimpleName().replaceAll("Operation","");
+
+	@Override
+	public String getName() {
+			return NAME;
+	}
+
+	
 	//
     // class interface
     //

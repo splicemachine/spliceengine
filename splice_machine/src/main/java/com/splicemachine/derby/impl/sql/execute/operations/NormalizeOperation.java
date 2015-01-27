@@ -6,6 +6,7 @@ import java.io.ObjectOutput;
 import java.sql.Types;
 import java.util.Collections;
 import java.util.List;
+
 import com.google.common.base.Strings;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.storage.RowProvider;
@@ -17,6 +18,7 @@ import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.utils.IntArrays;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.sql.Activation;
@@ -27,6 +29,7 @@ import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.log4j.Logger;
+
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
@@ -48,6 +51,14 @@ public class NormalizeOperation extends SpliceBaseOperation {
 
 		private DataTypeDescriptor[] desiredTypes;
 
+	    protected static final String NAME = NormalizeOperation.class.getSimpleName().replaceAll("Operation","");
+
+		@Override
+		public String getName() {
+				return NAME;
+		}
+
+		
 		public NormalizeOperation(){
 				super();
 				SpliceLogUtils.trace(LOG,"instantiating without parameters");

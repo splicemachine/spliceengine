@@ -64,6 +64,14 @@ public class HashNestedLoopJoinOperation extends JoinOperation{
 
     private ScanProvider scanProvider;
 
+    protected static final String NAME = HashNestedLoopJoinOperation.class.getSimpleName().replaceAll("Operation","");
+
+	@Override
+	public String getName() {
+			return NAME;
+	}
+
+    
     public HashNestedLoopJoinOperation(){}
 
     public HashNestedLoopJoinOperation(SpliceOperation leftResultSet, int leftNumCols,

@@ -25,6 +25,7 @@ import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.hash.HashFunctions;
 import com.splicemachine.pipeline.exception.Exceptions;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -37,6 +38,7 @@ import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -57,6 +59,14 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
 		private byte[] groupingKey;
 		private List keyValues;
 		private Scan scan;
+		
+	    protected static final String NAME = DistinctScanOperation.class.getSimpleName().replaceAll("Operation","");
+
+		@Override
+		public String getName() {
+				return NAME;
+		}
+
 
 		@SuppressWarnings("UnusedDeclaration")
 		public DistinctScanOperation() { }

@@ -18,6 +18,7 @@ import com.splicemachine.metrics.IOStats;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.metrics.TimeView;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.jdbc.ConnectionContext;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -50,6 +51,14 @@ public class CallStatementOperation extends NoRowsOperation {
 		private String methodName;
 		private SpliceMethod<Object> methodCall;
 
+	    protected static final String NAME = CallStatementOperation.class.getSimpleName().replaceAll("Operation","");
+
+		@Override
+		public String getName() {
+				return NAME;
+		}
+
+		
 		public CallStatementOperation(GeneratedMethod methodCall,Activation a) throws StandardException  {
 				super(a);
 				methodName = (methodCall!= null) ? methodCall.getMethodName() : null;

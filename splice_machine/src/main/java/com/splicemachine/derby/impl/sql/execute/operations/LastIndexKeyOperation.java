@@ -49,6 +49,14 @@ public class LastIndexKeyOperation extends ScanOperation {
 
 		private SITableScanner tableScanner;
 
+	    protected static final String NAME = LastIndexKeyOperation.class.getSimpleName().replaceAll("Operation","");
+
+		@Override
+		public String getName() {
+				return NAME;
+		}
+
+		
     static {
         nodeTypes = Arrays.asList(NodeType.MAP, NodeType.SCAN);
     }

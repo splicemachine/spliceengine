@@ -33,7 +33,14 @@ public class CachedOperation extends SpliceBaseOperation {
 
     private static Logger LOG = Logger.getLogger(CachedOperation.class);
     private final List<NodeType> nodeTypes = Collections.singletonList(NodeType.MAP);
+    protected static final String NAME = CachedOperation.class.getSimpleName().replaceAll("Operation","");
 
+	@Override
+	public String getName() {
+			return NAME;
+	}
+
+    
     int size;
     int position = 0;
     List<ExecRow> rows;

@@ -36,6 +36,7 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
+
 import scala.Tuple2;
 
 import java.io.IOException;
@@ -63,6 +64,14 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
     protected SpliceMethod<ExecRow> emptyRowFun;
     protected ExecRow emptyRow;
 
+    protected static final String NAME = MergeSortJoinOperation.class.getSimpleName().replaceAll("Operation","");
+
+	@Override
+	public String getName() {
+			return NAME;
+	}
+
+    
     static {
         nodeTypes = Arrays.asList(NodeType.REDUCE, NodeType.SCAN, NodeType.SINK);
     }

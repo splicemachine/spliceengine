@@ -17,6 +17,7 @@ import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.metrics.IOStats;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -28,6 +29,7 @@ import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.shared.common.sanity.SanityManager;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -58,6 +60,14 @@ public class OnceOperation extends SpliceBaseOperation {
 
 		private RowSource rowSource;
 
+	    protected static final String NAME = OnceOperation.class.getSimpleName().replaceAll("Operation","");
+
+		@Override
+		public String getName() {
+				return NAME;
+		}
+
+		
 		@Deprecated
 		public OnceOperation(){}
 

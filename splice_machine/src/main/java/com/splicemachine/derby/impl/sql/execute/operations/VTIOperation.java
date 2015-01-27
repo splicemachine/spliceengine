@@ -24,8 +24,10 @@ import org.apache.derby.iapi.services.io.FormatableHashtable;
 import org.apache.derby.vti.IFastPath;
 import org.apache.derby.vti.VTIEnvironment;
 import org.apache.derby.vti.Restriction;
+
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+
 import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -77,6 +79,14 @@ public class VTIOperation extends SpliceBaseOperation implements VTIEnvironment 
 	*/
 	private int scanIsolationLevel = ExecutionContext.UNSPECIFIED_ISOLATION_LEVEL;
 
+    protected static final String NAME = VTIOperation.class.getSimpleName().replaceAll("Operation","");
+
+	@Override
+	public String getName() {
+			return NAME;
+	}
+
+	
     //
     // class interface
     //

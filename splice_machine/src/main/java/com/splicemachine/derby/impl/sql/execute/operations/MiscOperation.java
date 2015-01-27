@@ -41,6 +41,14 @@ public class MiscOperation extends NoRowsOperation
 {
 		private static Logger LOG = Logger.getLogger(MiscOperation.class);
 
+		
+	    protected static final String NAME = MiscOperation.class.getSimpleName().replaceAll("Operation","");
+
+		@Override
+		public String getName() {
+				return NAME;
+		}
+
 		/**
 		 * Construct a MiscResultSet
 		 *

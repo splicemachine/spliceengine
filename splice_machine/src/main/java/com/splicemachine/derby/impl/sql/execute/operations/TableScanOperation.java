@@ -24,6 +24,7 @@ import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.uuid.UUIDGenerator;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
@@ -45,6 +46,7 @@ import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+
 import scala.Tuple2;
 
 import java.io.IOException;
@@ -75,6 +77,14 @@ public class TableScanOperation extends ScanOperation {
 		private int[] baseColumnMap;
 
 		private SITableScanner tableScanner;
+		
+	    protected static final String NAME = TableScanOperation.class.getSimpleName().replaceAll("Operation","");
+
+		@Override
+		public String getName() {
+				return NAME;
+		}
+
 
     public TableScanOperation() { super(); }
 

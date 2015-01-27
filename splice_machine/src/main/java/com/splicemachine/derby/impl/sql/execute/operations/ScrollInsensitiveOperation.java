@@ -5,11 +5,13 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.log4j.Logger;
+
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 
@@ -24,6 +26,15 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
 		nodeTypes.add(NodeType.SCROLL);
 		nodeTypes.add(NodeType.MAP);		
 	}
+	
+    protected static final String NAME = ScrollInsensitiveOperation.class.getSimpleName().replaceAll("Operation","");
+
+	@Override
+	public String getName() {
+			return NAME;
+	}
+
+	
     public ScrollInsensitiveOperation () {
     	super();
     }

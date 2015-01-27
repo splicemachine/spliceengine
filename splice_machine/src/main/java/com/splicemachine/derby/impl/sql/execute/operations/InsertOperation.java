@@ -53,7 +53,12 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 		private boolean	singleRowResultSet = false;
 		private long nextIncrement = -1;
 		private RowLocation[] autoIncrementRowLocationArray;
-		
+	    protected static final String NAME = InsertOperation.class.getSimpleName().replaceAll("Operation","");
+
+		@Override
+		public String getName() {
+				return NAME;
+		}
 
 		@SuppressWarnings("UnusedDeclaration")
 		public InsertOperation(){ super(); }

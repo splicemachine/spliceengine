@@ -5,6 +5,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ConstantAction;
@@ -21,7 +22,13 @@ import java.io.IOException;
 public class DeleteOperation extends DMLWriteOperation {
 	private static final Logger LOG = Logger.getLogger(DeleteOperation.class);
 	protected  boolean cascadeDelete;
+    protected static final String NAME = DeleteOperation.class.getSimpleName().replaceAll("Operation","");
 
+	@Override
+	public String getName() {
+			return NAME;
+	}
+	
 	public DeleteOperation(){
 		super();
 	}
