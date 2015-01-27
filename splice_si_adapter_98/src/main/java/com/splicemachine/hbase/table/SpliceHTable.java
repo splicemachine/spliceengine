@@ -1,26 +1,21 @@
 package com.splicemachine.hbase.table;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.SortedSet;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.protobuf.Service;
+import com.splicemachine.concurrent.KeyedCompletionService;
+import com.splicemachine.concurrent.KeyedFuture;
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.hbase.NoRetryCoprocessorRpcChannel;
 import com.splicemachine.hbase.regioninfocache.HBaseRegionCache;
+import com.splicemachine.hbase.regioninfocache.RegionCache;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.HTable;
-import org.apache.hadoop.hbase.client.RetriesExhaustedException;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 import org.apache.hadoop.hbase.client.Row;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
@@ -31,13 +26,13 @@ import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
-import com.splicemachine.concurrent.KeyedCompletionService;
-import com.splicemachine.concurrent.KeyedFuture;
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.hbase.NoRetryCoprocessorRpcChannel;
-import com.splicemachine.hbase.regioninfocache.RegionCache;
-import com.splicemachine.utils.SpliceLogUtils;
+
+import java.io.IOException;
+import java.util.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * @author Scott Fines
@@ -52,6 +47,7 @@ public class SpliceHTable extends HTable {
     private final RegionCache regionCache;
     private final int maxRetries = SpliceConstants.numRetries;
     private boolean noRetry = true;
+
 
 
     public SpliceHTable(byte[] tableName, Configuration configuration,boolean retryAutomatically) throws IOException{
@@ -251,7 +247,7 @@ public class SpliceHTable extends HTable {
 
     private void wait(int attemptCount) {
         try {
-            Thread.sleep(SpliceHTableUtil.getWaitTime(attemptCount, SpliceConstants.pause));
+            Thread.sleep(com.splicemachine.hbase.table.SpliceHTableUtil.getWaitTime(attemptCount, SpliceConstants.pause));
         } catch (InterruptedException e) {
             Logger.getLogger(SpliceHTable.class).info("Interrupted while sleeping");
         }
@@ -356,10 +352,10 @@ public class SpliceHTable extends HTable {
         Pair<byte[], byte[]> keys = context.keyBoundary;
         byte[] startKeyToUse = keys.getFirst();
         CoprocessorRpcChannel channel;
-        if(noRetry)
+//        if(noRetry)
             channel = new NoRetryCoprocessorRpcChannel(connection, tableName, startKeyToUse);
-        else
-            channel = new RegionCoprocessorRpcChannel(connection,tableName,startKeyToUse);
+//        else
+//            channel = new RegionCoprocessorRpcChannel(connection,tableName,startKeyToUse);
         T instance = ProtobufUtil.newServiceStub(protocol, channel);
         R result;
         if (callable instanceof BoundCall) {

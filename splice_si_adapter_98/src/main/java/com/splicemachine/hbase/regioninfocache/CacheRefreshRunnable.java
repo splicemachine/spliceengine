@@ -1,6 +1,5 @@
 package com.splicemachine.hbase.regioninfocache;
 
-import com.splicemachine.concurrent.LongStripedSynchronizer;
 import com.splicemachine.constants.SpliceConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.NotServingRegionException;
@@ -18,7 +17,6 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.Lock;
 
 import static com.splicemachine.utils.SpliceLogUtils.*;
 
@@ -28,7 +26,7 @@ import static com.splicemachine.utils.SpliceLogUtils.*;
 class CacheRefreshRunnable implements Runnable {
 
     /* Intentionally using same logger for all classes in this package. */
-    private static final Logger LOG = Logger.getLogger(HBaseRegionCache.class);
+    private static final Logger LOG = Logger.getLogger(com.splicemachine.hbase.regioninfocache.HBaseRegionCache.class);
 
     private final Map<byte[], SortedSet<Pair<HRegionInfo, ServerName>>> regionCache;
     private final AtomicLong cacheUpdatedTimestamp;
