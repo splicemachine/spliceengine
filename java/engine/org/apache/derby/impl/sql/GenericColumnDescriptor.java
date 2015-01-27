@@ -191,17 +191,15 @@ public final class GenericColumnDescriptor
 	 *
  	 * @exception IOException thrown on error
 	 */
-	public void writeExternal(ObjectOutput out) throws IOException
-	{
-		FormatableHashtable fh = new FormatableHashtable();
-		fh.put("name", name);
-		fh.put("tableName", tableName);
-		fh.put("schemaName", schemaName);
-		fh.putInt("columnPos", columnPos);
-		fh.put("type", type);
-		fh.putBoolean("isAutoincrement", isAutoincrement);
-		fh.putBoolean("updatableByCursor", updatableByCursor);
-		out.writeObject(fh);
+	public void writeExternal(ObjectOutput out) throws IOException {
+		
+		out.writeUTF(name);
+		out.writeUTF(tableName);
+		out.writeUTF(schemaName);
+		out.writeInt(columnPos);
+		out.writeObject(type);
+		out.writeBoolean(isAutoincrement);
+		out.writeBoolean(updatableByCursor);		
 		return;
 	}	
 
@@ -214,16 +212,14 @@ public final class GenericColumnDescriptor
 	 * @exception ClassNotFoundException		thrown on error
 	 */
 	public void readExternal(ObjectInput in) 
-		throws IOException, ClassNotFoundException
-	{
-		FormatableHashtable fh = (FormatableHashtable)in.readObject();		
-		name = (String)fh.get("name");
-		tableName = (String)fh.get("tableName");
-		schemaName = (String)fh.get("schemaName");
-		columnPos = fh.getInt("columnPos");
-		type = getStoredDataTypeDescriptor(fh.get("type"));
-		isAutoincrement = fh.getBoolean("isAutoincrement");
-		updatableByCursor = fh.getBoolean("updatableByCursor");
+		throws IOException, ClassNotFoundException {		
+		name = in.readUTF();
+		tableName = in.readUTF();
+		schemaName = in.readUTF();
+		columnPos = in.readInt();
+		type = getStoredDataTypeDescriptor(in.readObject());
+		isAutoincrement = in.readBoolean();
+		updatableByCursor = in.readBoolean();
 	}
 	
 	/**
