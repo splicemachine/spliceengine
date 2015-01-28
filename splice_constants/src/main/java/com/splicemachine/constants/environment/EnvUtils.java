@@ -21,11 +21,7 @@ public class EnvUtils {
 			return TableEnv.TRANSACTION_TABLE;
 		else if (tableName.equals("-ROOT-"))
 			return TableEnv.ROOT_TABLE;
-		else if ("hbase:meta".equals(tableName)
-                || "meta".equals(tableName)
-                || "hbase:namespace".equals(tableName)
-                || "namespace".equals(tableName)
-                || ".META.".equals(tableName))
+		else if (isMetaOrNamespaceTable(tableName))
 			return TableEnv.META_TABLE;
 		else if (tableName.equals(SpliceConstants.TEMP_TABLE))
 			return TableEnv.DERBY_SYS_TABLE;
@@ -41,8 +37,16 @@ public class EnvUtils {
 			return TableEnv.USER_TABLE;
 		}
 	}
-	
-	public static String getRegionId(HRegion region) {
+
+    public static boolean isMetaOrNamespaceTable(String tableName) {
+        return "hbase:meta".equals(tableName)
+                || "meta".equals(tableName)
+                || "hbase:namespace".equals(tableName)
+                || "namespace".equals(tableName)
+                || ".META.".equals(tableName);
+    }
+
+    public static String getRegionId(HRegion region) {
 		return getRegionId(region.getRegionNameAsString());
 	}
 	
