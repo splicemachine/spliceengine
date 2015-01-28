@@ -352,29 +352,33 @@ public class SpliceAdmin extends BaseAdminProcedures {
                 List<ExecRow> rows = Lists.newArrayListWithExpectedSize(statementManagers.size());
                 for (Pair<String, StatementManagement> managementPair : statementManagers) {
                     StatementManagement management = managementPair.getSecond();
-                    Collection<StatementInfo> completedStatements = management.getExecutingStatementInfo();
-
-                    for (StatementInfo completedStatement : completedStatements) {
+                    Collection<StatementInfo> executingStatements = management.getExecutingStatementInfo();
+                    SpliceLogUtils.debug(LOG, "Found %d executing statements", executingStatements != null ? executingStatements.size() : 0);
+                    
+                    for (StatementInfo executingStatement : executingStatements) {
 
                         // Check for null.  My understanding was that ConcurrentHashMap would guarantee that the element would be there.
                         // It appears that the guarantee is that the key element will be there but not necessarily the value element.
                         // This was found to be true when running the ITs in parallel.  DB-1342
-                        if (completedStatement == null) { continue; }
+                        if (executingStatement == null) {
+                            SpliceLogUtils.error(LOG, "Found NULL executingStatement. List returned by syscs.get_statement_summary() might not be accurate.");
+                        	continue;
+                        }
 
-                        Set<JobInfo> completedJobs = completedStatement.getCompletedJobs();
-                        Set<JobInfo> runningJobs = completedStatement.getRunningJobs();
+                        Set<JobInfo> completedJobs = executingStatement.getCompletedJobs();
+                        Set<JobInfo> runningJobs = executingStatement.getRunningJobs();
                         template.resetRowArray();
                         DataValueDescriptor[] dvds = template.getRowArray();
                         try{
-                            dvds[0].setValue(completedStatement.getStatementUuid());
+                            dvds[0].setValue(executingStatement.getStatementUuid());
                             dvds[1].setValue(managementPair.getFirst());
-                            dvds[2].setValue(completedStatement.getUser());
-                            dvds[3].setValue(completedStatement.getTxnId());
-                            dvds[4].setValue(completedStatement.getSql());
-                            dvds[5].setValue(completedStatement.getNumJobs());
+                            dvds[2].setValue(executingStatement.getUser());
+                            dvds[3].setValue(executingStatement.getTxnId());
+                            dvds[4].setValue(executingStatement.getSql());
+                            dvds[5].setValue(executingStatement.getNumJobs());
                             dvds[6].setValue(completedJobs!=null?completedJobs.size():0);
                             dvds[7].setValue(runningJobs!=null?runningJobs.size():0);
-                            dvds[8].setValue(completedStatement.getStartTimeMs());
+                            dvds[8].setValue(executingStatement.getStartTimeMs());
                         }catch(StandardException se){
                             throw PublicAPI.wrapStandardException(se);
                         }
