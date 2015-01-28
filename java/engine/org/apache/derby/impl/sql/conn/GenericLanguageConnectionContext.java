@@ -878,18 +878,28 @@ public class GenericLanguageConnectionContext
 
         // collect all the exceptions we might receive while dropping the
         // temporary tables and throw them as one chained exception at the end.
-        for (TempTableInfo globalTempTable : allDeclaredGlobalTempTables) {
+        int i=0;
+        for (TempTableInfo tempTableInfo : allDeclaredGlobalTempTables) {
             try {
 
-                TableDescriptor td = globalTempTable.getTableDescriptor();
+                TableDescriptor td = tempTableInfo.getTableDescriptor();
 
-                // Drop the temp table via normal drop table action
-                ConstantAction action = constantActionFactory.getDropTableConstantAction(td.getQualifiedName(),
-                                                                                         td.getName(),
-                                                                                         td.getSchemaDescriptor(),
-                                                                                         td.getHeapConglomerateId(),
-                                                                                         td.getUUID(), StatementType.DROP_CASCADE);
-                action.executeConstantAction(new DropTableActivation(this, td));
+                if (tempTableInfo.getDroppedInSavepointLevel() != -1) {
+                    // this means table was dropped in this unit of work and hence
+                    // should be removed from valid list of temp tables
+
+                    allDeclaredGlobalTempTables.remove(i);
+                } else {
+
+                    // Drop the temp table via normal drop table action
+                    ConstantAction action = constantActionFactory.getDropTableConstantAction(td.getQualifiedName(),
+                                                                                             td.getName(),
+                                                                                             td.getSchemaDescriptor(),
+                                                                                             td.getHeapConglomerateId(),
+                                                                                             td.getUUID(), StatementType.DROP_CASCADE);
+
+                    action.executeConstantAction(new DropTableActivation(this, td));
+                }
             } catch (StandardException e) {
                 if (topLevelStandardException == null) {
                     // always keep the first exception unchanged
@@ -909,6 +919,7 @@ public class GenericLanguageConnectionContext
                     }
                 }
             }
+            ++i;
         }
     
         allDeclaredGlobalTempTables = null;

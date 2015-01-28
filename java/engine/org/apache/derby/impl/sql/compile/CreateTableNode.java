@@ -433,9 +433,9 @@ public class CreateTableNode extends DDLStatementNode
 
         numGenerationClauses = tableElementList.countGenerationClauses();
 
-		//temp tables can't have primary key or check or foreign key or unique constraints defined on them
+		//temp tables can't have foreign key constraints defined on them
 		if ((tableType == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE) &&
-			(numPrimaryKeys > 0 || numCheckConstraints > 0 || numReferenceConstraints > 0 || numUniqueConstraints > 0))
+			(numReferenceConstraints > 0))
 				throw StandardException.newException(SQLState.LANG_NOT_ALLOWED_FOR_DECLARED_GLOBAL_TEMP_TABLE);
 
 		//each of these constraints have a backing index in the back. We need to make sure that a table never has more

@@ -2079,7 +2079,6 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 				// bind in previous command might have set refernced cols
 				retval.setReferencedColumnMap(null);
                 if (retval.getSchemaDescriptor() == null) {
-                    // TODO: added this because SESSION schema was null in TD. Check if using SESSION schema before setting here?
                     retval.setSchemaDesctiptor(sd);
                 }
 				nameTdCache.release(cacheEntry);
@@ -2090,6 +2089,20 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 		return getTableDescriptorIndex1Scan(tableName, schemaUUID.toString());
 
 	}
+
+    public TableDescriptor invalidate(TableDescriptor oldTable) throws StandardException {
+        TableDescriptor oldDescriptor = null;
+		/* Only using cache if we're in compile-only mode */
+        if (getCacheMode() == DataDictionary.COMPILE_ONLY_MODE) {
+            TableKey tableKey = new TableKey(oldTable.getSchemaDescriptor().getUUID(), oldTable.getName());
+            NameTDCacheable cacheEntry = (NameTDCacheable) nameTdCache.find(tableKey);
+            if (cacheEntry != null) {
+                oldDescriptor = cacheEntry.getTableDescriptor();
+                nameTdCache.remove(cacheEntry);
+            }
+        }
+        return oldDescriptor;
+    }
 
 	/**
 	 * Scan systables_index1 (tablename, schemaid) for a match.
@@ -2462,6 +2475,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 		keyRow1.setColumn(2, schemaIDOrderable);
 
 		ti.deleteRow( tc, keyRow1, SYSTABLESRowFactory.SYSTABLES_INDEX1_ID );
+        invalidate(td);
 	}
 
 	/**

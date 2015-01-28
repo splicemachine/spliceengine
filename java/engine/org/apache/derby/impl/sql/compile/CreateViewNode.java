@@ -37,6 +37,7 @@ import org.apache.derby.iapi.sql.compile.NodeFactory;
 import org.apache.derby.iapi.sql.conn.Authorizer;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 
+import org.apache.derby.iapi.sql.depend.Provider;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
 import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
@@ -284,6 +285,13 @@ public class CreateViewNode extends DDLStatementNode
 				//If attempting to reference a SESSION schema table (temporary or permanent) in the view, throw an exception
 				if (queryExpr.referencesSessionSchema())
 					throw StandardException.newException(SQLState.LANG_OPERATION_NOT_ALLOWED_ON_SESSION_SCHEMA_TABLES);
+                // check that no provider is a temp table (whether or not it's in SESSION schema)
+                for (Provider provider : apl.values()) {
+                    if (provider instanceof TableDescriptor && ! provider.isPersistent()) {
+                        throw StandardException.newException(SQLState.LANG_TEMP_TABLES_CANNOT_BE_IN_VIEWS,
+                                                             provider.getObjectName());
+                    }
+                }
 			}
 
 			// bind the query expression

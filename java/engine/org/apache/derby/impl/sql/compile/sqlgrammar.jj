@@ -2138,6 +2138,33 @@ public class SQLParser
         frame.setFrameMode(mode);
 
     }
+
+    /**
+     * For temporary table validation and creation.
+     */
+	private StatementNode verifySyntaxAndCreate(Object[] declareTableClauses,
+												TableName tableName,
+												TableElementList tableElementList) throws StandardException {
+		// NOT LOGGED is allways true
+		// if ON COMMIT behavior not explicitly specified in DECLARE command, default to ON COMMIT PRESERVE ROWS
+		if (declareTableClauses[1] == null) {
+            declareTableClauses[1] = Boolean.FALSE;
+		} else if (declareTableClauses[1] == Boolean.TRUE) {
+		    // ON COMMIT DELETE ROWS is not supported
+		    throw StandardException.newException(SQLState.LANG_TEMP_TABLE_DELETE_ROWS_NO_SUPPORTED, "COMMIT");
+		}
+		// if ON ROLLBACK behavior not explicitly specified in DECLARE command, default to ON ROLLBACK DELETE ROWS
+		if (declareTableClauses[2] == null)
+				declareTableClauses[2] = Boolean.TRUE;
+		return (StatementNode) nodeFactory.getNode(
+								C_NodeTypes.CREATE_TABLE_NODE,
+								tableName,
+								tableElementList,
+								(Properties)null,
+								(Boolean) declareTableClauses[1],
+								(Boolean) declareTableClauses[2],
+								getContextManager());
+	}
 }
 
 PARSER_END(SQLParser)
@@ -2537,6 +2564,7 @@ TOKEN [IGNORE_CASE] :
 |	<NCHAR: "nchar">
 |	<NEXT: "next">
 |	<NO: "no">
+|	<NOLOGGING: "nologging">
 |	<NOT: "not">
 |	<NULL: "null">
 |	<NULLIF: "nullif">
@@ -3274,7 +3302,7 @@ StatementPart(Token[] tokenHolder) throws StandardException :
         statementNode = createStatements() |
         statementNode = dropStatements() |
         statementNode = spsAlterStatement() |
-        statementNode = globalTemporaryTableDeclaration() |
+        statementNode = declareTemporaryTableDeclaration() |
         statementNode = preparableSQLDataStatement() |
         statementNode = spsSetStatement() |
 		statementNode = truncateTableStatement() |
@@ -3308,7 +3336,7 @@ createStatements() throws StandardException :
             statementNode = triggerDefinition() |
             statementNode = synonymDefinition() |
             statementNode = roleDefinition() |
-        	statementNode = localTemporaryTableDeclaration() |
+        	statementNode = createTemporaryTableDeclaration() |
             statementNode = sequenceDefinition()
         )
         {
@@ -4078,7 +4106,7 @@ LocksOrCursors() :
 }
 
 /* 
- * <A NAME="globalTemporaryTableDeclaration">globalTemporaryTableDeclaration</A>
+ * <A NAME="declareTemporaryTableDeclaration">declareTemporaryTableDeclaration</A>
 
     This is the generic DERBY syntax for temp tables
 
@@ -4089,7 +4117,7 @@ LocksOrCursors() :
 	2 - Boolean - on rollback behavior
  */
 StatementNode
-globalTemporaryTableDeclaration() throws StandardException :
+declareTemporaryTableDeclaration() throws StandardException :
 {
 	TableName			tableName;
 	TableElementList tableElementList;
@@ -4100,61 +4128,33 @@ globalTemporaryTableDeclaration() throws StandardException :
 		tableElementList = tableElementList()
 		( declareTableClause(declareTableClauses) ) +
 	{
-		// NOT LOGGED is allways true
-		// if ON COMMIT behavior not explicitly specified in DECLARE command, resort to default ON COMMIT DELETE ROWS
-		if (declareTableClauses[1] == null)
-				declareTableClauses[1] = Boolean.TRUE;
-		// if ON ROLLBACK behavior not explicitly specified in DECLARE command, resort to default ON ROLLBACK DELETE ROWS
-		if (declareTableClauses[2] == null)
-				declareTableClauses[2] = Boolean.TRUE;
-		return (StatementNode) nodeFactory.getNode(
-								C_NodeTypes.CREATE_TABLE_NODE,
-								tableName,
-								tableElementList,
-								(Properties)null,
-								(Boolean) declareTableClauses[1],
-								(Boolean) declareTableClauses[2],
-								getContextManager());
+		return verifySyntaxAndCreate(declareTableClauses, tableName, tableElementList);
 	}
 }
 
 /*
- * <A NAME="localTemporaryTableDeclaration">localTemporaryTableDeclaration</A>
+ * <A NAME="createTemporaryTableDeclaration">createTemporaryTableDeclaration</A>
 	CREATE LOCAL TEMPORARY TABLE...
 
-	This is Tableau - specific syntax for temp tables
+	This is Tableau (LOCAL) and MicroStrategy (GLOBAL) - specific syntax for temp tables
 
 	0 - Boolean - NOT LOGGED clause - ignored, no temp tables are logged
 	1 - Boolean - on commit behavior
 	2 - Boolean - on rollback behavior
  */
 StatementNode
-localTemporaryTableDeclaration() throws StandardException :
+createTemporaryTableDeclaration() throws StandardException :
 {
 	TableName			tableName;
 	TableElementList tableElementList;
 	Object[] declareTableClauses = new Object[3];
 }
 {
-	<LOCAL> <TEMPORARY> <TABLE> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
+	( <LOCAL>  | <GLOBAL> ) <TEMPORARY> <TABLE> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
 		tableElementList = tableElementList()
 		( declareTableClause(declareTableClauses) ) +
 	{
-		// NOT LOGGED is allways true
-		// if ON COMMIT behavior not explicitly specified in DECLARE command, resort to default ON COMMIT DELETE ROWS
-		if (declareTableClauses[1] == null)
-				declareTableClauses[1] = Boolean.TRUE;
-		// if ON ROLLBACK behavior not explicitly specified in DECLARE command, resort to default ON ROLLBACK DELETE ROWS
-		if (declareTableClauses[2] == null)
-				declareTableClauses[2] = Boolean.TRUE;
-		return (StatementNode) nodeFactory.getNode(
-								C_NodeTypes.CREATE_TABLE_NODE,
-								tableName,
-								tableElementList,
-								(Properties)null,
-								(Boolean) declareTableClauses[1],
-								(Boolean) declareTableClauses[2],
-								getContextManager());
+		return verifySyntaxAndCreate(declareTableClauses, tableName, tableElementList);
 	}
 }
 
@@ -4165,13 +4165,13 @@ void declareTableClause(Object[] declareTableClauses) throws StandardException :
 }
 {
 	(
-		<NOT> <LOGGED> {clauseValue = Boolean.TRUE; clausePosition = 0;}
+		( <NOT> <LOGGED> | <NOLOGGING> ) {clauseValue = Boolean.TRUE; clausePosition = 0;}
 	|
 		LOOKAHEAD( {getToken(1).kind == ON && getToken(2).kind == COMMIT} )
-		<ON> <COMMIT> ( clauseValue = onCommit() ) <ROWS> { clausePosition = 1;} 
+		<ON> <COMMIT> ( clauseValue = onCommitRollback() ) <ROWS> { clausePosition = 1;}
 	|
 		LOOKAHEAD( {getToken(1).kind == ON && getToken(2).kind == ROLLBACK} )
-		<ON> <ROLLBACK> <DELETE> <ROWS> { clauseValue = Boolean.TRUE; clausePosition = 2;} 
+		<ON> <ROLLBACK> ( clauseValue = onCommitRollback() ) <ROWS> { clauseValue = Boolean.TRUE; clausePosition = 2;}
 	)
 
 
@@ -4190,10 +4190,10 @@ void declareTableClause(Object[] declareTableClauses) throws StandardException :
 }
 
 /*
- * <A NAME="onCommit">onCommit</A>
+ * <A NAME="onCommitRollback">onCommitRollback</A>
  */
 Boolean
-onCommit() :
+onCommitRollback() :
 {
 }
 {
@@ -15186,6 +15186,7 @@ reservedKeyword() :
 |	tok = <NVARCHAR> 
 |	tok = <NEXT>
 |	tok = <NO>
+|	tok = <NOLOGGING>
 |   tok = <NONE>
 |	tok = <NOT>
 |	tok = <NULL>

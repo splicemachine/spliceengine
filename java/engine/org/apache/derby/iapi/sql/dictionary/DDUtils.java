@@ -226,6 +226,10 @@ public	class	DDUtils
 		//check whether the foreign key relation ships referential action
 		//is not violating the restrictions we have in the current system.
 		TableDescriptor refTd = otherConstraintInfo.getReferencedTableDescriptor(dd);
+        if (! refTd.isPersistent()) {
+            // temp table cols cannot be the source of a foreign key
+            throw StandardException.newException(SQLState.LANG_TEMP_TABLE_NO_FOREIGN_KEYS);
+        }
 		Hashtable deleteConnHashtable = new Hashtable();
 		//find whether the foreign key is self referencing.
 		boolean isSelfReferencingFk = (refTd.getUUID().equals(td.getUUID()));

@@ -1488,6 +1488,23 @@ Guide.
             </msg>
 
             <msg>
+                <name>428C2</name>
+                <text>DELETE ROWS is not supported for ON '{0}'.</text>
+                <arg>txnMode</arg>
+            </msg>
+
+            <msg>
+                <name>428C3</name>
+                <text>Temporary table columns cannot be referenced by foreign keys.</text>
+            </msg>
+
+          <msg>
+            <name>428C4</name>
+            <text>Attempt to add temporary table, '{0}', as a view dependency.</text>
+            <arg>txnMode</arg>
+          </msg>
+
+            <msg>
                 <name>42903</name>
                 <text>Invalid use of an aggregate function.</text>
             </msg>

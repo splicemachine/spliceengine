@@ -281,6 +281,11 @@ public class EmptyDictionary implements DataDictionary, ModuleSupportable {
 		return null;
 	}
 
+	public TableDescriptor invalidate(TableDescriptor td) throws StandardException {
+		// Auto-generated method stub
+		return null;
+	}
+
 	public TableDescriptor getTableDescriptor(UUID tableID)
 			throws StandardException {
 		// Auto-generated method stub
