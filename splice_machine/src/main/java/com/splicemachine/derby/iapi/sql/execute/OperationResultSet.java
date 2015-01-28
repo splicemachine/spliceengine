@@ -114,6 +114,9 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
         List<OperationInfo> operationInfo = getOperationInfo(stmtInfo.getStatementUuid());
         stmtInfo.setOperationInfo(operationInfo);
         topOperation.setStatementId(stmtInfo.getStatementUuid());
+    	if (LOG.isTraceEnabled()) {
+    		LOG.debug(String.format("Adding statementInfo to StatementManager for statement %s.", stmtInfo.getStatementUuid()));
+    	}
         SpliceDriver.driver().getStatementManager().addStatementInfo(stmtInfo);
 
         return stmtInfo;

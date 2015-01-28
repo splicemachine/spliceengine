@@ -2,10 +2,9 @@ package com.splicemachine.derby.management;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
+
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -50,7 +49,15 @@ public class StatementManager implements StatementManagement{
     }
 
     public void addStatementInfo(StatementInfo statementInfo){
-				executingStatements.add(statementInfo);
+			if (!executingStatements.add(statementInfo)) {
+				LOG.error(String.format("Failed to add statement to executing stmts, numExecStmts=%s, stmtUuid=%s, txnId=%s, startTimeMs=%s, SQL={\n%s\n}",
+					executingStatements.size(),
+					statementInfo.getStatementUuid(),
+					statementInfo.getTxnId(),
+					statementInfo.getStartTimeMs(),
+					statementInfo.getSql()));
+				return;
+			}
             if (LOG.isTraceEnabled()) {
 				LOG.trace(String.format("Added to executing stmts, numExecStmts=%s, stmtUuid=%s, txnId=%s, startTimeMs=%s, SQL={\n%s\n}",
 					executingStatements.size(),
@@ -61,18 +68,18 @@ public class StatementManager implements StatementManagement{
             }
 		}
 
-		public void completedStatement(StatementInfo statementInfo, boolean shouldTrace,TxnView txn) throws IOException, StandardException {
-            statementInfo.markCompleted(); //make sure the stop time is set
-            int position = statementInfoPointer.getAndIncrement()%completedStatements.length();
-            completedStatements.set(position, statementInfo);
-            executingStatements.remove(statementInfo);
+	public void completedStatement(StatementInfo statementInfo, boolean shouldTrace,TxnView txn) throws IOException, StandardException {
+        statementInfo.markCompleted(); //make sure the stop time is set
+        int position = statementInfoPointer.getAndIncrement()%completedStatements.length();
+        completedStatements.set(position, statementInfo);
+        executingStatements.remove(statementInfo);
 
         if (LOG.isTraceEnabled()) {
             LOG.trace(String.format("Removed from executing stmts, numExecStmts=%s, stmtUuid=%s, txnId=%s, elapsedTimeMs=%s",
-                    executingStatements.size(),
-                    statementInfo.getStatementUuid(),
-                    statementInfo.getTxnId(),
-                    statementInfo.getStopTimeMs() - statementInfo.getStartTimeMs()));
+                executingStatements.size(),
+                statementInfo.getStatementUuid(),
+                statementInfo.getTxnId(),
+                statementInfo.getStopTimeMs() - statementInfo.getStartTimeMs()));
         }
 
         if (shouldTrace) {
@@ -105,6 +112,9 @@ public class StatementManager implements StatementManagement{
 
 		@Override
 		public boolean killStatement(long statementUuid) {
+	        	if (LOG.isTraceEnabled()) {
+	        		LOG.debug(String.format("Attempting to kill statement with uuid = %s", statementUuid));
+	        	}
 				for(StatementInfo info:executingStatements){
 						if(info.getStatementUuid()==statementUuid){
 								try {
