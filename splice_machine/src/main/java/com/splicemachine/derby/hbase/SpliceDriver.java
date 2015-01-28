@@ -114,10 +114,12 @@ public class SpliceDriver {
         /* Lazy init so that unit test can create instance with mock fields that starts quickly. */
         if (INSTANCE == null) {
             synchronized (SpliceDriver.class) {
-                try {
-                    INSTANCE = new SpliceDriver();
-                } catch (IOException e) {
-                    throw new RuntimeException("Unable to start SpliceDriver", e);
+                if(INSTANCE==null) {
+                    try {
+                        INSTANCE = new SpliceDriver();
+                    } catch (IOException e) {
+                        throw new RuntimeException("Unable to start SpliceDriver", e);
+                    }
                 }
             }
         }
