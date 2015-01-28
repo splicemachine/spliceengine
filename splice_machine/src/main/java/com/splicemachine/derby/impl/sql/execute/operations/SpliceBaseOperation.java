@@ -716,11 +716,11 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
             }
         }
 
-        protected void addToOperationChain(SpliceRuntimeContext spliceRuntimeContext, String methodName) {
+        protected void addToOperationChain(SpliceRuntimeContext spliceRuntimeContext, String methodName, byte[] parentOperationUUID) {
             if (operationChainInfo == null) {
                 operationChainInfo = new XplainOperationChainInfo(
                         spliceRuntimeContext.getStatementId(),
-                        Bytes.toLong(uniqueSequenceID));
+                        Bytes.toLong(parentOperationUUID));
                 operationChainInfo.setMethodName(methodName);
             }
             List<XplainOperationChainInfo> operationChain = SpliceBaseOperation.operationChain.get();

@@ -268,7 +268,7 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 //         * Most joins will record their information during the scan phase, and are not themselves
 //         * sinks. However, MergeSortJoin will need to record its right hand side data directly here
 //         */
-        if(operation.getNodeTypes().contains(SpliceOperation.NodeType.REDUCE))
+        //if(operation.getNodeTypes().contains(SpliceOperation.NodeType.REDUCE))
             populateOpInfo(statementId,operationUuid,true,operation.getRightOperation(),infos);
 		}
 

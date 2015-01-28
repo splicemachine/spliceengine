@@ -140,7 +140,7 @@ public class MergeJoinOperation extends JoinOperation {
         }
 
         if (shouldRecordStats()) {
-            addToOperationChain(spliceRuntimeContext, null);
+            addToOperationChain(spliceRuntimeContext, null, rightResultSet.getUniqueSequenceID());
         }
         ors = new OperationResultSet(activation,rightResultSet);
         ors.sinkOpen(spliceRuntimeContext.getTxn(),true);
