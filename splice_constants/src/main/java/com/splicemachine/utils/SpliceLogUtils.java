@@ -1,5 +1,7 @@
 package com.splicemachine.utils;
 
+import java.util.Arrays;
+
 import org.apache.log4j.Logger;
 
 public class SpliceLogUtils {
@@ -76,5 +78,9 @@ public class SpliceLogUtils {
 
     public static void warn(Logger log, String message,Throwable error) {
         log.warn(message,error);
+    }
+    
+    public static String getStackTrace() {
+    	return Arrays.toString(Thread.currentThread().getStackTrace()).replaceAll(", ", "\n\t");
     }
 }

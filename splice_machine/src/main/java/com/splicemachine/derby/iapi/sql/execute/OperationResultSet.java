@@ -63,9 +63,9 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
     private long statementId;
     private SpliceBaseOperation.XplainOperationChainInfo operationChainInfo;
 
-		private StatementInfo statementInfo;
-		private long scrollUuid = -1l;
-    private TxnView txn;
+	private StatementInfo statementInfo;
+	private long scrollUuid = -1l;
+	private TxnView txn;
 
     public OperationResultSet() {
 			// no-op
@@ -117,14 +117,20 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
     	if (LOG.isTraceEnabled()) {
     		LOG.debug(String.format("Adding statementInfo to StatementManager for statement %s.", stmtInfo.getStatementUuid()));
     	}
-        SpliceDriver.driver().getStatementManager().addStatementInfo(stmtInfo);
+        
+    	if (!SpliceDriver.driver().getStatementManager().addStatementInfo(stmtInfo)) {
+        	if (LOG.isTraceEnabled()) {
+        		LOG.debug(String.format("Failed to add failed statementInfo for statement %s. ParentOperationID = %s. TopOperation = %s",
+    				stmtInfo.getStatementUuid(), parentOperationID, topOperation));
+        	}
+    	};
 
         return stmtInfo;
     }
 
-		public SpliceNoPutResultSet getDelegate(){
-				return delegate;
-		}
+	public SpliceNoPutResultSet getDelegate(){
+		return delegate;
+	}
 
     public void open(boolean useProbe) throws StandardException, IOException{
         boolean showStatementInfo = !(topOperation instanceof ExplainOperation || topOperation instanceof ExportOperation);

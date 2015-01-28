@@ -3,11 +3,13 @@ package com.splicemachine.derby.management;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.si.api.TxnView;
+import com.splicemachine.utils.SpliceLogUtils;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -48,7 +50,18 @@ public class StatementManager implements StatementManagement{
         }
     }
 
-    public void addStatementInfo(StatementInfo statementInfo){
+    public boolean addStatementInfo(StatementInfo statementInfo) {
+    		if (statementInfo.getSql() == null) {
+				LOG.warn(String.format("StatementInfo has null sql. numExecStmts=%s, stmtUuid=%s, txnId=%s, startTimeMs=%s, SQL={\n%s\n}",
+					executingStatements.size(),
+					statementInfo.getStatementUuid(),
+					statementInfo.getTxnId(),
+					statementInfo.getStartTimeMs(),
+					statementInfo.getSql()));
+				if (LOG.isTraceEnabled()) {
+					LOG.trace(String.format("Stack trace for null sql, stmtUuid=%s: %s", statementInfo.getStatementUuid(), SpliceLogUtils.getStackTrace()));
+				}
+    		}
 			if (!executingStatements.add(statementInfo)) {
 				LOG.error(String.format("Failed to add statement to executing stmts, numExecStmts=%s, stmtUuid=%s, txnId=%s, startTimeMs=%s, SQL={\n%s\n}",
 					executingStatements.size(),
@@ -56,7 +69,7 @@ public class StatementManager implements StatementManagement{
 					statementInfo.getTxnId(),
 					statementInfo.getStartTimeMs(),
 					statementInfo.getSql()));
-				return;
+				return false;
 			}
             if (LOG.isTraceEnabled()) {
 				LOG.trace(String.format("Added to executing stmts, numExecStmts=%s, stmtUuid=%s, txnId=%s, startTimeMs=%s, SQL={\n%s\n}",
@@ -66,6 +79,7 @@ public class StatementManager implements StatementManagement{
 					statementInfo.getStartTimeMs(),
 					statementInfo.getSql()));
             }
+            return true;
 		}
 
 	public void completedStatement(StatementInfo statementInfo, boolean shouldTrace,TxnView txn) throws IOException, StandardException {
