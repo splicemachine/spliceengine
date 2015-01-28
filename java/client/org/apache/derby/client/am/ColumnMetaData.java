@@ -321,6 +321,7 @@ public class ColumnMetaData implements java.sql.ResultSetMetaData {
             case Types.VARBINARY:
             case Types.LONGVARBINARY:
             case Types.BLOB:
+            case Types.ROWID:
 		// Derby-2425. For long length values, size overflows the int 
 		// range. In such cases, the size is limited to the max. int value
 		// This behavior is consistent with the same in Embedded mode.
