@@ -1,6 +1,7 @@
 package com.splicemachine.hbase.regioninfocache;
 
 import com.google.common.collect.Sets;
+import com.splicemachine.constants.environment.EnvUtils;
 import com.splicemachine.hbase.RegionCacheComparator;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.ServerName;
@@ -39,6 +40,7 @@ public abstract class BaseRegionMetaScannerVisitor implements MetaScanner.MetaSc
         Pair<HRegionInfo, ServerName> infoPair = parseCatalogResult(rowResult);
         HRegionInfo regionInfo = infoPair.getFirst();
         byte[] currentTableName = regionInfo.getTableName();
+        String currentTableNameString = Bytes.toString(currentTableName);
 
         if (updateTableName != null && !Bytes.equals(updateTableName, currentTableName)) {
             /* We are looking for one specific table. This isn't it.  Should we continue?  If regionPairMap
@@ -47,8 +49,8 @@ public abstract class BaseRegionMetaScannerVisitor implements MetaScanner.MetaSc
             return regionPairMap.isEmpty();
         }
 
-        if (isRegionAvailable(regionInfo)) {
-            checkNotNull(infoPair.getSecond(), "never expect ServerName object to be null, table=" + Bytes.toString(currentTableName));
+        if (isRegionAvailable(regionInfo)  && !EnvUtils.isMetaOrNamespaceTable(currentTableNameString)) {
+            checkNotNull(infoPair.getSecond(), "never expect ServerName object to be null, table=" + currentTableNameString);
             SortedSet<Pair<HRegionInfo, ServerName>> regionsForTable = regionPairMap.get(currentTableName);
             if (regionsForTable == null) {
                 regionsForTable = Sets.newTreeSet(COMPARATOR);
