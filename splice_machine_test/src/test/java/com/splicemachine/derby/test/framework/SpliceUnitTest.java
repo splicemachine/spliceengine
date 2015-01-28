@@ -2,6 +2,8 @@ package com.splicemachine.derby.test.framework;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.List;
 
 import org.junit.runner.Description;
 
@@ -13,8 +15,22 @@ public class SpliceUnitTest {
 		else
 		    return getClass().getSimpleName().toUpperCase();
 	}
-	
-	public String getTableReference(String tableName) {
+
+    /**
+     * Load a table with given values
+     *
+     * @param statement calling test's statement that may be in txn
+     * @param tableName fully-qualified table name, i.e., <pre>schema.table</pre>
+     * @param values list of row values
+     * @throws Exception
+     */
+    public static void loadTable(Statement statement, String tableName, List<String> values) throws Exception {
+        for (String rowVal : values) {
+            statement.executeUpdate("insert into " + tableName + " values " + rowVal);
+        }
+    }
+
+    public String getTableReference(String tableName) {
 		return getSchemaName() + "." + tableName;
 	}
 

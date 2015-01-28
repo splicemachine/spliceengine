@@ -109,20 +109,6 @@ public class TableConstantOperationIT extends SpliceUnitTest {
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
 
-    /**
-     * Load a table with given values
-     *
-     * @param statement calling test's statement that may be in txn
-     * @param tableName fully-qualified table name, i.e., <pre>schema.table</pre>
-     * @param values list of row values
-     * @throws Exception
-     */
-    public static void loadTable(Statement statement, String tableName, List<String> values) throws Exception {
-        for (String rowVal : values) {
-            statement.executeUpdate("insert into " + tableName + " values " + rowVal);
-        }
-    }
-
     @Test(expected=SQLException.class)
     public void testCreateDropTable() throws Exception {
         Connection connection = methodWatcher.createConnection();
