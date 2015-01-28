@@ -14,12 +14,14 @@ import java.util.*;
 import com.google.common.collect.Lists;
 import org.apache.commons.dbutils.BasicRowProcessor;
 import org.apache.commons.io.FileUtils;
+import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.util.Pair;
 import org.junit.runner.Description;
 
 import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.utils.SpliceUtilities;
 
 public class TestUtils {
 
@@ -126,6 +128,18 @@ public class TestUtils {
                                                       "                                  order by t1.conglomeratenumber desc");
 
         return resultSetToMaps(rs);
+    }
+
+    public static String lookupConglomerateNumber(String schemaName, String tableName, SpliceWatcher spliceWatcher) throws Exception {
+        ResultSet rs = spliceWatcher.executeQuery("select t1.conglomeratenumber from sys.sysconglomerates t1, " +
+                                                      "sys.systables t2, sys.sysschemas t3 where t1.tableid = t2.tableid" +
+                                                      " and t2.tablename = '"+tableName+"' and t3.schemaname = '"+schemaName+"'" +
+                                                      "  and t2.schemaid = t1.schemaid");
+        String conglomNum = null;
+        if (rs.next()) {
+            conglomNum = rs.getString(1);
+        }
+        return conglomNum;
     }
 
     public static SpliceDataWatcher createFileDataWatcher(final SpliceWatcher watcher, final String fileName, final String className){

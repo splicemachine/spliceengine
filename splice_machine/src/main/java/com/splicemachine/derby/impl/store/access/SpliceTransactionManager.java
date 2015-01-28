@@ -777,11 +777,8 @@ public class SpliceTransactionManager implements XATransactionController,
 
         if (conglom.isTemporary()) {
             conglom.drop(this);
-        }
-
-        if (conglomId < 0) {
             if (tempCongloms != null)
-                tempCongloms.remove(new Long(conglomId));
+                tempCongloms.remove(conglomId);
         } else {
             accessmanager.conglomCacheRemoveEntry(conglomId);
         }
