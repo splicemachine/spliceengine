@@ -247,7 +247,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 								} else {
                                         if (activation.isTraced()) {
                                             // Push the operation Id
-                                            addToOperationChain(spliceRuntimeContext, "Subquery:" + restrictionMethodName);
+                                            addToOperationChain(spliceRuntimeContext, "Subquery:" + restrictionMethodName, uniqueSequenceID);
                                         }
 										setCurrentRow(candidateRow);
 										try {

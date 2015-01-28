@@ -306,14 +306,13 @@ public class BroadcastJoinOperation extends JoinOperation {
 
             if(runtimeContext.shouldRecordTraceMetrics()) {
                 activation.getLanguageConnectionContext().setStatisticsTiming(true);
-                addToOperationChain(runtimeContext, null);
+                addToOperationChain(runtimeContext, null, rightResultSet.getUniqueSequenceID());
             }
 
             rightRowCounter = runtimeContext.newCounter();
             SpliceRuntimeContext ctxNoSink = runtimeContext.copy();
             ctxNoSink.unMarkAsSink();
             OperationResultSet ors = new OperationResultSet(activation,rightResultSet);
-            ors.setParentOperationID(Bytes.toLong(getUniqueSequenceID()));
             ors.sinkOpen(runtimeContext.getTxn(),true);
             ors.executeScan(false,ctxNoSink);
             SpliceNoPutResultSet resultSet = ors.getDelegate();
