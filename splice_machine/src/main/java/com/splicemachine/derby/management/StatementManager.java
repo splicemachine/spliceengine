@@ -51,7 +51,7 @@ public class StatementManager implements StatementManagement{
     }
 
     public boolean addStatementInfo(StatementInfo statementInfo) {
-    		if (statementInfo.getSql() == null) {
+    		if (statementInfo.getSql() == null || statementInfo.getSql().isEmpty() || statementInfo.getSql().equalsIgnoreCase("null")) {
 				LOG.warn(String.format("StatementInfo has null sql. numExecStmts=%s, stmtUuid=%s, txnId=%s, startTimeMs=%s, SQL={\n%s\n}",
 					executingStatements.size(),
 					statementInfo.getStatementUuid(),
