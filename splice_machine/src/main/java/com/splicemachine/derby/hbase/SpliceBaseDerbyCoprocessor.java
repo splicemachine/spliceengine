@@ -1,11 +1,13 @@
 package com.splicemachine.derby.hbase;
 
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.environment.EnvUtils;
 import com.splicemachine.si.impl.TransactionalRegions;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.regionserver.RegionServerServices;
 
 /**
  * Coprocessor for starting the derby services on top of HBase.
@@ -14,6 +16,7 @@ import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
  */
 public class SpliceBaseDerbyCoprocessor {
     private static final AtomicLong runningCoprocessors = new AtomicLong(0l);
+    private static final AtomicBoolean stop = new AtomicBoolean(false); // Set to true when region server is stopping or stopped
     public static volatile String regionServerZNode;
     public static volatile String rsZnode;
 
@@ -45,10 +48,16 @@ public class SpliceBaseDerbyCoprocessor {
      * @see com.splicemachine.derby.hbase.SpliceDriver
      */
     public void stop(CoprocessorEnvironment e) {
-            if (runningCoprocessors.decrementAndGet() <= 0L) {
-                SpliceDriver.driver().shutdown();
-            }
+        if (stop.get() && runningCoprocessors.decrementAndGet() <= 0L) {
+            SpliceDriver.driver().shutdown();
+        }
     }
 
+    public void stoppingRegionServer() {
+        stop.set(true);
+        if (runningCoprocessors.get() <= 0L) {
+            SpliceDriver.driver().shutdown();
+        }
+    }
 }
 
