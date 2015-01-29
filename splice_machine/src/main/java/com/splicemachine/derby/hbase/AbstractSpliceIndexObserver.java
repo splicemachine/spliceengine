@@ -8,6 +8,7 @@ import com.splicemachine.derby.impl.temp.TempTable;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.mrio.api.core.MemstoreAware;
+import com.splicemachine.hbase.backup.BackupUtils;
 import com.splicemachine.pipeline.api.WriteContext;
 import com.splicemachine.pipeline.writecontextfactory.WriteContextFactory;
 import com.splicemachine.pipeline.constraint.Constraint;
@@ -35,8 +36,10 @@ import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.NavigableSet;
+import java.util.Collection;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -125,10 +128,55 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
         filterFiles(c, candidates);
     }
 
+    @Override
+    public void postCompact(ObserverContext<RegionCoprocessorEnvironment> e,
+                            Store store, StoreFile resultFile, CompactionRequest request) throws IOException{
+        recordCompactedFilesForBackup(e, request);
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "postCompact store=%s, storeFile=%s, request=%s",store,resultFile, request);
+        while (true) {
+            MemstoreAware latest = memstoreAware.get();
+            if(memstoreAware.compareAndSet(latest, MemstoreAware.decrementCompactionCount(latest)));
+            break;
+        }
+        super.postCompact(e, store, resultFile, request);
+    }
     /**
      * ***************************************************************************************************************
      */
     /*private helper methods*/
+    private void recordCompactedFilesForBackup(ObserverContext<RegionCoprocessorEnvironment> e, CompactionRequest request) {
+        try {
+            long lastBackup = BackupUtils.getLastBackupTime();
+            if (lastBackup <= 0)
+                return;
+
+            Collection<StoreFile> before = new LinkedList<StoreFile>();
+            Collection<StoreFile> after = new LinkedList<StoreFile>();
+
+            String encodedRegionName = e.getEnvironment().getRegion().getRegionInfo().getEncodedName();
+            Collection<StoreFile> storeFiles = request.getFiles();
+            for (StoreFile storeFile : storeFiles) {
+                StoreFile.Reader reader = storeFile.createReader();
+                Long maxTimeStamp = reader.getMaxTimestamp();
+                if (maxTimeStamp <= lastBackup){
+                    before.add(storeFile);
+                }
+                else {
+                    after.add(storeFile);
+                }
+            }
+
+            if (before.size() > 0 && after.size() > 0) {
+                for (StoreFile storeFile : after) {
+                    BackupUtils.recordStoreFile(conglomId, encodedRegionName, storeFile.getPath().getName());
+                }
+            }
+        }
+        catch (Exception ex) {
+            SpliceLogUtils.warn(LOG, "postCompact: cannot query last backup");
+        }
+    }
     private void filterFiles(ObserverContext<RegionCoprocessorEnvironment> c, List<StoreFile> candidates) throws IOException {
         /*
          * We want to remove TEMP files that we aren't interested in anymore. However, there is always the possibility
@@ -378,29 +426,14 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
 
 	@Override
 	public void postCompact(ObserverContext<RegionCoprocessorEnvironment> e,
-			Store store, StoreFile resultFile) throws IOException {	
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "postCompact store=%s, storeFile=%s",store,resultFile);
-		while (true) {
-			MemstoreAware latest = memstoreAware.get();
-			if(memstoreAware.compareAndSet(latest, MemstoreAware.decrementCompactionCount(latest)));
-				break;
-		}
-		super.postCompact(e, store, resultFile);
-	}
-
-	@Override
-	public void postCompact(ObserverContext<RegionCoprocessorEnvironment> e,
-			Store store, StoreFile resultFile, CompactionRequest request)
-			throws IOException {
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "postCompact store=%s, storeFile=%s, request=%s",store,resultFile, request);
-		while (true) {
-			MemstoreAware latest = memstoreAware.get();
-			if(memstoreAware.compareAndSet(latest, MemstoreAware.decrementCompactionCount(latest)));
-				break;
-		}
-		super.postCompact(e, store, resultFile, request);
-	}
-    
+			Store store, StoreFile resultFile) throws IOException {
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "postCompact store=%s, storeFile=%s", store, resultFile);
+        while (true) {
+            MemstoreAware latest = memstoreAware.get();
+            if (memstoreAware.compareAndSet(latest, MemstoreAware.decrementCompactionCount(latest))) ;
+            break;
+        }
+        super.postCompact(e, store, resultFile);
+    }
 }

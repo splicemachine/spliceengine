@@ -204,7 +204,7 @@ public class CreateBackupTask extends ZkTask {
             SpliceLogUtils.trace(LOG, String.format("executing %S backup on region %s",backupItem.getBackup().isIncrementalBackup()?"incremental":"full", region.toString()));
         try {
             FileSystem fs = FileSystem.get(URI.create(backupFileSystem), SpliceConstants.config);
-            BackupUtils.incrementalBackupRegion(region, backupItem.getBackupItemFilesystem(), fs);
+            BackupUtils.incrementalBackupRegion(region, backupItem, fs);
         } catch (IOException e) {
             throw new ExecutionException(e);
         }
