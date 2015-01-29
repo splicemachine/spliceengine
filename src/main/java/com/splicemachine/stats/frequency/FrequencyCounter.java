@@ -36,4 +36,6 @@ public interface FrequencyCounter<T> extends Iterable<FrequencyEstimate<T>>,Upda
 		 * @return up to {@code k} elements whose frequency exceeds all others.
 		 */
 		Set<? extends FrequencyEstimate<T>> getMostFrequentElements(int k);
+
+		FrequentElements<T> frequentElements(int k);
 }
