@@ -50,9 +50,18 @@ public class StatementManager implements StatementManagement{
         }
     }
 
-    public boolean addStatementInfo(StatementInfo statementInfo) {
+    public void addStatementInfo(StatementInfo statementInfo) {
+		// In some cases, the SQL from the statementInfo can be null.
+		// For example, BroadcastJoinOperation manually constructs
+		// OperationResultSet and invokes sinkOpen on it,
+		// which ends up going through here with null SQL
+		// but same statementUuid as the root statement,
+		// which causes issues like DB-2552. The value of null
+		// is not the problem (it's apparently by design),
+		// but we need to skip this logic in such a case.
+
     		if (statementInfo.getSql() == null || statementInfo.getSql().isEmpty() || statementInfo.getSql().equalsIgnoreCase("null")) {
-				LOG.warn(String.format("StatementInfo has null sql. numExecStmts=%s, stmtUuid=%s, txnId=%s, startTimeMs=%s, SQL={\n%s\n}",
+				LOG.info(String.format("StatementInfo has null sql. This fine but we will skip trying to add it to executingStatements: numExecStmts=%s, stmtUuid=%s, txnId=%s, startTimeMs=%s, SQL={\n%s\n}",
 					executingStatements.size(),
 					statementInfo.getStatementUuid(),
 					statementInfo.getTxnId(),
@@ -61,6 +70,7 @@ public class StatementManager implements StatementManagement{
 				if (LOG.isTraceEnabled()) {
 					LOG.trace(String.format("Stack trace for null sql, stmtUuid=%s: %s", statementInfo.getStatementUuid(), SpliceLogUtils.getStackTrace()));
 				}
+				return;
     		}
 			if (!executingStatements.add(statementInfo)) {
 				LOG.error(String.format("Failed to add statement to executing stmts, numExecStmts=%s, stmtUuid=%s, txnId=%s, startTimeMs=%s, SQL={\n%s\n}",
@@ -69,7 +79,7 @@ public class StatementManager implements StatementManagement{
 					statementInfo.getTxnId(),
 					statementInfo.getStartTimeMs(),
 					statementInfo.getSql()));
-				return false;
+				return;
 			}
             if (LOG.isTraceEnabled()) {
 				LOG.trace(String.format("Added to executing stmts, numExecStmts=%s, stmtUuid=%s, txnId=%s, startTimeMs=%s, SQL={\n%s\n}",
@@ -79,8 +89,8 @@ public class StatementManager implements StatementManagement{
 					statementInfo.getStartTimeMs(),
 					statementInfo.getSql()));
             }
-            return true;
-		}
+            return;
+	}
 
 	public void completedStatement(StatementInfo statementInfo, boolean shouldTrace,TxnView txn) throws IOException, StandardException {
         statementInfo.markCompleted(); //make sure the stop time is set
