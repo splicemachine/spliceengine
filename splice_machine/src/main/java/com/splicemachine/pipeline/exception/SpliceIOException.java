@@ -17,13 +17,13 @@ public class SpliceIOException extends IOException {
 	public SpliceIOException(String message, Throwable cause) {
 		super(message, cause);
 		this.passedMessage = message;
-		SpliceLogUtils.trace(LOG, "instance with passedMessage %s and messsage %s and throwable %s",passedMessage,message,cause);
+		SpliceLogUtils.trace(LOG, "instance with passedMessage %s and message %s and throwable %s",passedMessage,message,cause);
 	}
 
 	public SpliceIOException(String message) {
 		super(message);
 		this.passedMessage = message;
-		SpliceLogUtils.trace(LOG, "instance with passedMessage %s and messsage %s",passedMessage,message);
+		SpliceLogUtils.trace(LOG, "instance with passedMessage %s and message %s",passedMessage,message);
 	}
 
 	@Override

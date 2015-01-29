@@ -42,6 +42,11 @@ public interface WriteContext {
     void result(KVPair put, WriteResult result);
 
     /**
+     * Update an existing result when you don't have the KVPair, only the mutation's rowKey.
+     */
+    void result(byte[] rowKey, WriteResult result);
+
+    /**
      * Retrieve the region from the context
      */
     HRegion getRegion();

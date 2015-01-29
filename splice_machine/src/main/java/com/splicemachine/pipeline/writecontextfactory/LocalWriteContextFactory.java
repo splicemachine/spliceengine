@@ -227,6 +227,12 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
     }
 
     @Override
+    public void addForeignKeyCheckWriteFactory(int[] backingIndexFormatIds) {
+        /* One instance handles all FKs that reference this primary key or unique index */
+        this.foreignKeyCheckWriteFactory = new ForeignKeyCheckWriteFactory(backingIndexFormatIds);
+    }
+
+    @Override
     public void addDDLChange(DDLChange ddlChange) {
 
         DDLChangeType ddlChangeType = ddlChange.getChangeType();
@@ -361,16 +367,16 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
                             columnOrdering[j] = referencedColumns[j] - 1;
                         }
                     }
-
                     constraintFactories.add(buildPrimaryKey(cDescriptor));
+                    buildForeignKeyCheckWriteFactory((ReferencedKeyConstraintDescriptor) cDescriptor);
                     break;
                 case DataDictionary.UNIQUE_CONSTRAINT:
                     buildUniqueConstraint(cDescriptor);
+                    buildForeignKeyCheckWriteFactory( (ReferencedKeyConstraintDescriptor)cDescriptor);
                     break;
                 case DataDictionary.FOREIGNKEY_CONSTRAINT:
                     ForeignKeyConstraintDescriptor fkConstraintDescriptor = (ForeignKeyConstraintDescriptor) cDescriptor;
                     buildForeignKeyInterceptWriteFactory(dataDictionary, fkConstraintDescriptor);
-                    buildForeignKeyCheckWriteFactory(dataDictionary, fkConstraintDescriptor);
                     break;
                 default:
                     LOG.warn("Unknown Constraint on table " + conglomId + ": type = " + cDescriptor.getConstraintType());
@@ -433,7 +439,7 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
         }
     }
 
-    /* Factories for intercepting writes to FK backing indexes. */
+    /* Add factories for intercepting writes to FK backing indexes. */
     private void buildForeignKeyInterceptWriteFactory(DataDictionary dataDictionary, ForeignKeyConstraintDescriptor fkConstraintDesc) throws StandardException {
         ReferencedKeyConstraintDescriptor referencedConstraint = fkConstraintDesc.getReferencedConstraint();
         long keyConglomerateId;
@@ -451,19 +457,19 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
         foreignKeyInterceptWriteFactories.add(factory);
     }
 
-    /* Factories for checking referenced FK primary key or unique index. */
-    private void buildForeignKeyCheckWriteFactory(DataDictionary dataDictionary, ForeignKeyConstraintDescriptor fkConstrainDesc) throws StandardException {
-        ReferencedKeyConstraintDescriptor ref = fkConstrainDesc.getReferencedConstraint();
-        long referencedConglomerateId = ref.getIndexConglomerateDescriptor(dataDictionary).getConglomerateNumber();
-        ColumnDescriptorList backingIndexColDescriptors = ref.getColumnDescriptors();
+    /* Add factories for *checking* existence of FK referenced primary-key or unique-index rows. */
+    private void buildForeignKeyCheckWriteFactory(ReferencedKeyConstraintDescriptor cDescriptor) throws StandardException {
+        ConstraintDescriptorList fks = cDescriptor.getForeignKeyConstraints(ConstraintDescriptor.ENABLED);
+        if(fks.isEmpty()) {
+            return;
+        }
+        ColumnDescriptorList backingIndexColDescriptors = cDescriptor.getColumnDescriptors();
         int backingIndexFormatIds[] = new int[backingIndexColDescriptors.size()];
         int col = 0;
         for(ColumnDescriptor columnDescriptor : backingIndexColDescriptors) {
             backingIndexFormatIds[col++] = columnDescriptor.getType().getNull().getTypeFormatId();
         }
-        WriteContextFactory<TransactionalRegion> referencedWriteContext = WriteContextFactoryManager.getWriteContext(referencedConglomerateId);
-        ForeignKeyCheckWriteFactory foreignKeyCheckWriteFactory = new ForeignKeyCheckWriteFactory(backingIndexFormatIds);
-        referencedWriteContext.setForeignKeyCheckWriteFactory(foreignKeyCheckWriteFactory);
+        addForeignKeyCheckWriteFactory(backingIndexFormatIds);
     }
 
     private void buildUniqueConstraint(ConstraintDescriptor cd) throws StandardException {
@@ -513,11 +519,6 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
     private ConstraintFactory buildPrimaryKey(ConstraintDescriptor cDescriptor) {
         ConstraintContext cc = ConstraintContext.primaryKey(cDescriptor);
         return new ConstraintFactory(new PrimaryKeyConstraint(cc));
-    }
-
-    @Override
-    public void setForeignKeyCheckWriteFactory(ForeignKeyCheckWriteFactory foreignKeyCheckWriteFactory) {
-        this.foreignKeyCheckWriteFactory = foreignKeyCheckWriteFactory;
     }
 
     @Override

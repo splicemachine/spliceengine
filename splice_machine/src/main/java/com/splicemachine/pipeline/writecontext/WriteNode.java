@@ -48,7 +48,7 @@ public class WriteNode implements WriteContext {
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    // WriteContext implemented by delegating to pipelineWriteContext
+    // WriteContext methods implemented by delegating to pipelineWriteContext
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @Override
@@ -69,6 +69,11 @@ public class WriteNode implements WriteContext {
     @Override
     public void result(KVPair put, WriteResult result) {
         pipelineWriteContext.result(put, result);
+    }
+
+    @Override
+    public void result(byte[] rowKey, WriteResult result) {
+        pipelineWriteContext.result(rowKey, result);
     }
 
     @Override

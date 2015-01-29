@@ -118,8 +118,7 @@ public class RegionWritePipeline {
             Collection<KVPair> kvPairs = write.getMutations();
             int i=0;
             for(KVPair kvPair:kvPairs){
-                //we know the write contains only KVPair entities
-                @SuppressWarnings("SuspiciousMethodCalls") WriteResult result = rowResultMap.get(kvPair);
+                WriteResult result = rowResultMap.get(kvPair);
                 if(!result.isSuccess())
                     failed++;
                 response.addResult(i,result);

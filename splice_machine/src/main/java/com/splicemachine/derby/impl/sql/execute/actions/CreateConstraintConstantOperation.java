@@ -1,5 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import com.splicemachine.derby.impl.job.fk.CreateFkJobSubmitter;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.catalog.types.ReferencedColumnsDescriptorImpl;
 import org.apache.derby.iapi.error.StandardException;
@@ -248,7 +250,12 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
 					 conDesc,
 					 referencedConstraint.getTableId(),
 					 providerInfo);
-				break;
+
+
+                // Use the task framework to add FK Write handler on remote nodes.
+                new CreateFkJobSubmitter(dd, (SpliceTransactionManager) tc, referencedConstraint).submit();
+
+                break;
 
 			default:
 				if (SanityManager.DEBUG)

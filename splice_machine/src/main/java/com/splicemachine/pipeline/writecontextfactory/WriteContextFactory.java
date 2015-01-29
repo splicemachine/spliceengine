@@ -39,13 +39,13 @@ public interface WriteContextFactory<T> {
 
     void addIndex(DDLChange ddlChange, int[] columnOrdering, int[] typeIds);
 
+    void addForeignKeyCheckWriteFactory(int[] backingIndexFormatIds);
+
     void addDDLChange(DDLChange ddlChange);
 
     void close();
 
     void prepare();
-
-    void setForeignKeyCheckWriteFactory(ForeignKeyCheckWriteFactory foreignKeyCheckWriteFactory);
 
     boolean hasDependentWrite();
 

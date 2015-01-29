@@ -1,10 +1,6 @@
 package com.splicemachine.pipeline.exception;
 
 import com.google.common.base.Throwables;
-import com.google.gson.*;
-import com.google.gson.stream.JsonReader;
-import com.google.gson.stream.JsonToken;
-import com.google.gson.stream.JsonWriter;
 import com.splicemachine.pipeline.api.Code;
 import com.splicemachine.pipeline.constraint.ConstraintContext;
 import com.splicemachine.pipeline.constraint.ConstraintViolation;
@@ -28,7 +24,6 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.ConnectException;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -38,11 +33,6 @@ import java.util.List;
 public class Exceptions {
 
     private static final Logger LOG = Logger.getLogger(Exceptions.class);
-    private static final Gson gson = new GsonBuilder().registerTypeAdapter(StandardException.class,new StandardExceptionAdapter()).create();
-    private static final String OPEN_BRACE = "{";
-    private static final String CLOSE_BRACE="}";
-
-    private static final String COLON = ":";
 
     private Exceptions(){} //can't make me
 
@@ -82,24 +72,8 @@ public class Exceptions {
             }
         } else if(rootCause instanceof SpliceDoNotRetryIOException){
             SpliceDoNotRetryIOException spliceException = (SpliceDoNotRetryIOException)rootCause;
-            String fullMessage = spliceException.getMessage();
-            int firstColonIndex = fullMessage.indexOf(COLON);
-            int openBraceIndex = fullMessage.indexOf(OPEN_BRACE);
-            String exceptionType;
-            if(firstColonIndex < openBraceIndex)
-                exceptionType = fullMessage.substring(firstColonIndex+1,openBraceIndex).trim();
-            else
-                exceptionType = fullMessage.substring(0,openBraceIndex).trim();
-            Class exceptionClass;
-            try {
-                exceptionClass= Class.forName(exceptionType);
-            } catch (ClassNotFoundException e1) {
-                //shouldn't happen, but if it does, we'll just use Exception.class and deal with the fact
-                //that it might not be 100% correct
-                exceptionClass = Exception.class;
-            }
-            String json = fullMessage.substring(openBraceIndex,fullMessage.indexOf(CLOSE_BRACE)+1);
-            return parseException((Exception) gson.fromJson(json, exceptionClass));
+            Exception unwrappedException = SpliceDoNotRetryIOExceptionWrapping.unwrap(spliceException);
+            return parseException(unwrappedException);
         } else if(rootCause instanceof DoNotRetryIOException ){
 						if(rootCause.getMessage()!=null && rootCause.getMessage().contains("rpc timeout")) {
 								return StandardException.newException(MessageId.QUERY_TIMEOUT, "Increase hbase.rpc.timeout");
@@ -152,8 +126,11 @@ public class Exceptions {
         }
     }
 
-    public static IOException getIOException(StandardException se){
-        return new SpliceDoNotRetryIOException(se.getClass().getCanonicalName()+gson.toJson(se));
+    /**
+     * Create an IOException that will not lose details of the given StandardException when sent over wire by Hbase RPC.
+     */
+    public static SpliceDoNotRetryIOException getIOException(StandardException se){
+        return SpliceDoNotRetryIOExceptionWrapping.wrap(se);
     }
 
     public static IOException getIOException(Throwable t){
@@ -286,79 +263,5 @@ public class Exceptions {
         public LangFormatException(String message, Throwable cause) { super(message, cause); }
     }
 
-    private static class StandardExceptionAdapter extends TypeAdapter<StandardException>{
 
-        @Override
-        public void write(JsonWriter out, StandardException value) throws IOException {
-            out.beginObject();
-
-            out.name("severity").value(value.getErrorCode());
-            out.name("textMessage").value(value.getTextMessage());
-            out.name("sqlState").value(value.getSqlState());
-            out.name("messageId").value(value.getMessageId());
-
-            out.name("arguments");
-            Object[] args = value.getArguments();
-            if(args==null)
-                out.nullValue();
-            else{
-                out.beginArray();
-                for(Object o: value.getArguments()){
-                    if(o instanceof String){
-                        out.value((String)o);
-                    }
-                }
-                out.endArray();
-            }
-            out.endObject();
-        }
-
-        @Override
-        public StandardException read(JsonReader in) throws IOException {
-            in.beginObject();
-
-            int severity = 0;
-            String textMessage = null;
-            String sqlState = null;
-            String messageId = null;
-            List<String> objectStrings = null;
-            while(in.peek()!=JsonToken.END_OBJECT){
-                String nextName = in.nextName();
-                if("severity".equals(nextName))
-                        severity = in.nextInt();
-                else if("textMessage".equals(nextName))
-                    textMessage = in.nextString();
-                else if("sqlState".equals(nextName))
-                    sqlState = in.nextString();
-                else if("messageId".equals(nextName))
-                    messageId = in.nextString();
-                else if("arguments".equals(nextName)){
-                    if(in.peek()!=JsonToken.NULL){
-                        in.beginArray();
-                        objectStrings = new ArrayList<String>();
-                        while(in.peek()!=JsonToken.END_ARRAY){
-                            objectStrings.add(in.nextString());
-                        }
-                        in.endArray();
-                    }else
-                        in.nextNull();
-                }
-            }
-
-            in.endObject();
-
-            StandardException se;
-            if(objectStrings!=null){
-                Object[] objects = new Object[objectStrings.size()];
-                objectStrings.toArray(objects);
-                se = StandardException.newException(messageId,objects);
-            }else
-                se = StandardException.newException(messageId);
-            se.setSeverity(severity);
-            se.setSqlState(sqlState);
-            se.setTextMessage(textMessage);
-
-            return se;
-        }
-    }
 }

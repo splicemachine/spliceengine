@@ -87,9 +87,9 @@ public class ConstraintContext implements Externalizable {
         short len = objectInput.readShort();
         if (len > 0) {
             messageArgs = new String[len];
-        }
-        for (int i = 0; i < messageArgs.length; i++) {
-            messageArgs[i] = objectInput.readUTF();
+            for (int i = 0; i < messageArgs.length; i++) {
+                messageArgs[i] = objectInput.readUTF();
+            }
         }
     }
 

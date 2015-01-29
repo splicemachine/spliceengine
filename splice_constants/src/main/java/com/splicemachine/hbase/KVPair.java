@@ -35,8 +35,8 @@ public class KVPair implements Comparable<KVPair> {
 
     /*fields*/
     private Type type;
-    private ByteSlice rowKey;
-    private ByteSlice value;
+    private final ByteSlice rowKey;
+    private final ByteSlice value;
 
     /*Factory methods*/
     public static KVPair delete(byte[] rowKey) {
