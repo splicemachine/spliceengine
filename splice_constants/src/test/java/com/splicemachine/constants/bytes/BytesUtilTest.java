@@ -5,9 +5,9 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import java.util.Random;
+
+import static org.junit.Assert.*;
 
 public class BytesUtilTest {
 
@@ -58,13 +58,14 @@ public class BytesUtilTest {
     }
 
     @Test
-    public void toHex_fromHex()  {
-        byte[] encoded = Bytes.toBytes("test");
+    public void toHex_fromHex() {
+        byte[] bytesIn = new byte[1024];
+        new Random().nextBytes(bytesIn);
 
-        String hex = BytesUtil.toHex(encoded);
-        byte[] decoded = BytesUtil.fromHex(hex);
+        String hex = BytesUtil.toHex(bytesIn);
+        byte[] bytesOut = BytesUtil.fromHex(hex);
 
-        assertEquals("test", Bytes.toString(decoded));
+        assertArrayEquals(bytesIn, bytesOut);
     }
 
 }

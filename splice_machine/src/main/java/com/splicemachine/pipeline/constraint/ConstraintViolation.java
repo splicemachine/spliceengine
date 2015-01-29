@@ -90,6 +90,9 @@ public final class ConstraintViolation {
         @Deprecated
         public ForeignKeyConstraintViolation() { }
         public ForeignKeyConstraintViolation(ConstraintContext cc) { super("", cc); }
+        public ForeignKeyConstraintViolation(String message) {
+            super(message);
+        };
 
         @Override
         public String toString(){

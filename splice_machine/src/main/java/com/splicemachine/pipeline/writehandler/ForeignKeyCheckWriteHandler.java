@@ -1,5 +1,6 @@
 package com.splicemachine.pipeline.writehandler;
 
+import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.api.Code;
@@ -10,10 +11,12 @@ import com.splicemachine.pipeline.impl.WriteResult;
 import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.TxnOperationFactory;
+import org.apache.commons.codec.binary.Hex;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.List;
@@ -60,12 +63,15 @@ public class ForeignKeyCheckWriteHandler implements WriteHandler {
                         Result result = env.getRegion().get(get);
                         if (result.isEmpty()) {
                             // ConstraintContext will be replaced later where we have child table name, etc.
-                            ConstraintContext context = ConstraintContext.empty();
+                            String failedKvAsHex = BytesUtil.toHex(kvPair.getRowKey());
+                            ConstraintContext context = new ConstraintContext(failedKvAsHex);
                             WriteResult foreignKeyConstraint = new WriteResult(Code.FOREIGN_KEY_VIOLATION, context);
                             ctx.failed(kvPair, foreignKeyConstraint);
                         } else {
                             ctx.success(kvPair);
                         }
+                    } else {
+                        ctx.success(kvPair);
                     }
                 } catch (IOException e) {
                     throw new IllegalStateException(e);

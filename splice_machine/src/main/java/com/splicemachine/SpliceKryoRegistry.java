@@ -13,6 +13,7 @@ import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.serializers.MapSerializer;
 import com.splicemachine.derby.ddl.*;
+import com.splicemachine.derby.impl.job.fk.CreateFkTask;
 import com.splicemachine.derby.impl.sql.catalog.Splice_DD_Version;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
@@ -233,7 +234,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
 			   * but that's the nature of the beast.
 			   *
 			   *
-			   * CURRENT HIGHEST VALUE: 226
+			   * CURRENT HIGHEST VALUE: 229
 				 */
     	instance.setReferences(false);
         instance.setRegistrationRequired(true);
@@ -857,7 +858,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(ImportTask.class, EXTERNALIZABLE_SERIALIZER,213);    
         instance.register(ImportContext.class, EXTERNALIZABLE_SERIALIZER,214);  
         instance.register(ColumnContext.class, EXTERNALIZABLE_SERIALIZER,215);          
-        instance.register(FileImportReader.class, EXTERNALIZABLE_SERIALIZER,216); 
+        instance.register(FileImportReader.class, EXTERNALIZABLE_SERIALIZER,216);
         instance.register(CreateIndexTask.class, EXTERNALIZABLE_SERIALIZER,217);
         instance.register(TransactionReadTask.class, EXTERNALIZABLE_SERIALIZER,218);
         instance.register(PopulateIndexTask.class, EXTERNALIZABLE_SERIALIZER,219);     
@@ -870,5 +871,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(Backup.class, EXTERNALIZABLE_SERIALIZER,226);
         instance.register(BackupItem.RegionInfo.class, EXTERNALIZABLE_SERIALIZER,227);
         instance.register(Pair.class, 228);
+        instance.register(CreateFkTask.class, EXTERNALIZABLE_SERIALIZER,229);
     }
 }

@@ -89,7 +89,7 @@ public class BulkWriteResult {
 		public String toString() {
 				return "BulkWriteResult{" +
 								"globalStatus=" + (globalStatus==null?"null":globalStatus.toString()) +
-								"notRunRows=" + (notRunRows==null?"null":notRunRows.size()) +
+								", notRunRows=" + (notRunRows==null?"null":notRunRows.size()) +
 								", failedRows=" + (failedRows==null?"null":failedRows.size()) +
 								'}';
 		}

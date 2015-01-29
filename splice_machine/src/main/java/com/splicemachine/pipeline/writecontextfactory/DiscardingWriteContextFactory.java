@@ -70,6 +70,11 @@ class DiscardingWriteContextFactory<T> implements WriteContextFactory<T> {
     }
 
     @Override
+    public void addForeignKeyCheckWriteFactory(int[] backingIndexFormatIds) {
+        delegate.addForeignKeyCheckWriteFactory(backingIndexFormatIds);
+    }
+
+    @Override
     public void addDDLChange(DDLChange ddlChange) {
         delegate.addDDLChange(ddlChange);
     }
@@ -77,11 +82,6 @@ class DiscardingWriteContextFactory<T> implements WriteContextFactory<T> {
     @Override
     public void prepare() {
         delegate.prepare();
-    }
-
-    @Override
-    public void setForeignKeyCheckWriteFactory(ForeignKeyCheckWriteFactory foreignKeyCheckWriteFactory) {
-        delegate.setForeignKeyCheckWriteFactory(foreignKeyCheckWriteFactory);
     }
 
     @Override

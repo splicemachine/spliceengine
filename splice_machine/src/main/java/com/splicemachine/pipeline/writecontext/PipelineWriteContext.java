@@ -5,7 +5,10 @@ import com.google.common.collect.Maps;
 import com.splicemachine.derby.hbase.DerbyFactory;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.pipeline.api.*;
+import com.splicemachine.pipeline.api.CallBuffer;
+import com.splicemachine.pipeline.api.Code;
+import com.splicemachine.pipeline.api.WriteContext;
+import com.splicemachine.pipeline.api.WriteHandler;
 import com.splicemachine.pipeline.impl.WriteResult;
 import com.splicemachine.pipeline.writehandler.IndexCallBufferFactory;
 import com.splicemachine.si.api.TransactionalRegion;
@@ -17,6 +20,7 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -84,6 +88,18 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
     @Override
     public void result(KVPair put, WriteResult result) {
         resultsMap.put(put, result);
+    }
+
+    @Override
+    public void result(byte[] resultRowKey, WriteResult result) {
+        for (KVPair kvPair : resultsMap.keySet()) {
+            byte[] currentRowKey = kvPair.getRowKey();
+            if (Arrays.equals(currentRowKey, resultRowKey)) {
+                resultsMap.put(kvPair, result);
+                return;
+            }
+        }
+        throw new IllegalArgumentException("expected existing value in resultsMap");
     }
 
     @Override

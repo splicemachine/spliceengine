@@ -278,7 +278,7 @@ public class ForeignKey_Define_IT {
         assertEquals(3L, methodWatcher.query("select count(*) from B"));
         try {
             methodWatcher.executeUpdate("insert into B values (-1,-1)");
-            fail("Expected to be unable to delete from A while B has referencing row");
+            fail("Expected exception from FK violation");
         } catch (SQLIntegrityConstraintViolationException e) {
             assertTrue(e.getMessage(), e.getMessage().startsWith("Operation on table 'B' caused a violation of foreign key constraint"));
         }

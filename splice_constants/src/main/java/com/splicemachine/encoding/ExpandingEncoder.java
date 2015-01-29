@@ -73,7 +73,9 @@ public class ExpandingEncoder {
         ensureCapacity(length+Encoding.encodedLength(length));
         currentOffset+=Encoding.encode(length,buffer,currentOffset);
         assert currentOffset+length<=buffer.length: "Did not ensure enough capacity!";
-        System.arraycopy(value,offset,buffer,currentOffset,length);
+        if(value != null) {
+            System.arraycopy(value, offset, buffer, currentOffset, length);
+        }
         currentOffset+=length;
 
         return this;

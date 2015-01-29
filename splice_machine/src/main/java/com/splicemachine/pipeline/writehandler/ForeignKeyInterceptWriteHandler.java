@@ -1,7 +1,9 @@
 package com.splicemachine.pipeline.writehandler;
 
+import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.hbase.KVPair;
+import com.splicemachine.pipeline.api.Code;
 import com.splicemachine.pipeline.api.RecordingCallBuffer;
 import com.splicemachine.pipeline.api.WriteContext;
 import com.splicemachine.pipeline.api.WriteHandler;
@@ -46,8 +48,7 @@ public class ForeignKeyInterceptWriteHandler implements WriteHandler {
                 referencedTableCallBuffer.add(kvPair);
                 ctx.success(mutation);
             } catch (Exception e) {
-                ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName() + ":" + e.getMessage()));
-                return;
+                failWrite(e, ctx);
             }
         }
         ctx.sendUpstream(mutation);
@@ -68,7 +69,7 @@ public class ForeignKeyInterceptWriteHandler implements WriteHandler {
         try {
             referencedTableCallBuffer.flushBuffer();
         } catch (Exception e) {
-            throw new IOException(e);
+            failWrite(e, ctx);
         }
     }
 
@@ -76,10 +77,8 @@ public class ForeignKeyInterceptWriteHandler implements WriteHandler {
     public void close(WriteContext ctx) throws IOException {
         try {
             referencedTableCallBuffer.close();
-        } catch (ExecutionException e) {
-            addInfoToException(e);
         } catch (Exception e) {
-            throw new IOException(e);
+            failWrite(e, ctx);
         }
     }
 
@@ -102,7 +101,7 @@ public class ForeignKeyInterceptWriteHandler implements WriteHandler {
      * actually fails the check). This code looks fragile but it is validated by every single FK IT test method.
      * Breakages in this method would result in all FK ITs failing.
      */
-    private void addInfoToException(ExecutionException originalException) throws ConstraintViolation.ForeignKeyConstraintViolation {
+    private void failWrite(Exception originalException, WriteContext ctx) {
         Throwable t = originalException;
         while ((t = t.getCause()) != null) {
             if (t instanceof RetriesExhaustedWithDetailsException) {
@@ -110,7 +109,9 @@ public class ForeignKeyInterceptWriteHandler implements WriteHandler {
                 if (retriesException.getCauses() != null && !retriesException.getCauses().isEmpty()) {
                     Throwable cause = retriesException.getCause(0);
                     if (cause instanceof ConstraintViolation.ForeignKeyConstraintViolation) {
-                        throw new ConstraintViolation.ForeignKeyConstraintViolation(constraintContext);
+                        ConstraintViolation.ForeignKeyConstraintViolation v = (ConstraintViolation.ForeignKeyConstraintViolation) cause;
+                        byte[] failedRowKey = BytesUtil.fromHex(v.getConstraintContext().getMessages()[0]);
+                        ctx.result(failedRowKey, new WriteResult(Code.FOREIGN_KEY_VIOLATION, constraintContext));
                     }
                 }
             }
