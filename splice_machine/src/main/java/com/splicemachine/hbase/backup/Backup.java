@@ -401,6 +401,7 @@ public class Backup implements InternalTable {
                 createBackupSchema();
                 Backup.createBackupTable();
                 BackupItem.createBackupItemTable();
+                BackupUtils.createFileSetTable();
             }
 
             return;
