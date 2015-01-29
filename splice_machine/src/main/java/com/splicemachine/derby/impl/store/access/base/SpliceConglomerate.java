@@ -24,6 +24,7 @@ import org.apache.log4j.Logger;
 
 
 public abstract class SpliceConglomerate extends GenericConglomerate implements Conglomerate, StaticCompiledOpenConglomInfo {
+    private static final long serialVersionUID = 7583841286945209190l;
 	protected static Logger LOG = Logger.getLogger(SpliceConglomerate.class);
 	protected int conglom_format_id;
 	protected int tmpFlag;
