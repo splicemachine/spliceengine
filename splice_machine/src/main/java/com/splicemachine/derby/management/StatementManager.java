@@ -60,52 +60,70 @@ public class StatementManager implements StatementManagement{
 		// is not the problem (it's apparently by design),
 		// but we need to skip this logic in such a case.
 
-    		if (statementInfo.getSql() == null || statementInfo.getSql().isEmpty() || statementInfo.getSql().equalsIgnoreCase("null")) {
-				LOG.info(String.format("StatementInfo has null sql. This fine but we will skip trying to add it to executingStatements: numExecStmts=%s, stmtUuid=%s, txnId=%s, startTimeMs=%s, SQL={\n%s\n}",
-					executingStatements.size(),
-					statementInfo.getStatementUuid(),
-					statementInfo.getTxnId(),
-					statementInfo.getStartTimeMs(),
-					statementInfo.getSql()));
-				if (LOG.isTraceEnabled()) {
-					LOG.trace(String.format("Stack trace for null sql, stmtUuid=%s: %s", statementInfo.getStatementUuid(), SpliceLogUtils.getStackTrace()));
-				}
-				return;
-    		}
-			if (!executingStatements.add(statementInfo)) {
-				LOG.error(String.format("Failed to add statement to executing stmts, numExecStmts=%s, stmtUuid=%s, txnId=%s, startTimeMs=%s, SQL={\n%s\n}",
-					executingStatements.size(),
-					statementInfo.getStatementUuid(),
-					statementInfo.getTxnId(),
-					statementInfo.getStartTimeMs(),
-					statementInfo.getSql()));
-				return;
+		if (statementInfo.getSql() == null || statementInfo.getSql().isEmpty() || statementInfo.getSql().equalsIgnoreCase("null")) {
+			LOG.debug(String.format("StatementInfo has null sql. We won't try to add it to executingStatements: numExecStmts=%s, stmtUuid=%s, txnId=%s, startTimeMs=%s, SQL={\n%s\n}",
+				executingStatements.size(),
+				statementInfo.getStatementUuid(),
+				statementInfo.getTxnId(),
+				statementInfo.getStartTimeMs(),
+				statementInfo.getSql()));
+			if (LOG.isTraceEnabled()) {
+				LOG.trace(String.format("Stack trace for null sql, stmtUuid=%s: %s", statementInfo.getStatementUuid(), SpliceLogUtils.getStackTrace()));
 			}
-            if (LOG.isTraceEnabled()) {
-				LOG.trace(String.format("Added to executing stmts, numExecStmts=%s, stmtUuid=%s, txnId=%s, startTimeMs=%s, SQL={\n%s\n}",
-					executingStatements.size(),
-					statementInfo.getStatementUuid(),
-					statementInfo.getTxnId(),
-					statementInfo.getStartTimeMs(),
-					statementInfo.getSql()));
-            }
-            return;
+			return;
+		}
+		if (!executingStatements.add(statementInfo)) {
+			LOG.error(String.format("Failed to add statement to executing stmts, numExecStmts=%s, stmtUuid=%s, txnId=%s, startTimeMs=%s, SQL={\n%s\n}",
+				executingStatements.size(),
+				statementInfo.getStatementUuid(),
+				statementInfo.getTxnId(),
+				statementInfo.getStartTimeMs(),
+				statementInfo.getSql()));
+			return;
+		}
+        if (LOG.isTraceEnabled()) {
+			LOG.trace(String.format("Added to executing stmts, numExecStmts=%s, stmtUuid=%s, txnId=%s, startTimeMs=%s, SQL={\n%s\n}",
+				executingStatements.size(),
+				statementInfo.getStatementUuid(),
+				statementInfo.getTxnId(),
+				statementInfo.getStartTimeMs(),
+				statementInfo.getSql()));
+        }
+        return;
 	}
 
 	public void completedStatement(StatementInfo statementInfo, boolean shouldTrace,TxnView txn) throws IOException, StandardException {
-        statementInfo.markCompleted(); //make sure the stop time is set
+		statementInfo.markCompleted(); //make sure the stop time is set
         int position = statementInfoPointer.getAndIncrement()%completedStatements.length();
         completedStatements.set(position, statementInfo);
-        executingStatements.remove(statementInfo);
 
-        if (LOG.isTraceEnabled()) {
-            LOG.trace(String.format("Removed from executing stmts, numExecStmts=%s, stmtUuid=%s, txnId=%s, elapsedTimeMs=%s",
+		if (statementInfo.getSql() == null || statementInfo.getSql().isEmpty() || statementInfo.getSql().equalsIgnoreCase("null")) {
+            LOG.debug(String.format("StatementInfo has null sql. We won't try to remove it from executingStatements, numExecStmts=%s, stmtUuid=%s, txnId=%s, elapsedTimeMs=%s",
                 executingStatements.size(),
                 statementInfo.getStatementUuid(),
                 statementInfo.getTxnId(),
                 statementInfo.getStopTimeMs() - statementInfo.getStartTimeMs()));
-        }
-
+			if (LOG.isTraceEnabled()) {
+				LOG.trace(String.format("Stack trace for null sql, stmtUuid=%s: %s", statementInfo.getStatementUuid(), SpliceLogUtils.getStackTrace()));
+			}
+		} else {
+			if (!executingStatements.remove(statementInfo)) {
+	            LOG.error(String.format("Failed to remove statement from executingStatements, numExecStmts=%s, stmtUuid=%s, txnId=%s, elapsedTimeMs=%s",
+                    executingStatements.size(),
+                    statementInfo.getStatementUuid(),
+                    statementInfo.getTxnId(),
+                    statementInfo.getStopTimeMs() - statementInfo.getStartTimeMs()));
+			} else {
+		        if (LOG.isTraceEnabled()) {
+		            LOG.trace(String.format("Removed from executingStatements, numExecStmts=%s, stmtUuid=%s, txnId=%s, elapsedTimeMs=%s",
+		                executingStatements.size(),
+		                statementInfo.getStatementUuid(),
+		                statementInfo.getTxnId(),
+		                statementInfo.getStopTimeMs() - statementInfo.getStartTimeMs()));
+		        }
+			}
+		}
+		
         if (shouldTrace) {
             setupXplainReporters();
             if (!"null".equalsIgnoreCase(statementInfo.getSql())){
