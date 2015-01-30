@@ -97,31 +97,20 @@ public class StatementManager implements StatementManagement{
         int position = statementInfoPointer.getAndIncrement()%completedStatements.length();
         completedStatements.set(position, statementInfo);
 
-		if (statementInfo.getSql() == null || statementInfo.getSql().isEmpty() || statementInfo.getSql().equalsIgnoreCase("null")) {
-            LOG.debug(String.format("StatementInfo has null sql. We won't try to remove it from executingStatements, numExecStmts=%s, stmtUuid=%s, txnId=%s, elapsedTimeMs=%s",
+		if (!executingStatements.remove(statementInfo)) {
+            LOG.error(String.format("Failed to remove statement from executingStatements, numExecStmts=%s, stmtUuid=%s, txnId=%s, elapsedTimeMs=%s",
                 executingStatements.size(),
                 statementInfo.getStatementUuid(),
                 statementInfo.getTxnId(),
                 statementInfo.getStopTimeMs() - statementInfo.getStartTimeMs()));
-			if (LOG.isTraceEnabled()) {
-				LOG.trace(String.format("Stack trace for null sql, stmtUuid=%s: %s", statementInfo.getStatementUuid(), SpliceLogUtils.getStackTrace()));
-			}
 		} else {
-			if (!executingStatements.remove(statementInfo)) {
-	            LOG.error(String.format("Failed to remove statement from executingStatements, numExecStmts=%s, stmtUuid=%s, txnId=%s, elapsedTimeMs=%s",
-                    executingStatements.size(),
-                    statementInfo.getStatementUuid(),
-                    statementInfo.getTxnId(),
-                    statementInfo.getStopTimeMs() - statementInfo.getStartTimeMs()));
-			} else {
-		        if (LOG.isTraceEnabled()) {
-		            LOG.trace(String.format("Removed from executingStatements, numExecStmts=%s, stmtUuid=%s, txnId=%s, elapsedTimeMs=%s",
-		                executingStatements.size(),
-		                statementInfo.getStatementUuid(),
-		                statementInfo.getTxnId(),
-		                statementInfo.getStopTimeMs() - statementInfo.getStartTimeMs()));
-		        }
-			}
+	        if (LOG.isTraceEnabled()) {
+	            LOG.trace(String.format("Removed from executingStatements, numExecStmts=%s, stmtUuid=%s, txnId=%s, elapsedTimeMs=%s",
+	                executingStatements.size(),
+	                statementInfo.getStatementUuid(),
+	                statementInfo.getTxnId(),
+	                statementInfo.getStopTimeMs() - statementInfo.getStartTimeMs()));
+	        }
 		}
 		
         if (shouldTrace) {
