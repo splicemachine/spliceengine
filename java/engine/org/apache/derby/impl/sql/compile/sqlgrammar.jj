@@ -2623,6 +2623,7 @@ TOKEN [IGNORE_CASE] :
 |	<TIMEZONE_HOUR: "timezone_hour">
 |	<TIMEZONE_MINUTE: "timezone_minute">
 |	<TO: "to">
+|	<TOP: "top">
 |	<TRANSACTION: "transaction">
 |	<TRANSLATE: "translate">
 |	<TRANSLATION: "translation">
@@ -3664,15 +3665,21 @@ preparableSelectStatement(boolean checkParams) throws StandardException :
 	CursorNode		  retval;
 	OrderByList orderCols = null;
     ValueNode[] offsetClauses = new ValueNode[ OFFSET_CLAUSE_COUNT ];
+    ValueNode[] topN = new ValueNode[ 1 ];
     boolean     hasJDBClimitClause = false;
 }
 {
-	queryExpression = queryExpression(null, NO_SET_OP) 
+	queryExpression = queryExpression(null, NO_SET_OP, topN)
 		[ orderCols = orderByClause() ]
         hasJDBClimitClause = offsetFetchFirstClause( offsetClauses )
 		[ <FOR> forUpdateState = forUpdateClause(updateColumns) ]
 		[ isolationLevel = atIsolationLevel() ]
 	{
+	    if (topN[0] != null) {
+	        hasJDBClimitClause = true;
+            offsetClauses[ FETCH_FIRST_CLAUSE ] = topN[0];
+            // TODO: We don't need anything in offsetClauses[ OFFSET_CLAUSE ] if we have TOP n?
+	    }
 		// Note: if order by is specified, the for update clause
 		// must be READ ONLY or empty, and the cursor
 		// is implicitly READ_ONLY.
@@ -5265,12 +5272,12 @@ qualifiedName( int nodeType, int id_length_limit) throws StandardException :
  * set operator to produce a query tree with the correct associativity.
  */
 ResultSetNode
-queryExpression(ResultSetNode leftSide, int operatorType) throws StandardException :
+queryExpression(ResultSetNode leftSide, int operatorType, ValueNode[] topN) throws StandardException :
 {
 	ResultSetNode	term;
 }
 {
-	term = nonJoinQueryTerm(leftSide, operatorType) [ term = unionOrExcept(term) ]
+	term = nonJoinQueryTerm(leftSide, operatorType, topN) [ term = unionOrExcept(term) ]
 	{
 		return term;
 	}
@@ -5288,7 +5295,8 @@ unionOrExcept(ResultSetNode term) throws StandardException :
 {
 	<UNION> [ tok = <ALL> | <DISTINCT> ] expression =
 				queryExpression(term,
-								(tok != null) ? UNION_ALL_OP : UNION_OP)
+								(tok != null) ? UNION_ALL_OP : UNION_OP,
+								null)
 	{
         if ( (tok != null) && (tok.kind == DISTINCT) ) { forbidNextValueFor(); }
         
@@ -5297,7 +5305,8 @@ unionOrExcept(ResultSetNode term) throws StandardException :
 |
 	<EXCEPT> [ tok = <ALL> | <DISTINCT> ] expression =
 				queryExpression(term,
-								(tok != null) ? EXCEPT_ALL_OP : EXCEPT_OP)
+								(tok != null) ? EXCEPT_ALL_OP : EXCEPT_OP,
+								null)
 	{
         if ( (tok != null) && (tok.kind == DISTINCT) ) { forbidNextValueFor(); }
         
@@ -5318,12 +5327,12 @@ unionOrExcept(ResultSetNode term) throws StandardException :
  * See the comment on queryExpression.
  */
 ResultSetNode
-nonJoinQueryTerm(ResultSetNode leftSide, int operatorType) throws StandardException :
+nonJoinQueryTerm(ResultSetNode leftSide, int operatorType, ValueNode[] topN) throws StandardException :
 {
 	ResultSetNode	term;
 }
 {
-	term = nonJoinQueryPrimary() [ term = intersect( term) ]
+	term = nonJoinQueryPrimary(topN) [ term = intersect( term) ]
 	{
         switch( operatorType)
         {
@@ -5412,7 +5421,7 @@ intersect(ResultSetNode term) throws StandardException :
 }
 {
 	<INTERSECT> [ tok = <ALL> | <DISTINCT> ] expression =
-				nonJoinQueryTerm(term, (tok != null) ? INTERSECT_ALL_OP : INTERSECT_OP)
+				nonJoinQueryTerm(term, (tok != null) ? INTERSECT_ALL_OP : INTERSECT_OP, null)
 	{
         if ( (tok != null) && (tok.kind == DISTINCT) ) { forbidNextValueFor(); }
         
@@ -5424,17 +5433,17 @@ intersect(ResultSetNode term) throws StandardException :
  * <A NAME="nonJoinQueryPrimary">nonJoinQueryPrimary</A>
  */
 ResultSetNode
-nonJoinQueryPrimary() throws StandardException :
+nonJoinQueryPrimary(ValueNode[] topN) throws StandardException :
 {
 	ResultSetNode	primary;
 }
 {
-	primary = simpleTable()
+	primary = simpleTable(topN)
 	{
 		return primary;
 	}
 |
-	<LEFT_PAREN> primary = queryExpression(null, NO_SET_OP)
+	<LEFT_PAREN> primary = queryExpression(null, NO_SET_OP, null)
 	<RIGHT_PAREN>
 	{
 		return primary;
@@ -5445,12 +5454,12 @@ nonJoinQueryPrimary() throws StandardException :
  * <A NAME="simpleTable">simpleTable</A>
  */
 ResultSetNode
-simpleTable() throws StandardException :
+simpleTable(ValueNode[] topN) throws StandardException :
 {
 	ResultSetNode	resultSetNode;
 }
 {
-	resultSetNode = querySpecification()
+	resultSetNode = querySpecification(topN)
 	{
 		return resultSetNode;
 	}
@@ -5465,14 +5474,14 @@ simpleTable() throws StandardException :
  * <A NAME="querySpecification">querySpecification</A>
  */
 ResultSetNode
-querySpecification() throws StandardException :
+querySpecification(ValueNode[] topN) throws StandardException :
 {
 	ResultColumnList	selectList;
 	SelectNode			selectNode;
 	boolean	isDistinct = false;
 }
 {
-	<SELECT> [ isDistinct = setQuantifier() ]
+	<SELECT> [ isDistinct = setQuantifier() ] [ topN[0] = topNClause() ]
 		selectList = selectList()
 		selectNode = tableExpression(selectList)
 	{
@@ -8746,6 +8755,43 @@ offsetClause() throws StandardException :
  * <A NAME="fetchFirstClause">fetchFirstClause</A>
  */
 ValueNode
+topNClause() throws StandardException :
+{
+	// The default number of rows to fetch if the literal is omitted is 1:
+	ValueNode result = getNumericNode("1", true);
+}
+{
+	// This lookahead is required to distinquish TOP from
+	// a class which starts with TOP (e.g., TOP::)
+	LOOKAHEAD
+	(
+		{
+			getToken(1).kind == TOP &&
+			!(
+				getToken(2).kind == PERIOD ||
+				getToken(2).kind == DOUBLE_COLON
+			)
+		}
+	)
+	<TOP>
+		[ result = intLiteral()
+		|
+            (
+                <QUESTION_MARK>
+                {
+                    result = makeParameterNode( );
+                }
+            )
+		]
+	{
+		return result;
+	}
+}
+
+/*
+ * <A NAME="fetchFirstClause">fetchFirstClause</A>
+ */
+ValueNode
 fetchFirstClause() throws StandardException :
 {
 	// The default number of rows to fetch if the literal is omitted is 1:
@@ -8961,7 +9007,7 @@ insertColumnsAndSource(QueryTreeNode targetTable)
 		<LEFT_PAREN> columnList = insertColumnList() <RIGHT_PAREN>
 	]
 	[ targetProperties = propertyList(false) <CHECK_PROPERTIES>]
-	queryExpression = queryExpression(null, NO_SET_OP)
+	queryExpression = queryExpression(null, NO_SET_OP, null)      /* FIXME: topn? */
 	[ orderCols = orderByClause() ]
     hasJDBClimitClause = offsetFetchFirstClause( offsetClauses )
 	{
@@ -9238,7 +9284,7 @@ subquery(int subqueryType, ValueNode leftOperand) throws StandardException :
     boolean     hasJDBClimitClause = false;
 }
 {
-	queryExpression = queryExpression(null, NO_SET_OP)
+	queryExpression = queryExpression(null, NO_SET_OP, null)     /* FIXME: topn? */
 	[ orderCols = orderByClause() ]
     hasJDBClimitClause = offsetFetchFirstClause( offsetClauses )
 	{
@@ -10996,7 +11042,7 @@ tableDefinition() throws StandardException :
 		|
 			[ <LEFT_PAREN> resultColumns = tableColumnList() <RIGHT_PAREN> ]
 			<AS>
-			queryExpression = queryExpression(null, NO_SET_OP)
+			queryExpression = queryExpression(null, NO_SET_OP, null)
 			<WITH> [ <NO> { withData = false; } ] <DATA>
 			{
 				// Raise error if WITH DATA is specified
@@ -11678,7 +11724,7 @@ viewDefinition(Token beginToken) throws StandardException :
 {
 	<VIEW> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) 
 		[ <LEFT_PAREN> resultColumns = viewColumnList() <RIGHT_PAREN> ]
-		<AS> queryExpression = queryExpression(null, NO_SET_OP)
+		<AS> queryExpression = queryExpression(null, NO_SET_OP, null)  /* FIXME: topn? */
 		[ orderCols = orderByClause() ]
         hasJDBClimitClause = offsetFetchFirstClause( offsetClauses )
 	{
@@ -15246,6 +15292,7 @@ reservedKeyword() :
 |	tok = <TIMEZONE_HOUR>
 |	tok = <TIMEZONE_MINUTE>
 |	tok = <TO>
+|	tok = <TOP>
 |	tok = <TRAILING>
 |	tok = <TRANSACTION>
 |	tok = <TRANSLATE>
