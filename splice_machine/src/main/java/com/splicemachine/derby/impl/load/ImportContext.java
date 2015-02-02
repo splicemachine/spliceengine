@@ -302,6 +302,10 @@ public class ImportContext implements Externalizable{
 				public Builder colDelimiter(String columnDelimiter) {
             if(columnDelimiter==null) return this; //use the default value for column delimiter
 
+						// DB-824: Check that the escape character (e.g. backslash or '\') is not used as the column separator.
+						if("\\".equals(columnDelimiter)){
+								throw new AssertionError("cannot use escape character as column separator");
+						}
 						String colDelim = StringUtils.parseControlCharacters(columnDelimiter);
 						if(System.getProperty("line.separator").equals(colDelim)){
 								throw new AssertionError("cannot use linebreaks as column separators");
