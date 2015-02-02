@@ -45,6 +45,7 @@
 				<include>org.apache.derby:derby</include>
 				<include>org.apache.derby:derbyclient</include>
 				<include>org.apache.lucene:lucene-core</include>
+				<include>org.apache.spark</include>				
 			</includes>
 		</dependencySet>
 
