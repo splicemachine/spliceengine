@@ -41,6 +41,7 @@ import java.util.List;
  * SELECT * FROM T ORDER BY I OFFSET 10 ROWS FETCH FIRST 10 ROWS ONLY
  * SELECT * FROM T OFFSET 100 ROWS
  * SELECT * FROM T { LIMIT 10 }
+ * SELECT TOP N * FROM T
  *
  * @author Scott Fines
  *         Created on: 5/15/13
