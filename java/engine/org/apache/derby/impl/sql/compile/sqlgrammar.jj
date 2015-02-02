@@ -3665,20 +3665,19 @@ preparableSelectStatement(boolean checkParams) throws StandardException :
 	CursorNode		  retval;
 	OrderByList orderCols = null;
     ValueNode[] offsetClauses = new ValueNode[ OFFSET_CLAUSE_COUNT ];
-    ValueNode[] topN = new ValueNode[ 1 ];
+    ValueNode[] topNOut = new ValueNode[ 1 ];
     boolean     hasJDBClimitClause = false;
 }
 {
-	queryExpression = queryExpression(null, NO_SET_OP, topN)
+	queryExpression = queryExpression(null, NO_SET_OP, topNOut)
 		[ orderCols = orderByClause() ]
         hasJDBClimitClause = offsetFetchFirstClause( offsetClauses )
 		[ <FOR> forUpdateState = forUpdateClause(updateColumns) ]
 		[ isolationLevel = atIsolationLevel() ]
 	{
-	    if (topN[0] != null) {
+	    if (topNOut[0] != null) {
 	        hasJDBClimitClause = true;
-            offsetClauses[ FETCH_FIRST_CLAUSE ] = topN[0];
-            // TODO: We don't need anything in offsetClauses[ OFFSET_CLAUSE ] if we have TOP n?
+            offsetClauses[ FETCH_FIRST_CLAUSE ] = topNOut[0];
 	    }
 		// Note: if order by is specified, the for update clause
 		// must be READ ONLY or empty, and the cursor
@@ -5272,12 +5271,12 @@ qualifiedName( int nodeType, int id_length_limit) throws StandardException :
  * set operator to produce a query tree with the correct associativity.
  */
 ResultSetNode
-queryExpression(ResultSetNode leftSide, int operatorType, ValueNode[] topN) throws StandardException :
+queryExpression(ResultSetNode leftSide, int operatorType, ValueNode[] topNOut) throws StandardException :
 {
 	ResultSetNode	term;
 }
 {
-	term = nonJoinQueryTerm(leftSide, operatorType, topN) [ term = unionOrExcept(term) ]
+	term = nonJoinQueryTerm(leftSide, operatorType, topNOut) [ term = unionOrExcept(term) ]
 	{
 		return term;
 	}
@@ -5327,12 +5326,12 @@ unionOrExcept(ResultSetNode term) throws StandardException :
  * See the comment on queryExpression.
  */
 ResultSetNode
-nonJoinQueryTerm(ResultSetNode leftSide, int operatorType, ValueNode[] topN) throws StandardException :
+nonJoinQueryTerm(ResultSetNode leftSide, int operatorType, ValueNode[] topNOut) throws StandardException :
 {
 	ResultSetNode	term;
 }
 {
-	term = nonJoinQueryPrimary(topN) [ term = intersect( term) ]
+	term = nonJoinQueryPrimary(topNOut) [ term = intersect( term) ]
 	{
         switch( operatorType)
         {
@@ -5433,12 +5432,12 @@ intersect(ResultSetNode term) throws StandardException :
  * <A NAME="nonJoinQueryPrimary">nonJoinQueryPrimary</A>
  */
 ResultSetNode
-nonJoinQueryPrimary(ValueNode[] topN) throws StandardException :
+nonJoinQueryPrimary(ValueNode[] topNOut) throws StandardException :
 {
 	ResultSetNode	primary;
 }
 {
-	primary = simpleTable(topN)
+	primary = simpleTable(topNOut)
 	{
 		return primary;
 	}
@@ -5454,12 +5453,12 @@ nonJoinQueryPrimary(ValueNode[] topN) throws StandardException :
  * <A NAME="simpleTable">simpleTable</A>
  */
 ResultSetNode
-simpleTable(ValueNode[] topN) throws StandardException :
+simpleTable(ValueNode[] topNOut) throws StandardException :
 {
 	ResultSetNode	resultSetNode;
 }
 {
-	resultSetNode = querySpecification(topN)
+	resultSetNode = querySpecification(topNOut)
 	{
 		return resultSetNode;
 	}
@@ -5474,14 +5473,14 @@ simpleTable(ValueNode[] topN) throws StandardException :
  * <A NAME="querySpecification">querySpecification</A>
  */
 ResultSetNode
-querySpecification(ValueNode[] topN) throws StandardException :
+querySpecification(ValueNode[] topNOut) throws StandardException :
 {
 	ResultColumnList	selectList;
 	SelectNode			selectNode;
 	boolean	isDistinct = false;
 }
 {
-	<SELECT> [ isDistinct = setQuantifier() ] [ topN[0] = topNClause() ]
+	<SELECT> [ isDistinct = setQuantifier() ] [ topNOut[0] = topNClause() ]
 		selectList = selectList()
 		selectNode = tableExpression(selectList)
 	{
@@ -8702,9 +8701,9 @@ jdbcLimitOffset( ValueNode[] clauses ) throws StandardException :
 }
 {
     <LEFT_BRACE>
-        <LIMIT> ( rowCount = intLiteral() | rowCount = dynamicParameterSpecification() )
-        [ <OFFSET> ( startRow = intLiteral() | startRow = dynamicParameterSpecification() ) ]
-    <RIGHT_BRACE>
+            <LIMIT> ( rowCount = intLiteral() | rowCount = dynamicParameterSpecification() )
+            [ <OFFSET> ( startRow = intLiteral() | startRow = dynamicParameterSpecification() ) ]
+        <RIGHT_BRACE>
     {
         // LIMIT of 0 means omit the FETCH/FIRST CLAUSE
         if ( 
@@ -8994,6 +8993,7 @@ insertColumnsAndSource(QueryTreeNode targetTable)
 	ResultColumnList	columnList = null;
 	OrderByList orderCols = null;
     ValueNode[] offsetClauses = new ValueNode[ OFFSET_CLAUSE_COUNT ];
+    ValueNode[] topNOut = new ValueNode[ 1 ];
     boolean     hasJDBClimitClause = false;
 }
 {
@@ -9007,7 +9007,7 @@ insertColumnsAndSource(QueryTreeNode targetTable)
 		<LEFT_PAREN> columnList = insertColumnList() <RIGHT_PAREN>
 	]
 	[ targetProperties = propertyList(false) <CHECK_PROPERTIES>]
-	queryExpression = queryExpression(null, NO_SET_OP, null)      /* FIXME: topn? */
+	queryExpression = queryExpression(null, NO_SET_OP, topNOut)
 	[ orderCols = orderByClause() ]
     hasJDBClimitClause = offsetFetchFirstClause( offsetClauses )
 	{
@@ -9027,6 +9027,7 @@ insertColumnsAndSource(QueryTreeNode targetTable)
             String tokenName;
             if ( hasJDBClimitClause ) { tokenName = "LIMIT"; }
             else if ( offsetClauses[ OFFSET_CLAUSE ] != null ) { tokenName = "OFFSET"; }
+            else if ( topNOut[0] != null ) { tokenName = "TOP"; }
             else { tokenName = "FETCH"; }
 
             throw StandardException.newException( SQLState.LANG_SYNTAX_ERROR, tokenName );
@@ -9281,13 +9282,18 @@ subquery(int subqueryType, ValueNode leftOperand) throws StandardException :
 	SubqueryNode	subqueryNode;
 	OrderByList orderCols = null;
     ValueNode[] offsetClauses = new ValueNode[ OFFSET_CLAUSE_COUNT ];
+    ValueNode[] topNOut = new ValueNode[ 1 ];
     boolean     hasJDBClimitClause = false;
 }
 {
-	queryExpression = queryExpression(null, NO_SET_OP, null)     /* FIXME: topn? */
+	queryExpression = queryExpression(null, NO_SET_OP, topNOut)
 	[ orderCols = orderByClause() ]
     hasJDBClimitClause = offsetFetchFirstClause( offsetClauses )
 	{
+	    if (topNOut[0] != null) {
+	        hasJDBClimitClause = true;
+            offsetClauses[ FETCH_FIRST_CLAUSE ] = topNOut[0];
+	    }
 		subqueryNode = (SubqueryNode) nodeFactory.getNode(
 										C_NodeTypes.SUBQUERY_NODE,
 										queryExpression, 
@@ -11719,12 +11725,13 @@ viewDefinition(Token beginToken) throws StandardException :
 	Token				endToken;
 	OrderByList         orderCols = null;
     ValueNode[] offsetClauses = new ValueNode[ OFFSET_CLAUSE_COUNT ];
+    ValueNode[] topNOut = new ValueNode[ 1 ];
     boolean     hasJDBClimitClause = false;
 }
 {
 	<VIEW> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) 
 		[ <LEFT_PAREN> resultColumns = viewColumnList() <RIGHT_PAREN> ]
-		<AS> queryExpression = queryExpression(null, NO_SET_OP, null)  /* FIXME: topn? */
+		<AS> queryExpression = queryExpression(null, NO_SET_OP, topNOut)
 		[ orderCols = orderByClause() ]
         hasJDBClimitClause = offsetFetchFirstClause( offsetClauses )
 	{
@@ -11738,6 +11745,10 @@ viewDefinition(Token beginToken) throws StandardException :
 			throw StandardException.newException(SQLState.LANG_NO_PARAMS_IN_VIEWS);
 		}
 
+	    if (topNOut[0] != null) {
+	        hasJDBClimitClause = true;
+            offsetClauses[ FETCH_FIRST_CLAUSE ] = topNOut[0];
+	    }
 		return (StatementNode) nodeFactory.getNode(
 								C_NodeTypes.CREATE_VIEW_NODE,
 								tableName, 
