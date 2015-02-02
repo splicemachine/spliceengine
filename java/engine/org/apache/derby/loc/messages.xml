@@ -4282,7 +4282,8 @@ ln=lower-case two-letter ISO-639 language code, CO=upper-case two-letter ISO-316
 
             <msg>
                 <name>XCXA0.S</name>
-                <text>Invalid identifier.</text>
+                <text>Invalid identifier: '{0}'.</text>
+                <arg>value</arg>
             </msg>
 
             <msg>
