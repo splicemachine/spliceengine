@@ -8,6 +8,7 @@ import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -94,16 +95,37 @@ public class RowCountOperationIT {
     }
 
     @Test
+    public void topOneRow_offset_ordered() throws Exception {
+        validateOrdered("" +
+                "A |\n" +
+                "----\n" +
+                "20 |", "select top * from A order by a offset 10 rows");
+    }
+
+    @Test
     public void firstRowOnly_unordered() throws Exception {
         validateUnOrdered(1, "select * from A fetch first row only");
     }
 
     @Test
+    public void topOneRowOnly_unordered() throws Exception {
+        validateUnOrdered(1, "select top * from A");
+    }
+
+    @Test
     public void firstRowOnly_overGroupBy() throws Exception {
+        validateOrdered("" +
+                            "avg |\n" +
+                            "------\n" +
+                            " 18  |", "select avg(distinct a) as \"avg\" from A fetch first row only");
+    }
+
+    @Test
+    public void topOneRowOnly_overGroupBy() throws Exception {
         validateOrdered("" +
                 "avg |\n" +
                 "------\n" +
-                " 18  |", "select avg(distinct a) as \"avg\" from A fetch first row only");
+                " 18  |", "select top 1 avg(distinct a) as \"avg\" from A");
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -134,6 +156,34 @@ public class RowCountOperationIT {
                 "24 |", "select * from A order by a fetch first 15 rows only");
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    //
+    // top x
+    //
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @Test
+    public void topXRowsOnly_ordered() throws Exception {
+        validateOrdered("" +
+                "A |\n" +
+                "----\n" +
+                "10 |\n" +
+                "11 |\n" +
+                "12 |\n" +
+                "13 |\n" +
+                "14 |\n" +
+                "15 |\n" +
+                "16 |\n" +
+                "17 |\n" +
+                "18 |\n" +
+                "19 |\n" +
+                "20 |\n" +
+                "21 |\n" +
+                "22 |\n" +
+                "23 |\n" +
+                "24 |", "select top 15 * from A order by a");
+    }
+
     @Test
     public void firstXRowsOnly_unordered() throws Exception {
         validateUnOrdered(15, "select * from A fetch first 15 rows only");
@@ -148,6 +198,30 @@ public class RowCountOperationIT {
     @Test
     public void limit_ordered() throws Exception {
         validateOrdered("" +
+                            "A |\n" +
+                            "----\n" +
+                            "10 |\n" +
+                            "11 |\n" +
+                            "12 |\n" +
+                            "13 |\n" +
+                            "14 |\n" +
+                            "15 |\n" +
+                            "16 |\n" +
+                            "17 |\n" +
+                            "18 |\n" +
+                            "19 |", "select * from A order by a { limit 10 }");
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    //
+    // limit x (without braces)
+    //
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @Ignore("DB-2750 - Remove requirement for curly braces around limit query.")
+    @Test
+    public void limit_WO_braces_ordered() throws Exception {
+        validateOrdered("" +
                 "A |\n" +
                 "----\n" +
                 "10 |\n" +
@@ -159,7 +233,7 @@ public class RowCountOperationIT {
                 "16 |\n" +
                 "17 |\n" +
                 "18 |\n" +
-                "19 |", "select * from A order by a { limit 10 }");
+                "19 |", "select * from A order by a limit 10");
     }
 
     @Test
@@ -201,6 +275,43 @@ public class RowCountOperationIT {
     @Test
     public void firstXRowsOnly_largeX_unordered() throws Exception {
         validateUnOrdered(ROW_COUNT, "select * from A fetch first 1000 rows only");
+    }
+
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    //
+    // top x rows ( where x > table row count )
+    //
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @Test
+    public void topXRows_largeX_ordered() throws Exception {
+        validateOrdered("" +
+                "A |\n" +
+                "----\n" +
+                "10 |\n" +
+                "11 |\n" +
+                "12 |\n" +
+                "13 |\n" +
+                "14 |\n" +
+                "15 |\n" +
+                "16 |\n" +
+                "17 |\n" +
+                "18 |\n" +
+                "19 |\n" +
+                "20 |\n" +
+                "21 |\n" +
+                "22 |\n" +
+                "23 |\n" +
+                "24 |\n" +
+                "25 |\n" +
+                "26 |\n" +
+                "27 |", "select top 1000 * from A order by a");
+    }
+
+    @Test
+    public void topXRows_largeX_unordered() throws Exception {
+        validateUnOrdered(ROW_COUNT, "select top 1000 * from A");
     }
 
 
