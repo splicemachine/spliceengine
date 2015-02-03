@@ -9,6 +9,4 @@ done
 
 THE_CLASSPATH=${THE_CLASSPATH}:${cwd}/target/classes
 
-echo ${THE_CLASSPATH} >> foosers.txt
-
 echo ${THE_CLASSPATH}
