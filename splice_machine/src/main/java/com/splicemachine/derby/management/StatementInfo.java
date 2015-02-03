@@ -2,8 +2,8 @@ package com.splicemachine.derby.management;
 
 import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.si.api.TxnView;
-import com.splicemachine.si.api.Txn;
-import org.apache.derby.iapi.tools.run;
+
+import org.apache.commons.lang.StringUtils;
 
 import java.beans.ConstructorProperties;
 import java.io.IOException;
@@ -122,6 +122,24 @@ public class StatementInfo {
 				this.operationInfo = operationInfo;
 		}
 
+		public String toString() {
+			if (getStopTimeMs() > 0) {
+				return String.format("StatementInfo{stmtUuid=%s, txnId=%s, startTimeMs=%s, stopTimeMs=%s, duration=%s, SQL={\n%s\n}",
+						getStatementUuid(),
+						getTxnId(),
+						getStartTimeMs(),
+						getStopTimeMs(),
+						getStopTimeMs() - getStartTimeMs(),
+						getSql());
+			}
+			return String.format("StatementInfo{stmtUuid=%s, txnId=%s, startTimeMs=%s, stopTimeMs=%s, SQL={\n%s\n}",
+				getStatementUuid(),
+				getTxnId(),
+				getStartTimeMs(),
+				getStopTimeMs(),
+				getSql());
+		}
+		
 		public void addRunningJob(long operationId,JobInfo jobInfo) throws ExecutionException {
 				if(isCancelled)
 						jobInfo.cancel();
@@ -156,12 +174,27 @@ public class StatementInfo {
 
 		@Override
 		public boolean equals(Object o) {
+				// DB-2552: For equality check, need to include both
+				// statementUuid and SQL. In some cases an operation
+				// (e.g. BroadcastJoinOperation) manually constructs
+				// OperationResultSet and invokes sinkOpen on it,
+				// and the resulting StatementInfo has same statementUuid
+				// as root statement but with null SQL attribute.
+				// This is fine, except when the sub operation is
+				// complete, StatementManager would remove the outer
+				// statement from the executing statements list,
+				// messing up syscs_get_statement_summary.
+
 				if (this == o) return true;
 				if (o == null || getClass() != o.getClass()) return false;
 
 				StatementInfo that = (StatementInfo) o;
 
-				return statementUuid == that.statementUuid;
+				if (statementUuid != that.statementUuid) return false;
+				
+				// It's fine to check SQL here even though hashCode
+				// still only looks at statementUuid.
+				return StringUtils.equals(sql, that.getSql());
 		}
 
 		@Override
