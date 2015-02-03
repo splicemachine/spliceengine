@@ -9,7 +9,6 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -51,65 +50,42 @@ public class StatementManager implements StatementManagement{
     }
 
     public void addStatementInfo(StatementInfo statementInfo) {
-		// In some cases, the SQL from the statementInfo can be null.
-		// For example, BroadcastJoinOperation manually constructs
-		// OperationResultSet and invokes sinkOpen on it,
-		// which ends up going through here with null SQL
-		// but same statementUuid as the root statement,
-		// which causes issues like DB-2552. The value of null
-		// is not the problem (it's apparently by design),
-		// but we need to skip this logic in such a case.
-
+    	/*
 		if (statementInfo.getSql() == null || statementInfo.getSql().isEmpty() || statementInfo.getSql().equalsIgnoreCase("null")) {
-			LOG.debug(String.format("StatementInfo has null sql. We won't try to add it to executingStatements: numExecStmts=%s, stmtUuid=%s, txnId=%s, startTimeMs=%s, SQL={\n%s\n}",
-				executingStatements.size(),
-				statementInfo.getStatementUuid(),
-				statementInfo.getTxnId(),
-				statementInfo.getStartTimeMs(),
-				statementInfo.getSql()));
 			if (LOG.isTraceEnabled()) {
-				LOG.trace(String.format("Stack trace for null sql, stmtUuid=%s: %s", statementInfo.getStatementUuid(), SpliceLogUtils.getStackTrace()));
+				LOG.trace(String.format("Got null sql to add to executing stmts (numExecStmts=%s): %s\nStack trace:\n%s",
+					executingStatements.size(), statementInfo, SpliceLogUtils.getStackTrace()));
 			}
-			return;
 		}
+		*/
 		if (!executingStatements.add(statementInfo)) {
-			LOG.error(String.format("Failed to add statement to executing stmts, numExecStmts=%s, stmtUuid=%s, txnId=%s, startTimeMs=%s, SQL={\n%s\n}",
-				executingStatements.size(),
-				statementInfo.getStatementUuid(),
-				statementInfo.getTxnId(),
-				statementInfo.getStartTimeMs(),
-				statementInfo.getSql()));
+			SpliceLogUtils.error(LOG, String.format("Failed to add executing stmt (numExecStmts=%s): %s", executingStatements.size(), statementInfo));
 			return;
 		}
         if (LOG.isTraceEnabled()) {
-			LOG.trace(String.format("Added to executing stmts, numExecStmts=%s, stmtUuid=%s, txnId=%s, startTimeMs=%s, SQL={\n%s\n}",
-				executingStatements.size(),
-				statementInfo.getStatementUuid(),
-				statementInfo.getTxnId(),
-				statementInfo.getStartTimeMs(),
-				statementInfo.getSql()));
+			LOG.trace(String.format("Added to executing stmts (numExecStmts=%s): %s", executingStatements.size(), statementInfo));
         }
         return;
 	}
 
 	public void completedStatement(StatementInfo statementInfo, boolean shouldTrace,TxnView txn) throws IOException, StandardException {
+		/*
+		if (statementInfo.getSql() == null || statementInfo.getSql().isEmpty() || statementInfo.getSql().equalsIgnoreCase("null")) {
+			if (LOG.isTraceEnabled()) {
+				LOG.trace(String.format("Got null sql to remove from executing stmts (numExecStmts=%s): %s\nStack trace:\n%s",
+					executingStatements.size(), statementInfo, SpliceLogUtils.getStackTrace()));
+			}
+		}
+		*/
 		statementInfo.markCompleted(); //make sure the stop time is set
         int position = statementInfoPointer.getAndIncrement()%completedStatements.length();
         completedStatements.set(position, statementInfo);
 
-		if (!executingStatements.remove(statementInfo)) {
-            LOG.error(String.format("Failed to remove statement from executingStatements, numExecStmts=%s, stmtUuid=%s, txnId=%s, elapsedTimeMs=%s",
-                executingStatements.size(),
-                statementInfo.getStatementUuid(),
-                statementInfo.getTxnId(),
-                statementInfo.getStopTimeMs() - statementInfo.getStartTimeMs()));
+        if (!executingStatements.remove(statementInfo)) {
+			SpliceLogUtils.error(LOG, String.format("Failed to remove executing stmt (numExecStmts=%s): %s", executingStatements.size(), statementInfo));
 		} else {
 	        if (LOG.isTraceEnabled()) {
-	            LOG.trace(String.format("Removed from executingStatements, numExecStmts=%s, stmtUuid=%s, txnId=%s, elapsedTimeMs=%s",
-	                executingStatements.size(),
-	                statementInfo.getStatementUuid(),
-	                statementInfo.getTxnId(),
-	                statementInfo.getStopTimeMs() - statementInfo.getStartTimeMs()));
+				LOG.trace(String.format("Removed executing stmt (numExecStmts=%s): %s", executingStatements.size(), statementInfo));
 	        }
 		}
 		
