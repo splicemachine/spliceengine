@@ -5,6 +5,7 @@ import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
 import org.apache.log4j.Logger;
+
 import com.splicemachine.utils.SpliceLogUtils;
 
 /**
@@ -19,6 +20,13 @@ public class BulkTableScanOperation extends TableScanOperation {
 	private static Logger LOG = Logger.getLogger(BulkTableScanOperation.class);
 	public BulkTableScanOperation() {
 		super();
+	}
+	
+    protected static final String NAME = BulkTableScanOperation.class.getSimpleName().replaceAll("Operation","");
+
+	@Override
+	public String getName() {
+			return NAME;
 	}
 	public BulkTableScanOperation(long conglomId,
 			StaticCompiledOpenConglomInfo scoci, Activation activation, 
