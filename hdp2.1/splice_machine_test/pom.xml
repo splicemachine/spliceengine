@@ -13,6 +13,15 @@
 		<version>1.1.0-SNAPSHOT</version>
 	</parent>
 
+	<properties>
+			<sparkMasterIP>localhost</sparkMasterIP>
+		<sparkMasterPort>7077</sparkMasterPort>
+		<sparkMasterWebUIPort>8080</sparkMasterWebUIPort>
+		<sparkMasterURL>local[8]</sparkMasterURL>
+		<splice.spark.enabled>false</splice.spark.enabled>
+	</properties>
+
+
 	<dependencies>
 		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_machine_adapter_98-hdp2.1</artifactId> <version>1.1.0-SNAPSHOT</version> <exclusions> <exclusion> <artifactId>xercesImpl</artifactId> <groupId>xerces</groupId> </exclusion> <exclusion> <artifactId>jasper-compiler</artifactId> <groupId>tomcat</groupId> </exclusion> <exclusion> <artifactId>jasper-runtime</artifactId> <groupId>tomcat</groupId> </exclusion> </exclusions> </dependency>
 		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_machine_adapter_98-hdp2.1</artifactId> <version>1.1.0-SNAPSHOT</version> <classifier>tests</classifier> </dependency>
@@ -323,6 +332,8 @@
 								<argument>-Dcom.sun.management.jmxremote.authenticate=false</argument>
 								<argument>-Dcom.sun.management.jmxremote.port=10102</argument>
 								<argument>-Dsplice.authentication=NATIVE</argument>
+								<argument>-Dsplice.spark.master=${sparkMasterURL}</argument>
+								<argument>-Dsplice.spark.enabled=${splice.spark.enabled}</argument>
 								<argument>-Xmx8g</argument>
 								<argument>-Xms1g</argument>
 
@@ -435,6 +446,127 @@
 				</plugins>
 			</build>
 		</profile>
+		
+		<profile>
+			<id>spark-prepare</id>
+			<activation>
+				<property>
+					<name>spark-prepare</name>
+				</property>
+			</activation>
+			<build>
+				<plugins>				
+				 <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <version>2.10</version>
+        <executions>
+          <execution>
+            <id>copy</id>
+            <phase>package</phase>
+            <goals>
+              <goal>copy-dependencies</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>				
+				</plugins>
+			</build>
+		</profile>
+
+
+		<profile>
+			<id>spark-master</id>
+			<activation>
+				<property>
+					<name>spark-master</name>
+				</property>
+			</activation>
+			<build>
+				<plugins>				
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>exec-maven-plugin</artifactId>
+						<executions>
+							<execution>
+								<goals>
+									<goal>exec</goal>
+								</goals>
+							</execution>
+						</executions>
+						<configuration>
+							<classpathScope>compile</classpathScope>
+							<executable>java</executable>
+							<arguments>
+								<argument>-cp</argument>
+								<classpath>${maven.runtime.classpath}</classpath>
+								<argument>-Djava.awt.headless=true</argument>
+								<argument>-Dlog4j.configuration=file:${basedir}/src/main/resources/info-log4j.properties</argument>
+								<argument>-Djava.net.preferIPv4Stack=true</argument>
+								<argument>-Dzookeeper.sasl.client=false</argument>
+								<argument>-Xmx5g</argument>
+								<argument>-Xms1g</argument>
+								<argument>-XX:MaxPermSize=256M</argument>
+								<argument>-XX:+CMSClassUnloadingEnabled</argument>
+								<argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4003</argument>
+								<argument>org.apache.spark.deploy.master.Master</argument>
+								<argument>--ip</argument>								
+								<argument>${sparkMasterIP}</argument>
+								<argument>--port</argument>
+								<argument>${sparkMasterPort}</argument>
+								<argument>--webui-port</argument>
+								<argument>${sparkMasterWebUIPort}</argument>
+							</arguments>
+						</configuration>
+					</plugin>					
+				</plugins>
+			</build>
+		</profile>
+
+		<profile>
+			<id>spark-worker</id>
+			<activation>
+				<property>
+					<name>spark-worker</name>
+				</property>
+			</activation>
+			<build>
+				<plugins>				
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>exec-maven-plugin</artifactId>
+						<executions>
+							<execution>
+								<goals>
+									<goal>exec</goal>
+								</goals>
+							</execution>
+						</executions>
+						<configuration>
+							<classpathScope>compile</classpathScope>
+							<executable>java</executable>
+							<arguments>
+								<argument>-cp</argument>
+								<classpath>${maven.runtime.classpath}</classpath>
+								<argument>-Djava.awt.headless=true</argument>
+								<argument>-Dlog4j.configuration=file:${basedir}/src/main/resources/info-log4j.properties</argument>
+								<argument>-Djava.net.preferIPv4Stack=true</argument>
+								<argument>-Dzookeeper.sasl.client=false</argument>
+								<argument>-Xmx5g</argument>
+								<argument>-Xms1g</argument>
+								<argument>-XX:MaxPermSize=256M</argument>
+								<argument>-XX:+CMSClassUnloadingEnabled</argument>
+								<argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4004</argument>
+								<argument>org.apache.spark.deploy.worker.Worker</argument>
+								<argument>spark://${sparkMasterIP}:${sparkMasterPort}</argument>								
+							</arguments>
+						</configuration>
+					</plugin>					
+				</plugins>
+			</build>
+		</profile>
+		
+		
 
 	</profiles>
 

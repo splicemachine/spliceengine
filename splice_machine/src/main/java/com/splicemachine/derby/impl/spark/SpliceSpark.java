@@ -104,15 +104,15 @@ public class SpliceSpark {
         conf.set("spark.executor.memory", "8G");
 //				conf.set("spark.closure.serializer", "org.apache.spark.serializer.KryoSerializer");
         conf.set("spark.io.compression.codec", "lz4"); // TODO implement custom codec using our Snappy version
-        if (master.startsWith("local")) {
+        if (master.startsWith("local[8]")) {
             conf.set("spark.cores.max", "8");
             if (localContext == null) {
                 localContext = new JavaSparkContext(conf);
             }
             return localContext;
         } else {
-            conf.setSparkHome(home);
-            conf.setJars(files);
+//            conf.setSparkHome(home);
+//            conf.setJars(files);
             conf.set("spark.cores.max", cores);
             conf.set("spark.executor.memory", memory);
             conf.set("spark.task.maxFailures", failures);
