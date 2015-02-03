@@ -9,6 +9,8 @@ import java.util.List;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
+import com.splicemachine.derby.hbase.SpliceObserverInstructions;
+import com.splicemachine.derby.impl.spark.RDDUtils;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.marshall.*;
@@ -33,6 +35,7 @@ import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.spark.api.java.JavaRDD;
 
 public class ProjectRestrictOperation extends SpliceBaseOperation {
 
@@ -398,4 +401,92 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 								+ "doesProjection:" + doesProjection + indent
 								+ "source:" + source.prettyPrint(indentLevel + 1);
 		}
+
+    public JavaRDD<ExecRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+        JavaRDD<ExecRow> raw = source.getRDD(spliceRuntimeContext, top);
+        if (getOperationStack().get(0) instanceof TableScanOperation) {
+            // we want to avoid re-applying the PR if it has already been executed in HBase
+            return raw;
+        }
+        final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this, spliceRuntimeContext);
+        JavaRDD<ExecRow> restricted;
+        if (restriction == null) {
+            restricted = raw;
+        } else {
+            restricted = raw.filter(new RestrictOperation(this, soi));
+        }
+        JavaRDD<ExecRow> projected = restricted.map(new ProjectOperation(this, soi));
+        return projected;
+    }
+
+    @Override
+    public boolean providesRDD() {
+        return source.providesRDD();
+    }
+
+    public static final class ProjectOperation extends SparkOperation<ProjectRestrictOperation, ExecRow, ExecRow> {
+        public ProjectOperation() {
+        }
+
+        public ProjectOperation(ProjectRestrictOperation spliceOperation, SpliceObserverInstructions soi) {
+            super(spliceOperation, soi);
+        }
+
+        @Override
+        public ExecRow call(ExecRow sourceRow) throws Exception {
+            ExecRow result;
+            if (sourceRow == null) {
+                return null;
+            }
+            op.source.setCurrentRow(sourceRow);
+            if (op.projection != null) {
+                result = (ExecRow) op.projection.invoke();
+            } else {
+                result = op.mappedResultRow.getClone();
+            }
+            // Copy any mapped columns from the source
+            for (int index = 0; index < op.projectMapping.length; index++) {
+                if (sourceRow != null && op.projectMapping[index] != -1) {
+                    DataValueDescriptor dvd = sourceRow.getColumn(op.projectMapping[index]);
+                    // See if the column has been marked for cloning.
+                    // If the value isn't a stream, don't bother cloning it.
+                    if (op.cloneMap[index] && dvd.hasStream()) {
+                        dvd = dvd.cloneValue(false);
+                    }
+                    result.setColumn(index + 1, dvd);
+                }
+            }
+            activation.setCurrentRow(result, op.resultSetNumber);
+            if (RDDUtils.LOG.isDebugEnabled()) {
+                RDDUtils.LOG.debug("Projected " + sourceRow + " into " + result);
+            }
+            return result.getClone();
+        }
+    }
+
+    public static final class RestrictOperation extends SparkOperation<ProjectRestrictOperation, ExecRow, Boolean> {
+
+        public RestrictOperation() {
+        }
+
+        public RestrictOperation(ProjectRestrictOperation spliceOperation, SpliceObserverInstructions soi) {
+            super(spliceOperation, soi);
+        }
+
+        @Override
+        public Boolean call(ExecRow row) throws Exception {
+            if (row == null) {
+                return true;
+            }
+            op.source.setCurrentRow(row);
+            DataValueDescriptor restrictBoolean = (DataValueDescriptor) op.restriction.invoke();
+            // if the result is null, we make it false --
+            // so the row won't be returned.
+            boolean restrict = ((! restrictBoolean.isNull()) && restrictBoolean.getBoolean());
+            if (RDDUtils.LOG.isDebugEnabled()) {
+                RDDUtils.LOG.debug("restricted row " + row + ": " + restrict);
+            }
+            return restrict;
+        }
+    }
 }
