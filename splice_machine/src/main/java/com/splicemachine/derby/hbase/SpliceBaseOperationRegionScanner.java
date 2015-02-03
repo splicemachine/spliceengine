@@ -2,6 +2,7 @@ package com.splicemachine.derby.hbase;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
@@ -97,7 +98,9 @@ public abstract class SpliceBaseOperationRegionScanner<Data> implements RegionSc
 				try {
 						ExecRow nextRow;
 
-            if ( (nextRow = topOperation.nextRow(spliceRuntimeContext)) != null) {
+            if ( (nextRow = spliceRuntimeContext.useSpark() && topOperation instanceof SinkingOperation ?
+                    ((SinkingOperation) topOperation).getNextSinkRow(spliceRuntimeContext) :
+                    topOperation.nextRow(spliceRuntimeContext)) != null) {
 
 								/*
 								 * We build the rowkey as meaninglessly as possible, to avoid
