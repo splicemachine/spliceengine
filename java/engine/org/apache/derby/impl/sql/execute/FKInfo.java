@@ -50,9 +50,9 @@ import java.util.Vector;
  * check.
  *
  */
-public class FKInfo implements Formatable 
-{
-	/********************************************************
+public class FKInfo implements Formatable {
+
+    /********************************************************
 	**
 	**	This class implements Formatable. That means that it
 	**	can write itself to and from a formatted stream. If
@@ -187,56 +187,49 @@ public class FKInfo implements Formatable
 	{
 		if (fkInfo == null)
 		{
-			return (FKInfo[])null;
+			return null;
 		}
 
-		Vector newfksVector = new Vector();
+		Vector<FKInfo> newfksVector = new Vector<FKInfo>();
 		FKInfo[] newfks = null;
 
 		/*
 		** For each FKInfo
 		*/
-		for (int i = 0; i < fkInfo.length; i++)
-		{
-			if (addAllTypeIsFK && 
-				(fkInfo[i].type == FOREIGN_KEY))
-			{
-				newfksVector.addElement(fkInfo[i]);
-				continue;
-			}
-				
-			int fkcollen = fkInfo[i].colArray.length;
-			for (int fkCols = 0; fkCols < fkcollen; fkCols++)
-			{
-				for (int chcol = 0; chcol < cols.length; chcol++)
-				{
-					/*
-					** If any column intersects, the FKInfo is
+        for (FKInfo aFkInfo : fkInfo) {
+            if (addAllTypeIsFK && (aFkInfo.type == FOREIGN_KEY)) {
+                newfksVector.addElement(aFkInfo);
+                continue;
+            }
+
+            int fkcollen = aFkInfo.colArray.length;
+            for (int fkCols = 0; fkCols < fkcollen; fkCols++) {
+                for (int col : cols) {
+                    /*
+                    ** If any column intersects, the FKInfo is
 					** relevant.
 					*/
-					if (fkInfo[i].colArray[fkCols] == cols[chcol])
-					{
-						newfksVector.addElement(fkInfo[i]);
-						
-						// go to the next fk
-						fkCols = fkcollen;
-						break;
-					}
-				}
-			}
-		}
+                    if (aFkInfo.colArray[fkCols] == col) {
+                        newfksVector.addElement(aFkInfo);
+
+                        // go to the next fk
+                        fkCols = fkcollen;
+                        break;
+                    }
+                }
+            }
+        }
 
 		
 		/*
 		** Now convert the vector into an array.
 		*/
 		int size = newfksVector.size();
-		if (size > 0)
-		{
+		if (size > 0) {
 			newfks = new FKInfo[size];
 			for (int i = 0; i < size; i++)
 			{
-				newfks[i] = (FKInfo)newfksVector.elementAt(i);
+				newfks[i] = newfksVector.elementAt(i);
 			}
 		}
 		return newfks;
@@ -247,6 +240,7 @@ public class FKInfo implements Formatable
 	// FORMATABLE
 	//
 	//////////////////////////////////////////////
+
 	/**
 	 * Write this object out
 	 *
@@ -254,6 +248,7 @@ public class FKInfo implements Formatable
 	 *
  	 * @exception IOException thrown on error
 	 */
+    @Override
 	public void writeExternal(ObjectOutput out) throws IOException
 	{
 		/*
@@ -287,9 +282,8 @@ public class FKInfo implements Formatable
 	 * @exception IOException					thrown on error
 	 * @exception ClassNotFoundException		thrown on error
 	 */
-	public void readExternal(ObjectInput in)
-		throws IOException, ClassNotFoundException
-	{
+    @Override
+	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
 		try
 		{
 			/*
@@ -337,6 +331,8 @@ public class FKInfo implements Formatable
 	// Misc
 	//
 	//////////////////////////////////////////////////////////////
+
+    @Override
 	public String toString()
 	{
 		if (SanityManager.DEBUG)

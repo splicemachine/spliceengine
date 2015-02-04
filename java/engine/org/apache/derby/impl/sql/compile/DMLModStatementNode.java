@@ -657,7 +657,13 @@ abstract class DMLModStatementNode extends DMLStatementNode
 											changedColumnIds);
             generatePKInfo(targetTableDescriptor);
 			createConstraintDependencies(dataDictionary, relevantCdl, dependent);
-			generateFKInfo(relevantCdl, dataDictionary, targetTableDescriptor, readColsBitSet);
+
+            // Commented out the following line as part of work on DB-2229: referential actions.  The
+            // referential actions we have implemented so far do not actually use Derby's FKInfo but
+            // an assertion fails in this method when a DeleteNode is created for deleting by primary key.
+            // We may need to re-enable this if future referential action implementations use FKInfo.
+            //
+			//generateFKInfo(relevantCdl, dataDictionary, targetTableDescriptor, readColsBitSet);
 
 			getAllRelevantTriggers(dataDictionary, targetTableDescriptor,
 							   changedColumnIds, includeTriggers);
@@ -891,38 +897,31 @@ abstract class DMLModStatementNode extends DMLStatementNode
 	 *
 	 * @exception StandardException		Thrown on failure
 	 */
-	private void generateFKInfo 
-	(
-		ConstraintDescriptorList	cdl,
-		DataDictionary				dd, 
-		TableDescriptor				td,
-		FormatableBitSet						readColsBitSet
-    )
-		throws StandardException
-	{
-		Vector								fkVector = new Vector(10);
+	private void generateFKInfo(ConstraintDescriptorList	cdl,
+		                        DataDictionary				dd,
+		                        TableDescriptor				td,
+		                        FormatableBitSet			readColsBitSet) throws StandardException {
+
+		Vector<FKInfo>						fkVector = new Vector<FKInfo>(10);
 		int 								type;
-		UUID[] 								uuids = null;
-		long[] 								conglomNumbers = null;
-		String[]							fkNames = null;
+		UUID[] 								uuids;
+		long[] 								conglomNumbers;
+		String[]							fkNames;
 		ConstraintDescriptorList			fkcdl;
 		ReferencedKeyConstraintDescriptor	refcd;
 		boolean[]							isSelfReferencingFK;
 		ConstraintDescriptorList			activeList = dd.getActiveConstraintDescriptors(cdl);
 		int[]								rowMap = getRowMap(readColsBitSet, td);
-		int[]                               raRules = null;
-		Vector                              refTableNames = new Vector(1);
-		Vector                              refIndexConglomNum = new Vector(1);
-		Vector                              refActions = new Vector(1);
-		Vector                              refColDescriptors = new Vector(1);
-		Vector                              fkColMap = new Vector(1);
-		int activeSize = activeList.size();
-		for (int index = 0; index < activeSize; index++)
-		{
-			ConstraintDescriptor cd = activeList.elementAt(index);
+		int[]                               raRules;
+		Vector<String>                      refTableNames = new Vector<String>(1);
+		Vector<Long>                        refIndexConglomNum = new Vector<Long>(1);
+		Vector<Integer>                     refActions = new Vector<Integer>(1);
+		Vector<ColumnDescriptorList>        refColDescriptors = new Vector<ColumnDescriptorList>(1);
+		Vector<int[]>                       fkColMap = new Vector<int[]>(1);
 
-			if (cd instanceof ForeignKeyConstraintDescriptor)
-			{
+        for (ConstraintDescriptor cd : activeList) {
+
+			if (cd instanceof ForeignKeyConstraintDescriptor) {
 				/*
 				** We are saving information for checking the
 				** primary/unique key that is referenced by this
@@ -967,7 +966,7 @@ abstract class DMLModStatementNode extends DMLStatementNode
 				conglomNumbers = new long[size];
 				isSelfReferencingFK = new boolean[size];
 				raRules = new int[size];
-				ForeignKeyConstraintDescriptor fkcd = null;
+				ForeignKeyConstraintDescriptor fkcd;
 				TableDescriptor fktd;
 				ColumnDescriptorList coldl;
 				int[] refColumns; 
@@ -985,18 +984,17 @@ abstract class DMLModStatementNode extends DMLStatementNode
 						//find  the referencing  table Name
 						fktd = fkcd.getTableDescriptor();
 						refTableNames.add(fktd.getSchemaName() + "." + fktd.getName());
-						refActions.add(new Integer(raRules[inner]));
+						refActions.add(raRules[inner]);
 						//find the referencing column name required for update null.
 						refColumns = fkcd.getReferencedColumns();
 						coldl = fktd.getColumnDescriptorList();
 						ColumnDescriptorList releventColDes = new ColumnDescriptorList();
-						for(int i = 0 ; i < refColumns.length; i++)
-						{
-							cold =(ColumnDescriptor)coldl.elementAt(refColumns[i]-1);
-							releventColDes.add(cold);
-						}
+                        for (int refColumn : refColumns) {
+                            cold = coldl.elementAt(refColumn - 1);
+                            releventColDes.add(cold);
+                        }
 						refColDescriptors.add(releventColDes);
-						refIndexConglomNum.add(new Long(conglomNumbers[inner]));
+						refIndexConglomNum.add(conglomNumbers[inner]);
 						fkColMap.add(colArray);
 					}
 				}
@@ -1050,13 +1048,11 @@ abstract class DMLModStatementNode extends DMLStatementNode
 			fkColArrays = new int[size][];
 			for (int i = 0; i < size; i++)
 			{
-				fkTableNames[i] = (String)refTableNames.get(i);
-				fkRefActions[i]  = ((Integer) refActions.get(i)).intValue();
-				fkColDescriptors[i] =
-					(ColumnDescriptorList)refColDescriptors.get(i);
-				fkIndexConglomNumbers[i] =
-					((Long)refIndexConglomNum.get(i)).longValue();
-				fkColArrays[i] = ((int[])fkColMap.get(i));
+				fkTableNames[i] = refTableNames.get(i);
+				fkRefActions[i]  = refActions.get(i);
+				fkColDescriptors[i] = refColDescriptors.get(i);
+				fkIndexConglomNumbers[i] = refIndexConglomNum.get(i);
+				fkColArrays[i] = fkColMap.get(i);
 			}
 		}		
 

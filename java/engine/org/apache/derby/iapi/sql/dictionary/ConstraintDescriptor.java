@@ -314,25 +314,16 @@ public abstract class ConstraintDescriptor
 	 * referenced by this constraint.
 	 *
 	 * @return the column descriptor list
-	 *
-	 * @exception StandardException on error
 	 */
-	public ColumnDescriptorList getColumnDescriptors()
-		throws StandardException
-	{
-		if (colDL == null)
-		{
-			DataDictionary dd = getDataDictionary();
-			colDL = new ColumnDescriptorList();
-	
-			int[]	refCols = getReferencedColumns();
-			for (int i = 0; i < refCols.length; i++)
-			{
-				colDL.add(table.getColumnDescriptor(refCols[i]));
-			}
-		}
-		return colDL;
-	}
+    public ColumnDescriptorList getColumnDescriptors() {
+        if (colDL == null) {
+            colDL = new ColumnDescriptorList();
+            for (int refCol : getReferencedColumns()) {
+                colDL.add(table.getColumnDescriptor(refCol));
+            }
+        }
+        return colDL;
+    }
 
 	/**
 	 * Indicates whether the column descriptor list is
