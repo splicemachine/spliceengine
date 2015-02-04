@@ -41,6 +41,7 @@ public class HdfsImportIT extends SpliceUnitTest {
 	protected static String TABLE_13 = "M";	
 	protected static String TABLE_14 = "N";	
 	protected static String TABLE_15 = "O";	
+	protected static String TABLE_16 = "P";	
 	private static final String AUTO_INCREMENT_TABLE = "INCREMENT";
 
 	
@@ -67,6 +68,7 @@ public class HdfsImportIT extends SpliceUnitTest {
 	protected static SpliceTableWatcher spliceTableWatcher15 = new SpliceTableWatcher(TABLE_15,spliceSchemaWatcher.schemaName,
 			"( cUsToMeR_pRoDuCt_Id InTeGeR NoT NuLl PrImArY KeY, ShIpPeD_DaTe TiMeStAmP WiTh DeFaUlT CuRrEnT_tImEsTaMp, SoUrCe_SyS_CrEaTe_DtS TiMeStAmP WiTh DeFaUlT cUrReNt_TiMeStAmP NoT NuLl,sOuRcE_SyS_UpDaTe_DtS TiMeStAmP WiTh DeFaUlT cUrReNt_TiMeStAmP NoT NuLl,"+
 							"SdR_cReAtE_dAtE tImEsTaMp wItH DeFaUlT CuRrEnT_tImEsTaMp, SdR_uPdAtE_dAtE TimEstAmp With deFauLT cuRRent_tiMesTamP,Dw_srcC_ExtrC_DttM TimEStamP WitH DefAulT CurrEnt_TimesTamp)");
+	protected static SpliceTableWatcher spliceTableWatcher16 = new SpliceTableWatcher(TABLE_16,spliceSchemaWatcher.schemaName,"(id int, description varchar(1000), name varchar(10))");
 
 
 	
@@ -92,6 +94,7 @@ public class HdfsImportIT extends SpliceUnitTest {
 						.around(spliceTableWatcher13)
 						.around(spliceTableWatcher14)
 						.around(spliceTableWatcher15)
+						.around(spliceTableWatcher16)
 						.around(autoIncTableWatcher);
 
     @Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
@@ -511,4 +514,116 @@ public class HdfsImportIT extends SpliceUnitTest {
 		Assert.assertEquals("10 Records not imported",10,i);
 	}
 
+	/**
+	 * Import the data with Unix newlines (LF) terminating the records and without embedded newlines in the fields.
+	 * @throws Exception
+	 */
+	@Test
+	public void testImportWithUnixNewlines() throws Exception{
+		testNewlineImport(spliceSchemaWatcher.schemaName, TABLE_16, getResourceDirectory() + "embedded-newlines/unix/newlines-absent.tsv", null, 0, baddir.newFolder().getCanonicalPath(), 3);
+	}
+
+	/**
+	 * Import the data with embedded Unix newlines (LF) surrounded by double quotes.
+	 * @throws Exception
+	 */
+	@Test
+	public void testImportWithEmbeddedUnixNewlinesInsideDoubleQuotes() throws Exception{
+		testNewlineImport(spliceSchemaWatcher.schemaName, TABLE_16, getResourceDirectory() + "embedded-newlines/unix/newlines-with-double-quotes.tsv", null, 0, baddir.newFolder().getCanonicalPath(), 3);
+	}
+
+	/**
+	 * Import the data with embedded Unix newlines (LF) surrounded by single quotes.
+	 * @throws Exception
+	 */
+	@Test
+	public void testImportWithEmbeddedUnixNewlinesInsideSingleQuotes() throws Exception{
+		testNewlineImport(spliceSchemaWatcher.schemaName, TABLE_16, getResourceDirectory() + "embedded-newlines/unix/newlines-with-single-quotes.tsv", "''", 0, baddir.newFolder().getCanonicalPath(), 3);
+	}
+
+	/**
+	 * Import the data with Windows newlines (CR+LF) terminating the records and without embedded newlines in the fields.
+	 * @throws Exception
+	 */
+	@Test
+	public void testImportWithWindowsNewlines() throws Exception{
+		testNewlineImport(spliceSchemaWatcher.schemaName, TABLE_16, getResourceDirectory() + "embedded-newlines/windows/newlines-absent.tsv", null, 0, baddir.newFolder().getCanonicalPath(), 3);
+	}
+
+	/**
+	 * Import the data with embedded Windows newlines (CR+LF) surrounded by double quotes.
+	 * @throws Exception
+	 */
+	@Test
+	public void testImportWithEmbeddedWindowsNewlinesInsideDoubleQuotes() throws Exception{
+		testNewlineImport(spliceSchemaWatcher.schemaName, TABLE_16, getResourceDirectory() + "embedded-newlines/windows/newlines-with-double-quotes.tsv", null, 0, baddir.newFolder().getCanonicalPath(), 3);
+	}
+
+	/**
+	 * Import the data with embedded Windows newlines (CR+LF) surrounded by single quotes.
+	 * @throws Exception
+	 */
+	@Test
+	public void testImportWithEmbeddedWindowsNewlinesInsideSingleQuotes() throws Exception{
+		testNewlineImport(spliceSchemaWatcher.schemaName, TABLE_16, getResourceDirectory() + "embedded-newlines/windows/newlines-with-single-quotes.tsv", "''", 0, baddir.newFolder().getCanonicalPath(), 3);
+	}
+
+	/**
+	 * Import the data with Classic Mac newlines (CR) terminating the records and without embedded newlines in the fields.
+	 * @throws Exception
+	 */
+	@Test
+	public void testImportWithClassicMacNewlines() throws Exception{
+		testNewlineImport(spliceSchemaWatcher.schemaName, TABLE_16, getResourceDirectory() + "embedded-newlines/classic-mac/newlines-absent.tsv", null, 0, baddir.newFolder().getCanonicalPath(), 3);
+	}
+
+	/**
+	 * Import the data with embedded Classic Mac newlines (CR) surrounded by double quotes.
+	 * @throws Exception
+	 */
+	@Test
+	public void testImportWithEmbeddedClassicMacNewlinesInsideDoubleQuotes() throws Exception{
+		testNewlineImport(spliceSchemaWatcher.schemaName, TABLE_16, getResourceDirectory() + "embedded-newlines/classic-mac/newlines-with-double-quotes.tsv", null, 0, baddir.newFolder().getCanonicalPath(), 3);
+	}
+
+	/**
+	 * Import the data with embedded Classic Mac newlines (CR) surrounded by single quotes.
+	 * @throws Exception
+	 */
+	@Test
+	public void testImportWithEmbeddedClassicMacNewlinesInsideSingleQuotes() throws Exception{
+		testNewlineImport(spliceSchemaWatcher.schemaName, TABLE_16, getResourceDirectory() + "embedded-newlines/classic-mac/newlines-with-single-quotes.tsv", "''", 0, baddir.newFolder().getCanonicalPath(), 3);
+	}
+
+	/**
+	 * Tests import with different types of newlines (Unix, Windows, and Classic Mac) and
+	 * with newlines embedded inside of values (strings) that are being imported.
+	 * @param schemaName
+	 * @param tableName
+	 * @param location  the location of the data file
+	 * @param charDelimiter
+	 * @param failErrorCount
+	 * @param badDir
+	 * @param importCount
+	 * @throws Exception
+	 */
+	private void testNewlineImport(String schemaName, String tableName, String location, String charDelimiter, int failErrorCount, String badDir, int importCount) throws Exception {
+		methodWatcher.executeUpdate("delete from " + schemaName + "." + tableName);
+		PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA('%s', '%s', null, '%s', '\t', %s, null, null, null, %d, '%s')",
+				schemaName, tableName, location, (charDelimiter == null ? "null" : String.format("'%s'", charDelimiter)), failErrorCount, badDir));
+		ps.execute();
+		ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s",schemaName,tableName));
+		List<String> results = Lists.newArrayList();
+		while(rs.next()){
+			int id = rs.getInt(1);
+			Assert.assertTrue("ID was null!", !rs.wasNull());
+			String description = rs.getString(2);
+			String name = rs.getString(3);
+			Assert.assertNotNull("ID is null!", id);
+			Assert.assertNotNull("DESCRIPTION is null!", description);
+			Assert.assertNotNull("NAME is null!", name);
+			results.add(String.format("id:%d,description:%s,name:%s",id, description, name));
+		}
+		Assert.assertEquals("Incorrect number of rows imported", importCount, results.size());
+	}
 }
