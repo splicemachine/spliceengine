@@ -9,6 +9,7 @@ import java.util.List;
 
 import com.google.common.base.Strings;
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
@@ -34,6 +35,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.spark.api.java.JavaRDD;
 
 public class NormalizeOperation extends SpliceBaseOperation {
 		private static final long serialVersionUID = 2l;
@@ -383,4 +385,47 @@ public class NormalizeOperation extends SpliceBaseOperation {
 								.append(indent).append("source:").append(((SpliceOperation)source).prettyPrint(indentLevel+1))
 								.toString();
 		}
+
+    @Override
+    public boolean providesRDD() {
+        return source.providesRDD();
+    }
+
+    @Override
+    public JavaRDD<ExecRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+        JavaRDD<ExecRow> raw = source.getRDD(spliceRuntimeContext, top);
+        if (getOperationStack().get(0) instanceof TableScanOperation) {
+            // we want to avoid re-applying the PR if it has already been executed in HBase
+            return raw;
+        }
+        final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this, spliceRuntimeContext);
+        JavaRDD<ExecRow> normalized = raw.map(new NormalizeSparkOperation(this, soi));
+        return normalized;
+    }
+
+
+    public static final class NormalizeSparkOperation extends SparkOperation<NormalizeOperation, ExecRow, ExecRow> {
+
+        private static final long serialVersionUID = 7780564699906451370L;
+
+        public NormalizeSparkOperation() {
+        }
+
+        @Override
+        public ExecRow call(ExecRow sourceRow) throws Exception {
+            op.source.setCurrentRow(sourceRow);
+            ExecRow normalized = null;
+            if (sourceRow != null) {
+                normalized = op.normalizeRow(sourceRow, true);
+            }
+            activation.setCurrentRow(normalized, op.resultSetNumber);
+            return normalized;
+        }
+
+        public NormalizeSparkOperation(NormalizeOperation normalizeOperation, SpliceObserverInstructions soi) {
+            super(normalizeOperation, soi);
+        }
+
+
+    }
 }
