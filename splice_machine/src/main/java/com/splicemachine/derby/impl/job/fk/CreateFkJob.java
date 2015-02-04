@@ -13,25 +13,29 @@ import java.util.Collections;
 import java.util.Map;
 
 /**
- * Adds a foreign key write handler to each region where the FK referenced conglomerate ID exists.
+ * See docs in CreateFKTask for details.
  */
 public class CreateFkJob implements CoprocessorJob {
 
     private final HTableInterface table;
     private final TxnView txn;
     private final int[] backingIndexFormatIds;
-    private final int referencedConglomerateId;
+    private final long referencedConglomerateId;
+    private final long referencingBackingIndexConglomId;
+    private final String referencedTableName;
 
-    public CreateFkJob(HTableInterface table, TxnView txn, int referencedConglomerateId, int[] backingIndexFormatIds) {
+    public CreateFkJob(HTableInterface table, TxnView txn, int referencedConglomerateId, int[] backingIndexFormatIds, long referencingBackingIndexConglomId, String referncedTableName) {
         this.table = table;
         this.txn = txn;
         this.backingIndexFormatIds = backingIndexFormatIds;
         this.referencedConglomerateId = referencedConglomerateId;
+        this.referencingBackingIndexConglomId = referencingBackingIndexConglomId;
+        this.referencedTableName = referncedTableName;
     }
 
     @Override
     public Map<? extends RegionTask, Pair<byte[], byte[]>> getTasks() throws Exception {
-        CreateFkTask task = new CreateFkTask(getJobId(), backingIndexFormatIds, referencedConglomerateId);
+        CreateFkTask task = new CreateFkTask(getJobId(), backingIndexFormatIds, referencedConglomerateId, referencingBackingIndexConglomId, referencedTableName);
         return Collections.singletonMap(task, Pair.newPair(HConstants.EMPTY_START_ROW, HConstants.EMPTY_END_ROW));
     }
 

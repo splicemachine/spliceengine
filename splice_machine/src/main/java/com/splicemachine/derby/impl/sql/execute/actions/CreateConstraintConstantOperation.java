@@ -253,7 +253,7 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
 
 
                 // Use the task framework to add FK Write handler on remote nodes.
-                new CreateFkJobSubmitter(dd, (SpliceTransactionManager) tc, referencedConstraint).submit();
+                new CreateFkJobSubmitter(dd, (SpliceTransactionManager) tc, referencedConstraint, conDesc).submit();
 
                 break;
 

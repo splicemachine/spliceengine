@@ -13,11 +13,11 @@ import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.*;
 
 /**
- * Foreign Key tests for *checking* FKs on INSERT.
+ * Foreign key tests for *checking* the existence of parent rows upon INSERT/UPDATE of a child tables.
  */
-public class ForeignKey_Check_Insert_Update_IT {
+public class ForeignKey_Check_IT {
 
-    private static final String SCHEMA = ForeignKey_Check_Insert_Update_IT.class.getSimpleName();
+    private static final String SCHEMA = ForeignKey_Check_IT.class.getSimpleName();
 
     @ClassRule
     public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
@@ -463,7 +463,7 @@ public class ForeignKey_Check_Insert_Update_IT {
                         ")")
                 .withInsert("insert into P values(?,?,?,?,?,?,?,?,?,?)")
                 .withRows(rows(
-                        row("aaa", 1.0f, 3.2d, 3, 6L, 126 , 333333333.33, "2015-01-27", "09:15:30", "2000-02-02 02:02:02.002"),
+                        row("aaa", 1.0f, 3.2d, 3, 6L, 126, 333333333.33, "2015-01-27", "09:15:30", "2000-02-02 02:02:02.002"),
                         row("bbb", 6.2f, 6.4d, 6, 12L, 127, 444444444.44, "2015-01-28", "13:15:30", "2001-02-02 02:02:02.002")
                 ))
                 .create();

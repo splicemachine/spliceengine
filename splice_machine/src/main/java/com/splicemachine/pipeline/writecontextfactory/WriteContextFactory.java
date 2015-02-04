@@ -1,17 +1,18 @@
 package com.splicemachine.pipeline.writecontextfactory;
 
 import com.splicemachine.pipeline.api.WriteContext;
-import com.splicemachine.pipeline.writecontextfactory.ForeignKeyCheckWriteFactory;
-import com.splicemachine.pipeline.writecontextfactory.LocalWriteFactory;
+import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.pipeline.writehandler.IndexCallBufferFactory;
 import com.splicemachine.si.api.TxnView;
+import org.apache.derby.iapi.sql.dictionary.ConstraintDescriptorList;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import com.splicemachine.pipeline.ddl.DDLChange;
+
 import java.io.IOException;
+import java.util.List;
 
 /**
  * @author Scott Fines
- * Created on: 4/30/13
+ *         Created on: 4/30/13
  */
 public interface WriteContextFactory<T> {
 
@@ -33,13 +34,15 @@ public interface WriteContextFactory<T> {
                                    TxnView txn,
                                    T key,
                                    int expectedWrites,
-                                   RegionCoprocessorEnvironment env) throws IOException,InterruptedException;
+                                   RegionCoprocessorEnvironment env) throws IOException, InterruptedException;
 
-    void dropIndex(long indexConglomId,TxnView txn);
+    void dropIndex(long indexConglomId, TxnView txn);
 
     void addIndex(DDLChange ddlChange, int[] columnOrdering, int[] typeIds);
 
-    void addForeignKeyCheckWriteFactory(int[] backingIndexFormatIds);
+    void addForeignKeyParentCheckWriteFactory(int[] backingIndexFormatIds);
+
+    void addForeignKeyParentInterceptWriteFactory(String parentTableName, List<Long> backingIndexConglomIds);
 
     void addDDLChange(DDLChange ddlChange);
 

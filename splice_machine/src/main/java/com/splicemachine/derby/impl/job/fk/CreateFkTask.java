@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.job.fk;
 
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
@@ -15,7 +16,10 @@ import java.io.ObjectOutput;
 import java.util.concurrent.ExecutionException;
 
 /**
- * Adds a foreign key write handler to each region where the FK referenced conglomerate ID exists.
+ * Adds FK ParentCheck and ParentIntercept write handlers to the parent table in a new FK relationship. This task is
+ * for handling the the case where we have created a new child table with FK and the parent table already exists AND the
+ * WriteContexts for that table may have already been initialized (otherwise the would just be setup properly during
+ * initialization based on FK info in the data dictionary).
  */
 public class CreateFkTask extends ZkTask {
 
@@ -24,15 +28,22 @@ public class CreateFkTask extends ZkTask {
     /* formatIds for the backing index of the FK we are creating */
     private int[] backingIndexFormatIds;
     /* conglom ID of unique index or base table primary key our FK references */
-    private int referencedConglomerateId;
+    private long referencedConglomerateId;
+    /* conglom ID of the backing-index associated with the FK */
+    private long referencingConglomerateId;
+    /* users visible name of the table new FK references */
+    private String referencedTableName;
+
 
     public CreateFkTask() {
     }
 
-    public CreateFkTask(String jobId, int[] backingIndexFormatIds, int referencedConglomerateId) {
+    public CreateFkTask(String jobId, int[] backingIndexFormatIds, long referencedConglomerateId, long referencingConglomerateId, String referencedTableName) {
         super(jobId, OperationJob.operationTaskPriority, null);
         this.backingIndexFormatIds = backingIndexFormatIds;
         this.referencedConglomerateId = referencedConglomerateId;
+        this.referencingConglomerateId = referencingConglomerateId;
+        this.referencedTableName = referencedTableName;
     }
 
     @Override
@@ -60,7 +71,8 @@ public class CreateFkTask extends ZkTask {
         try {
             WriteContextFactory contextFactory = WriteContextFactoryManager.getWriteContext(referencedConglomerateId);
             try {
-                contextFactory.addForeignKeyCheckWriteFactory(backingIndexFormatIds);
+                contextFactory.addForeignKeyParentCheckWriteFactory(backingIndexFormatIds);
+                contextFactory.addForeignKeyParentInterceptWriteFactory(referencedTableName, ImmutableList.of(referencingConglomerateId));
             } finally {
                 contextFactory.close();
             }
@@ -78,7 +90,9 @@ public class CreateFkTask extends ZkTask {
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
-        out.writeInt(referencedConglomerateId);
+        out.writeLong(referencedConglomerateId);
+        out.writeLong(referencingConglomerateId);
+        out.writeUTF(referencedTableName);
         out.writeInt(backingIndexFormatIds.length);
         for (int formatId : backingIndexFormatIds) {
             out.writeInt(formatId);
@@ -88,7 +102,9 @@ public class CreateFkTask extends ZkTask {
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.readExternal(in);
-        this.referencedConglomerateId = in.readInt();
+        this.referencedConglomerateId = in.readLong();
+        this.referencingConglomerateId = in.readLong();
+        this.referencedTableName = in.readUTF();
         int n = in.readInt();
         if (n > 0) {
             backingIndexFormatIds = new int[n];

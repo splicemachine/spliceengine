@@ -97,13 +97,13 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "updateIndex with %s", mutation);
 
-        ensureBufferReader(mutation, ctx);
-
         if (mutation.getType() == KVPair.Type.DELETE) {
             if (LOG.isTraceEnabled())
                 SpliceLogUtils.trace(LOG, "updateIndex ignore delete %s", mutation);
             return true; //send upstream without acting on it
         }
+
+        ensureBufferReader(mutation, ctx);
 
         return upsert(mutation, ctx);
     }
