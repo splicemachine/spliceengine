@@ -29,7 +29,7 @@
 
 	<properties>
 		<derby.version>1.1.0-SNAPSHOT</derby.version>
-		<excluded.categories>com.splicemachine.test.SlowTest</excluded.categories>
+		<excluded.categories>com.splicemachine.test.SlowTest, com.splicemachine.test.FinalTest</excluded.categories>
 		<failTasksRandomly>true</failTasksRandomly> <!-- run chaos monkey -->
 		<log4j.config.uri>file:${basedir}/src/main/resources/info-log4j.properties</log4j.config.uri>
 		<skip.integration.tests>true</skip.integration.tests>
@@ -216,7 +216,7 @@
 							<goal>verify</goal>
 						</goals>
 						<configuration>
-							<excludedGroups>com.splicemachine.test.SerialTest, ${excluded.categories}</excludedGroups>
+							<excludedGroups>com.splicemachine.test.SerialTest, com.splicemachine.test.FinalTest, ${excluded.categories}</excludedGroups>
 							<skipTests>${skip.integration.tests}</skipTests>
 							<parallel>classes</parallel>
 							<threadCount>1</threadCount>
@@ -225,6 +225,28 @@
 							<redirectTestOutputToFile>true</redirectTestOutputToFile>
 							<includes>
 								<include>**/*IT.java</include>
+							</includes>
+							<excludes>
+								<!-- Skip all unit tests -->
+								<exclude>**/*Test.java</exclude>
+							</excludes>
+						</configuration>
+					</execution>
+					<!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: FINAL -->
+					<execution>
+						<id>integration-tests-final</id>
+						<goals>
+							<goal>integration-test</goal>
+							<goal>verify</goal>
+						</goals>
+						<configuration>
+							<groups>com.splicemachine.test.FinalTest</groups>
+							<excludedGroups>${excluded.categories}</excludedGroups>
+							<skipTests>${skip.integration.tests}</skipTests>
+							<argLine>-Xmx3g</argLine>
+							<redirectTestOutputToFile>true</redirectTestOutputToFile>
+							<includes>
+								<include>**/*FINALIT.java</include>
 							</includes>
 							<excludes>
 								<!-- Skip all unit tests -->
