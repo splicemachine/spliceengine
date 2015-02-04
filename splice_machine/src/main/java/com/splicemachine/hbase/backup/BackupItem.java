@@ -267,7 +267,7 @@ public class BackupItem implements InternalTable {
             createBackupItemFilesystem();
             writeDescriptorToFileSystem();
             HTableInterface table = SpliceAccessManager.getHTable(getBackupItemBytes());
-            CreateBackupJob job = new CreateBackupJob(this, table);
+            CreateBackupJob job = new CreateBackupJob(this, table, getBackupItemFilesystem());
             JobFuture future = SpliceDriver.driver().getJobScheduler().submit(job);
             info = new JobInfo(job.getJobId(), future.getNumTasks(), System.currentTimeMillis());
             info.setJobFuture(future);

@@ -42,7 +42,7 @@ public class BackupUtils {
             region.startRegionOperation();
             FileSystem fs = region.getFilesystem();
             
-	    	FileUtil.copy(fs, derbyFactory.getRegionDir(region), fs, new Path(backupDirectory+"/"+derbyFactory.getRegionDir(region).getName()), false, SpliceConstants.config);
+	    	FileUtil.copy(fs, derbyFactory.getRegionDir(region), backupFileSystem, new Path(backupDirectory+"/"+derbyFactory.getRegionDir(region).getName()), false, SpliceConstants.config);
 	    	derbyFactory.writeRegioninfoOnFilesystem(region.getRegionInfo(), new Path(backupDirectory+"/"+derbyFactory.getRegionDir(region).getName()+"/"+REGION_INFO), backupFileSystem, SpliceConstants.config);
         } catch (Exception e) {
             throw new ExecutionException(Throwables.getRootCause(e));
