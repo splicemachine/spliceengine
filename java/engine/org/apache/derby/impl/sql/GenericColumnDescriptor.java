@@ -194,8 +194,18 @@ public final class GenericColumnDescriptor
 	public void writeExternal(ObjectOutput out) throws IOException {
 		
 		out.writeUTF(name);
-		out.writeUTF(tableName);
-		out.writeUTF(schemaName);
+		if (tableName != null) {
+            out.writeBoolean(true);
+            out.writeUTF(tableName);
+        } else {
+            out.writeBoolean(false);
+        }
+        if (schemaName != null) {
+            out.writeBoolean(true);
+            out.writeUTF(schemaName);
+        } else {
+            out.writeBoolean(false);
+        }
 		out.writeInt(columnPos);
 		out.writeObject(type);
 		out.writeBoolean(isAutoincrement);
@@ -214,8 +224,12 @@ public final class GenericColumnDescriptor
 	public void readExternal(ObjectInput in) 
 		throws IOException, ClassNotFoundException {		
 		name = in.readUTF();
-		tableName = in.readUTF();
-		schemaName = in.readUTF();
+		if (in.readBoolean()) {
+            tableName = in.readUTF();
+        }
+        if (in.readBoolean()) {
+		    schemaName = in.readUTF();
+        }
 		columnPos = in.readInt();
 		type = getStoredDataTypeDescriptor(in.readObject());
 		isAutoincrement = in.readBoolean();
