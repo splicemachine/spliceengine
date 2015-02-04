@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.iapi.error.StandardException;
@@ -64,6 +65,7 @@ import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.pipeline.exception.ErrorState;
+import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.pipeline.threadpool.ThreadPoolStatus;
 
 /**
@@ -179,15 +181,11 @@ public class SpliceAdmin extends BaseAdminProcedures {
         });
     }
 
-    // Please leave here commented out for now. Will remove this code permanently
-    // once we have another mechanism by which to quickly count this from
-    // a client app. For internal debugging purposes only.
-    /*
-    public static void SYSCS_GET_ACTIVE_JOB_COUNT(final ResultSet[] resultSet) throws SQLException {
+    public static void SYSCS_GET_ACTIVE_JOB_IDS(final ResultSet[] resultSet) throws SQLException {
 		ResultSetBuilder rsBuilder = new ResultSetBuilder();
 		try {
 			rsBuilder.getColumnBuilder()
-				.addColumn("JOB_ID", Types.VARCHAR, 128);
+				.addColumn("JOB_ID", Types.BIGINT);
 
 			long[] activeOperations = SpliceDriver.driver().getJobScheduler().getActiveOperations();
 
@@ -205,27 +203,6 @@ public class SpliceAdmin extends BaseAdminProcedures {
 		} catch (ExecutionException ee) {
 			throw PublicAPI.wrapStandardException(Exceptions.parseException(ee));
 		}
-    }
-    */
-
-    /**
-     * @deprecated desupported as of version 1.00. Throws exception if invoked.
-     */
-    public static void SYSCS_GET_ACTIVE_JOB_IDS(final ResultSet[] resultSet) throws SQLException {
-        // This stored procedure was a temporary internal debugging mechanism
-        // that was useful at the time, but it's time to purge it, because:
-        // - it has not been close to working properly for a long time
-        // - it's non trivial to make it work properly (all jobs/tasks in all states)
-        // - it's not presenting information we need to expose via stored proc anyway
-        // - SYSCS_GET_STATEMENT_SUMMARY or SYSCS_GET_REGION_SERVER_TASK_INFO
-        //   are the commonly used equivalents
-        //
-        // Right now an upgrade from before 1.00 will not automatically delete
-        // stored procedures, even if you invoke SYSCS_UPDATE_ALL_SYSTEM_PROCEDURES().
-        // Therefore, we keep this backend method but throw runtime exception,
-        // in case the data dictionary still has this procedure.
-        throw new SQLException(
-                "The procedure SYSCS_GET_ACTIVE_JOB_IDS has been permanently desupported. Use SYSCS_GET_STATEMENT_SUMMARY or SYSCS_GET_REGION_SERVER_TASK_INFO.");
     }
 
     public static void SYSCS_GET_PAST_STATEMENT_SUMMARY(final ResultSet[] resultSets) throws SQLException {
