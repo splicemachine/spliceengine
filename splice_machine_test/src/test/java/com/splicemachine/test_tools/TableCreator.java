@@ -16,7 +16,7 @@ import static com.google.common.base.Preconditions.checkState;
  *
  * <pre>
  *
- * new TableBuilder(conn)
+ * new TableCreator(conn)
  *      .withCreate("create table t1(a int)")
  *      .withInsert("insert into t1 value(?)")
  *      .withRows(new MyRowProvider()).build();
@@ -27,14 +27,14 @@ import static com.google.common.base.Preconditions.checkState;
  *
  * <pre>
  *
- * TableBuilder tb = new TableBuilder(conn)
+ * TableCreator tc = new TableCreator(conn)
  *      .withCreate("create table %s (a int)")
  *      .withInsert("insert into %s value(?)")
  *      .withRows(new MyRowProvider()).build();
  *
- * tb.withTableName("t1").create();
- * tb.withTableName("t2").create();
- * tb.withTableName("t3").create();
+ * tc.withTableName("t1").create();
+ * tc.withTableName("t2").create();
+ * tc.withTableName("t3").create();
  *
  * </pre>
  */

@@ -9,7 +9,13 @@ import com.splicemachine.pipeline.impl.WriteCoordinator;
 import com.splicemachine.pipeline.writeconfiguration.IndexSharedWriteConfiguration;
 import com.splicemachine.si.api.TxnView;
 
-/* This class is NOT thread safe */
+/*
+ * When performing the region-side processing of a base-table BulkWrite, writing to N regions on a single region server,
+ * there will be N WriteContexts and N IndexWriteHandlers. We don't want N CallBuffers for remotely sending the index
+ * writes. Thus this class.
+ *
+ * This class is NOT thread safe.
+ */
 public class IndexCallBufferFactory {
 
     /* conglomerateId to CallBuffer */
@@ -18,7 +24,10 @@ public class IndexCallBufferFactory {
     public CallBuffer<KVPair> getWriteBuffer(byte[] conglomBytes,
                                              WriteContext context,
                                              ObjectObjectOpenHashMap<KVPair, KVPair> indexToMainMutationMap,
-                                             int maxSize, boolean useAsyncWriteBuffers, TxnView txn) throws Exception {
+                                             int maxSize,
+                                             boolean useAsyncWriteBuffers,
+                                             TxnView txn) throws Exception {
+
         CallBuffer<KVPair> writeBuffer = sharedCallBufferMap.get(conglomBytes);
         if (writeBuffer == null) {
             writeBuffer = createKvPairCallBuffer(conglomBytes, context, indexToMainMutationMap, maxSize, useAsyncWriteBuffers, txn);

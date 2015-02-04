@@ -1,4 +1,4 @@
-package com.splicemachine.pipeline.writehandler;
+package com.splicemachine.pipeline.writehandler.foreignkey;
 
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.encoding.MultiFieldDecoder;
@@ -11,20 +11,19 @@ import com.splicemachine.pipeline.impl.WriteResult;
 import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.TxnOperationFactory;
-import org.apache.commons.codec.binary.Hex;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.List;
 
 /**
- * Perform the actual FK existence check on a referenced primary key column or unique index.
+ * Perform the FK existence check on a referenced primary key column or unique index. Fails the write if a
+ * referenced row does NOT exist.  Preventing INSERTS/UPDATES in child table that would create orphaned rows.
  */
-public class ForeignKeyCheckWriteHandler implements WriteHandler {
+public class ForeignKeyParentCheckWriteHandler implements WriteHandler {
 
     private final TransactionalRegion region;
     private final TxnOperationFactory txnOperationFactory;
@@ -34,7 +33,7 @@ public class ForeignKeyCheckWriteHandler implements WriteHandler {
     private final int formatIds[];
     private final MultiFieldDecoder multiFieldDecoder;
 
-    public ForeignKeyCheckWriteHandler(TransactionalRegion region, RegionCoprocessorEnvironment env, int[] formatIds) {
+    public ForeignKeyParentCheckWriteHandler(TransactionalRegion region, RegionCoprocessorEnvironment env, int[] formatIds) {
         this.region = region;
         this.env = env;
         this.formatIds = formatIds;
@@ -43,12 +42,12 @@ public class ForeignKeyCheckWriteHandler implements WriteHandler {
     }
 
     /**
-     * TODO: Need to use batch gets here, DB-2582 is added to the FK epic to address this.
+     * TODO: Can we batch gets for performance here, DB-2582 is added to the FK epic to address this.
      */
     @Override
     public void next(KVPair kvPair, WriteContext ctx) {
         // I only do foreign key checks.
-        if (kvPair.getType() == KVPair.Type.FOREIGN_KEY_CHECK) {
+        if (kvPair.getType() == KVPair.Type.FOREIGN_KEY_PARENT_EXISTENCE_CHECK) {
             if (!region.rowInRange(kvPair.getRowKey())) {
                 // The row would not longer be in this region, if it did/does exist.
                 ctx.failed(kvPair, WriteResult.wrongRegion());
