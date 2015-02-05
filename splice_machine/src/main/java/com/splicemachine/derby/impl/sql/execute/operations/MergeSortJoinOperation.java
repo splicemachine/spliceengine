@@ -546,10 +546,8 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
     private class RowComparator implements Comparator<ExecRow>, Serializable {
 
         private static final long serialVersionUID = -7005014411999208729L;
-//        private boolean[] descColumns; //descColumns[i] = false => column[i] sorted descending, else sorted ascending
 
         public RowComparator() {
-//            this.descColumns = descColumns;
         }
 
         @Override

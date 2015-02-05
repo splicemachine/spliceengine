@@ -29,6 +29,7 @@ import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+import org.apache.spark.api.java.JavaRDD;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -379,5 +380,17 @@ public class BroadcastJoinOperation extends JoinOperation {
                                    objectSizeMB, objectSize,
                                    regionSizeMB != -1 ? objectSizeMB / regionSizeMB : "N/A"
         ));
+    }
+
+    @Override
+    public boolean providesRDD() {
+        // Only when this operation isn't above a Sink
+        // TODO implement BcastJoin in Spark when it's above a sink
+        return leftResultSet.providesRDD() && rightResultSet.providesRDD() && getOperationStack().get(0) instanceof TableScanOperation;
+    }
+
+    @Override
+    public JavaRDD<ExecRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+        return leftResultSet.getRDD(spliceRuntimeContext, top);
     }
 }
