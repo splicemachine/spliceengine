@@ -6,6 +6,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.spark.RDDUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.GroupedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SourceIterator;
 import com.splicemachine.derby.impl.sql.execute.operations.sort.DistinctSortAggregateBuffer;
@@ -32,16 +33,17 @@ import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.store.access.ColumnOrdering;
+import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
+import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.api.java.JavaRDD;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Properties;
+import java.io.Serializable;
+import java.util.*;
 
 public class SortOperation extends SpliceBaseOperation implements SinkingOperation {
 		private static final long serialVersionUID = 2l;
@@ -458,4 +460,51 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 								.toString();
 		}
 
+
+    @Override
+    public boolean providesRDD() {
+        return ((SpliceOperation)source).providesRDD();
+    }
+
+    @Override
+    public JavaRDD<ExecRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+        JavaRDD<ExecRow> rdd = source.getRDD(spliceRuntimeContext, source);
+        if (distinct) {
+            rdd = rdd.distinct();
+        }
+        JavaPairRDD<ExecRow, ExecRow> keyed = RDDUtils.getKeyedRDD(rdd, keyColumns).cache();
+        JavaPairRDD<ExecRow, ExecRow> sorted = keyed.sortByKey(new RowComparator(descColumns));
+        return sorted.values();
+    }
+
+    private class RowComparator implements Comparator<ExecRow>, Serializable {
+
+        private static final long serialVersionUID = -7005014411999208729L;
+        private boolean[] descColumns; //descColumns[i] = false => column[i] sorted descending, else sorted ascending
+
+        public RowComparator(boolean[] descColumns) {
+            this.descColumns = descColumns;
+        }
+
+        @Override
+        public int compare(ExecRow o1, ExecRow o2) {
+            DataValueDescriptor[] a1 = o1.getRowArray();
+            DataValueDescriptor[] a2 = o2.getRowArray();
+            for (int i = 0; i < a1.length; ++i) {
+                DataValueDescriptor c1 = a1[i];
+                DataValueDescriptor c2 = a2[i];
+                int result;
+                try {
+                    result = c1.compare(c2);
+                } catch (StandardException e) {
+                    throw new RuntimeException(e);
+                }
+                if (result != 0) {
+                    return descColumns[i] ? result : -result;
+                }
+            }
+            return 0;
+        }
+
+    }
 }

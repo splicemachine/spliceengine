@@ -99,7 +99,8 @@ public class SpliceSpark {
         SparkConf conf = new SparkConf();
         conf.setAppName("SpliceMachine");
         conf.setMaster(master);
-        conf.set("spark.serializer", "com.splicemachine.derby.impl.spark.SparkKryoSerializer");
+        conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
+        conf.set("spark.kryo.registrator", "com.splicemachine.derby.impl.spark.SpliceSparkKryoRegistrator");
 //        conf.set("spark.serializer", SparkCustomSerializer.class.getName());
         conf.set("spark.executor.memory", "8G");
 //				conf.set("spark.closure.serializer", "org.apache.spark.serializer.KryoSerializer");
