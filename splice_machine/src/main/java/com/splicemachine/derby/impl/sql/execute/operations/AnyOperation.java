@@ -215,4 +215,9 @@ public class AnyOperation extends SpliceBaseOperation {
     public boolean isReferencingTable(long tableNumber) {
         return source.isReferencingTable(tableNumber);
     }
+
+    @Override
+    public String toString() {
+        return String.format("AnyOperation {source=%s,resultSetNumber=%d}",source,resultSetNumber);
+    }
 }

@@ -437,4 +437,9 @@ public class OnceOperation extends SpliceBaseOperation {
     public boolean providesRDD() {
         return source.providesRDD();
     }
+
+    @Override
+    public String toString() {
+        return String.format("OnceOperation {source=%s,resultSetNumber=%d}",source,resultSetNumber);
+    }
 }
