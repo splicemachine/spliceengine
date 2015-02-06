@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -9,6 +10,8 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.job.JobInfo;
+import com.splicemachine.derby.impl.spark.RDDUtils;
+import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
@@ -29,12 +32,15 @@ import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.shared.common.sanity.SanityManager;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
+import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.storage.StorageLevel;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.Callable;
 
@@ -401,4 +407,34 @@ public class OnceOperation extends SpliceBaseOperation {
 
 				return row;
 		}
+
+    public JavaRDD<ExecRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+        JavaRDD<ExecRow> raw = source.getRDD(spliceRuntimeContext, top);
+        if (getOperationStack().get(0) instanceof TableScanOperation) {
+            // we want to avoid re-applying the OnceOp if it has already been executed in HBase
+            return raw;
+        }
+        final Iterator<ExecRow> iterator = raw.toLocalIterator();
+        ExecRow result;
+        try {
+            result = validateNextRow(new RowSource() {
+                @Override
+                public ExecRow next() throws StandardException, IOException {
+                    if (iterator.hasNext()) {
+                        return iterator.next();
+                    } else {
+                        return null;
+                    }
+                }
+            }, false);
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
+        return SpliceSpark.getContext().parallelize(Lists.newArrayList(result));
+    }
+
+    @Override
+    public boolean providesRDD() {
+        return source.providesRDD();
+    }
 }

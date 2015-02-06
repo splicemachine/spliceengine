@@ -392,7 +392,7 @@ public class TableScanOperation extends ScanOperation {
 
         @Override
         public boolean providesRDD() {
-            return SpliceSpark.sparkActive() &&  Integer.parseInt(tableName) > 1169;
+            return SpliceSpark.sparkActive();
         }
 
         @Override

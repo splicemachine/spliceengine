@@ -21,10 +21,14 @@ import org.apache.hadoop.hbase.regionserver.WrongRegionException;
 import org.apache.hadoop.ipc.RemoteException;
 import org.apache.hadoop.hbase.client.ScannerTimeoutException;
 import org.apache.log4j.Logger;
+import org.apache.spark.SparkException;
+
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.ConnectException;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * @author Scott Fines
@@ -50,9 +54,9 @@ public class Exceptions {
             com.splicemachine.async.RemoteException re = (com.splicemachine.async.RemoteException) rootCause;
             String fullMessage = re.getMessage();
             String type = re.getType();
-            try{
-                return parseException((Throwable)Class.forName(type).getConstructor(String.class).newInstance(fullMessage));
-            }catch(ClassNotFoundException cnfe){
+            try {
+                return parseException((Throwable) Class.forName(type).getConstructor(String.class).newInstance(fullMessage));
+            } catch (ClassNotFoundException cnfe) {
                 //just parse  the actual remote directly
                 ErrorState state = ErrorState.stateFor(rootCause);
                 return state.newException(rootCause);
@@ -69,6 +73,15 @@ public class Exceptions {
             } catch (IllegalAccessException e1) {
                 ErrorState state = ErrorState.stateFor(rootCause);
                 return state.newException(rootCause);
+            }
+        } else if(rootCause instanceof SparkException) {
+            if (rootCause.getMessage().contains("org.apache.derby.iapi.error.StandardException")) {
+                // the root cause of the Spark failure was a standard exception, let's parse it
+                String message = rootCause.getMessage();
+                Matcher m = Pattern.compile("messageId\\\":\\\"(\\d+)\\\"").matcher(message);
+                if (m.find()) {
+                    return StandardException.newException(m.group(1));
+                }
             }
         } else if(rootCause instanceof SpliceDoNotRetryIOException){
             SpliceDoNotRetryIOException spliceException = (SpliceDoNotRetryIOException)rootCause;
