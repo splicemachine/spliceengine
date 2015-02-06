@@ -2,6 +2,7 @@ package com.splicemachine.derby.hbase;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.KVPair;
+import com.splicemachine.mrio.api.MemStoreFlushAwareScanner;
 import com.splicemachine.si.api.*;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -101,14 +102,14 @@ public class SpliceIndexObserver extends AbstractSpliceIndexObserver {
 			ObserverContext<RegionCoprocessorEnvironment> c, Store store,
 			Scan scan, NavigableSet<byte[]> targetCols, KeyValueScanner s)
 			throws IOException {
-/*		if (scan.getAttribute("MR") != null) {
-			System.out.println("booh");
+		if (scan.getAttribute("MAP-REDUCE") != null) {
+			LOG.debug("MemStoreFlushAwareScanner");
 			InternalScan iscan = new InternalScan(scan);
 			iscan.checkOnlyMemStore();
-		      return new StoreScanner(store, store.getScanInfo(), iscan, targetCols,
+		      return new MemStoreFlushAwareScanner(store, store.getScanInfo(), iscan, targetCols,
 		    	        ((HStore)store).getHRegion().getReadpoint(IsolationLevel.READ_UNCOMMITTED));		
 		} 
-		*/
+		
 		return super.preStoreScannerOpen(c, store, scan, targetCols, s);
 	}
 }
