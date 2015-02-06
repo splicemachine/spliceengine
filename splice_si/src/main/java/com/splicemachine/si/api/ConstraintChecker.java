@@ -31,9 +31,6 @@ public interface ConstraintChecker {
         }
     };
 
-    /** Can be used by callers of checkConstraint() to indicate no existing row.  */
-    public static final Result EMPTY_RESULT = new Result();
-
     /**
      * Checks the constraint against the current row and the current modification.
      *
