@@ -108,7 +108,7 @@ public class TabInfoImpl
      *
      * @param heapConglomerate  The new heap conglomerate.
      */
-	void setHeapConglomerate(long heapConglomerate)
+	public void setHeapConglomerate(long heapConglomerate)
 	{
 		this.heapConglomerate = heapConglomerate;
 		heapSet = true;
@@ -338,7 +338,7 @@ public class TabInfoImpl
      *
      * @return int  The number of indexes on this catalog.
      */
-	int getNumberOfIndexes()
+	public int getNumberOfIndexes()
 	{
 		if (indexes == null)
 		{
@@ -1031,7 +1031,7 @@ public class TabInfoImpl
 	 *
 	 * @return The Properties associated with creating the heap.
 	 */
-	Properties getCreateHeapProperties()
+	public Properties getCreateHeapProperties()
 	{
 		return crf.getCreateHeapProperties();
 	}

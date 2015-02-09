@@ -8759,7 +8759,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 	   @exception StandardException Standard Derby error policy
 
 	 */
-	private void bootStrapSystemIndexes(
+	protected void bootStrapSystemIndexes(
 								  SchemaDescriptor sd, 
 								  TransactionController tc,
 								  DataDescriptorGenerator ddg,
@@ -9166,7 +9166,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 	  *
 	  *	@exception StandardException Standard Derby error policy
 	  */
-	private	ColumnDescriptor	makeColumnDescriptor( SystemColumn		column,
+	protected	ColumnDescriptor	makeColumnDescriptor( SystemColumn		column,
             int columnPosition,
 													  TableDescriptor	td )
 						throws StandardException
@@ -9192,7 +9192,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 
 		@exception StandardException Standard Derby error policy.
 	 */
-	private long createConglomerate(String name, TransactionController tc,
+	protected long createConglomerate(String name, TransactionController tc,
 									ExecRow rowTemplate, Properties properties)
 						throws StandardException
 	{
