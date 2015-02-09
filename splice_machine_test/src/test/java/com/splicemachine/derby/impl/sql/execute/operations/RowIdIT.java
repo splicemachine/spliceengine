@@ -81,6 +81,34 @@ public class RowIdIT extends SpliceUnitTest {
     }
 
     @Test
+    public void testUpdateWithSubquery() throws Exception {
+
+        ResultSet rs  = methodWatcher.executeQuery(
+                String.format("select rowid, i from %s where i = 0", this.getTableReference(TABLE1_NAME)));
+
+        RowId rowId1 = null;
+        while (rs.next()) {
+            rowId1 = rs.getRowId("rowid");
+        }
+        rs.close();
+
+        methodWatcher.executeUpdate(
+                String.format("update %s set i=1000 where rowid = (select rowid from %s where i = 0)",
+                        this.getTableReference(TABLE1_NAME), this.getTableReference(TABLE1_NAME)));
+
+        rs  = methodWatcher.executeQuery(
+                String.format("select rowid, i from %s where i = 1000", this.getTableReference(TABLE1_NAME)));
+        RowId rowId2 = null;
+        while (rs.next()) {
+            rowId2 = rs.getRowId("rowid");
+            int i = rs.getInt("i");
+
+            Assert.assertEquals(rowId1, rowId2);
+            Assert.assertEquals(i, 1000);
+        }
+    }
+
+    @Test
     public void testRowIdForJoin() throws Exception {
 
         ResultSet rs  = methodWatcher.executeQuery(
