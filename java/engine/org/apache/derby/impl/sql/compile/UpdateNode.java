@@ -25,6 +25,8 @@ import org.apache.derby.catalog.DefaultInfo;
 import org.apache.derby.catalog.UUID;
 
 import org.apache.derby.iapi.services.compiler.MethodBuilder;
+import org.apache.derby.iapi.types.DataTypeDescriptor;
+import org.apache.derby.iapi.types.TypeId;
 import org.apache.derby.impl.sql.compile.ActivationClassBuilder;
 import org.apache.derby.iapi.sql.conn.Authorizer;
 import org.apache.derby.iapi.sql.compile.C_NodeTypes;
@@ -488,6 +490,11 @@ public final class UpdateNode extends DMLModStatementNode
 			}
 		}
 
+        /* Bind the expressions */
+        getCompilerContext().pushCurrentPrivType(getPrivType()); // Update privilege
+        super.bindExpressions();
+        getCompilerContext().popCurrentPrivType();
+
 		if (targetVTI == null)
 		{
 			/*
@@ -513,17 +520,7 @@ public final class UpdateNode extends DMLModStatementNode
                                         ReuseFactory.getInteger( 0),
 										getContextManager());
         }
-            
-        rowLocationColumn =
-          (ResultColumn) getNodeFactory().getNode(
-              C_NodeTypes.RESULT_COLUMN,
-              COLUMNNAME,
-              rowLocationNode,
-              getContextManager());
-        rowLocationColumn.markGenerated();
 
-			/* Append to the ResultColumnList */
-        resultColumnList.addResultColumn(rowLocationColumn);
 
 		/*
 		 * The last thing that we do to the generated RCL is to clear
@@ -543,6 +540,40 @@ public final class UpdateNode extends DMLModStatementNode
 		getCompilerContext().pushCurrentPrivType(getPrivType()); // Update privilege
 		super.bindExpressions();
 		getCompilerContext().popCurrentPrivType();
+
+        ResultColumn rowIdColumn = targetTable.getRowIdColumn();
+        if (rowIdColumn == null) {
+            rowLocationColumn =
+                    (ResultColumn) getNodeFactory().getNode(
+                            C_NodeTypes.RESULT_COLUMN,
+                            COLUMNNAME,
+                            rowLocationNode,
+                            getContextManager());
+            rowLocationNode.setType(new DataTypeDescriptor(TypeId.getBuiltInTypeId(TypeId.REF_NAME),
+                            false		/* Not nullable */
+                    )
+            );
+            rowLocationColumn.markGenerated();
+        }
+        else {
+            ColumnReference columnReference = (ColumnReference) getNodeFactory().getNode(
+                    C_NodeTypes.COLUMN_REFERENCE,
+                    rowIdColumn.getName(),
+                    null,
+                    getContextManager());
+            columnReference.setSource(rowIdColumn);
+            columnReference.setNestingLevel(targetTable.getLevel());
+            columnReference.setSourceLevel(targetTable.getLevel());
+            rowLocationColumn =
+                    (ResultColumn) getNodeFactory().getNode(
+                            C_NodeTypes.RESULT_COLUMN,
+                            COLUMNNAME,
+                            columnReference,
+                            getContextManager());
+        }
+
+	    /* Append to the ResultColumnList */
+        resultColumnList.addResultColumn(rowLocationColumn);
 
 		/* Bind untyped nulls directly under the result columns */
 		resultSet.

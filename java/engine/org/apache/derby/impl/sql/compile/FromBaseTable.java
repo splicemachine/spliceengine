@@ -4605,6 +4605,9 @@ public class FromBaseTable extends FromTable {
         return (qualifiedIndexes > 0);
     }
 
+    @Override
+    public ResultColumn getRowIdColumn() {return rowIdColumn;}
+
 /*
     public ConstantAction makeConstantAction() throws StandardException {
         ConglomerateDescriptorList cdl = tableDescriptor.getConglomerateDescriptorList();

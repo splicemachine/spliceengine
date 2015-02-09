@@ -1544,4 +1544,6 @@ public abstract class FromTable extends ResultSetNode implements Optimizable
 	{
 		return this.origTableName;
 	}
+
+    public ResultColumn getRowIdColumn() {return null;}
 }
