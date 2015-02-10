@@ -312,14 +312,17 @@ public class SpliceDatabase extends BasicDatabase {
     @Override
     public void restore(String restoreDir, boolean wait) throws SQLException {}
 
-    public static void SYSCS_RESTORE_DATABASE(String restoreDir, ResultSet[] resultSets) {
+    public static void SYSCS_RESTORE_DATABASE(String restoreDir, ResultSet[] resultSets) throws StandardException, SQLException{
         HBaseAdmin admin = null;
         String changeId = null;
+        LanguageConnectionContext lcc = null;
+        Connection conn = null;
+        IteratorNoPutResultSet inprs = null;
         try {
             admin = SpliceUtilities.getAdmin();
 
-            Connection conn = SpliceAdmin.getDefaultConn();
-            LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
+            conn = SpliceAdmin.getDefaultConn();
+            lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
 
             // Check for ongoing backup...
             String backupResponse = null;
@@ -397,14 +400,22 @@ public class SpliceDatabase extends BasicDatabase {
             template.getColumn(1).setValue("Restore completed");
             template.getColumn(2).setValue("Database has to be rebooted");
             rows.add(template.getClone());
-            IteratorNoPutResultSet inprs = new IteratorNoPutResultSet(rows,rcds,lcc.getLastActivation());
+            inprs = new IteratorNoPutResultSet(rows,rcds,lcc.getLastActivation());
             inprs.openCore();
-            resultSets[0] = new EmbedResultSet40(conn.unwrap(EmbedConnection.class),inprs,false,null,true);
 
             LOG.info("Restore completed. Database reboot is required.");
 
         } catch (Throwable t) {
-            // TODO error handling
+            ResultColumnDescriptor[] rcds = new ResultColumnDescriptor[]{
+                    new GenericColumnDescriptor("Error", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, t.getMessage().length()))};
+            ExecRow template = new ValueRow(1);
+            template.setRowArray(new DataValueDescriptor[]{new SQLVarchar()});
+            List<ExecRow> rows = Lists.newArrayList();
+            template.getColumn(1).setValue(t.getMessage());
+
+            rows.add(template.getClone());
+            inprs = new IteratorNoPutResultSet(rows,rcds,lcc.getLastActivation());
+            inprs.openCore();
             SpliceLogUtils.error(LOG, "Error recovering backup", t);
 
         } finally {
@@ -415,6 +426,7 @@ public class SpliceDatabase extends BasicDatabase {
             } catch (StandardException e) {
                 SpliceLogUtils.error(LOG, "Error recovering backup", e);
             }
+            resultSets[0] = new EmbedResultSet40(conn.unwrap(EmbedConnection.class),inprs,false,null,true);
             Closeables.closeQuietly(admin);
         }
 
