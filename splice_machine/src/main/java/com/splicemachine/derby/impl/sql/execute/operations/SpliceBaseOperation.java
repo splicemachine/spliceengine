@@ -674,6 +674,11 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
         }
 
         @Override
+        public boolean pushedToServer() {
+            return false;
+        }
+
+        @Override
         public boolean expectsRDD() {
             return providesRDD();
         }

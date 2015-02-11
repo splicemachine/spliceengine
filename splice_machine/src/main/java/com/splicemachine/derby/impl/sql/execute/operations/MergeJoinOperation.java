@@ -220,7 +220,7 @@ public class MergeJoinOperation extends JoinOperation {
     public boolean providesRDD() {
         // Only when this operation isn't above a Sink
         // TODO implement MergeJoin in Spark when it's above a sink
-        return leftResultSet.providesRDD() && rightResultSet.providesRDD() && getOperationStack().get(0) instanceof TableScanOperation;
+        return leftResultSet.providesRDD() && rightResultSet.providesRDD() && pushedToServer();
     }
 
     @Override
@@ -228,4 +228,8 @@ public class MergeJoinOperation extends JoinOperation {
         return leftResultSet.getRDD(spliceRuntimeContext, top);
     }
 
+    @Override
+    public boolean pushedToServer() {
+        return leftResultSet.pushedToServer() && rightResultSet.pushedToServer();
+    }
 }
