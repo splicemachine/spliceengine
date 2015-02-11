@@ -144,7 +144,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
 						leftResultSet.setCurrentRow(leftRow);
 						rowsSeenLeft++;
 						SpliceLogUtils.debug(LOG, ">>>  NestdLoopJoin: new NLIterator");
-						nestedLoopIterator = new NestedLoopIterator(leftRow, isHash, outerJoin, rightResultSetUniqueSequenceID, spliceRuntimeContext);
+						nestedLoopIterator = new NestedLoopIterator(leftRow, isHash, outerJoin, rightResultSetUniqueSequenceID, spliceRuntimeContext, true);
 				}
 				if (leftRow == null){
 						if(nestedLoopIterator!=null){
@@ -199,8 +199,9 @@ public class NestedLoopJoinOperation extends JoinOperation {
             super.updateStats(stats);
 		}
 
-    protected NestedLoopIterator createNestedLoopIterator(ExecRow leftRow, boolean hash, boolean outerJoin, byte[] rightResultSetUniqueSequenceID, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-        return new NestedLoopIterator(leftRow, hash, outerJoin, rightResultSetUniqueSequenceID, spliceRuntimeContext);
+    protected NestedLoopIterator createNestedLoopIterator(ExecRow leftRow, boolean hash, boolean outerJoin, byte[] rightResultSetUniqueSequenceID,
+                                                          SpliceRuntimeContext spliceRuntimeContext, boolean showStatementInfo) throws StandardException, IOException {
+        return new NestedLoopIterator(leftRow, hash, outerJoin, rightResultSetUniqueSequenceID, spliceRuntimeContext, showStatementInfo);
     }
 
     protected class NestedLoopIterator implements Iterator<ExecRow>, Iterable<ExecRow> {
@@ -211,14 +212,15 @@ public class NestedLoopJoinOperation extends JoinOperation {
         private boolean outerJoin = false;
 
 
-        NestedLoopIterator(ExecRow leftRow, boolean hash, boolean outerJoin, byte[] rightResultSetUniqueSequenceID, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+        NestedLoopIterator(ExecRow leftRow, boolean hash, boolean outerJoin, byte[] rightResultSetUniqueSequenceID,
+                           SpliceRuntimeContext spliceRuntimeContext, boolean showStatementInfo) throws StandardException, IOException {
             SpliceLogUtils.trace(LOG, "NestedLoopIterator instantiated with leftRow %s",leftRow);
             this.leftRow = leftRow;
             probeResultSet = getRightResultSet();
             if (shouldRecordStats()) {
                 addToOperationChain(spliceRuntimeContext, null, rightResultSetUniqueSequenceID);
             }
-            SpliceRuntimeContext ctx = probeResultSet.sinkOpen(spliceRuntimeContext.getTxn(),true);
+            SpliceRuntimeContext ctx = probeResultSet.sinkOpen(spliceRuntimeContext.getTxn(), showStatementInfo);
             probeResultSet.executeScan(hash, ctx);
             populated=false;
             this.outerJoin = outerJoin;
@@ -372,7 +374,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
             if (rightResultSetUniqueSequenceID == null) {
                 rightResultSetUniqueSequenceID = op.rightResultSet.getUniqueSequenceID();
             }
-            nestedLoopIterator = op.createNestedLoopIterator(sourceRow, op.isHash, false, rightResultSetUniqueSequenceID, soi.getSpliceRuntimeContext());
+            nestedLoopIterator = op.createNestedLoopIterator(sourceRow, op.isHash, false, rightResultSetUniqueSequenceID, soi.getSpliceRuntimeContext(), false);
             return nestedLoopIterator;
         }
     }
