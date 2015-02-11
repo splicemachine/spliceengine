@@ -255,7 +255,7 @@ public class SpliceIndexObserver extends AbstractSpliceIndexObserver {
 		KeyValue retValue = toKeyValue(storeFiles);
 		for(Store store: storeMap.values()){
 			for(StoreFile sf: store.getStorefiles()){
-				storeFiles.add(sf.getFileInfo().getPath().toString());
+				storeFiles.add(sf.getPath().toString());
 			}
 		}
 		results.add(retValue);
