@@ -17,6 +17,7 @@ import com.splicemachine.pipeline.writehandler.RegionWriteHandler;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.derby.catalog.IndexDescriptor;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
@@ -110,9 +111,8 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
         return new ChainConstraintChecker(checkers);
     }
 
-    private void addIndexAndForeignKeyWriteHandlers(int expectedWrites, PipelineWriteContext context) throws IOException, InterruptedException {
-        TxnView txn = context.getTxn();
-        switch (state.get()) {
+	private void isInitialized(TxnView txn) throws IOException, InterruptedException {
+		switch (state.get()) {
             case READY_TO_START:
                 SpliceLogUtils.trace(LOG, "Index management for conglomerate %d has not completed, attempting to start now", conglomId);
                 start(txn);
@@ -127,6 +127,10 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
             case SHUTDOWN:
                 throw new IOException("management for conglomerate " + conglomId + " is shutdown");
         }
+	}
+
+    private void addIndexAndForeignKeyWriteHandlers(int expectedWrites, PipelineWriteContext context) throws IOException, InterruptedException {
+        isInitialized(context.getTxn());
         //only add constraints and indices when we are in a RUNNING state
         if (state.get() == State.RUNNING) {
             //add Constraint checks before anything else
@@ -522,7 +526,8 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
     }
 
     @Override
-    public boolean hasDependentWrite() {
+    public boolean hasDependentWrite(TxnView txn) throws IOException, InterruptedException {
+    	isInitialized(txn);
         return !indexFactories.isEmpty();
     }
 

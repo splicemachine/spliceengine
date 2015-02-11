@@ -17,12 +17,15 @@ import com.splicemachine.utils.TrafficControl;
 import com.yammer.metrics.core.Meter;
 import com.yammer.metrics.core.MetricName;
 import com.yammer.metrics.core.Timer;
+
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
+import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import javax.management.*;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -119,7 +122,17 @@ public class SpliceBaseIndexEndpoint {
         // start
 //				List<Pair<BulkWriteResult,RegionWritePipeline>> startPoints = Lists.newArrayListWithExpectedSize(size);
         IndexCallBufferFactory indexWriteBufferFactory = new IndexCallBufferFactory();
-        boolean dependent = regionWritePipeline.isDependent();
+
+        if (size==0) {
+        	throw new DoNotRetryIOException("Should Never Send Empty Call to Endpoint");
+        }
+        boolean dependent;
+        try {
+        	dependent = regionWritePipeline.isDependent(bulkWrites.getTxn());
+        } catch (InterruptedException e1) {
+        	throw new IOException(e1);
+        }
+
         SpliceWriteControl.Status status;
         int kvPairSize = bulkWrites.numEntries();
         status = (dependent) ? writeControl.performDependentWrite(kvPairSize) : writeControl.performIndependentWrite(kvPairSize);

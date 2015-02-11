@@ -47,6 +47,6 @@ public interface WriteContextFactory<T> {
 
     void prepare();
 
-    boolean hasDependentWrite();
+    boolean hasDependentWrite(TxnView txn) throws IOException, InterruptedException;
 
 }
