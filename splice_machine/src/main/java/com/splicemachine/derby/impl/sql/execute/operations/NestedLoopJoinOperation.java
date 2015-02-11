@@ -2,10 +2,12 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.OperationResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.impl.spark.RDDUtils;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.metrics.IOStats;
@@ -20,6 +22,7 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+import org.apache.spark.api.java.JavaRDD;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -196,7 +199,11 @@ public class NestedLoopJoinOperation extends JoinOperation {
             super.updateStats(stats);
 		}
 
-    protected class NestedLoopIterator implements Iterator<ExecRow> {
+    protected NestedLoopIterator createNestedLoopIterator(ExecRow leftRow, boolean hash, boolean outerJoin, byte[] rightResultSetUniqueSequenceID, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+        return new NestedLoopIterator(leftRow, hash, outerJoin, rightResultSetUniqueSequenceID, spliceRuntimeContext);
+    }
+
+    protected class NestedLoopIterator implements Iterator<ExecRow>, Iterable<ExecRow> {
         protected ExecRow leftRow;
         protected OperationResultSet probeResultSet;
         private boolean populated;
@@ -325,5 +332,48 @@ public class NestedLoopJoinOperation extends JoinOperation {
 						probeResultSet.close();
 						closeTime += getElapsedMillis(beginTime);
 				}
-		}
+
+        @Override
+        public Iterator<ExecRow> iterator() {
+            return this;
+        }
+    }
+
+    @Override
+    public boolean providesRDD() {
+        return leftResultSet.providesRDD();
+    }
+
+    @Override
+    public JavaRDD<ExecRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+        JavaRDD<ExecRow> left = leftResultSet.getRDD(spliceRuntimeContext, leftResultSet);
+        final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this, spliceRuntimeContext);
+        return left.flatMap(new NLJSparkOperation(this, soi));
+    }
+
+
+    public static final class NLJSparkOperation extends SparkFlatMapOperation<NestedLoopJoinOperation, ExecRow, ExecRow> {
+        private NestedLoopIterator nestedLoopIterator;
+        private byte[] rightResultSetUniqueSequenceID;
+
+        public NLJSparkOperation() {
+        }
+
+        public NLJSparkOperation(NestedLoopJoinOperation spliceOperation, SpliceObserverInstructions soi) {
+            super(spliceOperation, soi);
+        }
+
+        @Override
+        public Iterable<ExecRow> call(ExecRow sourceRow) throws Exception {
+            if (sourceRow == null) {
+                return null;
+            }
+            op.leftResultSet.setCurrentRow(sourceRow);
+            if (rightResultSetUniqueSequenceID == null) {
+                rightResultSetUniqueSequenceID = op.rightResultSet.getUniqueSequenceID();
+            }
+            nestedLoopIterator = op.createNestedLoopIterator(sourceRow, op.isHash, false, rightResultSetUniqueSequenceID, soi.getSpliceRuntimeContext());
+            return nestedLoopIterator;
+        }
+    }
 }

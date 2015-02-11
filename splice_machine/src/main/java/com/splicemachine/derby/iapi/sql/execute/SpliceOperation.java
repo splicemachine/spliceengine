@@ -246,4 +246,10 @@ public interface SpliceOperation extends StandardCloseable {
 
     public JavaRDD<ExecRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException;
 
+    /**
+     *
+     * @return true if this is pushed and run serverside
+     */
+    public boolean pushedToServer();
+
 }

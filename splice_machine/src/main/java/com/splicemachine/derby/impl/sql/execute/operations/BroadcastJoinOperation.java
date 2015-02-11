@@ -386,11 +386,16 @@ public class BroadcastJoinOperation extends JoinOperation {
     public boolean providesRDD() {
         // Only when this operation isn't above a Sink
         // TODO implement BcastJoin in Spark when it's above a sink
-        return leftResultSet.providesRDD() && rightResultSet.providesRDD() && getOperationStack().get(0) instanceof TableScanOperation;
+        return leftResultSet.providesRDD() && rightResultSet.providesRDD() && pushedToServer();
     }
 
     @Override
     public JavaRDD<ExecRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
         return leftResultSet.getRDD(spliceRuntimeContext, top);
+    }
+
+    @Override
+    public boolean pushedToServer() {
+        return leftResultSet.pushedToServer() && rightResultSet.pushedToServer();
     }
 }

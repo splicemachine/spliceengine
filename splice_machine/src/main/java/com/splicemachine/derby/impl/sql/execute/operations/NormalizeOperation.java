@@ -394,13 +394,18 @@ public class NormalizeOperation extends SpliceBaseOperation {
     @Override
     public JavaRDD<ExecRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
         JavaRDD<ExecRow> raw = source.getRDD(spliceRuntimeContext, top);
-        if (getOperationStack().get(0) instanceof TableScanOperation) {
+        if (pushedToServer()) {
             // we want to avoid re-applying the PR if it has already been executed in HBase
             return raw;
         }
         final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this, spliceRuntimeContext);
         JavaRDD<ExecRow> normalized = raw.map(new NormalizeSparkOperation(this, soi));
         return normalized;
+    }
+
+    @Override
+    public boolean pushedToServer() {
+        return source.pushedToServer();
     }
 
 

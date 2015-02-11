@@ -404,7 +404,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 
     public JavaRDD<ExecRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
         JavaRDD<ExecRow> raw = source.getRDD(spliceRuntimeContext, top);
-        if (getOperationStack().get(0) instanceof TableScanOperation) {
+        if (pushedToServer()) {
             // we want to avoid re-applying the PR if it has already been executed in HBase
             return raw;
         }
@@ -422,6 +422,11 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
     @Override
     public boolean providesRDD() {
         return source.providesRDD();
+    }
+
+    @Override
+    public boolean pushedToServer() {
+        return source.pushedToServer();
     }
 
     public static final class ProjectOperation extends SparkOperation<ProjectRestrictOperation, ExecRow, ExecRow> {
