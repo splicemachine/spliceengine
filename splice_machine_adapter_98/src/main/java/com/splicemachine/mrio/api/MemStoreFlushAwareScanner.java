@@ -10,6 +10,8 @@ import org.apache.hadoop.hbase.regionserver.ScanInfo;
 import org.apache.hadoop.hbase.regionserver.Store;
 import org.apache.hadoop.hbase.regionserver.StoreScanner;
 
+import com.splicemachine.utils.CounterWithLock;
+
 /**
  *    This scanner works only on data in RS memory
  *    it intercepts MemStore flush events and throws IOException
@@ -24,8 +26,10 @@ import org.apache.hadoop.hbase.regionserver.StoreScanner;
  *
  */
 public class MemStoreFlushAwareScanner extends StoreScanner{
-
-   protected boolean memstoreFlushed = false;
+   
+   public final static String FLUSH_EVENT = "FLUSH";   	
+   protected boolean memstoreFlushed = false;   
+   protected CounterWithLock lock ;
 
 	public MemStoreFlushAwareScanner(Store store, ScanInfo scanInfo, Scan scan, 
 			final NavigableSet<byte[]> columns, long readPt) throws IOException
@@ -38,7 +42,7 @@ public class MemStoreFlushAwareScanner extends StoreScanner{
 		if(memstoreFlushed){
 			memstoreFlushed = false;
 			close();
-			throw new IOException("FLUSH_EVENT");
+			throw new IOException(FLUSH_EVENT);
 		}
 		// next time we call after flush, scanner is closed
 		// and next return false;
@@ -52,6 +56,18 @@ public class MemStoreFlushAwareScanner extends StoreScanner{
 	  // We do not want the default StoreScanner.updateReaders
 	}
 	
+	public void setReadLockCounter (CounterWithLock lock){
+		this.lock = lock;
+	}
+
+	@Override
+	public void close() {
+		if(lock != null){
+			// Release region read lock
+			lock.decrement();
+		}
+		super.close();
+	}
 	
 	
 

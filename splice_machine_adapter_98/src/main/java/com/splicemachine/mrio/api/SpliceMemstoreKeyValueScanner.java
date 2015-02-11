@@ -89,13 +89,13 @@ public class SpliceMemstoreKeyValueScanner implements KeyValueScanner, InternalS
 	}
 	@Override
 	public boolean reseek(KeyValue key) throws IOException {
-		throw new RuntimeException("Not Implemented");
+		return seek(key);
 	}
 	@Override
 	public long getSequenceID() {
 		if (LOG.isTraceEnabled())
 			SpliceLogUtils.trace(LOG, "getSequenceID");
-		return 0l; // Make sure sequence id works
+		return Long.MAX_VALUE; // Set the max value - we have the most recent data
 	}
 	@Override
 	public void close() {
@@ -108,7 +108,8 @@ public class SpliceMemstoreKeyValueScanner implements KeyValueScanner, InternalS
 			long oldestUnexpiredTS) {
 		if (LOG.isTraceEnabled())
 			SpliceLogUtils.trace(LOG, "shouldUseScanner");
-		return false;
+		// TODO: true or false?
+		return true;
 	}
 	@Override
 	public boolean requestSeek(KeyValue kv, boolean forward, boolean useBloom)
