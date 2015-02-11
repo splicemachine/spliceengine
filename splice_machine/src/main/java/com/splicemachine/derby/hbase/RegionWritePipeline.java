@@ -142,8 +142,8 @@ public class RegionWritePipeline {
         }
     }
 
-    public boolean isDependent() {
-        return ctxFactory.hasDependentWrite();
+    public boolean isDependent(TxnView txn) throws IOException, InterruptedException {
+        return ctxFactory.hasDependentWrite(txn);
     }
 
     public static class PipelineMeters {

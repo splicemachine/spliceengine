@@ -85,8 +85,8 @@ class DiscardingWriteContextFactory<T> implements WriteContextFactory<T> {
     }
 
     @Override
-    public boolean hasDependentWrite() {
-        return delegate.hasDependentWrite();
+    public boolean hasDependentWrite(TxnView txn) throws IOException, InterruptedException {
+        return delegate.hasDependentWrite(txn);
     }
 
 
