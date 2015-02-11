@@ -752,6 +752,10 @@ public class StandardException extends Exception
 		return newWarningCommon( messageId, oa );
 	}
 
+		public static SQLWarning newWarning(String messageId,Object[] oa){
+				return newWarningCommon(messageId,oa);
+		}
+
 	private	static	SQLWarning	newWarningCommon( String messageId, Object[] oa )
 	{
 		String		message = MessageService.getCompleteMessage(messageId, oa);

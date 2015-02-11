@@ -1017,12 +1017,13 @@ public interface SQLState {
 	String LANG_TRIGGER_BAD_REF_CLAUSE_DUPS                            = "42Y93";
 	String LANG_BINARY_LOGICAL_NON_BOOLEAN                             = "42Y94";
 	String LANG_BINARY_OPERATOR_NOT_SUPPORTED                          = "42Y95";
-	String LANG_UNKNOWN												   = "42Y96.U";
-	String LANG_INVALID_ESCAPE										   = "42Y97";
-	String LANG_JAVACC_SYNTAX										   = "42Y98.U";
-	String LANG_JAVACC_LEXICAL_ERROR								   = "42Y99.U";
-	String LANG_JAVA_METHOD_CALL_OR_FIELD_REF						   = "42Z00.U";
-	String LANG_UNTYPED												   = "42Z01.U";
+  String LANG_INVALID_SORT_STRATEGY                                  = "42Y96";
+	String LANG_UNKNOWN												                         = "42Y96.U";
+	String LANG_INVALID_ESCAPE										                     = "42Y97";
+	String LANG_JAVACC_SYNTAX										                       = "42Y98.U";
+	String LANG_JAVACC_LEXICAL_ERROR								                   = "42Y99.U";
+	String LANG_JAVA_METHOD_CALL_OR_FIELD_REF						               = "42Z00.U";
+	String LANG_UNTYPED												                         = "42Z01.U";
 	// TEMPORARY COMPILATION RESTRICTIONS
 	String LANG_USER_AGGREGATE_MULTIPLE_DISTINCTS                      = "42Z02";
 	String LANG_NO_AGGREGATES_IN_ON_CLAUSE                             = "42Z07";
@@ -1145,6 +1146,7 @@ public interface SQLState {
 
 	String LANG_MULTIPLE_AUTOINCREMENT_COLUMNS                         = "428C1";
 	String LANG_ALTER_TABLE_AUTOINCREMENT_COLUMN_NOT_ALLOWED           = "42601.S.372";
+
 	String LANG_TOO_MANY_INDEX_KEY_COLS                                = "54008";
 	String LANG_TRIGGER_RECURSION_EXCEEDED                             = "54038";
 	String LANG_TOO_MANY_PARAMETERS_FOR_STORED_PROC                    = "54023";

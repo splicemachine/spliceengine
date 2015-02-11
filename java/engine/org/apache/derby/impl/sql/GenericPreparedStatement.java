@@ -399,7 +399,7 @@ recompileOutOfDatePlan:
 
 			statementContext.setActivation(activation);
 
-			if (needsSavepoint())
+			if (needsSavepoint()||activation.isTraced())
 			{
 				/* Mark this position in the log so that a statement
 				* rollback will undo any changes.

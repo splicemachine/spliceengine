@@ -663,11 +663,8 @@ public class FromBaseTable extends FromTable {
 	/** @see Optimizable#verifyProperties 
 	 * @exception StandardException		Thrown on error
 	 */
-	public void verifyProperties(DataDictionary dDictionary)
-		throws StandardException
-	{
-		if (tableProperties == null)
-		{
+	public void verifyProperties(DataDictionary dDictionary) throws StandardException {
+		if (tableProperties == null) {
 			return;
 		}
 		/* Check here for:
@@ -685,37 +682,29 @@ public class FromBaseTable extends FromTable {
 		ConstraintDescriptor consDesc = null;
 		Enumeration e = tableProperties.keys();
 
-			StringUtil.SQLEqualsIgnoreCase(tableDescriptor.getSchemaName(), 
-										   "SYS");
-		while (e.hasMoreElements())
-		{
+			StringUtil.SQLEqualsIgnoreCase(tableDescriptor.getSchemaName(),  "SYS");
+		while (e.hasMoreElements()) {
 			String key = (String) e.nextElement();
 			String value = (String) tableProperties.get(key);
 
-			if (key.equals("index"))
-			{
+			if (key.equals("index")) {
 				// User only allowed to specify 1 of index and constraint, not both
-				if (constraintSpecified)
-				{
+				if (constraintSpecified) {
 					throw StandardException.newException(SQLState.LANG_BOTH_FORCE_INDEX_AND_CONSTRAINT_SPECIFIED, 
 								getBaseTableName());
 				}
 				indexSpecified = true;
 
 				/* Validate index name - NULL means table scan */
-				if (! StringUtil.SQLToUpperCase(value).equals("NULL"))
-				{
+				if (! StringUtil.SQLToUpperCase(value).equals("NULL")) {
 					ConglomerateDescriptor cd = null;
 					ConglomerateDescriptor[] cds = tableDescriptor.getConglomerateDescriptors();
 
-					for (int index = 0; index < cds.length; index++)
-					{
+					for (int index = 0; index < cds.length; index++) {
 						cd = cds[index];
 						String conglomerateName = cd.getConglomerateName();
-						if (conglomerateName != null)
-						{
-							if (conglomerateName.equals(value))
-							{
+						if (conglomerateName != null) {
+							if (conglomerateName.equals(value)) {
 								break;
 							}
 						}
@@ -724,109 +713,91 @@ public class FromBaseTable extends FromTable {
 					}
 
 					// Throw exception if user specified index not found
-					if (cd == null)
-					{
+					if (cd == null) {
 						throw StandardException.newException(SQLState.LANG_INVALID_FORCED_INDEX1, 
 										value, getBaseTableName());
 					}
 					/* Query is dependent on the ConglomerateDescriptor */
 					getCompilerContext().createDependency(cd);
 				}
-			}
-			else if (key.equals("constraint"))
-			{
+			} else if (key.equals("constraint")) {
 				// User only allowed to specify 1 of index and constraint, not both
-				if (indexSpecified)
-				{
+				if (indexSpecified) {
 					throw StandardException.newException(SQLState.LANG_BOTH_FORCE_INDEX_AND_CONSTRAINT_SPECIFIED, 
 								getBaseTableName());
 				}
 				constraintSpecified = true;
 
-				if (! StringUtil.SQLToUpperCase(value).equals("NULL"))
-				{
-					consDesc = 
-						dDictionary.getConstraintDescriptorByName(
-									tableDescriptor, (SchemaDescriptor)null, value,
-									false);
+				if (! StringUtil.SQLToUpperCase(value).equals("NULL")) {
+					consDesc =  dDictionary.getConstraintDescriptorByName( tableDescriptor, null, value, false);
 
 					/* Throw exception if user specified constraint not found
 					 * or if it does not have a backing index.
 					 */
-					if ((consDesc == null) || ! consDesc.hasBackingIndex())
-					{
-						throw StandardException.newException(SQLState.LANG_INVALID_FORCED_INDEX2, 
-										value, getBaseTableName());
+					if ((consDesc == null) || ! consDesc.hasBackingIndex()) {
+						throw StandardException.newException(SQLState.LANG_INVALID_FORCED_INDEX2,  value, getBaseTableName());
 					}
 
 					/* Query is dependent on the ConstraintDescriptor */
 					getCompilerContext().createDependency(consDesc);
 				}
 			}
-			else if (key.equals("joinStrategy"))
-			{
+			else if (key.equals("joinStrategy")) {
 				userSpecifiedJoinStrategy = StringUtil.SQLToUpperCase(value);
-			}
-			else if (key.equals("hashInitialCapacity"))
-			{
+			} else if (key.equals("hashInitialCapacity")) {
 				initialCapacity = getIntProperty(value, key);
 
 				// verify that the specified value is valid
-				if (initialCapacity <= 0)
-				{
+				if (initialCapacity <= 0) {
 					throw StandardException.newException(SQLState.LANG_INVALID_HASH_INITIAL_CAPACITY, 
 							String.valueOf(initialCapacity));
 				}
-			}
-			else if (key.equals("hashLoadFactor"))
-			{
-				try
-				{
+			} else if (key.equals("hashLoadFactor")) {
+				try {
 					loadFactor = Float.parseFloat(value);
-				}
-				catch (NumberFormatException nfe)
-				{
+				} catch (NumberFormatException nfe) {
 					throw StandardException.newException(SQLState.LANG_INVALID_NUMBER_FORMAT_FOR_OVERRIDE, 
 							value, key);
 				}
 
 				// verify that the specified value is valid
-				if (loadFactor <= 0.0 || loadFactor > 1.0)
-				{
+				if (loadFactor <= 0.0 || loadFactor > 1.0) {
 					throw StandardException.newException(SQLState.LANG_INVALID_HASH_LOAD_FACTOR, 
 							value);
 				}
-			}
-			else if (key.equals("hashMaxCapacity"))
-			{
+			} else if (key.equals("hashMaxCapacity")) {
 				maxCapacity = getIntProperty(value, key);
 
 				// verify that the specified value is valid
-				if (maxCapacity <= 0)
-				{
+				if (maxCapacity <= 0) {
 					throw StandardException.newException(SQLState.LANG_INVALID_HASH_MAX_CAPACITY, 
 							String.valueOf(maxCapacity));
 				}
-			}
-			else if (key.equals("bulkFetch"))
-			{
+			} else if (key.equals("bulkFetch")) {
 				bulkFetch = getIntProperty(value, key);
 
 				// verify that the specified value is valid
-				if (bulkFetch <= 0)
-				{
+				if (bulkFetch <= 0) {
 					throw StandardException.newException(SQLState.LANG_INVALID_BULK_FETCH_VALUE, 
 							String.valueOf(bulkFetch));
 				}
 			
 				// no bulk fetch on updatable scans
-				if (forUpdate())
-				{
+				if (forUpdate()) {
 					throw StandardException.newException(SQLState.LANG_INVALID_BULK_FETCH_UPDATEABLE);
 				}
-			}
-			else
-			{
+			} else if(key.equals("sortStrategy")){
+          if(!value.equalsIgnoreCase("internal") &&!value.equalsIgnoreCase("external"))
+              throw StandardException.newException(SQLState.LANG_INVALID_SORT_STRATEGY,value);
+      } else if(key.equals("joinSide")){
+          if(!(value.equalsIgnoreCase("control") ||value.equalsIgnoreCase("region"))){
+              //TODO -sf- put a better error message here
+              throw StandardException.newException(SQLState.LANG_INVALID_JOIN_STRATEGY,value);
+          }
+      } else if(key.equals("scanStrategy")){
+							if(!value.equalsIgnoreCase("useNewApi") && !value.equalsIgnoreCase("useOldApi"))
+								throw StandardException.newException(SQLState.LANG_INVALID_FROM_TABLE_PROPERTY, key, "useNewApi,useOldApi");
+			}else {
 				// No other "legal" values at this time
 				throw StandardException.newException(SQLState.LANG_INVALID_FROM_TABLE_PROPERTY, key,
 					"index, constraint, joinStrategy");
