@@ -535,59 +535,65 @@ public class SpliceAdmin extends BaseAdminProcedures {
     	return SpliceUtils.getConfig();
     }
 
-    // TODO: return only cluster disagreements, use IteratorResultSet (not values).
-    // But use as is to perform quick test in cluster.
-    public static void SYSCS_GET_REGION_SERVER_CONFIG_INFO(final String configRoot, final int showDisagreementsOnly, final ResultSet[] resultSet) throws SQLException {
+    public static void SYSCS_GET_REGION_SERVER_CONFIG_INFO(final String configRoot, final int showDisagreementsOnly, final ResultSet[] resultSet) throws StandardException, SQLException {
         operate(new JMXServerOperation() {
             @SuppressWarnings("unused")
 			@Override
             public void operate(List<Pair<String, JMXConnector>> connections) throws MalformedObjectNameException, IOException, SQLException {
                 boolean matchName = (configRoot != null && !configRoot.equals(""));
             	List<SpliceMachineVersion> spliceMachineVersions = JMXUtils.getSpliceMachineVersion(connections);
-                StringBuilder sb = new StringBuilder("select * from (values ");
-                int i = 0;
                 int hostIdx = 0;
                 String hostName;
                 Configuration config;
- 
-                // We arbitrarily pick SpliceMachineVersion MBean even though
-                // we do not fetch anything from it. We just use it as our
-                // mechanism for our region server context.
-                SortedMap<String, String> configMap = new TreeMap<String, String>();
-                
-                for (SpliceMachineVersion spliceMachineVersion : spliceMachineVersions) {
-            		hostName = connections.get(hostIdx).getFirst();
-                	configMap.clear();
-                    config = getConfig();
-                    Iterator<Entry<String, String>> it = config.iterator();
-                    for (Entry<String, String> rawEntry : config) {
-                    	
-                        // use config.getValByRegex() instead of iterating and comparing manually?
-                    	if (matchName && !(rawEntry.getKey().startsWith(configRoot))) continue;
-                    	configMap.put(rawEntry.getKey(), rawEntry.getValue());
-                    }
+        		ResultSetBuilder rsBuilder;
+    			RowBuilder rowBuilder;
 
-                    // Iterate through sorted configs and add to result set
-                    Set<Entry<String, String>> configSet = configMap.entrySet();
-                    for (Entry<String, String> configEntry : configSet) {
-                     	if (i != 0) sb.append(", ");
-	                    sb.append(String.format("('%s','%s','%s')",
-	                		hostName,
-	                        configEntry.getKey(), // config name
-	                        configEntry.getValue())); // config value
-	                    i++;
-                    }
-                    hostIdx++;
-                }
-                sb.append(") foo (hostname, configName, configValue)");
-                if (i != 0) {
-                	resultSet[0] = executeStatement(sb);
-                }
-                
-                configMap.clear();
+                try {
+
+	                rsBuilder = new ResultSetBuilder();
+	    			rsBuilder.getColumnBuilder()
+	    				.addColumn("HOST_NAME",    Types.VARCHAR, 32)
+	    				.addColumn("CONFIG_NAME",  Types.VARCHAR, 128)
+	    				.addColumn("CONFIG_VALUE", Types.VARCHAR, 128);
+	
+	    			rowBuilder = rsBuilder.getRowBuilder();
+	                // We arbitrarily pick SpliceMachineVersion MBean even though
+	                // we do not fetch anything from it. We just use it as our
+	                // mechanism for our region server context.
+	                SortedMap<String, String> configMap = new TreeMap<String, String>();
+	                
+	                for (SpliceMachineVersion spliceMachineVersion : spliceMachineVersions) {
+	            		hostName = connections.get(hostIdx).getFirst();
+	                	configMap.clear();
+	                    config = getConfig();
+	                    for (Entry<String, String> rawEntry : config) {
+	                        // use config.getValByRegex() instead of iterating and comparing manually?
+	                    	if (matchName && !(rawEntry.getKey().startsWith(configRoot))) continue;
+	                    	configMap.put(rawEntry.getKey(), rawEntry.getValue());
+	                    }
+	
+	                    // Iterate through sorted configs and add to result set
+	                    Set<Entry<String, String>> configSet = configMap.entrySet();
+	                    for (Entry<String, String> configEntry : configSet) {
+	    					rowBuilder.getDvd(0).setValue(hostName);
+	    					rowBuilder.getDvd(1).setValue(configEntry.getKey());
+	    					rowBuilder.getDvd(2).setValue(configEntry.getValue());
+	    					rowBuilder.addRow();
+	                    }
+	                    hostIdx++;
+	                }
+	
+	                resultSet[0] = rsBuilder.buildResultSet((EmbedConnection)getDefaultConn());
+	
+	                configMap.clear();
+
+	    		} catch (StandardException se) {
+	    			throw PublicAPI.wrapStandardException(se);
+	    		}
             }
         });
     }
+
 
     public static void SYSCS_GET_REGION_SERVER_TASK_INFO(final ResultSet[] resultSet) throws SQLException {
         operate(new JMXServerOperation() {
