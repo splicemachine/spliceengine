@@ -47,6 +47,7 @@ import com.splicemachine.db.impl.sql.catalog.SYSKEYSRowFactory;
 import com.splicemachine.db.impl.sql.catalog.SYSSCHEMASRowFactory;
 import com.splicemachine.db.impl.sql.catalog.SystemProcedureGenerator;
 import com.splicemachine.db.impl.sql.catalog.TabInfoImpl;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
@@ -77,9 +78,18 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
     private volatile TabInfoImpl pkTable = null;
     private volatile TabInfoImpl statementHistoryTable = null;
     private volatile TabInfoImpl operationHistoryTable = null;
+    private volatile TabInfoImpl backupTable = null;
+    private volatile TabInfoImpl backupItemsTable = null;
+    private volatile TabInfoImpl backupRegionsTable = null;
+    private volatile TabInfoImpl backupStatesTable = null;
     private volatile TabInfoImpl taskHistoryTable = null;
+    private volatile TabInfoImpl backupRegionSetTable = null;
     private Splice_DD_Version spliceSoftwareVersion;
     private HTableInterface spliceSequencesTable;
+    private SchemaDescriptor backupSchemaDesc;
+    private static final String BACKUP_SCHEMA_UUID =  "2d832584-cb7c-48cb-a8c6-6e1a397bb089";
+    public static final int BACKUPSCHEMAS_CATALOG_NUM = 23;
+
 
     public static final String SPLICE_DATA_DICTIONARY_VERSION = "SpliceDataDictionaryVersion";
 
@@ -260,6 +270,193 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
     	}
     }
 
+    private TabInfoImpl getBackupTable() throws StandardException {
+        if (backupTable == null) {
+            backupTable = new TabInfoImpl(new BACKUPRowFactory(uuidFactory,exFactory,dvf));
+        }
+        initSystemIndexVariables(backupTable);
+        return backupTable;
+    }
+
+    private TabInfoImpl getBackupItemsTable() throws StandardException {
+        if (backupItemsTable == null) {
+            backupItemsTable = new TabInfoImpl(new BACKUPITEMSRowFactory(uuidFactory,exFactory,dvf));
+        }
+        initSystemIndexVariables(backupItemsTable);
+        return backupItemsTable;
+    }
+
+    private TabInfoImpl getBackupRegionsTable() throws StandardException {
+        if (backupRegionsTable == null) {
+            backupRegionsTable = new TabInfoImpl(new BACKUPREGIONSRowFactory(uuidFactory,exFactory,dvf));
+        }
+        initSystemIndexVariables(backupRegionsTable);
+        return backupRegionsTable;
+    }
+
+    private TabInfoImpl getBackupStatesTable() throws StandardException {
+        if (backupStatesTable == null) {
+            backupStatesTable = new TabInfoImpl(new BACKUPSTATESRowFactory(uuidFactory,exFactory,dvf));
+        }
+        initSystemIndexVariables(backupStatesTable);
+        return backupStatesTable;
+    }
+
+    private TabInfoImpl getBackupRegionSetTable() throws StandardException {
+        if (backupRegionSetTable == null) {
+            backupRegionSetTable = new TabInfoImpl(new BACKUPREGIONSETRowFactory(uuidFactory,exFactory,dvf));
+        }
+        initSystemIndexVariables(backupRegionSetTable);
+        return backupRegionSetTable;
+    }
+
+    private void addUserTableToDictionary(TabInfoImpl ti,
+    SchemaDescriptor sd,
+    TransactionController tc,
+    DataDescriptorGenerator ddg)
+            throws StandardException
+    {
+        CatalogRowFactory crf = ti.getCatalogRowFactory();
+
+        String				name = ti.getTableName();
+        long				conglomId = ti.getHeapConglomerate();
+        SystemColumn[]		columnList = crf.buildColumnList();
+        UUID				heapUUID = crf.getCanonicalHeapUUID();
+        String				heapName = crf.getCanonicalHeapName();
+        TableDescriptor		td;
+        UUID				toid;
+        int					columnCount;
+        SystemColumn		column;
+
+        // add table to the data dictionary
+
+        columnCount = columnList.length;
+        td = ddg.newTableDescriptor(name, sd, TableDescriptor.BASE_TABLE_TYPE,
+                TableDescriptor.ROW_LOCK_GRANULARITY);
+        td.setUUID(crf.getCanonicalTableUUID());
+        addDescriptor(td, sd, SYSTABLES_CATALOG_NUM,
+                false, tc);
+        toid = td.getUUID();
+
+		/* Add the conglomerate for the heap */
+        ConglomerateDescriptor cgd = ddg.newConglomerateDescriptor(conglomId,
+                heapName,
+                false,
+                null,
+                false,
+                heapUUID,
+                toid,
+                sd.getUUID());
+
+        addDescriptor(cgd, sd, SYSCONGLOMERATES_CATALOG_NUM, false, tc);
+
+		/* Create the columns */
+        ColumnDescriptor[] cdlArray = new ColumnDescriptor[columnCount];
+
+        for (int columnNumber = 0; columnNumber < columnCount; columnNumber++)
+        {
+            column = columnList[columnNumber];
+
+            if (SanityManager.DEBUG)
+            {
+                if (column == null)
+                {
+                    SanityManager.THROWASSERT("column "+columnNumber+" for table "+ti.getTableName()+" is null");
+                }
+            }
+            cdlArray[columnNumber] = makeColumnDescriptor( column,
+                    columnNumber + 1, td );
+        }
+        addDescriptorArray(cdlArray, td, SYSCOLUMNS_CATALOG_NUM, false, tc);
+
+        // now add the columns to the cdl of the table.
+        ColumnDescriptorList cdl = td.getColumnDescriptorList();
+        for (int i = 0; i < columnCount; i++)
+            cdl.add(cdlArray[i]);
+    }
+    private void createUserTable (TabInfoImpl					ti,
+                                  SchemaDescriptor			sd,
+                                  TransactionController 		tc )
+            throws StandardException
+    {
+        DataDescriptorGenerator ddg = getDataDescriptorGenerator();
+
+        Properties	heapProperties = ti.getCreateHeapProperties();
+        ti.setHeapConglomerate(
+                createConglomerate(
+                        ti.getTableName(),
+                        tc,
+                        ti.getCatalogRowFactory().makeEmptyRow(),
+                        heapProperties
+                )
+        );
+
+        // bootstrap indexes on core tables before bootstrapping the tables themselves
+        if (ti.getNumberOfIndexes() > 0)
+        {
+            bootStrapSystemIndexes(sd, tc, ddg, ti);
+        }
+
+        addUserTableToDictionary(ti, sd, tc, ddg);
+    }
+
+    public void createLassenTables(TransactionController tc) throws StandardException{
+
+        backupSchemaDesc = new SchemaDescriptor(
+                this,
+                "BACKUP",
+                SchemaDescriptor.DEFAULT_USER_NAME,
+                uuidFactory.recreateUUID(BACKUP_SCHEMA_UUID),
+                false);
+
+        addDescriptor(backupSchemaDesc, null, SYSSCHEMAS_CATALOG_NUM, false, tc);
+
+        // Create BACKUP table
+        TabInfoImpl backupTabInfo = getBackupTable();
+        if (getTableDescriptor(backupTabInfo.getTableName(), backupSchemaDesc, tc) == null ) {
+            if (LOG.isTraceEnabled()) LOG.trace(String.format("Creating system table %s.%s", backupSchemaDesc.getSchemaName(), backupTabInfo.getTableName()));
+            createUserTable(backupTabInfo, backupSchemaDesc, tc);
+        } else {
+            if (LOG.isTraceEnabled()) LOG.trace(String.format("Skipping table creation since system table %s.%s already exists.", backupSchemaDesc.getSchemaName(), backupTabInfo.getTableName()));
+        }
+
+        // Create BACKUPITEMS
+        TabInfoImpl backupItemsTabInfo = getBackupItemsTable();
+        if (getTableDescriptor(backupItemsTabInfo.getTableName(), backupSchemaDesc, tc) == null ) {
+            if (LOG.isTraceEnabled()) LOG.trace(String.format("Creating system table %s.%s", backupSchemaDesc.getSchemaName(), backupItemsTabInfo.getTableName()));
+            createUserTable(backupItemsTabInfo, backupSchemaDesc, tc);
+        } else {
+            if (LOG.isTraceEnabled()) LOG.trace(String.format("Skipping table creation since system table %s.%s already exists.", backupSchemaDesc.getSchemaName(), backupItemsTabInfo.getTableName()));
+        }
+
+        // Create BACKUPREGIONS
+        TabInfoImpl backupRegionsTabInfo = getBackupRegionsTable();
+        if (getTableDescriptor(backupRegionsTabInfo.getTableName(), backupSchemaDesc, tc) == null ) {
+            if (LOG.isTraceEnabled()) LOG.trace(String.format("Creating system table %s.%s", backupSchemaDesc.getSchemaName(), backupRegionsTabInfo.getTableName()));
+            createUserTable(backupRegionsTabInfo, backupSchemaDesc, tc);
+        } else {
+            if (LOG.isTraceEnabled()) LOG.trace(String.format("Skipping table creation since system table %s.%s already exists.", backupSchemaDesc.getSchemaName(), backupRegionsTabInfo.getTableName()));
+        }
+
+        // Create BACKUPSTATES
+        TabInfoImpl backupStatesTabInfo = getBackupStatesTable();
+        if (getTableDescriptor(backupStatesTabInfo.getTableName(), backupSchemaDesc, tc) == null ) {
+            if (LOG.isTraceEnabled()) LOG.trace(String.format("Creating system table %s.%s", backupSchemaDesc.getSchemaName(), backupStatesTabInfo.getTableName()));
+            createUserTable(backupStatesTabInfo, backupSchemaDesc, tc);
+        } else {
+            if (LOG.isTraceEnabled()) LOG.trace(String.format("Skipping table creation since system table %s.%s already exists.", backupSchemaDesc.getSchemaName(), backupStatesTabInfo.getTableName()));
+        }
+
+        // Create BACKUPREGIONSET
+        TabInfoImpl backupRegionSetTabInfo = getBackupRegionSetTable();
+        if (getTableDescriptor(backupRegionSetTabInfo.getTableName(), backupSchemaDesc, tc) == null ) {
+            if (LOG.isTraceEnabled()) LOG.trace(String.format("Creating system table %s.%s", backupSchemaDesc.getSchemaName(), backupRegionSetTabInfo.getTableName()));
+            createUserTable(backupRegionSetTabInfo, backupSchemaDesc, tc);
+        } else {
+            if (LOG.isTraceEnabled()) LOG.trace(String.format("Skipping table creation since system table %s.%s already exists.", backupSchemaDesc.getSchemaName(), backupRegionSetTabInfo.getTableName()));
+        }
+    }
+
     @Override
     protected void createDictionaryTables(Properties params,
                                           TransactionController tc,
@@ -271,7 +468,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
         makeCatalog(getPkTable(), getSystemSchemaDescriptor(), tc);
 
         createFujiTables(tc);
-
+        createLassenTables(tc);
     }
     
     public static void verifySetup() {

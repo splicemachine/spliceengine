@@ -24,22 +24,22 @@ public class BackupHFileCleaner extends BaseHFileCleanerDelegate {
         String path = fStat.getPath().toString();
         String[] s = path.split("/");
         int n = s.length;
-        Long conglomId = new Long(s[n-4]);
+        String tableName = s[n-4];
         String encodedRegionName = s[n-3];
         String fileName = s[n-1];
 
-        return (!shouldRetainForBackup(conglomId, encodedRegionName, fileName));
+        return (!shouldRetainForBackup(tableName, encodedRegionName, fileName));
     }
 
 
-    private boolean shouldRetainForBackup(long conglomId, String encodedRegionName, String fileName){
+    private boolean shouldRetainForBackup(String backupItem, String encodedRegionName, String fileName){
         Connection connection = null;
 
         try{
             connection = SpliceDriver.driver().getInternalConnection();
             PreparedStatement ps = connection.prepareStatement(
-                    String.format(BackupUtils.QUERY_FILE_SET, BackupUtils.FILESET_SCHEMA, BackupUtils.FILESET_TABLE));
-            ps.setLong(1, conglomId);
+                    String.format(BackupUtils.QUERY_BACKUP_STATE, Backup.DEFAULT_SCHEMA, BackupUtils.BACKUP_STATE_TABLE));
+            ps.setString(1, backupItem);
             ps.setString(2, encodedRegionName);
             ps.setString(3, fileName);
 

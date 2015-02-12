@@ -328,7 +328,6 @@ public class SpliceDatabase extends BasicDatabase {
 
             // Check for ongoing backup...
             String backupResponse = null;
-            Backup.validateBackupSchema();
             if ( (backupResponse = BackupUtils.isBackupRunning()) != null)
                 throw new SQLException(backupResponse); // TODO i18n
             Backup backup = Backup.readBackup(restoreDir,BackupScope.D);
@@ -340,7 +339,6 @@ public class SpliceDatabase extends BasicDatabase {
 
 
             // recreate tables
-
             for (HTableDescriptor table : admin.listTables()) {
                 // TODO keep old tables around in case something goes wrong
                 admin.disableTable(table.getName());
@@ -474,7 +472,6 @@ public class SpliceDatabase extends BasicDatabase {
             // Check for ongoing backup...
             // TODO: move backup table to sys schema. Use zookeeper to make sure only one backup or restore job is executing
             String backupResponse = null;
-            Backup.validateBackupSchema();
             if ( (backupResponse = BackupUtils.isBackupRunning()) != null)
                 throw new SQLException(backupResponse); // TODO i18n
 

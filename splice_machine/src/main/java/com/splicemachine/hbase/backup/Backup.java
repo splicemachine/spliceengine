@@ -67,19 +67,12 @@ public class Backup implements InternalTable {
      */
     public static enum BackupStatus {S,F,I}
 
-    public static final String CREATE_SCHEMA = "create schema %s";
-    public static final String CREATE_TABLE = "create table %s.%s (backup_transaction_id bigint not null, " +
-            "backup_begin_timestamp timestamp not null, backup_end_timestamp timestamp, backup_status char(1) not null, "
-            + "backup_filesystem varchar(1024) not null, backup_scope char(1) not null, incremental_backup boolean not null, "
-            + "incremental_parent_backup_id bigint, backup_items int, PRIMARY KEY (backup_transaction_id) )";
-    public static final String INSERT_START_BACKUP = "insert into %s.%s (backup_transaction_id, backup_begin_timestamp, backup_status, backup_filesystem, "
-            + "backup_scope, incremental_backup, incremental_parent_backup_id, backup_items) values (?,?,?,?,?,?,?,?)";
-    public static final String UPDATE_BACKUP_STATUS = "update %s.%s set backup_status = ?, backup_end_timestamp = ? where backup_transaction_id = ?";
-    public static final String RUNNING_CHECK = "select backup_transaction_id from %s.%s where backup_status = ?";
-    public static final String SCHEMA_CHECK = "select schemaid from sys.sysschemas where schemaname = ?";
-    public static final String TABLE_CHECK = "select tablename from sys.systables where tablename = ? and schemaid = ?";
-    public static final String QUERY_PARENT_BACKUP_DIRECTORY = "select backup_filesystem from %s.%s where backup_transaction_id = ?";
-    public static final String QUERY_PARENT_BACKUP = "select * from %s.%s where backup_transaction_id=?";
+    public static final String INSERT_START_BACKUP = "insert into %s.%s (transaction_id, begin_timestamp, status, filesystem, "
+            + "scope, incremental_backup, incremental_parent_backup_id, backup_item) values (?,?,?,?,?,?,?,?)";
+    public static final String UPDATE_BACKUP_STATUS = "update %s.%s set status = ?, end_timestamp = ? where transaction_id = ?";
+    public static final String RUNNING_CHECK = "select transaction_id from %s.%s where status = ?";
+    public static final String QUERY_PARENT_BACKUP_DIRECTORY = "select filesystem from %s.%s where transaction_id = ?";
+    public static final String QUERY_PARENT_BACKUP = "select * from %s.%s where transaction_id=?";
 
     public static final String VERSION_FILE = "version";
     public static final String BACKUP_TIMESTAMP_FILE = "backupTimestamp";
@@ -301,9 +294,9 @@ public class Backup implements InternalTable {
             while(rs.next()) {
                 BackupItem backupItem = new BackupItem();
                 backupItem.setBackup(incrementalParentBackup);
-                backupItem.setBackupItem(rs.getString("BACKUP_ITEM"));
-                backupItem.setBackupItemBeginTimestamp(rs.getTimestamp("BACKUP_BEGIN_TIMESTAMP"));
-                backupItem.setBackupItemEndTimestamp(rs.getTimestamp("BACKUP_END_TIMESTAMP"));
+                backupItem.setBackupItem(rs.getString(1));
+                backupItem.setBackupItemBeginTimestamp(rs.getTimestamp(2));
+                backupItem.setBackupItemEndTimestamp(rs.getTimestamp(3));
                 incrementalParentBackup.addBackupItem(backupItem);
             }
 
@@ -370,86 +363,6 @@ public class Backup implements InternalTable {
     public void markBackupSuccesful() {
         this.setBackupStatus(BackupStatus.S);
     }
-
-    public static void createBackupTable() throws SQLException {
-        createBackupTable(DEFAULT_SCHEMA,DEFAULT_TABLE);
-    }
-
-    public static void validateBackupSchema() throws SQLException {
-        Connection connection = null;
-        try {
-            connection = SpliceAdmin.getDefaultConn();
-            PreparedStatement preparedStatement1 = connection.prepareStatement(SCHEMA_CHECK);
-            preparedStatement1.setString(1,DEFAULT_SCHEMA);
-            ResultSet schemaResultSet = preparedStatement1.executeQuery();
-            if (schemaResultSet.next()) {
-                String schemaID = schemaResultSet.getString(1);
-                PreparedStatement preparedStatement2 = connection.prepareStatement(TABLE_CHECK);
-                preparedStatement2.setString(1, DEFAULT_TABLE);
-                preparedStatement2.setString(2, schemaID);
-                ResultSet backupResultSet = preparedStatement2.executeQuery();
-                if (!backupResultSet.next())
-                    Backup.createBackupTable();
-                PreparedStatement preparedStatement3 = connection.prepareStatement(TABLE_CHECK);
-                preparedStatement3.setString(1, BackupItem.DEFAULT_TABLE);
-                preparedStatement3.setString(2, schemaID);
-
-                ResultSet backupItemResultSet = preparedStatement3.executeQuery();
-                if (!backupItemResultSet.next())
-                    BackupItem.createBackupItemTable();
-            } else {
-                createBackupSchema();
-                Backup.createBackupTable();
-                BackupItem.createBackupItemTable();
-                BackupUtils.createFileSetTable();
-            }
-
-            return;
-        } catch (SQLException e) {
-            throw e;
-        }
-        finally {
-            if (connection !=null)
-                connection.close();
-        }
-    }
-
-    public static void createBackupTable(String schemaName, String tableName) throws SQLException {
-        Connection connection = null;
-        try {
-            connection = SpliceAdmin.getDefaultConn();
-            PreparedStatement preparedStatement = connection.prepareStatement(String.format(CREATE_TABLE,schemaName,tableName));
-            preparedStatement.execute();
-            return;
-        } catch (SQLException e) {
-            throw e;
-        }
-        finally {
-            if (connection !=null)
-                connection.close();
-        }
-    }
-
-    public static void createBackupSchema() throws SQLException {
-        createBackupSchema(DEFAULT_SCHEMA);
-    }
-
-    public static void createBackupSchema(String schemaName) throws SQLException {
-        Connection connection = null;
-        try {
-            connection = SpliceAdmin.getDefaultConn();
-            PreparedStatement preparedStatement = connection.prepareStatement(String.format(CREATE_SCHEMA,DEFAULT_SCHEMA));
-            preparedStatement.execute();
-            return;
-        } catch (SQLException e) {
-            throw e;
-        }
-        finally {
-            if (connection !=null)
-                connection.close();
-        }
-    }
-
 
     public static String isBackupRunning() throws SQLException {
         return isBackupRunning(DEFAULT_SCHEMA,DEFAULT_TABLE);
@@ -524,8 +437,6 @@ public class Backup implements InternalTable {
         backup.setBeginBackupTimestamp(new Timestamp(System.currentTimeMillis()));
         backup.setBackupScope(backupScope);
         backup.setBackupTransaction(backupTxn);
-//            backup.setIncrementalBackup(incrementalParentBackupID >= 0);
-//            backup.setIncrementalParentBackupID(incrementalParentBackupID);
         backup.setBackupStatus(BackupStatus.I);
         backup.setBackupFilesystem(backupFileSystem);
         backup.readBackupItems();

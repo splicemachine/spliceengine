@@ -36,13 +36,11 @@ import org.apache.hadoop.hbase.util.Pair;
 public class BackupItem implements InternalTable {
 	public static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
 	public static final String DEFAULT_SCHEMA = Backup.DEFAULT_SCHEMA;
-	public static final String DEFAULT_TABLE = "BACKUP_ITEM";
-	public static final String CREATE_TABLE = "create table %s.%s (backup_transaction_id bigint not null, " + 
-	"backup_item varchar(1024) not null, backup_begin_timestamp timestamp not null, backup_end_timestamp timestamp, PRIMARY KEY (backup_transaction_id, backup_item) )";		
-	public static final String INSERT_BACKUP_ITEM = "insert into %s.%s (backup_transaction_id, backup_item, backup_begin_timestamp)"
+	public static final String DEFAULT_TABLE = "BACKUP_ITEMS";
+	public static final String INSERT_BACKUP_ITEM = "insert into %s.%s (transaction_id, item, begin_timestamp)"
 			+ " values (?,?,?)";
-    public static final String UPDATE_BACKUP_ITEM_STATUS = "update %s.%s set backup_end_timestamp = ? where backup_transaction_id = ? and backup_item = ?";
-    public static final String QUERY_BACKUP_ITEM = "select * from %s.%s where backup_transaction_id=?";
+    public static final String UPDATE_BACKUP_ITEM_STATUS = "update %s.%s set end_timestamp = ? where transaction_id = ? and item = ?";
+    public static final String QUERY_BACKUP_ITEM = "select item, begin_timestamp, end_timestamp from %s.%s where transaction_id=?";
 
 	public BackupItem () {
 		
@@ -192,26 +190,6 @@ public class BackupItem implements InternalTable {
         return splits;
     }
 
-    public static void createBackupItemTable() throws SQLException {
-		createBackupItemTable(DEFAULT_TABLE, DEFAULT_SCHEMA);
-	}
-	
-	public static void createBackupItemTable(String tableName, String schemaName) throws SQLException {
-		Connection connection = null;
-		try {
-			connection = SpliceAdmin.getDefaultConn();
-			PreparedStatement preparedStatement = connection.prepareStatement(String.format(CREATE_TABLE,schemaName,tableName));
-			preparedStatement.execute();
-			return;
-		} catch (SQLException e) {
-			throw e;
-		}  
-		finally {
-			if (connection !=null)
-				connection.close();
-		}
-	}
-    
 	public void writeDescriptorToFileSystem() throws IOException {
 		FileSystem fs = FileSystem.get(URI.create(getBackupItemFilesystem()), SpliceConstants.config);
 		FSDataOutputStream out = fs.create(new Path(getBackupItemFilesystem()+"/.tableinfo"));
@@ -282,6 +260,22 @@ public class BackupItem implements InternalTable {
         return lastBackupTimestamp;
     }
 
+    private void writeRegionSplitInfo() throws SQLException, IOException{
+        List<BackupUtils.RegionSplitTreeNode> regionToExclude =
+                BackupUtils.getRegionSplitTrees(getBackupItem());
+        if (regionToExclude.size() != 0) {
+            //List<BackupUtils.RegionSplitTreeNode> regionToInclude =
+            //        BackupUtils.getLeafNodes(regionToExclude);
+            FileSystem fileSystem = FileSystem.get(URI.create(getBackupItemFilesystem()), SpliceConstants.config);
+            FSDataOutputStream out = fileSystem.create(new Path(getBackupItemFilesystem() + "/.regionSplitInfo"));
+            for (BackupUtils.RegionSplitTreeNode node : regionToExclude) {
+                out.writeUTF(node.getRegionName());
+            }
+            out.close();
+            // TODO: delete them from BACKUP.BACKUP_REGIONSET
+        }
+    }
+
     public void doBackup() throws StandardException {
         JobInfo info = null;
         try {
@@ -295,6 +289,7 @@ public class BackupItem implements InternalTable {
             info = new JobInfo(job.getJobId(), future.getNumTasks(), System.currentTimeMillis());
             info.setJobFuture(future);
             future.completeAll(info);
+            writeRegionSplitInfo();
             setBackupItemEndTimestamp(new Timestamp(System.currentTimeMillis()));
             updateBackupItem();
         } catch (CancellationException ce) {
