@@ -237,6 +237,18 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                     procedures.add(getRegionServerStatsInfo);
 
         			/*
+        			 * Procedure fetch logical configuration from region servers
+        			 */
+                    Procedure getRegionServerConfig = Procedure.newBuilder().name("SYSCS_GET_REGION_SERVER_CONFIG_INFO")
+                            .varchar("configRoot", 128) // fetch only config props with prefix, or null for fetch all
+                            .integer("mode")            // 0 = fetch all, 1 = fetch only props where value not same on all servers
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(getRegionServerConfig);
+
+        			/*
         			 * Procedure get Splice Machine manifest info
         			 */
                     Procedure getVersionInfo = Procedure.newBuilder().name("SYSCS_GET_VERSION_INFO")
