@@ -55,7 +55,8 @@ public class SpliceIndexObserver extends AbstractSpliceIndexObserver {
     // Memory leak
     // TODO add clean up thread
     
-    static ConcurrentHashMap<String, CounterWithLock> splitLockMap;
+    static ConcurrentHashMap<String, CounterWithLock> splitLockMap = 
+    		new ConcurrentHashMap<String, CounterWithLock>();
     
     @Override
     public void prePut(ObserverContext<RegionCoprocessorEnvironment> e, Put put, WALEdit edit, Durability durability) throws IOException {
