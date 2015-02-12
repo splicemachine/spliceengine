@@ -32,6 +32,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -59,6 +60,7 @@ import org.apache.derby.impl.jdbc.ResultSetBuilder.RowBuilder;
 import org.apache.derby.impl.sql.GenericColumnDescriptor;
 import org.apache.derby.impl.sql.execute.IteratorNoPutResultSet;
 import org.apache.derby.impl.sql.execute.ValueRow;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -517,6 +519,55 @@ public class SpliceAdmin extends BaseAdminProcedures {
                 }
                 sb.append(") foo (hostname, maxTaskWorkers)");
                 resultSet[0] = executeStatement(sb);
+            }
+        });
+    }
+
+    private String getConfigProp(String propName) {
+    	Configuration config = SpliceUtils.getConfig();
+    	String value = config.get(propName);
+    	return value;
+    }
+
+    private static Configuration getConfig() {
+    	return SpliceUtils.getConfig();
+    }
+
+    // TODO: sort, return only cluster disagreements, use IteratorResultSet (not values).
+    // But use as is to perform quick test in cluster.
+    public static void SYSCS_GET_REGION_SERVER_CONFIG_INFO(final String configRoot, final int showDisagreementsOnly, final ResultSet[] resultSet) throws SQLException {
+        operate(new JMXServerOperation() {
+            @SuppressWarnings("unused")
+			@Override
+            public void operate(List<Pair<String, JMXConnector>> connections) throws MalformedObjectNameException, IOException, SQLException {
+                boolean matchName = (configRoot != null && !configRoot.equals(""));
+            	List<SpliceMachineVersion> spliceMachineVersions = JMXUtils.getSpliceMachineVersion(connections);
+                StringBuilder sb = new StringBuilder("select * from (values ");
+                int i = 0;
+                String hostName;
+                // We arbitrarily pick SpliceMachineVersion MBean even though
+                // we do not fetch anything from it. We just use it as our
+                // mechanism for our region server context.
+                for (SpliceMachineVersion spliceMachineVersion : spliceMachineVersions) {
+            		hostName = connections.get(i).getFirst();
+                    Configuration config = getConfig();
+                    Iterator<Entry<String, String>> it = config.iterator();
+                    Entry<String, String> entry;
+                    while (it.hasNext()) {
+                    	entry = it.next();
+                    	if (matchName && !(entry.getKey().startsWith(configRoot))) continue;
+                    	if (i != 0) sb.append(", ");
+	                    sb.append(String.format("('%s','%s','%s')",
+                    		hostName,
+                            entry.getKey(), // config name
+                            entry.getValue())); // config value
+	                    i++;
+                    }
+                }
+                sb.append(") foo (hostname, configName, configValue)");
+                if (i != 0) {
+                	resultSet[0] = executeStatement(sb);
+                }
             }
         });
     }
