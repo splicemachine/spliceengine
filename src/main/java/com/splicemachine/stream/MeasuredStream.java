@@ -21,4 +21,7 @@ public interface MeasuredStream<T,V extends Stats> extends Stream<T> {
 
     @Override
     MeasuredStream<T,V> filter(Predicate<T> predicate);
+
+    @Override
+    MeasuredStream<T,V> limit(long maxSize);
 }

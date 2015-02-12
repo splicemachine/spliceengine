@@ -10,11 +10,16 @@ public abstract class AbstractMeasuredStream<T,V extends Stats> extends Abstract
 
     @Override
     public <K> MeasuredStream<K,V> transform(Transformer<T, K> transformer) {
-        return new TransformingMeasuredStream<>(this,transformer);
+        return new MeasuredStreams.TransformingMeasuredStream<>(this,transformer);
     }
 
     @Override
     public MeasuredStream<T,V> filter(Predicate<T> predicate) {
-        return new FilteredMeasuredStream<>(this,predicate);
+        return new MeasuredStreams.FilteredMeasuredStream<>(this,predicate);
+    }
+
+    @Override
+    public MeasuredStream<T,V> limit(long maxSize) {
+        return new MeasuredStreams.LimitedStream<>(this,maxSize);
     }
 }
