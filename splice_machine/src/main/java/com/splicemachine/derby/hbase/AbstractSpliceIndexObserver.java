@@ -130,36 +130,57 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
 
     @Override
     public void postCompact(ObserverContext<RegionCoprocessorEnvironment> e,
-                            Store store, StoreFile resultFile, CompactionRequest request) throws IOException{
-        recordCompactedFilesForBackup(e, request);
+                            Store store, StoreFile resultFile, CompactionRequest request) throws IOException {
+        recordCompactedFilesForBackup(e, request, resultFile);
         if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "postCompact store=%s, storeFile=%s, request=%s",store,resultFile, request);
+            SpliceLogUtils.trace(LOG, "postCompact store=%s, storeFile=%s, request=%s", store, resultFile, request);
         while (true) {
             MemstoreAware latest = memstoreAware.get();
-            if(memstoreAware.compareAndSet(latest, MemstoreAware.decrementCompactionCount(latest)));
+            if (memstoreAware.compareAndSet(latest, MemstoreAware.decrementCompactionCount(latest))) ;
             break;
         }
         super.postCompact(e, store, resultFile, request);
+    }
+    @Override
+    public void postSplit(ObserverContext<RegionCoprocessorEnvironment> e, HRegion l, HRegion r) throws IOException {
+        recordRegionSplitForBackup(e, l, r);
     }
     /**
      * ***************************************************************************************************************
      */
     /*private helper methods*/
-    private void recordCompactedFilesForBackup(ObserverContext<RegionCoprocessorEnvironment> e, CompactionRequest request) {
+
+    private void recordRegionSplitForBackup(ObserverContext<RegionCoprocessorEnvironment> e, HRegion l, HRegion r) {
         try {
-            long lastBackup = BackupUtils.getLastBackupTime();
-            if (lastBackup <= 0)
+
+            boolean hasBackup = BackupUtils.hasBackup();
+
+            if (!hasBackup)
+                return;
+
+            BackupUtils.recordRegionSplit(e, l, r);
+
+        }catch (Exception ex) {
+            SpliceLogUtils.warn(LOG, "postSplit: cannot query last backup");
+        }
+    }
+
+    private void recordCompactedFilesForBackup(ObserverContext<RegionCoprocessorEnvironment> e, CompactionRequest request, StoreFile resultFile) {
+        try {
+            String tableName = e.getEnvironment().getRegion().getTableDesc().getNameAsString();
+            HRegion region = e.getEnvironment().getRegion();
+            long lastBackupTimestamp = BackupUtils.getLastBackupTimestamp(tableName, region);
+
+            if (lastBackupTimestamp <= 0)
                 return;
 
             Collection<StoreFile> before = new LinkedList<StoreFile>();
             Collection<StoreFile> after = new LinkedList<StoreFile>();
-
             String encodedRegionName = e.getEnvironment().getRegion().getRegionInfo().getEncodedName();
             Collection<StoreFile> storeFiles = request.getFiles();
             for (StoreFile storeFile : storeFiles) {
-                StoreFile.Reader reader = storeFile.createReader();
-                Long maxTimeStamp = reader.getMaxTimestamp();
-                if (maxTimeStamp <= lastBackup){
+                long modificationTimestamp = storeFile.getModificationTimeStamp();
+                if (modificationTimestamp <= lastBackupTimestamp){
                     before.add(storeFile);
                 }
                 else {
@@ -169,14 +190,16 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
 
             if (before.size() > 0 && after.size() > 0) {
                 for (StoreFile storeFile : after) {
-                    BackupUtils.recordStoreFile(conglomId, encodedRegionName, storeFile.getPath().getName());
+                    BackupUtils.recordBackupState(tableName, encodedRegionName, storeFile.getPath().getName(), "INCLUDE");
                 }
+                BackupUtils.recordBackupState(tableName, encodedRegionName, resultFile.getPath().getName(), "EXCLUDE");
             }
         }
         catch (Exception ex) {
             SpliceLogUtils.warn(LOG, "postCompact: cannot query last backup");
         }
     }
+
     private void filterFiles(ObserverContext<RegionCoprocessorEnvironment> c, List<StoreFile> candidates) throws IOException {
         /*
          * We want to remove TEMP files that we aren't interested in anymore. However, there is always the possibility
@@ -233,7 +256,6 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
             throw new IOException(e.getCause());
         }
     }
-
 
     protected void mutate(RegionCoprocessorEnvironment rce, KVPair mutation, TxnView txn) throws IOException {
         if (LOG.isTraceEnabled())
