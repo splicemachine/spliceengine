@@ -544,12 +544,13 @@ public class SpliceAdmin extends BaseAdminProcedures {
             	List<SpliceMachineVersion> spliceMachineVersions = JMXUtils.getSpliceMachineVersion(connections);
                 StringBuilder sb = new StringBuilder("select * from (values ");
                 int i = 0;
+                int hostIdx = 0;
                 String hostName;
                 // We arbitrarily pick SpliceMachineVersion MBean even though
                 // we do not fetch anything from it. We just use it as our
                 // mechanism for our region server context.
                 for (SpliceMachineVersion spliceMachineVersion : spliceMachineVersions) {
-            		hostName = connections.get(i).getFirst();
+            		hostName = connections.get(hostIdx).getFirst();
                     Configuration config = getConfig();
                     Iterator<Entry<String, String>> it = config.iterator();
                     Entry<String, String> entry;
@@ -563,6 +564,7 @@ public class SpliceAdmin extends BaseAdminProcedures {
                             entry.getValue())); // config value
 	                    i++;
                     }
+                    hostIdx++;
                 }
                 sb.append(") foo (hostname, configName, configValue)");
                 if (i != 0) {
