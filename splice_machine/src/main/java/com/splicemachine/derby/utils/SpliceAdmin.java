@@ -35,6 +35,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.concurrent.ExecutionException;
 
 import org.apache.derby.iapi.error.PublicAPI;
@@ -533,7 +535,7 @@ public class SpliceAdmin extends BaseAdminProcedures {
     	return SpliceUtils.getConfig();
     }
 
-    // TODO: sort, return only cluster disagreements, use IteratorResultSet (not values).
+    // TODO: return only cluster disagreements, use IteratorResultSet (not values).
     // But use as is to perform quick test in cluster.
     public static void SYSCS_GET_REGION_SERVER_CONFIG_INFO(final String configRoot, final int showDisagreementsOnly, final ResultSet[] resultSet) throws SQLException {
         operate(new JMXServerOperation() {
@@ -546,22 +548,33 @@ public class SpliceAdmin extends BaseAdminProcedures {
                 int i = 0;
                 int hostIdx = 0;
                 String hostName;
+                Configuration config;
+ 
                 // We arbitrarily pick SpliceMachineVersion MBean even though
                 // we do not fetch anything from it. We just use it as our
                 // mechanism for our region server context.
+                SortedMap<String, String> configMap = new TreeMap<String, String>();
+                
                 for (SpliceMachineVersion spliceMachineVersion : spliceMachineVersions) {
             		hostName = connections.get(hostIdx).getFirst();
-                    Configuration config = getConfig();
+                	configMap.clear();
+                    config = getConfig();
                     Iterator<Entry<String, String>> it = config.iterator();
-                    Entry<String, String> entry;
-                    while (it.hasNext()) {
-                    	entry = it.next();
-                    	if (matchName && !(entry.getKey().startsWith(configRoot))) continue;
-                    	if (i != 0) sb.append(", ");
+                    for (Entry<String, String> rawEntry : config) {
+                    	
+                        // use config.getValByRegex() instead of iterating and comparing manually?
+                    	if (matchName && !(rawEntry.getKey().startsWith(configRoot))) continue;
+                    	configMap.put(rawEntry.getKey(), rawEntry.getValue());
+                    }
+
+                    // Iterate through sorted configs and add to result set
+                    Set<Entry<String, String>> configSet = configMap.entrySet();
+                    for (Entry<String, String> configEntry : configSet) {
+                     	if (i != 0) sb.append(", ");
 	                    sb.append(String.format("('%s','%s','%s')",
-                    		hostName,
-                            entry.getKey(), // config name
-                            entry.getValue())); // config value
+	                		hostName,
+	                        configEntry.getKey(), // config name
+	                        configEntry.getValue())); // config value
 	                    i++;
                     }
                     hostIdx++;
@@ -570,6 +583,8 @@ public class SpliceAdmin extends BaseAdminProcedures {
                 if (i != 0) {
                 	resultSet[0] = executeStatement(sb);
                 }
+                
+                configMap.clear();
             }
         });
     }
