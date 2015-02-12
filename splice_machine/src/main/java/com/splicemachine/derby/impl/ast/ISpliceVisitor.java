@@ -151,6 +151,7 @@ public interface ISpliceVisitor {
     public Visitable visit(TernaryOperatorNode node) throws StandardException;
     public Visitable visit(TestConstraintNode node) throws StandardException;
     public Visitable visit(TimestampOperatorNode node) throws StandardException;
+    public Visitable visit(TruncateOperatorNode node) throws StandardException;
     public Visitable visit(UnaryArithmeticOperatorNode node) throws StandardException;
     public Visitable visit(UnaryComparisonOperatorNode node) throws StandardException;
     public Visitable visit(UnaryDateTimestampOperatorNode node) throws StandardException;
