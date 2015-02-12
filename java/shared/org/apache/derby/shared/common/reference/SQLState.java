@@ -1152,6 +1152,14 @@ public interface SQLState {
 	//following 1 does not match the DB2 sql state, it is a Derby specific behavior which is not compatible with DB2
 	String LANG_OPERATION_NOT_ALLOWED_ON_SESSION_SCHEMA_TABLES = "XCL51.S";
 
+    // truncate function error msgs
+    String LANG_TRUNCATE_NULL_OPERAND                                   = "43001";
+    String LANG_TRUNCATE_UNKNOWN_TYPE_OPERAND                           = "43002";
+    String LANG_TRUNCATE_EXPECTED_RIGHTSIDE_CHAR_TYPE                   = "43003";
+    String LANG_TRUNCATE_EXPECTED_RIGHTSIDE_INTEGER_TYPE                = "43004";
+    String LANG_TRUNCATE_WRONG_TRUNC_VALUE_FOR_DATE                     = "43005";
+    String LANG_TRUNCATE_UNKNOWN_TRUNC_VALUE                            = "43006";
+
 	// org.apache.derby.impl.sql.execute.rts
 	String RTS_ATTACHED_TO											   = "43X00.U";
 	String RTS_BEGIN_SQ_NUMBER										   = "43X01.U";

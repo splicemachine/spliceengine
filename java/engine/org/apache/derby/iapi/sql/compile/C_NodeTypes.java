@@ -230,7 +230,7 @@ public interface C_NodeTypes
     // generated columns
     static final int GENERATION_CLAUSE_NODE = 222;
 
-	// OFFSET, FETCH FIRST node
+	// OFFSET, FETCH FIRST, TOPn node
 	static final int ROW_COUNT_NODE = 223;
 
     // sequences
@@ -249,9 +249,10 @@ public interface C_NodeTypes
     static final int EXPLAIN_NODE = 234;
 
     static final int EXPORT_NODE = 250;
+    static final int TRUNC_NODE = 251;
 
     // Final value in set, keep up to date!
-    static final int FINAL_VALUE = EXPORT_NODE;
+    static final int FINAL_VALUE = TRUNC_NODE;
 
     /**
      * Extensions to this interface can use nodetypes > MAX_NODE_TYPE with out fear of collision

@@ -859,9 +859,24 @@ public final class SQLTimestamp extends DataType
         return dt;
     }
 
+    /**
+     * year - the year, from 1 to 9999 (a Derby restriction)
+     * monthOfYear - the month of the year, from 1 to 12
+     * dayOfMonth - the day of the month, from 1 to 31
+     * hourOfDay - the hour of the day, from 0 to 23
+     * minuteOfHour - the minute of the hour, from 0 to 59
+     * secondOfMinute - the second of the minute, from 0 to 59
+     * millisOfSecond - the millisecond of the second, from 0 to 999
+     *
+     * @return joda DateTime representation
+     */
 	private DateTime createDateTime(){
-		return new DateTime(SQLDate.getYear(encodedDate), SQLDate.getMonth(encodedDate), SQLDate.getDay(encodedDate),
-                            SQLTime.getHour(encodedTime),  SQLTime.getMinute(encodedTime), SQLTime.getSecond(encodedTime),
+		return new DateTime(SQLDate.getYear(encodedDate),
+                            SQLDate.getMonth(encodedDate),
+                            SQLDate.getDay(encodedDate),
+                            SQLTime.getHour(encodedTime),
+                            SQLTime.getMinute(encodedTime),
+                            SQLTime.getSecond(encodedTime),
                             nanos/1000000);
     }
 

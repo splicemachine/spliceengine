@@ -3011,6 +3011,43 @@ Guide.
                 <arg>aggregateName</arg>
                 <arg>detailedMessage</arg>
             </msg>    
+
+            <msg>
+                <name>43001</name>
+                <text>The truncate function was provided a null operand.</text>
+            </msg>
+
+            <msg>
+                <name>43002</name>
+                <text>The truncate function was provided an operand which it does not know how to handle: '{0}'.</text>
+                <arg>operand</arg>
+            </msg>
+
+            <msg>
+                <name>43003</name>
+                <text>The truncate function expects a right-side argument of type CHAR for an operand of type DATE or TIMESTAMP but got: '{0}'.</text>
+                <arg>truncValue</arg>
+            </msg>
+
+            <msg>
+                <name>43004</name>
+                <text>The truncate function expects a right-side argument of type INTEGER for an operand of type DECIMAL but got: '{0}'.</text>
+                <arg>truncValue</arg>
+            </msg>
+
+            <msg>
+                <name>43005</name>
+                <text>The truncate function got an invalid right-side trunc value for operand type DATE: '{0}'.</text>
+                <arg>truncValue</arg>
+            </msg>
+
+            <msg>
+                <name>43006</name>
+                <text>The truncate function got an unknown right-side trunc value for operand type '{0}': '{1}'. Acceptable values are: '{2}'.</text>
+                <arg>operand</arg>
+                <arg>truncValue</arg>
+                <arg>acceptableValues</arg>
+            </msg>
         </family>
 
 

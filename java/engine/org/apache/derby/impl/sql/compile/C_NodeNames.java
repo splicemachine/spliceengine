@@ -316,6 +316,8 @@ public interface C_NodeNames
 
     static final String EXPORT_NODE_NAME = "org.apache.derby.impl.sql.compile.ExportNode";
 
+    static final String TRUNC_NODE_NAME = "org.apache.derby.impl.sql.compile.TruncateOperatorNode";
+
     // WARNING: WHEN ADDING NODE TYPES HERE, YOU MUST ALSO ADD
     // THEM TO tools/jar/DBMSnodes.properties
 

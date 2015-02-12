@@ -452,6 +452,31 @@ public interface DataValueFactory
         DateTimeDataValue getTimestamp( DataValueDescriptor date, DataValueDescriptor time) throws StandardException;
 
         /**
+         * Truncate the given timestamp to the given truncValue.
+         *
+         * @param timestamp Must be convertible to a timestamp.
+         * @param truncValue Must be a valid truncation value for date/timestamp.
+         */
+        DateTimeDataValue truncTimestamp(DataValueDescriptor timestamp, DataValueDescriptor truncValue) throws StandardException;
+
+        /**
+         * Truncate the given date to the given truncValue.
+         *
+         * @param date Must be convertible to a date.
+         * @param truncValue Must be a valid truncation value for date/timestamp.
+         */
+        DateTimeDataValue truncDate(DataValueDescriptor date, DataValueDescriptor truncValue) throws StandardException;
+
+    /**
+     * Truncate the given decimal using the given trunc value.
+     *
+     * @param decimal
+     * @param truncValue
+     * @throws StandardException
+     */
+    public NumberDataValue truncDecimal(DataValueDescriptor decimal, DataValueDescriptor truncValue) throws StandardException;
+
+        /**
          * Implements the SQL date function
          *
          * @param operand A date, timestamp, string or integer.

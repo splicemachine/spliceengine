@@ -602,7 +602,19 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
             return new SQLTimestamp( date, time);
         }
 
-        public UserDataValue getDataValue(Object value,
+    public DateTimeDataValue truncTimestamp(DataValueDescriptor timestamp, DataValueDescriptor truncValue) throws StandardException {
+        return TruncateFunctionUtil.truncTimestamp(timestamp, truncValue);
+    }
+
+    public DateTimeDataValue truncDate(DataValueDescriptor timestamp, DataValueDescriptor truncValue) throws StandardException {
+        return TruncateFunctionUtil.truncDate(timestamp, truncValue);
+    }
+
+    public NumberDataValue truncDecimal(DataValueDescriptor decimal, DataValueDescriptor truncValue) throws StandardException {
+        return TruncateFunctionUtil.truncDecimal(decimal, truncValue);
+    }
+
+    public UserDataValue getDataValue(Object value,
                                                                                 UserDataValue previous)
         {
                 if (previous == null)

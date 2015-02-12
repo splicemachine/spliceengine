@@ -2165,6 +2165,58 @@ public class SQLParser
 								(Boolean) declareTableClauses[2],
 								getContextManager());
 	}
+
+	private ValueNode createTruncateTypeNode(ValueNode operandNode, ValueNode truncValue) throws StandardException {
+        ValueNode truncateOperand = null;
+        if (operandNode == null) {
+            throw StandardException.newException(SQLState.LANG_TRUNCATE_NULL_OPERAND);
+        } else if (operandNode instanceof UnaryOperatorNode) {
+            // date... probably
+            String opStr = ((UnaryOperatorNode)operandNode).getOperatorString();
+            if ("date".equals(opStr)) {
+                truncateOperand = (ValueNode) nodeFactory.getNode(
+                                                                C_NodeTypes.UNARY_DATE_TIMESTAMP_OPERATOR_NODE,
+                                                                operandNode,
+                                                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DATE),
+                                                                getContextManager());
+            } else if ("timestamp".equals(opStr)) {
+                truncateOperand = (ValueNode) nodeFactory.getNode(
+                                                                C_NodeTypes.UNARY_DATE_TIMESTAMP_OPERATOR_NODE,
+                                                                operandNode,
+                                                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.TIMESTAMP),
+                                                                getContextManager());
+            }
+        } else if (operandNode instanceof BinaryOperatorNode) {
+            // timestamp... likely
+            String opStr = ((BinaryOperatorNode)operandNode).getOperatorString();
+            if ("timestamp".equals(opStr)) {
+                truncateOperand = (ValueNode) nodeFactory.getNode(
+                                                                C_NodeTypes.UNARY_DATE_TIMESTAMP_OPERATOR_NODE,
+                                                                operandNode,
+                                                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.TIMESTAMP),
+                                                                getContextManager());
+            }
+        } else if (operandNode instanceof NumericConstantNode) {
+            // truncate numberic
+            // must have 2 numeric args - 1st is decimal, not null; 2nd is integer not null
+            // this is enforced in TruncateOperatorNode
+            truncateOperand = operandNode;
+        } else if (operandNode instanceof ColumnReference) {
+            // truncating a column in a table. could be type date, timestamp or decimal
+            // this is enforced in TruncateOperatorNode
+            truncateOperand = operandNode;
+        }
+
+        if (truncateOperand == null) {
+            throw StandardException.newException(SQLState.LANG_TRUNCATE_UNKNOWN_TYPE_OPERAND, operandNode);
+        }
+
+        return (ValueNode) nodeFactory.getNode(
+                                              C_NodeTypes.TRUNC_NODE,
+                                              truncateOperand,
+                                              truncValue,
+                                              getContextManager());
+	}
 }
 
 PARSER_END(SQLParser)
@@ -2748,6 +2800,7 @@ TOKEN [IGNORE_CASE] :
 |	<TIMESTAMP: "timestamp">
 |	<TIMESTAMPADD: "timestampadd">
 |	<TIMESTAMPDIFF: "timestampdiff">
+|	<TRUNC: "trunc">
 |	<TRUNCATE: "truncate">
 |	<TYPE: "type">
 |	<UNCOMMITTED: "uncommitted">
@@ -7191,6 +7244,8 @@ miscBuiltins() throws StandardException :
                 getToken(1).kind == DATE ||
                 getToken(1).kind == TIME ||
                 getToken(1).kind == TIMESTAMP ||
+                getToken(1).kind == TRUNC ||
+                getToken(1).kind == TRUNCATE ||
 		getToken(1).kind == DOUBLE ||
 		getToken(1).kind == CHAR ||
 		getToken(1).kind == VARCHAR ||
@@ -7929,6 +7984,11 @@ dateTimeScalarFunction() throws StandardException :
                 return timestampNode;
         }
 |
+        [ <TRUNC> | <TRUNCATE> ] <LEFT_PAREN> value = additiveExpression(null,0) timestampNode = truncateFunctionCompletion(value)
+	{
+                return timestampNode;
+        }
+|
         field = datetimeField() <LEFT_PAREN> value = additiveExpression(null,0) <RIGHT_PAREN>
 	{
 		return (ValueNode) nodeFactory.getNode(
@@ -7939,6 +7999,25 @@ dateTimeScalarFunction() throws StandardException :
 	}
 }
 
+
+/*
+ * <A NAME="truncateFunctionCompletion">truncateFunctionCompletion</A>
+ */
+ValueNode
+truncateFunctionCompletion(ValueNode truncateOperand) throws StandardException :
+{
+        /* default truncValue to DAY */
+        ValueNode truncValue = (CharConstantNode) nodeFactory.getNode(
+                               								C_NodeTypes.CHAR_CONSTANT_NODE,
+                               								"DAY",  // default to DAY
+                               								getContextManager());
+}
+{
+    ( <RIGHT_PAREN> | <COMMA> truncValue = additiveExpression(null,0) <RIGHT_PAREN> )
+    {
+        return createTruncateTypeNode(truncateOperand, truncValue);
+    }
+}
 
 /*
  * <A NAME="timestampFunctionCompletion">timestampFunctionCompletion</A>

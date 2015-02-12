@@ -652,6 +652,9 @@ public class NodeFactoryImpl extends NodeFactory implements ModuleControl, Modul
           case C_NodeTypes.EXPORT_NODE:
             return C_NodeNames.EXPORT_NODE_NAME;
 
+          case C_NodeTypes.TRUNC_NODE:
+            return C_NodeNames.TRUNC_NODE_NAME;
+
             // WARNING: WHEN ADDING NODE TYPES HERE, YOU MUST ALSO ADD
 		  // THEM TO tools/jar/DBMSnodes.properties
 
