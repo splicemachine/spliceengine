@@ -1,9 +1,13 @@
 package com.splicemachine.derby.impl.sql.execute.operations.export;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.job.JobStats;
+
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -36,7 +40,14 @@ public class ExportFailedTaskCleanupTest {
         //
         String exportPath = temporaryFolder.getRoot().getAbsolutePath();
         ExportParams exportParams = new ExportParams(exportPath, false, 1, null, null, null);
-        ExportFile exportFile = new ExportFile(exportParams, failedTaskId);
+        Configuration conf = SpliceConstants.config;
+ 		// Mapr4.0 specific fix
+ 		// See DB-2859        
+ 		System.setProperty("zookeeper.sasl.client", "false");   
+ 		System.setProperty("zookeeper.sasl.serverconfig", "fake");
+ 		conf.set("fs.hdfs.impl", "org.apache.hadoop.hdfs.DistributedFileSystem");
+ 		conf.set(FileSystem.FS_DEFAULT_NAME_KEY,"file:///");
+        ExportFile exportFile = new ExportFile(exportParams, failedTaskId, conf);
         OutputStream outputStream = exportFile.getOutputStream();
         outputStream.write(1);
         outputStream.close();

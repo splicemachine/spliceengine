@@ -23,18 +23,15 @@ class ExportFile {
     private final byte[] taskId;
 
     ExportFile(ExportParams exportParams, byte[] taskId) throws IOException {
-        Configuration conf = SpliceConstants.config;
-		// Mapr4.0 specific fix
-		// See DB-2859        
-		System.setProperty("zookeeper.sasl.client", "false");   
-		System.setProperty("zookeeper.sasl.serverconfig", "fake");
-		conf.set("fs.hdfs.impl", "org.apache.hadoop.hdfs.DistributedFileSystem");
-		conf.set(FileSystem.FS_DEFAULT_NAME_KEY,"file:///");
+        this(exportParams, taskId, SpliceConstants.config);
+    }
+
+    ExportFile(ExportParams exportParams, byte[] taskId, Configuration conf) throws IOException {
     	this.fileSystem = FileSystem.get(conf);
         this.exportParams = exportParams;
         this.taskId = taskId;
     }
-
+    
     public OutputStream getOutputStream() throws IOException {
         // Filename
         Path fullyQualifiedExportFilePath = buildOutputFilePath();
