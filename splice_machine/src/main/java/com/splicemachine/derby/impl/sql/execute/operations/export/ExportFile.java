@@ -2,6 +2,8 @@ package com.splicemachine.derby.impl.sql.execute.operations.export;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
+
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -21,7 +23,14 @@ class ExportFile {
     private final byte[] taskId;
 
     ExportFile(ExportParams exportParams, byte[] taskId) throws IOException {
-        this.fileSystem = FileSystem.get(SpliceConstants.config);
+        Configuration conf = SpliceConstants.config;
+		// Mapr4.0 specific fix
+		// See DB-2859        
+		System.setProperty("zookeeper.sasl.client", "false");   
+		System.setProperty("zookeeper.sasl.serverconfig", "fake");
+		conf.set("fs.hdfs.impl", "org.apache.hadoop.hdfs.DistributedFileSystem");
+		conf.set(FileSystem.FS_DEFAULT_NAME_KEY,"file:///");
+    	this.fileSystem = FileSystem.get(conf);
         this.exportParams = exportParams;
         this.taskId = taskId;
     }

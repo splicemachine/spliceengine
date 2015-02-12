@@ -21,12 +21,6 @@ public class SpliceConfiguration {
 
 	public static Configuration create(){
 		Configuration conf = HBaseConfiguration.create();
-		// Mapr4.0 specific fix
-		// See DB-2859
-		System.setProperty("zookeeper.sasl.client", "false");   
-		System.setProperty("zookeeper.sasl.serverconfig", "fake");
-		conf.set("fs.hdfs.impl", "org.apache.hadoop.hdfs.DistributedFileSystem");
-		
 		addSpliceResources(conf);
                 return conf;
 	}
