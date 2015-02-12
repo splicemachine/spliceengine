@@ -689,6 +689,11 @@ public abstract class AbstractSpliceVisitor implements ISpliceVisitor {
     }
 
     @Override
+    public Visitable visit(TruncateOperatorNode node) throws StandardException {
+        return defaultVisit(node);
+    }
+
+    @Override
     public Visitable visit(UnaryArithmeticOperatorNode node) throws StandardException {
         return defaultVisit(node);
     }
