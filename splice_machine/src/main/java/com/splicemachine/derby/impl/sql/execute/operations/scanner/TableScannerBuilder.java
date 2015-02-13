@@ -1,12 +1,18 @@
 package com.splicemachine.derby.impl.sql.execute.operations.scanner;
 
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+
 import com.splicemachine.hbase.MeasuredRegionScanner;
+import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.si.api.TxnView;
-import com.splicemachine.si.impl.HTransactorFactory;
 import com.splicemachine.si.impl.SIFactoryDriver;
 
+import org.apache.derby.iapi.services.io.ArrayUtil;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.client.Scan;
@@ -16,7 +22,7 @@ import org.apache.hadoop.hbase.client.Scan;
  * @author Scott Fines
  * Date: 4/9/14
  */
-public class TableScannerBuilder {
+public class TableScannerBuilder implements Externalizable {
 		private MeasuredRegionScanner scanner;
 		private	ExecRow template;
 		private	MetricFactory metricFactory;
@@ -29,7 +35,6 @@ public class TableScannerBuilder {
 		private	FormatableBitSet accessedKeys;
 		private	String indexName;
 		private	String tableVersion;
-
 		private SIFilterFactory filterFactory;
 		private boolean[] keyColumnSortOrder;
 		private TransactionalRegion region;
@@ -219,5 +224,36 @@ public class TableScannerBuilder {
 								tableVersion,
 								filterFactory);
 
+		}
+
+		@Override
+		public void writeExternal(ObjectOutput out) throws IOException {
+			out.writeObject(template);
+			out.writeObject(scan);
+			ArrayUtil.writeIntArray(out, rowColumnMap);
+			TransactionOperations.getOperationFactory().writeTxn(txn, out);
+			ArrayUtil.writeIntArray(out, keyColumnEncodingOrder);
+			ArrayUtil.writeBooleanArray(out, keyColumnSortOrder);
+			ArrayUtil.writeIntArray(out, keyColumnTypes);
+			ArrayUtil.writeIntArray(out, keyDecodingMap);
+			out.writeObject(accessedKeys);
+			out.writeUTF(indexName);
+			out.writeUTF(tableVersion);			
+		}
+
+		@Override
+		public void readExternal(ObjectInput in) throws IOException,
+				ClassNotFoundException {
+			template = (ExecRow) in.readObject();
+			scan = (Scan) in.readObject();
+			rowColumnMap = ArrayUtil.readIntArray(in);
+			txn = TransactionOperations.getOperationFactory().readTxn(in);
+			keyColumnEncodingOrder = ArrayUtil.readIntArray(in);
+			keyColumnSortOrder = ArrayUtil.readBooleanArray(in);
+			keyColumnTypes = ArrayUtil.readIntArray(in);
+			keyDecodingMap = ArrayUtil.readIntArray(in);
+			accessedKeys = (FormatableBitSet) in.readObject();
+			indexName = in.readUTF();
+			tableVersion = in.readUTF();
 		}
 }
