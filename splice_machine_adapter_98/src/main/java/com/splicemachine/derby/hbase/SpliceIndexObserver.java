@@ -62,7 +62,7 @@ public class SpliceIndexObserver extends AbstractSpliceIndexObserver {
     public void prePut(ObserverContext<RegionCoprocessorEnvironment> e, Put put, WALEdit edit, Durability durability) throws IOException {
     	if (LOG.isTraceEnabled())
     			SpliceLogUtils.trace(LOG, "prePut %s",put);
-        if(conglomId>0){
+        if(conglomId>0){        	
             if(put.getAttribute(SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME)!=null) return;
 
             //we can't update an index if the conglomerate id isn't positive--it's probably a temp table or something
