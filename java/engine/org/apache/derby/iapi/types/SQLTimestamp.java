@@ -762,7 +762,7 @@ public final class SQLTimestamp extends DataType
 	{
 		if (SanityManager.DEBUG)
 		{
-			SanityManager.ASSERT(source == null || source instanceof SQLDouble,
+			SanityManager.ASSERT(source == null || source.isDoubleType(),
 		"getSeconds for a timestamp was given a source other than a SQLDouble");
 		}
 		NumberDataValue result;
