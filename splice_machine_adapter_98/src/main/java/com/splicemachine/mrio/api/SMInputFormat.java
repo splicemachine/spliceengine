@@ -5,11 +5,13 @@ import java.util.List;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
 import org.apache.hadoop.hbase.mapreduce.SpliceMapreduceUtils;
 import org.apache.hadoop.hbase.mapreduce.TableInputFormat;
+import org.apache.hadoop.hbase.mapreduce.TableSplit;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -28,14 +30,14 @@ public class SMInputFormat extends InputFormat<ImmutableBytesWritable, ExecRow> 
 
 	@Override
 	public void setConf(Configuration conf) {
-		this.conf = conf;
+			this.conf = conf;
 		    String tableName = conf.get(TableInputFormat.INPUT_TABLE);
 		    try {
 		      setHTable(new HTable(new Configuration(conf), tableName));
 		    } catch (Exception e) {
 		      LOG.error(StringUtils.stringifyException(e));
 		    }
-
+		    
 		    Scan scan = null;
 
 		    if (conf.get(TableInputFormat.SCAN) != null) {
@@ -55,11 +57,7 @@ public class SMInputFormat extends InputFormat<ImmutableBytesWritable, ExecRow> 
 		        if (conf.get(TableInputFormat.SCAN_ROW_STOP) != null) {
 		          scan.setStopRow(Bytes.toBytes(conf.get(TableInputFormat.SCAN_ROW_STOP)));
 		        }
-
-		       // if (conf.get(TableInputFormat.SCAN_COLUMNS) != null) {
-		       //   addColumns(scan, conf.get(TableInputFormat.SCAN_COLUMNS));
-		       // }
-
+		        
 		        if (conf.get(TableInputFormat.SCAN_COLUMN_FAMILY) != null) {
 		          scan.addFamily(Bytes.toBytes(conf.get(TableInputFormat.SCAN_COLUMN_FAMILY)));
 		        }
@@ -116,24 +114,21 @@ public class SMInputFormat extends InputFormat<ImmutableBytesWritable, ExecRow> 
 	public RecordReader<ImmutableBytesWritable, ExecRow> createRecordReader(
 			InputSplit split, TaskAttemptContext context) throws IOException,
 			InterruptedException {
-		/*
 		if (LOG.isTraceEnabled())
 			SpliceLogUtils.trace(LOG, "createRecordReader for split=%s, context %s",split,context);
-		SpliceTableRecordReader trr = this.spliceTableRecordReader;
-		if(trr == null)
-			trr = new SpliceTableRecordReader(conf);
-		if(hTable == null)
-			hTable = new HTable(HBaseConfiguration.create(conf), tableID);
+		SMRecordReaderImpl recordReader = new SMRecordReaderImpl(context.getConfiguration());
+		if(table == null)
+			table = new HTable(HBaseConfiguration.create(conf), conf.get(SMMRConstants.SPLICE_INPUT_TABLE_NAME));
+		recordReader.setHTable(table);
+
 		TableSplit tSplit = (TableSplit)split;
-		Scan sc = new Scan(this.tableInputFormat.getScan());
+		Scan sc = new Scan(scan);
 		sc.setStartRow(tSplit.getStartRow());
 		sc.setStopRow(tSplit.getEndRow());
-		trr.setScan(sc);
-		trr.setHTable(hTable);
-		trr.init();
-		return trr;
-		*/
-		return null;
+		recordReader.setScan(sc);
+		recordReader.setHTable(table);
+//		recordReader.init();
+		return recordReader;
 	}
 	
 	  /**
@@ -170,5 +165,7 @@ public class SMInputFormat extends InputFormat<ImmutableBytesWritable, ExecRow> 
 	  public void setScan(Scan scan) {
 	    this.scan = scan;
 	  }
+	  
+
 	  
 }

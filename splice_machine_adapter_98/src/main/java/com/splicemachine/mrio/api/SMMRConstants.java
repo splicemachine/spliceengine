@@ -12,4 +12,5 @@ public class SMMRConstants {
 	final protected static String HBASE_OUTPUT_TABLE_NAME = "hbase_output_tableName";
 	final public static String SPLICE_WRITE_BUFFER_SIZE = "splice_write_buffer_size";
 	final public static String SPLICE_JDBC_STR = "splice_jdbc";
+	final public static String SPLICE_SCAN_INFO = "splice_scan_info";
 }
