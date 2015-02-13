@@ -1,6 +1,11 @@
 package com.splicemachine.mrio.api;
 
+import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.utils.SpliceAdmin;
+import com.splicemachine.metrics.Metrics;
+import com.splicemachine.si.api.Txn.IsolationLevel;
+import com.splicemachine.si.impl.ReadOnlyTxn;
+import com.splicemachine.utils.IntArrays;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
@@ -9,6 +14,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.derby.iapi.services.io.FormatableBitSet;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.impl.sql.execute.ValueRow;
+import org.apache.hadoop.hbase.client.Scan;
 
 public class SMSQLUtil {
 	  private Connection connect = null;
@@ -239,6 +248,83 @@ public class SMSQLUtil {
 						+ "pattern: schemaName.tableName");
 		  } 
 	  }
-	 
+	  
+	  public int[] getRowDecodingMap(List<NameType> nameTypes, List<String> primaryKeys, List<String> columnNames) {
+		  	int []rowDecodingMap = IntArrays.count(nameTypes.size());
+			for (int i = 0; i< nameTypes.size(); i++) {
+				NameType nameType = nameTypes.get(i);
+				if (!primaryKeys.contains(nameType.getName()) && columnNames.contains(nameType.getName()))
+					rowDecodingMap[i] = columnNames.indexOf(nameType.getName());
+				else
+					rowDecodingMap[i] = -1;
+		  	}
+			return rowDecodingMap;
+	  }
+	  
+	  public int[] getKeyColumnEncodingOrder(List<NameType> nameTypes, List<String> primaryKeys) {  
+		    int[] keyColumnEncodingOrder = IntArrays.count(primaryKeys.size());
+			for (int i = 0; i< primaryKeys.size(); i++) {
+				keyColumnEncodingOrder[i] = locationInNameTypes(nameTypes,primaryKeys.get(i));
+			}
+			return keyColumnEncodingOrder;
+	  }
+	  
+	  public int[] getKeyDecodingMap(int[] keyColumnEncodingOrder, List<String> columnNames, List<NameType> nameTypes) {
+			int[] keyDecodingMap = IntArrays.count(keyColumnEncodingOrder.length);
+			for (int i = 0; i< keyColumnEncodingOrder.length; i++) {
+				keyDecodingMap[i] = columnNames.indexOf(nameTypes.get(keyColumnEncodingOrder[i]).name);
+			}
+			return keyDecodingMap;		  
+	  }
+	  
+	  public int[] getKeyColumnTypes(int[] keyColumnEncodingOrder, List<NameType> nameTypes) {
+			int[] keyColumnTypes = IntArrays.count(keyColumnEncodingOrder.length);
+			for (int i = 0; i< keyColumnEncodingOrder.length; i++) {
+				keyColumnTypes[i] = nameTypes.get(keyColumnEncodingOrder[i]).type;
+			}
+			return keyColumnTypes;
+	  }
+	  
+	  public FormatableBitSet getAccessedKeyColumns(int[] keyColumnEncodingOrder,int[] keyDecodingMap) {
+		  FormatableBitSet accessedKeyColumns = new FormatableBitSet(keyColumnEncodingOrder.length);
+		  for(int i=0;i<keyColumnEncodingOrder.length;i++){
+			  int decodingPosition = keyDecodingMap[keyColumnEncodingOrder[i]];
+			  if(decodingPosition>=0)
+				  accessedKeyColumns.set(i);
+		 }
+		 return accessedKeyColumns;
+	  }
+	  private int locationInNameTypes(List<NameType> nameTypes, String name) {
+		  for (int i = 0; i< nameTypes.size(); i++) {
+			  if (nameTypes.get(i).name.equals(name))
+				  return i;
+		  }
+		  throw new RuntimeException("misssing element");
+	  }
+	  
+	  
+	  public TableScannerBuilder getTableScannerBuilder(String tableName, List<String> columnNames) throws SQLException {
+		List<String> primaryKeys = getPrimaryKeys(tableName); 
+		List<NameType> nameTypes = getTableStructure(tableName);
+		ExecRow row = new ValueRow(columnNames.size());
+		int[] rowDecodingMap = getRowDecodingMap(nameTypes,primaryKeys,columnNames);
+		int[] keyColumnEncodingOrder = getKeyColumnEncodingOrder(nameTypes,primaryKeys);
+		int[] keyDecodingMap = getKeyDecodingMap(keyColumnEncodingOrder,columnNames,nameTypes);		
+		int[] keyColumnTypes = getKeyColumnTypes(keyColumnEncodingOrder,nameTypes);
+		FormatableBitSet accessedKeyColumns = getAccessedKeyColumns(keyColumnEncodingOrder,keyDecodingMap);			
+			return new TableScannerBuilder()
+        .transaction(ReadOnlyTxn.create(Long.parseLong(getTransactionID()),IsolationLevel.SNAPSHOT_ISOLATION, null))
+							.metricFactory(Metrics.basicMetricFactory())
+							.scan(new Scan())
+							.template(row)
+							.tableVersion("2.0")
+							.indexName(null)
+							.keyColumnEncodingOrder(keyColumnEncodingOrder)
+							.keyColumnSortOrder(null)
+							.keyColumnTypes(keyColumnTypes)
+							.accessedKeyColumns(accessedKeyColumns)
+							.keyDecodingMap(keyDecodingMap)
+							.rowDecodingMap(rowDecodingMap);		
+	  }
 	
 }
