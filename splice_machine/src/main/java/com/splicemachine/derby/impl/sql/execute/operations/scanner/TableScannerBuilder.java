@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
+import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.TransactionalRegion;
@@ -12,10 +13,12 @@ import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.SIFactoryDriver;
 
+import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.ArrayUtil;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.util.Base64;
 
 /**
  * Companion Builder class for SITableScanner
@@ -23,21 +26,21 @@ import org.apache.hadoop.hbase.client.Scan;
  * Date: 4/9/14
  */
 public class TableScannerBuilder implements Externalizable {
-		private MeasuredRegionScanner scanner;
-		private	ExecRow template;
-		private	MetricFactory metricFactory;
-		private	Scan scan;
-		private	int[] rowColumnMap;
-		private TxnView txn;
-		private	int[] keyColumnEncodingOrder;
-		private	int[] keyColumnTypes;
-		private	int[] keyDecodingMap;
-		private	FormatableBitSet accessedKeys;
-		private	String indexName;
-		private	String tableVersion;
-		private SIFilterFactory filterFactory;
-		private boolean[] keyColumnSortOrder;
-		private TransactionalRegion region;
+		protected MeasuredRegionScanner scanner;
+		protected	ExecRow template;
+		protected	MetricFactory metricFactory;
+		protected	Scan scan;
+		protected	int[] rowColumnMap;
+		protected TxnView txn;
+		protected	int[] keyColumnEncodingOrder;
+		protected	int[] keyColumnTypes;
+		protected	int[] keyDecodingMap;
+		protected	FormatableBitSet accessedKeys;
+		protected	String indexName;
+		protected	String tableVersion;
+		protected SIFilterFactory filterFactory;
+		protected boolean[] keyColumnSortOrder;
+		protected TransactionalRegion region;
 
 		public TableScannerBuilder scanner(MeasuredRegionScanner scanner) {
 				assert scanner !=null :"Null scanners are not allowed!";
@@ -255,5 +258,15 @@ public class TableScannerBuilder implements Externalizable {
 			accessedKeys = (FormatableBitSet) in.readObject();
 			indexName = in.readUTF();
 			tableVersion = in.readUTF();
+		}
+		
+		public static TableScannerBuilder getTableScannerBuilderFromBase64String(String base64String) throws IOException, StandardException {
+			if (base64String == null)
+				throw new IOException("tableScanner base64 String is null");			
+			return DerbyBytesUtil.fromBytes(Base64.decode(base64String));
+		}
+
+		public String getTableScannerBuilderBase64String() throws IOException, StandardException {
+			return Base64.encodeBytes(DerbyBytesUtil.toBytes(this));
 		}
 }
