@@ -40,6 +40,10 @@ public class StandardIterators {
         return new IteratorStandardIterator<T>(data.iterator());
     }
 
+    public static <T> StandardIterator<T> wrap(Iterator<T> iterator) {
+        return new IteratorStandardIterator<T>(iterator);
+    }
+
     public static <T> IOStandardIterator<T> noIO(Iterable<T> data) {
         return new IteratorStandardIterator<T>(data.iterator());
     }

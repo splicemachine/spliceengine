@@ -8,7 +8,10 @@ import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 import com.google.common.collect.Lists;
 import com.splicemachine.concurrent.SameThreadExecutorService;
+import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.*;
+import com.splicemachine.derby.impl.spark.RDDUtils;
+import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.StandardIterators;
@@ -29,7 +32,11 @@ import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.broadcast.Broadcast;
+import org.apache.spark.storage.StorageLevel;
+import scala.Tuple2;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -385,17 +392,130 @@ public class BroadcastJoinOperation extends JoinOperation {
     @Override
     public boolean providesRDD() {
         // Only when this operation isn't above a Sink
-        // TODO implement BcastJoin in Spark when it's above a sink
-        return leftResultSet.providesRDD() && rightResultSet.providesRDD() && pushedToServer();
+        return leftResultSet.providesRDD() && rightResultSet.providesRDD();
     }
 
     @Override
     public JavaRDD<ExecRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
-        return leftResultSet.getRDD(spliceRuntimeContext, top);
+        JavaRDD<ExecRow> left = leftResultSet.getRDD(spliceRuntimeContext, top);
+        if (pushedToServer()) {
+            return left;
+        }
+        JavaRDD<ExecRow> right = rightResultSet.getRDD(spliceRuntimeContext, rightResultSet);
+        JavaPairRDD<ExecRow, Iterable<ExecRow>> keyedRight = RDDUtils.getKeyedRDD(right, rightHashKeys).groupByKey();
+        Broadcast<Map<ExecRow, Iterable<ExecRow>>> broadcast = SpliceSpark.getContext().broadcast(keyedRight.collectAsMap());
+        final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this, spliceRuntimeContext);
+        return left.mapPartitions(new BroadcastSparkOperation(this, soi, broadcast));
     }
 
     @Override
     public boolean pushedToServer() {
         return leftResultSet.pushedToServer() && rightResultSet.pushedToServer();
+    }
+
+    public static final class BroadcastSparkOperation extends SparkFlatMapOperation<BroadcastJoinOperation, Iterator<ExecRow>, ExecRow> {
+        private Broadcast<Map<ExecRow, Iterable<ExecRow>>> right;
+        private Joiner joiner;
+
+        public BroadcastSparkOperation() {
+        }
+
+        public BroadcastSparkOperation(BroadcastJoinOperation spliceOperation, SpliceObserverInstructions soi,
+                                       Broadcast<Map<ExecRow, Iterable<ExecRow>>> right) {
+            super(spliceOperation, soi);
+            this.right = right;
+        }
+
+        @Override
+        public Iterable<ExecRow> call(Iterator<ExecRow> sourceRows) throws Exception {
+            if (joiner == null) {
+                joiner = initJoiner(sourceRows);
+                joiner.open();
+            }
+            return new JoinerIterator();
+        }
+
+        private Joiner initJoiner(Iterator<ExecRow> sourceRows) throws StandardException {
+            Function<ExecRow, List<ExecRow>> lookup = new Function<ExecRow, List<ExecRow>>() {
+                @Override
+                public List<ExecRow> apply(ExecRow leftRow) {
+                    try {
+                        ExecRow key = RDDUtils.getKey(leftRow, op.leftHashKeys);
+                        Iterable<ExecRow> rightRows = right.value().get(key);
+                        if (rightRows == null) {
+                            return null;
+                        } else {
+                            return Lists.newArrayList(rightRows);
+                        }
+                    } catch (Exception e) {
+                        throw new RuntimeException(String.format("Unable to lookup %s in" +
+                                " Broadcast map", leftRow), e);
+                    }
+                }
+            };
+            StandardSupplier<ExecRow> emptyRowSupplier = new StandardSupplier<ExecRow>() {
+                @Override
+                public ExecRow get() throws StandardException {
+                    return op.getEmptyRow();
+                }
+            };
+            return new Joiner(new BroadCastJoinRows(StandardIterators.wrap(sourceRows), lookup),
+                    op.getExecRowDefinition(), op.getRestriction(), op.isOuterJoin,
+                    op.wasRightOuterJoin, op.leftNumCols, op.rightNumCols,
+                    op.oneRowRightSide, op.notExistsRightSide, emptyRowSupplier, soi.getSpliceRuntimeContext());
+        }
+
+        @Override
+        public void writeExternal(ObjectOutput out) throws IOException {
+            super.writeExternal(out);
+            out.writeObject(right);
+        }
+
+        @Override
+        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+            super.readExternal(in);
+            this.right = (Broadcast<Map<ExecRow, Iterable<ExecRow>>>) in.readObject();
+        }
+
+        private class JoinerIterator implements Iterator<ExecRow>, Iterable<ExecRow> {
+            ExecRow next = null;
+            boolean consumed = false;
+
+            @Override
+            public Iterator<ExecRow> iterator() {
+                return this;
+            }
+
+            @Override
+            public boolean hasNext() {
+                if (consumed) return false;
+                try {
+                    if (next == null) {
+                        next = joiner.nextRow(soi.getSpliceRuntimeContext());
+                    }
+                    if (next == null) {
+                        consumed = true;
+                        joiner.close();
+                    }
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+                return next != null;
+            }
+
+            @Override
+            public ExecRow next() {
+                if (!hasNext())
+                    return null;
+                ExecRow result = next;
+                next = null;
+                return result;
+            }
+
+            @Override
+            public void remove() {
+                throw new UnsupportedOperationException("Can't remove elements from this iterator");
+            }
+        }
     }
 }
