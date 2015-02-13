@@ -46,6 +46,18 @@ public class RDDUtils {
         }
     }
 
+    public static ExecRow getKey(ExecRow row, int[] keyColumns) throws Exception {
+        ValueRow key = new ValueRow(keyColumns.length);
+        int position = 1;
+        for (int keyColumn : keyColumns) {
+            key.setColumn(position++, row.getColumn(keyColumn + 1));
+        }
+        if (LOG.isDebugEnabled()) {
+            LOG.debug(String.format("Added key, returning (%s, %s) key hash %d", key, row, key.hashCode()));
+        }
+        return key;
+    }
+
     public static class Keyer implements Function<ExecRow, ExecRow> {
 
         private static final long serialVersionUID = 3988079974858059941L;
@@ -60,15 +72,7 @@ public class RDDUtils {
 
         @Override
         public ExecRow call(ExecRow row) throws Exception {
-            ValueRow key = new ValueRow(keyColumns.length);
-            int position = 1;
-            for (int keyColumn : keyColumns) {
-                key.setColumn(position++, row.getColumn(keyColumn + 1));
-            }
-            if (LOG.isDebugEnabled()) {
-                LOG.debug(String.format("Added key, returning (%s, %s) key hash %d", key, row, key.hashCode()));
-            }
-            return key;
+            return RDDUtils.getKey(row, keyColumns);
         }
     }
 }
