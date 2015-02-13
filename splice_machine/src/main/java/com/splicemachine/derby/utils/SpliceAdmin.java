@@ -3,6 +3,7 @@ package com.splicemachine.derby.utils;
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.hbase.DerbyFactory;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.tools.version.SpliceMachineVersion;
 import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.job.scheduler.StealableTaskSchedulerManagement;
