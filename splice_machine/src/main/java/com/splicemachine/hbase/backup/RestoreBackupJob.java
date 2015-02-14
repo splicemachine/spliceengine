@@ -10,20 +10,23 @@ import org.apache.hadoop.hbase.util.Pair;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 public class RestoreBackupJob implements CoprocessorJob {
 	    private final BackupItem backupItem;
 	    private final HTableInterface table;
+        private final List<Long> parentBackupIds;
 
-	    public RestoreBackupJob(BackupItem backupItem, HTableInterface table) {
+	    public RestoreBackupJob(BackupItem backupItem, HTableInterface table, List<Long> parentBackupIds) {
 	        this.table = table;
 	        this.backupItem = backupItem;
+            this.parentBackupIds = parentBackupIds;
 	    }
 
 	    @Override
 	    public Map<? extends RegionTask, Pair<byte[], byte[]>> getTasks() throws Exception {
-	    	RestoreBackupTask task = new RestoreBackupTask(backupItem,getJobId());
+	    	RestoreBackupTask task = new RestoreBackupTask(backupItem,parentBackupIds,getJobId());
 	        return Collections.singletonMap(task,Pair.newPair(HConstants.EMPTY_START_ROW,HConstants.EMPTY_END_ROW));
 	    }
 

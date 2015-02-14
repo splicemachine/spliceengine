@@ -73,7 +73,7 @@ public class BackupUtils {
             String backupDirectory = backupItem.getBackupItemFilesystem();
             updateLastBackupTimestamp(backupItem.getBackupItem(), region);
             FileUtil.copy(fs, derbyFactory.getRegionDir(region), backupFileSystem, new Path(backupDirectory + "/" + derbyFactory.getRegionDir(region).getName()), false, SpliceConstants.config);
-            derbyFactory.writeRegioninfoOnFilesystem(region.getRegionInfo(), new Path(backupDirectory + "/" + derbyFactory.getRegionDir(region).getName() + "/" + REGION_INFO), backupFileSystem, SpliceConstants.config);
+            //derbyFactory.writeRegioninfoOnFilesystem(region.getRegionInfo(), new Path(backupDirectory + "/" + derbyFactory.getRegionDir(region).getName() + "/" + REGION_INFO), backupFileSystem, SpliceConstants.config);
         } catch (Exception e) {
             throw new ExecutionException(Throwables.getRootCause(e));
         } finally {
@@ -195,14 +195,12 @@ public class BackupUtils {
             String backupDirectory = backupItem.getBackupItemFilesystem();
             FileSystem fs = region.getFilesystem();
             HashSet<String> excludedFileSet = getExcludedFileSet(region, backupItem.getBackupItem());
-            boolean copied = false;
+            derbyFactory.writeRegioninfoOnFilesystem(region.getRegionInfo(), new Path(backupDirectory), backupFileSystem, SpliceConstants.config);
             for (String family : storeFileInfoMap.keySet()) {
                 Collection<StoreFileInfo> storeFileInfo = storeFileInfoMap.get(family);
                 for (StoreFileInfo info : storeFileInfo) {
                     long modificationTime = info.getModificationTime();
                     if (modificationTime > lastBackupTimestamp && !excludedFileSet.contains(info.getPath().getName())) {
-                        //TODO: deal with compaction
-                        copied = true;
                         Path srcPath = info.getPath();
                         String s = srcPath.getName();
                         String regionName = derbyFactory.getRegionDir(region).getName();
@@ -215,9 +213,6 @@ public class BackupUtils {
 
             // Copy archived HFile
             copyArchivedStoreFile(region, backupItem);
-            if (copied) {
-                derbyFactory.writeRegioninfoOnFilesystem(region.getRegionInfo(), new Path(backupDirectory + "/" + derbyFactory.getRegionDir(region).getName() + "/" + REGION_INFO), backupFileSystem, SpliceConstants.config);
-            }
         } catch (Exception e) {
             throw new ExecutionException(Throwables.getRootCause(e));
         } finally {
@@ -460,6 +455,40 @@ public class BackupUtils {
             }
         }
         return forest;
+    }
+
+    // Get a list of parent backup ids
+    public static List<Long> getParentBackupIds(long backupId) throws SQLException{
+        List<Long> parentBackupIdList = new ArrayList<>();
+        String sqltext = "select transaction_id, incremental_parent_backup_id from %s.%s where transaction_id<=? order by transaction_id desc";
+
+        Connection connection = null;
+        try {
+            connection = SpliceAdmin.getDefaultConn();
+            PreparedStatement preparedStatement = connection.prepareStatement(
+                    String.format(sqltext, Backup.DEFAULT_SCHEMA, Backup.DEFAULT_TABLE));
+            preparedStatement.setLong(1, backupId);
+            ResultSet rs = preparedStatement.executeQuery();
+
+            long prev = 0;
+            while (rs.next()) {
+                long id = rs.getLong(1);
+                long parentId = rs.getLong(2);
+                if (prev == 0) {
+                    parentBackupIdList.add(id);
+                    prev = parentId;
+                }
+                else if (id == prev) {
+                    parentBackupIdList.add(id);
+                    prev = parentId;
+                    if (parentId == -1) break;
+                }
+            }
+        } finally {
+            if (connection != null)
+                connection.close();
+        }
+        return parentBackupIdList;
     }
 
     public static class RegionSplitTreeNode {

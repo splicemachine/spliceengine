@@ -156,10 +156,6 @@ public class Backup implements InternalTable {
         this.endBackupTimestamp = endBackupTimestamp;
     }
 
-    public void setIncrementalParentBackupID(long incrementalParentBackupID) {
-        this.incrementalParentBackupID = incrementalParentBackupID;
-    }
-
     public BackupStatus getBackupStatus() {
         return backupStatus;
     }
@@ -172,6 +168,17 @@ public class Backup implements InternalTable {
         return backupFilesystem;
     }
 
+    public String getRestoreFilesystem(List<Long> parentBackupIds) {
+        String path = backupFilesystem + "/" + BACKUP_BASE_FOLDER;
+        if (parentBackupIds.size() > 1) {
+            path += "$" + parentBackupIds.get(1) + "_" + parentBackupIds.get(0);
+        }
+        else {
+            path += "_" + parentBackupIds.get(0);
+        }
+        return path;
+    }
+
     public Path getBaseBackupFilesystemAsPath() {
         return new Path(baseFolder);
     }
@@ -179,11 +186,27 @@ public class Backup implements InternalTable {
     public Path getTableBackupFilesystemAsPath() {
         return new Path(baseFolder+"/"+BACKUP_TABLE_FOLDER);
     }
+
+    public Path getTableRestoreFilesystemAsPath(List<Long> parentBackupIds) {
+        String path = getRestoreFilesystem(parentBackupIds);
+        return new Path(path + "/"+BACKUP_TABLE_FOLDER);
+    }
+
     public Path getMetaBackupFilesystemAsPath() {
         return new Path(baseFolder+"/"+BACKUP_META_FOLDER);
     }
+
+    public Path getMetaRestoreFilesystemAsPath(List<Long> parentBackupIds) {
+
+        return new Path(getRestoreFilesystem(parentBackupIds)+"/"+BACKUP_META_FOLDER);
+    }
+
     public Path getPropertiesBackupFilesystemAsPath() {
         return new Path(baseFolder+"/"+BACKUP_PROPERTIES_FOLDER);
+    }
+
+    public Path getPropertiesRestoreFilesystemAsPath(List<Long> parentBackupIds) {
+        return new Path(getRestoreFilesystem(parentBackupIds)+"/"+BACKUP_PROPERTIES_FOLDER);
     }
 
     public void setBackupFilesystem(String backupFilesystem) {
@@ -410,14 +433,16 @@ public class Backup implements InternalTable {
         backupItems.put(backupItem.getBackupItem(), backupItem);
     }
 
-    public void readBackupItems() throws IOException {
+    public void readBackupItems(List<Long> backupIds) throws IOException {
         FileSystem fileSystem = FileSystem.get(URI.create(getBackupFilesystem()),SpliceConstants.config);
-        FileStatus[] status = fileSystem.listStatus(getTableBackupFilesystemAsPath());
+        FileStatus[] status = fileSystem.listStatus(getTableRestoreFilesystemAsPath(backupIds));
         for (FileStatus stat : status) {
             BackupItem item = new BackupItem();
             item.setBackup(this);
+            item.setBackupIdList(backupIds);
             item.setBackupItem(stat.getPath().getName());
-            item.readDescriptorFromFileSystem();
+            item.readDescriptorFromFileSystem(backupIds);
+
             addBackupItem(item);
         };
     }
@@ -431,7 +456,9 @@ public class Backup implements InternalTable {
         }
     }
 
-    public static Backup readBackup(String backupFileSystem, BackupScope backupScope) throws SQLException, IOException, StandardException {
+    public static Backup readBackup(String backupFileSystem, List<Long> parentBackupIds, BackupScope backupScope)
+            throws SQLException, IOException, StandardException {
+
         Txn backupTxn = TransactionLifecycle.getLifecycleManager().beginTransaction().elevateToWritable("recovery".getBytes());
         Backup backup = new Backup();
         backup.setBeginBackupTimestamp(new Timestamp(System.currentTimeMillis()));
@@ -439,9 +466,9 @@ public class Backup implements InternalTable {
         backup.setBackupTransaction(backupTxn);
         backup.setBackupStatus(BackupStatus.I);
         backup.setBackupFilesystem(backupFileSystem);
-        backup.readBackupItems();
-        backup.restoreProperties();
-        backup.restoreMetadata();
+        backup.readBackupItems(parentBackupIds);
+        backup.restoreProperties(parentBackupIds);
+        backup.restoreMetadata(parentBackupIds);
         return backup;
     }
 
@@ -517,24 +544,24 @@ public class Backup implements InternalTable {
     }
 
 
-    public void restoreMetadata() throws StandardException, IOException {
+    public void restoreMetadata(List<Long> parentBackupIds) throws StandardException, IOException {
         FileSystem fileSystem = FileSystem.get(URI.create(getBackupFilesystem()),SpliceConstants.config);
 
-        FSDataInputStream in = fileSystem.open(new Path(getMetaBackupFilesystemAsPath(), VERSION_FILE));
+        FSDataInputStream in = fileSystem.open(new Path(getMetaRestoreFilesystemAsPath(parentBackupIds), VERSION_FILE));
         int len = in.readInt();
         byte[] value = new byte[len];
         in.readFully(value);
         backupVersion = Bytes.toString(value);
         in.close();
 
-        in = fileSystem.open(new Path(getMetaBackupFilesystemAsPath(), BACKUP_TIMESTAMP_FILE));
+        in = fileSystem.open(new Path(getMetaRestoreFilesystemAsPath(parentBackupIds), BACKUP_TIMESTAMP_FILE));
         len = in.readInt();
         value = new byte[len];
         in.readFully(value);
         backupTimestamp = Bytes.toLong(value);
         in.close();
 
-        in = fileSystem.open(new Path(getMetaBackupFilesystemAsPath(), TIMESTAMP_SOURCE_FILE));
+        in = fileSystem.open(new Path(getMetaRestoreFilesystemAsPath(parentBackupIds), TIMESTAMP_SOURCE_FILE));
         len = in.readInt();
         value = new byte[len];
         in.readFully(value);
@@ -543,7 +570,7 @@ public class Backup implements InternalTable {
 
         setTimestampSource(timestampSource);
 
-        in = fileSystem.open(new Path(getMetaBackupFilesystemAsPath(), CONGLOMERATE_SEQUENCE_FILE));
+        in = fileSystem.open(new Path(getMetaRestoreFilesystemAsPath(parentBackupIds), CONGLOMERATE_SEQUENCE_FILE));
         len = in.readInt();
         value = new byte[len];
         in.readFully(value);
@@ -566,10 +593,10 @@ public class Backup implements InternalTable {
     }
 
     // Restores derby properties to ZK
-    public void restoreProperties() throws StandardException, IOException {
+    public void restoreProperties(List<Long> parentBackupIds) throws StandardException, IOException {
         SpliceUtils.clearProperties();
         FileSystem fileSystem = FileSystem.get(URI.create(getBackupFilesystem()),SpliceConstants.config);
-        for (FileStatus property : fileSystem.listStatus(getPropertiesBackupFilesystemAsPath())) {
+        for (FileStatus property : fileSystem.listStatus(getPropertiesRestoreFilesystemAsPath(parentBackupIds))) {
             FSDataInputStream in = fileSystem.open(property.getPath());
             int length = in.readInt();
             byte[] value = new byte[length];

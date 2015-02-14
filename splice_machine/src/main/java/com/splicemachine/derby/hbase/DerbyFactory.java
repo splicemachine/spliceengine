@@ -58,7 +58,8 @@ public interface DerbyFactory<Transaction> {
 		void checkCallerDisconnect(HRegion region) throws IOException;
 		InternalScanner noOpInternalScanner();
 		void writeRegioninfoOnFilesystem(HRegionInfo regionInfo, Path regiondir, FileSystem fs, Configuration conf) throws IOException;
-		Path getRegionDir(HRegion region);
+		Path getTableDir(HRegion region);
+        Path getRegionDir(HRegion region);
 		void bulkLoadHFiles(HRegion region, List<Pair<byte[], String>> paths) throws IOException;
 		BulkWritesInvoker.Factory getBulkWritesInvoker(HConnection connection, byte[] tableName);
 		long computeRowCount(Logger LOG, String tableName,SortedSet<Pair<HRegionInfo, ServerName>> baseRegions, Scan scan);

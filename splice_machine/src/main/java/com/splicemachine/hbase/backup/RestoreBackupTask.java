@@ -31,13 +31,15 @@ public class RestoreBackupTask extends ZkTask {
 	public static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
     private static final long serialVersionUID = 5l;
     private BackupItem backupItem;
+    private List<Long> backupIds;
 
     public RestoreBackupTask() {
     }
 
-    public RestoreBackupTask(BackupItem backupItem, String jobId) {
+    public RestoreBackupTask(BackupItem backupItem, List<Long> backupIds, String jobId) {
         super(jobId, OperationJob.operationTaskPriority);
         this.backupItem = backupItem;
+        this.backupIds = backupIds;
     }
 
     @Override
@@ -49,12 +51,24 @@ public class RestoreBackupTask extends ZkTask {
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
         out.writeObject(backupItem); // TODO Needs to be replaced with protobuf
+        int size = backupIds.size();
+        out.writeInt(size);
+        for (int i = 0; i < size; ++i) {
+            out.writeLong(backupIds.get(i));
+        }
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.readExternal(in);
         backupItem = (BackupItem) in.readObject(); // TODO Needs to be replaced with protobuf
+        int size = in.readInt();
+        if (size > 0) {
+            backupIds = new ArrayList<Long>(size);
+            for (int i = 0; i < size; ++i) {
+                backupIds.add(in.readLong());
+            }
+        }
     }
 
     @Override
@@ -64,7 +78,7 @@ public class RestoreBackupTask extends ZkTask {
 
     @Override
     public RegionTask getClone() {
-        return new RestoreBackupTask(backupItem, jobId);
+        return new RestoreBackupTask(backupItem, backupIds, jobId);
     }
 
     @Override
