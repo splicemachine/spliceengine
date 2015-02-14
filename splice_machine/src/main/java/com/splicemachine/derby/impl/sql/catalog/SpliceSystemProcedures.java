@@ -5,7 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import com.splicemachine.derby.impl.db.SpliceDatabase;
+import com.splicemachine.hbase.backup.BackupSystemProcedures;
 import com.splicemachine.derby.utils.*;
 
 import com.splicemachine.db.catalog.UUID;
@@ -136,8 +136,8 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                         procedures.set(i,newXplain);*/
                     } else if(RESTORE_DATABASE_NAME.equals(sysProc.getName())) {
                         Procedure restore = Procedure.newBuilder().name(RESTORE_DATABASE_NAME)
-                                .numOutputParams(0).numResultSets(1).ownerClass(SpliceDatabase.class.getCanonicalName())
-                                .varchar("directory",32672)
+                                .numOutputParams(0).numResultSets(1).ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                                .bigint("backupId")
                                 .build();
                         procedures.set(i, restore);
                     }

@@ -330,10 +330,9 @@ public class SpliceDatabase extends BasicDatabase {
             String backupResponse = null;
             if ( (backupResponse = BackupUtils.isBackupRunning()) != null)
                 throw new SQLException(backupResponse); // TODO i18n
-            Backup backup = Backup.readBackup(restoreDir,BackupScope.D);
+            Backup backup = Backup.readBackup(restoreDir,null,BackupScope.D);
 
             // enter restore mode
-
             DDLChange change = new DDLChange(backup.getBackupTransaction(), DDLChangeType.ENTER_RESTORE_MODE);
             changeId = DDLCoordinationFactory.getController().notifyMetadataChange(change);
 
@@ -360,7 +359,7 @@ public class SpliceDatabase extends BasicDatabase {
             for (String key : backUpItems.keySet()) {
                 BackupItem backupItem = backUpItems.get(key);
                 HTableInterface table = SpliceAccessManager.getHTable(backupItem.getBackupItemBytes());
-                RestoreBackupJob job = new RestoreBackupJob(backupItem,table);
+                RestoreBackupJob job = new RestoreBackupJob(backupItem,table,null);
                 future = SpliceDriver.driver().getJobScheduler().submit(job);
                 info = new JobInfo(job.getJobId(),future.getNumTasks(), start);
                 info.setJobFuture(future);

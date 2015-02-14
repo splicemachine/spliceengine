@@ -176,9 +176,13 @@ public class DerbyFactoryImpl implements DerbyFactory<TxnMessage.TxnInfo> {
 		HRegionFileSystem.createRegionOnFileSystem(conf, fs, regiondir, regionInfo);
 	}
 	@Override
-	public Path getRegionDir(HRegion region) {
-		return region.getRegionFileSystem().getRegionDir();
-	}	
+	public Path getTableDir(HRegion region) {
+		return region.getRegionFileSystem().getTableDir();
+	}
+    @Override
+    public Path getRegionDir(HRegion region) {
+        return region.getRegionFileSystem().getRegionDir();
+    }
 	@Override
 	public void bulkLoadHFiles(HRegion region, List<Pair<byte[], String>> paths) throws IOException {
 		region.bulkLoadHFiles(paths,true); // TODO
