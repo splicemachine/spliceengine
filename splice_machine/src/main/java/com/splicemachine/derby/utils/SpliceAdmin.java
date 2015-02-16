@@ -347,6 +347,17 @@ public class SpliceAdmin extends BaseAdminProcedures {
                         	continue;
                         }
 
+                        // If SQL is null, we do not need to include this statement in the output.
+                        // Some operations explicitly invoke an OperationResultSet code path,
+                        // which ends up creating another StatementInfo. This is fine,
+                        // and it's ok to skip it here because the main StatementInfo
+                        // for the same statement will have the SQL.
+                        if (executingStatement.getSql() == null ||
+                        	executingStatement.getSql().equals("null") ||
+                        	executingStatement.getSql().isEmpty()) {
+                        	continue;
+                        }
+                        
                         Set<JobInfo> completedJobs = executingStatement.getCompletedJobs();
                         Set<JobInfo> runningJobs = executingStatement.getRunningJobs();
                         template.resetRowArray();
