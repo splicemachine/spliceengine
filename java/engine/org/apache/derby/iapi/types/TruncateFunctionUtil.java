@@ -85,14 +85,14 @@ public class TruncateFunctionUtil {
         // TODO JC: yow, this will be a perf hit...
         NumberDataValue returnVal = (NumberDataValue)numeric.cloneValue(false);
         double x = numeric.getDouble();
+        BigDecimal y;
         if (x > 0) {
-            double y = new BigDecimal(String.valueOf(x)).setScale(truncValue.getInt(), BigDecimal.ROUND_FLOOR).doubleValue();
-            returnVal.setValue(y);
+            y = new BigDecimal(String.valueOf(x)).setScale(truncValue.getInt(), BigDecimal.ROUND_FLOOR);
         } else {
-            double y = new BigDecimal(String.valueOf(x)).setScale(truncValue.getInt(), BigDecimal.ROUND_CEILING).doubleValue();
-            returnVal.setValue(y);
+            y = new BigDecimal(String.valueOf(x)).setScale(truncValue.getInt(), BigDecimal.ROUND_CEILING);
         }
-
+        y.precision();
+        returnVal.setBigDecimal(y);
         return returnVal;
     }
 
