@@ -4,10 +4,12 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.spark.RDDRowProvider;
+import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.management.OperationInfo;
 import com.splicemachine.derby.management.StatementInfo;
 import com.splicemachine.derby.utils.WarningState;
@@ -132,6 +134,14 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
     public void executeScan(boolean useProbe, SpliceRuntimeContext context) throws StandardException {
         try{
             if (context.useSpark()) {
+                OperationInformation info = topOperation.getOperationInformation();
+                Activation activation = topOperation.getActivation();
+                int resultSetNumber = info.getResultSetNumber();
+                StatementInfo statementInfo = context.getStatementInfo();
+                long txnId = ((SpliceTransactionManager)activation.getTransactionController()).getRawTransaction().getTxnInformation().getTxnId();
+                String jobName = topOperation.getName() + " rs "+resultSetNumber + " <" + txnId + ">";
+                String jobDescription = statementInfo != null ? statementInfo.getSql() : null;
+                SpliceSpark.getContext().setJobGroup(jobName, jobDescription);
                 delegate = new SpliceNoPutResultSet(topOperation.getActivation(), topOperation,
                         new RDDRowProvider(topOperation.getRDD(context, topOperation), context));
             } else {

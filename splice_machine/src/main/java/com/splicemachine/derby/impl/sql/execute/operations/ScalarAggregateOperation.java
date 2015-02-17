@@ -327,7 +327,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
             initializeVectorAggregation(result);
         }
         finishAggregation(result);
-        return SpliceSpark.getContext().parallelize(Lists.newArrayList(result));
+        return SpliceSpark.getContext().parallelize(Lists.newArrayList(result), 1);
     }
 
     private static final class SparkAggregator extends SparkOperation2<ScalarAggregateOperation, ExecRow, ExecRow, ExecRow> {
