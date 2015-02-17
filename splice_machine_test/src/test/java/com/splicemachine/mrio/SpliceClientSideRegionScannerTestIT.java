@@ -3,7 +3,6 @@ package com.splicemachine.mrio;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,7 +15,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.HRegionInfo;
@@ -35,17 +33,12 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.BaseRegionObserver;
 import org.apache.hadoop.hbase.coprocessor.CoprocessorHost;
 import org.apache.hadoop.hbase.coprocessor.RegionObserver;
-import org.apache.hadoop.hbase.mapreduce.TableInputFormat;
-import org.apache.hadoop.hbase.mapreduce.TableMapReduceUtil;
-import org.apache.hadoop.hbase.mapreduce.TableSnapshotInputFormatImpl.InputSplit;
 import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.regionserver.HRegionFileSystem;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.regionserver.Store;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.FSTableDescriptors;
 import org.apache.hadoop.hbase.util.FSUtils;
-import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -53,7 +46,7 @@ import org.apache.log4j.PatternLayout;
 
 import com.splicemachine.derby.hbase.AbstractSpliceIndexObserver;
 import com.splicemachine.derby.hbase.SpliceIndexObserver;
-import com.splicemachine.hbase.*;
+import com.splicemachine.hbase.BaseTest;
 import com.splicemachine.mrio.api.SpliceClientSideRegionScanner;
 
 
@@ -114,7 +107,6 @@ public class SpliceClientSideRegionScannerTestIT extends BaseTest{
     conf.set("io.storefile.bloom.block.size", Integer.toString(BLOOM_BLOCK_SIZE));
     conf.set("hfile.index.block.max.size", Integer.toString(INDEX_BLOCK_SIZE));
     // set coprocessor
-    //conf.set(CoprocessorHost.REGION_COPROCESSOR_CONF_KEY, SpliceIndexObserver.class.getName());
     conf.set(CoprocessorHost.USER_REGION_COPROCESSOR_CONF_KEY,SpliceIndexObserver.class.getName());
     
     LOG.info(Coprocessor.class.isAssignableFrom(SpliceIndexObserver.class));
@@ -298,23 +290,14 @@ public class SpliceClientSideRegionScannerTestIT extends BaseTest{
     HTableDescriptor htd = 
         FSTableDescriptors.getTableDescriptorFromFs(fs, rootDir, 
           TableName.valueOf(tableName.getBytes()));
-
-    
-    //List<HRegion> regions = cluster.findRegionsForTable(_tableA.getName());
-    //Path tableDir = FSUtils.getTableDir(rootDir, htd.getTableName());
-    //List<Path> regionDirs = FSUtils.getRegionDirs(fs, tableDir);
     
     int count = 0;
     for(HRegionInfo hri: getActiveRegions()){
       LOG.info("Running scanner for "+ hri);	
       Scan scan = new Scan();
       scan.addFamily(FAMILIES[0]);
-      //scan.addFamily(FAMILIES[1]);
-      //scan.addFamily(FAMILIES[2]);
       scan.setMaxVersions();
       scan.setCaching(1000);
-      // load region descriptor
-      //HRegionInfo hri = HRegionFileSystem.loadRegionInfoFileContent(fs, region);
       LOG.error( new String(hri.getStartKey()) + " : "+ new String(hri.getEndKey()));
       SpliceClientSideRegionScanner scanner = 
     		  new SpliceClientSideRegionScanner(conf, fs, rootDir, htd, hri, scan, null, null);
