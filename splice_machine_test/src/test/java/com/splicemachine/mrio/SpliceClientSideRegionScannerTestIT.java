@@ -15,7 +15,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HTableDescriptor;
@@ -30,9 +29,7 @@ import org.apache.hadoop.hbase.client.HConnectionManager;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.coprocessor.BaseRegionObserver;
 import org.apache.hadoop.hbase.coprocessor.CoprocessorHost;
-import org.apache.hadoop.hbase.coprocessor.RegionObserver;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.regionserver.Store;
@@ -44,7 +41,6 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
 
-import com.splicemachine.derby.hbase.AbstractSpliceIndexObserver;
 import com.splicemachine.derby.hbase.SpliceIndexObserver;
 import com.splicemachine.hbase.BaseTest;
 import com.splicemachine.mrio.api.SpliceClientSideRegionScanner;
@@ -65,14 +61,7 @@ public class SpliceClientSideRegionScannerTestIT extends BaseTest{
     
   /** The n. */
   static int N = 300000;
-  
-
-  /** The bloom block size. */
-  private static int BLOOM_BLOCK_SIZE = 32 * 1024;
-  
-  /** The index block size. */
-  private static int INDEX_BLOCK_SIZE = 32 * 1024; 
-    
+      
   /** The cluster. */
   static MiniHBaseCluster cluster;
     
@@ -103,25 +92,20 @@ public class SpliceClientSideRegionScannerTestIT extends BaseTest{
     Configuration conf = UTIL.getConfiguration();
     conf.set("hbase.zookeeper.useMulti", "false");
 
-    // Cache configuration
-    conf.set("io.storefile.bloom.block.size", Integer.toString(BLOOM_BLOCK_SIZE));
-    conf.set("hfile.index.block.max.size", Integer.toString(INDEX_BLOCK_SIZE));
     // set coprocessor
     conf.set(CoprocessorHost.USER_REGION_COPROCESSOR_CONF_KEY,SpliceIndexObserver.class.getName());
     
-    LOG.info(Coprocessor.class.isAssignableFrom(SpliceIndexObserver.class));
-    LOG.info(Coprocessor.class.isAssignableFrom(RegionObserver.class));
-    LOG.info(Coprocessor.class.isAssignableFrom(BaseRegionObserver.class));    
-    LOG.info(Coprocessor.class.isAssignableFrom(AbstractSpliceIndexObserver.class));
-
-    Class<?> cls = SpliceIndexObserver.class;
-    Class<?>[] ifaces = cls.getInterfaces();
-    // Enable snapshot
+	// Mapr4.0 specific fix
+ 	// See DB-2859        
+	System.setProperty("zookeeper.sasl.client", "false");   
+	System.setProperty("zookeeper.sasl.serverconfig", "fake");
+	conf.set("fs.hdfs.impl", "org.apache.hadoop.hdfs.DistributedFileSystem"); 		
+	conf.set(FileSystem.FS_DEFAULT_NAME_KEY,"file:///");
+    
     UTIL.startMiniCluster(1);
     if( initDone) return;   
     initDone = true;
 
-    //data = generateData(N);  
     cluster = UTIL.getMiniHBaseCluster();
     createTables(VERSIONS);
     createHBaseTables();
