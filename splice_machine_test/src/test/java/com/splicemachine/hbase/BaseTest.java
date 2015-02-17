@@ -584,5 +584,9 @@ public class BaseTest extends TestCase{
     int off = kv.getRowOffset();
     System.arraycopy(patch, 0, kv.getBuffer(), off, patch.length);
   }
+ 
+  public void testBase(){
+	  
+  }
   
 }
