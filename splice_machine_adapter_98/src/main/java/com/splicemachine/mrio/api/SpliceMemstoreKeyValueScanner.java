@@ -49,8 +49,8 @@ public class SpliceMemstoreKeyValueScanner implements KeyValueScanner, InternalS
 	public SpliceMemstoreKeyValueScanner(ResultScanner resultScanner) throws IOException {
 		assert resultScanner != null:"Passed Result Scanner is null";
 		this.resultScanner = resultScanner;
-		cells = currentResult.rawCells();
 		nextResult();
+		cells = currentResult.rawCells();
 	}
 	
 	

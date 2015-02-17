@@ -97,7 +97,7 @@ public class SpliceClientSideRegionScanner implements RegionScanner {
 
 	@Override
 	public void close() throws IOException {
-		scanner.close();
+		if(scanner != null) scanner.close();
 	}
 
 	@Override
