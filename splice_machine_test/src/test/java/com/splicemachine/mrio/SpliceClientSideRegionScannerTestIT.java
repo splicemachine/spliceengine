@@ -148,7 +148,7 @@ public class SpliceClientSideRegionScannerTestIT extends BaseTest{
   public void tearDown() throws Exception {
       LOG.error("\n Tear Down the cluster and test \n");
     //Thread.sleep(2000);
-      //UTIL.shutdownMiniCluster();
+    UTIL.shutdownMiniCluster();
   }
     
 
