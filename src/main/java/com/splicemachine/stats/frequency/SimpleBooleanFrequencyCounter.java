@@ -72,35 +72,8 @@ public class SimpleBooleanFrequencyCounter implements BooleanFrequencyCounter {
 				return frequencies();
 		}
 
-		@Override
-		public Set<FrequencyEstimate<Boolean>> getMostFrequentElements(int k) {
-				if(k==0) return Collections.emptySet();
-				if(k==1){
-						final Frequency toUse = trueFrequency.count > falseFrequency.count? trueFrequency:falseFrequency;
-						return new AbstractSet<FrequencyEstimate<Boolean>>() {
-								@Override
-								public Iterator<FrequencyEstimate<Boolean>> iterator() {
-										return Iterators.<FrequencyEstimate<Boolean>>singletonIterator(toUse);
-								}
-								@Override public int size() { return 1; }
-						};
-				}else{
-						return new AbstractSet<FrequencyEstimate<Boolean>>() {
-								@Override
-								public Iterator<FrequencyEstimate<Boolean>> iterator() {
-										if(trueFrequency.count>falseFrequency.count)
-												return Iterators.<FrequencyEstimate<Boolean>>forArray(trueFrequency,falseFrequency);
-										else
-												return Iterators.<FrequencyEstimate<Boolean>>forArray(falseFrequency,trueFrequency);
-								}
 
-								@Override public int size() { return 2; }
-						};
-				}
-		}
-
-
-		@Override
+    @Override
 		public Iterator<FrequencyEstimate<Boolean>> iterator() {
 				return Iterators.<FrequencyEstimate<Boolean>>forArray(trueFrequency,falseFrequency);
 		}

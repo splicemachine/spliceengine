@@ -25,17 +25,28 @@ public interface FrequencyCounter<T> extends Iterable<FrequencyEstimate<T>>,Upda
 		 */
 		Set<? extends FrequencyEstimate<T>> getFrequentElements(float support);
 
-		/**
-		 * Get the {@code k} most frequent elements. These are the elements which are more frequent than
-		 * any others.
-		 *
-		 * <p>Note that the implementation is allowed to return fewer than {@code k } elements. This is because some
-		 * implementations cannot guarantee {@code k} elements in all cases (depending on that instance's configuration).</p>
-		 *
-		 * @param k the maximum number of elements to return
-		 * @return up to {@code k} elements whose frequency exceeds all others.
-		 */
-		Set<? extends FrequencyEstimate<T>> getMostFrequentElements(int k);
+    /**
+     * Get all elements which have occurred more than {@code support*numVisited} times,
+     * where {@code numVisitied} is the total number of elements that the counter has seen
+     * in total. For example, to find all elements which occupy more than 10% of the table, we
+     * would call {@code heavyHitters(0.1)}
+     *
+     * @param support the percentage of the table which is occupied by the defined "heavy hitter"
+     * @return All elements (within the accuracy guaranteed by the algorithm) which have a frequency
+     * of at least {@code support*numVisited}
+     */
+//    FrequentElements<T> heavyHitters(float support);
 
-		FrequentElements<T> frequentElements(int k);
+    /**
+     * Find the {@code k} most frequently seen elements. These ae
+     *
+     * <p>Note that the implementation is allowed to return fewer than {@code k} elements. This
+     * is because some implementations cannot guarantee {@code k} elements in all cases (depending
+     * on the configuration and the guarantees provided by that algorithm. No algorithm will ever
+     * return <em>more</em> than {@code k} elements, however.
+     *
+     * @param k the maximum number of elements to return
+     * @return up to {@code k} elements whose frequency exceeds all others.
+     */
+    FrequentElements<T> frequentElements(int k);
 }

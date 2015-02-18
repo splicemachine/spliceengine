@@ -4,7 +4,7 @@ package com.splicemachine.stats.frequency;
  * @author Scott Fines
  *         Date: 12/5/14
  */
-public interface LongFrequencyEstimate extends FrequencyEstimate<Long> {
+public interface LongFrequencyEstimate extends FrequencyEstimate<Long>, Comparable<LongFrequencyEstimate>{
 
     long value();
 }

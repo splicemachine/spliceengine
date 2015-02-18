@@ -12,7 +12,7 @@ import java.util.*;
  */
 public class ObjectSpaceSaver<T> implements FrequencyCounter<T> {
     private final Comparator<? super T> comparator;
-    private final Hash32 hashFunction;
+    protected final Hash32 hashFunction;
     private final float loadFactor;
     private final int maxSize; //the maximum number of entries in the table
 
@@ -21,10 +21,11 @@ public class ObjectSpaceSaver<T> implements FrequencyCounter<T> {
     private int positionMask;
     private int expandPoint;
 
-    private int size; //the current size of the hashtable
+    protected int size; //the current size of the hashtable
 
-    private SizeBucket maxBucket;
+    protected SizeBucket maxBucket;
     private SizeBucket minBucket = maxBucket = new SizeBucket(1);
+    private float total;
 
     public static <T extends Comparable<T>> ObjectSpaceSaver<T> create(Hash32 hashFunction,int maxSize){
         return new ObjectSpaceSaver<T>(ComparableComparator.<T>newComparator(),hashFunction,maxSize);
@@ -63,12 +64,40 @@ public class ObjectSpaceSaver<T> implements FrequencyCounter<T> {
     }
 
     @Override
-    public Set<? extends FrequencyEstimate<T>> getMostFrequentElements(int k) {
-        return null;
+    public FrequentElements<T> frequentElements(int k) {
+        Collection<FrequencyEstimate<T>> estimates = topKElements(k);
+        return new ObjectFrequentElements<T>(estimates,comparator);
+    }
+
+    //    @Override
+    public FrequentElements<T> heavyHitters(float support) {
+        Collection<FrequencyEstimate<T>> estimates = heavyItems(support);
+        return new ObjectFrequentElements<T>(estimates,comparator);
     }
 
     @Override
-    public FrequentElements<T> frequentElements(int k) {
+    public Iterator<FrequencyEstimate<T>> iterator() {
+        return null;
+    }
+
+    protected final Collection<FrequencyEstimate<T>> heavyItems(float support) {
+        long threshold = (long)(total*support);
+        Collection<FrequencyEstimate<T>> estimates = new ArrayList<FrequencyEstimate<T>>(size);
+        SizeBucket b = maxBucket;
+        while(b!=null){
+            Entry e = b.firstEntry;
+            Entry first = e;
+            do{
+                if(e.count()>threshold)
+                    estimates.add(e);
+                e = e.next;
+            }while(e!=null && e!=first);
+            b = b.previous;
+        }
+        return estimates;
+    }
+
+    protected final Collection<FrequencyEstimate<T>> topKElements(int k) {
         k = Math.min(size,k);
         Collection<FrequencyEstimate<T>> estimates = new ArrayList<FrequencyEstimate<T>>(k);
         SizeBucket b = maxBucket;
@@ -83,12 +112,7 @@ public class ObjectSpaceSaver<T> implements FrequencyCounter<T> {
             }while(added<k && e!=null && e!=first);
             b = b.previous;
         }
-        return new ObjectFrequentElements<T>(estimates,comparator);
-    }
-
-    @Override
-    public Iterator<FrequencyEstimate<T>> iterator() {
-        return null;
+        return estimates;
     }
 
     /***********************************************************************/
@@ -96,17 +120,23 @@ public class ObjectSpaceSaver<T> implements FrequencyCounter<T> {
 
     @Override public void update(T item) { update(item,1l); }
 
+    protected Entry holderEntry = newEntry();
     @Override
     public void update(T item, long count) {
-        int hashCode = hash(item);
-        Entry entry = getEntry(item,hashCode);
+        holderEntry.set(item);
+        doUpdate(count);
+    }
+
+    protected final void doUpdate(long count) {
+        int hashCode = holderEntry.hashCode();
+        Entry entry = getEntry(holderEntry,hashCode);
         if(entry==null){
             //no entry exists in the hashtable
             if(size ==maxSize){
                 entry = evict();
             }else
                 entry = newEntry();
-            entry.value = item;
+            setValue(holderEntry,entry);
             //stash a reference to the hashcode to avoid the potentially expensive recomputation cost
             entry.hashCode = hashCode;
 
@@ -114,16 +144,19 @@ public class ObjectSpaceSaver<T> implements FrequencyCounter<T> {
         }
         //increment the count
         entry.increment(count);
+        total+=count;
     }
+
 
     /**********************************************************************/
     /*Overrideable methods*/
-    protected int hashCode(T item) {
-        return item.hashCode();
+
+    protected void setValue(Entry holderEntry, Entry entry) {
+        entry.value = holderEntry.value;
     }
 
-    protected boolean equals(Entry entry, T item) {
-        return item.equals(entry.value);
+    protected Entry newEntry() {
+        return new Entry();
     }
 
     protected class Entry implements FrequencyEstimate<T>{
@@ -133,9 +166,9 @@ public class ObjectSpaceSaver<T> implements FrequencyCounter<T> {
 
         /*circular linked list of entries*/
         private Entry previous;
-        private Entry next;
+        protected Entry next;
 
-        public transient int hashCode;
+        public transient int hashCode = 0;
 
         private void increment(long count) {
             long newV = this.bucket==null?count:bucket.count+count;
@@ -155,9 +188,39 @@ public class ObjectSpaceSaver<T> implements FrequencyCounter<T> {
 
         @Override
         public String toString() {
-            return "("+value+","+count()+","+error()+")";
+            return "("+getValue()+","+count()+","+error()+")";
+        }
+
+        public void set(T item) {
+            this.value = item;
+            this.hashCode =0;
+        }
+
+        @Override
+        public int hashCode() {
+            if(hashCode==0) {
+                hashCode = computeHash();
+            }
+            return hashCode;
+        }
+
+        protected int computeHash() {
+            if(value==null) return 0;
+
+            int hash = hashFunction.hash(value.hashCode());
+            if (hash == 0)
+                hash = 1;
+            return hash;
+        }
+
+        public boolean equals(Entry o) {
+            if (this == o) return true;
+            return value.equals(o.value);
         }
     }
+
+    /*****************************************************************************************************************/
+    /*private helper methods*/
 
     private SizeBucket getIncrementedBucket(SizeBucket oldValue, long newValue) {
         SizeBucket nextBucket;
@@ -215,26 +278,6 @@ public class ObjectSpaceSaver<T> implements FrequencyCounter<T> {
     }
 
 
-    /*****************************************************************************************************************/
-    /*private helper methods*/
-    private Entry newEntry() {
-        return new Entry();
-    }
-
-    private int hash(T item){
-        int hash = hashFunction.hash(hashCode(item));
-        /*
-         * We can't allow a hashCode==0, because we use 0 to indicate that
-         * a slot is empty. Thus, we adjust all 0 hashCodes to 1. This will
-         * cause slightly more collisions than normal, but a well-formed uniform hash function
-         * is pretty unlikely to generate 0s anyway.
-         */
-        if(hash==0)
-            hash=1;
-        return hash;
-
-    }
-
     /*********************************************************************/
     /*hashtable manipulation methods*/
     private void sizedInsert(Entry entry, int hashCode){
@@ -276,7 +319,7 @@ public class ObjectSpaceSaver<T> implements FrequencyCounter<T> {
     }
 
     private int getProbeDistance(int hash, int currentPosition) {
- /*
+        /*
          * Get the distance from the current position to where the hashCode
          * says it *should* be located.
          */
@@ -363,7 +406,7 @@ public class ObjectSpaceSaver<T> implements FrequencyCounter<T> {
     }
 
 
-    private Entry getEntry(T item,int hashCode) {
+    private Entry getEntry(Entry item,int hashCode) {
         int pos = hashCode & positionMask;
         int initialPos = pos;
         do{
@@ -378,7 +421,7 @@ public class ObjectSpaceSaver<T> implements FrequencyCounter<T> {
                  * have to do an explicit equality check here just to be sure
                  */
                 Entry e = entries[pos];
-                if(equals(e,item)){
+                if(item.equals(e)){
                     return e;
                 }
             }
@@ -391,9 +434,9 @@ public class ObjectSpaceSaver<T> implements FrequencyCounter<T> {
         return null;
     }
 
-    private class SizeBucket{
+    protected final class SizeBucket{
         private long count;
-        private Entry firstEntry;
+        protected Entry firstEntry;
 
         private SizeBucket next;
         private SizeBucket previous;

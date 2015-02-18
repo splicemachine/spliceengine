@@ -232,19 +232,7 @@ class SSFrequencyCounter<T> implements FrequencyCounter<T> {
 				throw new UnsupportedOperationException("REMOVE");
 		}
 
-		@Override
-		public Set<FrequencyEstimate<T>> getMostFrequentElements(int k) {
-				Set<FrequencyEstimate<T>> topK = new TreeSet<FrequencyEstimate<T>>(guaranteedCountComparator);
-				Iterator<FrequencyEstimate<T>> iter = new LinkedIterator(maxBucket);
-				int visited =0;
-				while(visited<k && iter.hasNext()){
-						topK.add(iter.next());
-						visited++;
-				}
-				return topK;
-		}
-
-		//convenient for debugging purposes, since debuggers will use this to look at data
+    //convenient for debugging purposes, since debuggers will use this to look at data
 		@Override public Iterator<FrequencyEstimate<T>> iterator() { return new LinkedIterator(maxBucket); }
 
 		/**

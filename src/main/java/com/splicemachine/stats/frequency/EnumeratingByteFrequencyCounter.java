@@ -1,6 +1,5 @@
 package com.splicemachine.stats.frequency;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Longs;
 
@@ -49,17 +48,7 @@ public class EnumeratingByteFrequencyCounter implements ByteFrequencyCounter {
 				return new ByteHeavyHitters(Arrays.copyOf(counts,256),threshold);
 		}
 
-		@Override
-		public Set<? extends FrequencyEstimate<Byte>> getMostFrequentElements(int k) {
-				List<Freq> freqs = Lists.newArrayListWithCapacity(counts.length);
-				for(int i=0;i<counts.length;i++){
-						freqs.add(new Freq((byte)i,counts[i]));
-				}
-				Collections.sort(freqs);
-				return Sets.newTreeSet(freqs.subList(0,k));
-		}
-
-		@Override
+    @Override
 		public ByteFrequentElements frequentElements(int k) {
 				return new ByteFrequencies(counts,k);
 		}
