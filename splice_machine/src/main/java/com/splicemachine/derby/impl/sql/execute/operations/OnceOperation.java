@@ -10,7 +10,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.job.JobInfo;
-import com.splicemachine.derby.impl.spark.RDDUtils;
+import com.splicemachine.derby.impl.spark.RDDRowProvider;
 import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.derby.metrics.OperationMetric;
@@ -33,7 +33,6 @@ import org.apache.derby.shared.common.sanity.SanityManager;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.storage.StorageLevel;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -258,7 +257,24 @@ public class OnceOperation extends SpliceBaseOperation {
 				if(source!=null)source.open();
 		}
 
-		private class OnceRowProvider implements RowProvider {
+    private static class IteratorRowSource implements RowSource {
+        private final Iterator<ExecRow> iterator;
+
+        public IteratorRowSource(Iterator<ExecRow> iterator) {
+            this.iterator = iterator;
+        }
+
+        @Override
+        public ExecRow next() throws StandardException, IOException {
+            if (iterator.hasNext()) {
+                return iterator.next();
+            } else {
+                return null;
+            }
+        }
+    }
+
+    private class OnceRowProvider implements RowProvider {
 				private final RowProvider delegate;
 				private ExecRow nextRow;
 				private final RowSource rowSource;
@@ -417,16 +433,7 @@ public class OnceOperation extends SpliceBaseOperation {
         final Iterator<ExecRow> iterator = raw.toLocalIterator();
         ExecRow result;
         try {
-            result = validateNextRow(new RowSource() {
-                @Override
-                public ExecRow next() throws StandardException, IOException {
-                    if (iterator.hasNext()) {
-                        return iterator.next();
-                    } else {
-                        return null;
-                    }
-                }
-            }, false);
+            result = validateNextRow(new IteratorRowSource(iterator), false);
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
@@ -447,5 +454,31 @@ public class OnceOperation extends SpliceBaseOperation {
     @Override
     public String toString() {
         return String.format("OnceOperation {source=%s,resultSetNumber=%d}",source,resultSetNumber);
+    }
+
+    @Override
+    public SpliceNoPutResultSet executeRDD(SpliceRuntimeContext runtimeContext) throws StandardException {
+        return new SpliceNoPutResultSet(getActivation(), this,
+                new RDDRowProvider(getRDD(runtimeContext, this), runtimeContext){
+
+                    @Override
+                    public boolean hasNext() throws StandardException, IOException {
+                        /*
+						 * We have to do our cardinality checks here
+						 *
+						 * The reason for this is simple. Suppose you have a Union all as the source for this. That
+						 * union will return rows from multiple tables, which will require multiple serialization points (1
+						 * for each table). If we serialize this operation over to the table responsible, then we will
+						 * serialize twice, and each table will only see 1 row, in which case we will pass a query when we shouldn't.
+						 *
+						 * Also, conceptually, that makes sense--this is a verification node--it verifies output, it doesn't
+						 * produce it's own (not really, anyway). Thus, it really shouldn't be part of the output itself.
+						 */
+                        currentRow = validateNextRow(new IteratorRowSource(iterator), true);
+
+                        // OnceOp always has another row…
+                        return true;
+                    }
+                });
     }
 }

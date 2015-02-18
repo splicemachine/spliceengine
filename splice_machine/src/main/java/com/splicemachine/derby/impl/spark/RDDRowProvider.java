@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.spark;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.Iterator;
@@ -40,12 +41,12 @@ public class RDDRowProvider implements RowProvider, Serializable {
 
     private static final long serialVersionUID = -6767694441802309601L;
     protected transient Iterator<ExecRow> iterator;
-    private ExecRow currentRow;
+    protected ExecRow currentRow;
     private HBaseRowLocation currentRowLocation;
     protected JavaRDD<ExecRow> rdd;
 
     @Override
-    public boolean hasNext() throws StandardException {
+    public boolean hasNext() throws StandardException, IOException {
         if (iterator.hasNext()) {
             this.currentRow = iterator.next();
             this.currentRowLocation = new HBaseRowLocation(SpliceUtils.getUniqueKey());
