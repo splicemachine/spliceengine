@@ -135,6 +135,24 @@ public class LazyTimestampDataValueDescriptor extends LazyDataValueDescriptor im
     }
 
     @Override
+    public DateTimeDataValue plus(DateTimeDataValue leftOperand, NumberDataValue daysToAdd, DateTimeDataValue returnValue) throws StandardException {
+        forceDeserialization();
+        return dtdv.plus(leftOperand, daysToAdd, returnValue);
+    }
+
+    @Override
+    public DateTimeDataValue minus(DateTimeDataValue leftOperand, NumberDataValue daysToAdd, DateTimeDataValue returnValue) throws StandardException {
+        forceDeserialization();
+        return dtdv.minus(leftOperand, daysToAdd, returnValue);
+    }
+
+    @Override
+    public NumberDataValue minus(DateTimeDataValue leftOperand, DateTimeDataValue daysToAdd, NumberDataValue returnValue) throws StandardException {
+        forceDeserialization();
+        return dtdv.minus(leftOperand, daysToAdd, returnValue);
+    }
+
+    @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
 
         super.readExternal(in);
@@ -182,5 +200,4 @@ public class LazyTimestampDataValueDescriptor extends LazyDataValueDescriptor im
     public Format getFormat() {
     	return Format.TIMESTAMP;
     }
-	
 }
