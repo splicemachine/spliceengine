@@ -13,6 +13,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.SpliceMethod;
+import com.splicemachine.derby.impl.spark.RDDRowProvider;
 import com.splicemachine.derby.impl.storage.RowProviders;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.metrics.IOStats;
@@ -26,6 +27,7 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import org.apache.spark.api.java.JavaRDD;
 
 /**
  * Takes a quantified predicate subquery's result set.
@@ -219,5 +221,33 @@ public class AnyOperation extends SpliceBaseOperation {
     @Override
     public String toString() {
         return String.format("AnyOperation {source=%s,resultSetNumber=%d}",source,resultSetNumber);
+    }
+
+    @Override
+    public boolean providesRDD() {
+        return source.providesRDD();
+    }
+
+    @Override
+    public JavaRDD<ExecRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+        return source.getRDD(spliceRuntimeContext, top);
+    }
+
+    @Override
+    public SpliceNoPutResultSet executeRDD(SpliceRuntimeContext runtimeContext) throws StandardException {
+        return new SpliceNoPutResultSet(getActivation(), this,
+                new RDDRowProvider(getRDD(runtimeContext, this), runtimeContext) {
+                    @Override
+                    public boolean hasNext() throws StandardException {
+                        return true;
+                    }
+
+                    @Override
+                    public ExecRow next() throws StandardException {
+                        ExecRow result = iterator.hasNext() ? iterator.next() : getRowWithNulls();
+                        setCurrentRow(result);
+                        return result;
+                    }
+                });
     }
 }
