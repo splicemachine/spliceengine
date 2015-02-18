@@ -21,6 +21,7 @@
 
 package org.apache.derby.impl.sql.compile;
 
+import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.loader.ClassFactory;
 
 import org.apache.derby.iapi.error.StandardException;
@@ -28,6 +29,7 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DateTimeDataValue;
 import org.apache.derby.iapi.types.DataValueFactory;
+import org.apache.derby.iapi.types.NumberDataType;
 import org.apache.derby.iapi.types.TypeId;
 
 import org.apache.derby.iapi.sql.compile.TypeCompiler;
@@ -157,4 +159,21 @@ public class TimestampTypeCompiler extends BaseTypeCompiler
 	{
 		return "getNullTimestamp";
 	}
+
+    @Override
+    public DataTypeDescriptor resolveArithmeticOperation(DataTypeDescriptor leftType, DataTypeDescriptor rightType, String operator) throws StandardException {
+        if (operator!= null && (operator.equals("*") || operator.equals("/"))) {
+            throw StandardException.newException(SQLState.LANG_DATE_TIME_MULT_DIV_PROHIBITED,
+                                                 TypeId.getBuiltInTypeId(Types.TIMESTAMP).toParsableString(leftType));
+        }
+        DataTypeDescriptor returnType = leftType;
+        if (rightType != null && (rightType.getJDBCTypeId() == Types.TIMESTAMP || rightType.getJDBCTypeId() == Types.DATE)) {
+            if (operator!= null && operator.equals("+")) {
+                throw StandardException.newException(SQLState.LANG_DATE_TIME_ADDITION_PROHIBITED,
+                                                     TypeId.getBuiltInTypeId(Types.TIMESTAMP).toParsableString(leftType));
+            }
+            returnType = DataTypeDescriptor.INTEGER_NOT_NULL;
+        }
+        return returnType;
+    }
 }

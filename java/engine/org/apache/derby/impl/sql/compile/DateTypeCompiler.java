@@ -21,6 +21,7 @@
 
 package org.apache.derby.impl.sql.compile;
 
+import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.loader.ClassFactory;
 
 import org.apache.derby.iapi.error.StandardException;
@@ -130,4 +131,21 @@ public class DateTypeCompiler extends BaseTypeCompiler
 	{
 		return "getNullDate";
 	}
+
+    @Override
+    public DataTypeDescriptor resolveArithmeticOperation(DataTypeDescriptor leftType, DataTypeDescriptor rightType, String operator) throws StandardException {
+        if (operator!= null && (operator.equals("*") || operator.equals("/"))) {
+            throw StandardException.newException(SQLState.LANG_DATE_TIME_MULT_DIV_PROHIBITED,
+                                                 TypeId.getBuiltInTypeId(Types.DATE).toParsableString(leftType));
+        }
+        DataTypeDescriptor returnType = leftType;
+        if (rightType != null && (rightType.getJDBCTypeId() == Types.DATE || rightType.getJDBCTypeId() == Types.TIMESTAMP)) {
+            if (operator!= null && operator.equals("+")) {
+                throw StandardException.newException(SQLState.LANG_DATE_TIME_ADDITION_PROHIBITED,
+                                                     TypeId.getBuiltInTypeId(Types.DATE).toParsableString(leftType));
+            }
+            returnType = DataTypeDescriptor.INTEGER_NOT_NULL;
+        }
+        return returnType;
+    }
 }

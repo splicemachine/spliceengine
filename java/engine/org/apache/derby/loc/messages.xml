@@ -3054,6 +3054,18 @@ Guide.
                 <arg>truncValue</arg>
                 <arg>acceptableValues</arg>
             </msg>
+
+            <msg>
+              <name>44001</name>
+              <text>{0}s cannot be multiplied or divided.</text>
+              <arg>dateOrTimestamp</arg>
+            </msg>
+
+            <msg>
+              <name>44002</name>
+              <text>{0}s cannot be added together.</text>
+              <arg>dateOrTimestamp</arg>
+            </msg>
         </family>
 
 

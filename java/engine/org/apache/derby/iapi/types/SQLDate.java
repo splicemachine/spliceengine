@@ -1029,8 +1029,24 @@ public final class SQLDate extends DataType
                                           NumberDataValue resultHolder)
         throws StandardException
     {
-        return toTimestamp().timestampDiff( intervalType, time1, currentDate, resultHolder);
+        return toTimestamp().timestampDiff(intervalType, time1, currentDate, resultHolder);
     }
+
+    @Override
+    public DateTimeDataValue plus(DateTimeDataValue leftOperand, NumberDataValue daysToAdd, DateTimeDataValue returnValue) throws StandardException {
+        return toTimestamp().plus(leftOperand, daysToAdd, returnValue);
+    }
+
+    @Override
+    public DateTimeDataValue minus(DateTimeDataValue leftOperand, NumberDataValue daysToSubtract, DateTimeDataValue returnValue) throws StandardException {
+        return toTimestamp().minus(leftOperand, daysToSubtract, returnValue);
+    }
+
+    @Override
+    public NumberDataValue minus(DateTimeDataValue leftOperand, DateTimeDataValue rightOperand, NumberDataValue returnValue) throws StandardException {
+        return toTimestamp().minus(leftOperand, rightOperand, returnValue);
+    }
+
     public Format getFormat() {
     	return Format.DATE;
     }

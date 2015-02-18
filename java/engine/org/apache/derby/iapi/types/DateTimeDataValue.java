@@ -161,5 +161,65 @@ public interface DateTimeDataValue extends DataValueDescriptor
                                    java.sql.Date currentDate,
                                    NumberDataValue resultHolder)
         throws StandardException;
+
+    /**
+     * Add an integer number of days to a date.<br/>
+     * Examples:
+     * <pre>
+     *   select d + 1 from table;       // 'd' is a Date type column
+     *   select t + 1 from table;       // 't' is a Timestamp type column
+     *   values  date('2011-12-26') + 1;
+     *   values  timestamp('2011-12-26', '17:13:30') + 1;
+     * <pre/>
+     * @param leftOperand a Date or Timestamp to start from
+     * @param daysToAdd an integer number of days to add
+     * @param returnValue a Date or Timestamp (depending on input type) <code>daysToAdd</code>
+     *                    offset from <code>leftOperand</code>
+     * @return a Date or Timestamp (depending on input type) <code>daysToAdd</code>
+     *                    offset from <code>leftOperand</code>
+     * @throws StandardException
+     */
+    DateTimeDataValue plus(DateTimeDataValue leftOperand, NumberDataValue daysToAdd, DateTimeDataValue returnValue)
+        throws StandardException;
+
+    /**
+     * Subtract an integer number of days from a date.<br/>
+     * Examples:
+     * <pre>
+     *   select d - 1 from table;       // 'd' is a Date type column
+     *   select t - 1 from table;       // 't' is a Timestamp type column
+     *   values  date('2011-12-26') - 1;
+     *   values  timestamp('2011-12-26', '17:13:30') - 1;
+     * <pre/>
+     * @param leftOperand a Date or Timestamp to start from
+     * @param daysToSubtract an integer number of days to subtract
+     * @param returnValue a Date or Timestamp (depending on input type) <code>daysToAdd</code>
+     *                    offset from <code>leftOperand</code>
+     * @return a Date or Timestamp (depending on input type) <code>daysToAdd</code>
+     *                    offset from <code>leftOperand</code>
+     * @throws StandardException
+     */
+    DateTimeDataValue minus(DateTimeDataValue leftOperand, NumberDataValue daysToSubtract, DateTimeDataValue returnValue)
+        throws StandardException;
+
+    /**
+     * Subtract an integer number of days from a date.<br/>
+     * Examples:
+     * <pre>
+     *   select d1 - d2 from table;       // 'dn' is a Date type column
+     *   select t1 - t2 from table;       // 'tn' is a Timestamp type column
+     *   values  date('2011-12-26') - date('2011-06-05');
+     *   values  timestamp('2011-12-26', '17:13:30') - timestamp('2011-06-05', '05:06:00');
+     * <pre/>
+     * Note that, in accordance with arithmetic, if the right operand is larger than the
+     * left operand, the value returned will be negative.
+     * @param leftOperand a Date or Timestamp to start from
+     * @param rightOperand an integer number of days to subtract
+     * @param returnValue an integer number of days which is the difference between the two date/time values
+     * @return an integer number of days which is the difference between the two date/time values
+     * @throws StandardException
+     */
+    NumberDataValue minus(DateTimeDataValue leftOperand, DateTimeDataValue rightOperand, NumberDataValue returnValue)
+        throws StandardException;
 }
 

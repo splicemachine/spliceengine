@@ -48,6 +48,7 @@ import java.io.IOException;
 import java.text.DateFormat;
 import java.text.ParseException;
 import org.apache.derby.iapi.types.DataValueFactoryImpl.Format;
+import org.joda.time.Days;
 
 /**
  * This contains an instance of a SQL Timestamp object.
@@ -1155,6 +1156,50 @@ public final class SQLTimestamp extends DataType
             throw se;
         }
     } // end of addInternal
+
+
+    @Override
+    public DateTimeDataValue plus(DateTimeDataValue leftOperand, NumberDataValue daysToAdd, DateTimeDataValue resultHolder) throws StandardException {
+        if( resultHolder == null)
+            resultHolder = new SQLTimestamp();
+        if( isNull() || daysToAdd.isNull())
+        {
+            resultHolder.restoreToNull();
+            return resultHolder;
+        }
+        DateTime dateAdd = new DateTime(leftOperand.getDateTime()).plusDays(daysToAdd.getInt());
+        resultHolder.setValue(dateAdd);
+        return resultHolder;
+    }
+
+    @Override
+    public DateTimeDataValue minus(DateTimeDataValue leftOperand, NumberDataValue daysToSubtract, DateTimeDataValue resultHolder) throws StandardException {
+        if( resultHolder == null)
+            resultHolder = new SQLTimestamp();
+        if( isNull() || daysToSubtract.isNull())
+        {
+            resultHolder.restoreToNull();
+            return resultHolder;
+        }
+        DateTime diff = leftOperand.getDateTime().minusDays(daysToSubtract.getInt());
+        resultHolder.setValue(diff);
+        return resultHolder;
+    }
+
+    @Override
+    public NumberDataValue minus(DateTimeDataValue leftOperand, DateTimeDataValue rightOperand, NumberDataValue resultHolder) throws StandardException {
+        if( resultHolder == null)
+            resultHolder = new SQLInteger();
+        if( isNull() || rightOperand.isNull())
+        {
+            resultHolder.restoreToNull();
+            return resultHolder;
+        }
+        DateTime thatDate = rightOperand.getDateTime();
+        Days diff = Days.daysBetween(thatDate, leftOperand.getDateTime());
+        resultHolder.setValue(diff.getDays());
+        return resultHolder;
+    }
 
     /**
      * Finds the difference between two datetime values as a number of intervals. Implements the JDBC

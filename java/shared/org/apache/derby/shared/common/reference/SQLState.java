@@ -1162,7 +1162,11 @@ public interface SQLState {
     String LANG_TRUNCATE_WRONG_TRUNC_VALUE_FOR_DATE                     = "43005";
     String LANG_TRUNCATE_UNKNOWN_TRUNC_VALUE                            = "43006";
 
-	// org.apache.derby.impl.sql.execute.rts
+    // date, timestamp arithmetic error msgs
+    String LANG_DATE_TIME_MULT_DIV_PROHIBITED                           = "44001";
+    String LANG_DATE_TIME_ADDITION_PROHIBITED                           = "44002";
+
+    // org.apache.derby.impl.sql.execute.rts
 	String RTS_ATTACHED_TO											   = "43X00.U";
 	String RTS_BEGIN_SQ_NUMBER										   = "43X01.U";
 	String RTS_ANY_RS												   = "43X02.U";

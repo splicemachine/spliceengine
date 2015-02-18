@@ -38,6 +38,7 @@ import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.util.JBitSet;
 import org.apache.derby.iapi.services.classfile.VMOpcode;
 
+import java.sql.Types;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Vector;
@@ -236,7 +237,7 @@ public class BinaryOperatorNode extends OperatorNode
 	 * Used when we don't know the interface type until
 	 * later in binding.
 	 */
-	public void setLeftRightInterfaceType(String iType)
+	protected void setLeftRightInterfaceType(String iType)
 	{
 		leftInterfaceType = iType;
 		rightInterfaceType = iType;
@@ -319,6 +320,18 @@ public class BinaryOperatorNode extends OperatorNode
 			/* Set the right operand to the type of the left parameter. */
 			rightOperand.setType(leftOperand.getTypeServices());
 		}
+
+        if (leftOperand.getTypeId().getJDBCTypeId() == Types.DATE ||
+            leftOperand.getTypeId().getJDBCTypeId() == Types.TIMESTAMP)  {
+            leftInterfaceType = ClassName.DateTimeDataValue;
+
+            if (rightOperand.getTypeId().getJDBCTypeId() == Types.DATE ||
+                rightOperand.getTypeId().getJDBCTypeId() == Types.TIMESTAMP)  {
+                rightInterfaceType = ClassName.DateTimeDataValue;
+            } else if (rightOperand.getTypeId().getJDBCTypeId() == Types.INTEGER) {
+                rightInterfaceType = ClassName.NumberDataValue;
+            }
+        }
 
 		return genSQLJavaSQLTree();
 	}

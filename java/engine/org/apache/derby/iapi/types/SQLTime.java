@@ -962,6 +962,22 @@ public final class SQLTime extends DataType
         return toTimestamp( currentDate).timestampAdd( intervalType, intervalCount, currentDate, resultHolder);
     }
 
+
+    @Override
+    public DateTimeDataValue plus(DateTimeDataValue leftOperand, NumberDataValue daysToAdd, DateTimeDataValue returnValue) throws StandardException {
+        return toTimestamp(null).plus(leftOperand, daysToAdd, returnValue);
+    }
+
+    @Override
+    public DateTimeDataValue minus(DateTimeDataValue leftOperand, NumberDataValue daysToSubtract, DateTimeDataValue returnValue) throws StandardException {
+        return toTimestamp(null).minus(leftOperand, daysToSubtract, returnValue);
+    }
+
+    @Override
+    public NumberDataValue minus(DateTimeDataValue leftOperand, DateTimeDataValue rightOperand, NumberDataValue returnValue) throws StandardException {
+        return toTimestamp(null).minus(leftOperand, rightOperand, returnValue);
+    }
+
     private SQLTimestamp toTimestamp(java.sql.Date currentDate) throws StandardException
     {
         return new SQLTimestamp( SQLDate.computeEncodedDate( currentDate, (Calendar) null),
