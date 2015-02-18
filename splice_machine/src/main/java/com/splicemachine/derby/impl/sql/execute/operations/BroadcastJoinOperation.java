@@ -7,6 +7,7 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.splicemachine.concurrent.SameThreadExecutorService;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.*;
@@ -35,6 +36,7 @@ import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.broadcast.Broadcast;
+import org.apache.spark.rdd.PairRDDFunctions;
 import org.apache.spark.storage.StorageLevel;
 import scala.Tuple2;
 
@@ -403,9 +405,19 @@ public class BroadcastJoinOperation extends JoinOperation {
         }
         JavaRDD<ExecRow> right = rightResultSet.getRDD(spliceRuntimeContext, rightResultSet);
         JavaPairRDD<ExecRow, Iterable<ExecRow>> keyedRight = RDDUtils.getKeyedRDD(right, rightHashKeys).groupByKey();
-        Broadcast<Map<ExecRow, Iterable<ExecRow>>> broadcast = SpliceSpark.getContext().broadcast(keyedRight.collectAsMap());
+        Map<ExecRow, Iterable<ExecRow>> collectedMap = collectAsMap(keyedRight);
+        Broadcast<Map<ExecRow, Iterable<ExecRow>>> broadcast = SpliceSpark.getContext().broadcast(collectedMap);
         final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this, spliceRuntimeContext);
         return left.mapPartitions(new BroadcastSparkOperation(this, soi, broadcast));
+    }
+
+    private Map<ExecRow, Iterable<ExecRow>> collectAsMap(JavaPairRDD<ExecRow, Iterable<ExecRow>> rdd) {
+        List<Tuple2<ExecRow, Iterable<ExecRow>>> collection = rdd.collect();
+        Map<ExecRow, Iterable<ExecRow>> result = Maps.newHashMapWithExpectedSize(collection.size());
+        for (Tuple2<ExecRow, Iterable<ExecRow>> e : collection) {
+            result.put(e._1(), e._2());
+        }
+        return result;
     }
 
     @Override
