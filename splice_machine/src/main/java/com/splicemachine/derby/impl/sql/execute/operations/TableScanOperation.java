@@ -392,7 +392,7 @@ public class TableScanOperation extends ScanOperation {
 
         @Override
         public boolean providesRDD() {
-            return SpliceSpark.sparkActive();
+            return true;
         }
 
         @Override
