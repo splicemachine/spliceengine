@@ -9,6 +9,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.SpliceMethod;
+import com.splicemachine.derby.impl.spark.RDDRowProvider;
 import com.splicemachine.derby.impl.sql.execute.operations.GroupedAggregateOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
@@ -28,6 +29,8 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.spark.api.java.JavaRDD;
+import scala.collection.JavaConversions;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -357,5 +360,29 @@ public class RowCountOperation extends SpliceBaseOperation {
         out.writeBoolean(hasJDBCLimitClause);
         out.writeLong(rowsSkipped);
         out.writeBoolean(parallelReduceScan);
+    }
+
+    @Override
+    public boolean providesRDD() {
+        return source.providesRDD();
+    }
+
+    @Override
+    public JavaRDD<ExecRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+        return source.getRDD(spliceRuntimeContext, source);
+    }
+
+    @Override
+    public SpliceNoPutResultSet executeRDD(SpliceRuntimeContext runtimeContext) throws StandardException {
+        final long fetchLimit = getFetchLimit();
+        final long offset = getTotalOffset();
+        return new SpliceNoPutResultSet(getActivation(), this,
+                new RDDRowProvider(getRDD(runtimeContext, this), runtimeContext) {
+                    @Override
+                    public void open() throws StandardException {
+                        this.iterator = JavaConversions.asJavaIterator(
+                                rdd.rdd().toLocalIterator().drop((int) offset).take(fetchLimit > 0 ? (int) fetchLimit : Integer.MAX_VALUE));
+                    }
+                });
     }
 }
