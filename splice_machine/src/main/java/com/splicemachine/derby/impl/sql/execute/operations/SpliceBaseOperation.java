@@ -5,6 +5,7 @@ import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.spark.RDDRowProvider;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.marshall.*;
@@ -686,6 +687,14 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
         @Override
         public JavaRDD<ExecRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
             throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public SpliceNoPutResultSet executeRDD(SpliceRuntimeContext runtimeContext) throws StandardException {
+            if (!providesRDD()) {
+                throw new UnsupportedOperationException();
+            }
+            return new SpliceNoPutResultSet(getActivation(), this, new RDDRowProvider(getRDD(runtimeContext, this), runtimeContext));
         }
 
         public class XplainOperationChainInfo {

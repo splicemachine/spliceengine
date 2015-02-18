@@ -39,10 +39,10 @@ public class RDDRowProvider implements RowProvider, Serializable {
     }
 
     private static final long serialVersionUID = -6767694441802309601L;
-    private transient Iterator<ExecRow> iterator;
+    protected transient Iterator<ExecRow> iterator;
     private ExecRow currentRow;
     private HBaseRowLocation currentRowLocation;
-    private JavaRDD<ExecRow> rdd;
+    protected JavaRDD<ExecRow> rdd;
 
     @Override
     public boolean hasNext() throws StandardException {

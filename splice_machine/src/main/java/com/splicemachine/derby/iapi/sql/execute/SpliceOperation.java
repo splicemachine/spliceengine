@@ -252,4 +252,11 @@ public interface SpliceOperation extends StandardCloseable {
      */
     public boolean pushedToServer();
 
+
+    /**
+     *
+     * Executes a scan operation from a node that has either a SCROLL node type or that is called from another node.
+     */
+    public SpliceNoPutResultSet executeRDD(SpliceRuntimeContext runtimeContext) throws StandardException;
+
 }

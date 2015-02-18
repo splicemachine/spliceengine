@@ -142,8 +142,7 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
                 String jobName = topOperation.getName() + " rs "+resultSetNumber + " <" + txnId + ">";
                 String jobDescription = statementInfo != null ? statementInfo.getSql() : null;
                 SpliceSpark.getContext().setJobGroup(jobName, jobDescription);
-                delegate = new SpliceNoPutResultSet(topOperation.getActivation(), topOperation,
-                        new RDDRowProvider(topOperation.getRDD(context, topOperation), context));
+                delegate = topOperation.executeRDD(context);
             } else {
                 delegate = useProbe ? topOperation.executeProbeScan() : topOperation.executeScan(context);
             }
