@@ -6,6 +6,7 @@ import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.spark.RDDRowProvider;
+import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.marshall.*;
@@ -681,7 +682,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
         @Override
         public boolean expectsRDD() {
-            return providesRDD();
+            return SpliceSpark.sparkActive() && providesRDD();
         }
 
         @Override
