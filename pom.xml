@@ -24,7 +24,7 @@
       <dependency>
           <groupId>com.splicemachine</groupId>
           <artifactId>utilities</artifactId>
-          <version>1.1-SNAPSHOT</version>
+          <version>1.1.2-SNAPSHOT</version>
       </dependency>
       <dependency>
           <groupId>com.carrotsearch</groupId>

@@ -122,7 +122,12 @@ class ShortSSFrequencyCounter extends SSFrequencyCounter<Short> implements Short
         @Override public short value() { return value; }
 				@Override public Short getValue() { return value; }
 
-				@Override
+        @Override
+        public int compareTo(ShortFrequencyEstimate o) {
+            return value-o.value();
+        }
+
+        @Override
 				public boolean equals(Object o) {
 						if (this == o) return true;
 						if (!(o instanceof ShortElement)) return false;

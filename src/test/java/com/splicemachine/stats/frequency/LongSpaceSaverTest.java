@@ -23,7 +23,7 @@ public class LongSpaceSaverTest {
 
     @Test
     public void testFrequentElementsCorrectWithEviction() throws Exception {
-        LongFrequencyCounter counter = new LongSpaceSaver(HashFunctions.murmur3(0),100);
+        LongFrequencyCounter counter = new LongSpaceSaver(HashFunctions.murmur3(0),3);
 
         fillPowersOf2(counter);
 

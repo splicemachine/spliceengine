@@ -5,7 +5,6 @@ import com.google.common.collect.Collections2;
 import com.google.common.primitives.Longs;
 import com.splicemachine.hash.Hash32;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Set;
@@ -16,10 +15,7 @@ import java.util.Set;
  */
 public class LongSpaceSaver extends ObjectSpaceSaver<Long> implements LongFrequencyCounter {
     private static final Comparator<Long> comparator = new Comparator<Long>() {
-        @Override
-        public int compare(Long o1, Long o2) {
-            return o1.compareTo(o2);
-        }
+        @Override public int compare(Long o1, Long o2) { return o1.compareTo(o2); }
     };
     private static final Function<? super FrequencyEstimate<Long>,LongFrequencyEstimate> castFunction =
             new Function<FrequencyEstimate<Long>, LongFrequencyEstimate>() {

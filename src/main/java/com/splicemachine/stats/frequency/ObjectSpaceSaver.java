@@ -3,6 +3,7 @@ package com.splicemachine.stats.frequency;
 import com.splicemachine.hash.Hash32;
 import com.splicemachine.utils.ComparableComparator;
 
+import javax.annotation.concurrent.NotThreadSafe;
 import java.lang.reflect.Array;
 import java.util.*;
 
@@ -10,6 +11,7 @@ import java.util.*;
  * @author Scott Fines
  *         Date: 12/8/14
  */
+@NotThreadSafe
 public class ObjectSpaceSaver<T> implements FrequencyCounter<T> {
     private final Comparator<? super T> comparator;
     protected final Hash32 hashFunction;
