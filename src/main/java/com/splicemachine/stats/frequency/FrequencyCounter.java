@@ -14,17 +14,6 @@ import java.util.Set;
  */
 public interface FrequencyCounter<T> extends Iterable<FrequencyEstimate<T>>,Updateable<T> {
 
-		/**
-		 * Get all elements whose frequency is at least {@code support * numElementsVisited},
-		 * where {@code numElementsVisited} is the number of elements that the counter has seen
-		 * in total.
-		 *
-		 * @param support the multiplicative factor for determining the threshold of estimation.
-		 * @return All elements (within the accuracy guaranteed by the algorithm) which have a frequency
-		 * of at least {support*numRowsVisited}
-		 */
-		Set<? extends FrequencyEstimate<T>> getFrequentElements(float support);
-
     /**
      * Get all elements which have occurred more than {@code support*numVisited} times,
      * where {@code numVisitied} is the total number of elements that the counter has seen
@@ -35,7 +24,7 @@ public interface FrequencyCounter<T> extends Iterable<FrequencyEstimate<T>>,Upda
      * @return All elements (within the accuracy guaranteed by the algorithm) which have a frequency
      * of at least {@code support*numVisited}
      */
-//    FrequentElements<T> heavyHitters(float support);
+    FrequentElements<T> heavyHitters(float support);
 
     /**
      * Find the {@code k} most frequently seen elements. These ae

@@ -1,7 +1,6 @@
 package com.splicemachine.stats.frequency;
 
 import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
 
 import java.util.*;
 
@@ -31,30 +30,7 @@ public class SimpleBooleanFrequencyCounter implements BooleanFrequencyCounter {
 				else falseFrequency.count+=count;
 		}
 
-		@Override
-		public Set<FrequencyEstimate<Boolean>> getFrequentElements(float support) {
-				final long threshold = (long)Math.ceil(support * (trueFrequency.count+falseFrequency.count));
-
-				final List<FrequencyEstimate<Boolean>> estimates = Lists.newArrayListWithCapacity(2);
-				if(trueFrequency.count>threshold)
-						estimates.add(trueFrequency);
-				if(falseFrequency.count>threshold)
-						estimates.add(falseFrequency);
-
-				return new AbstractSet<FrequencyEstimate<Boolean>>() {
-						@Override
-						public Iterator<FrequencyEstimate<Boolean>> iterator() {
-								return estimates.iterator();
-						}
-
-						@Override
-						public int size() {
-								return estimates.size();
-						}
-				};
-		}
-
-		@Override
+    @Override
 		public void update(boolean item, long count) {
 				if(item) trueFrequency.count+=count;
 				else falseFrequency.count+=count;

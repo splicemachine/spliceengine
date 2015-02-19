@@ -7,7 +7,6 @@ import com.splicemachine.hash.Hash32;
 
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.Set;
 
 /**
  * @author Scott Fines
@@ -45,11 +44,6 @@ public class ShortSpaceSaver extends ObjectSpaceSaver<Short> implements ShortFre
     public ShortFrequentElements frequentElements(int k) {
         Collection<FrequencyEstimate<Short>> estimates = super.topKElements(k);
         return new ShortFrequentElements(Collections2.transform(estimates,castFunction));
-    }
-
-    @Override
-    public Set<? extends FrequencyEstimate<Short>> getFrequentElements(float support) {
-        throw new UnsupportedOperationException("REMOVE");
     }
 
     /************************************************************************************************************/

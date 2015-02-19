@@ -5,6 +5,10 @@ import com.splicemachine.hash.Hash32;
 import com.splicemachine.hash.HashFunctions;
 import com.splicemachine.primitives.ByteComparator;
 import com.splicemachine.primitives.Bytes;
+import com.splicemachine.tools.Comparables;
+import com.splicemachine.utils.ComparableComparator;
+
+import java.util.Comparator;
 
 /**
  * Utility class for constructing Frequency Counters.
@@ -27,66 +31,74 @@ public class FrequencyCounters {
 
 
 		public static BytesFrequencyCounter byteArrayCounter(int maxCounters){
-			return new BytesSSFrequencyCounter(Bytes.basicByteComparator(),maxCounters,INITIAL_HASH_TABLE_SIZE, TABLE_HASH_FUNCTION);
+        return new BytesSpaceSaver(Bytes.basicByteComparator(),TABLE_HASH_FUNCTION,maxCounters);
 		}
 
 		public static BytesFrequencyCounter byteArrayCounter(int maxCounters, int initialSize){
-				return new BytesSSFrequencyCounter(Bytes.basicByteComparator(),maxCounters,initialSize, TABLE_HASH_FUNCTION);
+        return new BytesSpaceSaver(Bytes.basicByteComparator(),TABLE_HASH_FUNCTION,maxCounters,initialSize,0.9f);
 		}
 
     public static BytesFrequencyCounter byteArrayCounter(ByteComparator byteComparator,int maxCounters){
-        return new BytesSSFrequencyCounter(byteComparator,maxCounters,INITIAL_HASH_TABLE_SIZE, TABLE_HASH_FUNCTION);
+        return new BytesSpaceSaver(byteComparator,TABLE_HASH_FUNCTION,maxCounters);
     }
 
     public static BytesFrequencyCounter byteArrayCounter(ByteComparator byteComparator,int maxCounters, int initialSize){
-        return new BytesSSFrequencyCounter(byteComparator,maxCounters,initialSize, TABLE_HASH_FUNCTION);
+        return new BytesSpaceSaver(byteComparator,TABLE_HASH_FUNCTION,maxCounters,initialSize,0.9f);
     }
 
 		public static DoubleFrequencyCounter doubleCounter(int maxCounters){
-				return new DoubleSSFrequencyCounter(maxCounters,INITIAL_HASH_TABLE_SIZE, TABLE_HASH_FUNCTION);
+        return new DoubleSpaceSaver(TABLE_HASH_FUNCTION,maxCounters);
 		}
 
 		public static DoubleFrequencyCounter doubleCounter(int maxCounters, int initialSize){
-				return new DoubleSSFrequencyCounter(maxCounters,initialSize, TABLE_HASH_FUNCTION);
+        return new DoubleSpaceSaver(TABLE_HASH_FUNCTION,maxCounters,initialSize,0.9f);
 		}
 
 		public static FloatFrequencyCounter floatCounter(int maxCounters){
-				return new FloatSSFrequencyCounter(maxCounters,INITIAL_HASH_TABLE_SIZE, TABLE_HASH_FUNCTION);
+        return new FloatSpaceSaver(TABLE_HASH_FUNCTION,maxCounters);
 		}
 
 		public static FloatFrequencyCounter floatCounter(int maxCounters, int initialSize){
-				return new FloatSSFrequencyCounter(maxCounters,initialSize, TABLE_HASH_FUNCTION);
+        return new FloatSpaceSaver(TABLE_HASH_FUNCTION,maxCounters,initialSize,0.9f);
 		}
 
 		public static ShortFrequencyCounter shortCounter(short maxCounters){
-				return new ShortSSFrequencyCounter(maxCounters,INITIAL_HASH_TABLE_SIZE, TABLE_HASH_FUNCTION);
+        return new ShortSpaceSaver(TABLE_HASH_FUNCTION,maxCounters);
 		}
 
 		public static ShortFrequencyCounter shortCounter(short maxCounters, short initialSize){
-				return new ShortSSFrequencyCounter(maxCounters,initialSize, TABLE_HASH_FUNCTION);
+        return new ShortSpaceSaver(TABLE_HASH_FUNCTION,maxCounters,initialSize,0.9f);
 		}
 
 		public static IntFrequencyCounter intCounter(int maxCounters){
-				return new IntSSFrequencyCounter(maxCounters,INITIAL_HASH_TABLE_SIZE, TABLE_HASH_FUNCTION);
+        return new IntSpaceSaver(TABLE_HASH_FUNCTION,maxCounters);
 		}
 
 		public static IntFrequencyCounter intCounter(int maxCounters, int initialSize){
-				return new IntSSFrequencyCounter(maxCounters,initialSize, TABLE_HASH_FUNCTION);
+        return new IntSpaceSaver(TABLE_HASH_FUNCTION,maxCounters,initialSize,0.9f);
 		}
 
 		public static LongFrequencyCounter longCounter(int maxCounters){
-				return new LongSSFrequencyCounter(maxCounters,INITIAL_HASH_TABLE_SIZE, TABLE_HASH_FUNCTION);
+        return new LongSpaceSaver(TABLE_HASH_FUNCTION,maxCounters);
 		}
 
 		public static LongFrequencyCounter longCounter(int maxCounters, int initialSize){
-				return new LongSSFrequencyCounter(maxCounters,initialSize, TABLE_HASH_FUNCTION);
+        return new LongSpaceSaver(TABLE_HASH_FUNCTION,maxCounters,initialSize,0.9f);
 		}
 
-		public static <T> FrequencyCounter<T> counter(int maxCounters){
-				return new SSFrequencyCounter<T>(maxCounters,INITIAL_HASH_TABLE_SIZE, TABLE_HASH_FUNCTION);
-		}
+    public static <T extends Comparable<T>> FrequencyCounter<T> counter(int maxCounters){
+        return new ObjectSpaceSaver<T>(ComparableComparator.newComparator(),TABLE_HASH_FUNCTION,maxCounters);
+    }
 
-		public static <T> FrequencyCounter<T> counter(int maxCounters,int initialSize){
-				return new SSFrequencyCounter<T>(maxCounters,initialSize, TABLE_HASH_FUNCTION);
-		}
+    public static <T> FrequencyCounter<T> counter(Comparator<T> comparator, int maxCounters,int initialCounters){
+        return new ObjectSpaceSaver<T>(comparator,TABLE_HASH_FUNCTION,maxCounters,initialCounters,0.9f);
+    }
+
+    public static <T> FrequencyCounter<T> counter(Comparator<T> comparator, int maxCounters){
+        return new ObjectSpaceSaver<T>(comparator,TABLE_HASH_FUNCTION,maxCounters);
+    }
+
+    public static <T extends Comparable<T>> FrequencyCounter<T> counter(int maxCounters,int initialCounters){
+        return new ObjectSpaceSaver<T>(ComparableComparator.newComparator(),TABLE_HASH_FUNCTION,maxCounters,initialCounters,0.9f);
+    }
 }

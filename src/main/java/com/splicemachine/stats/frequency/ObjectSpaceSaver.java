@@ -58,13 +58,6 @@ public class ObjectSpaceSaver<T> implements FrequencyCounter<T> {
         expandPoint = (int)(loadFactor*b); //allow some expansion
     }
 
-    /*****************************************************************************************************************/
-    /*Accessors*/
-    @Override
-    public Set<? extends FrequencyEstimate<T>> getFrequentElements(float support) {
-        return null;
-    }
-
     @Override
     public FrequentElements<T> frequentElements(int k) {
         Collection<FrequencyEstimate<T>> estimates = topKElements(k);

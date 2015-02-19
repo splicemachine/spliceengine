@@ -7,7 +7,6 @@ import com.splicemachine.hash.Hash32;
 
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.Set;
 
 /**
  * @author Scott Fines
@@ -42,11 +41,6 @@ public class LongSpaceSaver extends ObjectSpaceSaver<Long> implements LongFreque
     public LongFrequentElements frequentElements(int k) {
         Collection<FrequencyEstimate<Long>> estimates = super.topKElements(k);
         return new LongFrequentElements(Collections2.transform(estimates,castFunction));
-    }
-
-    @Override
-    public Set<? extends FrequencyEstimate<Long>> getFrequentElements(float support) {
-        throw new UnsupportedOperationException("REMOVE");
     }
 
     /************************************************************************************************************/

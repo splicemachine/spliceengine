@@ -7,7 +7,6 @@ import com.splicemachine.hash.Hash32;
 
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.Set;
 
 /**
  * @author Scott Fines
@@ -45,11 +44,6 @@ public class FloatSpaceSaver extends ObjectSpaceSaver<Float> implements FloatFre
     public FloatFrequentElements frequentElements(int k) {
         Collection<FrequencyEstimate<Float>> estimates = super.topKElements(k);
         return new FloatFrequentElements(Collections2.transform(estimates,castFunction));
-    }
-
-    @Override
-    public Set<? extends FrequencyEstimate<Float>> getFrequentElements(float support) {
-        throw new UnsupportedOperationException("REMOVE");
     }
 
     /************************************************************************************************************/

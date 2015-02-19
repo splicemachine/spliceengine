@@ -1,6 +1,5 @@
 package com.splicemachine.stats.frequency;
 
-import com.google.common.collect.Sets;
 import com.google.common.primitives.Longs;
 
 import java.util.*;
@@ -28,20 +27,7 @@ public class EnumeratingByteFrequencyCounter implements ByteFrequencyCounter {
 				counts[(item & 0xff)]+=count;
 		}
 
-		@Override
-		public Set<? extends FrequencyEstimate<Byte>> getFrequentElements(float support) {
-				long threshold = (long)Math.ceil(support*total);
-				Set<Freq> data = Sets.newTreeSet();
-
-				for(int i=0;i<counts.length;i++){
-						if(counts[i]>=threshold){
-							data.add(new Freq((byte)i,counts[i]));
-						}
-				}
-				return data;
-		}
-
-		@Override
+    @Override
 		public ByteFrequentElements heavyHitters(float support) {
 				long threshold = (long)Math.ceil(support*total);
 
