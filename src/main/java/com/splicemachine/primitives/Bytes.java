@@ -1,6 +1,7 @@
 package com.splicemachine.primitives;
 
 
+import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Arrays;
 import java.util.Collection;
@@ -33,6 +34,49 @@ public class Bytes {
         }
 
         @Override
+        public int compare(ByteBuffer buffer, byte[] b2, int b2Offset, int b2Length) {
+            buffer.mark();
+            try {
+                int lLength = buffer.remaining();
+                int rLength = b2Length + b2Offset > b2.length ? b2.length : b2Length;
+                int length = lLength <= rLength ? lLength : rLength;
+                for (int i = 0; i < length; i++) {
+                    byte leftByte = buffer.get();
+                    byte rightByte = b2[b2Offset + i];
+                    if (leftByte < rightByte) {
+                        return -1;
+                    } else if (rightByte < leftByte) return 1;
+                }
+                return 0;
+            }finally{
+                buffer.reset();
+            }
+        }
+
+        @Override
+        public int compare(ByteBuffer lBuffer, ByteBuffer rBuffer) {
+            if(lBuffer==rBuffer) return 0;
+            lBuffer.mark();
+            rBuffer.mark();
+            try {
+                int lLength = lBuffer.remaining();
+                int rLength = rBuffer.remaining();
+                int length = lLength <= rLength ? lLength : rLength;
+                for (int i = 0; i < length; i++) {
+                    byte leftByte = lBuffer.get();
+                    byte rightByte = rBuffer.get();
+                    if (leftByte < rightByte) {
+                        return -1;
+                    } else if (rightByte < leftByte) return 1;
+                }
+                return 0;
+            }finally{
+                lBuffer.reset();
+                rBuffer.reset();
+            }
+        }
+
+        @Override
         public boolean equals(byte[] b1, int b1Offset, int b1Length, byte[] b2, int b2Offset, int b2Length) {
             int lLength = b1Length+b1Offset> b1.length? b1.length: b1Length;
             int rLength = b2Length+b2Offset> b2.length? b2.length: b2Length;
@@ -45,6 +89,49 @@ public class Bytes {
                 }
             }
             return true;
+        }
+
+        @Override
+        public boolean equals(ByteBuffer buffer, byte[] b2, int b2Offset, int b2Length) {
+            buffer.mark();
+            try {
+                int lLength = buffer.remaining();
+                int rLength = b2Length + b2Offset > b2.length ? b2.length : b2Length;
+                int length = lLength <= rLength ? lLength : rLength;
+                for (int i = 0; i < length; i++) {
+                    byte leftByte = buffer.get();
+                    byte rightByte = b2[b2Offset + i];
+                    if (leftByte != rightByte) {
+                        return false;
+                    }
+                }
+                return true;
+            }finally{
+                buffer.reset();
+            }
+        }
+
+        @Override
+        public boolean equals(ByteBuffer lBuffer, ByteBuffer rBuffer) {
+            if(lBuffer==rBuffer) return true;
+            lBuffer.mark();
+            rBuffer.mark();
+            try {
+                int lLength = lBuffer.remaining();
+                int rLength = rBuffer.remaining();
+                int length = lLength <= rLength ? lLength : rLength;
+                for (int i = 0; i < length; i++) {
+                    byte leftByte = lBuffer.get();
+                    byte rightByte = rBuffer.get();
+                    if (leftByte != rightByte) {
+                        return false;
+                    }
+                }
+                return true;
+            }finally{
+                lBuffer.reset();
+                rBuffer.reset();
+            }
         }
 
         @Override

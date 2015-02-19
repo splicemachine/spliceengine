@@ -1,5 +1,6 @@
 package com.splicemachine.primitives;
 
+import java.nio.ByteBuffer;
 import java.util.Comparator;
 
 /**
@@ -15,7 +16,15 @@ public interface ByteComparator extends Comparator<byte[]> {
 
     int compare(byte[] b1, int b1Offset,int b1Length, byte[] b2,int b2Offset,int b2Length);
 
+    int compare(ByteBuffer buffer, byte[] b2,int b2Offset,int b2Length);
+
+    int compare(ByteBuffer lBuffer, ByteBuffer rBuffer);
+
     boolean equals(byte[] b1, int b1Offset,int b1Length, byte[] b2,int b2Offset,int b2Length);
+
+    boolean equals(ByteBuffer buffer, byte[] b2,int b2Offset,int b2Length);
+
+    boolean equals(ByteBuffer lBuffer, ByteBuffer rBuffer);
 
     boolean isEmpty(byte[] stop);
 }
