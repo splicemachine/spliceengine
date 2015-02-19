@@ -321,16 +321,28 @@ public class BinaryOperatorNode extends OperatorNode
 			rightOperand.setType(leftOperand.getTypeServices());
 		}
 
+        // Simple date/time arithmetic
         if (leftOperand.getTypeId().getJDBCTypeId() == Types.DATE ||
             leftOperand.getTypeId().getJDBCTypeId() == Types.TIMESTAMP)  {
             leftInterfaceType = ClassName.DateTimeDataValue;
+        } else if (leftOperand.getTypeId().getJDBCTypeId() == Types.INTEGER) {
+            leftInterfaceType = ClassName.NumberDataValue;
+        }
 
-            if (rightOperand.getTypeId().getJDBCTypeId() == Types.DATE ||
-                rightOperand.getTypeId().getJDBCTypeId() == Types.TIMESTAMP)  {
-                rightInterfaceType = ClassName.DateTimeDataValue;
-            } else if (rightOperand.getTypeId().getJDBCTypeId() == Types.INTEGER) {
+        if (rightOperand.getTypeId().getJDBCTypeId() == Types.DATE ||
+            rightOperand.getTypeId().getJDBCTypeId() == Types.TIMESTAMP)  {
+            if (leftOperand.getTypeId().getJDBCTypeId() == Types.INTEGER && operator.equals("+")) {
+                // special case for n + <datetime> commutativity. Swap operands to: <datetime> + n
+                ValueNode temp = leftOperand.getClone();
+                leftOperand = rightOperand.getClone();
+                leftInterfaceType = ClassName.DateTimeDataValue;
+                rightOperand = temp;
                 rightInterfaceType = ClassName.NumberDataValue;
+            } else {
+                rightInterfaceType = ClassName.DateTimeDataValue;
             }
+        } else if (rightOperand.getTypeId().getJDBCTypeId() == Types.INTEGER) {
+            rightInterfaceType = ClassName.NumberDataValue;
         }
 
 		return genSQLJavaSQLTree();

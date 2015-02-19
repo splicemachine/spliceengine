@@ -3057,13 +3057,13 @@ Guide.
 
             <msg>
               <name>44001</name>
-              <text>{0}s cannot be multiplied or divided.</text>
+              <text>{0}s cannot be multiplied or divided. The operation is undefined.</text>
               <arg>dateOrTimestamp</arg>
             </msg>
 
             <msg>
               <name>44002</name>
-              <text>{0}s cannot be added together.</text>
+              <text>{0}s cannot be added. The operation is undefined.</text>
               <arg>dateOrTimestamp</arg>
             </msg>
         </family>
