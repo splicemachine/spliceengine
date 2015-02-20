@@ -142,5 +142,10 @@ public class IntFrequentElements implements FrequentElements<Integer> {
         }
 
         @Override public int hashCode() { return item; }
+
+        @Override
+        public String toString() {
+            return "("+item+",0,0)";
+        }
     }
 }

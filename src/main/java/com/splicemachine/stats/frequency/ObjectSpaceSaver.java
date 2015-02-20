@@ -83,7 +83,7 @@ public class ObjectSpaceSaver<T> implements FrequencyCounter<T> {
             Entry e = b.firstEntry;
             Entry first = e;
             do{
-                if(e.count()>threshold)
+                if(e.count()>=threshold)
                     estimates.add(e);
                 e = e.next;
             }while(e!=null && e!=first);
@@ -94,14 +94,15 @@ public class ObjectSpaceSaver<T> implements FrequencyCounter<T> {
 
     protected final Collection<FrequencyEstimate<T>> topKElements(int k) {
         k = Math.min(size,k);
-        Collection<FrequencyEstimate<T>> estimates = new ArrayList<FrequencyEstimate<T>>(k);
+        Collection<FrequencyEstimate<T>> estimates = new ArrayList<>(k);
         SizeBucket b = maxBucket;
         int added = 0;
         while(b!=null && added<k){
             Entry e = b.firstEntry;
             Entry first = e;
             do{
-                estimates.add(e);
+                boolean wasAdded = estimates.add(e);
+                assert wasAdded: "Element "+ e+" already exists in set!";
                 added++;
                 e = e.next;
             }while(added<k && e!=null && e!=first);
@@ -478,17 +479,14 @@ public class ObjectSpaceSaver<T> implements FrequencyCounter<T> {
                 n.previous = p;
             if(p!=null)
                 p.next = n;
+            entry.previous = null;
+            entry.next=null;
             size--;
             if(size==0){
                 removeBucket();
             }else{
                 if(entry==firstEntry)
                     firstEntry = n;
-                if(size==1) {
-                    entry.next = null;
-                    entry.previous = null;
-                }
-
             }
 
         }

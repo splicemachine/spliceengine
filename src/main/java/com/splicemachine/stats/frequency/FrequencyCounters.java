@@ -87,18 +87,18 @@ public class FrequencyCounters {
 		}
 
     public static <T extends Comparable<T>> FrequencyCounter<T> counter(int maxCounters){
-        return new ObjectSpaceSaver<T>(ComparableComparator.newComparator(),TABLE_HASH_FUNCTION,maxCounters);
+        return new ObjectSpaceSaver<>(ComparableComparator.<T>newComparator(),TABLE_HASH_FUNCTION,maxCounters);
     }
 
     public static <T> FrequencyCounter<T> counter(Comparator<T> comparator, int maxCounters,int initialCounters){
-        return new ObjectSpaceSaver<T>(comparator,TABLE_HASH_FUNCTION,maxCounters,initialCounters,0.9f);
+        return new ObjectSpaceSaver<>(comparator,TABLE_HASH_FUNCTION,maxCounters,initialCounters,0.9f);
     }
 
     public static <T> FrequencyCounter<T> counter(Comparator<T> comparator, int maxCounters){
-        return new ObjectSpaceSaver<T>(comparator,TABLE_HASH_FUNCTION,maxCounters);
+        return new ObjectSpaceSaver<>(comparator,TABLE_HASH_FUNCTION,maxCounters);
     }
 
     public static <T extends Comparable<T>> FrequencyCounter<T> counter(int maxCounters,int initialCounters){
-        return new ObjectSpaceSaver<T>(ComparableComparator.newComparator(),TABLE_HASH_FUNCTION,maxCounters,initialCounters,0.9f);
+        return new ObjectSpaceSaver<>(ComparableComparator.<T>newComparator(),TABLE_HASH_FUNCTION,maxCounters,initialCounters,0.9f);
     }
 }

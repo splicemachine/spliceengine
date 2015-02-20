@@ -48,6 +48,18 @@ public class SimpleBooleanFrequencyCounter implements BooleanFrequencyCounter {
 				return frequencies();
 		}
 
+    @Override
+    public FrequentElements<Boolean> heavyHitters(float support) {
+        long total = trueFrequency.count+falseFrequency.count;
+        long supportLevel = (long)support*total;
+        if(trueFrequency.count>=supportLevel){
+            if(falseFrequency.count>=supportLevel) return frequencies();
+            else return new SimpleBooleanFrequentElements(trueFrequency.count,0l);
+        }else if(falseFrequency.count>=supportLevel){
+            return new SimpleBooleanFrequentElements(falseFrequency.count,0l);
+        }
+        return new SimpleBooleanFrequentElements(0l,0l);
+    }
 
     @Override
 		public Iterator<FrequencyEstimate<Boolean>> iterator() {
