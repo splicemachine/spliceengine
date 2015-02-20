@@ -431,6 +431,20 @@ public class SpliceAdmin extends BaseAdminProcedures {
         });
     }
 
+    public static void SYSCS_KILL_ALL_STATEMENTS() throws SQLException {
+        operate(new JMXServerOperation() {
+            @Override
+            public void operate(List<Pair<String, JMXConnector>> connections)
+            	throws MalformedObjectNameException, IOException, SQLException {
+            	
+                List<Pair<String, StatementManagement>> statementManagers = JMXUtils.getStatementManagers(connections);
+                for (Pair<String, StatementManagement> statementManagementPair : statementManagers) {
+                    statementManagementPair.getSecond().killAllStatements();
+                }
+            }
+        });
+    }
+
     public static void SYSCS_GET_WRITE_PIPELINE_INFO(ResultSet[] resultSets) throws SQLException{
         PipelineAdmin.SYSCS_GET_WRITE_PIPELINE_INFO(resultSets);
     }
