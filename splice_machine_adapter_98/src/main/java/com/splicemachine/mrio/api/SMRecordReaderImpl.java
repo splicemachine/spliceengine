@@ -1,41 +1,35 @@
 package com.splicemachine.mrio.api;
 
 import java.io.IOException;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
 
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.types.DataTypeDescriptor;
-import org.apache.derby.impl.sql.execute.ValueRow;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
+import org.apache.hadoop.hbase.mapreduce.TableSplit;
 import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.util.Base64;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.apache.log4j.Logger;
 
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.hbase.SimpleMeasuredRegionScanner;
 import com.splicemachine.metrics.Metrics;
-import com.splicemachine.si.api.Txn.IsolationLevel;
 import com.splicemachine.si.impl.HTransactorFactory;
-import com.splicemachine.si.impl.ReadOnlyTxn;
 import com.splicemachine.si.impl.TransactionStorage;
 import com.splicemachine.si.impl.TxnDataStore;
 import com.splicemachine.si.impl.TxnRegion;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.rollforward.NoopRollForward;
-import com.splicemachine.utils.IntArrays;
+import com.splicemachine.utils.SpliceLogUtils;
 
 public class SMRecordReaderImpl extends RecordReader<ImmutableBytesWritable, ExecRow> {
+    protected static final Logger LOG = Logger.getLogger(SMRecordReaderImpl.class);
 	protected HTable htable;
 	protected HRegion hregion;
 	protected Configuration config;
@@ -54,11 +48,27 @@ public class SMRecordReaderImpl extends RecordReader<ImmutableBytesWritable, Exe
 	@Override
 	public void initialize(InputSplit split, TaskAttemptContext context)
 			throws IOException, InterruptedException {	
-		String tableScannerAsString = context.getConfiguration().get(SMMRConstants.SPLICE_SCAN_INFO);
+		if (LOG.isTraceEnabled())
+			SpliceLogUtils.trace(LOG, "initialize with split=%s", split);
+		init(context.getConfiguration(),split);
+	}
+	
+	public void init(Configuration config, InputSplit split) throws IOException, InterruptedException {	
+		if (LOG.isTraceEnabled())
+			SpliceLogUtils.trace(LOG, "init");
+		String tableScannerAsString = config.get(SMMRConstants.SPLICE_SCAN_INFO);
 		if (tableScannerAsString == null)
 			throw new IOException("splice scan info was not serialized to task, failing");
 		try {
 			builder = TableScannerBuilder.getTableScannerBuilderFromBase64String(tableScannerAsString);
+			if (LOG.isTraceEnabled())
+				SpliceLogUtils.trace(LOG, "config loaded builder=%s",builder);
+			TableSplit tSplit = (TableSplit)split;
+			Scan scan = builder.getScan();
+			scan.setStartRow(tSplit.getStartRow());
+			scan.setStopRow(tSplit.getEndRow());
+			this.scan = scan;
+			restart(tSplit.getStartRow());
 		} catch (StandardException e) {
 			throw new IOException(e);
 		}
@@ -112,12 +122,12 @@ public class SMRecordReaderImpl extends RecordReader<ImmutableBytesWritable, Exe
 		newscan.setStartRow(firstRow);
 		scan = newscan;
 		if(htable != null) {
-			SplitRegionScanner splitRegionScanner = new SplitRegionScanner(scan,htable);
+			SplitRegionScanner splitRegionScanner = new SplitRegionScanner(new Scan(),htable);
 			this.hregion = splitRegionScanner.region;
 			this.mrs = new SimpleMeasuredRegionScanner(splitRegionScanner,Metrics.noOpMetricFactory());
 			TxnRegion localRegion = new TxnRegion(hregion, NoopRollForward.INSTANCE,NoOpReadResolver.INSTANCE, 
 				TransactionStorage.getTxnSupplier(), TxnDataStore.getDataStore(), HTransactorFactory.getTransactor());		
-			siTableScanner = builder.region(localRegion).scanner(mrs).build();		
+			siTableScanner = builder.tableVersion("2.0").region(localRegion).template(SMSQLUtil.getExecRow(builder.getExecRowTypeFormatIds())).scanner(mrs).scan(scan).metricFactory(Metrics.noOpMetricFactory()).build();		
 		} else {
 			throw new IOException("htable not set");
 		}
