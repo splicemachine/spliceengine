@@ -119,9 +119,7 @@ public class StatementManager implements StatementManagement{
 
 		@Override
 		public boolean killStatement(long statementUuid) {
-	        	if (LOG.isTraceEnabled()) {
-	        		LOG.debug(String.format("Attempting to kill statement with uuid = %s", statementUuid));
-	        	}
+    		SpliceLogUtils.info(LOG, "Attempting to kill statement with uuid = %s", statementUuid);
 				for(StatementInfo info:executingStatements){
 						if(info.getStatementUuid()==statementUuid){
 								try {
@@ -134,6 +132,25 @@ public class StatementManager implements StatementManagement{
 						}
 				}
 				return false;
+		}
+
+		@Override
+		public void killAllStatements() {
+    		SpliceLogUtils.info(LOG, "Attempting to kill all statements...");
+			for (StatementInfo info : executingStatements) {
+				try {
+	        		SpliceLogUtils.debug(LOG, "Killing statement with uuid = %s", info.getStatementUuid());
+					// Crude way to avoid killing the very statement requesting the kill
+					if (info.getSql() != null && info.getSql().toUpperCase().contains("SYSCS_KILL_ALL_STATEMENTS")) {
+		        		SpliceLogUtils.debug(LOG, "Not killing syscs_kill_all_statements itself with uuid = %s",
+		        			info.getStatementUuid());
+						continue;
+					}
+					info.cancel();
+				} catch (ExecutionException e) {
+					throw new RuntimeException(e);
+				}
+			}
 		}
 
 		public StatementInfo getExecutingStatementByTxnId(String txnId) {

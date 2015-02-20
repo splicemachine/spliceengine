@@ -1,7 +1,6 @@
 package com.splicemachine.derby.management;
 
 import javax.management.MXBean;
-import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
@@ -25,4 +24,6 @@ public interface StatementManagement {
 		 * executing statement was found with the specified uuid.
 		 */
 		boolean killStatement(long statementUuid);
+
+		void killAllStatements();
 }

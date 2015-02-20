@@ -304,6 +304,13 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(killStatement);
 
+                    Procedure killAllStatements = Procedure.newBuilder().name("SYSCS_KILL_ALL_STATEMENTS")
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(killAllStatements);
+
         			/*
         			 * Procedures to kill stale transactions
         			 */
