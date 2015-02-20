@@ -3,7 +3,6 @@ package com.splicemachine.mrio.api;
 import java.io.IOException;
 import java.util.List;
 import java.util.SortedSet;
-
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
@@ -12,7 +11,6 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import org.apache.hadoop.hbase.regionserver.KeyValueScanner;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.utils.SpliceLogUtils;
 
 public class SpliceMemstoreKeyValueScanner implements KeyValueScanner, InternalScanner {
@@ -33,15 +31,19 @@ public class SpliceMemstoreKeyValueScanner implements KeyValueScanner, InternalS
 	    return ++cellScannerIndex < this.cells.length;
 	  }
 	  
-	  public void nextResult() throws IOException {
+	  public boolean nextResult() throws IOException {
 		  cellScannerIndex = 0;
 		  currentResult = this.resultScanner.next();
-			if (currentResult!= null) {
+			if (LOG.isTraceEnabled())
+				SpliceLogUtils.trace(LOG, "nextResult=%s",currentResult);				
+		  if (currentResult!= null) {
 				cells = currentResult.rawCells();
 				peakKeyValue = (KeyValue) current();
+				return true;
 	  		} else {
 				cells = null;
 				peakKeyValue = null;
+				return false;
 			}
 	  }
 	
@@ -56,32 +58,27 @@ public class SpliceMemstoreKeyValueScanner implements KeyValueScanner, InternalS
 	
 	@Override
 	public KeyValue peek() {
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "peek %s", peakKeyValue);
+//		if (LOG.isTraceEnabled())
+//			SpliceLogUtils.trace(LOG, "peek %s", peakKeyValue);
 		return peakKeyValue;
 	}
 	@Override
 	public KeyValue next() throws IOException {
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "next %s", peakKeyValue);
+//		if (LOG.isTraceEnabled())
+//			SpliceLogUtils.trace(LOG, "nextKeyValue %s", peakKeyValue);
 		KeyValue returnValue = peakKeyValue;		
 		if (currentResult!=null && advance())
 			peakKeyValue = (KeyValue)current();
 		else {
-			currentResult = resultScanner.next();
-			cells = currentResult.rawCells();
-			if (currentResult == null) {
-				peakKeyValue = null;
-			} else {
-				peakKeyValue = (KeyValue)current();
-			}
+			nextResult();
+			returnValue = peakKeyValue;
 		}
 		return returnValue;
 	}
 	@Override
 	public boolean seek(KeyValue key) throws IOException {
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "seek to KeyValue %s", key);
+//		if (LOG.isTraceEnabled())
+//			SpliceLogUtils.trace(LOG, "seek to KeyValue %s", key);
 		while (KeyValue.COMPARATOR.compare(peakKeyValue, key)>0 && peakKeyValue!=null) {
 			next();
 		}
@@ -93,8 +90,8 @@ public class SpliceMemstoreKeyValueScanner implements KeyValueScanner, InternalS
 	}
 	@Override
 	public long getSequenceID() {
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "getSequenceID");
+//		if (LOG.isTraceEnabled())
+//			SpliceLogUtils.trace(LOG, "getSequenceID");
 		return Long.MAX_VALUE; // Set the max value - we have the most recent data
 	}
 	@Override
@@ -106,70 +103,70 @@ public class SpliceMemstoreKeyValueScanner implements KeyValueScanner, InternalS
 	@Override
 	public boolean shouldUseScanner(Scan scan, SortedSet<byte[]> columns,
 			long oldestUnexpiredTS) {
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "shouldUseScanner");
+//		if (LOG.isTraceEnabled())
+//			SpliceLogUtils.trace(LOG, "shouldUseScanner");
 		// TODO: true or false?
 		return true;
 	}
 	@Override
 	public boolean requestSeek(KeyValue kv, boolean forward, boolean useBloom)
 			throws IOException {
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "requestSeek");
+//		if (LOG.isTraceEnabled())
+//			SpliceLogUtils.trace(LOG, "requestSeek");
 		if (!forward)
 			throw new RuntimeException("Do not support backward scans yet");
 		return seek(kv);
 	}
 	@Override
 	public boolean realSeekDone() {
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "realSeekDone");
+//		if (LOG.isTraceEnabled())
+//			SpliceLogUtils.trace(LOG, "realSeekDone");
 		return false;
 	}
 	@Override
 	public void enforceSeek() throws IOException {
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "enforceSeek");		
+//		if (LOG.isTraceEnabled())
+//			SpliceLogUtils.trace(LOG, "enforceSeek");		
 	}
 	@Override
 	public boolean isFileScanner() {
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "isFileScanner");		
+//		if (LOG.isTraceEnabled())
+//			SpliceLogUtils.trace(LOG, "isFileScanner");		
 		return false;
 	}
 	@Override
 	public boolean backwardSeek(KeyValue key) throws IOException {
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "backwardSeek");		
+//		if (LOG.isTraceEnabled())
+//			SpliceLogUtils.trace(LOG, "backwardSeek");		
 		return false;
 	}
 	@Override
 	public boolean seekToPreviousRow(KeyValue key) throws IOException {
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "seekToPreviousRow %s", key);		
+//		if (LOG.isTraceEnabled())
+//			SpliceLogUtils.trace(LOG, "seekToPreviousRow %s", key);		
 		return false;
 	}
 	@Override
 	public boolean seekToLastRow() throws IOException {
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "seekToLastRow");		
+//		if (LOG.isTraceEnabled())
+//			SpliceLogUtils.trace(LOG, "seekToLastRow");		
 		return false;
 	}
 	@Override
 	public boolean next(List<Cell> results) throws IOException {
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "next");		
-		Result result = null; 
-		if ( ( result = resultScanner.next()) == null) {
-			return false;
+//		if (LOG.isTraceEnabled())
+//			SpliceLogUtils.trace(LOG, "next with results passed=%s", results);	
+		boolean returnValue = currentResult!=null;
+		if (returnValue) {
+			results.addAll(currentResult.listCells());
+			nextResult();
 		}
-		results.addAll(result.listCells());
-		return true;
+		return returnValue;
 	}
 	@Override
 	public boolean next(List<Cell> results, int limit) throws IOException {
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "next with limit=%d", limit);		
+//		if (LOG.isTraceEnabled())
+//			SpliceLogUtils.trace(LOG, "next with limit=%d", limit);		
 		return next(results);
 	}
 	

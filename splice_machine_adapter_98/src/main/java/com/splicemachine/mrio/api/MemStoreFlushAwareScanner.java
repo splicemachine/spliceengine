@@ -3,72 +3,149 @@ package com.splicemachine.mrio.api;
 import java.io.IOException;
 import java.util.List;
 import java.util.NavigableSet;
-
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.ScanInfo;
 import org.apache.hadoop.hbase.regionserver.Store;
 import org.apache.hadoop.hbase.regionserver.StoreScanner;
-
-import com.splicemachine.utils.CounterWithLock;
+import org.apache.log4j.Logger;
+import com.splicemachine.hbase.CellUtils;
+import com.splicemachine.utils.SpliceLogUtils;
 
 /**
- *    This scanner works only on data in RS memory
- *    it intercepts MemStore flush events and throws IOException
- *    on subsequent next() call to notify client about this event. 
- *    All subsequent calls to this scanner will return 'false'.
- *    We need this behavior to :
- *    1. notify client-side that one of MemStore in a region was flushed
- *       and client must refresh all file - based scanners (one more HFile now
- *       in HBase file system)
- *    2. to preserve existing behavior in a RegionScanner. When scanner reaches end
- *       it return false on next().   
- *
+ * 
+ * 
+ * 
  */
 public class MemStoreFlushAwareScanner extends StoreScanner{
-   
+   protected static final Logger LOG = Logger.getLogger(MemStoreFlushAwareScanner.class);
    public final static String FLUSH_EVENT = "FLUSH";   	
-   protected boolean memstoreFlushed = false;   
-   protected CounterWithLock lock ;
+   protected AtomicBoolean splitMerge;
+   protected AtomicInteger flushCount;
+   protected AtomicInteger compactionCount;   
+   protected AtomicInteger scannerCount;   
+   protected int initialFlushCount;
+   protected int initialCompactionCount;
+   protected HRegion region;
+   protected boolean beginRow = true;
+   protected boolean endRowNeedsToBeReturned = false;
+   protected boolean endRowAlreadyReturned = false;
+   protected boolean flushAlreadyReturned = false;
+   
 
-	public MemStoreFlushAwareScanner(Store store, ScanInfo scanInfo, Scan scan, 
-			final NavigableSet<byte[]> columns, long readPt) throws IOException
-	{
+	public MemStoreFlushAwareScanner(HRegion region, Store store, ScanInfo scanInfo, Scan scan, 
+			final NavigableSet<byte[]> columns, long readPt, AtomicBoolean splitMerge, AtomicInteger flushCount,int initialFlushCount, AtomicInteger compactionCount, int initialCompactionCount, AtomicInteger scannerCount) throws IOException {
 		super(store, scanInfo, scan, columns, readPt);
+		if (LOG.isTraceEnabled())
+			SpliceLogUtils.trace(LOG, "init");
+		this.splitMerge = splitMerge;
+		this.flushCount = flushCount;
+		this.initialFlushCount = initialFlushCount;
+		this.compactionCount = compactionCount;
+		this.initialCompactionCount = initialCompactionCount;
+		this.region = region;
+		this.scannerCount = scannerCount;
 	}
+
+	
+	
+	@Override
+	public KeyValue peek() {
+		if (LOG.isTraceEnabled())
+			SpliceLogUtils.trace(LOG, "peek -->" + super.peek());
+		if (didWeFlush() && !flushAlreadyReturned)
+			return SMMRConstants.MEMSTORE_BEGIN_FLUSH;
+		if (beginRow)
+			return SMMRConstants.MEMSTORE_BEGIN;
+		KeyValue peek = super.peek();
+		if (peek == null && !endRowAlreadyReturned) {
+			endRowNeedsToBeReturned = true;
+			return SMMRConstants.MEMSTORE_END;
+		}
+		return super.peek();
+	}
+
+
+
+	@Override
+	public KeyValue next() {
+		if (LOG.isTraceEnabled())
+			SpliceLogUtils.trace(LOG, "next");
+		throw new RuntimeException("Not Implemented");
+//		return super.next();
+	}
+
+
+
+	@Override
+	public boolean seek(KeyValue key) throws IOException {
+		if (LOG.isTraceEnabled())
+			SpliceLogUtils.trace(LOG, "seek with key=%s",key);
+		throw new IOException("Not Implemented");
+		//return super.seek(key);
+	}
+
+
+
+	@Override
+	public boolean next(List<Cell> outResult) throws IOException {
+		if (LOG.isTraceEnabled())
+			SpliceLogUtils.trace(LOG, "next with passed result=%s",outResult);
+		if (!didWeFlush())
+			return super.next(outResult);
+		if (LOG.isTraceEnabled())
+			SpliceLogUtils.trace(LOG, "writing flush data with kv=%s",outResult);	
+		if (outResult.size()>0 && CellUtils.singleMatchingFamily(outResult.get(0),SMMRConstants.FLUSH))
+			return false;
+		outResult.add(new KeyValue(HConstants.EMPTY_START_ROW,SMMRConstants.FLUSH,SMMRConstants.FLUSH));
+		return true;
+	}
+
+
+
+	@Override
+	public boolean reseek(KeyValue kv) throws IOException {
+		if (LOG.isTraceEnabled())
+			SpliceLogUtils.trace(LOG, "reseek kv=%s",kv);
+		throw new IOException("reseek not implemented");
+//		return super.reseek(kv);
+	}
+
+
 
 	@Override
 	public boolean next(List<Cell> outResult, int limit) throws IOException {
-		if(memstoreFlushed){
-			memstoreFlushed = false;
-			close();
-			throw new IOException(FLUSH_EVENT);
+		if (LOG.isTraceEnabled())
+			SpliceLogUtils.trace(LOG, "next kv=%s, limit=%d",outResult,limit);
+		if (beginRow) {
+			beginRow = false;
+			return outResult.add(SMMRConstants.MEMSTORE_BEGIN);
 		}
-		// next time we call after flush, scanner is closed
-		// and next return false;
+		if (endRowNeedsToBeReturned) {
+			endRowAlreadyReturned = true;
+			return outResult.add(SMMRConstants.MEMSTORE_END);
+		}
+		if (didWeFlush() && !flushAlreadyReturned) {
+			flushAlreadyReturned = true;
+			return outResult.add(SMMRConstants.MEMSTORE_BEGIN_FLUSH);
+		}
 		return super.next(outResult, limit);
 	}
 
 	@Override
-	public void updateReaders() throws IOException {
-	  memstoreFlushed = true; 
-	  // Do nothing actually
-	  // We do not want the default StoreScanner.updateReaders
-	}
-	
-	public void setReadLockCounter (CounterWithLock lock){
-		this.lock = lock;
-	}
-
-	@Override
 	public void close() {
-		if(lock != null){
-			// Release region read lock
-			lock.decrement();
-		}
-		super.close();
+		if (LOG.isTraceEnabled())
+			SpliceLogUtils.trace(LOG, "close");
+		scannerCount.getAndDecrement();		
+		Thread.dumpStack();
 	}
 	
-	
-
+	private boolean didWeFlush() {
+		return flushCount.get() != initialFlushCount;
+	}
 }

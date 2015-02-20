@@ -1,11 +1,15 @@
 package com.splicemachine.mrio.api;
 
+import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.si.api.Txn.IsolationLevel;
 import com.splicemachine.si.impl.ReadOnlyTxn;
 import com.splicemachine.utils.IntArrays;
+import com.splicemachine.utils.SpliceLogUtils;
+
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
@@ -13,16 +17,26 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+
+import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.impl.sql.execute.ValueRow;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.log4j.Logger;
 
 public class SMSQLUtil {
+    static final Logger LOG = Logger.getLogger(SMSQLUtil.class);
 	  private Connection connect = null;
 	  private static SMSQLUtil sqlUtil = null;
 	  private String connStr = null;
+	  public static LazyDataValueFactory factory;
+	  
+	  static {
+		factory = new LazyDataValueFactory();  
+	  }
 	  
 	  private SMSQLUtil(String connStr) throws Exception {  
 	      Class.forName("org.apache.derby.jdbc.ClientDriver").newInstance();
@@ -68,6 +82,8 @@ public class SMSQLUtil {
 	   * 
 	   **/
 	  public List<String> getPrimaryKeys(String tableName) throws SQLException {
+		  if (LOG.isTraceEnabled())
+			  SpliceLogUtils.trace(LOG, "getPrimaryKeys tableName=%s", tableName);
 		  	ArrayList<String> names = new ArrayList<String>(1);
 			  String[] schemaTable = parseTableName(tableName);
 			  ResultSet result = null;
@@ -84,7 +100,9 @@ public class SMSQLUtil {
 				  if (result != null)
 				  	result.close();
 			  }
-			  return names;
+			  if (LOG.isTraceEnabled())
+				  SpliceLogUtils.trace(LOG, "getPrimaryKeys returns=%s", Arrays.toString(names.toArray()));
+			  return names.size()!=0?names:null;
 	  }
 	  
 	  
@@ -96,7 +114,8 @@ public class SMSQLUtil {
 	   * 
 	   * */
 	  public List<NameType> getTableStructure(String tableName) throws SQLException{
-		  //System.out.println("getting table structure");
+		  if (LOG.isTraceEnabled())
+			  SpliceLogUtils.trace(LOG, "getTableStructure tableName=%s", tableName);
 		  List<NameType> colType = new ArrayList<NameType>();
 		  ResultSet result = null;
 		  try{
@@ -110,6 +129,8 @@ public class SMSQLUtil {
 			  if (result != null)
 			  	result.close();
 		  }
+		  if (LOG.isTraceEnabled())
+			  SpliceLogUtils.trace(LOG, "getTableStructure returns=%s", Arrays.toString(colType.toArray()));
 		  return colType;
 	  }
 	  
@@ -231,6 +252,7 @@ public class SMSQLUtil {
 	  }
 	  
 	  private String[] parseTableName(String str) throws SQLException{
+		  str = str.toUpperCase();
 		  if(str == null || str.trim().equals(""))
 			  return null;
 		  else{
@@ -258,6 +280,8 @@ public class SMSQLUtil {
 				else
 					rowDecodingMap[i] = -1;
 		  	}
+			  if (LOG.isTraceEnabled())
+				  SpliceLogUtils.trace(LOG, "getRowDecodingMap returns=%s",Arrays.toString(rowDecodingMap));
 			return rowDecodingMap;
 	  }
 	  
@@ -266,6 +290,8 @@ public class SMSQLUtil {
 			for (int i = 0; i< primaryKeys.size(); i++) {
 				keyColumnEncodingOrder[i] = locationInNameTypes(nameTypes,primaryKeys.get(i));
 			}
+			  if (LOG.isTraceEnabled())
+				  SpliceLogUtils.trace(LOG, "getKeyColumnEncodingOrder returns=%s",Arrays.toString(keyColumnEncodingOrder));
 			return keyColumnEncodingOrder;
 	  }
 	  
@@ -274,16 +300,45 @@ public class SMSQLUtil {
 			for (int i = 0; i< keyColumnEncodingOrder.length; i++) {
 				keyDecodingMap[i] = columnNames.indexOf(nameTypes.get(keyColumnEncodingOrder[i]).name);
 			}
+			  if (LOG.isTraceEnabled())
+				  SpliceLogUtils.trace(LOG, "getKeyDecodingMap returns=%s",Arrays.toString(keyDecodingMap));
 			return keyDecodingMap;		  
 	  }
 	  
-	  public int[] getKeyColumnTypes(int[] keyColumnEncodingOrder, List<NameType> nameTypes) {
+	  public int[] getKeyColumnTypes(int[] keyColumnEncodingOrder, List<NameType> nameTypes) throws StandardException {
 			int[] keyColumnTypes = IntArrays.count(keyColumnEncodingOrder.length);
 			for (int i = 0; i< keyColumnEncodingOrder.length; i++) {
-				keyColumnTypes[i] = nameTypes.get(keyColumnEncodingOrder[i]).type;
+				keyColumnTypes[i] = nameTypes.get(keyColumnEncodingOrder[i]).getTypeFormatId();
 			}
+			  if (LOG.isTraceEnabled())
+				  SpliceLogUtils.trace(LOG, "getKeyColumnTypes returns=%s",Arrays.toString(keyColumnTypes));
 			return keyColumnTypes;
 	  }
+	  
+	  public int[] getExecRowFormatIds(List<String> columnNames, List<NameType> nameTypes) throws StandardException {
+			int[] execRowFormatIds = new int[columnNames.size()];
+			for (int i = 0; i< columnNames.size(); i++) {
+				execRowFormatIds[i] = nameTypes.get(locationInNameTypes(nameTypes,columnNames.get(i))).getTypeFormatId();
+			}
+			  if (LOG.isTraceEnabled())
+				  SpliceLogUtils.trace(LOG, "getExecRowFormatIds returns=%s",execRowFormatIds);
+			return execRowFormatIds;
+	  }
+	  
+	  public static ExecRow getExecRow(int[] execRowFormatIds) throws IOException {
+		  ExecRow execRow = new ValueRow(execRowFormatIds.length);
+		  try {	
+		  for (int i = 0; i< execRowFormatIds.length; i++) {
+				execRow.setColumn(i+1, factory.getLazyNull(execRowFormatIds[i]));
+			}
+		  } catch (StandardException se) {
+			  throw new IOException(se);
+		  }
+			  if (LOG.isTraceEnabled())
+				  SpliceLogUtils.trace(LOG, "getExecRow returns=%s",execRow);
+			return execRow;
+	  }
+	  
 	  
 	  public FormatableBitSet getAccessedKeyColumns(int[] keyColumnEncodingOrder,int[] keyDecodingMap) {
 		  FormatableBitSet accessedKeyColumns = new FormatableBitSet(keyColumnEncodingOrder.length);
@@ -292,6 +347,8 @@ public class SMSQLUtil {
 			  if(decodingPosition>=0)
 				  accessedKeyColumns.set(i);
 		 }
+		  if (LOG.isTraceEnabled())
+			  SpliceLogUtils.trace(LOG, "getAccessedKeyColumns returns=%s",accessedKeyColumns);
 		 return accessedKeyColumns;
 	  }
 	  private int locationInNameTypes(List<NameType> nameTypes, String name) {
@@ -306,17 +363,28 @@ public class SMSQLUtil {
 	  public TableScannerBuilder getTableScannerBuilder(String tableName, List<String> columnNames) throws SQLException {
 		List<String> primaryKeys = getPrimaryKeys(tableName); 
 		List<NameType> nameTypes = getTableStructure(tableName);
-		ExecRow row = new ValueRow(columnNames.size());
+		 
 		int[] rowDecodingMap = getRowDecodingMap(nameTypes,primaryKeys,columnNames);
 		int[] keyColumnEncodingOrder = getKeyColumnEncodingOrder(nameTypes,primaryKeys);
+		boolean[] keyColumnOrdering = new boolean[keyColumnEncodingOrder.length];
+		for (int i = 0; i< keyColumnEncodingOrder.length; i++) {
+			keyColumnOrdering[i] = true;
+		}
 		int[] keyDecodingMap = getKeyDecodingMap(keyColumnEncodingOrder,columnNames,nameTypes);		
-		int[] keyColumnTypes = getKeyColumnTypes(keyColumnEncodingOrder,nameTypes);
+		int[] keyColumnTypes;
+		int[] execRowFormatIds;
+		try {
+			execRowFormatIds = getExecRowFormatIds(columnNames, nameTypes);
+			keyColumnTypes = getKeyColumnTypes(keyColumnEncodingOrder,nameTypes);
+		} catch (StandardException e) {
+			throw new SQLException(e);
+		}
 		FormatableBitSet accessedKeyColumns = getAccessedKeyColumns(keyColumnEncodingOrder,keyDecodingMap);			
 			return new TableScannerBuilder()
         .transaction(ReadOnlyTxn.create(Long.parseLong(getTransactionID()),IsolationLevel.SNAPSHOT_ISOLATION, null))
 							.metricFactory(Metrics.basicMetricFactory())
 							.scan(new Scan())
-							.template(row)
+							.execRowTypeFormatIds(execRowFormatIds)
 							.tableVersion("2.0")
 							.indexName(null)
 							.keyColumnEncodingOrder(keyColumnEncodingOrder)
@@ -324,6 +392,7 @@ public class SMSQLUtil {
 							.keyColumnTypes(keyColumnTypes)
 							.accessedKeyColumns(accessedKeyColumns)
 							.keyDecodingMap(keyDecodingMap)
+							.keyColumnSortOrder(keyColumnOrdering)
 							.rowDecodingMap(rowDecodingMap);		
 	  }
 	

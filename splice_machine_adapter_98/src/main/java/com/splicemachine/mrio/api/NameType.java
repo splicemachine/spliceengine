@@ -2,6 +2,7 @@ package com.splicemachine.mrio.api;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
+import org.apache.derby.iapi.types.TypeId;
 
 /**
  * 
@@ -33,9 +34,13 @@ public class NameType {
 	public void setType(int type) {
 		this.type = type;
 	}
-	// WTF is this?
-    private int getTypeFormatId() throws StandardException{
-    	return DataTypeDescriptor.getBuiltInDataTypeDescriptor(1).getNull().getTypeFormatId();
+	public int getTypeFormatId() throws StandardException{
+    	return TypeId.getBuiltInTypeId(type).getNull().getTypeFormatId();
     }
+
+	@Override
+	public String toString() {
+		return String.format("nameType={name=%s, type=%s",name,type);
+	}
 	
 }
