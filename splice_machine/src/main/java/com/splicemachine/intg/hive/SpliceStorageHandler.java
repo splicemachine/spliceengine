@@ -30,7 +30,6 @@ public class SpliceStorageHandler extends DefaultStorageHandler
     private Configuration spliceConf;
     final static public String DEFAULT_PREFIX = "default.";
     private static SQLUtil sqlUtil = null;
-
     private static String parentTxnId = null;
     private static Connection parentConn = null;
     private static Logger Log = Logger.getLogger(SpliceStorageHandler.class.getName());
