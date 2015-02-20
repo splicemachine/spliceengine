@@ -4,20 +4,24 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.Arrays;
 
-import com.splicemachine.derby.utils.DerbyBytesUtil;
+import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.metrics.MetricFactory;
+import com.splicemachine.mrio.api.SpliceTableMapReduceUtil;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.SIFactoryDriver;
 
+import org.apache.commons.lang.SerializationUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.ArrayUtil;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
 import org.apache.hadoop.hbase.util.Base64;
 
 /**
@@ -41,6 +45,7 @@ public class TableScannerBuilder implements Externalizable {
 		protected SIFilterFactory filterFactory;
 		protected boolean[] keyColumnSortOrder;
 		protected TransactionalRegion region;
+		protected int[] execRowTypeFormatIds;
 
 		public TableScannerBuilder scanner(MeasuredRegionScanner scanner) {
 				assert scanner !=null :"Null scanners are not allowed!";
@@ -64,6 +69,11 @@ public class TableScannerBuilder implements Externalizable {
 				this.scan = scan;
 				return this;
 		}
+		public TableScannerBuilder execRowTypeFormatIds(int[] execRowTypeFormatIds) {
+			assert execRowTypeFormatIds!=null : "Null ExecRow formatIDs are not allowed!";
+			this.execRowTypeFormatIds = execRowTypeFormatIds;
+			return this;
+	}
 
 		public TableScannerBuilder transactionID(String transactionID) {
 				throw new UnsupportedOperationException("REMOVE");
@@ -230,9 +240,9 @@ public class TableScannerBuilder implements Externalizable {
 		}
 
 		@Override
-		public void writeExternal(ObjectOutput out) throws IOException {
-			out.writeObject(template);
-			out.writeObject(scan);
+		public void writeExternal(ObjectOutput out) throws IOException {	
+			ArrayUtil.writeIntArray(out, execRowTypeFormatIds);
+			out.writeUTF(SpliceTableMapReduceUtil.convertScanToString(scan));
 			ArrayUtil.writeIntArray(out, rowColumnMap);
 			TransactionOperations.getOperationFactory().writeTxn(txn, out);
 			ArrayUtil.writeIntArray(out, keyColumnEncodingOrder);
@@ -240,15 +250,20 @@ public class TableScannerBuilder implements Externalizable {
 			ArrayUtil.writeIntArray(out, keyColumnTypes);
 			ArrayUtil.writeIntArray(out, keyDecodingMap);
 			out.writeObject(accessedKeys);
-			out.writeUTF(indexName);
-			out.writeUTF(tableVersion);			
+			out.writeBoolean(indexName!=null);
+			if (indexName!=null)
+				out.writeUTF(indexName);
+			out.writeBoolean(tableVersion!=null);
+			if (tableVersion!=null)
+				out.writeUTF(tableVersion);			
+
 		}
 
 		@Override
 		public void readExternal(ObjectInput in) throws IOException,
 				ClassNotFoundException {
-			template = (ExecRow) in.readObject();
-			scan = (Scan) in.readObject();
+			execRowTypeFormatIds = ArrayUtil.readIntArray(in);
+			scan = SpliceTableMapReduceUtil.convertStringToScan(in.readUTF());
 			rowColumnMap = ArrayUtil.readIntArray(in);
 			txn = TransactionOperations.getOperationFactory().readTxn(in);
 			keyColumnEncodingOrder = ArrayUtil.readIntArray(in);
@@ -256,17 +271,42 @@ public class TableScannerBuilder implements Externalizable {
 			keyColumnTypes = ArrayUtil.readIntArray(in);
 			keyDecodingMap = ArrayUtil.readIntArray(in);
 			accessedKeys = (FormatableBitSet) in.readObject();
-			indexName = in.readUTF();
-			tableVersion = in.readUTF();
+			if (in.readBoolean())
+				indexName = in.readUTF();
+			if (in.readBoolean())				
+				tableVersion = in.readUTF();
 		}
 		
 		public static TableScannerBuilder getTableScannerBuilderFromBase64String(String base64String) throws IOException, StandardException {
 			if (base64String == null)
-				throw new IOException("tableScanner base64 String is null");			
-			return DerbyBytesUtil.fromBytes(Base64.decode(base64String));
+				throw new IOException("tableScanner base64 String is null");
+			return (TableScannerBuilder) SerializationUtils.deserialize(Base64.decode(base64String));
 		}
 
 		public String getTableScannerBuilderBase64String() throws IOException, StandardException {
-			return Base64.encodeBytes(DerbyBytesUtil.toBytes(this));
+			return Base64.encodeBytes(SerializationUtils.serialize(this));
 		}
+
+		public Scan getScan() {
+			return scan;
+		}
+
+		@Override
+		public String toString() {
+			return String.format("template=%s, scan=%s, rowColumnMap=%s, txn=%s, "
+					+ "keyColumnEncodingOrder=%s, keyColumnSortOrder=%s, keyColumnTypes=%s, "
+					+ "accessedKeys=%s, indexName=%s, tableVerson=%s",
+					template,scan,rowColumnMap!=null?Arrays.toString(rowColumnMap):"NULL",
+							txn,
+							keyColumnEncodingOrder!=null?Arrays.toString(keyColumnEncodingOrder):"NULL",
+							keyColumnSortOrder!=null?Arrays.toString(keyColumnSortOrder):"NULL",
+							keyColumnTypes!=null?Arrays.toString(keyColumnTypes):"NULL",
+							keyDecodingMap!=null?Arrays.toString(keyDecodingMap):"NULL",
+							accessedKeys,indexName,tableVersion);
+		}
+
+		public int[] getExecRowTypeFormatIds() {
+			return execRowTypeFormatIds;
+		}
+		
 }
