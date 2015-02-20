@@ -217,7 +217,6 @@ public class SpliceTableMapReduceUtil {
    * @throws IOException When writing the scan fails.
    */
   public static String convertScanToString(Scan scan) throws IOException {
-	  System.out.println("Scan to convert? " + scan);
 	  ObjectOutput dos = null;
 	  try {
 	    ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -225,8 +224,6 @@ public class SpliceTableMapReduceUtil {
 	    derbyFactory.writeScanExternal(dos, scan);
 	    dos.flush();
 	    String stringy = Base64.encodeBytes(out.toByteArray());
-		  System.out.println("Scan to convert? " + stringy);
-		  System.out.println("Scan to convert? " + stringy.length());
 		  return stringy;
 	  } finally {
     	if (dos!=null)
