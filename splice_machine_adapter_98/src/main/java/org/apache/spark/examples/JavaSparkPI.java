@@ -11,10 +11,12 @@ import org.apache.hadoop.io.Text;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+
+import com.splicemachine.mrio.api.SMInputFormat;
 import com.splicemachine.mrio.api.SQLUtil;
 import com.splicemachine.mrio.api.SpliceInputFormat;
 import com.splicemachine.mrio.api.SpliceJob;
-import com.splicemachine.mrio.api.SpliceMRConstants;
+import com.splicemachine.mrio.api.SMMRConstants;
 import com.splicemachine.mrio.api.SpliceTableMapReduceUtil;
 
 /**
@@ -28,13 +30,13 @@ public final class JavaSparkPI {
 	
 	long beginTime = System.currentTimeMillis();	
 	Configuration config = HBaseConfiguration.create();
-	config.set(SpliceMRConstants.SPLICE_JDBC_STR, "jdbc:derby://localhost:1527/splicedb;user=splice;password=admin");
+	config.set(SMMRConstants.SPLICE_JDBC_STR, "jdbc:derby://localhost:1527/splicedb;user=splice;password=admin");
 
 
-	SQLUtil sqlUtil = SQLUtil.getInstance(config.get(SpliceMRConstants.SPLICE_JDBC_STR));
+	SQLUtil sqlUtil = SQLUtil.getInstance(config.get(SMMRConstants.SPLICE_JDBC_STR));
 	String txsID = sqlUtil.getTransactionID();
 	
-	config.set(SpliceMRConstants.SPLICE_TRANSACTION_ID, txsID);
+	config.set(SMMRConstants.SPLICE_TRANSACTION_ID, txsID);
 	SpliceJob job = new SpliceJob(config, "Test Scan");	
 	job.setJarByClass(JavaSparkPI.class);     // class that contains mapper
 	Scan scan = new Scan();
@@ -50,11 +52,11 @@ public final class JavaSparkPI {
 		inputTableName,        // input Splice table name
 		scan,             // Scan instance to control CF and attribute selection
 		null,   // mapper
-		Text.class,       // mapper output key
-		IntWritable.class,  // mapper output value
+		IntWritable.class,       // mapper output key
+		ExecRow.class,  // mapper output value
 		job,
 		true,
-		SpliceInputFormat.class);
+		SMInputFormat.class);
 		job.getConfiguration().set(TableInputFormat.SCAN,"");
 	
 		SpliceInputFormat format = new SpliceInputFormat();
