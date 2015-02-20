@@ -65,6 +65,10 @@ public class SpliceUnitTest {
 		return getBaseDirectory()+"/src/test/test-data/";
 	}
 
+    public static String getHBaseDirectory() {
+		return getBaseDirectory()+"/target/hbase";
+	}
+
 
     public static class MyWatcher extends SpliceTableWatcher {
 
