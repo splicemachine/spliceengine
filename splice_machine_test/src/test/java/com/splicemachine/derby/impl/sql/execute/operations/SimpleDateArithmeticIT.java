@@ -1,13 +1,19 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import static com.splicemachine.test_tools.Rows.row;
+import static com.splicemachine.test_tools.Rows.rows;
+import static org.junit.Assert.fail;
+
 import java.sql.ResultSet;
 import java.sql.Timestamp;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
-import org.joda.time.DateTime;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -16,15 +22,24 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_tools.TableCreator;
-import static com.splicemachine.test_tools.Rows.rows;
-import static com.splicemachine.test_tools.Rows.row;
-import static org.junit.Assert.fail;
 
 /**
  * @author Jeff Cunningham
  *         Date: 2/19/15
  */
 public class SimpleDateArithmeticIT {
+    private static Date theDate;
+    static {
+        // Added this static init because CDH 4.5 profile had a version of Jodatime
+        // that have parse - DateTime.parse("1988-12-26").toDate()
+        DateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+        try {
+            theDate = format.parse("1988-12-26");
+        } catch (ParseException e) {
+            fail("Failed to parse date: "+e.getLocalizedMessage());
+        }
+    }
+
     private static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 
     private static SpliceSchemaWatcher schemaWatcher =
@@ -42,7 +57,7 @@ public class SimpleDateArithmeticIT {
             .withCreate(String.format("create table %s (s varchar(15), d date, t timestamp)", QUALIFIED_TABLE_NAME))
             .withInsert(String.format("insert into %s values(?,?,?)", QUALIFIED_TABLE_NAME))
             .withRows(rows(
-                row("2012-05-23", DateTime.parse("1988-12-26").toDate(), Timestamp.valueOf("2000-06-07 17:12:30"))))
+                row("2012-05-23", theDate, Timestamp.valueOf("2000-06-07 17:12:30"))))
             .create();
     }
 
@@ -120,32 +135,6 @@ public class SimpleDateArithmeticIT {
             Assert.assertEquals("The '-' operator with a left operand type of 'INTEGER' and a right operand type of 'DATE' is not supported.",
                                 e.getLocalizedMessage());
         }
-    }
-
-    @Test
-    public void testCurrentDateMinusDateColumn() throws Exception {
-        String sqlText = String.format("select current_date - d from  %s", QUALIFIED_TABLE_NAME);
-        ResultSet rs = spliceClassWatcher.executeQuery(sqlText);
-
-        String expected =
-            "1  |\n" +
-                "------\n" +
-                "9551 |";
-        Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
-        rs.close();
-    }
-
-    @Test @Ignore("DB-2892")
-    public void testDateColumnMinusCurrentDate() throws Exception {
-        String sqlText = String.format("select d - current_date from  %s", QUALIFIED_TABLE_NAME);
-        ResultSet rs = spliceClassWatcher.executeQuery(sqlText);
-
-        String expected =
-            "1  |\n" +
-                "------\n" +
-                "-9551 |";
-        Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
-        rs.close();
     }
 
     //=========================================================================================================
