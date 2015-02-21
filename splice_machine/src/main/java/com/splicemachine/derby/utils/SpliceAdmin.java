@@ -1059,6 +1059,11 @@ public class SpliceAdmin extends BaseAdminProcedures {
      *
      */
     public static void SYSCS_GET_XPLAIN_TRACE(long statementId, int mode, String format, final ResultSet[] resultSet) throws Exception{
+    	if (statementId == 0) {
+			EmbedConnection defaultConn = (EmbedConnection) SpliceAdmin.getDefaultConn();
+			LanguageConnectionContext lcc = defaultConn.getLanguageConnection();
+			statementId = lcc.getXplainStatementId();    		
+    	}
         XPlainTrace xPlainTrace = new XPlainTrace(statementId, mode, format);
         resultSet[0] = xPlainTrace.getXPlainTraceOutput();
     }
