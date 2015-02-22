@@ -7,6 +7,10 @@ import static org.junit.Assert.fail;
 
 import java.sql.ResultSet;
 import java.sql.Timestamp;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 import org.joda.time.DateTime;
 import org.junit.Assert;
@@ -27,6 +31,17 @@ import com.splicemachine.test_tools.TableCreator;
  *         Date: 2/11/15
  */
 public class TruncateFunctionIT {
+    private static Date theDate;
+    static {
+        // Added this static init because CDH 4.5 profile had a version of Jodatime
+        // that have parse - DateTime.parse("1988-12-26").toDate()
+        DateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+        try {
+            theDate = format.parse("1988-12-26");
+        } catch (ParseException e) {
+            fail("Failed to parse date: "+e.getLocalizedMessage());
+        }
+    }
 
     private static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 
@@ -42,11 +57,10 @@ public class TruncateFunctionIT {
     @BeforeClass
     public static void createTable() throws Exception {
         new TableCreator(spliceClassWatcher.getOrCreateConnection())
-            .withCreate(String.format("create table %s (s varchar(15), d date, t timestamp, n decimal(15, 7))", QUALIFIED_TABLE_NAME))
-            .withInsert(String.format("insert into %s values(?,?,?,?)", QUALIFIED_TABLE_NAME))
+            .withCreate(String.format("create table %s (s varchar(15), d date, t timestamp, n decimal(15, 7), i integer)", QUALIFIED_TABLE_NAME))
+            .withInsert(String.format("insert into %s values(?,?,?,?, ?)", QUALIFIED_TABLE_NAME))
             .withRows(rows(
-                row("2012-05-23", DateTime.parse("1988-12-26").toDate(), Timestamp.valueOf("2000-06-07 17:12:30"),
-                    12345.6789)))
+                row("2012-05-23", theDate, Timestamp.valueOf("2000-06-07 17:12:30"), 12345.6789, 123321)))
             .create();
     }
 
@@ -58,9 +72,9 @@ public class TruncateFunctionIT {
         ResultSet rs = spliceClassWatcher.executeQuery(sqlText);
 
         String expected =
-                "S     |     D     |          T           |      N       |\n" +
-                "--------------------------------------------------------------\n" +
-                "2012-05-23 |1988-12-26 |2000-06-07 17:12:30.0 |12345.6789000 |";
+                "S     |     D     |          T           |      N       |   I   |\n" +
+                    "----------------------------------------------------------------------\n" +
+                    "2012-05-23 |1988-12-26 |2000-06-07 17:12:30.0 |12345.6789000 |123321 |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
@@ -474,17 +488,163 @@ public class TruncateFunctionIT {
     // Column Decimal
     //=========================================================================================================
 
-    @Test @Ignore("DB-1596 implementation")
-    public void testTruncDecimalColumn() throws Exception {
+    @Test
+    public void testTruncDecimalColumn1() throws Exception {
         String sqlText =
             String.format("select trunc(n, 1), n from %s", QUALIFIED_TABLE_NAME);
 
         ResultSet rs = spliceClassWatcher.executeQuery(sqlText);
 
         String expected =
-            "1           |      N       |\n" +
-                "-----------------------\n" +
-                "12345.6 |12345.6789000 |";
+            "1       |      N       |\n" +
+                "------------------------------\n" +
+                "12345.6000000 |12345.6789000 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testTruncDecimalColumn2() throws Exception {
+        String sqlText =
+            String.format("select trunc(n, 2), n from %s", QUALIFIED_TABLE_NAME);
+
+        ResultSet rs = spliceClassWatcher.executeQuery(sqlText);
+
+        String expected =
+            "1       |      N       |\n" +
+                "------------------------------\n" +
+                "12345.6700000 |12345.6789000 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testTruncDecimalColumnMinus2() throws Exception {
+        String sqlText =
+            String.format("select trunc(n, -2), n from %s", QUALIFIED_TABLE_NAME);
+
+        ResultSet rs = spliceClassWatcher.executeQuery(sqlText);
+
+        String expected =
+            "1       |      N       |\n" +
+                "------------------------------\n" +
+                "12300.0000000 |12345.6789000 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testTruncDecimalColumnZero() throws Exception {
+        String sqlText =
+            String.format("select trunc(n, 0), n from %s", QUALIFIED_TABLE_NAME);
+
+        ResultSet rs = spliceClassWatcher.executeQuery(sqlText);
+
+        String expected =
+            "1       |      N       |\n" +
+                "------------------------------\n" +
+                "12345.0000000 |12345.6789000 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testTruncDecimalColumnEmpty() throws Exception {
+        String sqlText =
+            String.format("select trunc(n, ), n from %s", QUALIFIED_TABLE_NAME);
+
+        try (ResultSet rs = spliceClassWatcher.executeQuery(sqlText)) {
+            fail("Expected exception.");
+        } catch (Exception e) {
+            Assert.assertEquals("Syntax error: Encountered \")\" at line 1, column 17.",
+                                e.getLocalizedMessage());
+        }
+    }
+
+    @Test
+    public void testTruncDecimalColumnNull() throws Exception {
+        String sqlText =
+            String.format("select trunc(n, null), n from %s", QUALIFIED_TABLE_NAME);
+
+        try (ResultSet rs = spliceClassWatcher.executeQuery(sqlText)) {
+            fail("Expected exception.");
+        } catch (Exception e) {
+            Assert.assertEquals("Syntax error: Encountered \"null\" at line 1, column 17.",
+                                e.getLocalizedMessage());
+        }
+    }
+
+    @Test
+    public void testTruncDecimalColumnNonNumeric() throws Exception {
+        String sqlText =
+            String.format("select trunc(n, x), n from %s", QUALIFIED_TABLE_NAME);
+
+        try (ResultSet rs = spliceClassWatcher.executeQuery(sqlText)) {
+            fail("Expected exception.");
+        } catch (Exception e) {
+            Assert.assertEquals("Column 'X' is either not in any table in the FROM list or appears within a join " +
+                                    "specification and is outside the scope of the join specification or appears in " +
+                                    "a HAVING clause and is not in the GROUP BY list. If this is a CREATE or " +
+                                    "ALTER TABLE  statement then 'X' is not a column in the target table.",
+                                e.getLocalizedMessage());
+        }
+    }
+
+    @Test
+    public void testTruncDecimalColumnGreaterThanPrecision() throws Exception {
+        String sqlText =
+            String.format("select trunc(n, 8), n from %s", QUALIFIED_TABLE_NAME);
+
+        ResultSet rs = spliceClassWatcher.executeQuery(sqlText);
+
+        String expected =
+            "1       |      N       |\n" +
+                "------------------------------\n" +
+                "12345.6789000 |12345.6789000 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testTruncDecimalColumnNegativeGreaterThanPrecision() throws Exception {
+        String sqlText = String.format("select trunc(n, -5), n from %s", QUALIFIED_TABLE_NAME);
+
+        ResultSet rs = spliceClassWatcher.executeQuery(sqlText);
+
+        String expected =
+            "1  |      N       |\n" +
+                "---------------------\n" +
+                "0E-7 |12345.6789000 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testTruncIntegerColumn1() throws Exception {
+        String sqlText =
+            String.format("select trunc(i, 1), i from %s", QUALIFIED_TABLE_NAME);
+
+        ResultSet rs = spliceClassWatcher.executeQuery(sqlText);
+
+        String expected =
+            "1   |   I   |\n" +
+                "----------------\n" +
+                "123321 |123321 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testTruncIntegerColumnNegative1() throws Exception {
+        String sqlText =
+            String.format("select trunc(i, -1), i from %s", QUALIFIED_TABLE_NAME);
+
+        ResultSet rs = spliceClassWatcher.executeQuery(sqlText);
+
+        String expected =
+            "1   |   I   |\n" +
+                "----------------\n" +
+                "123320 |123321 |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
@@ -493,18 +653,110 @@ public class TruncateFunctionIT {
     // Value Decimal
     //=========================================================================================================
 
-    @Test @Ignore("DB-1596 implementation")
-    public void testTruncDecimalValue() throws Exception {
+    @Test
+    public void testTruncDecimalValue1() throws Exception {
         String sqlText =  "values truncate(12345.6789, 1)";
 
         ResultSet rs = spliceClassWatcher.executeQuery(sqlText);
 
         String expected =
-            "1           |\n" +
-                "-----------------------\n" +
-                "12345.6 |";
+            "1     |\n" +
+                "------------\n" +
+                "12345.6000 |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
+    }
+
+    @Test
+    public void testTruncDecimalValue2() throws Exception {
+        String sqlText =  "values truncate(12345.6789, 2)";
+
+        ResultSet rs = spliceClassWatcher.executeQuery(sqlText);
+
+        String expected =
+            "1     |\n" +
+                "------------\n" +
+                "12345.6700 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testTruncDecimalValueNegative3() throws Exception {
+        String sqlText =  "values truncate(12345.6789, -3)";
+
+        ResultSet rs = spliceClassWatcher.executeQuery(sqlText);
+
+        String expected =
+            "1     |\n" +
+                "------------\n" +
+                "12000.0000 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testTruncIntegerValue3() throws Exception {
+        String sqlText =  "values truncate(123321, 3)";
+
+        ResultSet rs = spliceClassWatcher.executeQuery(sqlText);
+
+        String expected =
+            "1   |\n" +
+                "--------\n" +
+                "123321 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testTruncIntegerValueNegative3() throws Exception {
+        String sqlText =  "values truncate(123321, -3)";
+
+        ResultSet rs = spliceClassWatcher.executeQuery(sqlText);
+
+        String expected =
+            "1   |\n" +
+                "--------\n" +
+                "123000 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testTruncIntegerValueNegativeGreaterThanPrecision() throws Exception {
+        String sqlText =  "values truncate(123321, -7)";
+
+        ResultSet rs = spliceClassWatcher.executeQuery(sqlText);
+
+        String expected =
+            "1 |\n" +
+                "----\n" +
+                " 0 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testTruncDecimalValueNonNumeric() throws Exception {
+        String sqlText =  "values truncate(12345.6789, x)";
+
+        try (ResultSet rs = spliceClassWatcher.executeQuery(sqlText)) {
+            fail("Expected exception.");
+        } catch (Exception e) {
+            Assert.assertEquals("The truncate function expects a right-side argument of type INTEGER for an operand " +
+                                    "of type DECIMAL but got: 'columnName: X\n" +
+                                    "tableNumber: -1\n" +
+                                    "columnNumber: 0\n" +
+                                    "replacesAggregate: false\n" +
+                                    "replacesWindowFunctionCall: false\n" +
+                                    "tableName: null\n" +
+                                    "nestingLevel: -1\n" +
+                                    "sourceLevel: -1\n" +
+                                    "dataTypeServices: null\n" +
+                                    "'.",
+                                e.getLocalizedMessage());
+        }
     }
 
 }
