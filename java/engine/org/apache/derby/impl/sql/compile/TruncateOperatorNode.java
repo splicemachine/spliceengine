@@ -41,12 +41,13 @@ import org.apache.derby.iapi.types.TypeId;
 public class TruncateOperatorNode extends BinaryOperatorNode {
 
     private static final Map<Integer,Pair> TYPES_TO_METHOD_NAMES;
-
+    private static final String TRUNC_DECIMAL = "truncDecimal";
     static {
-        TYPES_TO_METHOD_NAMES = new HashMap<Integer, Pair>(3);
+        TYPES_TO_METHOD_NAMES = new HashMap<Integer, Pair>(4);
         TYPES_TO_METHOD_NAMES.put(Types.TIMESTAMP, new Pair(ClassName.DateTimeDataValue, "truncTimestamp"));
         TYPES_TO_METHOD_NAMES.put(Types.DATE, new Pair(ClassName.DateTimeDataValue, "truncDate"));
-        TYPES_TO_METHOD_NAMES.put(Types.DECIMAL, new Pair(ClassName.NumberDataValue, "truncDecimal"));
+        TYPES_TO_METHOD_NAMES.put(Types.DECIMAL, new Pair(ClassName.NumberDataValue, TRUNC_DECIMAL));
+        TYPES_TO_METHOD_NAMES.put(Types.INTEGER, new Pair(ClassName.NumberDataValue, TRUNC_DECIMAL));
     }
 
     private String methodClassname;
@@ -64,15 +65,16 @@ public class TruncateOperatorNode extends BinaryOperatorNode {
         operator = "truncate";
 
         // do some validation...
-        TypeId typeId = leftOperand.getTypeId();
-        if (typeId != null) {
-            int jdbcId = typeId.getJDBCTypeId();
+        TypeId leftTypeId = leftOperand.getTypeId();
+        if (leftTypeId != null) {
+            int jdbcId = leftTypeId.getJDBCTypeId();
             if (jdbcId == Types.TIMESTAMP || jdbcId == Types.DATE) {
-                if (! (rightOperand.getTypeId().getJDBCTypeId() == Types.CHAR)) {
+                if (rightOperand.getTypeId().getJDBCTypeId() != Types.CHAR) {
                     throw StandardException.newException(SQLState.LANG_TRUNCATE_EXPECTED_RIGHTSIDE_CHAR_TYPE, rightOperand.toString());
                 }
-            } else if (jdbcId == Types.DECIMAL) {
-                if (! (rightOperand.getTypeId().getJDBCTypeId() == Types.INTEGER)) {
+            } else if (jdbcId == Types.DECIMAL || jdbcId == Types.INTEGER) {
+                TypeId rightTypeId = rightOperand.getTypeId();
+                if (rightTypeId == null || rightTypeId.getJDBCTypeId() != Types.INTEGER) {
                     throw StandardException.newException(SQLState.LANG_TRUNCATE_EXPECTED_RIGHTSIDE_INTEGER_TYPE, rightOperand.toString());
                 }
             } else {
@@ -97,7 +99,7 @@ public class TruncateOperatorNode extends BinaryOperatorNode {
 	 *
 	 * @return	The new top of the expression tree.
 	 *
-	 * @exception org.apache.derby.iapi.error.StandardException		Thrown on error
+	 * @exception StandardException		Thrown on error
 	 */
 
 	public ValueNode bindExpression(
@@ -116,6 +118,11 @@ public class TruncateOperatorNode extends BinaryOperatorNode {
         this.methodName = typeMethod.methodName;
         this.methodClassname = typeMethod.className;
 
+        // Make sure type of right side is integer when trunc decimal column ref
+        if (this.methodName.equals(TRUNC_DECIMAL) && rightOperand.getTypeId().getJDBCTypeId() != Types.INTEGER) {
+            throw StandardException.newException(SQLState.LANG_TRUNCATE_EXPECTED_RIGHTSIDE_INTEGER_TYPE, rightOperand.toString());
+        }
+
 		//Set the type if there is a parameter involved here
 		if (leftOperand.requiresTypeFromContext()) {
 			leftOperand.setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(operandType));
@@ -125,7 +132,11 @@ public class TruncateOperatorNode extends BinaryOperatorNode {
 			rightOperand.setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(rightOperand.getTypeId().getJDBCTypeId()));
 		}
 
-        setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(operandType));
+        DataTypeDescriptor typeDescriptor = leftOperand.getTypeServices();
+        if (typeDescriptor == null) {
+            typeDescriptor = DataTypeDescriptor.getBuiltInDataTypeDescriptor(operandType);
+        }
+        setType(typeDescriptor);
 		return genSQLJavaSQLTree();
 	} // end of bindExpression
 

@@ -73,27 +73,39 @@ public class TruncateFunctionUtil {
     }
 
     /**
-     * TODO
-     * @param numeric
-     * @param truncValue
-     * @return
+     * Truncate a decimal value to the given number of decimal places.
+     * @param numeric the decimal number to truncate.
+     * @param truncValue the integer number of decimal places to truncate. If truncValue is positive,
+     *                   numeric is truncated (zeroed) starting from truncValue + 1 places to the left
+     *                   of the decimal point.  If it's negative, numeric is truncated starting from
+     *                   truncValue places to the left of the decimal point.
+     * @return the truncated value.
      * @throws StandardException
      */
     public static NumberDataValue truncDecimal(DataValueDescriptor numeric, DataValueDescriptor truncValue)
         throws StandardException {
 
-        // TODO JC: yow, this will be a perf hit...
-        NumberDataValue returnVal = (NumberDataValue)numeric.cloneValue(false);
-        double x = numeric.getDouble();
-        BigDecimal y;
-        if (x > 0) {
-            y = new BigDecimal(String.valueOf(x)).setScale(truncValue.getInt(), BigDecimal.ROUND_FLOOR);
-        } else {
-            y = new BigDecimal(String.valueOf(x)).setScale(truncValue.getInt(), BigDecimal.ROUND_CEILING);
+        // Gotta clone here because ref changes value when both trunc value and column are selected
+        // For example, if select trunc(n, 1), n from trunctest, n also displays truncated value
+        NumberDataValue returnValue = (NumberDataValue) numeric.cloneValue(false);
+        double x = returnValue.getDouble();
+        int roundingMode = BigDecimal.ROUND_FLOOR;
+        if (x < 0) {
+            roundingMode = BigDecimal.ROUND_CEILING;
         }
-        y.precision();
-        returnVal.setBigDecimal(y);
-        return returnVal;
+        // Change the scale on the clone
+        Object value = numeric.getObject();
+        BigDecimal y;
+        if (value == null || ! (value instanceof BigDecimal)) {
+            // could be integer.  trunc as decimal.
+            y = new BigDecimal(String.valueOf(x)).setScale(truncValue.getInt(), roundingMode);
+        } else {
+            y = ((BigDecimal)value).setScale(truncValue.getInt(), roundingMode);
+        }
+        // BigDecimal#precision() has the side effect of setting the precision. Needed since we've changed it.
+        int precision = y.precision();
+        returnValue.setBigDecimal(y);
+        return returnValue;
     }
 
     //==================================================================================================================
