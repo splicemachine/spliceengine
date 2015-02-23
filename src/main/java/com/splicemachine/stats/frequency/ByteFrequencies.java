@@ -154,6 +154,7 @@ public class ByteFrequencies implements ByteFrequentElements {
             return "Frequency("+value+","+count+")";
         }
     }
+
     private void push(Frequency frequency) {
         /*
          * we only want to push this frequency if it's larger than

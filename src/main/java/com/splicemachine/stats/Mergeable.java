@@ -17,7 +17,7 @@ package com.splicemachine.stats;
  * @author Scott Fines
  *         Date: 10/27/14
  */
-public interface Mergeable<T,M extends Mergeable<T,M>> {
+public interface Mergeable<M extends Mergeable<M>> {
 
     /**
      * Merge this entity with another instance of the same type.

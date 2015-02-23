@@ -21,10 +21,7 @@ public class ByteHeavyHitters implements ByteFrequentElements {
         }
     }
 
-    @Override
-    public ByteFrequencyEstimate countEqual(byte item) {
-        return cachedFrequencies[item & 0xff];
-    }
+    @Override public ByteFrequencyEstimate countEqual(byte item) { return cachedFrequencies[item & 0xff]; }
 
     @Override
     public Set<ByteFrequencyEstimate> frequentBetween(byte start, byte stop, boolean includeStart, boolean includeStop) {
@@ -65,7 +62,13 @@ public class ByteHeavyHitters implements ByteFrequentElements {
 
     @Override
     public Set<? extends FrequencyEstimate<Byte>> frequentElementsBetween(Byte start, Byte stop, boolean includeMin, boolean includeStop) {
-        return null;
+        if(start==null){
+            if(stop==null) return new InnerSet(Byte.MIN_VALUE,Byte.MAX_VALUE);
+            return frequentBefore(stop,includeStop);
+        }else if(stop==null){
+            return frequentAfter(start,includeMin);
+        }
+        return frequentBetween(start,stop,includeMin,includeStop);
     }
 
     @Override
@@ -175,9 +178,6 @@ public class ByteHeavyHitters implements ByteFrequentElements {
             return cachedFrequencies[pos];
         }
 
-        @Override
-        public void remove() {
-            throw new UnsupportedOperationException("Removal not supported");
-        }
+        @Override public void remove() { throw new UnsupportedOperationException("Removal not supported"); }
     }
 }

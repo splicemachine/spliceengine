@@ -3,6 +3,10 @@ package com.splicemachine.stats.frequency;
 import java.util.Set;
 
 /**
+ * Representation of the <em>Frequent Elements</em> in a multiset.
+ *
+
+ *
  * @author Scott Fines
  *         Date: 12/5/14
  */
