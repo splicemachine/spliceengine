@@ -317,6 +317,9 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
         JavaRDD<ExecRow> rdd = source.getRDD(spliceRuntimeContext, this);
         final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this, spliceRuntimeContext);
 
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("RDD for operation " + this + " :\n " + rdd.toDebugString());
+        }
         ExecRow result = rdd.fold(null, new SparkAggregator(this, soi));
         if (result == null) {
             return SpliceSpark.getContext().parallelize(Lists.newArrayList(getExecRowDefinition()));

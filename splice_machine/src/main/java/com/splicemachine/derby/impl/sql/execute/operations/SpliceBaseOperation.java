@@ -695,7 +695,11 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
             if (!providesRDD()) {
                 throw new UnsupportedOperationException();
             }
-            return new SpliceNoPutResultSet(getActivation(), this, new RDDRowProvider(getRDD(runtimeContext, this), runtimeContext));
+            JavaRDD<ExecRow> rdd = getRDD(runtimeContext, this);
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("RDD for operation " + this + " :\n " + rdd.toDebugString());
+            }
+            return new SpliceNoPutResultSet(getActivation(), this, new RDDRowProvider(rdd, runtimeContext));
         }
 
         public class XplainOperationChainInfo {
