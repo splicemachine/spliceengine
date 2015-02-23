@@ -209,7 +209,10 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
 
 		public void markAsSink() { isSink = true; }
 
-    public void unMarkAsSink() { isSink = false; }
+    public void unMarkAsSink() {
+        isSink = false;
+        useSpark = false; // no sink -> don't need for spark
+    }
 
 		public boolean isSink() { return isSink; }
 
