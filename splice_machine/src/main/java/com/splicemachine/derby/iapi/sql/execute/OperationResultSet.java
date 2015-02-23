@@ -201,7 +201,7 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
             }
 
             // enable Spark if the whole stack supports it
-            if (topOperation.expectsRDD()) {
+            if (topOperation.expectsRDD() && !topOperation.pushedToServer()) {
                 runtimeContext.setUseSpark(true);
             } else {
                 OperationTree.sink(topOperation, runtimeContext);
