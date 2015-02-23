@@ -37,13 +37,13 @@ public class DoubleSpaceSaver extends ObjectSpaceSaver<Double> implements Double
     @Override
     public DoubleFrequentElements heavyHitters(float support) {
         Collection<FrequencyEstimate<Double>> estimates = super.heavyItems(support);
-        return new DoubleFrequentElements(Collections2.transform(estimates, castFunction));
+        return DoubleFrequentElements.heavyHitters(support,totalCount(),Collections2.transform(estimates, castFunction));
     }
 
     @Override
     public DoubleFrequentElements frequentElements(int k) {
         Collection<FrequencyEstimate<Double>> estimates = super.topKElements(k);
-        return new DoubleFrequentElements(Collections2.transform(estimates,castFunction));
+        return DoubleFrequentElements.topK(k,totalCount(),Collections2.transform(estimates,castFunction));
     }
 
     /************************************************************************************************************/

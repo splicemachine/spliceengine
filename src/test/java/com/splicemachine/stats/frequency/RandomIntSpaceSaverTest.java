@@ -143,6 +143,12 @@ public class RandomIntSpaceSaverTest {
         @Override public long error() { return 0; }
 
         @Override
+        public FrequencyEstimate<Integer> merge(FrequencyEstimate<Integer> other) {
+            count+=other.count();
+            return this;
+        }
+
+        @Override
         public String toString() {
             return "("+value+","+count+",0)";
         }

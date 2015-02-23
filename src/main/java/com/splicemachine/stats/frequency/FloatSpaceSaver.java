@@ -37,13 +37,13 @@ public class FloatSpaceSaver extends ObjectSpaceSaver<Float> implements FloatFre
     @Override
     public FloatFrequentElements heavyHitters(float support) {
         Collection<FrequencyEstimate<Float>> estimates = super.heavyItems(support);
-        return new FloatFrequentElements(Collections2.transform(estimates, castFunction));
+        return FloatFrequentElements.heavyHitters(support,totalCount(),Collections2.transform(estimates, castFunction));
     }
 
     @Override
     public FloatFrequentElements frequentElements(int k) {
         Collection<FrequencyEstimate<Float>> estimates = super.topKElements(k);
-        return new FloatFrequentElements(Collections2.transform(estimates,castFunction));
+        return FloatFrequentElements.topK(k,totalCount(),Collections2.transform(estimates,castFunction));
     }
 
     /************************************************************************************************************/

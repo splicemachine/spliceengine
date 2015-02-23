@@ -174,7 +174,7 @@ public class ShortSpaceSaverTest {
 
     private static class TestFrequency implements ShortFrequencyEstimate {
         final short value;
-        final long count;
+        long count;
         long error;
 
 
@@ -213,6 +213,12 @@ public class ShortSpaceSaverTest {
         @Override
         public long error() {
             return error;
+        }
+
+        @Override
+        public FrequencyEstimate<Short> merge(FrequencyEstimate<Short> other) {
+            count+=other.count();
+            return this;
         }
 
         @Override

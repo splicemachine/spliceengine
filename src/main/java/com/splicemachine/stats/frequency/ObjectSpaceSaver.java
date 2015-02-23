@@ -5,7 +5,9 @@ import com.splicemachine.utils.ComparableComparator;
 
 import javax.annotation.concurrent.NotThreadSafe;
 import java.lang.reflect.Array;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
 
 /**
  * @author Scott Fines
@@ -27,10 +29,12 @@ public class ObjectSpaceSaver<T> implements FrequencyCounter<T> {
 
     protected SizeBucket maxBucket;
     private SizeBucket minBucket = maxBucket = new SizeBucket(1);
-    private float total;
+    private long total;
+
+//    private long totalCount = 0;
 
     public static <T extends Comparable<T>> ObjectSpaceSaver<T> create(Hash32 hashFunction,int maxSize){
-        return new ObjectSpaceSaver<T>(ComparableComparator.<T>newComparator(),hashFunction,maxSize);
+        return new ObjectSpaceSaver<>(ComparableComparator.<T>newComparator(),hashFunction,maxSize);
     }
     public ObjectSpaceSaver(Comparator<? super T> comparator,Hash32 hashFunction, int maxSize) {
         this(comparator,hashFunction, maxSize,16,0.85f);
@@ -61,23 +65,18 @@ public class ObjectSpaceSaver<T> implements FrequencyCounter<T> {
     @Override
     public FrequentElements<T> frequentElements(int k) {
         Collection<FrequencyEstimate<T>> estimates = topKElements(k);
-        return new ObjectFrequentElements<T>(estimates,comparator);
-    }
-
-    //    @Override
-    public FrequentElements<T> heavyHitters(float support) {
-        Collection<FrequencyEstimate<T>> estimates = heavyItems(support);
-        return new ObjectFrequentElements<T>(estimates,comparator);
+        return ObjectFrequentElements.topK(k,totalCount(),estimates,comparator);
     }
 
     @Override
-    public Iterator<FrequencyEstimate<T>> iterator() {
-        return null;
+    public FrequentElements<T> heavyHitters(float support) {
+        Collection<FrequencyEstimate<T>> estimates = heavyItems(support);
+        return ObjectFrequentElements.heavyHitters(support,totalCount(),estimates,comparator);
     }
 
     protected final Collection<FrequencyEstimate<T>> heavyItems(float support) {
         long threshold = (long)(total*support);
-        Collection<FrequencyEstimate<T>> estimates = new ArrayList<FrequencyEstimate<T>>(size);
+        Collection<FrequencyEstimate<T>> estimates = new ArrayList<>(size);
         SizeBucket b = maxBucket;
         while(b!=null){
             Entry e = b.firstEntry;
@@ -109,6 +108,10 @@ public class ObjectSpaceSaver<T> implements FrequencyCounter<T> {
             b = b.previous;
         }
         return estimates;
+    }
+
+    protected long totalCount() {
+        return total;
     }
 
     /***********************************************************************/
@@ -178,6 +181,13 @@ public class ObjectSpaceSaver<T> implements FrequencyCounter<T> {
             }
         }
 
+        @Override
+        public FrequencyEstimate<T> merge(FrequencyEstimate<T> otherEst) {
+            increment(otherEst.count());
+            this.epsilon = Math.max(this.epsilon,otherEst.error());
+            return this;
+        }
+
         @Override public T getValue() { return value; }
         @Override public long count() { return bucket.count; }
         @Override public long error() { return epsilon; }
@@ -209,10 +219,7 @@ public class ObjectSpaceSaver<T> implements FrequencyCounter<T> {
             return hash;
         }
 
-        public boolean equals(Entry o) {
-            if (this == o) return true;
-            return value.equals(o.value);
-        }
+        public boolean equals(Entry o) { return this == o || value.equals(o.value); }
     }
 
     /*****************************************************************************************************************/

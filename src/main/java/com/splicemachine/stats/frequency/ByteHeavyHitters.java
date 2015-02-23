@@ -108,6 +108,12 @@ public class ByteHeavyHitters implements ByteFrequentElements {
         @Override public int compareTo(ByteFrequencyEstimate o) { return value - o.value();}
 
         @Override
+        public FrequencyEstimate<Byte> merge(FrequencyEstimate<Byte> otherEst) {
+            counts[value & 0xff] +=otherEst.count();
+            return this;
+        }
+
+        @Override
         public String toString() {
             return "Frequency("+value+","+count()+")";
         }

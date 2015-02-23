@@ -61,11 +61,6 @@ public class SimpleBooleanFrequencyCounter implements BooleanFrequencyCounter {
         return new SimpleBooleanFrequentElements(0l,0l);
     }
 
-    @Override
-		public Iterator<FrequencyEstimate<Boolean>> iterator() {
-				return Iterators.<FrequencyEstimate<Boolean>>forArray(trueFrequency,falseFrequency);
-		}
-
 		private static class Frequency implements BooleanFrequencyEstimate{
 				private long count;
 				private final boolean value;
@@ -78,6 +73,12 @@ public class SimpleBooleanFrequencyCounter implements BooleanFrequencyCounter {
 				@Override public Boolean getValue() { return value; }
 				@Override public long count() { return count; }
 				@Override public long error() { return 0; } //no error! whoo!
-		}
+
+        @Override
+        public FrequencyEstimate<Boolean> merge(FrequencyEstimate<Boolean> other) {
+            this.count+=other.count();
+            return this;
+        }
+    }
 
 }

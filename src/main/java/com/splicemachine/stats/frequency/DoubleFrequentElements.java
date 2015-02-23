@@ -1,6 +1,8 @@
 package com.splicemachine.stats.frequency;
 
 import com.google.common.primitives.Doubles;
+import com.google.common.primitives.Longs;
+import com.splicemachine.stats.Mergeable;
 
 import java.util.*;
 
@@ -8,8 +10,7 @@ import java.util.*;
  * @author Scott Fines
  *         Date: 12/5/14
  */
-public class DoubleFrequentElements implements FrequentElements<Double>{
-    private final NavigableSet<DoubleFrequencyEstimate> elements;
+public abstract class DoubleFrequentElements implements FrequentElements<Double>,Mergeable<DoubleFrequentElements> {
     private static final Comparator<DoubleFrequencyEstimate> naturalComparator = new Comparator<DoubleFrequencyEstimate>() {
         @Override
         public int compare(DoubleFrequencyEstimate o1, DoubleFrequencyEstimate o2) {
@@ -19,10 +20,23 @@ public class DoubleFrequentElements implements FrequentElements<Double>{
         }
     };
 
-    public DoubleFrequentElements(Collection<DoubleFrequencyEstimate> elements) {
-        TreeSet<DoubleFrequencyEstimate> elems = new TreeSet<DoubleFrequencyEstimate>(naturalComparator);
+    private NavigableSet<DoubleFrequencyEstimate> elements;
+    private long totalCount;
+
+    public static DoubleFrequentElements topK(int k, long totalCount,Collection<DoubleFrequencyEstimate> elements){
+        return new TopK(k,totalCount,elements);
+    }
+
+    public static DoubleFrequentElements heavyHitters(float support,
+                                                      long totalCount,Collection<DoubleFrequencyEstimate> elements){
+        return new HeavyItems(support,totalCount,elements);
+    }
+
+    private DoubleFrequentElements(long totalCount,Collection<DoubleFrequencyEstimate> elements) {
+        TreeSet<DoubleFrequencyEstimate> elems = new TreeSet<>(naturalComparator);
         elems.addAll(elements);
         this.elements = elems;
+        this.totalCount = totalCount;
     }
 
     public DoubleFrequencyEstimate countEqual(double item){
@@ -30,7 +44,6 @@ public class DoubleFrequentElements implements FrequentElements<Double>{
             if(est.value()==item) return est;
         }
         return new ZeroFreq(item);
-
     }
 
     public Set<DoubleFrequencyEstimate> frequentBetween(double start, double stop, boolean includeStart, boolean includeStop){
@@ -100,7 +113,10 @@ public class DoubleFrequentElements implements FrequentElements<Double>{
     }
 
     @Override
-    public Set<? extends FrequencyEstimate<Double>> frequentElementsBetween(Double start, Double stop, boolean includeMin, boolean includeStop) {
+    public Set<? extends FrequencyEstimate<Double>> frequentElementsBetween(
+            Double start,
+            Double stop,
+            boolean includeMin, boolean includeStop) {
         if(start==null){
             if(stop==null){
                 return elements;
@@ -117,6 +133,95 @@ public class DoubleFrequentElements implements FrequentElements<Double>{
         }
     }
 
+    @Override
+    public DoubleFrequentElements merge(DoubleFrequentElements other) {
+        NavigableSet<DoubleFrequencyEstimate> thisEst = elements;
+        NavigableSet<DoubleFrequencyEstimate> oEst = other.elements;
+
+        DoubleFrequencyEstimate[] all = new DoubleFrequencyEstimate[thisEst.size()+oEst.size()];
+        int size =0;
+        for(DoubleFrequencyEstimate est:thisEst){
+            all[size] = est;
+            size++;
+        }
+        for(DoubleFrequencyEstimate est:oEst){
+            boolean found = false;
+            for(int i=0;i<size;i++){
+                DoubleFrequencyEstimate thisE = all[i];
+                if(thisE.equals(est)){
+                    all[i] = (DoubleFrequencyEstimate)thisE.merge(est);
+                    found = true;
+                    break;
+                }
+            }
+            if(!found){
+                all[size] = est;
+                size++;
+            }
+        }
+        elements = rebuild(other.totalCount+totalCount,all);
+        totalCount +=other.totalCount;
+        return this;
+    }
+
+    protected abstract NavigableSet<DoubleFrequencyEstimate> rebuild(long totalCount, DoubleFrequencyEstimate[] all);
+
+    /* ****************************************************************************************************************/
+    /*private helper methods*/
+    private static class TopK extends DoubleFrequentElements{
+        private static final Comparator<DoubleFrequencyEstimate> frequencyComparator = new Comparator<DoubleFrequencyEstimate>() {
+            @Override
+            public int compare(DoubleFrequencyEstimate o1, DoubleFrequencyEstimate o2) {
+                int compare = Longs.compare(o1.count(),o2.count());
+                if(compare!=0) return compare;
+                return o1.compareTo(o2);
+            }
+        };
+
+        private int k;
+
+        private TopK(int k,long totalCount, Collection<DoubleFrequencyEstimate> elements) {
+            super(totalCount, elements);
+            this.k = k;
+        }
+
+        @Override
+        protected NavigableSet<DoubleFrequencyEstimate> rebuild(long totalCount, DoubleFrequencyEstimate[] all) {
+            Arrays.sort(all,frequencyComparator);
+
+            int k = Math.min(this.k,all.length);
+            NavigableSet<DoubleFrequencyEstimate> newTree = new TreeSet<>(naturalComparator);
+            //noinspection ManualArrayToCollectionCopy
+            for(int i=0;i<k;i++){
+                newTree.add(all[i]);
+            }
+            return newTree;
+        }
+    }
+
+    private static class HeavyItems extends DoubleFrequentElements{
+        private float support;
+
+        private HeavyItems(float support,long totalCount, Collection<DoubleFrequencyEstimate> elements) {
+            super(totalCount, elements);
+            this.support = support;
+        }
+
+
+        @Override
+        protected NavigableSet<DoubleFrequencyEstimate> rebuild(long totalCount, DoubleFrequencyEstimate[] all) {
+            NavigableSet<DoubleFrequencyEstimate> result = new TreeSet<>(naturalComparator);
+            long threshold = (long)(totalCount*support);
+            //noinspection ForLoopReplaceableByForEach
+            for(int i=0;i< all.length;i++){
+                DoubleFrequencyEstimate est = all[i];
+                if(est.count()>threshold)
+                    result.add(est);
+            }
+            return result;
+        }
+    }
+
     private class ZeroFreq implements DoubleFrequencyEstimate {
         private double item;
 
@@ -130,6 +235,7 @@ public class DoubleFrequentElements implements FrequentElements<Double>{
         @Override public Double getValue() { return item; }
         @Override public long count() { return 0; }
         @Override public long error() { return 0; }
+        @Override public FrequencyEstimate<Double> merge(FrequencyEstimate<Double> other) { return other; }
 
         @Override
         public boolean equals(Object o) {

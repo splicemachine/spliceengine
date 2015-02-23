@@ -12,7 +12,7 @@ import java.util.Set;
  * @author Scott Fines
  * Date: 1/12/14
  */
-public interface FrequencyCounter<T> extends Iterable<FrequencyEstimate<T>>,Updateable<T> {
+public interface FrequencyCounter<T> extends Updateable<T> {
 
     /**
      * Get all elements which have occurred more than {@code support*numVisited} times,

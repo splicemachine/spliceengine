@@ -170,7 +170,7 @@ public class LongSpaceSaverTest {
 
     private static class TestFrequency implements LongFrequencyEstimate{
         final long value;
-        final long count;
+        long count;
         long error;
 
         public TestFrequency(long value, long count,long error) {
@@ -190,11 +190,17 @@ public class LongSpaceSaverTest {
         @Override public long error() { return error; }
 
         @Override
+        public FrequencyEstimate<Long> merge(FrequencyEstimate<Long> other) {
+            count+=other.count();
+            return this;
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (!(o instanceof FrequencyEstimate)) return false;
 
-            FrequencyEstimate<Long> that = (FrequencyEstimate<Long>) o;
+            @SuppressWarnings("unchecked") FrequencyEstimate<Long> that = (FrequencyEstimate<Long>) o;
 
             if(value!=that.getValue()) return false;
             long guaranteedValue = count-error;

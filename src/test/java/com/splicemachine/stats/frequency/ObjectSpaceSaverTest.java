@@ -171,7 +171,7 @@ public class ObjectSpaceSaverTest {
 
     private static class TestFrequency implements IntFrequencyEstimate{
         final int value;
-        final long count;
+        long count;
         long error;
 
         public TestFrequency(int value, long count,long error) {
@@ -187,11 +187,17 @@ public class ObjectSpaceSaverTest {
         @Override public long error() { return error; }
 
         @Override
+        public FrequencyEstimate<Integer> merge(FrequencyEstimate<Integer> other) {
+            count+=other.count();
+            return this;
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (!(o instanceof FrequencyEstimate)) return false;
 
-            FrequencyEstimate<Integer> that = (FrequencyEstimate<Integer>) o;
+            @SuppressWarnings("unchecked") FrequencyEstimate<Integer> that = (FrequencyEstimate<Integer>) o;
 
             if(value!=that.getValue()) return false;
             long guaranteedValue = count-error;

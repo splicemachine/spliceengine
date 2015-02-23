@@ -174,7 +174,7 @@ public class DoubleSpaceSaverTest {
 
     private static class TestFrequency implements DoubleFrequencyEstimate {
         final double value;
-        final long count;
+        long count;
         long error;
 
         public TestFrequency(int value, long count, long error) {
@@ -206,6 +206,12 @@ public class DoubleSpaceSaverTest {
         @Override
         public long error() {
             return error;
+        }
+
+        @Override
+        public FrequencyEstimate<Double> merge(FrequencyEstimate<Double> other) {
+            this.count+=other.count();
+            return this;
         }
 
         @Override

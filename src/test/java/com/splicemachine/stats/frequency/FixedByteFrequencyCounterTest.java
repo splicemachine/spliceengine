@@ -235,7 +235,7 @@ public class FixedByteFrequencyCounterTest {
 
     private static class TestFrequency implements ByteFrequencyEstimate{
         final byte value;
-        final long count;
+        long count;
 
         public TestFrequency(byte value, long count) {
             this.value = value;
@@ -247,6 +247,12 @@ public class FixedByteFrequencyCounterTest {
         @Override public Byte getValue() { return value; }
         @Override public long count() { return count; }
         @Override public long error() { return 0; }
+
+        @Override
+        public FrequencyEstimate<Byte> merge(FrequencyEstimate<Byte> other) {
+            count+=other.count();
+            return this;
+        }
 
         @Override
         public boolean equals(Object o) {

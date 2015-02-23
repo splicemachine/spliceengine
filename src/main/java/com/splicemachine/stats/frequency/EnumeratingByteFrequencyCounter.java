@@ -1,8 +1,6 @@
 package com.splicemachine.stats.frequency;
 
-import com.google.common.primitives.Longs;
-
-import java.util.*;
+import java.util.Arrays;
 
 /**
  * @author Scott Fines
@@ -39,46 +37,4 @@ public class EnumeratingByteFrequencyCounter implements ByteFrequencyCounter {
 				return new ByteFrequencies(counts,k);
 		}
 
-		@Override public Iterator<FrequencyEstimate<Byte>> iterator() { return new Iter(); }
-
-		private static class Freq implements ByteFrequencyEstimate{
-				private byte value;
-				private long count;
-
-				public Freq(byte value, long count) {
-						this.value = value;
-						this.count = count;
-				}
-
-				@Override public Byte getValue() { return value; }
-				@Override public long count() { return count; }
-				@Override public long error() { return 0; }
-				@Override public byte value() { return value; }
-
-				@Override
-				@SuppressWarnings("NullableProblems")
-				public int compareTo(ByteFrequencyEstimate o) {
-						int compare = Longs.compare(count, o.count());
-						if(compare!=0) return -1*compare;
-						return value - o.value();
-				}
-
-		}
-
-    private class Iter implements Iterator<FrequencyEstimate<Byte>> {
-        private int position = 0;
-
-        @Override public boolean hasNext() { return position< counts.length; }
-        @Override public void remove() { throw new UnsupportedOperationException("Cannot remove entries"); }
-
-        @Override
-        public FrequencyEstimate<Byte> next() {
-            if(!hasNext()) throw new NoSuchElementException();
-            int pos = position;
-            long count = counts[pos];
-            position++;
-            return new Freq((byte)pos,count);
-        }
-
-    }
 }

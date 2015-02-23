@@ -1,6 +1,8 @@
 package com.splicemachine.stats.frequency;
 
 import com.google.common.primitives.Floats;
+import com.google.common.primitives.Longs;
+import com.splicemachine.stats.Mergeable;
 
 import java.util.*;
 
@@ -8,8 +10,7 @@ import java.util.*;
  * @author Scott Fines
  *         Date: 12/5/14
  */
-public class FloatFrequentElements implements FrequentElements<Float> {
-    private final NavigableSet<FloatFrequencyEstimate> elements;
+public abstract class FloatFrequentElements implements FrequentElements<Float>,Mergeable<FloatFrequentElements> {
     private static final Comparator<FloatFrequencyEstimate> naturalComparator = new Comparator<FloatFrequencyEstimate>() {
         @Override
         public int compare(FloatFrequencyEstimate o1, FloatFrequencyEstimate o2) {
@@ -19,10 +20,22 @@ public class FloatFrequentElements implements FrequentElements<Float> {
         }
     };
 
-    public FloatFrequentElements(Collection<FloatFrequencyEstimate> elements) {
-        TreeSet<FloatFrequencyEstimate> elems = new TreeSet<FloatFrequencyEstimate>(naturalComparator);
+    private NavigableSet<FloatFrequencyEstimate> elements;
+    private long totalCount;
+
+    private FloatFrequentElements(long totalCount,Collection<FloatFrequencyEstimate> elements) {
+        TreeSet<FloatFrequencyEstimate> elems = new TreeSet<>(naturalComparator);
         elems.addAll(elements);
         this.elements = elems;
+        this.totalCount = totalCount;
+    }
+
+    public static FloatFrequentElements topK(int k, long totalCount,Collection<FloatFrequencyEstimate> elements){
+        return new TopK(k,totalCount,elements);
+    }
+
+    public static FloatFrequentElements heavyHitters(float support, long totalCount,Collection<FloatFrequencyEstimate> elements){
+        return new HeavyItems(support,totalCount,elements);
     }
 
     public FloatFrequencyEstimate countEqual(float item){
@@ -61,7 +74,7 @@ public class FloatFrequentElements implements FrequentElements<Float> {
         if(first.value()>start) return elements;
         else if(first.value()==start){
             if(includeStart) return elements;
-            else return elements.tailSet(first,false);
+            else return elements.tailSet(first, false);
         }
         FloatFrequencyEstimate last = elements.last();
         if(last.value()<start) return Collections.emptySet();
@@ -72,7 +85,7 @@ public class FloatFrequentElements implements FrequentElements<Float> {
 
         //find the starting value
         FloatFrequencyEstimate rangeStart = elements.ceiling(new ZeroFreq(start));
-        return Collections.unmodifiableSet(elements.tailSet(rangeStart,includeStart));
+        return Collections.unmodifiableSet(elements.tailSet(rangeStart, includeStart));
     }
 
     public Set<FloatFrequencyEstimate> frequentBefore(float stop, boolean includeStop){
@@ -90,7 +103,7 @@ public class FloatFrequentElements implements FrequentElements<Float> {
         }
 
         FloatFrequencyEstimate rangeStop = elements.higher(new ZeroFreq(stop));
-        return Collections.unmodifiableSet(elements.headSet(rangeStop,includeStop));
+        return Collections.unmodifiableSet(elements.headSet(rangeStop, includeStop));
     }
 
     @Override
@@ -117,6 +130,100 @@ public class FloatFrequentElements implements FrequentElements<Float> {
         }
     }
 
+    @Override
+    public FloatFrequentElements merge(FloatFrequentElements other) {
+        NavigableSet<FloatFrequencyEstimate> merged = this.elements;
+        NavigableSet<FloatFrequencyEstimate> otherEstimates = other.elements;
+        /*
+         * We need to pick out *maxSize* most common elements from both sets. Since this
+         * is relatively small data, we will maintain a set in occurrance order, and add everything
+         * from both sets, merging as we go. In order to effectively do that, we use a simple array,
+         * add everything in, then add back in the number of elements that we need.
+         */
+        int totalSize = merged.size()+otherEstimates.size();
+        FloatFrequencyEstimate[] topK = new FloatFrequencyEstimate[totalSize]; //assume no intersection
+        int size =0;
+        for(FloatFrequencyEstimate estimate:merged){
+            topK[size] = estimate;
+            size++;
+        }
+        for(FloatFrequencyEstimate otherEst:otherEstimates){
+            boolean found = false;
+            for(int i=0;i<size;i++){
+                FloatFrequencyEstimate existingEst = topK[i];
+                if(existingEst.equals(otherEst)){
+                    topK[i] = (FloatFrequencyEstimate)existingEst.merge(otherEst);
+                    found=true;
+                    break;
+                }
+            }
+            if(!found) {
+                topK[size] = otherEst;
+                size++;
+            }
+        }
+        this.totalCount+=other.totalCount;
+        this.elements = rebuild(totalCount,topK);
+
+        return this;
+    }
+
+    protected abstract NavigableSet<FloatFrequencyEstimate> rebuild(long mergedCount,FloatFrequencyEstimate[] topK);
+
+    /* ****************************************************************************************************************/
+    /*private helper methods*/
+
+    private static class TopK extends FloatFrequentElements{
+        private final int k;
+        private static final Comparator<FloatFrequencyEstimate> frequencyComparator = new Comparator<FloatFrequencyEstimate>() {
+            @Override
+            public int compare(FloatFrequencyEstimate o1, FloatFrequencyEstimate o2) {
+                int compare = Longs.compare(o1.count(), o2.count());
+                if(compare!=0) return compare;
+                return o1.compareTo(o2);
+            }
+        };
+
+        private TopK(int k,long totalCount, Collection<FloatFrequencyEstimate> elements) {
+            super(totalCount, elements);
+            this.k = k;
+        }
+
+        @Override
+        protected NavigableSet<FloatFrequencyEstimate> rebuild(long mergedCount, FloatFrequencyEstimate[] topK) {
+            Arrays.sort(topK,frequencyComparator);
+            int k = Math.min(this.k,topK.length);
+            NavigableSet<FloatFrequencyEstimate> newElements = new TreeSet<>(naturalComparator);
+            //noinspection ManualArrayToCollectionCopy
+            for(int i=0;i<k;i++){
+                newElements.add(topK[i]);
+            }
+            return newElements;
+        }
+    }
+
+    private static class HeavyItems extends FloatFrequentElements{
+        private float support;
+
+        private HeavyItems(float support,long totalCount, Collection<FloatFrequencyEstimate> elements) {
+            super(totalCount, elements);
+            this.support = support;
+        }
+
+        @Override
+        protected NavigableSet<FloatFrequencyEstimate> rebuild(long mergedCount, FloatFrequencyEstimate[] topK) {
+            NavigableSet<FloatFrequencyEstimate> result = new TreeSet<>(naturalComparator);
+            long threshold = (long)(mergedCount*support);
+            //noinspection ForLoopReplaceableByForEach
+            for(int i=0;i< topK.length;i++){
+                FloatFrequencyEstimate est = topK[i];
+                if(est.count()>threshold)
+                    result.add(est);
+            }
+            return result;
+        }
+    }
+
     private class ZeroFreq implements FloatFrequencyEstimate {
         private float item;
 
@@ -130,6 +237,8 @@ public class FloatFrequentElements implements FrequentElements<Float> {
         @Override public Float getValue() { return item; }
         @Override public long count() { return 0; }
         @Override public long error() { return 0; }
+
+        @Override public FrequencyEstimate<Float> merge(FrequencyEstimate<Float> other) { return other; }
 
         @Override
         public boolean equals(Object o) {

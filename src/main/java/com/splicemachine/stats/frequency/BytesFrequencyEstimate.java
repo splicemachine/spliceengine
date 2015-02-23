@@ -19,4 +19,5 @@ public interface BytesFrequencyEstimate extends FrequencyEstimate<byte[]>,Compar
     int compare(ByteBuffer buffer);
 
     int compare(byte[] buffer, int offset,int length);
+
 }

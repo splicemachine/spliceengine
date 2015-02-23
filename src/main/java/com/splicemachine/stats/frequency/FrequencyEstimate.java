@@ -1,12 +1,14 @@
 package com.splicemachine.stats.frequency;
 
+import com.splicemachine.stats.Mergeable;
+
 /**
  * Represents an Estimate of the frequency of the specific element.
  *
  * @author Scott Fines
  * Date: 3/25/14
  */
-public interface FrequencyEstimate<T> {
+public interface FrequencyEstimate<T> extends Mergeable<FrequencyEstimate<T>> {
 
 		/**
 		 * @return the value being estimated
@@ -23,4 +25,5 @@ public interface FrequencyEstimate<T> {
 		 * equivalent to {@link #count()}-{@code error()}
 		 */
 		long error();
+
 }

@@ -144,6 +144,12 @@ public class ByteFrequencies implements ByteFrequentElements {
         @Override public long error() { return 0; }
 
         @Override
+        public FrequencyEstimate<Byte> merge(FrequencyEstimate<Byte> other) {
+            this.count+=other.count();
+            return this;
+        }
+
+        @Override
         @SuppressWarnings("NullableProblems")
         public int compareTo(ByteFrequencyEstimate o) {
             return value-o.value();

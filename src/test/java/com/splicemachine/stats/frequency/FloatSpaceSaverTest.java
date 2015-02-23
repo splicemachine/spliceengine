@@ -174,7 +174,7 @@ public class FloatSpaceSaverTest {
 
     private static class TestFrequency implements FloatFrequencyEstimate {
         final float value;
-        final long count;
+        long count;
         long error;
 
         public TestFrequency(int value, long count, long error) {
@@ -206,6 +206,12 @@ public class FloatSpaceSaverTest {
         @Override
         public long error() {
             return error;
+        }
+
+        @Override
+        public FrequencyEstimate<Float> merge(FrequencyEstimate<Float> other) {
+            count+=other.count();
+            return this;
         }
 
         @Override

@@ -37,13 +37,13 @@ public class ShortSpaceSaver extends ObjectSpaceSaver<Short> implements ShortFre
     @Override
     public ShortFrequentElements heavyHitters(float support) {
         Collection<FrequencyEstimate<Short>> estimates = super.heavyItems(support);
-        return new ShortFrequentElements(Collections2.transform(estimates, castFunction));
+        return ShortFrequentElements.heavyHitters(support,totalCount(),Collections2.transform(estimates, castFunction));
     }
 
     @Override
     public ShortFrequentElements frequentElements(int k) {
         Collection<FrequencyEstimate<Short>> estimates = super.topKElements(k);
-        return new ShortFrequentElements(Collections2.transform(estimates,castFunction));
+        return ShortFrequentElements.topK(k,totalCount(),Collections2.transform(estimates,castFunction));
     }
 
     /************************************************************************************************************/

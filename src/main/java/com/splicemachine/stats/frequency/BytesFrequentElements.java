@@ -1,7 +1,9 @@
 package com.splicemachine.stats.frequency;
 
+import com.google.common.primitives.Longs;
 import com.splicemachine.annotations.Untested;
 import com.splicemachine.primitives.ByteComparator;
+import com.splicemachine.stats.Mergeable;
 
 import java.nio.ByteBuffer;
 import java.util.*;
@@ -10,7 +12,15 @@ import java.util.*;
  * @author Scott Fines
  *         Date: 12/5/14
  */
-public class BytesFrequentElements implements FrequentElements<byte[]>{
+public abstract class BytesFrequentElements implements FrequentElements<byte[]>,Mergeable<BytesFrequentElements>{
+    private static final Comparator<BytesFrequencyEstimate> frequencyComparator = new Comparator<BytesFrequencyEstimate>() {
+        @Override
+        public int compare(BytesFrequencyEstimate o1, BytesFrequencyEstimate o2) {
+            int compare = Longs.compare(o1.count(), o2.count());
+            if (compare != 0) return compare;
+            return o1.compareTo(o2);
+        }
+    };
     private static final Comparator<BytesFrequencyEstimate> naturalComparator = new Comparator<BytesFrequencyEstimate>() {
         @Override
         public int compare(BytesFrequencyEstimate o1, BytesFrequencyEstimate o2) {
@@ -20,14 +30,30 @@ public class BytesFrequentElements implements FrequentElements<byte[]>{
         }
     };
 
-    private final NavigableSet<BytesFrequencyEstimate> elements;
+    private NavigableSet<BytesFrequencyEstimate> elements;
     private final ByteComparator comparator;
+    private long totalCount;
 
-    public BytesFrequentElements(Collection<BytesFrequencyEstimate> elements,ByteComparator comparator) {
-        TreeSet<BytesFrequencyEstimate> elems = new TreeSet<BytesFrequencyEstimate>(naturalComparator);
+    private BytesFrequentElements(long totalCount,Collection<BytesFrequencyEstimate> elements,ByteComparator comparator) {
+        TreeSet<BytesFrequencyEstimate> elems = new TreeSet<>(naturalComparator);
         elems.addAll(elements);
         this.elements = elems;
         this.comparator = comparator;
+        this.totalCount = totalCount;
+    }
+
+    public static BytesFrequentElements topK(int k,
+                                             long totalCount,
+                                             Collection<BytesFrequencyEstimate> elements,
+                                             ByteComparator comparator){
+        return new TopK(k,totalCount,elements,comparator);
+    }
+
+    public static BytesFrequentElements heavyHitters(float support,
+                                                     long totalCount,
+                                             Collection<BytesFrequencyEstimate> elements,
+                                             ByteComparator comparator){
+        return new HeavyItems(support,totalCount,elements,comparator);
     }
 
     public FrequencyEstimate<byte[]> countEqual(byte[] bytes){
@@ -197,8 +223,95 @@ public class BytesFrequentElements implements FrequentElements<byte[]>{
         return elements.headSet(floor, includeStop);
     }
 
-    /*************************************************************************************************************/
+    @Override
+    public BytesFrequentElements merge(BytesFrequentElements other) {
+        NavigableSet<BytesFrequencyEstimate> merged = this.elements;
+        NavigableSet<BytesFrequencyEstimate> otherEstimates = other.elements;
+        /*
+         * We need to pick out *maxSize* most common elements from both sets. Since this
+         * is relatively small data, we will maintain a set in occurrance order, and add everything
+         * from both sets, merging as we go. In order to effectively do that, we use a simple array,
+         * add everything in, then add back in the number of elements that we need.
+         */
+        int totalSize = merged.size()+otherEstimates.size();
+        BytesFrequencyEstimate[] topK = new BytesFrequencyEstimate[totalSize]; //assume no intersection
+        int size =0;
+        for(BytesFrequencyEstimate estimate:merged){
+            topK[size] = estimate;
+            size++;
+        }
+        for(BytesFrequencyEstimate otherEst:otherEstimates){
+            boolean found = false;
+            for(int i=0;i<size;i++){
+                BytesFrequencyEstimate existingEst = topK[i];
+                if(existingEst.equals(otherEst)){
+                    topK[i] = (BytesFrequencyEstimate)existingEst.merge(otherEst);
+                    found=true;
+                    break;
+                }
+            }
+            if(!found) {
+                topK[size] = otherEst;
+                size++;
+            }
+        }
+        this.totalCount+=other.totalCount;
+        this.elements = rebuild(totalCount,topK);
+
+        return this;
+    }
+
+    protected abstract NavigableSet<BytesFrequencyEstimate> rebuild(long mergedCount,BytesFrequencyEstimate[] topK);
+
+    /* ****************************************************************************************************************/
     /*private helper methods*/
+    private static class TopK extends BytesFrequentElements {
+        /*
+         * Represents the Top-K version of Bytes FrequentElements
+         */
+        private int k;
+        public TopK(int k,long totalCount, Collection<BytesFrequencyEstimate> elements, ByteComparator comparator) {
+            super(totalCount,elements,comparator);
+            this.k = k;
+        }
+
+        @Override
+        protected NavigableSet<BytesFrequencyEstimate> rebuild(long ignored,BytesFrequencyEstimate[] topK) {
+            Arrays.sort(topK,frequencyComparator);
+            NavigableSet<BytesFrequencyEstimate> result = new TreeSet<>(naturalComparator);
+            int min = Math.min(k, topK.length);
+            //noinspection ManualArrayToCollectionCopy
+            for(int i=0;i< min;i++){
+                result.add(topK[i]);
+            }
+            return result;
+        }
+    }
+
+    private static class HeavyItems extends BytesFrequentElements {
+        /*
+         * Represents the Heavy-Hitters version of the BytesFrequentElements
+         */
+        private float support;
+
+        public HeavyItems(float support,long totalCount, Collection<BytesFrequencyEstimate> elements, ByteComparator comparator) {
+            super(totalCount,elements,comparator);
+            this.support = support;
+        }
+
+        @Override
+        protected NavigableSet<BytesFrequencyEstimate> rebuild(long totalCount,BytesFrequencyEstimate[] topK) {
+            NavigableSet<BytesFrequencyEstimate> result = new TreeSet<>(naturalComparator);
+            long threshold = (long)(totalCount*support);
+            //noinspection ForLoopReplaceableByForEach
+            for(int i=0;i< topK.length;i++){
+                BytesFrequencyEstimate est = topK[i];
+                if(est.count()>threshold)
+                    result.add(est);
+            }
+            return result;
+        }
+    }
 
     private final class ZeroBytes implements BytesFrequencyEstimate{
         private byte[] bytes;
@@ -206,8 +319,6 @@ public class BytesFrequentElements implements FrequentElements<byte[]>{
         private int length;
 
         private transient byte[] cachedCopy;
-
-        public ZeroBytes() { }
 
         public ZeroBytes(byte[] bytes, int offset, int length) {
             this.bytes = bytes;
@@ -238,6 +349,11 @@ public class BytesFrequentElements implements FrequentElements<byte[]>{
         }
 
         @Override
+        public FrequencyEstimate<byte[]> merge(FrequencyEstimate<byte[]> otherEst) {
+            return otherEst;
+        }
+
+        @Override
         public int compareTo(BytesFrequencyEstimate o) {
             return comparator.compare(bytes,offset,length,
                     o.valueArrayBuffer(),o.valueArrayOffset(),o.valueArrayLength());
@@ -261,8 +377,6 @@ public class BytesFrequentElements implements FrequentElements<byte[]>{
 
         private transient byte[] cachedCopy;
 
-        public ZeroBuffer() { }
-
         public ZeroBuffer(ByteBuffer buffer) {
             this.buffer = buffer;
         }
@@ -272,6 +386,7 @@ public class BytesFrequentElements implements FrequentElements<byte[]>{
             this.cachedCopy = null;
         }
 
+        @Override public FrequencyEstimate<byte[]> merge(FrequencyEstimate<byte[]> otherEst) { return otherEst; }
         @Override public ByteBuffer valueBuffer() {  return buffer;}
         @Override public int valueArrayLength() {return buffer.remaining();}
         @Override public byte[] valueArrayBuffer() {

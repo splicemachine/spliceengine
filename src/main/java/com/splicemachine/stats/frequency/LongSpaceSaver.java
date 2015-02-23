@@ -34,13 +34,13 @@ public class LongSpaceSaver extends ObjectSpaceSaver<Long> implements LongFreque
     @Override
     public LongFrequentElements heavyHitters(float support) {
         Collection<FrequencyEstimate<Long>> estimates = super.heavyItems(support);
-        return new LongFrequentElements(Collections2.transform(estimates,castFunction));
+        return LongFrequentElements.heavyHitters(support,totalCount(),Collections2.transform(estimates,castFunction));
     }
 
     @Override
     public LongFrequentElements frequentElements(int k) {
         Collection<FrequencyEstimate<Long>> estimates = super.topKElements(k);
-        return new LongFrequentElements(Collections2.transform(estimates,castFunction));
+        return LongFrequentElements.topK(k,totalCount(),Collections2.transform(estimates,castFunction));
     }
 
     /************************************************************************************************************/

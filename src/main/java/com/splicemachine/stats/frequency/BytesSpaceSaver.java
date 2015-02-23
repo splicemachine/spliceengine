@@ -42,16 +42,16 @@ public class BytesSpaceSaver extends ObjectSpaceSaver<byte[]> implements BytesFr
     @Override
     public BytesFrequentElements frequentElements(int k) {
         Collection<BytesFrequencyEstimate> freqItems = Collections2.transform(topKElements(k),castFunction);
-        return new BytesFrequentElements(freqItems,byteComparator);
+        return BytesFrequentElements.topK(k, totalCount(), freqItems, byteComparator);
     }
 
     @Override
     public BytesFrequentElements heavyHitters(float support) {
         Collection<BytesFrequencyEstimate> heavyItems = Collections2.transform(heavyItems(support),castFunction);
-        return new BytesFrequentElements(heavyItems,byteComparator);
+        return BytesFrequentElements.heavyHitters(support, totalCount(), heavyItems, byteComparator);
     }
 
-    /******************************************************************************************************************/
+    /* ****************************************************************************************************************/
     /*modifiers*/
     @Override public void update(byte[] item) { update(item,0,item.length); }
     @Override public void update(byte[] item, long count) { update(item,0,item.length,count); }
@@ -93,16 +93,11 @@ public class BytesSpaceSaver extends ObjectSpaceSaver<byte[]> implements BytesFr
             return new ByteEntry();
     }
 
+    /* *****************************************************************************************************************/
+    /*private helper methods*/
     private class BufferEntry extends Entry implements BytesFrequencyEstimate{
         private ByteBuffer buffer;
         private transient byte[] cachedCopy;
-
-        public BufferEntry getClone(){
-            BufferEntry be = new BufferEntry();
-            be.buffer = buffer;
-            be.cachedCopy = cachedCopy;
-            return be;
-        }
 
         @Override public ByteBuffer valueBuffer() { return buffer; }
         @Override public int valueArrayLength() {  return buffer.remaining(); }
@@ -193,14 +188,6 @@ public class BytesSpaceSaver extends ObjectSpaceSaver<byte[]> implements BytesFr
         private int length;
 
         private transient byte[] cachedCopy;
-
-        public ByteEntry getClone(){
-            ByteEntry be = new ByteEntry();
-            be.buffer = buffer;
-            be.offset = offset;
-            be.length = length;
-            return be;
-        }
 
         @Override
         public ByteBuffer valueBuffer() {

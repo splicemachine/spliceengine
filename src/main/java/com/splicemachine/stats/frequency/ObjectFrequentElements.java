@@ -1,7 +1,7 @@
 package com.splicemachine.stats.frequency;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import com.google.common.primitives.Longs;
+import com.splicemachine.stats.Mergeable;
 
 import java.util.*;
 
@@ -9,10 +9,9 @@ import java.util.*;
  * @author Scott Fines
  *         Date: 12/8/14
  */
-public class ObjectFrequentElements<T> implements FrequentElements<T>{
-    private final List<FrequencyEstimate<T>> elements;
-    private final Comparator<? super T> comparator;
-    private final Comparator<FrequencyEstimate<T>> freqComparator = new Comparator<FrequencyEstimate<T>>() {
+public abstract class ObjectFrequentElements<T> implements FrequentElements<T>,Mergeable<ObjectFrequentElements<T>> {
+
+    protected final Comparator<FrequencyEstimate<T>> naturalComparator = new Comparator<FrequencyEstimate<T>>() {
         @Override
         public int compare(FrequencyEstimate<T> o1, FrequencyEstimate<T> o2) {
             int compare = comparator.compare(o1.getValue(),o2.getValue());
@@ -21,15 +20,48 @@ public class ObjectFrequentElements<T> implements FrequentElements<T>{
         }
     };
 
-    public ObjectFrequentElements(Collection<FrequencyEstimate<T>> elements,Comparator<? super T> comparator) {
-        this.elements = Lists.newArrayList(elements);
+    protected final Comparator<? super FrequencyEstimate<T>> frequencyComparator = new Comparator<FrequencyEstimate<T>>() {
+        @Override
+        public int compare(FrequencyEstimate<T> o1, FrequencyEstimate<T> o2) {
+            int compare = Longs.compare(o1.count(), o2.count());
+            if(compare!=0)
+                return compare;
+            return comparator.compare(o1.getValue(),o2.getValue());
+        }
+    };
+    private NavigableSet<FrequencyEstimate<T>> elements;
+    private Comparator<? super T> comparator;
+    private long totalCount;
+
+    /*Private so that we can do polymorphism transparently*/
+    private ObjectFrequentElements(long totalCount,
+                                   Collection<FrequencyEstimate<T>> elements,
+                                   Comparator<? super T> comparator) {
+        this.elements = new TreeSet<>(naturalComparator);
+        this.elements.addAll(elements);
         this.comparator = comparator;
+        this.totalCount = totalCount;
     }
 
+    /* ********************************************************************************************/
+    /*Constructors*/
+    public static <E> ObjectFrequentElements<E> topK(int k, long totalCount,
+                                                     Collection<FrequencyEstimate<E>> elements,
+                                                     Comparator<? super E> comparator){
+        return new TopK<>(k,totalCount,elements,comparator);
+    }
+
+    public static <E> ObjectFrequentElements<E> heavyHitters(float support, long totalCount,
+                                                     Collection<FrequencyEstimate<E>> elements,
+                                                     Comparator<? super E> comparator){
+        return new HeavyItems<>(support,totalCount,elements,comparator);
+    }
+
+    /* *********************************************************************************************/
+    /*Accessors*/
     @Override
     public FrequencyEstimate<T> equal(T item) {
-        for(int i=0;i<elements.size();i++){
-            FrequencyEstimate<T> n = elements.get(i);
+        for(FrequencyEstimate<T> n:elements){
             if(n.getValue().equals(item))
                 return n;
         }
@@ -37,15 +69,14 @@ public class ObjectFrequentElements<T> implements FrequentElements<T>{
     }
 
     @Override
-    public Set<? extends FrequencyEstimate<T>> frequentElementsBetween(T start, T stop, boolean includeMin, boolean includeStop) {
+    public Set<? extends FrequencyEstimate<T>> frequentElementsBetween(T start,
+                                                                       T stop,
+                                                                       boolean includeMin, boolean includeStop) {
         if(start==null){
             if(stop==null){
-                Set<FrequencyEstimate<T>> frequencyEstimates = Sets.newTreeSet(freqComparator);
-                frequencyEstimates.addAll(elements);
-                return frequencyEstimates;
-            }else{
+                return Collections.unmodifiableSet(elements);
+            }else
                 return before(stop, includeStop);
-            }
         }else if(stop==null){
             return after(start, includeMin);
         }else {
@@ -53,59 +84,130 @@ public class ObjectFrequentElements<T> implements FrequentElements<T>{
                 if (includeMin || includeStop) return Collections.singleton(equal(start));
                 else return Collections.emptySet();
             }
-            Set<FrequencyEstimate<T>> frequencies = null;
-            for (int i = 0; i < elements.size(); i++) {
-                FrequencyEstimate<T> f = elements.get(i);
-                int sCompare = comparator.compare(start, f.getValue());
-                if (sCompare<0 ||(includeMin && sCompare == 0)){
-                    int eCompare = comparator.compare(f.getValue(), stop);
-                    if (eCompare<0 || (includeStop && eCompare == 0)){
-                        if (frequencies == null)
-                            frequencies = new TreeSet<FrequencyEstimate<T>>(freqComparator);
-                        frequencies.add(f);
-                    }
+            ZeroFreq s = new ZeroFreq(start);
+            FrequencyEstimate<T> startEst = elements.ceiling(s);
+            s.item = stop;
+            FrequencyEstimate<T> stopEst = elements.ceiling(s);
+            return Collections.unmodifiableSet(elements.subSet(startEst,includeMin,stopEst,includeStop));
+        }
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public ObjectFrequentElements<T> merge(ObjectFrequentElements<T> other) {
+        NavigableSet<FrequencyEstimate<T>> merged = this.elements;
+        NavigableSet<FrequencyEstimate<T>> otherEstimates = other.elements;
+        /*
+         * We need to pick out *maxSize* most common elements from both sets. Since this
+         * is relatively small data, we will maintain a set in occurrance order, and add everything
+         * from both sets, merging as we go. In order to effectively do that, we use a simple array,
+         * add everything in, then add back in the number of elements that we need.
+         */
+        int totalSize = merged.size()+otherEstimates.size();
+        FrequencyEstimate[] topK = new FrequencyEstimate[totalSize]; //assume no intersection
+        int size =0;
+        for(FrequencyEstimate<T> estimate:merged){
+            topK[size] = estimate;
+            size++;
+        }
+        for(FrequencyEstimate<T> otherEst:otherEstimates){
+            boolean found = false;
+            for(int i=0;i<size;i++){
+                FrequencyEstimate<T> existingEst = topK[i];
+                if(existingEst.equals(otherEst)){
+                    topK[i] = existingEst.merge(otherEst);
+                    found=true;
+                    break;
                 }
             }
+            if(!found) {
+                topK[size] = otherEst;
+                size++;
+            }
+        }
+        this.totalCount+=other.totalCount;
+        this.elements = rebuild(totalCount,topK);
 
-            if (frequencies == null) return Collections.emptySet();
-            else return frequencies;
+        return this;
+    }
+
+    protected abstract NavigableSet<FrequencyEstimate<T>> rebuild(long mergedCount,FrequencyEstimate<T>[] topK);
+
+    /* ****************************************************************************************************************/
+    /*private helper methods*/
+    private static class TopK<E> extends ObjectFrequentElements<E>{
+        private final int k;
+
+        private TopK(int k,long totalCount, Collection<FrequencyEstimate<E>> elements,Comparator<? super E> comparator) {
+            super(totalCount, elements,comparator);
+            this.k = k;
+        }
+
+        @Override
+        protected NavigableSet<FrequencyEstimate<E>> rebuild(long mergedCount, FrequencyEstimate<E>[] topK) {
+            Arrays.sort(topK,frequencyComparator);
+            int k = Math.min(this.k,topK.length);
+            NavigableSet<FrequencyEstimate<E>> newElements = new TreeSet<>(naturalComparator);
+            //noinspection ManualArrayToCollectionCopy
+            for(int i=0;i<k;i++){
+                newElements.add(topK[i]);
+            }
+            return newElements;
+        }
+    }
+
+    private static class HeavyItems<E> extends ObjectFrequentElements<E>{
+        private final float support;
+        private HeavyItems(float support,long totalCount, Collection<FrequencyEstimate<E>> elements,Comparator<? super E> comparator) {
+            super(totalCount, elements,comparator);
+            this.support = support;
+        }
+
+        @Override
+        protected NavigableSet<FrequencyEstimate<E>> rebuild(long mergedCount, FrequencyEstimate<E>[] topK) {
+            NavigableSet<FrequencyEstimate<E>> result = new TreeSet<>(naturalComparator);
+            long threshold = (long)(mergedCount*support);
+            //noinspection ForLoopReplaceableByForEach
+            for(int i=0;i< topK.length;i++){
+                FrequencyEstimate<E> est = topK[i];
+                if(est.count()>threshold)
+                    result.add(est);
+            }
+            return result;
         }
     }
 
     private Set<? extends FrequencyEstimate<T>> after(T start, boolean includeMin) {
-        Set<FrequencyEstimate<T>> frequencies = null;
-        for(int i=0;i<elements.size();i++){
-            FrequencyEstimate<T> f = elements.get(i);
-            int sCompare = comparator.compare(start,f.getValue());
-            if((includeMin && sCompare<=0)||(!includeMin && sCompare<0)){
-                if(frequencies==null)
-                    frequencies = new TreeSet<FrequencyEstimate<T>>(freqComparator);
-                frequencies.add(f);
-            }
-        }
+        FrequencyEstimate<T> last = elements.last();
+        int lastCompare = comparator.compare(last.getValue(),start);
+        if(lastCompare<0 || (!includeMin && lastCompare==0)) return Collections.emptySet();
+        else if(includeMin && lastCompare==0) return Collections.singleton(last);
 
-        if(frequencies==null) return Collections.emptySet();
-        else return frequencies;
+        FrequencyEstimate<T> first = elements.first();
+        int firstCompare = comparator.compare(first.getValue(),start);
+        if(firstCompare>0||(includeMin && firstCompare==0)) return Collections.unmodifiableSet(elements);
+
+        ZeroFreq s = new ZeroFreq(start);
+        return Collections.unmodifiableSet(elements.tailSet(s, includeMin));
     }
 
     private Set<? extends FrequencyEstimate<T>> before(T stop, boolean includeStop) {
-        Set<FrequencyEstimate<T>> frequencies = null;
-        for(int i=0;i<elements.size();i++){
-            FrequencyEstimate<T> f = elements.get(i);
-            int eCompare = comparator.compare(f.getValue(),stop);
-            if((includeStop && eCompare<=0)||(!includeStop && eCompare<0)){
-                if(frequencies==null)
-                    frequencies = new TreeSet<FrequencyEstimate<T>>(freqComparator);
-                frequencies.add(f);
-            }
-        }
+        FrequencyEstimate<T> first = elements.first();
+        int firstCompare = comparator.compare(first.getValue(),stop);
+        if(firstCompare>0||(!includeStop && firstCompare==0)) return Collections.emptySet();
+        else if(includeStop && firstCompare==0) return Collections.singleton(first);
 
-        if(frequencies==null) return Collections.emptySet();
-        else return frequencies;
+        FrequencyEstimate<T> last = elements.last();
+        int lastCompare = comparator.compare(last.getValue(),stop);
+        if(lastCompare<0||(includeStop && lastCompare==0)) return Collections.unmodifiableSet(elements);
+        else if(!includeStop && lastCompare==0) return Collections.unmodifiableSet(elements.headSet(last, false));
+
+        ZeroFreq s = new ZeroFreq(stop);
+        return Collections.unmodifiableSet(elements.headSet(s,includeStop));
     }
 
     private class ZeroFreq implements FrequencyEstimate<T> {
-        private final T item;
+        private T item;
 
         public ZeroFreq(T item) {
             this.item = item;
@@ -118,5 +220,7 @@ public class ObjectFrequentElements<T> implements FrequentElements<T>{
 
         @Override public long count() { return 0; }
         @Override public long error() { return 0; }
+
+        @Override public FrequencyEstimate<T> merge(FrequencyEstimate<T> other) { return other; }
     }
 }

@@ -174,7 +174,7 @@ public class IntSpaceSaverTest {
 
     private static class TestFrequency implements IntFrequencyEstimate {
         final int value;
-        final long count;
+        long count;
         long error;
 
         public TestFrequency(int value, long count, long error) {
@@ -227,6 +227,12 @@ public class IntSpaceSaverTest {
             int result = value;
             result = 31 * result + (int) (count ^ (count >>> 32));
             return result;
+        }
+
+        @Override
+        public FrequencyEstimate<Integer> merge(FrequencyEstimate<Integer> other) {
+            count+=other.count();
+            return this;
         }
 
         @Override

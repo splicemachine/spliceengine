@@ -94,6 +94,12 @@ public class SimpleBooleanFrequentElements implements BooleanFrequentElements {
         @Override public long error() { return 0; }
 
         @Override
+        public FrequencyEstimate<Boolean> merge(FrequencyEstimate<Boolean> other) {
+            this.count+=other.count();
+            return this;
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;

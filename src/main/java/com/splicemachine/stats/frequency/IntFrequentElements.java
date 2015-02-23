@@ -1,6 +1,8 @@
 package com.splicemachine.stats.frequency;
 
 import com.google.common.primitives.Ints;
+import com.google.common.primitives.Longs;
+import com.splicemachine.stats.Mergeable;
 
 import java.util.*;
 
@@ -8,8 +10,7 @@ import java.util.*;
  * @author Scott Fines
  *         Date: 12/5/14
  */
-public class IntFrequentElements implements FrequentElements<Integer> {
-    private final NavigableSet<IntFrequencyEstimate> elements;
+public abstract class IntFrequentElements implements FrequentElements<Integer>,Mergeable<IntFrequentElements> {
     private static final Comparator<IntFrequencyEstimate> naturalComparator = new Comparator<IntFrequencyEstimate>() {
         @Override
         public int compare(IntFrequencyEstimate o1, IntFrequencyEstimate o2) {
@@ -19,10 +20,22 @@ public class IntFrequentElements implements FrequentElements<Integer> {
         }
     };
 
-    public IntFrequentElements(Collection<IntFrequencyEstimate> elements) {
-        TreeSet<IntFrequencyEstimate> elems = new TreeSet<IntFrequencyEstimate>(naturalComparator);
+    private NavigableSet<IntFrequencyEstimate> elements;
+    private long totalCount;
+
+    private IntFrequentElements(long totalCount,Collection<IntFrequencyEstimate> elements) {
+        TreeSet<IntFrequencyEstimate> elems = new TreeSet<>(naturalComparator);
         elems.addAll(elements);
         this.elements = elems;
+        this.totalCount = totalCount;
+    }
+
+    public static IntFrequentElements topK(int k, long totalCount,Collection<IntFrequencyEstimate> elements){
+        return new TopK(k,totalCount,elements);
+    }
+
+    public static IntFrequentElements heavyHitters(float support, long totalCount,Collection<IntFrequencyEstimate> elements){
+        return new HeavyItems(support,totalCount,elements);
     }
 
     public IntFrequencyEstimate countEqual(int item){
@@ -117,6 +130,99 @@ public class IntFrequentElements implements FrequentElements<Integer> {
         }
     }
 
+    @Override
+    public IntFrequentElements merge(IntFrequentElements other) {
+        NavigableSet<IntFrequencyEstimate> merged = this.elements;
+        NavigableSet<IntFrequencyEstimate> otherEstimates = other.elements;
+        /*
+         * We need to pick out *maxSize* most common elements from both sets. Since this
+         * is relatively small data, we will maintain a set in occurrance order, and add everything
+         * from both sets, merging as we go. In order to effectively do that, we use a simple array,
+         * add everything in, then add back in the number of elements that we need.
+         */
+        int totalSize = merged.size()+otherEstimates.size();
+        IntFrequencyEstimate[] topK = new IntFrequencyEstimate[totalSize]; //assume no intersection
+        int size =0;
+        for(IntFrequencyEstimate estimate:merged){
+            topK[size] = estimate;
+            size++;
+        }
+        for(IntFrequencyEstimate otherEst:otherEstimates){
+            boolean found = false;
+            for(int i=0;i<size;i++){
+                IntFrequencyEstimate existingEst = topK[i];
+                if(existingEst.equals(otherEst)){
+                    topK[i] = (IntFrequencyEstimate)existingEst.merge(otherEst);
+                    found=true;
+                    break;
+                }
+            }
+            if(!found) {
+                topK[size] = otherEst;
+                size++;
+            }
+        }
+        this.totalCount+=other.totalCount;
+        this.elements = rebuild(totalCount,topK);
+
+        return this;
+    }
+
+    protected abstract NavigableSet<IntFrequencyEstimate> rebuild(long mergedCount,IntFrequencyEstimate[] topK);
+
+    /* ****************************************************************************************************************/
+    /*private helper methods*/
+    private static class TopK extends IntFrequentElements{
+        private final int k;
+        private static final Comparator<? super IntFrequencyEstimate> frequencyComparator = new Comparator<IntFrequencyEstimate>() {
+            @Override
+            public int compare(IntFrequencyEstimate o1, IntFrequencyEstimate o2) {
+                int compare = Longs.compare(o1.count(), o2.count());
+                if(compare!=0)
+                    return compare;
+                return o1.compareTo(o2);
+            }
+        };
+
+        private TopK(int k,long totalCount, Collection<IntFrequencyEstimate> elements) {
+            super(totalCount, elements);
+            this.k = k;
+        }
+
+        @Override
+        protected NavigableSet<IntFrequencyEstimate> rebuild(long mergedCount, IntFrequencyEstimate[] topK) {
+            Arrays.sort(topK,frequencyComparator);
+            int k = Math.min(this.k,topK.length);
+            NavigableSet<IntFrequencyEstimate> newElements = new TreeSet<>(naturalComparator);
+            //noinspection ManualArrayToCollectionCopy
+            for(int i=0;i<k;i++){
+                newElements.add(topK[i]);
+            }
+            return newElements;
+        }
+    }
+
+    private static class HeavyItems extends IntFrequentElements{
+        private final float support;
+        private HeavyItems(float support,long totalCount, Collection<IntFrequencyEstimate> elements) {
+            super(totalCount, elements);
+            this.support = support;
+        }
+
+        @Override
+        protected NavigableSet<IntFrequencyEstimate> rebuild(long mergedCount, IntFrequencyEstimate[] topK) {
+            NavigableSet<IntFrequencyEstimate> result = new TreeSet<>(naturalComparator);
+            long threshold = (long)(mergedCount*support);
+            //noinspection ForLoopReplaceableByForEach
+            for(int i=0;i< topK.length;i++){
+                IntFrequencyEstimate est = topK[i];
+                if(est.count()>threshold)
+                    result.add(est);
+            }
+            return result;
+        }
+    }
+
     private class ZeroFreq implements IntFrequencyEstimate {
         private int item;
 
@@ -130,6 +236,8 @@ public class IntFrequentElements implements FrequentElements<Integer> {
         @Override public Integer getValue() { return item; }
         @Override public long count() { return 0; }
         @Override public long error() { return 0; }
+
+        @Override public FrequencyEstimate<Integer> merge(FrequencyEstimate<Integer> other) { return other; }
 
         @Override
         public boolean equals(Object o) {

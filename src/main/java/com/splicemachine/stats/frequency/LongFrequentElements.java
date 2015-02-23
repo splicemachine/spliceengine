@@ -1,6 +1,7 @@
 package com.splicemachine.stats.frequency;
 
 import com.google.common.primitives.Longs;
+import com.splicemachine.stats.Mergeable;
 
 import java.util.*;
 
@@ -12,8 +13,7 @@ import java.util.*;
  * @author Scott Fines
  *         Date: 12/5/14
  */
-public class LongFrequentElements implements FrequentElements<Long> {
-    private final NavigableSet<LongFrequencyEstimate> elements;
+public abstract class LongFrequentElements implements FrequentElements<Long>,Mergeable<LongFrequentElements> {
     private static final Comparator<LongFrequencyEstimate> naturalComparator = new Comparator<LongFrequencyEstimate>() {
         @Override
         public int compare(LongFrequencyEstimate o1, LongFrequencyEstimate o2) {
@@ -23,10 +23,22 @@ public class LongFrequentElements implements FrequentElements<Long> {
         }
     };
 
-    public LongFrequentElements(Collection<LongFrequencyEstimate> elements) {
-        TreeSet<LongFrequencyEstimate> elems = new TreeSet<LongFrequencyEstimate>(naturalComparator);
+    private NavigableSet<LongFrequencyEstimate> elements;
+    private long totalCount;
+
+    private LongFrequentElements(long totalCount,Collection<LongFrequencyEstimate> elements) {
+        TreeSet<LongFrequencyEstimate> elems = new TreeSet<>(naturalComparator);
         elems.addAll(elements);
         this.elements = elems;
+        this.totalCount = totalCount;
+    }
+
+    public static LongFrequentElements topK(int k, long totalCount,Collection<LongFrequencyEstimate> elements){
+        return new TopK(k,totalCount,elements);
+    }
+
+    public static LongFrequentElements heavyHitters(float support, long totalCount,Collection<LongFrequencyEstimate> elements){
+        return new HeavyItems(support,totalCount,elements);
     }
 
     public LongFrequencyEstimate countEqual(long item){
@@ -34,7 +46,6 @@ public class LongFrequentElements implements FrequentElements<Long> {
             if(est.value()==item) return est;
         }
         return new ZeroFreq(item);
-
     }
 
     public Set<LongFrequencyEstimate> frequentBetween(long start, long stop, boolean includeStart, boolean includeStop){
@@ -65,7 +76,7 @@ public class LongFrequentElements implements FrequentElements<Long> {
         if(first.value()>start) return elements;
         else if(first.value()==start){
             if(includeStart) return elements;
-            else return elements.tailSet(first,false);
+            else return elements.tailSet(first, false);
         }
         LongFrequencyEstimate last = elements.last();
         if(last.value()<start) return Collections.emptySet();
@@ -76,7 +87,7 @@ public class LongFrequentElements implements FrequentElements<Long> {
 
         //find the starting value
         LongFrequencyEstimate rangeStart = elements.ceiling(new ZeroFreq(start));
-        return Collections.unmodifiableSet(elements.tailSet(rangeStart,includeStart));
+        return Collections.unmodifiableSet(elements.tailSet(rangeStart, includeStart));
     }
 
     public Set<LongFrequencyEstimate> frequentBefore(long stop, boolean includeStop){
@@ -94,7 +105,7 @@ public class LongFrequentElements implements FrequentElements<Long> {
         }
 
         LongFrequencyEstimate rangeStop = elements.higher(new ZeroFreq(stop));
-        return Collections.unmodifiableSet(elements.headSet(rangeStop,includeStop));
+        return Collections.unmodifiableSet(elements.headSet(rangeStop, includeStop));
     }
 
     @Override
@@ -121,6 +132,99 @@ public class LongFrequentElements implements FrequentElements<Long> {
         }
     }
 
+    @Override
+    public LongFrequentElements merge(LongFrequentElements other) {
+        NavigableSet<LongFrequencyEstimate> merged = this.elements;
+        NavigableSet<LongFrequencyEstimate> otherEstimates = other.elements;
+        /*
+         * We need to pick out *maxSize* most common elements from both sets. Since this
+         * is relatively small data, we will maintain a set in occurrance order, and add everything
+         * from both sets, merging as we go. In order to effectively do that, we use a simple array,
+         * add everything in, then add back in the number of elements that we need.
+         */
+        int totalSize = merged.size()+otherEstimates.size();
+        LongFrequencyEstimate[] topK = new LongFrequencyEstimate[totalSize]; //assume no intersection
+        int size =0;
+        for(LongFrequencyEstimate estimate:merged){
+            topK[size] = estimate;
+            size++;
+        }
+        for(LongFrequencyEstimate otherEst:otherEstimates){
+            boolean found = false;
+            for(int i=0;i<size;i++){
+                LongFrequencyEstimate existingEst = topK[i];
+                if(existingEst.equals(otherEst)){
+                    topK[i] = (LongFrequencyEstimate)existingEst.merge(otherEst);
+                    found=true;
+                    break;
+                }
+            }
+            if(!found) {
+                topK[size] = otherEst;
+                size++;
+            }
+        }
+        this.totalCount+=other.totalCount;
+        this.elements = rebuild(totalCount,topK);
+
+        return this;
+    }
+
+    protected abstract NavigableSet<LongFrequencyEstimate> rebuild(long mergedCount,LongFrequencyEstimate[] topK);
+
+    /* ****************************************************************************************************************/
+    /*private helper methods*/
+    private static class TopK extends LongFrequentElements{
+        private final int k;
+        private static final Comparator<? super LongFrequencyEstimate> frequencyComparator = new Comparator<LongFrequencyEstimate>() {
+            @Override
+            public int compare(LongFrequencyEstimate o1, LongFrequencyEstimate o2) {
+                int compare = Longs.compare(o1.count(), o2.count());
+                if(compare!=0)
+                    return compare;
+                return o1.compareTo(o2);
+            }
+        };
+
+        private TopK(int k,long totalCount, Collection<LongFrequencyEstimate> elements) {
+            super(totalCount, elements);
+            this.k = k;
+        }
+
+        @Override
+        protected NavigableSet<LongFrequencyEstimate> rebuild(long mergedCount, LongFrequencyEstimate[] topK) {
+            Arrays.sort(topK,frequencyComparator);
+            int k = Math.min(this.k,topK.length);
+            NavigableSet<LongFrequencyEstimate> newElements = new TreeSet<>(naturalComparator);
+            //noinspection ManualArrayToCollectionCopy
+            for(int i=0;i<k;i++){
+                newElements.add(topK[i]);
+            }
+            return newElements;
+        }
+    }
+
+    private static class HeavyItems extends LongFrequentElements{
+        private final float support;
+        private HeavyItems(float support,long totalCount, Collection<LongFrequencyEstimate> elements) {
+            super(totalCount, elements);
+            this.support = support;
+        }
+
+        @Override
+        protected NavigableSet<LongFrequencyEstimate> rebuild(long mergedCount, LongFrequencyEstimate[] topK) {
+            NavigableSet<LongFrequencyEstimate> result = new TreeSet<>(naturalComparator);
+            long threshold = (long)(mergedCount*support);
+            //noinspection ForLoopReplaceableByForEach
+            for(int i=0;i< topK.length;i++){
+                LongFrequencyEstimate est = topK[i];
+                if(est.count()>threshold)
+                    result.add(est);
+            }
+            return result;
+        }
+    }
+
     private class ZeroFreq implements LongFrequencyEstimate {
         private long item;
 
@@ -134,6 +238,8 @@ public class LongFrequentElements implements FrequentElements<Long> {
         @Override public Long getValue() { return item; }
         @Override public long count() { return 0; }
         @Override public long error() { return 0; }
+
+        @Override public FrequencyEstimate<Long> merge(FrequencyEstimate<Long> other) { return other; }
 
         @Override
         public boolean equals(Object o) {

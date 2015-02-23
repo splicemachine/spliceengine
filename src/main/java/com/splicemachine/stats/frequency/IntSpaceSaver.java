@@ -37,13 +37,13 @@ public class IntSpaceSaver extends ObjectSpaceSaver<Integer> implements IntFrequ
     @Override
     public IntFrequentElements heavyHitters(float support) {
         Collection<FrequencyEstimate<Integer>> estimates = super.heavyItems(support);
-        return new IntFrequentElements(Collections2.transform(estimates, castFunction));
+        return IntFrequentElements.heavyHitters(support,totalCount(),Collections2.transform(estimates, castFunction));
     }
 
     @Override
     public IntFrequentElements frequentElements(int k) {
         Collection<FrequencyEstimate<Integer>> estimates = super.topKElements(k);
-        return new IntFrequentElements(Collections2.transform(estimates,castFunction));
+        return IntFrequentElements.topK(k,totalCount(),Collections2.transform(estimates,castFunction));
     }
 
     /************************************************************************************************************/
