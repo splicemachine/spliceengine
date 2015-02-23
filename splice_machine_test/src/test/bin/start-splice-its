@@ -50,7 +50,7 @@ while getopts ":chp:b:" flag ; do
 done
 
 # Check if server running. Shut down if so.
-S=$(ps -ef | awk '/SpliceTestPlatform/ && !/awk/ {print $2}')
+S=$(ps -ef | awk '/SpliceTestPlatform|SpliceSinglePlatform|SpliceTestClusterParticipant/ && !/awk/ {print $2}')
 Z=$(ps -ef | awk '/ZooKeeperServerMain/ && !/awk/ {print $2}')
 if [[ -n ${S} || -n ${Z} ]]; then
     echo "Splice server is running. Shutting down."
@@ -67,6 +67,10 @@ sleep 30
 # Start SpliceTestPlaform in background.
 echo "Starting SpliceTestPlatform with failTasksRandomly set to ${CHAOS}, log file is ${SPLICELOG}"
 mvn -B exec:exec -PspliceFast -DfailTasksRandomly=${CHAOS} > ${SPLICELOG} 2>&1 &
+# echo "Starting SpliceTestClusterParticipant, log file is ${SPLICELOG}.member1.log"
+# mvn -B exec:exec -PspliceClusterMember -DmemberNumber=1             > ${SPLICELOG}.member1.log 2>&1 &
+# echo "Starting SpliceTestClusterParticipant, log file is ${SPLICELOG}.member2.log"
+# mvn -B exec:exec -PspliceClusterMember -DmemberNumber=2             > ${SPLICELOG}.member2.log 2>&1 &
 
 popd &>/dev/null
 
