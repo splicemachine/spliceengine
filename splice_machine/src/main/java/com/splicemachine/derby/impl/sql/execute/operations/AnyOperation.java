@@ -235,8 +235,12 @@ public class AnyOperation extends SpliceBaseOperation {
 
     @Override
     public SpliceNoPutResultSet executeRDD(SpliceRuntimeContext runtimeContext) throws StandardException {
+        JavaRDD<ExecRow> rdd = getRDD(runtimeContext, this);
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("RDD for operation " + this + " :\n " + rdd.toDebugString());
+        }
         return new SpliceNoPutResultSet(getActivation(), this,
-                new RDDRowProvider(getRDD(runtimeContext, this), runtimeContext) {
+                new RDDRowProvider(rdd, runtimeContext) {
                     @Override
                     public boolean hasNext() throws StandardException {
                         return true;

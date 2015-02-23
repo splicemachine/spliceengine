@@ -34,6 +34,7 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.SQLInteger;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
+import org.apache.spark.Partitioner;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 
@@ -471,9 +472,11 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         JavaPairRDD<ExecRow, ExecRow> leftRDD = RDDUtils.getKeyedRDD(leftResultSet.getRDD(spliceLRuntimeContext, leftResultSet), leftHashKeys);
         JavaPairRDD<ExecRow, ExecRow> rightRDD = RDDUtils.getKeyedRDD(rightResultSet.getRDD(spliceRRuntimeContext, rightResultSet), rightHashKeys);
 
+        JavaPairRDD<ExecRow, ExecRow> sortedLeft = leftRDD.sortByKey(new RowComparator(new boolean[leftHashKeys.length]));
+        JavaPairRDD<ExecRow, ExecRow> sortedRight = rightRDD.repartitionAndSortWithinPartitions(sortedLeft.rdd().partitioner().get(), new RowComparator(new boolean[rightHashKeys.length]));
+
         final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this, runtimeContext);
-        return joinRDDs(leftRDD, rightRDD, soi)
-//                .cache().sortByKey(new RowComparator())
+        return joinRDDs(sortedLeft, sortedRight, soi)
                 .values().map(new SetupActivation(this, soi));
     }
 
@@ -546,8 +549,10 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
     private class RowComparator implements Comparator<ExecRow>, Serializable {
 
         private static final long serialVersionUID = -7005014411999208729L;
+        private boolean[] descColumns; //descColumns[i] = false => column[i] sorted descending, else sorted ascending
 
-        public RowComparator() {
+        public RowComparator(boolean[] descColumns) {
+            this.descColumns = descColumns;
         }
 
         @Override
@@ -564,7 +569,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
                     throw new RuntimeException(e);
                 }
                 if (result != 0) {
-                    return result;
+                    return descColumns[i] ? result : -result;
                 }
             }
             return 0;
