@@ -24,11 +24,6 @@ public class ConcurrentHyperLogLogCounter extends BaseHyperLogLogCounter {
     }
 
     @Override
-    public byte[] encode() {
-        throw new UnsupportedOperationException("IMPLEMENT");
-    }
-
-    @Override
     protected void updateRegister(int register, int value) {
         boolean success =false;
         while(!success){

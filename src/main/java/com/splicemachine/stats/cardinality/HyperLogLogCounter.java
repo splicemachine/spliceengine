@@ -41,18 +41,6 @@ public class HyperLogLogCounter extends BaseHyperLogLogCounter{
 				return buckets[register];
 		}
 
-    @Override
-    public byte[] encode() {
-        byte[] data = new byte[8+buckets.length];
-        int pos =0;
-        Bytes.toBytes(precision,data,pos);
-        pos+=4;
-        Bytes.toBytes(buckets.length,data,pos);
-        pos+=4;
-        System.arraycopy(buckets,0,data,pos,buckets.length);
-        return data;
-    }
-
     public static HyperLogLogCounter decode(Hash64 newHash, byte[] data, int offset){
         int pos = offset;
         int precision = Bytes.toInt(data, pos);

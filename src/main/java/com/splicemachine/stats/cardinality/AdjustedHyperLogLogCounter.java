@@ -38,8 +38,4 @@ public class AdjustedHyperLogLogCounter extends BaseBiasAdjustedHyperLogLogCount
 				return buckets[register];
 		}
 
-    @Override
-    public byte[] encode() {
-        throw new UnsupportedOperationException("IMPLEMENT");
-    }
 }

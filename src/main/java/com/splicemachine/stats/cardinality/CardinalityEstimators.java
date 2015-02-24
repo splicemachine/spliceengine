@@ -1,9 +1,13 @@
 package com.splicemachine.stats.cardinality;
 
 
+import com.splicemachine.encoding.Encoder;
 import com.splicemachine.hash.Hash64;
 import com.splicemachine.hash.HashFunctions;
 
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 
@@ -19,10 +23,18 @@ public class CardinalityEstimators {
 
 		public static ByteCardinalityEstimator byteEstimator(){ return new EnumeratingByteCardinalityEstimator(); }
 
+    public static Encoder<ByteCardinalityEstimator> byteEncoder(){
+        return EnumeratingByteCardinalityEstimator.newEncoder();
+    }
+
 		public static ShortCardinalityEstimator hyperLogLogShort(int precision, Hash64 hashFunction){
 				BaseLogLogCounter counter = SparseAdjustedHyperLogLogCounter.adjustedCounter(precision, hashFunction);
 				return new ShortHyperLogLog(counter);
 		}
+
+    public static Encoder<ShortCardinalityEstimator> shortEncoder(){
+        return new ShortEncoder(DEFAULT_HASH_FUNCTION);
+    }
 
 		public static IntCardinalityEstimator hyperLogLogInt(int precision){
         return hyperLogLogInt(precision, DEFAULT_HASH_FUNCTION);
@@ -33,6 +45,10 @@ public class CardinalityEstimators {
 				return new IntHyperLogLog(counter);
 		}
 
+    public static Encoder<IntCardinalityEstimator> intEncoder(){
+        return new IntEncoder(DEFAULT_HASH_FUNCTION);
+    }
+
 		public static LongCardinalityEstimator hyperLogLogLong(int precision){
 				return hyperLogLogLong(precision, DEFAULT_HASH_FUNCTION);
 		}
@@ -42,6 +58,10 @@ public class CardinalityEstimators {
 				return new LongHyperLogLog(counter);
 		}
 
+    public static Encoder<LongCardinalityEstimator> longEncoder(){
+        return new LongEncoder(DEFAULT_HASH_FUNCTION);
+    }
+
 		public static FloatCardinalityEstimator hyperLogLogFloat(int precision){
 				return hyperLogLogFloat(precision, DEFAULT_HASH_FUNCTION);
 		}
@@ -50,6 +70,11 @@ public class CardinalityEstimators {
         BaseLogLogCounter counter = SparseAdjustedHyperLogLogCounter.adjustedCounter(precision, hashFunction);
 				return new FloatHyperLogLog(counter);
 		}
+
+    public static Encoder<FloatCardinalityEstimator> floatEncoder(){
+        return new FloatEncoder(DEFAULT_HASH_FUNCTION);
+    }
+
 		public static DoubleCardinalityEstimator hyperLogLogDouble(int precision){
 				return hyperLogLogDouble(precision, DEFAULT_HASH_FUNCTION);
 		}
@@ -58,6 +83,10 @@ public class CardinalityEstimators {
         BaseLogLogCounter counter = SparseAdjustedHyperLogLogCounter.adjustedCounter(precision, hashFunction);
 				return new DoubleHyperLogLog(counter);
 		}
+
+    public static Encoder<DoubleCardinalityEstimator> doubleEncoder(){
+        return new DoubleEncoder(DEFAULT_HASH_FUNCTION);
+    }
 
 		public static CardinalityEstimator<String> hyperLogLogString(int precision){
 				return hyperLogLogString(precision, DEFAULT_HASH_FUNCTION);
@@ -71,6 +100,9 @@ public class CardinalityEstimators {
             }
         };
 		}
+    public static Encoder<CardinalityEstimator<String>> stringEncoder(){
+        return new ObjectEncoder<>(DEFAULT_HASH_FUNCTION);
+    }
 
 		public static CardinalityEstimator<BigDecimal> hyperLogLogBigDecimal(int precision){
 				return hyperLogLogBigDecimal(precision, DEFAULT_HASH_FUNCTION);
@@ -78,15 +110,37 @@ public class CardinalityEstimators {
 
 		public static CardinalityEstimator<BigDecimal> hyperLogLogBigDecimal(int precision,Hash64 hashFunction){
         BaseLogLogCounter counter = SparseAdjustedHyperLogLogCounter.adjustedCounter(precision, hashFunction);
-				return new HyperLogLog<BigDecimal>(counter);
+				return new HyperLogLog<>(counter);
 		}
+
+    public static Encoder<CardinalityEstimator<BigDecimal>> bigDecimalEncoder(){
+        return new ObjectEncoder<>(DEFAULT_HASH_FUNCTION);
+    }
+
+    public static <T> CardinalityEstimator<T> hyperLogLog(int precision){
+        return hyperLogLog(precision, DEFAULT_HASH_FUNCTION);
+    }
+
+    public static <T> CardinalityEstimator<T> hyperLogLog(int precision,Hash64 hashFunction){
+        BaseLogLogCounter counter = SparseAdjustedHyperLogLogCounter.adjustedCounter(precision, hashFunction);
+        return new HyperLogLog<>(counter);
+    }
+
+    public static <T> Encoder<CardinalityEstimator<T>> objectEncoder(){
+        return new ObjectEncoder<>(DEFAULT_HASH_FUNCTION);
+    }
 
 		public static BytesCardinalityEstimator hyperLogLogBytes(int precision, Hash64 hashFunction){
         BaseLogLogCounter counter = SparseAdjustedHyperLogLogCounter.adjustedCounter(precision, hashFunction);
 				return new BytesHyperLogLog(counter);
-
 		}
 
+    public static Encoder<BytesCardinalityEstimator> bytesEncoder(){
+        return new BytesEncoder(DEFAULT_HASH_FUNCTION);
+    }
+
+    /* ****************************************************************************************************************/
+    /*private classes*/
 		private static class BytesHyperLogLog implements BytesCardinalityEstimator {
 				private final BaseLogLogCounter counter;
 
@@ -314,4 +368,153 @@ public class CardinalityEstimators {
             return this;
         }
 		}
+
+    private static class ShortEncoder extends SparseEncoder<ShortCardinalityEstimator>{
+
+        public ShortEncoder(Hash64 hashFunction) {
+            super(hashFunction);
+        }
+
+        @Override
+        protected SparseAdjustedHyperLogLogCounter getCounter(ShortCardinalityEstimator item) {
+            assert item instanceof ShortHyperLogLog : "Cannot encode estimator of type "+ item.getClass();
+            return (SparseAdjustedHyperLogLogCounter)((ShortHyperLogLog) item).counter;
+        }
+
+        @Override
+        protected ShortCardinalityEstimator newEstimator(SparseAdjustedHyperLogLogCounter count) {
+            return new ShortHyperLogLog(count);
+        }
+    }
+
+    private static class IntEncoder extends SparseEncoder<IntCardinalityEstimator>{
+
+        public IntEncoder(Hash64 hashFunction) {
+            super(hashFunction);
+        }
+
+        @Override
+        protected SparseAdjustedHyperLogLogCounter getCounter(IntCardinalityEstimator item) {
+            assert item instanceof IntHyperLogLog : "Cannot encode estimator of type "+ item.getClass();
+            return (SparseAdjustedHyperLogLogCounter)((IntHyperLogLog) item).counter;
+        }
+
+        @Override
+        protected IntCardinalityEstimator newEstimator(SparseAdjustedHyperLogLogCounter count) {
+            return new IntHyperLogLog(count);
+        }
+    }
+
+    private static class LongEncoder extends SparseEncoder<LongCardinalityEstimator>{
+
+        public LongEncoder(Hash64 hashFunction) {
+            super(hashFunction);
+        }
+
+        @Override
+        protected SparseAdjustedHyperLogLogCounter getCounter(LongCardinalityEstimator item) {
+            assert item instanceof LongHyperLogLog : "Cannot encode estimator of type "+ item.getClass();
+            return (SparseAdjustedHyperLogLogCounter)((LongHyperLogLog) item).counter;
+        }
+
+        @Override
+        protected LongCardinalityEstimator newEstimator(SparseAdjustedHyperLogLogCounter count) {
+            return new LongHyperLogLog(count);
+        }
+    }
+
+    private static class FloatEncoder extends SparseEncoder<FloatCardinalityEstimator>{
+
+        public FloatEncoder(Hash64 hashFunction) {
+            super(hashFunction);
+        }
+
+        @Override
+        protected SparseAdjustedHyperLogLogCounter getCounter(FloatCardinalityEstimator item) {
+            assert item instanceof FloatHyperLogLog : "Cannot encode estimator of type "+ item.getClass();
+            return (SparseAdjustedHyperLogLogCounter)((FloatHyperLogLog) item).counter;
+        }
+
+        @Override
+        protected FloatCardinalityEstimator newEstimator(SparseAdjustedHyperLogLogCounter count) {
+            return new FloatHyperLogLog(count);
+        }
+    }
+
+    private static class DoubleEncoder extends SparseEncoder<DoubleCardinalityEstimator>{
+
+        public DoubleEncoder(Hash64 hashFunction) {
+            super(hashFunction);
+        }
+
+        @Override
+        protected SparseAdjustedHyperLogLogCounter getCounter(DoubleCardinalityEstimator item) {
+            assert item instanceof DoubleHyperLogLog : "Cannot encode estimator of type "+ item.getClass();
+            return (SparseAdjustedHyperLogLogCounter)((DoubleHyperLogLog) item).counter;
+        }
+
+        @Override
+        protected DoubleCardinalityEstimator newEstimator(SparseAdjustedHyperLogLogCounter count) {
+            return new DoubleHyperLogLog(count);
+        }
+    }
+
+    private static class BytesEncoder extends SparseEncoder<BytesCardinalityEstimator>{
+
+        public BytesEncoder(Hash64 hashFunction) {
+            super(hashFunction);
+        }
+
+        @Override
+        protected SparseAdjustedHyperLogLogCounter getCounter(BytesCardinalityEstimator item) {
+            assert item instanceof BytesHyperLogLog : "Cannot encode estimator of type "+ item.getClass();
+            return (SparseAdjustedHyperLogLogCounter)((BytesHyperLogLog) item).counter;
+        }
+
+        @Override
+        protected BytesCardinalityEstimator newEstimator(SparseAdjustedHyperLogLogCounter count) {
+            return new BytesHyperLogLog(count);
+        }
+    }
+
+    private static class ObjectEncoder<T> extends SparseEncoder<CardinalityEstimator<T>>{
+
+        public ObjectEncoder(Hash64 hashFunction) {
+            super(hashFunction);
+        }
+
+        @Override
+        protected SparseAdjustedHyperLogLogCounter getCounter(CardinalityEstimator<T> item) {
+            assert item instanceof HyperLogLog : "Cannot encode estimator of type "+ item.getClass();
+            return (SparseAdjustedHyperLogLogCounter)((HyperLogLog) item).counter;
+        }
+
+        @Override
+        protected CardinalityEstimator<T> newEstimator(SparseAdjustedHyperLogLogCounter count) {
+            return new HyperLogLog<>(count);
+        }
+    }
+
+    private static abstract class SparseEncoder<T> implements Encoder<T> {
+        protected final Encoder<SparseAdjustedHyperLogLogCounter> baseEncoder;
+
+        public SparseEncoder(Hash64 hashFunction) {
+            this.baseEncoder = new SparseAdjustedHyperLogLogCounter.EncoderDecoder(hashFunction);
+        }
+
+        @Override
+        public void encode(T item, DataOutput dataInput) throws IOException {
+            baseEncoder.encode(getCounter(item),dataInput);
+        }
+
+        @Override
+        public T decode(DataInput input) throws IOException {
+            SparseAdjustedHyperLogLogCounter count = baseEncoder.decode(input);
+            return newEstimator(count);
+        }
+
+        protected abstract SparseAdjustedHyperLogLogCounter getCounter(T item);
+
+        protected abstract T newEstimator(SparseAdjustedHyperLogLogCounter count);
+    }
 }

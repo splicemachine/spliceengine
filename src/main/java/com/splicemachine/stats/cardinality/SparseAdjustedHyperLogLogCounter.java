@@ -1,10 +1,14 @@
 package com.splicemachine.stats.cardinality;
 
 import com.google.common.primitives.Ints;
+import com.splicemachine.encoding.Encoder;
 import com.splicemachine.hash.Hash64;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.stats.DoubleFunction;
 
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
 import java.util.Arrays;
 
 /**
@@ -126,6 +130,7 @@ public class SparseAdjustedHyperLogLogCounter extends BaseBiasAdjustedHyperLogLo
 				initialize(initialSize, maxBufferSize);
 		}
 
+    /*Serialization constructors*/
     private SparseAdjustedHyperLogLogCounter(int precision,
                                              int sparseSize,
                                              int[] sparse,
@@ -149,6 +154,8 @@ public class SparseAdjustedHyperLogLogCounter extends BaseBiasAdjustedHyperLogLo
         maxSparseSize = 3*(1<<precision-6);
     }
 
+    /* ****************************************************************************************************************/
+    /*Modifiers*/
 		@Override
 		protected void doUpdate(long hash) {
 				int p;
@@ -186,6 +193,8 @@ public class SparseAdjustedHyperLogLogCounter extends BaseBiasAdjustedHyperLogLo
 				denseRegisters[register] = (byte)(value & 0xff);
 		}
 
+    /* ****************************************************************************************************************/
+    /*Accessors*/
 		@Override
 		public long getEstimate() {
 				if(isSparse){
@@ -202,34 +211,11 @@ public class SparseAdjustedHyperLogLogCounter extends BaseBiasAdjustedHyperLogLo
 						return super.getEstimate();
 		}
 
-		@Override
-		protected int getRegister(int register) {
-				return denseRegisters[register];
-		}
+		@Override protected int getRegister(int register) { return denseRegisters[register]; }
 
-    @Override
-    public byte[] encode() {
-        if(isSparse){
-            merge();
-            if(isSparse){
-                return encodeSparse();
-            }
-        }
-        return encodeDense();
-    }
-
-    public static SparseAdjustedHyperLogLogCounter decode(DoubleFunction biasAdjuster,
-                                                          Hash64 newHash,
-                                                          byte[] data, int offset){
-        boolean isSparse = data[offset]==0x01;
-        if(isSparse){
-           return decodeSparse(biasAdjuster,newHash,data,offset+1);
-        }else
-            return decodeDense(biasAdjuster,newHash, data,offset+1);
-    }
-
-    /*****************************************************************************************************************/
+    /* ****************************************************************************************************************/
 		/*private helper functions*/
+
 		private void initialize(int initialSize, int maxBufferSize) {
 				if(maxBufferSize<0)
 						maxBufferSize = maxSparseSize/4; //default to 25% of the max sparseSize
@@ -367,56 +353,74 @@ public class SparseAdjustedHyperLogLogCounter extends BaseBiasAdjustedHyperLogLo
 				}
 		}
 
-    private static SparseAdjustedHyperLogLogCounter decodeSparse(DoubleFunction biasAdjuster,Hash64 newHashFunction,byte[] data, int offset) {
-        int pos = offset;
-        int precision = Bytes.toInt(data,pos);
-        pos+=4;
-        int size = Bytes.toInt(data,pos);
-        pos+=4;
-        int c = 1;
-        while(c<size){
-            c<<=1;
+    /*
+     * Inner class to maintain the logic for serialization/deserialization
+     */
+    static class EncoderDecoder implements Encoder<SparseAdjustedHyperLogLogCounter> {
+        private final Hash64 hashFunction;
+
+        public EncoderDecoder(Hash64 hashFunction) {
+            this.hashFunction = hashFunction;
         }
-        int[] sparse = new int[c];
-        for(int i=0;i<size;i++){
-            sparse[i] = Bytes.toInt(data,pos);
-            pos+=4;
+
+        @Override
+        public void encode(SparseAdjustedHyperLogLogCounter item, DataOutput encoder) throws IOException {
+           if(item.isSparse){
+               item.merge();
+               if(item.isSparse){
+                   encodeSparse(item,encoder);
+               }
+           }
+            encodeDense(item,encoder);
         }
-        return new SparseAdjustedHyperLogLogCounter(precision,size,sparse,newHashFunction,biasAdjuster);
+
+        @Override
+        public SparseAdjustedHyperLogLogCounter decode(DataInput input) throws IOException {
+            if(input.readByte()==0x01){
+                return decodeSparse(input);
+            }else return decodeDense(input);
+        }
+
+        private SparseAdjustedHyperLogLogCounter decodeSparse(DataInput input) throws IOException{
+            int precision = input.readInt();
+            int size = input.readInt();
+            int c = 1;
+            while(c<size){
+                c<<=1;
+            }
+            int[] sparse = new int[c];
+            for(int i=0;i<size;i++){
+                sparse[i] = input.readInt();
+            }
+            DoubleFunction biasAdjuster = HyperLogLogBiasEstimators.biasEstimate(precision);
+            return new SparseAdjustedHyperLogLogCounter(precision,size,sparse,hashFunction,biasAdjuster);
+        }
+
+        private SparseAdjustedHyperLogLogCounter decodeDense(DataInput input) throws IOException{
+            int precision = input.readInt();
+            int numRegisters = 1<<precision;
+            byte[] registers = new byte[numRegisters];
+            input.readFully(registers);
+
+            DoubleFunction biasAdjuster = HyperLogLogBiasEstimators.biasEstimate(precision);
+            return new SparseAdjustedHyperLogLogCounter(precision,registers,hashFunction,biasAdjuster);
+        }
+
+        private void encodeSparse(SparseAdjustedHyperLogLogCounter item,DataOutput encoder) throws IOException {
+            encoder.writeByte(0x01);
+            encoder.writeInt(item.precision);
+            encoder.writeInt(item.sparseSize);
+            for(int i=0;i<item.sparseSize;i++){
+                encoder.writeInt(item.sparse[i]);
+            }
+        }
+
+        private void encodeDense(SparseAdjustedHyperLogLogCounter item,DataOutput encoder) throws IOException {
+            encoder.writeByte(0x00);
+            encoder.writeInt(item.precision);
+            //we don't need the register length, because we can reconstruct it from the precision
+            encoder.write(item.denseRegisters);
+        }
     }
 
-    private static SparseAdjustedHyperLogLogCounter decodeDense(DoubleFunction biasAdjuster,Hash64 newHash,byte[] data, int offset) {
-        int pos = offset;
-        int precision = Bytes.toInt(data,pos);
-        pos+=4;
-        int size = Bytes.toInt(data,pos);
-        pos+=4;
-        byte[] denseRegisters = new byte[size];
-        System.arraycopy(data,pos,denseRegisters,0,size);
-        return new SparseAdjustedHyperLogLogCounter(precision,denseRegisters,newHash,biasAdjuster);
-    }
-
-    private byte[] encodeSparse() {
-        int size = 9+sparseSize*4;
-        byte[] bytes = new byte[size];
-        bytes[0] = 0x01; //indicate that we are in a sparse representation
-        Bytes.toBytes(precision,bytes,1);
-        Bytes.toBytes(sparseSize,bytes,5);
-        int pos=9;
-        for(int i=0;i<sparseSize;i++){
-            Bytes.toBytes(sparse[i],bytes,pos);
-            pos+=4;
-        }
-        return bytes;
-    }
-
-    private byte[] encodeDense() {
-        int size = 9+denseRegisters.length;
-        byte[] bytes = new byte[size];
-        bytes[4] = 0x00;
-        Bytes.toBytes(precision,bytes,1);
-        Bytes.toBytes(denseRegisters.length,bytes,5);
-        System.arraycopy(denseRegisters,0,bytes,9,denseRegisters.length);
-        return bytes;
-    }
 }

@@ -133,9 +133,7 @@ public abstract class BaseLogLogCounter{
         }
     }
 
-    public abstract byte[] encode();
-
-		/**
+    /**
 		 * Compute the multiplicative scale factor {@code alpha}. Generally,
 		 * this is only overriden by optimized variations on the core algorithm
 		 * (such as SuperLogLog or HyperLogLog).
