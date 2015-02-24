@@ -93,6 +93,7 @@ public class SpliceSpark {
         String memory = System.getProperty("splice.spark.memory", "8g");
         String failures = System.getProperty("splice.spark.failures", "4");
         String temp = System.getProperty("splice.spark.tmp", "/tmp");
+        String extraOpts = System.getProperty("splice.spark.extra", "");
         LOG.warn("Initializing Spark with:\n master " + master + "\n home " + home + "\n jars " + jars + "\n environment " + environment);
         Map<String, String> properties = Splitter.on(';').omitEmptyStrings().withKeyValueSeparator(Splitter.on('=')).split(environment);
         String [] files = getJarFiles(jars);
@@ -107,6 +108,7 @@ public class SpliceSpark {
         conf.set("spark.io.compression.codec", "lz4"); // TODO implement custom codec using our Snappy version
         conf.set("spark.kryoserializer.buffer.mb", "8");
         conf.set("spark.kryoserializer.buffer.max.mb", "128");
+        conf.set("spark.executor.extraJavaOptions", extraOpts);
         if (master.startsWith("local[8]")) {
             conf.set("spark.cores.max", "8");
             if (localContext == null) {
