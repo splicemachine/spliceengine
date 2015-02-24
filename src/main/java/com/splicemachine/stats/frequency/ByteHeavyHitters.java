@@ -1,5 +1,10 @@
 package com.splicemachine.stats.frequency;
 
+import com.splicemachine.encoding.Encoder;
+
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
 import java.util.*;
 
 /**
@@ -9,15 +14,19 @@ import java.util.*;
 public class ByteHeavyHitters implements ByteFrequentElements {
     private final long[] counts;
     private final ByteFrequencyEstimate[] cachedFrequencies;
+    private final float support;
     private long threshold;
+    private long totalCount;
 
-    public ByteHeavyHitters(final long[] counts,long threshold) {
+    public ByteHeavyHitters(final long[] counts,float support) {
         this.counts = counts;
-        this.threshold = threshold;
+        this.support = support;
+        this.threshold = (long)support*totalCount;
         this.cachedFrequencies = new ByteFrequencyEstimate[counts.length];
         for(int i=0;i<counts.length;i++){
             ByteFrequency byteFrequency = new ByteFrequency((byte)i);
             this.cachedFrequencies[i] = byteFrequency;
+            this.totalCount+=counts[i];
         }
     }
 
@@ -75,15 +84,23 @@ public class ByteHeavyHitters implements ByteFrequentElements {
     public ByteFrequentElements merge(ByteFrequentElements other) {
         if(other instanceof ByteHeavyHitters){
             ByteHeavyHitters oHitters = (ByteHeavyHitters)other;
+            long totalCount = this.totalCount;
             for(int i=0;i<counts.length;i++){
                 counts[i]+=oHitters.counts[i];
+                totalCount+=oHitters.counts[i];
             }
+            this.totalCount = totalCount;
         }else {
+            long totalCount = this.totalCount;
             for (int i = 0; i < counts.length; i++) {
                 ByteFrequencyEstimate oe = other.countEqual((byte) i);
-                counts[i] += oe.count();
+                long count = oe.count();
+                counts[i] += count;
+                totalCount+=count;
             }
+            this.totalCount = totalCount;
         }
+        this.threshold = (long)(support*totalCount);
         return this;
     }
 
@@ -185,5 +202,30 @@ public class ByteHeavyHitters implements ByteFrequentElements {
         }
 
         @Override public void remove() { throw new UnsupportedOperationException("Removal not supported"); }
+    }
+
+    static class EncoderDecoder implements Encoder<ByteHeavyHitters> {
+        public static final EncoderDecoder INSTANCE = new EncoderDecoder();
+
+        @Override
+        public void encode(ByteHeavyHitters item, DataOutput dataInput) throws IOException {
+            dataInput.writeFloat(item.support);
+            dataInput.writeInt(item.counts.length);
+            for(int i=0;i<item.counts.length;i++){
+                long count = item.counts[i];
+                dataInput.writeLong(count);
+            }
+        }
+
+        @Override
+        public ByteHeavyHitters decode(DataInput input) throws IOException {
+            float support = input.readFloat();
+            int size = input.readInt();
+            long[] counts = new long[size];
+            for(int i=0;i<size;i++){
+                counts[i] = input.readLong();
+            }
+            return new ByteHeavyHitters(counts,support);
+        }
     }
 }

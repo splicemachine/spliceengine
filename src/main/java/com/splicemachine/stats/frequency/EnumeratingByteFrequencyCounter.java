@@ -8,7 +8,6 @@ import java.util.Arrays;
  */
 public class EnumeratingByteFrequencyCounter implements ByteFrequencyCounter {
 		private final long[] counts = new long[256];
-		private long total = 0l;
 
 		@Override public void update(byte item) { update(item,1l); }
 		@Override public void update(Byte item) { update(item,1l); }
@@ -21,15 +20,12 @@ public class EnumeratingByteFrequencyCounter implements ByteFrequencyCounter {
 
 		@Override
 		public void update(byte item, long count) {
-				total+=count;
 				counts[(item & 0xff)]+=count;
 		}
 
     @Override
 		public ByteFrequentElements heavyHitters(float support) {
-				long threshold = (long)Math.ceil(support*total);
-
-				return new ByteHeavyHitters(Arrays.copyOf(counts,256),threshold);
+				return new ByteHeavyHitters(Arrays.copyOf(counts,256),support);
 		}
 
     @Override

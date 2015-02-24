@@ -2,9 +2,13 @@ package com.splicemachine.stats.frequency;
 
 import com.google.common.primitives.Longs;
 import com.splicemachine.annotations.Untested;
+import com.splicemachine.encoding.Encoder;
 import com.splicemachine.primitives.ByteComparator;
 import com.splicemachine.stats.Mergeable;
 
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.*;
 
@@ -263,6 +267,10 @@ public abstract class BytesFrequentElements implements FrequentElements<byte[]>,
 
     protected abstract NavigableSet<BytesFrequencyEstimate> rebuild(long mergedCount,BytesFrequencyEstimate[] topK);
 
+    static Encoder<BytesFrequentElements> newEncoder(ByteComparator byteComparator) {
+        return new EncoderDecoder(byteComparator);
+    }
+
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private static class TopK extends BytesFrequentElements {
@@ -427,5 +435,63 @@ public abstract class BytesFrequentElements implements FrequentElements<byte[]>,
 
         @Override public long count() { return 0; }
         @Override public long error() { return 0; }
+    }
+
+    static class EncoderDecoder implements Encoder<BytesFrequentElements> {
+        private final ByteComparator byteComparator;
+
+        public EncoderDecoder(ByteComparator byteComparator) {
+            this.byteComparator = byteComparator;
+        }
+
+        @Override
+        public void encode(BytesFrequentElements item, DataOutput dataInput) throws IOException {
+            dataInput.writeLong(item.totalCount);
+            encodeSet(item.elements,dataInput);
+            if(item instanceof TopK) {
+                dataInput.writeBoolean(true);
+                dataInput.writeInt(((TopK)item).k);
+            }else {
+                dataInput.writeBoolean(false);
+                dataInput.writeFloat(((HeavyItems) item).support);
+            }
+        }
+
+        @Override
+        public BytesFrequentElements decode(DataInput input) throws IOException {
+            long totalCount = input.readLong();
+            Set<BytesFrequencyEstimate> estimates = decodeSet(input);
+            if(input.readBoolean()){
+                int k = input.readInt();
+                return new TopK(k,totalCount,estimates,byteComparator);
+            }else{
+                float support = input.readFloat();
+                return new HeavyItems(support,totalCount,estimates,byteComparator);
+            }
+        }
+
+        private void encodeSet(NavigableSet<BytesFrequencyEstimate> elements, DataOutput dataInput) throws IOException {
+            dataInput.writeInt(elements.size());
+            for(BytesFrequencyEstimate element:elements){
+                byte[] data = element.getValue(); //does a memcp, but that's probably okay, considering how rarely this is used
+                dataInput.writeInt(data.length);
+                dataInput.write(data);
+                dataInput.writeLong(element.count());
+                dataInput.writeLong(element.error());
+            }
+        }
+
+        private Set<BytesFrequencyEstimate> decodeSet(DataInput input) throws IOException{
+            int size = input.readInt();
+            Set<BytesFrequencyEstimate> set = new TreeSet<>(naturalComparator);
+            for(int i=0;i<size;i++){
+                byte[] data = new byte[input.readInt()];
+                input.readFully(data);
+                long c = input.readLong();
+                long eps = input.readLong();
+                set.add(new BytesValueEstimate(data,c,eps,byteComparator));
+            }
+            return set;
+        }
     }
 }

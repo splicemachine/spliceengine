@@ -2,8 +2,12 @@ package com.splicemachine.stats.frequency;
 
 import com.google.common.primitives.Doubles;
 import com.google.common.primitives.Longs;
+import com.splicemachine.encoding.Encoder;
 import com.splicemachine.stats.Mergeable;
 
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
 import java.util.*;
 
 /**
@@ -248,5 +252,56 @@ public abstract class DoubleFrequentElements implements FrequentElements<Double>
         }
 
         @Override public int hashCode() { return Doubles.hashCode(item); }
+    }
+
+    static class EncoderDecoder implements Encoder<DoubleFrequentElements> {
+        public static final EncoderDecoder INSTANCE = new EncoderDecoder(); //singleton pattern
+
+        @Override
+        public void encode(DoubleFrequentElements item, DataOutput dataInput) throws IOException {
+            dataInput.writeDouble(item.totalCount);
+            encodeSet(item.elements,dataInput);
+            if(item instanceof TopK) {
+                dataInput.writeBoolean(true);
+                dataInput.writeInt(((TopK)item).k);
+            }else {
+                dataInput.writeBoolean(false);
+                dataInput.writeFloat(((HeavyItems) item).support);
+            }
+        }
+
+        @Override
+        public DoubleFrequentElements decode(DataInput input) throws IOException {
+            long totalCount = input.readLong();
+            Set<DoubleFrequencyEstimate> estimates = decodeSet(input);
+            if(input.readBoolean()){
+                int k = input.readInt();
+                return new TopK(k,totalCount,estimates);
+            }else{
+                float support = input.readFloat();
+                return new HeavyItems(support,totalCount,estimates);
+            }
+        }
+
+        private void encodeSet(NavigableSet<DoubleFrequencyEstimate> elements, DataOutput dataInput) throws IOException {
+            dataInput.writeDouble(elements.size());
+            for(DoubleFrequencyEstimate element:elements){
+                dataInput.writeDouble(element.value());
+                dataInput.writeLong(element.count());
+                dataInput.writeLong(element.error());
+            }
+        }
+
+        private Set<DoubleFrequencyEstimate> decodeSet(DataInput input) throws IOException {
+            int size = input.readInt();
+            Set<DoubleFrequencyEstimate> set = new TreeSet<>(naturalComparator);
+            for(int i=0;i<size;i++){
+                double v = input.readDouble();
+                long c = input.readLong();
+                long eps = input.readLong();
+                set.add(new DoubleValueEstimate(v,c,eps));
+            }
+            return set;
+        }
     }
 }

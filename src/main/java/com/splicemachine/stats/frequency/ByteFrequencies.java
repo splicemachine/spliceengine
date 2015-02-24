@@ -1,7 +1,11 @@
 package com.splicemachine.stats.frequency;
 
 import com.google.common.collect.Sets;
+import com.splicemachine.encoding.Encoder;
 
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
 import java.util.Collections;
 import java.util.Set;
 
@@ -30,6 +34,12 @@ public class ByteFrequencies implements ByteFrequentElements {
         for(int i=0;i<counts.length;i++){
             push(new Frequency((byte)i,counts[i]));
         }
+    }
+
+    private ByteFrequencies(Frequency[] heap, int maxSize,int size) {
+        this.heap = heap;
+        this.maxSize = maxSize;
+        this.size = size;
     }
 
     @Override
@@ -129,7 +139,7 @@ public class ByteFrequencies implements ByteFrequentElements {
 
     /******************************************************************************************************************/
     /*private helper methods and classes*/
-    private class Frequency implements ByteFrequencyEstimate{
+    private static class Frequency implements ByteFrequencyEstimate{
         byte value;
         long count;
 
@@ -257,5 +267,36 @@ public class ByteFrequencies implements ByteFrequentElements {
         }
         size--;
         return pos;
+    }
+
+    static class EncoderDecoder implements Encoder<ByteFrequencies> {
+        public static final EncoderDecoder INSTANCE = new EncoderDecoder();
+
+        @Override
+        public void encode(ByteFrequencies item, DataOutput dataInput) throws IOException {
+            dataInput.writeInt(item.maxSize);
+            dataInput.writeInt(item.size);
+            for(int i=0;i<item.size;i++){
+                Frequency f = item.heap[i];
+                dataInput.writeByte(f.value());
+                dataInput.writeLong(f.count());
+            }
+        }
+
+        @Override
+        public ByteFrequencies decode(DataInput input) throws IOException {
+            int maxSize = input.readInt();
+            int size = input.readInt();
+            int h = 1;
+            while(h<maxSize)
+                h<<=1;
+            Frequency[] heap = new Frequency[h];
+            for(int i=0;i<size;i++){
+                byte v = input.readByte();
+                long c = input.readLong();
+                heap[i] = new Frequency(v,c);
+            }
+            return new ByteFrequencies(heap,maxSize,size);
+        }
     }
 }

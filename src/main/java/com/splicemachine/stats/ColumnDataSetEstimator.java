@@ -13,7 +13,7 @@ public interface ColumnDataSetEstimator<E> {
      *              this is equivalent to {@link #nullCount()}.
      * @return the number of entries which match the given value
      */
-    long equals(E value);
+    long countEquals(E value);
 
     /**
      * Estimate the number of null entries in the Data Set.

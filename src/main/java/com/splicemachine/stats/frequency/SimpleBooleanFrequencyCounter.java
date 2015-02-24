@@ -1,7 +1,11 @@
 package com.splicemachine.stats.frequency;
 
 import com.google.common.collect.Iterators;
+import com.splicemachine.encoding.Encoder;
 
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
 import java.util.*;
 
 /**
@@ -78,6 +82,25 @@ public class SimpleBooleanFrequencyCounter implements BooleanFrequencyCounter {
         public FrequencyEstimate<Boolean> merge(FrequencyEstimate<Boolean> other) {
             this.count+=other.count();
             return this;
+        }
+    }
+
+    static class EncoderDecoder implements Encoder<BooleanFrequentElements> {
+        public static final EncoderDecoder INSTANCE = new EncoderDecoder();
+
+        @Override
+        public void encode(BooleanFrequentElements item, DataOutput dataInput) throws IOException {
+            BooleanFrequencyEstimate trueEst = item.equalsTrue();
+            dataInput.writeLong(trueEst.count());
+            BooleanFrequencyEstimate falseEst = item.equalsFalse();
+            dataInput.writeLong(falseEst.count());
+        }
+
+        @Override
+        public BooleanFrequentElements decode(DataInput input) throws IOException {
+            long trueCount = input.readLong();
+            long falseCount = input.readLong();
+            return new SimpleBooleanFrequentElements(trueCount,falseCount);
         }
     }
 

@@ -2,8 +2,12 @@ package com.splicemachine.stats.frequency;
 
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
+import com.splicemachine.encoding.Encoder;
 import com.splicemachine.stats.Mergeable;
 
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
 import java.util.*;
 
 /**
@@ -170,6 +174,10 @@ public abstract class IntFrequentElements implements FrequentElements<Integer>,M
 
     protected abstract NavigableSet<IntFrequencyEstimate> rebuild(long mergedCount,IntFrequencyEstimate[] topK);
 
+    public Encoder<IntFrequentElements> encoder(){
+        return EncoderDecoder.INSTANCE;
+    }
+
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private static class TopK extends IntFrequentElements{
@@ -188,6 +196,7 @@ public abstract class IntFrequentElements implements FrequentElements<Integer>,M
             super(totalCount, elements);
             this.k = k;
         }
+
 
         @Override
         protected NavigableSet<IntFrequencyEstimate> rebuild(long mergedCount, IntFrequencyEstimate[] topK) {
@@ -254,6 +263,58 @@ public abstract class IntFrequentElements implements FrequentElements<Integer>,M
         @Override
         public String toString() {
             return "("+item+",0,0)";
+        }
+    }
+
+    static class EncoderDecoder implements Encoder<IntFrequentElements> {
+        public static final EncoderDecoder INSTANCE = new EncoderDecoder(); //singleton pattern
+
+        @Override
+        public void encode(IntFrequentElements item, DataOutput dataInput) throws IOException {
+            dataInput.writeLong(item.totalCount);
+            encodeSet(item.elements,dataInput);
+            if(item instanceof TopK) {
+                dataInput.writeBoolean(true);
+                dataInput.writeInt(((TopK)item).k);
+            }else {
+                dataInput.writeBoolean(false);
+                dataInput.writeFloat(((HeavyItems)item).support);
+            }
+
+        }
+
+        @Override
+        public IntFrequentElements decode(DataInput input) throws IOException {
+            long totalCount = input.readLong();
+            Set<IntFrequencyEstimate> estimates = decodeSet(input);
+            if(input.readBoolean()){
+                int k = input.readInt();
+                return new TopK(k,totalCount,estimates);
+            }else{
+                float support = input.readFloat();
+                return new HeavyItems(support,totalCount,estimates);
+            }
+        }
+
+        private void encodeSet(NavigableSet<IntFrequencyEstimate> elements, DataOutput dataInput) throws IOException {
+            dataInput.writeInt(elements.size());
+            for(IntFrequencyEstimate element:elements){
+                dataInput.writeInt(element.value());
+                dataInput.writeLong(element.count());
+                dataInput.writeLong(element.error());
+            }
+        }
+
+        private Set<IntFrequencyEstimate> decodeSet(DataInput input) throws IOException{
+            int size = input.readInt();
+            Set<IntFrequencyEstimate> set = new TreeSet<>(naturalComparator);
+            for(int i=0;i<size;i++){
+                int v = input.readInt();
+                long c = input.readLong();
+                long eps = input.readLong();
+                set.add(new IntValueEstimate(v,c,eps));
+            }
+            return set;
         }
     }
 }

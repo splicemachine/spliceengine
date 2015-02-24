@@ -2,6 +2,7 @@ package com.splicemachine.stats;
 
 import com.splicemachine.stats.cardinality.CardinalityEstimators;
 import com.splicemachine.stats.cardinality.IntCardinalityEstimator;
+import com.splicemachine.stats.frequency.FrequencyCounters;
 import com.splicemachine.stats.frequency.FrequentElements;
 import com.splicemachine.stats.frequency.IntFrequentElements;
 
@@ -72,8 +73,8 @@ public class IntColumnStatistics implements ColumnStatistics<Integer>{
         encoder.writeLong(totalBytes);
         encoder.writeLong(totalCount);
         encoder.writeLong(nullCount);
-        CardinalityEstimators.intEncoder().encode(cardinalityEstimator,encoder);
-        frequentElements.encode(encoder);
+        CardinalityEstimators.intEncoder().encode(cardinalityEstimator, encoder);
+        FrequencyCounters.intEncoder().encode(frequentElements,encoder);
     }
 
     @Override
@@ -84,6 +85,6 @@ public class IntColumnStatistics implements ColumnStatistics<Integer>{
         totalCount = decoder.readLong();
         nullCount = decoder.readLong();
         cardinalityEstimator = CardinalityEstimators.intEncoder().decode(decoder);
-        frequentElements = FrequentElements.intDecoder().decode(decoder);
+        frequentElements = FrequencyCounters.intEncoder().decode(decoder);
     }
 }

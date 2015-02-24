@@ -2,8 +2,12 @@ package com.splicemachine.stats.frequency;
 
 import com.google.common.primitives.Floats;
 import com.google.common.primitives.Longs;
+import com.splicemachine.encoding.Encoder;
 import com.splicemachine.stats.Mergeable;
 
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
 import java.util.*;
 
 /**
@@ -251,5 +255,55 @@ public abstract class FloatFrequentElements implements FrequentElements<Float>,M
         }
 
         @Override public int hashCode() { return Floats.hashCode(item); }
+    }
+    static class EncoderDecoder implements Encoder<FloatFrequentElements> {
+        public static final EncoderDecoder INSTANCE = new EncoderDecoder(); //singleton pattern
+
+        @Override
+        public void encode(FloatFrequentElements item, DataOutput dataInput) throws IOException {
+            dataInput.writeLong(item.totalCount);
+            encodeSet(item.elements,dataInput);
+            if(item instanceof TopK) {
+                dataInput.writeBoolean(true);
+                dataInput.writeInt(((TopK)item).k);
+            }else {
+                dataInput.writeBoolean(false);
+                dataInput.writeFloat(((HeavyItems)item).support);
+            }
+        }
+
+        @Override
+        public FloatFrequentElements decode(DataInput input) throws IOException {
+            long totalCount = input.readLong();
+            Set<FloatFrequencyEstimate> estimates = decodeSet(input);
+            if(input.readBoolean()){
+                int k = input.readInt();
+                return new TopK(k,totalCount,estimates);
+            }else{
+                float support = input.readFloat();
+                return new HeavyItems(support,totalCount,estimates);
+            }
+        }
+
+        private void encodeSet(NavigableSet<FloatFrequencyEstimate> elements, DataOutput dataInput) throws IOException {
+            dataInput.writeFloat(elements.size());
+            for(FloatFrequencyEstimate element:elements){
+                dataInput.writeFloat(element.value());
+                dataInput.writeLong(element.count());
+                dataInput.writeLong(element.error());
+            }
+        }
+
+        private Set<FloatFrequencyEstimate> decodeSet(DataInput input) throws IOException{
+            int size = input.readInt();
+            Set<FloatFrequencyEstimate> set = new TreeSet<>(naturalComparator);
+            for(int i=0;i<size;i++){
+                float v = input.readFloat();
+                long c = input.readLong();
+                long eps = input.readLong();
+                set.add(new FloatValueEstimate(v,c,eps));
+            }
+            return set;
+        }
     }
 }

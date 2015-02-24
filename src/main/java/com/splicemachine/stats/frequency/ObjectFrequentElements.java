@@ -1,8 +1,12 @@
 package com.splicemachine.stats.frequency;
 
 import com.google.common.primitives.Longs;
+import com.splicemachine.encoding.Encoder;
 import com.splicemachine.stats.Mergeable;
 
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
 import java.util.*;
 
 /**
@@ -11,14 +15,6 @@ import java.util.*;
  */
 public abstract class ObjectFrequentElements<T> implements FrequentElements<T>,Mergeable<ObjectFrequentElements<T>> {
 
-    protected final Comparator<FrequencyEstimate<T>> naturalComparator = new Comparator<FrequencyEstimate<T>>() {
-        @Override
-        public int compare(FrequencyEstimate<T> o1, FrequencyEstimate<T> o2) {
-            int compare = comparator.compare(o1.getValue(),o2.getValue());
-            if(compare!=0) return compare;
-            return Long.signum(o1.count()-o2.count()); //should never happen, but just in case
-        }
-    };
 
     protected final Comparator<? super FrequencyEstimate<T>> frequencyComparator = new Comparator<FrequencyEstimate<T>>() {
         @Override
@@ -32,6 +28,8 @@ public abstract class ObjectFrequentElements<T> implements FrequentElements<T>,M
     private NavigableSet<FrequencyEstimate<T>> elements;
     private Comparator<? super T> comparator;
     private long totalCount;
+
+    protected final Comparator<FrequencyEstimate<T>> naturalComparator = naturalComparator(comparator);
 
     /*Private so that we can do polymorphism transparently*/
     private ObjectFrequentElements(long totalCount,
@@ -222,5 +220,74 @@ public abstract class ObjectFrequentElements<T> implements FrequentElements<T>,M
         @Override public long error() { return 0; }
 
         @Override public FrequencyEstimate<T> merge(FrequencyEstimate<T> other) { return other; }
+    }
+
+    private static <T> Comparator<FrequencyEstimate<T>> naturalComparator(final Comparator<? super T> comparator) {
+        return new Comparator<FrequencyEstimate<T>>() {
+            @Override
+            public int compare(FrequencyEstimate<T> o1, FrequencyEstimate<T> o2) {
+                int compare = comparator.compare(o1.getValue(),o2.getValue());
+                if(compare!=0) return compare;
+                return Long.signum(o1.count()-o2.count()); //should never happen, but just in case
+            }
+        };
+    }
+
+
+    static class EncoderDecoder<T> implements Encoder<ObjectFrequentElements<T>> {
+        private final Comparator<? super T> comparator;
+        private final Encoder<T> valueEncoder;
+
+        public EncoderDecoder(Encoder<T> valueEncoder, Comparator<? super T> comparator) {
+            this.valueEncoder = valueEncoder;
+            this.comparator = comparator;
+        }
+
+        @Override
+        public void encode(ObjectFrequentElements<T> item, DataOutput dataInput) throws IOException {
+            dataInput.writeLong(item.totalCount);
+            encodeSet(item.elements,dataInput);
+            if(item instanceof TopK) {
+                dataInput.writeBoolean(true);
+                dataInput.writeInt(((TopK)item).k);
+            }else {
+                dataInput.writeBoolean(false);
+                dataInput.writeFloat(((HeavyItems)item).support);
+            }
+        }
+
+        @Override
+        public ObjectFrequentElements<T> decode(DataInput input) throws IOException {
+            long totalCount = input.readLong();
+            Set<FrequencyEstimate<T>> estimates = decodeSet(input);
+            if(input.readBoolean()){
+                int k = input.readInt();
+                return new TopK<>(k,totalCount,estimates,comparator);
+            }else{
+                float support = input.readFloat();
+                return new HeavyItems<>(support,totalCount,estimates,comparator);
+            }
+        }
+
+        private void encodeSet(NavigableSet<FrequencyEstimate<T>> elements, DataOutput dataInput) throws IOException {
+            dataInput.writeFloat(elements.size());
+            for(FrequencyEstimate<T> element:elements){
+                valueEncoder.encode(element.getValue(), dataInput);
+                dataInput.writeLong(element.count());
+                dataInput.writeLong(element.error());
+            }
+        }
+
+        private Set<FrequencyEstimate<T>> decodeSet(DataInput input) throws IOException{
+            int size = input.readInt();
+            Set<FrequencyEstimate<T>> set = new TreeSet<>(naturalComparator(comparator));
+            for(int i=0;i<size;i++){
+                T v = valueEncoder.decode(input);
+                long c = input.readLong();
+                long eps = input.readLong();
+                set.add(new ValueEstimate<>(v,c,eps,comparator));
+            }
+            return set;
+        }
     }
 }
