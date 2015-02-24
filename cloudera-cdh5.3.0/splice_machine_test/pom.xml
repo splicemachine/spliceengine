@@ -1,40 +1,43 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<artifactId>splice_machine_test-cloudera-cdh5.3.0</artifactId>
 	<packaging>jar</packaging>
 	<name>${project.artifactId}</name>
 	<description>Splice Machine Test</description>
-
 	<parent>
 		<artifactId>spliceengine-cloudera-cdh5.3.0</artifactId>
 		<groupId>com.splicemachine</groupId>
 		<version>1.1.0-SNAPSHOT</version>
 	</parent>
-
 	<properties>
-			<sparkMasterIP>localhost</sparkMasterIP>
+		<sparkMasterIP>localhost</sparkMasterIP>
 		<sparkMasterPort>7077</sparkMasterPort>
 		<sparkMasterWebUIPort>8080</sparkMasterWebUIPort>
 		<sparkMasterURL>local[8]</sparkMasterURL>
 		<splice.spark.enabled>false</splice.spark.enabled>
 	</properties>
-
-
 	<dependencies>
-		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_machine_adapter_98-cloudera-cdh5.3.0</artifactId> <version>1.1.0-SNAPSHOT</version></dependency>
-		<dependency> <groupId>com.splicemachine</groupId> <artifactId>splice_machine_adapter_98-cloudera-cdh5.3.0</artifactId> <version>1.1.0-SNAPSHOT</version><classifier>tests</classifier></dependency>
+		<dependency>
+			<groupId>com.splicemachine</groupId>
+			<artifactId>splice_machine_adapter_98-cloudera-cdh5.3.0</artifactId>
+			<version>1.1.0-SNAPSHOT</version>
+		</dependency>
+		<dependency>
+			<groupId>com.splicemachine</groupId>
+			<artifactId>splice_machine_adapter_98-cloudera-cdh5.3.0</artifactId>
+			<version>1.1.0-SNAPSHOT</version>
+			<classifier>tests</classifier>
+		</dependency>
 	</dependencies>
-
 	<profiles>
-
 		<profile>
 			<id>ITs</id>
 			<properties>
 				<!-- enable failsafe integration tests -->
 				<skip.integration.tests>false</skip.integration.tests>
-				<server.start.skip>skipServerStart</server.start.skip> <!-- skip server start/stop if server already running -->
+				<server.start.skip>skipServerStart</server.start.skip>
+				<!-- skip server start/stop if server already running -->
 				<!-- ant task start/stop server args -->
 				<run.command>/bin/bash</run.command>
 				<splice.start.script>${project.basedir}/src/test/bin/start-splice-its</splice.start.script>
@@ -42,7 +45,6 @@
 			</properties>
 			<build>
 				<plugins>
-
 					<plugin>
 						<artifactId>maven-antrun-plugin</artifactId>
 						<executions>
@@ -51,10 +53,10 @@
 								<phase>pre-integration-test</phase>
 								<configuration>
 									<target name="StartSpliceServer" unless="${server.start.skip}">
-										<taskdef resource="net/sf/antcontrib/antcontrib.properties"
-												 classpathref="maven.plugin.classpath"/>
+										<taskdef resource="net/sf/antcontrib/antcontrib.properties" classpathref="maven.plugin.classpath"/>
 										<if>
-											<istrue value="${failTasksRandomly}"/> <!-- run with chaos monkey (default) -->
+											<istrue value="${failTasksRandomly}"/>
+											<!-- run with chaos monkey (default) -->
 											<then>
 												<exec executable="${run.command}" dir="${basedir}" spawn="false">
 													<arg value="${splice.start.script}"/>
@@ -110,7 +112,6 @@
 							</dependency>
 						</dependencies>
 					</plugin>
-
 					<plugin>
 						<groupId>org.codehaus.mojo</groupId>
 						<artifactId>exec-maven-plugin</artifactId>
@@ -130,11 +131,9 @@
 							</arguments>
 						</configuration>
 					</plugin>
-
 				</plugins>
 			</build>
 		</profile>
-
 		<profile>
 			<id>assemble</id>
 			<build>
@@ -170,7 +169,6 @@
 				</plugins>
 			</build>
 		</profile>
-
 		<profile>
 			<id>spliceZoo</id>
 			<activation>
@@ -243,7 +241,6 @@
 				</plugins>
 			</build>
 		</profile>
-
 		<profile>
 			<id>spliceClusterMember</id>
 			<activation>
@@ -296,7 +293,6 @@
 				</plugins>
 			</build>
 		</profile>
-
 		<profile>
 			<id>spliceFast</id>
 			<activation>
@@ -336,9 +332,8 @@
 								<argument>-Dsplice.spark.enabled=${splice.spark.enabled}</argument>
 								<argument>-Xmx8g</argument>
 								<argument>-Xms1g</argument>
-
 								<!-- G1 Garbage Collection -->
-<!--
+								<!--
 								<argument>-XX:MaxPermSize=256M</argument>
 								<argument>-XX:MaxDirectMemorySize=1g</argument>
 								<argument>-XX:+UseG1GC</argument>
@@ -382,7 +377,6 @@
 				</plugins>
 			</build>
 		</profile>
-
 		<profile>
 			<id>spliceWait</id>
 			<build>
@@ -408,7 +402,6 @@
 				</plugins>
 			</build>
 		</profile>
-
 		<profile>
 			<id>ij</id>
 			<activation>
@@ -417,7 +410,8 @@
 				</property>
 			</activation>
 			<properties>
-				<ij.connection.port>1527</ij.connection.port> <!-- Override from command line with -Dij.connection.port=1528 -->
+				<ij.connection.port>1527</ij.connection.port>
+				<!-- Override from command line with -Dij.connection.port=1528 -->
 			</properties>
 			<build>
 				<plugins>
@@ -446,9 +440,7 @@
 				</plugins>
 			</build>
 		</profile>
-
-
-<profile>
+		<profile>
 			<id>spark-prepare</id>
 			<activation>
 				<property>
@@ -456,26 +448,24 @@
 				</property>
 			</activation>
 			<build>
-				<plugins>				
-				 <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-dependency-plugin</artifactId>
-        <version>2.10</version>
-        <executions>
-          <execution>
-            <id>copy</id>
-            <phase>package</phase>
-            <goals>
-              <goal>copy-dependencies</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>				
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-dependency-plugin</artifactId>
+						<version>2.10</version>
+						<executions>
+							<execution>
+								<id>copy</id>
+								<phase>package</phase>
+								<goals>
+									<goal>copy-dependencies</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
 				</plugins>
 			</build>
 		</profile>
-
-
 		<profile>
 			<id>spark-master</id>
 			<activation>
@@ -484,7 +474,7 @@
 				</property>
 			</activation>
 			<build>
-				<plugins>				
+				<plugins>
 					<plugin>
 						<groupId>org.codehaus.mojo</groupId>
 						<artifactId>exec-maven-plugin</artifactId>
@@ -511,7 +501,7 @@
 								<argument>-XX:+CMSClassUnloadingEnabled</argument>
 								<argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4003</argument>
 								<argument>org.apache.spark.deploy.master.Master</argument>
-								<argument>--ip</argument>								
+								<argument>--ip</argument>
 								<argument>${sparkMasterIP}</argument>
 								<argument>--port</argument>
 								<argument>${sparkMasterPort}</argument>
@@ -519,11 +509,10 @@
 								<argument>${sparkMasterWebUIPort}</argument>
 							</arguments>
 						</configuration>
-					</plugin>					
+					</plugin>
 				</plugins>
 			</build>
 		</profile>
-
 		<profile>
 			<id>spark-worker</id>
 			<activation>
@@ -532,7 +521,7 @@
 				</property>
 			</activation>
 			<build>
-				<plugins>				
+				<plugins>
 					<plugin>
 						<groupId>org.codehaus.mojo</groupId>
 						<artifactId>exec-maven-plugin</artifactId>
@@ -559,16 +548,12 @@
 								<argument>-XX:+CMSClassUnloadingEnabled</argument>
 								<argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4004</argument>
 								<argument>org.apache.spark.deploy.worker.Worker</argument>
-								<argument>spark://${sparkMasterIP}:${sparkMasterPort}</argument>								
+								<argument>spark://${sparkMasterIP}:${sparkMasterPort}</argument>
 							</arguments>
 						</configuration>
-					</plugin>					
+					</plugin>
 				</plugins>
 			</build>
 		</profile>
-
-
-
 	</profiles>
-
 </project>
