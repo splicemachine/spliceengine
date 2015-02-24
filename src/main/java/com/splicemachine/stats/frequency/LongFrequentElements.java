@@ -2,7 +2,6 @@ package com.splicemachine.stats.frequency;
 
 import com.google.common.primitives.Longs;
 import com.splicemachine.encoding.Encoder;
-import com.splicemachine.stats.Mergeable;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -17,7 +16,7 @@ import java.util.*;
  * @author Scott Fines
  *         Date: 12/5/14
  */
-public abstract class LongFrequentElements implements FrequentElements<Long>,Mergeable<LongFrequentElements> {
+public abstract class LongFrequentElements implements FrequentElements<Long> {
     private static final Comparator<LongFrequencyEstimate> naturalComparator = new Comparator<LongFrequencyEstimate>() {
         @Override
         public int compare(LongFrequencyEstimate o1, LongFrequencyEstimate o2) {
@@ -137,6 +136,11 @@ public abstract class LongFrequentElements implements FrequentElements<Long>,Mer
     }
 
     @Override
+    public FrequentElements<Long> merge(FrequentElements<Long> other) {
+        assert other instanceof LongFrequentElements: "Cannot merge instance of type "+ other.getClass();
+        return merge((LongFrequentElements)other);
+    }
+
     public LongFrequentElements merge(LongFrequentElements other) {
         NavigableSet<LongFrequencyEstimate> merged = this.elements;
         NavigableSet<LongFrequencyEstimate> otherEstimates = other.elements;

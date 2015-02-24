@@ -56,7 +56,7 @@ public class ByteColumnStatistics implements ColumnStatistics<Byte>{
         assert other instanceof ByteColumnStatistics: "Cannot merge statistics of type "+ other.getClass();
         ByteColumnStatistics o = (ByteColumnStatistics)other;
         cardinalityEstimator = cardinalityEstimator.merge(o.cardinalityEstimator);
-        frequentElements = frequentElements.merge(o.frequentElements);
+        frequentElements = (ByteFrequentElements)frequentElements.merge(o.frequentElements);
         if(o.min<min)
             min = o.min;
         if(o.max>max)

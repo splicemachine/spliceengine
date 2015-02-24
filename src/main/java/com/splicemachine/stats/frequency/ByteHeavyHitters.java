@@ -81,6 +81,11 @@ public class ByteHeavyHitters implements ByteFrequentElements {
     }
 
     @Override
+    public FrequentElements<Byte> merge(FrequentElements<Byte> other) {
+        assert other instanceof ByteFrequentElements: "Canot merge instances of type "+ other.getClass();
+        return merge((ByteFrequentElements)other);
+    }
+
     public ByteFrequentElements merge(ByteFrequentElements other) {
         if(other instanceof ByteHeavyHitters){
             ByteHeavyHitters oHitters = (ByteHeavyHitters)other;

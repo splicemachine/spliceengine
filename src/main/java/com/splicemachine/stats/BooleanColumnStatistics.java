@@ -51,7 +51,7 @@ public class BooleanColumnStatistics implements ColumnStatistics<Boolean> {
     public ColumnStatistics<Boolean> merge(ColumnStatistics<Boolean> other) {
         assert other instanceof BooleanColumnStatistics: "Cannot merge statistics of type "+ other.getClass();
         BooleanColumnStatistics o = (BooleanColumnStatistics)other;
-        frequentElements = frequentElements.merge(o.frequentElements);
+        frequentElements = (BooleanFrequentElements)frequentElements.merge(o.frequentElements);
         totalBytes+=o.totalBytes;
         totalCount+=o.totalCount;
         nullCount+=o.nullCount;

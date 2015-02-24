@@ -109,6 +109,11 @@ public class ByteFrequencies implements ByteFrequentElements {
     }
 
     @Override
+    public FrequentElements<Byte> merge(FrequentElements<Byte> other) {
+        assert other instanceof ByteFrequencies: "Cannot merge instance of type "+ other.getClass();
+        return merge((ByteFrequencies)other);
+    }
+
     public ByteFrequentElements merge(ByteFrequentElements other) {
         /*
          * To perform the merge, we first get all the frequent elements in the other set,

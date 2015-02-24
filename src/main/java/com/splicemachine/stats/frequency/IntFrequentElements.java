@@ -14,7 +14,7 @@ import java.util.*;
  * @author Scott Fines
  *         Date: 12/5/14
  */
-public abstract class IntFrequentElements implements FrequentElements<Integer>,Mergeable<IntFrequentElements> {
+public abstract class IntFrequentElements implements FrequentElements<Integer> {
     private static final Comparator<IntFrequencyEstimate> naturalComparator = new Comparator<IntFrequencyEstimate>() {
         @Override
         public int compare(IntFrequencyEstimate o1, IntFrequencyEstimate o2) {
@@ -135,6 +135,12 @@ public abstract class IntFrequentElements implements FrequentElements<Integer>,M
     }
 
     @Override
+    public FrequentElements<Integer> merge(FrequentElements<Integer> other) {
+        assert other instanceof IntFrequentElements: "Cannot merge instance of type "+ other.getClass();
+        return merge((IntFrequentElements)other);
+    }
+
+//    @Override
     public IntFrequentElements merge(IntFrequentElements other) {
         NavigableSet<IntFrequencyEstimate> merged = this.elements;
         NavigableSet<IntFrequencyEstimate> otherEstimates = other.elements;

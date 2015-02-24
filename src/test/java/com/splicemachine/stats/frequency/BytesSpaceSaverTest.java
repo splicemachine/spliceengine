@@ -2,7 +2,7 @@ package com.splicemachine.stats.frequency;
 
 import com.splicemachine.hash.HashFunctions;
 import com.splicemachine.primitives.Bytes;
-import junit.framework.Assert;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.nio.ByteBuffer;

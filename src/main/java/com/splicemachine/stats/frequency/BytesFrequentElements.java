@@ -16,7 +16,7 @@ import java.util.*;
  * @author Scott Fines
  *         Date: 12/5/14
  */
-public abstract class BytesFrequentElements implements FrequentElements<byte[]>,Mergeable<BytesFrequentElements>{
+public abstract class BytesFrequentElements implements FrequentElements<byte[]>{
     private static final Comparator<BytesFrequencyEstimate> frequencyComparator = new Comparator<BytesFrequencyEstimate>() {
         @Override
         public int compare(BytesFrequencyEstimate o1, BytesFrequencyEstimate o2) {
@@ -228,6 +228,11 @@ public abstract class BytesFrequentElements implements FrequentElements<byte[]>,
     }
 
     @Override
+    public FrequentElements<byte[]> merge(FrequentElements<byte[]> other) {
+        assert other instanceof BytesFrequentElements: "Cannot merge instance of type "+ other.getClass();
+        return merge((BytesFrequentElements)other);
+    }
+
     public BytesFrequentElements merge(BytesFrequentElements other) {
         NavigableSet<BytesFrequencyEstimate> merged = this.elements;
         NavigableSet<BytesFrequencyEstimate> otherEstimates = other.elements;

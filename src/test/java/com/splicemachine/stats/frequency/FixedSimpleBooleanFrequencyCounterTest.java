@@ -22,7 +22,7 @@ public class FixedSimpleBooleanFrequencyCounterTest {
         c2.update(false,4);
         BooleanFrequentElements elem2 = c2.frequencies();
 
-        BooleanFrequentElements merged = elem1.merge(elem2);
+        BooleanFrequentElements merged = (BooleanFrequentElements)elem1.merge(elem2);
         assertCorrect(1,4,merged);
     }
 

@@ -1,14 +1,12 @@
 package com.splicemachine.stats.frequency;
 
-import com.splicemachine.stats.Mergeable;
-
 import java.util.Set;
 
 /**
  * @author Scott Fines
  *         Date: 12/5/14
  */
-public interface ByteFrequentElements extends FrequentElements<Byte>,Mergeable<ByteFrequentElements> {
+public interface ByteFrequentElements extends FrequentElements<Byte> {
 
     ByteFrequencyEstimate countEqual(byte item);
 

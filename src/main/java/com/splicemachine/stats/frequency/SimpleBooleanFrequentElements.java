@@ -78,6 +78,17 @@ public class SimpleBooleanFrequentElements implements BooleanFrequentElements {
     }
 
     @Override
+    public FrequentElements<Boolean> merge(FrequentElements<Boolean> other) {
+        if(other instanceof BooleanFrequentElements){
+            return merge((BooleanFrequentElements)other);
+        }else {
+            trueValue.count += other.equal(Boolean.TRUE).count();
+            falseValue.count += other.equal(Boolean.FALSE).count();
+            return this;
+        }
+    }
+
+    //    @Override
     public BooleanFrequentElements merge(BooleanFrequentElements other) {
         trueValue.count+=other.equalsTrue().count();
         falseValue.count+=other.equalsFalse().count();

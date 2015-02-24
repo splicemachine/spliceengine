@@ -3,7 +3,6 @@ package com.splicemachine.stats.frequency;
 import com.google.common.primitives.Longs;
 import com.google.common.primitives.Shorts;
 import com.splicemachine.encoding.Encoder;
-import com.splicemachine.stats.Mergeable;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -14,7 +13,7 @@ import java.util.*;
  * @author Scott Fines
  *         Date: 12/5/14
  */
-public abstract class ShortFrequentElements implements FrequentElements<Short>,Mergeable<ShortFrequentElements> {
+public abstract class ShortFrequentElements implements FrequentElements<Short> {
     private static final Comparator<ShortFrequencyEstimate> naturalComparator = new Comparator<ShortFrequencyEstimate>() {
         @Override
         public int compare(ShortFrequencyEstimate o1, ShortFrequencyEstimate o2) {
@@ -135,6 +134,11 @@ public abstract class ShortFrequentElements implements FrequentElements<Short>,M
     }
 
     @Override
+    public FrequentElements<Short> merge(FrequentElements<Short> other) {
+        assert other instanceof ShortFrequentElements: "Cannot merge instance of type "+ other.getClass();
+        return merge((ShortFrequentElements)other);
+    }
+
     public ShortFrequentElements merge(ShortFrequentElements other) {
         NavigableSet<ShortFrequencyEstimate> merged = this.elements;
         NavigableSet<ShortFrequencyEstimate> otherEstimates = other.elements;
