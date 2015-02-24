@@ -1,6 +1,6 @@
 package com.splicemachine.stats.collector;
 
-import com.splicemachine.stats.BooleanStatistics;
+import com.splicemachine.stats.BooleanColumnStatistics;
 import com.splicemachine.stats.BooleanUpdateable;
 
 /**
@@ -9,5 +9,5 @@ import com.splicemachine.stats.BooleanUpdateable;
  */
 public interface BooleanStatsCollector extends ColumnStatsCollector<Boolean>,BooleanUpdateable{
 
-    BooleanStatistics build();
+    BooleanColumnStatistics build();
 }

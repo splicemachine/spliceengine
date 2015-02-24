@@ -1,6 +1,6 @@
 package com.splicemachine.stats.collector;
 
-import com.splicemachine.stats.FloatStatistics;
+import com.splicemachine.stats.FloatColumnStatistics;
 import com.splicemachine.stats.FloatUpdateable;
 
 /**
@@ -9,5 +9,5 @@ import com.splicemachine.stats.FloatUpdateable;
  */
 public interface FloatStatsCollector extends ColumnStatsCollector<Float>,FloatUpdateable {
 
-    FloatStatistics build();
+    FloatColumnStatistics build();
 }

@@ -13,7 +13,7 @@ import com.splicemachine.stats.frequency.FrequentElements;
  * @author Scott Fines
  *         Date: 2/23/15
  */
-public interface ColumnStatistics<T> extends Mergeable<ColumnStatistics<T>>, Encodeable {
+public interface ColumnStatistics<T> extends Mergeable<ColumnStatistics<T>> {
 
     /**
      * @return the cardinality of the Column values (e.g. the number of distinct

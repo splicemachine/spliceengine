@@ -52,6 +52,12 @@ public class EnumeratingByteCardinalityEstimator implements ByteCardinalityEstim
 
     @Override
     public CardinalityEstimator<Byte> merge(CardinalityEstimator<Byte> other) {
+        assert other instanceof  ByteCardinalityEstimator: "Cannot merge estimator of type "+ other.getClass();
+        return merge((ByteCardinalityEstimator)other);
+    }
+
+    @Override
+    public ByteCardinalityEstimator merge(ByteCardinalityEstimator other) {
         assert other instanceof EnumeratingByteCardinalityEstimator:
                 "Cannot merge byte estimator that is not of type EnumeratingByteCardinalityEstimator";
         BitSet otherBits = ((EnumeratingByteCardinalityEstimator)other).bitSet;

@@ -1,10 +1,13 @@
 package com.splicemachine.stats;
 
+import com.splicemachine.encoding.Encoder;
 import com.splicemachine.stats.cardinality.CardinalityEstimators;
 import com.splicemachine.stats.cardinality.IntCardinalityEstimator;
+import com.splicemachine.stats.cardinality.LongCardinalityEstimator;
 import com.splicemachine.stats.frequency.FrequencyCounters;
 import com.splicemachine.stats.frequency.FrequentElements;
 import com.splicemachine.stats.frequency.IntFrequentElements;
+import com.splicemachine.stats.frequency.LongFrequentElements;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -66,25 +69,30 @@ public class IntColumnStatistics implements ColumnStatistics<Integer>{
         return this;
     }
 
-    @Override
-    public void encode(DataOutput encoder) throws IOException {
-        encoder.writeInt(min);
-        encoder.writeInt(max);
-        encoder.writeLong(totalBytes);
-        encoder.writeLong(totalCount);
-        encoder.writeLong(nullCount);
-        CardinalityEstimators.intEncoder().encode(cardinalityEstimator, encoder);
-        FrequencyCounters.intEncoder().encode(frequentElements,encoder);
-    }
+    static class EncDec implements Encoder<IntColumnStatistics> {
+        public static final EncDec INSTANCE = new EncDec();
 
-    @Override
-    public void decode(DataInput decoder) throws IOException {
-        min  = decoder.readInt();
-        max = decoder.readInt();
-        totalBytes = decoder.readLong();
-        totalCount = decoder.readLong();
-        nullCount = decoder.readLong();
-        cardinalityEstimator = CardinalityEstimators.intEncoder().decode(decoder);
-        frequentElements = FrequencyCounters.intEncoder().decode(decoder);
+        @Override
+        public void encode(IntColumnStatistics item,DataOutput encoder) throws IOException {
+            encoder.writeInt(item.min);
+            encoder.writeInt(item.max);
+            encoder.writeLong(item.totalBytes);
+            encoder.writeLong(item.totalCount);
+            encoder.writeLong(item.nullCount);
+            CardinalityEstimators.intEncoder().encode(item.cardinalityEstimator, encoder);
+            FrequencyCounters.intEncoder().encode(item.frequentElements,encoder);
+        }
+
+        @Override
+        public IntColumnStatistics decode(DataInput decoder) throws IOException {
+            int min = decoder.readInt();
+            int max = decoder.readInt();
+            long totalBytes = decoder.readLong();
+            long totalCount = decoder.readLong();
+            long nullCount = decoder.readLong();
+            IntCardinalityEstimator cardinalityEstimator = CardinalityEstimators.intEncoder().decode(decoder);
+            IntFrequentElements frequentElements = FrequencyCounters.intEncoder().decode(decoder);
+            return new IntColumnStatistics(cardinalityEstimator,frequentElements,min,max,totalBytes,totalCount,nullCount);
+        }
     }
 }

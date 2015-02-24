@@ -1,6 +1,6 @@
 package com.splicemachine.stats.collector;
 
-import com.splicemachine.stats.DoubleStatistics;
+import com.splicemachine.stats.DoubleColumnStatistics;
 import com.splicemachine.stats.DoubleUpdateable;
 
 /**
@@ -9,5 +9,5 @@ import com.splicemachine.stats.DoubleUpdateable;
  */
 public interface DoubleStatsCollector extends ColumnStatsCollector<Double>,DoubleUpdateable {
 
-    DoubleStatistics build();
+    DoubleColumnStatistics build();
 }

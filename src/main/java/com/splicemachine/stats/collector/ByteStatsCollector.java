@@ -1,6 +1,6 @@
 package com.splicemachine.stats.collector;
 
-import com.splicemachine.stats.ByteStatistics;
+import com.splicemachine.stats.ByteColumnStatistics;
 import com.splicemachine.stats.ByteUpdateable;
 
 /**
@@ -9,5 +9,5 @@ import com.splicemachine.stats.ByteUpdateable;
  */
 public interface ByteStatsCollector extends ColumnStatsCollector<Byte>,ByteUpdateable {
 
-    ByteStatistics build();
+    ByteColumnStatistics build();
 }

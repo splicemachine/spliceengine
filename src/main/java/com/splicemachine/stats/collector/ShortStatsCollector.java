@@ -1,6 +1,6 @@
 package com.splicemachine.stats.collector;
 
-import com.splicemachine.stats.ShortStatistics;
+import com.splicemachine.stats.ShortColumnStatistics;
 import com.splicemachine.stats.ShortUpdateable;
 
 /**
@@ -9,5 +9,5 @@ import com.splicemachine.stats.ShortUpdateable;
  */
 public interface ShortStatsCollector extends ColumnStatsCollector<Short>,ShortUpdateable{
 
-    ShortStatistics build();
+    ShortColumnStatistics build();
 }
