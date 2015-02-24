@@ -40,17 +40,17 @@ public interface TableStatistics {
     String tableId();
 
     /**
-     * @return a Distribution of partition statistics
+     * @return a Distribution of partition statistics.
      */
-    Distribution<PartitionStatistics> partitionStatistics();
+    List<PartitionStatistics> partitionStatistics();
 
     /**
-     * @return a Distribution of Server statistics
+     * @return a Distribution of Server statistics.
      */
-    Distribution<ServerStatistics> serverStats();
+    List<ServerStatistics> serverStats();
 
     /**
-     * @return Statistics about individual columns.
+     * @return Statistics about individual columns, aggregated over all partitions.
      */
     List<ColumnStatistics> columnStatistics();
 

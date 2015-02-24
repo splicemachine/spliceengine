@@ -1,6 +1,5 @@
 package com.splicemachine.stats;
 
-import com.splicemachine.encoding.Encodeable;
 import com.splicemachine.stats.frequency.FrequentElements;
 
 /**

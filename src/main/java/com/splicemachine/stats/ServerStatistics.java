@@ -1,5 +1,7 @@
 package com.splicemachine.stats;
 
+import java.util.List;
+
 /**
  * @author Scott Fines
  *         Date: 2/23/15
@@ -10,7 +12,7 @@ public interface ServerStatistics extends PartitionStatistics {
      * @return a distribution of partition statistics for partitions
      *         owned by this particular server
      */
-    Distribution<PartitionStatistics> partitionStats();
+    List<PartitionStatistics> partitionStats();
 
     /* ******************************************************************************************/
     /*Physical statistics*/
