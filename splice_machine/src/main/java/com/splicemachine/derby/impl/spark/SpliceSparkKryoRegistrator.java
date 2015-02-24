@@ -109,11 +109,17 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator {
         instance.setRegistrationRequired(false); //TODO set to true
 
         instance.register(ValueRow.class, new SparkValueRowSerializer<ValueRow>(){
-						@Override
-						protected ValueRow newType(int size) {
-								return new ValueRow(size);
-						}
-				});
+            @Override
+            protected ValueRow newType(int size) {
+                return new ValueRow(size);
+            }
+        });
+        instance.register(IndexValueRow.class, new SparkValueRowSerializer<IndexValueRow>(){
+            @Override
+            protected IndexValueRow newType(int size) {
+                return new IndexValueRow(new ValueRow(size));
+            }
+        });
         instance.register(GenericStorablePreparedStatement.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(DataTypeDescriptor.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(TypeDescriptorImpl.class,EXTERNALIZABLE_SERIALIZER);
