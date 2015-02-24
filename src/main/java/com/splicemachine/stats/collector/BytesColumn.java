@@ -12,7 +12,7 @@ import java.nio.ByteBuffer;
  * @author Scott Fines
  *         Date: 2/24/15
  */
-public class BytesColumn implements BytesColumnStatsCollector {
+class BytesColumn implements BytesColumnStatsCollector {
 
     private final BytesCardinalityEstimator cardinalityEstimator;
     private final BytesFrequencyCounter frequencyCounter;

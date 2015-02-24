@@ -9,7 +9,7 @@ import com.splicemachine.stats.order.LongMinMaxCollector;
  * @author Scott Fines
  *         Date: 2/24/15
  */
-public class LongColumn implements LongColumnStatsCollector {
+class LongColumn implements LongColumnStatsCollector {
     private final LongCardinalityEstimator cardinalityEstimator;
     private final LongFrequencyCounter frequencyCounter;
     private final LongMinMaxCollector minMaxCollector;

@@ -9,7 +9,7 @@ import com.splicemachine.stats.order.ByteMinMaxCollector;
  * @author Scott Fines
  *         Date: 2/24/15
  */
-public class ByteColumn implements ByteColumnStatsCollector {
+class ByteColumn implements ByteColumnStatsCollector {
 
     private final ByteCardinalityEstimator cardinalityEstimator;
     private final ByteFrequencyCounter frequencyCounter;

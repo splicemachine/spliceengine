@@ -9,7 +9,7 @@ import com.splicemachine.stats.order.DoubleMinMaxCollector;
  * @author Scott Fines
  *         Date: 2/24/15
  */
-public class DoubleColumn implements DoubleColumnStatsCollector {
+class DoubleColumn implements DoubleColumnStatsCollector {
 
     private final DoubleCardinalityEstimator cardinalityEstimator;
     private final DoubleFrequencyCounter frequencyCounter;

@@ -9,7 +9,7 @@ import com.splicemachine.stats.order.FloatMinMaxCollector;
  * @author Scott Fines
  *         Date: 2/24/15
  */
-public class FloatColumn implements FloatColumnStatsCollector {
+class FloatColumn implements FloatColumnStatsCollector {
     private final FloatCardinalityEstimator cardinalityEstimator;
     private final FloatFrequencyCounter frequencyCounter;
     private final FloatMinMaxCollector minMaxCollector;

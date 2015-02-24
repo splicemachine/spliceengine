@@ -11,7 +11,7 @@ import com.splicemachine.stats.order.ComparableMinMaxCollector;
  * @author Scott Fines
  *         Date: 2/24/15
  */
-public class ComparableColumn<T extends Comparable<T>> implements ColumnStatsCollector<T>,Updateable<T> {
+class ComparableColumn<T extends Comparable<T>> implements ColumnStatsCollector<T>,Updateable<T> {
     private final CardinalityEstimator<T> cardinalityEstimator;
     private final FrequencyCounter<T> frequencyCounter;
     private final ComparableMinMaxCollector<T> minMaxCollector;

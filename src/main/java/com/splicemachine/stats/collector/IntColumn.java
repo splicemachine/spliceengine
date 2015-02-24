@@ -1,7 +1,9 @@
 package com.splicemachine.stats.collector;
 
 import com.splicemachine.stats.IntColumnStatistics;
+import com.splicemachine.stats.cardinality.CardinalityEstimators;
 import com.splicemachine.stats.cardinality.IntCardinalityEstimator;
+import com.splicemachine.stats.frequency.FrequencyCounters;
 import com.splicemachine.stats.frequency.IntFrequencyCounter;
 import com.splicemachine.stats.order.IntMinMaxCollector;
 
@@ -11,7 +13,7 @@ import com.splicemachine.stats.order.IntMinMaxCollector;
  * @author Scott Fines
  *         Date: 2/23/15
  */
-public class IntColumn implements IntColumnStatsCollector {
+class IntColumn implements IntColumnStatsCollector {
     private final IntCardinalityEstimator cardinalityEstimator;
     private final IntFrequencyCounter frequencyCounter;
     private final IntMinMaxCollector minMaxCollector;

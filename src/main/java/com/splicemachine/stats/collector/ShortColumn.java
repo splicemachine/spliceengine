@@ -9,7 +9,7 @@ import com.splicemachine.stats.order.ShortMinMaxCollector;
  * @author Scott Fines
  *         Date: 2/24/15
  */
-public class ShortColumn implements ShortColumnStatsCollector {
+class ShortColumn implements ShortColumnStatsCollector {
     private final ShortCardinalityEstimator cardinalityEstimator;
     private final ShortFrequencyCounter frequencyCounter;
     private final ShortMinMaxCollector minMaxCollector;

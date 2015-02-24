@@ -7,7 +7,7 @@ import com.splicemachine.stats.frequency.BooleanFrequencyCounter;
  * @author Scott Fines
  *         Date: 2/24/15
  */
-public class BooleanColumn implements BooleanColumnStatsCollector {
+class BooleanColumn implements BooleanColumnStatsCollector {
     private final BooleanFrequencyCounter frequencyCounter;
 
     private long nullCount;

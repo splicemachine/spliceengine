@@ -27,6 +27,11 @@ public class CardinalityEstimators {
         return EnumeratingByteCardinalityEstimator.newEncoder();
     }
 
+
+    public static ShortCardinalityEstimator hyperLogLogShort(int precision){
+        return hyperLogLogShort(precision,DEFAULT_HASH_FUNCTION);
+    }
+
 		public static ShortCardinalityEstimator hyperLogLogShort(int precision, Hash64 hashFunction){
 				BaseLogLogCounter counter = SparseAdjustedHyperLogLogCounter.adjustedCounter(precision, hashFunction);
 				return new ShortHyperLogLog(counter);
@@ -128,6 +133,12 @@ public class CardinalityEstimators {
 
     public static <T> Encoder<CardinalityEstimator<T>> objectEncoder(){
         return new ObjectEncoder<>(DEFAULT_HASH_FUNCTION);
+    }
+
+
+    public static BytesCardinalityEstimator hyperLogLogBytes(int precision){
+        BaseLogLogCounter counter = SparseAdjustedHyperLogLogCounter.adjustedCounter(precision, DEFAULT_HASH_FUNCTION);
+        return new BytesHyperLogLog(counter);
     }
 
 		public static BytesCardinalityEstimator hyperLogLogBytes(int precision, Hash64 hashFunction){
