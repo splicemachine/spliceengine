@@ -6,6 +6,8 @@ import java.util.Map;
 import java.util.Set;
 
 import com.google.common.base.*;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -15,6 +17,7 @@ import com.splicemachine.derby.impl.sql.compile.MergeSortJoinStrategy;
 import com.splicemachine.derby.impl.sql.compile.NestedLoopJoinStrategy;
 import com.splicemachine.derby.impl.sql.compile.OrderByNode;
 
+import com.splicemachine.storage.*;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.compile.AccessPath;
 import org.apache.derby.iapi.sql.compile.JoinStrategy;
@@ -154,7 +157,23 @@ public class RSUtils {
             OptimizablePredicate p = pl.getOptPredicate(i);
             t.pushOptPredicate(p);
         }
+        PredicateList storeRestrictionList = t.storeRestrictionList;
+        for (int i = 0; i < storeRestrictionList.size(); ++i) {
+            OptimizablePredicate  pred = storeRestrictionList.getOptPredicate(i);
+            if (!contains(pl, pred)) {
+                pl.addOptPredicate(pred);
+            }
+        }
         return pl;
+    }
+
+    private static boolean contains(PredicateList pl, OptimizablePredicate pred) {
+        for (int i = 0; i < pl.size(); ++i) {
+            OptimizablePredicate  p = pl.getOptPredicate(i);
+            if (p == pred)
+                return true;
+        }
+        return false;
     }
 
     public static PredicateList getPreds(ProjectRestrictNode pr) throws StandardException {
