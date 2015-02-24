@@ -28,18 +28,6 @@ import com.splicemachine.test_tools.TableCreator;
  *         Date: 2/19/15
  */
 public class SimpleDateArithmeticIT {
-    private static Date theDate;
-    static {
-        // Added this static init because CDH 4.5 profile had a version of Jodatime
-        // that have parse - DateTime.parse("1988-12-26").toDate()
-        DateFormat format = new SimpleDateFormat("yyyy-MM-dd");
-        try {
-            theDate = format.parse("1988-12-26");
-        } catch (ParseException e) {
-            fail("Failed to parse date: "+e.getLocalizedMessage());
-        }
-    }
-
     private static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 
     private static SpliceSchemaWatcher schemaWatcher =
@@ -57,7 +45,7 @@ public class SimpleDateArithmeticIT {
             .withCreate(String.format("create table %s (s varchar(15), d date, t timestamp)", QUALIFIED_TABLE_NAME))
             .withInsert(String.format("insert into %s values(?,?,?)", QUALIFIED_TABLE_NAME))
             .withRows(rows(
-                row("2012-05-23", theDate, Timestamp.valueOf("2000-06-07 17:12:30"))))
+                row("2012-05-23", new SimpleDateFormat("yyyy-MM-dd").parse("1988-12-26"), Timestamp.valueOf("2000-06-07 17:12:30"))))
             .create();
     }
 

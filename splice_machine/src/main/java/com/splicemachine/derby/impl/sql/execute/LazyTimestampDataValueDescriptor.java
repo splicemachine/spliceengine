@@ -131,6 +131,13 @@ public class LazyTimestampDataValueDescriptor extends LazyDataValueDescriptor im
                                     DateTimeDataValue resultHolder)
             throws StandardException {
         forceDeserialization();
+        DateTimeDataValue resultHolderObject = resultHolder;
+        if (resultHolder != null) {
+            // if we don't pass the wrapped SQLTimestamp, we'll get a CCE in SQLTimestamp#timestampAdd()
+            if (resultHolder instanceof LazyTimestampDataValueDescriptor) {
+                resultHolder = (DateTimeDataValue) resultHolderObject.getObject();
+            }
+        }
         return dtdv.timestampAdd(intervalType, intervalCount, currentDate, resultHolder);
     }
 
