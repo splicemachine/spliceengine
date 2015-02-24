@@ -21,7 +21,8 @@ import java.util.concurrent.TimeUnit;
 
 
 import static com.splicemachine.constants.SIConstants.DEFAULT_FAMILY_BYTES;
-import static com.splicemachine.constants.SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING;
+import static com.splicemachine.constants.SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES;
+
 /**
  * Tests surrounding Asynchronous roll-foward queue testing
  * @author Scott Fines
@@ -251,7 +252,7 @@ public class AsyncRollForwardTest {
 						latch.await();
 						Result result2 = testUtility.readRaw(testRow,false);
 						final List<KeyValue> commitTimestamps2 = result2.getColumn(dataLib.encode(DEFAULT_FAMILY_BYTES),
-										dataLib.encode(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING));
+										SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES);
 						for (KeyValue c2 : commitTimestamps2) {
 								long timestamp = getTimestamp(new Object[]{t1,c2});
 								checker.check(t1,timestamp);

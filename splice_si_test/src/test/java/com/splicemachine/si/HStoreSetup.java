@@ -45,6 +45,7 @@ import java.util.Map.Entry;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.hbase.util.Bytes;
 
 public class HStoreSetup implements StoreSetup {
     static int nextBasePort = 12000;
@@ -108,7 +109,8 @@ public class HStoreSetup implements StoreSetup {
 						ZkUtils.getZkManager().initialize(configuration);
 						ZkUtils.initializeZookeeper();
 
-						tableSource = new TestHTableSource(testCluster,new String[]{SpliceConstants.DEFAULT_FAMILY,SIConstants.DEFAULT_FAMILY});
+            String familyString = Bytes.toString(SpliceConstants.DEFAULT_FAMILY_BYTES);
+            tableSource = new TestHTableSource(testCluster,new String[]{familyString, familyString});
             HBaseAdmin admin = testCluster.getHBaseAdmin();
             HTableDescriptor td = SpliceUtilities.generateTransactionTable();
             admin.createTable(td, SpliceUtilities.generateTransactionSplits());

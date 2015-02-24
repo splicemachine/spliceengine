@@ -165,7 +165,7 @@ public class CompactionTest {
 					Assert.assertTrue("no raw results should return after compaction - it is gone",result == null || result.isEmpty());
 				} else {
 					final List<KeyValue> commitTimestamps = result.getColumn(dataLib.encode(DEFAULT_FAMILY_BYTES),
-									dataLib.encode(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING));
+									SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES);
 					for (KeyValue c : commitTimestamps) {
 							timestampProcessor.apply(new Object[]{t0, c});
 							Assert.assertEquals(t0.getTxnId(), c.getTimestamp());
@@ -192,7 +192,7 @@ public class CompactionTest {
 				Result result = testUtility.readRaw(testKey + "-0");
 				final SDataLib dataLib = storeSetup.getDataLib();
 				final List<KeyValue> commitTimestamps = result.getColumn(dataLib.encode(DEFAULT_FAMILY_BYTES),
-								dataLib.encode(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN));
+								SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES);
 				for (KeyValue c : commitTimestamps) {
 						timestampProcessor.apply(new Object[]{t0, c});
 						Assert.assertEquals(t0.getTxnId(), c.getTimestamp());

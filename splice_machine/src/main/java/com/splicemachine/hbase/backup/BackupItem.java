@@ -238,7 +238,7 @@ public class BackupItem implements InternalTable {
         for (FileStatus stat : status) {
             String name = stat.getPath().getName();
             // We only care about Splice families, "V" and "P"
-            if (name.equals(SpliceConstants.DEFAULT_FAMILY)
+            if (name.equals(Bytes.toString(SpliceConstants.DEFAULT_FAMILY_BYTES))
                     || name.equals(SpliceConstants.SI_PERMISSION_FAMILY)) {
                 // we have a family directory, the hfile is inside it
                 byte[] family = Bytes.toBytes(stat.getPath().getName());

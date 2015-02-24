@@ -82,7 +82,7 @@ public class TestTransactionSetup {
         final STableReader reader = storeSetup.getReader();
         final STableWriter writer = storeSetup.getWriter();
 
-        final byte[] userColumnsFamilyName = Bytes.toBytes(SIConstants.DEFAULT_FAMILY);
+        final byte[] userColumnsFamilyName = SIConstants.DEFAULT_FAMILY_BYTES;
         family = dataLib.encode(userColumnsFamilyName);
         ageQualifier = dataLib.encode(Bytes.toBytes("age"));
         jobQualifier = dataLib.encode(Bytes.toBytes("job"));
