@@ -10,4 +10,10 @@ import com.splicemachine.stats.Updateable;
 public interface ColumnStatsCollector<E> extends Updateable<E>{
 
     ColumnStatistics<E> build();
+
+    void updateNull();
+
+    void updateNull(long count);
+
+    void updateSize(int size);
 }

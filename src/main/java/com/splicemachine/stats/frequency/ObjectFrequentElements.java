@@ -13,7 +13,7 @@ import java.util.*;
  * @author Scott Fines
  *         Date: 12/8/14
  */
-public abstract class ObjectFrequentElements<T> implements FrequentElements<T>,Mergeable<ObjectFrequentElements<T>> {
+public abstract class ObjectFrequentElements<T> implements FrequentElements<T>,Mergeable<FrequentElements<T>> {
 
 
     protected final Comparator<? super FrequencyEstimate<T>> frequencyComparator = new Comparator<FrequencyEstimate<T>>() {
@@ -92,9 +92,11 @@ public abstract class ObjectFrequentElements<T> implements FrequentElements<T>,M
 
     @Override
     @SuppressWarnings("unchecked")
-    public ObjectFrequentElements<T> merge(ObjectFrequentElements<T> other) {
+    public FrequentElements<T> merge(FrequentElements<T> other) {
+        assert other instanceof ObjectFrequentElements: "Cannot merge elements of type "+ other.getClass();
+        ObjectFrequentElements<T> oE = (ObjectFrequentElements<T>)other;
         NavigableSet<FrequencyEstimate<T>> merged = this.elements;
-        NavigableSet<FrequencyEstimate<T>> otherEstimates = other.elements;
+        NavigableSet<FrequencyEstimate<T>> otherEstimates = oE.elements;
         /*
          * We need to pick out *maxSize* most common elements from both sets. Since this
          * is relatively small data, we will maintain a set in occurrance order, and add everything
@@ -123,7 +125,7 @@ public abstract class ObjectFrequentElements<T> implements FrequentElements<T>,M
                 size++;
             }
         }
-        this.totalCount+=other.totalCount;
+        this.totalCount+=oE.totalCount;
         this.elements = rebuild(totalCount,topK);
 
         return this;
@@ -234,7 +236,7 @@ public abstract class ObjectFrequentElements<T> implements FrequentElements<T>,M
     }
 
 
-    static class EncoderDecoder<T> implements Encoder<ObjectFrequentElements<T>> {
+    static class EncoderDecoder<T> implements Encoder<FrequentElements<T>> {
         private final Comparator<? super T> comparator;
         private final Encoder<T> valueEncoder;
 
@@ -244,9 +246,11 @@ public abstract class ObjectFrequentElements<T> implements FrequentElements<T>,M
         }
 
         @Override
-        public void encode(ObjectFrequentElements<T> item, DataOutput dataInput) throws IOException {
-            dataInput.writeLong(item.totalCount);
-            encodeSet(item.elements,dataInput);
+        public void encode(FrequentElements<T> item, DataOutput dataInput) throws IOException {
+            assert item instanceof ObjectFrequentElements: " cannot encode elements of type "+ item.getClass();
+            ObjectFrequentElements<T> oE = (ObjectFrequentElements<T>)item;
+            dataInput.writeLong(oE.totalCount);
+            encodeSet(oE.elements,dataInput);
             if(item instanceof TopK) {
                 dataInput.writeBoolean(true);
                 dataInput.writeInt(((TopK)item).k);

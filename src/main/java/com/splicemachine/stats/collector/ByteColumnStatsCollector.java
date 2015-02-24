@@ -7,7 +7,7 @@ import com.splicemachine.stats.ByteUpdateable;
  * @author Scott Fines
  *         Date: 2/23/15
  */
-public interface ByteStatsCollector extends ColumnStatsCollector<Byte>,ByteUpdateable {
+public interface ByteColumnStatsCollector extends ColumnStatsCollector<Byte>,ByteUpdateable {
 
     ByteColumnStatistics build();
 }

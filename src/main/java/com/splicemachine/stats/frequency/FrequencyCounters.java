@@ -129,8 +129,8 @@ public class FrequencyCounters {
         return new ObjectSpaceSaver<>(ComparableComparator.<T>newComparator(),TABLE_HASH_FUNCTION,maxCounters,initialCounters, DEFAULT_LOAD_FACTOR);
     }
 
-    public static <T extends Comparable<T>> Encoder<ObjectFrequentElements<T>> objectEncoder(Encoder<T> valueEncoder){
-        return new ObjectFrequentElements.EncoderDecoder<>(valueEncoder,ComparableComparator.newComparator());
+    public static <T extends Comparable<T>> Encoder<FrequentElements<T>> objectEncoder(Encoder<T> valueEncoder){
+        return new ObjectFrequentElements.EncoderDecoder<>(valueEncoder,ComparableComparator.<T>newComparator());
     }
 
     public static <T> FrequencyCounter<T> counter(Comparator<T> comparator, int maxCounters,int initialCounters){
@@ -141,7 +141,7 @@ public class FrequencyCounters {
         return new ObjectSpaceSaver<>(comparator,TABLE_HASH_FUNCTION,maxCounters);
     }
 
-    public static <T> Encoder<ObjectFrequentElements<T>> objectEncoder(Encoder<T> valueEncoder,
+    public static <T> Encoder<FrequentElements<T>> objectEncoder(Encoder<T> valueEncoder,
                                                                        Comparator<? super T> comparator){
         return new ObjectFrequentElements.EncoderDecoder<>(valueEncoder,comparator);
     }

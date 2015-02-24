@@ -18,7 +18,7 @@ import java.io.IOException;
  */
 public class ComparableColumnStatistics<T extends Comparable<T>> implements ColumnStatistics<T> {
     private CardinalityEstimator<T> cardinalityEstimator;
-    private ObjectFrequentElements<T> frequentElements;
+    private FrequentElements<T> frequentElements;
     private T min;
     private T max;
 
@@ -27,7 +27,7 @@ public class ComparableColumnStatistics<T extends Comparable<T>> implements Colu
     private long nullCount;
 
     public ComparableColumnStatistics(CardinalityEstimator<T> cardinalityEstimator,
-                                      ObjectFrequentElements<T> frequentElements,
+                                      FrequentElements<T> frequentElements,
                                       T min,
                                       T max,
                                       long totalBytes,
@@ -88,7 +88,7 @@ public class ComparableColumnStatistics<T extends Comparable<T>> implements Colu
             long totalCount = decoder.readLong();
             long nullCount = decoder.readLong();
             CardinalityEstimator<T> cardinalityEstimator = CardinalityEstimators.<T>objectEncoder().decode(decoder);
-            ObjectFrequentElements<T> frequentElements = FrequencyCounters.objectEncoder(valueEncoder).decode(decoder);
+            FrequentElements<T> frequentElements = FrequencyCounters.objectEncoder(valueEncoder).decode(decoder);
             return new ComparableColumnStatistics<>(cardinalityEstimator,frequentElements,min,max,totalBytes,totalCount,nullCount);
         }
     }

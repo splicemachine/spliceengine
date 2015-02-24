@@ -7,7 +7,7 @@ import com.splicemachine.stats.FloatUpdateable;
  * @author Scott Fines
  *         Date: 2/23/15
  */
-public interface FloatStatsCollector extends ColumnStatsCollector<Float>,FloatUpdateable {
+public interface FloatColumnStatsCollector extends ColumnStatsCollector<Float>,FloatUpdateable {
 
     FloatColumnStatistics build();
 }
