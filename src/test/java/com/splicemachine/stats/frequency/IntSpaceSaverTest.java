@@ -164,7 +164,6 @@ public class IntSpaceSaverTest {
 
     private void fillPowersOf2(IntFrequencyCounter counter) {
         for (int i = -8; i < 8; i++) {
-            System.out.println(i);
             counter.update(i);
             if (i % 2 == 0) counter.update(i, 2);
             if (i % 4 == 0) counter.update(i, 4);

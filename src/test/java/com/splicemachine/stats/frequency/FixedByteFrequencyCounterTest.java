@@ -29,8 +29,7 @@ public class FixedByteFrequencyCounterTest {
         fillPowersOf2(byteCounter,(byte)0xF8,(byte)0x08);
 
         //get the multiples of 8
-        ByteFrequentElements po8Hitters = byteCounter.heavyHitters(0.20f);
-        checkPowersOf8(po8Hitters);
+        checkPowersOf8(byteCounter.heavyHitters(0.20f));
         checkPowersOf4(byteCounter.heavyHitters(0.10f));
     }
 

@@ -21,13 +21,13 @@ public class ByteHeavyHitters implements ByteFrequentElements {
     public ByteHeavyHitters(final long[] counts,float support) {
         this.counts = counts;
         this.support = support;
-        this.threshold = (long)support*totalCount;
         this.cachedFrequencies = new ByteFrequencyEstimate[counts.length];
         for(int i=0;i<counts.length;i++){
             ByteFrequency byteFrequency = new ByteFrequency((byte)i);
             this.cachedFrequencies[i] = byteFrequency;
             this.totalCount+=counts[i];
         }
+        this.threshold = (long)(support*totalCount);
     }
 
     @Override public ByteFrequencyEstimate countEqual(byte item) { return cachedFrequencies[item & 0xff]; }

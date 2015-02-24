@@ -29,16 +29,17 @@ public abstract class ObjectFrequentElements<T> implements FrequentElements<T>,M
     private Comparator<? super T> comparator;
     private long totalCount;
 
-    protected final Comparator<FrequencyEstimate<T>> naturalComparator = naturalComparator(comparator);
+    protected final Comparator<FrequencyEstimate<T>> naturalComparator;
 
     /*Private so that we can do polymorphism transparently*/
     private ObjectFrequentElements(long totalCount,
                                    Collection<FrequencyEstimate<T>> elements,
                                    Comparator<? super T> comparator) {
+        this.totalCount = totalCount;
+        this.comparator = comparator;
+        this.naturalComparator = naturalComparator(comparator);
         this.elements = new TreeSet<>(naturalComparator);
         this.elements.addAll(elements);
-        this.comparator = comparator;
-        this.totalCount = totalCount;
     }
 
     /* ********************************************************************************************/
@@ -77,17 +78,46 @@ public abstract class ObjectFrequentElements<T> implements FrequentElements<T>,M
                 return before(stop, includeStop);
         }else if(stop==null){
             return after(start, includeMin);
-        }else {
-            if (start.equals(stop)) {
-                if (includeMin || includeStop) return Collections.singleton(equal(start));
-                else return Collections.emptySet();
-            }
-            ZeroFreq s = new ZeroFreq(start);
-            FrequencyEstimate<T> startEst = elements.ceiling(s);
-            s.item = stop;
-            FrequencyEstimate<T> stopEst = elements.ceiling(s);
-            return Collections.unmodifiableSet(elements.subSet(startEst,includeMin,stopEst,includeStop));
         }
+
+        if (start.equals(stop)) {
+            if (includeMin || includeStop) return Collections.singleton(equal(start));
+            else return Collections.emptySet();
+        }
+
+        FrequencyEstimate<T> first = elements.first();
+        int compare = comparator.compare(first.getValue(),stop);
+        if(compare>0 || (!includeStop && compare==0)){
+            /*
+             * the start of our known range happens after the stop of the requested range,
+             * so it's empty
+             */
+            return Collections.emptySet();
+        }else if(includeStop && compare==0){
+            return Collections.singleton(first);
+        }
+
+        compare = comparator.compare(first.getValue(),start);
+        if(compare>0||(includeMin && compare==0))
+            return before(stop,includeStop);
+
+        FrequencyEstimate<T> last = elements.last();
+        compare = comparator.compare(last.getValue(),start);
+        if(compare<0 || (!includeMin && compare==0)){
+            return Collections.emptySet();
+        }else if(includeMin && compare==0){
+            return Collections.singleton(last);
+        }
+
+        compare = comparator.compare(last.getValue(),stop);
+        if(compare<0||(includeStop &&compare==0))
+            return after(start,includeMin);
+
+        ZeroFreq s = new ZeroFreq(start);
+        FrequencyEstimate<T> startEst = elements.ceiling(s);
+        s.item = stop;
+        FrequencyEstimate<T> stopEst = elements.ceiling(s);
+        return Collections.unmodifiableSet(elements.subSet(startEst,includeMin,stopEst,includeStop));
     }
 
     @Override
@@ -188,7 +218,8 @@ public abstract class ObjectFrequentElements<T> implements FrequentElements<T>,M
         if(firstCompare>0||(includeMin && firstCompare==0)) return Collections.unmodifiableSet(elements);
 
         ZeroFreq s = new ZeroFreq(start);
-        return Collections.unmodifiableSet(elements.tailSet(s, includeMin));
+        FrequencyEstimate<T> startRange = elements.ceiling(s);
+        return Collections.unmodifiableSet(elements.tailSet(startRange, includeMin));
     }
 
     private Set<? extends FrequencyEstimate<T>> before(T stop, boolean includeStop) {
@@ -203,7 +234,8 @@ public abstract class ObjectFrequentElements<T> implements FrequentElements<T>,M
         else if(!includeStop && lastCompare==0) return Collections.unmodifiableSet(elements.headSet(last, false));
 
         ZeroFreq s = new ZeroFreq(stop);
-        return Collections.unmodifiableSet(elements.headSet(s,includeStop));
+        FrequencyEstimate<T> endRange = elements.ceiling(s);
+        return Collections.unmodifiableSet(elements.headSet(endRange,includeStop));
     }
 
     private class ZeroFreq implements FrequencyEstimate<T> {
