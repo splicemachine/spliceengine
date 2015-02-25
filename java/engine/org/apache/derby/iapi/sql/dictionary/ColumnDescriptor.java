@@ -66,6 +66,7 @@ public final class ColumnDescriptor extends TupleDescriptor
 	private long				autoincStart;
 	private long				autoincInc;
 	private long				autoincValue;
+    private boolean collectStatistics;
 	//Following variable is used to see if the user is adding an autoincrement 
 	//column, or if user is altering the existing autoincrement column to change 
 	//the increment value or to change the start value. If none of the above,
@@ -156,50 +157,60 @@ public final class ColumnDescriptor extends TupleDescriptor
 
 	}
 
-	/**
-	 * Constructor for a ColumnDescriptor.  Used when
-	 * columnDescriptor doesn't know/care about a table
-	 * descriptor.
-	 *
-	 * @param columnName		The name of the column
-	 * @param columnPosition	The ordinal position of the column
-	 * @param columnType		A DataTypeDescriptor for the type of
-	 *				the column
-	 * @param columnDefault		A DataValueDescriptor representing the
-	 *							default value of the column, if any
-	 *							(null if no default)
-	 * @param columnDefaultInfo		The default info for the column.
-	 * @param uuid			A uuid for the object that this column
-	 *						is in.
-	 * @param defaultUUID			The UUID for the default, if any.
-	 * @param autoincStart	Start value for an autoincrement column.
-	 * @param autoincInc	Increment for autoincrement column
-	 * @param autoincValue	Current value of the autoincrement column
-	 */
-	public ColumnDescriptor(String columnName, int columnPosition,
-		DataTypeDescriptor columnType, DataValueDescriptor columnDefault,
-		DefaultInfo columnDefaultInfo,
-		UUID uuid,
-		UUID defaultUUID,
-        long autoincStart, long autoincInc, long autoincValue)
+    /**
+     * Constructor for a ColumnDescriptor.  Used when
+     * columnDescriptor doesn't know/care about a table
+     * descriptor.
+     *
+     * @param columnName		The name of the column
+     * @param columnPosition	The ordinal position of the column
+     * @param columnType		A DataTypeDescriptor for the type of
+     *				the column
+     * @param columnDefault		A DataValueDescriptor representing the
+     *							default value of the column, if any
+     *							(null if no default)
+     * @param columnDefaultInfo		The default info for the column.
+     * @param uuid			A uuid for the object that this column
+     *						is in.
+     * @param defaultUUID			The UUID for the default, if any.
+     * @param autoincStart	Start value for an autoincrement column.
+     * @param autoincInc	Increment for autoincrement column
+     * @param autoincValue	Current value of the autoincrement column
+     */
+    public ColumnDescriptor(String columnName, int columnPosition,
+                            DataTypeDescriptor columnType, DataValueDescriptor columnDefault,
+                            DefaultInfo columnDefaultInfo,
+                            UUID uuid,
+                            UUID defaultUUID,
+                            long autoincStart, long autoincInc, long autoincValue) {
+        this(columnName,columnPosition,columnType,columnDefault,columnDefaultInfo,
+                uuid,defaultUUID,autoincStart,autoincInc,autoincValue,false); //don't collect stats by default
+    }
 
-	{
-		this.columnName = columnName;
-		this.columnPosition = columnPosition;
-		this.columnType = columnType;
-		this.columnDefault = columnDefault;
-		this.columnDefaultInfo = columnDefaultInfo;
-		this.uuid = uuid;
-		this.defaultUUID = defaultUUID;
+    public ColumnDescriptor(String columnName, int columnPosition,
+                            DataTypeDescriptor columnType, DataValueDescriptor columnDefault,
+                            DefaultInfo columnDefaultInfo,
+                            UUID uuid,
+                            UUID defaultUUID,
+                            long autoincStart, long autoincInc, long autoincValue,
+                            boolean collectStats) {
+        this.columnName = columnName;
+        this.columnPosition = columnPosition;
+        this.columnType = columnType;
+        this.columnDefault = columnDefault;
+        this.columnDefaultInfo = columnDefaultInfo;
+        this.uuid = uuid;
+        this.defaultUUID = defaultUUID;
+        this.collectStatistics = collectStats;
 
-		assertAutoinc(autoincInc!=0,
-			      autoincInc,
-			      columnDefaultInfo);
-		
-		this.autoincStart = autoincStart;
-		this.autoincValue = autoincValue;
-		this.autoincInc = autoincInc;
-	}
+        assertAutoinc(autoincInc!=0,
+                autoincInc,
+                columnDefaultInfo);
+
+        this.autoincStart = autoincStart;
+        this.autoincValue = autoincValue;
+        this.autoincInc = autoincInc;
+    }
 
 	/**
 	 * Get the UUID of the object the column is a part of.
@@ -352,6 +363,17 @@ public final class ColumnDescriptor extends TupleDescriptor
 	{
 		return false;
 	}
+
+    /**
+     * @return {@code true} if statistics for this column is to be collected.
+     */
+    public boolean collectStatistics(){
+        return collectStatistics;
+    }
+
+    public void setCollectStatistics(boolean collectStatistics){
+        this.collectStatistics = collectStatistics;
+    }
 
 	/**
 	 * Is this column a generated column
