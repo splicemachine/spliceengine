@@ -107,7 +107,7 @@ public class SYSPRIMARYKEYSRowFactory extends CatalogRowFactory {
 
     public static void main(String... args) throws Exception{
 
-        BasicUUID one = new BasicUUID(50369424,1362416594897l,136724498);
+        BasicUUID one = new BasicUUID(50369424,System.currentTimeMillis(),136724499);
 
         BasicUUID two = new BasicUUID(50369424,1362416594897l,-1607811053);
 

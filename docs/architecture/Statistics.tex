@@ -190,19 +190,26 @@ Now that we have a clear image of what, precisely, we are collecting within our 
 
 There will ultimately be two modes of collections: \emph{manual} and \emph{automatic}. Manual mode will be implemented first, as it is simpler to implement and test, while automatic mode will be initiated afterwards.
 
+\subsection{Staleness Detection and Progress Marking}
+Periodically collected statistics will become increasingly \emph{stale} over time, until a point at which it is unlikely that existing statistics will provide accurate information; new statistics will be required to correct for the changed data set. As most statistics are changed only after a mutation, we will keep track of the number of mutation operations against a region. When that number exceeds a (configurable) threshold, we know that that region's statistics are likely stale\footnote{We say \emph{likely} here because we are not accounting for rolled-back transactions. It's possible that the operations we record at each region will be rolled back at a later date, leaving statistics unchanged.}. 
+
+When an administrator requests a statistics collection, then she will have the option to only collect statistics for regions which are known to be stale. This will prevent extraneous collections from occurring when they are not necessary. However, there are some scenarios in which the administrator is likely to know better than our staleness detectors, so we will also include a mechanism to force a new collection for all regions.
+
+When a collection is triggered, it will first mark itself as \emph{in progress}. While a collection is marked as in progress, concurrent attempts to force a collection of that region will not be initiated.
+
 \subsection{Manual Collection Mode}
 Manual collection mode consists of a set of stored procedures, which will be used to initiate statistics gathering in a variety of different ways.
 
 First, we will allow granularity of gathering, so that an administrator is not required to initiate collection for the entire database every time. In particular, we will have the following stored procedures:
 
 \begin{description}
-				\item[\texttt{COLLECT\_ALL\_STATISTICS()}] Will collect statistics for every table and index in the database. This will likely be excessively expensive.
-				\item[\texttt{COLLECT\_SCHEMA\_STATISTICS('SCHEMA')}] Will collect statistics for every table and index in the specified \texttt{SCHEMA}. 
-				\item[\texttt{COLLECT\_TABLE\_STATISTICS('SCHEMA','TABLE')}] Will collect statistics for the specified table or index.
-				\item[\texttt{COLLECT\_COLUMN\_STATISTICS('SCHEMA','TABLE','COLUMNS')}] Will collect statistics for one or more specified columns in the particular table.
-								\item[\texttt{COLLECT\_REGION\_STATISTICS('SCHEMA','TABLE','start key','stop key')}] For primary keyed tables and indices, this will collect statistics for a specified region of a table. This is useful for forcing statistics collection after a manual split, for example.
+				\item[\texttt{COLLECT\_ALL\_STATISTICS(STALE\_ONLY)}] Will collect statistics for every table and index in the database. This will likely be excessively expensive.
+				\item[\texttt{COLLECT\_SCHEMA\_STATISTICS('SCHEMA',STALE\_ONLY)}] Will collect statistics for every table and index in the specified \texttt{SCHEMA}. 
+				\item[\texttt{COLLECT\_TABLE\_STATISTICS('SCHEMA','TABLE',STALE\_ONLY)}] Will collect statistics for the specified table or index.
+				\item[\texttt{COLLECT\_COLUMN\_STATISTICS('SCHEMA','TABLE','COLUMNS',STALE\_ONLY)}] Will collect statistics for one or more specified columns in the particular table.
+				\item[\texttt{COLLECT\_REGION\_STATISTICS('SCHEMA','TABLE','start key','stop key',STALE\_ONLY)}] For primary keyed tables and indices, this will collect statistics for a specified region of a table. This is useful for forcing statistics collection after a manual split, for example.
 \end{description}
-This will allow administrators some control over the resource usage of the collection tasks. Note, however, that collection always occurs within a maintenance task frame, so the number of available tasks for execution are limited.
+This will allow administrators some control over the resource usage of the collection tasks\footnote{Note that \emph{STALE\_ONLY} indicates that only regions which are known to be stale will be collected}. Note, however, that collection always occurs within a maintenance task frame, so the number of available tasks for execution are limited. 
 
 \subsection{Automatic Collection Mode}
 Ultimately, an automatic collection mode will be an effective tool. When automatic collection is enabled, an individual region will keep watch on how many mutations are received. When a threshold of mutations has been reached, it will schedule a new gathering task for itself, to be executed \emph{after} the rate of mutations received has decreased to a smaller volume. This way, individual regions can proactively adjust their statistics information without interfering excessively with ongoing writes. 
@@ -212,6 +219,7 @@ These tasks will be queued in such a way as to guarantee that
 \begin{enumerate}
 				\item No Region may collect statistics more than a fixed number of times in a given period of time.
 				\item No more than one statistics task for a region can be queued at a time--others tasks are merged in to the process.
+				\item Data reads for statistics are rate limited to prevent overloading the JVM.
 \end{enumerate}
 
 \subsection{Transactions}
@@ -238,13 +246,15 @@ Table statistics are stored in the \texttt{sys\_table\_statistics} table, whose 
 				\begin{tabular}{|l|c|p{6cm}|}
 								\hline
 								\bf{Name}									& \bf{Type}	&	\bf{Description} \\ \hline	
-								\texttt{conglom\_id}			&	bigint	&	The conglomerate id for the table \\ \hline
-								\texttt{region\_id}				&	varchar	&	the region identifier \\ \hline
-								\texttt{num\_rows}				&	bigint	& RowCount \\ \hline
-								\texttt{region\_size}			&	bigint	&	Total size of region (in bytes) \\ \hline
-								\texttt{mean\_row\_width}	&	integer	&	mean row width (in bytes) \\ \hline
-								\texttt{mean\_key\_width}	&	integer	&	mean key width (in bytes) \\ \hline
-								\texttt{query\_count}			&	bigint	&	Total number of queries issued \\ \hline
+								\texttt{conglom\_id}			&	bigint		&	Conglomerate id for the table \\ \hline
+								\texttt{region\_id}				&	varchar		&	Region identifier \\ \hline
+								\texttt{timestamp}				& timestamp	&	Timestamp of last collection \\ \hline	
+								\texttt{is\_stale}				&	boolean		&	Flag for when statistics are stale \\ \hline
+								\texttt{in\_progress}			&	boolean		&	Flag to indicate a collection is in progress \\ \hline
+								\texttt{num\_rows}				&	bigint		& RowCount \\ \hline
+								\texttt{region\_size}			&	bigint		&	Total size of region (in bytes) \\ \hline
+								\texttt{mean\_row\_width}	&	integer		&	Mean row width (in bytes) \\ \hline
+								\texttt{query\_count}			&	bigint		&	Total number of queries issued \\ \hline
 				\end{tabular}
 				\caption{\texttt{sys\_table\_statistics} table schema}
 				\label{table:tableStatistics}
@@ -365,6 +375,8 @@ However, physical statistics are useful for a large number of monitoring tools, 
 								\bf{Name}													& \bf{Type}	&	\bf{Description} \\ \hline	
 								\texttt{server\_ip}								&	varchar		&	IP address of server \\ \hline
 								\texttt{hostname}									&	varchar		&	Hostname of server \\ \hline
+								\texttt{timestamp}								&	timestamp	&	Last time statistics were collected \\ \hline
+								\texttt{is\_stale}								&	boolean		&	Flag for marking statistics as stale \\ \hline
 								\texttt{num\_cpus}								&	integer		& Number of CPUs \\ \hline
 								\texttt{max\_heap\_size}					&	integer		&	Max heap size (in bytes)\\ \hline
 								\texttt{max\_block\_cache\_size}	&	integer		&	Max block cache size (in bytes) \\ \hline
