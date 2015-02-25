@@ -34,7 +34,7 @@
 				<artifactId>maven-protoc-plugin</artifactId>
 				<configuration>
 					<protocExecutable>protoc</protocExecutable>
-					<protoSourceRoot>${project.basedir}/../../splice_protocol/src/main/protobuf</protoSourceRoot>
+					<protoSourceRoot>${project.basedir}/src/main/protobuf</protoSourceRoot>
 				</configuration>
 				<executions>
 					<execution>
@@ -44,6 +44,16 @@
 						</goals>
 					</execution>
 				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jar-plugin</artifactId>
+				<configuration>
+					<excludes>
+						<exclude>**/org/apache/hadoop/hbase/protobuf/generated/*Proto*</exclude>
+						<exclude>**/*.proto</exclude>
+					</excludes>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>

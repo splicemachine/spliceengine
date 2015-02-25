@@ -21,6 +21,7 @@
 	<modules>
 		<module>splice_constants</module>
 		<module>splice_si</module>
+		<!-- <module>splice_protocol</module> -->
 		<module>splice_si_adapter_94</module>
 		<module>splice_si_test</module>
 		<module>splice_machine</module>
@@ -28,7 +29,11 @@
 		<module>splice_machine_test</module>
 	</modules>
 	<dependencies>
-		<!-- 		<dependency> <groupId>com.google.protobuf</groupId> <artifactId>protobuf-java</artifactId> <version>2.4.1</version> </dependency> -->
+		<!-- <dependency>
+			<groupId>com.google.protobuf</groupId>
+			<artifactId>protobuf-java</artifactId>
+			<version>2.4.1</version>
+		</dependency> -->
 		<dependency>
 			<groupId>com.carrotsearch</groupId>
 			<artifactId>hppc</artifactId>
