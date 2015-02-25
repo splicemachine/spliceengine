@@ -61,9 +61,9 @@ public class MultiRegionIT {
                                 ps.execute();
                             }
                         }
-                        //spliceClassWatcher.splitTable(TABLE_NAME, SCHEMA_NAME, 250);
-                        //spliceClassWatcher.splitTable(TABLE_NAME, SCHEMA_NAME, 500);
-                        //spliceClassWatcher.splitTable(TABLE_NAME, SCHEMA_NAME, 750);
+                        spliceClassWatcher.splitTable(TABLE_NAME, SCHEMA_NAME, 250);
+                        spliceClassWatcher.splitTable(TABLE_NAME, SCHEMA_NAME, 500);
+                        spliceClassWatcher.splitTable(TABLE_NAME, SCHEMA_NAME, 750);
 
                     } catch (Exception e) {
                         throw new RuntimeException(e);
@@ -139,12 +139,5 @@ public class MultiRegionIT {
         HBaseAdmin admin = SpliceUtils.getAdmin();
         List<HRegionInfo> regions = admin.getTableRegions(Bytes.toBytes(Long.toString(conglomId)));
         return regions.size();
-    }
-
-    @Test
-    public void testSplit() throws Exception{
-        spliceClassWatcher.splitTable(TABLE_NAME, SCHEMA_NAME, 250);
-        spliceClassWatcher.splitTable(TABLE_NAME, SCHEMA_NAME, 500);
-        spliceClassWatcher.splitTable(TABLE_NAME, SCHEMA_NAME, 750);
     }
 }
