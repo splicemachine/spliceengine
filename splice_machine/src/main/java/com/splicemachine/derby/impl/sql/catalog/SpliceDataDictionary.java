@@ -229,7 +229,11 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
         return taskHistoryTable;
     }
 
-    public void createFujiTables(TransactionController tc) throws StandardException{
+    public void createStatisticsTables(TransactionController tc) throws StandardException{
+
+    }
+
+    public void createXplainTables(TransactionController tc) throws StandardException{
     	SchemaDescriptor systemSchemaDescriptor = getSystemSchemaDescriptor();
 
     	//create SYSSTATEMENTHISTORY
@@ -265,12 +269,17 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
                                           TransactionController tc,
                                           DataDescriptorGenerator ddg)
             throws StandardException {
+        //create the base dictionary tables
         super.createDictionaryTables(params, tc, ddg);
 
         //create SYSPRIMARYKEYS
         makeCatalog(getPkTable(), getSystemSchemaDescriptor(), tc);
 
-        createFujiTables(tc);
+        //create XPLAIN tables
+        createXplainTables(tc);
+
+        //create the Statistics tables
+        createStatisticsTables(tc);
 
     }
     
