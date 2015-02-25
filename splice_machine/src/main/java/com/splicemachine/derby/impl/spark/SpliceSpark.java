@@ -110,6 +110,8 @@ public class SpliceSpark {
         conf.set("spark.kryoserializer.buffer.max.mb", "128");
         conf.set("spark.executor.extraJavaOptions", extraOpts);
         conf.set("spark.kryo.referenceTracking", "false");
+        conf.set("spark.storage.memoryFraction", "0.1"); // no caching at the moment
+        conf.set("spark.shuffle.memoryFraction", "0.7");
 //        conf.set("spark.kryo.registrationRequired", "true");
         if (master.startsWith("local[8]")) {
             conf.set("spark.cores.max", "8");
