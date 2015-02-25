@@ -509,14 +509,16 @@ public class SITransactor<Data,Table,
      * updating transaction started.
      */
     private ConflictResults ensureNoWriteConflict(TxnView updateTransaction, Result result) throws IOException {
-    	// XXX TODO jleach: Create a filter to determine this conflict, no reason to materialize a lot of data across the wire.
-    	final ConflictResults timestampConflicts = checkTimestampsHandleNull(updateTransaction,
-              dataLib.getColumnLatest(result, SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES),
-              dataLib.getColumnLatest(result, SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES),
-              dataLib.getColumnLatest(result, SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES)
-      );
-        boolean hasTombstone = hasCurrentTransactionTombstone(updateTransaction,
-        		dataLib.getColumnLatest(result, SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES));
+        Data commitTsKeyValue = dataLib.getColumnLatest(result, SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES);
+        Data tombstoneKeyValue = dataLib.getColumnLatest(result, SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES);
+        Data userDataKeyValue = dataLib.getColumnLatest(result, SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES);
+
+        ConflictResults timestampConflicts = checkTimestampsHandleNull(updateTransaction,
+                commitTsKeyValue,
+                tombstoneKeyValue,
+                userDataKeyValue);
+
+        boolean hasTombstone = hasCurrentTransactionTombstone(updateTransaction, tombstoneKeyValue);
         timestampConflicts.tombstone(hasTombstone);
 //        if (LOG.isTraceEnabled()) LOG.trace(String.format("ensureNoWriteConflict: hasTombstone = %s", hasTombstone));
         return timestampConflicts;
