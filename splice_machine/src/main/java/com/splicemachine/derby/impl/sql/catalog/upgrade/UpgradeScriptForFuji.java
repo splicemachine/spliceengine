@@ -1,13 +1,10 @@
 package com.splicemachine.derby.impl.sql.catalog.upgrade;
 
-import java.util.HashSet;
-
 import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 
 import org.apache.derby.catalog.AliasInfo;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.store.access.TransactionController;
-import org.apache.derby.impl.sql.catalog.SystemProcedureGenerator;
 import org.apache.log4j.Logger;
 
 /**
@@ -23,7 +20,7 @@ public class UpgradeScriptForFuji extends UpgradeScriptBase {
     @Override
     protected void upgradeSystemTables() throws StandardException {
         if (LOG.isInfoEnabled()) LOG.info("Creating 1.0.0 system tables");
-        sdd.createFujiTables(tc);
+        sdd.createXplainTables(tc);
     }
 
     @Override
