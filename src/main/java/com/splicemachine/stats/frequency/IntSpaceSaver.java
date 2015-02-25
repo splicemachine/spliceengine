@@ -12,7 +12,7 @@ import java.util.Comparator;
  * @author Scott Fines
  *         Date: 2/18/15
  */
-public class IntSpaceSaver extends ObjectSpaceSaver<Integer> implements IntFrequencyCounter {
+class IntSpaceSaver extends ObjectSpaceSaver<Integer> implements IntFrequencyCounter {
     private static final Comparator<Integer> comparator = new Comparator<Integer>() {
         @Override
         public int compare(Integer o1, Integer o2) {

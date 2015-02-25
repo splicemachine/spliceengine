@@ -11,7 +11,7 @@ import java.util.*;
  * @author Scott Fines
  *         Date: 12/5/14
  */
-public class ByteHeavyHitters implements ByteFrequentElements {
+class ByteHeavyHitters implements ByteFrequentElements {
     private final long[] counts;
     private final ByteFrequencyEstimate[] cachedFrequencies;
     private final float support;

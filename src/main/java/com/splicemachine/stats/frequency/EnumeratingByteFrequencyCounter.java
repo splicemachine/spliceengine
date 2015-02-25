@@ -6,7 +6,7 @@ import java.util.Arrays;
  * @author Scott Fines
  * Date: 3/26/14
  */
-public class EnumeratingByteFrequencyCounter implements ByteFrequencyCounter {
+class EnumeratingByteFrequencyCounter implements ByteFrequencyCounter {
 		private final long[] counts = new long[256];
 
 		@Override public void update(byte item) { update(item,1l); }

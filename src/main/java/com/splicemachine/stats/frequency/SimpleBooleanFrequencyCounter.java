@@ -12,7 +12,7 @@ import java.util.*;
  * @author Scott Fines
  * Date: 3/26/14
  */
-public class SimpleBooleanFrequencyCounter implements BooleanFrequencyCounter {
+class SimpleBooleanFrequencyCounter implements BooleanFrequencyCounter {
 		private Frequency trueFrequency = new Frequency(true);
 		private Frequency falseFrequency = new Frequency(false);
 

@@ -9,6 +9,10 @@ import java.util.Set;
  * of data (e.g. finding all elements in the set which occur
  * more than {@code s} times, for a user-specified {@code s}).
  *
+ * For more information on the Frequent elements problem, see the package javadoc.
+ *
+ * Implementations are not required to be thread-safe (although they are allowed to be if they choose).
+ *
  * @author Scott Fines
  * Date: 1/12/14
  */

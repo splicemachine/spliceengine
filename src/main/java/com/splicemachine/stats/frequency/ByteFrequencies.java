@@ -13,7 +13,7 @@ import java.util.Set;
  * @author Scott Fines
  *         Date: 12/5/14
  */
-public class ByteFrequencies implements ByteFrequentElements {
+class ByteFrequencies implements ByteFrequentElements {
     /*
      * MaxHeap of possible frequencies. This has a fixed size, so
      * as elements are added, elements which are too small to fit in the

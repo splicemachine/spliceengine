@@ -12,7 +12,7 @@ import java.util.Collection;
  * @author Scott Fines
  *         Date: 2/18/15
  */
-public class BytesSpaceSaver extends ObjectSpaceSaver<byte[]> implements BytesFrequencyCounter {
+class BytesSpaceSaver extends ObjectSpaceSaver<byte[]> implements BytesFrequencyCounter {
     private static final Function<? super FrequencyEstimate<byte[]>,BytesFrequencyEstimate> castFunction = new Function<FrequencyEstimate<byte[]>, BytesFrequencyEstimate>() {
         @Override
         public BytesFrequencyEstimate apply(FrequencyEstimate<byte[]> input) {

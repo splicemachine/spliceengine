@@ -12,7 +12,7 @@ import java.util.Comparator;
  * @author Scott Fines
  *         Date: 2/18/15
  */
-public class FloatSpaceSaver extends ObjectSpaceSaver<Float> implements FloatFrequencyCounter{
+class FloatSpaceSaver extends ObjectSpaceSaver<Float> implements FloatFrequencyCounter{
     private static final Comparator<Float> comparator = new Comparator<Float>() {
         @Override
         public int compare(Float o1, Float o2) {

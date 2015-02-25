@@ -9,7 +9,7 @@ import java.util.Set;
  * @author Scott Fines
  *         Date: 12/5/14
  */
-public class SimpleBooleanFrequentElements implements BooleanFrequentElements {
+class SimpleBooleanFrequentElements implements BooleanFrequentElements {
     private Freq trueValue;
     private Freq falseValue;
 

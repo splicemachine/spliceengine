@@ -14,7 +14,7 @@ import java.util.Comparator;
  *         Date: 12/8/14
  */
 @NotThreadSafe
-public class ObjectSpaceSaver<T> implements FrequencyCounter<T> {
+class ObjectSpaceSaver<T> implements FrequencyCounter<T> {
     private final Comparator<? super T> comparator;
     protected final Hash32 hashFunction;
     private final float loadFactor;

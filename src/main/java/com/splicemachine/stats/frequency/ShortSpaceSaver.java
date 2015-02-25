@@ -12,7 +12,7 @@ import java.util.Comparator;
  * @author Scott Fines
  *         Date: 2/18/15
  */
-public class ShortSpaceSaver extends ObjectSpaceSaver<Short> implements ShortFrequencyCounter{
+class ShortSpaceSaver extends ObjectSpaceSaver<Short> implements ShortFrequencyCounter{
     private static final Comparator<Short> comparator = new Comparator<Short>() {
         @Override
         public int compare(Short o1, Short o2) {
