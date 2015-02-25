@@ -459,8 +459,8 @@ public class OnceOperation extends SpliceBaseOperation {
     @Override
     public SpliceNoPutResultSet executeRDD(SpliceRuntimeContext runtimeContext) throws StandardException {
         JavaRDD<ExecRow> rdd = getRDD(runtimeContext, this);
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("RDD for operation " + this + " :\n " + rdd.toDebugString());
+        if (LOG.isInfoEnabled()) {
+            LOG.info("RDD for operation " + this + " :\n " + rdd.toDebugString());
         }
         return new SpliceNoPutResultSet(getActivation(), this,
                 new RDDRowProvider(rdd, runtimeContext){
