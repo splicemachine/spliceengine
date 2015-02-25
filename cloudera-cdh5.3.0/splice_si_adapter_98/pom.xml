@@ -32,23 +32,25 @@
 		</dependency>
 	</dependencies>
 	<build>
-		<!-- <directory>${project.basedir}/target</directory> -->
-		<!-- <outputDirectory>${project.build.directory}/classes</outputDirectory> -->
-		<!-- <finalName>${project.artifactId}-${project.version}</finalName> -->
-		<!-- <testOutputDirectory>${project.build.directory}/test-classes</testOutputDirectory> -->
-		<sourceDirectory>${project.basedir}</sourceDirectory>
-		<!-- <scriptSourceDirectory>src/main/scripts</scriptSourceDirectory> -->
-		<!-- <testSourceDirectory>${project.basedir}/src/test/java</testSourceDirectory> -->
 		<plugins>
 			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-compiler-plugin</artifactId>
-				<configuration>
-					<includes>
-						<include>src/main/java/**/*.java</include>
-						<include>src_platform/main/java/**/*.java</include>
-					</includes>
-				</configuration>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>build-helper-maven-plugin</artifactId>
+				<version>1.9.1</version>
+				<executions>
+					<execution>
+						<id>add-platform-source</id>
+						<phase>generate-sources</phase>
+						<goals>
+							<goal>add-source</goal>
+						</goals>
+						<configuration>
+							<sources>
+								<source>src_platform/main/java</source>
+							</sources>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
