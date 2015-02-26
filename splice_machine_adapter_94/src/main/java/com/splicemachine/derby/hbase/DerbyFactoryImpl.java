@@ -15,11 +15,12 @@ import java.util.Map;
 import java.util.SortedSet;
 
 import com.splicemachine.derby.impl.sql.execute.operations.SparkUtilsImpl;
+
 import javax.management.MBeanServerConnection;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 import javax.management.remote.JMXConnector;
-
+import com.splicemachine.mrio.api.SpliceRegionScanner;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.iapi.error.StandardException;
@@ -81,6 +82,7 @@ import com.splicemachine.hase.debug.HBaseEntryPredicateFilter;
 import com.splicemachine.hbase.HBaseRegionLoads;
 import com.splicemachine.hbase.ThrowIfDisconnected;
 import com.splicemachine.hbase.jmx.JMXUtils;
+import com.splicemachine.mrio.api.SplitRegionScanner;
 import com.splicemachine.pipeline.api.BulkWritesInvoker.Factory;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.pipeline.impl.BulkWritesRPCInvoker;
@@ -546,4 +548,9 @@ public class DerbyFactoryImpl implements DerbyFactory<SparseTxn> {
         public SparkUtils getSparkUtils() {
             return new SparkUtilsImpl();
         }
+        
+		@Override
+		public SpliceRegionScanner getSplitRegionScanner(Scan scan, HTable htable) throws IOException {
+			return new SplitRegionScanner(scan,htable);
+		}
 }
