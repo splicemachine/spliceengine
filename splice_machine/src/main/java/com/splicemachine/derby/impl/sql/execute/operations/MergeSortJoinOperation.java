@@ -472,11 +472,11 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         JavaPairRDD<ExecRow, ExecRow> leftRDD = RDDUtils.getKeyedRDD(leftResultSet.getRDD(spliceLRuntimeContext, leftResultSet), leftHashKeys);
         JavaPairRDD<ExecRow, ExecRow> rightRDD = RDDUtils.getKeyedRDD(rightResultSet.getRDD(spliceRRuntimeContext, rightResultSet), rightHashKeys);
 
-        JavaPairRDD<ExecRow, ExecRow> sortedRight = rightRDD.sortByKey(new RowComparator(new boolean[rightHashKeys.length]));
-        JavaPairRDD<ExecRow, ExecRow> sortedLeft = leftRDD.repartitionAndSortWithinPartitions(sortedRight.rdd().partitioner().get(), new RowComparator(new boolean[leftHashKeys.length]));
+//        JavaPairRDD<ExecRow, ExecRow> sortedRight = rightRDD.sortByKey(new RowComparator(new boolean[rightHashKeys.length]));
+//        JavaPairRDD<ExecRow, ExecRow> sortedLeft = leftRDD.repartitionAndSortWithinPartitions(rightRDD.rdd().partitioner().get(), new RowComparator(new boolean[leftHashKeys.length]));
 
         final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this, runtimeContext);
-        return joinRDDs(sortedLeft, sortedRight, soi)
+        return joinRDDs(leftRDD, rightRDD, soi)
                 .values().map(new SetupActivation(this, soi));
     }
 
