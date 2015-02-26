@@ -111,34 +111,20 @@ public class SpliceIndexObserver extends AbstractSpliceIndexObserver {
             }
         }
         super.preDelete(e, delete, edit, durability);
-    }
-    
-    
-
-	@Override
-	public Reader preStoreFileReaderOpen(
-			ObserverContext<RegionCoprocessorEnvironment> ctx, FileSystem fs,
-			Path p, FSDataInputStreamWrapper in, long size,
-			CacheConfig cacheConf, Reference r, Reader reader)
-			throws IOException {
-		return super.preStoreFileReaderOpen(ctx, fs, p, in, size, cacheConf, r, reader);
-	}
-	
+    }	
 	
 	@Override
 	public KeyValueScanner preStoreScannerOpen(
 			ObserverContext<RegionCoprocessorEnvironment> c, Store store,
 			Scan scan, NavigableSet<byte[]> targetCols, KeyValueScanner s)
 			throws IOException {
-//	  	if (LOG.isTraceEnabled())
-//			SpliceLogUtils.trace(LOG, "preStoreScannerOpen %s : %s", store.toString(), scan.toString());
 		if (scan.getAttribute(MRConstants.SPLICE_SCAN_MEMSTORE_ONLY) != null &&
 				Bytes.equals(scan.getAttribute(MRConstants.SPLICE_SCAN_MEMSTORE_ONLY), SIConstants.TRUE_BYTES)) {			
-			// We can wait indefinitely  
 			if(LOG.isDebugEnabled()){
 				SpliceLogUtils.debug(LOG, "preStoreScannerOpen in MR mode %s", 
 						c.getEnvironment().getRegion() );
 			}
+			// Throw Retry Exception if the region is splitting
 			if (splitMerge.get()) {
 				throw new DoNotRetryIOException("SPLIT");
 			} else {
@@ -164,7 +150,7 @@ public class SpliceIndexObserver extends AbstractSpliceIndexObserver {
 			List<Mutation> metaEntries) throws IOException {
 	  	if (LOG.isTraceEnabled())
 			SpliceLogUtils.trace(LOG, "preSplitBeforePONR %s ", ctx.getEnvironment().getRegion() );		
-	  	splitMerge.set(true);
+	  	splitMerge.set(true); // Setting the atomic boolean
 		super.preSplitBeforePONR(ctx, splitKey, metaEntries);
 	}
 
@@ -208,7 +194,7 @@ public class SpliceIndexObserver extends AbstractSpliceIndexObserver {
 	public void postFlush(ObserverContext<RegionCoprocessorEnvironment> e,
 			Store store, StoreFile resultFile) throws IOException {
 		SpliceLogUtils.trace(LOG, "postFlush called on store %s with file=%s",store, resultFile);
-		this.flushCount.getAndIncrement();
+		this.flushCount.getAndIncrement(); // Atomically changes the flush count
 		super.postFlush(e, store, resultFile);
 	}
 	
@@ -219,26 +205,14 @@ public class SpliceIndexObserver extends AbstractSpliceIndexObserver {
 		SpliceLogUtils.trace(LOG, "preSplit");
 		splitMerge.set(true);
 		while (this.scannerCount.get()>0) {
-			if (LOG.isTraceEnabled())
-				SpliceLogUtils.trace(LOG, "preSplit Delayed waiting for scanners to complete scannersRemaining=%d",scannerCount.get());
+			SpliceLogUtils.warn(LOG, "preSplit Delayed waiting for scanners to complete scannersRemaining=%d",scannerCount.get());
 			try {
-				Thread.sleep(100);
+				Thread.sleep(1000); // Have Split sleep for a second
 			} catch (InterruptedException e1) {
 				throw new IOException(e1);
 			}
 		}
     	super.preSplit(e);
 	}
-
-	@Override
-	public void preSplitAfterPONR(
-			ObserverContext<RegionCoprocessorEnvironment> ctx)
-			throws IOException {
-		SpliceLogUtils.trace(LOG, "preSplitAfterPONR");
-		super.preSplitAfterPONR(ctx);
-	}
-	
-	
-	
 	
 }
