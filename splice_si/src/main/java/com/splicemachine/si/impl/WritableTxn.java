@@ -65,7 +65,6 @@ public class WritableTxn extends AbstractTxn {
 				this.parentTxn = txn.getParentTxnView();
 				this.tc = tc;
 				this.isAdditive = txn.isAdditive();
-				this.savePointName = txn.getSavePointName();
 				if(destinationTable!=null)
 						this.tableWrites.add(destinationTable);
 		}

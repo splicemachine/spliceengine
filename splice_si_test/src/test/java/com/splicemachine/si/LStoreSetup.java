@@ -21,6 +21,7 @@ public class LStoreSetup implements StoreSetup {
     STableWriter writer;
 		Clock clock;
 		TimestampSource source;
+    private TxnStore txnStore;
 
     public LStoreSetup() {
         dataLib = new LDataLib();
@@ -29,6 +30,7 @@ public class LStoreSetup implements StoreSetup {
         reader = store;
         writer = store;
 				this.source = new SimpleTimestampSource();
+        this.txnStore = new InMemoryTxnStore(source,SIConstants.transactionTimeout);
     }
 
     @Override
@@ -65,7 +67,7 @@ public class LStoreSetup implements StoreSetup {
 
 		@Override
 		public TxnStore getTxnStore() {
-        return new InMemoryTxnStore(source, SIConstants.transactionTimeout);
+        return txnStore;
 		}
 
 		@Override

@@ -153,12 +153,7 @@ public class LazyTxnView implements TxnView {
         return delegate.allowsWrites();
     }
 
-	@Override
-	public String getSavePointName() {
-		return null;
-	}
-
-	@Override
+    @Override
     public boolean canSee(TxnView otherTxn) {
         lookup(!inFinalState);
         return delegate.canSee(otherTxn);

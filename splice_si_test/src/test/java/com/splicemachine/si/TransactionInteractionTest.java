@@ -4,7 +4,9 @@ import com.google.common.collect.Lists;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnLifecycleManager;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.ForwardingLifecycleManager;
+import com.splicemachine.si.impl.ReadOnlyTxn;
 import com.splicemachine.si.impl.WriteConflict;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -66,6 +68,42 @@ public class TransactionInteractionTest {
         for(Txn id:createdParentTxns){
             id.rollback();
         }
+    }
+
+    @Test
+    public void testCanElevateGrandchildCorrectly() throws Exception {
+        Txn user = control.beginTransaction();
+        Txn child = control.beginChildTransaction(user, null);
+        Txn grandchild = control.beginChildTransaction(child,null);
+
+        //now elevate in sequence, and verify that the hierarchy remains correct
+        user = user.elevateToWritable(DESTINATION_TABLE);
+        ((ReadOnlyTxn)child).parentWritable(user);
+        child = child.elevateToWritable(DESTINATION_TABLE);
+        Assert.assertEquals("Incorrect parent transaction for child!",user,child.getParentTxnView());
+        ((ReadOnlyTxn)grandchild).parentWritable(child);
+        grandchild = grandchild.elevateToWritable(DESTINATION_TABLE);
+        Assert.assertEquals("Incorrect parent transaction for grandchild!",child,grandchild.getParentTxnView());
+        Assert.assertEquals("Incorrect grandparent transaction for grandchild!", user, grandchild.getParentTxnView().getParentTxnView());
+        //now check that fetching the grandchild is still correct
+        TxnView userView = storeSetup.getTxnStore().getTransaction(user.getTxnId());
+        TxnView childView = storeSetup.getTxnStore().getTransaction(child.getTxnId());
+        Assert.assertEquals("Incorrect parent transaction for child!",userView,childView.getParentTxnView());
+        TxnView grandChildView = storeSetup.getTxnStore().getTransaction(grandchild.getTxnId());
+        Assert.assertEquals("Incorrect parent transaction for grandchild!", childView, grandChildView.getParentTxnView());
+        Assert.assertEquals("Incorrect grandparent transaction for grandchild!", userView, grandChildView.getParentTxnView().getParentTxnView());
+    }
+
+    @Test
+    public void testCanReadDataWithACommittedTransaction() throws Exception {
+        Txn userTxn = control.beginTransaction(DESTINATION_TABLE);
+        Txn svp0Txn = control.beginChildTransaction(userTxn, DESTINATION_TABLE);
+        Txn svp1Txn = control.beginChildTransaction(svp0Txn, DESTINATION_TABLE);
+        testUtility.insertAge(svp1Txn, "scott", 29);
+        svp1Txn.commit();
+        Txn selectTxn = control.beginChildTransaction(svp0Txn, null);
+        svp0Txn.commit();
+        Assert.assertEquals("Incorrect results", "scott age=29 job=null", testUtility.read(selectTxn, "scott"));
     }
 
     @Test

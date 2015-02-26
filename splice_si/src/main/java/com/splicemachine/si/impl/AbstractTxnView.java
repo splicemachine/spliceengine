@@ -89,11 +89,6 @@ public abstract class AbstractTxnView implements TxnView {
     }
 
     @Override
-    public String getSavePointName() {
-    	return null;
-    }
-
-    @Override
     public boolean canSee(TxnView otherTxn) {
         assert otherTxn!=null: "Cannot access visibility semantics of a null transaction!";
         if(equals(otherTxn)) return true; //you can always see your own writes
@@ -148,9 +143,8 @@ public abstract class AbstractTxnView implements TxnView {
                * Since we an ancestor, we use our own begin timestamp to determine the operations.
                */
               return level.canSee(beginTimestamp,otherTxn,true);
-          }
-          else if(descendsFrom(lat)){
-              if(below==null) return true; //we are a child of lat, so we can see  the reads
+          } else if(descendsFrom(lat)){
+              if(below==null) return true; //we are a child of t, so we can see  the reads
               /*
                * We are a descendant of the LAT. Thus, we use the commit timestamp of below,
                * and the begin timestamp of the child of lat which is also our ancestor.
@@ -323,9 +317,6 @@ public abstract class AbstractTxnView implements TxnView {
     	output.writeLong(beginTimestamp);
     	output.writeByte(isolationLevel.encode());    			
 	}
-
-    @Override
-    public String toString(){
-        return getClass().getSimpleName() + "(" + txnId + "," + getState() + "," + getSavePointName() + ") -> " + getParentTxnView();
-    }    
+    
+    
 }
