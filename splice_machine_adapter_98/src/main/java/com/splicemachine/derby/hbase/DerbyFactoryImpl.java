@@ -18,6 +18,8 @@ import com.splicemachine.hbase.HBaseRegionLoads;
 import com.splicemachine.hbase.HBaseServerUtils;
 import com.splicemachine.hbase.debug.HBaseEntryPredicateFilter;
 import com.splicemachine.hbase.jmx.JMXUtils;
+import com.splicemachine.mrio.api.SpliceRegionScanner;
+import com.splicemachine.mrio.api.SplitRegionScanner;
 import com.splicemachine.pipeline.api.BulkWritesInvoker.Factory;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.pipeline.impl.BulkWritesRPCInvoker;
@@ -54,6 +56,7 @@ import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.catalog.MetaReader;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HConnection;
+import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
@@ -525,5 +528,10 @@ public class DerbyFactoryImpl implements DerbyFactory<TxnMessage.TxnInfo> {
         public SparkUtils getSparkUtils() {
             return new SparkUtilsImpl();
         }
+
+		@Override
+		public SpliceRegionScanner getSplitRegionScanner(Scan scan, HTable htable) throws IOException {
+			return new SplitRegionScanner(scan,htable);
+		}
 
 }
