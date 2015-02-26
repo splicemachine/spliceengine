@@ -5,9 +5,6 @@ import java.util.List;
 import java.util.NavigableSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
@@ -21,20 +18,17 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.io.FSDataInputStreamWrapper;
-import org.apache.hadoop.hbase.io.Reference;
-import org.apache.hadoop.hbase.io.hfile.CacheConfig;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HStore;
 import org.apache.hadoop.hbase.regionserver.InternalScan;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import org.apache.hadoop.hbase.regionserver.KeyValueScanner;
+import org.apache.hadoop.hbase.regionserver.ScanType;
 import org.apache.hadoop.hbase.regionserver.Store;
 import org.apache.hadoop.hbase.regionserver.StoreFile;
-import org.apache.hadoop.hbase.regionserver.StoreFile.Reader;
+import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.async.Bytes;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
@@ -201,7 +195,6 @@ public class SpliceIndexObserver extends AbstractSpliceIndexObserver {
     @Override
 	public void preSplit(ObserverContext<RegionCoprocessorEnvironment> e)
 			throws IOException {
-		// TODO Auto-generated method stub
 		SpliceLogUtils.trace(LOG, "preSplit");
 		splitMerge.set(true);
 		while (this.scannerCount.get()>0) {
@@ -214,5 +207,64 @@ public class SpliceIndexObserver extends AbstractSpliceIndexObserver {
 		}
     	super.preSplit(e);
 	}
+
+	@Override
+	public InternalScanner preCompact(
+			ObserverContext<RegionCoprocessorEnvironment> e, Store store,
+			InternalScanner scanner, ScanType scanType) throws IOException {
+		if (LOG.isTraceEnabled())
+			SpliceLogUtils.trace(LOG, "preCompact store=%s, scanner=%s, scanType=%s",store, scanner, scanType);
+		compactionCount.getAndIncrement();
+		while (this.scannerCount.get()>0) {
+			SpliceLogUtils.warn(LOG, "compaction Delayed waiting for scanners to complete scannersRemaining=%d",scannerCount.get());
+			try {
+				Thread.sleep(1000); // Have Split sleep for a second
+			} catch (InterruptedException e1) {
+				throw new IOException(e1);
+			}
+		}
+		
+		return super.preCompact(e, store, scanner, scanType);
+	}
+
+	@Override
+	public InternalScanner preCompact(
+			ObserverContext<RegionCoprocessorEnvironment> e, Store store,
+			InternalScanner scanner, ScanType scanType,
+			CompactionRequest request) throws IOException {
+		if (LOG.isTraceEnabled())
+			SpliceLogUtils.trace(LOG, "preCompact store=%s, scanner=%s, scanType=%s, request=%s",store, scanner, scanType, request);
+		compactionCount.getAndIncrement();
+		while (this.scannerCount.get()>0) {
+			SpliceLogUtils.warn(LOG, "compaction Delayed waiting for scanners to complete scannersRemaining=%d",scannerCount.get());
+			try {
+				Thread.sleep(1000); // Have Split sleep for a second
+			} catch (InterruptedException e1) {
+				throw new IOException(e1);
+			}
+		}
+		return super.preCompact(e, store, scanner, scanType, request);
+	}
+
+	@Override
+	public void postCompact(ObserverContext<RegionCoprocessorEnvironment> e,
+			Store store, StoreFile resultFile) throws IOException {	
+		if (LOG.isTraceEnabled())
+			SpliceLogUtils.trace(LOG, "postCompact store=%s, storeFile=%s",store,resultFile);
+		compactionCount.getAndDecrement();		
+		super.postCompact(e, store, resultFile);
+	}
+
+	@Override
+	public void postCompact(ObserverContext<RegionCoprocessorEnvironment> e,
+			Store store, StoreFile resultFile, CompactionRequest request)
+			throws IOException {
+		if (LOG.isTraceEnabled())
+			SpliceLogUtils.trace(LOG, "postCompact store=%s, storeFile=%s, request=%s",store,resultFile, request);
+		compactionCount.getAndDecrement();		
+		super.postCompact(e, store, resultFile, request);
+	}
 	
+    
+    
 }
