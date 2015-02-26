@@ -58,7 +58,6 @@ public class SpliceTransaction extends BaseSpliceTransaction {
         try{
             Txn child = TransactionLifecycle.getLifecycleManager().beginChildTransaction(currentTxn,null);
             txnStack.push(Pair.newPair(name,child));
-            child.setSavePointName(name);
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }

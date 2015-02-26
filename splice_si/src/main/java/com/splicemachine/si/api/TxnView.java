@@ -107,11 +107,6 @@ public interface TxnView extends Externalizable {
      */
     boolean allowsWrites();
 
-	/**
-	 * Returns the name of the savepoint if one has been set for this transaction.
-	 */
-	public String getSavePointName();
-
     /**
      * Determine if the other transaction is visible to this transaction (e.g. this instance can "see" writes
      * made by {@code otherTxn}).

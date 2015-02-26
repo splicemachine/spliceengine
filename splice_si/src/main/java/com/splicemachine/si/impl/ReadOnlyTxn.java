@@ -155,10 +155,8 @@ public class ReadOnlyTxn extends AbstractTxn {
 						 * we actually create a writable child transaction.
 						 */
 						newTxn = tc.beginChildTransaction(parentTxn,isolationLevel,additive,writeTable);
-						newTxn.setSavePointName(savePointName);
 				}else{
 						newTxn = tc.elevateTransaction(this, writeTable); //requires at least one network call
-						newTxn.setSavePointName(savePointName);
 				}
 				if(LOG.isTraceEnabled())
 					SpliceLogUtils.trace(LOG,"After elevateToWritable: newTxn=%s",newTxn);

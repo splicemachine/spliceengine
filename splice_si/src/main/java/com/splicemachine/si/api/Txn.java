@@ -38,8 +38,6 @@ public interface Txn extends TxnView{
 
         @Override public State getState() { return State.ACTIVE; }
         @Override public boolean allowsWrites() { return true; }
-		@Override public String getSavePointName() { return null; }
-		@Override public void setSavePointName(String savePointName) { }
 
         @Override
         public void commit() throws IOException {
@@ -260,9 +258,7 @@ public interface Txn extends TxnView{
         }
     }
 
-		public void setSavePointName(String savePointName);
-
-		/**
+    /**
 		 * Commit the transaction.
 		 *
 		 * @throws com.splicemachine.si.api.CannotCommitException if the transaction has already been rolled back
