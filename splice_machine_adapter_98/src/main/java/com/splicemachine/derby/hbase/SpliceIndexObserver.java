@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.NavigableSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.Cell;
@@ -33,10 +34,13 @@ import org.apache.hadoop.hbase.regionserver.StoreFile;
 import org.apache.hadoop.hbase.regionserver.StoreFile.Reader;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
 import org.apache.log4j.Logger;
+
+import com.splicemachine.async.Bytes;
+import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.mrio.api.MemStoreFlushAwareScanner;
-import com.splicemachine.mrio.api.SMMRConstants;
+import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -128,7 +132,8 @@ public class SpliceIndexObserver extends AbstractSpliceIndexObserver {
 			throws IOException {
 //	  	if (LOG.isTraceEnabled())
 //			SpliceLogUtils.trace(LOG, "preStoreScannerOpen %s : %s", store.toString(), scan.toString());
-		if (scan.getAttribute(SMMRConstants.SPLICE_SCAN_MEMSTORE_ONLY) != null) {			
+		if (scan.getAttribute(MRConstants.SPLICE_SCAN_MEMSTORE_ONLY) != null &&
+				Bytes.equals(scan.getAttribute(MRConstants.SPLICE_SCAN_MEMSTORE_ONLY), SIConstants.TRUE_BYTES)) {			
 			// We can wait indefinitely  
 			if(LOG.isDebugEnabled()){
 				SpliceLogUtils.debug(LOG, "preStoreScannerOpen in MR mode %s", 
