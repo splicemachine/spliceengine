@@ -28,12 +28,14 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.hbase.CellUtils;
+import com.splicemachine.mrio.MRConstants;
+import com.splicemachine.si.impl.SIFactoryImpl;
 
 public class SpliceMemstoreKeyValueScannerIT extends BaseMRIOTest{
     private static final Logger LOG = Logger.getLogger(SpliceMemstoreKeyValueScannerIT.class);
     protected static String SCHEMA_NAME=SpliceMemstoreKeyValueScannerIT.class.getSimpleName();
 	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
+    protected static SIFactoryImpl impl = new SIFactoryImpl();
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA_NAME);	
 	protected static SpliceTableWatcher spliceTableWatcherA = new SpliceTableWatcher("A",SCHEMA_NAME,"(col1 int, col2 varchar(56), primary key (col1))");
 	
@@ -84,6 +86,7 @@ public class SpliceMemstoreKeyValueScannerIT extends BaseMRIOTest{
 	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
 	@Test
+	@Ignore
 	public void testFlushHandling() throws SQLException, IOException, InterruptedException {
     	int i = 0;
     	HBaseAdmin admin = null;
@@ -96,16 +99,16 @@ public class SpliceMemstoreKeyValueScannerIT extends BaseMRIOTest{
 	    	scan.setCaching(50);
 	    	scan.setBatch(50);
 	    	scan.setMaxVersions();
-	    	scan.setAttribute(SMMRConstants.SPLICE_SCAN_MEMSTORE_ONLY, SIConstants.EMPTY_BYTE_ARRAY);    	
+	    	scan.setAttribute(MRConstants.SPLICE_SCAN_MEMSTORE_ONLY, SIConstants.EMPTY_BYTE_ARRAY);    	
 	    	rs = htable.getScanner(scan);
 	    	Result result;
 	    	boolean flush = false;
 	    	while (  ((result = rs.next()) != null) && !result.isEmpty() && !flush) {
 	    		i++;
 	    		if (i ==1)
-	    			Assert.assertTrue("First Row Beginning Marker Missing",CellUtils.singleMatchingFamily(result.listCells().get(0), SMMRConstants.HOLD));
+	    			Assert.assertTrue("First Row Beginning Marker Missing",impl.getDataLib().singleMatchingFamily(impl.getDataLib().getDataFromResult(result)[0], MRConstants.HOLD));
 	    		System.out.println(i + " --> " + result);
-	    		flush = CellUtils.singleMatchingFamily(result.listCells().get(0), SMMRConstants.FLUSH);
+	    		flush = impl.getDataLib().singleMatchingFamily(impl.getDataLib().getDataFromResult(result)[0], MRConstants.FLUSH);
 	    		if (i == 201)
 	    			Assert.assertTrue("201 Should be a Flush...", flush);
 		    	if (i==200)

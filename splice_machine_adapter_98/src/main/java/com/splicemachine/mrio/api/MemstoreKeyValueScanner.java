@@ -13,13 +13,20 @@ import org.apache.hadoop.hbase.regionserver.KeyValueScanner;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
 
-public class SpliceMemstoreKeyValueScanner implements KeyValueScanner, InternalScanner {
-    protected static final Logger LOG = Logger.getLogger(SpliceMemstoreKeyValueScanner.class);
+public class MemstoreKeyValueScanner implements KeyValueScanner, InternalScanner {
+	protected static final Logger LOG = Logger.getLogger(MemstoreKeyValueScanner.class);
 	protected ResultScanner resultScanner;
 	protected Result currentResult;
 	protected KeyValue peakKeyValue;
 	protected Cell[] cells;
 	int cellScannerIndex = 0;
+	
+	public MemstoreKeyValueScanner(ResultScanner resultScanner) throws IOException {
+		assert resultScanner != null:"Passed Result Scanner is null";
+		this.resultScanner = resultScanner;
+		nextResult();
+		cells = currentResult.rawCells();
+	}
 	
 	  public Cell current() {
 	    if (cells == null) return null;
@@ -48,24 +55,16 @@ public class SpliceMemstoreKeyValueScanner implements KeyValueScanner, InternalS
 	  }
 	
 	
-	public SpliceMemstoreKeyValueScanner(ResultScanner resultScanner) throws IOException {
-		assert resultScanner != null:"Passed Result Scanner is null";
-		this.resultScanner = resultScanner;
-		nextResult();
-		cells = currentResult.rawCells();
-	}
-	
-	
 	@Override
 	public KeyValue peek() {
-//		if (LOG.isTraceEnabled())
-//			SpliceLogUtils.trace(LOG, "peek %s", peakKeyValue);
+		if (LOG.isTraceEnabled())
+			SpliceLogUtils.trace(LOG, "peek %s", peakKeyValue);
 		return peakKeyValue;
 	}
 	@Override
 	public KeyValue next() throws IOException {
-//		if (LOG.isTraceEnabled())
-//			SpliceLogUtils.trace(LOG, "nextKeyValue %s", peakKeyValue);
+		if (LOG.isTraceEnabled())
+			SpliceLogUtils.trace(LOG, "nextKeyValue %s", peakKeyValue);
 		KeyValue returnValue = peakKeyValue;		
 		if (currentResult!=null && advance())
 			peakKeyValue = (KeyValue)current();
@@ -77,8 +76,8 @@ public class SpliceMemstoreKeyValueScanner implements KeyValueScanner, InternalS
 	}
 	@Override
 	public boolean seek(KeyValue key) throws IOException {
-//		if (LOG.isTraceEnabled())
-//			SpliceLogUtils.trace(LOG, "seek to KeyValue %s", key);
+		if (LOG.isDebugEnabled())
+			SpliceLogUtils.debug(LOG, "seek to KeyValue %s", key);
 		while (KeyValue.COMPARATOR.compare(peakKeyValue, key)>0 && peakKeyValue!=null) {
 			next();
 		}
@@ -90,72 +89,72 @@ public class SpliceMemstoreKeyValueScanner implements KeyValueScanner, InternalS
 	}
 	@Override
 	public long getSequenceID() {
-//		if (LOG.isTraceEnabled())
-//			SpliceLogUtils.trace(LOG, "getSequenceID");
+		if (LOG.isTraceEnabled())
+			SpliceLogUtils.trace(LOG, "getSequenceID");
 		return Long.MAX_VALUE; // Set the max value - we have the most recent data
 	}
 	@Override
 	public void close() {
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "close");
+		if (LOG.isDebugEnabled())
+			SpliceLogUtils.debug(LOG, "close");
 		resultScanner.close();		
 	}
 	@Override
 	public boolean shouldUseScanner(Scan scan, SortedSet<byte[]> columns,
 			long oldestUnexpiredTS) {
-//		if (LOG.isTraceEnabled())
-//			SpliceLogUtils.trace(LOG, "shouldUseScanner");
+		if (LOG.isTraceEnabled())
+			SpliceLogUtils.trace(LOG, "shouldUseScanner");
 		// TODO: true or false?
 		return true;
 	}
 	@Override
 	public boolean requestSeek(KeyValue kv, boolean forward, boolean useBloom)
 			throws IOException {
-//		if (LOG.isTraceEnabled())
-//			SpliceLogUtils.trace(LOG, "requestSeek");
+		if (LOG.isDebugEnabled())
+			SpliceLogUtils.debug(LOG, "requestSeek");
 		if (!forward)
 			throw new RuntimeException("Do not support backward scans yet");
 		return seek(kv);
 	}
 	@Override
 	public boolean realSeekDone() {
-//		if (LOG.isTraceEnabled())
-//			SpliceLogUtils.trace(LOG, "realSeekDone");
+		if (LOG.isTraceEnabled())
+			SpliceLogUtils.trace(LOG, "realSeekDone");
 		return false;
 	}
 	@Override
 	public void enforceSeek() throws IOException {
-//		if (LOG.isTraceEnabled())
-//			SpliceLogUtils.trace(LOG, "enforceSeek");		
+		if (LOG.isTraceEnabled())
+			SpliceLogUtils.trace(LOG, "enforceSeek");		
 	}
 	@Override
 	public boolean isFileScanner() {
-//		if (LOG.isTraceEnabled())
-//			SpliceLogUtils.trace(LOG, "isFileScanner");		
+		if (LOG.isTraceEnabled())
+			SpliceLogUtils.trace(LOG, "isFileScanner");		
 		return false;
 	}
 	@Override
 	public boolean backwardSeek(KeyValue key) throws IOException {
-//		if (LOG.isTraceEnabled())
-//			SpliceLogUtils.trace(LOG, "backwardSeek");		
+		if (LOG.isDebugEnabled())
+			SpliceLogUtils.debug(LOG, "backwardSeek");		
 		return false;
 	}
 	@Override
 	public boolean seekToPreviousRow(KeyValue key) throws IOException {
-//		if (LOG.isTraceEnabled())
-//			SpliceLogUtils.trace(LOG, "seekToPreviousRow %s", key);		
+		if (LOG.isDebugEnabled())
+			SpliceLogUtils.debug(LOG, "seekToPreviousRow %s", key);		
 		return false;
 	}
 	@Override
 	public boolean seekToLastRow() throws IOException {
-//		if (LOG.isTraceEnabled())
-//			SpliceLogUtils.trace(LOG, "seekToLastRow");		
+		if (LOG.isDebugEnabled())
+			SpliceLogUtils.debug(LOG, "seekToLastRow");		
 		return false;
 	}
-	@Override
+
 	public boolean next(List<Cell> results) throws IOException {
-//		if (LOG.isTraceEnabled())
-//			SpliceLogUtils.trace(LOG, "next with results passed=%s", results);	
+		if (LOG.isTraceEnabled())
+			SpliceLogUtils.trace(LOG, "next with results passed=%s", results);	
 		boolean returnValue = currentResult!=null;
 		if (returnValue) {
 			results.addAll(currentResult.listCells());
@@ -163,10 +162,10 @@ public class SpliceMemstoreKeyValueScanner implements KeyValueScanner, InternalS
 		}
 		return returnValue;
 	}
-	@Override
+
 	public boolean next(List<Cell> results, int limit) throws IOException {
-//		if (LOG.isTraceEnabled())
-//			SpliceLogUtils.trace(LOG, "next with limit=%d", limit);		
+		if (LOG.isTraceEnabled())
+			SpliceLogUtils.trace(LOG, "next with limit=%d", limit);		
 		return next(results);
 	}
 	

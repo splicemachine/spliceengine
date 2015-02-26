@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.NavigableSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
@@ -13,9 +14,12 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.ScanInfo;
 import org.apache.hadoop.hbase.regionserver.Store;
 import org.apache.hadoop.hbase.regionserver.StoreScanner;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+
 import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.mrio.MRConstants;
 
 /**
  * 
@@ -36,7 +40,7 @@ public class MemStoreFlushAwareScanner extends StoreScanner{
    protected boolean endRowNeedsToBeReturned = false;
    protected boolean endRowAlreadyReturned = false;
    protected boolean flushAlreadyReturned = false;
-   
+   protected int counter = 0;
 
 	public MemStoreFlushAwareScanner(HRegion region, Store store, ScanInfo scanInfo, Scan scan, 
 			final NavigableSet<byte[]> columns, long readPt, AtomicBoolean splitMerge, AtomicInteger flushCount,int initialFlushCount, AtomicInteger compactionCount, int initialCompactionCount, AtomicInteger scannerCount) throws IOException {
@@ -58,14 +62,26 @@ public class MemStoreFlushAwareScanner extends StoreScanner{
 	public KeyValue peek() {
 		if (LOG.isTraceEnabled())
 			SpliceLogUtils.trace(LOG, "peek -->" + super.peek());
-		if (didWeFlush() && !flushAlreadyReturned)
-			return SMMRConstants.MEMSTORE_BEGIN_FLUSH;
+		if (didWeFlush()) {
+			if (LOG.isTraceEnabled())
+				SpliceLogUtils.trace(LOG, "already Flushed");
+			if (flushAlreadyReturned) {
+				if (LOG.isTraceEnabled())
+					SpliceLogUtils.trace(LOG, "returning counter");				
+				return new KeyValue(Bytes.toBytes(counter),MRConstants.FLUSH,MRConstants.FLUSH,MRConstants.FLUSH);
+			}
+			else {
+				if (LOG.isTraceEnabled())
+					SpliceLogUtils.trace(LOG, "returning flush");				
+				return MRConstants.MEMSTORE_BEGIN_FLUSH;
+			}
+		}
 		if (beginRow)
-			return SMMRConstants.MEMSTORE_BEGIN;
+			return MRConstants.MEMSTORE_BEGIN;
 		KeyValue peek = super.peek();
 		if (peek == null && !endRowAlreadyReturned) {
 			endRowNeedsToBeReturned = true;
-			return SMMRConstants.MEMSTORE_END;
+			return MRConstants.MEMSTORE_END;
 		}
 		return super.peek();
 	}
@@ -77,7 +93,6 @@ public class MemStoreFlushAwareScanner extends StoreScanner{
 		if (LOG.isTraceEnabled())
 			SpliceLogUtils.trace(LOG, "next");
 		throw new RuntimeException("Not Implemented");
-//		return super.next();
 	}
 
 
@@ -87,7 +102,6 @@ public class MemStoreFlushAwareScanner extends StoreScanner{
 		if (LOG.isTraceEnabled())
 			SpliceLogUtils.trace(LOG, "seek with key=%s",key);
 		throw new IOException("Not Implemented");
-		//return super.seek(key);
 	}
 
 
@@ -100,9 +114,9 @@ public class MemStoreFlushAwareScanner extends StoreScanner{
 			return super.next(outResult);
 		if (LOG.isTraceEnabled())
 			SpliceLogUtils.trace(LOG, "writing flush data with kv=%s",outResult);	
-		if (outResult.size()>0 && CellUtils.singleMatchingFamily(outResult.get(0),SMMRConstants.FLUSH))
+		if (outResult.size()>0 && CellUtils.singleMatchingFamily(outResult.get(0),MRConstants.FLUSH))
 			return false;
-		outResult.add(new KeyValue(HConstants.EMPTY_START_ROW,SMMRConstants.FLUSH,SMMRConstants.FLUSH));
+		outResult.add(new KeyValue(HConstants.EMPTY_START_ROW,MRConstants.FLUSH,MRConstants.FLUSH));
 		return true;
 	}
 
@@ -124,15 +138,25 @@ public class MemStoreFlushAwareScanner extends StoreScanner{
 			SpliceLogUtils.trace(LOG, "next kv=%s, limit=%d",outResult,limit);
 		if (beginRow) {
 			beginRow = false;
-			return outResult.add(SMMRConstants.MEMSTORE_BEGIN);
+			return outResult.add(MRConstants.MEMSTORE_BEGIN);
 		}
 		if (endRowNeedsToBeReturned) {
 			endRowAlreadyReturned = true;
-			return outResult.add(SMMRConstants.MEMSTORE_END);
+			return outResult.add(MRConstants.MEMSTORE_END);
 		}
-		if (didWeFlush() && !flushAlreadyReturned) {
-			flushAlreadyReturned = true;
-			return outResult.add(SMMRConstants.MEMSTORE_BEGIN_FLUSH);
+		if (didWeFlush()) {
+			if (flushAlreadyReturned) {
+				if (LOG.isTraceEnabled())
+					SpliceLogUtils.trace(LOG, "flush already returned");
+				counter++;
+				outResult.add(new KeyValue(Bytes.toBytes(counter),MRConstants.FLUSH,MRConstants.FLUSH,MRConstants.FLUSH));
+			} else {
+				if (LOG.isTraceEnabled())
+					SpliceLogUtils.trace(LOG, "Flush has not returned");
+					flushAlreadyReturned = true;
+					outResult.add(MRConstants.MEMSTORE_BEGIN_FLUSH);
+			}
+			return true;
 		}
 		return super.next(outResult, limit);
 	}
