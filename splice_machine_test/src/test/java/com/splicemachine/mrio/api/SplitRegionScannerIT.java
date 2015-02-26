@@ -5,15 +5,12 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.hadoop.hbase.HConstants;
+
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.util.FSUtils;
+import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.log4j.Logger;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -21,16 +18,20 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
+
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceNetConnection;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.mrio.MRConstants;
+import com.splicemachine.si.impl.SIFactoryImpl;
 
-public class SpliceClientSideRegionScannerIT extends BaseMRIOTest {
+public class SplitRegionScannerIT extends BaseMRIOTest {
     private static final Logger LOG = Logger.getLogger(SpliceMemstoreKeyValueScannerIT.class);
     protected static String SCHEMA_NAME=SpliceMemstoreKeyValueScannerIT.class.getSimpleName();
+    protected static SIFactoryImpl impl = new SIFactoryImpl();
 	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA_NAME);	
 	protected static SpliceTableWatcher spliceTableWatcherA = new SpliceTableWatcher("A",SCHEMA_NAME,"(col1 int, col2 varchar(56), primary key (col1))");
@@ -94,19 +95,15 @@ public class SpliceClientSideRegionScannerIT extends BaseMRIOTest {
 	    	scan.setCaching(50);
 	    	scan.setBatch(50);
 	    	scan.setMaxVersions();
-	    	scan.setAttribute(SMMRConstants.SPLICE_SCAN_MEMSTORE_ONLY, SIConstants.EMPTY_BYTE_ARRAY);    	
-	    	
-			SpliceClientSideRegionScanner clientSideRegionScanner = 
-					new SpliceClientSideRegionScanner(htable.getConfiguration(),FSUtils.getCurrentFileSystem(htable.getConfiguration()), FSUtils.getRootDir(htable.getConfiguration()),
-							htable.getTableDescriptor(),htable.getRegionLocation(scan.getStartRow()).getRegionInfo(),
-							scan,null);
-			List<Cell> results = new ArrayList<Cell>();
-			while (clientSideRegionScanner.nextRaw(results)) {
+	    	scan.setAttribute(MRConstants.SPLICE_SCAN_MEMSTORE_ONLY, SIConstants.EMPTY_BYTE_ARRAY);    		    	
+	    	RegionScanner splitRegionScanner = new SplitRegionScanner(scan, htable);
+			List results = new ArrayList();
+			while (impl.getDataLib().regionScannerNextRaw(splitRegionScanner,results)) {
 				i++;
 				System.out.println(i + " results --> " + results);
 				results.clear();
 			}
-			clientSideRegionScanner.close();
+			splitRegionScanner.close();
 		}
     	finally { 
     		if (admin != null)
@@ -117,5 +114,4 @@ public class SpliceClientSideRegionScannerIT extends BaseMRIOTest {
    			rs.close();
     	}
 	}
-
 }

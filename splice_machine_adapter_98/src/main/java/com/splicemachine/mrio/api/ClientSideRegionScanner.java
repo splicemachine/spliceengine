@@ -23,13 +23,14 @@ import org.apache.log4j.Logger;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.mrio.MRConstants;
 
 /**
  * 
  * 
  */
-public class SpliceClientSideRegionScanner implements RegionScanner {
-    protected static final Logger LOG = Logger.getLogger(SpliceClientSideRegionScanner.class);
+public class ClientSideRegionScanner implements RegionScanner {
+    protected static final Logger LOG = Logger.getLogger(ClientSideRegionScanner.class);
 	protected HRegion region;
 	protected RegionScanner scanner;
 	Configuration conf;
@@ -39,11 +40,12 @@ public class SpliceClientSideRegionScanner implements RegionScanner {
 	HRegionInfo hri;
 	Scan scan;
 	Cell topCell;
-	protected List<KeyValueScanner> memScannerList = new ArrayList<KeyValueScanner>(1);
+	protected List<KeyValueScanner>	memScannerList = new ArrayList<KeyValueScanner>(1);
 	protected boolean flushed;
+	protected HTable table;
 	
 	
-	public SpliceClientSideRegionScanner(Configuration conf, FileSystem fs,
+	public ClientSideRegionScanner(Configuration conf, FileSystem fs,
 			Path rootDir, HTableDescriptor htd, HRegionInfo hri, Scan scan,
 			ScanMetrics scanMetrics)
 			throws IOException {
@@ -73,7 +75,9 @@ public class SpliceClientSideRegionScanner implements RegionScanner {
 		if (LOG.isTraceEnabled())
 			SpliceLogUtils.trace(LOG, "close");
 		if (scanner != null)
-				scanner.close();
+			scanner.close();
+		if (table != null)
+			table.close();
 		memScannerList.get(0).close();		
 	}
 
@@ -91,14 +95,7 @@ public class SpliceClientSideRegionScanner implements RegionScanner {
 	public boolean reseek(byte[] row) throws IOException {
 		if (LOG.isTraceEnabled())
 			SpliceLogUtils.trace(LOG, "reseek row=%s",row);
-		try{
-			return scanner.reseek(row);
-		} catch(IOException e){
-			updateScanner();
-			// TODO: add code to avoid StackOverflowException
-			//       and re-throw exception after X attempts
-			return reseek(row);
-		}
+		return scanner.reseek(row);
 	}
 
 	@Override
@@ -121,25 +118,29 @@ public class SpliceClientSideRegionScanner implements RegionScanner {
 		if (LOG.isTraceEnabled())
 			SpliceLogUtils.trace(LOG, "nextRaw");
 		boolean res = scanner.nextRaw(result);
-		if (res)
-			return updateTopCell(result);
-		else
-			return false;
+		if (!result.isEmpty() && CellUtils.singleMatchingFamily(result.get(0), MRConstants.HOLD)) {
+			result.clear();
+			return nextRaw(result);			
+		}
+		return updateTopCell(res,result);
 	}
 
-	private boolean updateTopCell(List<Cell> results) throws IOException {
+	private boolean updateTopCell(boolean response, List<Cell> results) throws IOException {
 		if (LOG.isTraceEnabled())
 			SpliceLogUtils.trace(LOG, "updateTopCell from results%s",results);
-		topCell = results.get(results.size() - 1);
-		if (CellUtils.singleMatchingFamily(topCell, SMMRConstants.FLUSH)) {
+		if (!results.isEmpty() &&
+				(CellUtils.singleMatchingFamily(results.get(0), MRConstants.FLUSH))
+				) {
 			if (LOG.isTraceEnabled())
-				SpliceLogUtils.trace(LOG, "updateTopCell: Flush Occurred");
+				SpliceLogUtils.trace(LOG, "flush handling inititated");
 			flushed = true;
 			updateScanner();
 			results.clear();
 			return nextRaw(results);
 		} else 
-			return true;
+			if (response)
+				topCell = results.get(results.size() - 1);
+			return response;
 	}
 
 	
@@ -151,29 +152,33 @@ public class SpliceClientSideRegionScanner implements RegionScanner {
 	public void updateScanner() throws IOException {
 		if (LOG.isTraceEnabled())
 			SpliceLogUtils.trace(LOG, "updateScanner with hregionInfo=%s, tableName=%s, rootDir=%s, scan=%s",hri,htd.getNameAsString(), rootDir, scan);	
-		if (flushed)
-			memScannerList = null; // No Memstore scans needed since we flushed, breaks READ_UNCOMMITED
-		else	
+		if (!flushed)
 			memScannerList.add(getMemStoreScanner());
 		this.region = HRegion.openHRegion(conf, fs, rootDir, hri, htd, null,null, null);
 		if (flushed) {
+			if (LOG.isTraceEnabled())
+				SpliceLogUtils.trace(LOG, "I am flushed");				
 			if (scanner != null)
 				scanner.close();
-			if (this.topCell != null)
+			if (this.topCell != null) {
+				if (LOG.isTraceEnabled())
+					SpliceLogUtils.trace(LOG, "setting start row to %s", topCell);				
 				scan.setStartRow(topCell.getRow()); // Need to fix... JL
-			this.scanner = BaseHRegionUtil.getScanner(this.region, this.scan,null);
+			}
+			scan.setAttribute(MRConstants.SPLICE_SCAN_MEMSTORE_ONLY, SIConstants.FALSE_BYTES);
+			this.scanner = BaseHRegionUtil.getScanner(region, scan,null);
 		}
 		else {
-			this.scanner = BaseHRegionUtil.getScanner(this.region, this.scan,memScannerList);			
+			this.scanner = BaseHRegionUtil.getScanner(region, scan,memScannerList);			
 		}
 		
 	}
 
 	private KeyValueScanner getMemStoreScanner() throws IOException {
 		HConnection connection = HConnectionManager.createConnection(conf);
-		HTable table = (HTable) connection.getTable(htd.getName());
+		table = (HTable) connection.getTable(htd.getName());
 		Scan memScan = new Scan(scan);
-		memScan.setAttribute( SMMRConstants.SPLICE_SCAN_MEMSTORE_ONLY,SIConstants.EMPTY_BYTE_ARRAY);
-		return new SpliceMemstoreKeyValueScanner(table.getScanner(memScan));
+		memScan.setAttribute( MRConstants.SPLICE_SCAN_MEMSTORE_ONLY,SIConstants.TRUE_BYTES);
+		return new MemstoreKeyValueScanner(table.getScanner(memScan));
 	}
 }

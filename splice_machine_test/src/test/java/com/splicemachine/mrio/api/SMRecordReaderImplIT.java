@@ -5,8 +5,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.*;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Result;
@@ -21,13 +19,11 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
-
 import com.splicemachine.derby.test.framework.SpliceDataWatcher;
-import com.splicemachine.derby.test.framework.SpliceNetConnection;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.mrio.MRConstants;
 
 public class SMRecordReaderImplIT extends BaseMRIOTest {
     private static final Logger LOG = Logger.getLogger(SMRecordReaderImplIT.class);
@@ -69,7 +65,7 @@ public class SMRecordReaderImplIT extends BaseMRIOTest {
     	List<String> names = new ArrayList<String>();
     	names.add("COL1");
     	names.add("COL2");    	    	
-    	config.set(SMMRConstants.SPLICE_SCAN_INFO, sqlUtil.getTableScannerBuilder(SMRecordReaderImplIT.class.getSimpleName()+".A", names).getTableScannerBuilderBase64String());    	
+    	config.set(MRConstants.SPLICE_SCAN_INFO, sqlUtil.getTableScannerBuilder(SMRecordReaderImplIT.class.getSimpleName()+".A", names).getTableScannerBuilderBase64String());    	
     	SMRecordReaderImpl recordReader = new SMRecordReaderImpl(config);
     	String tableName = sqlUtil.getConglomID(SMRecordReaderImplIT.class.getSimpleName()+".A");
     	HTable htable = new HTable(config,tableName);    	
@@ -87,7 +83,7 @@ public class SMRecordReaderImplIT extends BaseMRIOTest {
     	List<String> names = new ArrayList<String>();
     	names.add("COL1");
     	names.add("COL2");    	    	
-    	config.set(SMMRConstants.SPLICE_SCAN_INFO, sqlUtil.getTableScannerBuilder(SMRecordReaderImplIT.class.getSimpleName()+".A", names).getTableScannerBuilderBase64String());    	
+    	config.set(MRConstants.SPLICE_SCAN_INFO, sqlUtil.getTableScannerBuilder(SMRecordReaderImplIT.class.getSimpleName()+".A", names).getTableScannerBuilderBase64String());    	
     	SMRecordReaderImpl recordReader = new SMRecordReaderImpl(config);
     	String tableName = sqlUtil.getConglomID(SMRecordReaderImplIT.class.getSimpleName()+".A");
     	HTable htable = new HTable(config,tableName);    	
@@ -108,7 +104,7 @@ public class SMRecordReaderImplIT extends BaseMRIOTest {
     public void testRecordReaderSingleColumnNoPrimaryKey() throws Exception{
     	List<String> names = new ArrayList<String>();
     	names.add("COL2");    	    	
-    	config.set(SMMRConstants.SPLICE_SCAN_INFO, sqlUtil.getTableScannerBuilder(SMRecordReaderImplIT.class.getSimpleName()+".A", names).getTableScannerBuilderBase64String());    	
+    	config.set(MRConstants.SPLICE_SCAN_INFO, sqlUtil.getTableScannerBuilder(SMRecordReaderImplIT.class.getSimpleName()+".A", names).getTableScannerBuilderBase64String());    	
     	SMRecordReaderImpl recordReader = new SMRecordReaderImpl(config);
     	String tableName = sqlUtil.getConglomID(SMRecordReaderImplIT.class.getSimpleName()+".A");
     	HTable htable = new HTable(config,tableName);    	
@@ -128,7 +124,7 @@ public class SMRecordReaderImplIT extends BaseMRIOTest {
     public void testRecordReaderSingleColumnPrimaryKey() throws Exception{
     	List<String> names = new ArrayList<String>();
     	names.add("COL1");    	    	
-    	config.set(SMMRConstants.SPLICE_SCAN_INFO, sqlUtil.getTableScannerBuilder(SMRecordReaderImplIT.class.getSimpleName()+".A", names).getTableScannerBuilderBase64String());    	
+    	config.set(MRConstants.SPLICE_SCAN_INFO, sqlUtil.getTableScannerBuilder(SMRecordReaderImplIT.class.getSimpleName()+".A", names).getTableScannerBuilderBase64String());    	
     	SMRecordReaderImpl recordReader = new SMRecordReaderImpl(config);
     	String tableName = sqlUtil.getConglomID(SMRecordReaderImplIT.class.getSimpleName()+".A");
     	HTable htable = new HTable(config,tableName);    	
@@ -153,7 +149,7 @@ public class SMRecordReaderImplIT extends BaseMRIOTest {
     	List<String> names = new ArrayList<String>();
     	names.add("COL1");
     	names.add("COL2");    	    	
-    	config.set(SMMRConstants.SPLICE_SCAN_INFO, sqlUtil.getTableScannerBuilder(SMRecordReaderImplIT.class.getSimpleName()+".A", names).getTableScannerBuilderBase64String());    	
+    	config.set(MRConstants.SPLICE_SCAN_INFO, sqlUtil.getTableScannerBuilder(SMRecordReaderImplIT.class.getSimpleName()+".A", names).getTableScannerBuilderBase64String());    	
     	SMRecordReaderImpl recordReader = new SMRecordReaderImpl(config);
     	HTable htable = new HTable(config,tableName);    	
     	recordReader.setHTable(htable);

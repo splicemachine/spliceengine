@@ -396,4 +396,10 @@ public class SMSQLUtil {
 							.rowDecodingMap(rowDecodingMap);		
 	  }
 	
+	  public void close() throws SQLException {
+		  if (connect!=null)
+			  connect.close();
+		  
+	  }
+	  
 }

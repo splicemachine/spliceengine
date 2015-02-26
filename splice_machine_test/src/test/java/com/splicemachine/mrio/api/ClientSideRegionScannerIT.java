@@ -5,11 +5,14 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.hadoop.hbase.Cell;
+
+import org.junit.Assert;
+
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.log4j.Logger;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -20,14 +23,14 @@ import org.junit.runner.Description;
 
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.derby.test.framework.SpliceDataWatcher;
-import com.splicemachine.derby.test.framework.SpliceNetConnection;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.mrio.MRConstants;
 
-public class SplitRegionScannerIT extends BaseMRIOTest {
-    private static final Logger LOG = Logger.getLogger(SpliceMemstoreKeyValueScannerIT.class);
-    protected static String SCHEMA_NAME=SpliceMemstoreKeyValueScannerIT.class.getSimpleName();
+public class ClientSideRegionScannerIT extends BaseMRIOTest {
+    private static final Logger LOG = Logger.getLogger(ClientSideRegionScannerIT.class);
+    protected static String SCHEMA_NAME=ClientSideRegionScannerIT.class.getSimpleName();
 	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA_NAME);	
 	protected static SpliceTableWatcher spliceTableWatcherA = new SpliceTableWatcher("A",SCHEMA_NAME,"(col1 int, col2 varchar(56), primary key (col1))");
@@ -91,15 +94,20 @@ public class SplitRegionScannerIT extends BaseMRIOTest {
 	    	scan.setCaching(50);
 	    	scan.setBatch(50);
 	    	scan.setMaxVersions();
-	    	scan.setAttribute(SMMRConstants.SPLICE_SCAN_MEMSTORE_ONLY, SIConstants.EMPTY_BYTE_ARRAY);    		    	
-	    	SplitRegionScanner splitRegionScanner = new SplitRegionScanner(scan, htable);
-			List<Cell> results = new ArrayList<Cell>();
-			while (splitRegionScanner.nextRaw(results)) {
+	    	scan.setAttribute(MRConstants.SPLICE_SCAN_MEMSTORE_ONLY, SIConstants.EMPTY_BYTE_ARRAY);    	
+	    	
+			ClientSideRegionScanner clientSideRegionScanner = 
+					new ClientSideRegionScanner(htable.getConfiguration(),FSUtils.getCurrentFileSystem(htable.getConfiguration()), FSUtils.getRootDir(htable.getConfiguration()),
+							htable.getTableDescriptor(),htable.getRegionLocation(scan.getStartRow()).getRegionInfo(),
+							scan,null);
+			List results = new ArrayList();
+			while (clientSideRegionScanner.nextRaw(results)) {
 				i++;
 				System.out.println(i + " results --> " + results);
 				results.clear();
 			}
-			splitRegionScanner.close();
+			clientSideRegionScanner.close();
+			Assert.assertEquals("Results Returned Are Not Accurate", 500,i);
 		}
     	finally { 
     		if (admin != null)
@@ -110,4 +118,47 @@ public class SplitRegionScannerIT extends BaseMRIOTest {
    			rs.close();
     	}
 	}
+
+	
+	@Test
+	public void validateAccurateRecordsWithRegionFlush() throws SQLException, IOException, InterruptedException {
+		int i = 0;
+    	HBaseAdmin admin = null;
+    	ResultScanner rs = null;
+    	HTable htable = null;
+		try {
+			String tableName = sqlUtil.getConglomID(SCHEMA_NAME+".A");
+	    	htable = new HTable(config,tableName);
+	    	Scan scan = new Scan();
+	    	admin = new HBaseAdmin(config);
+	    	scan.setCaching(50);
+	    	scan.setBatch(50);
+	    	scan.setMaxVersions();
+	    	scan.setAttribute(MRConstants.SPLICE_SCAN_MEMSTORE_ONLY, SIConstants.EMPTY_BYTE_ARRAY);    	
+	    	
+			ClientSideRegionScanner clientSideRegionScanner = 
+					new ClientSideRegionScanner(htable.getConfiguration(),FSUtils.getCurrentFileSystem(htable.getConfiguration()), FSUtils.getRootDir(htable.getConfiguration()),
+							htable.getTableDescriptor(),htable.getRegionLocation(scan.getStartRow()).getRegionInfo(),
+							scan,null);
+			List results = new ArrayList();
+			while (clientSideRegionScanner.nextRaw(results)) {
+				i++;
+				if (i==100) 
+					admin.flush(tableName);
+				System.out.println(i + " results --> " + results);
+				results.clear();
+			}
+			clientSideRegionScanner.close();
+			Assert.assertEquals("Results Returned Are Not Accurate", 500,i);
+		}
+    	finally { 
+    		if (admin != null)
+    			admin.close();
+    		if (htable != null)
+    			htable.close();
+    		if (rs != null)
+   			rs.close();
+    	}
+	}
+	
 }

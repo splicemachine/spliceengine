@@ -18,7 +18,7 @@ import com.splicemachine.utils.SpliceLogUtils;
  * Split Scanner for multiple region scanners
  * 
  */
-public class SplitRegionScanner implements RegionScanner {
+public class SplitRegionScanner implements SpliceRegionScanner {
     protected static final Logger LOG = Logger.getLogger(SplitRegionScanner.class);
 	protected List<RegionScanner> regionScanners = new ArrayList<RegionScanner>(2);	
 	protected RegionScanner currentScanner;
@@ -28,8 +28,8 @@ public class SplitRegionScanner implements RegionScanner {
 	public SplitRegionScanner(Scan scan, HTable table) throws IOException {
 		if (LOG.isTraceEnabled())
 			SpliceLogUtils.trace(LOG, "init");
-		SpliceClientSideRegionScanner clientSideRegionScanner = 
-				new SpliceClientSideRegionScanner(table.getConfiguration(),FSUtils.getCurrentFileSystem(table.getConfiguration()), FSUtils.getRootDir(table.getConfiguration()),
+		ClientSideRegionScanner clientSideRegionScanner = 
+				new ClientSideRegionScanner(table.getConfiguration(),FSUtils.getCurrentFileSystem(table.getConfiguration()), FSUtils.getRootDir(table.getConfiguration()),
 						table.getTableDescriptor(),table.getRegionLocation(scan.getStartRow()).getRegionInfo(),
 						scan,null);		
 		region = clientSideRegionScanner.region;
@@ -110,8 +110,8 @@ public class SplitRegionScanner implements RegionScanner {
 			SpliceLogUtils.trace(LOG, "nextRaw with results=%s and limit=%d",result,limit);
 		return next(result, limit);
 	}
-	
-	public HRegion getHRegion() {
+	@Override
+	public HRegion getRegion() {
 		return region;
 	}
 	

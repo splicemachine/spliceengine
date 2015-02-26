@@ -5,6 +5,7 @@ import java.sql.SQLException;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 
 import com.splicemachine.derby.test.framework.SpliceNetConnection;
@@ -17,6 +18,7 @@ public class BaseMRIOTest extends SpliceUnitTest {
 	static {
 		config = HBaseConfiguration.create();
 		config.set("hbase.zookeeper.quorum", "127.0.0.1:2181");
+		config.set(HConstants.HBASE_DIR,getHBaseDirectory());
 		sqlUtil = SMSQLUtil.getInstance(SpliceNetConnection.getDefaultLocalURL());
 	}
 	
