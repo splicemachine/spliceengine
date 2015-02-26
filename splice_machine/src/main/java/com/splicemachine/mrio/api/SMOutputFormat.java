@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
@@ -27,11 +28,13 @@ import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
+
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.hbase.KVPair;
+import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.pipeline.api.RecordingCallBuffer;
 import com.splicemachine.pipeline.impl.WriteCoordinator;
 import com.splicemachine.si.api.TxnView;
@@ -39,9 +42,9 @@ import com.splicemachine.si.impl.ActiveWriteTxn;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.uuid.Snowflake;
 
-public class SpliceOutputFormat extends OutputFormat implements Configurable{
+public class SMOutputFormat extends OutputFormat implements Configurable{
 
-	private static SQLUtil sqlUtil = null;
+	private static SMSQLUtil sqlUtil = null;
 	private static Configuration conf = null;
 	private String spliceTableName = null;
 	protected static String tableID;
@@ -72,12 +75,14 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 	@Override
 	public RecordWriter getRecordWriter(TaskAttemptContext arg0)
 			throws IOException, InterruptedException {
+		return null;
+		/*
 		// TODO Auto-generated method stub
 		if(conf == null)
 			throw new IOException("Error: Please set Configuration for SpliceOutputFormat");
 		if(sqlUtil == null)
-			sqlUtil = SQLUtil.getInstance(conf.get(SpliceMRConstants.SPLICE_JDBC_STR));
-		spliceTableName = conf.get(SpliceMRConstants.SPLICE_OUTPUT_TABLE_NAME);
+			sqlUtil = SMSQLUtil.getInstance(conf.get(MRConstants.SPLICE_JDBC_STR));
+		spliceTableName = conf.get(MRConstants.SPLICE_OUTPUT_TABLE_NAME);
 		
 		tableStructure = sqlUtil.getTableStructure(spliceTableName);
 		pks = sqlUtil.getPrimaryKey(spliceTableName);
@@ -110,6 +115,7 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 	    	SpliceRecordWriter spw = new SpliceRecordWriter(pkCols, allColTypes);
 			return spw;	
 	    }    
+	    */
 	}
 	
 	public static class SpliceRecordWriter extends RecordWriter<ImmutableBytesWritable, ExecRow> {
@@ -138,10 +144,10 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 				this.pkCols = pkCols;
 				this.keyEncoder =  getKeyEncoder(null);
 				this.rowHash = getRowHash(null);	
-				if(conf.get(SpliceMRConstants.HBASE_OUTPUT_TABLE_NAME) == null)
-					tableID = sqlUtil.getConglomID(conf.get(SpliceMRConstants.SPLICE_OUTPUT_TABLE_NAME));
+				if(conf.get(MRConstants.HBASE_OUTPUT_TABLE_NAME) == null)
+					tableID = sqlUtil.getConglomID(conf.get(MRConstants.SPLICE_OUTPUT_TABLE_NAME));
 				else
-					tableID = conf.get(SpliceMRConstants.HBASE_OUTPUT_TABLE_NAME);
+					tableID = conf.get(MRConstants.HBASE_OUTPUT_TABLE_NAME);
 				
 			} catch (StandardException e) {
 				e.printStackTrace();
@@ -254,13 +260,13 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 				if(callBuffer == null){
 					conn = sqlUtil.createConn();
 					sqlUtil.disableAutoCommit(conn);
-					long parentTxnID = Long.parseLong(conf.get(SpliceMRConstants.SPLICE_TRANSACTION_ID));
+					long parentTxnID = Long.parseLong(conf.get(MRConstants.SPLICE_TRANSACTION_ID));
 
 					childTxsID = sqlUtil.getChildTransactionID(conn,
 									parentTxnID, 
-									conf.get(SpliceMRConstants.SPLICE_OUTPUT_TABLE_NAME));
+									conf.get(MRConstants.SPLICE_OUTPUT_TABLE_NAME));
 
-					String strSize = conf.get(SpliceMRConstants.SPLICE_WRITE_BUFFER_SIZE);
+					String strSize = conf.get(MRConstants.SPLICE_WRITE_BUFFER_SIZE);
 
                     int size = 1024;
 					if((strSize != null) && (!strSize.equals("")))
