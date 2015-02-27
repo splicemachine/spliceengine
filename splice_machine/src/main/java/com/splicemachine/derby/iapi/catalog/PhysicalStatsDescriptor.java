@@ -7,7 +7,6 @@ import org.apache.derby.iapi.sql.dictionary.TupleDescriptor;
  *         Date: 2/25/15
  */
 public class PhysicalStatsDescriptor extends TupleDescriptor {
-    private final String serverIp;
     private final String hostName;
     private final int numCores;
     private final long heapSize;
@@ -16,15 +15,13 @@ public class PhysicalStatsDescriptor extends TupleDescriptor {
     private final long remoteReadLatency;
     private final long writeLatency;
 
-    public PhysicalStatsDescriptor(String serverIp,
-                                   String hostName,
+    public PhysicalStatsDescriptor(String hostName,
                                    int numCores,
                                    long heapSize,
                                    int numIpcThreads,
                                    long localReadLatency,
                                    long remoteReadLatency,
                                    long writeLatency) {
-        this.serverIp = serverIp;
         this.hostName = hostName;
         this.numCores = numCores;
         this.heapSize = heapSize;
@@ -34,7 +31,6 @@ public class PhysicalStatsDescriptor extends TupleDescriptor {
         this.writeLatency = writeLatency;
     }
 
-    public String getServerIp() { return serverIp; }
     public String getHostName() { return hostName; }
     public int getNumCores() { return numCores; }
     public long getHeapSize() { return heapSize; }

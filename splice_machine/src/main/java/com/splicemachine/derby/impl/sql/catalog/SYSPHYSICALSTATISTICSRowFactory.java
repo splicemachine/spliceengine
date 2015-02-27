@@ -20,15 +20,14 @@ import java.sql.Types;
  */
 public class SYSPHYSICALSTATISTICSRowFactory extends CatalogRowFactory {
     private static final String TABLENAME_STRING = "SYSPHYSICALSTATISTICS";
-    private static final int COLUMN_COUNT = 8;
-    private static final int SERVER_IP          = 1;
-    private static final int HOSTNAME           = 2;
-    private static final int NUMCPUS            = 3;
-    private static final int MAX_HEAP           = 4;
-    private static final int NETWORK_SIZE       = 5;
-    private static final int LOCALREADLATENCY   = 6;
-    private static final int REMOTEREADLATENCY  = 7;
-    private static final int WRITELATENCY       = 8;
+    private static final int COLUMN_COUNT = 7;
+    private static final int HOSTNAME           = 1;
+    private static final int NUMCPUS            = 2;
+    private static final int MAX_HEAP           = 3;
+    private static final int NETWORK_SIZE       = 4;
+    private static final int LOCALREADLATENCY   = 5;
+    private static final int REMOTEREADLATENCY  = 6;
+    private static final int WRITELATENCY       = 7;
 
     private String[] uuids = {
             "08264013-014b-c29c-947b-000003009390",
@@ -41,7 +40,6 @@ public class SYSPHYSICALSTATISTICSRowFactory extends CatalogRowFactory {
 
     @Override
     public ExecRow makeRow(TupleDescriptor td, TupleDescriptor parent) throws StandardException {
-        String serverIp = null;
         String hostName = null;
         int numCpus = 0;
         long maxHeap = 0;
@@ -52,7 +50,6 @@ public class SYSPHYSICALSTATISTICSRowFactory extends CatalogRowFactory {
 
         if(td!=null){
             PhysicalStatsDescriptor psd = (PhysicalStatsDescriptor)td;
-            serverIp = psd.getServerIp();
             hostName = psd.getHostName();
             numCpus = psd.getNumCores();
             maxHeap = psd.getHeapSize();
@@ -63,7 +60,6 @@ public class SYSPHYSICALSTATISTICSRowFactory extends CatalogRowFactory {
         }
 
         ExecRow row = getExecutionFactory().getValueRow(COLUMN_COUNT);
-        row.setColumn(SERVER_IP,new SQLChar(serverIp));
         row.setColumn(HOSTNAME,new SQLVarchar(hostName));
         row.setColumn(NUMCPUS,new SQLInteger(numCpus));
         row.setColumn(MAX_HEAP,new SQLLongint(maxHeap));
@@ -77,9 +73,7 @@ public class SYSPHYSICALSTATISTICSRowFactory extends CatalogRowFactory {
     @Override
     public TupleDescriptor buildDescriptor(ExecRow row, TupleDescriptor parentTuple, DataDictionary dataDictionary) throws StandardException {
 
-        DataValueDescriptor col = row.getColumn(SERVER_IP);
-        String serverIp = col.getString();
-        col = row.getColumn(HOSTNAME);
+        DataValueDescriptor col = row.getColumn(HOSTNAME);
         String hostName = col.getString();
         col = row.getColumn(NUMCPUS);
         int numCores = col.getInt();
@@ -94,7 +88,7 @@ public class SYSPHYSICALSTATISTICSRowFactory extends CatalogRowFactory {
         col = row.getColumn(WRITELATENCY);
         long writeLatency = col.getLong();
 
-        return new PhysicalStatsDescriptor(serverIp,
+        return new PhysicalStatsDescriptor(
                 hostName,
                 numCores,
                 heapSize,

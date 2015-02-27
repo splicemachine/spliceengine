@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.catalog;
 
 import com.splicemachine.derby.iapi.catalog.ColumnStatsDescriptor;
+import com.splicemachine.stats.ColumnStatistics;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.uuid.UUIDFactory;
 import org.apache.derby.iapi.sql.dictionary.*;
@@ -18,18 +19,12 @@ import java.sql.Types;
  */
 public class SYSCOLUMNSTATISTICSRowFactory extends CatalogRowFactory {
     private static final String TABLENAME_STRING = "SYSCOLUMNSTATISTICS";
-    private static final int SYSCOLUMNSTATISTICS_COLUMN_COUNT = 11;
+    private static final int SYSCOLUMNSTATISTICS_COLUMN_COUNT = 4;
     private static final int CONGLOMID      = 1;
     private static final int PARTITIONID    = 2;
     private static final int COLUMNID       = 3;
-    private static final int NULLCOUNT      = 4;
-    private static final int CARDINALITY    = 5;
-    private static final int FREQUENTELEMS  = 6;
-    private static final int DISTRIBUTION   = 7;
-    private static final int MINVAL         = 8;
-    private static final int MINFREQ        = 9;
-    private static final int MAXVAL         = 10;
-    private static final int MAXFREQ        = 11;
+    private static final int DATA           = 4;
+
 
     private String[] uuids = {
             "08264012-014b-c29c-0d2e-000003009390",
@@ -47,14 +42,7 @@ public class SYSCOLUMNSTATISTICSRowFactory extends CatalogRowFactory {
         row.setColumn(CONGLOMID,new SQLLongint());
         row.setColumn(PARTITIONID,new SQLVarchar());
         row.setColumn(COLUMNID,new SQLInteger());
-        row.setColumn(NULLCOUNT,new SQLLongint());
-        row.setColumn(CARDINALITY,new SQLBit());
-        row.setColumn(FREQUENTELEMS,new SQLBit());
-        row.setColumn(DISTRIBUTION,new SQLBit());
-        row.setColumn(MINVAL,new SQLBit());
-        row.setColumn(MINFREQ,new SQLLongint());
-        row.setColumn(MAXVAL,new SQLBit());
-        row.setColumn(MAXFREQ,new SQLLongint());
+        row.setColumn(DATA,new UserType());
 
         return row;
     }
@@ -66,35 +54,21 @@ public class SYSCOLUMNSTATISTICSRowFactory extends CatalogRowFactory {
         col = row.getColumn(PARTITIONID);
         String partitionId = col.getString();
         col = row.getColumn(COLUMNID);
-        long colNum = col.getInt();
-        col = row.getColumn(NULLCOUNT);
-        long nullCount = col.getInt();
-        col = row.getColumn(CARDINALITY);
-        byte[] card = col.getBytes();
-        col = row.getColumn(FREQUENTELEMS);
-        byte[] freqs = col.getBytes();
-        col = row.getColumn(DISTRIBUTION);
-        byte[] dist = col.getBytes();
-        col = row.getColumn(MINVAL);
-        byte[] min = col.getBytes();
-        col = row.getColumn(MINFREQ);
-        long minFreq = col.getLong();
-        col = row.getColumn(MAXVAL);
-        byte[] max = col.getBytes();
-        col = row.getColumn(MAXFREQ);
-        long maxFreq = col.getLong();
+        int colNum = col.getInt();
+        col = row.getColumn(DATA);
+        ColumnStatistics colStats = (ColumnStatistics)col.getObject();
 
         return new ColumnStatsDescriptor(conglomId,
                 partitionId,
                 colNum,
-                nullCount,
-                card,
-                freqs,
-                dist,
-                min,
-                minFreq,
-                max,
-                maxFreq);
+                colStats.nullCount(),
+                colStats.cardinality(),
+                colStats.topK(),
+                null,
+                colStats.minValue(),
+                0l,
+                colStats.maxValue(),
+                0l);
     }
 
     @Override
@@ -103,14 +77,8 @@ public class SYSCOLUMNSTATISTICSRowFactory extends CatalogRowFactory {
                 SystemColumnImpl.getColumn("CONGLOM_ID", Types.BIGINT,false),
                 SystemColumnImpl.getColumn("PARTITION_ID",Types.VARCHAR,false),
                 SystemColumnImpl.getColumn("COLUMN_ID",Types.INTEGER,false),
-                SystemColumnImpl.getColumn("NULLCOUNT",Types.BIGINT,true),
-                SystemColumnImpl.getColumn("CARDINALITY",Types.BINARY,true),
-                SystemColumnImpl.getColumn("FREQUENTELEMS",Types.VARBINARY,true),
-                SystemColumnImpl.getColumn("DISTRIBUTION",Types.VARBINARY,true),
-                SystemColumnImpl.getColumn("MINVAL",Types.VARBINARY,true),
-                SystemColumnImpl.getColumn("MINFREQ",Types.BIGINT,true),
-                SystemColumnImpl.getColumn("MAXVAL",Types.VARBINARY,true),
-                SystemColumnImpl.getColumn("MAXFREQ",Types.BIGINT,true)
+                SystemColumnImpl.getJavaColumn("DATA",
+                        "com.splicemachine.stats.ColumnStatistics",false)
         };
     }
 }

@@ -1,5 +1,6 @@
 package com.splicemachine.derby.iapi.catalog;
 
+import com.splicemachine.stats.frequency.FrequentElements;
 import org.apache.derby.iapi.sql.dictionary.TupleDescriptor;
 
 /**
@@ -11,24 +12,24 @@ public class ColumnStatsDescriptor  extends TupleDescriptor{
     private String partitionId;
     private long columnId;
     private long nullCount;
-    private byte[] cardinality;
-    private byte[] frequentElements;
+    private long cardinality;
+    private FrequentElements frequentElements;
     private byte[] distribution;
-    private byte[] minElement;
+    private Object minElement;
     private long minFreq;
-    private byte[] maxElement;
+    private Object maxElement;
     private long maxFreq;
 
     public ColumnStatsDescriptor(long conglomerateId,
                                  String partitionId,
                                  long columnId,
                                  long nullCount,
-                                 byte[] cardinality,
-                                 byte[] frequentElements,
+                                 long cardinality,
+                                 FrequentElements frequentElements,
                                  byte[] distribution,
-                                 byte[] minElement,
+                                 Object minElement,
                                  long minFreq,
-                                 byte[] maxElement,
+                                 Object maxElement,
                                  long maxFreq) {
         this.conglomerateId = conglomerateId;
         this.partitionId = partitionId;
@@ -47,11 +48,11 @@ public class ColumnStatsDescriptor  extends TupleDescriptor{
     public long getConglomerateId() { return conglomerateId; }
     public String getPartitionId() { return partitionId; }
     public long getNullCount() { return nullCount; }
-    public byte[] getCardinality() { return cardinality; }
-    public byte[] getFrequentElements() { return frequentElements; }
+    public long getCardinality() { return cardinality; }
+    public FrequentElements getFrequentElements() { return frequentElements; }
     public byte[] getDistribution() { return distribution; }
-    public byte[] getMinElement() { return minElement; }
+    public Object getMinElement() { return minElement; }
     public long getMinFreq() { return minFreq; }
-    public byte[] getMaxElement() { return maxElement; }
+    public Object getMaxElement() { return maxElement; }
     public long getMaxFreq() { return maxFreq; }
 }
