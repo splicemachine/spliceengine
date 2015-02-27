@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
 
+import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
@@ -21,9 +22,17 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Logger;
 
+import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.utils.SpliceLogUtils;
 
+/**
+ * 
+ * Input Format that requires the following items passed to it.
+ * 
+ * 
+ *
+ */
 public class SMInputFormat extends InputFormat<ImmutableBytesWritable, ExecRow> implements Configurable {
     protected static final Logger LOG = Logger.getLogger(SMInputFormat.class);
 	protected Configuration conf;
@@ -49,7 +58,8 @@ public class SMInputFormat extends InputFormat<ImmutableBytesWritable, ExecRow> 
 					throw new RuntimeException("JDBC String Not Supplied");
 				}
 				try {
-				tableName = util.getConglomID(tableName);
+				conglomerate = util.getConglomID(tableName);
+				conf.set(MRConstants.SPLICE_INPUT_CONGLOMERATE, conglomerate);
 				} catch (SQLException e) {
 					LOG.error(StringUtils.stringifyException(e));
 					throw new RuntimeException(e);
@@ -87,6 +97,11 @@ public class SMInputFormat extends InputFormat<ImmutableBytesWritable, ExecRow> 
 			SpliceLogUtils.debug(LOG, "getSplits");
 		TableInputFormat tableInputFormat = new TableInputFormat();
 		tableInputFormat.setConf(conf);
+		try {
+			tableInputFormat.setScan(TableScannerBuilder.getTableScannerBuilderFromBase64String(conf.get(MRConstants.SPLICE_SCAN_INFO)).getScan());
+		} catch (StandardException e) {			
+			throw new IOException(e);
+		}
 		return tableInputFormat.getSplits(context);
 	}
 
@@ -98,7 +113,7 @@ public class SMInputFormat extends InputFormat<ImmutableBytesWritable, ExecRow> 
 			SpliceLogUtils.trace(LOG, "createRecordReader for split=%s, context %s",split,context);
 		SMRecordReaderImpl recordReader = new SMRecordReaderImpl(context.getConfiguration());
 		if(table == null)
-			table = new HTable(HBaseConfiguration.create(conf), conf.get(MRConstants.SPLICE_INPUT_TABLE_NAME));
+			table = new HTable(HBaseConfiguration.create(conf), conf.get(MRConstants.SPLICE_INPUT_CONGLOMERATE));
 		recordReader.setHTable(table);
 		recordReader.initialize((TableSplit) split, context);
 		return recordReader;
