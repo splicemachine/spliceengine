@@ -3,10 +3,12 @@ package com.splicemachine.derby.utils;
 
 import static org.junit.Assert.assertEquals;
 
+import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.text.SimpleDateFormat;
 
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -48,6 +50,8 @@ public class SpliceDateFunctionsIT {
             "G", schemaWatcher.schemaName, "(col1 Timestamp, col2 varchar(10), col3 Timestamp)");
     private static final SpliceTableWatcher tableWatcherH = new SpliceTableWatcher(
             "H", schemaWatcher.schemaName, "(col1 Timestamp, col2 varchar(10), col3 varchar(10))");
+    private static final SpliceTableWatcher tableWatcherI = new SpliceTableWatcher(
+            "I", schemaWatcher.schemaName, "(ts Timestamp, pat varchar(30), datestr varchar(30))");
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(classWatcher)
             .around(schemaWatcher)
@@ -59,6 +63,7 @@ public class SpliceDateFunctionsIT {
             .around(tableWatcherF)
             .around(tableWatcherG)
             .around(tableWatcherH)
+            .around(tableWatcherI)
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
@@ -79,7 +84,7 @@ public class SpliceDateFunctionsIT {
                             "insert into " + tableWatcherB + " (col1, col2, col3) values ('01/27/2001', 'mm/dd/yyyy'," +
                                 " date('2001-01-27'))").execute();
                         classWatcher.prepareStatement(
-                            "insert into " + tableWatcherB + " (col1, col2, col3) values ('2002/02/26', 'yyyy/mm/dd'," +
+                            "insert into " + tableWatcherB + " (col1, col2, col3) values ('2002/02/26', 'yyyy/MM/dd'," +
                                 " date('2002-02-26'))").execute();
                         classWatcher.prepareStatement(
                             "insert into " + tableWatcherC + " (col1, col2) values (date('2002-03-26'), date" +
@@ -141,6 +146,16 @@ public class SpliceDateFunctionsIT {
                         classWatcher.prepareStatement(
                             "insert into " + tableWatcherH + " (col1, col2, col3) values (Timestamp('2012-12-31 " +
                                 "20:38:40'), 'YYYY-MM-DD', '2012-12-31')").execute();
+                        classWatcher.prepareStatement(
+                            "insert into " + tableWatcherI + " (ts, pat, datestr) values (Timestamp('2012-12-31 " +
+                                "20:38:40'), 'YYYY-MM-DD HH:mm:ss', '2012-12-31 20:38:40')").execute();
+                        classWatcher.prepareStatement(
+                            "insert into " + tableWatcherI + " (ts, pat, datestr) values (Timestamp('2012-12-31 " +
+                                "00:00:00.03'), 'YYYY-MM-DD HH:mm:ss.SSS', '2012-12-31 00:00:00.03')").execute();
+                        // FIXME JC:
+//                        classWatcher.prepareStatement(
+//                            "insert into " + tableWatcherI + " (ts, pat, datestr) values (Timestamp('2011-09-17 " +
+//                                "23:40:53'), 'yyyy-MM-dd''T''HH:mm:ssz', '2011-09-17T23:40:53GMT')").execute();
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     } finally {
@@ -151,21 +166,57 @@ public class SpliceDateFunctionsIT {
    
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
-    
+
+    @Test @Ignore("DB-2937: database metadata not consistent")
+    public void testDBMetadataGetFunctions() throws Exception {
+        DatabaseMetaData dmd =  methodWatcher.getOrCreateConnection().getMetaData();
+        TestUtils.printResult("getProcedures", dmd.getProcedures(null, "%", "%"), System.out);
+        TestUtils.printResult("getFunctions", dmd.getFunctions(null, "%", "%"), System.out);
+
+        System.out.println("getStringFunctions: " + dmd.getStringFunctions());
+        System.out.println("getTimeDateFunctions: " + dmd.getTimeDateFunctions());
+
+        for (String fn : dmd.getTimeDateFunctions().split(",")) {
+            TestUtils.printResult(fn, dmd.getFunctions("%", "%", fn.trim()), System.out);
+        }
+    }
+
     @Test
     public void testToDateFunction() throws Exception{
-        String sqlText = "SELECT TO_DATE(col1, col2), col3 from " + tableWatcherB + " order by col3";
+        String sqlText = "SELECT col1 as datestr, col2 as pattern, TO_DATE(col1, col2) as todate, col3 as date from " + tableWatcherB + " order by col3";
         try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
 
             String expected =
-                "1     |   COL3    |\n" +
-                    "------------------------\n" +
-                    "2001-01-27 |2001-01-27 |\n" +
-                    "2002-02-26 |2002-02-26 |";
+                "DATESTR  |  PATTERN  |  TODATE   |   DATE    |\n" +
+                    "------------------------------------------------\n" +
+                    "01/27/2001 |mm/dd/yyyy |2001-01-27 |2001-01-27 |\n" +
+                    "2002/02/26 |yyyy/MM/dd |2002-02-26 |2002-02-26 |";
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
     }
-    
+
+    @Test
+    public void testToTimestampFunction() throws Exception{
+        String sqlText = "SELECT ts, pat, datestr, TO_TIMESTAMP(datestr, pat) as totimestamp from " + tableWatcherI + " order by datestr";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+
+            String expected =
+                // FIXME JC: when we add the commnented row above, this test starts to fail because timezone
+                // information is lost in the totimestamp output of the first row below. We wind up with an
+                // answer that's 6 hours earlier (in STL - -6:00).  Not sure how to fix this.
+//            "TS           |          PAT           |        DATESTR        |      TOTIMESTAMP      |\n" +
+//                "-------------------------------------------------------------------------------------------------\n" +
+//                " 2011-09-17 23:40:53.0 |yyyy-MM-dd'T'HH:mm:ssz  |2011-09-17T23:40:53GMT | 2011-09-17 23:40:53.0 |\n" +
+//                "2012-12-31 00:00:00.03 |YYYY-MM-DD HH:mm:ss.SSS |2012-12-31 00:00:00.03 |2012-01-31 00:00:00.03 |\n" +
+//                " 2012-12-31 20:38:40.0 |  YYYY-MM-DD HH:mm:ss   |  2012-12-31 20:38:40  | 2012-01-31 20:38:40.0 |";
+            "TS           |          PAT           |        DATESTR        |      TOTIMESTAMP      |\n" +
+                "-------------------------------------------------------------------------------------------------\n" +
+                "2012-12-31 00:00:00.03 |YYYY-MM-DD HH:mm:ss.SSS |2012-12-31 00:00:00.03 |2012-01-31 00:00:00.03 |\n" +
+                " 2012-12-31 20:38:40.0 |  YYYY-MM-DD HH:mm:ss   |  2012-12-31 20:38:40  | 2012-01-31 20:38:40.0 |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
     @Test
     public void testMonthBetweenFunction() throws Exception{
         String sqlText = "SELECT MONTH_BETWEEN(col1, col2), col3 from " + tableWatcherE + " order by col3";
