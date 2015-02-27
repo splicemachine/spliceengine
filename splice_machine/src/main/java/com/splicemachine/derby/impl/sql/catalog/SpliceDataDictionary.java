@@ -27,9 +27,11 @@ import org.apache.derby.iapi.sql.execute.ExecIndexRow;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.ScanQualifier;
 import org.apache.derby.iapi.store.access.AccessFactory;
+import org.apache.derby.iapi.store.access.ColumnOrdering;
 import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.types.*;
 import org.apache.derby.impl.sql.catalog.*;
+import org.apache.derby.impl.sql.execute.IndexColumnOrder;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
@@ -153,15 +155,43 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
 
         //sys_table_statistics
         TabInfoImpl tableStatsInfo = getTableStatisticsTable();
-        addTableIfAbsent(tc, systemSchema, tableStatsInfo);
+        ColumnOrdering[] tableStatsOrder = new ColumnOrdering[]{
+            new IndexColumnOrder(1),
+            new IndexColumnOrder(2)
+        };
+        addTableIfAbsent(tc, systemSchema, tableStatsInfo,tableStatsOrder);
+        TableDescriptor tableStatsDescriptor = getTableDescriptor(tableStatsInfo.getTableName(),systemSchema,tc);
+
+        int[] pks = new int[]{1,2};
+        ReferencedKeyConstraintDescriptor tablestatspk = dataDescriptorGenerator.newPrimaryKeyConstraintDescriptor(tableStatsDescriptor,
+                "TABLESTATSPK", false, false, pks, uuidFactory.createUUID(), tableStatsDescriptor.getUUID(), systemSchema, true, 0);
+        addConstraintDescriptor(tablestatspk, tc);
 
         //sys_column_statistics
+        ColumnOrdering[] columnPkOrder = new ColumnOrdering[]{
+                new IndexColumnOrder(1),
+                new IndexColumnOrder(2),
+                new IndexColumnOrder(3)
+        };
         TabInfoImpl columnStatsInfo = getColumnStatisticsTable();
-        addTableIfAbsent(tc,systemSchema,columnStatsInfo);
+        addTableIfAbsent(tc,systemSchema,columnStatsInfo,columnPkOrder);
+        TableDescriptor columnStatsDescriptor = getTableDescriptor(columnStatsInfo.getTableName(),systemSchema,tc);
+        pks = new int[]{1,2,3};
+        ReferencedKeyConstraintDescriptor columnStatsPk = dataDescriptorGenerator.newPrimaryKeyConstraintDescriptor(columnStatsDescriptor,
+                "COLUMNSTATSPK", false, false, pks, uuidFactory.createUUID(), columnStatsDescriptor.getUUID(), systemSchema, true, 0);
+        addConstraintDescriptor(columnStatsPk, tc);
 
         //sys_physical_statistics
+        ColumnOrdering[] physicalPkOrder = new ColumnOrdering[]{
+                new IndexColumnOrder(1)
+        };
         TabInfoImpl physicalStatsInfo = getPhysicalStatisticsTable();
-        addTableIfAbsent(tc,systemSchema,physicalStatsInfo);
+        addTableIfAbsent(tc,systemSchema,physicalStatsInfo,physicalPkOrder);
+        TableDescriptor physicalStatsDescriptor = getTableDescriptor(physicalStatsInfo.getTableName(),systemSchema,tc);
+        pks = new int[]{1};
+        ReferencedKeyConstraintDescriptor physicalStatsPk = dataDescriptorGenerator.newPrimaryKeyConstraintDescriptor(physicalStatsDescriptor,
+                "PHYSICALSTATSPK", false, false, pks, uuidFactory.createUUID(), physicalStatsDescriptor.getUUID(), systemSchema, true, 0);
+        addConstraintDescriptor(physicalStatsPk, tc);
     }
 
 
@@ -170,15 +200,15 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
 
         //create SYSSTATEMENTHISTORY
         TabInfoImpl stmtHistTabInfo = getStatementHistoryTable();
-        addTableIfAbsent(tc,systemSchemaDescriptor,stmtHistTabInfo);
+        addTableIfAbsent(tc,systemSchemaDescriptor,stmtHistTabInfo,null);
 
         //create SYSOPERATIONHISTORY
         TabInfoImpl opHistTabInfo = getOperationHistoryTable();
-        addTableIfAbsent(tc,systemSchemaDescriptor,opHistTabInfo);
+        addTableIfAbsent(tc,systemSchemaDescriptor,opHistTabInfo,null);
 
         //SYSTASKHISTORY
         TabInfoImpl taskHistTabInfo = getTaskHistoryTable();
-        addTableIfAbsent(tc,systemSchemaDescriptor,taskHistTabInfo);
+        addTableIfAbsent(tc,systemSchemaDescriptor,taskHistTabInfo,null);
     }
 
     @Override
@@ -487,10 +517,11 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
         return false;
     }
 
-    private void addTableIfAbsent(TransactionController tc, SchemaDescriptor systemSchema, TabInfoImpl sysTableToAdd) throws StandardException {
+    private void addTableIfAbsent(TransactionController tc, SchemaDescriptor systemSchema, TabInfoImpl sysTableToAdd,
+                                  ColumnOrdering[]columnOrder) throws StandardException {
         if(getTableDescriptor(sysTableToAdd.getTableName(),systemSchema,tc)==null){
             SpliceLogUtils.trace(LOG, String.format("Creating system table %s.%s", systemSchema.getSchemaName(), sysTableToAdd.getTableName()));
-            makeCatalog(sysTableToAdd,systemSchema,tc);
+            makeCatalog(sysTableToAdd, systemSchema, tc,columnOrder);
         }else{
             SpliceLogUtils.trace(LOG,String.format("Skipping table creation since system table %s.%s already exists", systemSchema.getSchemaName(),sysTableToAdd.getTableName()));
         }

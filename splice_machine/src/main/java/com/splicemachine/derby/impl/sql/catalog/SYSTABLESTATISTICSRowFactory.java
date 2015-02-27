@@ -15,6 +15,7 @@ import org.apache.derby.impl.sql.catalog.SystemColumnImpl;
 
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.util.Properties;
 
 /**
  * @author Scott Fines
@@ -131,5 +132,10 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
                 SystemColumnImpl.getColumn("MEANROWWIDTH",Types.INTEGER,true),
                 SystemColumnImpl.getColumn("QUERYCOUNT",Types.BIGINT,true)
         };
+    }
+
+    @Override
+    public Properties getCreateHeapProperties() {
+        return super.getCreateHeapProperties();
     }
 }
