@@ -4,6 +4,9 @@ import com.google.common.collect.ImmutableMap;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeFieldType;
 import org.joda.time.Months;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
+import org.joda.time.format.ISODateTimeFormat;
 
 import java.sql.Date;
 import java.sql.SQLException;
@@ -21,6 +24,7 @@ import java.util.Map;
  * without including the schema prefix in SQL statements.
  */
 public class SpliceDateFunctions {
+    private static final DateTimeFormatter DEFAULT_DATE_TIME_FORMATTER = ISODateTimeFormat.dateOptionalTimeParser();
 
     private static final Map<String, Integer> WEEK_DAY_MAP = new ImmutableMap.Builder<String, Integer>()
             .put("sunday", 1).put("monday", 2).put("tuesday", 3).put("wednesday", 4).put("thursday", 5)
@@ -33,21 +37,61 @@ public class SpliceDateFunctions {
     }
 
     /**
-     * Implements the TO_DATE() function.
+     * Implements the TO_TIMESTAMP(source, pattern) function.
+     */
+    public static Timestamp TO_TIMESTAMP(String source, String format) throws SQLException {
+        if (source == null) return null;
+        Timestamp ts = new Timestamp(parseDateTime(source, format));
+        return ts;
+    }
+
+    /**
+     * Implements the TO_TIMESTAMP(source) function.
+     */
+    public static Timestamp TO_TIMESTAMP(String source) throws SQLException {
+        if (source == null) return null;
+        return new Timestamp(parseDateTime(source, null));
+    }
+
+    /**
+     * Implements the TO_DATE(source[, pattern]) function.
      */
     public static Date TO_DATE(String source, String format) throws SQLException {
-        if (source == null || format == null) return null;
-        SimpleDateFormat fmt = new SimpleDateFormat(format.toLowerCase().replaceAll("m", "M"));
-        try {
-            return new Date(fmt.parse(source).getTime());
-        } catch(ParseException e) {
-            throw new SQLException(e);
+        if (source == null) return null;
+        return new Date(parseDateTime(source, format));
+    }
+
+    /**
+     * Implements the TO_DATE(source) function.
+     */
+    public static Date TO_DATE(String source) throws SQLException {
+        if (source == null) return null;
+        return new Date(parseDateTime(source, null));
+    }
+
+    private static long parseDateTime(String source, String format) throws SQLException {
+        DateTimeFormatter parser = DEFAULT_DATE_TIME_FORMATTER;
+        if (format != null) {
+            try {
+                parser = DateTimeFormat.forPattern(format);
+            } catch (Exception e) {
+                throw new SQLException("Error creating a datetime parser for pattern: "+format+". Try using an" +
+                                           " ISO8601 pattern such as, yyyy-MM-dd'T'HH:mm:ss.SSSZZ, yyyy-MM-dd'T'HH:mm:ssZ or yyyy-MM-dd", e);
+            }
         }
+        DateTime parsed;
+        try {
+            parsed = parser.withOffsetParsed().parseDateTime(source);
+        } catch (Exception e) {
+            throw new SQLException("Error parsing datatime "+source+" with pattern: "+format+". Try using an" +
+                                       " ISO8601 pattern such as, yyyy-MM-dd'T'HH:mm:ss.SSSZZ, yyyy-MM-dd'T'HH:mm:ssZ or yyyy-MM-dd", e);
+        }
+        return parsed.getMillis();
     }
 
     /**
      * Implements the LAST_DAY function
-     */
+     */                                                                           ;
     public static Date LAST_DAY(Date source) {
         if (source == null) {
             return null;
