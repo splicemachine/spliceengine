@@ -294,7 +294,7 @@ public class TableScannerBuilder implements Externalizable {
 		@Override
 		public String toString() {
 			return String.format("template=%s, scan=%s, rowColumnMap=%s, txn=%s, "
-					+ "keyColumnEncodingOrder=%s, keyColumnSortOrder=%s, keyColumnTypes=%s, "
+					+ "keyColumnEncodingOrder=%s, keyColumnSortOrder=%s, keyColumnTypes=%s, keyDecodingMap=%s, "
 					+ "accessedKeys=%s, indexName=%s, tableVerson=%s",
 					template,scan,rowColumnMap!=null?Arrays.toString(rowColumnMap):"NULL",
 							txn,
