@@ -195,7 +195,7 @@ public class SpliceDateFunctionsIT {
         }
     }
 
-    @Test
+    @Test @Ignore("Implemented in SpliceDateFunctions but not exposed in SpliceSystemProcedures due to timezone loss.")
     public void testToTimestampFunction() throws Exception{
         String sqlText = "SELECT ts, pat, datestr, TO_TIMESTAMP(datestr, pat) as totimestamp from " + tableWatcherI + " order by datestr";
         try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
