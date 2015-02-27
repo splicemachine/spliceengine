@@ -1,0 +1,41 @@
+package com.splicemachine.derby.impl.stats;
+
+import com.google.common.base.Function;
+import com.splicemachine.stats.ColumnStatistics;
+import com.splicemachine.stats.frequency.FrequencyEstimate;
+import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.SQLVarchar;
+
+/**
+ * @author Scott Fines
+ *         Date: 2/27/15
+ */
+public class VarcharStats extends StringStatistics {
+    public VarcharStats() { }
+
+    public VarcharStats(ColumnStatistics<String> stats) {
+        super(stats);
+    }
+
+    @Override protected DataValueDescriptor getDvd(String s) { return new SQLVarchar(s); }
+
+    @Override
+    protected Function<FrequencyEstimate<String>, FrequencyEstimate<DataValueDescriptor>> conversionFunction() {
+        return conversionFunction;
+    }
+
+    /* ***************************************************************************************************************/
+    /*private helper methods*/
+    private static class CharFreq extends Freq{
+        public CharFreq(FrequencyEstimate<String> intFrequencyEstimate) { super(intFrequencyEstimate); }
+        @Override protected DataValueDescriptor getDvd(String value) { return new SQLVarchar(value); }
+    }
+
+    private static final Function<FrequencyEstimate<String>,FrequencyEstimate<DataValueDescriptor>> conversionFunction
+                                    = new Function<FrequencyEstimate<String>, FrequencyEstimate<DataValueDescriptor>>() {
+        @Override
+        public FrequencyEstimate<DataValueDescriptor> apply(FrequencyEstimate<String> stringFrequencyEstimate) {
+            return new CharFreq(stringFrequencyEstimate);
+        }
+    };
+}
