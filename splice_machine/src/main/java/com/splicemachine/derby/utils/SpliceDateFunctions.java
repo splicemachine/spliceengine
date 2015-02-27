@@ -69,7 +69,9 @@ public class SpliceDateFunctions {
         return new Date(parseDateTime(source, null));
     }
 
+
     private static long parseDateTime(String source, String format) throws SQLException {
+        // FIXME: Timezone loss for Timestamp - see http://stackoverflow.com/questions/16794772/joda-time-parse-a-date-with-timezone-and-retain-that-timezone
         DateTimeFormatter parser = DEFAULT_DATE_TIME_FORMATTER;
         if (format != null) {
             try {
