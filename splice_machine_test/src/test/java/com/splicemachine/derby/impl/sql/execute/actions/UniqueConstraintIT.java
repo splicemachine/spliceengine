@@ -5,12 +5,11 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 
-import com.splicemachine.test.SerialTest;
+import com.splicemachine.test_dao.TableDAO;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.experimental.categories.Category;
 import org.junit.runner.Description;
 
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
@@ -24,8 +23,8 @@ import com.splicemachine.homeless.TestUtils;
  */
 //@Category(SerialTest.class) //Serial until DB-1777 is resolved
 public class UniqueConstraintIT extends SpliceUnitTest {
-    private static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-    public static final String CLASS_NAME = UniqueConstraintIT.class.getSimpleName().toUpperCase();
+
+    private static final String CLASS_NAME = UniqueConstraintIT.class.getSimpleName().toUpperCase();
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
@@ -34,8 +33,9 @@ public class UniqueConstraintIT extends SpliceUnitTest {
             Arrays.asList("ZONING1", "ZONING2", "ZONING3", "ZONING4", "ZONING5", "ZONING6", "ZONING7");
     @Before
     public void beforeTests() throws Exception {
+        TableDAO tableDAO = new TableDAO(methodWatcher.getOrCreateConnection());
         for (String tableName : tableNames) {
-            SpliceTableWatcher.executeDrop(CLASS_NAME, tableName);
+            tableDAO.drop(CLASS_NAME, tableName);
         }
     }
 

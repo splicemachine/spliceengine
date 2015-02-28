@@ -1,6 +1,8 @@
 package com.splicemachine.test_dao;
 
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
 
 /**
  * Manipulate tables.
@@ -24,6 +26,29 @@ public class TableDAO {
                 /* ignore per method contract */
             }
         }
+    }
+
+    /**
+     * Drop the given table or view.
+     */
+    public void drop(String schemaName, String tableName, boolean isView) {
+        try {
+            DatabaseMetaData metaData = jdbcTemplate.getConnection().getMetaData();
+            ResultSet rs = metaData.getTables(null, schemaName.toUpperCase(), tableName.toUpperCase(), null);
+            if (rs.next()) {
+                if (isView) {
+                    jdbcTemplate.executeUpdate(String.format("drop view %s.%s", schemaName.toUpperCase(), tableName.toUpperCase()));
+                } else {
+                    jdbcTemplate.executeUpdate(String.format("drop table if exists %s.%s", schemaName.toUpperCase(), tableName.toUpperCase()));
+                }
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void drop(String schemaName, String tableName) {
+        drop(schemaName, tableName, false);
     }
 
 }
