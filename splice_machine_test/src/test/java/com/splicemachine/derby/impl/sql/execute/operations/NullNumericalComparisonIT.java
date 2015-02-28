@@ -8,6 +8,8 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
 import java.sql.ResultSetMetaData;
 import java.sql.Statement;
+
+import com.splicemachine.test_dao.TableDAO;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -194,7 +196,7 @@ public class NullNumericalComparisonIT {
         SpliceUnitTest.MyWatcher tableWatcher =
                 new SpliceUnitTest.MyWatcher(TABLE_NAME,CLASS_NAME,
                         "(i int, d double, da date, t time, tp timestamp, vc varchar(10))");
-        SpliceTableWatcher.executeDrop(CLASS_NAME, TABLE_NAME);
+        new TableDAO(methodWatcher.getOrCreateConnection()).drop(CLASS_NAME, TABLE_NAME);
         tableWatcher.create(Description.createSuiteDescription(CLASS_NAME, "testSelectNullsWithOrderBy"));
         Connection connection = methodWatcher.getOrCreateConnection();
         Statement statement = connection.createStatement();

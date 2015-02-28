@@ -2,6 +2,7 @@ package com.splicemachine.derby.test.framework;
 
 import java.sql.*;
 
+import com.splicemachine.test_dao.TableDAO;
 import org.apache.commons.dbutils.DbUtils;
 import org.apache.log4j.Logger;
 import org.junit.rules.TestWatcher;
@@ -36,64 +37,6 @@ public class SpliceTableWatcher extends TestWatcher {
     @Override
     protected void finished(Description description) {
         trace("finished");
-//		executeDrop(schemaName,tableName);
-    }
-
-    /**
-     * Drop the given table.
-     * @param schemaName the schema in which the table can be found.
-     * @param tableName the name of the table to drop
-     * @param isView does <code>tableName</code> represent a table or view
-     * @param connection the open connection to use. Allow passing in a Connection
-     *                   so that these drops can participate in the same transaction.
-     * @see com.splicemachine.derby.test.framework.SpliceTableWatcher#executeDrop(String, String)
-     */
-    public static void executeDrop(String schemaName,String tableName, boolean isView, Connection connection) {
-        LOG.trace(tag("executeDrop", schemaName, tableName));
-        Statement statement = null;
-        try {
-            ResultSet rs = connection.getMetaData().getTables(null, schemaName.toUpperCase(), tableName.toUpperCase(), null);
-            if (rs.next()) {
-                statement = connection.createStatement();
-                if(isView){
-                    statement.execute(String.format("drop view %s.%s",schemaName.toUpperCase(),tableName.toUpperCase()));
-                }else
-                    statement.execute(String.format("drop table if exists %s.%s",schemaName.toUpperCase(),tableName.toUpperCase()));
-            }
-        } catch (Exception e) {
-            LOG.error(tag("error Dropping " + e.getMessage(), schemaName, tableName),e);
-            throw new RuntimeException(e);
-        } finally {
-            DbUtils.closeQuietly(statement);
-        }
-    }
-
-    /**
-     * Drop the given table. Creates a new connection.
-     * @param schemaName the schema in which the table can be found.
-     * @param tableName the name of the table to drop
-     */
-    public static void executeDrop(String schemaName,String tableName) {
-        Connection connection = null;
-        try {
-            connection = SpliceNetConnection.getConnection();
-            executeDrop(schemaName, tableName, false, connection);
-            connection.commit();
-        } catch (Exception e) {
-            LOG.error(tag("error Dropping " + e.getMessage(), schemaName, tableName),e);
-            e.printStackTrace();
-            try {
-                if (connection != null) {
-                    connection.rollback();
-                }
-            } catch (SQLException e1) {
-                LOG.error(tag("error Rolling back " + e1.getMessage(), schemaName, tableName), e1);
-                e1.printStackTrace();
-            }
-            throw new RuntimeException(e);
-        } finally {
-            DbUtils.commitAndCloseQuietly(connection);
-        }
     }
 
     public void importData(String filename) {
@@ -195,10 +138,11 @@ public class SpliceTableWatcher extends TestWatcher {
             error("Error when fetching metadata",e);
             throw new RuntimeException(e);
         }
+        TableDAO tableDAO = new TableDAO(connection);
 
         try {
             if (rs.next()) {
-                executeDrop(schemaName,tableName);
+                tableDAO.drop(schemaName, tableName);
             }
             connection.commit();
         } catch (SQLException e) {

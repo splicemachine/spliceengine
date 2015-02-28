@@ -8,12 +8,9 @@ import java.util.List;
 import java.util.Map;
 
 import com.splicemachine.test.SerialTest;
+import com.splicemachine.test_dao.TableDAO;
 import org.apache.commons.dbutils.DbUtils;
-import org.junit.Assert;
-import org.junit.ClassRule;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -43,6 +40,13 @@ public class SpliceAdminIT {
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
+
+    private TableDAO tableDAO;
+
+    @Before
+    public void initTableDAO() throws Exception {
+        tableDAO = new TableDAO(methodWatcher.getOrCreateConnection());
+    }
 
     private static final String SQL = "\tsum(l_extendedprice* (1 - l_discount)) as revenue\n" +
             "from\n" +
@@ -107,7 +111,7 @@ public class SpliceAdminIT {
         SpliceUnitTest.MyWatcher tableWatcher =
                 new SpliceUnitTest.MyWatcher(TABLE_NAME,CLASS_NAME,
                         "(PARCELID INTEGER UNIQUE NOT NULL, ADDRESS VARCHAR(15), BOARDDEC VARCHAR(11), EXSZONE VARCHAR(8), PRPZONE VARCHAR(8), HEARDATE DATE)");
-        SpliceTableWatcher.executeDrop(CLASS_NAME, TABLE_NAME);
+        tableDAO.drop(CLASS_NAME, TABLE_NAME);
         tableWatcher.create(Description.createSuiteDescription(CLASS_NAME, "testGetConglomerateIDs"));
         List<Map> tableCluster = TestUtils.tableLookupByNumberNoPrint(methodWatcher);
 
@@ -134,7 +138,7 @@ public class SpliceAdminIT {
         SpliceUnitTest.MyWatcher tableWatcher =
                 new SpliceUnitTest.MyWatcher(TABLE_NAME,CLASS_NAME,
                         "(PARCELID INTEGER UNIQUE NOT NULL, ADDRESS VARCHAR(15), BOARDDEC VARCHAR(11), EXSZONE VARCHAR(8), PRPZONE VARCHAR(8), HEARDATE DATE)");
-        SpliceTableWatcher.executeDrop(CLASS_NAME, TABLE_NAME);
+        tableDAO.drop(CLASS_NAME, TABLE_NAME);
         tableWatcher.create(Description.createSuiteDescription(CLASS_NAME, "testGetConglomerateIDsAllInSchema"));
         List<Map> tableCluster = TestUtils.tableLookupByNumberNoPrint(methodWatcher);
 
@@ -158,7 +162,7 @@ public class SpliceAdminIT {
         SpliceUnitTest.MyWatcher tableWatcher =
                 new SpliceUnitTest.MyWatcher(TABLE_NAME,CLASS_NAME,
                         "(PARCELID INTEGER UNIQUE NOT NULL, ADDRESS VARCHAR(15), BOARDDEC VARCHAR(11), EXSZONE VARCHAR(8), PRPZONE VARCHAR(8), HEARDATE DATE)");
-        SpliceTableWatcher.executeDrop(CLASS_NAME, TABLE_NAME);
+        tableDAO.drop(CLASS_NAME, TABLE_NAME);
         tableWatcher.create(Description.createSuiteDescription(CLASS_NAME, "testGetSchemaInfo"));
 
         CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_SCHEMA_INFO()");
@@ -175,7 +179,7 @@ public class SpliceAdminIT {
         String TABLE_NAME = "SPLIT";
         SpliceUnitTest.MyWatcher tableWatcher =
                 new SpliceUnitTest.MyWatcher(TABLE_NAME,CLASS_NAME,"(username varchar(40) unique not null,i int)");
-        SpliceTableWatcher.executeDrop(CLASS_NAME, TABLE_NAME);
+        tableDAO.drop(CLASS_NAME, TABLE_NAME);
         tableWatcher.create(Description.createSuiteDescription(CLASS_NAME, "testGetSchemaInfoSplit"));
         try {
             PreparedStatement ps = spliceClassWatcher.prepareStatement(String.format("insert into %s.%s values (?,?)", CLASS_NAME, TABLE_NAME));

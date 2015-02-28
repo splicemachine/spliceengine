@@ -1,67 +1,70 @@
 package com.splicemachine.derby.test;
 
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.test_dao.TableDAO;
+import org.junit.*;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
+
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import org.junit.Assert;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TestRule;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
 
 /**
  * Transaction operation test cases
  * 
  * @author jessiezhang
  */
-
 public class TransactionIT extends SpliceUnitTest { 
-	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-	public static final String CLASS_NAME = TransactionIT.class.getSimpleName().toUpperCase()+ "_1"; 
-	public static final String TABLE_NAME_1 = "A";
-	public static final String TABLE_NAME_2 = "B";
-	public static final String TABLE_NAME_3 = "C";
-	public static final String TABLE_NAME_4 = "D";
-	public static final String TABLE_NAME_5 = "E";
-	public static final String TABLE_NAME_6 = "F";
-	public static final String TABLE_NAME_7 = "G";
-	public static final String TABLE_NAME_8 = "H";
-	public static final String TABLE_NAME_9 = "I";
-	public static final String TABLE_NAME_10 = "J";
-	public static final String TABLE_NAME_11 = "K";
-	public static final String TABLE_NAME_12 = "L";
-	public static final String TABLE_NAME_13 = "M";
-	public static final String TABLE_NAME_14 = "N";
-	public static final String TABLE_NAME_15 = "O";
-	public static final String TABLE_NAME_16 = "P";
-	public static final String TABLE_NAME_17 = "Q";
-    public static final String TABLE_NAME_18 = "R";
-    public static final String TABLE_NAME_19 = "S";
 
-	
+    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
+
+    private static final String CLASS_NAME = TransactionIT.class.getSimpleName().toUpperCase()+ "_1";
+    private static final String TABLE_NAME_1 = "A";
+    private static final String TABLE_NAME_2 = "B";
+    private static final String TABLE_NAME_3 = "C";
+    private static final String TABLE_NAME_4 = "D";
+    private static final String TABLE_NAME_5 = "E";
+    private static final String TABLE_NAME_6 = "F";
+    private static final String TABLE_NAME_7 = "G";
+    private static final String TABLE_NAME_8 = "H";
+    private static final String TABLE_NAME_9 = "I";
+    private static final String TABLE_NAME_10 = "J";
+    private static final String TABLE_NAME_11 = "K";
+    private static final String TABLE_NAME_12 = "L";
+    private static final String TABLE_NAME_13 = "M";
+    private static final String TABLE_NAME_14 = "N";
+    private static final String TABLE_NAME_15 = "O";
+    private static final String TABLE_NAME_16 = "P";
+    private static final String TABLE_NAME_17 = "Q";
+    private static final String TABLE_NAME_18 = "R";
+    private static final String TABLE_NAME_19 = "S";
+
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
-
 
     public String getTableReference(String tableName) {
         return CLASS_NAME + "." + tableName;
     }
-
 
     @ClassRule
 	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 		.around(spliceSchemaWatcher);
 	
 	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
-	
+
+    private TableDAO tableDAO;
+    
+    @Before
+    public void initTableDAO() throws Exception {
+        tableDAO = new TableDAO(methodWatcher.getOrCreateConnection());
+    }
+    
 	@Test
 	public void testPreparedStatementAutoCommitOn() throws Exception {
-		SpliceTableWatcher.executeDrop(CLASS_NAME, TABLE_NAME_1);
+		tableDAO.drop(CLASS_NAME, TABLE_NAME_1);
 		methodWatcher.setAutoCommit(true);
 		Statement s = methodWatcher.getStatement();
 		s.execute(format("create table %s (i int, j varchar(10))", this.getTableReference(TABLE_NAME_1)));
@@ -78,7 +81,7 @@ public class TransactionIT extends SpliceUnitTest {
 	
 	@Test
 	public void testPreparedStatementAutoCommitOff() throws Exception {
-		SpliceTableWatcher.executeDrop(CLASS_NAME, TABLE_NAME_2);
+		tableDAO.drop(CLASS_NAME, TABLE_NAME_2);
 		methodWatcher.setAutoCommit(false);
 		Statement s = methodWatcher.getStatement();
 		s.execute(format("create table %s (i int, j varchar(10))", this.getTableReference(TABLE_NAME_2)));
@@ -102,7 +105,7 @@ public class TransactionIT extends SpliceUnitTest {
      */
 	@Test
 	public void testCreateDrop() throws Exception {
-		SpliceTableWatcher.executeDrop(CLASS_NAME, TABLE_NAME_3);
+		tableDAO.drop(CLASS_NAME, TABLE_NAME_3);
 		methodWatcher.setAutoCommit(false);
 		Statement s = methodWatcher.getStatement();
 		s.execute(format("create table %s (i int, j varchar(10))", this.getTableReference(TABLE_NAME_3)));
@@ -120,7 +123,7 @@ public class TransactionIT extends SpliceUnitTest {
 
 	@Test
 	public void testCommitCreate() throws Exception { // TODO What is it that we are testing?
-		SpliceTableWatcher.executeDrop(CLASS_NAME, TABLE_NAME_4);
+		tableDAO.drop(CLASS_NAME, TABLE_NAME_4);
 		methodWatcher.setAutoCommit(false);
 		Statement s = methodWatcher.getStatement();
 		s.execute(format("create table %s (num int, addr varchar(50), zip char(5))",this.getTableReference(TABLE_NAME_4)));
@@ -132,7 +135,7 @@ public class TransactionIT extends SpliceUnitTest {
 	
 	@Test
 	public void testCommitNonCommitInsert() throws Exception {
-			SpliceTableWatcher.executeDrop(CLASS_NAME, TABLE_NAME_5);
+			tableDAO.drop(CLASS_NAME, TABLE_NAME_5);
 			methodWatcher.setAutoCommit(false);
 			Statement s = methodWatcher.getStatement();
 			s.execute(format("create table %s (num int, addr varchar(50), zip char(5))", this.getTableReference(TABLE_NAME_5)));
@@ -157,7 +160,7 @@ public class TransactionIT extends SpliceUnitTest {
 
     @Test
     public void testTransactionDDLCommitNonCommitInsert() throws Exception {
-		SpliceTableWatcher.executeDrop(CLASS_NAME, TABLE_NAME_6);
+		tableDAO.drop(CLASS_NAME, TABLE_NAME_6);
         methodWatcher.setAutoCommit(false);
         Statement s = methodWatcher.getStatement();
         s.execute(format("create table %s (num int, addr varchar(50), zip char(5))", this.getTableReference(TABLE_NAME_6)));
@@ -180,7 +183,7 @@ public class TransactionIT extends SpliceUnitTest {
 
     @Test(expected=SQLException.class)
 	public void testRollbackCreate() throws Exception { 
-		SpliceTableWatcher.executeDrop(CLASS_NAME, TABLE_NAME_7);
+		tableDAO.drop(CLASS_NAME, TABLE_NAME_7);
 
 			methodWatcher.setAutoCommit(false);
 			Statement s = methodWatcher.getStatement();
@@ -194,7 +197,7 @@ public class TransactionIT extends SpliceUnitTest {
 
     @Test
     public void testUpdateRollback() throws Exception {
-        SpliceTableWatcher.executeDrop(CLASS_NAME, TABLE_NAME_8);
+        tableDAO.drop(CLASS_NAME, TABLE_NAME_8);
         methodWatcher.setAutoCommit(false);
         Statement s = methodWatcher.getStatement();
         s.execute(format("create table %s (num int, addr varchar(50), zip char(5))", this.getTableReference(TABLE_NAME_8)));
@@ -224,7 +227,7 @@ public class TransactionIT extends SpliceUnitTest {
 
     @Test
     public void testTransactionalDDLUpdateRollback() throws Exception {
-        SpliceTableWatcher.executeDrop(CLASS_NAME, TABLE_NAME_9);
+        tableDAO.drop(CLASS_NAME, TABLE_NAME_9);
         methodWatcher.setAutoCommit(false);
         Statement s = methodWatcher.getStatement();
         s.execute(format("create table %s (num int, addr varchar(50), zip char(5))", this.getTableReference(TABLE_NAME_9)));
@@ -249,7 +252,7 @@ public class TransactionIT extends SpliceUnitTest {
 
     @Test
     public void testRollbackCreateInsertDelete() throws Exception {
-        SpliceTableWatcher.executeDrop(CLASS_NAME, TABLE_NAME_19);
+        tableDAO.drop(CLASS_NAME, TABLE_NAME_19);
         Statement s = methodWatcher.getStatement();
         s.execute(format("create table %s (num int, addr varchar(50))",this.getTableReference(TABLE_NAME_19)));
         s.execute(format("insert into %s values(100, '100RB: 101 California St')",this.getTableReference(TABLE_NAME_19)));
@@ -276,7 +279,7 @@ public class TransactionIT extends SpliceUnitTest {
 
     @Test
     public void testRollbackCreateInsert() throws Exception {
-        SpliceTableWatcher.executeDrop(CLASS_NAME, TABLE_NAME_10);
+        tableDAO.drop(CLASS_NAME, TABLE_NAME_10);
 
         methodWatcher.setAutoCommit(false);
         Statement s = methodWatcher.getStatement();
@@ -296,7 +299,7 @@ public class TransactionIT extends SpliceUnitTest {
 
     @Test
 	public void testTransactionalSelectString() throws Exception {	
-		SpliceTableWatcher.executeDrop(CLASS_NAME, TABLE_NAME_11);
+		tableDAO.drop(CLASS_NAME, TABLE_NAME_11);
 		methodWatcher.setAutoCommit(false);
 		Statement s = methodWatcher.getStatement();
 		s.execute(format("create table %s (name varchar(40), empId int)",this.getTableReference(TABLE_NAME_11)));
@@ -333,7 +336,7 @@ public class TransactionIT extends SpliceUnitTest {
 
     @Test
     public void testTransactionaDDLlSelectString() throws Exception {
-		SpliceTableWatcher.executeDrop(CLASS_NAME, TABLE_NAME_12);
+		tableDAO.drop(CLASS_NAME, TABLE_NAME_12);
         methodWatcher.setAutoCommit(false);
         Statement s = methodWatcher.getStatement();
         s.execute(format("create table %s (name varchar(40), empId int)",this.getTableReference(TABLE_NAME_12)));
@@ -367,7 +370,7 @@ public class TransactionIT extends SpliceUnitTest {
 
     @Test
 	public void testTransactionalDDLSinkOperationResultSets() throws Exception {
-		SpliceTableWatcher.executeDrop(CLASS_NAME, TABLE_NAME_13);
+		tableDAO.drop(CLASS_NAME, TABLE_NAME_13);
 			methodWatcher.setAutoCommit(false);
             Statement s = methodWatcher.getStatement();
 
@@ -421,7 +424,7 @@ public class TransactionIT extends SpliceUnitTest {
 
     @Test
     public void testTransactionalSinkOperationResultSets() throws Exception {
-		SpliceTableWatcher.executeDrop(CLASS_NAME, TABLE_NAME_14);
+		tableDAO.drop(CLASS_NAME, TABLE_NAME_14);
         methodWatcher.setAutoCommit(false);
         Statement s = methodWatcher.getStatement();
 
@@ -482,7 +485,7 @@ public class TransactionIT extends SpliceUnitTest {
 
 	@Test
 	public void testTrasactionalDDLFailedInsert() throws Exception {
-		SpliceTableWatcher.executeDrop(CLASS_NAME, TABLE_NAME_15);
+		tableDAO.drop(CLASS_NAME, TABLE_NAME_15);
 		try {
 			methodWatcher.setAutoCommit(false);
 			Statement s = methodWatcher.getStatement();
@@ -499,7 +502,7 @@ public class TransactionIT extends SpliceUnitTest {
 
     @Test
     public void testFailedInsert() throws Exception {
-		SpliceTableWatcher.executeDrop(CLASS_NAME, TABLE_NAME_16);
+		tableDAO.drop(CLASS_NAME, TABLE_NAME_16);
         try {
             methodWatcher.setAutoCommit(false);
             Statement s = methodWatcher.getStatement();
@@ -519,7 +522,7 @@ public class TransactionIT extends SpliceUnitTest {
 
     @Test
 	public void testAlterTableTrasactionalDDLAddColumn() throws Exception {
-		SpliceTableWatcher.executeDrop(CLASS_NAME, TABLE_NAME_17);
+		tableDAO.drop(CLASS_NAME, TABLE_NAME_17);
 			methodWatcher.setAutoCommit(false);
 			Statement s = methodWatcher.getStatement();
 			s.execute(format("create table %s(num int, addr varchar(50), zip char(5))",this.getTableReference(TABLE_NAME_17)));	
@@ -544,7 +547,7 @@ public class TransactionIT extends SpliceUnitTest {
 
     @Test
     public void testAlterTableAddColumn() throws Exception {
-		SpliceTableWatcher.executeDrop(CLASS_NAME, TABLE_NAME_18);
+        tableDAO.drop(CLASS_NAME, TABLE_NAME_18);
         methodWatcher.setAutoCommit(false);
         Statement s = methodWatcher.getStatement();
         s.execute(format("create table %s(num int, addr varchar(50), zip char(5))",this.getTableReference(TABLE_NAME_18)));
