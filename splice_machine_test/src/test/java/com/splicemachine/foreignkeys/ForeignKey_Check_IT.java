@@ -25,11 +25,9 @@ public class ForeignKey_Check_IT {
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
 
-    /* @Before for the tests, @After so SpliceSchemaWatcher doesn't blow up on deleting with FK dependencies (DB-2576) */
     @Before
-    @After
-    public void after() throws Exception {
-        new TableDAO(connection()).deleteTableForce("C", "P");
+    public void deleteTables() throws Exception {
+        new TableDAO(connection()).drop(SCHEMA, "C", "P");
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
