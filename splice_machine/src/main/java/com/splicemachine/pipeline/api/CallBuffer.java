@@ -8,7 +8,7 @@ import java.util.Collection;
  * @author Scott Fines
  *         Created on: 3/18/13
  */
-public interface CallBuffer<E> {
+public interface CallBuffer<E> extends AutoCloseable {
 
     /**
      * Adds an entry to the buffer, flushing the buffer if it's full.
