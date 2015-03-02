@@ -61,7 +61,7 @@ public abstract class SIBaseObserver extends BaseRegionObserver {
     public void stop(CoprocessorEnvironment e) throws IOException {
         SpliceLogUtils.trace(LOG, "stopping %s", SIBaseObserver.class);
         if(region!=null)
-            region.discard();
+            region.close();
         super.stop(e);
     }
 
