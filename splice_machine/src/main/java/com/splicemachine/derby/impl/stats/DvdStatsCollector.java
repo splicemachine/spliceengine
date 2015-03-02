@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.stats;
 
+import com.splicemachine.encoding.Encoder;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.collector.ColumnStatsCollector;
 import com.splicemachine.stats.collector.ColumnStatsCollectors;
