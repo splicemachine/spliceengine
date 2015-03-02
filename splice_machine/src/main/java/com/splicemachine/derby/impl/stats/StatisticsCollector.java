@@ -2,6 +2,8 @@ package com.splicemachine.derby.impl.stats;
 
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
+import com.splicemachine.hbase.BufferedRegionScanner;
+import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.metrics.TimeView;
 import com.splicemachine.si.api.TransactionalRegion;
@@ -40,6 +42,7 @@ public class StatisticsCollector {
     private final FormatableBitSet collectedKeyColumns;
     private final String tableVersion;
     private final TransactionalRegion txnRegion;
+    private final MeasuredRegionScanner scanner;
 
     public StatisticsCollector(TxnView txn,
                                ExecRow template,
@@ -51,7 +54,9 @@ public class StatisticsCollector {
                                int[] keyDecodingMap,
                                FormatableBitSet collectedKeyColumns,
                                String tableVersion,
-                               TransactionalRegion txnRegion) {
+                               TransactionalRegion txnRegion,
+                               MeasuredRegionScanner scanner
+                               ) {
         this.txn = txn;
         this.template = template;
         this.partitionScan = partitionScan;
@@ -63,6 +68,7 @@ public class StatisticsCollector {
         this.collectedKeyColumns = collectedKeyColumns;
         this.tableVersion = tableVersion;
         this.txnRegion = txnRegion;
+        this.scanner = scanner;
     }
 
     @SuppressWarnings("unchecked")
@@ -98,7 +104,7 @@ public class StatisticsCollector {
                     byteCount,
                     0l, //TODO -sf- get Query count for this region
                     readTime.getWallClockTime(),
-                    readTime.getWallClockTime()/rowCount,
+                    rowCount>0?readTime.getWallClockTime()/rowCount:0l,
                     columnStats);
         } catch (StandardException | IOException e) {
             throw new ExecutionException(e); //should only be IOExceptions
@@ -133,6 +139,7 @@ public class StatisticsCollector {
                 .accessedKeyColumns(collectedKeyColumns)
                 .tableVersion(tableVersion)
                 .region(txnRegion)
+                .scanner(scanner)
                 .build();
     }
 }
