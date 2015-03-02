@@ -49,6 +49,9 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import org.apache.derby.iapi.types.DataValueFactoryImpl.Format;
 import org.joda.time.Days;
+import org.joda.time.LocalDate;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
 
 /**
  * This contains an instance of a SQL Timestamp object.
@@ -678,6 +681,10 @@ public final class SQLTimestamp extends DataType
         return new SQLDouble();
     }
 
+    SQLVarchar nullValueVarchar() {
+        return new SQLVarchar();
+    }
+
 	/**
 	 * @see DateTimeDataValue#getYear
 	 * 
@@ -693,6 +700,21 @@ public final class SQLTimestamp extends DataType
         }
 	}
 
+    /**
+     * @see DateTimeDataValue#getQuarter
+     *
+     * @exception StandardException		Thrown on error
+     */
+    public NumberDataValue getQuarter(NumberDataValue result)
+        throws StandardException
+    {
+        if (isNull()) {
+            return nullValueInt();
+        } else {
+            return SQLDate.setSource(SQLDate.getQuarter(encodedDate), result);
+        }
+    }
+
 	/**
 	 * @see DateTimeDataValue#getMonth
 	 * 
@@ -707,6 +729,76 @@ public final class SQLTimestamp extends DataType
             return SQLDate.setSource(SQLDate.getMonth(encodedDate), result);
         }
 	}
+
+	/**
+	 * @see DateTimeDataValue#getMonthName
+	 *
+	 * @exception StandardException		Thrown on error
+	 */
+    public StringDataValue getMonthName(StringDataValue result)
+        throws StandardException {
+        if (isNull()) {
+            return new SQLVarchar();
+        } else {
+            return SQLDate.setSource(SQLDate.getMonthName(encodedDate), result);
+        }
+    }
+
+    /**
+     * @see DateTimeDataValue#getWeek
+     *
+     * @exception StandardException		Thrown on error
+     */
+    public NumberDataValue getWeek(NumberDataValue result)
+        throws StandardException {
+        if (isNull()) {
+            return nullValueInt();
+        } else {
+            return SQLDate.setSource(SQLDate.getWeek(encodedDate), result);
+        }
+    }
+
+    /**
+     * @see DateTimeDataValue#getWeekDay
+     *
+     * @exception StandardException		Thrown on error
+     */
+    public NumberDataValue getWeekDay(NumberDataValue result)
+        throws StandardException {
+        if (isNull()) {
+            return nullValueInt();
+        } else {
+            return SQLDate.setSource(SQLDate.getWeekDay(encodedDate), result);
+        }
+    }
+
+	/**
+	 * @see DateTimeDataValue#getWeekDayName
+	 *
+	 * @exception StandardException		Thrown on error
+	 */
+    public StringDataValue getWeekDayName(StringDataValue result)
+        throws StandardException {
+        if (isNull()) {
+            return new SQLVarchar();
+        } else {
+            return SQLDate.setSource(SQLDate.getWeekDayName(encodedDate), result);
+        }
+    }
+
+    /**
+     * @see DateTimeDataValue#getDayOfYear
+     *
+     * @exception StandardException		Thrown on error
+     */
+    public NumberDataValue getDayOfYear(NumberDataValue result)
+        throws StandardException {
+        if (isNull()) {
+            return nullValueInt();
+        } else {
+            return SQLDate.setSource(SQLDate.getDayOfYear(encodedDate), result);
+        }
+    }
 
 	/**
 	 * @see DateTimeDataValue#getDate

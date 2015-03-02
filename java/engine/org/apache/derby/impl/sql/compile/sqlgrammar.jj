@@ -1138,6 +1138,7 @@ public class SQLParser
 		if (tokKind == CURRENT_DATE ||
 			tokKind == CURRENT_TIME ||
 			tokKind == CURRENT_TIMESTAMP ||
+			tokKind == NOW ||
 			tokKind == CURRENT && (isDATETIME(getToken(2).kind)) )
 		{
 			return false;
@@ -1338,6 +1339,7 @@ public class SQLParser
 		  case CURRENT_DATE:
 		  case CURRENT_TIME:
 		  case CURRENT_TIMESTAMP:
+		  case NOW:
 		  	retval = true;
 			break;
 
@@ -2618,6 +2620,7 @@ TOKEN [IGNORE_CASE] :
 |	<NO: "no">
 |	<NOLOGGING: "nologging">
 |	<NOT: "not">
+|	<NOW: "now">
 |	<NULL: "null">
 |	<NULLIF: "nullif">
 |	<NUMERIC: "numeric">
@@ -2736,9 +2739,11 @@ TOKEN [IGNORE_CASE] :
 |	<DATA: "data">
 |	<DATE: "date">
 |	<DAY: "day">
+|	<DAYOFYEAR: "dayofyear">
 |	<DEFINER: "definer">
 |	<DETERMINISTIC: "deterministic">
 |   <DYNAMIC: "dynamic">
+|   <EXTRACT: "extract">
 |	<FORTRAN: "fortran">
 |   <GENERATED: "generated">
 |	<IDENTITY_VAL_LOCAL: "identity_val_local">
@@ -2761,6 +2766,7 @@ TOKEN [IGNORE_CASE] :
 |	<MODIFIES: "modifies">
 |	<MODIFY: "modify">
 |	<MONTH: "month">
+|	<MONTHNAME: "monthname">
 |	<_MORE: "more">
 |	<MUMPS: "mumps">
 |	<NAME: "name">
@@ -2774,6 +2780,7 @@ TOKEN [IGNORE_CASE] :
 |	<PLI: "pli">
 |	<PRECISION: "precision">
 |	<RELEASE: "release">
+|	<QUARTER: "quarter">
 |	<REPEATABLE: "repeatable">
 |	<RESTART: "restart">
 |	<RETURNS: "returns">
@@ -2805,6 +2812,9 @@ TOKEN [IGNORE_CASE] :
 |	<TYPE: "type">
 |	<UNCOMMITTED: "uncommitted">
 |	<USAGE: "usage">
+|	<WEEK: "week">
+|	<WEEKDAY: "weekday">
+|	<WEEKDAYNAME: "weekdayname">
 |	<WHEN: "when">
 }
 
@@ -6541,12 +6551,42 @@ nonSecondDatetimeField() :
 		return DateTimeDataValue.YEAR_FIELD;
 	}
 |
+	<QUARTER>
+	{
+		return DateTimeDataValue.QUARTER_FIELD;
+	}
+|
 	<MONTH> 
 	{
 		return DateTimeDataValue.MONTH_FIELD;
 	}
 |
-	<DAY> 
+	<MONTHNAME>
+	{
+		return DateTimeDataValue.MONTHNAME_FIELD;
+	}
+|
+	<WEEK>
+	{
+		return DateTimeDataValue.WEEK_FIELD;
+	}
+|
+	<WEEKDAY>
+	{
+		return DateTimeDataValue.WEEK_DAY_FIELD;
+	}
+|
+	<WEEKDAYNAME>
+	{
+		return DateTimeDataValue.WEEKDAYNAME_FIELD;
+	}
+|
+	<DAYOFYEAR>
+	{
+		return DateTimeDataValue.DAY_OF_YEAR_FIELD;
+	}
+|
+	<DAY>
 	{
 		return DateTimeDataValue.DAY_FIELD;
 	}
@@ -7254,11 +7294,18 @@ miscBuiltins() throws StandardException :
 		getToken(1).kind == SMALLINT ||
 		getToken(1).kind == LONGINT ||
                 getToken(1).kind == YEAR ||
+                getToken(1).kind == QUARTER ||
                 getToken(1).kind == MONTH ||
+                getToken(1).kind == MONTHNAME ||
+                getToken(1).kind == WEEK ||
+                getToken(1).kind == WEEKDAY ||
+                getToken(1).kind == WEEKDAYNAME ||
+                getToken(1).kind == DAYOFYEAR ||
                 getToken(1).kind == DAY ||
                 getToken(1).kind == HOUR ||
                 getToken(1).kind == MINUTE ||
                 getToken(1).kind == SECOND ||
+                getToken(1).kind == EXTRACT ||
                 getToken(1).kind == LENGTH ||
                 getToken(1).kind == LOCATE ||
                 getToken(1).kind == XMLPARSE ||
@@ -7988,6 +8035,42 @@ dateTimeScalarFunction() throws StandardException :
 	{
                 return timestampNode;
         }
+|
+        <EXTRACT> <LEFT_PAREN> field = datetimeField() <FROM> value = additiveExpression(null,0) <RIGHT_PAREN>
+	{
+		return (ValueNode) nodeFactory.getNode(
+								C_NodeTypes.EXTRACT_OPERATOR_NODE,
+								ReuseFactory.getInteger(field),
+								value,
+								getContextManager());
+	}
+|
+        <QUARTER> <LEFT_PAREN> value = additiveExpression(null,0) <RIGHT_PAREN>
+	{
+		return (ValueNode) nodeFactory.getNode(
+								C_NodeTypes.EXTRACT_OPERATOR_NODE,
+								ReuseFactory.getInteger(DateTimeDataValue.QUARTER_FIELD),
+								value,
+								getContextManager());
+	}
+|
+        <MONTHNAME> <LEFT_PAREN> value = additiveExpression(null,0) <RIGHT_PAREN>
+	{
+		return (ValueNode) nodeFactory.getNode(
+								C_NodeTypes.EXTRACT_OPERATOR_NODE,
+								ReuseFactory.getInteger(DateTimeDataValue.MONTHNAME_FIELD),
+								value,
+								getContextManager());
+	}
+|
+        <WEEK> <LEFT_PAREN> value = additiveExpression(null,0) <RIGHT_PAREN>
+	{
+		return (ValueNode) nodeFactory.getNode(
+								C_NodeTypes.EXTRACT_OPERATOR_NODE,
+								ReuseFactory.getInteger(DateTimeDataValue.WEEK_FIELD),
+								value,
+								getContextManager());
+	}
 |
         field = datetimeField() <LEFT_PAREN> value = additiveExpression(null,0) <RIGHT_PAREN>
 	{
@@ -10250,7 +10333,15 @@ datetimeValueFunction() throws StandardException :
 								CurrentDatetimeOperatorNode.CURRENT_TIMESTAMP),
 							getContextManager());
 	}
-	| <CURRENT_TIMESTAMP> 
+	| <CURRENT_TIMESTAMP>
+	{
+		return (ValueNode) nodeFactory.getNode(
+							C_NodeTypes.CURRENT_DATETIME_OPERATOR_NODE,
+							ReuseFactory.getInteger(
+								CurrentDatetimeOperatorNode.CURRENT_TIMESTAMP),
+							getContextManager());
+	}
+	| <NOW> [ <LEFT_PAREN> <RIGHT_PAREN> ]
 	{
 		return (ValueNode) nodeFactory.getNode(
 							C_NodeTypes.CURRENT_DATETIME_OPERATOR_NODE,
@@ -15325,6 +15416,7 @@ reservedKeyword() :
 |	tok = <NOLOGGING>
 |   tok = <NONE>
 |	tok = <NOT>
+|	tok = <NOW>
 |	tok = <NULL>
 |	tok = <NULLIF>
 |	tok = <NUMERIC>
@@ -15477,6 +15569,7 @@ nonReservedKeyword()  :
 	|	tok = <DATA>
 	|	tok = <DATE>
 	|	tok = <DAY>
+	|	tok = <DAYOFYEAR>
 	|	tok = <DEFRAGMENT>
         |	tok = <DIRTY>
 	|	tok = <DYNAMIC>
@@ -15489,6 +15582,7 @@ nonReservedKeyword()  :
 	|	tok = <EACH>
 	|	tok = <EMPTY>
 	|	tok = <EXCLUSIVE>
+	|	tok = <EXTRACT>
 	|	tok = <FN>
 	|	tok = <FORTRAN>
 	|	tok = <GENERATED>
@@ -15523,6 +15617,7 @@ nonReservedKeyword()  :
 // SQL92 says it is reserved, but we want it to be non-reserved.
 	|	tok = <MODULE>
 	|	tok = <MONTH>
+	|	tok = <MONTHNAME>
 	|	tok = <_MORE>
 	|	tok = <MUMPS>
 	|	tok = <NAME>
@@ -15549,6 +15644,7 @@ nonReservedKeyword()  :
 	|	tok = <PRECISION>
 	|	tok = <PROPERTIES>
 	|	tok = <PURGE>
+	|	tok = <QUARTER>
 	|	tok = <RANK>
 	|	tok = <READS>
 	|	tok = <REF>
@@ -15616,6 +15712,9 @@ nonReservedKeyword()  :
 	|	tok = <VALUE>
 	|	tok = <VARBINARY>
 	|	tok = <PARAMETER>
+	|	tok = <WEEK>
+	|	tok = <WEEKDAY>
+	|	tok = <WEEKDAYNAME>
 	|	tok = <WHEN>
 	|	tok = <WHITESPACE>
 	)

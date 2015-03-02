@@ -25,6 +25,7 @@ import org.apache.derby.iapi.sql.compile.C_NodeTypes;
 
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 
+import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.TypeId;
 import org.apache.derby.iapi.types.DateTimeDataValue;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
@@ -48,10 +49,10 @@ import java.util.Vector;
 public class ExtractOperatorNode extends UnaryOperatorNode {
 
 	static private final String fieldName[] = {
-		"YEAR", "MONTH", "DAY", "HOUR", "MINUTE", "SECOND"
+		"YEAR", "QUARTER", "MONTH", "MONTHNAME", "WEEK", "WEEKDAY", "WEEKDAYNAME", "DAYOFYEAR", "DAY", "HOUR", "MINUTE", "SECOND"
 	};
 	static private final String fieldMethod[] = {
-		"getYear","getMonth","getDate","getHours","getMinutes","getSeconds"
+		"getYear","getQuarter","getMonth","getMonthName","getWeek","getWeekDay","getWeekDayName","getDayOfYear","getDate","getHours","getMinutes","getSeconds"
 	};
 
 	private int extractField;
@@ -105,7 +106,7 @@ public class ExtractOperatorNode extends UnaryOperatorNode {
 		if (opTypeId.isStringTypeId())
 		{
             TypeCompiler tc = operand.getTypeCompiler();
-			int castType = (extractField < 3) ? Types.DATE : Types.TIME;
+			int castType = (extractField < 9) ? Types.DATE : Types.TIME;
 			operand =  (ValueNode)
 				getNodeFactory().getNode(
 					C_NodeTypes.CAST_NODE,
@@ -162,7 +163,15 @@ public class ExtractOperatorNode extends UnaryOperatorNode {
 							operand.getTypeServices().isNullable()
 						)
 				);
-		} else {
+		} else if (extractField == DateTimeDataValue.MONTHNAME_FIELD || extractField == DateTimeDataValue.WEEKDAYNAME_FIELD) {
+            // name fields return varchar
+            setType(new DataTypeDescriptor(
+                        TypeId.CHAR_ID,
+                        operand.getTypeServices().isNullable(),
+                        14  // longest day name is in Portuguese (13); longest month name is in Greek (12)
+                    )
+            );
+        } else {
 			setType(new DataTypeDescriptor(
 							TypeId.INTEGER_ID,
 							operand.getTypeServices().isNullable()

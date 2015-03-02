@@ -47,7 +47,7 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import org.apache.derby.iapi.types.DataValueFactoryImpl.Format;
 import org.apache.log4j.Logger;
-import org.joda.time.DateTime;
+import org.joda.time.LocalDate;
 
 /**
  * This contains an instance of a SQL Date.
@@ -385,7 +385,7 @@ public final class SQLDate extends DataType
      * @param isJdbcEscape if true then only the JDBC date escape syntax is allowed
      * @param localeFinder
      *
-     * @exception Standard exception if the syntax is invalid or the value is out of range.
+     * @exception StandardException if the syntax is invalid or the value is out of range.
      */
     public SQLDate( String dateStr, boolean isJdbcEscape, LocaleFinder localeFinder)
         throws StandardException
@@ -406,7 +406,7 @@ public final class SQLDate extends DataType
      * @param isJdbcEscape if true then only the JDBC date escape syntax is allowed
      * @param localeFinder
      *
-     * @exception Standard exception if the syntax is invalid or the value is out of range.
+     * @exception StandardException if the syntax is invalid or the value is out of range.
      */
     public SQLDate( String dateStr, boolean isJdbcEscape, LocaleFinder localeFinder, Calendar cal)
         throws StandardException
@@ -599,8 +599,23 @@ public final class SQLDate extends DataType
     }
 
 	/**
-	 * @see DateTimeDataValue#getMonth
+	 * @see DateTimeDataValue#getQuarter
 	 * 
+	 * @exception StandardException		Thrown on error
+	 */
+	public NumberDataValue getQuarter(NumberDataValue result)
+							throws StandardException
+	{
+        if (isNull()) {
+            return nullValueInt();
+        } else {
+            return SQLDate.setSource(getQuarter(encodedDate), result);
+        }
+	}
+
+	/**
+	 * @see DateTimeDataValue#getMonth
+	 *
 	 * @exception StandardException		Thrown on error
 	 */
 	public NumberDataValue getMonth(NumberDataValue result)
@@ -612,6 +627,76 @@ public final class SQLDate extends DataType
             return SQLDate.setSource(getMonth(encodedDate), result);
         }
 	}
+
+	/**
+	 * @see DateTimeDataValue#getMonthName
+	 *
+	 * @exception StandardException		Thrown on error
+	 */
+	public StringDataValue getMonthName(StringDataValue result)
+							throws StandardException {
+        if (isNull()) {
+            return new SQLVarchar();
+        } else {
+            return  SQLDate.setSource(getMonthName(encodedDate), result);
+        }
+	}
+
+    /**
+     * @see DateTimeDataValue#getWeek
+     *
+     * @exception StandardException		Thrown on error
+     */
+    public NumberDataValue getWeek(NumberDataValue result)
+        throws StandardException {
+        if (isNull()) {
+            return nullValueInt();
+        } else {
+            return SQLDate.setSource(getWeek(encodedDate), result);
+        }
+    }
+
+    /**
+     * @see DateTimeDataValue#getWeekDay
+     *
+     * @exception StandardException		Thrown on error
+     */
+    public NumberDataValue getWeekDay(NumberDataValue result)
+        throws StandardException {
+        if (isNull()) {
+            return nullValueInt();
+        } else {
+            return SQLDate.setSource(getWeekDay(encodedDate), result);
+        }
+    }
+
+	/**
+	 * @see DateTimeDataValue#getWeekDayName
+	 *
+	 * @exception StandardException		Thrown on error
+	 */
+	public StringDataValue getWeekDayName(StringDataValue result)
+							throws StandardException {
+        if (isNull()) {
+            return new SQLVarchar();
+        } else {
+            return  SQLDate.setSource(getWeekDayName(encodedDate), result);
+        }
+	}
+
+    /**
+     * @see DateTimeDataValue#getDayOfYear
+     *
+     * @exception StandardException		Thrown on error
+     */
+    public NumberDataValue getDayOfYear(NumberDataValue result)
+        throws StandardException {
+        if (isNull()) {
+            return nullValueInt();
+        } else {
+            return SQLDate.setSource(getDayOfYear(encodedDate), result);
+        }
+    }
 
 	/**
 	 * @see DateTimeDataValue#getDate
@@ -743,6 +828,18 @@ public final class SQLDate extends DataType
 	}
 
 	/**
+	 * Get the quarter from the encodedDate,
+     * January through March is one, April through June is two, etc.
+	 *
+	 * @param encodedDate	the encoded date
+	 * @return	 			month value.
+	 */
+	static int getQuarter(int encodedDate)
+	{
+		return ((getMonth(encodedDate)-1)/3+1);
+	}
+
+	/**
 	 * Get the month from the encodedDate,
      * January is one.
 	 *
@@ -753,6 +850,66 @@ public final class SQLDate extends DataType
 	{
 		return ((encodedDate >>> 8) & 0x00ff);
 	}
+
+	/**
+	 * Get the month name from the encodedDate,
+     * 'January' ,'February', etc.
+	 *
+	 * @param encodedDate	the encoded date
+	 * @return	 			month name.
+	 */
+	static String getMonthName(int encodedDate) {
+        LocalDate date = new LocalDate(getYear(encodedDate), getMonth(encodedDate), getDay(encodedDate));
+        return date.monthOfYear().getAsText();
+    }
+
+	/**
+	 * Get the week of year from the encodedDate,
+     * 1-52.
+	 *
+	 * @param encodedDate	the encoded date
+	 * @return	 			week day name.
+	 */
+	static int getWeek(int encodedDate) {
+        LocalDate date = new LocalDate(getYear(encodedDate), getMonth(encodedDate), getDay(encodedDate));
+        return date.weekOfWeekyear().get();
+    }
+
+	/**
+	 * Get the day of week from the encodedDate,
+     * 1-7.
+	 *
+	 * @param encodedDate	the encoded date
+	 * @return	 			week day name.
+	 */
+	static int getWeekDay(int encodedDate) {
+        LocalDate date = new LocalDate(getYear(encodedDate), getMonth(encodedDate), getDay(encodedDate));
+        return date.dayOfWeek().get();
+    }
+
+	/**
+	 * Get the week day name from the encodedDate,
+     * 'Monday' ,'Tuesday', etc.
+	 *
+	 * @param encodedDate	the encoded date
+	 * @return	 			week day name.
+	 */
+	static String getWeekDayName(int encodedDate) {
+        LocalDate date = new LocalDate(getYear(encodedDate), getMonth(encodedDate), getDay(encodedDate));
+        return date.dayOfWeek().getAsText();
+    }
+
+    /**
+     * Get the day of year from the encodedDate,
+     * 1-366.
+     *
+     * @param encodedDate	the encoded date
+     * @return	 			week day name.
+     */
+    static int getDayOfYear(int encodedDate) {
+        LocalDate date = new LocalDate(getYear(encodedDate), getMonth(encodedDate), getDay(encodedDate));
+        return date.dayOfYear().get();
+    }
 
 	/**
 	 * Get the day from the encodedDate.
@@ -871,6 +1028,26 @@ public final class SQLDate extends DataType
 
 		return source;
 	}
+
+	/**
+		This helper routine tests the nullability of various parameters
+		and sets up the result appropriately.
+
+		If source is null, a new SQLVarchar is built.
+
+		@exception StandardException	Thrown on error
+	 */
+	static StringDataValue setSource(String value,
+                                StringDataValue source)
+									throws StandardException {
+		if (source == null)
+			source = new SQLChar();
+
+		source.setValue(value);
+
+		return source;
+	}
+
 	/**
      * Compute the encoded date given a date
 	 *

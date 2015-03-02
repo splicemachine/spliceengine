@@ -638,26 +638,98 @@ public final class SQLTime extends DataType
 	}
 
 	/**
-	 * @see DateTimeDataValue#getMonth
+	 * @see DateTimeDataValue#getQuarter
 	 * 
+	 * @exception StandardException		Thrown on error
+	 */
+	public NumberDataValue getQuarter(NumberDataValue result)
+							throws StandardException
+	{
+		throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE, 
+						"getQuarter", "Time");
+	}
+
+	/**
+	 * @see DateTimeDataValue#getMonth
+	 *
 	 * @exception StandardException		Thrown on error
 	 */
 	public NumberDataValue getMonth(NumberDataValue result)
 							throws StandardException
 	{
-		throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE, 
+		throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
 						"getMonth", "Time");
 	}
 
 	/**
-	 * @see DateTimeDataValue#getDate
+	 * @see DateTimeDataValue#getMonthName
+	 *
+	 * @exception StandardException		Thrown on error
+	 */
+	public StringDataValue getMonthName(StringDataValue result)
+							throws StandardException
+	{
+		throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
+						"getMonthName", "Time");
+	}
+
+	/**
+	 * @see DateTimeDataValue#getWeek
+	 *
+	 * @exception StandardException		Thrown on error
+	 */
+	public NumberDataValue getWeek(NumberDataValue result)
+        throws StandardException
+	{
+		throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
+						"getWeek", "Time");
+	}
+
+	/**
+	 * @see DateTimeDataValue#getWeekDay
+	 *
+	 * @exception StandardException		Thrown on error
+	 */
+	public NumberDataValue getWeekDay(NumberDataValue result)
+        throws StandardException
+	{
+		throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
+						"getWeekDay", "Time");
+	}
+
+	/**
+	 * @see DateTimeDataValue#getWeekDayName
+	 *
+	 * @exception StandardException		Thrown on error
+	 */
+	public StringDataValue getWeekDayName(StringDataValue result)
+							throws StandardException
+	{
+		throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
+						"getWeekDayName", "Time");
+	}
+
+	/**
+	 * @see DateTimeDataValue#getDayOfYear
 	 * 
+	 * @exception StandardException		Thrown on error
+	 */
+	public NumberDataValue getDayOfYear(NumberDataValue result)
+							throws StandardException
+	{
+		throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE, 
+						"getDayOfYear", "Time");
+	}
+
+	/**
+	 * @see DateTimeDataValue#getDate
+	 *
 	 * @exception StandardException		Thrown on error
 	 */
 	public NumberDataValue getDate(NumberDataValue result)
 							throws StandardException
 	{
-		throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE, 
+		throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
 						"getDate", "Time");
 	}
 

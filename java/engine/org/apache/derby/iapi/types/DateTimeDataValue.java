@@ -26,11 +26,17 @@ import org.apache.derby.iapi.error.StandardException;
 public interface DateTimeDataValue extends DataValueDescriptor
 {
 	public static final int YEAR_FIELD = 0;
-	public static final int MONTH_FIELD = 1;
-	public static final int DAY_FIELD = 2;
-	public static final int HOUR_FIELD = 3;
-	public static final int MINUTE_FIELD = 4;
-	public static final int SECOND_FIELD = 5;
+    public static final int QUARTER_FIELD = 1;
+	public static final int MONTH_FIELD = 2;
+    public static final int MONTHNAME_FIELD = 3;
+    public static final int WEEK_FIELD = 4;
+    public static final int WEEK_DAY_FIELD = 5;
+    public static final int WEEKDAYNAME_FIELD = 6;
+	public static final int DAY_OF_YEAR_FIELD = 7;
+	public static final int DAY_FIELD = 8;
+	public static final int HOUR_FIELD = 9;
+	public static final int MINUTE_FIELD = 10;
+	public static final int SECOND_FIELD = 11;
 
     // The JDBC interval types
     public static final int FRAC_SECOND_INTERVAL = 0;
@@ -57,6 +63,19 @@ public interface DateTimeDataValue extends DataValueDescriptor
 							throws StandardException;
 
 	/**
+	 * Get the quarter number out of a date.
+	 *
+	 * @param result	The result of the previous call to this method, null
+	 *					if not called yet.
+	 *
+	 * @return	A NumberDataValue containing the month number.
+	 *
+	 * @exception StandardException		Thrown on error
+	 */
+	NumberDataValue getQuarter(NumberDataValue result)
+							throws StandardException;
+
+	/**
 	 * Get the month number out of a date.
 	 *
 	 * @param result	The result of the previous call to this method, null
@@ -70,6 +89,58 @@ public interface DateTimeDataValue extends DataValueDescriptor
 							throws StandardException;
 
 	/**
+	 * Get the month name out of a date.
+	 *
+	 * @param result	The result of the previous call to this method, null
+	 *					if not called yet.
+	 *
+	 * @return	A SQLVarchar containing the month name.
+	 *
+	 * @exception StandardException		Thrown on error
+	 */
+    StringDataValue getMonthName(StringDataValue result)
+							throws StandardException;
+
+	/**
+	 * Get the week of year out of a date.
+	 *
+	 * @param result	The result of the previous call to this method, null
+	 *					if not called yet.
+	 *
+	 * @return	A NumberDataValue containing the week of year.
+	 *
+	 * @exception StandardException		Thrown on error
+	 */
+    NumberDataValue getWeek(NumberDataValue result)
+							throws StandardException;
+
+	/**
+	 * Get the day of week out of a date.
+	 *
+	 * @param result	The result of the previous call to this method, null
+	 *					if not called yet.
+	 *
+	 * @return	A SQLVarchar containing the day of week.
+	 *
+	 * @exception NumberDataValue		Thrown on error
+	 */
+    NumberDataValue getWeekDay(NumberDataValue result)
+							throws StandardException;
+
+	/**
+	 * Get the week day name out of a date.
+	 *
+	 * @param result	The result of the previous call to this method, null
+	 *					if not called yet.
+	 *
+	 * @return	A SQLVarchar containing the week day name.
+	 *
+	 * @exception StandardException		Thrown on error
+	 */
+    StringDataValue getWeekDayName(StringDataValue result)
+							throws StandardException;
+
+	/**
 	 * Get the day of the month.
 	 *
 	 * @param result	The result of the previous call to this method, null
@@ -80,6 +151,19 @@ public interface DateTimeDataValue extends DataValueDescriptor
 	 * @exception StandardException		Thrown on error
 	 */
 	NumberDataValue getDate(NumberDataValue result)
+							throws StandardException;
+
+	/**
+	 * Get the day of the year.
+	 *
+	 * @param result	The result of the previous call to this method, null
+	 *					if not called yet.
+	 *
+	 * @return	A NumberDataValue containing the day of the year.
+	 *
+	 * @exception StandardException		Thrown on error
+	 */
+	NumberDataValue getDayOfYear(NumberDataValue result)
 							throws StandardException;
 
 	/**
