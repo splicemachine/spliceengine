@@ -1,0 +1,467 @@
+package org.splicetest.txn;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Savepoint;
+import java.sql.Statement;
+
+/**
+ * Stored procedures to test the transactional correctness of the Splice Machine stored procedure execution framework.
+ * This class contains stored procedures that will be dynamically loaded into the Splice Machine
+ * database with the SQLJ jar file loading system procedures.  If your tests require a custom stored procedure,
+ * you can add it to this file and load it into your 'IT' test with the SQLJ jar file loading system procedures.
+ *
+ * @see com.splicemachine.derby.transactions.CallableTransactionIT
+ *
+ * @author David Winters
+ */
+public class TxnTestProcs {
+
+	/*
+	-- Install the JAR file into the database and add it to the CLASSPATH of the database.
+	CALL SQLJ.INSTALL_JAR('/Users/dwinters/Documents/workspace3/txn-it-procs/target/txn-it-procs-1.0-SNAPSHOT.jar', 'SPLICE.TXN_IT_PROCS_JAR', 0);
+	CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.database.classpath', 'SPLICE.TXN_IT_PROCS_JAR');
+	-- Replace the JAR file.
+	CALL SQLJ.REPLACE_JAR('/Users/dwinters/Documents/workspace3/txn-it-procs/target/txn-it-procs-1.0-SNAPSHOT.jar', 'SPLICE.TXN_IT_PROCS_JAR');
+	 */
+
+	/*
+	 * ============================================================================================
+	 * The following test the transactional correctness of Splice stored procedures.
+	 * ============================================================================================
+	 */
+
+	/**
+	 * Create the EMPLOYEE table.
+	 */
+	public static void CREATE_EMPLOYEE_TABLE(String tableName)
+		throws SQLException
+	{
+		/*
+		-- Declare and execute the procedure in ij.
+		CREATE PROCEDURE SPLICE.CREATE_EMPLOYEE_TABLE(IN tableName VARCHAR(40)) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 0 EXTERNAL NAME 'org.splicetest.txn.TxnTestProcs.CREATE_EMPLOYEE_TABLE';
+		CALL SPLICE.CREATE_EMPLOYEE_TABLE('EMPLOYEE');
+		 */
+		Connection conn = DriverManager.getConnection("jdbc:default:connection");
+		createEmployeeTable(conn, tableName);
+		conn.close();
+	}
+
+	/**
+	 * Drop the EMPLOYEE table.
+	 */
+	public static void DROP_EMPLOYEE_TABLE(String tableName)
+		throws SQLException
+	{
+		/*
+		-- Declare and execute the procedure in ij.
+		CREATE PROCEDURE SPLICE.DROP_EMPLOYEE_TABLE(IN tableName VARCHAR(40)) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 0 EXTERNAL NAME 'org.splicetest.txn.TxnTestProcs.DROP_EMPLOYEE_TABLE';
+		CALL SPLICE.CREATE_EMPLOYEE_TABLE('EMPLOYEE');
+		 */
+		Connection conn = DriverManager.getConnection("jdbc:default:connection");
+		dropEmployeeTable(conn, tableName);
+		conn.close();
+	}
+
+	/**
+	 * Insert the record for an employee.
+	 *
+	 * @param id       ID of employee
+	 * @param fname    first name of employee
+	 * @param lname    last name of employee
+	 */
+	public static void INSERT_EMPLOYEE(String tableName, Integer id, String fname, String lname)
+		throws SQLException
+	{
+		/*
+		-- Declare and execute the procedure in ij.
+		CREATE PROCEDURE SPLICE.INSERT_EMPLOYEE(IN tableName VARCHAR(40), IN id INT, IN fname VARCHAR(20), IN lname VARCHAR(30)) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 0 EXTERNAL NAME 'org.splicetest.txn.TxnTestProcs.INSERT_EMPLOYEE';
+		CALL SPLICE.INSERT_EMPLOYEE('EMPLOYEE', 2, 'Barney', 'Rubble');
+		 */
+		Connection conn = DriverManager.getConnection("jdbc:default:connection");
+		insertEmployee(conn, tableName, id, fname, lname);
+		conn.close();
+	}
+
+	/**
+	 * Get the record for an employee.
+	 *
+	 * @param id       ID of employee
+	 * @param rs       employee record
+	 */
+	public static void GET_EMPLOYEE(String tableName, Integer id, ResultSet[] rs)
+		throws SQLException
+	{
+		/*
+		-- Declare and execute the procedure in ij.
+		CREATE PROCEDURE SPLICE.GET_EMPLOYEE(IN tableName VARCHAR(40), IN id INT) PARAMETER STYLE JAVA READS SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'org.splicetest.txn.TxnTestProcs.GET_EMPLOYEE';
+		CALL SPLICE.GET_EMPLOYEE('EMPLOYEE', 2);
+		 */
+		Connection conn = DriverManager.getConnection("jdbc:default:connection");
+		rs[0] = getEmployeeById(conn, tableName, id);
+		conn.close();
+	}
+
+	/**
+	 * Insert the record for an employee and return it.
+	 *
+	 * @param id       ID of employee
+	 * @param fname    first name of employee
+	 * @param lname    last name of employee
+	 * @param rs       employee record that was inserted
+	 */
+	public static void INSERT_AND_GET_EMPLOYEE(String tableName, Integer id, String fname, String lname, ResultSet[] rs)
+		throws SQLException
+	{
+		/*
+		-- Declare and execute the procedure in ij.
+		CREATE PROCEDURE SPLICE.INSERT_AND_GET_EMPLOYEE(IN tableName VARCHAR(40), IN id INT, IN fname VARCHAR(20), IN lname VARCHAR(30)) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'org.splicetest.txn.TxnTestProcs.INSERT_AND_GET_EMPLOYEE';
+		CALL SPLICE.INSERT_AND_GET_EMPLOYEE('EMPLOYEE', 2, 'Barney', 'Rubble');
+		 */
+		Connection conn = DriverManager.getConnection("jdbc:default:connection");
+		boolean autoCommit = conn.getAutoCommit();
+		System.out.println(String.format("*** autocommit = %s ***", autoCommit));
+		insertEmployee(conn, tableName, id, fname, lname);
+		ResultSet myRS = getEmployeeById(conn, tableName, id);
+		rs[0] = myRS;
+		conn.close();
+	}
+
+	/**
+	 * Insert the record for an employee, update it, and return it.
+	 *
+	 * @param id       ID of employee
+	 * @param fname    first name of employee for the INSERT
+	 * @param lname    last name of employee for the INSERT
+	 * @param fname2   first name of employee for the UPDATE
+	 * @param lname2   last name of employee for the UPDATE
+	 * @param rs       employee record that was inserted and updated
+	 */
+	public static void INSERT_UPDATE_AND_GET_EMPLOYEE(String tableName, Integer id, String fname, String lname, String fname2, String lname2, ResultSet[] rs)
+		throws SQLException
+	{
+		/*
+		-- Declare and execute the procedure in ij.
+		CREATE PROCEDURE SPLICE.INSERT_UPDATE_AND_GET_EMPLOYEE(IN tableName VARCHAR(40), IN id INT, IN fname VARCHAR(20), IN lname VARCHAR(30), IN fname2 VARCHAR(20), IN lname2 VARCHAR(30)) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'org.splicetest.txn.TxnTestProcs.INSERT_UPDATE_AND_GET_EMPLOYEE';
+		CALL SPLICE.INSERT_UPDATE_AND_GET_EMPLOYEE('EMPLOYEE', 2, 'Barney', 'Rubble', 'Wilma', 'Flintsone');
+		 */
+		Connection conn = DriverManager.getConnection("jdbc:default:connection");
+		insertEmployee(conn, tableName, id, fname, lname);
+		updateEmployeeNameById(conn, tableName, id, fname2, lname2);
+		rs[0] = getEmployeeById(conn, tableName, id);
+		conn.close();
+	}
+
+	/**
+	 * Insert the record for an employee, update it, execute two employee queries, delete an employee, and return the inserted employee.
+	 *
+	 * @param id       ID of employee for the INSERT
+	 * @param fname    first name of employee for the INSERT
+	 * @param lname    last name of employee for the INSERT
+	 * @param fname2   first name of employee for the UPDATE
+	 * @param lname2   last name of employee for the UPDATE
+	 * @param id2      ID of employee for the DELETE
+	 * @param rs       employee record that was inserted and updated
+	 */
+	public static void INSERT_UPDATE_GETx2_DELETE_AND_GET_EMPLOYEE(String tableName, Integer id, String fname, String lname, String fname2, String lname2, Integer id2, ResultSet[] rs)
+		throws SQLException
+	{
+		/*
+		-- Declare and execute the procedure in ij.
+		CREATE PROCEDURE SPLICE.INSERT_UPDATE_GETx2_DELETE_AND_GET_EMPLOYEE(IN tableName VARCHAR(40), IN id INT, IN fname VARCHAR(20), IN lname VARCHAR(30), IN fname2 VARCHAR(20), IN lname2 VARCHAR(30), IN id2 INT) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'org.splicetest.txn.TxnTestProcs.INSERT_UPDATE_GETx2_DELETE_AND_GET_EMPLOYEE';
+		CALL SPLICE.INSERT_UPDATE_GETx2_DELETE_AND_GET_EMPLOYEE('EMPLOYEE', 2, 'Barney', 'Rubble', 'Wilma', 'Flintsone', 3);
+		 */
+		Connection conn = DriverManager.getConnection("jdbc:default:connection");
+		insertEmployee(conn, tableName, id, fname, lname);
+		updateEmployeeNameById(conn, tableName, id, fname2, lname2);
+		getEmployeeFirstNames(conn, tableName);
+		getEmployeeLastNames(conn, tableName);
+		deleteEmployee(conn, tableName, id2);
+		rs[0] = getEmployeeById(conn, tableName, id);
+		conn.close();
+	}
+
+	/**
+	 * Create the EMPLOYEE table, insert a record for an employee, and return it.
+	 *
+	 * @param id       ID of employee
+	 * @param fname    first name of employee
+	 * @param lname    last name of employee
+	 * @param rs       employee record that was inserted
+	 */
+	public static void CREATE_INSERT_AND_GET_EMPLOYEE(String tableName, Integer id, String fname, String lname, ResultSet[] rs)
+		throws SQLException
+	{
+		/*
+		-- Declare and execute the procedure in ij.
+		CREATE PROCEDURE SPLICE.CREATE_INSERT_AND_GET_EMPLOYEE(IN tableName VARCHAR(40), IN id INT, IN fname VARCHAR(20), IN lname VARCHAR(30)) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'org.splicetest.txn.TxnTestProcs.CREATE_INSERT_AND_GET_EMPLOYEE';
+		CALL SPLICE.CREATE_INSERT_AND_GET_EMPLOYEE('EMPLOYEE', 1, 'Fred', 'Flintstone');
+		 */
+		Connection conn = DriverManager.getConnection("jdbc:default:connection");
+		createEmployeeTable(conn, tableName);
+		insertEmployee(conn, tableName, id, fname, lname);
+		rs[0] = getEmployeeById(conn, tableName, id);
+		conn.close();
+	}
+
+	/**
+	 * Insert the record for an employee and return it.
+	 *
+	 * @param id       ID of employee
+	 * @param fname    first name of employee
+	 * @param lname    last name of employee
+	 * @param rs       employee record that was inserted
+	 */
+	public static void INSERT_AND_GET_EMPLOYEE_COMMIT_TXN(String tableName, Integer id, String fname, String lname, ResultSet[] rs)
+		throws SQLException
+	{
+		/*
+		-- Declare and execute the procedure in ij.
+		CREATE PROCEDURE SPLICE.INSERT_AND_GET_EMPLOYEE_COMMIT_TXN(IN tableName VARCHAR(40), IN id INT, IN fname VARCHAR(20), IN lname VARCHAR(30)) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'org.splicetest.txn.TxnTestProcs.INSERT_AND_GET_EMPLOYEE_COMMIT_TXN';
+		CALL SPLICE.INSERT_AND_GET_EMPLOYEE_COMMIT_TXN('EMPLOYEE', 2, 'Barney', 'Rubble');
+		 */
+		Connection conn = DriverManager.getConnection("jdbc:default:connection");
+		conn.setAutoCommit(false);
+		insertEmployee(conn, tableName, id, fname, lname);
+		rs[0] = getEmployeeById(conn, tableName, id);
+		conn.commit();
+		conn.close();
+	}
+
+	/**
+	 * Insert the record for an employee and return it.
+	 *
+	 * @param id       ID of employee
+	 * @param fname    first name of employee
+	 * @param lname    last name of employee
+	 * @param rs       employee record that was inserted
+	 */
+	public static void INSERT_AND_GET_EMPLOYEE_NO_COMMIT_TXN(String tableName, Integer id, String fname, String lname, ResultSet[] rs)
+		throws SQLException
+	{
+		/*
+		-- Declare and execute the procedure in ij.
+		CREATE PROCEDURE SPLICE.INSERT_AND_GET_EMPLOYEE_NO_COMMIT_TXN(IN tableName VARCHAR(40), IN id INT, IN fname VARCHAR(20), IN lname VARCHAR(30)) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'org.splicetest.txn.TxnTestProcs.INSERT_AND_GET_EMPLOYEE_NO_COMMIT_TXN';
+		CALL SPLICE.INSERT_AND_GET_EMPLOYEE_NO_COMMIT_TXN('EMPLOYEE', 2, 'Barney', 'Rubble');
+		 */
+		Connection conn = DriverManager.getConnection("jdbc:default:connection");
+		conn.setAutoCommit(false);
+		insertEmployee(conn, tableName, id, fname, lname);
+		rs[0] = getEmployeeById(conn, tableName, id);
+		conn.close();
+	}
+
+	/**
+	 * Insert the record for an employee and return it.
+	 *
+	 * @param id       ID of employee
+	 * @param fname    first name of employee
+	 * @param lname    last name of employee
+	 * @param rs       employee record that was inserted
+	 */
+	public static void INSERT_AND_GET_EMPLOYEE_ROLLBACK_TXN(String tableName, Integer id, String fname, String lname, ResultSet[] rs)
+		throws SQLException
+	{
+		/*
+		-- Declare and execute the procedure in ij.
+		CREATE PROCEDURE SPLICE.INSERT_AND_GET_EMPLOYEE_ROLLBACK_TXN(IN tableName VARCHAR(40), IN id INT, IN fname VARCHAR(20), IN lname VARCHAR(30)) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'org.splicetest.txn.TxnTestProcs.INSERT_AND_GET_EMPLOYEE_ROLLBACK_TXN';
+		CALL SPLICE.INSERT_AND_GET_EMPLOYEE_ROLLBACK_TXN('EMPLOYEE', 2, 'Barney', 'Rubble');
+		 */
+		Connection conn = DriverManager.getConnection("jdbc:default:connection");
+		conn.setAutoCommit(false);
+		insertEmployee(conn, tableName, id, fname, lname);
+		rs[0] = getEmployeeById(conn, tableName, id);
+		conn.rollback();
+		conn.close();
+	}
+
+	/**
+	 * Insert the record for an employee and return it.
+	 *
+	 * @param id       ID of employee
+	 * @param fname    first name of employee
+	 * @param lname    last name of employee
+	 * @param rs       employee record that was inserted
+	 */
+	public static void INSERT_AND_GET_EMPLOYEE_RELEASE_SVPT(String tableName, Integer id, String fname, String lname, ResultSet[] rs)
+		throws SQLException
+	{
+		/*
+		-- Declare and execute the procedure in ij.
+		CREATE PROCEDURE SPLICE.INSERT_AND_GET_EMPLOYEE_RELEASE_SVPT(IN tableName VARCHAR(40), IN id INT, IN fname VARCHAR(20), IN lname VARCHAR(30)) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'org.splicetest.txn.TxnTestProcs.INSERT_AND_GET_EMPLOYEE_RELEASE_SVPT';
+		CALL SPLICE.INSERT_AND_GET_EMPLOYEE_RELEASE_SVPT('EMPLOYEE', 2, 'Barney', 'Rubble');
+		 */
+		Connection conn = DriverManager.getConnection("jdbc:default:connection");
+		conn.setAutoCommit(false);
+		Savepoint savepoint0 = conn.setSavepoint("SVPT0");
+		insertEmployee(conn, tableName, id, fname, lname);
+		rs[0] = getEmployeeById(conn, tableName, id);
+		conn.releaseSavepoint(savepoint0);
+		conn.close();
+	}
+
+	/**
+	 * Insert the record for an employee and return it.
+	 *
+	 * @param id       ID of employee
+	 * @param fname    first name of employee
+	 * @param lname    last name of employee
+	 * @param rs       employee record that was inserted
+	 */
+	public static void INSERT_AND_GET_EMPLOYEE_NO_RELEASE_SVPT(String tableName, Integer id, String fname, String lname, ResultSet[] rs)
+		throws SQLException
+	{
+		/*
+		-- Declare and execute the procedure in ij.
+		CREATE PROCEDURE SPLICE.INSERT_AND_GET_EMPLOYEE_NO_RELEASE_SVPT(IN tableName VARCHAR(40), IN id INT, IN fname VARCHAR(20), IN lname VARCHAR(30)) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'org.splicetest.txn.TxnTestProcs.INSERT_AND_GET_EMPLOYEE_NO_RELEASE_SVPT';
+		CALL SPLICE.INSERT_AND_GET_EMPLOYEE_NO_RELEASE_SVPT('EMPLOYEE', 2, 'Barney', 'Rubble');
+		 */
+		Connection conn = DriverManager.getConnection("jdbc:default:connection");
+		conn.setAutoCommit(false);
+		Savepoint savepoint0 = conn.setSavepoint("SVPT0");
+		insertEmployee(conn, tableName, id, fname, lname);
+		rs[0] = getEmployeeById(conn, tableName, id);
+		conn.releaseSavepoint(savepoint0);
+		conn.close();
+	}
+
+	/**
+	 * Insert the record for an employee and return it.
+	 *
+	 * @param id       ID of employee
+	 * @param fname    first name of employee
+	 * @param lname    last name of employee
+	 * @param rs       employee record that was inserted
+	 */
+	public static void INSERT_AND_GET_EMPLOYEE_ROLLBACK_SVPT(String tableName, Integer id, String fname, String lname, ResultSet[] rs)
+		throws SQLException
+	{
+		/*
+		-- Declare and execute the procedure in ij.
+		CREATE PROCEDURE SPLICE.INSERT_AND_GET_EMPLOYEE_ROLLBACK_SVPT(IN tableName VARCHAR(40), IN id INT, IN fname VARCHAR(20), IN lname VARCHAR(30)) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'org.splicetest.txn.TxnTestProcs.INSERT_AND_GET_EMPLOYEE_ROLLBACK_SVPT';
+		CALL SPLICE.INSERT_AND_GET_EMPLOYEE_ROLLBACK_SVPT('EMPLOYEE', 2, 'Barney', 'Rubble');
+		 */
+		Connection conn = DriverManager.getConnection("jdbc:default:connection");
+		conn.setAutoCommit(false);
+		Savepoint savepoint0 = conn.setSavepoint("SVPT0");
+		insertEmployee(conn, tableName, id, fname, lname);
+		rs[0] = getEmployeeById(conn, tableName, id);
+		conn.rollback(savepoint0);
+		conn.close();
+	}
+
+	/*
+	 * ============================================================================================
+	 * Worker methods
+	 * ============================================================================================
+	 */
+
+	/**
+	 * Worker method that creates the EMPLOYEE table.
+	 * @param conn
+	 * @param tableName  name of EMPLOYEE table
+	 * @throws SQLException
+	 */
+	private static void createEmployeeTable(Connection conn, String tableName) throws SQLException {
+		Statement stmt = conn.createStatement();
+		stmt.executeUpdate("create table " + tableName + " (ID int, FNAME varchar(20), LNAME varchar(30))");
+	}
+
+	/**
+	 * Worker method that drops the EMPLOYEE table.
+	 * @param conn
+	 * @param tableName  name of EMPLOYEE table
+	 * @throws SQLException
+	 */
+	private static void dropEmployeeTable(Connection conn, String tableName) throws SQLException {
+		Statement stmt = conn.createStatement();
+		stmt.executeUpdate("drop table " + tableName);
+	}
+
+	/**
+	 * Worker method that inserts an employee into the EMPLOYEE table.
+	 * @param conn
+	 * @param tableName  name of EMPLOYEE table
+	 * @param id       ID of employee
+	 * @param fname    first name of employee
+	 * @param lname    last name of employee
+	 * @throws SQLException
+	 */
+	private static void insertEmployee(Connection conn, String tableName, Integer id, String fname, String lname) throws SQLException {
+		PreparedStatement pstmt = conn.prepareStatement("insert into " + tableName + " values(?, ?, ?)");
+		pstmt.setInt(1, id);
+		pstmt.setString(2, fname);
+		pstmt.setString(3, lname);
+		pstmt.executeUpdate();
+	}
+
+	/**
+	 * Worker method that updates the name of an employee in the EMPLOYEE table by ID.
+	 * @param conn
+	 * @param tableName  name of EMPLOYEE table
+	 * @param id       ID of employee
+	 * @param fname    first name of employee
+	 * @param lname    last name of employee
+	 * @throws SQLException
+	 */
+	private static void updateEmployeeNameById(Connection conn, String tableName, Integer id, String fname, String lname) throws SQLException {
+		PreparedStatement pstmt = conn.prepareStatement("update " + tableName + " set FNAME = ?, LNAME = ? where ID = ?");
+		pstmt.setString(1, fname);
+		pstmt.setString(2, lname);
+		pstmt.setInt(3, id);
+		pstmt.executeUpdate();
+	}
+
+	/**
+	 * Worker method that deletes an employee from the EMPLOYEE table.
+	 * @param conn
+	 * @param tableName  name of EMPLOYEE table
+	 * @param id       ID of employee
+	 * @param fname    first name of employee
+	 * @param lname    last name of employee
+	 * @throws SQLException
+	 */
+	private static void deleteEmployee(Connection conn, String tableName, Integer id) throws SQLException {
+		PreparedStatement pstmt = conn.prepareStatement("delete from " + tableName + " where ID = ?");
+		pstmt.setInt(1, id);
+		pstmt.executeUpdate();
+	}
+
+	/**
+	 * Worker method that returns an employee by ID.
+	 * @param conn
+	 * @param tableName  name of EMPLOYEE table
+	 * @param id       ID of employee
+	 * @throws SQLException
+	 */
+	private static ResultSet getEmployeeById(Connection conn, String tableName, Integer id) throws SQLException {
+		PreparedStatement pstmt = conn.prepareStatement("select * from " + tableName + " where ID = ?");
+		pstmt.setInt(1, id);
+		return pstmt.executeQuery();
+	}
+
+	/**
+	 * Worker method that returns all employee first names.
+	 * @param conn
+	 * @param tableName  name of EMPLOYEE table
+	 * @throws SQLException
+	 */
+	private static ResultSet getEmployeeFirstNames(Connection conn, String tableName) throws SQLException {
+		PreparedStatement pstmt = conn.prepareStatement("select FNAME from " + tableName);
+		return pstmt.executeQuery();
+	}
+
+	/**
+	 * Worker method that returns all employee last names.
+	 * @param conn
+	 * @param tableName  name of EMPLOYEE table
+	 * @throws SQLException
+	 */
+	private static ResultSet getEmployeeLastNames(Connection conn, String tableName) throws SQLException {
+		PreparedStatement pstmt = conn.prepareStatement("select LNAME from " + tableName);
+		return pstmt.executeQuery();
+	}
+}
