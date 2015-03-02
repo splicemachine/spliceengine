@@ -122,8 +122,6 @@ public class TxnTestProcs {
 		CALL SPLICE.INSERT_AND_GET_EMPLOYEE('EMPLOYEE', 2, 'Barney', 'Rubble');
 		 */
 		Connection conn = DriverManager.getConnection("jdbc:default:connection");
-		boolean autoCommit = conn.getAutoCommit();
-		System.out.println(String.format("*** autocommit = %s ***", autoCommit));
 		insertEmployee(conn, tableName, id, fname, lname);
 		ResultSet myRS = getEmployeeById(conn, tableName, id);
 		rs[0] = myRS;
