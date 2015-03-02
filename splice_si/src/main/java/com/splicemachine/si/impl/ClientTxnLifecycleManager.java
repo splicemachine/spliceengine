@@ -79,8 +79,6 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager {
                                      Txn.IsolationLevel isolationLevel,
                                      boolean additive,
                                      byte[] destinationTable) throws IOException {
-        if(LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"Beginning child transaction: parent=%s,isolationLevel=%s,additive=%b,destinationTable=%s,isReadOnly=%b",parentTxn,isolationLevel,additive,destinationTable,destinationTable==null);
 				if(parentTxn==null)
 						parentTxn = Txn.ROOT_TRANSACTION;
 				if(destinationTable!=null && !parentTxn.allowsWrites())
@@ -90,8 +88,9 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager {
 				if(destinationTable!=null){
 						long timestamp = timestampSource.nextTimestamp();
 						return createWritableTransaction(timestamp,isolationLevel,additive,parentTxn,destinationTable);
-				}else
+				}else{
 						return createReadableTransaction(isolationLevel,additive,parentTxn);
+				}
 		}
 		@Override
 		public Txn chainTransaction(TxnView parentTxn,
@@ -99,6 +98,7 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager {
                                 boolean additive,
                                 byte[] destinationTable,
                                 Txn txnToCommit) throws IOException {
+		if (LOG.isTraceEnabled()) SpliceLogUtils.trace(LOG,"Before chain transaction: parentTxn=%s,isolationLevel=%s,additive=%b,destinationTable=%s,isReadOnly=%b,txnToCommit=%s",parentTxn,isolationLevel,additive,destinationTable,destinationTable==null,txnToCommit);
 				if(parentTxn==null)
 						parentTxn = Txn.ROOT_TRANSACTION;
         if(destinationTable!=null){
@@ -121,15 +121,18 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager {
         txnToCommit.commit();
         long oldTs = txnToCommit.getCommitTimestamp();
 
-				if(destinationTable!=null)
-						return createWritableTransaction(oldTs,isolationLevel, additive,parentTxn,destinationTable);
-				else{
-						if(parentTxn.equals(Txn.ROOT_TRANSACTION)){
-								return ReadOnlyTxn.createReadOnlyParentTransaction(oldTs,oldTs,isolationLevel,this,additive);
-						}else{
-                return ReadOnlyTxn.createReadOnlyTransaction(oldTs, parentTxn, oldTs, isolationLevel, additive, this);
-						}
-				}
+        Txn newTxn;
+        if(destinationTable!=null){
+        	newTxn = createWritableTransaction(oldTs,isolationLevel, additive,parentTxn,destinationTable);
+        }else{
+        	if(parentTxn.equals(Txn.ROOT_TRANSACTION)){
+        		newTxn = ReadOnlyTxn.createReadOnlyParentTransaction(oldTs,oldTs,isolationLevel,this,additive);
+        	}else{
+        		newTxn = ReadOnlyTxn.createReadOnlyTransaction(oldTs, parentTxn, oldTs, isolationLevel, additive, this);
+        	}
+        }
+        if (LOG.isTraceEnabled()) SpliceLogUtils.trace(LOG,"After chain transaction: oldTs=%s,txnToCommit=%s,newTxn=%s,parentTxn=%s",oldTs,txnToCommit,newTxn,parentTxn);
+    	return newTxn;
 		}
 
     @Override
@@ -139,6 +142,7 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager {
 
     @Override
 		public Txn elevateTransaction(Txn txn, byte[] destinationTable) throws IOException {
+				if(LOG.isTraceEnabled()) SpliceLogUtils.trace(LOG,"Before elevate transaction: txn=%s,destinationTable=%s",txn,destinationTable);
 				if(!txn.allowsWrites()){
 						//we've elevated from a read-only to a writable, so make sure that we add
 						//it to the keep alive
@@ -148,20 +152,25 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager {
 						txn = writableTxn;
 				}else
 						store.elevateTransaction(txn,destinationTable);
+				if(LOG.isTraceEnabled()) SpliceLogUtils.trace(LOG,"After elevate transaction: txn=%s",txn);
 				return txn;
 		}
 
 		@Override
 		public long commit(long txnId) throws IOException {
+	        	if (LOG.isTraceEnabled()) SpliceLogUtils.trace(LOG,"Before commit transaction: txnId=%s",txnId);
                 if (restoreMode) {
                     return -1; // we are in restore mode, don't try to access the store
                 }
-				return store.commit(txnId);
+				long ts = store.commit(txnId);
+	        	if (LOG.isTraceEnabled()) SpliceLogUtils.trace(LOG,"After commit transaction: txnId=%s,ts=%s",txnId,ts);
+				return ts;
 				//TODO -sf- add the transaction to the global cache?
 		}
 
 		@Override
 		public void rollback(long txnId) throws IOException {
+	        	if(LOG.isTraceEnabled()) SpliceLogUtils.trace(LOG,"Rollback transaction: txnId=%s",txnId);
                 if (restoreMode) {
                     return; // we are in restore mode, don't try to access the store
                 }
@@ -182,14 +191,18 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager {
 				 * This uses 2 network calls--once to get a beginTimestamp, and then once to record the
 				 * transaction to the table.
 				 */
-				if(parentTxn!=null &&!Txn.ROOT_TRANSACTION.equals(parentTxn))
+				if(LOG.isTraceEnabled()) SpliceLogUtils.trace(LOG,"Before create writable transaction: txnId=%s,parentTxn=%s,isolationLevel=%s,additive=%b,destinationTable=%s,isReadOnly=%b",timestamp,parentTxn,isolationLevel,additive,destinationTable,destinationTable==null);
+				if(parentTxn!=null &&!Txn.ROOT_TRANSACTION.equals(parentTxn)) {
 						parentTxn = new LazyTxnView(parentTxn.getTxnId(),store,
                     true,parentTxn.isAdditive(),parentTxn.getIsolationLevel()); //TODO -sf- should this be here?
+						((LazyTxnView) parentTxn).getDelegate();
+				}
 				WritableTxn newTxn = new WritableTxn(timestamp,
 								timestamp,isolationLevel,parentTxn,this, additive,destinationTable);
 				//record the transaction on the transaction table--network call
 				store.recordNewTransaction(newTxn);
 				keepAliveScheduler.scheduleKeepAlive(newTxn);
+				if(LOG.isTraceEnabled()) SpliceLogUtils.trace(LOG,"After create writable transaction: txnId=%s,newTxn=%s,parentTxn=%s",timestamp,newTxn,parentTxn);
 
 				return newTxn;
 		}
@@ -212,12 +225,17 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager {
 				 * do this by providing a subclass of the ReadOnly transaction
 				 *
 				 */
+				ReadOnlyTxn newTxn;
 				if(parentTxn.equals(Txn.ROOT_TRANSACTION)){
 						long beginTimestamp = timestampSource.nextTimestamp();
-						return ReadOnlyTxn.createReadOnlyParentTransaction(beginTimestamp,beginTimestamp,isolationLevel,this,additive);
+						if (LOG.isTraceEnabled()) SpliceLogUtils.trace(LOG,"Before create readable transaction: txnId=%s,parentTxn=%s,isolationLevel=%s,additive=%b",beginTimestamp,parentTxn,isolationLevel,additive);
+						newTxn = ReadOnlyTxn.createReadOnlyParentTransaction(beginTimestamp,beginTimestamp,isolationLevel,this,additive);
 				}else{
-						return ReadOnlyTxn.createReadOnlyChildTransaction(parentTxn,this, additive);
+						if (LOG.isTraceEnabled()) SpliceLogUtils.trace(LOG,"Before create readable transaction: parentTxn=%s,isolationLevel=%s,additive=%b",parentTxn,isolationLevel,additive);
+						newTxn = ReadOnlyTxn.createReadOnlyChildTransaction(parentTxn,this, additive);
 				}
+				if (LOG.isTraceEnabled()) SpliceLogUtils.trace(LOG,"After create readable transaction: newTxn=%s",newTxn);
+				return newTxn;
 		}
 
 }
