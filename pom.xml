@@ -4,7 +4,7 @@
 	<groupId>org.splicetest.txn</groupId>
 	<artifactId>txn-it-procs</artifactId>
 	<packaging>jar</packaging>
-	<version>1.0.0-SNAPSHOT</version>
+	<version>1.0.1</version>
 	<name>txn-it-procs</name>
 	<url>http://maven.apache.org</url>
 	<distributionManagement>
