@@ -8,6 +8,8 @@ import org.apache.derby.iapi.types.DateTimeDataValue;
 import org.apache.derby.iapi.types.NumberDataValue;
 import org.apache.derby.iapi.types.SQLBoolean;
 import org.apache.derby.iapi.types.DataValueFactoryImpl.Format;
+import org.apache.derby.iapi.types.SQLVarchar;
+import org.apache.derby.iapi.types.StringDataValue;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -65,6 +67,13 @@ public class LazyTimestampDataValueDescriptor extends LazyDataValueDescriptor im
     }
 
     @Override
+    public NumberDataValue getQuarter(NumberDataValue result)
+            throws StandardException {
+        forceDeserialization();
+        return dtdv.getQuarter(result);
+    }
+
+    @Override
     public NumberDataValue getMonth(NumberDataValue result)
             throws StandardException {
         forceDeserialization();
@@ -72,10 +81,45 @@ public class LazyTimestampDataValueDescriptor extends LazyDataValueDescriptor im
     }
 
     @Override
+    public StringDataValue getMonthName(StringDataValue result)
+            throws StandardException {
+        forceDeserialization();
+        return dtdv.getMonthName(result);
+    }
+
+    @Override
+    public NumberDataValue getWeek(NumberDataValue result)
+            throws StandardException {
+        forceDeserialization();
+        return dtdv.getWeek(result);
+    }
+
+    @Override
+    public NumberDataValue getWeekDay(NumberDataValue result)
+            throws StandardException {
+        forceDeserialization();
+        return dtdv.getWeekDay(result);
+    }
+
+    @Override
+    public StringDataValue getWeekDayName(StringDataValue result)
+            throws StandardException {
+        forceDeserialization();
+        return dtdv.getWeekDayName(result);
+    }
+
+    @Override
     public NumberDataValue getDate(NumberDataValue result)
             throws StandardException {
         forceDeserialization();
         return dtdv.getDate(result);
+    }
+
+    @Override
+    public NumberDataValue getDayOfYear(NumberDataValue result)
+            throws StandardException {
+        forceDeserialization();
+        return dtdv.getDayOfYear(result);
     }
 
     @Override
