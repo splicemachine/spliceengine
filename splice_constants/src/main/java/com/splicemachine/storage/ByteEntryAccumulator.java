@@ -94,6 +94,13 @@ public class ByteEntryAccumulator extends BaseEntryAccumulator<ByteEntryAccumula
 
     }
 
+    public int getCurrentLength(int position){
+        if(position<0 || position>=fields.length) return 0;
+        ByteSlice slice = fields[position];
+        if(slice==null) return 0;
+        return slice.length();
+    }
+
 		public ByteSlice getFieldSlice(int myField) {
 				ByteSlice field = fields[myField];
 				if(field.length()<=0) return null;
