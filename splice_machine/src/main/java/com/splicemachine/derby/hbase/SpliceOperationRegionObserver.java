@@ -68,7 +68,7 @@ public class SpliceOperationRegionObserver extends BaseRegionObserver {
         SpliceLogUtils.info(LOG, "Stopping the CoProcessor %s",SpliceOperationRegionObserver.class);
         super.stop(e);
         if(txnRegion!=null) {
-            txnRegion.discard();
+            txnRegion.close();
             txnRegion=null; //dereference to avoid memory leakage
         }
     }

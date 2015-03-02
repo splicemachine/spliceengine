@@ -269,7 +269,7 @@ public class PopulateIndexTask extends ZkTask {
         DDLTxnView demarcationPoint = new DDLTxnView(getTxn(), this.demarcationPoint);
         TransactionalRegion transactionalRegion = TransactionalRegions.get(region);
         TxnFilter packed = transactionalRegion.packedFilter(demarcationPoint, predicateFilter, false);
-        transactionalRegion.discard();
+        transactionalRegion.close();
         regionScan.setFilter(new SIFilterPacked(packed));
         RegionScanner sourceScanner = region.getScanner(regionScan);
         return SpliceConstants.useReadAheadScanner? new ReadAheadRegionScanner(region, SpliceConstants.DEFAULT_CACHE_SIZE, sourceScanner,metricFactory,HTransactorFactory.getTransactor().getDataLib())

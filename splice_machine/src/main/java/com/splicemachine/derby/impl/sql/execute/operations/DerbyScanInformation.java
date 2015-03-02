@@ -22,6 +22,7 @@ import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.io.FormatableIntHolder;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
@@ -115,19 +116,23 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
 
 				if(tableVersion==null){
 						try {
-								this.tableVersion = tableVersionCache.get(conglomId,new Callable<String>() {
-										@Override
-										public String call() throws Exception {
-												DataDictionary dataDictionary = activation.getLanguageConnectionContext().getDataDictionary();
-												UUID tableID = dataDictionary.getConglomerateDescriptor(conglomId).getTableID();
-												TableDescriptor td = dataDictionary.getTableDescriptor(tableID);
-												return td.getVersion();
-										}
-								});
+								this.tableVersion = fetchTableVersion(conglomId,activation.getLanguageConnectionContext());
 						} catch (ExecutionException e) {
 								throw Exceptions.parseException(e);
 						}
 				}
+    }
+
+    public static String fetchTableVersion(final long conglomerateId,final LanguageConnectionContext lcc) throws ExecutionException {
+        return tableVersionCache.get(conglomerateId,new Callable<String>() {
+            @Override
+            public String call() throws Exception {
+                DataDictionary dataDictionary = lcc.getDataDictionary();
+                UUID tableID = dataDictionary.getConglomerateDescriptor(conglomerateId).getTableID();
+                TableDescriptor td = dataDictionary.getTableDescriptor(tableID);
+                return td.getVersion();
+            }
+        });
     }
 
     @Override
