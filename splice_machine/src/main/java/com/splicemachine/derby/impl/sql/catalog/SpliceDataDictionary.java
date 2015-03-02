@@ -169,26 +169,26 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
 
         //sys_column_statistics
         ColumnOrdering[] columnPkOrder = new ColumnOrdering[]{
+                new IndexColumnOrder(0),
                 new IndexColumnOrder(1),
-                new IndexColumnOrder(2),
-                new IndexColumnOrder(3)
+                new IndexColumnOrder(2)
         };
         TabInfoImpl columnStatsInfo = getColumnStatisticsTable();
         addTableIfAbsent(tc,systemSchema,columnStatsInfo,columnPkOrder);
         TableDescriptor columnStatsDescriptor = getTableDescriptor(columnStatsInfo.getTableName(),systemSchema,tc);
-        pks = new int[]{1,2,3};
+        pks = new int[]{0,1,2};
         ReferencedKeyConstraintDescriptor columnStatsPk = dataDescriptorGenerator.newPrimaryKeyConstraintDescriptor(columnStatsDescriptor,
                 "COLUMNSTATSPK", false, false, pks, uuidFactory.createUUID(), columnStatsDescriptor.getUUID(), systemSchema, true, 0);
         addConstraintDescriptor(columnStatsPk, tc);
 
         //sys_physical_statistics
         ColumnOrdering[] physicalPkOrder = new ColumnOrdering[]{
-                new IndexColumnOrder(1)
+                new IndexColumnOrder(0)
         };
         TabInfoImpl physicalStatsInfo = getPhysicalStatisticsTable();
         addTableIfAbsent(tc,systemSchema,physicalStatsInfo,physicalPkOrder);
         TableDescriptor physicalStatsDescriptor = getTableDescriptor(physicalStatsInfo.getTableName(),systemSchema,tc);
-        pks = new int[]{1};
+        pks = new int[]{0};
         ReferencedKeyConstraintDescriptor physicalStatsPk = dataDescriptorGenerator.newPrimaryKeyConstraintDescriptor(physicalStatsDescriptor,
                 "PHYSICALSTATSPK", false, false, pks, uuidFactory.createUUID(), physicalStatsDescriptor.getUUID(), systemSchema, true, 0);
         addConstraintDescriptor(physicalStatsPk, tc);

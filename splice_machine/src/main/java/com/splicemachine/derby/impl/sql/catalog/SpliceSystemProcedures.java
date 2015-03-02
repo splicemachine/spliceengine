@@ -356,7 +356,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                     /*
                      * Statistics procedures
                      */
-                    Procedure statsTable = Procedure.newBuilder().name("COLLECT_TABLE_STATISTICS")
+                    Procedure collectStatsForTable = Procedure.newBuilder().name("COLLECT_TABLE_STATISTICS")
                             .numOutputParams(0)
                             .numResultSets(1)
                             .varchar("schema",128)
@@ -364,7 +364,29 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .arg("staleOnly", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
                             .ownerClass(StatisticsAdmin.class.getCanonicalName())
                             .build();
-                    procedures.add(statsTable);
+                    procedures.add(collectStatsForTable);
+
+                    Procedure enableStatsForColumn = Procedure.newBuilder().name("ENABLE_COLUMN_STATISTICS")
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .modifiesSql()
+                            .varchar("schema",1024)
+                            .varchar("table",1024)
+                            .varchar("column",1024)
+                            .ownerClass(StatisticsAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(enableStatsForColumn);
+
+                    Procedure disableStatsForColumn = Procedure.newBuilder().name("DISABLE_COLUMN_STATISTICS")
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .modifiesSql()
+                            .varchar("schema",1024)
+                            .varchar("table",1024)
+                            .varchar("column",1024)
+                            .ownerClass(StatisticsAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(disableStatsForColumn);
 
                     /*
                      * Procedure to elevate a transaction

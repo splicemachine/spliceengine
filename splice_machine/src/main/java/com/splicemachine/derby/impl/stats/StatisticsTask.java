@@ -235,7 +235,7 @@ public class StatisticsTask extends ZkTask{
 
                 output.clear();
                 byteOutput.writeObject(stats); //can just write the object since our implementations are Externalizable
-                rowEncoder.getEntryEncoder().setRawBytes(output.toBytes());
+                rowEncoder.getEntryEncoder().encodeNextUnsorted(output.toBytes());
                 byte[] row = rowEncoder.encode();
 
                 KVPair kvPair = new KVPair(key,row, KVPair.Type.UPSERT);
