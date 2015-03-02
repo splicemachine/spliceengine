@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
@@ -33,7 +34,7 @@ import com.splicemachine.utils.SpliceLogUtils;
  * 
  *
  */
-public class SMInputFormat extends InputFormat<ImmutableBytesWritable, ExecRow> implements Configurable {
+public class SMInputFormat extends InputFormat<RowLocation, ExecRow> implements Configurable {
     protected static final Logger LOG = Logger.getLogger(SMInputFormat.class);
 	protected Configuration conf;
 	protected HTable table;
@@ -66,7 +67,7 @@ public class SMInputFormat extends InputFormat<ImmutableBytesWritable, ExecRow> 
 				}		    	
 		    }
 		    try {
-		      setHTable(new HTable(new Configuration(conf), tableName));
+		      setHTable(new HTable(new Configuration(conf), conglomerate));
 		    } catch (Exception e) {
 		      LOG.error(StringUtils.stringifyException(e));
 		    }
@@ -96,6 +97,7 @@ public class SMInputFormat extends InputFormat<ImmutableBytesWritable, ExecRow> 
 		if (LOG.isDebugEnabled())
 			SpliceLogUtils.debug(LOG, "getSplits");
 		TableInputFormat tableInputFormat = new TableInputFormat();
+		conf.set(TableInputFormat.INPUT_TABLE,conf.get(MRConstants.SPLICE_INPUT_CONGLOMERATE));		
 		tableInputFormat.setConf(conf);
 		try {
 			tableInputFormat.setScan(TableScannerBuilder.getTableScannerBuilderFromBase64String(conf.get(MRConstants.SPLICE_SCAN_INFO)).getScan());
@@ -106,7 +108,7 @@ public class SMInputFormat extends InputFormat<ImmutableBytesWritable, ExecRow> 
 	}
 
 	@Override
-	public RecordReader<ImmutableBytesWritable, ExecRow> createRecordReader(
+	public RecordReader<RowLocation, ExecRow> createRecordReader(
 			InputSplit split, TaskAttemptContext context) throws IOException,
 			InterruptedException {
 		if (LOG.isTraceEnabled())

@@ -317,9 +317,15 @@ public class SMSQLUtil {
 	  }
 	  
 	  public int[] getExecRowFormatIds(List<String> columnNames, List<NameType> nameTypes) throws StandardException {
-			int[] execRowFormatIds = new int[columnNames.size()];
-			for (int i = 0; i< columnNames.size(); i++) {
-				execRowFormatIds[i] = nameTypes.get(locationInNameTypes(nameTypes,columnNames.get(i))).getTypeFormatId();
+			int[] execRowFormatIds = new int[columnNames==null?nameTypes.size():columnNames.size()];
+			if (columnNames != null) {
+				for (int i = 0; i< columnNames.size(); i++) {
+					execRowFormatIds[i] = nameTypes.get(locationInNameTypes(nameTypes,columnNames.get(i))).getTypeFormatId();
+				}
+			} else {
+				for (int i = 0; i< nameTypes.size(); i++) {
+					execRowFormatIds[i] = nameTypes.get(i).getTypeFormatId();
+				}
 			}
 			  if (LOG.isTraceEnabled())
 				  SpliceLogUtils.trace(LOG, "getExecRowFormatIds returns=%s",execRowFormatIds);

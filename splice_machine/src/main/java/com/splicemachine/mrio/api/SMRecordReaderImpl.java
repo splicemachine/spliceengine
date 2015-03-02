@@ -4,19 +4,21 @@ import java.io.IOException;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
 import org.apache.hadoop.hbase.mapreduce.TableSplit;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.log4j.Logger;
+
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
+import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.hbase.SimpleMeasuredRegionScanner;
 import com.splicemachine.metrics.Metrics;
@@ -29,7 +31,7 @@ import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.rollforward.NoopRollForward;
 import com.splicemachine.utils.SpliceLogUtils;
 
-public class SMRecordReaderImpl extends RecordReader<ImmutableBytesWritable, ExecRow> {
+public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
     protected static final Logger LOG = Logger.getLogger(SMRecordReaderImpl.class);
 	protected HTable htable;
 	protected HRegion hregion;
@@ -41,6 +43,7 @@ public class SMRecordReaderImpl extends RecordReader<ImmutableBytesWritable, Exe
 	protected SMSQLUtil sqlUtil = null;
 	protected ExecRow currentRow;
 	protected TableScannerBuilder builder;
+	protected RowLocation rowLocation;
 	
 	public SMRecordReaderImpl(Configuration config) {
 		this.config = config;
@@ -51,7 +54,7 @@ public class SMRecordReaderImpl extends RecordReader<ImmutableBytesWritable, Exe
 			throws IOException, InterruptedException {	
 		if (LOG.isTraceEnabled())
 			SpliceLogUtils.trace(LOG, "initialize with split=%s", split);
-		init(context.getConfiguration(),split);
+		init(config==null?context.getConfiguration():config,split);
 	}
 	
 	public void init(Configuration config, InputSplit split) throws IOException, InterruptedException {	
@@ -78,7 +81,18 @@ public class SMRecordReaderImpl extends RecordReader<ImmutableBytesWritable, Exe
 	@Override
 	public boolean nextKeyValue() throws IOException, InterruptedException {
 		try {
-			currentRow = siTableScanner.next(null);
+			ExecRow nextRow = siTableScanner.next(null);
+			RowLocation nextLocation = siTableScanner.getCurrentRowLocation();
+			if (nextRow != null) {
+				currentRow = nextRow.getClone(); 
+				rowLocation = new HBaseRowLocation(nextLocation.getBytes());
+			} else {
+				currentRow = null;
+				rowLocation = null;
+			}
+			
+			if (LOG.isTraceEnabled())
+				SpliceLogUtils.trace(LOG, "nextKeyValue execRow=%s",currentRow);
 			return currentRow != null;
 		} catch (StandardException e) {
 			throw new IOException(e);
@@ -86,9 +100,8 @@ public class SMRecordReaderImpl extends RecordReader<ImmutableBytesWritable, Exe
 	}
 
 	@Override
-	public ImmutableBytesWritable getCurrentKey() throws IOException,
-			InterruptedException {
-		return null;
+	public RowLocation getCurrentKey() throws IOException, InterruptedException {
+		return rowLocation;
 	}
 
 	@Override
@@ -123,12 +136,15 @@ public class SMRecordReaderImpl extends RecordReader<ImmutableBytesWritable, Exe
 		newscan.setStartRow(firstRow);
 		scan = newscan;
 		if(htable != null) {
-			SpliceRegionScanner splitRegionScanner = DerbyFactoryDriver.derbyFactory.getSplitRegionScanner(new Scan(),htable);
+			SpliceRegionScanner splitRegionScanner = DerbyFactoryDriver.derbyFactory.getSplitRegionScanner(scan,htable);
 			this.hregion = splitRegionScanner.getRegion();
 			this.mrs = new SimpleMeasuredRegionScanner(splitRegionScanner,Metrics.noOpMetricFactory());
 			TxnRegion localRegion = new TxnRegion(hregion, NoopRollForward.INSTANCE,NoOpReadResolver.INSTANCE, 
 				TransactionStorage.getTxnSupplier(), TxnDataStore.getDataStore(), HTransactorFactory.getTransactor());		
-			siTableScanner = builder.tableVersion("2.0").region(localRegion).template(SMSQLUtil.getExecRow(builder.getExecRowTypeFormatIds())).scanner(mrs).scan(scan).metricFactory(Metrics.noOpMetricFactory()).build();		
+			builder.tableVersion("2.0").region(localRegion).template(SMSQLUtil.getExecRow(builder.getExecRowTypeFormatIds())).scanner(mrs).scan(scan).metricFactory(Metrics.noOpMetricFactory());		
+			if (LOG.isTraceEnabled())
+				SpliceLogUtils.trace(LOG, "restart with builder=%s",builder);
+			siTableScanner = builder.build();
 		} else {
 			throw new IOException("htable not set");
 		}

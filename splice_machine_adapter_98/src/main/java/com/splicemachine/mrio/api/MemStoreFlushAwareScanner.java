@@ -166,7 +166,6 @@ public class MemStoreFlushAwareScanner extends StoreScanner{
 		if (LOG.isTraceEnabled())
 			SpliceLogUtils.trace(LOG, "close");
 		scannerCount.getAndDecrement();		
-		Thread.dumpStack();
 	}
 	
 	private boolean didWeFlush() {
