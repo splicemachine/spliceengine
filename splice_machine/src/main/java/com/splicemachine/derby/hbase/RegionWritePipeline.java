@@ -59,7 +59,7 @@ public class RegionWritePipeline {
 
     public void close() {
         ctxFactory.close();
-        txnRegion.discard();
+        txnRegion.close();
     }
 
 

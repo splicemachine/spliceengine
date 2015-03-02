@@ -194,7 +194,7 @@ public class SinkTask extends ZkTask {
         try{
             doExecute();
         }finally{
-            txnRegion.discard();
+            txnRegion.close();
 
             taskWatcher.setTask(null);
             if (activation != null) {
@@ -314,9 +314,7 @@ public class SinkTask extends ZkTask {
         if(opContext!=null){
             try {
                 opContext.close();
-            } catch (IOException e) {
-                throw new ExecutionException(e);
-            } catch (StandardException e) {
+            } catch (IOException | StandardException e) {
                 throw new ExecutionException(e);
             }
         }

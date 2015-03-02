@@ -57,7 +57,7 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
     public void stop(CoprocessorEnvironment e) throws IOException {
         super.stop(e);
         if (region != null)
-            region.discard();
+            region.close();
     }
 
     @Override

@@ -92,7 +92,7 @@ public class ConglomerateScanner {
         DDLTxnView demarcationPoint = new DDLTxnView(txn, demarcationTimestamp);
         TransactionalRegion transactionalRegion = TransactionalRegions.get(region);
         TxnFilter packed = transactionalRegion.packedFilter(demarcationPoint, EntryPredicateFilter.emptyPredicate(), false);
-        transactionalRegion.discard();
+        transactionalRegion.close();
         regionScan.setFilter(new SIFilterPacked(packed));
         RegionScanner sourceScanner = region.getScanner(regionScan);
         return SpliceConstants.useReadAheadScanner? new ReadAheadRegionScanner(region, SpliceConstants.DEFAULT_CACHE_SIZE, sourceScanner,metricFactory,HTransactorFactory.getTransactor().getDataLib())

@@ -47,7 +47,7 @@ import java.util.List;
  * @author Scott Fines
  * Date: 4/4/14
  */
-public class SITableScanner<Data> implements StandardIterator<ExecRow>{
+public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoCloseable{
 	private static Logger LOG = Logger.getLogger(SITableScanner.class);
 		private final Timer timer;
 		private final Counter filterCounter;
@@ -140,6 +140,17 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>{
 		public void open() throws StandardException, IOException {
 
 		}
+
+    public void recordFieldLengths(int[] columnLengths){
+        for(int i=0;i<rowDecodingMap.length;i++){
+            int pos = rowDecodingMap[i];
+            columnLengths[pos] = accumulator.getCurrentLength(i);
+        }
+        for(int i=0;i<keyDecodingMap.length;i++){
+            int pos = keyDecodingMap[i];
+            columnLengths[pos] = keyAccumulator.getCurrentLength(i);
+        }
+    }
 
 		@Override
 		public ExecRow next(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
