@@ -180,7 +180,7 @@ public class TransactionalRegions {
         @Override public DataStore getDataStore() { return delegate.getDataStore(); }
 
         @Override
-        public void discard() {
+        public void close() {
             /*
              * This isn't perfectly thread-safe. It's possible that someone
              * could come in and increment the reference count after we decrement
@@ -196,7 +196,7 @@ public class TransactionalRegions {
              */
             int count = referenceCount.decrementAndGet();
             if(count==0){
-                delegate.discard();
+                delegate.close();
                 //remove from cache--don't remove if it's not you it's pointing at
                 regionMap.remove(name,this);
             }

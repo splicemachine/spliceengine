@@ -19,7 +19,7 @@ import java.util.Collection;
  * @author Scott Fines
  *         Date: 7/1/14
  */
-public interface TransactionalRegion {
+public interface TransactionalRegion extends AutoCloseable{
 
     /**
      * Create a new Transactional Filter for the region.
@@ -70,7 +70,7 @@ public interface TransactionalRegion {
 
     DataStore getDataStore();
 
-    void discard();
+    void close();
 
     InternalScanner compactionScanner(InternalScanner scanner);
 }

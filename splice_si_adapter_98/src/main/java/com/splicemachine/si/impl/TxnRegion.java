@@ -123,7 +123,7 @@ public class TxnRegion implements TransactionalRegion {
     @Override public ReadResolver getReadResolver() { return readResolver; }
     @Override public DataStore getDataStore() { return dataStore; }
 
-    @Override public void discard() { } //no-op
+    @Override public void close() { } //no-op
 
     @Override
     public InternalScanner compactionScanner(InternalScanner scanner) {
