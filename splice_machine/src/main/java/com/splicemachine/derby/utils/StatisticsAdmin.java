@@ -34,10 +34,7 @@ import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Pair;
 
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Types;
+import java.sql.*;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 
@@ -46,6 +43,63 @@ import java.util.concurrent.ExecutionException;
  *         Date: 2/26/15
  */
 public class StatisticsAdmin {
+
+
+    public static void DISABLE_COLUMN_STATISTICS(String schema,
+                                                String table,
+                                                String columnName) throws SQLException{
+        EmbedConnection conn = (EmbedConnection)SpliceAdmin.getDefaultConn();
+        try {
+            TableDescriptor td = verifyTableExists(conn,schema,table);
+            //verify that that column exists
+            ColumnDescriptorList columnDescriptorList = td.getColumnDescriptorList();
+            for(ColumnDescriptor descriptor: columnDescriptorList){
+                if(descriptor.getColumnName().equalsIgnoreCase(columnName)){
+                    descriptor.setCollectStatistics(true);
+                    LanguageConnectionContext languageConnection = conn.getLanguageConnection();
+                    PreparedStatement ps = conn.prepareStatement("update SYS.SYSCOLUMNS set collectstats=false where " +
+                            "referenceid = ? and columnname = ?");
+                    ps.setString(1,td.getUUID().toString());
+                    ps.setString(2,columnName);
+
+                    ps.execute();
+                    return;
+                }
+            }
+            throw ErrorState.LANG_COLUMN_NOT_FOUND_IN_TABLE.newException(schema+"."+table,columnName);
+
+        } catch (StandardException e) {
+            throw PublicAPI.wrapStandardException(e);
+        }
+    }
+
+    public static void ENABLE_COLUMN_STATISTICS(String schema,
+                                                String table,
+                                                String columnName) throws SQLException{
+        EmbedConnection conn = (EmbedConnection)SpliceAdmin.getDefaultConn();
+        try {
+            TableDescriptor td = verifyTableExists(conn,schema,table);
+            //verify that that column exists
+            ColumnDescriptorList columnDescriptorList = td.getColumnDescriptorList();
+            for(ColumnDescriptor descriptor: columnDescriptorList){
+                if(descriptor.getColumnName().equalsIgnoreCase(columnName)){
+                    descriptor.setCollectStatistics(true);
+                    LanguageConnectionContext languageConnection = conn.getLanguageConnection();
+                    PreparedStatement ps = conn.prepareStatement("update SYS.SYSCOLUMNS set collectstats=true where " +
+                                                                 "referenceid = ? and columnname = ?");
+                    ps.setString(1,td.getUUID().toString());
+                    ps.setString(2,columnName);
+
+                    ps.execute();
+                    return;
+                }
+            }
+            throw ErrorState.LANG_COLUMN_NOT_FOUND_IN_TABLE.newException(schema+"."+table,columnName);
+
+        } catch (StandardException e) {
+            throw PublicAPI.wrapStandardException(e);
+        }
+    }
 
     private static final ResultColumnDescriptor[] COLLECTED_STATS_OUTPUT_COLUMNS = new GenericColumnDescriptor[]{
             new GenericColumnDescriptor("schemaName", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),

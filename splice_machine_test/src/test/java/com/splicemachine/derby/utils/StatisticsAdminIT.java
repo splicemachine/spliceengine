@@ -124,5 +124,51 @@ public class StatisticsAdminIT {
         long rowWidth = resultSet.getLong(8);
         Assert.assertTrue("partition size != row width!",partitionSize==rowWidth);
     }
+
+    @Test
+    public void testCanEnableColumnStatistics() throws Exception {
+        CallableStatement cs = conn.prepareCall("call SYSCS_UTIL.ENABLE_COLUMN_STATISTICS(?,?,?)");
+        cs.setString(1,schema.schemaName);
+        cs.setString(2,emptyTable.tableName);
+        cs.setString(3,"A");
+
+        cs.execute(); //shouldn't get an error
+
+        //make sure it's enabled
+        PreparedStatement ps= conn.prepareStatement("select c.* from " +
+                "sys.sysschemas s, sys.systables t, sys.syscolumns c " +
+                "where s.schemaid = t.schemaid " +
+                "and t.tableid = c.referenceid " +
+                "and s.schemaname = ?" +
+                "and t.tablename = ?" +
+                "and c.columnname = ?");
+        ps.setString(1,schema.schemaName);
+        ps.setString(2,emptyTable.tableName);
+        ps.setString(3,"A");
+        ResultSet resultSet = ps.executeQuery();
+        Assert.assertTrue("No columns found!",resultSet.next());
+        boolean statsEnabled = resultSet.getBoolean("collectstats");
+        Assert.assertTrue("Stats were not enabled!",statsEnabled);
+        resultSet.close();
+
+        //now verify that it can be disabled as well
+        cs.close();
+        cs = conn.prepareCall("call SYSCS_UTIL.DISABLE_COLUMN_STATISTICS(?,?,?)");
+        cs.setString(1,schema.schemaName);
+        cs.setString(2,emptyTable.tableName);
+        cs.setString(3,"A");
+
+        cs.execute(); //shouldn't get an error
+        cs.close();
+
+        //make sure it's disabled
+        resultSet = ps.executeQuery();
+        Assert.assertTrue("No columns found!",resultSet.next());
+        statsEnabled = resultSet.getBoolean("collectstats");
+        Assert.assertFalse("Stats were still enabled!",statsEnabled);
+        resultSet.close();
+
+
+    }
 }
 
