@@ -65,7 +65,7 @@ public class NumericStats extends BaseDvdStatistics{
         @Override
         @SuppressWarnings("unchecked")
         public Set<? extends FrequencyEstimate<DataValueDescriptor>> allFrequentElements() {
-            return convert((Set<FrequencyEstimate>)frequentElements.allFrequentElements());
+            return convert((Set<FrequencyEstimate<BigDecimal>>)frequentElements.allFrequentElements());
         }
 
         @Override

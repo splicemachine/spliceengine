@@ -60,7 +60,7 @@ public abstract class StringStatistics extends BaseDvdStatistics{
         @Override
         @SuppressWarnings("unchecked")
         public Set<? extends FrequencyEstimate<DataValueDescriptor>> allFrequentElements() {
-            return convert((Set<FrequencyEstimate>)frequentElements.allFrequentElements());
+            return convert((Set<FrequencyEstimate<String>>)frequentElements.allFrequentElements());
         }
 
         @Override

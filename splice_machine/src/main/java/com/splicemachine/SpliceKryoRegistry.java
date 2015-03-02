@@ -19,6 +19,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.*;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportParams;
 import com.splicemachine.derby.impl.sql.execute.operations.rowcount.RowCountOperation;
+import com.splicemachine.derby.impl.stats.*;
 import com.splicemachine.hbase.backup.Backup;
 import com.splicemachine.hbase.backup.BackupItem;
 import com.splicemachine.hbase.backup.CreateBackupTask;
@@ -872,5 +873,17 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(BackupItem.RegionInfo.class, EXTERNALIZABLE_SERIALIZER,227);
         instance.register(Pair.class, 228);
         instance.register(CreateFkTask.class, EXTERNALIZABLE_SERIALIZER,229);
+        instance.register(StatisticsTask.class, EXTERNALIZABLE_SERIALIZER,230);
+
+        //statistics
+        instance.register(BooleanStats.class,EXTERNALIZABLE_SERIALIZER,231);
+        instance.register(TinyintStats.class,EXTERNALIZABLE_SERIALIZER,232);
+        instance.register(SmallintStats.class,EXTERNALIZABLE_SERIALIZER,233);
+        instance.register(IntStats.class,EXTERNALIZABLE_SERIALIZER,234);
+        instance.register(BigintStats.class,EXTERNALIZABLE_SERIALIZER,235);
+        instance.register(RealStats.class,EXTERNALIZABLE_SERIALIZER,236);
+        instance.register(DoubleStats.class,EXTERNALIZABLE_SERIALIZER,237);
+        instance.register(NumericStats.class,EXTERNALIZABLE_SERIALIZER,238);
+        instance.register(StringStatistics.class,EXTERNALIZABLE_SERIALIZER,239);
     }
 }

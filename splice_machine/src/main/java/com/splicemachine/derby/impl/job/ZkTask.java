@@ -194,11 +194,7 @@ public abstract class ZkTask implements RegionTask,Externalizable {
                     return path;
                 }
             });
-        } catch (InterruptedException e) {
-            throw new ExecutionException(e);
-        } catch (KeeperException e) {
-            throw new ExecutionException(e);
-        } catch (IOException e) {
+        } catch (InterruptedException | KeeperException | IOException e) {
             throw new ExecutionException(e);
         }
 
