@@ -23,6 +23,9 @@ public class MultiFieldEncoder {
     private int currentPos;
     private int currentSize;
 
+    private int markedPos = 0;
+    private int markedSize = 0;
+
     private MultiFieldEncoder(int numFields) {
         fields = new byte[numFields][];
         this.numFields = numFields;
@@ -208,14 +211,19 @@ public class MultiFieldEncoder {
         return data;
     }
 
+    public void mark() {
+        markedPos = currentPos;
+        markedSize = currentSize;
+    }
+
     public void reset(){
         /*
          * Rather than waste time manually clearing data, just write over the positions
          * as we need to. Any remaining garbage in the array will get destroyed along with this object
          * then. Just make sure we don't keep one of these around for forever without using it repeatedly.
          */
-        currentPos=0;
-        currentSize= 0;
+        currentPos=markedPos;
+        currentSize= markedSize;
     }
 
     public byte[] getEncodedBytes(int position) {
@@ -327,4 +335,5 @@ public class MultiFieldEncoder {
     public MultiFieldEncoder encodeNextUnsorted(byte[] value){
         return encodeNextUnsorted(value,0,value.length);
     }
+
 }
