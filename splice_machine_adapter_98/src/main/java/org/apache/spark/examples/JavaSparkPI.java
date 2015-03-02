@@ -1,6 +1,7 @@
 package org.apache.spark.examples;
 
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.client.Scan;
@@ -10,6 +11,7 @@ import org.apache.hadoop.io.IntWritable;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+
 import com.splicemachine.mrio.api.SMInputFormat;
 import com.splicemachine.mrio.api.SMSQLUtil;
 import com.splicemachine.mrio.api.SpliceJob;
@@ -64,7 +66,7 @@ public final class JavaSparkPI {
 	    sparkConf.set("spark.broadcast.compress", "false");
 	    JavaSparkContext jsc = new JavaSparkContext(sparkConf);
 		
-    JavaPairRDD<ImmutableBytesWritable, ExecRow> table = jsc.newAPIHadoopRDD(job.getConfiguration(), SMInputFormat.class, ImmutableBytesWritable.class, ExecRow.class);
+    JavaPairRDD<RowLocation, ExecRow> table = jsc.newAPIHadoopRDD(job.getConfiguration(), SMInputFormat.class, RowLocation.class, ExecRow.class);
     
 /*    
     int slices = (args.length == 1) ? Integer.parseInt(args[0]) : 2;
