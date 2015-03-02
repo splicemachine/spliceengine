@@ -51,19 +51,26 @@ public class SpliceTransaction extends BaseSpliceTransaction {
 
     @Override
     public int setSavePoint(String name, Object kindOfSavepoint) throws StandardException {
+	    if (LOG.isDebugEnabled())
+	        SpliceLogUtils.debug(LOG, "Before setSavePoint: name=%s, savePointStack=\n%s", name, getSavePointStackString());
         setActiveState(false, false, null); //make sure that we are active
         Txn currentTxn = getTxn();
         try{
             Txn child = TransactionLifecycle.getLifecycleManager().beginChildTransaction(currentTxn,null);
             txnStack.push(Pair.newPair(name,child));
+            child.setSavePointName(name);
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
+	    if (LOG.isDebugEnabled())
+	        SpliceLogUtils.debug(LOG, "After setSavePoint: name=%s, savePointStack=\n%s", name, getSavePointStackString());
         return txnStack.size();
     }
 
     @Override
     public int releaseSavePoint(String name, Object kindOfSavepoint) throws StandardException {
+	    if (LOG.isDebugEnabled())
+	        SpliceLogUtils.debug(LOG, "Before releaseSavePoint: name=%s, savePointStack=\n%s", name, getSavePointStackString());
         /*
          * Check first to ensure such a save point exists before we attempt to release anything
          */
@@ -92,6 +99,8 @@ public class SpliceTransaction extends BaseSpliceTransaction {
             savePoint = txnStack.pop();
             doCommit(savePoint);
         } while(!savePoint.getFirst().equals(name));
+	    if (LOG.isDebugEnabled())
+	        SpliceLogUtils.debug(LOG, "After releaseSavePoint: name=%s, savePointStack=\n%s", name, getSavePointStackString());
         return txnStack.size();
     }
 
@@ -105,6 +114,8 @@ public class SpliceTransaction extends BaseSpliceTransaction {
 
     @Override
     public int rollbackToSavePoint(String name, Object kindOfSavepoint) throws StandardException {
+	    if (LOG.isDebugEnabled())
+	        SpliceLogUtils.debug(LOG, "Before rollbackToSavePoint: name=%s, savePointStack=\n%s", name, getSavePointStackString());
         /*
          * Check first to ensure such a save point exists before we attempt to release anything
          */
@@ -142,7 +153,10 @@ public class SpliceTransaction extends BaseSpliceTransaction {
          * we need to set up a new savepoint context so that future writes are observed within
          * the proper savepoint context.
          */
-        return setSavePoint(name,kindOfSavepoint);
+        int numSavePoints = setSavePoint(name,kindOfSavepoint);
+	    if (LOG.isDebugEnabled())
+	        SpliceLogUtils.debug(LOG, "After rollbackToSavePoint: name=%s, savePointStack=\n%s", name, getSavePointStackString());
+	    return numSavePoints;
     }
 
     @Override
@@ -277,15 +291,27 @@ public class SpliceTransaction extends BaseSpliceTransaction {
 
     @Override
     public String toString() {
-        String s = "SpliceTransaction(";
+        String s = "SpliceTransaction[";
         if(state==IDLE)
             s += "IDLE";
         else if(state==ACTIVE)
             s += "ACTIVE";
         else
             s += "CLOSED";
-        s+=","+getTxn()+")";
+        s+=","+getTxn()+"]";
         return s;
+    }
+
+    /**
+     * Return a string depicting the savepoints stack with the current savepoint being at the top and its predecessors below it.
+     * @return string depicting the savepoints stack
+     */
+    private String getSavePointStackString() {
+    	StringBuffer sb = new StringBuffer();
+        for(Pair<String,Txn> savePoint:txnStack) {
+        	sb.append(String.format("name=%s, txn=%s\n", savePoint.getFirst(), savePoint.getSecond()));
+        }
+        return sb.toString();
     }
 
     public boolean allowsWrites() {

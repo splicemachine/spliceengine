@@ -76,14 +76,6 @@ public class ActiveWriteTxn extends AbstractTxnView{
 			return additive; 
 		}
 
-	    @Override
-	    public String toString() {
-	        if(parentTxn!=null)
-	            return "ActiveWriteTxn("+txnId+","+parentTxn.getTxnId()+")";
-	        else
-	            return "ActiveWriteTxn("+txnId+","+"-1)";
-	    }
-
 		@Override
 		public void readExternal(ObjectInput input) throws IOException, ClassNotFoundException {
 			super.readExternal(input);
