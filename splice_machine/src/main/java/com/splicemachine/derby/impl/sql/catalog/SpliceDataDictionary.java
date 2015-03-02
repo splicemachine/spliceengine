@@ -156,13 +156,13 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
         //sys_table_statistics
         TabInfoImpl tableStatsInfo = getTableStatisticsTable();
         ColumnOrdering[] tableStatsOrder = new ColumnOrdering[]{
-            new IndexColumnOrder(1),
-            new IndexColumnOrder(2)
+            new IndexColumnOrder(0),
+            new IndexColumnOrder(1)
         };
         addTableIfAbsent(tc, systemSchema, tableStatsInfo,tableStatsOrder);
         TableDescriptor tableStatsDescriptor = getTableDescriptor(tableStatsInfo.getTableName(),systemSchema,tc);
 
-        int[] pks = new int[]{1,2};
+        int[] pks = new int[]{0,1};
         ReferencedKeyConstraintDescriptor tablestatspk = dataDescriptorGenerator.newPrimaryKeyConstraintDescriptor(tableStatsDescriptor,
                 "TABLESTATSPK", false, false, pks, uuidFactory.createUUID(), tableStatsDescriptor.getUUID(), systemSchema, true, 0);
         addConstraintDescriptor(tablestatspk, tc);

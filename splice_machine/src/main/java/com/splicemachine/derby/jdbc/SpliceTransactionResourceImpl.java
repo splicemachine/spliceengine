@@ -23,7 +23,7 @@ import org.apache.log4j.Logger;
 import java.sql.SQLException;
 import java.util.Properties;
 
-public final class SpliceTransactionResourceImpl {
+public final class SpliceTransactionResourceImpl implements AutoCloseable{
 		private static final Logger LOG = Logger.getLogger(SpliceTransactionResourceImpl.class);
 		protected ContextManager cm;
 		protected ContextService csf;

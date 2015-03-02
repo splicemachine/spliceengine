@@ -7,7 +7,7 @@ import com.splicemachine.encoding.Encoding;
 import com.splicemachine.si.api.*;
 import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.si.impl.TransactionStorage;
-import com.splicemachine.stream.CloseableStream;
+import com.splicemachine.stream.Stream;
 import com.splicemachine.stream.StreamException;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.pipeline.exception.Exceptions;
@@ -43,17 +43,14 @@ import java.util.List;
 public class TransactionAdmin {
 
     public static void killAllActiveTransactions(long maxTxnId) throws SQLException{
-        try {
-            ActiveTransactionReader reader = new ActiveTransactionReader(0l,maxTxnId,null);
-            CloseableStream<TxnView> activeTransactions = reader.getActiveTransactions();
+        ActiveTransactionReader reader = new ActiveTransactionReader(0l,maxTxnId,null);
+        try(Stream<TxnView> activeTxns = reader.getActiveTransactions()){
             final TxnLifecycleManager tc = TransactionLifecycle.getLifecycleManager();
             TxnView next;
-            while((next = activeTransactions.next())!=null){
+            while((next = activeTxns.next())!=null){
                 tc.rollback(next.getTxnId());
             }
-        }catch (StreamException e) {
-            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
-        } catch (IOException e) {
+        }catch (StreamException | IOException e) {
             throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
         }
     }
@@ -96,15 +93,12 @@ public class TransactionAdmin {
         try {
             ExecRow template = toRow(CURRENT_TXN_ID_COLUMNS);
             List<ExecRow> results = Lists.newArrayList();
-            CloseableStream<TxnView> activeTxns = reader.getActiveTransactions();
-            try{
+            try(Stream<TxnView> activeTxns = reader.getActiveTransactions()){
                 TxnView n;
                 while((n = activeTxns.next())!=null){
                     template.getColumn(1).setValue(n.getTxnId());
                     results.add(template.getClone());
                 }
-            }  finally{
-                activeTxns.close();
             }
 
             EmbedConnection defaultConn = (EmbedConnection) SpliceAdmin.getDefaultConn();
@@ -113,9 +107,7 @@ public class TransactionAdmin {
             rs.openCore();
 
             resultSets[0] = new EmbedResultSet40(defaultConn,rs,false,null,true);
-        }catch(StreamException e){
-            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
-        }catch (IOException e) {
+        }catch(StreamException | IOException e){
             throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
         } catch (StandardException e) {
             throw PublicAPI.wrapStandardException(e);
@@ -140,8 +132,7 @@ public class TransactionAdmin {
         try {
             ExecRow template = toRow(TRANSACTION_TABLE_COLUMNS);
             List<ExecRow> results = Lists.newArrayList();
-            CloseableStream<TxnView> activeTxns = reader.getAllTransactions();
-            try{
+            try(Stream<TxnView> activeTxns = reader.getAllTransactions()){
                 TxnView txn;
                 while((txn = activeTxns.next())!=null){
                     template.resetRowArray();
@@ -174,8 +165,6 @@ public class TransactionAdmin {
                     dvds[9].setValue(new Timestamp(txn.getLastKeepAliveTimestamp()),null);
                     results.add(template.getClone());
                 }
-            }  finally{
-                activeTxns.close();
             }
 
             EmbedConnection defaultConn = (EmbedConnection) SpliceAdmin.getDefaultConn();
@@ -184,9 +173,7 @@ public class TransactionAdmin {
             rs.openCore();
 
             resultSet[0] = new EmbedResultSet40(defaultConn,rs,false,null,true);
-        }catch(StreamException e){
-            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
-        }catch (IOException e) {
+        }catch(StreamException | IOException e){
             throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
         } catch (StandardException e) {
             throw PublicAPI.wrapStandardException(e);

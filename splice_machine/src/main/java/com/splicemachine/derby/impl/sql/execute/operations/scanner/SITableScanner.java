@@ -142,13 +142,17 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
 		}
 
     public void recordFieldLengths(int[] columnLengths){
-        for(int i=0;i<rowDecodingMap.length;i++){
-            int pos = rowDecodingMap[i];
-            columnLengths[pos] = accumulator.getCurrentLength(i);
+        if(rowDecodingMap!=null) {
+            for (int i = 0; i < rowDecodingMap.length; i++) {
+                int pos = rowDecodingMap[i];
+                columnLengths[pos] = accumulator.getCurrentLength(i);
+            }
         }
-        for(int i=0;i<keyDecodingMap.length;i++){
-            int pos = keyDecodingMap[i];
-            columnLengths[pos] = keyAccumulator.getCurrentLength(i);
+        if(keyDecodingMap!=null) {
+            for (int i = 0; i < keyDecodingMap.length; i++) {
+                int pos = keyDecodingMap[i];
+                columnLengths[pos] = keyAccumulator.getCurrentLength(i);
+            }
         }
     }
 

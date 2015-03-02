@@ -5,7 +5,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.execute.actions.ActiveTransactionReader;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.si.api.TxnView;
-import com.splicemachine.stream.CloseableStream;
+import com.splicemachine.stream.Stream;
 import com.splicemachine.stream.StreamException;
 import com.splicemachine.pipeline.exception.ErrorState;
 import com.splicemachine.pipeline.exception.Exceptions;
@@ -126,9 +126,8 @@ public class Vacuum {
 				do {
 					activeTxn = -1l;
                 
-	                CloseableStream<TxnView> activeTransactions = reader.getActiveTransactions(10);
 	                TxnView next;
-	                try {
+	                try(Stream<TxnView> activeTransactions = reader.getActiveTransactions(10)) {
 		                while((next = activeTransactions.next())!=null){
 		                    long txnId = next.getTxnId();
 		                    if(txnId!=txn.getTxnId()){
@@ -136,10 +135,6 @@ public class Vacuum {
 		                        break;
 		                    }
 		                }
-	                } finally {
-	                	if (activeTransactions != null) {
-	                		activeTransactions.close(); // mandatory for job cleanup
-	                	}
 	                }
 	                
 	                if(activeTxn<0) return activeTxn; //no active transactions
