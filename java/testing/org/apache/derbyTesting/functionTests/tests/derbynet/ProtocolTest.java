@@ -48,7 +48,7 @@ import java.util.Locale;
 import junit.framework.Test;
 import junit.framework.TestSuite;
 
-import org.apache.derby.impl.drda.ProtocolTestAdapter;
+import com.splicemachine.db.impl.drda.ProtocolTestAdapter;
 
 import org.apache.derbyTesting.functionTests.util.PrivilegedFileOpsForTests;
 import org.apache.derbyTesting.functionTests.util.ProtocolTestGrammar;

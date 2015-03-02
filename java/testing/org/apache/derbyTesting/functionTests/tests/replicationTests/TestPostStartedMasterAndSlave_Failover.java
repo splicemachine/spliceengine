@@ -39,27 +39,27 @@ import org.apache.derbyTesting.junit.TestConfiguration;
 public class TestPostStartedMasterAndSlave_Failover extends ClientRunner
 {
     private static ReplicationRun repRun = new ReplicationRun("TestPostStartedMasterAndSlave_Failover");
-    
+
     public TestPostStartedMasterAndSlave_Failover(String testcaseName)
     {
         super(testcaseName);
     }
-    
+
     public static Test suite()
-        throws Exception
+            throws Exception
     {
         System.out.println("**** TestPostStartedMasterAndSlave_Failover.suite()");
-        
+
         initEnvironment();
-        
+
         // String masterHostName = System.getProperty("test.serverHost", "localhost");
         // int masterPortNo = Integer.parseInt(System.getProperty("test.serverPort", "1527"));
-        
+
         TestSuite suite = new TestSuite("TestPostStartedMasterAndSlave_Failover");
-                
+
         suite.addTest(TestPostStartedMasterAndSlave_Failover.suite(slaveServerHost, slaveServerPort)); // master?
         System.out.println("*** Done suite.addTest(TestPostStartedMasterAndSlave_Failover.suite())");
-        
+
         return (Test)suite;
     }
 
@@ -69,26 +69,26 @@ public class TestPostStartedMasterAndSlave_Failover extends ClientRunner
     public static Test suite(String serverHost, int serverPort)
     {
         System.out.println("*** TestPostStartedMasterAndSlave_Failover.suite(serverHost,serverPort)");
-     
+
         Test t = TestConfiguration.existingServerSuite(TestPostStartedMasterAndSlave_Failover.class,false,serverHost,serverPort);
         System.out.println("*** Done TestConfiguration.existingServerSuite(TestPostStartedMasterAndSlave_Failover.class,false,serverHost,serverPort)");
         return t;
-   }
-    
+    }
+
     /**
      *
      *
      * @throws SQLException, IOException, InterruptedException
      */
     public void testFailOver()
-    throws SQLException, IOException, InterruptedException
+            throws SQLException, IOException, InterruptedException
     {
         System.out.println("**** TestPostStartedMasterAndSlave_Failover.testFailOver() "
                 +getTestConfiguration().getJDBCClient().getJDBCDriverName());
-        
+
         Connection conn = null;
         String db = slaveDatabasePath +"/"+ReplicationRun.slaveDbSubPath +"/"+ replicatedDb;
-        String connectionURL = "jdbc:derby:"  
+        String connectionURL = "jdbc:derby:"
                 + "//" + slaveServerHost + ":" + slaveServerPort + "/"
                 + db
                 + ";failover=true";
@@ -116,10 +116,10 @@ public class TestPostStartedMasterAndSlave_Failover extends ClientRunner
             String msg = "As expected: Failover on slave should fail: " + ec + " " + ss + " " + se.getMessage();
             System.out.println(msg);
         }
-        
+
         // Failover on master should succeed:
         db = masterDatabasePath +"/"+ReplicationRun.masterDbSubPath +"/"+ replicatedDb;
-        connectionURL = "jdbc:derby:"  
+        connectionURL = "jdbc:derby:"
                 + "//" + masterServerHost + ":" + masterServerPort + "/"
                 + db
                 + ";failover=true";
@@ -149,12 +149,12 @@ public class TestPostStartedMasterAndSlave_Failover extends ClientRunner
             assertSQLState(msg, "XRE20", se);
             System.out.println("Failover on master succeeded: " + connectionURL + " " + msg);
         }
-        
-                
+
+
     }
-    
+
     public void verify()
-    throws SQLException, IOException, InterruptedException
+            throws SQLException, IOException, InterruptedException
     {
 
     }

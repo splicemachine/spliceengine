@@ -24,8 +24,8 @@ package org.apache.derbyTesting.functionTests.tests.jdbcapi;
 import java.lang.reflect.Method;
 import java.sql.SQLException;
 
-import org.apache.derby.iapi.jdbc.EngineStatement;
-import org.apache.derby.client.am.LogicalPreparedStatement;
+import com.splicemachine.db.iapi.jdbc.EngineStatement;
+import com.splicemachine.db.client.am.LogicalPreparedStatement;
 
 /**
  * A wrapper around the new Statement methods added by JDBC 4.1.
@@ -39,7 +39,7 @@ public  class   Wrapper41Statement
     ///////////////////////////////////////////////////////////////////////
 
     private EngineStatement     _engineStatement;
-    private org.apache.derby.client.am.Statement       _netStatement;
+    private com.splicemachine.db.client.am.Statement       _netStatement;
     private LogicalPreparedStatement  _logicalStatement;
     
     ///////////////////////////////////////////////////////////////////////
@@ -51,7 +51,7 @@ public  class   Wrapper41Statement
     public Wrapper41Statement( Object wrapped ) throws Exception
     {
         if ( wrapped instanceof EngineStatement ) { _engineStatement = (EngineStatement) wrapped; }
-        else if ( wrapped instanceof org.apache.derby.client.am.Statement ) { _netStatement = (org.apache.derby.client.am.Statement) wrapped; }
+        else if ( wrapped instanceof com.splicemachine.db.client.am.Statement ) { _netStatement = (com.splicemachine.db.client.am.Statement) wrapped; }
         else if ( wrapped instanceof LogicalPreparedStatement ) { _logicalStatement = (LogicalPreparedStatement) wrapped; }
         else { throw nothingWrapped(); }
     }

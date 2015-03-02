@@ -56,7 +56,7 @@ public class JMXTest extends MBeanTest {
      * Test that all MBeans registered by Derby have:
      * <UL>
      * <LI> A type key property correct set.
-     * <LI> Expose a class name in org.apache.derby.mbeans.
+     * <LI> Expose a class name in com.splicemachine.db.mbeans.
      * </UL>
      * @throws Exception
      */
@@ -87,13 +87,13 @@ public class JMXTest extends MBeanTest {
             
             String mbeanClassName = mbeanInfo.getClassName();
             // Is the class name in the public api
-            assertTrue(mbeanClassName.startsWith("org.apache.derby.mbeans."));
+            assertTrue(mbeanClassName.startsWith("com.splicemachine.db.mbeans."));
             
             // See if it was the application created ManagementMBean
             // This will have the implementation class registered
             // as the class name since it is not registered by Derby.
             if ("Management".equals(type)
-                    && "org.apache.derby.mbeans.Management".equals(mbeanClassName))
+                    && "com.splicemachine.db.mbeans.Management".equals(mbeanClassName))
             {
                 continue;
             }

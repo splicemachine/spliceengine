@@ -52,9 +52,9 @@ public class LongColumnTest extends BaseJDBCTestCase {
                     + "'org.apache.derbyTesting.functionTests.util.Formatters"
                     + ".padString' LANGUAGE JAVA PARAMETER STYLE JAVA");
             s.execute("CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY"
-                    + "('derby.storage.pageSize', '4096')");
+                    + "('db.storage.pageSize', '4096')");
             s.execute("CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY"
-                    + "('derby.storage.pageCacheSize', '40')");
+                    + "('db.storage.pageCacheSize', '40')");
             s.close();
         } catch (SQLException se) {
             se.printStackTrace();

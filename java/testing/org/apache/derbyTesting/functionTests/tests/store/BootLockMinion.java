@@ -23,11 +23,9 @@ package org.apache.derbyTesting.functionTests.tests.store;
 
 import java.sql.Connection;
 import java.sql.Statement;
-import java.net.Socket;
 import java.io.File;
-import java.lang.Integer;
 
-import org.apache.derby.jdbc.EmbeddedSimpleDataSource;
+import com.splicemachine.db.jdbc.EmbeddedSimpleDataSource;
 /**
  * Create and boot the supplied db argument. This auxiliary program is used by
  * {@code BootLockTest.java} to boot a db in a different jvm and subsequently

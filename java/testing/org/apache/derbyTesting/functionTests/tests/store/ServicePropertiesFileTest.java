@@ -221,7 +221,7 @@ public class ServicePropertiesFileTest
         String db = "spfTestBWBE";
         copyDbAs(db);
         assertPresence(true, false);
-        // Make sure 'derby.storage.logArchiveMode' isn't present already.
+        // Make sure 'db.storage.logArchiveMode' isn't present already.
         assertEquals(0, grepForToken(LOG_A_MODE, spf));
 
         // Connect, then enable log archive mode to trigger edit.

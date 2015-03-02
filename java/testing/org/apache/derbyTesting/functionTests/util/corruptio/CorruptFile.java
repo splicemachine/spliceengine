@@ -20,8 +20,8 @@
  */
 
 package org.apache.derbyTesting.functionTests.util.corruptio;
-import org.apache.derby.io.StorageFile;
-import org.apache.derby.io.StorageRandomAccessFile;
+import com.splicemachine.db.io.StorageFile;
+import com.splicemachine.db.io.StorageRandomAccessFile;
 import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -29,7 +29,7 @@ import java.io.IOException;
 import java.io.FileNotFoundException;
 import java.net.MalformedURLException;
 import java.net.URL;
-import org.apache.derby.iapi.error.StandardException;
+import com.splicemachine.db.iapi.error.StandardException;
 
 /**
  * This class provides proxy implementation of the StorageFile interface. It is
@@ -376,7 +376,7 @@ class CorruptFile implements StorageFile {
 		return realFile;
 	}
 	/**
-	 * @see org.apache.derby.io.StorageFile#getURL()
+	 * @see com.splicemachine.db.io.StorageFile#getURL()
 	 */
 	public URL getURL() throws MalformedURLException {
 		throw new MalformedURLException(toString());

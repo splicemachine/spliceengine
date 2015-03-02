@@ -36,7 +36,7 @@ import org.apache.derbyTesting.junit.TestConfiguration;
 import org.apache.derbyTesting.junit.JDBC;
 import org.apache.derbyTesting.junit.XML;
 
-import org.apache.derby.iapi.types.HarmonySerialBlob;
+import com.splicemachine.db.iapi.types.HarmonySerialBlob;
 
 /**
  * <p>

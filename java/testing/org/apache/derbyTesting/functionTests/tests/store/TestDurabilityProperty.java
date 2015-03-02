@@ -24,17 +24,15 @@ package org.apache.derbyTesting.functionTests.tests.store;
 import java.sql.Connection;
 import java.sql.Statement;
 import java.sql.PreparedStatement;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.io.*;
 import org.apache.derbyTesting.functionTests.util.TestUtil;
-import java.util.Properties;
 
 /**
- * This program tests the system when the derby.system.durability property is
+ * This program tests the system when the db.system.durability property is
  * set to 'test'. 
  * <BR>
- * When the derby.system.durability is set to 'test', the system will not do 
+ * When the db.system.durability is set to 'test', the system will not do
  * any sync to the
  * disk and the recovery system will not work property. It is provided for
  * performance reasons and should ideally only be used when there is no
@@ -54,27 +52,27 @@ import java.util.Properties;
  * - database may be in an inconsistent state
  * 
  * This program tests for 
- * 1. setting the derby.system.durability=test is actually not
+ * 1. setting the db.system.durability=test is actually not
  *    doing the syncs by timing inserts
- * 2. check if a warning message exists in derby.log 
+ * 2. check if a warning message exists in db.log
  * 3. read log.ctrl file and check if the flag is set or not
  * 4. check if the log.ctrl file flag is not overwritten for the case when 
- * database booted with derby.system.durability=test set, then shutdown
- * and database booted without derby.system.durability=test
+ * database booted with db.system.durability=test set, then shutdown
+ * and database booted without db.system.durability=test
  * 
  * @version 1.0
  */
 public class TestDurabilityProperty {
     public static void main(String[] args) {
         try {
-            // Test 1: check if derby.system.durability=test
+            // Test 1: check if db.system.durability=test
             // mode is not doing syncs 
             testNoSyncs(args);
             
             String derbyHome = System.getProperty("derby.system.home");
             // Test 2
-            // Check if derby.log has the warning message
-            report("Is warning message about derby.system.durability=test present in derby.log ="
+            // Check if db.log has the warning message
+            report("Is warning message about db.system.durability=test present in db.log ="
                     + isMessageInDerbyLog(derbyHome));
             // Test 3
             // Check if marker is correctly written out to database
@@ -82,7 +80,7 @@ public class TestDurabilityProperty {
             
             // Test 4
             // shutdown database and boot database afresh without 
-            // derby.system.durability set to test. In this case the derby.log 
+            // db.system.durability set to test. In this case the db.log
             // and the log control file should still have the marker that this 
             // mode was once used to boot database.
             report(
@@ -101,7 +99,7 @@ public class TestDurabilityProperty {
      * time inserts 
      * 
      * @param mode
-     *            value for derby.system.durability property
+     *            value for db.system.durability property
      * @param create
      *            should table be created or not
      * @param autoCommit
@@ -112,7 +110,7 @@ public class TestDurabilityProperty {
     public static long timeTakenToInsert(String mode, boolean create,
             boolean autoCommit) throws Exception {
         System.setProperty("derby.system.durability", mode);
-        Connection conn = org.apache.derby.tools.ij.startJBMS();
+        Connection conn = com.splicemachine.db.tools.ij.startJBMS();
 
         if (create) {
             Statement s = conn.createStatement();
@@ -142,7 +140,7 @@ public class TestDurabilityProperty {
     /**
      * Note doing inserts in autocommit mode is probably the worst case scenario
      * in terms of performance as each commit will involve a flush/sync to disk
-     * but in case of the derby.system.durability=test mode, the syncs dont 
+     * but in case of the db.system.durability=test mode, the syncs dont
      * happen.
      */
     public static long doInserts(Connection conn,boolean autoCommit) throws Exception {
@@ -169,10 +167,10 @@ public class TestDurabilityProperty {
     }
 
     /**
-     * When derby.system.durability is set, a warning message is written out to
-     * derby.log indicating that the property is set and that it does not
+     * When db.system.durability is set, a warning message is written out to
+     * db.log indicating that the property is set and that it does not
      * guarantee recoverability This test tests if a message is written out to
-     * derby.log or not
+     * db.log or not
      */
     public static boolean isMessageInDerbyLog(String derbyHome) throws Exception {
         BufferedReader reader = null;
@@ -197,11 +195,11 @@ public class TestDurabilityProperty {
     }
 
     /**
-     * if database is booted with derby.system.durability=test, 
+     * if database is booted with db.system.durability=test,
      * a marker is written out into log control
      * file to recognize that the database was previously booted in this mode
      * Test if the marker byte is set correctly or not. See comments in
-     * org.apache.derby.impl.store.log.LogToFile for IS_DURABILITY_TESTMODE_NO_SYNC_FLAG
+     * com.splicemachine.db.impl.store.log.LogToFile for IS_DURABILITY_TESTMODE_NO_SYNC_FLAG
      */
     public static void markerInControlFile(String derbyHome) throws Exception {
         RandomAccessFile controlFile = null;
@@ -221,12 +219,12 @@ public class TestDurabilityProperty {
     }
 
     /**
-     * Test for case when database is booted without derby.system.durability=test
-     * but previously has been booted with the derby.system.durability=test. In 
+     * Test for case when database is booted without db.system.durability=test
+     * but previously has been booted with the db.system.durability=test. In
      * this scenario,the log control file should still have the marker to say
-     * that this mode was set previously, and derby.log must also have a warning
+     * that this mode was set previously, and db.log must also have a warning
      * message
-     * @param derbyHome value of derby.system.home where the database is
+     * @param derbyHome value of db.system.home where the database is
      * @throws Exception
      */
     public static void markerNotOverwritten(String derbyHome) throws Exception
@@ -235,10 +233,10 @@ public class TestDurabilityProperty {
         Connection conn = null;
         // unset property
         System.setProperty("derby.system.durability","");
-        conn = org.apache.derby.tools.ij.startJBMS();
+        conn = com.splicemachine.db.tools.ij.startJBMS();
         conn.close();
         markerInControlFile(derbyHome);
-        report("Is warning message about derby.system.durability=test present in derby.log ="
+        report("Is warning message about db.system.durability=test present in db.log ="
                 + isMessageInDerbyLog(derbyHome));
     }
     
@@ -251,7 +249,7 @@ public class TestDurabilityProperty {
     }
 
     /**
-     * Test if derby.system.durability=test property is broken or not. We time
+     * Test if db.system.durability=test property is broken or not. We time
      * inserts for 500 repeated inserts and make some approximate estimations on
      * how fast it should be. Since it is a timing based test, there might be
      * cases of a really really slow machine in some weird cases where this test
@@ -277,21 +275,21 @@ public class TestDurabilityProperty {
     public static void testNoSyncs(String[] args) throws Exception {
         boolean debug = false;  // if set, prints out useful info when debugging test
         
-        report("1. With derby.system.durability=test,"
+        report("1. With db.system.durability=test,"
                 + "Test to see if syncs are not happening ");
         // use the ij utility to read the property file and
         // make the initial connection.
-        org.apache.derby.tools.ij.getPropertyArg(args);
+        com.splicemachine.db.tools.ij.getPropertyArg(args);
 
         boolean create = true;
 
         // Note we time inserts in normal all syncs case first even
         // though we may not require it if the inserts finish fast enough
         // But timing them here because once database is booted with
-        // derby.system.durability=test there are no guarantees on consistency
+        // db.system.durability=test there are no guarantees on consistency
         // of database so dont want to mess up numbers for the all syncs case
 
-        // derby.system.durability is not test so it will default to
+        // db.system.durability is not test so it will default to
         // normal mode and autocommit=true
         long timeCommitOn = timeTakenToInsert("", create, true);
         String derbyHome = System.getProperty("derby.system.home");
@@ -299,9 +297,9 @@ public class TestDurabilityProperty {
             report("ERROR! System should not have been booted with"
                     + "derby.system.durability=test mode here");
         create = false;
-        // derby.system.durability=test and autocommit=true
+        // db.system.durability=test and autocommit=true
         long timeWithTestModeCommitOn = timeTakenToInsert("test", create, true);
-        // derby.system.durability=test and autocommit=false
+        // db.system.durability=test and autocommit=false
         long timeWithTestModeCommitOff = timeTakenToInsert("test", create, false);
       
         if (debug) {
@@ -311,24 +309,24 @@ public class TestDurabilityProperty {
         }
 
         // an approximation on the upper bound for time taken to do
-        // inserts in autocommit mode with derby.system.durability=test mode
+        // inserts in autocommit mode with db.system.durability=test mode
         long upperBound = 3000;
 
         // if it takes a lot of time to do the inserts then do extra checks
-        // to determine if derby.system.durability=test mode is broken or not
+        // to determine if db.system.durability=test mode is broken or not
         // because we cant be sure if inserts just took a long time
         // because of a really slow machine
         if (timeWithTestModeCommitOn > upperBound) {
 
             long proximityRange = 1000;
 
-            // in derby.system.durability=test autocommit on or off should
+            // in db.system.durability=test autocommit on or off should
             // be in same range since syncs are not happening
             if (Math.abs(timeWithTestModeCommitOn - timeWithTestModeCommitOff) > proximityRange) {
                 // another approximation here (1.5 times of with testmode set)
                 if (timeWithTestModeCommitOn > timeCommitOn
                         || (timeCommitOn < (1.5 * timeWithTestModeCommitOn))) {
-                    report("FAIL -- derby.system.durability=test mode seems to be broken.");
+                    report("FAIL -- db.system.durability=test mode seems to be broken.");
                     report("-- In this mode one would expect that inserts with autocommit off and on "
                             + "would be in the same range as syncs are not happening but the difference "
                             + "here seems to be more than the approximate estimated range.");

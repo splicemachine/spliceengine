@@ -21,10 +21,8 @@
 
 package org.apache.derbyTesting.functionTests.tests.store;
 
-import java.io.File;
 import java.io.ByteArrayInputStream;
 import java.io.RandomAccessFile;
-import java.math.BigDecimal;
 
 import java.sql.CallableStatement;
 import java.sql.Connection;
@@ -32,8 +30,7 @@ import java.sql.SQLException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
-import org.apache.derby.tools.ij;
-import org.apache.derby.tools.JDBCDisplayUtil;
+import com.splicemachine.db.tools.ij;
 import org.apache.derbyTesting.functionTests.util.TestUtil;
 
 /**

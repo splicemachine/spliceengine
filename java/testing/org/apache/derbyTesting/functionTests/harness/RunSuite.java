@@ -21,23 +21,14 @@
 
 package org.apache.derbyTesting.functionTests.harness;
 
-import org.apache.derby.tools.sysinfo;
 import java.io.File;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.BufferedOutputStream;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.PrintWriter;
 import java.io.IOException;
 import java.io.FileNotFoundException;
 import java.lang.ClassNotFoundException;
-import java.sql.Timestamp;
-import java.util.Enumeration;
 import java.util.Properties;
 import java.util.Vector;
 import java.util.StringTokenizer;

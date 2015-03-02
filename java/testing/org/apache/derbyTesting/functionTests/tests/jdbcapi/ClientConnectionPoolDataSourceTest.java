@@ -31,7 +31,7 @@ import javax.sql.PooledConnection;
 
 import junit.framework.Test;
 
-import org.apache.derby.jdbc.ClientConnectionPoolDataSource;
+import com.splicemachine.db.jdbc.ClientConnectionPoolDataSource;
 import org.apache.derbyTesting.junit.BaseJDBCTestCase;
 import org.apache.derbyTesting.junit.J2EEDataSource;
 import org.apache.derbyTesting.junit.JDBC;

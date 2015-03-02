@@ -22,7 +22,7 @@
 package org.apache.derbyTesting.unitTests.crypto;
 
 /*
-	To run, put the following line in derby.properties
+	To run, put the following line in db.properties
 	derby.module.test.T_Cipher=org.apache.derbyTesting.unitTests.crypto.T_CipherCFB
 
 	and run java org.apache.derbyTesting.unitTests.harness.UnitTestMain

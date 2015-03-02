@@ -76,30 +76,30 @@ public class Derby5730Test extends BaseTestCase {
      * row tells how many arguments the function takes.
      */
     private final static Object[][] FUNCTIONS = {
-        {"ACOS", ONE},
-        {"ASIN", ONE},
-        {"ATAN", ONE},
-        {"ATAN2", TWO},
-        {"COS", ONE},
-        {"SIN", ONE},
-        {"TAN", ONE},
-        {"PI", ZERO},
-        {"DEGREES", ONE},
-        {"RADIANS", ONE},
-        {"LN", ONE},
-        {"LOG", ONE},
-        {"LOG10", ONE},
-        {"EXP", ONE},
-        {"CEIL", ONE},
-        {"CEILING", ONE},
-        {"FLOOR", ONE},
-        {"SIGN", ONE},
-        {"RANDOM", ZERO},
-        {"RAND", ONE},
-        {"COT", ONE},
-        {"COSH", ONE},
-        {"SINH", ONE},
-        {"TANH", ONE},
+            {"ACOS", ONE},
+            {"ASIN", ONE},
+            {"ATAN", ONE},
+            {"ATAN2", TWO},
+            {"COS", ONE},
+            {"SIN", ONE},
+            {"TAN", ONE},
+            {"PI", ZERO},
+            {"DEGREES", ONE},
+            {"RADIANS", ONE},
+            {"LN", ONE},
+            {"LOG", ONE},
+            {"LOG10", ONE},
+            {"EXP", ONE},
+            {"CEIL", ONE},
+            {"CEILING", ONE},
+            {"FLOOR", ONE},
+            {"SIGN", ONE},
+            {"RANDOM", ZERO},
+            {"RAND", ONE},
+            {"COT", ONE},
+            {"COSH", ONE},
+            {"SINH", ONE},
+            {"TANH", ONE},
     };
 
     /**
@@ -108,18 +108,18 @@ public class Derby5730Test extends BaseTestCase {
      * Must run with capped memory size (-Xmx16M) to expose the memory leak.
      */
     public static void main(String[] args) throws Exception {
-        Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
+        Class.forName("com.splicemachine.db.jdbc.EmbeddedDriver");
         for (int i = 0; i < FUNCTIONS.length; i++) {
             Connection c = DriverManager.getConnection(
                     "jdbc:derby:memory:derby5730;create=true");
             prepareFunction(c,
-                            (String) FUNCTIONS[i][0],
-                            ((Integer) FUNCTIONS[i][1]).intValue());
+                    (String) FUNCTIONS[i][0],
+                    ((Integer) FUNCTIONS[i][1]).intValue());
             growDatabaseFootprint(c);
             c.close();
             try {
                 DriverManager.getConnection(
-                    "jdbc:derby:memory:derby5730;shutdown=true");
+                        "jdbc:derby:memory:derby5730;shutdown=true");
                 fail("Shutdown should throw exception");
             } catch (SQLException sqle) {
                 BaseJDBCTestCase.assertSQLState("08006", sqle);

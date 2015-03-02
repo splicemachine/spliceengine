@@ -1,32 +1,8 @@
 <?xml version="1.0"?>
-<!--
-  Licensed to the Apache Software Foundation (ASF) under one or more
-  contributor license agreements.  See the NOTICE file distributed with
-  this work for additional information regarding copyright ownership.
-  The ASF licenses this file to you under the Apache License, Version 2.0
-  (the "License"); you may not use this file except in compliance with
-  the License.  You may obtain a copy of the License at
-
-      http://www.apache.org/licenses/LICENSE-2.0
-
-  Unless required by applicable law or agreed to in writing, software
-  distributed under the License is distributed on an "AS IS" BASIS,
-  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  See the License for the specific language governing permissions and
-  limitations under the License.
--->
-
 <project name="splice_derby" default="buildsource" basedir=".">
-
-<!-- Set Properties -->
-
 
   <!-- User settings -->
   <property environment="env"/>
-  <property file="local.properties"/>
-
-  <property file="${user.home}/ant.properties"/>
-  <!-- Set property lib dir -->
   <property name="properties.dir" value="tools/ant/properties"/>
   <!-- Significant dirs -->
   <property file="${properties.dir}/dirs.properties"/>
@@ -49,12 +25,12 @@
 
   <target
       name="buildsource"
-      depends="checkCompilerLevel,init,prebuild,setCompilerProperties,jsr169stubs,jdbc3stubs,jdbc4stubs,felixStubs,engine,storeless,tools,drda,client,build,versioninfo,localeinfo,binscripts"
+      depends="init,prebuild,setCompilerProperties,jsr169stubs,jdbc3stubs,jdbc4stubs,felixStubs,engine,storeless,tools,drda,client,build,versioninfo,localeinfo,binscripts"
       description="Compile the product source (does not build the tests)."
   />
   <target
       name="all"
-      depends="buildsource,demo,testing,pptesting,runmessagecheck"
+      depends="buildsource,testing,pptesting,runmessagecheck"
       description="Compile all of the source, including tests as well as production code."
   />
 
@@ -64,13 +40,14 @@
 
   <target name="init" unless="init.done" depends="setInitialProperties">
 
+    <property name="compilerLevel16" value="1.6"/>
+
     <antcall target="install_junit"/>
     <antcall target="install_joda-time"/>
     <antcall target="install_log4j"/>
   	<tstamp/>
     <mkdir dir="${out.dir}"/>
     <antcall target="make-generated-dirs"/>
-    <antcall target="make-release-dirs"/>
 
     <!-- Create the emtpy dir that we put in the boot classpath to
          prevent the default Java runtime libraries from being loaded.
@@ -96,15 +73,6 @@
     <mkdir dir="${generated.sql.dir}"/>
     <mkdir dir="${generated.engine.locale.dir}"/>
     <mkdir dir="${generated.cache.dir}"/>
-    <mkdir dir="${generated.toursdb.dir}"/>
-
-   </target>
-
-   <target name="make-release-dirs">
-
-    <mkdir dir="${release.base}"/>
-    <mkdir dir="${release.dir}"/>
-    <mkdir dir="${snapshot.dir}"/>
 
    </target>
 
@@ -146,27 +114,6 @@
     <echo level="info" message="  Proceed = ${proceed}"/>
     <echo level="info" message=""/>
     <property name="showenv.done" value="true"/>
-  </target>
-
-  <!--  Make sure compiler level is Java 5 level or higher -->
-  <target name="checkCompilerLevel">
-
-    <!--
-       Allow compilation of JDBC4 classes at 1.6 level if compiler supports it.
-       If we can find the following class, then we assume that the compiler
-       is at least Java 6 level.
-    -->
-    <available classname="java.sql.Wrapper" property="compilerLevel16" value="1.6"/>
-    <property name="compilerLevel16" value="1.6"/>
-
-    <javac source="1.6" srcdir="${basedir}" failonerror="false"
-           includeantruntime="false">
-      <include name="${dummy.src}"/>
-    </javac>
-
-    <available property="compilerAtCorrectLevel" classname="java.util.Queue"/>
-
-    <fail unless="compilerAtCorrectLevel" message="Compiler level must be Java 5 or later."/>
   </target>
 
   <!-- checkVMLevel:
@@ -300,64 +247,64 @@
   <target name="ckversioninfo">
     <condition property="versioninfo.available">
       <and>
-        <available file="${out.dir}/org/apache/derby/info/DBMS.properties"/>
-        <available file="${out.dir}/org/apache/derby/info/tools.properties"/>
-        <available file="${out.dir}/org/apache/derby/info/net.properties"/>
-        <available file="${out.dir}/org/apache/derby/info/dnc.properties"/>
+        <available file="${out.dir}/${splice.package}/info/DBMS.properties"/>
+        <available file="${out.dir}/${splice.package}/info/tools.properties"/>
+        <available file="${out.dir}/${splice.package}/info/net.properties"/>
+        <available file="${out.dir}/${splice.package}/info/dnc.properties"/>
       </and>
     </condition>
   </target>
 
   <target name="writeversioninfo" unless="versioninfo.available">
-    <mkdir dir="${out.dir}/org/apache/derby/info/"/>
+    <mkdir dir="${out.dir}/${splice.package}/info/"/>
 
     <antcall target="infowriter">
       <param name="info.buildnumber" value="1"/>
       <param name="info.iname" value="Apache Derby Embedded Engine"/>
       <param name="info.ename" value="Apache Derby"/>
       <param name="info.productfile" value="codeline"/>
-      <param name="info.file" value="${out.dir}/org/apache/derby/info/DBMS.properties"/>
+      <param name="info.file" value="${out.dir}/${splice.package}/info/DBMS.properties"/>
     </antcall>
     <antcall target="infowriter">
       <param name="info.buildnumber" value="1"/>
       <param name="info.iname" value="Apache Derby Tools"/>
       <param name="info.ename" value="Apache Derby"/>
       <param name="info.productfile" value="codeline"/>
-      <param name="info.file" value="${out.dir}/org/apache/derby/info/tools.properties"/>
+      <param name="info.file" value="${out.dir}/${splice.package}/info/tools.properties"/>
     </antcall>
     <antcall target="infowriter">
       <param name="info.buildnumber" value="1"/>
       <param name="info.iname" value="Apache Derby Network Server"/>
       <param name="info.ename" value="Apache Derby"/>
       <param name="info.productfile" value="codeline"/>
-      <param name="info.file" value="${out.dir}/org/apache/derby/info/net.properties"/>
+      <param name="info.file" value="${out.dir}/${splice.package}/info/net.properties"/>
     </antcall>
     <antcall target="infowriter">
       <param name="info.buildnumber" value="1"/>
       <param name="info.iname" value="Apache Derby Network Client"/>
       <param name="info.ename" value="Apache Derby"/>
       <param name="info.productfile" value="codeline"/>
-      <param name="info.file" value="${out.dir}/org/apache/derby/info/dnc.properties"/>
+      <param name="info.file" value="${out.dir}/${splice.package}/info/dnc.properties"/>
     </antcall>
   </target>
 
   <target name="cleanversion">
-    <delete file="${out.dir}/org/apache/derby/info/DBMS.properties"/>
-    <delete file="${out.dir}/org/apache/derby/info/tools.properties"/>
-    <delete file="${out.dir}/org/apache/derby/info/net.properties"/>
-    <delete file="${out.dir}/org/apache/derby/info/dnc.properties"/>
+    <delete file="${out.dir}/${splice.package}/info/DBMS.properties"/>
+    <delete file="${out.dir}/${splice.package}/info/tools.properties"/>
+    <delete file="${out.dir}/${splice.package}/info/net.properties"/>
+    <delete file="${out.dir}/${splice.package}/info/dnc.properties"/>
   </target>
 
   <!-- Set the ant variables which identify the compiler classpaths. -->
   <target name="setCompilerProperties" unless="compilerPropsAlreadySet" depends="prebuild">
 
-    <antcall target="printCompilerProperties"> <param name="checkEvent" value="Before setting properties: "/> </antcall>
+    <antcall target="printCompilerProperties">
+        <param name="checkEvent" value="Before setting properties: "/>
+    </antcall>
 
-    <taskdef
-      name="setJdkProperties"
-      classname="org.apache.derbyPreBuild.PropertySetter"
-      classpath="${out.dir}"
-    />
+    <taskdef name="setJdkProperties"
+      classname="com.splicemachine.derbyPreBuild.PropertySetter"
+      classpath="${out.dir}" />
 
     <!-- 
             After setting the JDK properties, we expect that java15compile.classpath or
@@ -393,9 +340,7 @@
     <!-- Release and version info -->
     <property file="${properties.dir}/release.properties"/>
     
-    <property file="${properties.dir}/deploy.properties"/>
-
-    <!-- 
+    <!--
             If the user hasn't already set this property, point it at our stub
             implementation of JSR169.
     -->
@@ -408,8 +353,10 @@
     <property name="compile.classpath" value="${jsr169compile.classpath}"/>
 
     <property name="compilerPropsAlreadySet" value="true"/>
-    <antcall target="printCompilerProperties"> <param name="checkEvent" value="After setting properties: "/> </antcall>
 
+    <antcall target="printCompilerProperties">
+        <param name="checkEvent" value="After setting properties: "/>
+    </antcall>
 
   </target>
 
@@ -423,17 +370,15 @@
     <property file="${properties.dir}/compilepath.properties"/>
     <!-- Release and version info -->
     <property file="${properties.dir}/release.properties"/>
-    <property file="${properties.dir}/deploy.properties"/>
 
   </target>
 
-  <target name="printCompilerProperties" if="printCompilerProperties">
+  <target name="printCompilerProperties">
 
     <echo message="${checkEvent} compilerPropsAlreadySet = ${compilerPropsAlreadySet}"/>
     <echo message="${checkEvent} compilerLevel16 = ${compilerLevel16}"/>
     <echo message="${checkEvent} compile.classpath = ${compile.classpath}"/>
     <echo message="${checkEvent} jsr169compile.classpath = ${jsr169compile.classpath}"/>
-    <echo message="${checkEvent} j15lib = ${j15lib}"/>
     <echo message="${checkEvent} java15compile.classpath = ${java15compile.classpath}"/>
     <echo message="${checkEvent} j16lib = ${j16lib}"/>
     <echo message="${checkEvent} java16compile.classpath = ${java16compile.classpath}"/>
@@ -463,54 +408,6 @@
     </propertyfile>
   </target>  
 
-    <!--
-        Create the release properties file and check it in
-
-        Args:
-
-            bumpID    true or false, depending on whether you want to increment the last digit of the release id (defaults to false)
-    -->
-  <target name="writeAndCheckinReleaseProperties" depends="writeRelProps,promptforsvncredentials">
-
-    <!-- Check in the new release id. -->
-    <antcall target="checkinfile">
-       <param name="checkinComment" value="Derby release ID set to: ${derby.release.id.new}"/>
-       <param name="fileName" value="${releasePropertyFile}"/>
-    </antcall>
-    
-  </target>  
-
-    <!--
-        Create the release properties file.
-
-        Args:
-
-            bumpID    true or false, depending on whether you want to increment the last digit of the release id (defaults to false)
-    -->
-  <target name="writeRelProps" depends="init,prebuild,promptforreleaseid">
-
-    <taskdef
-      name="writeAndCheckinReleaseProperties"
-      classname="org.apache.derbyPreBuild.ReleaseProperties"
-      classpath="${out.dir}"
-    />
-
-    <property name="releasePropertyFile" value="${properties.dir}/release.properties"/>
-    <property name="bumpID" value="false"/>
-
-    <writeAndCheckinReleaseProperties
-      releaseID="${derby.release.id}"
-      releasePropertiesFileName="${releasePropertyFile}"
-      bump="${bumpID}"
-    />
-
-    <!--
-        If we were asked to bump the release id, then the actual release id
-        will be different from the original id passed into this target.
-    -->
-    <echo message="Derby release ID set to: ${derby.release.id.new}"/>
-    
-  </target>  
 
 <!-- ==================================================================== -->
 <!--                   Locale info writer build target                    -->
@@ -521,7 +418,7 @@
       <param name="info.buildnumber" value="1"/>
       <param name="info.iname" value="_${locale.iname}"/>
       <param name="info.ename" value="${locale.ename}"/>
-      <param name="info.file" value="${out.dir}/org/apache/derby/info/locale_${locale.iname}.properties"/>
+      <param name="info.file" value="${out.dir}/${splice.package}/info/locale_${locale.iname}.properties"/>
     </antcall>
   </target>
 
@@ -631,58 +528,55 @@
   <target name="checklocaleinfo">
     <condition property="localeinfo.available">
       <and>
-        <available file="${out.dir}/org/apache/derby/info/locale_cs.properties"/>
-        <available file="${out.dir}/org/apache/derby/info/locale_de_DE.properties"/>
-        <available file="${out.dir}/org/apache/derby/info/locale_es.properties"/>
-        <available file="${out.dir}/org/apache/derby/info/locale_fr.properties"/>
-        <available file="${out.dir}/org/apache/derby/info/locale_hu.properties"/>
-        <available file="${out.dir}/org/apache/derby/info/locale_it.properties"/>
-        <available file="${out.dir}/org/apache/derby/info/locale_ja_JP.properties"/>
-        <available file="${out.dir}/org/apache/derby/info/locale_ko_KR.properties"/>
-        <available file="${out.dir}/org/apache/derby/info/locale_pl.properties"/>
-        <available file="${out.dir}/org/apache/derby/info/locale_pt_BR.properties"/>
-        <available file="${out.dir}/org/apache/derby/info/locale_ru.properties"/>
-        <available file="${out.dir}/org/apache/derby/info/locale_zh_CN.properties"/>
-        <available file="${out.dir}/org/apache/derby/info/locale_zh_TW.properties"/>
+        <available file="${out.dir}/${splice.package}/info/locale_cs.properties"/>
+        <available file="${out.dir}/${splice.package}/info/locale_de_DE.properties"/>
+        <available file="${out.dir}/${splice.package}/info/locale_es.properties"/>
+        <available file="${out.dir}/${splice.package}/info/locale_fr.properties"/>
+        <available file="${out.dir}/${splice.package}/info/locale_hu.properties"/>
+        <available file="${out.dir}/${splice.package}/info/locale_it.properties"/>
+        <available file="${out.dir}/${splice.package}/info/locale_ja_JP.properties"/>
+        <available file="${out.dir}/${splice.package}/info/locale_ko_KR.properties"/>
+        <available file="${out.dir}/${splice.package}/info/locale_pl.properties"/>
+        <available file="${out.dir}/${splice.package}/info/locale_pt_BR.properties"/>
+        <available file="${out.dir}/${splice.package}/info/locale_ru.properties"/>
+        <available file="${out.dir}/${splice.package}/info/locale_zh_CN.properties"/>
+        <available file="${out.dir}/${splice.package}/info/locale_zh_TW.properties"/>
       </and>
     </condition>
   </target>
 
   <target name="cleanlocale">
-    <delete file="${out.dir}/org/apache/derby/info/locale_cs.properties"/>
-    <delete file="${out.dir}/org/apache/derby/info/locale_de_DE.properties"/>
-    <delete file="${out.dir}/org/apache/derby/info/locale_es.properties"/>
-    <delete file="${out.dir}/org/apache/derby/info/locale_fr.properties"/>
-    <delete file="${out.dir}/org/apache/derby/info/locale_hu.properties"/>
-    <delete file="${out.dir}/org/apache/derby/info/locale_it.properties"/>
-    <delete file="${out.dir}/org/apache/derby/info/locale_ja_JP.properties"/>
-    <delete file="${out.dir}/org/apache/derby/info/locale_ko_KR.properties"/>
-    <delete file="${out.dir}/org/apache/derby/info/locale_pl.properties"/>
-    <delete file="${out.dir}/org/apache/derby/info/locale_pt_BR.properties"/>
-    <delete file="${out.dir}/org/apache/derby/info/locale_ru.properties"/>
-    <delete file="${out.dir}/org/apache/derby/info/locale_zh_CN.properties"/>
-    <delete file="${out.dir}/org/apache/derby/info/locale_zh_TW.properties"/>
+    <delete file="${out.dir}/${splice.package}/info/locale_cs.properties"/>
+    <delete file="${out.dir}/${splice.package}/info/locale_de_DE.properties"/>
+    <delete file="${out.dir}/${splice.package}/info/locale_es.properties"/>
+    <delete file="${out.dir}/${splice.package}/info/locale_fr.properties"/>
+    <delete file="${out.dir}/${splice.package}/info/locale_hu.properties"/>
+    <delete file="${out.dir}/${splice.package}/info/locale_it.properties"/>
+    <delete file="${out.dir}/${splice.package}/info/locale_ja_JP.properties"/>
+    <delete file="${out.dir}/${splice.package}/info/locale_ko_KR.properties"/>
+    <delete file="${out.dir}/${splice.package}/info/locale_pl.properties"/>
+    <delete file="${out.dir}/${splice.package}/info/locale_pt_BR.properties"/>
+    <delete file="${out.dir}/${splice.package}/info/locale_ru.properties"/>
+    <delete file="${out.dir}/${splice.package}/info/locale_zh_CN.properties"/>
+    <delete file="${out.dir}/${splice.package}/info/locale_zh_TW.properties"/>
   </target>
 
   <target name="checkmessages" depends="checkmessages-done"
           unless="checkmessages.done">
-    <java classname="org.apache.derbyBuild.MessageVetter"
+    <java classname="com.splicemachine.derbyBuild.MessageVetter"
           classpath="${out.dir}"
           failonerror="true">
-      <arg file="${out.dir}/org/apache/derby/loc"/>
-      <arg file="${out.dir}/org/apache/derby/loc/drda"/>
+      <arg file="${out.dir}/${splice.package}/loc"/>
+      <arg file="${out.dir}/${splice.package}/loc/drda"/>
     </java>
     <touch file="${generated.dir}/checkmessages.done"/>
   </target>
 
   <target name="checkmessages-done">
-    <uptodate property="checkmessages.done"
-              targetfile="${generated.dir}/checkmessages.done">
+    <uptodate property="checkmessages.done" targetfile="${generated.dir}/checkmessages.done">
       <srcresources>
-        <fileset dir="${out.dir}/org/apache/derby/loc"
-                 includes="*.properties"/>
-        <fileset dir="${out.dir}/org/apache/derby/loc/drda"
-                 includes="*.properties"/>
+        <fileset dir="${out.dir}/${splice.package}/loc" includes="*.properties"/>
+        <fileset dir="${out.dir}/${splice.package}/loc/drda"  includes="*.properties"/>
       </srcresources>
     </uptodate>
   </target>
@@ -697,10 +591,7 @@
     <ant dir="${derby.engine.dir}/loc"/>
     <antcall target="class_size_catalog"/>
   </target>
-	 <target name="engine_169_opt" depends="engine">
-	 	  <ant dir="${derby.engine.src.dir}" target="engine_169_opt"/>
-	 </target>
-	
+
   <target name="tools" depends="engine">
     <ant dir="${derby.tools.src.dir}"/>
   </target>
@@ -724,22 +615,14 @@
 
   <target name="prebuild">
     <mkdir dir="${out.dir}"/>
-    <ant dir="${derby.build.src.dir}/org/apache/derbyPreBuild"/>
+    <ant dir="${derby.build.src.dir}/com/splicemachine/derbyPreBuild"/>
   </target>
 
   <target name="build">
     <ant dir="${derby.build.src.dir}"/>
   </target>
 
-  <target name="demo" depends="buildsource,vti-demo">
-    <ant dir="${derby.demo.src.dir}"/>
-  </target>
-
-  <target name="vti-demo" depends="buildsource">
-    <ant dir="${derby.demo.src.dir}" target="compile-vtidemo"/>
-  </target>
-
-  <target name="testing" depends="buildsource,demo">
+  <target name="testing" depends="buildsource">
     <ant dir="${derby.testing.src.dir}"/>
   </target>
 	
@@ -751,13 +634,13 @@
 
   <!-- Build the package private tests -->
   <target name="pptesting" depends="testing">
-    <ant dir="${derby.testing.src.dir}/org/apache/derby"/>
+    <ant dir="${derby.testing.src.dir}/${splice.package}"/>
   </target>
 
   <!-- Run the MessageBundleTest -->
   <target name="runmessagecheck">
     <java   fork="true" 
-       classname="org.apache.derbyBuild.MessageBundleTest"
+       classname="com.splicemachine.derbyBuild.MessageBundleTest"
      failonerror="true"
        classpath="${out.dir}"
      />
@@ -788,8 +671,7 @@
     <echo level="info" message="  Generating SanityState.java..."/>
     <property name="sane" value="true"/>
     <filter token="SANE" value="${sane}"/>
-    <copy file="${sanity.dir}/SanityState.tmpl"
-          tofile="${generated.sanity.dir}/SanityState.java"
+    <copy file="${sanity.dir}/SanityState.tmpl" tofile="${generated.sanity.dir}/SanityState.java"
           overwrite="yes" filtering="on"/>
     <property name="header" value="Generated file - do not modify!"/>
     <propertyfile file="${state.file}" comment="${header}">
@@ -811,10 +693,8 @@
 <!-- =================================================================== -->
   <target
       name="clobber"
-      depends="clean,cleangenerated,cleanstate,cleanreleasefiles"
-      description="Remove all build artifacts."
-  >
-    <delete file="${out.base}/changenumber.properties"/>
+      depends="clean,cleangenerated,cleanstate"
+      description="Remove all build artifacts.">
   </target>
 
 <!-- =================================================================== -->
@@ -1056,7 +936,7 @@
   -->
 
   <target name="class_size_catalog" depends="cscuptodate" unless="csc.uptodate">
-    <java classname="org.apache.derbyBuild.ClassSizeCrawler"
+    <java classname="com.splicemachine.derbyBuild.ClassSizeCrawler"
           fork="yes"
           failonerror="yes">
       <classpath>
@@ -1066,13 +946,13 @@
       <jvmarg value="-DWS=${workspace}"/>
       <jvmarg value="-DclassDir=${out.dir}"/>
       <jvmarg value="-Dout=${generated.cache.dir}/ClassSizeCatalog.java"/>
-      <jvmarg value="-Dprefix.1=org.apache.derby.iapi.types"/>            
-      <jvmarg value="-Dprefix.2=org.apache.derby.impl"/>
-      <arg value="org.apache.derby.iapi.types.DataValueDescriptor"/>
-      <arg value="org.apache.derby.impl.services.cache.CachedItem"/>
-      <arg value="org.apache.derby.impl.store.raw.data.RecordId"/>
-      <arg value="org.apache.derby.iapi.store.raw.ContainerKey"/>
-      <arg value="org.apache.derby.iapi.services.cache.SizedCacheable"/>
+      <jvmarg value="-Dprefix.1=com.splicemachine.db.iapi.types"/>
+      <jvmarg value="-Dprefix.2=com.splicemachine.db.impl"/>
+      <arg value="com.splicemachine.db.iapi.types.DataValueDescriptor"/>
+      <arg value="com.splicemachine.db.impl.services.cache.CachedItem"/>
+      <arg value="com.splicemachine.db.impl.store.raw.data.RecordId"/>
+      <arg value="com.splicemachine.db.iapi.store.raw.ContainerKey"/>
+      <arg value="com.splicemachine.db.iapi.services.cache.SizedCacheable"/>
       <arg value="java.lang.ref.WeakReference"/>
       <arg value="java.math.BigDecimal"/>
       <arg value="java.util.ArrayList"/>
@@ -1096,7 +976,7 @@
       <classpath>
         <pathelement path="${compile.classpath}"/>
       </classpath>
-      <include name="${derby.dir}/iapi/services/cache/ClassSizeCatalog.java"/>
+      <include name="${splice.package}/iapi/services/cache/ClassSizeCatalog.java"/>
     </javac>
 
   </target>
@@ -1105,16 +985,17 @@
     <condition property="csc.uptodate">
       <and>
         <uptodate srcfile="${derby.engine.dir}/iapi/types/DataValueDescriptor.java"
-                  targetfile="${out.dir}/org/apache/derby/iapi/types/DataValueDescriptor.class"/>
+                  targetfile="${out.dir}/${splice.package}/iapi/types/DataValueDescriptor.class"/>
         <uptodate srcfile="${derby.engine.dir}/impl/services/cache/CachedItem.java"
-                  targetfile="${out.dir}/org/apache/derby/impl/services/cache/CachedItem.class"/>
+                  targetfile="${out.dir}/${splice.package}/impl/services/cache/CachedItem.class"/>
         <uptodate srcfile="${derby.engine.dir}/impl/store/raw/data/RecordId.java"
-                  targetfile="${out.dir}/org/apache/derby/impl/store/raw/data/RecordId.class"/>
+                  targetfile="${out.dir}/${splice.package}/impl/store/raw/data/RecordId.class"/>
         <uptodate srcfile="${derby.engine.dir}/iapi/store/raw/ContainerKey.java"
-                  targetfile="${out.dir}/org/apache/derby/iapi/store/raw/ContainerKey.class"/>
+                  targetfile="${out.dir}/${splice.package}/iapi/store/raw/ContainerKey.class"/>
         <uptodate srcfile="${derby.engine.dir}/iapi/services/cache/SizedCacheable.java"
-                  targetfile="${out.dir}/org/apache/derby/iapi/services/cache/SizedCacheable.class"/>
-        <available file="${generated.src.dir}/${derby.dir}/iapi/services/cache/ClassSizeCatalog.java"/>
+                  targetfile="${out.dir}/${splice.package}/iapi/services/cache/SizedCacheable.class"/>
+
+        <available file="${generated.src.dir}/${splice.package}/iapi/services/cache/ClassSizeCatalog.java"/>
       </and>
     </condition>
   </target>
@@ -1138,418 +1019,27 @@
 
 
 <!-- =================================================================== -->
-<!--                           Javadoc targets                           -->
-<!-- =================================================================== -->
-
-  <!-- javadoc specific properties -->
-
-  <property name="public.api.dir" value="${out.javadoc.dir}/publishedapi"/>
-  <property name="javadoc.temp.dir" value="${out.javadoc.dir}/temp"/>
-  <property name="javadoc.exclusions" value="${javadoc.temp.dir}/javadoc_exclusions"/>
-  <property name="javadoc.inclusions" value="${javadoc.temp.dir}/javadoc_inclusions"/>
-
-  <!-- Helper target to build the JavaDocs and zip them up.
-       Introduced to achieve a higher degree of platform independence when
-       pulling JavaDocs from continuous integration systems and build systems.
-   -->
-  <target name="javadoc-with-bundle" depends="javadoc">
-    <property name="javadoc.bundle" value="${out.javadoc.dir}/javadocs.zip"/>
-    <delete file="${javadoc.bundle}" quiet="true"/>
-    <zip destfile="${javadoc.bundle}"
-         basedir="${out.javadoc.dir}"/>
-  </target>
-
-  <target
-      name="javadoc"
-      depends="init,initjars,publishedapi,derbydocs,toolsdocs,grammardocs,testingdocs"
-      description="Build all of the javadoc, including the public api, the production javadoc, and the testing javadoc."
-  />
-
-  <target name="publishedapi" depends="initjars">
- 
-    <tstamp>
-      <format 
-          property="javadoc.ts" 
-          pattern="EEE yyyy-MM-dd HH:mm:ssZ" 
-          locale="en, us"/>
-    </tstamp>
-    <property 
-        name="javadoc.Footer" 
-        value="Built on ${javadoc.ts}, from revision ${changenumber}"/>
-  
-    <delete dir="${public.api.dir}"/>
-    <mkdir dir="${public.api.dir}"/>
-
-    <antcall target="public-jdbc3-api"/>
-    <antcall target="public-jdbc4-api"/>
-
-
-  </target>
-
-  <!--
-    Build the jdbc3 public api. Called by publishedapi target.
-  -->
-  <target name="public-jdbc3-api">
- 
-    <antcall target="publishedapi-workhorse">
-      <param name="bootClasspath" value="${java15compile.classpath}"/>
-      <param name="extraApi" value="publishedapi_jdbc3.ant"/>
-    </antcall>
-
-  </target>
-
-  <!--
-    Build the jdbc4 public api. Called by publishedapi target.
-  -->
-  <target name="public-jdbc4-api">
-
-    <move todir="${out.javadoc.dir}/jdbc3">
-      <fileset dir="${public.api.dir}"/>
-    </move>
-
-    <mkdir dir="${public.api.dir}"/>
-
-    <antcall target="publishedapi-workhorse">
-     <param name="bootClasspath" value="${java16compile.classpath}"/>
-     <param name="extraApi" value="publishedapi_jdbc4.ant"/>
-    </antcall>
-
-    <move todir="${out.javadoc.dir}/jdbc4">
-      <fileset dir="${public.api.dir}"/>
-    </move>
-
-    <mkdir dir="${public.api.dir}"/>
-
-    <move todir="${public.api.dir}/jdbc3">
-      <fileset dir="${out.javadoc.dir}/jdbc3"/>
-    </move>
-
-    <move todir="${public.api.dir}/jdbc4">
-      <fileset dir="${out.javadoc.dir}/jdbc4"/>
-    </move>
-
-  </target>
-
-  <!--
-    This target is called twice, once to build the JDBC3 public api
-    and then a second time to build the JDBC4 api.
-
-    bootClasspath    Sensitive to JDBC level.
-    extraApi         Extra files to include in the public api.
-  -->
-  <target name="publishedapi-workhorse" depends="initjars">
- 
-    <!--  Only include the files we want customers to see.  -->
-    <mkdir dir="${javadoc.temp.dir}"/>
-    <antcall target="include-in-javadoc">
-      <param name="more_inclusions" value="publishedapi.ant"/>
-    </antcall>
-    <antcall target="include-in-javadoc">
-      <param name="more_inclusions" value="${extraApi}"/>
-    </antcall>
-
-    <javadoc sourcepath="${out.javadoc.dir}/sourcedir"
-             bootclasspath="${bootClasspath}"
-             classpath="${bootClasspath};${osgi};${servlet24};${out.dir}"
-             breakiterator="true"
-             destdir="${public.api.dir}"
-    	     Overview="${basedir}/published_api_overview.html"
-             Windowtitle="Apache Derby ${major}.${minor} API Documentation"   
-             Header="Apache Derby ${major}.${minor}"
-             Footer="${javadoc.Footer}"
-             bottom="Apache Derby ${major}.${minor} API Documentation  -  &lt;i&gt;Copyright &amp;copy; 2004,${copyright.year} The Apache Software Foundation. All Rights Reserved.&lt;/i&gt;">
-      <Doctitle> Apache Derby ${major}.${minor} API Documentation</Doctitle>   
-      <fileset dir="${derby.engine.src.dir}"
-               includesfile="${javadoc.inclusions}"/>
-      <fileset dir="${derby.client.src.dir}"
-               includesfile="${javadoc.inclusions}"/>
-      <fileset dir="${derby.drda.src.dir}"
-               includesfile="${javadoc.inclusions}"/>
-      <fileset dir="${derby.tools.src.dir}"
-               includesfile="${javadoc.inclusions}"/>
-    </javadoc>
-
-    <delete dir="${out.javadoc.dir}/sourcedir"/>
-    <delete dir="${javadoc.temp.dir}"/>
-   
-    <!-- Copy the logo needed by the Doctitle attribute above -->
-    <copy file="${javadoctools.dir}/logo/derby_logo64.png" 
-          todir="${public.api.dir}/resources"/> 
-    
-
-  </target>
-
-
-  <target name="derbydocs" depends="initjars">
-
-    <delete dir="${out.javadoc.dir}/engine"/>
-    <mkdir dir="${out.javadoc.dir}/engine"/>
-
-    <!-- Some of the link tags are lost when using nested filesets. Fool  -->
-    <!-- javadoc into creating relative links by seeding it with the list -->
-    <!-- of packages that have @link tags in their package.htmls          -->
-    <copy file="${javadoctools.dir}/package-list" 
-          todir="${out.javadoc.dir}/engine"/>
-
-    <!--  Build scripts and other cruft choke javadoc. Exclude these files.  -->
-    <mkdir dir="${javadoc.temp.dir}"/>
-    <antcall target="exclude-from-javadoc">
-      <param name="more_exclusions" value="derbydocs_exclusions.ant"/>
-    </antcall>
-
-    <javadoc
-        additionalparam="-J-mx500M"
-        packagenames="org.*"
-        access="private"
-        breakiterator="yes"
-        useexternalfile="yes"
-        classpath="${out.dir};${jars.javadoc}"
-        destdir="${out.javadoc.dir}/engine"
-        windowtitle="Apache Derby V${major}.${minor} Internals"
-        doctitle="Apache Derby V${major}.${minor} Internals"
-        Footer="${javadoc.Footer}"
-        bottom="Apache Derby V${major}.${minor} Internals - &lt;i&gt;Copyright &amp;copy; 2004,${copyright.year} The Apache Software Foundation. All Rights Reserved.&lt;/i&gt;">
-        <taglet name="org.apache.derbyBuild.javadoc.FormatIdTaglet" 
-                path="${basedir}/classes"/>
-        <taglet name="org.apache.derbyBuild.javadoc.PurposeTaglet" 
-                path="${basedir}/classes"/>
-        <taglet name="org.apache.derbyBuild.javadoc.UpgradeTaglet" 
-                path="${basedir}/classes"/>
-        <taglet name="org.apache.derbyBuild.javadoc.DiskLayoutTaglet" 
-                path="${basedir}/classes"/>
-        <taglet name="org.apache.derbyBuild.javadoc.EndFormatTaglet" 
-                path="${basedir}/classes"/>
-      <fileset dir="${derby.engine.src.dir}"
-               excludesfile="${javadoc.exclusions}"/>
-      <fileset dir="${derby.client.src.dir}"
-               excludesfile="${javadoc.exclusions}"/>
-      <fileset dir="${derby.drda.src.dir}"
-               excludesfile="${javadoc.exclusions}"/>
-      <fileset dir="${derby.shared.src.dir}"
-               excludesfile="${javadoc.exclusions}"/>
-      <fileset dir="${derby.tools.src.dir}"
-               excludesfile="${javadoc.exclusions}"/> 
-      <link href="."/>
-    </javadoc>
-
-    <delete dir="${javadoc.temp.dir}"/>
-
-  </target>
-
-  <!--
-     Include more files in the javadoc. Successive calls to this
-     target append more inclusions to the master file that tells
-	 javadoc which files to notice.
-
-	 Parameters:
-
-	     more_inclusions    Additional file to append to master inclusions file.
-  -->
-  <target name="include-in-javadoc">
-    <concat destfile="${javadoc.inclusions}" append="yes">
-       <filelist dir="${javadoctools.dir}" 
-         files="${more_inclusions}"
-       />
-    </concat>
-  </target>
-
-  <!--
-     Exclude more files from the javadoc. Successive calls to this
-     target append more exclusions to the master file that tells
-	 javadoc which files to ignore.
-
-	 Parameters:
-
-	     more_exclusions    Additional file to append to master exclusions file.
-  -->
-  <target name="exclude-from-javadoc">
-    <concat destfile="${javadoc.exclusions}" append="yes">
-       <filelist dir="${javadoctools.dir}" 
-         files="${more_exclusions}"
-       />
-    </concat>
-  </target>
-
-  <target name="toolsdocs">
-
-    <delete dir="${out.javadoc.dir}/tools"/>
-    <mkdir dir="${out.javadoc.dir}/tools"/>
-
-    <antcall target="dojjdocs">
-      <param name="jjtodoc" value="${derby.tools.dir}/impl/tools/ij/ij.jj"/>
-      <param name="jjdoctarget" value="${out.javadoc.dir}/tools/ij.html"/>
-    </antcall>
-
-  </target>
-
-  <target name="demodocs" depends="init">
-
-    <delete dir="${out.javadoc.dir}/demo"/>
-    <mkdir dir="${out.javadoc.dir}/demo"/>
-
-    <javadoc
-        additionalparam="-J-mx500M"
-        packagenames="org.apache.derbyDemo.vtis.*"
-        access="private"
-        breakiterator="yes"
-        useexternalfile="yes"
-        classpath="${out.dir}"
-        destdir="${out.javadoc.dir}/demo"
-        windowtitle="Apache Derby Demos"
-        doctitle="Apache Derby Demos"
-    >
-     <fileset dir="${derby.demo.src.dir}/vtis/java"/>
-    </javadoc>
-
-
-  </target>
-
-  <target name="grammardocs">
-
-    <delete dir="${out.javadoc.dir}/language"/>
-    <mkdir dir="${out.javadoc.dir}/language"/>	
-
-    <antcall target="dojjdocs">
-      <param name="jjtodoc" value="${derby.engine.dir}/impl/sql/compile/sqlgrammar.jj"/>
-      <param name="jjdoctarget" value="${out.javadoc.dir}/language/sqlgrammar.html"/>
-    </antcall>
-
-  </target>
-
-  <target name="dojjdocs">
-
-    <java classname="jjdoc" fork="yes">
-      <classpath path="${javatools.dir}/javacc.jar;${compile.classpath}"/>
-      <arg value="-NOONE_TABLE"/>
-      <arg value="-output_file=${jjdoctarget}"/>
-      <arg value="${jjtodoc}"/>
-    </java>
-
-  </target>
-
-  <target name="testingdocs" depends="initjars">
-    <javadoc
-       additionalparam="-J-mx500M"
-       packagenames="org.*"
-       access="private"
-       breakiterator="yes"
-       bootclasspath="${java16compile.classpath}"
-       classpath="${out.dir};${java16compile.classpath};${jars.javadoc};${junit};${joda-time};${log4j}"
-       destdir="${out.javadoc.dir}/testing"
-       windowtitle="Apache Derby V${major}.${minor} Test Javadoc"
-       doctitle="Apache Derby V${major}.${minor} Test Javadoc"
-       Footer="${javadoc.Footer}"
-       bottom="Apache Derby V${major}.${minor} Internals - &lt;i&gt;Copyright &amp;copy; 2004,${copyright.year} The Apache Software Foundation. All Rights Reserved.&lt;/i&gt;"
-       source="1.6"
-       sourcepath="${derby.testing.src.dir}"
-     />
-  </target>
-
-  <target name="cleandocs">
-
-    <delete dir="${out.javadoc.dir}"/>
-
-  </target>
-
-<!-- =================================================================== -->
-<!-- Eclipse Plugin                                                     -->
-<!-- =================================================================== -->
-  <target name="plugin" depends= "buildjars">
-       <echo level="info" message="Begining Derby Eclipse plugin build"/>
-       <property name="plugin.tmp.dir" value ="plugintmp"/>
-       <mkdir dir="${derby.jar.dir}/${plugin.tmp.dir}"/>
-
-       <java classname="org.apache.derbyBuild.eclipse.DerbyEclipsePlugin">
-               <arg value="${derby.jar.dir}/${plugin.tmp.dir}"/>
-               <classpath>
-                       <pathelement path="${out.dir}"/>
-               </classpath>
-       </java>
-
-       <property file="${derby.jar.dir}/${plugin.tmp.dir}/plugintmp.properties"/>
-       <echo level="info" message="Derby Eclipse plugin build: ${plugin.derby.version.build.number}"/>
-
-       <property name="plugin.dir" value ="plugins"/>
-       <property name="plugin.core.dir" value ="${plugin.derby.core}_${plugin.derby.version}"/>
-
-       <mkdir dir="${derby.jar.dir}/${plugin.tmp.dir}/${plugin.dir}/${plugin.core.dir}"/>
-
-       <copy todir="${derby.jar.dir}/${plugin.tmp.dir}/${plugin.dir}/${plugin.core.dir}">
-               <fileset dir="${derby.jar.dir}" includes="derby*.jar" excludes="derbyTesting.jar,derbyLocale*.jar,derbyrun.jar"/>
-       </copy>
-       <copy todir="${derby.jar.dir}/${plugin.tmp.dir}/${plugin.dir}/${plugin.core.dir}">
-               <fileset dir="${derby.jar.dir}/${plugin.tmp.dir}" includes="plugin*.xml"/>
-       </copy>
-
-       <copy todir="${derby.jar.dir}/${plugin.tmp.dir}/${plugin.dir}/${plugin.core.dir}" file="LICENSE"/>
-       <copy todir="${derby.jar.dir}/${plugin.tmp.dir}/${plugin.dir}/${plugin.core.dir}" file="NOTICE"/>
-
-       <!-- copy the plugin properties for use by the release target -->
-       <copy file="${derby.jar.dir}/${plugin.tmp.dir}/plugintmp.properties" todir="${release.base}"/>
-
-       <delete file="${derby.jar.dir}/${plugin.tmp.dir}/plugintmp.properties"/>
-       <delete file="${derby.jar.dir}/${plugin.tmp.dir}/plugin.xml"/>
-
-       <!-- ZIP to create the final Derby plug-in -->
-
-       <zip zipfile="${derby.jar.dir}/${plugin.derby.core.zipfile}_${plugin.derby.version}.zip" compress="true" basedir="${derby.jar.dir}/${plugin.tmp.dir}"/>
-       <delete dir="${derby.jar.dir}/${plugin.tmp.dir}"/>
-  </target>
-
-<!-- =================================================================== -->
 <!--                               Jar targets                           -->
 <!-- =================================================================== -->
 
   <target name="buildjarsclean" depends="cleanjars,buildjars"/>
   
-  <target name="deployjarsclean" depends="cleanjars,buildjars">
-  	<!--<copy todir="${hbase.lib.dir}">
-  		<fileset dir="${derby.jar.dir}/lists"/>
-    	<globmapper from="*.jar" to="*-${splice.derby.version}.jar"/>
-    </copy>-->
-    <copy file="${derby.jar.dir}/derby.jar" tofile="${hbase.lib.dir}/derby-${splice.derby.version}.jar" overwrite="true"/>
-    <copy file="${derby.jar.dir}/derbyclient.jar" tofile="${hbase.lib.dir}/derbyclient-${splice.derby.version}.jar" overwrite="true"/>
-    <copy file="${derby.jar.dir}/derbynet.jar" tofile="${hbase.lib.dir}/derbynet-${splice.derby.version}.jar" overwrite="true"/>
-    <copy file="${derby.jar.dir}/derbyrun.jar" tofile="${hbase.lib.dir}/derbyrun-${splice.derby.version}.jar" overwrite="true"/>
-    <copy file="${derby.jar.dir}/derbytools.jar" tofile="${hbase.lib.dir}/derbytools-${splice.derby.version}.jar" overwrite="true"/>
-  </target>
-
-  <target name="deployjars" depends="initjars,derbyjar,derbytoolsjar,derbynetjar,derbyclientjar,derbyrunjar">
-    <copy file="${derby.jar.dir}/derby.jar" tofile="${hbase.lib.dir}/derby-${splice.derby.version}.jar" overwrite="true"/>
-    <copy file="${derby.jar.dir}/derbyclient.jar" tofile="${hbase.lib.dir}/derbyclient-${splice.derby.version}.jar" overwrite="true"/>
-    <copy file="${derby.jar.dir}/derbynet.jar" tofile="${hbase.lib.dir}/derbynet-${splice.derby.version}.jar" overwrite="true"/>
-    <copy file="${derby.jar.dir}/derbyrun.jar" tofile="${hbase.lib.dir}/derbyrun-${splice.derby.version}.jar" overwrite="true"/>
-    <copy file="${derby.jar.dir}/derbytools.jar" tofile="${hbase.lib.dir}/derbytools-${splice.derby.version}.jar" overwrite="true"/>
-  </target>
-  
   <target
       name="buildjars"
-      depends="initjars,derbyjar,derbytoolsjar,derbynetjar,derbyclientjar,derbyrunjar,derbywar,derbylocalejars,derbytestingjar"
+      depends="initjars,derbyjar,derbytoolsjar,derbynetjar,derbyclientjar,derbyrunjar,derbylocalejars,derbytestingjar"
       description="Build all of the Derby jar files."
   />
 
-  <target name="initjars" depends="setsanityname,getsvnversion,setCompilerProperties">
+  <target name="initjars" depends="setsanityname,setCompilerProperties">
     <property name="derby.jar.dir" value="${jarsdist.dir}/${sanity.name}"/>
     <property name="derby.jar.topdir" value="${jarsdist.dir}"/>
+    <property name="changenumber" value="1"/>
     <mkdir dir="${derby.jar.dir}"/>
     <mkdir dir="${derby.jar.dir}/lists"/>
-    <loadfile srcFile="${out.base}/changenumber.properties"
-               failonerror="false"
-               property="changenumber">
-      <filterchain>
-        <striplinebreaks/>
-      </filterchain>
-    </loadfile>    
-    <condition property="changenumber" value="???">
-      <not>
-        <isset property="changenumber"/>
-      </not>
-    </condition>
-    <echo level="info" message="Revision number set to ${changenumber}."/>
   </target>
 
 
-<!-- - - - - - - - - - - - - - - derby.jar target - - - - - - - - - - - -->
+<!-- - - - - - - - - - - - - - - db.jar target - - - - - - - - - - - -->
 
   <target name="derbyjar" depends="initjars">
 
@@ -1564,22 +1054,22 @@
       <fileset dir="${basedir}/tools/jar" includes="*DBMS*.properties"/>
     </concat>
 
-    <mkdir dir="${derby.jar.dir}/lists/org/apache/derby"/>
-    <java classname="org.apache.derbyBuild.propertyconfig" fork="yes">
-      <arg value="${out.dir}/org/apache/derby/modules.properties"/>
+    <mkdir dir="${derby.jar.dir}/lists/${splice.package}"/>
+    <java classname="com.splicemachine.derbyBuild.propertyconfig" fork="yes">
+      <arg value="${out.dir}/${splice.package}/modules.properties"/>
       <arg value="derby"/>
-      <arg value="${derby.jar.dir}/lists/org/apache/derby/modules.properties"/>
+      <arg value="${derby.jar.dir}/lists/${splice.package}/modules.properties"/>
       <classpath>
         <pathelement path="${out.dir}"/>
       </classpath>
     </java>
 
     <echo level="info" message=" creating derby.jar class list "/>
-    <java classname="org.apache.derbyBuild.classlister" fork="yes">
+    <java classname="com.splicemachine.derbyBuild.classlister" fork="yes">
       <jvmarg value="-DcloudscapeOnly=true"/>
       <jvmarg value="-Doutputfile=${derby.jar.dir}/lists/derby.list"/>
       <arg value="${derby.jar.dir}/lists/otherDerbyClasses.properties"/> 
-      <arg value="${derby.jar.dir}/lists/org/apache/derby/modules.properties"/>
+      <arg value="${derby.jar.dir}/lists/${splice.package}/modules.properties"/>
       <classpath>
         <pathelement path="${out.dir}"/> 
       </classpath>
@@ -1596,15 +1086,15 @@
       <param name="info.ename" value="Apache Derby"/>
       <param name="info.buildnumber" value="${changenumber}"/>
       <param name="info.productfile" value="derby.jar"/>
-      <param name="info.file" value="${out.dir}//org/apache/derby/info/DBMS.properties"/>
+      <param name="info.file" value="${out.dir}//${splice.package}/info/DBMS.properties"/>
     </antcall>
 
-    <!-- copy boilerplate common to derby jar files -->
+    <!-- copy boilerplate common to db jar files -->
     <antcall target="meta-inf-common"/>
 
     <!-- declare the embedded driver for autoloading by the JDBC 4 DriverManager -->
     <antcall target="declare-autoloadable-driver">
-      <param name="driver.name" value="org.apache.derby.jdbc.AutoloadedDriver"/>
+      <param name="driver.name" value="com.splicemachine.db.jdbc.AutoloadedDriver"/>
     </antcall>
 
     <antcall target="make-core-derbyjar-manifest">
@@ -1614,10 +1104,10 @@
     <!-- add extra osgi bits to manifest -->
 
     <manifest file="${derby.jar.dir}/lists/smf.mf"  mode="update">
-      <attribute name="Bundle-Activator" value="org.apache.derby.osgi.EmbeddedActivator"/>
+      <attribute name="Bundle-Activator" value="com.splicemachine.db.osgi.EmbeddedActivator"/>
       <attribute name="Bundle-SymbolicName" value="derby"/>
       <attribute name="DynamicImport-Package" value="*"/>
-      <attribute name="Export-Package" value="org.apache.derby.authentication,org.apache.derby.database,org.apache.derby.io,org.apache.derby.jdbc,org.apache.derby.vti"/> 
+      <attribute name="Export-Package" value="com.splicemachine.db.authentication,com.splicemachine.derdbtabase,com.splicemachine.derdb,com.splicemachine.derdbbc,com.splicemachine.derdbi"/>
     </manifest> 
 
     <jar destfile="${derby.jar.dir}/derby.jar"
@@ -1627,16 +1117,16 @@
          filesonly="true"
          manifest="${derby.jar.dir}/lists/smf.mf">
       <fileset dir="${out.dir}"
-               includes="org/apache/derby/loc/m?_en.properties,
-                         org/apache/derby/loc/m??_en.properties,
-                         org/apache/derby/loc/sysinfoMessages.properties,
-                         org/apache/derby/loc/toolsmessages.properties,
-                         org/apache/derby/impl/jdbc/metadata.properties,
-                         org/apache/derby/impl/sql/catalog/metadata_net.properties,
-                         org/apache/derby/info/DBMS.properties"/>
+               includes="${splice.package}/loc/m?_en.properties,
+                         ${splice.package}/loc/m??_en.properties,
+                         ${splice.package}/loc/sysinfoMessages.properties,
+                         ${splice.package}/loc/toolsmessages.properties,
+                         ${splice.package}/impl/jdbc/metadata.properties,
+                         ${splice.package}/impl/sql/catalog/metadata_net.properties,
+                         ${splice.package}/info/DBMS.properties"/>
       <fileset dir="${derby.jar.dir}/lists"
                includes="META-INF/**,
-                         org/apache/derby/modules.properties"/>
+                         ${splice.package}/modules.properties"/>
     </jar>
 
   </target>
@@ -1657,35 +1147,35 @@
       <attribute name="Bundle-ManifestVersion" value="2"/>
 
       	<attribute name="Sealed" value="true"/>
-    	<section name="org/apache/derby/impl/tools/sysinfo/">
+    	<section name="${splice.package}/impl/tools/sysinfo/">
     	  <attribute name="Sealed" value="false"/>
     	</section>
-    	<section name="org/apache/derby/iapi/services/context/">
+    	<section name="${splice.package}/iapi/services/context/">
     	  <attribute name="Sealed" value="false"/>
     	</section>
-    	<section name="org/apache/derby/iapi/services/info/">
+    	<section name="${splice.package}/iapi/services/info/">
     	  <attribute name="Sealed" value="false"/>
     	</section>
-    	<section name="org/apache/derby/jdbc/">
+    	<section name="${splice.package}/jdbc/">
     	  <attribute name="Sealed" value="false"/>
     	</section>
-    	<section name="org/apache/derby/info/">
+    	<section name="${splice.package}/info/">
     	  <attribute name="Sealed" value="false"/>
     	</section>
-    	<section name="org/apache/derby/iapi/services/i18n/">
+    	<section name="${splice.package}/iapi/services/i18n/">
     	  <attribute name="Sealed" value="false"/>
     	</section>
         <!-- See DERBY-4669. -->
-        <section name="org/apache/derby/shared/common/sanity/">
+        <section name="${splice.package}/shared/common/sanity/">
           <attribute name="Sealed" value="false"/>
         </section>
-        <section name="org/apache/derby/iapi/tools/i18n/">
+        <section name="${splice.package}/iapi/tools/i18n/">
     	  <attribute name="Sealed" value="false"/>
     	</section>
-    	<section name="org/apache/derby/loc/">
+    	<section name="${splice.package}/loc/">
     	  <attribute name="Sealed" value="false"/>
     	</section>
-      	<section name="org/apache/derby/tools/">
+      	<section name="${splice.package}/tools/">
     	  <attribute name="Sealed" value="false"/>
     	</section>
     </manifest> 
@@ -1709,7 +1199,7 @@
     </delete>
 
     <echo level="info" message=" creating tools.list "/>
-    <java classname="org.apache.derbyBuild.classlister" fork="yes">
+    <java classname="com.splicemachine.derbyBuild.classlister" fork="yes">
       <jvmarg value="-Ddb2jtools=true"/>
       <jvmarg value="-Doutputfile=${derby.jar.dir}/lists/derbytools.list"/>
       <arg value="${basedir}/tools/jar/tools.properties"/>
@@ -1725,10 +1215,10 @@
       <param name="info.iname" value="Apache Derby Tools"/>
       <param name="info.ename" value="Apache Derby"/>
       <param name="info.productfile" value="derbytools.jar"/>
-      <param name="info.file" value="${out.dir}/org/apache/derby/info/tools.properties"/>
+      <param name="info.file" value="${out.dir}/${splice.package}/info/tools.properties"/>
     </antcall>
 
-    <!-- copy boilerplate common to derby jar files -->
+    <!-- copy boilerplate common to db jar files -->
     <antcall target="meta-inf-common"/>
     <antcall target="make-locale-classpath-manifest">
         <param name="manifest.file" value="${derby.jar.dir}/lists/smftools.mf"/>
@@ -1743,11 +1233,11 @@
          compress="true"
          filesonly="true">
       <fileset dir="${out.dir}"
-               includes="org/apache/derby/loc/sysinfoMessages.properties,
-                         org/apache/derby/loc/toolsmessages.properties,
-                         org/apache/derby/info/tools.properties"/>
+               includes="${splice.package}/loc/sysinfoMessages.properties,
+                         ${splice.package}/loc/toolsmessages.properties,
+                         ${splice.package}/info/tools.properties"/>
 	  <fileset dir="${derby.tools.src.dir}"
-               includes="org/apache/derby/impl/tools/planexporter/resources/*.xsl"/>
+               includes="${splice.package}/impl/tools/planexporter/resources/*.xsl"/>
       <fileset dir="${derby.jar.dir}/lists"
                includes="META-INF/**"/>
     </jar>
@@ -1765,7 +1255,7 @@
     </delete>
 
     <echo level="info" message=" creating net.list"/> 
-    <java classname="org.apache.derbyBuild.classlister" fork="yes">
+    <java classname="com.splicemachine.derbyBuild.classlister" fork="yes">
       <jvmarg value="-Ddb2jdrda=true"/>
       <jvmarg value="-Doutputfile=${derby.jar.dir}/lists/derbynet.list"/>
       <arg value="${basedir}/tools/jar/net.properties"/>
@@ -1780,26 +1270,26 @@
       <param name="info.iname" value="Apache Derby Network Server"/>
       <param name="info.ename" value="Apache Derby"/>
       <param name="info.productfile" value="derbynet.jar"/>
-      <param name="info.file" value="${out.dir}/org/apache/derby/info/net.properties"/>
+      <param name="info.file" value="${out.dir}/${splice.package}/info/net.properties"/>
     </antcall>
 
-    <!-- copy boilerplate common to derby jar files -->
+    <!-- copy boilerplate common to db jar files -->
     <antcall target="meta-inf-common"/>
 
     <manifest file="${derby.jar.dir}/lists/smfnet.mf">
-      <attribute name="Main-Class" value="org.apache.derby.drda.NetworkServerControl"/>
+      <attribute name="Main-Class" value="com.splicemachine.db.drda.NetworkServerControl"/>
       <attribute name="Class-Path" value="derby.jar"/>
       	<attribute name="Sealed" value="true"/>
-    	<section name="org/apache/derby/impl/drda/">
+    	<section name="${splice.package}/impl/drda/">
     	  <attribute name="Sealed" value="false"/>
     	</section>
-    	<section name="org/apache/derby/impl/tools/sysinfo/">
+    	<section name="${splice.package}/impl/tools/sysinfo/">
     	  <attribute name="Sealed" value="false"/>
     	</section>
-      	<section name="org/apache/derby/tools/">
+      	<section name="${splice.package}/tools/">
     	  <attribute name="Sealed" value="false"/>
     	</section>
-    	<section name="org/apache/derby/loc/">
+    	<section name="${splice.package}/loc/">
     	  <attribute name="Sealed" value="false"/>
     	</section>
     </manifest> 
@@ -1812,10 +1302,10 @@
          filesonly="true"
     	 manifest="${derby.jar.dir}/lists/smfnet.mf">
       <fileset dir="${out.dir}"
-               includes="org/apache/derby/loc/drda/**,
-                         org/apache/derby/loc/sysinfoMessages.properties,
-                         org/apache/derby/info/net.properties,
-                         org/apache/derby/drda/server.policy"/>
+               includes="${splice.package}/loc/drda/**,
+                         ${splice.package}/loc/sysinfoMessages.properties,
+                         ${splice.package}/info/net.properties,
+                         ${splice.package}/drda/server.policy"/>
       <fileset dir="${derby.jar.dir}/lists"
                includes="META-INF/**"/>
     </jar>
@@ -1836,26 +1326,26 @@
     <copy file="${basedir}/tools/jar/dnc.properties"
           tofile="${derby.jar.dir}/lists/dnc.properties"/>
 
-    <java classname="org.apache.derbyBuild.classlister" fork="yes">
+    <java classname="com.splicemachine.derbyBuild.classlister" fork="yes">
       <jvmarg value="-Doutputfile=${derby.jar.dir}/lists/dnc.list"/>
       <arg value="${derby.jar.dir}/lists/dnc.properties"/>
       <classpath>
-        <pathelement path="${out.dir}"/> 
+        <pathelement path="${out.dir}"/>
       </classpath>
     </java>
 
     <echo level="info" message=" creating new dnc.properties file "/>
 
-    <mkdir dir="${out.dir}/org/apache/derby/info/"/>
+    <mkdir dir="${out.dir}/${splice.package}/info/"/>
     <antcall target="infowriter">
       <param name="info.buildnumber" value="${changenumber}"/>
       <param name="info.iname" value="Apache Derby Network Client"/>
       <param name="info.ename" value="Apache Derby"/>
       <param name="info.productfile" value="codeline"/>
-      <param name="info.file" value="${out.dir}/org/apache/derby/info/dnc.properties"/>
+      <param name="info.file" value="${out.dir}/${splice.package}/info/dnc.properties"/>
     </antcall>
 
-    <!-- copy boilerplate common to derby jar files -->
+    <!-- copy boilerplate common to db jar files -->
     <antcall target="meta-inf-common"/>
     <antcall target="make-core-derbyjar-manifest">
       <param name="manifest.file" value="${derby.jar.dir}/lists/smfclient.mf"/>
@@ -1866,16 +1356,16 @@
     <manifest file="${derby.jar.dir}/lists/smfclient.mf"  mode="update">
       <attribute name="Bundle-SymbolicName" value="derbyclient"/>
       <attribute name="DynamicImport-Package" value="*"/>
-      <attribute name="Export-Package" value="org.apache.derby.jdbc"/> 
+      <attribute name="Export-Package" value="com.splicemachine.db.jdbc"/>
       <!-- See DERBY-4669. -->
-      <section name="org/apache/derby/shared/common/sanity/">
+      <section name="${splice.package}/shared/common/sanity/">
         <attribute name="Sealed" value="false"/>
       </section>
     </manifest> 
 
     <!-- declare the client driver for autoloading by the JDBC 4 DriverManager -->
     <antcall target="declare-autoloadable-driver">
-      <param name="driver.name" value="org.apache.derby.jdbc.ClientDriver"/>
+      <param name="driver.name" value="com.splicemachine.db.jdbc.ClientDriver"/>
     </antcall>
 
     <delete file="${derby.jar.dir}/derbyclient.jar"/>
@@ -1885,15 +1375,16 @@
          filesonly="true"
          update="true"
     	 manifest="${derby.jar.dir}/lists/smfclient.mf">
-      <fileset dir="${out.dir}"
-               includesfile="${derby.jar.dir}/lists/dnc.list"/>
-      <fileset dir="${out.dir}"
-               includes="org/apache/derby/info/dnc.properties,
-                         org/apache/derby/loc/sysinfoMessages.properties,
-                         org/apache/derby/loc/clientmessages*.properties"
-               excludes="org/apache/derby/loc/clientmessages_qq_PP_testOnly.properties"/>
-      <fileset dir="${derby.jar.dir}/lists"
-               includes="META-INF/**"/>
+
+        <fileset dir="${out.dir}" includesfile="${derby.jar.dir}/lists/dnc.list"/>
+
+        <fileset dir="${out.dir}"
+               includes="${splice.package}/info/dnc.properties,
+                         ${splice.package}/loc/sysinfoMessages.properties,
+                         ${splice.package}/loc/clientmessages*.properties"
+               excludes="${splice.package}/loc/clientmessages_qq_PP_testOnly.properties"/>
+
+        <fileset dir="${derby.jar.dir}/lists" includes="META-INF/**"/>
     </jar>
   </target>
 
@@ -1908,11 +1399,11 @@
       <fileset dir="${derby.jar.dir}/lists" includes="**/*"/>
     </delete>
 
-    <!-- copy boilerplate common to derby jar files -->
+    <!-- copy boilerplate common to db jar files -->
     <antcall target="meta-inf-common"/>
     
     <manifest file="${derby.jar.dir}/lists/smfcmd.mf">
-      <attribute name="Main-Class" value="org.apache.derby.iapi.tools.run"/>
+      <attribute name="Main-Class" value="com.splicemachine.db.iapi.tools.run"/>
       <attribute name="Class-Path" value="derby.jar derbyclient.jar derbytools.jar derbynet.jar"/>
     </manifest> 
  	
@@ -1922,20 +1413,13 @@
          update="true"
     	 manifest="${derby.jar.dir}/lists/smfcmd.mf">
       <fileset dir="${out.dir}"
-               includes="org/apache/derby/iapi/tools/run.class"/>
+               includes="${splice.package}/iapi/tools/run.class"/>
       <fileset dir="${derby.jar.dir}/lists"
                includes="META-INF/LICENSE,META-INF/NOTICE"/>
     </jar>
 
   </target>
-<!-- - - - - - - - - - - - - - derby.war target - - - - - - - - - - - -->
 
- <target name="derbywar" depends="initjars">
-
-    <echo level="info" message="Beginning derby.war  build"/>
-    <delete file="${derby.jar.dir}/derby.war"/>
-    <zip zipfile="${derby.jar.dir}/derby.war" compress="true" basedir="tools/j2ee/derby"/>
-  </target>
 
 <!-- - - - - - - - - - - - - - locale jar targets - - - - - - - - - - - -->
 
@@ -1946,7 +1430,7 @@
       <fileset dir="${derby.jar.dir}/lists" includes="**/*"/>
     </delete>
 
-    <!-- copy boilerplate common to derby jar files -->
+    <!-- copy boilerplate common to db jar files -->
     <antcall target="meta-inf-common"/>
 
     <!-- call localejar for each locale -->
@@ -2015,25 +1499,25 @@
       <param name="info.iname" value="_${locale.iname}"/>
       <param name="info.ename" value="${locale.ename}"/>
       <param name="info.productfile" value="derbyLocale_${locale.iname}.jar"/>
-      <param name="info.file" value="${out.dir}/org/apache/derby/info/locale_${locale.iname}.properties"/>
+      <param name="info.file" value="${out.dir}/${splice.package}/info/locale_${locale.iname}.properties"/>
     </antcall>   
     <jar destfile="${derby.jar.dir}/derbyLocale_${locale.iname}.jar"
          compress="true"
 	 filesonly="true">
       <fileset dir="${out.dir}"
-	       includes="org/apache/derby/info/*_${locale.iname}.properties,
-	                 org/apache/derby/loc/*_${locale.iname}.properties,
-	                 org/apache/derby/loc/drda/*_${locale.iname}.properties"/>
+	       includes="${splice.package}/info/*_${locale.iname}.properties,
+	                 ${splice.package}/loc/*_${locale.iname}.properties,
+	                 ${splice.package}/loc/drda/*_${locale.iname}.properties"/>
       <fileset dir="${derby.jar.dir}/lists"
                includes="META-INF/LICENSE,META-INF/NOTICE"/>
     </jar>
   </target>
     
-<!-- - - - - - - - - - - - derby testing jar target - - - - - - - - - - -->
+<!-- - - - - - - - - - - - db testing jar target - - - - - - - - - - -->
 
   <target name="derbytestingjar" depends="initjars,ckderbytesting" if="derbyTesting.available">
     <zip destfile="${derby.jar.dir}/derbyTesting.jar" filesonly="true" compress="true">
-      <fileset dir="${out.dir}" includes="org/apache/derbyTesting/**,SimpleApp*,org/apache/derby/impl/tools/ij/mt*.class,org/apache/derby/impl/tools/ij/SimpleCharStream.class,org/apache/derby/impl/drda/TestProto.class,org/apache/derby/impl/store/access/conglomerate/QualifierUtil.class,org/apache/derby/loc/m*_qq_PP_testOnly*,toursdb/*"/>
+      <fileset dir="${out.dir}" includes="org/apache/derbyTesting/**,SimpleApp*,org/apache/derby/impl/tools/ij/mt*.class,org/apache/derby/impl/tools/ij/SimpleCharStream.class,org/apache/derby/impl/drda/TestProto.class,org/apache/derby/impl/store/access/conglomerate/QualifierUtil.class,org/apache/derby/loc/m*_qq_PP_testOnly*"/>
     </zip>
   </target>
 
@@ -2054,158 +1538,10 @@
     <property name="sanity.name" value="insane"/>
   </target>
 
-
-   <target name="getsvnversion">
-     <exec executable="svnversion"
-           failifexecutionfails="no"
-           output="${out.base}/changenumber.properties">
-       <arg value="${basedir}"/>
-       <arg value="-n"/>
-     </exec>
-   </target>
-
   <target name="cleanjars" depends="setsanityname">
     <delete dir="${jarsdist.dir}/${sanity.name}"/>
   </target>
 
-<!-- - - - - - - - - - - -  release build helper targets  - - - - - - - - - -->
-
-   <!-- Update both subversion clients for building release distributions -->
-   <target name="updatesvnclients" depends="updatesvncode,updatesvndoc"/>
-
-   <target name="updatesvncode">
-     <exec executable="svn">
-       <arg value="update"/>
-       <arg value="${basedir}"/>
-     </exec>
-   </target>
-   <target name="updatesvndoc">
-     <exec executable="svn">
-       <arg value="update"/>
-       <arg value="${docs.root}"/>
-     </exec>
-   </target>
-
-   <!-- Verify that both the code and docs clients have no in-flight edits -->
-   <target name="checksvnclientsclean" unless="debug.release.build">
-
-      <antcall target="checksvnclean">
-         <param name="client.root" value="${docs.root}"/>
-      </antcall>
-
-      <antcall target="checksvnclean">
-         <param name="client.root" value="${basedir}"/>
-      </antcall>
-
-   </target>
-
-   <!-- Check that a subversion client has no files checked out -->
-   <target name="checksvnclean">
-     <exec executable="svn"
-           outputproperty="svnstatusoutput"
-     >
-       <arg value="status"/>
-       <arg value="${client.root}"/>
-     </exec>
-
-     <fail message="Cannot build a release. The ${client.root} subversion client is not clean: ${svnstatusoutput}">
-         <condition>
-             <not><equals arg1="${svnstatusoutput}" arg2="" trim="true"/></not>
-         </condition>
-     </fail>     
-   </target>
-
-   <!-- Checkin the generated error documentation to the docs client -->
-   <target name="copyerrordocs">
-
-     <!-- Build the SQLState tables -->
-     <antcall target="all">
-        <param name="sane" value="true"/>
-        <param name="sanity" value="true"/>
-        <param name="sanity.name" value="sane"/>
-        <param name="deprecation" value="off"/>
-     </antcall>
-
-     <property name="refdir" value="${docs.root}/src/ref"/>
-
-     <copy file="${sqlstateTables}" todir="${refdir}"/>
-
-      <antcall target="checkinfile">
-         <param name="checkinComment" value="Check in SQLState tables as part of building a release."/>
-         <param name="fileName" value="${refdir}/rrefexcept71493.dita"/>
-      </antcall>
-
-   </target>
-
-   <!-- Build the NOTICE file and check it in -->
-   <target name="buildnotice">
-
-     <property file="${properties.dir}/release.properties"/>
-     <property name="noticefile" value="${basedir}/NOTICE"/>
-
-     <!-- plug in the current copyright year -->
-     <copy overwrite="true" file="${derby.notice.src.dir}/preamble.txt" tofile="${noticefile}">
-       <filterset>
-         <filter token="COPYRIGHT_YEAR" value="${copyright.year}"/>
-       </filterset>
-     </copy>
-
-     <antcall target="appendnotice"><param name="sourcefile" value="initialgrant.txt"/></antcall>
-     <antcall target="appendnotice"><param name="sourcefile" value="nisttestgrant.txt"/></antcall>
-     <antcall target="appendnotice"><param name="sourcefile" value="jdbcstubs.txt"/></antcall>
-     <antcall target="appendnotice"><param name="sourcefile" value="felix.txt"/></antcall>
-     <antcall target="appendnotice"><param name="sourcefile" value="xalan.txt"/></antcall>
-     
-      <antcall target="checkinfile">
-         <param name="checkinComment" value="Check in NOTICE as part of building a release."/>
-         <param name="fileName" value="${noticefile}"/>
-      </antcall>
-
-   </target>
-
-   <!--
-       Append a file to the notice file
-
-       Args:
-           noticefile   Destination NOTICE file
-           sourcefile  Source file to append.
-   -->
-   <target name="appendnotice">
-     <concat destfile="${noticefile}" append="true">
-        <filelist files="${derby.notice.src.dir}/separator.txt,${derby.notice.src.dir}/${sourcefile}"/>
-     </concat>
-   </target>
-
-   <!--
-       Checkin in-flight edits. Do not checkin files if we are running in debug mode.
-
-       Args:
-           checkinComment   This is the subversion checkin comment.
-           fileName   This is the name of the file to checking (could be the root of the client).
-   -->
-   <target name="checkinfile" unless="debug.release.build">
-
-     <property name="checkinMessage" value="${release.base}/tmp.checkin.message"/>
-     <property name="fullComment" value="[RELEASE CHECKIN] ${checkinComment}"/>
-
-     <echo file="${checkinMessage}" message="${fullComment}"/>
-     <echo message="Checking in ${fileName} with this comment: ${fullComment}"/>
-
-     <exec executable="svn">
-       <arg value="commit"/>
-       <arg value="--username"/>
-       <arg value="${svn.username}"/>
-       <arg value="--password"/>
-       <arg value="${svn.password}"/>
-       <arg value="-F"/>
-       <arg value="${checkinMessage}"/>
-       <arg value="${fileName}"/>
-     </exec>
-
-     <!-- Bring the docs client up to date again -->
-     <antcall target="updatesvndoc"/>
-
-   </target>
 
    <!-- Targets used to specify the correct ant executable -->
    <target name="ant-exec-windows" unless="isUnix">
@@ -2216,37 +1552,10 @@
      <property name="ant.exec" value="ant"/>
    </target>
 
-   <!-- Build the user documentation -->
-   <target name="builduserdocs" depends="ant-exec-windows,ant-exec-unix,checkdocsroot">
-
-     <property file="${properties.dir}/release.properties"/>
-
-      <antcall target="getsvnversion"/>
-      <loadfile srcFile="${out.base}/changenumber.properties"
-               failonerror="false"
-               property="changenumber">
-        <filterchain>
-          <striplinebreaks/>
-        </filterchain>
-      </loadfile>    
-
-     <ant dir="${docs.root}" target="clobber"/>
-
-     <exec executable="${ant.exec}" dir="${docs.root}">
-       <env key="ANT_OPTS" value="-Xmx512m"/>
-       <env key="CLASSPATH" path="${docs.root}/lib/fop.jar"/>
-       <arg value="-Drelease.id.short=${eversion}"/>
-       <arg value="-Drelease.id.long=${release.id.long}"/>
-       <arg value="-Dcopyright.year=${copyright.year}"/>
-       <arg value="-Dsubversion.revision=${changenumber}"/>
-       <arg value="all"/>
-     </exec>
-
-   </target>
 
 <!-- - - - - - - - - - - - - - targets for populating META-INF  - - - - - - - - - - - -->
 
-  <!-- copy boilerplate common to derby jar files -->
+  <!-- copy boilerplate common to db jar files -->
 
   <target name="meta-inf-common">
  
@@ -2273,97 +1582,6 @@
 
   </target>
 
-
-<!-- =================================================================== -->
-<!--       IDE build targets used by the projects under tools/ide/       -->
-<!-- =================================================================== -->
-
-  <!-- Target used by NetBeans to build all code modules and all jars. -->
-  <target name="nb-buildall" depends="all,buildjarsclean"/>
-
-
-<!-- =================================================================== -->
-<!--                         Nightly build targets                       -->
-<!-- =================================================================== -->
-
-  <target name="buildworld">
-
-    <property name="proceed" value="true"/>
-
-    <!-- Build insane product jars -->
-    <antcall target="clobber"/>
-    <antcall target="insane"/>
-    <antcall target="all"/>
-    <antcall target="buildjars"/>
-
-    <!-- Build sane product jars -->
-    <antcall target="clobber"/>
-    <antcall target="sane"/>
-    <antcall target="all"/>
-    <antcall target="buildjars"/>
-
-    <!-- Build everything else -->
-    <antcall target="javadoc"/>
-
-  </target>
-
-  <!-- 
-     cibuild - target suitable for continuous integration builds.
-     Clobbers/cleans everything it can, then builds the jars
-     and the javadoc. 
-  -->
-  <target name="cibuild"
-	depends="clobber,cleanjars,cleandocs,junit-clean,gump_all"/>
-
-  <target name="gump_all" depends="all,buildjars,javadoc"/>
-
-  <target name="snapshot" depends="clobber,snapshotError,init,initjars">
-    <antcall target="insane"/>
-    <antcall target="all"/>
-    <antcall target="buildjars"/>
-    <antcall target="publishedapi"/>
-
-    <java classname="org.apache.derbyBuild.maintversion2props">
-        <classpath path="${out.dir}"/>
-        <arg value="${out.dir}/org/apache/derby/info/DBMS.properties"/>
-        <arg value="${snapshot.dir}/maintversion.properties"/>
-    </java>
-    <property file="${snapshot.dir}/maintversion.properties"/>
-    <zip destfile="${snapshot.dir}/db-derby-snapshot-${major}.${minor}.${interim}.${point}-${changenumber}.zip">
-      <zipfileset prefix="db-derby-snapshot-${major}.${minor}.${interim}.${point}-${changenumber}/lib" dir="${jarsdist.dir}/insane" includes="*.jar,*.war"/>
-      <zipfileset prefix="db-derby-snapshot-${major}.${minor}.${interim}.${point}-${changenumber}" dir="${basedir}" includes="bin/**,LICENSE,NOTICE,README,javadoc/publishedapi/**" excludes="bin/templates/**"/>
-    </zip>
-    <tar destfile="${snapshot.dir}/db-derby-snapshot-${major}.${minor}.${interim}.${point}-${changenumber}.tar.gz"
-         compression="gzip">
-      <tarfileset prefix="db-derby-snapshot-${major}.${minor}.${interim}.${point}-${changenumber}/lib" dir="${jarsdist.dir}/insane" includes="*.jar,*.war"/>
-      <tarfileset prefix="db-derby-snapshot-${major}.${minor}.${interim}.${point}-${changenumber}" dir="${basedir}" includes="bin/**,LICENSE,NOTICE,README,javadoc/publishedapi/**" excludes="bin/templates/**"/>
-    </tar>
-
-    <!-- debug archives - DERBY-178 --> 
-    <zip destfile="${snapshot.dir}/db-derby-snapshot-debug-${major}.${minor}.${interim}.${point}-${changenumber}.zip">
-      <zipfileset prefix="db-derby-snapshot-debug-${major}.${minor}.${interim}.${point}-${changenumber}/lib" dir="${jarsdist.dir}/sane" includes="*.jar,*.war"/>
-      <zipfileset prefix="db-derby-snapshot-debug-${major}.${minor}.${interim}.${point}-${changenumber}" dir="${basedir}" includes="bin/**,LICENSE,NOTICE,README,javadoc/publishedapi/**" excludes="bin/templates/**"/>
-    </zip>
-    <tar destfile="${snapshot.dir}/db-derby-snapshot-debug-${major}.${minor}.${interim}.${point}-${changenumber}.tar.gz"
-         compression="gzip">
-      <tarfileset prefix="db-derby-snapshot-debug-${major}.${minor}.${interim}.${point}-${changenumber}/lib" dir="${jarsdist.dir}/sane" includes="*.jar,*.war"/>
-      <tarfileset prefix="db-derby-snapshot-debug-${major}.${minor}.${interim}.${point}-${changenumber}" dir="${basedir}" includes="bin/**,LICENSE,NOTICE,README,javadoc/publishedapi/**" excludes="bin/templates/**"/>
-    </tar>
-
-  </target>
-
-  <target name="snapshotError" if="is.sane">
-    <echo level="error" message="Please run the snapshot using an insane build,"/>
-    <echo level="error" message="but don't forget to generate a sane build into jars/sane also."/>
-    <echo level="error" message="Either run &quot;ant -Dsane=false snapshot&quot;, or run"/>
-    <echo level="error" message="the insane target before running the snapshot target."/>
-    <echo level="error" message="For more information, see:"/>
-    <echo level="error" message="http://wiki.apache.org/db-derby/DerbySnapshotOrRelease"/>
-
-    <echo level="error" message=""/>
-    <fail message="Exiting snapshot build..."/>
-  </target>
-
 <!-- =================================================================== -->
 <!--                         Junit utility targets                       -->
 <!-- =================================================================== -->
@@ -2382,11 +1600,11 @@
     <!-- Set up the default classpath to use with JUnit tests. junit tasks
          should include the following entries in the order specified in 
          their nested classpath structure:
-                <fileset dir="${derby.junit.test.jars}" includes="*.jar"/>
-                <pathelement path="${derby.junit.classpath}"/>
+                <fileset dir="${db.junit.test.jars}" includes="*.jar"/>
+                <pathelement path="${db.junit.classpath}"/>
 
          The preferences:
-           1) User-specified derby.junit.classpath
+           1) User-specified db.junit.classpath
            2) Jars (insane preferred over sane)
            3) classes-directory
 
@@ -2397,7 +1615,7 @@
      -->
 
     <!-- See if the jars have been built
-         (skipped if derby.junit.classpath is set) -->
+         (skipped if db.junit.classpath is set) -->
     <condition property="tmp.jars" value="${jarsdist.dir}/insane">
         <and>
             <available file="${jarsdist.dir}/insane/"/>
@@ -2456,7 +1674,7 @@
    </target>
 
   <target name="junit-sysinfo" depends="junit-init">
-    <java classname="org.apache.derby.tools.sysinfo"
+    <java classname="com.splicemachine.db.tools.sysinfo"
           output="junit_${derby.junit.timestamp}/sysinfo.txt">
         <classpath path="${out.dir}"/>
     </java>
@@ -2511,8 +1729,6 @@
 <test name="org.apache.derbyTesting.functionTests.tests.derbynet._Suite"
 	todir="junit_${derby.junit.timestamp}"/>
 <test name="org.apache.derbyTesting.functionTests.tests.tools._Suite"
-  	todir="junit_${derby.junit.timestamp}"/>
-<test name="org.apache.derbyTesting.functionTests.tests.demo._Suite"
   	todir="junit_${derby.junit.timestamp}"/>
 <test name="org.apache.derbyTesting.functionTests.tests.lang._Suite"
 	todir="junit_${derby.junit.timestamp}"/>
@@ -2735,7 +1951,7 @@
   </target>  
 	
 	<!-- Run the junit-all target with the classpath set to include
-	     the main derby jar files. Requires that the caller have
+	     the main db jar files. Requires that the caller have
 	     junit.jar in CLASSPATH due to some bug in ant that is
 	     fixed in version 1.7.
 	-->
@@ -2745,7 +1961,7 @@
 	</target>
 
     <!-- Run the junit-system-mini target with the classpath set to include
-         the main derby jar files. Requires that the caller have
+         the main db jar files. Requires that the caller have
          junit.jar in CLASSPATH due to some bug in ant that is
          fixed in version 1.7.
     -->
@@ -2755,7 +1971,7 @@
     </target>	
 	
     <!-- Run the junit-single target with the classpath set to include
-         the main derby jar files. Requires that the caller have
+         the main db jar files. Requires that the caller have
          junit.jar in CLASSPATH due to some bug in ant that is
          fixed in version 1.7.
     -->
@@ -2791,7 +2007,7 @@ target, before producting code coverage reports from the testrun.
 'emma-single' will instrument your jar files using EMMA, and run the 
 'junit-single' target, before producing code coverage reports from the testrun.
 To select which test or suite to run with the 'emma-single' target you must set
-the system property derby.junit.testclass to the full classname of the suite or
+the system property db.junit.testclass to the full classname of the suite or
 test you want to run.
 
 These targets use EMMA code, and depend upon emma.jar and emma_ant.jar being 
@@ -2854,7 +2070,6 @@ you should not have to do this.
             <report verbosity="verbose" depth="method">
                 <sourcepath>
                     <pathelement path="${derby.client.src.dir}" />
-                    <pathelement path="${derby.demo.src.dir}" />
                     <pathelement path="${derby.drda.src.dir}" />
                     <pathelement path="${derby.engine.src.dir}" />
                     <pathelement path="${derby.shared.src.dir}" />
@@ -2868,411 +2083,6 @@ you should not have to do this.
                 <html outfile="junit_${derby.junit.timestamp}/coverage.html"/>
             </report>
         </emma>
-    </target>
-
-<!-- ==================================================================== -->
-<!--                         Release Candidates  -->
-<!-- ==================================================================== -->
-
-    <target
-        name="release"
-        depends="prepareforrelease"
-        description="Build the release distributions."
-    >
-      <ant antfile="${basedir}/tools/release/build.xml" target="release"/>
-
-      <!-- sign all of the artifacts -->
-      <ant antfile="${basedir}/tools/release/build.xml" target="sign"/>
-
-      <!-- remove cruft -->
-      <delete dir="${crlf.dir}"/>
-      <delete dir="${lf.dir}"/>
-      <delete file="${release.dir}/maintversion.properties"/>
-
-       <!-- the release candidate has been built. now we can bump the release id.  -->
-       <antcall target="writeAndCheckinReleaseProperties">
-          <param name="bumpID" value="true"/>
-       </antcall>
-
-    </target>
-
-    <!-- do most of the ant calls to prepare a release -->
-    <target name="prepareforrelease" depends="checkdocsroot,checksvnclientsclean,promptforreleaseproperties,checkstateremoved,checksanenotset,cleanalljars,cleandocs,clobber,cleanreleasefiles">
-
-        <!-- set the release id -->
-        <antcall target="writeAndCheckinReleaseProperties">
-           <param name="bumpID" value="false"/>
-        </antcall>
-
-        <!-- update the NOTICE file with the current copyright year and check NOTICE in -->
-        <antcall target="buildnotice"/>
-
-        <!-- copy the generated sqlstate tables to the docs client and check it in -->
-        <antcall target="copyerrordocs"/>
-
-        <!-- sync the clients to guarantee that we are up-to-date -->
-        <antcall target="updatesvnclients"/>
-
-        <antcall target="clobber"/>
-        <antcall target="all">
-           <param name="sane" value="true"/>
-           <param name="sanity" value="true"/>
-           <param name="sanity.name" value="sane"/>
-           <param name="deprecation" value="off"/>
-        </antcall>
-        <antcall target="buildjars">
-           <param name="sane" value="true"/>
-           <param name="sanity" value="true"/>
-           <param name="sanity.name" value="sane"/>
-        </antcall>
-
-        <antcall target="clobber"/>
-        <antcall target="snapshot">
-           <param name="sane" value="false"/>
-           <param name="sanity" value="false"/>
-           <param name="sanity.name" value="insane"/>
-            <param name="deprecation" value="off"/>
-        </antcall>
-
-        <antcall target="publishedapi">
-            <param name="deprecation" value="off"/>
-        </antcall>
-
-        <!-- build the docs now that the sqlstate tables are up to date -->
-        <antcall target="builduserdocs"/>
-
-        <!-- finish by removing the state.properties file, so we can do it again -->
-        <antcall target="cleanstate"/>
-    </target>
-
-    <!--
-        Prompt for release-building inputs if they were not specified in properties already
-
-        This target must be called in a dependency list rather than via antcall. That is
-        because properties set in dependent targets percolate back up to the caller.
-        Properties set in antcalled targets are wiped out when you return to the caller.
-
-        Sneaky, very, very sneaky.
-    -->
-    <target name="promptforreleaseproperties" depends="promptforsvncredentials,promptforpgpcredentials,promptforreleaseid"/>
-
-    <!-- Define the task which prompts for missing properties -->
-    <target name="defineprompt" depends="prebuild">
-
-        <taskdef
-          name="promptForProperty"
-          classname="org.apache.derbyPreBuild.PropertyPrompt"
-          classpath="${out.dir}"
-        />
-
-    </target>
-
-    <!-- Prompt for subversion credentials if they are missing -->
-    <target name="promptforsvncredentials" depends="defineprompt">
-
-        <promptForProperty
-          propertyName="svn.username"
-          prompt="Enter your Apache subversion username >  "
-        />
-
-        <promptForProperty
-          propertyName="svn.password"
-          prompt="Enter your Apache subversion password >  "
-        />
-
-    </target>
-
-    <!-- Prompt for key-signing credentials if they are missing -->
-    <target name="promptforpgpcredentials" depends="defineprompt">
-
-        <promptForProperty
-          propertyName="pgp.passphrase"
-          prompt="Enter your pgp passphrase >  "
-        />
-
-    </target>
-
-    <!-- Prompt for release id if it is missing -->
-    <target name="promptforreleaseid" depends="defineprompt">
-
-        <promptForProperty
-          propertyName="derby.release.id"
-          prompt="Enter the id of this release (e.g., 10.7.1.0) >  "
-        />
-
-    </target>
-
-    <!-- Prompt for branch id if it is missing -->
-    <target name="promptforbranch" depends="defineprompt">
-
-        <promptForProperty
-          propertyName="branch.id"
-          prompt="Enter the name of the branch (e.g., 10.7) >  "
-        />
-
-    </target>
-
-    <!-- Prompt for location of binary zip distribution if it is missing -->
-    <target name="promptforbinaryzipdist" depends="defineprompt">
-
-        <promptForProperty
-          propertyName="derby.release.binzip"
-          prompt="Enter the location of the binary zip distribution for the release (e.g., /Users/me/release/db-derby-10.7.1.0-bin.zip) >  "
-        />
-
-    </target>
-
-    <!-- Prompt for root of documentation client if it is missing -->
-    <target name="promptfordocsroot" depends="defineprompt">
-
-        <promptForProperty
-          propertyName="docs.root"
-          prompt="Enter the root of the subversion docs client (e.g., /Users/me/derby/docs/trunk) >  "
-        />
-
-    </target>
-
-    <!--
-        Prompt for whether we should continue. The user is offered a Y/N choice.
-
-        Args:
-            prompt
-    -->
-    <target name="prompttocontinue" depends="defineprompt">
-
-        <fail message="Did not expect that property prompt.to.continue would be set. Make sure that this target is only invoked via antcall and not in a dependency list.">
-            <condition>
-                <isset property="prompt.to.continue"/>             
-            </condition>
-        </fail>     
-
-        <promptForProperty
-          propertyName="prompt.to.continue"
-          prompt="${prompt}  Continue? (Y/N) >  "
-        />
-
-        <fail message="Terminating.">
-            <condition>
-              <not>
-                <equals casesensitive="false" arg1="${prompt.to.continue}" arg2="Y"/>
-              </not>
-            </condition>
-        </fail>     
-
-    </target>
-
-    <target name="checkstateremoved" depends="state.exists">
-        <fail message="Cannot build a release; please remove java/engine/state.properties by running ant cleanstate (or run ant clobber)">
-            <condition>
-                <isset property="state.prepare.available"/>             
-            </condition>
-        </fail>     
-    </target>
-
-    <target name="state.exists">
-        <!-- check if state.properties file does *not* exist without generating it  -->
-        <!-- if it exists, the sane property is already loaded, messing up the prepare process -->
-        <available file="${derby.engine.src.dir}/state.properties" property="state.prepare.available"/>
-    </target>
-
-    <target name="checkdocsroot" depends="promptfordocsroot">
-        <!-- make sure that docs.root points into a docs tree  -->
-        <fail message="Cannot build a release; docs.root does not point at your documentation client: ${docs.root}">
-            <condition>
-              <not><available file="${docs.root}/src/conrefs.dita"/></not>
-            </condition>
-        </fail>
-
-        <!-- make sure that the doc-building classes are visible to ant  -->
-        <fail message="Cannot build a release; fop.jar is not visible in the docs client.">
-            <condition>
-              <not><available file="${docs.root}/lib/fop.jar"/></not>
-            </condition>
-        </fail>     
-    </target>
-
-    <target name="checksanenotset">
-        <!-- check that sane is *not* set elsewhere, e.g. $HOME/ant.properties -->
-        <echo level="info" message="sane : ${sane}"/>
-        <fail message="Cannot build a release; please do not set sane to either true or false">
-            <condition>
-                <isset property="sane"/>             
-            </condition>
-        </fail>     
-    </target>
-
-    <target name="cleanreleasefiles">
-        <delete dir="${release.base}"/>
-    </target>
-
-    <target name="cleanalljars">
-        <delete dir="${jarsdist.dir}"/>
-    </target>
-
-    <target
-        name="createBranch"
-        depends="checkdocsroot,checksvnclientsclean"
-        description="Create a new branch (both docs and code)."
-    >
-      <antcall target="updatesvnclients"/>
-      <antcall target="getsvnversion"/>
-
-      <loadfile srcFile="${out.base}/changenumber.properties"
-               failonerror="false"
-               property="changenumber">
-        <filterchain>
-          <striplinebreaks/>
-        </filterchain>
-      </loadfile>    
-
-      <property file="${properties.dir}/release.properties"/>
-
-      <antcall target="prompttocontinue">
-         <param name="prompt" value="Creating ${eversion} branch starting at revision ${changenumber}."/>
-      </antcall>
-
-      <antcall target="branchrepository">
-         <param name="startingRevision" value="${changenumber}"/>
-         <param name="sourceURL" value="https://svn.apache.org/repos/asf/db/derby/code/trunk/"/>
-         <param name="targetURL" value="https://svn.apache.org/repos/asf/db/derby/code/branches/${eversion}/"/>
-         <param name="checkinComment" value="Created the ${eversion} code branch."/>
-      </antcall>
-
-      <antcall target="branchrepository">
-         <param name="startingRevision" value="${changenumber}"/>
-         <param name="sourceURL" value="https://svn.apache.org/repos/asf/db/derby/docs/trunk/"/>
-         <param name="targetURL" value="https://svn.apache.org/repos/asf/db/derby/docs/branches/${eversion}/"/>
-         <param name="checkinComment" value="Created the ${eversion} docs branch."/>
-      </antcall>
-
-    </target>
-
-    <!--
-        Branch one of the repositories
-
-        Args:
-            startingRevision  subversion revision number of initial set of files
-            sourceURL  points at the source (trunk) repository
-            targetURL  location of the new (branch) repository
-            checkinComment   one line description of the new branch
-    -->
-    <target name="branchrepository">
-
-      <exec executable="svn">
-        <arg value="copy"/>
-        <arg value="-r"/>
-        <arg value="${startingRevision}"/>
-        <arg value="${sourceURL}"/>
-        <arg value="${targetURL}"/>
-        <arg value="-m"/>
-        <arg value="${checkinComment}"/>
-      </exec>
-
-    </target>
-
-<!-- ==================================================================== -->
-<!--                         Release Publication  -->
-<!-- ==================================================================== -->
-
-    <!-- Repackage the docs for publication on the website -->
-    <target name="repackagedocs" depends="promptforwebsite,promptforbranch,promptforbinaryzipdist">
-
-        <fail message="Cannot repackage the docs. Cannot find ${derby.release.binzip}">
-            <condition>
-              <not>
-                <available file="${derby.release.binzip}"/>
-              </not>
-            </condition>
-        </fail>
-
-        <basename property="zipstub" file="${derby.release.binzip}" suffix=".zip"/>
-        <echo message="${zipstub}"/>
-
-        <property name="repackage.dir" value="${release.base}/repackagedocs"/>
-        <property name="unpacked.dir" value="${repackage.dir}/unpacked"/>
-        <property name="pruned.dir" value="${website.root}/build/site/docs/${branch.id}"/>
-        <property name="pruned.docs.dir" value="${pruned.dir}/docs"/>
-        <property name="pruned.publicapi.dir" value="${pruned.dir}/publishedapi"/>
-
-        <delete dir="${repackage.dir}"/>
-        <mkdir dir="${unpacked.dir}"/>
-        <mkdir dir="${pruned.dir}"/>
-        <mkdir dir="${pruned.docs.dir}"/>
-        <mkdir dir="${pruned.publicapi.dir}"/>
-
-        <unzip src="${derby.release.binzip}" dest="${unpacked.dir}"/>
-
-        <move todir="${pruned.docs.dir}"><fileset dir="${unpacked.dir}/${zipstub}/docs"/></move>
-        <move todir="${pruned.publicapi.dir}"><fileset dir="${unpacked.dir}/${zipstub}/javadoc"/></move>
-        <delete dir="${unpacked.dir}"/>
-
-        <antcall target="movepdf"><param name="userguide" value="adminguide"/></antcall>
-        <antcall target="movepdf"><param name="userguide" value="devguide"/></antcall>
-        <antcall target="movepdf"><param name="userguide" value="getstart"/></antcall>
-        <antcall target="movepdf"><param name="userguide" value="ref"/></antcall>
-        <antcall target="movepdf"><param name="userguide" value="tools"/></antcall>
-        <antcall target="movepdf"><param name="userguide" value="tuning"/></antcall>
-
-        <move todir="${pruned.dir}"><fileset dir="${pruned.docs.dir}/html"/></move>
-        <delete dir="${pruned.docs.dir}"/>
-
-        <!-- Delete the obsolete Japanese and Brazilian variants -->
-        <delete dir="${pruned.dir}/ja_JP"/>
-        <delete dir="${pruned.dir}/pt_BR"/>
-
-    </target>
-
-    <!-- Move the pdf files into the html directory so that everything is in one place -->
-    <target name="movepdf">
-        <move todir="${pruned.docs.dir}/html/${userguide}">
-          <fileset dir="${pruned.docs.dir}/pdf/${userguide}"/>
-        </move>
-        <delete dir="${pruned.docs.dir}/pdf/${userguide}"/>
-    </target>
-
-    <!-- Transform the release notes for publication on the website. This creates the download page for the release -->
-    <target name="transformrelnotes" depends="promptforreleaseid,promptforwebsite">
-
-        <property name="relnotes.target.dir" value="${website.root}/src/documentation/content/xdocs/releases" />
-
-        <fail message="Cannot transform the release notes. The web site client does not look correct.">
-            <condition>
-              <not>
-                <available file="${relnotes.target.dir}"/>
-              </not>
-            </condition>
-        </fail>
-
-        <property name="relnotes.src" value="${basedir}/RELEASE-NOTES.html" />
-
-        <taskdef
-          name="transformReleaseNotes"
-          classname="org.apache.derbyBuild.ReleaseNotesTransformer"
-          classpath="${out.dir}"
-        />
-        <transformReleaseNotes
-            inputFileName="${relnotes.src}"
-            outputFileName="${relnotes.target.dir}/release-${derby.release.id}.html"
-            cliXconfFileName="${website.root}/src/documentation/conf/cli.xconf"
-            releaseId="${derby.release.id}"
-        />
-
-        <!-- Copy the cgi script which enables mirroring for the new release -->
-        <copy
-            file="${relnotes.target.dir}/release-template.cgi"
-            tofile="${relnotes.target.dir}/release-${derby.release.id}.cgi"
-          />
-
-    </target>
-
-    <!-- Prompt for and sanity check the root of your website client -->
-    <target name="promptforwebsite" depends="defineprompt">
-
-        <promptForProperty
-          propertyName="website.root"
-          prompt="Enter the root directory of your Derby website client (e.g. /Users/me/derby/site/trunk) >  "
-        />
-
     </target>
 
 </project>

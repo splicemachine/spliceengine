@@ -44,23 +44,23 @@
 // policy files as proposed by DERBY-3547 (or a policy include mechanism).
 
 // Specific test authorizations for System Privileges
-grant principal org.apache.derby.authentication.SystemPrincipal "AUTHORIZEDSYSTEMUSER" {
-  permission org.apache.derby.security.SystemPermission "server", "shutdown";
-  permission org.apache.derby.security.DatabasePermission "directory:*", "create";
-  permission org.apache.derby.security.DatabasePermission "directory:level0/level1/-", "create";
-  permission org.apache.derby.security.DatabasePermission "directory:/*", "create";
-  permission org.apache.derby.security.DatabasePermission "directory:/level0/level1/-", "create";
+grant principal com.splicemachine.db.authentication.SystemPrincipal "AUTHORIZEDSYSTEMUSER" {
+  permission com.splicemachine.db.security.SystemPermission "server", "shutdown";
+  permission com.splicemachine.db.security.DatabasePermission "directory:*", "create";
+  permission com.splicemachine.db.security.DatabasePermission "directory:level0/level1/-", "create";
+  permission com.splicemachine.db.security.DatabasePermission "directory:/*", "create";
+  permission com.splicemachine.db.security.DatabasePermission "directory:/level0/level1/-", "create";
 };
 
 // Specific test authorizations for System Privileges
-grant principal org.apache.derby.authentication.SystemPrincipal "SUPERUSER" {
-  permission org.apache.derby.security.SystemPermission "server", "shutdown";
-  permission org.apache.derby.security.DatabasePermission "directory:<<ALL FILES>>", "create";
+grant principal com.splicemachine.db.authentication.SystemPrincipal "SUPERUSER" {
+  permission com.splicemachine.db.security.SystemPermission "server", "shutdown";
+  permission com.splicemachine.db.security.DatabasePermission "directory:<<ALL FILES>>", "create";
 };
 
 // Specific test authorizations for System Privileges
-grant principal org.apache.derby.authentication.SystemPrincipal * {
-  permission org.apache.derby.security.DatabasePermission "directory:dir", "create";
+grant principal com.splicemachine.db.authentication.SystemPrincipal * {
+  permission com.splicemachine.db.security.DatabasePermission "directory:dir", "create";
 };
 
 //

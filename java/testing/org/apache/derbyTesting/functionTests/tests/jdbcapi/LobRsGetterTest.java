@@ -86,7 +86,7 @@ public class LobRsGetterTest
      * <p>
      * For notes on behavior when invoking the various character getters on
      * binary columns, see
-     * <a href="http://db.apache.org/derby/papers/JDBCImplementation.html">
+     * <a href="http://db.apache.org/db/papers/JDBCImplementation.html">
      * JDBCImplementation.html</a>.
      */
     private static final boolean[][] COMPATIBLE_GETTERS = new boolean[][] {

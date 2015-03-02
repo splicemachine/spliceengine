@@ -258,7 +258,7 @@ insert into d4585_t4 values (7), (33), (57);
 -- The query below resulted in a NullPointerException if a certain query plan
 -- was chosen. Use an optimizer override to force that plan.
 delete from d4585_t4 where d in
-  (select id from d4585_t2 --derby-properties constraint=fk_t2
+  (select id from d4585_t2 --db-properties constraint=fk_t2
     where b in (select t1.id
                        from d4585_t1 t1, d4585_t3 t3
                        where t1.a=t3.id and t3.c=36));

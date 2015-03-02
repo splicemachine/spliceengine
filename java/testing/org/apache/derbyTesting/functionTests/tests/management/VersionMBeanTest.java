@@ -49,7 +49,7 @@ public class VersionMBeanTest extends MBeanTest {
     public static Test suite() {
         
         /* The current test fixtures of this class assume that both instances
-         * of the version MBean are accessible, i.e. both for derby.jar and
+         * of the version MBean are accessible, i.e. both for db.jar and
          * derbynet.jar. This means that it is assumed that the Network Server
          * is running and that JMX is enabled. This is being handled by the
          * super class. */
@@ -63,19 +63,19 @@ public class VersionMBeanTest extends MBeanTest {
      * textual representation includes the following key properties:</p>
      * <ul>
      *   <li>type=Version</li>
-     *   <li>jar=derby.jar</li>
+     *   <li>jar=db.jar</li>
      * </ul>
      * <p>
      * The object name may also include other key properties such as a system
      * identifier (DERBY-3466).</p>
-     * @return the object name representing the VersionMBean for the derby 
+     * @return the object name representing the VersionMBean for the db
      *         engine in this Derby system.
      * @throws MalformedObjectNameException if the object name is not valid
      */
     private ObjectName getDerbyJarObjectName() 
             throws Exception {
         
-        // get a reference to the VersionMBean instance for derby.jar
+        // get a reference to the VersionMBean instance for db.jar
         Hashtable<String, String> keyProps = new Hashtable<String, String>();
         keyProps.put("type", "Version");
         keyProps.put("jar", "derby.jar");

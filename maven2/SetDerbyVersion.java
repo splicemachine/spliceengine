@@ -195,7 +195,7 @@ public class SetDerbyVersion {
         // Extra sanity check for the sanity...
         try {
             Class.forName(
-                    "org.apache.derby.shared.common.sanity.SanityManager",
+                    "com.splicemachine.db.shared.common.sanity.SanityManager",
                     true ,cl);
             if (PREFIX == INSANE) {
                 warn("Found SanityManager in INSANE build. Aborting.");
@@ -210,12 +210,12 @@ public class SetDerbyVersion {
 
         // Fire up Derby to get the version string.
         Class driverClass =
-                Class.forName("org.apache.derby.jdbc.EmbeddedDriver", true, cl);
+                Class.forName("com.splicemachine.db.jdbc.EmbeddedDriver", true, cl);
         Driver driver = (Driver)driverClass.newInstance();
         Connection con = driver.connect(JDBC_URL, null);
         DatabaseMetaData meta = con.getMetaData();
         con.close();
-        // Delete the derby.log file.
+        // Delete the db.log file.
         new File("derby.log").delete();
 
         // I.e.: 10.6.0.0 alpha - (882129M)
@@ -302,7 +302,7 @@ public class SetDerbyVersion {
         String parent = pom.getParent();
         if (parent.contains("derbyLocale")) {
             return (replaceCount - 2);
-        // derbynet also requries two replacements (derby.jar dependency)
+        // derbynet also requries two replacements (db.jar dependency)
         } else if (parent.contains("net")) {
             return (replaceCount - 2);
         } else {
@@ -340,7 +340,7 @@ public class SetDerbyVersion {
                     line.contains("derby")) {
                 artifactIdOk = true;
             } else if (line.trim().startsWith("<groupId>") &&
-                    line.contains("org.apache.derby")) {
+                    line.contains("com.splicemachine.db")) {
                 groupIdOk = true;
             }
 

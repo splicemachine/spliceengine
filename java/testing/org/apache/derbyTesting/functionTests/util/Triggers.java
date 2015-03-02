@@ -21,10 +21,8 @@
 
 package org.apache.derbyTesting.functionTests.util;
 
-import org.apache.derby.iapi.db.*;
+import com.splicemachine.db.iapi.db.*;
 import java.sql.*;
-import java.math.BigDecimal;
-import java.math.BigInteger;
 
 /**
  * Methods for testing triggers

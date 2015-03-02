@@ -51,7 +51,7 @@
   <!-- Release and Version info -->
   <property file="${properties.dir}/release.properties"/>
 
-  <!-- derby testing specific properties files -->
+  <!-- db testing specific properties files -->
   <property file="${ant.home}/properties/derbytesting.properties"/>
   <property file="${user.home}/properties/derbytesting.properties"/>
   <property name="this.dir" value="${derby.testing.functest.dir}/tests/tools"/>
@@ -100,7 +100,7 @@
       optimize="${optimize}"
       proceed="${proceed}"
       verbose="${verbose}"
-      srcdir="${derby.testing.src.dir}"
+      srcdir="${db.testing.src.dir}"
       destdir="${out.dir}">
       <classpath>
         <pathelement path="${java15compile.classpath}"/>
@@ -123,7 +123,7 @@
       optimize="${optimize}"
       proceed="${proceed}"
       verbose="${verbose}"
-      srcdir="${derby.testing.src.dir}"
+      srcdir="${db.testing.src.dir}"
       destdir="${out.dir}">
       <classpath>
         <pathelement path="${java15compile.classpath}"/>

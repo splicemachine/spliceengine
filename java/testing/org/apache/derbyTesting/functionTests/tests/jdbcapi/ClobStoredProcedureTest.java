@@ -40,7 +40,7 @@ import org.apache.derbyTesting.junit.TestConfiguration;
  */
 public class ClobStoredProcedureTest extends BaseJDBCTestCase {
 
-    final String testStr = "I am a simple derby test case";
+    final String testStr = "I am a simple db test case";
     final long testStrLength = testStr.length();
     /**
      * Public constructor required for running test as standalone JUnit.

@@ -32,8 +32,8 @@ import org.apache.derbyTesting.junit.TestConfiguration;
 import java.io.*;
 import java.sql.*;
 
-import org.apache.derby.iapi.services.io.DerbyIOException;
-import org.apache.derby.impl.jdbc.EmbedSQLException;
+import com.splicemachine.db.iapi.services.io.DerbyIOException;
+import com.splicemachine.db.impl.jdbc.EmbedSQLException;
 
 /**
  * This class is used to test JDBC4 specific methods in the PreparedStatement(s)

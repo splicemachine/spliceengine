@@ -32,10 +32,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UTFDataFormatException;
 
-import org.apache.derby.iapi.types.CharStreamHeaderGenerator;
-import org.apache.derby.iapi.types.ClobStreamHeaderGenerator;
-import org.apache.derby.iapi.types.ReaderToUTF8Stream;
-import org.apache.derby.iapi.util.UTF8Util;
+import com.splicemachine.db.iapi.types.CharStreamHeaderGenerator;
+import com.splicemachine.db.iapi.types.ClobStreamHeaderGenerator;
+import com.splicemachine.db.iapi.types.ReaderToUTF8Stream;
+import com.splicemachine.db.iapi.util.UTF8Util;
 
 import org.apache.derbyTesting.functionTests.util.streams.CharAlphabet;
 import org.apache.derbyTesting.functionTests.util.streams.LoopingAlphabetReader;

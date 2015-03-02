@@ -680,19 +680,19 @@ public class RolesTest extends BaseJDBCTestCase
     private void testLoginWithUsernameWhichIsARole() throws SQLException {
         if (_authLevel == SQLAUTHORIZATION && isDbo()) {
             _stm.execute("CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY" +
-                         "('derby.user.soonarole', 'whatever')");
+                         "('db.user.soonarole', 'whatever')");
 
             // should work, not defined as a role yet
             openDefaultConnection("soonarole","whatever").close();
 
             // remove the user so we can create a role
             _stm.execute("CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY" +
-                         "('derby.user.soonarole', NULL)");
+                         "('db.user.soonarole', NULL)");
             _stm.execute("create role soonarole");
 
             // reintroduce the colliding user name now that we have a role
             _stm.execute("CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY" +
-                         "('derby.user.soonarole', 'whatever')");
+                         "('db.user.soonarole', 'whatever')");
 
             try {
                 // should fail now
@@ -705,7 +705,7 @@ public class RolesTest extends BaseJDBCTestCase
 
             _stm.execute("drop role soonarole");
             _stm.execute("CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY" +
-                         "('derby.user.soonarole', NULL)");
+                         "('db.user.soonarole', NULL)");
         }
     }
 

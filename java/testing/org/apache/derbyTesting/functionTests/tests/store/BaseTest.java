@@ -21,9 +21,9 @@
 
 package org.apache.derbyTesting.functionTests.tests.store;
 
-import org.apache.derby.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
-import org.apache.derby.tools.ij;
+import com.splicemachine.db.tools.ij;
 
 import java.sql.Connection;
 import java.sql.Statement;
@@ -63,7 +63,7 @@ public abstract class BaseTest
         }
         catch (SQLException sqle)
         {
-			org.apache.derby.tools.JDBCDisplayUtil.ShowSQLException(
+			com.splicemachine.db.tools.JDBCDisplayUtil.ShowSQLException(
                 System.out, sqle);
 			sqle.printStackTrace(System.out);
 		}
@@ -213,9 +213,9 @@ public abstract class BaseTest
     {
         Statement s = conn.createStatement();
         s.executeUpdate(
-            "CREATE FUNCTION D_CONGLOMID_PRINT(DBNAME VARCHAR(128), CONGLOMID INT) RETURNS VARCHAR(32000) RETURNS NULL ON NULL INPUT EXTERNAL NAME 'org.apache.derby.impl.store.raw.data.D_DiagnosticUtil.diag_conglomid' LANGUAGE JAVA PARAMETER STYLE JAVA");
+            "CREATE FUNCTION D_CONGLOMID_PRINT(DBNAME VARCHAR(128), CONGLOMID INT) RETURNS VARCHAR(32000) RETURNS NULL ON NULL INPUT EXTERNAL NAME 'com.splicemachine.db.impl.store.raw.data.D_DiagnosticUtil.diag_conglomid' LANGUAGE JAVA PARAMETER STYLE JAVA");
         s.executeUpdate(
-            "CREATE FUNCTION DIAG_CONGLOMID(DBNAME VARCHAR(128), CONGLOMID INT) RETURNS VARCHAR(32000) RETURNS NULL ON NULL INPUT EXTERNAL NAME 'org.apache.derby.impl.store.raw.data.D_DiagnosticUtil.diag_conglomid' LANGUAGE JAVA PARAMETER STYLE JAVA");
+            "CREATE FUNCTION DIAG_CONGLOMID(DBNAME VARCHAR(128), CONGLOMID INT) RETURNS VARCHAR(32000) RETURNS NULL ON NULL INPUT EXTERNAL NAME 'com.splicemachine.db.impl.store.raw.data.D_DiagnosticUtil.diag_conglomid' LANGUAGE JAVA PARAMETER STYLE JAVA");
         s.close();
         conn.commit();
 
@@ -422,7 +422,7 @@ public abstract class BaseTest
 		throws SQLException
     {
         String stmt_str = 
-            "select conglomeratename, isindex, numallocatedpages, numfreepages, numunfilledpages, pagesize, estimspacesaving from new org.apache.derby.diag.SpaceTable('" +
+            "select conglomeratename, isindex, numallocatedpages, numfreepages, numunfilledpages, pagesize, estimspacesaving from new com.splicemachine.db.diag.SpaceTable('" +
             tableName + "') t where isindex = 0";
         PreparedStatement space_stmt = conn.prepareStatement(stmt_str);
         ResultSet rs = space_stmt.executeQuery();

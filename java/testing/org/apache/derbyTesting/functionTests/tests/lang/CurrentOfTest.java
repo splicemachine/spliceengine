@@ -548,8 +548,8 @@ public class CurrentOfTest extends BaseJDBCTestCase {
         // Since these tests delete rows we add a couple more to
         // ensure any cursor we open has at least one row.
         Statement s = createStatement();
-        s.executeUpdate("insert into t values (425, 'apache db derby')");
-        s.executeUpdate("insert into t values (280, 'derby-user users')");
+        s.executeUpdate("insert into t values (425, 'apache db db')");
+        s.executeUpdate("insert into t values (280, 'db-user users')");
         s.close();
         commit();
         

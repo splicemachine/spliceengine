@@ -22,24 +22,24 @@
 package org.apache.derbyTesting.functionTests.util;
 
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.reference.SQLState;
-import org.apache.derby.iapi.services.context.ContextService;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
-import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
-import org.apache.derby.iapi.sql.depend.DependencyManager;
-import org.apache.derby.iapi.sql.dictionary.ColumnDescriptor;
-import org.apache.derby.iapi.sql.dictionary.ColumnDescriptorList;
-import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
-import org.apache.derby.iapi.sql.dictionary.DataDictionary;
-import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
-import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.store.access.ConglomerateController;
-import org.apache.derby.iapi.store.access.ScanController;
-import org.apache.derby.iapi.store.access.TransactionController;
-import org.apache.derby.iapi.types.DataTypeDescriptor;
-import org.apache.derby.iapi.types.RowLocation;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.context.ContextService;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.depend.DependencyManager;
+import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptorList;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.store.access.ConglomerateController;
+import com.splicemachine.db.iapi.store.access.ScanController;
+import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.RowLocation;
 
 /**
  * This class has methods for corrupting a database. 

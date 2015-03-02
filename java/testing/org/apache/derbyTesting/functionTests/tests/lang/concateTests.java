@@ -21,14 +21,10 @@
 
 package org.apache.derbyTesting.functionTests.tests.lang;
 
-import java.io.*;
 import java.sql.*;
-import java.util.Arrays;
 
-import org.apache.derby.tools.ij;
+import com.splicemachine.db.tools.ij;
 import org.apache.derbyTesting.functionTests.util.Formatters;
-
-import java.io.ByteArrayInputStream; 
 
 /**
   Concatenation tests for various datatypes
@@ -428,7 +424,7 @@ public class concateTests
 			s.executeUpdate("drop table ct");
 			System.out.println("Test1 finished - CHAR, VARCHAR, LONGVARCHAR and CLOB concatenation tests");
 		} catch (SQLException sqle) {
-			org.apache.derby.tools.JDBCDisplayUtil.ShowSQLException(System.out, sqle);
+			com.splicemachine.db.tools.JDBCDisplayUtil.ShowSQLException(System.out, sqle);
 			sqle.printStackTrace(System.out);
 		}
 	}
@@ -907,7 +903,7 @@ public class concateTests
 			s.executeUpdate("drop table bt");
 			System.out.println("Test2 finished - CHAR FOR BIT DATA, VARCHAR FOR BIT DATA, LONGVARCHAR FOR BIT DATA and BLOB concatenation tests");
 		} catch (SQLException sqle) {
-			org.apache.derby.tools.JDBCDisplayUtil.ShowSQLException(System.out, sqle);
+			com.splicemachine.db.tools.JDBCDisplayUtil.ShowSQLException(System.out, sqle);
 			sqle.printStackTrace(System.out);
 		}
 	}

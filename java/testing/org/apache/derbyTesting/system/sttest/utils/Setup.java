@@ -26,7 +26,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import org.apache.derby.tools.JDBCDisplayUtil;
+import com.splicemachine.db.tools.JDBCDisplayUtil;
 
 /**
  * creates database and builds single user table with indexes

@@ -21,9 +21,6 @@
 
 package org.apache.derbyTesting.functionTests.tests.store;
 import java.io.File;
-import java.io.ByteArrayInputStream;
-
-import java.math.BigDecimal;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -31,8 +28,7 @@ import java.sql.SQLException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
-import org.apache.derby.tools.ij;
-import org.apache.derby.tools.JDBCDisplayUtil;
+import com.splicemachine.db.tools.ij;
 
 /**
  * Test to make sure checkpoint or occuring as expected.
@@ -56,7 +52,7 @@ public class checkPoint
 			ij.getPropertyArg(args);
 			Connection conn = ij.startJBMS();
 
-			//open all the internal derby files involved in this test.
+			//open all the internal db files involved in this test.
 			setupAllTestFiles();
 
             Statement stmt = conn.createStatement();
@@ -98,20 +94,20 @@ public class checkPoint
 					//modify the values.
 					String value = "150001";
 					stmt.executeUpdate("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY" +
-									   "('derby.storage.logSwitchInterval', " +
+									   "('db.storage.logSwitchInterval', " +
 									   "'" + value + "'"+ ")");
 					stmt.executeUpdate("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY" +
-									   "('derby.storage.checkpointInterval', " +
+									   "('db.storage.checkpointInterval', " +
 									   "'" + value + "'" + ")");
 					rs	= 
 						stmt.executeQuery("values SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY" +
-										  "('derby.storage.checkpointInterval')");
+										  "('db.storage.checkpointInterval')");
 					while(rs.next()){
 						System.out.println("checkPointInterval:" + rs.getString(1));
 					}
 					
 					rs =stmt.executeQuery("values SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY" +
-										  "('derby.storage.logSwitchInterval')");
+										  "('db.storage.logSwitchInterval')");
 					while(rs.next()){
 						System.out.println("logSwitchInterval:" + rs.getString(1));
 					}

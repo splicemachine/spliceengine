@@ -23,8 +23,8 @@ package org.apache.derbyTesting.functionTests.tests.lang;
 
 import java.sql.*;
 
-import org.apache.derby.tools.ij;
-import org.apache.derby.iapi.reference.Limits;
+import com.splicemachine.db.tools.ij;
+import com.splicemachine.db.iapi.reference.Limits;
 import org.apache.derbyTesting.functionTests.util.Formatters;
 
 /**
@@ -193,7 +193,7 @@ public class dbManagerLimits
 
 			s.executeUpdate("drop table t1");
 		} catch (SQLException sqle) {
-			org.apache.derby.tools.JDBCDisplayUtil.ShowSQLException(System.out, sqle);
+			com.splicemachine.db.tools.JDBCDisplayUtil.ShowSQLException(System.out, sqle);
 			sqle.printStackTrace(System.out);
 		}
 	}
@@ -275,7 +275,7 @@ public class dbManagerLimits
 					dumpSQLExceptions(e);
 			}
 		} catch (SQLException sqle) {
-			org.apache.derby.tools.JDBCDisplayUtil.ShowSQLException(System.out, sqle);
+			com.splicemachine.db.tools.JDBCDisplayUtil.ShowSQLException(System.out, sqle);
 			sqle.printStackTrace(System.out);
 		}
 	}
@@ -342,7 +342,7 @@ public class dbManagerLimits
 					dumpSQLExceptions(e);
 			}
 		} catch (SQLException sqle) {
-			org.apache.derby.tools.JDBCDisplayUtil.ShowSQLException(System.out, sqle);
+			com.splicemachine.db.tools.JDBCDisplayUtil.ShowSQLException(System.out, sqle);
 			sqle.printStackTrace(System.out);
 		}
 	}
@@ -395,7 +395,7 @@ public class dbManagerLimits
 
 			s.executeUpdate("drop table t1");
 		} catch (SQLException sqle) {
-			org.apache.derby.tools.JDBCDisplayUtil.ShowSQLException(System.out, sqle);
+			com.splicemachine.db.tools.JDBCDisplayUtil.ShowSQLException(System.out, sqle);
 			sqle.printStackTrace(System.out);
 		}
 	}
@@ -451,7 +451,7 @@ public class dbManagerLimits
 
 			s.executeUpdate("drop table t1");
 		} catch (SQLException sqle) {
-			org.apache.derby.tools.JDBCDisplayUtil.ShowSQLException(System.out, sqle);
+			com.splicemachine.db.tools.JDBCDisplayUtil.ShowSQLException(System.out, sqle);
 			sqle.printStackTrace(System.out);
 		}
 	}
@@ -519,7 +519,7 @@ public class dbManagerLimits
 			s.execute("select 1 from v1 group by c1,c2");
 			s.executeUpdate("drop table t1");
 		} catch (SQLException sqle) {
-			org.apache.derby.tools.JDBCDisplayUtil.ShowSQLException(System.out, sqle);
+			com.splicemachine.db.tools.JDBCDisplayUtil.ShowSQLException(System.out, sqle);
 			sqle.printStackTrace(System.out);
 		}
 	}
@@ -566,7 +566,7 @@ public class dbManagerLimits
 					dumpSQLExceptions(e);
 			}
 		} catch (SQLException sqle) {
-			org.apache.derby.tools.JDBCDisplayUtil.ShowSQLException(System.out, sqle);
+			com.splicemachine.db.tools.JDBCDisplayUtil.ShowSQLException(System.out, sqle);
 			sqle.printStackTrace(System.out);
 		}
 	}
@@ -619,7 +619,7 @@ public class dbManagerLimits
 			s.executeUpdate("drop table t1");
 			conn.setAutoCommit(true);
 		} catch (SQLException sqle) {
-			org.apache.derby.tools.JDBCDisplayUtil.ShowSQLException(System.out, sqle);
+			com.splicemachine.db.tools.JDBCDisplayUtil.ShowSQLException(System.out, sqle);
 			sqle.printStackTrace(System.out);
 		}
 	}

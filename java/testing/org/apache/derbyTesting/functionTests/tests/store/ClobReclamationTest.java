@@ -112,7 +112,7 @@ public class ClobReclamationTest extends BaseJDBCTestCase {
         // Should not have grown.
 
         PreparedStatement ps = prepareStatement("SELECT NUMALLOCATEDPAGES FROM "
-                + " new org.apache.derby.diag.SpaceTable('SPLICE',?) t"
+                + " new com.splicemachine.db.diag.SpaceTable('SPLICE',?) t"
                 + " WHERE CONGLOMERATENAME = ?");
         ps.setString(1,table);
         ps.setString(2, table);
@@ -138,7 +138,7 @@ public class ClobReclamationTest extends BaseJDBCTestCase {
         PreparedStatement ps = 
             prepareStatement(
                   "SELECT NUMFREEPAGES FROM "
-                + " new org.apache.derby.diag.SpaceTable('SPLICE',?) t"
+                + " new com.splicemachine.db.diag.SpaceTable('SPLICE',?) t"
                 + " WHERE CONGLOMERATENAME = ?");
 
         ps.setString(1, table);

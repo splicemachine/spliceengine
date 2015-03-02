@@ -22,13 +22,12 @@
 package org.apache.derbyTesting.functionTests.tests.lang;
 
 import java.sql.Connection;
-import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.sql.SQLException;
 
-import org.apache.derby.tools.ij;
-import org.apache.derby.tools.JDBCDisplayUtil;
+import com.splicemachine.db.tools.ij;
+import com.splicemachine.db.tools.JDBCDisplayUtil;
 
 /**
  * DERBY-1327

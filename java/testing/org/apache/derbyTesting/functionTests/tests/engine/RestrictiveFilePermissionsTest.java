@@ -41,9 +41,9 @@ import java.util.HashSet;
 import javax.sql.DataSource;
 import junit.framework.Test;
 import junit.framework.TestSuite;
-import org.apache.derby.drda.NetworkServerControl;
-import org.apache.derby.iapi.services.info.JVMInfo;
-import org.apache.derby.shared.common.sanity.SanityManager;
+import com.splicemachine.db.drda.NetworkServerControl;
+import com.splicemachine.db.iapi.services.info.JVMInfo;
+import com.splicemachine.db.shared.common.sanity.SanityManager;
 import org.apache.derbyTesting.functionTests.util.SQLStateConstants;
 import org.apache.derbyTesting.junit.BaseJDBCTestCase;
 import org.apache.derbyTesting.junit.SystemPropertyTestSetup;
@@ -68,7 +68,7 @@ public class RestrictiveFilePermissionsTest extends BaseJDBCTestCase {
     final static String backupDir = "RFPT_backup";
     final static String derbyDotLog = dbName + ".log";
 
-    static String home = null; // derby.system.home
+    static String home = null; // db.system.home
 
     // Perhaps the test user is already running with umask 0077, if so we have
     // no way of discerning if Derby really does anything..
@@ -108,7 +108,7 @@ public class RestrictiveFilePermissionsTest extends BaseJDBCTestCase {
         // First collect the tests that check that, if we actually do restrict
         // permissions, the files created by Derby actually *are*
         // restricted. We test that with an embedded Derby with explicit
-        // setting of the property derby.storage.useDefaultFilePermissions.
+        // setting of the property db.storage.useDefaultFilePermissions.
         // The extra setup file is for testJarFiles.
 
         TestSuite totalSuite = new TestSuite("RestrictiveFilePermissionsTest");
@@ -212,7 +212,7 @@ public class RestrictiveFilePermissionsTest extends BaseJDBCTestCase {
 
     public void testLockFiles() throws Exception {
         File dbLck = new File(home, dbName + "/" + "db.lck");
-        File dbexLck = new File(home, dbName + "/" + "dbex.lck");
+        File dbexLck = new File(home, dbName + "/" + "db.lck");
 
         checkAccessToOwner(dbLck, POSITIVE);
 

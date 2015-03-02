@@ -90,7 +90,7 @@ public class ConnectWrongSubprotocolTest extends BaseJDBCTestCase {
         ByteArrayOutputStream baos = new ByteArrayOutputStream(10 * 1024);
         Connection conn = getConnection();
         
-        org.apache.derby.tools.ij.runScript(
+        com.splicemachine.db.tools.ij.runScript(
                 conn,
                 bais,
                 "US-ASCII",

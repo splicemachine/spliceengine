@@ -22,27 +22,20 @@
 package org.apache.derbyTesting.functionTests.tests.lang;
 
 import java.sql.SQLException;
-import java.sql.SQLWarning;
 import java.sql.Connection;
 import java.sql.Statement;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.DriverManager;
 import java.util.ArrayList;
 import junit.framework.Test;
 import junit.framework.TestSuite;
-import org.apache.derby.iapi.util.StringUtil;
-import org.apache.derby.catalog.DefaultInfo;
-import org.apache.derbyTesting.junit.BaseJDBCTestCase;
-import org.apache.derbyTesting.junit.JDBC;
-import org.apache.derbyTesting.junit.DatabasePropertyTestSetup;
+import com.splicemachine.db.catalog.DefaultInfo;
 import org.apache.derbyTesting.junit.JDBC;
 import org.apache.derbyTesting.junit.TestConfiguration;
 import org.apache.derbyTesting.junit.CleanDatabaseTestSetup;
-import org.apache.derbyTesting.junit.JDBC;
 import org.apache.derbyTesting.junit.SupportFilesSetup;
 
-import org.apache.derby.catalog.types.RoutineAliasInfo;
+import com.splicemachine.db.catalog.types.RoutineAliasInfo;
 
 /**
  * <p>

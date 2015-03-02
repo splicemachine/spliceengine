@@ -21,9 +21,9 @@
 
 package org.apache.derbyTesting.unitTests.store;
 
-import org.apache.derby.iapi.store.access.Qualifier;
+import com.splicemachine.db.iapi.store.access.Qualifier;
 
-import org.apache.derby.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
 class QualifierUtil implements Qualifier 
 {

@@ -85,7 +85,7 @@ public class TestPreStartedMasterServer extends ClientRunner
         
         Connection conn = null;
         String db = masterDatabasePath +"/"+ReplicationRun.masterDbSubPath +"/"+ replicatedDb;
-        String connectionURL = "jdbc:derby:" 
+        String connectionURL = "jdbc:derby:"
                 + "//" + masterServerHost + ":" + masterServerPort + "/"
                 + db
                 + ";startMaster=true"

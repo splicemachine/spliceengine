@@ -21,12 +21,9 @@
 
 package org.apache.derbyTesting.unitTests.util;
 
-import org.apache.derby.iapi.services.monitor.Monitor;
-import org.apache.derby.iapi.services.sanity.SanityManager;
-import org.apache.derby.iapi.services.stream.HeaderPrintWriter;
-import org.apache.derby.iapi.services.property.PropertyUtil;
-
-import org.apache.derby.iapi.services.stream.InfoStreams;
+import com.splicemachine.db.iapi.services.monitor.Monitor;
+import com.splicemachine.db.iapi.services.stream.HeaderPrintWriter;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
 
 // static methods
 // set up automatically first time it's used

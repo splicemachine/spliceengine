@@ -21,11 +21,11 @@
 
 package org.apache.derbyTesting.functionTests.tests.derbynet;
 
-import org.apache.derby.iapi.reference.Property;
-import org.apache.derby.drda.NetworkServerControl;
+import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.drda.NetworkServerControl;
 
 import org.apache.derbyTesting.functionTests.harness.jvm;
-import org.apache.derby.tools.ij;
+import com.splicemachine.db.tools.ij;
 import org.apache.derbyTesting.functionTests.util.TestUtil;
 
 import java.io.File;
@@ -34,7 +34,6 @@ import java.io.FileOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.RandomAccessFile;
 import java.io.FileReader;
@@ -47,7 +46,6 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 
 import java.util.Enumeration;
 import java.util.Properties;
@@ -92,11 +90,11 @@ public class DerbyNetAutoStart
     private static PrintStream realSystemOut;
     private static ByteArrayOutputStream serverOutputBOS = new ByteArrayOutputStream();
     private static PrintStream serverOutputOut = new PrintStream( serverOutputBOS);
-    
+
     public static void main( String[] args)
     {
         setup( args);
-        try { 
+        try {
             runAllTests();
             if( passed)
             {
@@ -120,12 +118,12 @@ public class DerbyNetAutoStart
         realSystemOut = System.out;
         try
         {
-			TestUtil.loadDriver();
+            TestUtil.loadDriver();
 
-			ij.getPropertyArg(args);
+            ij.getPropertyArg(args);
             homeDir = System.getProperty( "derby.system.home", ".");
             hostName = TestUtil.getHostName();
-            
+
             for( int i = 0; i < args.length; i++)
             {
                 if( args[i].startsWith( JUST_START_SERVER_ARG))
@@ -134,7 +132,7 @@ public class DerbyNetAutoStart
                     System.setOut( out);
                     System.setErr( out);
 
-                    Class.forName( "org.apache.derby.jdbc.EmbeddedDriver").newInstance();
+                    Class.forName( "com.splicemachine.db.jdbc.EmbeddedDriver").newInstance();
                     try
                     {
                         portNumber = Integer.parseInt( args[i].substring( JUST_START_SERVER_ARG.length()));
@@ -145,23 +143,23 @@ public class DerbyNetAutoStart
                     }
                     if( portNumber <= 0)
                         portNumber = NetworkServerControl.DEFAULT_PORTNUMBER;
-                    
+
                     NetworkServerControl server = new NetworkServerControl(InetAddress.getByName(hostName),portNumber);
                     server.start(null);
-					// Wait for server to come up 
-					for (int j = 0; j < 60; j++)
-					{
-						Thread.sleep(1000);
-						if (isServerStarted(server))
-							break;
-					}
-					// Block so other process can get connections
-					while (isServerStarted(server))
-						Thread.sleep(1000);
+                    // Wait for server to come up
+                    for (int j = 0; j < 60; j++)
+                    {
+                        Thread.sleep(1000);
+                        if (isServerStarted(server))
+                            break;
+                    }
+                    // Block so other process can get connections
+                    while (isServerStarted(server))
+                        Thread.sleep(1000);
                     System.exit(0);
                 }
             }
-            
+
             derbyPropertiesFile = new File( homeDir + File.separatorChar + "derby.properties");
 
             try
@@ -196,7 +194,7 @@ public class DerbyNetAutoStart
 
             portNumber = 31415;
             if( startTest( new String[] { Property.START_DRDA, "true",
-                                          Property.DRDA_PROP_PORTNUMBER, String.valueOf( portNumber)}))
+                    Property.DRDA_PROP_PORTNUMBER, String.valueOf( portNumber)}))
             {
                 endTest(true);
             }
@@ -209,10 +207,10 @@ public class DerbyNetAutoStart
                 try
                 {
                     drdaConn = DriverManager.getConnection( TestUtil.getJdbcUrlPrefix() + databaseName,
-                                                            authenticationProperties);
+                            authenticationProperties);
                     passed = false;
                     System.out.println( "  The network server was started though " + Property.START_DRDA
-                                        + "=false.");
+                            + "=false.");
                 }
                 catch( SQLException sqle){}
                 endTest( false);
@@ -223,13 +221,13 @@ public class DerbyNetAutoStart
                 try
                 {
                     drdaConn =
-						DriverManager.getConnection(TestUtil.getJdbcUrlPrefix()+
-													"database" + 
-													testNumber,
-													authenticationProperties);
+                            DriverManager.getConnection(TestUtil.getJdbcUrlPrefix()+
+                                            "database" +
+                                            testNumber,
+                                    authenticationProperties);
                     passed = false;
                     System.out.println( "  The network server was started though " + Property.START_DRDA
-                                        + " was not set.");
+                            + " was not set.");
                 }
                 catch( SQLException sqle){}
                 endTest( false);
@@ -261,7 +259,7 @@ public class DerbyNetAutoStart
     } // end of getPrintStream
 
     private static final String logFileProperty = "derby.stream.error.file";
-    
+
     private static void testExtantNetServer() throws Exception
     {
         RandomAccessFile logFile;
@@ -275,10 +273,10 @@ public class DerbyNetAutoStart
         if( logAppendProp == null)
             logAppendProp = baseProperties.getProperty( Property.LOG_FILE_APPEND);
         boolean appendingToLog = ( logAppendProp != null && (new Boolean( logAppendProp).booleanValue()));
-        
+
         if( ! writeDerbyProperties( new String[]{}))
             return;
-        
+
         // Start the network server in another process
         jvm jvm = null;
         try
@@ -329,8 +327,8 @@ public class DerbyNetAutoStart
         Process serverProcess = Runtime.getRuntime().exec( cmd);
         // Wait for to start
         String dbUrl = TestUtil.getJdbcUrlPrefix(hostName,
-												 Integer.parseInt(portStr)) +
-			"database1";
+                Integer.parseInt(portStr)) +
+                "database1";
         Connection drdaConn = null;
         for( int ntries = 1; ; ntries++)
         {
@@ -350,8 +348,8 @@ public class DerbyNetAutoStart
                 if( ntries > 60)
                 {
                     System.out.println( "Server start failed: " +
-										sqle.getMessage());
-					sqle.printStackTrace();
+                            sqle.getMessage());
+                    sqle.printStackTrace();
                     passed = false;
                     return;
                 }
@@ -367,15 +365,15 @@ public class DerbyNetAutoStart
                 properties = new String[] {Property.START_DRDA, "true"};
             else
                 properties = new String[] {Property.START_DRDA, "true",
-                                           Property.DRDA_PROP_PORTNUMBER, 
-										   String.valueOf( portNumber)};
+                        Property.DRDA_PROP_PORTNUMBER,
+                        String.valueOf( portNumber)};
             portNumber = -1;
             if( runTest( properties))
             {
                 checkConn( drdaConn, "network");
                 checkConn( embeddedConn, "embedded");
                 drdaConn.close();
-                    
+
                 endTest( false);
 
                 // There should be a warning in the derby.log file.
@@ -462,9 +460,9 @@ public class DerbyNetAutoStart
         try
         {
             NetworkServerControl server =
-				new NetworkServerControl(InetAddress.getByName(hostName),
-									 portNumber);
-			server.shutdown();
+                    new NetworkServerControl(InetAddress.getByName(hostName),
+                            portNumber);
+            server.shutdown();
             Thread.sleep(5000);
         }
         catch( Exception e)
@@ -475,15 +473,15 @@ public class DerbyNetAutoStart
         }
         serverProcess.destroy();
     } // end of stopServer
-        
+
     private static boolean checkLog( String logFileName, String[] expected) throws IOException
     {
         boolean allFound = true;
         boolean[] found = new boolean[ expected.length];
         FileInputStream is = new FileInputStream(logFileName);
         BufferedReader br = new BufferedReader(new InputStreamReader(is));
-        String logLine; 
-        while((logLine = br.readLine()) != null)            
+        String logLine;
+        while((logLine = br.readLine()) != null)
         {
             for( int i = 0; i < expected.length; i++)
             {
@@ -516,12 +514,12 @@ public class DerbyNetAutoStart
 
         if( !writeDerbyProperties( properties))
             return false;
-        
+
         deleteDir( homeDir + File.separatorChar + databaseName);
         try
         {
             System.setOut( serverOutputOut);
-            Class.forName("org.apache.derby.jdbc.EmbeddedDriver").newInstance();
+            Class.forName("com.splicemachine.db.jdbc.EmbeddedDriver").newInstance();
             embeddedConn = DriverManager.getConnection( "jdbc:derby:" + databaseName + ";create=true");
             System.setOut( realSystemOut);
         }
@@ -554,8 +552,8 @@ public class DerbyNetAutoStart
                 try
                 {
                     drdaConn = DriverManager.getConnection(
-														   TestUtil.getJdbcUrlPrefix(hostName,portNumber) + databaseName,
-														   authenticationProperties);
+                            TestUtil.getJdbcUrlPrefix(hostName,portNumber) + databaseName,
+                            authenticationProperties);
                     break;
                 }
                 catch( SQLException sqle)
@@ -619,7 +617,7 @@ public class DerbyNetAutoStart
         System.out.println( "Starting test case " + testNumber + ".");
         databaseName = "database" + testNumber;
     }
-        
+
     private static void endTest( boolean autoStarted)
     {
         try
@@ -679,8 +677,8 @@ public class DerbyNetAutoStart
                 }
                 catch( InterruptedException ie){};
                 drdaConn = DriverManager.getConnection(
-													   TestUtil.getJdbcUrlPrefix(hostName, portNumber) +  databaseName,
-                                                        authenticationProperties);
+                        TestUtil.getJdbcUrlPrefix(hostName, portNumber) +  databaseName,
+                        authenticationProperties);
                 passed = false;
                 System.out.println( "Was able to connect to the network server after Derby shut down.");
                 drdaConn.close();
@@ -690,14 +688,14 @@ public class DerbyNetAutoStart
         }
     } // end of endTest
 
-	private static boolean isServerStarted(NetworkServerControl server)
-	{
-		try {
-			server.ping();
-		}
-		catch (Exception e) {
-			return false;
-		}
-		return true;
-	}
+    private static boolean isServerStarted(NetworkServerControl server)
+    {
+        try {
+            server.ping();
+        }
+        catch (Exception e) {
+            return false;
+        }
+        return true;
+    }
 }

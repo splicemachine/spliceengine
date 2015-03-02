@@ -29,7 +29,7 @@ import java.security.PrivilegedAction;
 import junit.framework.Test;
 import junit.framework.TestSuite;
 
-import org.apache.derby.tools.ij;
+import com.splicemachine.db.tools.ij;
 import org.apache.derbyTesting.functionTests.util.TestNullOutputStream;
 import org.apache.derbyTesting.junit.BaseTestCase;
 import org.apache.derbyTesting.junit.SupportFilesSetup;

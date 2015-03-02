@@ -19,13 +19,11 @@
 
  */
 package org.apache.derbyTesting.functionTests.util.corruptio;
-import org.apache.derby.io.WritableStorageFactory;
-import org.apache.derby.io.StorageFile;
+import com.splicemachine.db.io.WritableStorageFactory;
+import com.splicemachine.db.io.StorageFile;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.IOException;
 import java.io.SyncFailedException;
 
 /**

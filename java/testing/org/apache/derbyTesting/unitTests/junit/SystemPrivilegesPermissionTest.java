@@ -38,12 +38,12 @@ import java.security.AccessControlException;
 import java.security.Permission;
 import javax.security.auth.Subject;
 
-import org.apache.derby.authentication.SystemPrincipal;
-import org.apache.derby.security.SystemPermission;
-import org.apache.derby.security.DatabasePermission;
+import com.splicemachine.db.authentication.SystemPrincipal;
+import com.splicemachine.db.security.SystemPermission;
+import com.splicemachine.db.security.DatabasePermission;
 
-import org.apache.derby.iapi.util.IdUtil;
-import org.apache.derby.iapi.error.StandardException;
+import com.splicemachine.db.iapi.util.IdUtil;
+import com.splicemachine.db.iapi.error.StandardException;
 
 /**
  * This class tests the basic permission classes for system privileges.

@@ -3763,7 +3763,7 @@ public final class AlterTableTest extends BaseJDBCTestCase {
         ResultSet   rs;
 
         // verify that the default page size of 4096 bytes is in effect
-        ps = conn.prepareStatement( "values syscs_util.syscs_get_database_property( 'derby.storage.pageSize' )" );
+        ps = conn.prepareStatement( "values syscs_util.syscs_get_database_property( 'db.storage.pageSize' )" );
         rs = ps.executeQuery();
         rs.next();
         assertNull( rs.getString( 1 ) );

@@ -110,7 +110,7 @@ public class ErrorStreamTest extends BaseJDBCTestCase {
     }
 
     /**
-     * Test that the error stream file (derby.log) is created at database boot
+     * Test that the error stream file (db.log) is created at database boot
      * and not deleted when the database is shut down, but can be deleted
      * afterwards.
      */
@@ -137,7 +137,7 @@ public class ErrorStreamTest extends BaseJDBCTestCase {
     }
 
     /**
-     * Test the derby.stream.error.file property.
+     * Test the db.stream.error.file property.
      */
     public void testFile() throws IOException, SQLException {
         setSystemProperty(FILE_PROP, getCanonicalPath(fileStreamFile));
@@ -154,7 +154,7 @@ public class ErrorStreamTest extends BaseJDBCTestCase {
     }
 
     /**
-     * Test the derby.stream.error.file property with wrong input.
+     * Test the db.stream.error.file property with wrong input.
      */
     public void testWrongFile() throws IOException, SQLException {
         setSystemProperty(FILE_PROP, getCanonicalPath(new File(
@@ -173,7 +173,7 @@ public class ErrorStreamTest extends BaseJDBCTestCase {
     }
 
     /**
-     * Test the derby.stream.error.method property.
+     * Test the db.stream.error.method property.
      */
     public void testMethod() throws IOException, SQLException  {
         setSystemProperty(METHOD_PROP,
@@ -192,7 +192,7 @@ public class ErrorStreamTest extends BaseJDBCTestCase {
     }
 
     /**
-     * Test the derby.stream.error.method property with wrong input.
+     * Test the db.stream.error.method property with wrong input.
      */
     public void testWrongMethod() throws IOException, SQLException {
         setSystemProperty(METHOD_PROP,
@@ -211,7 +211,7 @@ public class ErrorStreamTest extends BaseJDBCTestCase {
     }
 
     /**
-     * Test the derby.stream.error.field property.
+     * Test the db.stream.error.field property.
      */
     public void testField() throws IOException, SQLException {
         setSystemProperty(FIELD_PROP,
@@ -230,7 +230,7 @@ public class ErrorStreamTest extends BaseJDBCTestCase {
     }
 
     /**
-     * Test the derby.stream.error.field property with wrong input.
+     * Test the db.stream.error.field property with wrong input.
      */
     public void testWrongField() throws IOException, SQLException {
         setSystemProperty(FIELD_PROP,
@@ -249,8 +249,8 @@ public class ErrorStreamTest extends BaseJDBCTestCase {
     }
 
     /**
-     * Test that the derby.stream.error.file property overrides the
-     * derby.stream.error.method property.
+     * Test that the db.stream.error.file property overrides the
+     * db.stream.error.method property.
      */
     public void testFileOverMethod() throws IOException, SQLException {
         setSystemProperty(FILE_PROP, getCanonicalPath(fileStreamFile));
@@ -270,8 +270,8 @@ public class ErrorStreamTest extends BaseJDBCTestCase {
     }
 
     /**
-     * Test that the derby.stream.error.file property overrides the
-     * derby.stream.error.field property.
+     * Test that the db.stream.error.file property overrides the
+     * db.stream.error.field property.
      */
     public void testFileOverField() throws IOException, SQLException {
         setSystemProperty(FILE_PROP, getCanonicalPath(fileStreamFile));
@@ -291,8 +291,8 @@ public class ErrorStreamTest extends BaseJDBCTestCase {
     }
 
     /**
-     * Test that the derby.stream.error.file property overrides the
-     * derby.stream.error.method and the derby.stream.error.field property.
+     * Test that the db.stream.error.file property overrides the
+     * db.stream.error.method and the db.stream.error.field property.
      */
     public void testFileOverMethodAndField() throws IOException, SQLException {
         setSystemProperty(FILE_PROP, getCanonicalPath(fileStreamFile));
@@ -315,8 +315,8 @@ public class ErrorStreamTest extends BaseJDBCTestCase {
     }
 
     /**
-     * Test that the derby.stream.error.field property overrides the
-     * derby.stream.error.method property.
+     * Test that the db.stream.error.field property overrides the
+     * db.stream.error.method property.
      */
     public void testMethodOverField() throws IOException, SQLException {
 
@@ -339,7 +339,7 @@ public class ErrorStreamTest extends BaseJDBCTestCase {
     }
 
     /**
-     * Method getStream used by Derby when derby.stream.error.method
+     * Method getStream used by Derby when db.stream.error.method
      * is set.  Maps to file <database>-method-<runNo>.log
      * This method has to be static.
      */

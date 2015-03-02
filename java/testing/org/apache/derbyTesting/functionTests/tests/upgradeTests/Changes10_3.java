@@ -229,7 +229,7 @@ public class Changes10_3 extends UpgradeChange {
 
     /**
      * Simple test to ensure new import/export procedures added in 10.3 
-     * are working on hard upgrade to 10.3 from previous derby versions.
+     * are working on hard upgrade to 10.3 from previous db versions.
      */
     public void testImportExportLobsProcedures()
         throws SQLException
@@ -305,7 +305,7 @@ public class Changes10_3 extends UpgradeChange {
 
     /**
      * Ensure that the new policy-file-reloading procedure works after
-     * hard upgrade to 10.3 from previous derby versions.
+     * hard upgrade to 10.3 from previous db versions.
      */
     public void testPolicyReloadingProcedure()
         throws SQLException

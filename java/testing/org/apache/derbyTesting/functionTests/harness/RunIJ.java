@@ -42,7 +42,7 @@ public class RunIJ implements Runnable
 	    {
 		    try
 		    {
-			    org.apache.derby.tools.ij.main(ijArgs);
+			    com.splicemachine.db.tools.ij.main(ijArgs);
 		    }
 		    catch (Exception e)
 		    {

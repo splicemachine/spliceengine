@@ -1,21 +1,13 @@
 package org.apache.derbyTesting.functionTests.tests.store;
 
 import org.apache.derbyTesting.junit.BaseJDBCTestCase;
-import org.apache.derbyTesting.junit.CleanDatabaseTestSetup;
-import org.apache.derbyTesting.junit.DatabasePropertyTestSetup;
-import org.apache.derbyTesting.junit.TestConfiguration;
-
-import org.apache.derby.shared.common.sanity.SanityManager;
 
 import junit.framework.Assert;
 import junit.framework.Test;
 import junit.framework.TestSuite;
 
-import java.sql.CallableStatement;
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.Statement;
 import java.sql.SQLException;
 
 
@@ -118,7 +110,7 @@ public class StoreBaseTest extends BaseJDBCTestCase
                 "numunfilledpages, "  + 
                 "pagesize, "          + 
                 "estimspacesaving "   + 
-            "from new org.apache.derby.diag.SpaceTable('" +
+            "from new com.splicemachine.db.diag.SpaceTable('" +
                 tableName + "') t where isindex = 0";
 
         PreparedStatement space_stmt = prepareStatement(stmt_str);

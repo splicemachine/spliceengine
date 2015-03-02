@@ -23,26 +23,20 @@ package org.apache.derbyTesting.unitTests.store;
 
 import org.apache.derbyTesting.unitTests.harness.T_Fail;
 
-import org.apache.derby.iapi.store.raw.*;
+import com.splicemachine.db.iapi.store.raw.*;
 
-import org.apache.derby.iapi.services.sanity.SanityManager;
-import org.apache.derby.iapi.services.io.FormatIdUtil;
-import org.apache.derby.iapi.services.io.Formatable;
-import org.apache.derby.iapi.services.io.StoredFormatIds;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.store.raw.log.LogInstant;
-import org.apache.derby.iapi.util.ByteArray;
-import org.apache.derby.iapi.services.io.DynamicByteArrayOutputStream;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.store.raw.log.LogInstant;
+import com.splicemachine.db.iapi.util.ByteArray;
+import com.splicemachine.db.iapi.services.io.DynamicByteArrayOutputStream;
 import java.io.IOException;
-import java.io.IOException;
-import java.io.InputStream;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.io.StreamCorruptedException;
-import java.util.Vector;
-import java.io.OutputStream;
-import java.io.InputStream;
-import org.apache.derby.iapi.services.io.LimitObjectInput;
+
+import com.splicemachine.db.iapi.services.io.LimitObjectInput;
 
 //
 // Tracing can be done like so (commented out)

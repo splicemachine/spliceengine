@@ -716,7 +716,7 @@ public class NativeAuthenticationServiceTest extends GeneratedColumnsHelper
         assertResults
             (
              sysadminConn,
-             "values ( syscs_util.syscs_get_database_property( 'derby.authentication.provider' ) )",
+             "values ( syscs_util.syscs_get_database_property( 'db.authentication.provider' ) )",
              authenticationProvider,
              false
              );
@@ -726,7 +726,7 @@ public class NativeAuthenticationServiceTest extends GeneratedColumnsHelper
         assertResults
             (
              sysadminConn,
-             "values ( syscs_util.syscs_get_database_property( 'derby.database.sqlAuthorization' ) )",
+             "values ( syscs_util.syscs_get_database_property( 'db.database.sqlAuthorization' ) )",
              sqlAuthorization,
              false
              );
@@ -771,7 +771,7 @@ public class NativeAuthenticationServiceTest extends GeneratedColumnsHelper
         assertResults
             (
              secondDBConn,
-             "values ( syscs_util.syscs_get_database_property( 'derby.database.sqlAuthorization' ) )",
+             "values ( syscs_util.syscs_get_database_property( 'db.database.sqlAuthorization' ) )",
              sqlAuthorization,
              false
              );
@@ -786,7 +786,7 @@ public class NativeAuthenticationServiceTest extends GeneratedColumnsHelper
         assertResults
             (
              secondDBConn,
-             "values ( syscs_util.syscs_get_database_property( 'derby.authentication.provider' ) )",
+             "values ( syscs_util.syscs_get_database_property( 'db.authentication.provider' ) )",
              authenticationProvider,
              false
              );
@@ -819,9 +819,9 @@ public class NativeAuthenticationServiceTest extends GeneratedColumnsHelper
 
         // you can change these properties, but the change will be overridden by NATIVE authentication
         goodStatement
-            ( seventhDBOConn, "call syscs_util.syscs_set_database_property( 'derby.connection.requireAuthentication', 'false' )" );
+            ( seventhDBOConn, "call syscs_util.syscs_set_database_property( 'db.connection.requireAuthentication', 'false' )" );
         goodStatement
-            ( seventhDBOConn, "call syscs_util.syscs_set_database_property( 'derby.database.propertiesOnly', 'true' )" );
+            ( seventhDBOConn, "call syscs_util.syscs_set_database_property( 'db.database.propertiesOnly', 'true' )" );
 
         //  now bring down the database so that the new property settings take effect
         _seventhDBSetup.getTestConfiguration().shutdownDatabase();
@@ -1239,25 +1239,25 @@ public class NativeAuthenticationServiceTest extends GeneratedColumnsHelper
 
         // NATIVE authentication isn't on, so you can store oddball values for the authentication provider
         goodStatement
-            ( dboConn, "call syscs_util.syscs_set_database_property( 'derby.authentication.provider', 'com.acme.AcmeAuthenticator' )" );
+            ( dboConn, "call syscs_util.syscs_set_database_property( 'db.authentication.provider', 'com.acme.AcmeAuthenticator' )" );
 
         // can't turn on NATIVE authentication until you have stored credentials for the dbo
         expectExecutionError
             (
              dboConn, INVALID_PROVIDER_CHANGE,
-             "call syscs_util.syscs_set_database_property( 'derby.authentication.provider', 'NATIVE::LOCAL' )"
+             "call syscs_util.syscs_set_database_property( 'db.authentication.provider', 'NATIVE::LOCAL' )"
              );
  
         // NATIVE::LOCAL is the only legal value which the authentication provider property can take on disk
         expectExecutionError
             (
              dboConn, INVALID_PROVIDER_CHANGE,
-             "call syscs_util.syscs_set_database_property( 'derby.authentication.provider', 'NATIVE:db:LOCAL' )"
+             "call syscs_util.syscs_set_database_property( 'db.authentication.provider', 'NATIVE:db:LOCAL' )"
              );
         expectExecutionError
             (
              dboConn, INVALID_PROVIDER_CHANGE,
-             "call syscs_util.syscs_set_database_property( 'derby.authentication.provider', 'NATIVE:LOCAL' )"
+             "call syscs_util.syscs_set_database_property( 'db.authentication.provider', 'NATIVE:LOCAL' )"
              );
  
         // store credentials for the DBO
@@ -1285,17 +1285,17 @@ public class NativeAuthenticationServiceTest extends GeneratedColumnsHelper
         expectExecutionError
             (
              dboConn, INVALID_PROVIDER_CHANGE,
-             "call syscs_util.syscs_set_database_property( 'derby.authentication.provider', 'NATIVE::LOCAL' )"
+             "call syscs_util.syscs_set_database_property( 'db.authentication.provider', 'NATIVE::LOCAL' )"
              );
         expectExecutionError
             (
              dboConn, INVALID_PROVIDER_CHANGE,
-             "call syscs_util.syscs_set_database_property( 'derby.authentication.provider', null )"
+             "call syscs_util.syscs_set_database_property( 'db.authentication.provider', null )"
              );
         expectExecutionError
             (
              dboConn, INVALID_PROVIDER_CHANGE,
-             "call syscs_util.syscs_set_database_property( 'derby.authentication.provider', 'com.acme.AcmeAuthenticator' )"
+             "call syscs_util.syscs_set_database_property( 'db.authentication.provider', 'com.acme.AcmeAuthenticator' )"
              );
 
         // verify that the authentication provider property has the value we expect
@@ -1303,7 +1303,7 @@ public class NativeAuthenticationServiceTest extends GeneratedColumnsHelper
         assertResults
             (
              dboConn,
-             "values ( syscs_util.syscs_get_database_property( 'derby.authentication.provider' ) )",
+             "values ( syscs_util.syscs_get_database_property( 'db.authentication.provider' ) )",
              authenticationProvider,
              false
              );
@@ -1334,9 +1334,9 @@ public class NativeAuthenticationServiceTest extends GeneratedColumnsHelper
             Connection  fifteenthConn = openConnection( FIFTEENTH_DB, dbo, true, null );
         
             goodStatement
-                ( fifteenthConn, "call syscs_util.syscs_set_database_property( 'derby.connection.requireAuthentication', 'true' )" );
+                ( fifteenthConn, "call syscs_util.syscs_set_database_property( 'db.connection.requireAuthentication', 'true' )" );
             goodStatement
-                ( fifteenthConn, "call syscs_util.syscs_set_database_property( 'derby.authentication.provider', 'NATIVE' )" );
+                ( fifteenthConn, "call syscs_util.syscs_set_database_property( 'db.authentication.provider', 'NATIVE' )" );
             _fifteenthDBSetup.getTestConfiguration().shutdownDatabase();
 
             getConnection( true, true, FIFTEENTH_DB, DBO, BAD_USER_AUTHENTICATOR_CLASS );
@@ -1361,9 +1361,9 @@ public class NativeAuthenticationServiceTest extends GeneratedColumnsHelper
         // setup so that passwords are expiring after the db is rebooted.
         // shutdown the database in this test so that the new property settings take effect.
         goodStatement
-            ( dboConn, "call syscs_util.syscs_set_database_property( 'derby.authentication.native.passwordLifetimeMillis', '86400000' )" );
+            ( dboConn, "call syscs_util.syscs_set_database_property( 'db.authentication.native.passwordLifetimeMillis', '86400000' )" );
         goodStatement
-            ( dboConn, "call syscs_util.syscs_set_database_property( 'derby.authentication.native.passwordLifetimeThreshold', '2.0' )" );
+            ( dboConn, "call syscs_util.syscs_set_database_property( 'db.authentication.native.passwordLifetimeThreshold', '2.0' )" );
         _fifthDBSetup.getTestConfiguration().shutdownDatabase();
  
         // password should be expiring
@@ -1373,7 +1373,7 @@ public class NativeAuthenticationServiceTest extends GeneratedColumnsHelper
         // setup so that passwords have expired after we reboot the database.
         // shutdown the database so that the new property settings take effect.
         goodStatement
-            ( dboConn, "call syscs_util.syscs_set_database_property( 'derby.authentication.native.passwordLifetimeMillis', '1' )" );
+            ( dboConn, "call syscs_util.syscs_set_database_property( 'db.authentication.native.passwordLifetimeMillis', '1' )" );
         _fifthDBSetup.getTestConfiguration().shutdownDatabase();
 
         // the DBO's password does not expire
@@ -1385,7 +1385,7 @@ public class NativeAuthenticationServiceTest extends GeneratedColumnsHelper
         // setup so that passwords don't expire after we reboot the database.
         // shutdown the database so that the new property settings take effect.
         goodStatement
-            ( dboConn, "call syscs_util.syscs_set_database_property( 'derby.authentication.native.passwordLifetimeMillis', '0' )" );
+            ( dboConn, "call syscs_util.syscs_set_database_property( 'db.authentication.native.passwordLifetimeMillis', '0' )" );
         _fifthDBSetup.getTestConfiguration().shutdownDatabase();
 
         // passwords should NOT be expiring or expired
@@ -1396,12 +1396,12 @@ public class NativeAuthenticationServiceTest extends GeneratedColumnsHelper
         expectExecutionError
             (
              dboConn, BAD_PASSWORD_PROPERTY,
-             "call syscs_util.syscs_set_database_property( 'derby.authentication.native.passwordLifetimeMillis', 'rabbit' )"
+             "call syscs_util.syscs_set_database_property( 'db.authentication.native.passwordLifetimeMillis', 'rabbit' )"
              );
         expectExecutionError
             (
              dboConn, BAD_PASSWORD_PROPERTY,
-             "call syscs_util.syscs_set_database_property( 'derby.authentication.native.passwordLifetimeThreshold', '-1' )"
+             "call syscs_util.syscs_set_database_property( 'db.authentication.native.passwordLifetimeThreshold', '-1' )"
              );
     }
 

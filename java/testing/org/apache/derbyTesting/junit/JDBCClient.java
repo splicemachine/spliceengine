@@ -33,10 +33,10 @@ public final class JDBCClient {
      */
     public static final JDBCClient EMBEDDED_30= new JDBCClient(
             "Embedded_30", 
-            "org.apache.derby.jdbc.EmbeddedDriver", 
-            "org.apache.derby.jdbc.EmbeddedDataSource", 
-            "org.apache.derby.jdbc.EmbeddedConnectionPoolDataSource",
-            "org.apache.derby.jdbc.EmbeddedXADataSource",
+            "com.splicemachine.db.jdbc.EmbeddedDriver",
+            "com.splicemachine.db.jdbc.EmbeddedDataSource",
+            "com.splicemachine.db.jdbc.EmbeddedConnectionPoolDataSource",
+            "com.splicemachine.db.jdbc.EmbeddedXADataSource",
             "jdbc:derby:");
     
     /**
@@ -44,10 +44,10 @@ public final class JDBCClient {
      */
     static final JDBCClient EMBEDDED_40 = new JDBCClient(
             "Embedded_40", 
-            "org.apache.derby.jdbc.EmbeddedDriver", 
-            "org.apache.derby.jdbc.EmbeddedDataSource40", 
-            "org.apache.derby.jdbc.EmbeddedConnectionPoolDataSource40",
-            "org.apache.derby.jdbc.EmbeddedXADataSource40",
+            "com.splicemachine.db.jdbc.EmbeddedDriver",
+            "com.splicemachine.db.jdbc.EmbeddedDataSource40",
+            "com.splicemachine.db.jdbc.EmbeddedConnectionPoolDataSource40",
+            "com.splicemachine.db.jdbc.EmbeddedXADataSource40",
             "jdbc:derby:");
     
     /**
@@ -56,7 +56,7 @@ public final class JDBCClient {
     private static final JDBCClient EMBEDDED_169 = new JDBCClient(
             "Embedded_169", 
             null, // No driver
-            "org.apache.derby.jdbc.EmbeddedSimpleDataSource", 
+            "com.splicemachine.db.jdbc.EmbeddedSimpleDataSource",
             null, // No connection pooling
             null, // No XA
             null); // No JDBC URLs
@@ -82,24 +82,24 @@ public final class JDBCClient {
      */
     static final JDBCClient DERBYNETCLIENT= new JDBCClient(
             "DerbyNetClient",
-            "org.apache.derby.jdbc.ClientDriver",
+            "com.splicemachine.db.jdbc.ClientDriver",
             JDBC.vmSupportsJDBC4() ?
-            "org.apache.derby.jdbc.ClientDataSource40" :
-            "org.apache.derby.jdbc.ClientDataSource",
+            "com.splicemachine.db.jdbc.ClientDataSource40" :
+            "com.splicemachine.db.jdbc.ClientDataSource",
             JDBC.vmSupportsJDBC4() ?
-            "org.apache.derby.jdbc.ClientConnectionPoolDataSource40" :
-            "org.apache.derby.jdbc.ClientConnectionPoolDataSource",
+            "com.splicemachine.db.jdbc.ClientConnectionPoolDataSource40" :
+            "com.splicemachine.db.jdbc.ClientConnectionPoolDataSource",
             JDBC.vmSupportsJDBC4() ?
-            "org.apache.derby.jdbc.ClientXADataSource40" :
-            "org.apache.derby.jdbc.ClientXADataSource",
+            "com.splicemachine.db.jdbc.ClientXADataSource40" :
+            "com.splicemachine.db.jdbc.ClientXADataSource",
             "jdbc:derby://");
     
     static final JDBCClient DERBYNETCLIENT_30 = new JDBCClient(
             "DerbyNetClient",
-            "org.apache.derby.jdbc.ClientDriver",
-            "org.apache.derby.jdbc.ClientDataSource",
-            "org.apache.derby.jdbc.ClientConnectionPoolDataSource",
-            "org.apache.derby.jdbc.ClientXADataSource",
+            "com.splicemachine.db.jdbc.ClientDriver",
+            "com.splicemachine.db.jdbc.ClientDataSource",
+            "com.splicemachine.db.jdbc.ClientConnectionPoolDataSource",
+            "com.splicemachine.db.jdbc.ClientXADataSource",
             "jdbc:derby://");
 
     /**

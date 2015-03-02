@@ -26,15 +26,11 @@ import java.io.*;
 import java.sql.*;
 import java.text.NumberFormat;
 import java.util.Arrays;
-import java.util.ArrayList;
 
-import org.apache.derby.shared.common.reference.JDBC40Translation;
+import com.splicemachine.db.shared.common.reference.JDBC40Translation;
 import org.apache.derbyTesting.junit.BaseJDBCTestCase;
-import org.apache.derbyTesting.junit.CleanDatabaseTestSetup;
-import org.apache.derbyTesting.junit.DatabasePropertyTestSetup;
 import org.apache.derbyTesting.junit.Decorator;
 import org.apache.derbyTesting.junit.JDBC;
-import org.apache.derbyTesting.junit.TestConfiguration;
 import junit.framework.Test;
 import junit.framework.TestSuite;
 
@@ -2526,7 +2522,7 @@ public class TableFunctionTest extends BaseJDBCTestCase
     public  static  void    prettyPrint( Connection conn, ResultSet rs )
         throws SQLException
     {
-        org.apache.derby.tools.JDBCDisplayUtil.DisplayResults
+        com.splicemachine.db.tools.JDBCDisplayUtil.DisplayResults
             ( System.out, rs, conn );
     }
 

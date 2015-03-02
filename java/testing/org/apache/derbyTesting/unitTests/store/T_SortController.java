@@ -25,31 +25,29 @@ package org.apache.derbyTesting.unitTests.store;
 import org.apache.derbyTesting.unitTests.harness.T_Generic;
 import org.apache.derbyTesting.unitTests.harness.T_Fail;
 
-import org.apache.derby.iapi.store.access.*;
+import com.splicemachine.db.iapi.store.access.*;
 
-import org.apache.derby.iapi.services.context.ContextService;
+import com.splicemachine.db.iapi.services.context.ContextService;
 
-import org.apache.derby.iapi.services.monitor.Monitor;
-import org.apache.derby.iapi.services.io.Storable;
+import com.splicemachine.db.iapi.services.monitor.Monitor;
 
-import org.apache.derby.iapi.error.StandardException;
+import com.splicemachine.db.iapi.error.StandardException;
 
-import org.apache.derby.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
-import org.apache.derby.iapi.reference.Property;
+import com.splicemachine.db.iapi.reference.Property;
 
-import org.apache.derby.iapi.services.i18n.MessageService;
+import com.splicemachine.db.iapi.services.i18n.MessageService;
 
-import org.apache.derby.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.reference.SQLState;
 
-import org.apache.derby.iapi.types.SQLInteger;
+import com.splicemachine.db.iapi.types.SQLInteger;
 
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.Properties;
 import java.util.Vector;
 import java.util.StringTokenizer;
-import java.io.File;
 
 /**
 

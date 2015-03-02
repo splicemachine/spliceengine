@@ -22,10 +22,9 @@
 package org.apache.derbyTesting.functionTests.tests.store;
 import java.sql.Connection;
 import java.sql.Statement;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import org.apache.derby.tools.ij;
+import com.splicemachine.db.tools.ij;
 import org.apache.derbyTesting.functionTests.util.TestUtil;
 
 /*
@@ -126,7 +125,7 @@ public class OnlineBackupTest3 {
      */
     static private void dumpSQLException(SQLException sqle) {
 
-        org.apache.derby.tools.JDBCDisplayUtil.ShowSQLException(System.out, sqle);
+        com.splicemachine.db.tools.JDBCDisplayUtil.ShowSQLException(System.out, sqle);
         sqle.printStackTrace(System.out);
     }
 
@@ -166,7 +165,7 @@ public class OnlineBackupTest3 {
             "call SYSCS_UTIL.SYSCS_BACKUP_DATABASE_NOWAIT('extinout/mybackup')");
         } catch (SQLException sqle) {
             //above statement should have failed. 
-            org.apache.derby.tools.JDBCDisplayUtil.ShowSQLException(System.out, sqle);
+            com.splicemachine.db.tools.JDBCDisplayUtil.ShowSQLException(System.out, sqle);
         }
 
         // invoke backup in another thread, it should block for the above install jar 
@@ -197,7 +196,7 @@ public class OnlineBackupTest3 {
         
         // set the database class with both the jars  installed above.
         conn1_stmt.execute("CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY( " + 
-                           "'derby.database.classpath', " + 
+                           "'db.database.classpath', " +
                            "'SPLICE.math_routines') " ) ;
 
         //commit the transaction with jar opearation that is blocking the backup.
@@ -263,7 +262,7 @@ public class OnlineBackupTest3 {
 
         // set the database class with both the jars  installed above.
         conn1_stmt.execute("CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY( " + 
-                           "'derby.database.classpath', " + 
+                           "'db.database.classpath', " +
                            "'SPLICE.customer_app:SPLICE.math_routines') " ) ;
         
         conn1.commit();
@@ -300,7 +299,7 @@ public class OnlineBackupTest3 {
         try {
             // set the database class with both the jars  installed above.
             stmt.execute("CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY( " + 
-                           "'derby.database.classpath', " + 
+                           "'db.database.classpath', " +
                            "'SPLICE.customer_app:SPLICE.math_routines') " ) ;
             stmt.execute("call addCustomer(3 , 'John')"); 
         }catch(SQLException se) {
@@ -340,7 +339,7 @@ public class OnlineBackupTest3 {
         // remove both the jars from the class path , 
         // so that we can remove them from the database. 
         conn1_stmt.execute("CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY( " + 
-                        "'derby.database.classpath', '')") ;
+                        "'db.database.classpath', '')") ;
         conn1.commit();
 
         conn1_stmt.execute(
@@ -357,7 +356,7 @@ public class OnlineBackupTest3 {
             "call SYSCS_UTIL.SYSCS_BACKUP_DATABASE_NOWAIT('extinout/mybackup')");
         } catch (SQLException sqle) {
             //above statement should have failed. 
-            org.apache.derby.tools.JDBCDisplayUtil.ShowSQLException(System.out, sqle);
+            com.splicemachine.db.tools.JDBCDisplayUtil.ShowSQLException(System.out, sqle);
         }
 
 
@@ -481,11 +480,11 @@ public class OnlineBackupTest3 {
             // set the database class path with the jar removed above, 
             // it should fail.
             stmt.execute("CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY( " + 
-                           "'derby.database.classpath', " + 
+                           "'db.database.classpath', " +
                            "'SPLICE.math_routines') " ) ;
         }catch (SQLException sqle) {
             //above statement should have failed. 
-            org.apache.derby.tools.JDBCDisplayUtil.ShowSQLException(System.out, sqle);
+            com.splicemachine.db.tools.JDBCDisplayUtil.ShowSQLException(System.out, sqle);
         }
         
 
@@ -522,7 +521,7 @@ public class OnlineBackupTest3 {
                 // before the backup went into wait state.
                 conn.commit();
             } catch (SQLException sqle) {
-                org.apache.derby.tools.JDBCDisplayUtil.ShowSQLException(System.out, sqle);
+                com.splicemachine.db.tools.JDBCDisplayUtil.ShowSQLException(System.out, sqle);
                 sqle.printStackTrace(System.out);
             }
             aStatement = null;

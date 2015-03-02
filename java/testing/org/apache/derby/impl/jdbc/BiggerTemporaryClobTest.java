@@ -22,6 +22,8 @@
  */
 package org.apache.derby.impl.jdbc;
 
+import com.splicemachine.db.impl.jdbc.EmbedStatement;
+import com.splicemachine.db.impl.jdbc.TemporaryClob;
 import org.apache.derbyTesting.functionTests.util.streams.CharAlphabet;
 import org.apache.derbyTesting.functionTests.util.streams.LoopingAlphabetReader;
 

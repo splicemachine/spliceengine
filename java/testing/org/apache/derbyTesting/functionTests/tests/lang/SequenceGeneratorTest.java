@@ -21,32 +21,24 @@
 
 package org.apache.derbyTesting.functionTests.tests.lang;
 
-import java.math.BigDecimal;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Method;
 import java.sql.Connection;
-import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.Timestamp;
 
 import junit.framework.Test;
 import junit.framework.TestSuite;
 
-import org.apache.derby.iapi.types.RowLocation;
-import org.apache.derbyTesting.junit.BaseJDBCTestCase;
+import com.splicemachine.db.iapi.types.RowLocation;
 import org.apache.derbyTesting.junit.TestConfiguration;
 import org.apache.derbyTesting.junit.DatabasePropertyTestSetup;
 import org.apache.derbyTesting.junit.CleanDatabaseTestSetup;
-import org.apache.derbyTesting.junit.JDBC;
 
-import org.apache.derby.impl.sql.catalog.SequenceGenerator;
-import org.apache.derby.impl.sql.catalog.SequenceRange;
-import org.apache.derby.impl.sql.catalog.SequenceUpdater;
-import org.apache.derby.catalog.SequencePreallocator;
-import org.apache.derby.iapi.types.SQLLongint;
-import org.apache.derby.iapi.store.access.TransactionController;
+import com.splicemachine.db.impl.sql.catalog.SequenceGenerator;
+import com.splicemachine.db.impl.sql.catalog.SequenceRange;
+import com.splicemachine.db.impl.sql.catalog.SequenceUpdater;
+import com.splicemachine.db.catalog.SequencePreallocator;
+import com.splicemachine.db.iapi.types.SQLLongint;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 
 /**
  * <p>
@@ -570,7 +562,7 @@ public class SequenceGeneratorTest  extends GeneratedColumnsHelper
         goodStatement
             (
              conn,
-             "call syscs_util.syscs_set_database_property( 'derby.language.sequence.preallocator', '" + className + "')"
+             "call syscs_util.syscs_set_database_property( 'db.language.sequence.preallocator', '" + className + "')"
              );
         expectExecutionError( conn, MISSING_ALLOCATOR, "values ( next value for seq_08 )" );
 
@@ -578,7 +570,7 @@ public class SequenceGeneratorTest  extends GeneratedColumnsHelper
         goodStatement
             (
              conn,
-             "call syscs_util.syscs_set_database_property( 'derby.language.sequence.preallocator', '" + className + "')"
+             "call syscs_util.syscs_set_database_property( 'db.language.sequence.preallocator', '" + className + "')"
              );
         expectExecutionError( conn, MISSING_ALLOCATOR, "values ( next value for seq_08 )" );
 
@@ -586,14 +578,14 @@ public class SequenceGeneratorTest  extends GeneratedColumnsHelper
         goodStatement
             (
              conn,
-             "call syscs_util.syscs_set_database_property( 'derby.language.sequence.preallocator', '" + className + "')"
+             "call syscs_util.syscs_set_database_property( 'db.language.sequence.preallocator', '" + className + "')"
              );
         vetBumping( conn, TEST_DBO, "SEQ_08", Integer.MIN_VALUE, Integer.MIN_VALUE + TWEAKED_ALLOCATION_COUNT );
 
         goodStatement
             (
              conn,
-             "call syscs_util.syscs_set_database_property( 'derby.language.sequence.preallocator', null )"
+             "call syscs_util.syscs_set_database_property( 'db.language.sequence.preallocator', null )"
              );
     }
         
@@ -612,7 +604,7 @@ public class SequenceGeneratorTest  extends GeneratedColumnsHelper
         goodStatement
             (
              conn,
-             "call syscs_util.syscs_set_database_property( 'derby.language.sequence.preallocator', '" + number + "')"
+             "call syscs_util.syscs_set_database_property( 'db.language.sequence.preallocator', '" + number + "')"
              );
         vetBumping( conn, TEST_DBO, "SEQ_09_01", Integer.MIN_VALUE, Integer.MIN_VALUE + number );
 
@@ -622,7 +614,7 @@ public class SequenceGeneratorTest  extends GeneratedColumnsHelper
         goodStatement
             (
              conn,
-             "call syscs_util.syscs_set_database_property( 'derby.language.sequence.preallocator', '" + number + "')"
+             "call syscs_util.syscs_set_database_property( 'db.language.sequence.preallocator', '" + number + "')"
              );
         vetBumping( conn, TEST_DBO, "SEQ_09_02", Integer.MIN_VALUE, Integer.MIN_VALUE + ALLOCATION_COUNT );
 
@@ -632,7 +624,7 @@ public class SequenceGeneratorTest  extends GeneratedColumnsHelper
         goodStatement
             (
              conn,
-             "call syscs_util.syscs_set_database_property( 'derby.language.sequence.preallocator', '" + number + "')"
+             "call syscs_util.syscs_set_database_property( 'db.language.sequence.preallocator', '" + number + "')"
              );
         expectExecutionError( conn, MISSING_ALLOCATOR, "values ( next value for seq_09_03 )" );
 
@@ -642,7 +634,7 @@ public class SequenceGeneratorTest  extends GeneratedColumnsHelper
         goodStatement
             (
              conn,
-             "call syscs_util.syscs_set_database_property( 'derby.language.sequence.preallocator', '" + number + "')"
+             "call syscs_util.syscs_set_database_property( 'db.language.sequence.preallocator', '" + number + "')"
              );
         expectExecutionError( conn, MISSING_ALLOCATOR, "values ( next value for seq_09_04 )" );
         
@@ -652,14 +644,14 @@ public class SequenceGeneratorTest  extends GeneratedColumnsHelper
         goodStatement
             (
              conn,
-             "call syscs_util.syscs_set_database_property( 'derby.language.sequence.preallocator', '" + number + "')"
+             "call syscs_util.syscs_set_database_property( 'db.language.sequence.preallocator', '" + number + "')"
              );
         vetBumping( conn, TEST_DBO, "SEQ_09_05", Short.MIN_VALUE, Short.MIN_VALUE + 1 );
 
         goodStatement
             (
              conn,
-             "call syscs_util.syscs_set_database_property( 'derby.language.sequence.preallocator', null )"
+             "call syscs_util.syscs_set_database_property( 'db.language.sequence.preallocator', null )"
              );
     }
     

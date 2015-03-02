@@ -45,7 +45,7 @@ public class StartupNewDBTest extends BaseJDBCTestCase {
             "All measurements are in milliseconds.");
         
         // Load the driver
-        Class driver = Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
+        Class driver = Class.forName("com.splicemachine.db.jdbc.EmbeddedDriver");
         long currentTime = System.currentTimeMillis();
         System.out.println("Loading driver:  " + (currentTime - startTime));
         

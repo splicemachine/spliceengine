@@ -26,9 +26,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.io.PrintStream;
-import java.io.UnsupportedEncodingException;
 import java.security.AccessController;
 import java.util.Locale;
 
@@ -96,10 +94,10 @@ public class SysinfoCPCheckTest extends BaseJDBCTestCase {
                 {
                         "a",
                         "0",
-                        "USAGE: java org.apache.derby.tools.sysinfo -cp ["
+                        "USAGE: java com.splicemachine.db.tools.sysinfo -cp ["
                                 + " [ embedded ][ server ][ client] [ tools ]"
                                 + " [ anyClass.class ] ]", null },
-                {"embedded", "6", Success, "derby.jar"}, 
+                {"embedded", "6", Success, "derby.jar"},
                 {"server", "10", Success, "derbynet.jar"},
                 {"tools", "6", Success, "derbytools.jar"},
                 {"client", "6", Success, "derbyclient.jar"},
@@ -127,9 +125,9 @@ public class SysinfoCPCheckTest extends BaseJDBCTestCase {
 
             // First command has only 1 arg, prevent NPE with if/else block 
             if (tstargs[tst][0] == null)
-                org.apache.derby.tools.sysinfo.main(new String[] {"-cp"} );
+                com.splicemachine.db.tools.sysinfo.main(new String[] {"-cp"} );
             else
-                org.apache.derby.tools.sysinfo.main(
+                com.splicemachine.db.tools.sysinfo.main(
                     new String[] {"-cp", tstargs[tst][0]} );
 
             setSystemOut(out);

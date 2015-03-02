@@ -21,13 +21,10 @@
 
 package org.apache.derbyTesting.functionTests.util;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.store.access.FileResource;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;

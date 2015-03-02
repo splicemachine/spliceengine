@@ -285,8 +285,8 @@ public final class SecurityManagerSetup extends TestSetup {
 	 * Looks for three items:
 	 * 
 	 * Location of derbyTesting.jar via this class
-	 * Location of derby.jar via org.apache.derby.jdbc.EmbeddedSimpleDataSource
-	 * Location of derbyclient.jar via org.apache.derby.jdbc.ClientDataSource
+	 * Location of db.jar via com.splicemachine.db.jdbc.EmbeddedSimpleDataSource
+	 * Location of derbyclient.jar via com.splicemachine.db.jdbc.ClientDataSource
 	 * 
 	 * Two options are supported, either all are in jar files or
 	 * all are on the classpath. Properties are set as follows:
@@ -298,11 +298,11 @@ public final class SecurityManagerSetup extends TestSetup {
      * <BR>
      * derbyTesting.ppcodeclasses set to URL of the 'classes.pptesting' folder
      * if it exists on the classpath. The existence of the package private tests
-     * is determined via org.apache.derby.PackagePrivateTestSuite
+     * is determined via com.splicemachine.db.PackagePrivateTestSuite
 	 * <P>
 	 * Jar files:
 	 * <BR>
-	 * derbyTesting.codejar - URL of derby.jar,
+	 * derbyTesting.codejar - URL of db.jar,
 	 * derbynet.jar and derbytools.jar, all assumed to be in the
 	 * same location.
 	 * <BR>
@@ -355,7 +355,7 @@ public final class SecurityManagerSetup extends TestSetup {
         // Only try to load PackagePrivateTestSuite if the running JVM is
         // Java 1.5 or newer (class version 49 = Java 1.5).
         if (BaseTestCase.getClassVersionMajor() >= 49) {
-            ppTesting = getURL("org.apache.derby.PackagePrivateTestSuite");
+            ppTesting = getURL("com.splicemachine.db.PackagePrivateTestSuite");
         }
 		boolean isClasspath = testing.toExternalForm().endsWith("/");
 		if (isClasspath) {
@@ -378,7 +378,7 @@ public final class SecurityManagerSetup extends TestSetup {
         }
         isJars = true;
 		
-		URL derby = getURL("org.apache.derby.jdbc.EmbeddedSimpleDataSource");
+		URL derby = getURL("com.splicemachine.db.jdbc.EmbeddedSimpleDataSource");
         if (derby != null)
 		    classPathSet.setProperty("derbyTesting.codejar", stripJar(derby));
 
@@ -386,7 +386,7 @@ public final class SecurityManagerSetup extends TestSetup {
 		// JSR169, attempts will be made to load classes not supported in
 		// that environment, such as javax.naming.Referenceable. See DERBY-2269.
 		if (!JDBC.vmSupportsJSR169()) {
-		    URL client = getURL("org.apache.derby.jdbc.ClientDataSource");
+		    URL client = getURL("com.splicemachine.db.jdbc.ClientDataSource");
 		    if(client != null)
 		        classPathSet.setProperty("derbyTesting.clientjar", stripJar(client));
 		}

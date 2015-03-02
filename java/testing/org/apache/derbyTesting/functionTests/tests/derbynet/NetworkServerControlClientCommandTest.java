@@ -48,7 +48,7 @@ public class NetworkServerControlClientCommandTest extends BaseJDBCTestCase {
         }        
         
         String[] pingWithoutArgsCmd = new String[] {
-                "org.apache.derby.drda.NetworkServerControl", "ping" };
+                "com.splicemachine.db.drda.NetworkServerControl", "ping" };
         
         pingWithoutArgsCmd = decorateCmdWithEnglishLocale(pingWithoutArgsCmd); 
         
@@ -84,7 +84,7 @@ public class NetworkServerControlClientCommandTest extends BaseJDBCTestCase {
         
         String currentHost = TestConfiguration.getCurrent().getHostName();
         String[] pingWithoutArgsCmd = new String[] {
-                "org.apache.derby.drda.NetworkServerControl", "ping", "-h", currentHost};
+                "com.splicemachine.db.drda.NetworkServerControl", "ping", "-h", currentHost};
                 
         pingWithoutArgsCmd = decorateCmdWithEnglishLocale(pingWithoutArgsCmd);
                 
@@ -95,7 +95,7 @@ public class NetworkServerControlClientCommandTest extends BaseJDBCTestCase {
         String currentPort = Integer.toString(TestConfiguration.getCurrent().getPort());
         String currentHost = TestConfiguration.getCurrent().getHostName();
         String[] pingWithoutArgsCmd = new String[] {
-                "org.apache.derby.drda.NetworkServerControl", "ping", "-h",
+                "com.splicemachine.db.drda.NetworkServerControl", "ping", "-h",
                 currentHost, "-p", currentPort};
         
         pingWithoutArgsCmd = decorateCmdWithEnglishLocale(pingWithoutArgsCmd);
@@ -105,7 +105,7 @@ public class NetworkServerControlClientCommandTest extends BaseJDBCTestCase {
     
     public void testPingWithWrongHost() throws InterruptedException, IOException {
         String[] pingWithoutArgsCmd = new String[] {
-                "org.apache.derby.drda.NetworkServerControl", "ping", "-h", "nothere"};
+                "com.splicemachine.db.drda.NetworkServerControl", "ping", "-h", "nothere"};
                 
         pingWithoutArgsCmd = decorateCmdWithEnglishLocale(pingWithoutArgsCmd);
                 
@@ -117,7 +117,7 @@ public class NetworkServerControlClientCommandTest extends BaseJDBCTestCase {
         String bogusPort = Integer.toString(
                 TestConfiguration.getCurrent().getBogusPort());
         String[] pingWithoutArgsCmd = new String[] {
-                "org.apache.derby.drda.NetworkServerControl",
+                "com.splicemachine.db.drda.NetworkServerControl",
                 "ping", "-h", currentHost, "-p", bogusPort};
                 
         pingWithoutArgsCmd = decorateCmdWithEnglishLocale(pingWithoutArgsCmd);

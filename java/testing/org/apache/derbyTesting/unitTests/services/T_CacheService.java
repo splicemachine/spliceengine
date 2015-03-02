@@ -21,16 +21,17 @@
 
 package org.apache.derbyTesting.unitTests.services;
 
+import com.splicemachine.db.iapi.reference.Module;
 import org.apache.derbyTesting.unitTests.harness.T_Generic;
 import org.apache.derbyTesting.unitTests.harness.T_Fail;
 
-import org.apache.derby.iapi.services.cache.*;
+import com.splicemachine.db.iapi.services.cache.*;
 
-import org.apache.derby.iapi.services.daemon.*;
+import com.splicemachine.db.iapi.services.daemon.*;
 
-import org.apache.derby.iapi.services.monitor.Monitor;
+import com.splicemachine.db.iapi.services.monitor.Monitor;
 
-import org.apache.derby.iapi.error.StandardException;
+import com.splicemachine.db.iapi.error.StandardException;
 
 public class T_CacheService extends T_Generic implements CacheableFactory {
 
@@ -48,7 +49,7 @@ public class T_CacheService extends T_Generic implements CacheableFactory {
 		DaemonFactory df;
 		try {
 			cf = (CacheFactory) Monitor.startSystemModule(getModuleToTestProtocolName());
-			df = (DaemonFactory) Monitor.startSystemModule(org.apache.derby.iapi.reference.Module.DaemonFactory);
+			df = (DaemonFactory) Monitor.startSystemModule(Module.DaemonFactory);
 		} catch (StandardException mse) {
 			throw T_Fail.exceptionFail(mse);
 		}
@@ -56,7 +57,7 @@ public class T_CacheService extends T_Generic implements CacheableFactory {
 			throw T_Fail.testFailMsg(getModuleToTestProtocolName() + " module not started.");
 		}
 		if (df == null)
-			throw T_Fail.testFailMsg(org.apache.derby.iapi.reference.Module.DaemonFactory + " module not started.");
+			throw T_Fail.testFailMsg(Module.DaemonFactory + " module not started.");
 	
 
 		try {
@@ -125,7 +126,7 @@ public class T_CacheService extends T_Generic implements CacheableFactory {
 
 	  */
 	protected String getModuleToTestProtocolName() {
-		return org.apache.derby.iapi.reference.Module.CacheFactory;
+		return Module.CacheFactory;
 	}
 
 

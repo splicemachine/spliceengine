@@ -21,37 +21,34 @@
 
 package org.apache.derbyTesting.unitTests.store;
 
-import org.apache.derby.iapi.store.raw.*;
+import com.splicemachine.db.iapi.store.raw.*;
 
-import org.apache.derby.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 
-import org.apache.derby.iapi.reference.Property;
+import com.splicemachine.db.iapi.reference.Property;
 
 // impl imports are the preferred way to create unit tests.
-import org.apache.derbyTesting.unitTests.harness.T_MultiThreadedIterations;
 import org.apache.derbyTesting.unitTests.harness.T_Fail;
 
-import org.apache.derby.iapi.services.context.ContextService;
-import org.apache.derby.iapi.services.context.ContextManager;
-import org.apache.derby.iapi.services.locks.*;
-import org.apache.derby.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.services.context.ContextService;
+import com.splicemachine.db.iapi.services.locks.*;
 
-import org.apache.derby.iapi.error.StandardException;
+import com.splicemachine.db.iapi.error.StandardException;
 
-import org.apache.derby.iapi.store.access.AccessFactoryGlobals;
-import org.apache.derby.iapi.store.access.Qualifier;
+import com.splicemachine.db.iapi.store.access.AccessFactoryGlobals;
+import com.splicemachine.db.iapi.store.access.Qualifier;
 
-import org.apache.derby.iapi.store.access.conglomerate.LogicalUndo;
+import com.splicemachine.db.iapi.store.access.conglomerate.LogicalUndo;
 
-import org.apache.derby.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
 
-import org.apache.derby.iapi.reference.Attribute;
-import org.apache.derby.iapi.services.property.PropertyUtil;
-import org.apache.derby.iapi.error.ExceptionSeverity;
+import com.splicemachine.db.iapi.reference.Attribute;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
+import com.splicemachine.db.iapi.error.ExceptionSeverity;
 import java.io.*;
 import java.util.Properties;
-import org.apache.derby.iapi.types.SQLChar;
+import com.splicemachine.db.iapi.types.SQLChar;
 
 
 /*

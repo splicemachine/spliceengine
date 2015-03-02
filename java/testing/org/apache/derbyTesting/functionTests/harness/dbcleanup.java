@@ -24,17 +24,13 @@ package org.apache.derbyTesting.functionTests.harness;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.sql.SQLWarning;
 import java.io.*;
 import java.util.*;
-import java.lang.Long;
 import java.util.Vector;
 
-import org.apache.derby.tools.JDBCDisplayUtil;
+import com.splicemachine.db.tools.JDBCDisplayUtil;
 
 /*
  **
@@ -52,7 +48,7 @@ import org.apache.derby.tools.JDBCDisplayUtil;
 public class dbcleanup {
 
 	static String dbURL = "jdbc:derby:splice:wombat";
-	static String driver = "org.apache.derby.jdbc.EmbeddedDriver";
+	static String driver = "com.splicemachine.db.jdbc.EmbeddedDriver";
 	static boolean dbIsDirty = false;
 
 	int thread_id;

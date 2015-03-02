@@ -25,11 +25,8 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.ResultSet;
-import java.sql.Types;
 
-import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derbyTesting.junit.BaseJDBCTestCase;
-import org.apache.derbyTesting.junit.DerbyVersion;
 import org.apache.derbyTesting.junit.JDBC;
 import org.apache.derbyTesting.junit.TestConfiguration;
 import junit.framework.Test;
@@ -132,7 +129,7 @@ public class SystemCatalogTest extends BaseJDBCTestCase {
 		boolean nonEmptyResultSet = false;
 		String tablename = null;
 		String sysdummy = "SYSDUMMY1";
-		String heapResult = "{ derby.storage.initialPages=1, derby.storage.minimumRecordSize=12, derby.storage.pageReservedSpace=0, derby.storage.pageSize=4096, derby.storage.reusableRecordId=false }";
+		String heapResult = "{ db.storage.initialPages=1, db.storage.minimumRecordSize=12, db.storage.pageReservedSpace=0, db.storage.pageSize=4096, db.storage.reusableRecordId=false }";
 		while(rs.next()) {
 			nonEmptyResultSet  = true;
 			tablename = rs.getString(1);
@@ -148,7 +145,7 @@ public class SystemCatalogTest extends BaseJDBCTestCase {
 		// get the properties for the indexes
 		rs = s.executeQuery("select conglomeratename, gaip('SYS',	conglomeratename) from sys.sysconglomerates where isindex order by conglomeratename");
 		nonEmptyResultSet = false;
-		String indexResult = "{ derby.storage.initialPages=1, derby.storage.minimumRecordSize=1, derby.storage.pageReservedSpace=0, derby.storage.pageSize=4096, derby.storage.reusableRecordId=true }";
+		String indexResult = "{ db.storage.initialPages=1, db.storage.minimumRecordSize=1, db.storage.pageReservedSpace=0, db.storage.pageSize=4096, db.storage.reusableRecordId=true }";
 		while(rs.next()) {
 			nonEmptyResultSet  = true;
 			assertTrue(rs.getString(2).startsWith(indexResult));
@@ -186,7 +183,7 @@ public class SystemCatalogTest extends BaseJDBCTestCase {
 		String [][] expected = {
 				{"SYSALIASES", "ALIAS", "2", "VARCHAR(128) NOT NULL"},
 				{"SYSALIASES", "ALIASID", "1", "CHAR(36) NOT NULL"},
-				{"SYSALIASES", "ALIASINFO", "8", "org.apache.derby.catalog.AliasInfo"},
+				{"SYSALIASES", "ALIASINFO", "8", "com.splicemachine.db.catalog.AliasInfo"},
 				{"SYSALIASES", "ALIASTYPE", "5", "CHAR(1) NOT NULL"},
 				{"SYSALIASES", "JAVACLASSNAME", "4", "LONG VARCHAR NOT NULL"},
 				{"SYSALIASES", "NAMESPACE", "6", "CHAR(1) NOT NULL"},
@@ -195,9 +192,9 @@ public class SystemCatalogTest extends BaseJDBCTestCase {
 				{"SYSALIASES", "SYSTEMALIAS", "7", "BOOLEAN NOT NULL"},
 				{"SYSCHECKS", "CHECKDEFINITION", "2", "LONG VARCHAR NOT NULL"},
 				{"SYSCHECKS", "CONSTRAINTID", "1", "CHAR(36) NOT NULL"},
-				{"SYSCHECKS", "REFERENCEDCOLUMNS", "3", "org.apache.derby.catalog.ReferencedColumns NOT NULL"},
+				{"SYSCHECKS", "REFERENCEDCOLUMNS", "3", "com.splicemachine.db.catalog.ReferencedColumns NOT NULL"},
 				{"SYSCOLPERMS", "COLPERMSID", "1", "CHAR(36) NOT NULL"},
-				{"SYSCOLPERMS", "COLUMNS", "6", "org.apache.derby.iapi.services.io.FormatableBitSet NOT NULL"},
+				{"SYSCOLPERMS", "COLUMNS", "6", "com.splicemachine.db.iapi.services.io.FormatableBitSet NOT NULL"},
 				{"SYSCOLPERMS", "GRANTEE", "2", "VARCHAR(128) NOT NULL"},
 				{"SYSCOLPERMS", "GRANTOR", "3", "VARCHAR(128) NOT NULL"},
 				{"SYSCOLPERMS", "TABLEID", "4", "CHAR(36) NOT NULL"},
@@ -205,7 +202,7 @@ public class SystemCatalogTest extends BaseJDBCTestCase {
 				{"SYSCOLUMNS", "AUTOINCREMENTINC", "9", "BIGINT"},
 				{"SYSCOLUMNS", "AUTOINCREMENTSTART", "8", "BIGINT"},
 				{"SYSCOLUMNS", "AUTOINCREMENTVALUE", "7", "BIGINT"},
-				{"SYSCOLUMNS", "COLUMNDATATYPE", "4", "org.apache.derby.catalog.TypeDescriptor NOT NULL"},
+				{"SYSCOLUMNS", "COLUMNDATATYPE", "4", "com.splicemachine.db.catalog.TypeDescriptor NOT NULL"},
 				{"SYSCOLUMNS", "COLUMNDEFAULT", "5", "java.io.Serializable"},
 				{"SYSCOLUMNS", "COLUMNDEFAULTID", "6", "CHAR(36)"},
 				{"SYSCOLUMNS", "COLUMNNAME", "2", "VARCHAR(128) NOT NULL"},
@@ -214,7 +211,7 @@ public class SystemCatalogTest extends BaseJDBCTestCase {
 				{"SYSCONGLOMERATES", "CONGLOMERATEID", "8", "CHAR(36) NOT NULL"},
 				{"SYSCONGLOMERATES", "CONGLOMERATENAME", "4", "VARCHAR(128)"},
 				{"SYSCONGLOMERATES", "CONGLOMERATENUMBER", "3", "BIGINT NOT NULL"},
-				{"SYSCONGLOMERATES", "DESCRIPTOR", "6", "org.apache.derby.catalog.IndexDescriptor"},
+				{"SYSCONGLOMERATES", "DESCRIPTOR", "6", "com.splicemachine.db.catalog.IndexDescriptor"},
 				{"SYSCONGLOMERATES", "ISCONSTRAINT", "7", "BOOLEAN"},
 				{"SYSCONGLOMERATES", "ISINDEX", "5", "BOOLEAN NOT NULL"},
 				{"SYSCONGLOMERATES", "SCHEMAID", "1", "CHAR(36) NOT NULL"},
@@ -226,9 +223,9 @@ public class SystemCatalogTest extends BaseJDBCTestCase {
 				{"SYSCONSTRAINTS", "STATE", "6", "CHAR(1) NOT NULL"},
 				{"SYSCONSTRAINTS", "TABLEID", "2", "CHAR(36) NOT NULL"},
 				{"SYSCONSTRAINTS", "TYPE", "4", "CHAR(1) NOT NULL"},
-				{"SYSDEPENDS", "DEPENDENTFINDER", "2", "org.apache.derby.catalog.DependableFinder NOT NULL"},
+				{"SYSDEPENDS", "DEPENDENTFINDER", "2", "com.splicemachine.db.catalog.DependableFinder NOT NULL"},
 				{"SYSDEPENDS", "DEPENDENTID", "1", "CHAR(36) NOT NULL"},
-				{"SYSDEPENDS", "PROVIDERFINDER", "4", "org.apache.derby.catalog.DependableFinder NOT NULL"},
+				{"SYSDEPENDS", "PROVIDERFINDER", "4", "com.splicemachine.db.catalog.DependableFinder NOT NULL"},
 				{"SYSDEPENDS", "PROVIDERID", "3", "CHAR(36) NOT NULL"},
 				{"SYSDUMMY1", "IBMREQD", "1", "CHAR(1)"},
 				{"SYSFILES", "FILEID", "1", "CHAR(36) NOT NULL"},
@@ -269,7 +266,7 @@ public class SystemCatalogTest extends BaseJDBCTestCase {
                 {"SYSSEQUENCES", "MAXIMUMVALUE", "8", "BIGINT NOT NULL"},
                 {"SYSSEQUENCES", "MINIMUMVALUE", "7", "BIGINT NOT NULL"},
                 {"SYSSEQUENCES", "SCHEMAID", "3", "CHAR(36) NOT NULL"},
-                {"SYSSEQUENCES", "SEQUENCEDATATYPE", "4", "org.apache.derby.catalog.TypeDescriptor NOT NULL"},
+                {"SYSSEQUENCES", "SEQUENCEDATATYPE", "4", "com.splicemachine.db.catalog.TypeDescriptor NOT NULL"},
                 {"SYSSEQUENCES", "SEQUENCEID", "1", "CHAR(36) NOT NULL"},
                 {"SYSSEQUENCES", "SEQUENCENAME", "2", "VARCHAR(128) NOT NULL"},
                 {"SYSSEQUENCES", "STARTVALUE", "6", "BIGINT NOT NULL"},                
@@ -286,7 +283,7 @@ public class SystemCatalogTest extends BaseJDBCTestCase {
 				{"SYSSTATISTICS", "CREATIONTIMESTAMP", "4", "TIMESTAMP NOT NULL"},
 				{"SYSSTATISTICS", "REFERENCEID", "2", "CHAR(36) NOT NULL"},
 				{"SYSSTATISTICS", "STATID", "1", "CHAR(36) NOT NULL"},
-				{"SYSSTATISTICS", "STATISTICS", "8", "org.apache.derby.catalog.Statistics NOT NULL"},
+				{"SYSSTATISTICS", "STATISTICS", "8", "com.splicemachine.db.catalog.Statistics NOT NULL"},
 				{"SYSSTATISTICS", "TABLEID", "3", "CHAR(36) NOT NULL"},
 				{"SYSSTATISTICS", "TYPE", "5", "CHAR(1) NOT NULL"},
 				{"SYSSTATISTICS", "VALID", "6", "BOOLEAN NOT NULL"},
@@ -311,7 +308,7 @@ public class SystemCatalogTest extends BaseJDBCTestCase {
 				{"SYSTRIGGERS", "FIRINGTIME", "6", "CHAR(1) NOT NULL"},
 				{"SYSTRIGGERS", "NEWREFERENCINGNAME", "17", "VARCHAR(128)"},
 				{"SYSTRIGGERS", "OLDREFERENCINGNAME", "16", "VARCHAR(128)"},
-				{"SYSTRIGGERS", "REFERENCEDCOLUMNS", "12", "org.apache.derby.catalog.ReferencedColumns"},
+				{"SYSTRIGGERS", "REFERENCEDCOLUMNS", "12", "com.splicemachine.db.catalog.ReferencedColumns"},
 				{"SYSTRIGGERS", "REFERENCINGNEW", "15", "BOOLEAN"},
 				{"SYSTRIGGERS", "REFERENCINGOLD", "14", "BOOLEAN"},
 				{"SYSTRIGGERS", "SCHEMAID", "3", "CHAR(36) NOT NULL"},

@@ -57,7 +57,7 @@ public class InvalidLDAPServerAuthenticationTest extends BaseJDBCTestCase {
         if (JDBC.vmSupportsJSR169())
             return new TestSuite("InvalidLDAPServerAuthenticationTest - cannot" +
                 " run with JSR169 - missing functionality for " +
-                "org.apache.derby.iapi.jdbc.AuthenticationService");
+                "com.splicemachine.db.iapi.jdbc.AuthenticationService");
         
         // security manager would choke attempting to resolve to the invalid
         // LDAPServer, so run without
@@ -116,7 +116,7 @@ public class InvalidLDAPServerAuthenticationTest extends BaseJDBCTestCase {
         } catch (SQLException se) {
             assertSQLState("08004", se);
             // with network server, the java.net.UnknownHostException will be in 
-            // derby.log, the client only gets a 08004 and somewhat misleading
+            // db.log, the client only gets a 08004 and somewhat misleading
             // warning ('Reason: userid or password invalid')
             if (usingEmbedded())
                 assertTrue(se.getMessage().indexOf("java.net.UnknownHostException")>1);
@@ -129,7 +129,7 @@ public class InvalidLDAPServerAuthenticationTest extends BaseJDBCTestCase {
         } catch (SQLException se) {
             assertSQLState("08004", se);
             // with network server, the java.net.UnknownHostException will be in 
-            // derby.log, the client only gets a 08004 and somewhat misleading
+            // db.log, the client only gets a 08004 and somewhat misleading
             // warning ('Reason: userid or password invalid')
             if (usingEmbedded())
                 assertTrue(se.getMessage().indexOf("java.net.UnknownHostException")>1);

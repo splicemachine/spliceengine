@@ -13,13 +13,13 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.reference.ContextId;
-import org.apache.derby.iapi.services.context.ContextManager;
-import org.apache.derby.iapi.sql.compile.ASTVisitor;
-import org.apache.derby.iapi.sql.compile.Visitable;
-import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
-import org.apache.derby.impl.jdbc.EmbedConnection;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.ContextId;
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.sql.compile.ASTVisitor;
+import com.splicemachine.db.iapi.sql.compile.Visitable;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.impl.jdbc.EmbedConnection;
 
 /**
  * A little visitor to run the Derby parser, bind, optimizer on a text string and to print

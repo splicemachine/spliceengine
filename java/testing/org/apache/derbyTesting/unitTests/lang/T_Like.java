@@ -24,14 +24,13 @@ package org.apache.derbyTesting.unitTests.lang;
 import org.apache.derbyTesting.unitTests.harness.T_Generic;
 import org.apache.derbyTesting.unitTests.harness.T_Fail;
 
-import org.apache.derby.iapi.types.*;
+import com.splicemachine.db.iapi.types.*;
 
-import org.apache.derby.iapi.services.monitor.Monitor;
-import org.apache.derby.iapi.reference.Property;
+import com.splicemachine.db.iapi.reference.Property;
 
-import org.apache.derby.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 
-import org.apache.derby.iapi.error.StandardException;
+import com.splicemachine.db.iapi.error.StandardException;
 
 import java.util.Properties;
 

@@ -100,7 +100,7 @@ public class HoldCursorExternalSortJDBC30Test extends BaseJDBCTestCase {
 
         Statement stUtil = createStatement();
         stUtil.executeUpdate("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-                        "'derby.language.bulkFetchDefault', '1')");
+                        "'db.language.bulkFetchDefault', '1')");
         
         Statement st = createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
                                        ResultSet.CONCUR_READ_ONLY,
@@ -111,7 +111,7 @@ public class HoldCursorExternalSortJDBC30Test extends BaseJDBCTestCase {
 
         ResultSet test1 = st.executeQuery("select * from foo order by a");
         stUtil.executeUpdate("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-                "'derby.language.bulkFetchDefault', '16')");
+                "'db.language.bulkFetchDefault', '16')");
 
         /* Commit pattern for the cursor navigation */
         boolean[] doCommitAfter = {true, false, false, false, true, false, false, false, true, false};
@@ -159,7 +159,7 @@ public class HoldCursorExternalSortJDBC30Test extends BaseJDBCTestCase {
 
         //exercise the non-held cursor path also.
         stUtil.executeUpdate("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-                "'derby.language.bulkFetchDefault', '1')");
+                "'db.language.bulkFetchDefault', '1')");
 
         Statement st = createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
                                        ResultSet.CONCUR_READ_ONLY,
@@ -171,7 +171,7 @@ public class HoldCursorExternalSortJDBC30Test extends BaseJDBCTestCase {
         ResultSet test1 = st.executeQuery("select * from foo order by a");
 
         stUtil.executeUpdate("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-                "'derby.language.bulkFetchDefault', '16')");        
+                "'db.language.bulkFetchDefault', '16')");
         
         for(int i=0; i<10; i++) {
             assertTrue(test1.next());
@@ -215,7 +215,7 @@ public class HoldCursorExternalSortJDBC30Test extends BaseJDBCTestCase {
         stUtil.executeBatch();
 
         stUtil.executeUpdate("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-        "'derby.language.bulkFetchDefault', '1')");
+        "'db.language.bulkFetchDefault', '1')");
 
         Statement st = createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
                                        ResultSet.CONCUR_READ_ONLY,
@@ -226,7 +226,7 @@ public class HoldCursorExternalSortJDBC30Test extends BaseJDBCTestCase {
         
         ResultSet test1 = st.executeQuery("select * from bar order by a");
         stUtil.executeUpdate("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-                "'derby.language.bulkFetchDefault', '16')");
+                "'db.language.bulkFetchDefault', '16')");
 
         /* This pattern is repeated twice below */
         boolean[] doCommitAfter = {true, false, false, false, true, false, false, false, true, false,

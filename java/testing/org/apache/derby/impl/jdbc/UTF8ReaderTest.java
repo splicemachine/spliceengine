@@ -30,11 +30,13 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import com.splicemachine.db.impl.jdbc.EmbedResultSet;
+import com.splicemachine.db.impl.jdbc.StoreStreamClob;
 import junit.framework.Test;
 import junit.framework.TestSuite;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.types.StringDataValue;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.types.StringDataValue;
 import org.apache.derbyTesting.functionTests.util.streams.LoopingAlphabetReader;
 import org.apache.derbyTesting.junit.BaseJDBCTestCase;
 import org.apache.derbyTesting.junit.CleanDatabaseTestSetup;

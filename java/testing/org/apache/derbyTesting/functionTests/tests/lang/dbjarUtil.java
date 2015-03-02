@@ -55,7 +55,7 @@ public class dbjarUtil
 			throw new Exception(top.toString() + " is not a directory");
 
 		// jar file paths in the JDB CURL are relative to the root
-		// derby.system.home or user.dir, so need to create the jar there.
+		// db.system.home or user.dir, so need to create the jar there.
 		ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(new File(root, jarName))); 
 
 		addEntries(zos, top, dbName, top.getPath().length());

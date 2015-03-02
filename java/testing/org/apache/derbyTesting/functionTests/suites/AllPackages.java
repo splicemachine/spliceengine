@@ -98,7 +98,6 @@ public class AllPackages extends BaseTestCase {
         classes.add(org.apache.derbyTesting.functionTests.tests.store._Suite.class);
         classes.add(org.apache.derbyTesting.functionTests.tests.tools._Suite.class);
         classes.add(org.apache.derbyTesting.functionTests.tests.engine._Suite.class);
-        classes.add(org.apache.derbyTesting.functionTests.tests.demo._Suite.class);
         classes.add(org.apache.derbyTesting.functionTests.tests.memory._Suite.class);
         classes.add(org.apache.derbyTesting.functionTests.tests.memorydb._Suite.class);
         classes.add(org.apache.derbyTesting.functionTests.tests.i18n._Suite.class);

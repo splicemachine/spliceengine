@@ -40,7 +40,7 @@ values SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY('key2');
 
 -- Now check some explicit properties
 
--- ************ derby.storage.pageSize
+-- ************ db.storage.pageSize
 
 -- See what the default is first
 create table T (i int);
@@ -56,7 +56,7 @@ values GET_TABLE_PROPERTY('SPLICE', 'T', 'derby.storage.pageSize');
 drop table T;
 
 
--- ************ derby.storage.minimumRecordSize
+-- ************ db.storage.minimumRecordSize
 
 -- See what the default is first
 create table T (i int);
@@ -72,7 +72,7 @@ values GET_TABLE_PROPERTY('SPLICE', 'T', 'derby.storage.minimumRecordSize');
 drop table T;
 
 
--- ************ derby.storage.pageReservedSpace
+-- ************ db.storage.pageReservedSpace
 
 -- See what the default is first
 create table T (i int);
@@ -90,7 +90,7 @@ drop table T;
 
 
 
--- ************ derby.database.noAutoBoot
+-- ************ db.database.noAutoBoot
 -- should be set in service.properties, not the conglomerate, but that's transparent here ... 
 
 values SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY('derby.database.noAutoBoot');
@@ -107,7 +107,7 @@ values SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY('derby.database.noAutoBoot');
 -- Now check some explicit properties
 
 
--- Now check with derby.storage.pageSize if derby.database.propertiesOnly
+-- Now check with db.storage.pageSize if db.database.propertiesOnly
 -- ensures that system wide properties are ignored
 
 -- See is currently set, should be 16384

@@ -126,7 +126,7 @@ public class DerbyDistribution
         return derbyClientJarPath;
     }
 
-    /** Returns the path to {@code derby.jar}. */
+    /** Returns the path to {@code db.jar}. */
     public String getDerbyEngineJarPath() {
         return derbyEngineJarPath;
     }

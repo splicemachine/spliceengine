@@ -21,7 +21,6 @@
 
 package org.apache.derbyTesting.functionTests.tests.jdbcapi;
 
-import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -36,9 +35,8 @@ import junit.framework.Assert;
 import junit.framework.Test;
 import junit.framework.TestSuite;
 
-import org.apache.derby.client.ClientXid;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.shared.common.reference.SQLState;
+import com.splicemachine.db.client.ClientXid;
+import com.splicemachine.db.shared.common.reference.SQLState;
 
 import org.apache.derbyTesting.junit.DatabasePropertyTestSetup;
 import org.apache.derbyTesting.junit.JDBC;
@@ -509,7 +507,7 @@ public class XATransactionTest extends BaseJDBCTestCase {
      * transaction. Since read-only transactions are implicitly committed when
      * they are prepared, this meant that the timer would try to abort an
      * already completed transaction. In addition to printing a confusing
-     * message in derby.log about the transaction being rolled back, when it
+     * message in db.log about the transaction being rolled back, when it
      * actually had been committed, this could also make the timer roll back
      * the wrong transaction, if a new transaction with the same Xid was
      * started later.

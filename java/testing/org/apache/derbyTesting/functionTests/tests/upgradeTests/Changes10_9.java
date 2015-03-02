@@ -279,7 +279,7 @@ public class Changes10_9 extends UpgradeChange
             // authentication provider to be NATIVE::LOCAL in an old database
             // just before upgrading. If they do this, they will get an error at
             // soft-upgrade time and they will have to back off to the old
-            // derby version in order to unset the authentication provider.
+            // db version in order to unset the authentication provider.
             //
             setDatabaseProperty( s, "derby.authentication.provider", "NATIVE::LOCAL" );
             setDatabaseProperty( s, "derby.authentication.provider", null );
@@ -290,7 +290,7 @@ public class Changes10_9 extends UpgradeChange
             assertStatementError
                 (
                  UPGRADE_REQUIRED, s,
-                 "call syscs_util.syscs_set_database_property( 'derby.authentication.provider', 'NATIVE::LOCAL' )"
+                 "call syscs_util.syscs_set_database_property( 'db.authentication.provider', 'NATIVE::LOCAL' )"
                  );
             setDatabaseProperty( s, "derby.authentication.provider", null );
             break;
@@ -597,7 +597,7 @@ public class Changes10_9 extends UpgradeChange
     private void setDBClasspath(String cp) throws SQLException {
         CallableStatement cs = prepareCall(
           "CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-          "'derby.database.classpath', ?)");
+          "'db.database.classpath', ?)");
 
         cs.setString(1, cp);
         cs.executeUpdate();
@@ -662,7 +662,7 @@ public class Changes10_9 extends UpgradeChange
     private void initPattern() {
         List l = new ArrayList(100);
         // The UUID format is determined by
-        // org.apache.derby.impl.services.uuid.BasicUUID#toString
+        // com.splicemachine.db.impl.services.uuid.BasicUUID#toString
 
         for (int i=0; i < 8; i++) {
             l.add(new CharRange(new char[][]{{'0','9'},{'a','f'}}));

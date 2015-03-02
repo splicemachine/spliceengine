@@ -51,7 +51,7 @@
   <!-- Release and Version info -->
   <property file="${properties.dir}/release.properties"/>
 
-  <!-- derby testing specific properties files -->
+  <!-- db testing specific properties files -->
   <property file="${ant.home}/properties/derbytesting.properties"/>
   <property file="${user.home}/properties/derbytesting.properties"/>
   <property name="this.dir" value="${derby.testing.functest.dir}/tests/lang"/>
@@ -215,7 +215,7 @@
     <mkdir dir="${lang-test-dir}/nast"/>
 
     <echo level="info" message="Running script to create the nast database"/>
-    <java classname="org.apache.derby.tools.ij"
+    <java classname="com.splicemachine.db.tools.ij"
           output="${lang-test-dir}/nast.out"
           failonerror="true"
           dir="${lang-test-dir}" fork="true">

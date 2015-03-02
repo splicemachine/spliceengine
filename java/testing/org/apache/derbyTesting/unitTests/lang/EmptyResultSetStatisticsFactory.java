@@ -21,24 +21,18 @@
 
 package org.apache.derbyTesting.unitTests.lang;
 
-import org.apache.derby.iapi.services.monitor.Monitor;
-
-import org.apache.derby.iapi.error.StandardException;
+import com.splicemachine.db.iapi.error.StandardException;
 
 
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.ResultSet;
-import org.apache.derby.iapi.sql.PreparedStatement;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.ResultSet;
 
-import org.apache.derby.iapi.sql.execute.NoPutResultSet;
-import org.apache.derby.iapi.sql.execute.ResultSetFactory;
-import org.apache.derby.iapi.sql.execute.ResultSetStatisticsFactory;
+import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
+import com.splicemachine.db.iapi.sql.execute.ResultSetStatisticsFactory;
 
-import org.apache.derby.iapi.sql.execute.RunTimeStatistics;
+import com.splicemachine.db.iapi.sql.execute.RunTimeStatistics;
 
-import org.apache.derby.iapi.sql.execute.ResultSetStatistics;
-
-import java.util.Properties;
+import com.splicemachine.db.iapi.sql.execute.ResultSetStatistics;
 
 /**
  * ResultSetStatisticsFactory provides a wrapper around all of

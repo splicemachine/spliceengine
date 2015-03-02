@@ -47,7 +47,7 @@ public class ij3Test extends ScriptTestCase {
         // instead of a JDBC URL since DriverManager isn't available.
         if (JDBC.vmSupportsJSR169()) {
             props.setProperty("ij.dataSource",
-                              "org.apache.derby.jdbc.EmbeddedSimpleDataSource");
+                              "com.splicemachine.db.jdbc.EmbeddedSimpleDataSource");
             props.setProperty("ij.dataSource.databaseName", "wombat");
             props.setProperty("ij.dataSource.createDatabase", "create");
         }

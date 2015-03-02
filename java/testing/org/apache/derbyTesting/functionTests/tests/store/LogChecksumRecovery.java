@@ -22,8 +22,8 @@
 package org.apache.derbyTesting.functionTests.tests.store;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.zip.CRC32;
-import org.apache.derby.tools.ij;
+
+import com.splicemachine.db.tools.ij;
 
 /*
  * Purpose of this class is to test the database recovery of 
@@ -63,7 +63,7 @@ public class LogChecksumRecovery extends LogChecksumSetup {
             lctest.runTest(conn);
         }
         catch (SQLException sqle) {
-			org.apache.derby.tools.JDBCDisplayUtil.ShowSQLException(
+			com.splicemachine.db.tools.JDBCDisplayUtil.ShowSQLException(
                 System.out, sqle);
 			sqle.printStackTrace(System.out);
 		}

@@ -39,8 +39,8 @@ import java.sql.Types;
 import junit.framework.Test;
 import junit.framework.TestSuite;
 
-import org.apache.derby.iapi.types.HarmonySerialBlob;
-import org.apache.derby.iapi.types.HarmonySerialClob;
+import com.splicemachine.db.iapi.types.HarmonySerialBlob;
+import com.splicemachine.db.iapi.types.HarmonySerialClob;
 
 import org.apache.derbyTesting.junit.BaseJDBCTestCase;
 import org.apache.derbyTesting.junit.CleanDatabaseTestSetup;

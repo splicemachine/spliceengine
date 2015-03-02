@@ -72,7 +72,7 @@ public final class SysDiagVTIMappingTest extends BaseJDBCTestCase {
 
         suite.addTest( verboseTest );
 
-         /* Some of the VTIs that are tested in this class require a derby.log
+         /* Some of the VTIs that are tested in this class require a db.log
          * file.  We have a test log file stored in the tests/lang directory,
          * and since the VTIs are going to try to read it, the test log file
          * must be in a directory for which Derby has read access.  By
@@ -327,7 +327,7 @@ public final class SysDiagVTIMappingTest extends BaseJDBCTestCase {
         
         st.executeUpdate("set schema SPLICE");
         rs = st.executeQuery(
-            "SELECT * FROM NEW org.apache.derby.diag.SpaceTable('T1') as x");
+            "SELECT * FROM NEW com.splicemachine.db.diag.SpaceTable('T1') as x");
         
         JDBC.assertColumnNames(rs, ALL_SPACE_TABLE_COLUMNS);
         
@@ -340,7 +340,7 @@ public final class SysDiagVTIMappingTest extends BaseJDBCTestCase {
         
         rs = st.executeQuery(
             "SELECT * FROM NEW "
-            + "org.apache.derby.diag.SpaceTable('SPLICE', 'T1') as x");
+            + "com.splicemachine.db.diag.SpaceTable('SPLICE', 'T1') as x");
         
         JDBC.assertColumnNames(rs, ALL_SPACE_TABLE_COLUMNS);
         
@@ -478,7 +478,7 @@ public final class SysDiagVTIMappingTest extends BaseJDBCTestCase {
     
     /**
      * Just run a couple of sanity checks to makes sure the table
-     * mapping for org.apache.derby.diag.StatementDuration() works
+     * mapping for com.splicemachine.db.diag.StatementDuration() works
      * correctly and fails where it is supposed to.
      */
     public void testStatementDuration() throws Exception
@@ -512,7 +512,7 @@ public final class SysDiagVTIMappingTest extends BaseJDBCTestCase {
         
         rs = st.executeQuery(
             "SELECT * FROM NEW "
-            + "org.apache.derby.diag.StatementDuration" + vtiArg + " as x");
+            + "com.splicemachine.db.diag.StatementDuration" + vtiArg + " as x");
         
         expColNames = new String [] {
             "TS", "THREADID", "XID", "LCCID", "LOGTEXT", "DURATION"};
@@ -535,7 +535,7 @@ public final class SysDiagVTIMappingTest extends BaseJDBCTestCase {
 
     /**
      * Just run a couple of sanity checks to makes sure the table
-     * mapping for org.apache.derby.diag.ErrorLogReader() works
+     * mapping for com.splicemachine.db.diag.ErrorLogReader() works
      * correctly and fails where it is supposed to.
      */
     public void testErrorLogReader() throws Exception
@@ -570,7 +570,7 @@ public final class SysDiagVTIMappingTest extends BaseJDBCTestCase {
         
         rs = st.executeQuery(
             "SELECT * FROM NEW" +
-            " org.apache.derby.diag.ErrorLogReader" + vtiArg + " as x");
+            " com.splicemachine.db.diag.ErrorLogReader" + vtiArg + " as x");
         
         expColNames = new String [] {
             "TS", "THREADID", "XID", "LCCID", "DATABASE", "DRDAID", "LOGTEXT"};
@@ -917,11 +917,11 @@ public final class SysDiagVTIMappingTest extends BaseJDBCTestCase {
         assertStatementError("42Y55", cSt);
 
         assertStatementError("42X08", st,
-            "update new org.apache.derby.diag." + vtiMethodName + args
+            "update new com.splicemachine.db.diag." + vtiMethodName + args
             + " set " + colName + " = NULL");
         
         assertStatementError("42X08", st,
-            "delete from new org.apache.derby.diag." + vtiMethodName + args
+            "delete from new com.splicemachine.db.diag." + vtiMethodName + args
             + " where 1 = 0");
 
         // Simple check to verify same restrictions hold true if current

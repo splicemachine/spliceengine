@@ -86,7 +86,7 @@ public class _Suite extends BaseTestCase {
      * The saved location in svn at apache for older releases for testing
      */
     static final String OLD_JAR_URL =
-        "http://svn.apache.org/repos/asf/db/derby/jars";
+        "http://svn.apache.org/repos/asf/db/db/jars";
     
     /**
      * List of the versions to test against.
@@ -107,7 +107,7 @@ public class _Suite extends BaseTestCase {
      * cd $HOME
      * mkdir derby_upgrade
      * cd derby_upgrade
-     * svn co https://svn.apache.org/repos/asf/db/derby/jars
+     * svn co https://svn.apache.org/repos/asf/db/db/jars
      * 
      * Then set derbyTesting.oldReleasePath as:
      *   -DderbyTesting.oldReleasePath=$HOME/derby_upgrade/jars

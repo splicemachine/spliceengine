@@ -23,7 +23,7 @@ package org.apache.derbyTesting.functionTests.util.streams;
 
 import java.io.InputStream;
 
-import org.apache.derby.iapi.types.Resetable;
+import com.splicemachine.db.iapi.types.Resetable;
 
 /**
  * A stream returning a cycle of the 26 lowercase letters of the modern Latin

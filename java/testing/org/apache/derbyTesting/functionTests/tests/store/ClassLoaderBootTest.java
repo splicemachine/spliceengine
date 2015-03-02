@@ -56,11 +56,11 @@ public class ClassLoaderBootTest extends BaseJDBCTestCase {
 
     private static URL derbyClassLocation; 
 	static {
-        // find the location of derby jar file or location 
+        // find the location of db jar file or location
         // of classes. 
         CodeSource cs;
         try {
-            Class cls = Class.forName("org.apache.derby.database.Database");
+            Class cls = Class.forName("com.splicemachine.db.database.Database");
             cs = cls.getProtectionDomain().getCodeSource();
         } catch (ClassNotFoundException e) {
             cs = null;
@@ -240,7 +240,7 @@ public class ClassLoaderBootTest extends BaseJDBCTestCase {
 
     /*
      * Simple specialized URLClassLoader for Derby.  
-     * Filters all derby classes out of parent ClassLoader to ensure
+     * Filters all db classes out of parent ClassLoader to ensure
      * that Derby classes are loaded from the URL specified
      */
     public class DerbyURLClassLoader extends URLClassLoader {
@@ -272,9 +272,9 @@ public class ClassLoaderBootTest extends BaseJDBCTestCase {
 		
         }
 	
-        /* Override the parent class loader to filter out any derby
+        /* Override the parent class loader to filter out any db
          * jars in the classpath.  Any classes that start with 
-         * "org.apache.derby" will load  from the URLClassLoader
+         * "com.splicemachine.db" will load  from the URLClassLoader
          * 
          * @see java.lang.ClassLoader#loadClass(java.lang.String, boolean)
          */
@@ -286,7 +286,7 @@ public class ClassLoaderBootTest extends BaseJDBCTestCase {
             if (cl == null) {
                 // cut off delegation to parent for certain classes
                 // to ensure loading from the desired source
-                if (!name.startsWith("org.apache.derby")) {
+                if (!name.startsWith("com.splicemachine.db")) {
                     cl = getParent().loadClass(name);
 		    	}
 		    }

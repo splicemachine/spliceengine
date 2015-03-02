@@ -21,10 +21,7 @@
 
 package org.apache.derbyTesting.unitTests.harness;
 
-import org.apache.derby.iapi.services.monitor.Monitor;
-import org.apache.derby.iapi.services.property.PropertyUtil;
-
-import java.util.Properties;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
 
 /**
 	Abstract class which executes T_MultiIterations. This allows multiple
@@ -33,7 +30,7 @@ import java.util.Properties;
 	This allows the setup to be performed once, and then the
 	test itself to be run with multiple threads for a number of iterations. 
 	The number of threads and iterations are set by the property 
-	derby.unittests.numThreads and derby.unittests.iterations
+	db.unittests.numThreads and db.unittests.iterations
 	and default to 1.
 	<P>
 	Statistics are provided about each iteration in the error log. The statistics
@@ -69,9 +66,9 @@ public abstract class T_MultiThreadedIterations extends T_MultiIterations implem
 	{
 		/*
 		** The property name for the number of iterations is
-		** derby.className.numThreads.  For example, if the test
-		** class is derby.com.package.to.test.T_Tester,
-		** the property name is derby.T_Tester.numThreads.
+		** db.className.numThreads.  For example, if the test
+		** class is db.com.package.to.test.T_Tester,
+		** the property name is db.T_Tester.numThreads.
 		*/
 		String myClass = this.getClass().getName();
 		String noPackage = myClass.substring(myClass.lastIndexOf('.') + 1);

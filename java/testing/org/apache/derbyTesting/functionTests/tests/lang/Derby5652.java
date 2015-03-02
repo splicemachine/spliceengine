@@ -90,7 +90,7 @@ public class Derby5652 extends BaseJDBCTestCase
     public  void    basicTest()  throws  Exception
     {
         // run the test in another process because it creates a zombie engine
-        // which can't be killed. see derby-5757.
+        // which can't be killed. see db-5757.
         assertLaunchedJUnitTestMethod( getClass().getName() + ".badProperty", null );
     }
     
@@ -115,7 +115,7 @@ public class Derby5652 extends BaseJDBCTestCase
         catch (SQLException se)
         {
             // look for a login failure message. the detailed error is printed to
-            // derby.log and not percolated out of the Monitor.
+            // db.log and not percolated out of the Monitor.
             assertSQLState( "08004", se );
         }
     }

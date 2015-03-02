@@ -39,7 +39,7 @@ import org.apache.derbyTesting.junit.TestConfiguration;
 /**
  * Tests for the system property "derby.system.bootAll"
  *
- * DERBY-1296 - Setting property derby.system.bootAll causes an Exception
+ * DERBY-1296 - Setting property db.system.bootAll causes an Exception
  * 
  * create & shutdown three databases as well as the default
  * shutdown the engine
@@ -120,9 +120,9 @@ public class BootAllTest  extends BaseJDBCTestCase {
     }
 
     /**
-     * DERBY-1296 - Setting property derby.system.bootAll causes an Exception
+     * DERBY-1296 - Setting property db.system.bootAll causes an Exception
      *
-     * Check that setting the system property "derby.system.bootAll" will not 
+     * Check that setting the system property "derby.system.bootAll" will not
      * cause an exception when used in combination with the system property
      * "derby.system.home".
      *

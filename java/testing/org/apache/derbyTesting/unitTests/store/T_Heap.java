@@ -25,28 +25,17 @@ package org.apache.derbyTesting.unitTests.store;
 import org.apache.derbyTesting.unitTests.harness.T_Generic;
 import org.apache.derbyTesting.unitTests.harness.T_Fail;
 
-import org.apache.derby.impl.store.access.heap.*;
-
 import java.util.Properties;
 
-import java.io.PrintWriter;
+import com.splicemachine.db.iapi.services.context.ContextService;
 
-import org.apache.derby.iapi.services.context.ContextService;
+import com.splicemachine.db.iapi.services.monitor.Monitor;
 
-import org.apache.derby.iapi.services.monitor.Monitor;
-import org.apache.derby.iapi.services.stream.HeaderPrintWriter;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.store.access.AccessFactory;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.store.access.AccessFactory;
-import org.apache.derby.iapi.store.access.ConglomerateController;
-import org.apache.derby.iapi.store.access.Qualifier;
-import org.apache.derby.iapi.types.RowLocation;
-import org.apache.derby.iapi.store.access.ScanController;
-import org.apache.derby.iapi.store.access.TransactionController;
-
-import org.apache.derby.iapi.reference.Property;
-
-import java.util.Properties;
+import com.splicemachine.db.iapi.reference.Property;
 
 public class T_Heap extends T_Generic
 {

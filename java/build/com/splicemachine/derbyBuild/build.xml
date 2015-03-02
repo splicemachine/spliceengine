@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<project default="build" basedir="../../../../../..">
+
+    <!-- Set Properties -->
+    <!-- User settings -->
+    <property file="${user.home}/ant.properties"/>
+    <!-- Set property lib dir -->
+    <property name="properties.dir" value="tools/ant/properties"/>
+    <!-- Significant dirs -->
+    <property file="${properties.dir}/dirs.properties"/>
+    <!-- Compiler settings -->
+    <property file="${properties.dir}/defaultcompiler.properties"/>
+    <property file="${properties.dir}/${build.compiler}.properties"/>
+    <!-- Compile-time classpath properties files -->
+    <property file="${properties.dir}/extrapath.properties"/>
+    <property file="${properties.dir}/compilepath.properties"/>
+
+    <!-- Targets -->
+    <target name="build" depends="compile"/>
+
+    <target name="compile">
+
+        <copy file="${derby.build.src.dir}/com/splicemachine/derbyBuild/odbcgen_fragments.properties"
+              tofile="${out.dir}/com/splicemachine/derbyBuild/odbcgen_fragments.properties"/>
+
+        <javac
+                source="1.5"
+                target="1.5"
+                bootclasspath="${empty}"
+                nowarn="on"
+                debug="${debug}"
+                depend="${depend}"
+                deprecation="${deprecation}"
+                optimize="${optimize}"
+                proceed="${proceed}"
+                verbose="${verbose}"
+                srcdir="${derby.build.src.dir}"
+                destdir="${out.dir}">
+            <classpath>
+                <pathelement path="${java15compile.classpath};${java.home}/../lib/tools.jar"/>
+                <pathelement path="${ant.core.lib}"/>
+            </classpath>
+            <include name="com/splicemachine/derbyBuild/**"/>
+        </javac>
+    </target>
+</project>

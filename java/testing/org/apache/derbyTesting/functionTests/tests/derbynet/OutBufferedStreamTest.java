@@ -40,10 +40,10 @@ import org.apache.derbyTesting.junit.TestConfiguration;
 
 /**
  *
- * This program tests streaming a blob with derby.drda.streamOutBufferSize
+ * This program tests streaming a blob with db.drda.streamOutBufferSize
  * configuration.
  *
- * When derby.drda.streamOutBufferSize is configured,
+ * When db.drda.streamOutBufferSize is configured,
  * a buffer of configured size is placed at network server just before
  * sending the stream to the client.
  *
@@ -63,7 +63,7 @@ public class OutBufferedStreamTest extends BaseJDBCTestCase {
     /**
      * Returns the testsuite with a clientServerDecorator and a
      * CleanDatabaseTestSetup with a table. Also sets system property
-     * derby.drda.streamOutBufferSize=131072.
+     * db.drda.streamOutBufferSize=131072.
      *
      * @return the testsuite
      */

@@ -148,7 +148,7 @@
   <property name="VM_DEFAULT" value="${VM_1.4}"/>
 
   <property name="JDBC_SUITE" value="org.apache.derbyTesting.functionTests.tests.junitTests.compatibility.CompatibilitySuite"/>
-  <property name="EMBEDDED_CLIENT" value="org.apache.derby.jdbc.EmbeddedDriver"/>
+  <property name="EMBEDDED_CLIENT" value="com.splicemachine.db.jdbc.EmbeddedDriver"/>
 
   <!-- May be overridden on the command line -->
   <property name="drb.tests.debug" value="false"/>
@@ -664,7 +664,7 @@
 	  <arg value="-cp"/>
 	  <arg path="${srvClasspath}"/>
 
-	  <arg value="org.apache.derby.drda.NetworkServerControl"/>
+	  <arg value="com.splicemachine.db.drda.NetworkServerControl"/>
 	  <arg value="start"/>
 
 	  <!-- arg value="${srvSecurity}"/ Fails for srvSecurity blank with jvm1.4... -->
@@ -690,7 +690,7 @@
 	  <arg value="-cp"/>
 	  <arg path="${SERVER_TRUNK}"/>
 
-	  <arg value="org.apache.derby.drda.NetworkServerControl"/>
+	  <arg value="com.splicemachine.db.drda.NetworkServerControl"/>
       <arg value="shutdown"/>
 
 	</exec>

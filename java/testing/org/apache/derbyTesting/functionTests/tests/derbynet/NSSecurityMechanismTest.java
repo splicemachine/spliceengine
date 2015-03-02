@@ -22,12 +22,9 @@
 
 package org.apache.derbyTesting.functionTests.tests.derbynet;
 
-import java.lang.reflect.*;
-import java.net.InetAddress;
 import java.util.HashMap;
 import java.util.Iterator;
 
-import java.security.AccessController;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.CallableStatement;
@@ -37,9 +34,6 @@ import java.sql.DriverManager;
 import javax.sql.DataSource;
 import javax.sql.ConnectionPoolDataSource;
 import javax.sql.PooledConnection;
-
-import org.apache.derby.drda.NetworkServerControl;
-import org.apache.derby.jdbc.ClientConnectionPoolDataSource40;
 
 import org.apache.derbyTesting.junit.BaseJDBCTestCase;
 import org.apache.derbyTesting.junit.DatabasePropertyTestSetup;
@@ -94,19 +88,19 @@ import junit.framework.TestSuite;
  * 1.5]
  * 
  * #2) Note, if  server restricts the client connections based on security 
- * mechanism by setting derby.drda.securityMechanism, in that case the clients 
+ * mechanism by setting db.drda.securityMechanism, in that case the clients
  * will see an error similar to this:
  * "Connection authorization failure occurred. Reason: security mechanism not
  *  supported"
  *
  * #3) USRSSBPWD - Strong password substitute is only supported starting from
  *     Apache Derby 10.2.
- *	 NOTE: USRSSBPWD only works with the derby network client driver for now.
+ *	 NOTE: USRSSBPWD only works with the db network client driver for now.
  *   ---- 
  */
 public class NSSecurityMechanismTest extends BaseJDBCTestCase
 {
-    // values for derby.drda.securityMechanism property
+    // values for db.drda.securityMechanism property
     private static String[] derby_drda_securityMechanisms = {
         null, // not set 
         "USER_ONLY_SECURITY", "CLEAR_TEXT_PASSWORD_SECURITY",
@@ -201,7 +195,7 @@ public class NSSecurityMechanismTest extends BaseJDBCTestCase
      *  Test with datasource as well as DriverManager
      * Note, that with DERBY-928, the pass/fail for the connections will depend 
      * on the security mechanism specified at the server by property 
-     * derby.drda.securityMechanism.  Please check out the following
+     * db.drda.securityMechanism.  Please check out the following
      * html file http://issues.apache.org/jira/secure/attachment/12322971/Derby928_Table_SecurityMechanisms..htm
      * for a combination of url/security mechanisms and the expected results 
      */
@@ -289,7 +283,7 @@ public class NSSecurityMechanismTest extends BaseJDBCTestCase
             // Test cases with get connection via drivermanager and via
             // datasource, using different security mechanisms.
             // Network server supports SECMEC_USRIDPWD, SECMEC_USRIDONL,
-            // SECMEC_EUSRIDPWD and USRSSBPWD (derby network client only)
+            // SECMEC_EUSRIDPWD and USRSSBPWD (db network client only)
 
             assertConnectionsUsingDriverManager(
                 allDriverManagerExpectedValues[i]);
@@ -610,23 +604,23 @@ public class NSSecurityMechanismTest extends BaseJDBCTestCase
      * level comments (#1)
      * <BR>
      * The expected output from this test will depend on the following
-     * -- the client behavior. For the derby client, the table below 
+     * -- the client behavior. For the db client, the table below
      * represents what security mechanism the client will send to server. 
-     * -- Note: in case of derby client, if no user  is specified, user 
+     * -- Note: in case of db client, if no user  is specified, user
      * defaults to SPLICE.
      * -- Will depend on if the server has been started with property 
-     * derby.drda.securityMechanism and to the value it is set to.  See method
+     * db.drda.securityMechanism and to the value it is set to.  See method
      * (fixture) testNetworkServerSecurityMechanism() to check if server is 
-     * using the derby.drda.securityMechanism to restrict client connections
+     * using the db.drda.securityMechanism to restrict client connections
      * based on security mechanism. 
      * 
      TABLE with all different combinations of userid, password, security
-     mechanism of derby client that is covered by this testcase if test
+     mechanism of db client that is covered by this testcase if test
      is run against IBM15 and JDK15. 
 
      IBM15 supports eusridpwd, whereas SunJDK15 doesnt support EUSRIDPWD
 
-     Security Mechanisms supported by derby server and client
+     Security Mechanisms supported by db server and client
      ====================================================================
      |SecMec     |codepoint value|   User friendly name                  |
      ====================================================================
@@ -991,19 +985,19 @@ public class NSSecurityMechanismTest extends BaseJDBCTestCase
      * with initializing EncryptionManager will happen. This will happen for 
      * Sun JVM (versions 1.3.1, 1.4.1, 1.4.2, 1.5) and 
      * IBM JVM (versions 1.3.1 and some old versions of 1.4.2 (in 2004) )
-     * For derby client, the error message is 
+     * For db client, the error message is
      * "Security exception encountered, see next exception for details."
      * 2)If server does not accept EUSRIDPWD security mechanism from clients,then
      * error message will be "Connection authorization failure
      * occurred. Reason: security mechanism not supported"
-     * Note: #2 can happen if server is started with derby.drda.securityMechanism
+     * Note: #2 can happen if server is started with db.drda.securityMechanism
      * and thus restricts what security mechanisms the client can connect with.
-     * This will happen for the test run when derby.drda.securityMechanism is
+     * This will happen for the test run when db.drda.securityMechanism is
      * set, to a valid value other than ENCRYPTED_USER_AND_PASSWORD_SECURITY.
      * <br>
      * See testNetworkServerSecurityMechanism where this method is called to 
      * test for regression for DERBY-1080, and to check if server is using the
-     * derby.drda.securityMechanism to restrict client connections based on
+     * db.drda.securityMechanism to restrict client connections based on
      * the security mechanism.
      */
     private void assertDerby1080Fixed(String expectedValue)
@@ -1035,7 +1029,7 @@ public class NSSecurityMechanismTest extends BaseJDBCTestCase
     }
 
     /**
-     * Test SECMEC_USRSSBPWD with derby BUILTIN authentication turned ON.
+     * Test SECMEC_USRSSBPWD with db BUILTIN authentication turned ON.
      *
      * We want to test a combination of USRSSBPWD with BUILTIN as password
      * substitute is only supported with NONE or BUILTIN Derby authentication
@@ -1086,7 +1080,7 @@ public class NSSecurityMechanismTest extends BaseJDBCTestCase
 
         // Shutdown database for BUILTIN
         // authentication to take effect the next time it is
-        // booted - derby.connection.requireAuthentication is a
+        // booted - db.connection.requireAuthentication is a
         // static property.
         assertConnectionUsingDriverManager(getJDBCUrl(
             "user=SPLICE;password=SPLICE;shutdown=true;securityMechanism=" +

@@ -23,16 +23,16 @@ package org.apache.derbyTesting.functionTests.util;
 
 import java.util.Properties;
 
-import org.apache.derby.iapi.error.PublicAPI;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.conn.ConnectionUtil;
-import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
-import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
-import org.apache.derby.iapi.sql.dictionary.DataDictionary;
-import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
-import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
-import org.apache.derby.iapi.store.access.ConglomerateController;
-import org.apache.derby.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.error.PublicAPI;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.store.access.ConglomerateController;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 
 /**
  * This class extends PropertyInfo to provide support for viewing ALL

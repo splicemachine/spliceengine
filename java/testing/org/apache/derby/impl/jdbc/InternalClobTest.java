@@ -25,12 +25,11 @@ package org.apache.derby.impl.jdbc;
 import java.io.EOFException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
-import java.lang.reflect.Type;
-import java.sql.Blob;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.types.Resetable;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.types.Resetable;
+import com.splicemachine.db.impl.jdbc.InternalClob;
 import org.apache.derbyTesting.functionTests.util.streams.ByteAlphabet;
 import org.apache.derbyTesting.functionTests.util.streams.LoopingAlphabetStream;
 import org.apache.derbyTesting.junit.BaseJDBCTestCase;
@@ -49,7 +48,7 @@ import junit.framework.TestCase;
 import junit.framework.TestSuite;
 
 /**
- * A set of tests for the {@link org.apache.derby.impl.jdbc.InternalClob}
+ * A set of tests for the {@link com.splicemachine.db.impl.jdbc.InternalClob}
  * interface.
  * <p>
  * The tests are split into two categories; read-only and modifying tests. The

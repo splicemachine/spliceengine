@@ -100,7 +100,7 @@ public class Sed
         // deleteLines for stack traces from j9 jvm to match those above for other jvms
         deleteLines.addElement("Stack trace:");	
         deleteLines.addElement("^.*java/.*\\<init\\>\\(.*\\)V");
-        deleteLines.addElement("^.*org/apache/derby/.*\\(.*\\).*$");	
+        deleteLines.addElement("^.*org/apache/db/.*\\(.*\\).*$");
         // next for j9 stack trace with jarfiles test run.
         deleteLines.addElement("^.*java/.*\\(.*\\).*$");
         deleteLines.addElement("^\\[.*db2jcc.jar\\] [0-9].[1-9] - .*$");	

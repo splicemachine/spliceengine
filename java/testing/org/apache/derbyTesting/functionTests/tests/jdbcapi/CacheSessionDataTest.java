@@ -449,9 +449,9 @@ public class CacheSessionDataTest extends BaseJDBCTestCase {
     }
     
     private void verifyCachedSchema(Connection c) throws SQLException {
-        if (c instanceof org.apache.derby.client.am.Connection) {
+        if (c instanceof com.splicemachine.db.client.am.Connection) {
             String cached =
-                    ((org.apache.derby.client.am.Connection) c).
+                    ((com.splicemachine.db.client.am.Connection) c).
                     getCurrentSchemaName();
             Statement s = c.createStatement();
             ResultSet rs = s.executeQuery("VALUES CURRENT SCHEMA");

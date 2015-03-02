@@ -23,8 +23,7 @@ package org.apache.derbyTesting.functionTests.tests.jdbcapi;
 
 import java.sql.*;
 
-import org.apache.derby.tools.ij;
-import org.apache.derby.tools.JDBCDisplayUtil;
+import com.splicemachine.db.tools.ij;
 
 import org.apache.derbyTesting.functionTests.util.TestUtil;
 

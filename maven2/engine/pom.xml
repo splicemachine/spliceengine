@@ -18,65 +18,67 @@
   under the License.
   -->
 <project
-    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
-    xmlns="http://maven.apache.org/POM/4.0.0"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <modelVersion>4.0.0</modelVersion>
-  <groupId>org.apache.derby</groupId>
-  <parent>
+        xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+        xmlns="http://maven.apache.org/POM/4.0.0"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <modelVersion>4.0.0</modelVersion>
     <groupId>org.apache.derby</groupId>
-    <artifactId>derby-project</artifactId>
-    <version>1.1.0-SNAPSHOT</version>
-  </parent>
-  <artifactId>derby</artifactId>
-  <name>Apache Derby Database Engine and Embedded JDBC Driver</name>
-  <description>Contains the core Apache Derby database engine, which also includes the embedded JDBC driver.</description>
-  <build>
-    <plugins>
-     <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-javadoc-plugin</artifactId>
-        <version>2.9</version>
-        <configuration>        
-          <source>1.5</source>
-        </configuration>
-      </plugin>
-      
-        <plugin>
-            <artifactId>maven-antrun-plugin</artifactId>
-            <executions>
-                <execution>
-                    <phase>package</phase>
-                    <configuration>
-                        <tasks>
-                        
-                        <jar destfile="${basedir}/target/${project.build.finalName}.jar">
-    			<zipfileset src="${basedir}/../../jars/${sanity}/derby.jar" excludes="org/apache/derby/modules.properties"/>
-			</jar>
-                        <jar destfile="${basedir}/target/${project.build.finalName}-sources.jar">
-                         <fileset dir="${basedir}/../../java/engine"/>   
-                         <fileset dir="${basedir}/../../generated/java"/>                         
-			</jar>
-                        </tasks>
-                    </configuration>
-                    <goals>
-                        <goal>run</goal>
-                    </goals>
-                </execution>
-            </executions>
-        </plugin>
-	    <plugin>
-          <artifactId>maven-source-plugin</artifactId>
-          <executions>
-            <execution>
-              <id>attach-sources</id>
-              <phase>verify</phase>
-              <goals>
-                <goal>jar</goal>
-              </goals>
-            </execution>
-          </executions>
-	    </plugin>
-    </plugins>
-  </build>
+    <parent>
+        <groupId>org.apache.derby</groupId>
+        <artifactId>derby-project</artifactId>
+        <version>1.1.0.1-SNAPSHOT</version>
+    </parent>
+    <artifactId>derby</artifactId>
+    <name>Apache Derby Database Engine and Embedded JDBC Driver</name>
+    <description>Contains the core Apache Derby database engine, which also includes the embedded JDBC driver.
+    </description>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>2.9</version>
+                <configuration>
+                    <source>1.5</source>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <configuration>
+                            <tasks>
+
+                                <jar destfile="${basedir}/target/${project.build.finalName}.jar">
+                                    <zipfileset src="${basedir}/../../jars/${sanity}/derby.jar"
+                                                excludes="com/splicemachine/db/modules.properties"/>
+                                </jar>
+                                <jar destfile="${basedir}/target/${project.build.finalName}-sources.jar">
+                                    <fileset dir="${basedir}/../../java/engine"/>
+                                    <fileset dir="${basedir}/../../generated/java"/>
+                                </jar>
+                            </tasks>
+                        </configuration>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-source-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>

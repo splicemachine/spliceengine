@@ -111,7 +111,7 @@ abstract class MBeanTest extends BaseJDBCTestCase {
          * FilePermission on all files (at least Java executables)...
          * Will run without SecurityManager for now, but could probably add a 
          * JMX specific policy file later. Or use the property trick reported
-         * on derby-dev 2008-02-26 and add the permission to the generic 
+         * on db-dev 2008-02-26 and add the permission to the generic
          * policy.
          * Note that the remote server will be running with a security
          * manager (by default) if testing with jars.
@@ -255,7 +255,7 @@ abstract class MBeanTest extends BaseJDBCTestCase {
     @SuppressWarnings("unchecked")
     protected Set<ObjectName> getDerbyDomainMBeans() throws Exception
     {
-        final ObjectName derbyDomain = new ObjectName("org.apache.derby:*");
+        final ObjectName derbyDomain = new ObjectName("com.splicemachine.db:*");
         final MBeanServerConnection serverConn = getMBeanServerConnection(); 
         
         return  (Set<ObjectName>) AccessController.doPrivileged(
@@ -279,7 +279,7 @@ abstract class MBeanTest extends BaseJDBCTestCase {
          * can be created/registered from a JMX client, and without knowing the
          * system identifier */
         final ObjectName mgmtObjName 
-                = new ObjectName("org.apache.derby", "type", "Management");
+                = new ObjectName("com.splicemachine.db", "type", "Management");
         // create/register the MBean. If the same MBean has already been
         // registered with the MBeanServer, that MBean will be referenced.
         //ObjectInstance mgmtObj = 
@@ -291,7 +291,7 @@ abstract class MBeanTest extends BaseJDBCTestCase {
                 new PrivilegedExceptionAction<Object>() {
                     public Object run() throws InstanceAlreadyExistsException, MBeanRegistrationException, NotCompliantMBeanException, ReflectionException, MBeanException, IOException {
                         serverConn.createMBean(
-                                "org.apache.derby.mbeans.Management", 
+                                "com.splicemachine.db.mbeans.Management",
                                 mgmtObjName);
                         return null;
                    }   
@@ -304,7 +304,7 @@ abstract class MBeanTest extends BaseJDBCTestCase {
     
     /**
      * Get the ObjectName for an MBean registered by Derby for a set of
-     * key properties. The ObjectName has the domain org.apache.derby, and
+     * key properties. The ObjectName has the domain com.splicemachine.db, and
      * the key property <code>system</code> will be set to the system identifier
      * for the Derby system under test (if Derby is running).
      * @param keyProperties Set of key properties, may be modified by this call.
@@ -317,7 +317,7 @@ abstract class MBeanTest extends BaseJDBCTestCase {
                   getAttribute(getApplicationManagementMBean(), "SystemIdentifier");
         if (systemIdentifier != null)
             keyProperties.put("system", systemIdentifier);
-        return new ObjectName("org.apache.derby", keyProperties);
+        return new ObjectName("com.splicemachine.db", keyProperties);
     }
     
     /**

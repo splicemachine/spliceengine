@@ -27,8 +27,8 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Date;
 
-import org.apache.derby.tools.JDBCDisplayUtil;
-import org.apache.derby.tools.ij;
+import com.splicemachine.db.tools.JDBCDisplayUtil;
+import com.splicemachine.db.tools.ij;
 import org.apache.derbyTesting.system.sttest.tools.MemCheck;
 
 /**
@@ -40,7 +40,7 @@ public class CompressTable {
 	
 	static String dbURL = "jdbc:derby:testDB";
 	
-	static String driver = "org.apache.derby.jdbc.EmbeddedDriver";
+	static String driver = "com.splicemachine.db.jdbc.EmbeddedDriver";
 	
 	public static void main(String[] args) throws SQLException, IOException,
 	InterruptedException, Exception, Throwable {

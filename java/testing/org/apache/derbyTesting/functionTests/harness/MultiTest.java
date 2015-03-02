@@ -30,10 +30,10 @@ import java.io.FileInputStream;
 import java.io.BufferedInputStream;
 import java.util.Vector;
 import java.util.Enumeration;
-import org.apache.derby.impl.tools.ij.*;
+import com.splicemachine.db.impl.tools.ij.*;
 
-import org.apache.derby.iapi.tools.i18n.LocalizedResource;
-import org.apache.derby.iapi.tools.i18n.LocalizedOutput;
+import com.splicemachine.db.iapi.tools.i18n.LocalizedResource;
+import com.splicemachine.db.iapi.tools.i18n.LocalizedOutput;
 import org.apache.derbyTesting.functionTests.util.TestUtil;
 
 

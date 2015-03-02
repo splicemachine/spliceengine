@@ -34,7 +34,7 @@ case "`uname`" in
 esac
 
 if [ -z "$DERBY_HOME" -o ! -d "$DERBY_HOME" ] ; then
-  ## resolve links - $0 may be a link to derby's home
+  ## resolve links - $0 may be a link to db's home
   PRG="$0"
   progname=`basename "$0"`
 
@@ -93,11 +93,11 @@ LOCALCLASSPATH=$DERBY_LIB/derby.jar:$DERBY_LIB/derbynet.jar:$DERBY_LIB/derbytool
 
 
 # if CLASSPATH_OVERRIDE env var is set, LOCALCLASSPATH will be
-# user CLASSPATH first and derby-found jars after.
-# In that case, the user CLASSPATH will override derby-found jars
+# user CLASSPATH first and db-found jars after.
+# In that case, the user CLASSPATH will override db-found jars
 #
 # if CLASSPATH_OVERRIDE is not set, we'll have the normal behaviour
-# with derby-found jars first and user CLASSPATH after
+# with db-found jars first and user CLASSPATH after
 if [ -n "$CLASSPATH" ] ; then
   # merge local and specified classpath 
   if [ -z "$LOCALCLASSPATH" ] ; then 

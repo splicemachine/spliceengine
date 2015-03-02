@@ -39,27 +39,27 @@ import org.apache.derbyTesting.junit.TestConfiguration;
  */
 public class TestPreInitSlave extends ClientRunner
 {
-    
+
     public TestPreInitSlave(String testcaseName)
     {
         super(testcaseName);
     }
-    
+
     public static Test suite()
-        throws Exception
+            throws Exception
     {
         System.out.println("**** TestPreInitSlave.suite()");
-        
+
         initEnvironment();
-        
+
         // String masterHostName = System.getProperty("test.serverHost", "localhost");
         // int masterPortNo = Integer.parseInt(System.getProperty("test.serverPort", "1527"));
-        
+
         TestSuite suite = new TestSuite("TestPreInitSlave");
-                
+
         suite.addTest(TestPreInitSlave.suite(slaveServerHost, slaveServerPort));
         System.out.println("*** Done suite.addTest(TestPreInitSlave.suite())");
-        
+
         return (Test)suite;
     }
 
@@ -69,30 +69,30 @@ public class TestPreInitSlave extends ClientRunner
     public static Test suite(String serverHost, int serverPort)
     {
         System.out.println("*** TestPreInitSlave.suite(serverHost,serverPort)");
-     
+
         Test t = TestConfiguration.existingServerSuite(TestPreInitSlave.class,false,serverHost,serverPort);
         System.out.println("*** Done TestConfiguration.existingServerSuite(TestPreInitSlave.class,false,serverHost,serverPort)");
         return t;
-   }
+    }
 
-    
+
     /**
      *
      *
      * @throws SQLException, IOException, InterruptedException
      */
     public void test()
-    throws SQLException, IOException, InterruptedException
+            throws SQLException, IOException, InterruptedException
     {
         System.out.println("**** TestPreInitSlave.testStartSlaveConnect_OK() "+
                 getTestConfiguration().getJDBCClient().getJDBCDriverName());
         String db = null;
         String connectionURL = null;
         Connection conn = null;
-        
+
         // 1.  stopMaster on master: fail
         db = masterDatabasePath +"/"+ReplicationRun.masterDbSubPath +"/"+ replicatedDb;
-        connectionURL = "jdbc:derby:"  
+        connectionURL = "jdbc:derby:"
                 + "//" + masterServerHost + ":" + masterServerPort + "/"
                 + db
                 + ";stopMaster=true";
@@ -112,10 +112,10 @@ public class TestPreInitSlave extends ClientRunner
             assertSQLState("stopMaster on master failed: " + connectionURL + " " + msg, "XRE07", se);
             System.out.println("stopMaster on master failed as expected: " + connectionURL + " " + msg);
         }
-        
+
         // 2. stopSlave on slave: fail
         db = slaveDatabasePath +"/"+ReplicationRun.slaveDbSubPath +"/"+ replicatedDb;
-        connectionURL = "jdbc:derby:"  
+        connectionURL = "jdbc:derby:"
                 + "//" + slaveServerHost + ":" + slaveServerPort + "/"
                 + db
                 + ";stopSlave=true";
@@ -136,11 +136,11 @@ public class TestPreInitSlave extends ClientRunner
             assertSQLState("stopSlave on slave failed: " + connectionURL + " " + msg, "08004", se);
             System.out.println("stopSlave on slave failed as expected: " + connectionURL + " " + msg);
         }
-        
+
     }
-    
+
     public void verifyTestStartSlaveConnect_OK()
-    throws SQLException, IOException, InterruptedException
+            throws SQLException, IOException, InterruptedException
     {
 
     }

@@ -87,7 +87,7 @@ public class SQLAuthorizationPropTest extends BaseJDBCTestCase {
     
 	/**
 	 * This method tests that grant/revoke is not available if 
-	 * derby.database.sqlAuthorization property is not set.
+	 * db.database.sqlAuthorization property is not set.
 	 * 
 	 * @throws SQLException
 	 */
@@ -112,7 +112,7 @@ public class SQLAuthorizationPropTest extends BaseJDBCTestCase {
 	
 	/**
 	 * This method tests that grant/revoke is available 
-	 * once derby.database.sqlAuthorization property is set to true.
+	 * once db.database.sqlAuthorization property is set to true.
 	 * 
 	 * @throws SQLException
 	 */
@@ -125,10 +125,10 @@ public class SQLAuthorizationPropTest extends BaseJDBCTestCase {
 	}
 	
 	/**
-	 * This method tests that once derby.database.sqlAuthorization property 
+	 * This method tests that once db.database.sqlAuthorization property
 	 * has been set to true, it cannot be reset to any other value. For the 
 	 * test to be valid, it must follow the test method which sets 
-	 * derby.database.sqlAuthorization property to true.
+	 * db.database.sqlAuthorization property to true.
 	 * 
 	 * @throws SQLException
 	 */

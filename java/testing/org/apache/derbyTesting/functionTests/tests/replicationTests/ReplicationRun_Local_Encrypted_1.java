@@ -24,7 +24,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import junit.framework.Test;
 import junit.framework.TestSuite;
-import org.apache.derby.jdbc.ClientDataSource;
+import com.splicemachine.db.jdbc.ClientDataSource;
 import org.apache.derbyTesting.junit.SecurityManagerSetup;
 
 
@@ -221,7 +221,7 @@ public class ReplicationRun_Local_Encrypted_1 extends ReplicationRun
         throws SQLException
     {
         util.DEBUG("_connectToSlave");
-        ClientDataSource ds = new org.apache.derby.jdbc.ClientDataSource();
+        ClientDataSource ds = new com.splicemachine.db.jdbc.ClientDataSource();
         ds.setDatabaseName(dbPath);
         ds.setServerName(slaveServerHost);
         ds.setPortNumber(slaveServerPort);

@@ -25,9 +25,9 @@ import java.sql.CallableStatement;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import junit.framework.Test;
-import org.apache.derby.client.am.stmtcache.JDBCStatementCache;
-import org.apache.derby.client.am.stmtcache.StatementKey;
-import org.apache.derby.client.am.stmtcache.StatementKeyFactory;
+import com.splicemachine.db.client.am.stmtcache.JDBCStatementCache;
+import com.splicemachine.db.client.am.stmtcache.StatementKey;
+import com.splicemachine.db.client.am.stmtcache.StatementKeyFactory;
 import org.apache.derbyTesting.junit.BaseJDBCTestCase;
 import org.apache.derbyTesting.junit.TestConfiguration;
 

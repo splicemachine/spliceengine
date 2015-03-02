@@ -24,8 +24,8 @@ package org.apache.derbyTesting.functionTests.tests.lang;
 import java.sql.SQLException;
 import java.util.Arrays;
 
-import org.apache.derby.vti.RestrictedVTI;
-import org.apache.derby.vti.Restriction;
+import com.splicemachine.db.vti.RestrictedVTI;
+import com.splicemachine.db.vti.Restriction;
 
 /**
  * A VTI which returns a row of ints.

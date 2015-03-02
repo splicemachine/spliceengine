@@ -168,9 +168,9 @@ call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SYSCS_DIAG', 'TRANSACTION_TABLE', 1);
 call SYSCS_UTIL.SYSCS_INPLACE_COMPRESS_TABLE('SYSCS_DIAG', 'TRANSACTION_TABLE', 1, 1, 1);
 
 -- ensure the old syntax still works until it is deprecated
-select xid from new org.apache.derby.diag.TransactionTable() AS t where 1 = 0;
-update new org.apache.derby.diag.TransactionTable() set xid = NULL;
-delete from new org.apache.derby.diag.TransactionTable() where 1 = 0;
+select xid from new com.splicemachine.db.diag.TransactionTable() AS t where 1 = 0;
+update new com.splicemachine.db.diag.TransactionTable() set xid = NULL;
+delete from new com.splicemachine.db.diag.TransactionTable() where 1 = 0;
 
 disconnect;
 

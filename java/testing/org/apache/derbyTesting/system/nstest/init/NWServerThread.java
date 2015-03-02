@@ -23,7 +23,7 @@ package org.apache.derbyTesting.system.nstest.init;
 import java.io.PrintWriter;
 import java.net.InetAddress;
 
-import org.apache.derby.drda.NetworkServerControl;
+import com.splicemachine.db.drda.NetworkServerControl;
 
 /**
  * NWServerThread: Start a Network Server in a new Thread, based on the

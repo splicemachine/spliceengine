@@ -21,17 +21,15 @@
 
 package org.apache.derbyTesting.functionTests.tests.management;
 
-import java.io.BufferedReader;
 import java.sql.DatabaseMetaData;
 import java.sql.Driver;
 import java.util.Hashtable;
 import javax.management.ObjectName;
+
+import com.splicemachine.db.jdbc.EmbeddedDriver;
 import junit.framework.Test;
 import junit.framework.Test;
 import junit.framework.TestSuite;
-
-import org.apache.derby.iapi.services.info.JVMInfo;
-import org.apache.derbyTesting.junit.Utilities;
 
 
 /**
@@ -53,17 +51,17 @@ import org.apache.derbyTesting.junit.Utilities;
  * error in JUnit).</p>
  */
 public class JDBCMBeanTest extends MBeanTest {
-    
+
     public JDBCMBeanTest(String name) {
         super(name);
     }
-    
+
     public static Test suite() {
-        
-        return MBeanTest.suite(JDBCMBeanTest.class, 
-                                        "JDBCMBeanTest");
+
+        return MBeanTest.suite(JDBCMBeanTest.class,
+                "JDBCMBeanTest");
     }
-    
+
     /**
      * <p>
      * Creates an object name instance for the MBean whose object name's textual
@@ -74,52 +72,52 @@ public class JDBCMBeanTest extends MBeanTest {
      * @return the object name representing Derby's JDBCMBean
      * @throws MalformedObjectNameException if the object name is not valid
      */
-    private ObjectName getJdbcMBeanObjectName() 
+    private ObjectName getJdbcMBeanObjectName()
             throws Exception {
-        
+
         // get a reference to the JDBCMBean instance
         Hashtable<String, String> keyProps = new Hashtable<String, String>();
         keyProps.put("type", "JDBC");
         return getDerbyMBeanName(keyProps);
     }
-    
+
     //
     // ---------- TEST FIXTURES ------------
     //
     // This MBean currently has only read-only attributes, which will be tested.
     // Expected operations will be invoked.
-    
-    
+
+
     public void testAttributeCompliantDriver() throws Exception {
         // we expect Derby's driver always to be JDBC compliant
         assertBooleanAttribute(true, getJdbcMBeanObjectName(), "CompliantDriver");
     }
-    
+
     public void testAttributeDriverLevel() throws Exception {
         // get JDBC version from DatabaseMetaData for comparison
         DatabaseMetaData dmd = getConnection().getMetaData();
 
         String JDBCVersion =
-            dmd.getJDBCMajorVersion() + "." +
-            dmd.getJDBCMinorVersion();
+                dmd.getJDBCMajorVersion() + "." +
+                        dmd.getJDBCMinorVersion();
 
         String driverLevelString = (String)getAttribute(
-            getJdbcMBeanObjectName(),
-            "DriverLevel");
+                getJdbcMBeanObjectName(),
+                "DriverLevel");
 
         println("DatabaseMetaDataJDBCLevel = " + JDBCVersion);
         println("MBean driverLevel  = " + driverLevelString);
 
         assertEquals(
-            "Unexpected driver level string: " + driverLevelString +
-            " JDBCVersion: " + JDBCVersion,
-            -1, driverLevelString.indexOf('?'));
+                "Unexpected driver level string: " + driverLevelString +
+                        " JDBCVersion: " + JDBCVersion,
+                -1, driverLevelString.indexOf('?'));
         assertTrue(
-            "Unexpected driver level string: " + driverLevelString +
-            " JDBCVersion: " + JDBCVersion,
-             driverLevelString.matches("^J.*SE.* - JDBC .*" + JDBCVersion));
+                "Unexpected driver level string: " + driverLevelString +
+                        " JDBCVersion: " + JDBCVersion,
+                driverLevelString.matches("^J.*SE.* - JDBC .*" + JDBCVersion));
     }
-    
+
     /**
      * <p>
      * Tests the MajorVersion attribute of the JDBCMBean. Will test that there
@@ -131,7 +129,7 @@ public class JDBCMBeanTest extends MBeanTest {
      * information is the same as the version information of the embedded driver
      * used in the JVM being instrumented using JMX (this may or may not be the
      * same JVM).</p>
-     * 
+     *
      * @throws java.lang.Exception if an error occurs, or if the test fails.
      */
     public void testAttributeMajorVersion() throws Exception {
@@ -140,11 +138,11 @@ public class JDBCMBeanTest extends MBeanTest {
          * this test configuration is client/server.
          * Assuming that the embedded driver is available in the classpath.
          */
-        Driver d = new org.apache.derby.jdbc.EmbeddedDriver();
+        Driver d = new EmbeddedDriver();
         int expected = d.getMajorVersion();
         assertIntAttribute(expected, getJdbcMBeanObjectName(), "MajorVersion");
     }
-    
+
     /**
      * <p>
      * Tests the MinorVersion attribute of the JDBCMBean. Will test that there
@@ -156,7 +154,7 @@ public class JDBCMBeanTest extends MBeanTest {
      * information is the same as the version information of the embedded driver
      * used in the JVM being instrumented using JMX (this may or may not be the
      * same JVM).</p>
-     * 
+     *
      * @throws java.lang.Exception if an error occurs, or if the test fails.
      */
     public void testAttributeMinorVersion() throws Exception {
@@ -165,7 +163,7 @@ public class JDBCMBeanTest extends MBeanTest {
          * this test configuration is client/server.
          * Assuming that DriverManager is available in the classpath.
          */
-        Driver d = new org.apache.derby.jdbc.EmbeddedDriver();
+        Driver d = new EmbeddedDriver();
         int expected = d.getMinorVersion();
         assertIntAttribute(expected, getJdbcMBeanObjectName(), "MinorVersion");
     }
@@ -176,18 +174,18 @@ public class JDBCMBeanTest extends MBeanTest {
         Object[] params = new Object[1];
         String[] signature = { "java.lang.String" };
         Boolean accepted;
-        
+
         // first, test that a simple valid embedded driver URL is accepted
         params[0] = "jdbc:derby:testDatabase";
         accepted = (Boolean)invokeOperation(objName, opName, params, signature);
         assertTrue("URL: " + params[0], accepted);
-                
+
         // then, test that a valid embedded URL with a number of attributes is
         // accepted
         params[0] = "jdbc:derby:testDB;create=true;user=tester;password=mypass";
         accepted = (Boolean)invokeOperation(objName, opName, params, signature);
         assertTrue("URL: " + params[0], accepted);
-        
+
         // then, check that an invalid URL is not accepted
         params[0] = "jdbc:invalidProtocol:newDatabase";
         accepted = (Boolean)invokeOperation(objName, opName, params, signature);

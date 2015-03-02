@@ -23,7 +23,7 @@ package org.apache.derbyTesting.functionTests.tests.junitTests.compatibility;
 
 import org.apache.derbyTesting.junit.BaseTestCase;
 
-import org.apache.derby.drda.NetworkServerControl;
+import com.splicemachine.db.drda.NetworkServerControl;
 
 import java.io.*;
 import java.util.*;
@@ -84,26 +84,24 @@ import org.apache.derbyTesting.junit.NetworkServerTestSetup;
  * # names of properties giving the full path to the actual jvms. 
  * jvm.versions=3
  * jvm.0=j14lib
- * jvm.1=j15lib
  * jvm.2=j16lib
  * 
  * # j13lib=/usr/local/java/jdk1.3/jre/lib
  * j14lib=/usr/local/java/jdk1.4/jre/lib
- * j15lib=/usr/local/java/jdk1.5/jre/lib
  * j16lib=/usr/local/java/jdk1.6/jre/lib
  * 
  * ##############################
  * # Derby versions to be used for server and client side:
  * #-----------------------------
- * # 'derby.versions' how many. 'derby.versionN=<descriptive_name>' defines 
+ * # 'db.versions' how many. 'db.versionN=<descriptive_name>' defines
  * # names of properties giving the full path to the actual Derby libraries. 
- * derby.versions=6
- * derby.version0=10.0.2.1
- * derby.version1=10.1.1.0
- * derby.version2=10.1.2.1
- * derby.version3=10.1.3.1
- * derby.version4=10.2.2.0
- * derby.version5=Trunk
+ * db.versions=6
+ * db.version0=10.0.2.1
+ * db.version1=10.1.1.0
+ * db.version2=10.1.2.1
+ * db.version3=10.1.3.1
+ * db.version4=10.2.2.0
+ * db.version5=Trunk
  * 
  * 10.0.2.1=/usr/local/share/java/javadb/JavaDB-10.0.2.1/lib
  * 10.1.1.0=/usr/local/share/java/javadb/JavaDB-10.1.1.0/lib
@@ -132,18 +130,18 @@ import org.apache.derbyTesting.junit.NetworkServerTestSetup;
  * # test.derbyTestingJar=/home/testuser/Derby/testSandbox/trunk/jars/insane/derbyTesting.jar
  * 
  * #-----------------------------
- * # Use one single derby version server, optional:
+ * # Use one single db version server, optional:
  * # test.singleServer=5
- * # 5 for derby.version5, which in this example maps to Trunk
+ * # 5 for db.version5, which in this example maps to Trunk
  * #-----------------------------
  * # Use one single jvm version server, optional:
  * # test.singleServerVM=2
  * # 2 for jvm.2, which in this example maps to j16lib
  * 
  * #-----------------------------
- * # Use one single derby version client, optional:
+ * # Use one single db version client, optional:
  * # test.singleClient=5
- * # for derby.version5, which in this example maps to Trunk
+ * # for db.version5, which in this example maps to Trunk
  #-----------------------------
  * # Use one single jvm version server, optional:
  * # test.singleClientVM=2
@@ -176,13 +174,13 @@ public class CompatibilityCombinations extends BaseTestCase
     private       static String securityProperty = ""; // Read from COMPATIBILITYTEST_PROPFILE. 
     
     private       static String[] derbyVersionNames = null; // Short names for 
-    private       static String[] derbyVerLibs = null;      // full paths to jar files for derby versions.
+    private       static String[] derbyVerLibs = null;      // full paths to jar files for db versions.
     private       static boolean[] derbySecurityEnabled = null;
     
     private       static String[] vmNames = null; // Short names for 
     private       static String[] VM_Ids = null;  // full paths to jvm lib directories.
     
-    private final static int DERBY_JAR = 0; // Index of derby.jar in derbyLib[DerbyVersion][]
+    private final static int DERBY_JAR = 0; // Index of db.jar in derbyLib[DerbyVersion][]
     private final static int DERBYCLIENT_JAR = DERBY_JAR +1; // ditto
     private final static int DERBYNET_JAR = DERBYCLIENT_JAR +1; // ditto
     private final static int DERBYTESTING_JAR = DERBYNET_JAR +1; // ditto
@@ -203,8 +201,8 @@ public class CompatibilityCombinations extends BaseTestCase
     /////////////
     private static String compatibilityTestSuite = null;
     //                             // The suite of tests run for each compatibility combination.
-    private final static String embeddedDriver = "org.apache.derby.jdbc.EmbeddedDriver";
-    private final static String networkServerControl = "org.apache.derby.drda.NetworkServerControl";
+    private final static String embeddedDriver = "com.splicemachine.db.jdbc.EmbeddedDriver";
+    private final static String networkServerControl = "com.splicemachine.db.drda.NetworkServerControl";
     private       static String specialTestingJar = null;
                                 // None null if using e.g. your own modified tests.
     /**
@@ -818,9 +816,9 @@ public class CompatibilityCombinations extends BaseTestCase
      *         <li>"jvm."+vm 
      *         <li>vmNames[vm] 
      *         </ul>
-     *     <li>derby.versions - number of derby versions each with:
+     *     <li>db.versions - number of db versions each with:
      *         <ul>
-     *         <li>"derby.version"+v 
+     *         <li>"derby.version"+v
      *         <li>derbyVersionNames[v] 
      *         <li>derbyVersionNames[v]+"_SA"
      *         </ul>
@@ -844,7 +842,7 @@ public class CompatibilityCombinations extends BaseTestCase
         InputStream isCp =  new FileInputStream(userDir + PS + realPropertyFile);
         Properties cp = new Properties();
         cp.load(isCp);
-        // Now we can get the derby versions, jvm versions paths etc.
+        // Now we can get the db versions, jvm versions paths etc.
         
         printDebug = cp.getProperty("test.printDebug","false").equalsIgnoreCase("true");
         System.out.println("printDebug: " + printDebug);
@@ -872,13 +870,13 @@ public class CompatibilityCombinations extends BaseTestCase
             cp.getProperty("test.latestOnly", "false").equalsIgnoreCase("true");
         System.out.println("latestOnly: " + latestOnly);
 
-        singleClient = cp.getProperty("test.singleClient",null); // E.g. 5 for derby.version5, see property file
+        singleClient = cp.getProperty("test.singleClient",null); // E.g. 5 for db.version5, see property file
         System.out.println("singleClient: " + singleClient);
         
         singleClientVM = cp.getProperty("test.singleClientVM",null); // E.g. 2 for jvm.2, see property file
         System.out.println("singleClientVM: " + singleClientVM);
         
-        singleServer = cp.getProperty("test.singleServer",null); // E.g. 5 for derby.version5, see property file
+        singleServer = cp.getProperty("test.singleServer",null); // E.g. 5 for db.version5, see property file
         System.out.println("singleServer: " + singleServer);
         
         singleServerVM = cp.getProperty("test.singleServerVM",null); // E.g. 2 for jvm.2, see property file
@@ -914,11 +912,11 @@ public class CompatibilityCombinations extends BaseTestCase
         {
             derbyVersionNames[v] = cp.getProperty("derby.version"+v);
           // Using the following name pattern:
-            // derby.version0=10.0.2.1
-            // derby.version1=10.1.1.0
+            // db.version0=10.0.2.1
+            // db.version1=10.1.1.0
             // ...
-            // derby.version4=10.2.2.0
-            // derby.version5=Trunk
+            // db.version4=10.2.2.0
+            // db.version5=Trunk
         }
         // Properties with these names then give the path to the appropriate libs:
         derbyVerLibs = new String[derbyVersions];
@@ -1315,7 +1313,7 @@ public class CompatibilityCombinations extends BaseTestCase
         final String[] commandElements = {clientJvm
                 , " -Dderby.infolog.append=true"
                 , " -cp ", clientClassPath
-                , " " + "org.apache.derby.tools.sysinfo"
+                , " " + "com.splicemachine.db.tools.sysinfo"
                 };
         final String[] envElements = {"CLASS_PATH="+clientClassPath
                 , "PATH="+VM_Ids[clientVM]+PS+".."+PS+"bin" // "/../bin""

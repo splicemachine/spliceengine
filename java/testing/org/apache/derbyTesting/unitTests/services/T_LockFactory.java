@@ -21,16 +21,17 @@
 
 package org.apache.derbyTesting.unitTests.services;
 
+import com.splicemachine.db.iapi.reference.Module;
 import org.apache.derbyTesting.unitTests.harness.T_MultiIterations;
 import org.apache.derbyTesting.unitTests.harness.T_Fail;
 
-import org.apache.derby.iapi.services.locks.*;
+import com.splicemachine.db.iapi.services.locks.*;
 
-import org.apache.derby.iapi.services.monitor.Monitor;
+import com.splicemachine.db.iapi.services.monitor.Monitor;
 
-import org.apache.derby.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.reference.SQLState;
 
-import org.apache.derby.iapi.error.StandardException;
+import com.splicemachine.db.iapi.error.StandardException;
 
 /**
 	Protocol unit test for the LockManager.
@@ -55,7 +56,7 @@ public class T_LockFactory extends T_MultiIterations
 
 	protected String getModuleToTestProtocolName() {
 
-		return org.apache.derby.iapi.reference.Module.LockFactory;
+		return Module.LockFactory;
 	}
 
 	/**

@@ -1126,7 +1126,7 @@ public class AutoGenJDBC30Test extends BaseJDBCTestCase {
         ps.executeUpdate();
         assertNull("Expected NULL ResultSet after ps.executeUpdate()", 
                 ps.getGeneratedKeys());       
-       // No columnIndexes yet for derby client. 
+       // No columnIndexes yet for db client.
        if (usingDerbyNetClient())
             return;
        
@@ -1194,7 +1194,7 @@ public class AutoGenJDBC30Test extends BaseJDBCTestCase {
         assertNull("Expected NULL ResultSet after ps.executeUpdate()", 
             ps.getGeneratedKeys());
         
-       // No columnIndexes yet for derby client. 
+       // No columnIndexes yet for db client.
        if (usingDerbyNetClient())
             return;
        

@@ -29,8 +29,8 @@
 # 1. mkdir -p ${TOPDIR}/${TESTSET}; chmod go+rx ${TOPDIR}/${TESTSET}
 # 2. mkdir ${DERBYDIR}; chmod go+rx ${DERBYDIR}
 # 3. cd ${DERBYDIR}
-# 4. Now checkout the Derby source (See http://db.apache.org/derby/derby_downloads.html).
-#    E.g. 'svn checkout https://svn.apache.org/repos/asf/db/derby/code/${BRANCH_DIR}'
+# 4. Now checkout the Derby source (See http://db.apache.org/db/derby_downloads.html).
+#    E.g. 'svn checkout https://svn.apache.org/repos/asf/db/db/code/${BRANCH_DIR}'
 # 5. TEMPLATEDIR=${DERBYDIR}/${BRANCH_DIR}/tools/testing/reporting/TEMPLATES
 # 6. cp ${TEMPLATEDIR}/env.sh ./
 # 7. cp ${TEMPLATEDIR}/testenv.sh ./

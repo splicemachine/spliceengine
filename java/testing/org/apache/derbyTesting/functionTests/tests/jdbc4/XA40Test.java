@@ -32,9 +32,9 @@ import javax.sql.XAConnection;
 import javax.sql.XADataSource;
 import javax.transaction.xa.XAResource;
 
-import org.apache.derby.iapi.jdbc.BrokeredStatement40;
-import org.apache.derby.iapi.jdbc.BrokeredPreparedStatement40;
-import org.apache.derby.iapi.jdbc.BrokeredCallableStatement40;
+import com.splicemachine.db.iapi.jdbc.BrokeredStatement40;
+import com.splicemachine.db.iapi.jdbc.BrokeredPreparedStatement40;
+import com.splicemachine.db.iapi.jdbc.BrokeredCallableStatement40;
 
 
 /**

@@ -21,7 +21,6 @@
 
 package org.apache.derbyTesting.functionTests.tests.lang;
 
-import java.math.BigDecimal;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -29,13 +28,11 @@ import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
-import java.sql.Timestamp;
 import java.util.HashMap;
 
 import junit.framework.Test;
 import junit.framework.TestSuite;
 
-import org.apache.derbyTesting.junit.BaseJDBCTestCase;
 import org.apache.derbyTesting.junit.TestConfiguration;
 import org.apache.derbyTesting.junit.CleanDatabaseTestSetup;
 import org.apache.derbyTesting.junit.JDBC;
@@ -725,10 +722,10 @@ public class UDTTest  extends GeneratedColumnsHelper
             (
              conn,
              "select aliasinfo from sys.sysaliases\n",
-             "org.apache.derby.catalog.AliasInfo",
+             "com.splicemachine.db.catalog.AliasInfo",
              15,
              java.sql.Types.JAVA_OBJECT,
-             "org.apache.derby.catalog.AliasInfo",
+             "com.splicemachine.db.catalog.AliasInfo",
              0,
              0
              );
@@ -962,8 +959,8 @@ public class UDTTest  extends GeneratedColumnsHelper
         expectCompilationError( ILLEGAL_UDT_CLASS, "create type java_string external name 'java.sql.Ref' language java\n" );
         expectCompilationError( ILLEGAL_UDT_CLASS, "create type java_string external name 'java.sql.Time' language java\n" );
         expectCompilationError( ILLEGAL_UDT_CLASS, "create type java_string external name 'java.sql.Timestamp' language java\n" );
-        expectCompilationError( ILLEGAL_UDT_CLASS, "create type java_string external name 'org.apache.derby.iapi.types.XML' language java\n" );
-        expectCompilationError( ILLEGAL_UDT_CLASS, "create type java_string external name 'org.apache.derby.Foo' language java\n" );
+        expectCompilationError( ILLEGAL_UDT_CLASS, "create type java_string external name 'com.splicemachine.db.iapi.types.XML' language java\n" );
+        expectCompilationError( ILLEGAL_UDT_CLASS, "create type java_string external name 'com.splicemachine.db.Foo' language java\n" );
     }
     private int vetDatatypeCount( Connection conn ) throws Exception
     {
@@ -974,7 +971,7 @@ public class UDTTest  extends GeneratedColumnsHelper
 
         expectedTypeCount--; // eliminate JAVA_OBJECT
 
-        int actualTypeCount = org.apache.derby.iapi.types.TypeId.getAllBuiltinTypeIds().length;
+        int actualTypeCount = com.splicemachine.db.iapi.types.TypeId.getAllBuiltinTypeIds().length;
         actualTypeCount--;  // eliminate TINYINT
         actualTypeCount--;  // eliminate REF
         actualTypeCount++;  // add FLOAT (synonym of REAL)

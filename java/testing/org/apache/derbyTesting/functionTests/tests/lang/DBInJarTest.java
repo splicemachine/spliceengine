@@ -54,42 +54,42 @@ public class DBInJarTest extends BaseJDBCTestCase {
     public void testConnectDBInJar() throws SQLException
     {
         //      Create database to be jarred up.
-        
+
         Connection beforejarconn = DriverManager.getConnection("jdbc:derby:testjardb;create=true");
-        Statement bjstmt = beforejarconn.createStatement();  
+        Statement bjstmt = beforejarconn.createStatement();
         bjstmt.executeUpdate("CREATE TABLE TAB (I INT)");
         bjstmt.executeUpdate("INSERT INTO TAB VALUES(1)");
         shutdownDB("jdbc:derby:testjardb;shutdown=true");
         Statement stmt = createStatement();
-        
+
         stmt.executeUpdate("CALL CREATEARCHIVE('testjardb.jar', 'testjardb','testjardb')");
         Connection jarconn = DriverManager.getConnection("jdbc:derby:jar:(testjardb.jar)testjardb");
         Statement s = jarconn.createStatement();
-        
+
         // try to read from a table.
         ResultSet rs = s.executeQuery("SELECT * from TAB");
         JDBC.assertSingleValueResultSet(rs, "1");
-        
+
         // Try dbmetadata call. DERBY-3546
-       rs = jarconn.getMetaData().getSchemas();
-       String[][] expectedRows = {{"SPLICE",null},
-               {"NULLID",null},
-               {"SQLJ",null},
-               {"SYS",null},
-               {"SYSCAT",null},
-               {"SYSCS_DIAG",null},
-               {"SYSCS_UTIL",null},
-               {"SYSFUN",null},
-               {"SYSIBM",null},
-               {"SYSPROC",null},
-               {"SYSSTAT",null}};
-       JDBC.assertFullResultSet(rs, expectedRows);
-       shutdownDB("jdbc:derby:jar:(testjardb.jar)testjardb;shutdown=true");
-              
-       // cleanup databases
-      File jarreddb = new File(System.getProperty("derby.system.home") + "/testjardb.jar");
-      assertTrue("failed deleting " + jarreddb.getPath(),jarreddb.delete());
-      removeDirectory(new File(System.getProperty("derby.system.home") + "/testjardb" ));
+        rs = jarconn.getMetaData().getSchemas();
+        String[][] expectedRows = {{"SPLICE",null},
+                {"NULLID",null},
+                {"SQLJ",null},
+                {"SYS",null},
+                {"SYSCAT",null},
+                {"SYSCS_DIAG",null},
+                {"SYSCS_UTIL",null},
+                {"SYSFUN",null},
+                {"SYSIBM",null},
+                {"SYSPROC",null},
+                {"SYSSTAT",null}};
+        JDBC.assertFullResultSet(rs, expectedRows);
+        shutdownDB("jdbc:derby:jar:(testjardb.jar)testjardb;shutdown=true");
+
+        // cleanup databases
+        File jarreddb = new File(System.getProperty("derby.system.home") + "/testjardb.jar");
+        assertTrue("failed deleting " + jarreddb.getPath(),jarreddb.delete());
+        removeDirectory(new File(System.getProperty("derby.system.home") + "/testjardb" ));
     }
 
 
@@ -101,7 +101,7 @@ public class DBInJarTest extends BaseJDBCTestCase {
             assertSQLState("08006", se);
         }
     }
-    
+
     /**
      * Test various queries that use a hash table that may be spilled to disk
      * if it grows too big. Regression test case for DERBY-2354.
@@ -110,7 +110,7 @@ public class DBInJarTest extends BaseJDBCTestCase {
         createDerby2354Database();
 
         Connection jarConn =
-            DriverManager.getConnection("jdbc:derby:jar:(d2354db.jar)d2354db");
+                DriverManager.getConnection("jdbc:derby:jar:(d2354db.jar)d2354db");
 
         Statement stmt = jarConn.createStatement();
 
@@ -130,14 +130,14 @@ public class DBInJarTest extends BaseJDBCTestCase {
         // the inner table in the hash join.
         JDBC.assertEmpty(stmt.executeQuery(
                 "select * from --DERBY-PROPERTIES joinOrder = FIXED\n" +
-                "sysibm.sysdummy1 t1(x),\n" +
-                "d2354 t2 --DERBY-PROPERTIES joinStrategy = HASH\n" +
-                "where t1.x = t2.x"));
+                        "sysibm.sysdummy1 t1(x),\n" +
+                        "d2354 t2 --DERBY-PROPERTIES joinStrategy = HASH\n" +
+                        "where t1.x = t2.x"));
 
         // Scrollable result sets keep the rows they've visited in a hash
         // table, so they may also need to store data on disk temporarily.
         Statement scrollStmt = jarConn.createStatement(
-            ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+                ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
         JDBC.assertDrainResults(
                 scrollStmt.executeQuery("select * from d2354"),
                 40000);
@@ -149,7 +149,7 @@ public class DBInJarTest extends BaseJDBCTestCase {
         // Cleanup. Shut down the database and delete it.
         shutdownDB("jdbc:derby:jar:(d2354db.jar)d2354db;shutdown=true");
         removeFiles(new String[] {
-            System.getProperty("derby.system.home") + "/d2354db.jar"
+                System.getProperty("derby.system.home") + "/d2354db.jar"
         });
     }
 
@@ -159,7 +159,7 @@ public class DBInJarTest extends BaseJDBCTestCase {
     private void createDerby2354Database() throws SQLException {
         // First create an ordinary database with a table.
         Connection conn =
-            DriverManager.getConnection("jdbc:derby:d2354db;create=true");
+                DriverManager.getConnection("jdbc:derby:d2354db;create=true");
         conn.setAutoCommit(false);
         Statement s = conn.createStatement();
         s.execute("create table d2354 (x varchar(100))");
@@ -170,9 +170,9 @@ public class DBInJarTest extends BaseJDBCTestCase {
         // the DISTINCT query in the test, and thereby increase the likelihood
         // of spilling to disk.
         PreparedStatement insert =
-            conn.prepareStatement(
-                "insert into d2354 values ? || " +
-                "'some extra data to increase the size of the table'");
+                conn.prepareStatement(
+                        "insert into d2354 values ? || " +
+                                "'some extra data to increase the size of the table'");
         for (int i = 0; i < 40000; i++) {
             insert.setInt(1, i);
             insert.executeUpdate();
@@ -186,20 +186,20 @@ public class DBInJarTest extends BaseJDBCTestCase {
         shutdownDB("jdbc:derby:d2354db;shutdown=true");
 
         createStatement().execute(
-            "CALL CREATEARCHIVE('d2354db.jar', 'd2354db', 'd2354db')");
+                "CALL CREATEARCHIVE('d2354db.jar', 'd2354db', 'd2354db')");
 
         // Clean up the original database directory. We don't need it anymore
         // now that we have archived it in a jar file.
         removeDirectory(
-            new File(System.getProperty("derby.system.home") + "/d2354db"));
+                new File(System.getProperty("derby.system.home") + "/d2354db"));
     }
-    
+
     protected static Test baseSuite(String name) {
         TestSuite suite = new TestSuite(name);
         suite.addTestSuite(DBInJarTest.class);
         // Don't run with security manager, we need access to user.dir to archive
         // the database.
-        return new CleanDatabaseTestSetup(SecurityManagerSetup.noSecurityManager(suite)) 
+        return new CleanDatabaseTestSetup(SecurityManagerSetup.noSecurityManager(suite))
         {
             /**
              * Creates the procedure used in the test cases.
@@ -212,16 +212,16 @@ public class DBInJarTest extends BaseJDBCTestCase {
                         " LANGUAGE JAVA PARAMETER STYLE JAVA" +
                         " NO SQL" +
                         " EXTERNAL NAME 'org.apache.derbyTesting.functionTests.tests.lang.dbjarUtil.createArchive'");
-                
-                
+
+
             }
         };
     }
-    
+
     public static Test suite() {
-        TestSuite suite = new TestSuite("DBInJarTest");      
+        TestSuite suite = new TestSuite("DBInJarTest");
         suite.addTest(baseSuite("DBInJarTest:embedded"));
         return suite;
-    
+
     }
 }

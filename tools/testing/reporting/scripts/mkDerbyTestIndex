@@ -94,7 +94,7 @@ echo "<body>" >> ${DTI}
 
 if [ "$1" != "details" ]
 then
-  # echo "<br><font size=\"+1\"><b><a href=\"http://db.apache.org/derby\" target=\"_top\">Apache Derby</a></b></font> is an open source, 100% Java SQL Database." >> ${DTI}
+  # echo "<br><font size=\"+1\"><b><a href=\"http://db.apache.org/db\" target=\"_top\">Apache Derby</a></b></font> is an open source, 100% Java SQL Database." >> ${DTI}
 
 
   echo "<table style=\"text-align: left; width: 100%;\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\">" >> ${DTI}

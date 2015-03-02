@@ -21,8 +21,7 @@
 
 package org.apache.derbyTesting.unitTests.harness;
 
-import org.apache.derbyTesting.unitTests.harness.UnitTest;
-import org.apache.derby.iapi.services.stream.HeaderPrintWriter;
+import com.splicemachine.db.iapi.services.stream.HeaderPrintWriter;
 
 // For testing
 //import java.io.OutputStreamWriter;

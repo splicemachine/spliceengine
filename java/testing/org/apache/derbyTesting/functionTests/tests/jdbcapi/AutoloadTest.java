@@ -34,7 +34,7 @@ import junit.extensions.TestSetup;
 import junit.framework.Test;
 import junit.framework.TestSuite;
 
-import org.apache.derby.drda.NetworkServerControl;
+import com.splicemachine.db.drda.NetworkServerControl;
 import org.apache.derbyTesting.junit.BaseJDBCTestCase;
 import org.apache.derbyTesting.junit.Derby;
 import org.apache.derbyTesting.junit.JDBC;
@@ -117,10 +117,10 @@ public class AutoloadTest extends BaseJDBCTestCase
                 jdbcDrivers = "";
 
             embeddedAutoLoad = jdbcDrivers
-                    .indexOf("org.apache.derby.jdbc.EmbeddedDriver") != -1;
+                    .indexOf("com.splicemachine.db.jdbc.EmbeddedDriver") != -1;
 
             clientAutoLoad = jdbcDrivers
-                    .indexOf("org.apache.derby.jdbc.ClientDriver") != -1;
+                    .indexOf("com.splicemachine.db.jdbc.ClientDriver") != -1;
 
         } catch (SecurityException se) {
             // assume there is no autoloading if
@@ -272,9 +272,9 @@ public class AutoloadTest extends BaseJDBCTestCase
     public void testAutoloadDriverUnregister() throws Exception {
         if (usingEmbedded()) {
             String AutoloadedDriver = getAutoloadedDriverName();
-            String Driver40 = "org.apache.derby.jdbc.Driver40";
-            String Driver30 = "org.apache.derby.jdbc.Driver30";
-            String Driver20 = "org.apache.derby.jdbc.Driver20";
+            String Driver40 = "com.splicemachine.db.jdbc.Driver40";
+            String Driver30 = "com.splicemachine.db.jdbc.Driver30";
+            String Driver20 = "com.splicemachine.db.jdbc.Driver20";
 
             // Test whether the Autoload driver successfully unregister after
             // DB shutdown.
@@ -316,13 +316,13 @@ public class AutoloadTest extends BaseJDBCTestCase
     }
     private String  getAutoloadedDriverName()
     {
-        if ( JDBC.vmSupportsJDBC4() ) { return "org.apache.derby.jdbc.AutoloadedDriver40"; }
-        else { return "org.apache.derby.jdbc.AutoloadedDriver"; }
+        if ( JDBC.vmSupportsJDBC4() ) { return "com.splicemachine.db.jdbc.AutoloadedDriver40"; }
+        else { return "com.splicemachine.db.jdbc.AutoloadedDriver"; }
     }
     private String  getClientDriverName()
     {
-        if ( JDBC.vmSupportsJDBC4() ) { return "org.apache.derby.jdbc.ClientDriver40"; }
-        else { return "org.apache.derby.jdbc.ClientDriver"; }
+        if ( JDBC.vmSupportsJDBC4() ) { return "com.splicemachine.db.jdbc.ClientDriver40"; }
+        else { return "com.splicemachine.db.jdbc.ClientDriver"; }
     }
     
     /**
@@ -366,7 +366,7 @@ public class AutoloadTest extends BaseJDBCTestCase
         {
             Driver d = (Driver) e.nextElement();
             String driverClass = d.getClass().getName();
-            if (!driverClass.startsWith("org.apache.derby."))
+            if (!driverClass.startsWith("com.splicemachine.db."))
                 continue;
             if (driverClass.equals( clientDriverName ))
                 continue;
@@ -474,11 +474,11 @@ public class AutoloadTest extends BaseJDBCTestCase
     /**
      * Test that the auto-load of the network server is as expected.
      * <P>
-     * derby.drda.startNetworkServer=false or not set
+     * db.drda.startNetworkServer=false or not set
      * <BR>
      *     network server should not auto boot.
      * <P>
-     * derby.drda.startNetworkServer=true
+     * db.drda.startNetworkServer=true
      * <BR>
      * If jdbc.drivers contains the name of the embedded driver
      * then the server must be booted.
@@ -528,7 +528,7 @@ public class AutoloadTest extends BaseJDBCTestCase
     private boolean fullEngineAutoBoot()
     {
         String jdbcDrivers = getSystemProperty("jdbc.drivers");
-        return jdbcDrivers.indexOf("org.apache.derby.jdbc.EmbeddedDriver") != -1;
+        return jdbcDrivers.indexOf("com.splicemachine.db.jdbc.EmbeddedDriver") != -1;
     }
     
     /**
@@ -629,7 +629,7 @@ public class AutoloadTest extends BaseJDBCTestCase
 
     /**
      * Return true if a ThreadGroup exists that has a name
-     * starting with 'derby.'. This needs to run without a security
+     * starting with 'db.'. This needs to run without a security
      * manager as it requires permissions to see all active
      * thread groups. Since this not testing Derby functionality
      * there's harm to not having a security manager, since

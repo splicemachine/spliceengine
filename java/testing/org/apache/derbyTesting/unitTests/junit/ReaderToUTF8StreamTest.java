@@ -29,9 +29,9 @@ import java.util.Arrays;
 import java.util.Random;
 import junit.framework.Test;
 import junit.framework.TestSuite;
-import org.apache.derby.iapi.services.io.InputStreamUtil;
-import org.apache.derby.iapi.types.ClobStreamHeaderGenerator;
-import org.apache.derby.iapi.types.ReaderToUTF8Stream;
+import com.splicemachine.db.iapi.services.io.InputStreamUtil;
+import com.splicemachine.db.iapi.types.ClobStreamHeaderGenerator;
+import com.splicemachine.db.iapi.types.ReaderToUTF8Stream;
 import org.apache.derbyTesting.functionTests.util.streams.CharAlphabet;
 import org.apache.derbyTesting.functionTests.util.streams.LoopingAlphabetReader;
 import org.apache.derbyTesting.junit.BaseTestCase;
@@ -391,8 +391,8 @@ public class ReaderToUTF8StreamTest
      * Performs a series of random operations on a {@code ReaderToUTF8Stream},
      * consisting of read, skip, mark, reset and a noop.
      * <p>
-     * <em>Note</em>: Turn on debugging (derby.tests.debug=true) to see some
-     * information, turn on tracing (derby.tests.trace=true) in addition to see
+     * <em>Note</em>: Turn on debugging (db.tests.debug=true) to see some
+     * information, turn on tracing (db.tests.trace=true) in addition to see
      * a lot more information.
      * <p>
      * If the test fails, the seed will be reported in the error message, and

@@ -34,6 +34,6 @@ public class JDBCDriversAllTest extends JDBCDriversPropertyTest {
     public static Test suite() throws Exception
     {
         return getSuite(
-          "org.apache.derby.jdbc.EmbeddedDriver:org.apache.derby.jdbc.ClientDriver");
+          "com.splicemachine.db.jdbc.EmbeddedDriver:com.splicemachine.db.jdbc.ClientDriver");
     }
 }

@@ -23,12 +23,9 @@ package org.apache.derbyTesting.functionTests.tests.jdbc4;
 
 import junit.framework.*;
 
-import org.apache.derby.jdbc.ClientConnectionPoolDataSource;
-import org.apache.derby.jdbc.EmbeddedConnectionPoolDataSource;
 import org.apache.derbyTesting.functionTests.tests.jdbcapi.AssertEventCatcher;
 import org.apache.derbyTesting.junit.BaseJDBCTestCase;
 import org.apache.derbyTesting.junit.J2EEDataSource;
-import org.apache.derbyTesting.junit.JDBC;
 import org.apache.derbyTesting.junit.JDBCDataSource;
 import org.apache.derbyTesting.junit.TestConfiguration;
 
@@ -282,7 +279,7 @@ public class DataSourceTest extends BaseJDBCTestCase {
         aes12.resetState();        	
         if (usingEmbedded())
         {
-            Class.forName("org.apache.derby.jdbc.EmbeddedDriver").newInstance();
+            Class.forName("com.splicemachine.db.jdbc.EmbeddedDriver").newInstance();
         }else
         {
         	getTestConfiguration().startNetworkServer();

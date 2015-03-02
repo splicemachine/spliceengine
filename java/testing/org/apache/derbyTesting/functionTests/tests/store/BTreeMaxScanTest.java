@@ -27,7 +27,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import junit.framework.Test;
-import org.apache.derby.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import org.apache.derbyTesting.junit.BaseJDBCTestCase;
 import org.apache.derbyTesting.junit.CleanDatabaseTestSetup;
 import org.apache.derbyTesting.junit.JDBC;
@@ -106,7 +106,7 @@ public class BTreeMaxScanTest extends BaseJDBCTestCase {
             // In a different thread, in a different transaction, start a max
             // scan that will be blocked trying to lock the rightmost row.
             Result r = asyncGetSingleResult(s2,
-                    "select max(x) from t --derby-properties index=i");
+                    "select max(x) from t --db-properties index=i");
 
             // Give the other thread two seconds to start executing and hit
             // the lock.
@@ -144,7 +144,7 @@ public class BTreeMaxScanTest extends BaseJDBCTestCase {
         // we exercise. This test case is supposed to test simple latch
         // conflicts between forward scanners and backward scanners, and should
         // result in "Couldn't get latch nowait, will retry" being written to
-        // derby.log when latch conflicts occur.
+        // db.log when latch conflicts occur.
         setTraceFlag("BTreeMaxScan.latchConflict");
 
         setAutoCommit(false);
@@ -171,8 +171,8 @@ public class BTreeMaxScanTest extends BaseJDBCTestCase {
         // Now start four threads. Two scanning the B-tree in the forward
         // direction, and two scanning in the backward direction (max scans).
         // These threads should not interfere with each other.
-        String forwardSQL = "select x from t --derby-properties index=i";
-        String backwardSQL = "select max(x) from t --derby-properties index=i";
+        String forwardSQL = "select x from t --db-properties index=i";
+        String backwardSQL = "select max(x) from t --db-properties index=i";
 
         final PreparedStatement[] pss = {
             openDefaultConnection().prepareStatement(forwardSQL),
@@ -244,7 +244,7 @@ public class BTreeMaxScanTest extends BaseJDBCTestCase {
         // handles repositioning after waiting for a latch when moving away
         // from an empty leaf at the far-right end of the B-tree. When this
         // code is exercised, we'll see "Restart scan from rightmost leaf"
-        // printed to derby.log.
+        // printed to db.log.
         setTraceFlag("BTreeMaxScan.latchConflict");
 
         setAutoCommit(false);
@@ -266,8 +266,8 @@ public class BTreeMaxScanTest extends BaseJDBCTestCase {
         // Now start four threads. Two scanning the B-tree in the forward
         // direction, and two scanning in the backward direction (max scans).
         // These threads should not interfere with each other.
-        String forwardSQL = "select x from t --derby-properties index=i";
-        String backwardSQL = "select max(x) from t --derby-properties index=i";
+        String forwardSQL = "select x from t --db-properties index=i";
+        String backwardSQL = "select max(x) from t --db-properties index=i";
 
         final PreparedStatement[] pss = {
             openDefaultConnection().prepareStatement(forwardSQL),
@@ -395,7 +395,7 @@ public class BTreeMaxScanTest extends BaseJDBCTestCase {
         s.execute("create index i on t(x)");
 
         PreparedStatement ps = prepareStatement(
-                "select max(x) from t --derby-properties index=i");
+                "select max(x) from t --db-properties index=i");
 
         JDBC.assertSingleValueResultSet(ps.executeQuery(), "4");
 
@@ -525,7 +525,7 @@ public class BTreeMaxScanTest extends BaseJDBCTestCase {
     }
 
     /**
-     * If running with a debug build and derby.tests.trace is true, enable
+     * If running with a debug build and db.tests.trace is true, enable
      * tracing for messages with the specified flag.
      *
      * @param flag the debug flag to enable

@@ -32,7 +32,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Collections;
 
-import org.apache.derby.tools.ij;
+import com.splicemachine.db.tools.ij;
 
 /**
  * Functional test for the Statement.setQueryTimeout() method.

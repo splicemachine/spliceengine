@@ -26,7 +26,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.CallableStatement;
 import java.io.File;
-import org.apache.derby.tools.ij;
+import com.splicemachine.db.tools.ij;
 
 /*
  * This class tests online backup with various types of paths.
@@ -99,7 +99,7 @@ public class BackupPathTests
             logMsg("End Backup Path Tests");
 
         } catch (SQLException sqle) {
-            org.apache.derby.tools.JDBCDisplayUtil.ShowSQLException(System.out, 
+            com.splicemachine.db.tools.JDBCDisplayUtil.ShowSQLException(System.out,
                                                                     sqle);
             sqle.printStackTrace(System.out);
         }

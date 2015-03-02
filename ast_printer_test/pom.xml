@@ -32,8 +32,8 @@
     </dependency>
     <dependency>
       <!-- NOTE: splice dependency is required because we've done something to  -->
-      <!-- derby embedded connection to require the splice libraries. -->
-      <!-- ALSO NOTE: that the splice must come after the derby deps -->
+      <!-- db embedded connection to require the splice libraries. -->
+      <!-- ALSO NOTE: that the splice must come after the db deps -->
       <!-- ALSO NOTE: that the splice server must be running to acquire a connection -->
       <!-- ALSO NOTE: the hard-coded splice version specifier -->
       <groupId>com.splicemachine</groupId>

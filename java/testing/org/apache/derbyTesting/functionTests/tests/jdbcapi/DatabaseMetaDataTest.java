@@ -61,7 +61,7 @@ import org.apache.derbyTesting.junit.BaseJDBCTestCase;
 import org.apache.derbyTesting.junit.DatabasePropertyTestSetup;
 import org.apache.derbyTesting.junit.JDBC;
 import org.apache.derbyTesting.junit.TestConfiguration;
-//import org.apache.derby.shared.common.reference.JDBC40Translation;
+//import com.splicemachine.db.shared.common.reference.JDBC40Translation;
 import org.apache.derbyTesting.functionTests.tests.upgradeTests.Version;
 
 /**
@@ -241,7 +241,7 @@ public class DatabaseMetaDataTest extends BaseJDBCTestCase {
         // tables will cause the query plan for getTables() to be invalidated.
         // Also, set a high lock timeout explicitly so that we can check that
         // an internal timeout followed by a retry didn't happen, and set
-        // derby.language.stalePlanCheckInterval to a low value so that the
+        // db.language.stalePlanCheckInterval to a low value so that the
         // invalidation happens earlier.
         Properties props = new Properties();
         props.setProperty("derby.locks.waitTimeout", "90");
@@ -338,7 +338,7 @@ public class DatabaseMetaDataTest extends BaseJDBCTestCase {
      * SYSTABLES initially has a relatively small number of records. The lock
      * timeout must be high (more than 60 seconds) to enable us to see the
      * difference between an internal lock timeout and slow execution.
-     * derby.language.stalePlanCheckInterval should be set to 5 (the lowest
+     * db.language.stalePlanCheckInterval should be set to 5 (the lowest
      * possible value) so that we don't have to wait long for the query plan
      * to be invalidated.
      */
@@ -354,7 +354,7 @@ public class DatabaseMetaDataTest extends BaseJDBCTestCase {
             s.executeUpdate("create table t" + i + "(x int)");
         }
 
-        // Execute getTables() derby.language.stalePlanCheckInterval times so
+        // Execute getTables() db.language.stalePlanCheckInterval times so
         // that its plan is invalidated. Before DERBY-3693 was fixed, the
         // recompilation after the invalidation would get an internal timeout
         // and take very long time to complete.
@@ -955,7 +955,7 @@ public class DatabaseMetaDataTest extends BaseJDBCTestCase {
     
     /**
      * Test methods that describe attributes of SQL Objects
-     * that are not supported by derby. In each case the
+     * that are not supported by db. In each case the
      * metadata should return an empty ResultSet of the
      * correct shape, and with correct names, datatypes and 
      * nullability for the columns in the ResultSet. 

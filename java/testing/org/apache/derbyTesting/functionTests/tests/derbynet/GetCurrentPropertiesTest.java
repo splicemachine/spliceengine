@@ -25,7 +25,7 @@ import java.util.Properties;
 import java.util.Enumeration;
 import org.apache.derbyTesting.junit.BaseJDBCTestCase;
 import junit.framework.Test;
-import org.apache.derby.drda.NetworkServerControl;
+import com.splicemachine.db.drda.NetworkServerControl;
 import org.apache.derbyTesting.junit.NetworkServerTestSetup;
 import org.apache.derbyTesting.junit.TestConfiguration;
 import org.apache.derbyTesting.junit.SecurityManagerSetup;
@@ -158,7 +158,7 @@ public class GetCurrentPropertiesTest extends BaseJDBCTestCase {
         expectedValues.setProperty("derby.drda.timeSlice","0");
         expectedValues.setProperty("derby.drda.startNetworkServer","false");
         expectedValues.setProperty("derby.drda.host","127.0.0.1");
-        expectedValues.setProperty("derby.drda.traceAll","false");  
+        expectedValues.setProperty("derby.drda.traceAll","false");
         getConnection().setAutoCommit(false);
         NetworkServerControl nsctrl = NetworkServerTestSetup.getNetworkServerControl();
         nsctrl.trace(4,true);

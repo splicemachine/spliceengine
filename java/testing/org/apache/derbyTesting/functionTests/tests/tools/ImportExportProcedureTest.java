@@ -1883,7 +1883,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
         st.executeUpdate(
             " drop table inventory.orderTable");
         
-        //end derby-390 related test cases.
+        //end db-390 related test cases.
         
         getConnection().rollback();
         st.close();
@@ -2423,7 +2423,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
         
         cSt = prepareCall(
             "call "
-            + "SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.locks."
+            + "SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('db.locks."
             + "waitTimeout', '5')");
         assertUpdateCount(cSt, 0);
         

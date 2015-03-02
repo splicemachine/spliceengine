@@ -25,11 +25,8 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Properties;
 
-import javax.sql.DataSource;
-
-import org.apache.derby.tools.ij;
+import com.splicemachine.db.tools.ij;
 import org.apache.derbyTesting.functionTests.util.TestUtil;
 
 /**
@@ -110,7 +107,7 @@ public class RecoveryAfterBackup
             }
 
         } catch (SQLException sqle) {
-            org.apache.derby.tools.JDBCDisplayUtil.ShowSQLException(System.out, 
+            com.splicemachine.db.tools.JDBCDisplayUtil.ShowSQLException(System.out,
                                                                     sqle);
             sqle.printStackTrace(System.out);
         }

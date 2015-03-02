@@ -25,7 +25,7 @@ import org.apache.derbyTesting.junit.BaseTestCase;
 import junit.framework.Test;
 import junit.framework.TestSuite;
 
-import org.apache.derby.client.am.ByteArrayCombinerStream;
+import com.splicemachine.db.client.am.ByteArrayCombinerStream;
 
 import java.io.*;
 import java.util.ArrayList;

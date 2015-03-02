@@ -23,12 +23,12 @@ package org.apache.derbyTesting.functionTests.tests.jdbc4;
 
 import java.sql.SQLException;
 
-import org.apache.derby.impl.jdbc.EmbedResultSet40;
-import org.apache.derby.client.net.NetResultSet40;
-import org.apache.derby.impl.jdbc.EmbedCallableStatement40;
-import org.apache.derby.client.am.CallableStatement40;
-import org.apache.derby.iapi.jdbc.BrokeredCallableStatement40;
-import org.apache.derby.client.am.LogicalCallableStatement40;
+import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
+import com.splicemachine.db.client.net.NetResultSet40;
+import com.splicemachine.db.impl.jdbc.EmbedCallableStatement40;
+import com.splicemachine.db.client.am.CallableStatement40;
+import com.splicemachine.db.iapi.jdbc.BrokeredCallableStatement40;
+import com.splicemachine.db.client.am.LogicalCallableStatement40;
 
 /**
  * A wrapper around the getObject() overloads added by JDBC 4.1.

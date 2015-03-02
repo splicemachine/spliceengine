@@ -25,9 +25,9 @@ import java.sql.Driver;
 import java.sql.SQLException;
 import java.util.logging.Logger;
 
-import org.apache.derby.jdbc.AutoloadedDriver40;
-import org.apache.derby.jdbc.ClientDriver40;
-import org.apache.derby.jdbc.Driver40;
+import com.splicemachine.db.jdbc.AutoloadedDriver40;
+import com.splicemachine.db.jdbc.ClientDriver40;
+import com.splicemachine.db.jdbc.Driver40;
 
 /**
  * A wrapper around the methods added by JDBC 4.1.

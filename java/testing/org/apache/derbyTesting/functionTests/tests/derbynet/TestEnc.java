@@ -25,7 +25,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import org.apache.derby.tools.ij;
+import com.splicemachine.db.tools.ij;
 
 /**
  * This test is part of the encodingTests suite and has regression testcases that

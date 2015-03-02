@@ -40,8 +40,8 @@ public class ReferentialActionsTest extends BaseJDBCTestCase {
     public static Test suite() {
         TestSuite suite = new TestSuite("ReferentialActionsTest");
 
-        // DERBY-2353: Need to set derby.language.logQueryPlan to expose the
-        // bug (got a NullPointerException when writing the plan to derby.log)
+        // DERBY-2353: Need to set db.language.logQueryPlan to expose the
+        // bug (got a NullPointerException when writing the plan to db.log)
         suite.addTest(DatabasePropertyTestSetup.singleProperty(
                 new ReferentialActionsTest("onDeleteCascadeWithLogQueryPlan"),
                 "derby.language.logQueryPlan", "true", true));
@@ -50,7 +50,7 @@ public class ReferentialActionsTest extends BaseJDBCTestCase {
     }
 
     /**
-     * Test that cascading delete works when derby.language.logQueryPlan is
+     * Test that cascading delete works when db.language.logQueryPlan is
      * set to true - DERBY-2353.
      */
     public void onDeleteCascadeWithLogQueryPlan() throws SQLException {

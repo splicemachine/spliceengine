@@ -29,8 +29,8 @@ public interface ASTVisitorConfig {
     void setContinueAfterParse();
 
     public static final class Factory {
-        public static String EMBEDDED_DRIVER = "org.apache.derby.jdbc.EmbeddedDriver";
-        public static String CLIENT_DRIVER = "org.apache.derby.jdbc.ClientDriver";
+        public static String EMBEDDED_DRIVER = "com.splicemachine.db.jdbc.EmbeddedDriver";
+        public static String CLIENT_DRIVER = "com.splicemachine.db.jdbc.ClientDriver";
 
         protected static String PROTOCOL = "jdbc:derby:";
         protected static String DB = "derbyDB";

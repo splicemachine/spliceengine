@@ -2544,7 +2544,7 @@ public class ResultSetsFromPreparedStatementTest extends BaseJDBCTestCase
     private void setTimeout(long t) throws SQLException {
         Statement stm = createStatement();
         stm.execute("call syscs_util.syscs_set_database_property(" +
-                    "'derby.locks.waitTimeout', '" + t + "')");
+                    "'db.locks.waitTimeout', '" + t + "')");
         stm.close();
     }
 

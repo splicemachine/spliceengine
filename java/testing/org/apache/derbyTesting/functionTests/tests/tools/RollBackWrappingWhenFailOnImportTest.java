@@ -30,9 +30,9 @@ import java.util.Properties;
 import junit.framework.Test;
 import junit.framework.TestSuite;
 
-import org.apache.derby.impl.jdbc.EmbedConnection;
-import org.apache.derby.impl.jdbc.EmbedConnection30;
-import org.apache.derby.jdbc.Driver30;
+import com.splicemachine.db.impl.jdbc.EmbedConnection;
+import com.splicemachine.db.impl.jdbc.EmbedConnection30;
+import com.splicemachine.db.jdbc.Driver30;
 import org.apache.derbyTesting.junit.BaseJDBCTestCase;
 import org.apache.derbyTesting.junit.CleanDatabaseTestSetup;
 import org.apache.derbyTesting.junit.JDBC;

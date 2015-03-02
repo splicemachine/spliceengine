@@ -31,7 +31,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.security.AccessController;
-import java.security.PrivilegedActionException;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -46,7 +45,7 @@ import javax.sql.DataSource;
 import junit.framework.Test;
 import junit.framework.TestSuite;
 
-import org.apache.derby.iapi.services.info.JVMInfo;
+import com.splicemachine.db.iapi.services.info.JVMInfo;
 
 import org.apache.derbyTesting.junit.BaseJDBCTestCase;
 import org.apache.derbyTesting.junit.CleanDatabaseTestSetup;
@@ -574,7 +573,7 @@ public class DatabaseClassLoadingTest extends BaseJDBCTestCase {
         // fail if jar is on classpath
         try {
             cs.executeUpdate();
-            fail("REMOVE_JAR on jar in derby.database.classpath worked");
+            fail("REMOVE_JAR on jar in db.database.classpath worked");
         } catch (SQLException e) {
             assertSQLState("X0X07", e);
         }
@@ -714,14 +713,14 @@ public class DatabaseClassLoadingTest extends BaseJDBCTestCase {
     }
     
     /**
-     * Load a org.apache.derby class directly (ie. through a direct procedure call)
+     * Load a com.splicemachine.db class directly (ie. through a direct procedure call)
      * from the jar file. As an implementation note this is blocked
      * by Derby's class loader, not the JVM's security mechanism.
      */    
     public void testLoadDerbyClassIndirectly() throws SQLException, MalformedURLException
     {
         loadJavaClass(
-                "org.apache.derbyTesting.databaseclassloader.cracker.C1.derby",
+                "org.apache.derbyTesting.databaseclassloader.cracker.C1.db",
                 "38000");
     }
     
@@ -1111,12 +1110,12 @@ public class DatabaseClassLoadingTest extends BaseJDBCTestCase {
 
         // register the user-defined aggregate
         s.executeUpdate
-            ( "create derby aggregate intMedian for int external name 'Median'\n" );
+            ( "create db aggregate intMedian for int external name 'Median'\n" );
 
         // register another user-defined aggregate in a class which doesn't exist
         s.executeUpdate
             (
-             "create derby aggregate missingAggregate for int external name 'MissingAggregate'\n"
+             "create db aggregate missingAggregate for int external name 'MissingAggregate'\n"
              );
 
         // create a table with some values
@@ -1160,7 +1159,7 @@ public class DatabaseClassLoadingTest extends BaseJDBCTestCase {
         }
 
         // drop the useless aggregate
-        s.executeUpdate( "drop derby aggregate missingAggregate restrict" );
+        s.executeUpdate( "drop db aggregate missingAggregate restrict" );
 
         setDBClasspath(null);
         
@@ -1258,7 +1257,7 @@ public class DatabaseClassLoadingTest extends BaseJDBCTestCase {
     private void setDBClasspath(String cp) throws SQLException
     {
         CallableStatement cs = prepareCall(
-          "CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.database.classpath', ?)");
+          "CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('db.database.classpath', ?)");
 
         cs.setString(1, cp);
         cs.executeUpdate();
@@ -1289,7 +1288,7 @@ public class DatabaseClassLoadingTest extends BaseJDBCTestCase {
         assertTrue(dbDir.isDirectory());
 
         // jar file paths in the JDBC URL are relative to the root
-        // derby.system.home or user.dir, so need to create the jar there.
+        // db.system.home or user.dir, so need to create the jar there.
         File jarFile = SupportFilesSetup.getReadOnly(jarName);
         
         

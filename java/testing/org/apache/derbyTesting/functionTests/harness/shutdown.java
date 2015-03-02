@@ -24,11 +24,10 @@ package org.apache.derbyTesting.functionTests.harness;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.sql.SQLWarning;
 import java.util.*;
 import java.io.*;
 
-import org.apache.derby.tools.JDBCDisplayUtil;
+import com.splicemachine.db.tools.JDBCDisplayUtil;
 
 /*
  **
@@ -42,7 +41,7 @@ public class shutdown
 {
  
 	static String shutdownurl;
-	static String driver = "org.apache.derby.jdbc.EmbeddedDriver";
+	static String driver = "com.splicemachine.db.jdbc.EmbeddedDriver";
 	static String systemHome;
 
 	public static void main(String[] args) throws SQLException,

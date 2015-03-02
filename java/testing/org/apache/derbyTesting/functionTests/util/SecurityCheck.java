@@ -44,12 +44,12 @@ public class SecurityCheck {
 	 */
 	private static final String[] EMBEDDED_PUBLIC_API =
 	{
-		"org.apache.derby.jdbc.EmbeddedDriver",
-		"org.apache.derby.jdbc.EmbeddedDataSource",
-		"org.apache.derby.jdbc.EmbeddedSimpleDataSource",
-		"org.apache.derby.jdbc.EmbeddedConnectionPoolDataSource",
-		"org.apache.derby.jdbc.EmbeddedXADataSource",
-		"org.apache.derby.authentication.UserAuthenticator",
+		"com.splicemachine.db.jdbc.EmbeddedDriver",
+		"com.splicemachine.db.jdbc.EmbeddedDataSource",
+		"com.splicemachine.db.jdbc.EmbeddedSimpleDataSource",
+		"com.splicemachine.db.jdbc.EmbeddedConnectionPoolDataSource",
+		"com.splicemachine.db.jdbc.EmbeddedXADataSource",
+		"com.splicemachine.db.authentication.UserAuthenticator",
 	};
 	
 	/**
@@ -190,11 +190,11 @@ public class SecurityCheck {
 	 */
 	private static boolean inspectClass(Class c, String declared)
 	{		
-		if (!c.getName().startsWith("org.apache.derby."))
+		if (!c.getName().startsWith("com.splicemachine.db."))
 			return false;
 		
 		// Initial focus on embedded engine
-		if (c.getName().startsWith("org.apache.derby.client."))
+		if (c.getName().startsWith("com.splicemachine.db.client."))
 			return false;
 		
 		synchronized (allInspectedClasses)

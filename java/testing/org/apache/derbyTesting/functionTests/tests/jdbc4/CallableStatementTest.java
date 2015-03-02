@@ -23,8 +23,8 @@ package org.apache.derbyTesting.functionTests.tests.jdbc4;
 
 import junit.framework.*;
 
-import org.apache.derby.iapi.types.HarmonySerialBlob;
-import org.apache.derby.iapi.types.HarmonySerialClob;
+import com.splicemachine.db.iapi.types.HarmonySerialBlob;
+import com.splicemachine.db.iapi.types.HarmonySerialClob;
 
 import org.apache.derbyTesting.junit.TestConfiguration;
 

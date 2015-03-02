@@ -21,14 +21,14 @@
 
 package org.apache.derbyTesting.unitTests.services;
 
-import org.apache.derby.iapi.services.cache.*;
+import com.splicemachine.db.iapi.services.cache.*;
 
 import org.apache.derbyTesting.unitTests.harness.T_Fail;
 
-import org.apache.derby.iapi.services.stream.HeaderPrintWriter;
+import com.splicemachine.db.iapi.services.stream.HeaderPrintWriter;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
 
 public class T_CacheUser implements Runnable {
 

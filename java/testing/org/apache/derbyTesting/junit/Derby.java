@@ -31,7 +31,7 @@ import java.net.URL;
  * it is assumed all the functionality is available,
  * otherwise the functionality will be driven from which
  * jar files are on the classpath. E.g. if only
- * derby.jar is on the classpath then the hasXXX() methods
+ * db.jar is on the classpath then the hasXXX() methods
  * will return false except hasEmbedded().
  */
 public class Derby {
@@ -45,8 +45,8 @@ public class Derby {
         if (!SecurityManagerSetup.isJars)
             return true;
 
-        return hasCorrectJar("/derby.jar",
-               "org.apache.derby.authentication.UserAuthenticator");
+        return hasCorrectJar("/db.jar",
+               "com.splicemachine.db.authentication.UserAuthenticator");
     }
     /**
      * Returns true if the network server is available to the tests.
@@ -58,7 +58,7 @@ public class Derby {
             return true;
         
         return hasCorrectJar("/derbynet.jar",
-                             "org.apache.derby.drda.NetworkServerControl");
+                             "com.splicemachine.db.drda.NetworkServerControl");
     }
     /**
      * Returns true if the tools are available to the tests.
@@ -70,10 +70,10 @@ public class Derby {
             return true;
             
         return hasCorrectJar("/derbytools.jar",
-                "org.apache.derby.tools.ij");
+                "com.splicemachine.db.tools.ij");
     }
     /**
-     * Returns true if the derby client is available to the tests.
+     * Returns true if the db client is available to the tests.
      */
     public static boolean hasClient()
     {
@@ -86,7 +86,7 @@ public class Derby {
         // that environment, such as javax.naming.Referenceable. See DERBY-2269.
         if (!JDBC.vmSupportsJSR169()) {
             return hasCorrectJar("/derbyclient.jar",
-                "org.apache.derby.jdbc.ClientDataSource");
+                "com.splicemachine.db.jdbc.ClientDataSource");
         }
         else
             return false;

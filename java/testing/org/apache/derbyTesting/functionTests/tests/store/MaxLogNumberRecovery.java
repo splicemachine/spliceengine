@@ -23,8 +23,8 @@ package org.apache.derbyTesting.functionTests.tests.store;
 import java.security.AccessController;
 import java.sql.Connection;
 import java.sql.SQLException;
-import org.apache.derby.tools.ij;
-import org.apache.derby.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.tools.ij;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 /*
  * This class  tests recovery logic with large log file id's and  the error
@@ -123,7 +123,7 @@ public class MaxLogNumberRecovery extends MaxLogNumber {
             test.runTest(conn);
         }
         catch (SQLException sqle) {
-			org.apache.derby.tools.JDBCDisplayUtil.ShowSQLException(
+			com.splicemachine.db.tools.JDBCDisplayUtil.ShowSQLException(
                 System.out, sqle);
 			sqle.printStackTrace(System.out);
 		}

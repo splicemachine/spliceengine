@@ -76,7 +76,7 @@ public class SystemPropertyTestSetup extends TestSetup {
     throws java.lang.Exception
     {
     	//DERBY-5663 Getting NPE when trying to set 
-    	// derby.language.logStatementText property to true inside a junit 
+    	// db.language.logStatementText property to true inside a junit
     	// suite.
     	//The same instance of SystemPropertyTestSetup can be used again
     	// and hence we want to make sure that oldValues is not null as set

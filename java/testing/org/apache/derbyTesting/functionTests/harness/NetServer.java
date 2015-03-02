@@ -57,7 +57,7 @@ public class NetServer
     Object networkServer;   // Server needs to be created with reflection
 	Method pingMethod;
 
-	private static String NETWORK_SERVER_CLASS_NAME="org.apache.derby.drda.NetworkServerControl";
+	private static String NETWORK_SERVER_CLASS_NAME="com.splicemachine.db.drda.NetworkServerControl";
     
     public static Hashtable m;
     public static int PREFIX_POS = 0;
@@ -88,12 +88,12 @@ public class NetServer
 			   "shutdown"},
 	     null});                                        //shutdown2
 
-	url = "jdbc:derby://" + hostName + ":1527/";  
+	url = "jdbc:derby://" + hostName + ":1527/";
 
 	m.put("DerbyNetClient", new Object[]
 	    {url,                 //prefix
 	     "",                                            // suffix
-	     "org.apache.derby.jdbc.ClientDriver",           //driver
+	     "com.splicemachine.db.jdbc.ClientDriver",           //driver
 	     "1527",                                        // port
 	     new String[] {NETWORK_SERVER_CLASS_NAME,  //start
 			   "start"},                        

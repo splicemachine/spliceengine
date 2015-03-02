@@ -21,12 +21,8 @@
 
 package org.apache.derbyTesting.functionTests.tests.i18n;
 
-import java.util.Locale;
-
 import java.security.AccessController;
 import java.security.PrivilegedAction;
-import java.sql.DriverManager;
-import java.sql.Connection;
 import java.sql.SQLException;
 
 public class DefaultLocale { 
@@ -51,7 +47,7 @@ public class DefaultLocale {
 	// used in urlLocale test
 	public static void checkRDefaultLocale() throws SQLException
 	{
-		String dbLocale = org.apache.derby.iapi.db.Factory.getDatabaseOfConnection().getLocale().toString();
+		String dbLocale = com.splicemachine.db.iapi.db.Factory.getDatabaseOfConnection().getLocale().toString();
 		//System.out.println(savedLocale);
 		//System.out.println(dbLocale);
 		if (!savedLocale.equals(dbLocale))
@@ -61,7 +57,7 @@ public class DefaultLocale {
 	// used in urlLocale test and messageLocale test
 	public static void checkDatabaseLocale(String Locale) throws SQLException
 	{
-		String dbLocale = org.apache.derby.iapi.db.Factory.getDatabaseOfConnection().getLocale().toString();
+		String dbLocale = com.splicemachine.db.iapi.db.Factory.getDatabaseOfConnection().getLocale().toString();
 		//System.out.println(dbLocale + "-");
 		//System.out.println(Locale + "-");
 		if (!dbLocale.toUpperCase().equals(Locale.toUpperCase().trim()))

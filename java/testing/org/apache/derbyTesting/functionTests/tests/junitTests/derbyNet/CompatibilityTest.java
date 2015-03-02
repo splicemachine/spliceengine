@@ -29,7 +29,7 @@ package org.apache.derbyTesting.functionTests.tests.junitTests.derbyNet;
 
 import java.sql.*;
 
-import org.apache.derby.tools.ij;
+import com.splicemachine.db.tools.ij;
 import org.apache.derbyTesting.functionTests.tests.junitTests.compatibility.CompatibilitySuite;
 
 public	class	CompatibilityTest
@@ -41,7 +41,7 @@ public	class	CompatibilityTest
 	/////////////////////////////////////////////////////////////
 
 	public	static	final	String	DATABASE_NAME = "wombat";
-	public	static	final	String	NETWORK_CLIENT_NAME = "org.apache.derby.jdbc.ClientDriver";
+	public	static	final	String	NETWORK_CLIENT_NAME = "com.splicemachine.db.jdbc.ClientDriver";
 	
 	/////////////////////////////////////////////////////////////
 	//

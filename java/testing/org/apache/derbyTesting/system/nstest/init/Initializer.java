@@ -60,7 +60,7 @@ public class Initializer {
 						NsTest.prop);
 			} else {
 				if(NsTest.driver_type.equalsIgnoreCase("DerbyClient")) {
-					System.out.println("-->Using derby client url");
+					System.out.println("-->Using db client url");
 					conn = DriverManager.getConnection(NsTest.clientDbURL,
 							NsTest.prop);
 				}

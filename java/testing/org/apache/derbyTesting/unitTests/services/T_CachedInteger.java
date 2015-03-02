@@ -21,9 +21,9 @@
 
 package org.apache.derbyTesting.unitTests.services;
 
-import org.apache.derby.iapi.services.cache.*;
+import com.splicemachine.db.iapi.services.cache.*;
 
-import org.apache.derby.iapi.error.StandardException;
+import com.splicemachine.db.iapi.error.StandardException;
 
 /**
 

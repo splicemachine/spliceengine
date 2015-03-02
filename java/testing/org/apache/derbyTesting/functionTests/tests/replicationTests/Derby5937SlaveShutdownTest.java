@@ -73,7 +73,7 @@ public class Derby5937SlaveShutdownTest extends BaseJDBCTestCase {
             return test;
         }
         Class klass = Derby5937SlaveShutdownTest.class;
-        // The default security policy doesn't allow derby.jar to do
+        // The default security policy doesn't allow db.jar to do
         // networking, which is needed for replication, so install a custom
         // policy for this test.
         return new SecurityManagerSetup(

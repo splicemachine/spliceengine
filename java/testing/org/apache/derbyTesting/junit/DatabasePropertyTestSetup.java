@@ -50,8 +50,8 @@ public class DatabasePropertyTestSetup extends BaseJDBCTestSetup {
      * and thus is reset by the tearDown method.
      * 
      * @param test Test to decorate
-     * @param deadlockTime Time in seconds for derby.locks.deadlockTimeout.
-     * @param waitTime Time in seconds for derby.locks.waitTimeout
+     * @param deadlockTime Time in seconds for db.locks.deadlockTimeout.
+     * @param waitTime Time in seconds for db.locks.waitTimeout
      */
     public static Test setLockTimeouts(Test test, int deadlockTime, int waitTime)
     {
@@ -80,7 +80,7 @@ public class DatabasePropertyTestSetup extends BaseJDBCTestSetup {
      * in the users array with the value of passwordToken appended.
      * <BR>
      * The user names in the users array are treated as SQL identifiers
-     * since that is the defined behaviour for derby.user.username.
+     * since that is the defined behaviour for db.user.username.
      * This means that the quoted identifiers can be passed, examples
      * are (users[i] is shown as the contents of the Java string) with
      * a password suffix of T63:

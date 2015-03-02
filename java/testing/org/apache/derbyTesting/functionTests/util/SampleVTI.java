@@ -25,7 +25,7 @@ import java.io.Reader;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import org.apache.derby.vti.VTITemplate;
+import com.splicemachine.db.vti.VTITemplate;
 
 /**
  * A very simple, read-only, sample VTI.

@@ -23,8 +23,8 @@ package org.apache.derbyTesting.unitTests.junit;
 import junit.framework.Test;
 import junit.framework.TestSuite;
 
-import org.apache.derby.iapi.services.info.JVMInfo;
-import org.apache.derby.shared.common.sanity.AssertFailure;
+import com.splicemachine.db.iapi.services.info.JVMInfo;
+import com.splicemachine.db.shared.common.sanity.AssertFailure;
 import org.apache.derbyTesting.junit.BaseTestCase;
 import org.apache.derbyTesting.junit.SecurityManagerSetup;
 
@@ -57,7 +57,7 @@ public class AssertFailureTest extends BaseTestCase {
 
         try {
             //Only add the tests if this is a sane build.
-            Class.forName("org.apache.derby.shared.common.sanity." +
+            Class.forName("com.splicemachine.db.shared.common.sanity." +
             		"AssertFailure");
 
             // Run with thread dump permissions

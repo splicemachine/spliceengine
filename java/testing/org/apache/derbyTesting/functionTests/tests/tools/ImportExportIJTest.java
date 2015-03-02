@@ -83,8 +83,8 @@ public final class ImportExportIJTest extends ScriptTestCase {
             "functionTests/testData/ImportExport/AccountData_NullFields.dat",
             "functionTests/testData/ImportExport/UnsupportedFormat1.dat",
             "functionTests/testData/ImportExport/UnsupportedFormat2.dat",
-            "functionTests/testData/ImportExport/derby-2193.txt",
-            "functionTests/testData/ImportExport/derby-2193-linenumber.txt"
+            "functionTests/testData/ImportExport/db-2193.txt",
+            "functionTests/testData/ImportExport/db-2193-linenumber.txt"
             }
         );
 	}

@@ -593,7 +593,7 @@ public class AutomaticIndexStatisticsTest
      */
     private File constructDbPath(String relDbDirName) {
         // Example:
-        //     "singleUse/readOnly" -> "<derby.system.home>/singleUse/readOnly"
+        //     "singleUse/readOnly" -> "<db.system.home>/singleUse/readOnly"
         File f = new File(getSystemProperty("derby.system.home"));
         return new File(f, relDbDirName);
     }

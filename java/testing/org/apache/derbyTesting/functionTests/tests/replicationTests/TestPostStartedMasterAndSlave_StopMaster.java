@@ -39,27 +39,27 @@ import org.apache.derbyTesting.junit.TestConfiguration;
  */
 public class TestPostStartedMasterAndSlave_StopMaster extends ClientRunner
 {
-    
+
     public TestPostStartedMasterAndSlave_StopMaster(String testcaseName)
     {
         super(testcaseName);
     }
-    
+
     public static Test suite()
-        throws Exception
+            throws Exception
     {
         System.out.println("**** TestPostStartedMasterAndSlave_StopMaster.suite()");
-        
+
         initEnvironment();
-        
+
         // String masterHostName = System.getProperty("test.serverHost", "localhost");
         // int masterPortNo = Integer.parseInt(System.getProperty("test.serverPort", "1527"));
-        
+
         TestSuite suite = new TestSuite("TestPostStartedMasterAndSlave_StopMaster");
-                
+
         suite.addTest(TestPostStartedMasterAndSlave_StopMaster.suite(slaveServerHost, slaveServerPort)); // master?
         System.out.println("*** Done suite.addTest(TestPostStartedMasterAndSlave_StopMaster.suite())");
-        
+
         return (Test)suite;
     }
 
@@ -69,11 +69,11 @@ public class TestPostStartedMasterAndSlave_StopMaster extends ClientRunner
     public static Test suite(String serverHost, int serverPort)
     {
         System.out.println("*** TestPostStartedMasterAndSlave_StopMaster.suite(serverHost,serverPort)");
-     
+
         Test t = TestConfiguration.existingServerSuite(TestPostStartedMasterAndSlave_StopMaster.class,false,serverHost,serverPort);
         System.out.println("*** Done TestConfiguration.existingServerSuite(TestPostStartedMasterAndSlave_StopMaster.class,false,serverHost,serverPort)");
         return t;
-   }
+    }
 
     /**
      *
@@ -81,18 +81,18 @@ public class TestPostStartedMasterAndSlave_StopMaster extends ClientRunner
      * @throws SQLException, IOException, InterruptedException
      */
     public void testStopMaster()
-    throws SQLException, IOException, InterruptedException
+            throws SQLException, IOException, InterruptedException
     {
         System.out.println("**** TestPostStartedMasterAndSlave_StopMaster.testStopMaster() "+
                 getTestConfiguration().getJDBCClient().getJDBCDriverName());
-        
+
         Connection conn = null;
         String db = null;
         String connectionURL = null;
-        
+
         // 1. Add attempt to perform stopMaster on slave. Should fail.
         db = slaveDatabasePath +"/"+ReplicationRun.slaveDbSubPath +"/"+ replicatedDb;
-        connectionURL = "jdbc:derby:"  
+        connectionURL = "jdbc:derby:"
                 + "//" + slaveServerHost + ":" + slaveServerPort + "/"
                 + db
                 + ";stopMaster=true";
@@ -112,10 +112,10 @@ public class TestPostStartedMasterAndSlave_StopMaster extends ClientRunner
             assertSQLState(msg, "08004", se);
             System.out.println("stopMaster on slave failed as expected: " + connectionURL + " " + msg);
         }
-        
+
         // 2. stopMaster on master: OK
         db = masterDatabasePath +"/"+ReplicationRun.masterDbSubPath +"/"+ replicatedDb;
-        connectionURL = "jdbc:derby:"  
+        connectionURL = "jdbc:derby:"
                 + "//" + masterServerHost + ":" + masterServerPort + "/"
                 + db
                 + ";stopMaster=true";
@@ -133,10 +133,10 @@ public class TestPostStartedMasterAndSlave_StopMaster extends ClientRunner
             assertTrue("stopMaster on master failed: " + connectionURL + " " + msg,false);
             System.out.println("stopMaster on master failed: " + connectionURL + " " + msg);
         }
-        
+
         // 3. stopMaster on slave which now is in non-replicating mode should fail.
         db = slaveDatabasePath +"/"+ReplicationRun.slaveDbSubPath +"/"+ replicatedDb;
-        connectionURL = "jdbc:derby:"  
+        connectionURL = "jdbc:derby:"
                 + "//" + slaveServerHost + ":" + slaveServerPort + "/"
                 + db
                 + ";stopMaster=true";
@@ -156,10 +156,10 @@ public class TestPostStartedMasterAndSlave_StopMaster extends ClientRunner
             //  DERBY-????: SQLCODE: 40000, SQLSTATE: 08004
             assertSQLState(msg, "08004", se); // assertTrue("stopMaster on slave failed: " + connectionURL + " " + msg, false);
         }
-        
+
         // 4. Attempt to do stopmaster on master which now is in non-replicating mode should fail.
         db = masterDatabasePath +"/"+ReplicationRun.masterDbSubPath +"/"+ replicatedDb;
-        connectionURL = "jdbc:derby:"  
+        connectionURL = "jdbc:derby:"
                 + "//" + masterServerHost + ":" + masterServerPort + "/"
                 + db
                 + ";stopMaster=true";
@@ -178,11 +178,11 @@ public class TestPostStartedMasterAndSlave_StopMaster extends ClientRunner
             assertTrue("stopMaster on server not in master mode failed as expected: " + connectionURL + " " + msg,false);
             System.out.println("stopMaster on server not in master mode failed as expected: " + connectionURL + " " + msg);
         }
-        
+
     }
-    
+
     public void verify()
-    throws SQLException, IOException, InterruptedException
+            throws SQLException, IOException, InterruptedException
     {
 
     }

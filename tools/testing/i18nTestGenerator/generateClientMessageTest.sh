@@ -60,7 +60,7 @@ FILE=$ROOT/$TESTDIR/TestClientMessages.java
 rm -f $FILE $FILE.2
 
 
-CLIENTROOT=$ROOT/java/client/org/apache/derby
+CLIENTROOT=$ROOT/java/client/com/splicemachine/db
 if [ ! -d $CLIENTROOT ]
 then
   echo $CLIENTROOT is not a valid directory

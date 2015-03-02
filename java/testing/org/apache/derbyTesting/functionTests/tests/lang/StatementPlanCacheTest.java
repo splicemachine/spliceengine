@@ -36,8 +36,8 @@ import org.apache.derbyTesting.junit.DatabasePropertyTestSetup;
 /**
  * Tests statement plan caching.
  * <BR>
- * Size of the cache can be configured by derby.language.statementCacheSize.
- * derby.language.statementCacheSize.
+ * Size of the cache can be configured by db.language.statementCacheSize.
+ * db.language.statementCacheSize.
  * <BR>
  * The statement cache can be viewed using the diagnostic table
  * SYSCS_DIAG.STATEMENT_CACHE
@@ -91,7 +91,7 @@ public class StatementPlanCacheTest extends BaseJDBCTestCase {
     }
     
     private static Test baseSuite(String name) {
-        TestSuite suite = new TestSuite("StatementPlanCacheTest:derby.language.statementCacheSize=" + name);
+        TestSuite suite = new TestSuite("StatementPlanCacheTest:db.language.statementCacheSize=" + name);
         suite.addTestSuite(StatementPlanCacheTest.class);
         return suite;
     }

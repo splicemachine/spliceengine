@@ -1706,7 +1706,7 @@ public class SubqueryTest extends BaseJDBCTestCase {
 
         // Now verify the correct runtimeStatistics output
         RuntimeStatisticsParser rtsp = new RuntimeStatisticsParser(rts);
-        // print out the full stats if derby.tests.debug is true
+        // print out the full stats if db.tests.debug is true
         println("full stats: \n" + rtsp.toString());
         // Checking only on the sequence of T3 and T1 scans.
         // If further checking is needed, uncomment more lines.
@@ -1795,7 +1795,7 @@ public class SubqueryTest extends BaseJDBCTestCase {
 
             // Now verify the correct runtimeStatistics output
             RuntimeStatisticsParser rtsp = new RuntimeStatisticsParser(rts);
-            // print out the full stats if derby.tests.debug is true
+            // print out the full stats if db.tests.debug is true
             println("full stats: \n" + rtsp.toString());
             // the essentials are getting checked as per the comments
             // above. If further checking is needed, uncomment more lines.
@@ -1917,7 +1917,7 @@ public class SubqueryTest extends BaseJDBCTestCase {
 
             // Now verify the correct runtimeStatistics output
             rtsp = new RuntimeStatisticsParser(rts);
-            // print out the full stats if derby.tests.debug is true
+            // print out the full stats if db.tests.debug is true
             println("full stats: \n" + rtsp.toString());
             // the essentials are getting checked as per the comments
             // above. If more detailed checking is needed, uncomment lines.

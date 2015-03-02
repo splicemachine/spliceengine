@@ -22,20 +22,15 @@
 package org.apache.derbyTesting.functionTests.tests.storetests;
 
 
-import org.apache.derby.iapi.services.sanity.SanityManager;
-
 import org.apache.derbyTesting.functionTests.tests.store.BaseTest;
 
-import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 
 import java.util.Arrays;
 
-import org.apache.derby.tools.ij;
+import com.splicemachine.db.tools.ij;
 
 
 /**
@@ -506,7 +501,7 @@ public class st_reclaim_longcol extends BaseTest
         }
         catch (SQLException sqle)
         {
-			org.apache.derby.tools.JDBCDisplayUtil.ShowSQLException(
+			com.splicemachine.db.tools.JDBCDisplayUtil.ShowSQLException(
                 System.out, sqle);
 			sqle.printStackTrace(System.out);
 		}

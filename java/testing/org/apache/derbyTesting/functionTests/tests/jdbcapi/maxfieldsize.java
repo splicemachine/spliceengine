@@ -21,18 +21,12 @@
 
 package org.apache.derbyTesting.functionTests.tests.jdbcapi;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
-import java.sql.ResultSetMetaData;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.sql.SQLException;
-import java.sql.Types;
-import java.sql.PreparedStatement;
-import java.io.*;
 
-import org.apache.derby.tools.ij;
-import org.apache.derby.tools.JDBCDisplayUtil;
+import com.splicemachine.db.tools.ij;
 import org.apache.derbyTesting.functionTests.util.TestUtil;
 
 /**

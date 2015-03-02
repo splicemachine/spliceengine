@@ -23,7 +23,7 @@ package org.apache.derbyTesting.functionTests.tests.replicationTests;
 import java.sql.SQLException;
 import junit.framework.Test;
 import junit.framework.TestSuite;
-import org.apache.derby.jdbc.ClientDataSource;
+import com.splicemachine.db.jdbc.ClientDataSource;
 import org.apache.derbyTesting.junit.SecurityManagerSetup;
 
 

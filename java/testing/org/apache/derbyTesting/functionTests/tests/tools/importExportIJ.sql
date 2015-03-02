@@ -414,7 +414,7 @@ call SYSCS_UTIL.SYSCS_IMPORT_DATA(null, 'IMP_TEMP' ,null, '2, 3, 4, 5, 6',
 select * from imp_temp ;
 drop table imp_temp;
 
--- test case for derby-1854/derby-1641
+-- test case for db-1854/db-1641
 -- perform import into a table that has same column 
 -- as a primary key and a foreign key (ADMINS table).  
 
@@ -441,10 +441,10 @@ select * from users;
 values SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'ADMINS');
 drop table admins;
 drop table users;
--- end derby-1854/derby-1641 test case. 
+-- end db-1854/db-1641 test case.
 
 --
--- begin test case for derby-2193:
+-- begin test case for db-2193:
 --
 -- Field comprised of all blank space should become a null
 --
@@ -474,11 +474,11 @@ CALL SYSCS_UTIL.SYSCS_IMPORT_TABLE
 select * from derby_2193_lineNumber;
 
 --
--- end test case for derby-2193:
+-- end test case for db-2193:
 --
 
 --
--- begin test case for derby-2925:
+-- begin test case for db-2925:
 --
 -- Prevent export from overwriting existing files 
 --
@@ -498,7 +498,7 @@ CALL SYSCS_UTIL.SYSCS_EXPORT_TABLE
 --
 -- Errors should should happen in the second
 -- call to SYSCS_UTIL.SYSCS_EXPORT_TABLE
--- since extout/derby-2925.txt already exists. 
+-- since extout/db-2925.txt already exists.
 --
 CALL SYSCS_UTIL.SYSCS_EXPORT_TABLE
 ( null, 'DERBY_2925_TAB', 'extout/derby-2925.txt', null, null, null);
@@ -512,7 +512,7 @@ CALL SYSCS_UTIL.SYSCS_EXPORT_QUERY
 --
 -- Errors should should happen in the second
 -- call to SYSCS_UTIL.SYSCS_EXPORT_QUERY
--- since extout/derby-2925-query.dat already exists.
+-- since extout/db-2925-query.dat already exists.
 --
 CALL SYSCS_UTIL.SYSCS_EXPORT_QUERY
 ('select * from DERBY_2925_TAB', 'extout/derby-2925-query.dat', null , null , null ) ;
@@ -539,7 +539,7 @@ CALL SYSCS_UTIL.SYSCS_EXPORT_QUERY_LOBS_TO_EXTFILE
 --
 -- Errors should should happen in the second
 -- call to SYSCS_UTIL.SYSCS_EXPORT_QUERY_LOBS_TO_EXTFILE
--- since extout/derby-2925_data.dat already exists.
+-- since extout/db-2925_data.dat already exists.
 --
 CALL SYSCS_UTIL.SYSCS_EXPORT_QUERY_LOBS_TO_EXTFILE
 ('SELECT * FROM DERBY_2925_LOB','extout/derby-2925_data.dat', '\' ,'|','UTF-16','extout/derby-2925_lobs.dat');
@@ -550,11 +550,11 @@ CALL SYSCS_UTIL.SYSCS_EXPORT_QUERY_LOBS_TO_EXTFILE
 --
 -- Errors should should happen in the 
 -- call to SYSCS_UTIL.SYSCS_EXPORT_QUERY_LOBS_TO_EXTFILE
--- since extout/derby-2925_lobs.dat already exists.
+-- since extout/db-2925_lobs.dat already exists.
 --
 
 CALL SYSCS_UTIL.SYSCS_EXPORT_QUERY_LOBS_TO_EXTFILE
 ('SELECT * FROM DERBY_2925_LOB','extout/derby-2925_data1.dat', '\' ,'|','UTF-16','extout/derby-2925_lobs.dat');
 
 --
--- end test case for derby-2925:
+-- end test case for db-2925:

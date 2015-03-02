@@ -172,11 +172,11 @@ create table t(c1 int, c2 varchar(1500));
 insert into t values (1,PADSTRING('1', 1500)), (2,PADSTRING('2', 1500)), (3,PADSTRING('3', 1500)), (4, PADSTRING('4', 1500)),
 	(5, PADSTRING('5', 1500)), (6, PADSTRING('6', 1500)), (7, PADSTRING('7', 1500)), (8, PADSTRING('8', 1500));
 create table oldinfo (cname varchar(128), nap bigint);
-insert into oldinfo select conglomeratename, numallocatedpages from new org.apache.derby.diag.SpaceTable('T') t;
+insert into oldinfo select conglomeratename, numallocatedpages from new com.splicemachine.db.diag.SpaceTable('T') t;
 delete from t where c1 in (1, 3, 5, 7);
 call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'T', 0);
 create table newinfo (cname varchar(128), nap bigint);
-insert into newinfo select conglomeratename, numallocatedpages from new org.apache.derby.diag.SpaceTable('T') t;
+insert into newinfo select conglomeratename, numallocatedpages from new com.splicemachine.db.diag.SpaceTable('T') t;
 -- verify space reclaimed, this query should return 'compressed!'
 -- if nothing is returned from this query, then the table was not compressed
 select 'compressed!' from oldinfo o, newinfo n where o.cname = n.cname and o.nap > n.nap;
@@ -265,17 +265,17 @@ create table oldstat(rowCount int);
 insert into oldstat select count(*) from tab;
 commit;
 --double the size of the table
-select conglomeratename, numallocatedpages from new org.apache.derby.diag.SpaceTable('TAB') tab;
+select conglomeratename, numallocatedpages from new com.splicemachine.db.diag.SpaceTable('TAB') tab;
 insert into tab values (1, 1, 'abc'), (2, 2,  'bcd');
 insert into tab values (3, 3, 'abc'), (4, 4,  'bcd');
 insert into tab values (5, 5, 'abc'), (6, 6,  'bcd');
 insert into tab values (7, 7, 'abc'), (8, 8,  'bcd');
-select conglomeratename, numallocatedpages from new org.apache.derby.diag.SpaceTable('TAB') tab;
+select conglomeratename, numallocatedpages from new com.splicemachine.db.diag.SpaceTable('TAB') tab;
 delete from tab;
-select conglomeratename, numallocatedpages from new org.apache.derby.diag.SpaceTable('TAB') tab;
+select conglomeratename, numallocatedpages from new com.splicemachine.db.diag.SpaceTable('TAB') tab;
 call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'TAB', 0);
 -- verify space reclaimed
-select conglomeratename, numallocatedpages from new org.apache.derby.diag.SpaceTable('TAB') tab;
+select conglomeratename, numallocatedpages from new com.splicemachine.db.diag.SpaceTable('TAB') tab;
 -- do consistency check on scans, etc.
 values  ConsistencyChecker();
 rollback;
@@ -285,10 +285,10 @@ insert into newstat select count(*) from tab;
 --make sure the number of rows are the same
 select o.rowCount, n.rowCount from oldstat o, newstat n where o.rowCount = n.rowCount;
 --show old space usage
-select conglomeratename, numallocatedpages from new org.apache.derby.diag.SpaceTable('TAB') tab;
+select conglomeratename, numallocatedpages from new com.splicemachine.db.diag.SpaceTable('TAB') tab;
 call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'TAB', 0);
 --show new space usage
-select conglomeratename, numallocatedpages from new org.apache.derby.diag.SpaceTable('TAB') tab;
+select conglomeratename, numallocatedpages from new com.splicemachine.db.diag.SpaceTable('TAB') tab;
 rollback;
 drop table tab;
 drop table oldstat;
@@ -311,7 +311,7 @@ select
     numallocatedpages, numfreepages, 
     pagesize, estimspacesaving
 
-    from new org.apache.derby.diag.SpaceTable('XENA') t
+    from new com.splicemachine.db.diag.SpaceTable('XENA') t
         order by conglomeratename;
 
 commit;
@@ -324,7 +324,7 @@ select
      cast (numallocatedpages as char(4)) as aloc, 
      cast (numfreepages as char(4))      as free, 
      cast (estimspacesaving as char(10)) as est
-        from new org.apache.derby.diag.SpaceTable('XENA') t order by name;
+        from new com.splicemachine.db.diag.SpaceTable('XENA') t order by name;
 
 create table xena2(a int);
 
@@ -334,14 +334,14 @@ select
      cast (numallocatedpages as char(4)) as aloc, 
      cast (numfreepages as char(4))      as free, 
      cast (estimspacesaving as char(10)) as est
-        from new org.apache.derby.diag.SpaceTable('XENA') t order by name;
+        from new com.splicemachine.db.diag.SpaceTable('XENA') t order by name;
 call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'XENA', 0);
 select 
      cast (conglomeratename as char(10)) as name, 
      cast (numallocatedpages as char(4)) as aloc, 
      cast (numfreepages as char(4))      as free, 
      cast (estimspacesaving as char(10)) as est
-        from new org.apache.derby.diag.SpaceTable('XENA') t order by name;
+        from new com.splicemachine.db.diag.SpaceTable('XENA') t order by name;
 
 create table xena3(a int);
 
@@ -351,14 +351,14 @@ select
      cast (numallocatedpages as char(4)) as aloc, 
      cast (numfreepages as char(4))      as free, 
      cast (estimspacesaving as char(10)) as est
-        from new org.apache.derby.diag.SpaceTable('XENA') t order by name;
+        from new com.splicemachine.db.diag.SpaceTable('XENA') t order by name;
 call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'XENA', 0);
 select 
      cast (conglomeratename as char(10)) as name, 
      cast (numallocatedpages as char(4)) as aloc, 
      cast (numfreepages as char(4))      as free, 
      cast (estimspacesaving as char(10)) as est
-        from new org.apache.derby.diag.SpaceTable('XENA') t order by name;
+        from new com.splicemachine.db.diag.SpaceTable('XENA') t order by name;
 
 create table xena4(a int);
 
@@ -368,14 +368,14 @@ select
      cast (numallocatedpages as char(4)) as aloc, 
      cast (numfreepages as char(4))      as free, 
      cast (estimspacesaving as char(10)) as est
-        from new org.apache.derby.diag.SpaceTable('XENA') t order by name;
+        from new com.splicemachine.db.diag.SpaceTable('XENA') t order by name;
 call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'XENA', 0);
 select 
      cast (conglomeratename as char(10)) as name, 
      cast (numallocatedpages as char(4)) as aloc, 
      cast (numfreepages as char(4))      as free, 
      cast (estimspacesaving as char(10)) as est
-        from new org.apache.derby.diag.SpaceTable('XENA') t order by name;
+        from new com.splicemachine.db.diag.SpaceTable('XENA') t order by name;
 
 create table xena5(a int);
 
@@ -396,7 +396,7 @@ select
      cast (numallocatedpages as char(4)) as aloc, 
      cast (numfreepages as char(4))      as free, 
      cast (estimspacesaving as char(10)) as est
-        from new org.apache.derby.diag.SpaceTable('XENA') t order by name;
+        from new com.splicemachine.db.diag.SpaceTable('XENA') t order by name;
 
 -- delete all but 1 row (the sidekick)
 delete from xena where a <> 4 or b <> -4;
@@ -405,7 +405,7 @@ select
      cast (numallocatedpages as char(4)) as aloc, 
      cast (numfreepages as char(4))      as free, 
      cast (estimspacesaving as char(10)) as est
-        from new org.apache.derby.diag.SpaceTable('XENA') t order by name;
+        from new com.splicemachine.db.diag.SpaceTable('XENA') t order by name;
 call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'XENA', 0);
 
 select 
@@ -413,7 +413,7 @@ select
      cast (numallocatedpages as char(4)) as aloc, 
      cast (numfreepages as char(4))      as free, 
      cast (estimspacesaving as char(10)) as est
-        from new org.apache.derby.diag.SpaceTable('XENA') t order by name;
+        from new com.splicemachine.db.diag.SpaceTable('XENA') t order by name;
 
 rollback;
 
@@ -453,7 +453,7 @@ select
      cast (numallocatedpages as char(4)) as aloc, 
      cast (numfreepages as char(4))      as free, 
      cast (estimspacesaving as char(10)) as est
-        from new org.apache.derby.diag.SpaceTable('XENA') t order by name;
+        from new com.splicemachine.db.diag.SpaceTable('XENA') t order by name;
 select schemaname, tablename, 
 SYSCS_UTIL.SYSCS_CHECK_TABLE(schemaname, tablename)
  from sys.systables a,  sys.sysschemas b where a.schemaid = b.schemaid
@@ -505,9 +505,9 @@ call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('INVENTORY', 'ORDERTABLE' , 1) ;
 
 drop table inventory.orderTable;
 drop schema inventory RESTRICT;
---end derby-437 related test cases.
+--end db-437 related test cases.
 
--- test case for derby-1854 
+-- test case for db-1854
 -- perform compress on a table that has same column 
 -- as a primary key and a foreign key.  
 
@@ -533,9 +533,9 @@ insert into users (user_login) values('test2');
 insert into admins values (values identity_val_local());
 drop table admins;
 drop table users;
--- end derby-1854 test case. 
+-- end db-1854 test case.
 
--- test case for derby-737 
+-- test case for db-737
 -- perform compress on a table that has some indexes with no statistics
 create table derby737table1 (c1 int, c2 int); 
 select * from sys.sysstatistics;
@@ -584,7 +584,7 @@ select * from sys.sysstatistics;
 call syscs_util.syscs_compress_table('SPLICE','DERBY737TABLE2',1);
 select * from sys.sysstatistics;
 
---end derby-737 related test cases.
+--end db-737 related test cases.
 
 -- DERBY-2057
 -- Use non-zero args other than 1s.
@@ -593,14 +593,14 @@ autocommit on;
 call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.storage.pageSize','4096');
 create table t1 (c1 char(254));
 insert into t1 values 'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z';
-select conglomeratename, numallocatedpages, numfreepages from new org.apache.derby.diag.SpaceTable('T1') tab;
+select conglomeratename, numallocatedpages, numfreepages from new com.splicemachine.db.diag.SpaceTable('T1') tab;
 delete from t1;
 -- don't check result from delete as the number of free pages is system
 -- performance dependent.  It depends on how quickly post commit can run and
 -- reclaim the space, the result will not be reproducible across all platforms.
 
--- select conglomeratename, numallocatedpages, numfreepages from new org.apache.derby.diag.SpaceTable('T1') tab;
+-- select conglomeratename, numallocatedpages, numfreepages from new com.splicemachine.dbag.SpaceTable('T1') tab;
 
 call syscs_util.syscs_inplace_compress_table('SPLICE','T1',2,2,2);
-select conglomeratename, numallocatedpages, numfreepages from new org.apache.derby.diag.SpaceTable('T1') tab;
+select conglomeratename, numallocatedpages, numfreepages from new com.splicemachine.db.diag.SpaceTable('T1') tab;
 drop table t1;

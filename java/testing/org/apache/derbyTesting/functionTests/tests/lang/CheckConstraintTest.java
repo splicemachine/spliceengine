@@ -101,7 +101,7 @@ public final class CheckConstraintTest extends BaseJDBCTestCase {
             "create table t1(c1 int constraint asdf check(c1 = 1))");
         
         assertStatementError("42Y48", st,
-            " select * from t1 --derby-properties constraint = asdf ");
+            " select * from t1 --db-properties constraint = asdf ");
         
         // alter table t1 drop constraint asdf
         

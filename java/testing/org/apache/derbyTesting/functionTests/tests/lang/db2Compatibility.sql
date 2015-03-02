@@ -410,7 +410,7 @@ DROP TABLE testsetconst2;
 
 -- CALL statement
 -- beetle 5252
-call org.apache.derby.iapi.db.Factory::getDatabaseOfConnection().dropAllJDBCMetaDataSPSes();
+call com.splicemachine.db.iapi.db.Factory::getDatabaseOfConnection().dropAllJDBCMetaDataSPSes();
 
 -- Beetle 5203: DB2 restricts what can be used for default clauses, and enforces
 -- constraints on the default clause that Cloudscape does not.

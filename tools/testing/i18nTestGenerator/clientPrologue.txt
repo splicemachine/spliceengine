@@ -17,13 +17,13 @@
 
 package org.apache.derbyTesting.functionTests.tests.i18n; 
 
-import org.apache.derby.client.am.ClientMessageId; 
-import org.apache.derby.client.am.SqlException; 
-import org.apache.derby.client.am.DisconnectException; 
-import org.apache.derby.shared.common.reference.SQLState; 
-import org.apache.derby.client.am.SqlCode;
-import org.apache.derby.shared.common.i18n.MessageUtil;
-import org.apache.derby.shared.common.reference.MessageId;
+import com.splicemachine.db.client.am.ClientMessageId;
+import com.splicemachine.db.client.am.SqlException;
+import com.splicemachine.db.client.am.DisconnectException;
+import com.splicemachine.db.shared.common.reference.SQLState;
+import com.splicemachine.db.client.am.SqlCode;
+import com.splicemachine.db.shared.common.i18n.MessageUtil;
+import com.splicemachine.db.shared.common.reference.MessageId;
 
 /** 
  * This class is a GENERATED FILE that tests as many of the messages 

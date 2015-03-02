@@ -60,9 +60,9 @@ public class RowLockBasicTest extends BaseJDBCTestCase {
             createLockTableQueryEntries(s);
             
             s.execute("CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY"
-                    + "('derby.storage.pageSize', '4096')");
+                    + "('db.storage.pageSize', '4096')");
             s.execute("CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY"
-                    + "('derby.storage.rowLocking', 'true')");
+                    + "('db.storage.rowLocking', 'true')");
             
             s.close();
             

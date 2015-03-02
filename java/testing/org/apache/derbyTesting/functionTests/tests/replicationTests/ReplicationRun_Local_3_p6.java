@@ -28,7 +28,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import junit.framework.Test;
 import junit.framework.TestSuite;
-import org.apache.derby.jdbc.ClientDataSource;
+import com.splicemachine.db.jdbc.ClientDataSource;
 import org.apache.derbyTesting.junit.SecurityManagerSetup;
 
 
@@ -222,7 +222,7 @@ public class ReplicationRun_Local_3_p6 extends ReplicationRun_Local_3
             String dbName, String serverHost, int serverPort)
         throws SQLException
     {
-        ClientDataSource ds = new org.apache.derby.jdbc.ClientDataSource();
+        ClientDataSource ds = new com.splicemachine.db.jdbc.ClientDataSource();
         ds.setDatabaseName(databasePath +FS+ dbSubPath +FS+ dbName);
         ds.setServerName(serverHost);
         ds.setPortNumber(serverPort);

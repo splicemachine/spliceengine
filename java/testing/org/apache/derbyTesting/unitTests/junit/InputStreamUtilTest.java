@@ -25,7 +25,7 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 
-import org.apache.derby.iapi.services.io.InputStreamUtil;
+import com.splicemachine.db.iapi.services.io.InputStreamUtil;
 import org.apache.derbyTesting.junit.BaseTestCase;
 
 import junit.framework.Test;

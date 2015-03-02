@@ -21,11 +21,10 @@
 
 package org.apache.derbyTesting.unitTests.harness;
 
-import org.apache.derby.iapi.services.property.PropertyUtil;
-import org.apache.derby.iapi.services.context.ContextService;
-import org.apache.derby.iapi.services.monitor.Monitor;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
+import com.splicemachine.db.iapi.services.context.ContextService;
 
-import org.apache.derby.iapi.services.context.Context;
+import com.splicemachine.db.iapi.services.context.Context;
 
 import java.util.Enumeration;
 import java.util.Vector;

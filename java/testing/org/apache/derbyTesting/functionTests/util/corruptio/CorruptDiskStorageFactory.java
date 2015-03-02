@@ -20,9 +20,8 @@
  */
 
 package org.apache.derbyTesting.functionTests.util.corruptio;
-import org.apache.derby.io.WritableStorageFactory;
-import org.apache.derby.io.StorageFactory;
-import org.apache.derby.iapi.services.info.JVMInfo;
+import com.splicemachine.db.io.WritableStorageFactory;
+import com.splicemachine.db.io.StorageFactory;
 
 /**
  * This class provides proxy implementation of the StorageFactory
@@ -31,7 +30,7 @@ import org.apache.derby.iapi.services.info.JVMInfo;
  * Storage Factory is used by the database engine to access 
  * persistent data and transaction logs. By default all the method calls
  * delegate the work to the real disk storage factory
- * (org.apache.derby.impl.io.DirStorageFactory)
+ * (com.splicemachine.db.impl.io.DirStorageFactory)
  * based on the classes in the java.io packgs. In some cases this  factory
  * instruments some methods to corrupt the io to simulate disk corruptions for
  * testing. For example to simulate out of order partial writes to disk before
@@ -39,13 +38,13 @@ import org.apache.derby.iapi.services.info.JVMInfo;
  * 
  * Derby by default uses the storage factory implementation in 
  * DirStorageFactory/DirStorageFactory4 when a database is accessed with 
- * "jdbc:derby:<databaseName>". This factory can be specified instead using 
- * derby.subSubProtocol.<sub protocol name>  For example:
+ * "jdbc:derby:<databaseName>". This factory can be specified instead using
+ * db.subSubProtocol.<sub protocol name>  For example:
  *
- *  derby.subSubProtocol.csf=org.apache.derbyTesting.functionTests.
+ *  db.subSubProtocol.csf=org.apache.derbyTesting.functionTests.
  *             util.corruptio.CorruptDiskStorageFactory
  *  database need to be accessed by specifying the subporotocol name like
- *  'jdbc:derby:csf:wombat'.
+ *jdbc:derby:db:csf:wombat'.
  *
  * Interaction between the tests that requires instrumenting the i/o and 
  * this factory is through the flags in CorruptibleIo class. Tests should not 
@@ -69,7 +68,7 @@ public class CorruptDiskStorageFactory extends CorruptBaseStorageFactory
 	WritableStorageFactory getRealStorageFactory()
 	{
 		String dirStorageFactoryClass =
-                "org.apache.derby.impl.io.DirStorageFactory4";
+                "com.splicemachine.db.impl.io.DirStorageFactory4";
 		
 		WritableStorageFactory storageFactory = null;
 		try{

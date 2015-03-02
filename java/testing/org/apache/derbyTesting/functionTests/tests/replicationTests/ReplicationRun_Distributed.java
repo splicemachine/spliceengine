@@ -185,7 +185,7 @@ public class ReplicationRun_Distributed extends ReplicationRun
         // testRunProperties = cp; // Make available for e.g. new Load(loadId)
         cp.load(isCp);
         // testRunProperties = cp; // Make available for e.g. new Load(loadId)
-        // Now we can get the derby jar path, jvm path etc.
+        // Now we can get the db jar path, jvm path etc.
         
         util.printDebug = cp.getProperty("test.printDebug","false").equalsIgnoreCase("true");
         util.DEBUG("printDebug: " + util.printDebug);

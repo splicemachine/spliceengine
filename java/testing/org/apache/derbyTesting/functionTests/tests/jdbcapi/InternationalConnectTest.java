@@ -279,7 +279,7 @@ public class InternationalConnectTest extends BaseJDBCTestCase {
                 // ignore shutdown exception
                 assertSQLState("08006", se);
             }
-            removeDirectory(getSystemProperty("derby.system.home") +  File.separator + 
+            removeDirectory(getSystemProperty("derby.system.home") +  File.separator +
                     databasesForCleanup.get(i));
         }
         

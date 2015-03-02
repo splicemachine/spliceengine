@@ -22,10 +22,10 @@
 package org.apache.derbyTesting.functionTests.tests.lang;
 import java.sql.*;
 
-import org.apache.derby.tools.ij;
-import java.io.PrintStream;
+import com.splicemachine.db.tools.ij;
+
 import java.math.BigInteger;
-import java.math.BigDecimal;
+
 import org.apache.derbyTesting.functionTests.util.BigDecimalHandler;
 
 public class outparams

@@ -22,7 +22,7 @@
  */
 package org.apache.derbyTesting.functionTests.tests.storetests;
 
-import org.apache.derby.tools.ij;
+import com.splicemachine.db.tools.ij;
 
 import java.sql.*;
 

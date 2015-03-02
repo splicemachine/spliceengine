@@ -31,23 +31,23 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Vector;
 
-import org.apache.derby.iapi.error.PublicAPI;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.conn.ConnectionUtil;
-import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
-import org.apache.derby.iapi.store.access.DiskHashtable;
-import org.apache.derby.iapi.store.access.KeyHasher;
-import org.apache.derby.iapi.store.access.TransactionController;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.Orderable;
-import org.apache.derby.iapi.types.SQLInteger;
-import org.apache.derby.iapi.types.SQLLongint;
-import org.apache.derby.iapi.types.SQLVarchar;
-import org.apache.derby.tools.ij;
+import com.splicemachine.db.iapi.error.PublicAPI;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.store.access.DiskHashtable;
+import com.splicemachine.db.iapi.store.access.KeyHasher;
+import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.Orderable;
+import com.splicemachine.db.iapi.types.SQLInteger;
+import com.splicemachine.db.iapi.types.SQLLongint;
+import com.splicemachine.db.iapi.types.SQLVarchar;
+import com.splicemachine.db.tools.ij;
 import org.apache.derbyTesting.functionTests.util.TestUtil;
 
 /**
- * This program tests the org.apache.derby.iapi.store.access.DiskHashtable class.
+ * This program tests the com.splicemachine.db.iapi.store.access.DiskHashtable class.
  * The unit test interface is not used because that is undocumented and very difficult to decipher.
  * Furthermore it is difficult to diagnose problems when using the unit test interface.
  *
