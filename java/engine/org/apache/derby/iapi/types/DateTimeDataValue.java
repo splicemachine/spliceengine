@@ -94,7 +94,7 @@ public interface DateTimeDataValue extends DataValueDescriptor
 	 * @param result	The result of the previous call to this method, null
 	 *					if not called yet.
 	 *
-	 * @return	A SQLVarchar containing the month name.
+	 * @return	A SQLVarchar containing the month name, January, February, etc.
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
@@ -107,7 +107,7 @@ public interface DateTimeDataValue extends DataValueDescriptor
 	 * @param result	The result of the previous call to this method, null
 	 *					if not called yet.
 	 *
-	 * @return	A NumberDataValue containing the week of year.
+	 * @return	A NumberDataValue containing the week of year, 1-52.
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
@@ -120,9 +120,9 @@ public interface DateTimeDataValue extends DataValueDescriptor
 	 * @param result	The result of the previous call to this method, null
 	 *					if not called yet.
 	 *
-	 * @return	A SQLVarchar containing the day of week.
+	 * @return	A SQLVarchar containing the day of week, 0-6.
 	 *
-	 * @exception NumberDataValue		Thrown on error
+	 * @exception StandardException		Thrown on error
 	 */
     NumberDataValue getWeekDay(NumberDataValue result)
 							throws StandardException;
@@ -133,7 +133,7 @@ public interface DateTimeDataValue extends DataValueDescriptor
 	 * @param result	The result of the previous call to this method, null
 	 *					if not called yet.
 	 *
-	 * @return	A SQLVarchar containing the week day name.
+	 * @return	A SQLVarchar containing the week day name, Monday, Tuesday, etc.
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
@@ -146,7 +146,7 @@ public interface DateTimeDataValue extends DataValueDescriptor
 	 * @param result	The result of the previous call to this method, null
 	 *					if not called yet.
 	 *
-	 * @return	A NumberDataValue containing the day of the month.
+	 * @return	A NumberDataValue containing the day of the month, 1-31.
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
@@ -159,7 +159,7 @@ public interface DateTimeDataValue extends DataValueDescriptor
 	 * @param result	The result of the previous call to this method, null
 	 *					if not called yet.
 	 *
-	 * @return	A NumberDataValue containing the day of the year.
+	 * @return	A NumberDataValue containing the day of the year, 1-366 (with leap year).
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
