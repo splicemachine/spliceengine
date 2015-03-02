@@ -5,8 +5,8 @@ import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.metrics.TimeView;
 import com.splicemachine.metrics.Timer;
-import com.splicemachine.stream.BaseCloseableStream;
-import com.splicemachine.stream.CloseableStream;
+import com.splicemachine.stream.AbstractStream;
+import com.splicemachine.stream.Stream;
 import com.splicemachine.stream.StreamException;
 import org.apache.hadoop.hbase.client.Result;
 
@@ -28,10 +28,10 @@ public abstract class BaseAsyncScanner implements AsyncScanner{
     }
 
     @Override
-    public CloseableStream<List<KeyValue>> stream() {
-        return new BaseCloseableStream<List<KeyValue>>() {
+    public Stream<List<KeyValue>> stream() {
+        return new AbstractStream<List<KeyValue>>() {
             @Override
-            public void close() throws IOException {
+            public void close() throws StreamException {
                 BaseAsyncScanner.this.close();
             }
 

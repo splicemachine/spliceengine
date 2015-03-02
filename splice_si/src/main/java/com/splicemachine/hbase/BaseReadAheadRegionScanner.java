@@ -189,13 +189,13 @@ public abstract class BaseReadAheadRegionScanner<Put extends OperationWithAttrib
 		@Override
 		public long getBytesVisited() {
 				if(ioStats==null) return 0l;
-				return ioStats.getBytes();
+				return ioStats.bytesSeen();
 		}
 
 		@Override
 		public long getRowsVisited() {
 				if(ioStats==null) return 0l;
-				return ioStats.getRows();
+				return ioStats.elementsSeen();
 		}
 
 		/*private helper methods*/

@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import com.google.common.base.Function;
 import com.splicemachine.async.*;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
@@ -13,25 +12,22 @@ import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.temp.TempTable;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.marshall.BucketHasher;
-import com.splicemachine.hbase.*;
+import com.splicemachine.hbase.FilteredRowKeyDistributor;
+import com.splicemachine.hbase.RowKeyDistributor;
+import com.splicemachine.hbase.RowKeyDistributorByHashPrefix;
+import com.splicemachine.hbase.ScanDivider;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.job.Task;
 import com.splicemachine.metrics.Metrics;
+import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.SIFactory;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
-import com.splicemachine.si.impl.DenseTxn;
 import com.splicemachine.si.impl.SIFactoryDriver;
-import com.splicemachine.si.impl.SparseTxn;
-import com.splicemachine.si.impl.TransactionStorage;
-import com.splicemachine.si.impl.TxnViewBuilder;
-import com.splicemachine.stream.Accumulator;
-import com.splicemachine.stream.CloseableStream;
+import com.splicemachine.stream.Stream;
 import com.splicemachine.stream.StreamException;
 import com.splicemachine.stream.Transformer;
-import com.splicemachine.pipeline.exception.Exceptions;
-
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
@@ -63,27 +59,27 @@ public class ActiveTransactionReader {
         this.writeTable = writeTable;
     }
 
-    public CloseableStream<TxnView> getAllTransactions() throws IOException{
+    public Stream<TxnView> getAllTransactions() throws IOException{
         return getAllTransactions(SpliceConstants.DEFAULT_CACHE_SIZE);
     }
 
-    public CloseableStream<TxnView> getActiveTransactions() throws IOException{
+    public Stream<TxnView> getActiveTransactions() throws IOException{
         return getActiveTransactions(SpliceConstants.DEFAULT_CACHE_SIZE);
     }
 
-    public CloseableStream<TxnView> getAllTransactions(int queueSize) throws IOException{
+    public Stream<TxnView> getAllTransactions(int queueSize) throws IOException{
         byte[] operationId = SpliceDriver.driver().getUUIDGenerator().nextUUIDBytes();
         ActiveTxnJob job = new ActiveTxnJob(operationId, queueSize,false);
         return runJobAndScan(queueSize, job);
     }
 
-    public CloseableStream<TxnView> getActiveTransactions(int queueSize) throws IOException{
+    public Stream<TxnView> getActiveTransactions(int queueSize) throws IOException{
         byte[] operationId = SpliceDriver.driver().getUUIDGenerator().nextUUIDBytes();
         ActiveTxnJob job = new ActiveTxnJob(operationId, queueSize);
         return runJobAndScan(queueSize, job);
     }
 
-    protected CloseableStream<TxnView> runJobAndScan(int queueSize, ActiveTxnJob job) throws IOException {
+    protected Stream<TxnView> runJobAndScan(int queueSize, ActiveTxnJob job) throws IOException {
         try {
             final JobFuture submit = SpliceDriver.driver().getJobScheduler().submit(job);
             submit.completeAll(null);

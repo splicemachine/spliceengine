@@ -2,9 +2,10 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
+import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
-import com.splicemachine.stream.CloseableStream;
+import com.splicemachine.stream.Stream;
 import com.splicemachine.stream.StreamException;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.catalog.AliasInfo;
@@ -30,9 +31,9 @@ import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.impl.sql.execute.ColumnInfo;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.util.*;
-import com.splicemachine.pipeline.ddl.DDLChange;
 
 /**
  * Abstract class that has actions that are across
@@ -893,8 +894,7 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
         long timeAvailable = maxWait;
         long activeTxnId = -1l;
         do{
-            CloseableStream<TxnView> activeTxns = transactionReader.getActiveTransactions();
-            try{
+            try(Stream<TxnView> activeTxns = transactionReader.getActiveTransactions()){
                 TxnView txn;
                 while((txn = activeTxns.next())!=null){
                     if(!txn.descendsFrom(userTxn)){
@@ -903,8 +903,6 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
                 }
             } catch (StreamException e) {
                 throw new IOException(e.getCause());
-            } finally{
-                activeTxns.close();
             }
             if(activeTxnId<0) return activeTxnId;
             /*

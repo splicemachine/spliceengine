@@ -193,8 +193,8 @@ public class MergeJoinOperation extends JoinOperation {
             stats.addMetric(OperationMetric.REMOTE_SCAN_WALL_TIME,remoteView.getWallClockTime());
             stats.addMetric(OperationMetric.REMOTE_SCAN_CPU_TIME,remoteView.getCpuTime());
             stats.addMetric(OperationMetric.REMOTE_SCAN_USER_TIME,remoteView.getUserTime());
-            stats.addMetric(OperationMetric.REMOTE_SCAN_ROWS,rightSideStats.getRows());
-            stats.addMetric(OperationMetric.REMOTE_SCAN_BYTES,rightSideStats.getBytes());
+            stats.addMetric(OperationMetric.REMOTE_SCAN_ROWS,rightSideStats.elementsSeen());
+            stats.addMetric(OperationMetric.REMOTE_SCAN_BYTES,rightSideStats.bytesSeen());
         }
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "leftRows %d, rightRows %d, rowsFiltered=%d",joiner.getLeftRowsSeen(), joiner.getRightRowsSeen(),joiner.getRowsFiltered());

@@ -38,14 +38,14 @@ public class FileImportReaderTest {
 //				System.out.printf("Ignore: %d%n",lineCount);
 
 				IOStats stats = reader.getStats();
-				System.out.printf("Rows: %d%n",stats.getRows());
-				System.out.printf("MB: %f%n",stats.getBytes()/(1024*1024d));
+				System.out.printf("Rows: %d%n",stats.elementsSeen());
+				System.out.printf("MB: %f%n",stats.bytesSeen()/(1024*1024d));
 
 				TimeView time = stats.getTime();
 
 
 				printTimer("Total",globalTimer.getTime(),0);
-				printTimer("Read",time,stats.getRows());
+				printTimer("Read",time,stats.elementsSeen());
 		}
 
 		protected void printTimer(String prefix,TimeView time, long numEvents) {

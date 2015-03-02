@@ -8,8 +8,10 @@ import java.util.Map;
 import com.splicemachine.derby.impl.db.SpliceDatabase;
 import com.splicemachine.derby.utils.*;
 
+import org.apache.derby.catalog.TypeDescriptor;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.catalog.types.RoutineAliasInfo;
+import org.apache.derby.catalog.types.TypeDescriptorImpl;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.Limits;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
@@ -350,6 +352,19 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .ownerClass(TransactionAdmin.class.getCanonicalName())
                             .build();
                     procedures.add(activeTxn);
+
+                    /*
+                     * Statistics procedures
+                     */
+                    Procedure statsTable = Procedure.newBuilder().name("COLLECT_TABLE_STATISTICS")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .varchar("schema",128)
+                            .varchar("table",1024)
+                            .arg("staleOnly", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
+                            .ownerClass(StatisticsAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(statsTable);
 
                     /*
                      * Procedure to elevate a transaction
