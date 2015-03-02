@@ -131,7 +131,7 @@ public class SystemColumnImpl implements SystemColumn
 				 *            Nullability of the column.
 				 * @return Object representing the column.
 				 */
-				static SystemColumn getJavaColumn(String name, String javaClassName,
+				public static SystemColumn getJavaColumn(String name, String javaClassName,
 												boolean nullability)
 								throws StandardException
 				{

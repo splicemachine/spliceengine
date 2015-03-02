@@ -8353,31 +8353,34 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 	 *
 	 *	@exception StandardException Standard Derby error policy
 	 */
-	public	void	makeCatalog( TabInfoImpl					ti,
-								 SchemaDescriptor			sd,
-								 TransactionController 		tc )
-					throws StandardException
-	{
-		DataDescriptorGenerator ddg = getDataDescriptorGenerator();
+  public void	makeCatalog(TabInfoImpl ti, SchemaDescriptor	sd, TransactionController tc,
+                           org.apache.derby.iapi.store.access.ColumnOrdering[] columnOrder) throws StandardException {
+      DataDescriptorGenerator ddg = getDataDescriptorGenerator();
 
-		Properties	heapProperties = ti.getCreateHeapProperties();
-		ti.setHeapConglomerate(
-			createConglomerate(
-				ti.getTableName(),
-				tc,
-				ti.getCatalogRowFactory().makeEmptyRow(),
-				heapProperties
-				)
-			);
+      Properties	heapProperties = ti.getCreateHeapProperties();
+      ti.setHeapConglomerate(
+              createConglomerate(
+                      ti.getTableName(),
+                      tc,
+                      ti.getCatalogRowFactory().makeEmptyRow(),
+                      heapProperties,
+                      columnOrder
+              )
+      );
 
-		// bootstrap indexes on core tables before bootstrapping the tables themselves
-		if (ti.getNumberOfIndexes() > 0)
-		{
-			bootStrapSystemIndexes(sd, tc, ddg, ti);
-		}
+      // bootstrap indexes on core tables before bootstrapping the tables themselves
+      if (ti.getNumberOfIndexes() > 0)
+      {
+          bootStrapSystemIndexes(sd, tc, ddg, ti);
+      }
 
-		addSystemTableToDictionary(ti, sd, tc, ddg);
-	}							 
+      addSystemTableToDictionary(ti, sd, tc, ddg);
+  }
+
+	public void	makeCatalog(TabInfoImpl ti, SchemaDescriptor	sd, TransactionController tc ) throws StandardException {
+      makeCatalog(ti,sd,tc,null);
+	}
+
 	/**
 	  *	Upgrade an existing system catalog column's definition
       * by setting it to the value it would have in a newly
@@ -9191,21 +9194,26 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 
 		@exception StandardException Standard Derby error policy.
 	 */
-	private long createConglomerate(String name, TransactionController tc,
-									ExecRow rowTemplate, Properties properties)
-						throws StandardException
-	{
-		long				conglomId;
+  private long createConglomerate(String name, TransactionController tc, ExecRow rowTemplate, Properties properties)
+          throws StandardException {
+        return createConglomerate(name,tc,rowTemplate,properties,null);
+  }
 
-		conglomId = tc.createConglomerate(
-			"heap", // we're requesting a heap conglomerate
-			rowTemplate.getRowArray(), // row template
-			null, // default sort order
-            null, // default collation ids
-			properties, // default properties
-			TransactionController.IS_DEFAULT); // not temporary
-		return conglomId;
-	}
+  private long createConglomerate(String name, TransactionController tc,
+                                  ExecRow rowTemplate, Properties properties,
+                                  org.apache.derby.iapi.store.access.ColumnOrdering[] columnOrder)
+          throws StandardException {
+		long conglomId;
+
+      conglomId = tc.createConglomerate(
+              "heap", // we're requesting a heap conglomerate
+              rowTemplate.getRowArray(), // row template
+              columnOrder,
+              null, // default collation ids
+              properties, // default properties
+              TransactionController.IS_DEFAULT); // not temporary
+      return conglomId;
+  }
 
 	/**
 	  *	Converts a UUID to an DataValueDescriptor.
