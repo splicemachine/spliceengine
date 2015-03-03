@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.constants.SIConstants;
 import com.splicemachine.derby.hbase.*;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -25,6 +26,7 @@ import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.uuid.UUIDGenerator;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
@@ -35,13 +37,16 @@ import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+
 import scala.Tuple2;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -409,9 +414,9 @@ public class TableScanOperation extends ScanOperation {
 								.keyDecodingMap(getKeyDecodingMap())
 								.rowDecodingMap(baseColumnMap);        	
             JavaSparkContext ctx = SpliceSpark.getContext();
-            Configuration conf = HBaseConfiguration.create();
+            Configuration conf = HBaseConfiguration.create(SIConstants.config);
             conf.set(MRConstants.SPLICE_INPUT_CONGLOMERATE, tableName);
-            conf.set(MRConstants.SPLICE_JDBC_STR, "jdbc:derby://localhost:1527/splicedb;create=true;user=splice;password=admin");
+            conf.set(MRConstants.SPLICE_JDBC_STR, "jdbc:derby://localhost:1527/splicedb;create=true;user=splice;password=admin");            
             try {
 				conf.set(MRConstants.SPLICE_SCAN_INFO, tsb.getTableScannerBuilderBase64String());
 			} catch (IOException ioe) {
