@@ -420,8 +420,8 @@ public class TableScanOperation extends ScanOperation {
 
             JavaPairRDD<RowLocation, ExecRow> rawRDD = ctx.newAPIHadoopRDD(conf, SMInputFormat.class,
                     RowLocation.class, ExecRow.class);
-            SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, top, spliceRuntimeContext);
-            return rawRDD.map(new SparkDecoder(this,soi,top)); // This is not right, should pass location as well.
+//            SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, top, spliceRuntimeContext);
+            return rawRDD.values(); //.map(new SparkDecoder(this,soi,top)); // This is not right, should pass location as well.
         }
         
 /*        @Override
