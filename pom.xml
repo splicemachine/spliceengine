@@ -4,7 +4,7 @@
 	<groupId>org.splicetest.sqlj</groupId>
 	<artifactId>sqlj-it-procs</artifactId>
 	<packaging>jar</packaging>
-	<version>1.0.1</version>
+	<version>1.0.2-SNAPSHOT</version>
 	<name>sqlj-it-procs</name>
 	<url>http://maven.apache.org</url>
 	<distributionManagement>
