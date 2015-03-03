@@ -116,8 +116,13 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 
 	@Override
 	public void close() throws IOException {
+		if (LOG.isTraceEnabled())
+			SpliceLogUtils.trace(LOG, "close");
 		try {
 			siTableScanner.close();
+			MeasuredRegionScanner mrs = siTableScanner.getRegionScanner();
+			if (mrs != null)
+				mrs.close();
 		} catch (StandardException e) {
 			throw new IOException(e);
 		}
