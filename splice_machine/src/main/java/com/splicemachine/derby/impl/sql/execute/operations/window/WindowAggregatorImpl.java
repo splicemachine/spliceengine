@@ -2,15 +2,15 @@ package com.splicemachine.derby.impl.sql.execute.operations.window;
 
 import java.util.Arrays;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.loader.ClassFactory;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.sql.execute.WindowFunction;
-import org.apache.derby.iapi.store.access.ColumnOrdering;
-import org.apache.derby.iapi.types.DataTypeDescriptor;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.UserDataValue;
-import org.apache.derby.impl.sql.execute.WindowFunctionInfo;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.loader.ClassFactory;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.sql.execute.WindowFunction;
+import com.splicemachine.db.iapi.store.access.ColumnOrdering;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.UserDataValue;
+import com.splicemachine.db.impl.sql.execute.WindowFunctionInfo;
 
 import com.splicemachine.derby.impl.sql.execute.operations.window.function.SpliceGenericWindowFunction;
 

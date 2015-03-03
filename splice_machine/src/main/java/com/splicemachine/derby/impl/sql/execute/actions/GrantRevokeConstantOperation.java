@@ -1,9 +1,9 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.execute.ConstantAction;
-import org.apache.derby.impl.sql.execute.PrivilegeInfo;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.execute.ConstantAction;
+import com.splicemachine.db.impl.sql.execute.PrivilegeInfo;
 import java.util.List;
 
 public class GrantRevokeConstantOperation implements ConstantAction {

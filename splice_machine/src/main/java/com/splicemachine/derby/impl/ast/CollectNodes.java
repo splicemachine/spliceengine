@@ -2,9 +2,9 @@ package com.splicemachine.derby.impl.ast;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.compile.Visitable;
-import org.apache.derby.iapi.sql.compile.Visitor;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.compile.Visitable;
+import com.splicemachine.db.iapi.sql.compile.Visitor;
 
 import java.util.LinkedList;
 import java.util.List;

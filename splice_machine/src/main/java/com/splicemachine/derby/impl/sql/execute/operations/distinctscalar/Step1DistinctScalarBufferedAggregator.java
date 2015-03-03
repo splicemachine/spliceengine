@@ -1,7 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations.distinctscalar;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import org.apache.log4j.Logger;
 import com.splicemachine.derby.impl.sql.execute.operations.WarningCollector;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.AbstractBufferedAggregator;

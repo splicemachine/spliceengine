@@ -15,8 +15,8 @@ import com.splicemachine.pipeline.exception.ErrorState;
 import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.storage.EntryEncoder;
 
-import org.apache.derby.iapi.error.PublicAPI;
-import org.apache.derby.iapi.error.StandardException;
+import com.splicemachine.db.iapi.error.PublicAPI;
+import com.splicemachine.db.iapi.error.StandardException;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;

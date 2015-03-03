@@ -15,9 +15,9 @@ import com.splicemachine.job.JobResults;
 import com.splicemachine.job.SimpleJobResults;
 import com.splicemachine.metrics.IOStats;
 import com.splicemachine.metrics.Metrics;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.types.RowLocation;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.spark.api.java.JavaRDD;
 

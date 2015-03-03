@@ -1,6 +1,6 @@
 package com.splicemachine.derby.impl.sql.compile;
 
-import org.apache.derby.iapi.sql.compile.Optimizer;
+import com.splicemachine.db.iapi.sql.compile.Optimizer;
 
 import static com.google.common.base.Preconditions.checkArgument;
 

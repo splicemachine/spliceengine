@@ -24,7 +24,7 @@
 		</repository>
 	</repositories>
 	<properties>
-		<derby.version>1.1.0-SNAPSHOT</derby.version>
+		<derby.version>1.1.0.1-SNAPSHOT</derby.version>
 		<excluded.categories>com.splicemachine.test.SlowTest, com.splicemachine.test.FinalTest</excluded.categories>
 		<failTasksRandomly>true</failTasksRandomly>
 		<!-- run chaos monkey -->

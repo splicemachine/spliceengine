@@ -8,9 +8,9 @@ import com.splicemachine.derby.impl.sql.execute.serial.TimestampDVDSerializer;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.utils.ByteSlice;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.StoredFormatIds;
-import org.apache.derby.iapi.types.*;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.types.*;
 
 import java.math.BigDecimal;
 import java.sql.Timestamp;

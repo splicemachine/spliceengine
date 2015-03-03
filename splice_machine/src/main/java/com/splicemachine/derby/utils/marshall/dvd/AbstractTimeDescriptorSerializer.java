@@ -1,6 +1,6 @@
 package com.splicemachine.derby.utils.marshall.dvd;
 
-import org.apache.derby.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
 import java.util.Calendar;
 import java.util.GregorianCalendar;

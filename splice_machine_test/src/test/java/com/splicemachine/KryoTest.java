@@ -16,7 +16,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.derby.iapi.types.SQLDecimal;
+import com.splicemachine.db.iapi.types.SQLDecimal;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;

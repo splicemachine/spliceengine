@@ -5,10 +5,10 @@ import com.google.common.cache.CacheBuilder;
 import com.splicemachine.derby.impl.sql.execute.actions.WriteCursorConstantOperation;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
-import org.apache.derby.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 
 /**
  * Cache ConglomerateDescriptor objects by ID, retrieve by Activation.

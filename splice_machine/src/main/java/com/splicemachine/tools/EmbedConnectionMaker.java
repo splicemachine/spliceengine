@@ -3,8 +3,8 @@ package com.splicemachine.tools;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 
-import org.apache.derby.impl.jdbc.EmbedConnection;
-import org.apache.derby.jdbc.EmbeddedDriver;
+import com.splicemachine.db.impl.jdbc.EmbedConnection;
+import com.splicemachine.db.jdbc.EmbeddedDriver;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -15,7 +15,7 @@ import java.util.Properties;
  * Created on: 3/22/13
  */
 public final class EmbedConnectionMaker implements ConnectionPool.Supplier {
-    private static final String DRIVER_CLASS_NAME = "org.apache.derby.jdbc.EmbeddedDriver";
+    private static final String DRIVER_CLASS_NAME = "com.splicemachine.db.jdbc.EmbeddedDriver";
     private static final String protocol = "jdbc:derby:splice:";
 
     private static final Class<EmbeddedDriver> driverClass;

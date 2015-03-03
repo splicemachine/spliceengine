@@ -1,6 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations.framework;
 
-import org.apache.derby.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 
 /**
  * This class wraps a grouping key and an ExecRow

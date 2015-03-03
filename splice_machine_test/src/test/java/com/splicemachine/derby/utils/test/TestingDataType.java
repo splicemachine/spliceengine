@@ -9,11 +9,11 @@ import com.splicemachine.derby.utils.marshall.dvd.TimestampV2DescriptorSerialize
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.StoredFormatIds;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.types.*;
-import org.apache.derby.impl.sql.execute.ValueRow;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.*;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.codehaus.jackson.map.deser.TimestampDeserializer;
 
 import java.math.BigDecimal;

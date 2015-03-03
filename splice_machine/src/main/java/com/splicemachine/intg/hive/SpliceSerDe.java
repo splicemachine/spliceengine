@@ -2,10 +2,10 @@ package com.splicemachine.intg.hive;
 
 import com.splicemachine.mrio.api.SQLUtil;
 import org.apache.commons.lang.SerializationUtils;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.types.*;
-import org.apache.derby.impl.sql.execute.ValueRow;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.*;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.serde.Constants;
 import org.apache.hadoop.hive.serde2.SerDe;
@@ -243,7 +243,7 @@ public class SpliceSerDe implements SerDe {
                 else if (primOI.getPrimitiveCategory() == PrimitiveCategory.BOOLEAN)
                     dvds[i] = new SQLBoolean((Boolean) data);
                 else if (primOI.getPrimitiveCategory() == PrimitiveCategory.DECIMAL)
-                    dvds[i] = new org.apache.derby.iapi.types.SQLDecimal((String) data);
+                    dvds[i] = new com.splicemachine.db.iapi.types.SQLDecimal((String) data);
                 else if (primOI.getPrimitiveCategory() == PrimitiveCategory.DOUBLE)
                     dvds[i] = new SQLDouble((Double) data);
                 else if (primOI.getPrimitiveCategory() == PrimitiveCategory.FLOAT)

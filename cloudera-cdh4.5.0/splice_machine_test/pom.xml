@@ -441,7 +441,7 @@
 									<value>jdbc:splice://localhost:${ij.connection.port}/splicedb;user=splice;password=admin</value>
 								</systemProperty>
 							</systemProperties>
-							<mainClass>org.apache.derby.tools.ij</mainClass>
+							<mainClass>com.splicemachine.db.tools.ij</mainClass>
 							<includeProjectDependencies>true</includeProjectDependencies>
 							<executable>maven</executable>
 						</configuration>

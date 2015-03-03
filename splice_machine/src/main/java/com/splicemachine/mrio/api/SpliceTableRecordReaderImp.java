@@ -18,11 +18,11 @@ import com.splicemachine.metrics.Metrics;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.constants.SIConstants;
-import org.apache.derby.iapi.types.*;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.impl.sql.execute.ValueRow;
+import com.splicemachine.db.iapi.types.*;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 
 public class SpliceTableRecordReaderImp{
 

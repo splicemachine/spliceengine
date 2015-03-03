@@ -5,7 +5,7 @@ import com.splicemachine.derby.hbase.SpliceBaseDerbyCoprocessor;
 import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.ZkUtils;
-import org.apache.derby.iapi.error.StandardException;
+import com.splicemachine.db.iapi.error.StandardException;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;

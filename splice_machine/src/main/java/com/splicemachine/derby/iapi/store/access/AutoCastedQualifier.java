@@ -1,8 +1,8 @@
 package com.splicemachine.derby.iapi.store.access;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.store.access.Qualifier;
-import org.apache.derby.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.store.access.Qualifier;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
 public class AutoCastedQualifier implements Qualifier {
 

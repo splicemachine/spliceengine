@@ -6,7 +6,7 @@ import com.splicemachine.pipeline.api.WriteContext;
 import com.splicemachine.pipeline.constraint.ConstraintContext;
 import com.splicemachine.pipeline.constraint.ConstraintViolation;
 import com.splicemachine.pipeline.impl.WriteResult;
-import org.apache.derby.iapi.sql.dictionary.ForeignKeyConstraintDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.ForeignKeyConstraintDescriptor;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 
 /**

@@ -13,7 +13,7 @@ import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.TxnOperationFactory;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.impl.HTransactorFactory;
-import org.apache.derby.iapi.sql.dictionary.ForeignKeyConstraintDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.ForeignKeyConstraintDescriptor;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.filter.PrefixFilter;

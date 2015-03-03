@@ -10,7 +10,7 @@ public class CreateOutputTable {
 	public void createTable(String tableName, String sqlStat, String connStr)
 	{
 		try {
-			Class.forName("org.apache.derby.jdbc.ClientDriver");
+			Class.forName("com.splicemachine.db.jdbc.ClientDriver");
 			Connection conn = DriverManager.getConnection(connStr);
 			Statement stmt = conn.createStatement();
 			stmt.execute(sqlStat);

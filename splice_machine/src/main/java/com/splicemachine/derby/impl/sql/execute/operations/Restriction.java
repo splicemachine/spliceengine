@@ -1,7 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 
 /**
  * Abstract representation of a Restriction.
@@ -15,7 +15,7 @@ public interface Restriction {
      *
      * @param row the row to restrict
      * @return true if the row is to be emitted, false otherwise
-     * @throws org.apache.derby.iapi.error.StandardException if something goes wrong during the restriction
+     * @throws com.splicemachine.db.iapi.error.StandardException if something goes wrong during the restriction
      */
     boolean apply(ExecRow row) throws StandardException;
 

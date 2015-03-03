@@ -1,13 +1,13 @@
 package com.splicemachine.derby.ddl;
 
-import org.apache.derby.impl.sql.execute.ColumnInfo;
+import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
-import org.apache.derby.catalog.UUID;
+import com.splicemachine.db.catalog.UUID;
 
 import com.splicemachine.pipeline.ddl.TentativeDDLDesc;
 

@@ -3,7 +3,7 @@ package com.splicemachine.derby.utils;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import org.apache.derby.iapi.error.StandardException;
+import com.splicemachine.db.iapi.error.StandardException;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 
 import java.io.IOException;

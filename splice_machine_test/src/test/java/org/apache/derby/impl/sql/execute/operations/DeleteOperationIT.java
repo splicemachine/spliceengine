@@ -10,7 +10,7 @@ import java.util.Map;
 import com.splicemachine.pipeline.exception.ErrorState;
 import com.splicemachine.test.SerialTest;
 
-import org.apache.derby.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.reference.SQLState;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;

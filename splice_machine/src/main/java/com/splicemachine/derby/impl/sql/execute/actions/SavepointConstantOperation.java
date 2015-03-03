@@ -1,12 +1,12 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import org.apache.derby.iapi.sql.execute.ConstantAction;
-import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.conn.StatementContext;
-import org.apache.derby.iapi.reference.SQLState;
-import org.apache.derby.shared.common.reference.MessageId;
+import com.splicemachine.db.iapi.sql.execute.ConstantAction;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.conn.StatementContext;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.shared.common.reference.MessageId;
 
 /**
  *	This class  describes actions that are ALWAYS performed for a

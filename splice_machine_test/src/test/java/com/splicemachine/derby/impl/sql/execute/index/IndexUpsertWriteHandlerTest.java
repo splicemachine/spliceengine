@@ -21,8 +21,8 @@ import com.splicemachine.derby.utils.DerbyBytesUtil;
 
 import com.splicemachine.pipeline.api.PreFlushHook;
 import com.splicemachine.pipeline.api.WriteConfiguration;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;

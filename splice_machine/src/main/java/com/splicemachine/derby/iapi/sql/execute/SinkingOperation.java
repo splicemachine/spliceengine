@@ -3,8 +3,8 @@ package com.splicemachine.derby.iapi.sql.execute;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.api.RecordingCallBuffer;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 
 import java.io.IOException;
 

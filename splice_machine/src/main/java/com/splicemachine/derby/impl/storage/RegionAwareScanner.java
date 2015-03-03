@@ -17,7 +17,7 @@ import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.impl.BaseSIFilter;
 import com.splicemachine.si.impl.HTransactorFactory;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.derby.iapi.error.StandardException;
+import com.splicemachine.db.iapi.error.StandardException;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;

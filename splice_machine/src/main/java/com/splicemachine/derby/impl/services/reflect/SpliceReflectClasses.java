@@ -2,11 +2,11 @@ package com.splicemachine.derby.impl.services.reflect;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import org.apache.derby.iapi.util.ByteArray;
-import org.apache.derby.impl.services.reflect.DatabaseClasses;
-import org.apache.derby.impl.services.reflect.LoadedGeneratedClass;
-import org.apache.derby.impl.services.reflect.ReflectGeneratedClass;
-import org.apache.derby.impl.services.reflect.ReflectLoaderJava2;
+import com.splicemachine.db.iapi.util.ByteArray;
+import com.splicemachine.db.impl.services.reflect.DatabaseClasses;
+import com.splicemachine.db.impl.services.reflect.LoadedGeneratedClass;
+import com.splicemachine.db.impl.services.reflect.ReflectGeneratedClass;
+import com.splicemachine.db.impl.services.reflect.ReflectLoaderJava2;
 
 import java.security.PrivilegedAction;
 import java.util.concurrent.Callable;
