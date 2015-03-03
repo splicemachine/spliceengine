@@ -551,6 +551,6 @@ public class DerbyFactoryImpl implements DerbyFactory<SparseTxn> {
         
 		@Override
 		public SpliceRegionScanner getSplitRegionScanner(Scan scan, HTable htable) throws IOException {
-			return new SplitRegionScanner(scan,htable);
+			 return new SplitRegionScanner(scan,htable,htable.getRegionsInRange(scan.getStartRow(), scan.getStopRow()));
 		}
 }

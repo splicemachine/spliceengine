@@ -8,7 +8,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
-import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Durability;
@@ -34,6 +33,7 @@ import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.mrio.api.MemStoreFlushAwareScanner;
+import com.splicemachine.mrio.api.SplitScannerDNRIOException;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -118,14 +118,27 @@ public class SpliceIndexObserver extends AbstractSpliceIndexObserver {
 				SpliceLogUtils.debug(LOG, "preStoreScannerOpen in MR mode %s", 
 						c.getEnvironment().getRegion() );
 			}
+			if(LOG.isDebugEnabled()){
+				SpliceLogUtils.debug(LOG, "scan Check Code startKey {value=%s, inRange=%s}, endKey {value=%s, inRange=%s}", 
+						scan.getStartRow(), HRegion.rowIsInRange(c.getEnvironment().getRegion().getRegionInfo(), scan.getStartRow()),
+						scan.getStopRow(), HRegion.rowIsInRange(c.getEnvironment().getRegion().getRegionInfo(), scan.getStopRow()));
+			}
+			
+			
 			// Throw Retry Exception if the region is splitting
 			if (splitMerge.get()) {
-				throw new DoNotRetryIOException("SPLIT");
+				throw new SplitScannerDNRIOException();
 			} else {
 				this.scannerCount.incrementAndGet();
+				
+				if (!HRegion.rowIsInRange(c.getEnvironment().getRegion().getRegionInfo(), scan.getStartRow()) ||
+						!HRegion.rowIsInRange(c.getEnvironment().getRegion().getRegionInfo(), scan.getStartRow())) {
+					this.scannerCount.decrementAndGet();
+					throw new SplitScannerDNRIOException();
+				}
 				if (splitMerge.get()) {
 					this.scannerCount.decrementAndGet();
-					throw new DoNotRetryIOException("SPLIT");
+					throw new SplitScannerDNRIOException();
 				}
 			}
 			

@@ -131,7 +131,7 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 		this.htable = htable;
 	}
 	
-	public void restart(byte[] firstRow) throws IOException {
+	public void restart(byte[] firstRow) throws IOException {		
 		Scan newscan = new Scan(scan);
 		newscan.setStartRow(firstRow);
 		scan = newscan;
@@ -140,8 +140,9 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 			this.hregion = splitRegionScanner.getRegion();
 			this.mrs = new SimpleMeasuredRegionScanner(splitRegionScanner,Metrics.noOpMetricFactory());
 			TxnRegion localRegion = new TxnRegion(hregion, NoopRollForward.INSTANCE,NoOpReadResolver.INSTANCE, 
-				TransactionStorage.getTxnSupplier(), TxnDataStore.getDataStore(), HTransactorFactory.getTransactor());		
-			builder.tableVersion("2.0").region(localRegion).template(SMSQLUtil.getExecRow(builder.getExecRowTypeFormatIds())).scanner(mrs).scan(scan).metricFactory(Metrics.noOpMetricFactory());		
+				TransactionStorage.getTxnSupplier(), TxnDataStore.getDataStore(), HTransactorFactory.getTransactor());	
+			ExecRow template = SMSQLUtil.getExecRow(builder.getExecRowTypeFormatIds());
+			builder.tableVersion("2.0").region(localRegion).template(template).scanner(mrs).scan(scan).metricFactory(Metrics.noOpMetricFactory());		
 			if (LOG.isTraceEnabled())
 				SpliceLogUtils.trace(LOG, "restart with builder=%s",builder);
 			siTableScanner = builder.build();

@@ -333,9 +333,9 @@ public class SMSQLUtil {
 	  }
 	  
 	  public static ExecRow getExecRow(int[] execRowFormatIds) throws IOException {
-		  ExecRow execRow = new ValueRow(execRowFormatIds.length);
+		  ExecRow execRow = new ValueRow(execRowFormatIds==null?0:execRowFormatIds.length);
 		  try {	
-		  for (int i = 0; i< execRowFormatIds.length; i++) {
+		  for (int i = 0; i< execRow.nColumns(); i++) {
 				execRow.setColumn(i+1, factory.getLazyNull(execRowFormatIds[i]));
 			}
 		  } catch (StandardException se) {
