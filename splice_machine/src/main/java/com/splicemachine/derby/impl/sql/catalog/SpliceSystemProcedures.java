@@ -846,6 +846,15 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .arg("SOURCE", SystemColumnImpl
                                     .getJavaColumn("DATA", "com.splicemachine.stats.ColumnStatistics", false)
                                     .getType().getCatalogType())
+                            .build(),
+                    Procedure.newBuilder().name("PARTITION_EXISTS")
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .sqlControl(RoutineAliasInfo.NO_SQL)
+                            .returnType(DataTypeDescriptor.getCatalogType(Types.BOOLEAN))
+                            .isDeterministic(true).ownerClass(StatisticsFunctions.class.getCanonicalName())
+                            .arg("CONGLOMERATE", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT).getCatalogType())
+                            .arg("PARTITION_ID", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR).getCatalogType())
                             .build()
             ));
 

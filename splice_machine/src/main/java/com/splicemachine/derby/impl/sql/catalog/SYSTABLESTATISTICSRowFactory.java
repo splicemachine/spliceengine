@@ -169,7 +169,8 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
             ",sys.systablestats ts" +
             " where " +
             "t.tableid = c.tableid " +
-            "and c.conglomeratenumber = ts.conglomerateid" +
+            "and c.conglomeratenumber = ts.conglomerateid " +
+            "and PARTITION_EXISTS(ts.conglomerateId,ts.partitionid)" +
             " group by " +
             "t.tablename";
 

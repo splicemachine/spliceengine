@@ -218,7 +218,7 @@ public class StatisticsTask extends ZkTask{
         //get Row Key
         MultiFieldEncoder keyEncoder = MultiFieldEncoder.create(3);
         keyEncoder = keyEncoder.encodeNext(tableConglomerateId)
-                .encodeNext(txnRegion.getRegionName());
+                .encodeNext(region.getRegionInfo().getEncodedName());
         keyEncoder.mark();
 
         BitSet nonNullRowFields = new BitSet();
@@ -260,7 +260,7 @@ public class StatisticsTask extends ZkTask{
         //get Row Key
         MultiFieldEncoder keyEncoder = MultiFieldEncoder.create(2);
         keyEncoder = keyEncoder.encodeNext(tableConglomerateId)
-                .encodeNext(txnRegion.getRegionName());
+                .encodeNext(region.getRegionInfo().getEncodedName());
         byte[] rowKey = keyEncoder.build();
 
         BitSet nonNullRowFields = new BitSet();
