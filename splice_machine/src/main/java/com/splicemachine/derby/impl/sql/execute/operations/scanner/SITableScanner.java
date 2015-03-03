@@ -402,4 +402,8 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>{
 				}
 		}
 
+	public MeasuredRegionScanner<Data> getRegionScanner() {
+		return regionScanner;
+	}
+
 }
