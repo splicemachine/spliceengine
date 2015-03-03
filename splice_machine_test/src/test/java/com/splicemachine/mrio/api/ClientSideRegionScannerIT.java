@@ -44,28 +44,27 @@ public class ClientSideRegionScannerIT extends BaseMRIOTest {
 			protected void starting(Description description) {
 				try {
 					spliceClassWatcher.setAutoCommit(false);
+					PreparedStatement psA = spliceClassWatcher.prepareStatement("insert into "+ SCHEMA_NAME+ ".A (col1,col2) values (?,?)");
 					for (int i = 0; i< 500; i++) {
 						if (i%10 != 0)
 							continue;							
-						PreparedStatement psA = spliceClassWatcher.prepareStatement("insert into "+ SCHEMA_NAME+ ".A (col1,col2) values (?,?)");
 						psA.setInt(1,i);
 						psA.setString(2, "dataset"+i);
 						psA.executeUpdate();
 						if (i==250)
 							flushTable(SCHEMA_NAME+".A");
 					}
-					
+					psA = spliceClassWatcher.prepareStatement("update "+ SCHEMA_NAME+ ".A set col2 = ? where col1 = ?");
+					PreparedStatement psB = spliceClassWatcher.prepareStatement("insert into "+ SCHEMA_NAME+ ".A (col1,col2) values (?,?)");
 					for (int i = 0; i< 500; i++) {
 						if (i%10 == 0) {
-							PreparedStatement psA = spliceClassWatcher.prepareStatement("update "+ SCHEMA_NAME+ ".A set col2 = ? where col1 = ?");
 							psA.setString(1, "datasetupdate"+i);
 							psA.setInt(2,i);
 							psA.executeUpdate();
 						} else {
-							PreparedStatement psA = spliceClassWatcher.prepareStatement("insert into "+ SCHEMA_NAME+ ".A (col1,col2) values (?,?)");
-							psA.setInt(1,i);
-							psA.setString(2, "dataset"+i);
-							psA.executeUpdate();
+							psB.setInt(1,i);
+							psB.setString(2, "dataset"+i);
+							psB.executeUpdate();
 						}
 					}
 					spliceClassWatcher.commit();
@@ -95,7 +94,6 @@ public class ClientSideRegionScannerIT extends BaseMRIOTest {
 	    	scan.setBatch(50);
 	    	scan.setMaxVersions();
 	    	scan.setAttribute(MRConstants.SPLICE_SCAN_MEMSTORE_ONLY, SIConstants.EMPTY_BYTE_ARRAY);    	
-	    	
 			ClientSideRegionScanner clientSideRegionScanner = 
 					new ClientSideRegionScanner(htable.getConfiguration(),FSUtils.getCurrentFileSystem(htable.getConfiguration()), FSUtils.getRootDir(htable.getConfiguration()),
 							htable.getTableDescriptor(),htable.getRegionLocation(scan.getStartRow()).getRegionInfo(),
@@ -103,7 +101,6 @@ public class ClientSideRegionScannerIT extends BaseMRIOTest {
 			List results = new ArrayList();
 			while (clientSideRegionScanner.nextRaw(results)) {
 				i++;
-				System.out.println(i + " results --> " + results);
 				results.clear();
 			}
 			clientSideRegionScanner.close();
@@ -145,7 +142,6 @@ public class ClientSideRegionScannerIT extends BaseMRIOTest {
 				i++;
 				if (i==100) 
 					admin.flush(tableName);
-				System.out.println(i + " results --> " + results);
 				results.clear();
 			}
 			clientSideRegionScanner.close();

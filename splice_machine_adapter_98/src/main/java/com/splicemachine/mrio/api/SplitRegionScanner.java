@@ -6,11 +6,14 @@ import java.util.List;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.FSUtils;
+import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
 /*
@@ -24,34 +27,91 @@ public class SplitRegionScanner implements SpliceRegionScanner {
 	protected RegionScanner currentScanner;
 	protected FileSystem fileSystem;
 	protected HRegion region;
+	protected int scannerPosition = 1;
+	protected int scannerCount = 0;
+	protected Scan scan;
+	protected HTable htable;
+	protected List<Cell> holderResults = new ArrayList<Cell>();
+	protected boolean holderReturn;
 	
-	public SplitRegionScanner(Scan scan, HTable table) throws IOException {
+	public SplitRegionScanner(Scan scan, HTable table, List<HRegionLocation> locations) throws IOException {
 		if (LOG.isTraceEnabled())
 			SpliceLogUtils.trace(LOG, "init");
-		ClientSideRegionScanner clientSideRegionScanner = 
-				new ClientSideRegionScanner(table.getConfiguration(),FSUtils.getCurrentFileSystem(table.getConfiguration()), FSUtils.getRootDir(table.getConfiguration()),
-						table.getTableDescriptor(),table.getRegionLocation(scan.getStartRow()).getRegionInfo(),
-						scan,null);		
-		region = clientSideRegionScanner.region;
-		registerRegionScanner(clientSideRegionScanner);
+		this.scan = scan;
+		boolean hasAdditionalScanners = true;
+		while (hasAdditionalScanners) {
+			try {
+				for (int i = 0; i< locations.size(); i++) {
+					Scan newScan = new Scan(scan);
+				    byte[] startRow = scan.getStartRow();
+				    byte[] stopRow = scan.getStopRow();
+				    byte[] regionStartKey = locations.get(i).getRegionInfo().getStartKey();
+				    byte[] regionStopKey = locations.get(i).getRegionInfo().getEndKey();
+				    // determine if the given start an stop key fall into the region
+				    if ((startRow.length == 0 || regionStopKey.length == 0 ||
+				          Bytes.compareTo(startRow, regionStopKey) < 0) &&
+				          (stopRow.length == 0 ||
+				           Bytes.compareTo(stopRow, regionStartKey) > 0)) { 
+				    	  byte[] splitStart = startRow.length == 0 ||
+				    			  Bytes.compareTo(regionStartKey, startRow) >= 0 ?
+				    					  regionStartKey : startRow;
+				    	  byte[] splitStop = (stopRow.length == 0 ||
+				    			  Bytes.compareTo(regionStopKey, stopRow) <= 0) &&
+				    			  regionStopKey.length > 0 ? regionStopKey : stopRow;
+				    	  newScan.setStartRow(splitStart);
+				    	  newScan.setStopRow(splitStop);
+				    	  SpliceLogUtils.trace(LOG, "adding Split Region Scanner for startKey=%s, endKey=%s",splitStart,splitStop);
+				  		  ClientSideRegionScanner clientSideRegionScanner = 
+				  				  new ClientSideRegionScanner(table.getConfiguration(),FSUtils.getCurrentFileSystem(table.getConfiguration()), FSUtils.getRootDir(table.getConfiguration()),
+										table.getTableDescriptor(),table.getRegionLocation(newScan.getStartRow()).getRegionInfo(),
+										newScan,null);
+				  				region = clientSideRegionScanner.region;
+				  				registerRegionScanner(clientSideRegionScanner);			    			  
+				      }
+				 }
+				 hasAdditionalScanners = false;
+			} catch (SplitScannerDNRIOException ioe) {
+				if (LOG.isDebugEnabled())
+					SpliceLogUtils.debug(LOG, "exception logged creating split region scanner %s",StringUtils.stringifyException(ioe));
+				hasAdditionalScanners = true;
+				try {Thread.sleep(200);} catch (Exception e) {}; // Pause for 200 ms...
+				locations = htable.getRegionsInRange(scan.getStartRow(), scan.getStopRow(), true);
+				close();
+			}
+		}
+			
 	}
 	
 	public void registerRegionScanner(RegionScanner regionScanner) {
-		if (currentScanner != null)
-			regionScanners.add(regionScanner);
-		else
+		if (LOG.isTraceEnabled())
+			SpliceLogUtils.trace(LOG, "registerRegionScanner %s",regionScanner);
+		if (currentScanner == null)
 			currentScanner = regionScanner;
+		regionScanners.add(regionScanner);
 	}
 	
 	@Override
 	public boolean next(List<Cell> results) throws IOException {
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "next with results=%s",results);
-		boolean next = currentScanner.nextRaw(results);
-		if (!next && !regionScanners.isEmpty()) {
-			currentScanner = regionScanners.remove(0);
-			return next(results);
+		if (holderReturn) {
+			holderReturn = false;
+			results.addAll(holderResults);
+			return true;
 		}
+		boolean next = currentScanner.nextRaw(results);
+		if (LOG.isTraceEnabled())
+			SpliceLogUtils.trace(LOG, "next with results=%s and row count {%d}",results, scannerCount);
+		scannerCount++;
+		if (!next && scannerPosition<regionScanners.size()) {
+			if (LOG.isTraceEnabled())
+				SpliceLogUtils.trace(LOG, "scanner [%d] exhausted after {%d} records",scannerPosition,scannerCount);
+			currentScanner = regionScanners.get(scannerPosition);
+			scannerPosition++;
+			scannerCount = 0;
+			holderResults.clear();
+			holderReturn = next(holderResults);
+			return holderReturn;
+		}
+
 		return next;
 	}
 
@@ -66,7 +126,8 @@ public class SplitRegionScanner implements SpliceRegionScanner {
 	public void close() throws IOException {
 		if (LOG.isTraceEnabled())
 			SpliceLogUtils.trace(LOG, "close");
-		currentScanner.close();
+		if (currentScanner != null)
+			currentScanner.close();
 		for (RegionScanner rs: regionScanners) {
 			rs.close();
 		}
@@ -114,5 +175,7 @@ public class SplitRegionScanner implements SpliceRegionScanner {
 	public HRegion getRegion() {
 		return region;
 	}
+	
+	
 	
 }
