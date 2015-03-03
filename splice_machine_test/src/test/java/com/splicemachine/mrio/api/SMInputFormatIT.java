@@ -5,8 +5,6 @@ import java.sql.PreparedStatement;
 import java.util.List;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.RowLocation;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.junit.Assert;
@@ -90,7 +88,6 @@ public class SMInputFormatIT extends BaseMRIOTest {
     
     @Test
     public void testSparkIntegrationWithInputFormat() throws IOException {
-    	Configuration config = HBaseConfiguration.create();
     	config.set(MRConstants.SPLICE_JDBC_STR, "jdbc:derby://localhost:1527/splicedb;user=splice;password=admin");
     	config.set(MRConstants.SPLICE_INPUT_TABLE_NAME, tableWatcherA.toString());
     	Job job = new Job(config, "Test Scan");	
@@ -107,7 +104,6 @@ public class SMInputFormatIT extends BaseMRIOTest {
     
     @Test
     public void testCountOverMultipleRegionsInSpark() throws IOException {
-    	Configuration config = HBaseConfiguration.create();
     	config.set(MRConstants.SPLICE_JDBC_STR, "jdbc:derby://localhost:1527/splicedb;user=splice;password=admin");
     	config.set(MRConstants.SPLICE_INPUT_TABLE_NAME, tableWatcherB.toString());
     	Job job = new Job(config, "Test Scan");	
