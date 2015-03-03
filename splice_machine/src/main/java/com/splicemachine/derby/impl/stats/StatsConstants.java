@@ -14,7 +14,7 @@ public class StatsConstants extends SpliceConstants {
 
     public static int cardinalityPrecision;
     @Parameter public static final String CARDINALITY_PRECISION="splice.statistics.cardinality";
-    @DefaultValue(value = CARDINALITY_PRECISION)public static final int DEFAULT_CARDINALITY_PRECISION=6;
+    @DefaultValue(value = CARDINALITY_PRECISION)public static final int DEFAULT_CARDINALITY_PRECISION=8;
 
     public static int topKSize;
     @Parameter public static final String TOPK_SIZE = "splice.statistics.topKSize";

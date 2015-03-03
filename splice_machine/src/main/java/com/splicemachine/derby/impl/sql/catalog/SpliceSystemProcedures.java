@@ -807,7 +807,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
             /*
              * Statistics functions
              */
-                    Procedure.newBuilder().name("CARDINALITY")
+                    Procedure.newBuilder().name("STATS_CARDINALITY")
                             .numOutputParams(0)
                             .numResultSets(0)
                             .sqlControl(RoutineAliasInfo.NO_SQL)
@@ -817,7 +817,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                                     .getJavaColumn("DATA", "com.splicemachine.stats.ColumnStatistics", false)
                                     .getType().getCatalogType())
                             .build(),
-                    Procedure.newBuilder().name("NULL_COUNT")
+                    Procedure.newBuilder().name("STATS_NULL_COUNT")
                             .numOutputParams(0)
                             .numResultSets(0)
                             .sqlControl(RoutineAliasInfo.NO_SQL)
@@ -827,7 +827,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                                     .getJavaColumn("DATA", "com.splicemachine.stats.ColumnStatistics", false)
                                     .getType().getCatalogType())
                             .build(),
-                    Procedure.newBuilder().name("NULL_FRACTION")
+                    Procedure.newBuilder().name("STATS_NULL_FRACTION")
                             .numOutputParams(0)
                             .numResultSets(0)
                             .sqlControl(RoutineAliasInfo.NO_SQL)
@@ -837,7 +837,27 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                                     .getJavaColumn("DATA", "com.splicemachine.stats.ColumnStatistics", false)
                                     .getType().getCatalogType())
                             .build(),
-                    Procedure.newBuilder().name("TOP_K")
+                    Procedure.newBuilder().name("STATS_TOP_K")
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .sqlControl(RoutineAliasInfo.NO_SQL)
+                            .returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR))
+                            .isDeterministic(true).ownerClass(StatisticsFunctions.class.getCanonicalName())
+                            .arg("SOURCE", SystemColumnImpl
+                                    .getJavaColumn("DATA", "com.splicemachine.stats.ColumnStatistics", false)
+                                    .getType().getCatalogType())
+                            .build(),
+                    Procedure.newBuilder().name("STATS_MIN")
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .sqlControl(RoutineAliasInfo.NO_SQL)
+                            .returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR))
+                            .isDeterministic(true).ownerClass(StatisticsFunctions.class.getCanonicalName())
+                            .arg("SOURCE", SystemColumnImpl
+                                    .getJavaColumn("DATA", "com.splicemachine.stats.ColumnStatistics", false)
+                                    .getType().getCatalogType())
+                            .build(),
+                    Procedure.newBuilder().name("STATS_MAX")
                             .numOutputParams(0)
                             .numResultSets(0)
                             .sqlControl(RoutineAliasInfo.NO_SQL)
