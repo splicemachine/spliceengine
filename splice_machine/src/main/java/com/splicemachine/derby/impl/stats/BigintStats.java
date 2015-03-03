@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.stats;
 
 import com.google.common.base.Function;
+import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.LongColumnStatistics;
 import com.splicemachine.stats.frequency.FrequencyEstimate;
 import com.splicemachine.stats.frequency.FrequentElements;
@@ -43,6 +44,12 @@ public class BigintStats extends BaseDvdStatistics {
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         LongColumnStatistics.encoder().decode(in);
     }
+
+    @Override
+    public ColumnStatistics<DataValueDescriptor> getClone() {
+        return new BigintStats((LongColumnStatistics)baseStats.getClone());
+    }
+
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private class LongFreqs implements FrequentElements<DataValueDescriptor> {
@@ -65,6 +72,11 @@ public class BigintStats extends BaseDvdStatistics {
             } catch (StandardException e) {
                 throw new RuntimeException(e);
             }
+        }
+
+        @Override
+        public FrequentElements<DataValueDescriptor> getClone() {
+            return new LongFreqs(frequentElements.newCopy());
         }
 
         @Override
@@ -115,6 +127,8 @@ public class BigintStats extends BaseDvdStatistics {
             baseEstimate = (LongFrequencyEstimate)baseEstimate.merge(((LongFreq) other).baseEstimate);
             return this;
         }
+
+        @Override public String toString() { return baseEstimate.toString(); }
     }
 
     private static final Function<LongFrequencyEstimate,FrequencyEstimate<DataValueDescriptor>> conversionFunction

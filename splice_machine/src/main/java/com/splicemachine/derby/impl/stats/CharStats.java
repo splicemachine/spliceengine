@@ -25,6 +25,12 @@ public class CharStats extends StringStatistics {
         return conversionFunction;
     }
 
+    @Override
+    @SuppressWarnings("unchecked")
+    public ColumnStatistics<DataValueDescriptor> getClone() {
+        return new CharStats((ColumnStatistics<String>)baseStats.getClone());
+    }
+
     /* ***************************************************************************************************************/
     /*private helper methods*/
     private static class CharFreq extends Freq{

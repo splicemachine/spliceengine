@@ -1,13 +1,11 @@
 package com.splicemachine.derby.impl.sql.catalog;
 
 import com.splicemachine.derby.iapi.catalog.TableStatisticsDescriptor;
+import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.services.uuid.UUIDFactory;
-import org.apache.derby.iapi.sql.dictionary.CatalogRowFactory;
-import org.apache.derby.iapi.sql.dictionary.DataDictionary;
-import org.apache.derby.iapi.sql.dictionary.SystemColumn;
-import org.apache.derby.iapi.sql.dictionary.TupleDescriptor;
+import org.apache.derby.iapi.sql.dictionary.*;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.ExecutionFactory;
 import org.apache.derby.iapi.types.*;
@@ -22,7 +20,7 @@ import java.util.Properties;
  *         Date: 2/25/15
  */
 public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
-    private static final String TABLENAME_STRING = "SYSTABLESTATISTICS";
+    private static final String TABLENAME_STRING = "SYSTABLESTATS";
     private static final int SYSTABLESTATISTICS_COLUMN_COUNT = 9;
     private static final int CONGLOMID = 1;
     private static final int PARTITIONID = 2;
@@ -137,5 +135,45 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
     @Override
     public Properties getCreateHeapProperties() {
         return super.getCreateHeapProperties();
+    }
+
+    public static ColumnDescriptor[] getViewColumns(TableDescriptor view,UUID viewId) throws StandardException {
+        DataTypeDescriptor varcharType = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR);
+        DataTypeDescriptor longType = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT);
+        return new ColumnDescriptor[]{
+                new ColumnDescriptor("TABLENAME"         ,1,varcharType,varcharType.getNull(),null,view,viewId,0,0),
+                new ColumnDescriptor("TOTAL_ROW_COUNT"   ,2,longType,longType.getNull(),null,view,viewId,0,0),
+                new ColumnDescriptor("AVG_ROW_COUNT"     ,3,longType,longType.getNull(),null,view,viewId,0,0),
+                new ColumnDescriptor("TOTAL_SIZE"        ,4,longType,longType.getNull(),null,view,viewId,0,0),
+                new ColumnDescriptor("NUM_PARTITIONS"    ,5,longType,longType.getNull(),null,view,viewId,0,0),
+                new ColumnDescriptor("AVG_PARTITION_SIZE",6,longType,longType.getNull(),null,view,viewId,0,0),
+                new ColumnDescriptor("ROW_WIDTH"         ,7,longType,longType.getNull(),null,view,viewId,0,0),
+                new ColumnDescriptor("TOTAL_QUERY_COUNT" ,8,longType,longType.getNull(),null,view,viewId,0,0),
+                new ColumnDescriptor("AVG_QUERY_COUNT"   ,9,longType,longType.getNull(),null,view,viewId,0,0),
+        };
+    }
+
+    public static final String STATS_VIEW_SQL = "create view systablestatistics as select " +
+            "t.tablename" + // 0
+            ",sum(ts.rowCount) as TOTAL_ROW_COUNT" +  //1
+            ",avg(ts.rowCount) as AVG_ROW_COUNT" +      //2
+            ",sum(ts.partition_size) as TOTAL_SIZE" + //3
+            ",count(ts.rowCount) as NUM_PARTITIONS" + //4
+            ",avg(ts.partition_size) as AVG_PARTITION_SIZE" + //5
+            ",max(ts.meanrowWidth) as ROW_WIDTH" + //6
+            ",sum(ts.queryCount) as TOTAL_QUERY_COUNT" + //7
+            ",avg(ts.queryCount) as AVG_QUERY_COUNT" + //8
+            " from " +
+            "sys.systables t" +
+            ",sys.sysconglomerates c" +
+            ",sys.systablestats ts" +
+            " where " +
+            "t.tableid = c.tableid " +
+            "and c.conglomeratenumber = ts.conglomerateid" +
+            " group by " +
+            "t.tablename";
+
+    public static void main(String...args) {
+        System.out.println(STATS_VIEW_SQL);
     }
 }

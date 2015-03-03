@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.stats;
 
 import com.google.common.base.Function;
+import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.FloatColumnStatistics;
 import com.splicemachine.stats.frequency.FrequencyEstimate;
 import com.splicemachine.stats.frequency.FrequentElements;
@@ -60,6 +61,11 @@ public class RealStats extends BaseDvdStatistics {
         baseStats = stats = FloatColumnStatistics.encoder().decode(in);
     }
 
+    @Override
+    public ColumnStatistics<DataValueDescriptor> getClone() {
+        return new RealStats((FloatColumnStatistics)stats.getClone());
+    }
+
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private class FloatFreqs implements FrequentElements<DataValueDescriptor> {
@@ -73,6 +79,11 @@ public class RealStats extends BaseDvdStatistics {
         @SuppressWarnings("unchecked")
         public Set<? extends FrequencyEstimate<DataValueDescriptor>> allFrequentElements() {
             return convert((Set<FloatFrequencyEstimate>)frequentElements.allFrequentElements());
+        }
+
+        @Override
+        public FrequentElements<DataValueDescriptor> getClone() {
+            return new FloatFreqs(frequentElements.newCopy());
         }
 
         @Override
@@ -138,6 +149,8 @@ public class RealStats extends BaseDvdStatistics {
             baseEstimate = (FloatFrequencyEstimate)baseEstimate.merge(((FloatFreq) other).baseEstimate);
             return this;
         }
+
+        @Override public String toString() { return baseEstimate.toString(); }
     }
 
     private static final Function<FloatFrequencyEstimate,FrequencyEstimate<DataValueDescriptor>> conversionFunction

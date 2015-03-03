@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.stats;
 
 import com.google.common.base.Function;
 import com.splicemachine.stats.BooleanColumnStatistics;
+import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.frequency.BooleanFrequencyEstimate;
 import com.splicemachine.stats.frequency.BooleanFrequentElements;
 import com.splicemachine.stats.frequency.FrequencyEstimate;
@@ -49,6 +50,11 @@ public class BooleanStats extends BaseDvdStatistics {
     }
 
     @Override
+    public ColumnStatistics<DataValueDescriptor> getClone() {
+        return new BooleanStats((BooleanColumnStatistics)baseStats.getClone());
+    }
+
+    @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         BooleanColumnStatistics.encoder().encode(baseStats,out);
     }
@@ -80,6 +86,11 @@ public class BooleanStats extends BaseDvdStatistics {
             } catch (StandardException e) {
                 throw new RuntimeException(e);
             }
+        }
+
+        @Override
+        public FrequentElements<DataValueDescriptor> getClone() {
+            return new BooleanFreqs(frequentElements.getClone());
         }
 
         @Override
