@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.stats;
 
 import com.google.common.base.Function;
+import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.ShortColumnStatistics;
 import com.splicemachine.stats.frequency.FrequencyEstimate;
 import com.splicemachine.stats.frequency.FrequentElements;
@@ -44,6 +45,11 @@ public class SmallintStats extends BaseDvdStatistics {
         stats = ShortColumnStatistics.encoder().decode(in);
     }
 
+    @Override
+    public ColumnStatistics<DataValueDescriptor> getClone() {
+        return new SmallintStats((ShortColumnStatistics)stats.getClone());
+    }
+
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private class ShortFreqs implements FrequentElements<DataValueDescriptor> {
@@ -51,6 +57,11 @@ public class SmallintStats extends BaseDvdStatistics {
 
         public ShortFreqs(ShortFrequentElements freqs) {
             this.frequentElements = freqs;
+        }
+
+        @Override
+        public FrequentElements<DataValueDescriptor> getClone() {
+            return new ShortFreqs(frequentElements.newCopy());
         }
 
         @Override

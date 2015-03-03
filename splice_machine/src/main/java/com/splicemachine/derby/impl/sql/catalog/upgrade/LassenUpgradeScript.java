@@ -1,17 +1,17 @@
 package com.splicemachine.derby.impl.sql.catalog.upgrade;
 
+import com.splicemachine.derby.impl.sql.catalog.SYSTABLESTATISTICSRowFactory;
 import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.catalog.types.DefaultInfoImpl;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.dictionary.ColumnDescriptor;
-import org.apache.derby.iapi.sql.dictionary.DataDictionary;
-import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
+import org.apache.derby.iapi.sql.dictionary.*;
 import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.SQLBoolean;
 
 import java.sql.Types;
+import java.util.Collections;
 
 /**
  * @author Scott Fines
@@ -29,6 +29,7 @@ public class LassenUpgradeScript extends UpgradeScriptBase {
 
         sdd.createStatisticsTables(tc);
     }
+
 
     /* ****************************************************************************************************************/
     /*private helper methods*/
@@ -54,4 +55,6 @@ public class LassenUpgradeScript extends UpgradeScriptBase {
         sysColumns.getColumnDescriptorList().add(cd);
         sdd.updateSYSCOLPERMSforAddColumnToUserTable(sysColumns.getUUID(), tc);
     }
+
+
 }

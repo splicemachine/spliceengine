@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.stats;
 
 import com.google.common.base.Function;
 import com.splicemachine.stats.ByteColumnStatistics;
+import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.frequency.ByteFrequencyEstimate;
 import com.splicemachine.stats.frequency.ByteFrequentElements;
 import com.splicemachine.stats.frequency.FrequencyEstimate;
@@ -45,6 +46,11 @@ public class TinyintStats extends BaseDvdStatistics {
         stats = ByteColumnStatistics.encoder().decode(in);
     }
 
+    @Override
+    public ColumnStatistics<DataValueDescriptor> getClone() {
+        return new TinyintStats((ByteColumnStatistics)stats.getClone());
+    }
+
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private class TinyintFreqs implements FrequentElements<DataValueDescriptor> {
@@ -52,6 +58,11 @@ public class TinyintStats extends BaseDvdStatistics {
 
         public TinyintFreqs(ByteFrequentElements freqs) {
             this.frequentElements = freqs;
+        }
+
+        @Override
+        public FrequentElements<DataValueDescriptor> getClone() {
+            return new TinyintFreqs(frequentElements.getClone());
         }
 
         @Override

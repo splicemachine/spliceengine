@@ -53,6 +53,12 @@ public class NumericStats extends BaseDvdStatistics{
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         baseStats = stats = ComparableColumnStatistics.encoder(bigDecimalEncoder).decode(in);
     }
+
+    @Override
+    public ColumnStatistics<DataValueDescriptor> getClone() {
+        return new NumericStats(stats.getClone());
+    }
+
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private class Freqs implements FrequentElements<DataValueDescriptor> {
@@ -66,6 +72,11 @@ public class NumericStats extends BaseDvdStatistics{
         @SuppressWarnings("unchecked")
         public Set<? extends FrequencyEstimate<DataValueDescriptor>> allFrequentElements() {
             return convert((Set<FrequencyEstimate<BigDecimal>>)frequentElements.allFrequentElements());
+        }
+
+        @Override
+        public FrequentElements<DataValueDescriptor> getClone() {
+            return new Freqs(frequentElements.getClone());
         }
 
         @Override
@@ -134,6 +145,8 @@ public class NumericStats extends BaseDvdStatistics{
             baseEstimate = baseEstimate.merge(((Freq) other).baseEstimate);
             return this;
         }
+
+        @Override public String toString() { return baseEstimate.toString(); }
     }
 
     private static final Function<FrequencyEstimate<BigDecimal>,FrequencyEstimate<DataValueDescriptor>> conversionFunction

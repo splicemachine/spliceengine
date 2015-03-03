@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.stats;
 
 import com.google.common.base.Function;
+import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.DoubleColumnStatistics;
 import com.splicemachine.stats.frequency.FrequencyEstimate;
 import com.splicemachine.stats.frequency.FrequentElements;
@@ -50,6 +51,11 @@ public class DoubleStats extends BaseDvdStatistics{
     }
 
     @Override
+    public ColumnStatistics<DataValueDescriptor> getClone() {
+        return new DoubleStats((DoubleColumnStatistics)stats.getClone());
+    }
+
+    @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         DoubleColumnStatistics.encoder().encode(stats,out);
     }
@@ -65,6 +71,11 @@ public class DoubleStats extends BaseDvdStatistics{
 
         public DoubleFreqs(DoubleFrequentElements freqs) {
             this.frequentElements = freqs;
+        }
+
+        @Override
+        public FrequentElements<DataValueDescriptor> getClone() {
+            return new DoubleFreqs((DoubleFrequentElements)frequentElements.getClone());
         }
 
         @Override
@@ -136,6 +147,8 @@ public class DoubleStats extends BaseDvdStatistics{
             baseEstimate = (DoubleFrequencyEstimate)baseEstimate.merge(((DoubleFreq) other).baseEstimate);
             return this;
         }
+
+        @Override public String toString() { return baseEstimate.toString(); }
     }
 
     private static final Function<DoubleFrequencyEstimate,FrequencyEstimate<DataValueDescriptor>> conversionFunction

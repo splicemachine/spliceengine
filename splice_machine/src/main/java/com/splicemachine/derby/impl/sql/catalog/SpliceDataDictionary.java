@@ -167,6 +167,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
                 "TABLESTATSPK", false, false, pks, uuidFactory.createUUID(), tableStatsDescriptor.getUUID(), systemSchema, true, 0);
         addConstraintDescriptor(tablestatspk, tc);
 
+        createSysTableStatsView(tc);
+
         //sys_column_statistics
         ColumnOrdering[] columnPkOrder = new ColumnOrdering[]{
                 new IndexColumnOrder(0),
@@ -227,6 +229,11 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
         //create the Statistics tables
         createStatisticsTables(tc);
 
+    }
+
+    @Override
+    protected SystemAggregateGenerator getSystemAggregateGenerator() {
+        return new SpliceSystemAggregatorGenerator(this);
     }
 
     @Override
@@ -525,6 +532,26 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
         }else{
             SpliceLogUtils.trace(LOG,String.format("Skipping table creation since system table %s.%s already exists", systemSchema.getSchemaName(),sysTableToAdd.getTableName()));
         }
+    }
+
+    private void createSysTableStatsView(TransactionController tc) throws StandardException {
+        //create statistics views
+        SchemaDescriptor sysSchema = getSystemSchemaDescriptor();
+
+        DataDescriptorGenerator ddg = getDataDescriptorGenerator();
+        TableDescriptor view = ddg.newTableDescriptor("SYSTABLESTATISTICS",
+                sysSchema,TableDescriptor.VIEW_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY);
+        addDescriptor(view, sysSchema, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc);
+        UUID viewId = view.getUUID();
+        ColumnDescriptor[] tableViewCds = SYSTABLESTATISTICSRowFactory.getViewColumns(view,viewId);
+        addDescriptorArray(tableViewCds, view, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc);
+
+        ColumnDescriptorList viewDl = view.getColumnDescriptorList();
+        Collections.addAll(viewDl, tableViewCds);
+
+        ViewDescriptor vd = ddg.newViewDescriptor(viewId,"SYSTABLESTATISTICS",
+                SYSTABLESTATISTICSRowFactory.STATS_VIEW_SQL,0,sysSchema.getUUID());
+        addDescriptor(vd, sysSchema, DataDictionary.SYSVIEWS_CATALOG_NUM, true, tc);
     }
 
 

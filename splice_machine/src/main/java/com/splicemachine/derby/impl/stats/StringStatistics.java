@@ -44,6 +44,7 @@ public abstract class StringStatistics extends BaseDvdStatistics{
         baseStats = stats = ComparableColumnStatistics.encoder(stringEncoder).decode(in);
     }
 
+
     protected abstract DataValueDescriptor getDvd(String s);
 
     protected abstract Function<FrequencyEstimate<String>,FrequencyEstimate<DataValueDescriptor>> conversionFunction();
@@ -61,6 +62,11 @@ public abstract class StringStatistics extends BaseDvdStatistics{
         @SuppressWarnings("unchecked")
         public Set<? extends FrequencyEstimate<DataValueDescriptor>> allFrequentElements() {
             return convert((Set<FrequencyEstimate<String>>)frequentElements.allFrequentElements());
+        }
+
+        @Override
+        public FrequentElements<DataValueDescriptor> getClone() {
+            return new Freqs(frequentElements.getClone());
         }
 
         @Override
@@ -131,6 +137,8 @@ public abstract class StringStatistics extends BaseDvdStatistics{
         }
 
         protected abstract DataValueDescriptor getDvd(String value);
+
+        @Override public String toString() { return baseEstimate.toString(); }
     }
 
 

@@ -306,7 +306,7 @@ public class StatisticsTask extends ZkTask{
             SchemaDescriptor sysSchema = dd.getSystemSchemaDescriptor();
 
             long[] ids = new long[3];
-            TableDescriptor tableColDesc = dd.getTableDescriptor("SYSTABLESTATISTICS",
+            TableDescriptor tableColDesc = dd.getTableDescriptor("SYSTABLESTATS",
                     sysSchema, lcc.getTransactionExecute());
             ids[0] = tableColDesc.getHeapConglomerateId();
             TableDescriptor colColDesc = dd.getTableDescriptor("SYSCOLUMNSTATISTICS",
