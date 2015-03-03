@@ -271,8 +271,8 @@ public class TxnTestProcs {
 		Connection conn = DriverManager.getConnection("jdbc:default:connection");
 		conn.setAutoCommit(false);
 		insertEmployee(conn, tableName, id, fname, lname);
-		rs[0] = getEmployeeById(conn, tableName, id);
 		conn.rollback();
+		rs[0] = getEmployeeById(conn, tableName, id);
 		conn.close();
 	}
 
@@ -346,8 +346,8 @@ public class TxnTestProcs {
 		conn.setAutoCommit(false);
 		Savepoint savepoint0 = conn.setSavepoint("SVPT0");
 		insertEmployee(conn, tableName, id, fname, lname);
-		rs[0] = getEmployeeById(conn, tableName, id);
 		conn.rollback(savepoint0);
+		rs[0] = getEmployeeById(conn, tableName, id);
 		conn.close();
 	}
 
