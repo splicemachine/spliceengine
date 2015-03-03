@@ -17,7 +17,7 @@ import com.splicemachine.pipeline.api.WriteConfiguration;
 import com.splicemachine.pipeline.api.WriteStats;
 import com.splicemachine.pipeline.writeconfiguration.SequentialImporterWriteConfiguration;
 
-import org.apache.derby.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;

@@ -12,13 +12,13 @@ import com.splicemachine.utils.ByteDataInput;
 import com.splicemachine.utils.ByteDataOutput;
 import com.splicemachine.utils.SpliceLogUtils;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.StoredFormatIds;
-import org.apache.derby.iapi.store.access.ScanController;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.SQLDate;
-import org.apache.derby.iapi.types.SQLTime;
-import org.apache.derby.iapi.types.SQLTimestamp;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.store.access.ScanController;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.SQLDate;
+import com.splicemachine.db.iapi.types.SQLTime;
+import com.splicemachine.db.iapi.types.SQLTimestamp;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 

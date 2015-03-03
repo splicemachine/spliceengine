@@ -5,7 +5,7 @@ import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.marshall.DataHash;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.storage.EntryEncoder;
-import org.apache.derby.iapi.error.StandardException;
+import com.splicemachine.db.iapi.error.StandardException;
 
 
 /**

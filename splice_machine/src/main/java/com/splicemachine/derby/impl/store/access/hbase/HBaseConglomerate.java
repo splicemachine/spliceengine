@@ -12,34 +12,34 @@ import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.utils.SpliceLogUtils;
 
-import org.apache.derby.iapi.error.PublicAPI;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.reference.SQLState;
-import org.apache.derby.iapi.services.cache.ClassSize;
-import org.apache.derby.iapi.services.io.ArrayInputStream;
-import org.apache.derby.iapi.services.io.FormatIdUtil;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
-import org.apache.derby.iapi.services.io.Storable;
-import org.apache.derby.iapi.services.io.StoredFormatIds;
-import org.apache.derby.iapi.store.access.ColumnOrdering;
-import org.apache.derby.iapi.store.access.ConglomerateController;
-import org.apache.derby.iapi.store.access.DynamicCompiledOpenConglomInfo;
-import org.apache.derby.iapi.store.access.Qualifier;
-import org.apache.derby.iapi.store.access.RowLocationRetRowSource;
-import org.apache.derby.iapi.store.access.RowUtil;
-import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
-import org.apache.derby.iapi.store.access.StoreCostController;
-import org.apache.derby.iapi.store.access.TransactionController;
-import org.apache.derby.iapi.store.access.conglomerate.Conglomerate;
-import org.apache.derby.iapi.store.access.conglomerate.ScanManager;
-import org.apache.derby.iapi.store.access.conglomerate.TransactionManager;
-import org.apache.derby.iapi.store.raw.ContainerHandle;
-import org.apache.derby.iapi.store.raw.ContainerKey;
-import org.apache.derby.iapi.store.raw.LockingPolicy;
-import org.apache.derby.iapi.store.raw.Transaction;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.impl.store.access.conglomerate.ConglomerateUtil;
-import org.apache.derby.impl.store.access.conglomerate.OpenConglomerateScratchSpace;
+import com.splicemachine.db.iapi.error.PublicAPI;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.cache.ClassSize;
+import com.splicemachine.db.iapi.services.io.ArrayInputStream;
+import com.splicemachine.db.iapi.services.io.FormatIdUtil;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.services.io.Storable;
+import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.store.access.ColumnOrdering;
+import com.splicemachine.db.iapi.store.access.ConglomerateController;
+import com.splicemachine.db.iapi.store.access.DynamicCompiledOpenConglomInfo;
+import com.splicemachine.db.iapi.store.access.Qualifier;
+import com.splicemachine.db.iapi.store.access.RowLocationRetRowSource;
+import com.splicemachine.db.iapi.store.access.RowUtil;
+import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
+import com.splicemachine.db.iapi.store.access.StoreCostController;
+import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
+import com.splicemachine.db.iapi.store.access.conglomerate.ScanManager;
+import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
+import com.splicemachine.db.iapi.store.raw.ContainerHandle;
+import com.splicemachine.db.iapi.store.raw.ContainerKey;
+import com.splicemachine.db.iapi.store.raw.LockingPolicy;
+import com.splicemachine.db.iapi.store.raw.Transaction;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.impl.store.access.conglomerate.ConglomerateUtil;
+import com.splicemachine.db.impl.store.access.conglomerate.OpenConglomerateScratchSpace;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -375,7 +375,7 @@ public class HBaseConglomerate extends SpliceConglomerate {
 		/**
 		 * Return my format identifier.
 		 *
-		 * @see org.apache.derby.iapi.services.io.TypedFormat#getTypeFormatId
+		 * @see com.splicemachine.db.iapi.services.io.TypedFormat#getTypeFormatId
 		 **/
 		public int getTypeFormatId() {
 				return StoredFormatIds.ACCESS_HEAP_V3_ID;

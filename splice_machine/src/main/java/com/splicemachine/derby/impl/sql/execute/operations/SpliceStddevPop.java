@@ -1,7 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.error.StandardException;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.error.StandardException;
 import java.lang.Math;
 
 public class SpliceStddevPop<K extends Double> extends SpliceUDAVariance<K>

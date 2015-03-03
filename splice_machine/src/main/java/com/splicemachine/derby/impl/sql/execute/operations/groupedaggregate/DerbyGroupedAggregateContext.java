@@ -5,12 +5,12 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.operations.AggregateContext;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 
-import org.apache.derby.iapi.error.SQLWarningFactory;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.FormatableArrayHolder;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.store.access.ColumnOrdering;
-import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
+import com.splicemachine.db.iapi.error.SQLWarningFactory;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.FormatableArrayHolder;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.store.access.ColumnOrdering;
+import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 
 import java.io.IOException;
 import java.io.ObjectInput;

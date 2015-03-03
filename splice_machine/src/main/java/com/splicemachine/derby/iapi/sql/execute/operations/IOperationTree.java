@@ -1,7 +1,7 @@
 package com.splicemachine.derby.iapi.sql.execute.operations;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.execute.NoPutResultSet;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 

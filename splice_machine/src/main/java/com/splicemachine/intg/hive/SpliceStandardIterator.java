@@ -2,7 +2,7 @@ package com.splicemachine.intg.hive;
 
 import java.io.IOException;
 
-import org.apache.derby.iapi.error.StandardException;
+import com.splicemachine.db.iapi.error.StandardException;
 
 
 public interface SpliceStandardIterator<T> {

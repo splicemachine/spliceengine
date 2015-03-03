@@ -1,16 +1,16 @@
 package com.splicemachine.derby.impl.sql.compile;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.sanity.SanityManager;
-import org.apache.derby.iapi.sql.compile.CostEstimate;
-import org.apache.derby.iapi.sql.compile.JoinStrategy;
-import org.apache.derby.iapi.sql.compile.Optimizable;
-import org.apache.derby.iapi.sql.compile.OptimizablePredicate;
-import org.apache.derby.iapi.sql.compile.OptimizablePredicateList;
-import org.apache.derby.iapi.sql.compile.Optimizer;
-import org.apache.derby.iapi.sql.dictionary.DataDictionary;
-import org.apache.derby.impl.sql.compile.FromBaseTable;
-import org.apache.derby.impl.sql.compile.HashableJoinStrategy;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.CostEstimate;
+import com.splicemachine.db.iapi.sql.compile.JoinStrategy;
+import com.splicemachine.db.iapi.sql.compile.Optimizable;
+import com.splicemachine.db.iapi.sql.compile.OptimizablePredicate;
+import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
+import com.splicemachine.db.iapi.sql.compile.Optimizer;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.impl.sql.compile.FromBaseTable;
+import com.splicemachine.db.impl.sql.compile.HashableJoinStrategy;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.constants.SpliceConstants;
@@ -49,7 +49,7 @@ public class HashNestedLoopJoinStrategy extends HashableJoinStrategy {
     
  
 
-    /** @see org.apache.derby.iapi.sql.compile.JoinStrategy#nonBasePredicateSelectivity */
+    /** @see com.splicemachine.db.iapi.sql.compile.JoinStrategy#nonBasePredicateSelectivity */
     public double nonBasePredicateSelectivity(Optimizable innerTable,OptimizablePredicateList predList) throws StandardException {
         double retval = 1.0;
         if (predList != null) {
@@ -65,7 +65,7 @@ public class HashNestedLoopJoinStrategy extends HashableJoinStrategy {
     }
 
     /**
-     * @see org.apache.derby.iapi.sql.compile.JoinStrategy#putBasePredicates
+     * @see com.splicemachine.db.iapi.sql.compile.JoinStrategy#putBasePredicates
      *
      * @exception StandardException		Thrown on error
      */

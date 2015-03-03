@@ -1,8 +1,8 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import org.apache.derby.iapi.sql.execute.ConstantAction;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.ConstantAction;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.error.StandardException;
 
 /**
  *	This class  describes actions that are ALWAYS performed for a

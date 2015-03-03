@@ -21,7 +21,7 @@ public class ImportData {
 		try {
 			if(conn == null)
 			{
-				Class.forName("org.apache.derby.jdbc.ClientDriver");
+				Class.forName("com.splicemachine.db.jdbc.ClientDriver");
 				conn = DriverManager.getConnection(connStr);	
 			}
 			Statement stmt = conn.createStatement();
@@ -44,7 +44,7 @@ public class ImportData {
 		try {		
 			if(conn == null)
 			{
-				Class.forName("org.apache.derby.jdbc.ClientDriver");
+				Class.forName("com.splicemachine.db.jdbc.ClientDriver");
 				conn = DriverManager.getConnection(connStr);
 			}
 				

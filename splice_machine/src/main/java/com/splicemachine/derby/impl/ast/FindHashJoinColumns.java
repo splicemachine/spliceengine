@@ -3,10 +3,10 @@ package com.splicemachine.derby.impl.ast;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.compile.Optimizable;
-import org.apache.derby.impl.sql.compile.*;
-import org.apache.derby.impl.sql.compile.Predicate;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.compile.Optimizable;
+import com.splicemachine.db.impl.sql.compile.*;
+import com.splicemachine.db.impl.sql.compile.Predicate;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 

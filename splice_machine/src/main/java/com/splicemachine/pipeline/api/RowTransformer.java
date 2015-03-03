@@ -4,7 +4,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.sql.SQLException;
 
-import org.apache.derby.iapi.error.StandardException;
+import com.splicemachine.db.iapi.error.StandardException;
 import org.apache.hadoop.hbase.KeyValue;
 
 import com.splicemachine.hbase.KVPair;

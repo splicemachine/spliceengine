@@ -8,7 +8,7 @@ import java.util.Map;
 
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import org.apache.derby.jdbc.EmbeddedDriver;
+import com.splicemachine.db.jdbc.EmbeddedDriver;
 import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;

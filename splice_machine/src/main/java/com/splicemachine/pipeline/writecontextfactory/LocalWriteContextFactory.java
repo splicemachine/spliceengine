@@ -18,12 +18,12 @@ import com.splicemachine.pipeline.writehandler.RegionWriteHandler;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.derby.catalog.IndexDescriptor;
-import org.apache.derby.catalog.UUID;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.context.ContextManager;
-import org.apache.derby.iapi.services.context.ContextService;
-import org.apache.derby.iapi.sql.dictionary.*;
+import com.splicemachine.db.catalog.IndexDescriptor;
+import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.services.context.ContextService;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -370,7 +370,7 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
         ConstraintDescriptorList constraintDescriptors = dataDictionary.getConstraintDescriptors(td);
         for (int i = 0; i < constraintDescriptors.size(); i++) {
             ConstraintDescriptor cDescriptor = constraintDescriptors.elementAt(i);
-            org.apache.derby.catalog.UUID conglomerateId = cDescriptor.getConglomerateId();
+            com.splicemachine.db.catalog.UUID conglomerateId = cDescriptor.getConglomerateId();
             if (conglomerateId != null && td.getConglomerateDescriptor(conglomerateId).getConglomerateNumber() != conglomId)
                 continue;
 

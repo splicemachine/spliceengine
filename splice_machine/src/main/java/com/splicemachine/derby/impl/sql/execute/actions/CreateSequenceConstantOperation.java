@@ -1,15 +1,15 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
-import org.apache.derby.iapi.sql.dictionary.SequenceDescriptor;
-import org.apache.derby.iapi.sql.dictionary.DataDictionary;
-import org.apache.derby.iapi.sql.dictionary.DataDescriptorGenerator;
-import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
-import org.apache.derby.iapi.store.access.TransactionController;
-import org.apache.derby.iapi.types.DataTypeDescriptor;
-import org.apache.derby.shared.common.reference.SQLState;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.SequenceDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.DataDescriptorGenerator;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.shared.common.reference.SQLState;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.utils.SpliceLogUtils;
@@ -61,9 +61,9 @@ public class CreateSequenceConstantOperation extends DDLConstantOperation {
     /**
      * This is the guts of the Execution-time logic for CREATE SEQUENCE.
      *
-     * @throws org.apache.derby.iapi.error.StandardException
+     * @throws com.splicemachine.db.iapi.error.StandardException
      *          Thrown on failure
-     * @see org.apache.derby.iapi.sql.execute.ConstantAction#executeConstantAction
+     * @see com.splicemachine.db.iapi.sql.execute.ConstantAction#executeConstantAction
      */
     @Override
     public void executeConstantAction(Activation activation) throws StandardException {

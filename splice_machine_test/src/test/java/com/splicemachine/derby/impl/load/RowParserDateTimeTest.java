@@ -2,10 +2,10 @@ package com.splicemachine.derby.impl.load;
 
 import com.google.common.collect.Lists;
 
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.SQLTimestamp;
-import org.apache.derby.impl.sql.execute.ValueRow;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.SQLTimestamp;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;

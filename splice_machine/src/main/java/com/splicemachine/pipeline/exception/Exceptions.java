@@ -9,9 +9,9 @@ import com.splicemachine.pipeline.impl.WriteResult;
 import com.splicemachine.si.api.CannotCommitException;
 import com.splicemachine.si.impl.WriteConflict;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.reference.MessageId;
-import org.apache.derby.shared.common.reference.SQLState;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.MessageId;
+import com.splicemachine.db.shared.common.reference.SQLState;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.RegionTooBusyException;
@@ -75,7 +75,7 @@ public class Exceptions {
                 return state.newException(rootCause);
             }
         } else if(rootCause instanceof SparkException) {
-            if (rootCause.getMessage().contains("org.apache.derby.iapi.error.StandardException")) {
+            if (rootCause.getMessage().contains("com.splicemachine.db.iapi.error.StandardException")) {
                 // the root cause of the Spark failure was a standard exception, let's parse it
                 String message = rootCause.getMessage();
                 Matcher m = Pattern.compile("messageId\\\":\\\"(\\d+)\\\"").matcher(message);

@@ -13,9 +13,9 @@ import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.job.TaskScheduler;
 import com.splicemachine.pipeline.exception.Exceptions;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import org.apache.spark.api.java.JavaRDD;
 
 import java.io.IOException;

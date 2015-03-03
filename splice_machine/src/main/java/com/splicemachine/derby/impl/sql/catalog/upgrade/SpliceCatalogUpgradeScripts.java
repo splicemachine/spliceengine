@@ -4,8 +4,8 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 import com.splicemachine.derby.impl.sql.catalog.Splice_DD_Version;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import org.apache.log4j.Logger;
 
 import java.util.*;

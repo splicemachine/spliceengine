@@ -4,7 +4,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.framework.AbstractAgg
 import com.splicemachine.derby.impl.sql.execute.operations.framework.BufferedAggregator;
 import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.metrics.MetricFactory;
-import org.apache.derby.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 
 /**
  * @author Scott Fines

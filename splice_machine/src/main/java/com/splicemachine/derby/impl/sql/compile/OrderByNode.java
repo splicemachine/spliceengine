@@ -1,14 +1,14 @@
 package com.splicemachine.derby.impl.sql.compile;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.compiler.MethodBuilder;
-import org.apache.derby.iapi.services.sanity.SanityManager;
-import org.apache.derby.iapi.sql.ResultColumnDescriptor;
-import org.apache.derby.impl.sql.compile.ActivationClassBuilder;
-import org.apache.derby.impl.sql.compile.OrderByList;
-import org.apache.derby.impl.sql.compile.ResultColumnList;
-import org.apache.derby.impl.sql.compile.ResultSetNode;
-import org.apache.derby.impl.sql.compile.SingleChildResultSetNode;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
+import com.splicemachine.db.impl.sql.compile.ActivationClassBuilder;
+import com.splicemachine.db.impl.sql.compile.OrderByList;
+import com.splicemachine.db.impl.sql.compile.ResultColumnList;
+import com.splicemachine.db.impl.sql.compile.ResultSetNode;
+import com.splicemachine.db.impl.sql.compile.SingleChildResultSetNode;
 import com.splicemachine.constants.SpliceConstants;
 
 

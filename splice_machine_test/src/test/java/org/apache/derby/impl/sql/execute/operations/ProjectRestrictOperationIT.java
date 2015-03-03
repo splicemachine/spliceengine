@@ -10,7 +10,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
-import org.apache.derby.iapi.types.NumberDataValue;
+import com.splicemachine.db.iapi.types.NumberDataValue;
 import org.apache.log4j.Logger;
 import org.junit.*;
 import org.junit.rules.RuleChain;

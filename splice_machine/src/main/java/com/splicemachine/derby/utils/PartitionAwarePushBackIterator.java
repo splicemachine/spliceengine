@@ -2,7 +2,7 @@ package com.splicemachine.derby.utils;
 
 import java.io.IOException;
 
-import org.apache.derby.iapi.error.StandardException;
+import com.splicemachine.db.iapi.error.StandardException;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 

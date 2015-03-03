@@ -10,7 +10,7 @@ import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.storage.*;
 import com.splicemachine.storage.index.BitIndex;
-import org.apache.derby.iapi.error.StandardException;
+import com.splicemachine.db.iapi.error.StandardException;
 
 import java.io.IOException;
 import java.util.Arrays;

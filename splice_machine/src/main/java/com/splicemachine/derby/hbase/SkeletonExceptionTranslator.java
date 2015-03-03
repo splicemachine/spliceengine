@@ -4,7 +4,7 @@ import com.splicemachine.async.ConnectionResetException;
 import com.splicemachine.async.RecoverableException;
 import com.splicemachine.pipeline.exception.ErrorState;
 import com.splicemachine.si.api.CannotCommitException;
-import org.apache.derby.iapi.error.StandardException;
+import com.splicemachine.db.iapi.error.StandardException;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.ipc.ServerNotRunningYetException;
 

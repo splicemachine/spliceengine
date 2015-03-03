@@ -3,7 +3,7 @@ package com.splicemachine.derby.utils.marshall;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.uuid.Snowflake;
 import com.splicemachine.uuid.UUIDGenerator;
-import org.apache.derby.iapi.error.StandardException;
+import com.splicemachine.db.iapi.error.StandardException;
 
 import java.io.IOException;
 

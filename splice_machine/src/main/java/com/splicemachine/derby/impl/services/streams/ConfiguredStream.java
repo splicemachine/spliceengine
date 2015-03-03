@@ -1,9 +1,9 @@
 package com.splicemachine.derby.impl.services.streams;
 
-import org.apache.derby.iapi.reference.Property;
-import org.apache.derby.iapi.services.property.PropertyUtil;
-import org.apache.derby.iapi.services.stream.HeaderPrintWriter;
-import org.apache.derby.impl.services.stream.SingleStream;
+import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
+import com.splicemachine.db.iapi.services.stream.HeaderPrintWriter;
+import com.splicemachine.db.impl.services.stream.SingleStream;
 
 /**
  * @author Scott Fines

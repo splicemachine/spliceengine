@@ -1,6 +1,6 @@
 package com.splicemachine.derby.impl.sql.catalog.upgrade;
 
-import org.apache.derby.iapi.error.StandardException;
+import com.splicemachine.db.iapi.error.StandardException;
 
 /**
  * Created by jyuan on 10/17/14.

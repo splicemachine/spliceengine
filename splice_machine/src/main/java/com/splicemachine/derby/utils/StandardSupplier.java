@@ -1,6 +1,6 @@
 package com.splicemachine.derby.utils;
 
-import org.apache.derby.iapi.error.StandardException;
+import com.splicemachine.db.iapi.error.StandardException;
 
 /**
  * Supplier interface which allows the throwing of a StandardException

@@ -3,8 +3,8 @@ package com.splicemachine.derby.utils;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
 /**
  * Created with IntelliJ IDEA.

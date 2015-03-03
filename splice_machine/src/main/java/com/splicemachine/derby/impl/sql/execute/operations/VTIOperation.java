@@ -1,29 +1,29 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import org.apache.derby.catalog.TypeDescriptor;
-import org.apache.derby.iapi.services.loader.ClassInspector;
-import org.apache.derby.iapi.services.sanity.SanityManager;
-import org.apache.derby.iapi.sql.execute.CursorResultSet;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.sql.execute.NoPutResultSet;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.ParameterValueSet; 
-import org.apache.derby.iapi.types.TypeId;
-import org.apache.derby.iapi.types.DataTypeDescriptor;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.VariableSizeDataValue;
-import org.apache.derby.iapi.sql.execute.ExecutionContext;
-import org.apache.derby.iapi.store.access.Qualifier;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.loader.GeneratedMethod;
-import org.apache.derby.iapi.types.RowLocation;
-import org.apache.derby.iapi.reference.SQLState;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
-import org.apache.derby.iapi.services.io.FormatableHashtable;
-import org.apache.derby.vti.IFastPath;
-import org.apache.derby.vti.VTIEnvironment;
-import org.apache.derby.vti.Restriction;
+import com.splicemachine.db.catalog.TypeDescriptor;
+import com.splicemachine.db.iapi.services.loader.ClassInspector;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.ParameterValueSet;
+import com.splicemachine.db.iapi.types.TypeId;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.VariableSizeDataValue;
+import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
+import com.splicemachine.db.iapi.store.access.Qualifier;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
+import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.services.io.FormatableHashtable;
+import com.splicemachine.db.vti.IFastPath;
+import com.splicemachine.db.vti.VTIEnvironment;
+import com.splicemachine.db.vti.Restriction;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
@@ -298,8 +298,6 @@ public class VTIOperation extends SpliceBaseOperation implements VTIEnvironment 
 	
 
 	/**
-     * @see org.apache.derby.iapi.sql.ResultSet#close
-	 *
 	 * @exception StandardException thrown on error
 	 */
 	public void	close() throws StandardException

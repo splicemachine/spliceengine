@@ -11,15 +11,15 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Random;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.jdbc.AuthenticationService;
-import org.apache.derby.iapi.services.io.StoredFormatIds;
-import org.apache.derby.iapi.services.monitor.Monitor;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.DateTimeDataValue;
-import org.apache.derby.iapi.types.NumberDataValue;
-import org.apache.derby.impl.sql.execute.ValueRow;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.jdbc.AuthenticationService;
+import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.services.monitor.Monitor;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.DateTimeDataValue;
+import com.splicemachine.db.iapi.types.NumberDataValue;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
@@ -82,7 +82,7 @@ public class WindowTestingFramework {
     @BeforeClass
     public static void startup() throws StandardException {
         Properties bootProps = new Properties();
-        bootProps.setProperty("derby.service.jdbc", "org.apache.derby.jdbc.InternalDriver");
+        bootProps.setProperty("derby.service.jdbc", "com.splicemachine.db.jdbc.InternalDriver");
         bootProps.setProperty("derby.service.authentication", AuthenticationService.MODULE);
 
         Monitor.startMonitor(bootProps,System.out);
@@ -311,7 +311,7 @@ public class WindowTestingFramework {
 
     /**
      * Used by {@link #printDVDAssertionDetails(java.util.List, java.util.List,
-     * org.apache.derby.iapi.types.DataValueDescriptor, org.apache.derby.iapi.types.DataValueDescriptor, int, int, int[])}
+     * com.splicemachine.db.iapi.types.DataValueDescriptor, com.splicemachine.db.iapi.types.DataValueDescriptor, int, int, int[])}
      * to print detailed error message about the diff between expected and actual results of function application over
      * all rows.
      * <p/>

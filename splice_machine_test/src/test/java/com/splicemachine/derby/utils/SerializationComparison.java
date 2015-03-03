@@ -3,8 +3,8 @@ package com.splicemachine.derby.utils;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Output;
 import com.splicemachine.utils.ByteDataOutput;
-import org.apache.derby.iapi.types.SQLInteger;
-import org.apache.derby.impl.sql.execute.CountAggregator;
+import com.splicemachine.db.iapi.types.SQLInteger;
+import com.splicemachine.db.impl.sql.execute.CountAggregator;
 import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;

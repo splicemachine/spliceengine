@@ -17,32 +17,32 @@ import com.google.common.io.Closeables;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.utils.SpliceUtilities;
-import org.apache.derby.iapi.error.ShutdownException;
+import com.splicemachine.db.iapi.error.ShutdownException;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.reference.Property;
-import org.apache.derby.iapi.services.context.ContextManager;
-import org.apache.derby.iapi.services.context.ContextService;
-import org.apache.derby.iapi.services.monitor.Monitor;
-import org.apache.derby.iapi.services.property.PropertyFactory;
-import org.apache.derby.iapi.sql.ResultColumnDescriptor;
-import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
-import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.sql.execute.ExecutionFactory;
-import org.apache.derby.iapi.store.access.AccessFactory;
-import org.apache.derby.iapi.store.access.TransactionController;
-import org.apache.derby.iapi.types.DataTypeDescriptor;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.SQLVarchar;
-import org.apache.derby.impl.db.BasicDatabase;
-import org.apache.derby.impl.jdbc.EmbedConnection;
-import org.apache.derby.impl.jdbc.EmbedResultSet40;
-import org.apache.derby.impl.sql.GenericColumnDescriptor;
-import org.apache.derby.impl.sql.execute.IteratorNoPutResultSet;
-import org.apache.derby.impl.sql.execute.ValueRow;
-import org.apache.derby.shared.common.sanity.SanityManager;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.services.context.ContextService;
+import com.splicemachine.db.iapi.services.monitor.Monitor;
+import com.splicemachine.db.iapi.services.property.PropertyFactory;
+import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.store.access.AccessFactory;
+import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.SQLVarchar;
+import com.splicemachine.db.impl.db.BasicDatabase;
+import com.splicemachine.db.impl.jdbc.EmbedConnection;
+import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
+import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
+import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.db.shared.common.sanity.SanityManager;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTableInterface;
@@ -138,7 +138,7 @@ public class SpliceDatabase extends BasicDatabase {
     @Override
     protected void bootValidation(boolean create, Properties startParams) throws StandardException {
         SpliceLogUtils.trace(LOG,"bootValidation create %s, startParams %s",create,startParams);
-        pf = (PropertyFactory) Monitor.bootServiceModule(create, this,org.apache.derby.iapi.reference.Module.PropertyFactory, startParams);
+        pf = (PropertyFactory) Monitor.bootServiceModule(create, this,com.splicemachine.db.iapi.reference.Module.PropertyFactory, startParams);
     }
 
     @Override

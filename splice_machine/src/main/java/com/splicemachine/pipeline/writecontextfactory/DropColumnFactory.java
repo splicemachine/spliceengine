@@ -9,8 +9,8 @@ import com.splicemachine.pipeline.writehandler.SnapshotIsolatedWriteHandler;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.DDLFilter;
 import com.splicemachine.si.impl.HTransactorFactory;
-import org.apache.derby.catalog.UUID;
-import org.apache.derby.impl.sql.execute.ColumnInfo;
+import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 
 import java.io.IOException;
 

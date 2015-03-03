@@ -1,8 +1,8 @@
 package com.splicemachine.derby.impl.sql.compile;
 
-import org.apache.derby.iapi.sql.compile.AccessPath;
-import org.apache.derby.iapi.sql.compile.Optimizable;
-import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.sql.compile.AccessPath;
+import com.splicemachine.db.iapi.sql.compile.Optimizable;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 
 public class JoinStrategyUtil {
 

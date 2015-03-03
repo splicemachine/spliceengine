@@ -1,6 +1,6 @@
 package com.splicemachine.derby.impl.store.access.hbase;
 
-import org.apache.derby.iapi.services.io.FormatableInstanceGetter;
+import com.splicemachine.db.iapi.services.io.FormatableInstanceGetter;
 
 
 public class HBaseClassInfo extends FormatableInstanceGetter {

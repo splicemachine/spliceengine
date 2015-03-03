@@ -8,15 +8,15 @@ import java.util.Map;
 import com.splicemachine.derby.impl.db.SpliceDatabase;
 import com.splicemachine.derby.utils.*;
 
-import org.apache.derby.catalog.UUID;
-import org.apache.derby.catalog.types.RoutineAliasInfo;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.reference.Limits;
-import org.apache.derby.iapi.sql.dictionary.DataDictionary;
-import org.apache.derby.iapi.store.access.TransactionController;
-import org.apache.derby.iapi.types.DataTypeDescriptor;
-import org.apache.derby.impl.sql.catalog.DefaultSystemProcedureGenerator;
-import org.apache.derby.impl.sql.catalog.Procedure;
+import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.catalog.types.RoutineAliasInfo;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.Limits;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.impl.sql.catalog.DefaultSystemProcedureGenerator;
+import com.splicemachine.db.impl.sql.catalog.Procedure;
 
 import com.splicemachine.derby.impl.load.HdfsImport;
 import com.splicemachine.derby.impl.storage.TableSplit;
