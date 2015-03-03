@@ -637,6 +637,21 @@ public class TruncateFunctionIT {
         rs.close();
     }
 
+    @Test
+    public void testTruncIntegerColumnDefaultTruncValue() throws Exception {
+        // DB-2953
+        String sqlText = String.format("select trunc(i), i from %s", QUALIFIED_TABLE_NAME);
+
+        ResultSet rs = spliceClassWatcher.executeQuery(sqlText);
+
+        String expected =
+            "1   |   I   |\n" +
+                "----------------\n" +
+                "123321 |123321 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
     //=========================================================================================================
     // Value Decimal
     //=========================================================================================================
@@ -726,25 +741,47 @@ public class TruncateFunctionIT {
     }
 
     @Test
-    public void testTruncDecimalValueNonNumeric() throws Exception {
+    public void testTruncDecimalValueNonNumericDefaultsToZero() throws Exception {
         String sqlText =  "values truncate(12345.6789, x)";
 
-        try (ResultSet rs = spliceClassWatcher.executeQuery(sqlText)) {
-            fail("Expected exception.");
-        } catch (Exception e) {
-            Assert.assertEquals("The truncate function expects a right-side argument of type INTEGER for an operand " +
-                                    "of type DECIMAL but got: 'columnName: X\n" +
-                                    "tableNumber: -1\n" +
-                                    "columnNumber: 0\n" +
-                                    "replacesAggregate: false\n" +
-                                    "replacesWindowFunctionCall: false\n" +
-                                    "tableName: null\n" +
-                                    "nestingLevel: -1\n" +
-                                    "sourceLevel: -1\n" +
-                                    "dataTypeServices: null\n" +
-                                    "'.",
-                                e.getLocalizedMessage());
-        }
+        ResultSet rs = spliceClassWatcher.executeQuery(sqlText);
+
+        String expected =
+            "1     |\n" +
+                "------------\n" +
+                "12345.0000 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test @Ignore("The DRDA command parseSQLDIAGSTT is not currently implemented.  The connection has been terminated.")
+    public void testTruncDecimalValueNegativeGreaterThanPrecision() throws Exception {
+        // DB-2954
+        String sqlText =  "values truncate(0.341234, -3)";
+
+        ResultSet rs = spliceClassWatcher.executeQuery(sqlText);
+
+        String expected =
+            "1 |\n" +
+                "----\n" +
+                " 0 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testTruncIntegerValueDefaultTruncValue() throws Exception {
+        // DB-2953
+        String sqlText =  "values truncate(123321)";
+
+        ResultSet rs = spliceClassWatcher.executeQuery(sqlText);
+
+        String expected =
+            "1   |\n" +
+                "--------\n" +
+                "123321 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
     }
 
 }
