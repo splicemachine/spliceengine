@@ -246,9 +246,15 @@ public class TableScannerBuilder implements Externalizable {
 			ArrayUtil.writeIntArray(out, rowColumnMap);
 			TransactionOperations.getOperationFactory().writeTxn(txn, out);
 			ArrayUtil.writeIntArray(out, keyColumnEncodingOrder);
-			ArrayUtil.writeBooleanArray(out, keyColumnSortOrder);
+            out.writeBoolean(keyColumnSortOrder != null);
+            if (keyColumnSortOrder != null) {
+			    ArrayUtil.writeBooleanArray(out, keyColumnSortOrder);
+            }
 			ArrayUtil.writeIntArray(out, keyColumnTypes);
-			ArrayUtil.writeIntArray(out, keyDecodingMap);
+            out.writeBoolean(keyDecodingMap != null);
+            if (keyDecodingMap != null) {
+                ArrayUtil.writeIntArray(out, keyDecodingMap);
+            }
 			out.writeObject(accessedKeys);
 			out.writeBoolean(indexName!=null);
 			if (indexName!=null)
@@ -267,9 +273,13 @@ public class TableScannerBuilder implements Externalizable {
 			rowColumnMap = ArrayUtil.readIntArray(in);
 			txn = TransactionOperations.getOperationFactory().readTxn(in);
 			keyColumnEncodingOrder = ArrayUtil.readIntArray(in);
-			keyColumnSortOrder = ArrayUtil.readBooleanArray(in);
+            if (in.readBoolean()) {
+                keyColumnSortOrder = ArrayUtil.readBooleanArray(in);
+            }
 			keyColumnTypes = ArrayUtil.readIntArray(in);
-			keyDecodingMap = ArrayUtil.readIntArray(in);
+            if (in.readBoolean()) {
+                keyDecodingMap = ArrayUtil.readIntArray(in);
+            }
 			accessedKeys = (FormatableBitSet) in.readObject();
 			if (in.readBoolean())
 				indexName = in.readUTF();
