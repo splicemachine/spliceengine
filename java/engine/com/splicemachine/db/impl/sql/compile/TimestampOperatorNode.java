@@ -21,6 +21,7 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
@@ -125,4 +126,34 @@ public class TimestampOperatorNode extends BinaryOperatorNode
         mb.cast( ClassName.DataValueDescriptor);
         mb.callMethod( VMOpcode.INVOKEINTERFACE, null, methodName, ClassName.DateTimeDataValue, 2);
     } // end of generateExpression
+
+    /**
+     * Return whether or not this expression tree is cloneable.
+     *
+     * @return boolean	Whether or not this expression tree is cloneable.
+     */
+    public boolean isCloneable()
+    {
+        return leftOperand.isCloneable() && rightOperand.isCloneable();
+    }
+
+
+    /**
+     * Return a clone of this node.
+     *
+     * @return ValueNode	A clone of this node.
+     *
+     * @exception StandardException			Thrown on error
+     */
+    public ValueNode getClone() throws StandardException {
+        TimestampOperatorNode newTS = (TimestampOperatorNode) getNodeFactory().getNode(
+            C_NodeTypes.TIMESTAMP_OPERATOR_NODE,
+            leftOperand,
+            rightOperand,
+            getContextManager());
+
+        newTS.copyFields(this);
+        return newTS;
+    }
+
 }
