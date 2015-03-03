@@ -52,8 +52,8 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 	@Override
 	public void initialize(InputSplit split, TaskAttemptContext context)
 			throws IOException, InterruptedException {	
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "initialize with split=%s", split);
+		if (LOG.isDebugEnabled())
+			SpliceLogUtils.debug(LOG, "initialize with split=%s", split);
 		init(config==null?context.getConfiguration():config,split);
 	}
 	
@@ -116,8 +116,8 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 
 	@Override
 	public void close() throws IOException {
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "close");
+		if (LOG.isDebugEnabled())
+			SpliceLogUtils.debug(LOG, "close");
 		try {
 			siTableScanner.close();
 			MeasuredRegionScanner mrs = siTableScanner.getRegionScanner();
