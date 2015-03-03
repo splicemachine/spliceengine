@@ -161,6 +161,8 @@ public class SpliceTransaction extends BaseSpliceTransaction {
 
     @Override
 		public LogInstant commit() throws StandardException {
+	    if (LOG.isDebugEnabled())
+	        SpliceLogUtils.debug(LOG, "Before commit: state=%s, savePointStack=\n%s", getTransactionStatusAsString(), getSavePointStackString());
         if (state == IDLE) {
             if(LOG.isTraceEnabled())
                 SpliceLogUtils.trace(LOG, "The transaction is in idle state and there is nothing to commit, transID=" + txnStack.getLast().getSecond());
@@ -184,11 +186,15 @@ public class SpliceTransaction extends BaseSpliceTransaction {
         //throw away all savepoints
         txnStack.clear();
         state = IDLE;
+	    if (LOG.isDebugEnabled())
+	        SpliceLogUtils.debug(LOG, "After commit: state=%s, savePointStack=\n%s", getTransactionStatusAsString(), getSavePointStackString());
 				return null;
 		}
 
 
 		public void abort() throws StandardException {
+		    if (LOG.isDebugEnabled())
+		        SpliceLogUtils.debug(LOG, "Before abort: state=%s, savePointStack=\n%s", getTransactionStatusAsString(), getSavePointStackString());
 				SpliceLogUtils.debug(LOG,"abort");
 				try {
 						if (state !=ACTIVE)
@@ -200,6 +206,8 @@ public class SpliceTransaction extends BaseSpliceTransaction {
 				} catch (Exception e) {
 						throw StandardException.newException(e.getMessage(), e);
 				}
+		    if (LOG.isDebugEnabled())
+		        SpliceLogUtils.debug(LOG, "After abort: state=%s, savePointStack=\n%s", getTransactionStatusAsString(), getSavePointStackString());
 		}
 
 		public String getActiveStateTxIdString() {
@@ -263,6 +271,8 @@ public class SpliceTransaction extends BaseSpliceTransaction {
     }
 
     public Txn elevate(byte[] writeTable) throws StandardException {
+	    if (LOG.isDebugEnabled())
+	        SpliceLogUtils.debug(LOG, "Before elevate: state=%s, savePointStack=\n%s", getTransactionStatusAsString(), getSavePointStackString());
         /*
          * We want to elevate the transaction. HOWEVER, we need to ensure that the entire
          * stack has been elevated first.
@@ -276,6 +286,8 @@ public class SpliceTransaction extends BaseSpliceTransaction {
             next.setSecond(n);
             lastTxn = n;
         }
+	    if (LOG.isDebugEnabled())
+	        SpliceLogUtils.debug(LOG, "After elevate: state=%s, savePointStack=\n%s", getTransactionStatusAsString(), getSavePointStackString());
         return txnStack.peek().getSecond();
     }
 
@@ -291,16 +303,25 @@ public class SpliceTransaction extends BaseSpliceTransaction {
 
     @Override
     public String toString() {
-        String s = "SpliceTransaction[";
-        if(state==IDLE)
-            s += "IDLE";
-        else if(state==ACTIVE)
-            s += "ACTIVE";
-        else
-            s += "CLOSED";
-        s+=","+getTxn()+"]";
-        return s;
+    	StringBuffer sb = new StringBuffer();
+        sb.append("SpliceTransaction[");
+        sb.append(getTransactionStatusAsString());
+        sb.append(","+getTxn()+"]");
+        return sb.toString();
     }
+
+	/**
+	 * Return the state of the transaction as a string (e.g. IDLE, ACTIVE, CLOSED, etc.).
+	 * @return the current state of the transaction
+	 */
+	private String getTransactionStatusAsString() {
+		if(state==IDLE)
+            return "IDLE";
+        else if(state==ACTIVE)
+            return "ACTIVE";
+        else
+            return "CLOSED";
+	}
 
     /**
      * Return a string depicting the savepoints stack with the current savepoint being at the top and its predecessors below it.
