@@ -3,9 +3,7 @@ package com.splicemachine.mrio.api;
 import java.io.IOException;
 import java.util.List;
 import java.util.NavigableSet;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-
+import java.util.concurrent.atomic.AtomicReference;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
@@ -16,7 +14,6 @@ import org.apache.hadoop.hbase.regionserver.Store;
 import org.apache.hadoop.hbase.regionserver.StoreScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.mrio.MRConstants;
@@ -29,12 +26,8 @@ import com.splicemachine.mrio.MRConstants;
 public class MemStoreFlushAwareScanner extends StoreScanner{
    protected static final Logger LOG = Logger.getLogger(MemStoreFlushAwareScanner.class);
    public final static String FLUSH_EVENT = "FLUSH";   	
-   protected AtomicBoolean splitMerge;
-   protected AtomicInteger flushCount;
-   protected AtomicInteger compactionCount;   
-   protected AtomicInteger scannerCount;   
-   protected int initialFlushCount;
-   protected int initialCompactionCount;
+   protected AtomicReference<MemstoreAware> memstoreAware;
+   protected MemstoreAware initialValue;
    protected HRegion region;
    protected boolean beginRow = true;
    protected boolean endRowNeedsToBeReturned = false;
@@ -43,17 +36,13 @@ public class MemStoreFlushAwareScanner extends StoreScanner{
    protected int counter = 0;
 
 	public MemStoreFlushAwareScanner(HRegion region, Store store, ScanInfo scanInfo, Scan scan, 
-			final NavigableSet<byte[]> columns, long readPt, AtomicBoolean splitMerge, AtomicInteger flushCount,int initialFlushCount, AtomicInteger compactionCount, int initialCompactionCount, AtomicInteger scannerCount) throws IOException {
+			final NavigableSet<byte[]> columns, long readPt, AtomicReference<MemstoreAware> memstoreAware, MemstoreAware initialValue) throws IOException {
 		super(store, scanInfo, scan, columns, readPt);
 		if (LOG.isTraceEnabled())
 			SpliceLogUtils.trace(LOG, "init");
-		this.splitMerge = splitMerge;
-		this.flushCount = flushCount;
-		this.initialFlushCount = initialFlushCount;
-		this.compactionCount = compactionCount;
-		this.initialCompactionCount = initialCompactionCount;
+		this.memstoreAware = memstoreAware;
+		this.initialValue = initialValue;
 		this.region = region;
-		this.scannerCount = scannerCount;
 	}
 
 	
@@ -127,7 +116,6 @@ public class MemStoreFlushAwareScanner extends StoreScanner{
 		if (LOG.isTraceEnabled())
 			SpliceLogUtils.trace(LOG, "reseek kv=%s",kv);
 		throw new IOException("reseek not implemented");
-//		return super.reseek(kv);
 	}
 
 
@@ -165,10 +153,10 @@ public class MemStoreFlushAwareScanner extends StoreScanner{
 	public void close() {
 		if (LOG.isDebugEnabled())
 			SpliceLogUtils.debug(LOG, "close");
-		scannerCount.getAndDecrement();		
+		MemstoreAware.decrementScannerCount(memstoreAware.get());
 	}
 	
 	private boolean didWeFlush() {
-		return flushCount.get() != initialFlushCount;
+		return memstoreAware.get().flushCount != initialValue.flushCount;
 	}
 }
