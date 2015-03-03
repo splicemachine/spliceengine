@@ -106,9 +106,9 @@ public class SMInputFormat extends InputFormat<RowLocation, ExecRow> implements 
 		}
 		List<InputSplit> splits = tableInputFormat.getSplits(context);
 		if (LOG.isTraceEnabled()) {
-			SpliceLogUtils.trace(LOG, "getSplits");
+			SpliceLogUtils.debug(LOG, "getSplits");
 			for (InputSplit split: splits) {
-				SpliceLogUtils.trace(LOG, "split -> " + split);				
+				SpliceLogUtils.debug(LOG, "split -> " + split);				
 			}
 		}
 		return splits;
@@ -118,13 +118,13 @@ public class SMInputFormat extends InputFormat<RowLocation, ExecRow> implements 
 	public RecordReader<RowLocation, ExecRow> createRecordReader(
 			InputSplit split, TaskAttemptContext context) throws IOException,
 			InterruptedException {
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "createRecordReader for split=%s, context %s",split,context);
+		if (LOG.isDebugEnabled())
+			SpliceLogUtils.debug(LOG, "createRecordReader for split=%s, context %s",split,context);
 		SMRecordReaderImpl recordReader = new SMRecordReaderImpl(context.getConfiguration());
 		if(table == null)
 			table = new HTable(HBaseConfiguration.create(conf), conf.get(MRConstants.SPLICE_INPUT_CONGLOMERATE));
 		recordReader.setHTable(table);
-		recordReader.initialize((TableSplit) split, context);
+//		recordReader.initialize((TableSplit) split, context);
 		return recordReader;
 	}
 	
