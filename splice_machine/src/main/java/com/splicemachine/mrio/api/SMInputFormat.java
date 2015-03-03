@@ -104,7 +104,14 @@ public class SMInputFormat extends InputFormat<RowLocation, ExecRow> implements 
 		} catch (StandardException e) {			
 			throw new IOException(e);
 		}
-		return tableInputFormat.getSplits(context);
+		List<InputSplit> splits = tableInputFormat.getSplits(context);
+		if (LOG.isTraceEnabled()) {
+			SpliceLogUtils.trace(LOG, "getSplits");
+			for (InputSplit split: splits) {
+				SpliceLogUtils.trace(LOG, "split -> " + split);				
+			}
+		}
+		return splits;
 	}
 
 	@Override
