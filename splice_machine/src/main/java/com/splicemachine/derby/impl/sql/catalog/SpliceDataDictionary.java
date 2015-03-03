@@ -183,6 +183,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
                 "COLUMNSTATSPK", false, false, pks, uuidFactory.createUUID(), columnStatsDescriptor.getUUID(), systemSchema, true, 0);
         addConstraintDescriptor(columnStatsPk, tc);
 
+        createSysColumnStatsView(tc);
         //sys_physical_statistics
         ColumnOrdering[] physicalPkOrder = new ColumnOrdering[]{
                 new IndexColumnOrder(0)
@@ -551,6 +552,26 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
 
         ViewDescriptor vd = ddg.newViewDescriptor(viewId,"SYSTABLESTATISTICS",
                 SYSTABLESTATISTICSRowFactory.STATS_VIEW_SQL,0,sysSchema.getUUID());
+        addDescriptor(vd, sysSchema, DataDictionary.SYSVIEWS_CATALOG_NUM, true, tc);
+    }
+
+    private void createSysColumnStatsView(TransactionController tc) throws StandardException {
+        //create statistics views
+        SchemaDescriptor sysSchema = getSystemSchemaDescriptor();
+
+        DataDescriptorGenerator ddg = getDataDescriptorGenerator();
+        TableDescriptor view = ddg.newTableDescriptor("SYSCOLUMNSTATISTICS",
+                sysSchema,TableDescriptor.VIEW_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY);
+        addDescriptor(view, sysSchema, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc);
+        UUID viewId = view.getUUID();
+        ColumnDescriptor[] tableViewCds = SYSCOLUMNSTATISTICSRowFactory.getViewColumns(view,viewId);
+        addDescriptorArray(tableViewCds, view, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc);
+
+        ColumnDescriptorList viewDl = view.getColumnDescriptorList();
+        Collections.addAll(viewDl, tableViewCds);
+
+        ViewDescriptor vd = ddg.newViewDescriptor(viewId,"SYSCOLUMNSTATISTICS",
+                SYSCOLUMNSTATISTICSRowFactory.STATS_VIEW_SQL,0,sysSchema.getUUID());
         addDescriptor(vd, sysSchema, DataDictionary.SYSVIEWS_CATALOG_NUM, true, tc);
     }
 

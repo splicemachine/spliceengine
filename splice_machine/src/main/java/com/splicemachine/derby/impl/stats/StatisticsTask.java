@@ -231,7 +231,7 @@ public class StatisticsTask extends ZkTask{
             ObjectOutput byteOutput = new KryoObjectOutput(output,kryo);
             for (ColumnStatistics stats : collected) {
                 keyEncoder.reset();
-                byte[] key = keyEncoder.encodeNext(i).build();
+                byte[] key = keyEncoder.encodeNext(i+1).build();
 
                 output.clear();
                 byteOutput.writeObject(stats); //can just write the object since our implementations are Externalizable
@@ -309,7 +309,7 @@ public class StatisticsTask extends ZkTask{
             TableDescriptor tableColDesc = dd.getTableDescriptor("SYSTABLESTATS",
                     sysSchema, lcc.getTransactionExecute());
             ids[0] = tableColDesc.getHeapConglomerateId();
-            TableDescriptor colColDesc = dd.getTableDescriptor("SYSCOLUMNSTATISTICS",
+            TableDescriptor colColDesc = dd.getTableDescriptor("SYSCOLUMNSTATS",
                     sysSchema, lcc.getTransactionExecute());
             ids[1] = colColDesc.getHeapConglomerateId();
             TableDescriptor physColDesc = dd.getTableDescriptor("SYSPHYSICALSTATISTICS",
