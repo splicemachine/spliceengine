@@ -2200,12 +2200,19 @@ public class SQLParser
             }
         } else if (operandNode instanceof NumericConstantNode) {
             // truncate numberic
-            // must have 2 numeric args - 1st is decimal, not null; 2nd is integer not null
-            // this is enforced in TruncateOperatorNode
+            // must have 2 numeric args - 1st is decimal operand, not null; 2nd is integer truncValue, not null
+
+            // default to zero if truncValue null or not numeric
+            if (! (truncValue instanceof NumericConstantNode)) {
+                truncValue = (NumericConstantNode) nodeFactory.getNode(C_NodeTypes.INT_CONSTANT_NODE,
+                                                                    0,  // default to zero
+                                                                    getContextManager());
+            }
+
             truncateOperand = operandNode;
         } else if (operandNode instanceof ColumnReference) {
             // truncating a column in a table. could be type date, timestamp or decimal
-            // this is enforced in TruncateOperatorNode
+            // this is enforced in TruncateOperatorNode after binding so that we know all types
             truncateOperand = operandNode;
         }
 

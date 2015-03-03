@@ -31,6 +31,7 @@ import org.apache.derby.iapi.reference.ClassName;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.classfile.VMOpcode;
 import org.apache.derby.iapi.services.compiler.MethodBuilder;
+import org.apache.derby.iapi.sql.compile.C_NodeTypes;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.TypeId;
 
@@ -118,9 +119,10 @@ public class TruncateOperatorNode extends BinaryOperatorNode {
         this.methodName = typeMethod.methodName;
         this.methodClassname = typeMethod.className;
 
-        // Make sure type of right side is integer when trunc decimal column ref
+        // Default right side to integer (zero) when trunc decimal column ref
+        // This is the first place we can verify this because a column ref's type is not known until bind time
         if (this.methodName.equals(TRUNC_DECIMAL) && rightOperand.getTypeId().getJDBCTypeId() != Types.INTEGER) {
-            throw StandardException.newException(SQLState.LANG_TRUNCATE_EXPECTED_RIGHTSIDE_INTEGER_TYPE, rightOperand.toString());
+            rightOperand = (ValueNode) getCompilerContext().getNodeFactory().getNode(C_NodeTypes.INT_CONSTANT_NODE, 0, getContextManager());
         }
 
 		//Set the type if there is a parameter involved here
