@@ -113,12 +113,23 @@ public class ClientSideRegionScanner implements RegionScanner {
 		return nextRaw(result);
 	}
 	
+	private boolean matchingFamily(List<Cell> result, byte[] family) {
+		if (result.isEmpty())
+			return false;
+		int size = result.size();
+		for (int i = 0; i<size; i++) {
+			if (CellUtils.singleMatchingFamily(result.get(i), family))
+				return true;
+		}
+		return false;
+	}
+	
 	@Override
 	public boolean nextRaw(List<Cell> result) throws IOException {
 		if (LOG.isTraceEnabled())
 			SpliceLogUtils.trace(LOG, "nextRaw");
 		boolean res = scanner.nextRaw(result);
-		if (!result.isEmpty() && CellUtils.singleMatchingFamily(result.get(0), MRConstants.HOLD)) {
+		if (matchingFamily(result,MRConstants.HOLD)) {
 			result.clear();
 			return nextRaw(result);			
 		}
