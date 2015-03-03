@@ -71,7 +71,7 @@ public class SplitRegionScanner implements SpliceRegionScanner {
 				      }
 				 }
 				 hasAdditionalScanners = false;
-			} catch (SplitScannerDNRIOException ioe) {
+			} catch (UnstableScannerDNRIOException ioe) {
 				if (LOG.isDebugEnabled())
 					SpliceLogUtils.debug(LOG, "exception logged creating split region scanner %s",StringUtils.stringifyException(ioe));
 				hasAdditionalScanners = true;
