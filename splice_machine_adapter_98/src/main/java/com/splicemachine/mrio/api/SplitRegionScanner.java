@@ -35,8 +35,9 @@ public class SplitRegionScanner implements SpliceRegionScanner {
 	protected boolean holderReturn;
 	
 	public SplitRegionScanner(Scan scan, HTable table, List<HRegionLocation> locations) throws IOException {
-		if (LOG.isDebugEnabled())
+		if (LOG.isDebugEnabled()) {
 			SpliceLogUtils.debug(LOG, "init");
+		}
 		this.scan = scan;
 		boolean hasAdditionalScanners = true;
 		while (hasAdditionalScanners) {
