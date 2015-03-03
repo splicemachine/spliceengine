@@ -127,6 +127,7 @@ public class SpliceIndexObserver extends AbstractSpliceIndexObserver {
 			
 			// Throw Retry Exception if the region is splitting
 			if (splitMerge.get()) {
+				SpliceLogUtils.warn(LOG, "splitting and merging scan on %s",c.getEnvironment().getRegion().getRegionNameAsString());
 				throw new SplitScannerDNRIOException();
 			} else {
 				this.scannerCount.incrementAndGet();
@@ -134,6 +135,7 @@ public class SpliceIndexObserver extends AbstractSpliceIndexObserver {
 				if (!HRegion.rowIsInRange(c.getEnvironment().getRegion().getRegionInfo(), scan.getStartRow()) ||
 						!HRegion.rowIsInRange(c.getEnvironment().getRegion().getRegionInfo(), scan.getStartRow())) {
 					this.scannerCount.decrementAndGet();
+					SpliceLogUtils.warn(LOG, "scan missed do to split after task creation beginKey=%s, endKey=%s, region=%s",scan.getStartRow(), scan.getStopRow(),c.getEnvironment().getRegion().getRegionNameAsString());
 					throw new SplitScannerDNRIOException();
 				}
 				if (splitMerge.get()) {

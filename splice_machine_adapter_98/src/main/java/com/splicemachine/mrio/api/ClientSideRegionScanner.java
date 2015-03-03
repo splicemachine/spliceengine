@@ -72,8 +72,8 @@ public class ClientSideRegionScanner implements RegionScanner {
 
 	@Override
 	public void close() throws IOException {
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "close");
+		if (LOG.isDebugEnabled())
+			SpliceLogUtils.debug(LOG, "close");
 		if (scanner != null)
 			scanner.close();
 		if (table != null)
@@ -161,8 +161,8 @@ public class ClientSideRegionScanner implements RegionScanner {
 	 * created by MemStore flushes or current scanner fails due to compaction
 	 */
 	public void updateScanner() throws IOException {
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "updateScanner with hregionInfo=%s, tableName=%s, rootDir=%s, scan=%s",hri,htd.getNameAsString(), rootDir, scan);	
+		if (LOG.isDebugEnabled())
+			SpliceLogUtils.debug(LOG, "updateScanner with hregionInfo=%s, tableName=%s, rootDir=%s, scan=%s",hri,htd.getNameAsString(), rootDir, scan);	
 		if (!flushed)
 			memScannerList.add(getMemStoreScanner());
 		this.region = HRegion.openHRegion(conf, fs, rootDir, hri, htd, null,null, null);
