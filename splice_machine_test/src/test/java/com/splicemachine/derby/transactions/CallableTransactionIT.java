@@ -6,7 +6,6 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -320,8 +319,6 @@ public class CallableTransactionIT extends SpliceUnitTest {
 	 * Test inserting a row and returning a scanned row in one stored procedure with a transaction rollback.
 	 * @throws Exception
 	 */
-	// TODO: Figure out the correct behavior when a stored procedure rolls back a transaction.
-	@Ignore("Rollbacks are not returning any ResultSet in JDBC, thus an exception is being thrown stating that executeUpdate should not be called.  Need to investigate further.  This works fine in IJ.")
 	@Test
 	public void testInsertAndSelectRowProcedureWithTransactionRollback() throws Exception {
 		String employeeTableName = EMPLOYEE_TABLE_NAME_BASE + "7";
@@ -338,7 +335,7 @@ public class CallableTransactionIT extends SpliceUnitTest {
 
 		// Insert and get the row in one stored procedure.
 		rs = methodWatcher.executeQuery(String.format(CALL_INSERT_AND_GET_EMPLOYEE_ROLLBACK_TXN_FORMAT_STRING, employeeTableName));
-		Assert.assertEquals("Incorrect # of rows returned!", 1, resultSetSize(rs));
+		Assert.assertEquals("Incorrect # of rows returned!", 0, resultSetSize(rs));
 		rs.close();
 
 		// Drop the user-defined stored procedures.
@@ -418,8 +415,6 @@ public class CallableTransactionIT extends SpliceUnitTest {
 	 * Test inserting a row and returning a scanned row in one stored procedure with a savepoint rollback.
 	 * @throws Exception
 	 */
-	// TODO: Figure out the correct behavior when a stored procedure rolls back a savepoint.
-	@Ignore("Rollbacks are not returning any ResultSet in JDBC, thus an exception is being thrown stating that executeUpdate should not be called.  Need to investigate further.  This works fine in IJ.")
 	@Test
 	public void testInsertAndSelectRowProcedureWithSavepointRollback() throws Exception {
 		String employeeTableName = EMPLOYEE_TABLE_NAME_BASE + "10";
@@ -436,7 +431,7 @@ public class CallableTransactionIT extends SpliceUnitTest {
 
 		// Insert and get the row in one stored procedure.
 		rs = methodWatcher.executeQuery(String.format(CALL_INSERT_AND_GET_EMPLOYEE_ROLLBACK_SVPT_FORMAT_STRING, employeeTableName));
-		Assert.assertEquals("Incorrect # of rows returned!", 1, resultSetSize(rs));
+		Assert.assertEquals("Incorrect # of rows returned!", 0, resultSetSize(rs));
 		rs.close();
 
 		// Drop the user-defined stored procedures.
