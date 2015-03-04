@@ -4,18 +4,18 @@ import java.util.List;
 
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.reference.SQLState;
-import org.apache.derby.iapi.services.loader.GeneratedMethod;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.ResultColumnDescriptor;
-import org.apache.derby.iapi.sql.ResultSet;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.sql.execute.NoPutResultSet;
-import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.impl.sql.GenericResultDescription;
-import org.apache.derby.impl.sql.execute.GenericResultSetFactory;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
+import com.splicemachine.db.iapi.sql.ResultSet;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
+import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.impl.sql.GenericResultDescription;
+import com.splicemachine.db.impl.sql.execute.GenericResultSetFactory;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.derby.iapi.sql.execute.ConversionResultSet;
@@ -771,7 +771,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
             int resultSetNumber,
             GeneratedMethod constructor,
             String javaClassName,
-            org.apache.derby.iapi.store.access.Qualifier[][] pushedQualifiersField,
+            com.splicemachine.db.iapi.store.access.Qualifier[][] pushedQualifiersField,
             int erdNumber,
             boolean version2,
             boolean reuseablePs,

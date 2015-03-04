@@ -1,6 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.serial;
 
-import org.apache.derby.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
 import java.nio.ByteBuffer;
 

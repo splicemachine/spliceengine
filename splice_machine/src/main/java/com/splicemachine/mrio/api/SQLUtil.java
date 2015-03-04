@@ -32,7 +32,7 @@ public class SQLUtil {
 	  private String connStr = null;
 	  
 	  private SQLUtil(String connStr) throws Exception {  
-	      Class.forName("org.apache.derby.jdbc.ClientDriver").newInstance();
+	      Class.forName("com.splicemachine.db.jdbc.ClientDriver").newInstance();
 	      this.connStr = connStr;
 	      connect = DriverManager.getConnection(connStr);
 	  }
@@ -53,7 +53,7 @@ public class SQLUtil {
 	  
 	  
 	  public Connection createConn() throws SQLException, InstantiationException, IllegalAccessException, ClassNotFoundException{
-		  Class.forName("org.apache.derby.jdbc.ClientDriver").newInstance();
+		  Class.forName("com.splicemachine.db.jdbc.ClientDriver").newInstance();
 		  
 		  Connection conn = DriverManager.getConnection(connStr);
 		  return conn;

@@ -4,7 +4,7 @@ import com.splicemachine.pipeline.api.WriteContext;
 import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.pipeline.writehandler.IndexCallBufferFactory;
 import com.splicemachine.si.api.TxnView;
-import org.apache.derby.iapi.sql.dictionary.ConstraintDescriptorList;
+import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptorList;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 
 import java.io.IOException;

@@ -1,6 +1,6 @@
 /*
 
-   Derby - Class org.apache.derby.impl.store.access.heap.HeapScanInfo
+   Derby - Class com.splicemachine.db.impl.store.access.heap.HeapScanInfo
 
    Licensed to the Apache Software Foundation (ASF) under one or more
    contributor license agreements.  See the NOTICE file distributed with
@@ -21,11 +21,11 @@
 
 package com.splicemachine.derby.impl.store.access.base;
 
-import org.apache.derby.iapi.store.access.ScanInfo;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.reference.SQLState;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
-import org.apache.derby.iapi.services.i18n.MessageService;
+import com.splicemachine.db.iapi.store.access.ScanInfo;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.services.i18n.MessageService;
 
 import java.util.Properties;
 
@@ -36,7 +36,7 @@ import java.util.Properties;
   then copied into this object and returned by a call to 
   ScanController.getStatistic().
 
-  @see  org.apache.derby.iapi.store.access.ScanController#getScanInfo()
+  @see  com.splicemachine.db.iapi.store.access.ScanController#getScanInfo()
 
 **/
 public class SpliceScanInfo implements ScanInfo {

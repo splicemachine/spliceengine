@@ -1,9 +1,9 @@
 package com.splicemachine.derby.iapi.catalog;
 
-import org.apache.derby.catalog.UUID;
-import org.apache.derby.iapi.services.sanity.SanityManager;
-import org.apache.derby.iapi.sql.dictionary.TupleDescriptor;
-import org.apache.derby.iapi.sql.dictionary.UniqueTupleDescriptor;
+import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.dictionary.TupleDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.UniqueTupleDescriptor;
 
 /**
  * Created by jyuan on 6/30/14.

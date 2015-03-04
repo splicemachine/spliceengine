@@ -1,7 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.tester;
 
-import org.apache.derby.iapi.types.SQLDouble;
-import org.apache.derby.iapi.types.SQLTimestamp;
+import com.splicemachine.db.iapi.types.SQLDouble;
+import com.splicemachine.db.iapi.types.SQLTimestamp;
 import org.joda.time.DateTime;
 import org.junit.Assert;
 import org.junit.Test;

@@ -19,14 +19,14 @@ import javax.management.remote.JMXServiceURL;
 
 import com.splicemachine.constants.SpliceConstants;
 
-import org.apache.derby.iapi.error.PublicAPI;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.ResultColumnDescriptor;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.impl.jdbc.Util;
-import org.apache.derby.impl.sql.execute.ValueRow;
-import org.apache.derby.jdbc.InternalDriver;
+import com.splicemachine.db.iapi.error.PublicAPI;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.impl.jdbc.Util;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.db.jdbc.InternalDriver;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.util.Pair;
 

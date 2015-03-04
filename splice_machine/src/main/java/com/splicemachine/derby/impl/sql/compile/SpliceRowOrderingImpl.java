@@ -2,10 +2,10 @@ package com.splicemachine.derby.impl.sql.compile;
 
 import java.util.Vector;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.sanity.SanityManager;
-import org.apache.derby.iapi.sql.compile.Optimizable;
-import org.apache.derby.iapi.sql.compile.RowOrdering;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.Optimizable;
+import com.splicemachine.db.iapi.sql.compile.RowOrdering;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
 

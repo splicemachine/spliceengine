@@ -1,10 +1,10 @@
 package com.splicemachine.derby.impl.store.access;
 
-import org.apache.derby.iapi.reference.SQLState;
-import org.apache.derby.iapi.services.context.ContextImpl;
-import org.apache.derby.iapi.services.context.ContextManager;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.shared.common.error.ExceptionSeverity;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.context.ContextImpl;
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.shared.common.error.ExceptionSeverity;
 import org.apache.log4j.Logger;
 
 public class SpliceTransactionContext extends ContextImpl {

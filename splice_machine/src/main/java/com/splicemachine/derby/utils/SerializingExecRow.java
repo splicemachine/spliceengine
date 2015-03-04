@@ -1,15 +1,15 @@
 package com.splicemachine.derby.utils;
 
-import org.apache.derby.catalog.TypeDescriptor;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.ArrayUtil;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.types.DataTypeDescriptor;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.DataValueFactory;
-import org.apache.derby.iapi.types.StringDataValue;
-import org.apache.derby.impl.sql.execute.ValueRow;
+import com.splicemachine.db.catalog.TypeDescriptor;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.DataValueFactory;
+import com.splicemachine.db.iapi.types.StringDataValue;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 
 import java.io.*;
 import java.util.HashMap;

@@ -2,7 +2,7 @@ package com.splicemachine.derby.authentication;
 
 import java.sql.SQLException;
 import java.util.Properties;
-import org.apache.derby.authentication.UserAuthenticator;
+import com.splicemachine.db.authentication.UserAuthenticator;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
 

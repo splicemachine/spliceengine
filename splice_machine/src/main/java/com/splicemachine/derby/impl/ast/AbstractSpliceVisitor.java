@@ -1,8 +1,8 @@
 package com.splicemachine.derby.impl.ast;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.compile.Visitable;
-import org.apache.derby.impl.sql.compile.*;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.compile.Visitable;
+import com.splicemachine.db.impl.sql.compile.*;
 
 /**
  * Default ISpliceVisitor implementation, which provides identity behavior for each of Derby's Visitable nodes.

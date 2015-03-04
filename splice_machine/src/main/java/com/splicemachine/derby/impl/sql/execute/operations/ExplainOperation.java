@@ -12,12 +12,12 @@ import com.splicemachine.derby.management.XPlainPlanNode;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.utils.SpliceLogUtils;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.types.*;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.*;
 import org.apache.log4j.Logger;
-import org.apache.derby.impl.sql.execute.ValueRow;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 
 import java.util.*;
 import java.io.IOException;

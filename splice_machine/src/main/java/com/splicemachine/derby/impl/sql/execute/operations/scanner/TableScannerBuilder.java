@@ -7,8 +7,8 @@ import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.HTransactorFactory;
 import com.splicemachine.si.impl.SIFactoryDriver;
 
-import org.apache.derby.iapi.services.io.FormatableBitSet;
-import org.apache.derby.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.client.Scan;
 
 /**

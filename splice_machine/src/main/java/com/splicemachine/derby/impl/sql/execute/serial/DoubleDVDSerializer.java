@@ -1,7 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.serial;
 
 import com.splicemachine.encoding.Encoding;
-import org.apache.derby.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
 
 public class DoubleDVDSerializer implements DVDSerializer {

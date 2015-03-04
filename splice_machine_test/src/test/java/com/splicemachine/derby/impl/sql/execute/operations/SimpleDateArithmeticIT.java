@@ -356,6 +356,21 @@ public class SimpleDateArithmeticIT {
     }
 
     @Test
+    public void testIntegerPlusTimestampValues() throws Exception {
+        // DB-2943
+        String sqlText = "values 1+ timestamp('2011-06-05', '05:06:00')";
+
+        ResultSet rs = spliceClassWatcher.executeQuery(sqlText);
+
+        String expected =
+            "1           |\n" +
+                "-----------------------\n" +
+                "2011-06-06 05:06:00.0 |";
+        Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
     public void testTimestampPlusTimestampValuesError() throws Exception {
         String sqlText = "values  timestamp('2011-12-26', '17:13:30') + timestamp('2011-06-05', '05:06:00')";
 

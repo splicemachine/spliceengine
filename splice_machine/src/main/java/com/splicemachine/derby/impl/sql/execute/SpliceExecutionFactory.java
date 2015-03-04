@@ -1,10 +1,10 @@
 package com.splicemachine.derby.impl.sql.execute;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.execute.ResultSetFactory;
-import org.apache.derby.iapi.sql.execute.ResultSetStatisticsFactory;
-import org.apache.derby.impl.sql.execute.GenericConstantActionFactory;
-import org.apache.derby.impl.sql.execute.GenericExecutionFactory;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.ResultSetFactory;
+import com.splicemachine.db.iapi.sql.execute.ResultSetStatisticsFactory;
+import com.splicemachine.db.impl.sql.execute.GenericConstantActionFactory;
+import com.splicemachine.db.impl.sql.execute.GenericExecutionFactory;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.utils.SpliceLogUtils;

@@ -4,7 +4,7 @@ package com.splicemachine.derby.management;
  * Created by jyuan on 5/12/14.
  */
 
-import org.apache.derby.iapi.error.StandardException;
+import com.splicemachine.db.iapi.error.StandardException;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;

@@ -5,26 +5,26 @@ import java.util.List;
 import java.util.Vector;
 
 import com.google.common.base.Preconditions;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.sanity.SanityManager;
-import org.apache.derby.iapi.sql.compile.AccessPath;
-import org.apache.derby.iapi.sql.compile.CostEstimate;
-import org.apache.derby.iapi.sql.compile.JoinStrategy;
-import org.apache.derby.iapi.sql.compile.Optimizable;
-import org.apache.derby.iapi.sql.compile.OptimizablePredicateList;
-import org.apache.derby.iapi.sql.compile.Optimizer;
-import org.apache.derby.iapi.sql.compile.RowOrdering;
-import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
-import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptorList;
-import org.apache.derby.iapi.sql.dictionary.IndexRowGenerator;
-import org.apache.derby.iapi.util.JBitSet;
-import org.apache.derby.impl.sql.compile.BaseTableNumbersVisitor;
-import org.apache.derby.impl.sql.compile.BinaryRelationalOperatorNode;
-import org.apache.derby.impl.sql.compile.FromBaseTable;
-import org.apache.derby.impl.sql.compile.FromTable;
-import org.apache.derby.impl.sql.compile.HashableJoinStrategy;
-import org.apache.derby.impl.sql.compile.Predicate;
-import org.apache.derby.impl.sql.compile.RelationalOperator;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.AccessPath;
+import com.splicemachine.db.iapi.sql.compile.CostEstimate;
+import com.splicemachine.db.iapi.sql.compile.JoinStrategy;
+import com.splicemachine.db.iapi.sql.compile.Optimizable;
+import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
+import com.splicemachine.db.iapi.sql.compile.Optimizer;
+import com.splicemachine.db.iapi.sql.compile.RowOrdering;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptorList;
+import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
+import com.splicemachine.db.iapi.util.JBitSet;
+import com.splicemachine.db.impl.sql.compile.BaseTableNumbersVisitor;
+import com.splicemachine.db.impl.sql.compile.BinaryRelationalOperatorNode;
+import com.splicemachine.db.impl.sql.compile.FromBaseTable;
+import com.splicemachine.db.impl.sql.compile.FromTable;
+import com.splicemachine.db.impl.sql.compile.HashableJoinStrategy;
+import com.splicemachine.db.impl.sql.compile.Predicate;
+import com.splicemachine.db.impl.sql.compile.RelationalOperator;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.constants.SpliceConstants;
@@ -77,7 +77,7 @@ public class MergeJoinStrategy extends HashableJoinStrategy {
         return "getMergeLeftOuterJoinResultSet";
     }
 
-    /** @see org.apache.derby.iapi.sql.compile.JoinStrategy#estimateCost */
+    /** @see com.splicemachine.db.iapi.sql.compile.JoinStrategy#estimateCost */
     @Override
     public void estimateCost(Optimizable innerTable,
                              OptimizablePredicateList predList,

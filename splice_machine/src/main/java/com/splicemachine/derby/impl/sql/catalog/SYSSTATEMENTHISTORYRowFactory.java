@@ -1,14 +1,14 @@
 package com.splicemachine.derby.impl.sql.catalog;
 
 import com.splicemachine.derby.iapi.catalog.StatementHistoryDescriptor;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.sanity.SanityManager;
-import org.apache.derby.iapi.services.uuid.UUIDFactory;
-import org.apache.derby.iapi.sql.dictionary.*;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.sql.execute.ExecutionFactory;
-import org.apache.derby.iapi.types.*;
-import org.apache.derby.impl.sql.catalog.SystemColumnImpl;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
+import com.splicemachine.db.iapi.sql.dictionary.*;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.types.*;
+import com.splicemachine.db.impl.sql.catalog.SystemColumnImpl;
 
 import java.sql.Types;
 

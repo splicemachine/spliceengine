@@ -1,6 +1,6 @@
 package com.splicemachine.derby.metrics;
 
-import org.apache.derby.iapi.sql.dictionary.SystemColumn;
+import com.splicemachine.db.iapi.sql.dictionary.SystemColumn;
 
 /**
  * @author Scott Fines

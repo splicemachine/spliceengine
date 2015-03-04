@@ -2,8 +2,8 @@ package com.splicemachine.derby.impl.sql.execute.operations.export;
 
 import com.google.common.base.Charsets;
 import org.apache.commons.lang.StringEscapeUtils;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
 
 import java.nio.charset.Charset;
 import java.nio.charset.UnsupportedCharsetException;

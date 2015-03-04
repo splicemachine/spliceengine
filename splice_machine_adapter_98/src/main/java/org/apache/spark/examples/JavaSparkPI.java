@@ -1,6 +1,6 @@
 package org.apache.spark.examples;
 
-import org.apache.derby.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.client.Scan;

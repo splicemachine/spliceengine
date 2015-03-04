@@ -139,7 +139,7 @@ public class Data {
 
         private Loader()  throws Exception{
             //attempt to load the driver
-            Class.forName("org.apache.derby.jdbc.AutoloadedDriver40");
+            Class.forName("com.splicemachine.db.jdbc.AutoloadedDriver40");
             //fetch the driver for the url
             jdbcPath = "jdbc:derby://"+server+"/" + SpliceConstants.SPLICE_DB + ";create=true";
             driver = DriverManager.getDriver(jdbcPath);

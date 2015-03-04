@@ -34,7 +34,7 @@ import java.util.*;
 import java.lang.Long;
 import java.util.Vector;
 
-import org.apache.derby.tools.JDBCDisplayUtil;
+import com.splicemachine.db.tools.JDBCDisplayUtil;
 
 import com.splicemachine.constants.SpliceConstants;
 
@@ -54,7 +54,7 @@ import com.splicemachine.constants.SpliceConstants;
 public class dbcleanup {
 
 	static String dbURL = "jdbc:derby:splice:" + SpliceConstants.SPLICE_DB;
-	static String driver = "org.apache.derby.jdbc.EmbeddedDriver";
+	static String driver = "com.splicemachine.db.jdbc.EmbeddedDriver";
 	static boolean dbIsDirty = false;
 
 	int thread_id;

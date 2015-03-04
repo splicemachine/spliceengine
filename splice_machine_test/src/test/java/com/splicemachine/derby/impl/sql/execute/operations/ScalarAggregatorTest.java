@@ -6,13 +6,13 @@ import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGener
 import com.splicemachine.derby.impl.sql.execute.operations.scalar.ScalarAggregateSource;
 import com.splicemachine.derby.impl.sql.execute.operations.scalar.ScalarAggregator;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.types.SQLInteger;
-import org.apache.derby.iapi.types.UserType;
-import org.apache.derby.impl.sql.execute.CountAggregator;
-import org.apache.derby.impl.sql.execute.IndexValueRow;
-import org.apache.derby.impl.sql.execute.ValueRow;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.SQLInteger;
+import com.splicemachine.db.iapi.types.UserType;
+import com.splicemachine.db.impl.sql.execute.CountAggregator;
+import com.splicemachine.db.impl.sql.execute.IndexValueRow;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;

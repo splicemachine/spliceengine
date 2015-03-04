@@ -2,7 +2,7 @@ package com.splicemachine.mapreduce;
 
 import java.io.IOException;
 
-import org.apache.derby.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.mapred.RecordReader;
 
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
