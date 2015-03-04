@@ -1,13 +1,13 @@
 package com.splicemachine.derby.hbase;
 
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.environment.EnvUtils;
 import com.splicemachine.si.impl.TransactionalRegions;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.regionserver.RegionServerServices;
+
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Coprocessor for starting the derby services on top of HBase.
@@ -59,5 +59,6 @@ public class SpliceBaseDerbyCoprocessor {
             SpliceDriver.driver().shutdown();
         }
     }
+
 }
 
