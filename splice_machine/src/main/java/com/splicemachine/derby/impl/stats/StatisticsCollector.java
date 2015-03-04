@@ -103,7 +103,7 @@ public class StatisticsCollector {
                     byteCount,
                     0l, //TODO -sf- get Query count for this region
                     readTime.getWallClockTime(),
-                    rowCount>0?readTime.getWallClockTime()/rowCount:0l,
+                    rowCount>0?readTime.getWallClockTime():0l,
                     columnStats);
         } catch (StandardException | IOException e) {
             throw new ExecutionException(e); //should only be IOExceptions
