@@ -22,21 +22,21 @@
     xmlns="http://maven.apache.org/POM/4.0.0"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>org.apache.derby</groupId>
+  <groupId>com.splicemachine</groupId>
   <parent>
-    <groupId>org.apache.derby</groupId>
-    <artifactId>derby-project</artifactId>
+    <groupId>com.splicemachine</groupId>
+    <artifactId>db-project</artifactId>
     <version>1.1.0.1-SNAPSHOT</version>
   </parent>
-  <artifactId>derbyLocale_de_DE</artifactId>
+  <artifactId>dbLocale_de_DE</artifactId>
   <name>Apache Derby messages: German</name>
   <description>Localized (German) messages for Apache Derby</description>
 
 
   <dependencies>
     <dependency>
-      <groupId>org.apache.derby</groupId>
-      <artifactId>derby</artifactId>
+      <groupId>com.splicemachine</groupId>
+      <artifactId>db</artifactId>
       <version>1.1.0.1-SNAPSHOT</version>
       <optional>false</optional>
     </dependency>

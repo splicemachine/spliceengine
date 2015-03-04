@@ -22,13 +22,13 @@
         xmlns="http://maven.apache.org/POM/4.0.0"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>org.apache.derby</groupId>
+    <groupId>com.splicemachine</groupId>
     <parent>
-        <groupId>org.apache.derby</groupId>
-        <artifactId>derby-project</artifactId>
+        <groupId>com.splicemachine</groupId>
+        <artifactId>db-project</artifactId>
         <version>1.1.0.1-SNAPSHOT</version>
     </parent>
-    <artifactId>derby</artifactId>
+    <artifactId>db</artifactId>
     <name>Apache Derby Database Engine and Embedded JDBC Driver</name>
     <description>Contains the core Apache Derby database engine, which also includes the embedded JDBC driver.
     </description>
