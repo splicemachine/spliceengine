@@ -120,12 +120,14 @@ public class MemstoreKeyValueScanner implements KeyValueScanner, InternalScanner
 	public boolean realSeekDone() {
 		if (LOG.isTraceEnabled())
 			SpliceLogUtils.trace(LOG, "realSeekDone");
-		return false;
+//		Thread.dumpStack();
+		return true;
 	}
 	@Override
 	public void enforceSeek() throws IOException {
 		if (LOG.isTraceEnabled())
 			SpliceLogUtils.trace(LOG, "enforceSeek");		
+//		Thread.dumpStack();
 	}
 	@Override
 	public boolean isFileScanner() {
