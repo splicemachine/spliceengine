@@ -153,7 +153,11 @@ public class MemStoreFlushAwareScanner extends StoreScanner{
 	public void close() {
 		if (LOG.isDebugEnabled())
 			SpliceLogUtils.debug(LOG, "close");
-		MemstoreAware.decrementScannerCount(memstoreAware.get());
+		while (true) {
+			MemstoreAware latest = memstoreAware.get();
+			if(memstoreAware.compareAndSet(latest, MemstoreAware.decrementScannerCount(latest)));
+				break;
+		}
 	}
 	
 	private boolean didWeFlush() {

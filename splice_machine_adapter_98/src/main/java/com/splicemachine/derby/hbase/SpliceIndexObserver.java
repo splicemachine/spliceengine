@@ -133,8 +133,11 @@ public class SpliceIndexObserver extends AbstractSpliceIndexObserver {
 	        }
 				if (!HRegion.rowIsInRange(c.getEnvironment().getRegion().getRegionInfo(), scan.getStartRow()) ||
 						!HRegion.rowIsInRange(c.getEnvironment().getRegion().getRegionInfo(), scan.getStartRow())) {
-					
-					memstoreAware.getAndSet(MemstoreAware.decrementScannerCount(memstoreAware.get()));
+					while (true) {
+						MemstoreAware latest = memstoreAware.get();
+						if(memstoreAware.compareAndSet(latest, MemstoreAware.decrementScannerCount(latest)));
+							break;
+					}
 					SpliceLogUtils.warn(LOG, "scan missed do to split after task creation beginKey=%s, endKey=%s, region=%s",scan.getStartRow(), scan.getStopRow(),c.getEnvironment().getRegion().getRegionNameAsString());
 					throw new UnstableScannerDNRIOException();
 				}
@@ -154,7 +157,11 @@ public class SpliceIndexObserver extends AbstractSpliceIndexObserver {
 			List<Mutation> metaEntries) throws IOException {
 	  	if (LOG.isTraceEnabled())
 			SpliceLogUtils.trace(LOG, "preSplitBeforePONR %s ", ctx.getEnvironment().getRegion() );	
-	  	memstoreAware.getAndSet(MemstoreAware.changeSplitMerge(memstoreAware.get(), true));
+		while (true) {
+			MemstoreAware latest = memstoreAware.get();
+			if(memstoreAware.compareAndSet(latest, MemstoreAware.changeSplitMerge(latest, true)));
+				break;
+		}
 		super.preSplitBeforePONR(ctx, splitKey, metaEntries);
 	}
 
@@ -198,15 +205,23 @@ public class SpliceIndexObserver extends AbstractSpliceIndexObserver {
 	public void postFlush(ObserverContext<RegionCoprocessorEnvironment> e,
 			Store store, StoreFile resultFile) throws IOException {
 		SpliceLogUtils.trace(LOG, "postFlush called on store %s with file=%s",store, resultFile);
-	  	memstoreAware.getAndSet(MemstoreAware.incrementFlushCount(memstoreAware.get()));
+		while (true) {
+			MemstoreAware latest = memstoreAware.get();
+			if(memstoreAware.compareAndSet(latest, MemstoreAware.incrementFlushCount(latest)));
+				break;
+		}		
 		super.postFlush(e, store, resultFile);
 	}
 	
     @Override
 	public void preSplit(ObserverContext<RegionCoprocessorEnvironment> e)
 			throws IOException {
-		SpliceLogUtils.trace(LOG, "preSplit");
-		memstoreAware.getAndSet(MemstoreAware.changeSplitMerge(memstoreAware.get(), true));
+		SpliceLogUtils.trace(LOG, "preSplit");	
+		while (true) {
+			MemstoreAware latest = memstoreAware.get();
+			if(memstoreAware.compareAndSet(latest, MemstoreAware.changeSplitMerge(latest, true)));
+				break;
+		}		
 		while (memstoreAware.get().scannerCount>0) {
 			SpliceLogUtils.warn(LOG, "preSplit Delayed waiting for scanners to complete scannersRemaining=%d",memstoreAware.get().scannerCount);
 			try {
@@ -224,7 +239,11 @@ public class SpliceIndexObserver extends AbstractSpliceIndexObserver {
 			InternalScanner scanner, ScanType scanType) throws IOException {
 		if (LOG.isTraceEnabled())
 			SpliceLogUtils.trace(LOG, "preCompact store=%s, scanner=%s, scanType=%s",store, scanner, scanType);
-		memstoreAware.getAndSet(MemstoreAware.incrementCompactionCount(memstoreAware.get()));
+		while (true) {
+			MemstoreAware latest = memstoreAware.get();
+			if(memstoreAware.compareAndSet(latest, MemstoreAware.incrementCompactionCount(latest)));
+				break;
+		}
 		while (memstoreAware.get().scannerCount>0) {
 			SpliceLogUtils.warn(LOG, "compaction Delayed waiting for scanners to complete scannersRemaining=%d",memstoreAware.get().scannerCount);
 			try {
@@ -244,7 +263,11 @@ public class SpliceIndexObserver extends AbstractSpliceIndexObserver {
 			CompactionRequest request) throws IOException {
 		if (LOG.isTraceEnabled())
 			SpliceLogUtils.trace(LOG, "preCompact store=%s, scanner=%s, scanType=%s, request=%s",store, scanner, scanType, request);
-		memstoreAware.getAndSet(MemstoreAware.incrementCompactionCount(memstoreAware.get()));
+		while (true) {
+			MemstoreAware latest = memstoreAware.get();
+			if(memstoreAware.compareAndSet(latest, MemstoreAware.incrementCompactionCount(latest)));
+				break;
+		}
 		while (memstoreAware.get().scannerCount>0) {
 			SpliceLogUtils.warn(LOG, "compaction Delayed waiting for scanners to complete scannersRemaining=%d",memstoreAware.get().scannerCount);
 			try {
@@ -261,7 +284,11 @@ public class SpliceIndexObserver extends AbstractSpliceIndexObserver {
 			Store store, StoreFile resultFile) throws IOException {	
 		if (LOG.isTraceEnabled())
 			SpliceLogUtils.trace(LOG, "postCompact store=%s, storeFile=%s",store,resultFile);
-		memstoreAware.getAndSet(MemstoreAware.decrementCompactionCount(memstoreAware.get()));
+		while (true) {
+			MemstoreAware latest = memstoreAware.get();
+			if(memstoreAware.compareAndSet(latest, MemstoreAware.decrementCompactionCount(latest)));
+				break;
+		}
 		super.postCompact(e, store, resultFile);
 	}
 
@@ -271,7 +298,11 @@ public class SpliceIndexObserver extends AbstractSpliceIndexObserver {
 			throws IOException {
 		if (LOG.isTraceEnabled())
 			SpliceLogUtils.trace(LOG, "postCompact store=%s, storeFile=%s, request=%s",store,resultFile, request);
-		memstoreAware.getAndSet(MemstoreAware.decrementCompactionCount(memstoreAware.get()));
+		while (true) {
+			MemstoreAware latest = memstoreAware.get();
+			if(memstoreAware.compareAndSet(latest, MemstoreAware.decrementCompactionCount(latest)));
+				break;
+		}
 		super.postCompact(e, store, resultFile, request);
 	}
 	

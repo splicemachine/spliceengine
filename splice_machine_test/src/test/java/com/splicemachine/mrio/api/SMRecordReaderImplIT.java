@@ -1,23 +1,13 @@
 package com.splicemachine.mrio.api;
 
-import java.io.IOException;
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-
 import org.junit.*;
-import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.client.HTable;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.mapreduce.TableInputFormat;
 import org.apache.hadoop.hbase.mapreduce.TableSplit;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.mapreduce.JobContext;
-import org.apache.hadoop.mapreduce.JobID;
-import org.apache.hadoop.mapreduce.task.JobContextImpl;
 import org.apache.log4j.Logger;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -25,8 +15,6 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
-
-import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
@@ -41,6 +29,7 @@ public class SMRecordReaderImplIT extends BaseMRIOTest {
 	protected static SpliceTableWatcher spliceTableWatcherB = new SpliceTableWatcher("B",SMRecordReaderImplIT.class.getSimpleName(),"(col1 int, col2 varchar(56), primary key (col1))");
 	protected static SpliceTableWatcher spliceTableWatcherC = new SpliceTableWatcher("C",SMRecordReaderImplIT.class.getSimpleName(),"(col1 int, col2 varchar(56), primary key (col1))");
 	protected static SpliceTableWatcher spliceTableWatcherD = new SpliceTableWatcher("D",SMRecordReaderImplIT.class.getSimpleName(),"(col1 int, col2 varchar(56), primary key (col1))");
+	protected static SpliceTableWatcher spliceTableWatcherE = new SpliceTableWatcher("E",SMRecordReaderImplIT.class.getSimpleName(),"(col1 int, col2 varchar(56), primary key (col1))");
 
 	@ClassRule 
 	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -49,6 +38,7 @@ public class SMRecordReaderImplIT extends BaseMRIOTest {
 		.around(spliceTableWatcherB)
 		.around(spliceTableWatcherC)
 		.around(spliceTableWatcherD)
+		.around(spliceTableWatcherE)	
 		.around(new SpliceDataWatcher(){
 			@Override
 			protected void starting(Description description) {
@@ -57,6 +47,7 @@ public class SMRecordReaderImplIT extends BaseMRIOTest {
 					PreparedStatement psB = spliceClassWatcher.prepareStatement("insert into "+ SMRecordReaderImplIT.class.getSimpleName() + ".B (col1,col2) values (?,?)");
 					PreparedStatement psC = spliceClassWatcher.prepareStatement("insert into "+ SMRecordReaderImplIT.class.getSimpleName() + ".C (col1,col2) values (?,?)");
 					PreparedStatement psD = spliceClassWatcher.prepareStatement("insert into "+ SMRecordReaderImplIT.class.getSimpleName() + ".D (col1,col2) values (?,?)");
+					PreparedStatement psE = spliceClassWatcher.prepareStatement("insert into "+ SMRecordReaderImplIT.class.getSimpleName() + ".E (col1,col2) values (?,?)");
 
 					for (int i = 0; i< 1000; i++) {
 						psA.setInt(1,i);
@@ -72,6 +63,14 @@ public class SMRecordReaderImplIT extends BaseMRIOTest {
 							flushTable(spliceTableWatcherB.toString());
 					}
 
+					for (int i = 0; i< 5000; i++) {
+						psE.setInt(1,i);
+						psE.setString(2, "dataset"+i);
+						psE.executeUpdate();
+					}
+					flushTable(spliceTableWatcherE.toString());
+					compactTable(spliceTableWatcherE.toString());
+					
 					for (int i = 0; i< 10000; i++) {
 						psC.setInt(1,i);
 						psC.setString(2, "dataset"+i);
@@ -194,6 +193,30 @@ public class SMRecordReaderImplIT extends BaseMRIOTest {
     		Assert.assertNotNull("Current Key is null", rr.getCurrentKey());    		
     	}
     	Assert.assertEquals("incorrect results returned",10000,i);
+    }
+    
+    @Test
+    public void testScanAfterMajorCompaction() throws Exception{
+     	List<String> names = new ArrayList<String>();
+    	names.add("COL1");
+    	names.add("COL2");    	    	
+    	config.set(MRConstants.SPLICE_SCAN_INFO, sqlUtil.getTableScannerBuilder(SMRecordReaderImplIT.class.getSimpleName()+".E", names).getTableScannerBuilderBase64String());    	
+    	SMRecordReaderImpl rr = new SMRecordReaderImpl(config);
+    	String tableName = sqlUtil.getConglomID(SMRecordReaderImplIT.class.getSimpleName()+".E");
+    	HTable htable = new HTable(config,tableName);    	
+    	Scan scan = new Scan();
+    	rr.setHTable(htable);
+    	rr.setScan(scan);
+    	TableSplit tableSplit = new TableSplit(Bytes.toBytes(tableName), scan.getStartRow(),scan.getStopRow(),"sdfsdf");
+    	rr.initialize(tableSplit, null);
+       	int i = 0;
+    	while (rr.nextKeyValue()) {
+    		i++;
+    		Assert.assertNotNull("Column 1 is null", rr.getCurrentValue().getColumn(1));
+    		Assert.assertNotNull("Column 2 is null", rr.getCurrentValue().getColumn(2));
+    		Assert.assertNotNull("Current Key is null", rr.getCurrentKey());    		
+    	}
+    	Assert.assertEquals("incorrect results returned",5000,i);
     }
     	        
 }
