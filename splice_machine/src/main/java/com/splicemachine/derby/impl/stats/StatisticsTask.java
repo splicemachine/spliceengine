@@ -12,6 +12,7 @@ import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.marshall.dvd.TimestampV2DescriptorSerializer;
+import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.hbase.KVPair;
@@ -44,10 +45,13 @@ import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
+import org.apache.http.conn.util.InetAddressUtils;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.List;
@@ -259,7 +263,34 @@ public class StatisticsTask extends ZkTask{
     }
 
     private void writePhysicalStats(long physStatsConglomerate,PartitionStatistics collected) throws ExecutionException {
-        //TODO -sf- update physical statistics here!
+        try {
+            byte[] key = Encoding.encode(InetAddress.getLocalHost().getHostName());
+            Runtime runtime = Runtime.getRuntime();
+            BitSet nonNullFields = new BitSet(6);
+            nonNullFields.set(1,7);
+            BitSet scalarFields = new BitSet(6);
+            scalarFields.set(1,7);
+            BitSet empty = BitSet.newInstance();
+            EntryEncoder rowEncoder = EntryEncoder.create(SpliceKryoRegistry.getInstance(),6,nonNullFields,scalarFields,empty,empty);
+            try(CallBuffer<KVPair> buffer = SpliceDriver.driver().getTableWriter().writeBuffer(Long.toString(physStatsConglomerate).getBytes(),getTxn())){
+                MultiFieldEncoder encoder = rowEncoder.getEntryEncoder();
+                encoder.encodeNext(runtime.availableProcessors())
+                        .encodeNext(runtime.maxMemory())
+                        .encodeNext(SpliceConstants.ipcThreads)
+                        .encodeNext(collected.localReadLatency())
+                        .encodeNext(collected.remoteReadLatency())
+                        .encodeNext(collected.remoteReadLatency()); //TODO -sf- implement write latency values!
+
+                //write the data
+                KVPair kvPair = new KVPair(key,rowEncoder.encode(), KVPair.Type.UPSERT);
+                buffer.add(kvPair);
+                buffer.flushBuffer();
+            } catch (Exception e) {
+                throw new ExecutionException(e);
+            }
+        } catch (UnknownHostException e) {
+            throw new ExecutionException(e);
+        }
     }
 
     private void writeTableStats(TransactionalRegion txnRegion, long tableStatsConglomerate,PartitionStatistics collected) throws ExecutionException {
@@ -319,7 +350,7 @@ public class StatisticsTask extends ZkTask{
             TableDescriptor colColDesc = dd.getTableDescriptor("SYSCOLUMNSTATS",
                     sysSchema, lcc.getTransactionExecute());
             ids[1] = colColDesc.getHeapConglomerateId();
-            TableDescriptor physColDesc = dd.getTableDescriptor("SYSPHYSICALSTATISTICS",
+            TableDescriptor physColDesc = dd.getTableDescriptor("SYSPHYSICALSTATS",
                     sysSchema, lcc.getTransactionExecute());
             ids[2] = physColDesc.getHeapConglomerateId();
             return ids;
