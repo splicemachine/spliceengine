@@ -42,26 +42,11 @@ public class SimpleDateArithmeticIT {
     @BeforeClass
     public static void createTable() throws Exception {
         new TableCreator(spliceClassWatcher.getOrCreateConnection())
-            .withCreate(String.format("create table %s (s varchar(15), d date, t timestamp)", QUALIFIED_TABLE_NAME))
-            .withInsert(String.format("insert into %s values(?,?,?)", QUALIFIED_TABLE_NAME))
+            .withCreate(String.format("create table %s (s varchar(15), d date, t timestamp, t2 timestamp)", QUALIFIED_TABLE_NAME))
+            .withInsert(String.format("insert into %s values(?,?,?,?)", QUALIFIED_TABLE_NAME))
             .withRows(rows(
-                row("2012-05-23", new SimpleDateFormat("yyyy-MM-dd").parse("1988-12-26"), Timestamp.valueOf("2000-06-07 17:12:30"))))
+                row("2012-05-23", new SimpleDateFormat("yyyy-MM-dd").parse("1988-12-26"), Timestamp.valueOf("2000-06-07 17:12:30"), Timestamp.valueOf("2012-12-13 00:00:00"))))
             .create();
-    }
-
-    @Test
-    public void testSelect() throws Exception {
-        String sqlText =
-            String.format("SELECT * from %s", QUALIFIED_TABLE_NAME);
-
-        ResultSet rs = spliceClassWatcher.executeQuery(sqlText);
-
-        String expected =
-            "S     |     D     |          T           |\n" +
-                "-----------------------------------------------\n" +
-                "2012-05-23 |1988-12-26 |2000-06-07 17:12:30.0 |";
-        Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
-        rs.close();
     }
 
     //=========================================================================================================
@@ -123,6 +108,28 @@ public class SimpleDateArithmeticIT {
             Assert.assertEquals("The '-' operator with a left operand type of 'INTEGER' and a right operand type of 'DATE' is not supported.",
                                 e.getLocalizedMessage());
         }
+    }
+
+    @Test
+    public void testCurrentDateMinusDateColumn() throws Exception {
+        String sqlText = String.format("select current_date - d from  %s", QUALIFIED_TABLE_NAME);
+        int rows = 0;
+        try (ResultSet rs = spliceClassWatcher.executeQuery(sqlText)) {
+            // can't use static result compare with CURRENT_DATE funct. Best we can do is count rows.
+            ++rows;
+        }
+        Assert.assertTrue("\n" + sqlText + "\nExpected at least one row.", rows > 0);
+    }
+
+    @Test
+    public void testDateColumnMinusCurrentDate() throws Exception {
+        String sqlText = String.format("select d - current_date from  %s", QUALIFIED_TABLE_NAME);
+        int rows = 0;
+        try (ResultSet rs = spliceClassWatcher.executeQuery(sqlText)) {
+            // can't use static result compare with CURRENT_DATE funct. Best we can do is count rows.
+            ++rows;
+        }
+        Assert.assertTrue("\n" + sqlText + "\nExpected at least one row.", rows > 0);
     }
 
     //=========================================================================================================
@@ -454,7 +461,7 @@ public class SimpleDateArithmeticIT {
 
     @Test
     public void testAddDateOnLeapYear2() throws Exception {
-        String sqlText = "values  Date('2016-02-28') + 2 - 1";
+        String sqlText = "values Date('2016-02-28') + 2 - 1";
 
         ResultSet rs = spliceClassWatcher.executeQuery(sqlText);
 
@@ -468,7 +475,7 @@ public class SimpleDateArithmeticIT {
 
     @Test
     public void testAddDateOnLeapYear3() throws Exception {
-        String sqlText = "values  timestamp('2016-03-28', '22:13:13') - 28";
+        String sqlText = "values timestamp('2016-03-28', '22:13:13') - 28";
 
         ResultSet rs = spliceClassWatcher.executeQuery(sqlText);
 
@@ -478,6 +485,174 @@ public class SimpleDateArithmeticIT {
                 "2016-02-29 22:13:13.0 |";
         Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
+    }
+
+    @Test
+    public void testTimestampGTDateCompare() throws Exception {
+        String sqlText = String.format("select t from %s where t > '2000-04-01'", QUALIFIED_TABLE_NAME);
+
+        try (ResultSet rs = spliceClassWatcher.executeQuery(sqlText)) {
+
+            String expected =
+                "T           |\n" +
+                    "-----------------------\n" +
+                    "2000-06-07 17:12:30.0 |";
+            Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
+    public void testTimestampLTDateCompare() throws Exception {
+        String sqlText =  String.format("select t from %s where t < '2000-07-01'", QUALIFIED_TABLE_NAME);
+
+        try (ResultSet rs = spliceClassWatcher.executeQuery(sqlText)) {
+
+            String expected =
+                "T           |\n" +
+                    "-----------------------\n" +
+                    "2000-06-07 17:12:30.0 |";
+            Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
+    public void testTimestampNETDateCompare() throws Exception {
+        String sqlText =  String.format("select t from %s where t != '2000-06-07'", QUALIFIED_TABLE_NAME);
+
+        try (ResultSet rs = spliceClassWatcher.executeQuery(sqlText)) {
+
+            String expected =
+                "T           |\n" +
+                    "-----------------------\n" +
+                    "2000-06-07 17:12:30.0 |";
+            Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
+    public void testTimestampETDateCompare() throws Exception {
+        String sqlText =  String.format("select t2 from %s where t2 = '2012-12-13'", QUALIFIED_TABLE_NAME);
+
+        try (ResultSet rs = spliceClassWatcher.executeQuery(sqlText)) {
+
+            String expected =
+                "T2           |\n" +
+                    "-----------------------\n" +
+                    "2012-12-13 00:00:00.0 |";
+            Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
+    public void testDateGTTimestampCompareColummn() throws Exception {
+        String sqlText =  String.format("select d from %s where d > '1988-11-24 00:00:00'", QUALIFIED_TABLE_NAME);
+
+        try (ResultSet rs = spliceClassWatcher.executeQuery(sqlText)) {
+
+            String expected =
+                "D     |\n" +
+                    "------------\n" +
+                    "1988-12-26 |";
+            Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
+    public void testDateGTTimestampCompareValues() throws Exception {
+        String sqlText = "values date('2088-12-26') > '2088-12-25 00:00:00'";
+
+        try (ResultSet rs = spliceClassWatcher.executeQuery(sqlText)) {
+
+            String expected =
+                "1  |\n" +
+                    "------\n" +
+                    "true |";
+            Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
+    public void testDateLTTimestampCompare() throws Exception {
+        String sqlText =  String.format("select d from %s where d < '1988-12-29 00:00:00'", QUALIFIED_TABLE_NAME);
+
+        try (ResultSet rs = spliceClassWatcher.executeQuery(sqlText)) {
+
+            String expected =
+                "D     |\n" +
+                    "------------\n" +
+                    "1988-12-26 |";
+            Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
+    public void testDateNETTimestampCompare() throws Exception {
+        String sqlText =  String.format("select d from %s where d != '1988-12-25 00:00:00'", QUALIFIED_TABLE_NAME);
+
+        try (ResultSet rs = spliceClassWatcher.executeQuery(sqlText)) {
+
+            String expected =
+                "D     |\n" +
+                    "------------\n" +
+                    "1988-12-26 |";
+            Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
+    public void testDateETTimestampCompareColumn() throws Exception {
+        String sqlText =  String.format("select d from %s where d = '1988-12-26 00:00:00'", QUALIFIED_TABLE_NAME);
+
+        try (ResultSet rs = spliceClassWatcher.executeQuery(sqlText)) {
+
+            String expected =
+                "D     |\n" +
+                    "------------\n" +
+                    "1988-12-26 |";
+            Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
+    public void testDateETTimestampCompareValues() throws Exception {
+        String sqlText = "values date('2088-12-26') = '2088-12-26 00:00:00'";
+
+        try (ResultSet rs = spliceClassWatcher.executeQuery(sqlText)) {
+
+            String expected =
+                "1  |\n" +
+                    "------\n" +
+                    "true |";
+            Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
+    public void testCastToTimestamp() throws Exception {
+        String sqlText = "values cast(add_months('1993-07-01',3) as timestamp)";
+
+        try (ResultSet rs = spliceClassWatcher.executeQuery(sqlText)) {
+
+            String expected =
+                "1           |\n" +
+                    "-----------------------\n" +
+                    "1993-10-01 00:00:00.0 |";
+            Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
+    public void testCastToDate() throws Exception {
+        String sqlText = "values cast(add_months('1993-07-01 00:00:00',3) as date)";
+
+        try (ResultSet rs = spliceClassWatcher.executeQuery(sqlText)) {
+
+            String expected =
+                "1     |\n" +
+                    "------------\n" +
+                    "1993-10-01 |";
+            Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
     }
 }
 
