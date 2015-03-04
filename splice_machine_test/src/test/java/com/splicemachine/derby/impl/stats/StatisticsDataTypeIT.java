@@ -43,7 +43,7 @@ public class StatisticsDataTypeIT {
             .around(varcharPk)
             .around(new SpliceDataWatcher() {
                 @Override
-                protected void start(Description description) {
+                protected void starting(Description description) {
                     try {
                         PreparedStatement adtPs = classWatcher.prepareStatement("insert into " + allDataTypes + " (b,c,d,e,f,g,h,i) values (?,?,?,?,?,?,?,?)");
                         PreparedStatement siPs  = classWatcher.prepareStatement("insert into " + smallintPk + " (b,c,d,e,f,g,h,i) values (?,?,?,?,?,?,?,?)");
