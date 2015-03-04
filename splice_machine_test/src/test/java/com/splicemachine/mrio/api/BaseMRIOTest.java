@@ -40,6 +40,19 @@ public class BaseMRIOTest extends SpliceUnitTest {
 			}
 	}
 
+	
+	protected static void compactTable(String tableName) throws SQLException, IOException, InterruptedException {
+		String conglomId = sqlUtil.getConglomID(tableName);
+		HBaseAdmin admin = null;
+		try {
+			admin = new HBaseAdmin(config);
+			admin.majorCompact(conglomId);
+		} finally { 
+    		if (admin != null)
+    			admin.close();    		
+			}
+	}
+
 	protected static void splitTable(String tableName) throws SQLException, IOException, InterruptedException {
 		String conglomId = sqlUtil.getConglomID(tableName);
 		HBaseAdmin admin = null;

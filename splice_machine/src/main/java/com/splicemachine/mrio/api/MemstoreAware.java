@@ -49,7 +49,7 @@ public class MemstoreAware {
 
         public static MemstoreAware decrementCompactionCount(MemstoreAware clone) {
             return new MemstoreAware(clone.splitMerge, clone.flushCount,
-                    clone.compactionCount+1, clone.scannerCount);
+                    clone.compactionCount-1, clone.scannerCount);
         }
 
         public static MemstoreAware incrementScannerCount(MemstoreAware clone) {
