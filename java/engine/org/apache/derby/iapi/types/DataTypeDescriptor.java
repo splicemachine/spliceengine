@@ -1778,15 +1778,26 @@ public class DataTypeDescriptor implements Formatable
 	 * @exception IOException					thrown on error
 	 * @exception ClassNotFoundException		thrown on error
 	 */
-	public void readExternal( ObjectInput in )
-		 throws IOException, ClassNotFoundException
-	{
-		typeDescriptor = (TypeDescriptorImpl) in.readObject();
-        
-        typeId = TypeId.getBuiltInTypeId(this.getTypeName());
-        
-        collationDerivation = in.readInt();
-	}
+  public void readExternal( ObjectInput in ) throws IOException, ClassNotFoundException {
+      typeDescriptor = (TypeDescriptorImpl) in.readObject();
+      collationDerivation = in.readInt();
+
+      String typeName = this.getTypeName();
+      typeId = TypeId.getBuiltInTypeId(typeName);
+      if(typeId==null && typeName!=null){
+          /*
+           * This is a User-defined TypeId, which we serialize. For whatever reason,
+           * derby does not approve of serializing the TypeId information for user-defined
+           * types, so we have to make do with this instead
+           */
+          try {
+              typeId = TypeId.getUserDefinedTypeId(typeName,false);
+          } catch (StandardException e) {
+              throw new IOException(e);
+          }
+      }
+
+  }
 
 	/**
 	 * Write this object to a stream of stored objects.
@@ -1795,12 +1806,10 @@ public class DataTypeDescriptor implements Formatable
 	 *
 	 * @exception IOException		thrown on error
 	 */
-	public void writeExternal( ObjectOutput out )
-		 throws IOException
-	{
-		out.writeObject(typeDescriptor);
-        out.writeInt(getCollationDerivation());
-	}
+  public void writeExternal( ObjectOutput out ) throws IOException {
+      out.writeObject(typeDescriptor);
+      out.writeInt(getCollationDerivation());
+  }
  
 	/**
 	 * Get the formatID which corresponds to this class.
