@@ -1,7 +1,7 @@
 package com.splicemachine.mrio.api;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.types.TypeId;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.types.TypeId;
 
 /**
  * 

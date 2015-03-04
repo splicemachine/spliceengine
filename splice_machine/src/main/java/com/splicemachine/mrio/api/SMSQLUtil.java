@@ -21,10 +21,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.impl.sql.execute.ValueRow;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 
@@ -40,7 +40,7 @@ public class SMSQLUtil {
 	  }
 	  
 	  private SMSQLUtil(String connStr) throws Exception {  
-	      Class.forName("org.apache.derby.jdbc.ClientDriver").newInstance();
+	      Class.forName("com.splicemachine.db.jdbc.ClientDriver").newInstance();
 	      this.connStr = connStr;
 	      connect = DriverManager.getConnection(connStr);
 	  }
@@ -58,7 +58,7 @@ public class SMSQLUtil {
 	  
 	  
 	  public Connection createConn() throws SQLException, InstantiationException, IllegalAccessException, ClassNotFoundException{
-		  Class.forName("org.apache.derby.jdbc.ClientDriver").newInstance();  
+		  Class.forName("com.splicemachine.db.jdbc.ClientDriver").newInstance();  
 		  Connection conn = DriverManager.getConnection(connStr);
 		  return conn;
 	  }
