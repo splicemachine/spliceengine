@@ -1382,11 +1382,12 @@ public class DataTypeDescriptor implements Formatable
     		return (compareWithTypeID.getSQLTypeName().equals(typeId.getSQLTypeName()) ||
     				compareWithTypeID.isStringTypeId()); 
 
-		//Dates are comparable to dates, strings and to comparable
+		//Dates are comparable to dates, timestamps, strings and to comparable
 		//user types.
 		if (typeId.getJDBCTypeId() == Types.DATE)
-    		if (compareWithJDBCTypeId == Types.DATE || 
-    				compareWithTypeID.isStringTypeId())
+    		if (compareWithJDBCTypeId == Types.DATE ||
+                compareWithJDBCTypeId == Types.TIMESTAMP ||
+                compareWithTypeID.isStringTypeId())
     			return true;
     		else
     			return false;
@@ -1400,11 +1401,12 @@ public class DataTypeDescriptor implements Formatable
     		else
     			return false;
 
-    	//Timestamps are comparable to timestamps, strings and to
+    	//Timestamps are comparable to timestamps, dates, strings and to
 		//comparable user types.
 		if (typeId.getJDBCTypeId() == Types.TIMESTAMP)
-    		if (compareWithJDBCTypeId == Types.TIMESTAMP || 
-    				compareWithTypeID.isStringTypeId())
+    		if (compareWithJDBCTypeId == Types.TIMESTAMP ||
+                compareWithJDBCTypeId == Types.DATE ||
+                compareWithTypeID.isStringTypeId())
     			return true;
     		else
     			return false;

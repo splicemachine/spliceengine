@@ -125,14 +125,13 @@ public class UnaryDateTimestampOperatorNode extends UnaryOperatorNode
             break;
 
         case Types.DATE:
-            if( TIMESTAMP_METHOD_NAME.equals( methodName))
-                invalidOperandType();
-            isIdentity = true;
+            if(! TIMESTAMP_METHOD_NAME.equals( methodName))
+                isIdentity = true;
             break;
-            
+
         case Types.NULL:
             break;
-           
+
         case Types.TIMESTAMP:
             if( TIMESTAMP_METHOD_NAME.equals( methodName))
                 isIdentity = true;

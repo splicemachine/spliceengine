@@ -57,6 +57,11 @@ public class DateTypeCompiler extends BaseTypeCompiler
 			return true;
 		}
 
+        if (getTypeId().getJDBCTypeId() == Types.DATE && otherType.getJDBCTypeId() == Types.TIMESTAMP) {
+            // we can convert a date to a timestamp
+            return true;
+        }
+
 		return (getStoredFormatIdFromTypeId() == 
 				otherType.getTypeFormatId());
 		   

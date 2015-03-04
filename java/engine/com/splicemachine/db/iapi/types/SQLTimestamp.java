@@ -488,7 +488,7 @@ public final class SQLTimestamp extends DataType
         DateTimeParser parser = new DateTimeParser( timestampStr);
         try
         {
-            int[] dateTimeNano = parseDateOrTimestamp( parser, true);
+            int[] dateTimeNano = parseDateOrTimestamp( parser, false);
             encodedDate = dateTimeNano[0];
             encodedTime = dateTimeNano[1];
             nanos = dateTimeNano[2];
@@ -1268,8 +1268,7 @@ public final class SQLTimestamp extends DataType
     public DateTimeDataValue minus(DateTimeDataValue leftOperand, NumberDataValue daysToSubtract, DateTimeDataValue resultHolder) throws StandardException {
         if( resultHolder == null)
             resultHolder = new SQLTimestamp();
-        if( isNull() || daysToSubtract.isNull())
-        {
+        if(leftOperand.isNull() || isNull() || daysToSubtract.isNull()) {
             resultHolder.restoreToNull();
             return resultHolder;
         }
@@ -1282,8 +1281,7 @@ public final class SQLTimestamp extends DataType
     public NumberDataValue minus(DateTimeDataValue leftOperand, DateTimeDataValue rightOperand, NumberDataValue resultHolder) throws StandardException {
         if( resultHolder == null)
             resultHolder = new SQLInteger();
-        if( isNull() || rightOperand.isNull())
-        {
+        if(leftOperand.isNull() || isNull() || rightOperand.isNull()) {
             resultHolder.restoreToNull();
             return resultHolder;
         }
