@@ -398,6 +398,6 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 
     @Override
     public boolean pushedToServer() {
-        return true;
+        return false;
     }
 }

@@ -1,10 +1,9 @@
-package com.splicemachine.intg.hive;
+package com.splicemachine.mrio.api;
 
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.List;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
@@ -19,13 +18,10 @@ import com.splicemachine.db.iapi.types.SQLSmallint;
 import com.splicemachine.db.iapi.types.SQLVarchar;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.apache.hadoop.io.Writable;
-import org.mortbay.log.Log;
-
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.mrio.api.SQLUtil;
 
 public class ExecRowWritable implements Writable{
 

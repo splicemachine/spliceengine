@@ -68,6 +68,11 @@
 				</exclusions>
 			</dependency>
 			<dependency>
+				  <groupId>com.googlecode.concurrentlinkedhashmap</groupId>
+				  <artifactId>concurrentlinkedhashmap-lru</artifactId>
+				  <version>1.4.2</version>
+			</dependency>			
+			<dependency>
 				<groupId>com.splicemachine</groupId>
 				<artifactId>splice-web</artifactId>
 				<version>1.0.0</version>
