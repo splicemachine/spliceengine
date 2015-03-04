@@ -55,7 +55,35 @@ public class BackupUtils {
         }
 
 	}
-	
+
+	/**
+	 * Write Region store files to Backup Directory
+	 * 
+	 * @param region
+	 * @param backupDirectory
+	 * @param backupFileSystem
+	 * @throws ExecutionException
+	 */
+	public static void writeFilesToBackupDirectory(HRegion region, String backupDirectory, FileSystem backupFileSystem) throws ExecutionException {
+    	try{	        	
+            region.flushcache();
+            region.startRegionOperation();
+            FileSystem fs = region.getFilesystem();
+            
+	    	FileUtil.copy(fs, derbyFactory.getRegionDir(region), backupFileSystem, new Path(backupDirectory+"/"+derbyFactory.getRegionDir(region).getName()), false, SpliceConstants.config);
+	    	derbyFactory.writeRegioninfoOnFilesystem(region.getRegionInfo(), new Path(backupDirectory+"/"+derbyFactory.getRegionDir(region).getName()+"/"+REGION_INFO), backupFileSystem, SpliceConstants.config);
+        } catch (Exception e) {
+            throw new ExecutionException(Throwables.getRootCause(e));
+        } finally {
+        	try {
+        		region.closeRegionOperation();
+        	} catch (Exception e) {
+                throw new ExecutionException(Throwables.getRootCause(e));
+        	}
+        }
+
+	}
+		
 	public static void createBackupTables() throws SQLException {
 		Backup.createBackupSchema();
 		Backup.createBackupTable();
