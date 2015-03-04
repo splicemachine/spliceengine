@@ -28,7 +28,7 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 
-public class SMSQLUtil {
+public class SMSQLUtil extends SIConstants {
     static final Logger LOG = Logger.getLogger(SMSQLUtil.class);
 	  private Connection connect = null;
 	  private static SMSQLUtil sqlUtil = null;
@@ -40,7 +40,7 @@ public class SMSQLUtil {
 	  }
 	  
 	  private SMSQLUtil(String connStr) throws Exception {  
-	      Class.forName("com.splicemachine.db.jdbc.ClientDriver").newInstance();
+	      Class.forName(SPLICE_JDBC_DRIVER).newInstance();
 	      this.connStr = connStr;
 	      connect = DriverManager.getConnection(connStr);
 	  }
@@ -58,7 +58,7 @@ public class SMSQLUtil {
 	  
 	  
 	  public Connection createConn() throws SQLException, InstantiationException, IllegalAccessException, ClassNotFoundException{
-		  Class.forName("com.splicemachine.db.jdbc.ClientDriver").newInstance();  
+		  Class.forName(SPLICE_JDBC_DRIVER).newInstance();  
 		  Connection conn = DriverManager.getConnection(connStr);
 		  return conn;
 	  }
