@@ -1,10 +1,10 @@
 package com.splicemachine.derby.impl.ast;
 
 import com.google.common.collect.ImmutableMap;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.reference.MessageId;
-import org.apache.derby.iapi.sql.compile.ASTVisitor;
-import org.apache.derby.iapi.sql.compile.Visitable;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.MessageId;
+import com.splicemachine.db.iapi.sql.compile.ASTVisitor;
+import com.splicemachine.db.iapi.sql.compile.Visitable;
 
 import java.util.ArrayList;
 import java.util.List;

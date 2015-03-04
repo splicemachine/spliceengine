@@ -66,7 +66,7 @@
 	getRaDependentTableScanResultSet
 	
 
- @see org.apache.derby.iapi.sql.execute.ResultSetFactory
+ @see com.splicemachine.db.iapi.sql.execute.ResultSetFactory
    
  */
 

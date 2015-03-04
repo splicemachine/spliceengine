@@ -2,22 +2,22 @@ package com.splicemachine.derby.impl.sql.compile;
 
 import java.util.Properties;
 
-import org.apache.derby.iapi.services.context.ContextManager;
-import org.apache.derby.iapi.services.monitor.ModuleControl;
-import org.apache.derby.iapi.services.monitor.ModuleSupportable;
-import org.apache.derby.iapi.services.monitor.Monitor;
-import org.apache.derby.iapi.sql.compile.Optimizer;
-import org.apache.derby.iapi.sql.compile.Node;
-import org.apache.derby.iapi.sql.compile.NodeFactory;
-import org.apache.derby.iapi.sql.compile.C_NodeTypes;
-import org.apache.derby.iapi.services.sanity.SanityManager;
-import org.apache.derby.iapi.services.property.PropertyUtil;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.reference.EngineType;
-import org.apache.derby.iapi.reference.SQLState;
-import org.apache.derby.iapi.services.loader.ClassInfo;
-import org.apache.derby.impl.sql.compile.C_NodeNames;
-import org.apache.derby.impl.sql.compile.QueryTreeNode;
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.services.monitor.ModuleControl;
+import com.splicemachine.db.iapi.services.monitor.ModuleSupportable;
+import com.splicemachine.db.iapi.services.monitor.Monitor;
+import com.splicemachine.db.iapi.sql.compile.Optimizer;
+import com.splicemachine.db.iapi.sql.compile.Node;
+import com.splicemachine.db.iapi.sql.compile.NodeFactory;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.EngineType;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.loader.ClassInfo;
+import com.splicemachine.db.impl.sql.compile.C_NodeNames;
+import com.splicemachine.db.impl.sql.compile.QueryTreeNode;
 
 /**
  * This class is a factory for QueryTreeNode nodes.  It exists to provide

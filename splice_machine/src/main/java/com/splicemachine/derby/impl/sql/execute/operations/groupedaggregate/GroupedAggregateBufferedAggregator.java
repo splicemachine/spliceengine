@@ -7,9 +7,9 @@ import com.splicemachine.derby.impl.sql.execute.operations.WarningCollector;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.AbstractBufferedAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.utils.StandardSupplier;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import org.apache.log4j.Logger;
 
 import java.util.HashSet;

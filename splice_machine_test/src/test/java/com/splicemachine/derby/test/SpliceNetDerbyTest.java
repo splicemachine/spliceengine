@@ -18,7 +18,7 @@ import com.splicemachine.constants.SpliceConstants;
 public class SpliceNetDerbyTest {
 	private static final Logger LOG = Logger.getLogger(SpliceNetDerbyTest.class);
     protected static String framework = "client";
-    protected static String driver = "org.apache.derby.jdbc.ClientDriver";
+    protected static String driver = "com.splicemachine.db.jdbc.ClientDriver";
     protected static String protocol = "jdbc:derby://localhost:1527/";
     protected static Properties props = new Properties();
 	protected static Connection conn = null;

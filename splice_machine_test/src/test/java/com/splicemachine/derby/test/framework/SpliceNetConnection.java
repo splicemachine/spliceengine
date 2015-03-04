@@ -2,7 +2,7 @@ package com.splicemachine.derby.test.framework;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.derby.jdbc.ClientDriver;
+import com.splicemachine.db.jdbc.ClientDriver;
 import org.apache.log4j.Logger;
 
 import java.sql.Connection;

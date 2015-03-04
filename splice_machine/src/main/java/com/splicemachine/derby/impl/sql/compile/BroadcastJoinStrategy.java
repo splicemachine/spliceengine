@@ -1,14 +1,14 @@
 package com.splicemachine.derby.impl.sql.compile;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.compile.CostEstimate;
-import org.apache.derby.iapi.sql.compile.JoinStrategy;
-import org.apache.derby.iapi.sql.compile.Optimizable;
-import org.apache.derby.iapi.sql.compile.OptimizablePredicateList;
-import org.apache.derby.iapi.sql.compile.Optimizer;
-import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
-import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
-import org.apache.derby.impl.sql.compile.HashableJoinStrategy;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.compile.CostEstimate;
+import com.splicemachine.db.iapi.sql.compile.JoinStrategy;
+import com.splicemachine.db.iapi.sql.compile.Optimizable;
+import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
+import com.splicemachine.db.iapi.sql.compile.Optimizer;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.impl.sql.compile.HashableJoinStrategy;
 import org.apache.log4j.Logger;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.HBaseRegionLoads;
@@ -61,10 +61,7 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
 	}
     
     /** 
-     * 
-     * 
-     * 
-     * @see org.apache.derby.iapi.sql.compile.JoinStrategy#estimateCost */
+     * @see com.splicemachine.db.iapi.sql.compile.JoinStrategy#estimateCost */
     @Override
     public void estimateCost(Optimizable innerTable,
                              OptimizablePredicateList predList,

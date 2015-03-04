@@ -11,7 +11,7 @@ import com.splicemachine.pipeline.impl.WriteResult;
 import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.TxnOperationFactory;
-import org.apache.derby.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;

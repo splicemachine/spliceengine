@@ -6,11 +6,11 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.db.SpliceDatabase;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 
-import org.apache.derby.catalog.UUID;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.reference.Property;
-import org.apache.derby.iapi.services.monitor.Monitor;
-import org.apache.derby.iapi.store.access.AccessFactory;
+import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.services.monitor.Monitor;
+import com.splicemachine.db.iapi.store.access.AccessFactory;
 
 import com.splicemachine.derby.ddl.ZookeeperDDLWatcher;
 import com.splicemachine.pipeline.ddl.DDLChange;

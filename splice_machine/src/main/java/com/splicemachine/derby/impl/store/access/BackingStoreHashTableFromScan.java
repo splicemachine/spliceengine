@@ -1,6 +1,6 @@
 /*
 
-   Derby - Class org.apache.derby.impl.store.access.BackingStoreHashTableFromScan
+   Derby - Class com.splicemachine.db.impl.store.access.BackingStoreHashTableFromScan
 
    Licensed to the Apache Software Foundation (ASF) under one or more
    contributor license agreements.  See the NOTICE file distributed with
@@ -21,14 +21,14 @@
 
 package com.splicemachine.derby.impl.store.access;
 
-import org.apache.derby.iapi.error.StandardException; 
-import org.apache.derby.iapi.store.access.conglomerate.ScanManager;
-import org.apache.derby.iapi.store.access.Qualifier;
-import org.apache.derby.iapi.store.access.RowSource;
-import org.apache.derby.iapi.store.access.TransactionController;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.store.access.BackingStoreHashtable;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.store.access.conglomerate.ScanManager;
+import com.splicemachine.db.iapi.store.access.Qualifier;
+import com.splicemachine.db.iapi.store.access.RowSource;
+import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.store.access.BackingStoreHashtable;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import org.apache.log4j.Logger;
 import java.util.Enumeration;
 import java.util.Properties;

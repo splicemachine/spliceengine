@@ -1,8 +1,8 @@
 package com.splicemachine.derby.impl.store.access;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.cache.Cacheable;
-import org.apache.derby.iapi.store.access.conglomerate.Conglomerate;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.cache.Cacheable;
+import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 
 
 class CacheableConglomerate implements Cacheable {

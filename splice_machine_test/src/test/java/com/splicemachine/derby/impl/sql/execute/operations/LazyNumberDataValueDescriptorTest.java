@@ -2,8 +2,8 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.impl.sql.execute.LazyNumberDataValueDescriptor;
 import com.splicemachine.derby.impl.sql.execute.serial.DoubleDVDSerializer;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.types.SQLDouble;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.types.SQLDouble;
 import org.junit.Assert;
 import org.junit.Test;
 

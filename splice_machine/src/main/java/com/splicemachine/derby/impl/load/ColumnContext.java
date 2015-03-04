@@ -2,10 +2,10 @@ package com.splicemachine.derby.impl.load;
 
 import com.splicemachine.pipeline.exception.ErrorState;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.StringDataValue;
-import org.apache.derby.iapi.types.SQLDecimal;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.StringDataValue;
+import com.splicemachine.db.iapi.types.SQLDecimal;
 
 import java.io.Externalizable;
 import java.io.IOException;

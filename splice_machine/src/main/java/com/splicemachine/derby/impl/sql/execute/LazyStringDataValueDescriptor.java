@@ -2,12 +2,12 @@ package com.splicemachine.derby.impl.sql.execute;
 
 import com.splicemachine.utils.ByteSlice;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.jdbc.CharacterStreamDescriptor;
-import org.apache.derby.iapi.reference.SQLState;
-import org.apache.derby.iapi.types.*;
-import org.apache.derby.iapi.types.DataValueFactoryImpl.Format;
-import org.apache.derby.iapi.util.StringUtil;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.jdbc.CharacterStreamDescriptor;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.types.*;
+import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
+import com.splicemachine.db.iapi.util.StringUtil;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;

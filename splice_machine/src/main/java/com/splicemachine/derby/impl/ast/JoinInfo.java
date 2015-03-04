@@ -2,8 +2,8 @@ package com.splicemachine.derby.impl.ast;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
-import org.apache.derby.iapi.sql.compile.JoinStrategy;
-import org.apache.derby.impl.sql.compile.*;
+import com.splicemachine.db.iapi.sql.compile.JoinStrategy;
+import com.splicemachine.db.impl.sql.compile.*;
 
 import javax.annotation.Nullable;
 import java.util.List;

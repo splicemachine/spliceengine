@@ -4,8 +4,8 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.impl.sql.execute.ValueRow;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 
 import javax.management.relation.RoleUnresolved;
 import java.lang.reflect.InvocationTargetException;

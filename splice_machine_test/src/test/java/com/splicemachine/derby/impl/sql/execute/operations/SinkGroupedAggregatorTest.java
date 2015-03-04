@@ -1,13 +1,13 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.collect.*;
-import org.apache.derby.iapi.types.*;
-import org.apache.derby.impl.sql.execute.*;
+import com.splicemachine.db.iapi.types.*;
+import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.GroupedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import org.junit.Assert;
 import org.junit.Test;
 

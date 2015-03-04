@@ -3,7 +3,7 @@ package com.splicemachine.derby.impl.job.scheduler;
 import com.google.common.base.Throwables;
 import com.splicemachine.job.Task;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.derby.iapi.error.StandardException;
+import com.splicemachine.db.iapi.error.StandardException;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 

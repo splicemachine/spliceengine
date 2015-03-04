@@ -21,38 +21,38 @@ import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.uuid.Snowflake;
 
-import org.apache.derby.catalog.DefaultInfo;
-import org.apache.derby.catalog.Dependable;
-import org.apache.derby.catalog.DependableFinder;
-import org.apache.derby.catalog.UUID;
-import org.apache.derby.catalog.types.ReferencedColumnsDescriptorImpl;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.reference.SQLState;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
-import org.apache.derby.iapi.services.sanity.SanityManager;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.PreparedStatement;
-import org.apache.derby.iapi.sql.ResultSet;
-import org.apache.derby.iapi.sql.StatementType;
-import org.apache.derby.iapi.sql.compile.CompilerContext;
-import org.apache.derby.iapi.sql.compile.Parser;
-import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
-import org.apache.derby.iapi.sql.depend.DependencyManager;
-import org.apache.derby.iapi.sql.dictionary.*;
-import org.apache.derby.iapi.sql.execute.ConstantAction;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.store.access.ConglomerateController;
-import org.apache.derby.iapi.store.access.TransactionController;
-import org.apache.derby.iapi.types.DataTypeDescriptor;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.util.IdUtil;
-import org.apache.derby.iapi.util.StringUtil;
-import org.apache.derby.impl.sql.compile.CollectNodesVisitor;
-import org.apache.derby.impl.sql.compile.ColumnDefinitionNode;
-import org.apache.derby.impl.sql.compile.ColumnReference;
-import org.apache.derby.impl.sql.compile.StatementNode;
-import org.apache.derby.impl.sql.execute.ColumnInfo;
-import org.apache.derby.impl.sql.execute.IndexColumnOrder;
+import com.splicemachine.db.catalog.DefaultInfo;
+import com.splicemachine.db.catalog.Dependable;
+import com.splicemachine.db.catalog.DependableFinder;
+import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.PreparedStatement;
+import com.splicemachine.db.iapi.sql.ResultSet;
+import com.splicemachine.db.iapi.sql.StatementType;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.sql.compile.Parser;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.depend.DependencyManager;
+import com.splicemachine.db.iapi.sql.dictionary.*;
+import com.splicemachine.db.iapi.sql.execute.ConstantAction;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.store.access.ConglomerateController;
+import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.util.IdUtil;
+import com.splicemachine.db.iapi.util.StringUtil;
+import com.splicemachine.db.impl.sql.compile.CollectNodesVisitor;
+import com.splicemachine.db.impl.sql.compile.ColumnDefinitionNode;
+import com.splicemachine.db.impl.sql.compile.ColumnReference;
+import com.splicemachine.db.impl.sql.compile.StatementNode;
+import com.splicemachine.db.impl.sql.execute.ColumnInfo;
+import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Bytes;
 
@@ -363,7 +363,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         String updateStmt = "UPDATE " +
                 IdUtil.mkQualifiedName(td.getSchemaName(), td.getName()) +
                 " SET " + IdUtil.normalToDelimited(columnName) + "=" +
-                "org.apache.derby.iapi.db.ConnectionInfo::" +
+                "com.splicemachine.db.iapi.db.ConnectionInfo::" +
                 "nextAutoincrementValue(" +
                 StringUtil.quoteStringLiteral(td.getSchemaName()) + "," +
                 StringUtil.quoteStringLiteral(td.getName()) + "," +
@@ -1042,7 +1042,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
          *  The internal representation for the trigger action before the column
          *  is dropped is as follows
          *  	 update atdc_16_tab2 set c2 =
-         *    org.apache.derby.iapi.db.Factory::getTriggerExecutionContext().
+         *    com.splicemachine.db.iapi.db.Factory::getTriggerExecutionContext().
          *    getONewRow().getInt(3)
          *  After the drop column shown as below
          *    alter table DERBY4998_SOFT_UPGRADE_RESTRICT drop column c11
@@ -1051,7 +1051,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
          *  now changed from 3 to 2. Following while loop will regenerate it and
          *  change it to as follows
          *  	 update atdc_16_tab2 set c2 =
-         *    org.apache.derby.iapi.db.Factory::getTriggerExecutionContext().
+         *    com.splicemachine.db.iapi.db.Factory::getTriggerExecutionContext().
          *    getONewRow().getInt(2)
          *
          *  We could not do this before the actual column drop, because the

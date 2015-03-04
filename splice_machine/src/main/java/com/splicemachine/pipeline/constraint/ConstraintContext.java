@@ -4,7 +4,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang.ArrayUtils;
-import org.apache.derby.iapi.sql.dictionary.*;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 
 import java.io.Externalizable;
 import java.io.IOException;

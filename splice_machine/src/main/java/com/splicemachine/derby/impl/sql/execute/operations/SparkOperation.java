@@ -5,7 +5,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.derby.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.Activation;
 import org.apache.log4j.Logger;
 import org.apache.spark.api.java.function.Function;
 

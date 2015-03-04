@@ -5,11 +5,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.reference.SQLState;
-import org.apache.derby.iapi.store.access.FileResource;
-import org.apache.derby.io.StorageFactory;
-import org.apache.derby.io.StorageFile;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.store.access.FileResource;
+import com.splicemachine.db.io.StorageFactory;
+import com.splicemachine.db.io.StorageFile;
 
 /**
  * A very simple FileResource implementation for writing and reading JAR files from the local file system.
@@ -44,7 +44,7 @@ public class SpliceLocalFileResource implements FileResource {
 	}
 
 	/* (non-Javadoc)
-	 * @see org.apache.derby.iapi.store.access.FileResource#add(java.lang.String, java.io.InputStream)
+	 * @see com.splicemachine.db.iapi.store.access.FileResource#add(java.lang.String, java.io.InputStream)
 	 */
 	@Override
 	public long add(String name, InputStream source) throws StandardException {
@@ -112,7 +112,7 @@ public class SpliceLocalFileResource implements FileResource {
 	}
 
 	/* (non-Javadoc)
-	 * @see org.apache.derby.iapi.store.access.FileResource#remove(java.lang.String, long)
+	 * @see com.splicemachine.db.iapi.store.access.FileResource#remove(java.lang.String, long)
 	 */
 	@Override
 	public void remove(String name, long currentGenerationId)
@@ -135,7 +135,7 @@ public class SpliceLocalFileResource implements FileResource {
 	}
 
 	/* (non-Javadoc)
-	 * @see org.apache.derby.iapi.store.access.FileResource#removeJarDir(java.lang.String)
+	 * @see com.splicemachine.db.iapi.store.access.FileResource#removeJarDir(java.lang.String)
 	 */
 	@Override
 	public void removeJarDir(String f) throws StandardException {
@@ -150,7 +150,7 @@ public class SpliceLocalFileResource implements FileResource {
 	}
 
 	/* (non-Javadoc)
-	 * @see org.apache.derby.iapi.store.access.FileResource#replace(java.lang.String, long, java.io.InputStream)
+	 * @see com.splicemachine.db.iapi.store.access.FileResource#replace(java.lang.String, long, java.io.InputStream)
 	 */
 	@Override
 	public long replace(String name, long currentGenerationId,
@@ -161,7 +161,7 @@ public class SpliceLocalFileResource implements FileResource {
 	}
 
 	/* (non-Javadoc)
-	 * @see org.apache.derby.iapi.store.access.FileResource#getAsFile(java.lang.String, long)
+	 * @see com.splicemachine.db.iapi.store.access.FileResource#getAsFile(java.lang.String, long)
 	 */
 	@Override
 	public StorageFile getAsFile(String name, long generationId) {
@@ -170,7 +170,7 @@ public class SpliceLocalFileResource implements FileResource {
 	}
 
 	/* (non-Javadoc)
-	 * @see org.apache.derby.iapi.store.access.FileResource#getSeparatorChar()
+	 * @see com.splicemachine.db.iapi.store.access.FileResource#getSeparatorChar()
 	 */
 	@Override
 	public char getSeparatorChar() {

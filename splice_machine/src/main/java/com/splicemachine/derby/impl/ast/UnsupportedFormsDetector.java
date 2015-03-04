@@ -4,10 +4,10 @@ import com.google.common.base.*;
 import com.google.common.base.Predicate;
 import com.google.common.collect.*;
 import com.splicemachine.derby.utils.StringUtils;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.reference.MessageId;
-import org.apache.derby.iapi.sql.compile.Visitable;
-import org.apache.derby.impl.sql.compile.*;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.MessageId;
+import com.splicemachine.db.iapi.sql.compile.Visitable;
+import com.splicemachine.db.impl.sql.compile.*;
 
 import java.util.*;
 

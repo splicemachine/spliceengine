@@ -2,10 +2,10 @@ package com.splicemachine.derby.impl.ast;
 
 import com.splicemachine.utils.SpliceLogUtils;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.compile.*;
-import org.apache.derby.iapi.util.ReuseFactory;
-import org.apache.derby.impl.sql.compile.*;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.util.ReuseFactory;
+import com.splicemachine.db.impl.sql.compile.*;
 import org.apache.log4j.Logger;
 
 import java.util.*;
@@ -28,9 +28,9 @@ import java.util.*;
  * nodes are added, but existing nodes like ProjectRestrictNodes
  * are modified.
  * 
- * @see org.apache.derby.impl.sql.compile.CurrentRowLocationNode
- * @see org.apache.derby.impl.sql.compile.UpdateStatement#bindStatement()
- * @see org.apache.derby.impl.sql.compile.DeleteStatement#bindStatement()
+ * @see com.splicemachine.db.impl.sql.compile.CurrentRowLocationNode
+ * @see com.splicemachine.db.impl.sql.compile.UpdateStatement#bindStatement()
+ * @see com.splicemachine.db.impl.sql.compile.DeleteStatement#bindStatement()
  * 
  * @author Walt Koetke
  */

@@ -1,7 +1,7 @@
 package com.splicemachine.derby.utils.marshall.dvd;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 
 import java.sql.Timestamp;
 

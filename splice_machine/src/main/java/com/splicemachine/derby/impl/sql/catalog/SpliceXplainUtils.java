@@ -1,12 +1,12 @@
 package com.splicemachine.derby.impl.sql.catalog;
 
 import com.splicemachine.derby.hbase.SpliceDriver;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.conn.ConnectionUtil;
-import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
-import org.apache.derby.iapi.util.IdUtil;
-import org.apache.derby.impl.jdbc.Util;
-import org.apache.derby.jdbc.InternalDriver;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.util.IdUtil;
+import com.splicemachine.db.impl.jdbc.Util;
+import com.splicemachine.db.jdbc.InternalDriver;
 
 import java.sql.*;
 

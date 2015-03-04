@@ -1,7 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations.window;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 
 /**
  * @author Jeff Cunningham

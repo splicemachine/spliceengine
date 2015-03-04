@@ -1,7 +1,7 @@
 package com.splicemachine.derby.impl.ast;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.impl.sql.compile.*;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.impl.sql.compile.*;
 import org.apache.hadoop.hbase.util.Pair;
 
 import java.util.ArrayList;

@@ -19,13 +19,13 @@ import com.splicemachine.metrics.Metrics;
 import com.splicemachine.metrics.TimeView;
 import com.splicemachine.utils.SpliceLogUtils;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.jdbc.ConnectionContext;
-import org.apache.derby.iapi.services.loader.GeneratedMethod;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.types.RowLocation;
-import org.apache.derby.impl.jdbc.EmbedResultSet;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.jdbc.ConnectionContext;
+import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.db.impl.jdbc.EmbedResultSet;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 
@@ -135,7 +135,7 @@ public class CallStatementOperation extends NoRowsOperation {
                     if(rs==null) continue;
 
                     if(rs instanceof EmbedResultSet){
-                        org.apache.derby.iapi.sql.ResultSet underlyingSet = ((EmbedResultSet)rs).getUnderlyingResultSet();
+                        com.splicemachine.db.iapi.sql.ResultSet underlyingSet = ((EmbedResultSet)rs).getUnderlyingResultSet();
                         if(underlyingSet instanceof OperationResultSet){
                             OperationResultSet ors = (OperationResultSet)underlyingSet;
                             dynamicStatementInfo.add(ors.getStatementInfo());

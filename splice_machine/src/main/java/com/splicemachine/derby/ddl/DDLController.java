@@ -1,6 +1,6 @@
 package com.splicemachine.derby.ddl;
 
-import org.apache.derby.iapi.error.StandardException;
+import com.splicemachine.db.iapi.error.StandardException;
 
 import com.splicemachine.pipeline.ddl.DDLChange;
 

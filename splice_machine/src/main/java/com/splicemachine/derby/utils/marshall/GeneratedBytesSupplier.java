@@ -1,7 +1,7 @@
 package com.splicemachine.derby.utils.marshall;
 
 import com.splicemachine.derby.utils.StandardSupplier;
-import org.apache.derby.iapi.error.StandardException;
+import com.splicemachine.db.iapi.error.StandardException;
 
 /**
  * @author Scott Fines

@@ -1,6 +1,6 @@
 package com.splicemachine.derby.utils;
 
-import org.apache.derby.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 
 import java.util.Arrays;
 

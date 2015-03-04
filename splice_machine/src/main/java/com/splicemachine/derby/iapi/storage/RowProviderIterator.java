@@ -1,6 +1,6 @@
 package com.splicemachine.derby.iapi.storage;
 
-import org.apache.derby.iapi.error.StandardException;
+import com.splicemachine.db.iapi.error.StandardException;
 
 import java.io.IOException;
 

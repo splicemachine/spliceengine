@@ -5,7 +5,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.job.JobStats;
 
-import org.apache.derby.iapi.error.StandardException;
+import com.splicemachine.db.iapi.error.StandardException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.junit.Rule;

@@ -4,7 +4,7 @@ import com.splicemachine.hbase.RowKeyDistributor;
 import com.splicemachine.hbase.ScanDivider;
 import com.splicemachine.metrics.*;
 import com.splicemachine.metrics.util.Folders;
-import org.apache.derby.iapi.error.StandardException;
+import com.splicemachine.db.iapi.error.StandardException;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
