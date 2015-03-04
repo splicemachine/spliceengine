@@ -2,7 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations.scanner;
 
 import java.io.IOException;
 
-import org.apache.derby.iapi.error.StandardException;
+import com.splicemachine.db.iapi.error.StandardException;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
