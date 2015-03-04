@@ -19,7 +19,7 @@ import java.sql.Types;
  *         Date: 2/25/15
  */
 public class SYSPHYSICALSTATISTICSRowFactory extends CatalogRowFactory {
-    private static final String TABLENAME_STRING = "SYSPHYSICALSTATISTICS";
+    private static final String TABLENAME_STRING = "SYSPHYSICALSTATS";
     private static final int COLUMN_COUNT = 7;
     private static final int HOSTNAME           = 1;
     private static final int NUMCPUS            = 2;
@@ -102,7 +102,6 @@ public class SYSPHYSICALSTATISTICSRowFactory extends CatalogRowFactory {
     @Override
     public SystemColumn[] buildColumnList() throws StandardException {
         return new SystemColumn[] {
-                SystemColumnImpl.getColumn("IP", Types.CHAR,false),
                 SystemColumnImpl.getColumn("HOSTNAME", Types.VARCHAR,false),
                 SystemColumnImpl.getColumn("NUM_CPUS", Types.INTEGER,true),
                 SystemColumnImpl.getColumn("MAX_HEAP", Types.BIGINT,true),
