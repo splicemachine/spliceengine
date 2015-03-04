@@ -23,6 +23,8 @@ import java.util.Set;
 public class SmallintStats extends BaseDvdStatistics {
     private ShortColumnStatistics stats;
 
+    public SmallintStats(){}
+
     public SmallintStats(ShortColumnStatistics build) {
         stats = build;
     }
@@ -42,7 +44,7 @@ public class SmallintStats extends BaseDvdStatistics {
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        stats = ShortColumnStatistics.encoder().decode(in);
+        baseStats = stats = ShortColumnStatistics.encoder().decode(in);
     }
 
     @Override
@@ -127,6 +129,8 @@ public class SmallintStats extends BaseDvdStatistics {
             baseEstimate = (ShortFrequencyEstimate)baseEstimate.merge(((ShortFreq) other).baseEstimate);
             return this;
         }
+
+        @Override public String toString() { return baseEstimate.toString(); }
     }
 
     private static final Function<ShortFrequencyEstimate,FrequencyEstimate<DataValueDescriptor>> conversionFunction

@@ -2,7 +2,9 @@ package com.splicemachine.derby.impl.sql.catalog;
 
 import com.splicemachine.derby.iapi.catalog.ColumnStatsDescriptor;
 import com.splicemachine.stats.ColumnStatistics;
+import org.apache.derby.catalog.DefaultInfo;
 import org.apache.derby.catalog.UUID;
+import org.apache.derby.catalog.types.DefaultInfoImpl;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.uuid.UUIDFactory;
 import org.apache.derby.iapi.sql.dictionary.*;
@@ -88,15 +90,15 @@ public class SYSCOLUMNSTATISTICSRowFactory extends CatalogRowFactory {
         DataTypeDescriptor longType = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT);
         DataTypeDescriptor floatType = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.REAL);
         return new ColumnDescriptor[]{
-                new ColumnDescriptor("SCHEMANAME"   ,1,varcharType,varcharType.getNull(),null,view,viewId,0,0),
-                new ColumnDescriptor("TABLENAME"    ,2,longType,longType.getNull(),null,view,viewId,0,0),
-                new ColumnDescriptor("COLUMNNAME"   ,3,longType,longType.getNull(),null,view,viewId,0,0),
-                new ColumnDescriptor("CARDINALITY"  ,4,longType,longType.getNull(),null,view,viewId,0,0),
-                new ColumnDescriptor("NULL_COUNT"   ,5,longType,longType.getNull(),null,view,viewId,0,0),
-                new ColumnDescriptor("NULL_FRACTION",6,floatType,floatType.getNull(),null,view,viewId,0,0),
-                new ColumnDescriptor("MIN_VALUE"    ,7,varcharType,varcharType.getNull(),null,view,viewId,0,0),
-                new ColumnDescriptor("MAX_VALUE"    ,8,varcharType,varcharType.getNull(),null,view,viewId,0,0),
-                new ColumnDescriptor("TOP_K"        ,9,varcharType,varcharType.getNull(),null,view,viewId,0,0),
+                new ColumnDescriptor("SCHEMANAME"   ,1,varcharType,null,null,view,viewId,0,0),
+                new ColumnDescriptor("TABLENAME"    ,2,longType,null,null,view,viewId,0,0),
+                new ColumnDescriptor("COLUMNNAME"   ,3,longType,null,null,view,viewId,0,0),
+                new ColumnDescriptor("CARDINALITY"  ,4,longType,null,null,view,viewId,0,0),
+                new ColumnDescriptor("NULL_COUNT"   ,5,longType,null,null,view,viewId,0,0),
+                new ColumnDescriptor("NULL_FRACTION",6,floatType,null,null,view,viewId,0,0),
+                new ColumnDescriptor("MIN_VALUE"    ,7,varcharType,null,null,view,viewId,0,0),
+                new ColumnDescriptor("MAX_VALUE"    ,8,varcharType,null,null,view,viewId,0,0),
+                new ColumnDescriptor("TOP_K"        ,9,varcharType,null,null,view,viewId,0,0),
         };
     }
 

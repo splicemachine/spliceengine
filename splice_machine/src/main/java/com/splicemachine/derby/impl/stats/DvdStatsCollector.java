@@ -39,10 +39,12 @@ public abstract class DvdStatsCollector implements ColumnStatsCollector<DataValu
     public void update(DataValueDescriptor dataValueDescriptor, long count) {
         if(dataValueDescriptor==null|| dataValueDescriptor.isNull())
             updateNull(count);
-        try {
-            doUpdate(dataValueDescriptor, count);
-        }catch(StandardException se){
-            throw new RuntimeException(se); //should never happen
+        else {
+            try {
+                doUpdate(dataValueDescriptor, count);
+            } catch (StandardException se) {
+                throw new RuntimeException(se); //should never happen
+            }
         }
     }
 

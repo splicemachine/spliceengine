@@ -13,6 +13,7 @@ import com.splicemachine.job.JobFuture;
 import com.splicemachine.pipeline.exception.ErrorState;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.TxnView;
+import com.splicemachine.utils.IntArrays;
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -76,6 +77,9 @@ public class StatisticsAdmin {
     public static void ENABLE_COLUMN_STATISTICS(String schema,
                                                 String table,
                                                 String columnName) throws SQLException{
+        if(columnName==null)
+            throw PublicAPI.wrapStandardException(ErrorState.LANG_COLUMN_ID.newException());
+        columnName = columnName.toUpperCase();
         EmbedConnection conn = (EmbedConnection)SpliceAdmin.getDefaultConn();
         try {
             TableDescriptor td = verifyTableExists(conn,schema,table);
@@ -84,11 +88,10 @@ public class StatisticsAdmin {
             for(ColumnDescriptor descriptor: columnDescriptorList){
                 if(descriptor.getColumnName().equalsIgnoreCase(columnName)){
                     descriptor.setCollectStatistics(true);
-                    LanguageConnectionContext languageConnection = conn.getLanguageConnection();
                     PreparedStatement ps = conn.prepareStatement("update SYS.SYSCOLUMNS set collectstats=true where " +
-                                                                 "referenceid = ? and columnname = ?");
+                                                                 "referenceid = ? and columnnumber = ?");
                     ps.setString(1,td.getUUID().toString());
-                    ps.setString(2,columnName);
+                    ps.setInt(2,descriptor.getPosition());
 
                     ps.execute();
                     return;
@@ -173,42 +176,53 @@ public class StatisticsAdmin {
                                                   List<ColumnDescriptor> colsToCollect,
                                                   Collection<HRegionInfo> regionsToCollect) throws StandardException {
         ExecRow row = new ValueRow(colsToCollect.size());
+        BitSet accessedColumns = new BitSet(tableDesc.getNumberOfColumns());
+        int outputCol = 0;
+        int[] columnPositionMap = new int[tableDesc.getNumberOfColumns()];
+        Arrays.fill(columnPositionMap,-1);
+        for(ColumnDescriptor descriptor:colsToCollect){
+            accessedColumns.set(descriptor.getPosition()-1);
+            row.setColumn(outputCol+1,descriptor.getType().getNull());
+            columnPositionMap[outputCol] = descriptor.getPosition()-1;
+            outputCol++;
+        }
 
+        int[] rowDecodingMap = new int[accessedColumns.length()];
+        Arrays.fill(rowDecodingMap,-1);
+        outputCol = 0;
+        for(int i=accessedColumns.nextSetBit(0);i>=0;i = accessedColumns.nextSetBit(i+1)){
+            rowDecodingMap[i] = outputCol;
+            outputCol++;
+        }
         TransactionController transactionExecute = conn.getLanguageConnection().getTransactionExecute();
         SpliceConglomerate conglomerate = (SpliceConglomerate)((SpliceTransactionManager) transactionExecute).findConglomerate(tableDesc.getHeapConglomerateId());
         boolean[] keyColumnSortOrder = conglomerate.getAscDescInfo();
         int[] keyColumnEncodingOrder = conglomerate.getColumnOrdering();
-
-        int[] rowDecodingMap = colsToCollect.size()>0?new int[tableDesc.getNumberOfColumns()]: new int[]{};
-        int[] keyDecodingMap = new int[keyColumnEncodingOrder.length];
-        FormatableBitSet collectedKeyColumns = new FormatableBitSet(keyColumnEncodingOrder.length);
         int[] formatIds = conglomerate.getFormat_ids();
-        int[] keyColumnTypes = new int[keyColumnEncodingOrder.length];
-        int outputPos = 0;
-        for(ColumnDescriptor descriptor: colsToCollect){
-            int columnPos = descriptor.getPosition()-1;
-            boolean isKey = false;
+        int[] keyColumnTypes= null;
+        int[] keyDecodingMap = null;
+        FormatableBitSet collectedKeyColumns = null;
+        if(keyColumnEncodingOrder!=null){
+            keyColumnTypes = new int[keyColumnEncodingOrder.length];
+            keyDecodingMap = new int[keyColumnEncodingOrder.length];
+            Arrays.fill(keyDecodingMap,-1);
+            collectedKeyColumns = new FormatableBitSet(tableDesc.getNumberOfColumns());
             for(int i=0;i<keyColumnEncodingOrder.length;i++){
-                int col = keyColumnEncodingOrder[i];
-                if(col==columnPos){
-                    keyDecodingMap[i] = outputPos;
-                    keyColumnTypes[i] = formatIds[columnPos];
+                int keyColumn = keyColumnEncodingOrder[i];
+                keyColumnTypes[i] = formatIds[keyColumn];
+                if(accessedColumns.get(keyColumn)){
                     collectedKeyColumns.set(i);
-                    isKey = true;
-                    break;
+                    keyDecodingMap[i] = rowDecodingMap[keyColumn];
+                    rowDecodingMap[keyColumn] = -1;
                 }
             }
-            if(!isKey){
-                rowDecodingMap[columnPos] = outputPos;
-            }
-            row.setColumn(outputPos+1,descriptor.getType().getNull());
-            outputPos++;
         }
 
         String jobId = "Statistics-"+SpliceDriver.driver().getUUIDGenerator().nextUUID();
         String tableVersion = tableDesc.getVersion();
         StatisticsTask baseTask = new StatisticsTask(jobId,row,
                 rowDecodingMap,
+                columnPositionMap,
                 keyDecodingMap,
                 keyColumnEncodingOrder,
                 keyColumnSortOrder,

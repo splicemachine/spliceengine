@@ -9,12 +9,9 @@ import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
-import com.splicemachine.derby.impl.sql.execute.serial.TimestampDVDSerializer;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.stats.TaskStats;
-import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.TimestampV2DescriptorSerializer;
-import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.hbase.KVPair;
@@ -43,9 +40,7 @@ import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
 import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.impl.jdbc.EmbedConnection;
-import org.apache.derby.impl.jdbc.TransactionResourceImpl;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
@@ -55,7 +50,6 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.sql.Types;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
@@ -69,6 +63,7 @@ public class StatisticsTask extends ZkTask{
     private ExecRow colsToCollect;
     private Scan partitionScan;
     private int[] rowDecodingMap;
+    private int[] columnPositionMap; //inverse map from outputPosition to input in the base row
     private int[] keyDecodingMap;
     private int[] keyColumnEncodingOrder;
     private boolean[] keyColumnSortOrder;
@@ -82,6 +77,7 @@ public class StatisticsTask extends ZkTask{
 
     public StatisticsTask(String jobId,
                           ExecRow colsToCollect,
+                          int[] columnPositionMap,
                           int[] rowDecodingMap,
                           int[] keyDecodingMap,
                           int[] keyColumnEncodingOrder,
@@ -92,6 +88,7 @@ public class StatisticsTask extends ZkTask{
         super(jobId,SchedulerPriorities.INSTANCE.getBasePriority(StatisticsTask.class));
         this.colsToCollect = colsToCollect;
         this.rowDecodingMap = rowDecodingMap;
+        this.columnPositionMap = columnPositionMap;
         this.keyDecodingMap = keyDecodingMap;
         this.keyColumnEncodingOrder = keyColumnEncodingOrder;
         this.keyColumnSortOrder = keyColumnSortOrder;
@@ -150,6 +147,7 @@ public class StatisticsTask extends ZkTask{
     public RegionTask getClone() {
         return new StatisticsTask(getJobId(),colsToCollect.getClone(),
                 rowDecodingMap,
+                columnPositionMap,
                 keyDecodingMap,
                 keyColumnEncodingOrder,
                 keyColumnSortOrder,
@@ -168,9 +166,13 @@ public class StatisticsTask extends ZkTask{
         super.readExternal(in);
         colsToCollect = (ExecRow)in.readObject();
         rowDecodingMap = ArrayUtil.readIntArray(in);
+        columnPositionMap = ArrayUtil.readIntArray(in);
         keyDecodingMap = ArrayUtil.readIntArray(in);
         keyColumnEncodingOrder = ArrayUtil.readIntArray(in);
-        keyColumnSortOrder = ArrayUtil.readBooleanArray(in);
+        if(in.readBoolean())
+            keyColumnSortOrder = ArrayUtil.readBooleanArray(in);
+        else
+            keyColumnSortOrder = null;
         keyColumnTypes = ArrayUtil.readIntArray(in);
         collectedKeyColumns = (FormatableBitSet)in.readObject();
         tableVersion = in.readUTF();
@@ -180,10 +182,13 @@ public class StatisticsTask extends ZkTask{
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
         out.writeObject(colsToCollect);
-        ArrayUtil.writeIntArray(out,rowDecodingMap);
+        ArrayUtil.writeIntArray(out, rowDecodingMap);
+        ArrayUtil.writeIntArray(out,columnPositionMap);
         ArrayUtil.writeIntArray(out,keyDecodingMap);
         ArrayUtil.writeIntArray(out, keyColumnEncodingOrder);
-        ArrayUtil.writeBooleanArray(out, keyColumnSortOrder);
+        out.writeBoolean(keyColumnSortOrder!=null);
+        if(keyColumnSortOrder!=null)
+            ArrayUtil.writeBooleanArray(out, keyColumnSortOrder);
         ArrayUtil.writeIntArray(out, keyColumnTypes);
         out.writeObject(collectedKeyColumns);
         out.writeUTF(tableVersion);
@@ -231,10 +236,12 @@ public class StatisticsTask extends ZkTask{
             ObjectOutput byteOutput = new KryoObjectOutput(output,kryo);
             for (ColumnStatistics stats : collected) {
                 keyEncoder.reset();
-                byte[] key = keyEncoder.encodeNext(i+1).build();
+                int colPos = columnPositionMap[i];
+                byte[] key = keyEncoder.encodeNext(colPos+1).build();
 
                 output.clear();
                 byteOutput.writeObject(stats); //can just write the object since our implementations are Externalizable
+                rowEncoder.getEntryEncoder().reset(); //just reset the code, don't reset the index
                 rowEncoder.getEntryEncoder().encodeNextUnsorted(output.toBytes());
                 byte[] row = rowEncoder.encode();
 

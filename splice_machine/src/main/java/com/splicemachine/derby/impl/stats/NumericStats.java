@@ -22,6 +22,7 @@ import java.util.Set;
 public class NumericStats extends BaseDvdStatistics{
     private ColumnStatistics<BigDecimal> stats;
 
+    public NumericStats(){}
     public NumericStats(ColumnStatistics<BigDecimal> stats) {
         super(stats);
         this.stats = stats;

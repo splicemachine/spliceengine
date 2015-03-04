@@ -21,33 +21,34 @@ import java.util.Set;
  *         Date: 2/27/15
  */
 public class BigintStats extends BaseDvdStatistics {
-    private LongColumnStatistics baseStats;
+    private LongColumnStatistics stats;
+    public BigintStats(){}
 
     public BigintStats(LongColumnStatistics build) {
-        baseStats = build;
+        stats = build;
     }
 
     @Override
     public FrequentElements<DataValueDescriptor> topK() {
-        return new LongFreqs((LongFrequentElements) baseStats.topK());
+        return new LongFreqs((LongFrequentElements) stats.topK());
     }
 
-    @Override public DataValueDescriptor minValue() { return new SQLLongint(baseStats.min()); }
-    @Override public DataValueDescriptor maxValue() { return new SQLLongint(baseStats.max()); }
+    @Override public DataValueDescriptor minValue() { return new SQLLongint(stats.min()); }
+    @Override public DataValueDescriptor maxValue() { return new SQLLongint(stats.max()); }
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
-        LongColumnStatistics.encoder().encode(baseStats,out);
+        LongColumnStatistics.encoder().encode(stats,out);
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        LongColumnStatistics.encoder().decode(in);
+        super.baseStats = stats = LongColumnStatistics.encoder().decode(in);
     }
 
     @Override
     public ColumnStatistics<DataValueDescriptor> getClone() {
-        return new BigintStats((LongColumnStatistics)baseStats.getClone());
+        return new BigintStats((LongColumnStatistics) stats.getClone());
     }
 
     /* ****************************************************************************************************************/
