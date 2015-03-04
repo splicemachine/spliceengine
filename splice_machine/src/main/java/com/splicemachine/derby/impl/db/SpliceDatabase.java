@@ -5,6 +5,7 @@ import javax.security.auth.login.Configuration;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.CancellationException;
+
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.ddl.DDLWatcher;
@@ -44,9 +45,11 @@ import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
 import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.log4j.Logger;
+
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.ast.AssignRSNVisitor;
 import com.splicemachine.derby.impl.ast.FindHashJoinColumns;
@@ -432,9 +435,36 @@ public class SpliceDatabase extends BasicDatabase {
 
     }
 
+    private static void createSnapshots(String snapId) throws StandardException {
+        
+    	try {
+            HBaseAdmin admin = SpliceUtilities.getAdmin();
+            HTableDescriptor[] descriptorArray = admin.listTables();
+            LOG.info("Snapshot database id="+snapId+
+            		" starts for "+ descriptorArray.length+" tables.");
+            long globalStart = System.currentTimeMillis();
+            for (HTableDescriptor descriptor: descriptorArray) {
+                TableName tableName = descriptor.getTableName();                
+                long start = System.currentTimeMillis();
+                String snapshotName = tableName.getNameAsString() + "_"+snapId;
+                admin.snapshot(snapshotName.getBytes(), tableName.toBytes());
+                LOG.info("Snapshot: "+tableName+" done in "+ (System.currentTimeMillis() - start)+"ms");
+            }
+            LOG.info("Snapshot database finished in +" +(System.currentTimeMillis() - globalStart)/1000+ " sec");
+        }
+        catch (Exception e) {
+            throw StandardException.newException(e.getMessage());
+        }
+    	
+    }
+    
+    // 
+    // This API call is only for full DB backup
+    // TODO: add backup for schema:table(s)
+    //
     @Override
     public void backup(String backupDir, boolean wait) throws SQLException {
-
+    	
         HBaseAdmin admin = null;
         Backup backup = null;
         try {
@@ -451,6 +481,9 @@ public class SpliceDatabase extends BasicDatabase {
             backup.createBackupItems(admin);
             backup.insertBackup();
             backup.createProperties();
+            // Create snapshots first for all tables in backup list
+            createSnapshots( Long.toString(backup.getBackupTimestamp()));
+            
             for (BackupItem backupItem: backup.getBackupItems()) {
                 backupItem.doBackup();
             }
