@@ -125,5 +125,17 @@ service SpliceDerbyCoprocessorService {
 
 }
 
+message SpliceSplitServiceRequest {
+    optional bytes beginKey = 1;
+    optional bytes endKey = 2;
+}
+
+message SpliceSplitServiceResponse {
+    repeated bytes cutPoint = 1;
+}
 
 
+service SpliceSplitService {
+	rpc computSplits(SpliceSplitServiceRequest)
+		returns (SpliceSplitServiceResponse);
+}

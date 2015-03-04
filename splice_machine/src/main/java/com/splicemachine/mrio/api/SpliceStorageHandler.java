@@ -1,6 +1,5 @@
-package com.splicemachine.intg.hive;
+package com.splicemachine.mrio.api;
 
-import com.splicemachine.mrio.api.SQLUtil;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hive.metastore.HiveMetaHook;
@@ -17,7 +16,7 @@ import org.apache.hadoop.mapred.InputFormat;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.OutputFormat;
 import org.apache.log4j.Logger;
-
+import com.splicemachine.mrio.MRConstants;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -29,8 +28,7 @@ public class SpliceStorageHandler extends DefaultStorageHandler
 
     private Configuration spliceConf;
     final static public String DEFAULT_PREFIX = "default.";
-    private static SQLUtil sqlUtil = null;
-
+    private static SMSQLUtil sqlUtil = null;
     private static String parentTxnId = null;
     private static Connection parentConn = null;
     private static Logger Log = Logger.getLogger(SpliceStorageHandler.class.getName());
@@ -39,19 +37,19 @@ public class SpliceStorageHandler extends DefaultStorageHandler
                                             Map<String, String> jobProperties, boolean isInputJob) throws Exception {
         Properties tableProperties = tableDesc.getProperties();
         String tableName = null;
-        String connStr = tableProperties.getProperty(SpliceSerDe.SPLICE_JDBC_STR);
+        String connStr = tableProperties.getProperty(MRConstants.SPLICE_JDBC_STR);
         if (connStr == null)
-            throw new Exception("Error: wrong param. Did you mean '" + SpliceSerDe.SPLICE_JDBC_STR + "'?");
+            throw new Exception("Error: wrong param. Did you mean '" + MRConstants.SPLICE_JDBC_STR + "'?"); // TODO JL
         if (sqlUtil == null)
-            sqlUtil = SQLUtil.getInstance(connStr);
+            sqlUtil = SMSQLUtil.getInstance(connStr);
         if (isInputJob) {
-            tableName = tableProperties.getProperty(SpliceSerDe.SPLICE_INPUT_TABLE_NAME);
+            tableName = tableProperties.getProperty(MRConstants.SPLICE_INPUT_TABLE_NAME);
             if (tableName == null)
-                throw new Exception("Error: wrong param. Did you mean '" + SpliceSerDe.SPLICE_INPUT_TABLE_NAME + "'?");
+                throw new Exception("Error: wrong param. Did you mean '" + MRConstants.SPLICE_INPUT_TABLE_NAME + "'?");
         } else {
-            tableName = tableProperties.getProperty(SpliceSerDe.SPLICE_OUTPUT_TABLE_NAME);
+            tableName = tableProperties.getProperty(MRConstants.SPLICE_OUTPUT_TABLE_NAME);
             if (tableName == null)
-                throw new Exception("Error: wrong param. Did you mean '" + SpliceSerDe.SPLICE_OUTPUT_TABLE_NAME + "'?");
+                throw new Exception("Error: wrong param. Did you mean '" + MRConstants.SPLICE_OUTPUT_TABLE_NAME + "'?");
         }
 
         tableName = tableName.trim();
@@ -60,19 +58,19 @@ public class SpliceStorageHandler extends DefaultStorageHandler
             parentTxnId = startWriteJobParentTxn(connStr, tableName);
         }
 
-        jobProperties.put(SpliceSerDe.SPLICE_TRANSACTION_ID, parentTxnId);
+        jobProperties.put(MRConstants.SPLICE_TRANSACTION_ID, parentTxnId);
         if (isInputJob)
-            jobProperties.put(SpliceSerDe.SPLICE_INPUT_TABLE_NAME, tableName);
+            jobProperties.put(MRConstants.SPLICE_INPUT_TABLE_NAME, tableName);
         else
-            jobProperties.put(SpliceSerDe.SPLICE_OUTPUT_TABLE_NAME, tableName);
-        jobProperties.put(SpliceSerDe.SPLICE_JDBC_STR, connStr);
+            jobProperties.put(MRConstants.SPLICE_OUTPUT_TABLE_NAME, tableName);
+        jobProperties.put(MRConstants.SPLICE_JDBC_STR, connStr);
 
     }
 
     public String startWriteJobParentTxn(String connStr, String tableName) {
 
         if (sqlUtil == null)
-            sqlUtil = SQLUtil.getInstance(connStr);
+            sqlUtil = SMSQLUtil.getInstance(connStr);
         try {
             parentConn = sqlUtil.createConn();
             sqlUtil.disableAutoCommit(parentConn);
@@ -151,22 +149,22 @@ public class SpliceStorageHandler extends DefaultStorageHandler
             Log.info("Creating External table for Splice...");
         }
 
-        String inputTableName = tbl.getParameters().get(SpliceSerDe.SPLICE_INPUT_TABLE_NAME);
-        String outputTableName = tbl.getParameters().get(SpliceSerDe.SPLICE_OUTPUT_TABLE_NAME);
+        String inputTableName = tbl.getParameters().get(MRConstants.SPLICE_INPUT_TABLE_NAME);
+        String outputTableName = tbl.getParameters().get(MRConstants.SPLICE_OUTPUT_TABLE_NAME);
         if (inputTableName == null && outputTableName == null)
             throw new MetaException("Wrong param, did you mean " +
-                    SpliceSerDe.SPLICE_INPUT_TABLE_NAME +
-                    " or " + SpliceSerDe.SPLICE_OUTPUT_TABLE_NAME + " ? ");
+            		MRConstants.SPLICE_INPUT_TABLE_NAME +
+                    " or " + MRConstants.SPLICE_OUTPUT_TABLE_NAME + " ? ");
 
         // We can choose to support user define column mapping.
         // But currently I don't think it is necessary
         // We map all columns from Splice Table to Hive Table.
-        String connStr = tbl.getParameters().get(SpliceSerDe.SPLICE_JDBC_STR);
+        String connStr = tbl.getParameters().get(MRConstants.SPLICE_JDBC_STR);
         if (connStr == null)
             throw new MetaException("Wrong param, did you mean " +
-                    SpliceSerDe.SPLICE_JDBC_STR + " ? ");
+            		MRConstants.SPLICE_JDBC_STR + " ? ");
         if (sqlUtil == null)
-            sqlUtil = SQLUtil.getInstance(connStr);
+            sqlUtil = SMSQLUtil.getInstance(connStr);
         if (inputTableName != null) {
             inputTableName = inputTableName.trim();
             checkTableExists(inputTableName);
@@ -217,13 +215,13 @@ public class SpliceStorageHandler extends DefaultStorageHandler
 
     @Override
     public Class<? extends InputFormat> getInputFormatClass() {
-        return HiveSpliceTableInputFormat.class;
+        return null;// HiveSpliceTableInputFormat.class;
     }
 
     @Override
     public Class<? extends OutputFormat> getOutputFormatClass() {
 
-        return HiveSpliceTableOutputFormat.class;
+        return null; //HiveSpliceTableOutputFormat.class;
     }
 
     public static void commitParentTxn() throws SQLException {

@@ -3,10 +3,11 @@ package com.splicemachine.mrio.api;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HRegionLocation;
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
@@ -15,6 +16,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Logger;
+
 import com.splicemachine.utils.SpliceLogUtils;
 /*
  * 
@@ -31,13 +33,12 @@ public class SplitRegionScanner implements SpliceRegionScanner {
 	protected int scannerCount = 0;
 	protected Scan scan;
 	protected HTable htable;
-	protected List<Cell> holderResults = new ArrayList<Cell>();
+	protected List<KeyValue> holderResults = new ArrayList<KeyValue>();
 	protected boolean holderReturn;
 	
 	public SplitRegionScanner(Scan scan, HTable table, List<HRegionLocation> locations) throws IOException {
-		if (LOG.isDebugEnabled()) {
-			SpliceLogUtils.debug(LOG, "init");
-		}
+		if (LOG.isTraceEnabled())
+			SpliceLogUtils.trace(LOG, "init");
 		this.scan = scan;
 		boolean hasAdditionalScanners = true;
 		while (hasAdditionalScanners) {
@@ -61,7 +62,7 @@ public class SplitRegionScanner implements SpliceRegionScanner {
 				    			  regionStopKey.length > 0 ? regionStopKey : stopRow;
 				    	  newScan.setStartRow(splitStart);
 				    	  newScan.setStopRow(splitStop);
-				    	  SpliceLogUtils.debug(LOG, "adding Split Region Scanner for startKey=%s, endKey=%s",splitStart,splitStop);
+				    	  SpliceLogUtils.trace(LOG, "adding Split Region Scanner for startKey=%s, endKey=%s",splitStart,splitStop);
 				  		  ClientSideRegionScanner clientSideRegionScanner = 
 				  				  new ClientSideRegionScanner(table.getConfiguration(),FSUtils.getCurrentFileSystem(table.getConfiguration()), FSUtils.getRootDir(table.getConfiguration()),
 										table.getTableDescriptor(),table.getRegionLocation(newScan.getStartRow()).getRegionInfo(),
@@ -71,12 +72,13 @@ public class SplitRegionScanner implements SpliceRegionScanner {
 				      }
 				 }
 				 hasAdditionalScanners = false;
-			} catch (UnstableScannerDNRIOException ioe) {
+			} catch (SplitScannerDNRIOException ioe) {
 				if (LOG.isDebugEnabled())
 					SpliceLogUtils.debug(LOG, "exception logged creating split region scanner %s",StringUtils.stringifyException(ioe));
 				hasAdditionalScanners = true;
 				try {Thread.sleep(200);} catch (Exception e) {}; // Pause for 200 ms...
-				locations = htable.getRegionsInRange(scan.getStartRow(), scan.getStopRow(), true);
+				htable.clearRegionCache();
+				locations = htable.getRegionsInRange(scan.getStartRow(), scan.getStopRow());
 				close();
 			}
 		}
@@ -92,13 +94,13 @@ public class SplitRegionScanner implements SpliceRegionScanner {
 	}
 	
 	@Override
-	public boolean next(List<Cell> results) throws IOException {
+	public boolean next(List<KeyValue> results) throws IOException {
 		if (holderReturn) {
 			holderReturn = false;
 			results.addAll(holderResults);
 			return true;
 		}
-		boolean next = currentScanner.nextRaw(results);
+		boolean next = currentScanner.nextRaw(results,null);
 		if (LOG.isTraceEnabled())
 			SpliceLogUtils.trace(LOG, "next with results=%s and row count {%d}",results, scannerCount);
 		scannerCount++;
@@ -117,7 +119,7 @@ public class SplitRegionScanner implements SpliceRegionScanner {
 	}
 
 	@Override
-	public boolean next(List<Cell> result, int limit) throws IOException {
+	public boolean next(List<KeyValue> result, int limit) throws IOException {
 		if (LOG.isTraceEnabled())
 			SpliceLogUtils.trace(LOG, "next with results=%s and limit=%d",result,limit);
 		return next(result);
@@ -125,8 +127,8 @@ public class SplitRegionScanner implements SpliceRegionScanner {
 
 	@Override
 	public void close() throws IOException {
-		if (LOG.isDebugEnabled())
-			SpliceLogUtils.debug(LOG, "close");
+		if (LOG.isTraceEnabled())
+			SpliceLogUtils.trace(LOG, "close");
 		if (currentScanner != null)
 			currentScanner.close();
 		for (RegionScanner rs: regionScanners) {
@@ -140,7 +142,7 @@ public class SplitRegionScanner implements SpliceRegionScanner {
 	}
 
 	@Override
-	public boolean isFilterDone() throws IOException {
+	public boolean isFilterDone() {
 		return currentScanner.isFilterDone();
 	}
 
@@ -149,10 +151,6 @@ public class SplitRegionScanner implements SpliceRegionScanner {
 		throw new RuntimeException("Reseek not supported");
 	}
 
-	@Override
-	public long getMaxResultSize() {
-		return currentScanner.getMaxResultSize();
-	}
 
 	@Override
 	public long getMvccReadPoint() {
@@ -160,23 +158,33 @@ public class SplitRegionScanner implements SpliceRegionScanner {
 	}
 
 	@Override
-	public boolean nextRaw(List<Cell> result) throws IOException {
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "nextRaw with results=%s",result);
+	public HRegion getRegion() {
+		return region;
+	}
+
+	@Override
+	public boolean nextRaw(List<KeyValue> result, String arg1) throws IOException {
+		// TODO Auto-generated method stub
 		return next(result);
 	}
 
 	@Override
-	public boolean nextRaw(List<Cell> result, int limit) throws IOException {
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "nextRaw with results=%s and limit=%d",result,limit);
-		return next(result, limit);
+	public boolean nextRaw(List<KeyValue> result, int arg1, String arg2)
+			throws IOException {
+		// TODO Auto-generated method stub
+		return next(result);
 	}
+
 	@Override
-	public HRegion getRegion() {
-		return region;
+	public boolean next(List<KeyValue> result, String arg1) throws IOException {
+		// TODO Auto-generated method stub
+		return next(result);
 	}
-	
-	
-	
+
+	@Override
+	public boolean next(List<KeyValue> result, int arg1, String arg2)
+			throws IOException {
+		// TODO Auto-generated method stub
+		return next(result);
+	}
 }

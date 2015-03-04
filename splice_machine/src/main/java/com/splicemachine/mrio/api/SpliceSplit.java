@@ -1,4 +1,4 @@
-package com.splicemachine.intg.hive;
+package com.splicemachine.mrio.api;
 
 
 import java.io.DataInput;

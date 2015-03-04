@@ -1,11 +1,12 @@
-package com.splicemachine.intg.hive;
+package com.splicemachine.mrio.api.exechook;
 
 import org.apache.hadoop.hive.ql.hooks.ExecuteWithHookContext;
 import org.apache.hadoop.hive.ql.hooks.HookContext;
 import org.apache.log4j.Logger;
 
-public class PostExecHook implements ExecuteWithHookContext {
+import com.splicemachine.mrio.api.SpliceStorageHandler;
 
+public class PostExecHook implements ExecuteWithHookContext {
     private static Logger Log = Logger.getLogger(PostExecHook.class.getName());
 
     @Override

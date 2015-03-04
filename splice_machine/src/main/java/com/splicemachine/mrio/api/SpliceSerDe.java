@@ -1,6 +1,5 @@
-package com.splicemachine.intg.hive;
+package com.splicemachine.mrio.api;
 
-import com.splicemachine.mrio.api.SQLUtil;
 import org.apache.commons.lang.SerializationUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -12,6 +11,7 @@ import org.apache.hadoop.hive.serde2.SerDe;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.SerDeStats;
 import org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe;
+import org.apache.hadoop.hive.serde2.lazy.LazyUtils;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector.PrimitiveCategory;
@@ -24,25 +24,22 @@ import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
 import org.apache.hadoop.io.Writable;
 import org.apache.log4j.Logger;
 
+import com.splicemachine.mrio.MRConstants;
+
 import java.io.Serializable;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.*;
 
 public class SpliceSerDe implements SerDe {
-    private StructTypeInfo rowTypeInfo;
-    private ObjectInspector rowOI;
-    private List<String> colNames;
-    private List<Integer> colTypes;
-    public static final String SPLICE_INPUT_TABLE_NAME = "splice_input_tableName";
-    public static final String SPLICE_OUTPUT_TABLE_NAME = "splice_output_tableName";
-    public static final String SPLICE_JDBC_STR = "splice_jdbc";
-    protected static final String SPLICE_TRANSACTION_ID = "transaction_id";
-    private List<Object> row = new ArrayList<Object>();
-    private SQLUtil sqlUtil = null;
-    private LazySimpleSerDe.SerDeParameters serdeParams;
-    private int[] pkCols = null;
-
-    private static Logger Log = Logger.getLogger(SpliceSerDe.class.getName());
+	protected StructTypeInfo rowTypeInfo;
+    protected ObjectInspector rowOI;
+    protected List<Object> row = new ArrayList<Object>();
+    protected SMSQLUtil sqlUtil = null;
+    protected LazySimpleSerDe.SerDeParameters serdeParams;
+    protected List<String> colNames;
+    protected List<TypeInfo> colTypes;
+    protected static Logger Log = Logger.getLogger(SpliceSerDe.class.getName());
 
     /**
      * An initialization function used to gather information about the table.
@@ -54,60 +51,42 @@ public class SpliceSerDe implements SerDe {
     public void initialize(Configuration conf, Properties tbl)
             throws SerDeException {
         // Get a list of the table's column names.
-        String spliceInputTableName = tbl.getProperty(SpliceSerDe.SPLICE_INPUT_TABLE_NAME);
-        String spliceOutputTableName = tbl.getProperty(SpliceSerDe.SPLICE_OUTPUT_TABLE_NAME);
+        String spliceInputTableName = tbl.getProperty(MRConstants.SPLICE_INPUT_TABLE_NAME);
+        String spliceOutputTableName = tbl.getProperty(MRConstants.SPLICE_OUTPUT_TABLE_NAME);
         if (sqlUtil == null)
-            sqlUtil = SQLUtil.getInstance(tbl.getProperty(SpliceSerDe.SPLICE_JDBC_STR));
-
-        if (spliceInputTableName != null) {
-            spliceInputTableName = spliceInputTableName.trim();
-            preReadTableStructure(spliceInputTableName);
-        } else if (spliceOutputTableName != null) {
-            spliceOutputTableName = spliceOutputTableName.trim();
-            preReadTableStructure(spliceOutputTableName);
-        }
+            sqlUtil = SMSQLUtil.getInstance(tbl.getProperty(MRConstants.SPLICE_JDBC_STR));
 
         String colNamesStr = tbl.getProperty(Constants.LIST_COLUMNS);
         colNames = Arrays.asList(colNamesStr.split(","));
 
-        // Get a list of TypeInfos for the columns. This list lines up with
-        // the list of column names.
+        // Get a list of TypeInfos for the columns. This list lines up with the list of column names.
         String colTypesStr = tbl.getProperty(Constants.LIST_COLUMN_TYPES);
-        List<TypeInfo> colTypes =
-                TypeInfoUtils.getTypeInfosFromTypeString(colTypesStr);
-
-        rowTypeInfo =
-                (StructTypeInfo) TypeInfoFactory.getStructTypeInfo(colNames, colTypes);
-        rowOI =
-                TypeInfoUtils.getStandardJavaObjectInspectorFromTypeInfo(rowTypeInfo);
-        serdeParams = LazySimpleSerDe.initSerdeParams(conf, tbl, getClass().getName());
-
-        Log.info("--------Finished initialize");
-
-    }
-
-
-    // temporarily use this method to read table structure of Splice,
-    // colTypes helps decoding ExecRow, which can be filled in the Hive Row.
-    // this will cost the inconsistency if reading data out of Splice at the same time DDL.
-
-
-    private void preReadTableStructure(String tableName) {
-        HashMap<List, List> tableStructure = new HashMap<List, List>();
-
-        tableStructure = sqlUtil.getTableStructure(tableName);
-
-        Iterator iter = tableStructure.entrySet().iterator();
-        if (iter.hasNext()) {
-            Map.Entry kv = (Map.Entry) iter.next();
-            colNames = (ArrayList<String>) kv.getKey();
-            colTypes = (ArrayList<Integer>) kv.getValue();
+        colTypes = TypeInfoUtils.getTypeInfosFromTypeString(colTypesStr);
+        
+        if (spliceInputTableName != null) {
+            spliceInputTableName = spliceInputTableName.trim().toUpperCase();
+            try {
+				sqlUtil.getTableScannerBuilder(spliceInputTableName, colNames);
+			} catch (SQLException e) {
+				throw new SerDeException(e);
+			}
+        } else if (spliceOutputTableName != null) {
+            spliceOutputTableName = spliceOutputTableName.trim().toUpperCase();
         }
+                
+        rowTypeInfo = (StructTypeInfo) TypeInfoFactory.getStructTypeInfo(colNames, colTypes);
+        rowOI = TypeInfoUtils.getStandardJavaObjectInspectorFromTypeInfo(rowTypeInfo);
+        serdeParams = LazySimpleSerDe.initSerdeParams(conf, tbl, getClass().getName());
+        Log.info("--------Finished initialize");
     }
 
     private void fillRow(DataValueDescriptor[] dvds) throws StandardException {
-
+    	
+    	/*
         for (int pos = 0; pos < colTypes.size(); pos++) {
+        	colTypes.get(0).
+        	
+        	
             switch (colTypes.get(pos)) {
                 case java.sql.Types.INTEGER:
                     row.add(dvds[pos].getInt());
@@ -139,7 +118,7 @@ public class SpliceSerDe implements SerDe {
                     row.add(dvds[pos].getBytes());
             }
         }
-
+            */
     }
 
     /**
@@ -149,7 +128,6 @@ public class SpliceSerDe implements SerDe {
     //@Override
     public Object deserialize(Writable blob) throws SerDeException {
         row.clear();
-        // Do work to turn the fields in the blob into a set of row fields
         Log.debug("*******" + Thread.currentThread().getStackTrace()[1].getMethodName());
         ExecRowWritable rowWritable = (ExecRowWritable) blob;
 
@@ -160,10 +138,7 @@ public class SpliceSerDe implements SerDe {
             DataValueDescriptor dvd[] = val.getRowArray();
             if (dvd == null || dvd.length == 0)
                 return row;
-
-            //row.add(rowWritable.get().getRowArray()[0].getString());
             fillRow(dvd);
-
         } catch (StandardException e) {
             // TODO Auto-generated catch block
             throw new SerDeException("deserialization error, " + e.getCause());
@@ -266,7 +241,7 @@ public class SpliceSerDe implements SerDe {
 
         ExecRow row = new ValueRow(dvds.length);
         row.setRowArray(dvds);
-        ExecRowWritable rowWritable = new ExecRowWritable(colTypes);
+        ExecRowWritable rowWritable = null;//new ExecRowWritable(colTypes); NPE
         rowWritable.set(row);
         return rowWritable;
 

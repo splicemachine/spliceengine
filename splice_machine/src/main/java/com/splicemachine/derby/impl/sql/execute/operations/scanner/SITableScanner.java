@@ -30,11 +30,7 @@ import com.splicemachine.si.impl.PackedTxnFilter;
 import com.splicemachine.si.impl.TxnFilter;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.ByteSlice;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.io.FormatableBitSet;
-import com.splicemachine.db.iapi.services.io.StoredFormatIds;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.log4j.Logger;
@@ -121,7 +117,8 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>{
 										return new PackedTxnFilter<Data>(txnFilter, hRowAccumulator){
 												@Override
 												public Filter.ReturnCode doAccumulate(Data dataKeyValue) throws IOException {
-														if (!accumulator.isFinished() && accumulator.isOfInterest(dataKeyValue)) {
+													SpliceLogUtils.trace(LOG, "doAccumulate");
+													if (!accumulator.isFinished() && accumulator.isOfInterest(dataKeyValue)) {
 																if (!accumulator.accumulate(dataKeyValue)) {
 																		return Filter.ReturnCode.NEXT_ROW;
 																}
@@ -143,7 +140,8 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>{
 
 		@Override
 		public ExecRow next(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-
+				if (LOG.isTraceEnabled())
+					SpliceLogUtils.trace(LOG, "next");
 				SIFilter filter = getSIFilter();
 				if(keyValues==null)
 						keyValues = Lists.newArrayListWithExpectedSize(2);
@@ -152,6 +150,8 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>{
 						keyValues.clear();
 						template.resetRowArray(); //necessary to deal with null entries--maybe make the underlying call faster?
 						hasRow = dataLib.regionScannerNext(regionScanner, keyValues);
+						if (LOG.isTraceEnabled())
+							SpliceLogUtils.trace(LOG, "next with keyValues=%s",keyValues);
 						if(keyValues.size()<=0){
 								currentRowLocation = null;
 								return null;
@@ -168,6 +168,9 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>{
 										//still need to filter rows to deal with transactional issues
 										filterCounter.increment();
 										continue;
+								} else {
+									if (LOG.isTraceEnabled())
+										SpliceLogUtils.trace(LOG, "miss columns=%d",template.nColumns());
 								}
 								setRowLocation(currentKeyValue);
 								return template;
@@ -240,7 +243,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>{
 				if(siFilter==null) {
 					boolean isCountStar = scan.getAttribute(SIConstants.SI_COUNT_STAR)!=null;
                     predicateFilter= buildInitialPredicateFilter();
-					accumulator = ExecRowAccumulator.newAccumulator(predicateFilter, false, template, rowDecodingMap, tableVersion);
+                 	accumulator = ExecRowAccumulator.newAccumulator(predicateFilter, false, template, rowDecodingMap, tableVersion);
 					siFilter = filterFactory.newFilter(predicateFilter,getRowEntryDecoder(),accumulator,isCountStar);
 				}
 				return siFilter;
@@ -295,11 +298,15 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>{
 		}
 
 		private boolean filterRow(SIFilter filter) throws IOException {
+			if (LOG.isTraceEnabled())
+				SpliceLogUtils.trace(LOG, "filterRow filter=%s",filter);
 				filter.nextRow();
 				Iterator<Data> kvIter = keyValues.iterator();
 				while(kvIter.hasNext()){
 						Data kv = kvIter.next();
 						Filter.ReturnCode returnCode = filter.filterKeyValue(kv);
+						if (LOG.isTraceEnabled())
+							SpliceLogUtils.trace(LOG, "filterKeyValue returnCode=%s",returnCode);
 						switch(returnCode){
 								case NEXT_COL:
 								case NEXT_ROW:
@@ -315,7 +322,11 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>{
 		}
 
 		private boolean filterRowKey(Data data) throws IOException {
+			if (LOG.isTraceEnabled())
+				SpliceLogUtils.trace(LOG, "filterRowKey data=%s",data);
 				if(!isKeyed) return true;
+				if (LOG.isTraceEnabled())
+					SpliceLogUtils.trace(LOG, "filterRowKey decoding key");
 				keyDecoder.set(dataLib.getDataRowBuffer(data), dataLib.getDataRowOffset(data), dataLib.getDataRowlength(data));
 				if(keyAccumulator==null)
 						keyAccumulator = ExecRowAccumulator.newAccumulator(predicateFilter,false,template,
@@ -383,5 +394,9 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>{
 						position=0;
 				}
 		}
+
+	public MeasuredRegionScanner<Data> getRegionScanner() {
+		return regionScanner;
+	}
 
 }
