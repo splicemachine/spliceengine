@@ -39,4 +39,23 @@ class FloatValueEstimate implements FloatFrequencyEstimate {
         this.epsilon+=other.error();
         return this;
     }
+
+    @Override
+    public int hashCode() {
+        return Floats.hashCode(value);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if(!(obj instanceof FrequencyEstimate)) return false;
+        if(obj instanceof FloatFrequencyEstimate)
+            return ((FloatFrequencyEstimate)obj).value()==value;
+        Object ob = ((FrequencyEstimate)obj).getValue();
+        return ob instanceof Float && (Float)ob == value;
+    }
+
+    @Override
+    public String toString() {
+        return "("+value+","+count+","+epsilon+")";
+    }
 }

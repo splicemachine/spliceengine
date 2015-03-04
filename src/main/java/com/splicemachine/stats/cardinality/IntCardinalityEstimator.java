@@ -9,5 +9,7 @@ import com.splicemachine.stats.IntUpdateable;
 public interface IntCardinalityEstimator extends CardinalityEstimator<Integer>,IntUpdateable {
 
     IntCardinalityEstimator merge(IntCardinalityEstimator other);
+
+    IntCardinalityEstimator newCopy();
 }
 

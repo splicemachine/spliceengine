@@ -43,7 +43,7 @@ import com.splicemachine.stats.DoubleFunction;
  * Date: 12/30/13
  */
 public abstract class BaseBiasAdjustedHyperLogLogCounter extends BaseHyperLogLogCounter{
-		private final DoubleFunction biasAdjuster;
+		protected final DoubleFunction biasAdjuster;
 		private final double adjustmentThreshold;
 
 		/*
@@ -89,4 +89,5 @@ public abstract class BaseBiasAdjustedHyperLogLogCounter extends BaseHyperLogLog
 				}
 				return (long)E;
 		}
+
 }

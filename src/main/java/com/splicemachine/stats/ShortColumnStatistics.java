@@ -53,6 +53,17 @@ public class ShortColumnStatistics implements ColumnStatistics<Short> {
     @Override public long avgColumnWidth() { return totalBytes/totalCount;}
 
     @Override
+    public ColumnStatistics<Short> getClone() {
+        return new ShortColumnStatistics(cardinalityEstimator.newCopy(),
+                frequentElements.newCopy(),
+                min,
+                max,
+                totalBytes,
+                totalCount,
+                nullCount);
+    }
+
+    @Override
     public ColumnStatistics<Short> merge(ColumnStatistics<Short> other) {
         assert other instanceof ShortColumnStatistics: "Cannot merge statistics of type "+ other.getClass();
         ShortColumnStatistics o = (ShortColumnStatistics)other;
@@ -66,6 +77,10 @@ public class ShortColumnStatistics implements ColumnStatistics<Short> {
         totalCount+=o.totalCount;
         nullCount+=o.nullCount;
         return this;
+    }
+
+    public static Encoder<ShortColumnStatistics> encoder(){
+        return EncDec.INSTANCE;
     }
 
     static class EncDec implements Encoder<ShortColumnStatistics> {

@@ -28,9 +28,19 @@ class SimpleBooleanFrequentElements implements BooleanFrequentElements {
     @Override public BooleanFrequencyEstimate equals(boolean value) { return value? trueValue: falseValue; }
 
     @Override
+    public BooleanFrequentElements getClone() {
+        return new SimpleBooleanFrequentElements(trueValue.count,falseValue.count);
+    }
+
+    @Override
     public FrequencyEstimate<? extends Boolean> equal(Boolean item) {
         assert item!=null: "Cannot estimate frequency of null value!";
         return equals(item.booleanValue());
+    }
+
+    @Override
+    public Set<? extends FrequencyEstimate<Boolean>> allFrequentElements() {
+        return Sets.newHashSet(trueValue,falseValue);
     }
 
     @Override

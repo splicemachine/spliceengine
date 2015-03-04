@@ -12,4 +12,6 @@ public interface CardinalityEstimator<T> extends Updateable<T>,Mergeable<Cardina
 		 * @return an estimate of the number of distinct items seen by this Estimate
 		 */
 		long getEstimate();
+
+    CardinalityEstimator<T> getClone();
 }

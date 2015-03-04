@@ -8,4 +8,6 @@ import com.splicemachine.stats.DoubleUpdateable;
  */
 public interface DoubleCardinalityEstimator extends CardinalityEstimator<Double>,DoubleUpdateable {
     DoubleCardinalityEstimator merge(DoubleCardinalityEstimator other);
+
+    DoubleCardinalityEstimator newCopy();
 }

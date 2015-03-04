@@ -29,7 +29,7 @@ public class ComparableMinMaxCollector<T extends Comparable<T>> implements MinMa
             int compare = currentMin.compareTo(item);
             if(compare==0)
                 minCount+=count;
-            else if(compare<0) {
+            else if(compare>0) {
                 currentMin = item;
                 minCount = count;
             }
@@ -42,7 +42,7 @@ public class ComparableMinMaxCollector<T extends Comparable<T>> implements MinMa
             int compare = currentMax.compareTo(item);
             if(compare==0)
                 maxCount+=count;
-            else if(compare>0) {
+            else if(compare<0) {
                 currentMax = item;
                 maxCount = count;
             }

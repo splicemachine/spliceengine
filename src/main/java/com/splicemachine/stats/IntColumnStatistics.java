@@ -54,6 +54,17 @@ public class IntColumnStatistics implements ColumnStatistics<Integer>{
     @Override public long avgColumnWidth() { return totalBytes/totalCount;}
 
     @Override
+    public ColumnStatistics<Integer> getClone() {
+        return new IntColumnStatistics(cardinalityEstimator.newCopy(),
+                frequentElements.newCopy(),
+                min,
+                max,
+                totalBytes,
+                totalCount,
+                nullCount);
+    }
+
+    @Override
     public ColumnStatistics<Integer> merge(ColumnStatistics<Integer> other) {
         assert other instanceof IntColumnStatistics: "Cannot merge statistics of type "+ other.getClass();
         IntColumnStatistics o = (IntColumnStatistics)other;
@@ -67,6 +78,10 @@ public class IntColumnStatistics implements ColumnStatistics<Integer>{
         totalCount+=o.totalCount;
         nullCount+=o.nullCount;
         return this;
+    }
+
+    public static Encoder<IntColumnStatistics> encoder(){
+        return EncDec.INSTANCE;
     }
 
     static class EncDec implements Encoder<IntColumnStatistics> {

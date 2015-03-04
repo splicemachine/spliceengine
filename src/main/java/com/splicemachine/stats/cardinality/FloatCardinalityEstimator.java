@@ -8,4 +8,6 @@ import com.splicemachine.stats.FloatUpdateable;
  */
 public interface FloatCardinalityEstimator extends CardinalityEstimator<Float>,FloatUpdateable{
     FloatCardinalityEstimator merge(FloatCardinalityEstimator other);
+
+    FloatCardinalityEstimator newCopy();
 }

@@ -41,4 +41,21 @@ class ValueEstimate<T> implements FrequencyEstimate<T>,Comparable<FrequencyEstim
         this.epsilon+=other.error();
         return this;
     }
+
+    @Override
+    public String toString() {
+        return "("+value+","+count+","+epsilon+")";
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if(!(obj instanceof FrequencyEstimate)) return false;
+        FrequencyEstimate oEst = (FrequencyEstimate)obj;
+        return value.equals(oEst.getValue());
+    }
+
+    @Override
+    public int hashCode() {
+        return value.hashCode();
+    }
 }

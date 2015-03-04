@@ -3,7 +3,6 @@ package com.splicemachine.stats.frequency;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
 import com.splicemachine.encoding.Encoder;
-import com.splicemachine.stats.Mergeable;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -47,7 +46,11 @@ public abstract class IntFrequentElements implements FrequentElements<Integer> {
             if(est.value()==item) return est;
         }
         return new ZeroFreq(item);
+    }
 
+    @Override
+    public Set<? extends FrequencyEstimate<Integer>> allFrequentElements() {
+        return Collections.unmodifiableSet(elements);
     }
 
     public Set<IntFrequencyEstimate> frequentBetween(int start, int stop, boolean includeStart, boolean includeStop){
@@ -178,11 +181,23 @@ public abstract class IntFrequentElements implements FrequentElements<Integer> {
         return this;
     }
 
-    protected abstract NavigableSet<IntFrequencyEstimate> rebuild(long mergedCount,IntFrequencyEstimate[] topK);
-
     public Encoder<IntFrequentElements> encoder(){
         return EncoderDecoder.INSTANCE;
     }
+
+    @Override public FrequentElements<Integer> getClone() { return newCopy(); }
+
+    public IntFrequentElements newCopy() {
+        Collection<IntFrequencyEstimate> ests = new TreeSet<>(naturalComparator);
+        for(IntFrequencyEstimate est:elements){
+            ests.add(new IntValueEstimate(est.value(),est.count(),est.error()));
+        }
+        return getNew(totalCount,ests);
+    }
+
+    protected abstract IntFrequentElements getNew(long totalCount, Collection<IntFrequencyEstimate> ests);
+
+    protected abstract NavigableSet<IntFrequencyEstimate> rebuild(long mergedCount,IntFrequencyEstimate[] topK);
 
     /* ****************************************************************************************************************/
     /*private helper methods*/
@@ -191,6 +206,11 @@ public abstract class IntFrequentElements implements FrequentElements<Integer> {
         private static final Comparator<? super IntFrequencyEstimate> frequencyComparator = new Comparator<IntFrequencyEstimate>() {
             @Override
             public int compare(IntFrequencyEstimate o1, IntFrequencyEstimate o2) {
+                if(o1==null){
+                    if(o2==null) return 0;
+                    return 1; //sort nulls last
+                }else if(o2==null) return -1; //sort nulls last
+
                 int compare = Longs.compare(o1.count(), o2.count());
                 if(compare!=0)
                     return compare;
@@ -215,6 +235,11 @@ public abstract class IntFrequentElements implements FrequentElements<Integer> {
             }
             return newElements;
         }
+
+        @Override
+        protected IntFrequentElements getNew(long totalCount, Collection<IntFrequencyEstimate> ests) {
+            return new TopK(k,totalCount,ests);
+        }
     }
 
     private static class HeavyItems extends IntFrequentElements{
@@ -235,6 +260,11 @@ public abstract class IntFrequentElements implements FrequentElements<Integer> {
                     result.add(est);
             }
             return result;
+        }
+
+        @Override
+        protected IntFrequentElements getNew(long totalCount, Collection<IntFrequencyEstimate> ests) {
+            return new HeavyItems(support,totalCount,ests);
         }
     }
 

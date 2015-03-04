@@ -9,4 +9,6 @@ import com.splicemachine.stats.ShortUpdateable;
 public interface ShortCardinalityEstimator extends CardinalityEstimator<Short>,ShortUpdateable{
 
     ShortCardinalityEstimator merge(ShortCardinalityEstimator other);
+
+    ShortCardinalityEstimator newCopy();
 }

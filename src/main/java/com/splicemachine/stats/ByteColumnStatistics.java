@@ -52,6 +52,13 @@ public class ByteColumnStatistics implements ColumnStatistics<Byte>{
     @Override public long avgColumnWidth() { return totalBytes/totalCount;}
 
     @Override
+    public ColumnStatistics<Byte> getClone() {
+        return new ByteColumnStatistics(cardinalityEstimator.getClone(),
+                frequentElements.getClone(),
+                min,max,totalBytes,totalCount,nullCount);
+    }
+
+    @Override
     public ColumnStatistics<Byte> merge(ColumnStatistics<Byte> other) {
         assert other instanceof ByteColumnStatistics: "Cannot merge statistics of type "+ other.getClass();
         ByteColumnStatistics o = (ByteColumnStatistics)other;
@@ -65,6 +72,9 @@ public class ByteColumnStatistics implements ColumnStatistics<Byte>{
         totalCount+=o.totalCount;
         nullCount+=o.nullCount;
         return this;
+    }
+    public static Encoder<ByteColumnStatistics> encoder(){
+        return EncDec.INSTANCE;
     }
 
     static class EncDec implements Encoder<ByteColumnStatistics> {

@@ -44,6 +44,11 @@ public abstract class LongFrequentElements implements FrequentElements<Long> {
         return new HeavyItems(support,totalCount,elements);
     }
 
+    @Override
+    public Set<? extends FrequencyEstimate<Long>> allFrequentElements() {
+        return Collections.unmodifiableSet(elements);
+    }
+
     public LongFrequencyEstimate countEqual(long item){
         for(LongFrequencyEstimate est:elements){
             if(est.value()==item) return est;
@@ -178,7 +183,19 @@ public abstract class LongFrequentElements implements FrequentElements<Long> {
         return this;
     }
 
+    @Override public FrequentElements<Long> getClone() { return newCopy(); }
+
+    public LongFrequentElements newCopy() {
+        Collection<LongFrequencyEstimate> ests = new TreeSet<>(naturalComparator);
+        for(LongFrequencyEstimate est:elements){
+            ests.add(new LongValueEstimate(est.value(),est.count(),est.error()));
+        }
+        return getNew(totalCount,ests);
+    }
+
     protected abstract NavigableSet<LongFrequencyEstimate> rebuild(long mergedCount,LongFrequencyEstimate[] topK);
+
+    protected abstract LongFrequentElements getNew(long totalCount, Collection<LongFrequencyEstimate> ests);
 
     /* ****************************************************************************************************************/
     /*private helper methods*/
@@ -210,6 +227,11 @@ public abstract class LongFrequentElements implements FrequentElements<Long> {
             }
             return newElements;
         }
+
+        @Override
+        protected LongFrequentElements getNew(long totalCount, Collection<LongFrequencyEstimate> ests) {
+            return new TopK(k,totalCount,ests);
+        }
     }
 
     private static class HeavyItems extends LongFrequentElements{
@@ -230,6 +252,11 @@ public abstract class LongFrequentElements implements FrequentElements<Long> {
                     result.add(est);
             }
             return result;
+        }
+
+        @Override
+        protected LongFrequentElements getNew(long totalCount, Collection<LongFrequencyEstimate> ests) {
+            return new HeavyItems(support,totalCount,ests);
         }
     }
 
@@ -296,7 +323,7 @@ public abstract class LongFrequentElements implements FrequentElements<Long> {
         }
 
         private void encodeSet(NavigableSet<LongFrequencyEstimate> elements, DataOutput dataInput) throws IOException {
-            dataInput.writeLong(elements.size());
+            dataInput.writeInt(elements.size());
             for(LongFrequencyEstimate element:elements){
                 dataInput.writeLong(element.value());
                 dataInput.writeLong(element.count());

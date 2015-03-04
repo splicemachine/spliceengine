@@ -51,6 +51,16 @@ public class ComparableColumnStatistics<T extends Comparable<T>> implements Colu
     @Override public long avgColumnWidth() { return totalBytes/totalCount;}
 
     @Override
+    public ColumnStatistics<T> getClone() {
+        return new ComparableColumnStatistics<>(cardinalityEstimator.getClone(),
+                frequentElements.getClone(),
+                //TODO -sf- is this safe?
+                min,
+                max,
+                totalBytes,totalCount,nullCount);
+    }
+
+    @Override
     public ColumnStatistics<T> merge(ColumnStatistics<T> other) {
         assert other instanceof ComparableColumnStatistics : "Cannot merge statistics of type "+ other.getClass();
         ComparableColumnStatistics<T> o = (ComparableColumnStatistics<T>)other;
@@ -66,8 +76,16 @@ public class ComparableColumnStatistics<T extends Comparable<T>> implements Colu
         return this;
     }
 
+    public static <T extends Comparable<T>> Encoder<ComparableColumnStatistics<T>> encoder(Encoder<T> typeEncoder){
+        return new EncDec<>(typeEncoder);
+    }
+
     static class EncDec<T extends Comparable<T>> implements Encoder<ComparableColumnStatistics<T>> {
         private Encoder<T> valueEncoder;
+
+        public EncDec(Encoder<T> valueEncoder) {
+            this.valueEncoder = valueEncoder;
+        }
 
         @Override
         public void encode(ComparableColumnStatistics<T> item,DataOutput encoder) throws IOException {

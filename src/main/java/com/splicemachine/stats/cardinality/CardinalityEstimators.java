@@ -166,25 +166,33 @@ public class CardinalityEstimators {
 
         @Override
         public CardinalityEstimator<byte[]> merge(CardinalityEstimator<byte[]> otherEstimator) {
-            assert otherEstimator instanceof BaseLogLogCounter: "Cannot merge with a non-loglog cardinality estimator";
-            counter.merge((BaseLogLogCounter)otherEstimator);
-            return this;
+            assert otherEstimator instanceof BytesCardinalityEstimator: "Cannot merge with a non-loglog cardinality estimator";
+            return merge((BytesCardinalityEstimator)otherEstimator);
         }
 
         @Override
         public BytesCardinalityEstimator merge(BytesCardinalityEstimator otherEstimator) {
-            assert otherEstimator instanceof BaseLogLogCounter: "Cannot merge with a non-loglog cardinality estimator";
-            counter.merge((BaseLogLogCounter)otherEstimator);
+            assert otherEstimator instanceof BytesHyperLogLog: "Cannot merge with a non-loglog cardinality estimator";
+            counter.merge(((BytesHyperLogLog)otherEstimator).counter);
             return this;
         }
-		}
+
+        @Override
+        public BytesCardinalityEstimator getClone() {
+            return new BytesHyperLogLog(counter.getClone());
+        }
+    }
 
 		private static class DoubleHyperLogLog implements DoubleCardinalityEstimator {
 				private final BaseLogLogCounter counter;
 
 				private DoubleHyperLogLog(BaseLogLogCounter counter) { this.counter = counter; }
 				@Override public long getEstimate() { return counter.getEstimate(); }
-				@Override public void update(double item) { counter.update(item); }
+
+        @Override public CardinalityEstimator<Double> getClone() { return newCopy();}
+        @Override public DoubleCardinalityEstimator newCopy(){ return new DoubleHyperLogLog(counter.getClone()); }
+
+        @Override public void update(double item) { counter.update(item); }
 				@Override public void update(double item, long count) { counter.update(item); }
 
 				@Override
@@ -201,15 +209,14 @@ public class CardinalityEstimators {
 
         @Override
         public CardinalityEstimator<Double> merge(CardinalityEstimator<Double> otherEstimator) {
-            assert otherEstimator instanceof BaseLogLogCounter: "Cannot merge with a non-loglog cardinality estimator";
-            counter.merge((BaseLogLogCounter)otherEstimator);
-            return this;
+            assert otherEstimator instanceof DoubleCardinalityEstimator: "Cannot merge with a non-loglog cardinality estimator";
+            return merge((DoubleCardinalityEstimator)otherEstimator);
         }
 
         @Override
         public DoubleCardinalityEstimator merge(DoubleCardinalityEstimator otherEstimator) {
-            assert otherEstimator instanceof BaseLogLogCounter: "Cannot merge with a non-loglog cardinality estimator";
-            counter.merge((BaseLogLogCounter)otherEstimator);
+            assert otherEstimator instanceof DoubleHyperLogLog: "Cannot merge with a non-loglog cardinality estimator";
+            counter.merge(((DoubleHyperLogLog)otherEstimator).counter);
             return this;
         }
 		}
@@ -234,17 +241,19 @@ public class CardinalityEstimators {
 						update(item.floatValue());
 				}
 
+        @Override public CardinalityEstimator<Float> getClone() { return newCopy(); }
+        @Override public FloatCardinalityEstimator newCopy(){ return new FloatHyperLogLog(counter.getClone()); }
+
         @Override
         public CardinalityEstimator<Float> merge(CardinalityEstimator<Float> otherEstimator) {
-            assert otherEstimator instanceof BaseLogLogCounter: "Cannot merge with a non-loglog cardinality estimator";
-            counter.merge((BaseLogLogCounter)otherEstimator);
-            return this;
+            assert otherEstimator instanceof FloatCardinalityEstimator: "Cannot merge with a non-loglog cardinality estimator";
+            return merge((FloatCardinalityEstimator)otherEstimator);
         }
 
         @Override
         public FloatCardinalityEstimator merge(FloatCardinalityEstimator otherEstimator) {
-            assert otherEstimator instanceof BaseLogLogCounter: "Cannot merge with a non-loglog cardinality estimator";
-            counter.merge((BaseLogLogCounter)otherEstimator);
+            assert otherEstimator instanceof FloatHyperLogLog: "Cannot merge with a non-loglog cardinality estimator";
+            counter.merge(((FloatHyperLogLog)otherEstimator).counter);
             return this;
         }
 		}
@@ -256,6 +265,9 @@ public class CardinalityEstimators {
 				@Override public long getEstimate() { return counter.getEstimate(); }
 				@Override public void update(long item) { counter.update(item); }
 				@Override public void update(long item, long count) { counter.update(item); }
+
+        @Override public CardinalityEstimator<Long> getClone() { return newCopy(); }
+        @Override public LongCardinalityEstimator newCopy(){ return new LongHyperLogLog(counter.getClone()); }
 
 				@Override
 				public void update(Long item) {
@@ -271,15 +283,14 @@ public class CardinalityEstimators {
 
         @Override
         public CardinalityEstimator<Long> merge(CardinalityEstimator<Long> otherEstimator) {
-            assert otherEstimator instanceof BaseLogLogCounter: "Cannot merge with a non-loglog cardinality estimator";
-            counter.merge((BaseLogLogCounter)otherEstimator);
-            return this;
+            assert otherEstimator instanceof LongCardinalityEstimator: "Cannot merge with a non-loglog cardinality estimator";
+            return merge((LongCardinalityEstimator)otherEstimator);
         }
 
         @Override
         public LongCardinalityEstimator merge(LongCardinalityEstimator otherEstimator) {
-            assert otherEstimator instanceof BaseLogLogCounter: "Cannot merge with a non-loglog cardinality estimator";
-            counter.merge((BaseLogLogCounter)otherEstimator);
+            assert otherEstimator instanceof LongHyperLogLog: "Cannot merge with a non-loglog cardinality estimator";
+            counter.merge(((LongHyperLogLog)otherEstimator).counter);
             return this;
         }
 		}
@@ -292,6 +303,9 @@ public class CardinalityEstimators {
 
 				@Override public void update(int item) { update(item,1l); }
 				@Override public void update(int item, long count) { counter.update(item,count); }
+
+        @Override public CardinalityEstimator<Integer> getClone() { return newCopy(); }
+        @Override public IntCardinalityEstimator newCopy(){ return new IntHyperLogLog(counter.getClone()); }
 
 				@Override
 				public void update(Integer item) {
@@ -307,15 +321,14 @@ public class CardinalityEstimators {
 
         @Override
         public CardinalityEstimator<Integer> merge(CardinalityEstimator<Integer> other) {
-            assert other instanceof BaseLogLogCounter: "Cannot merge with a non-loglog cardinality estimator";
-            counter.merge((BaseLogLogCounter)other);
-            return this;
+            assert other instanceof IntCardinalityEstimator: "Cannot merge with a non-loglog cardinality estimator";
+            return merge((IntCardinalityEstimator)other);
         }
 
         @Override
         public IntCardinalityEstimator merge(IntCardinalityEstimator other) {
-            assert other instanceof BaseLogLogCounter: "Cannot merge with a non-loglog cardinality estimator";
-            counter.merge((BaseLogLogCounter)other);
+            assert other instanceof IntHyperLogLog: "Cannot merge with a non-loglog cardinality estimator";
+            counter.merge(((IntHyperLogLog)other).counter);
             return this;
         }
     }
@@ -327,6 +340,13 @@ public class CardinalityEstimators {
 				@Override public long getEstimate() { return counter.getEstimate(); }
 				@Override public void update(short item) { counter.update(item,1l); }
 				@Override public void update(short item, long count) { counter.update(item,count); }
+
+        @Override public CardinalityEstimator<Short> getClone() { return newCopy(); }
+
+        @Override
+        public ShortCardinalityEstimator newCopy(){
+            return new ShortHyperLogLog(counter.getClone());
+        }
 
 				@Override
 				public void update(Short item) {
@@ -342,15 +362,14 @@ public class CardinalityEstimators {
 
         @Override
         public CardinalityEstimator<Short> merge(CardinalityEstimator<Short> otherEstimator) {
-            assert otherEstimator instanceof BaseLogLogCounter: "Cannot merge with a non-loglog cardinality estimator";
-            counter.merge((BaseLogLogCounter)otherEstimator);
-            return this;
+            assert otherEstimator instanceof ShortCardinalityEstimator: "Cannot merge with a non-loglog cardinality estimator";
+            return merge((ShortCardinalityEstimator)otherEstimator);
         }
 
         @Override
         public ShortCardinalityEstimator merge(ShortCardinalityEstimator otherEstimator) {
-            assert otherEstimator instanceof BaseLogLogCounter: "Cannot merge with a non-loglog cardinality estimator";
-            counter.merge((BaseLogLogCounter)otherEstimator);
+            assert otherEstimator instanceof ShortHyperLogLog: "Cannot merge with a non-loglog cardinality estimator";
+            counter.merge(((ShortHyperLogLog)otherEstimator).counter);
             return this;
         }
     }
@@ -360,6 +379,12 @@ public class CardinalityEstimators {
 
 				public HyperLogLog(BaseLogLogCounter counter) { this.counter = counter; }
 				@Override public long getEstimate() { return counter.getEstimate(); }
+
+
+        @Override
+        public CardinalityEstimator<T> getClone() {
+            return new HyperLogLog<>(counter.getClone());
+        }
 
 				@Override
 				public void update(T item) {
@@ -374,8 +399,8 @@ public class CardinalityEstimators {
 
         @Override
         public CardinalityEstimator<T> merge(CardinalityEstimator<T> otherEstimator) {
-            assert otherEstimator instanceof BaseLogLogCounter: "Cannot merge with a non-loglog cardinality estimator";
-            counter.merge((BaseLogLogCounter)otherEstimator);
+            assert otherEstimator instanceof HyperLogLog: "Cannot merge with a non-loglog cardinality estimator";
+            counter.merge(((HyperLogLog)otherEstimator).counter);
             return this;
         }
 		}

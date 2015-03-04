@@ -15,4 +15,6 @@ public interface ByteFrequentElements extends FrequentElements<Byte> {
     Set<ByteFrequencyEstimate> frequentAfter(byte start, boolean includeStart);
 
     Set<ByteFrequencyEstimate> frequentBefore(byte stop, boolean includeStop);
+
+    ByteFrequentElements getClone();
 }

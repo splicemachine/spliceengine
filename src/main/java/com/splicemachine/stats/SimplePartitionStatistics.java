@@ -18,16 +18,39 @@ public class SimplePartitionStatistics implements PartitionStatistics {
 
     private List<ColumnStatistics> columnStatistics;
 
+    public SimplePartitionStatistics(String tableId,
+                                     String partitionId,
+                                     long rowCount,
+                                     long totalBytes,
+                                     long queryCount,
+                                     long totalLocalReadTime,
+                                     long totalRemoteReadLatency,
+                                     List<ColumnStatistics> columnStatistics) {
+        this.tableId = tableId;
+        this.partitionId = partitionId;
+        this.rowCount = rowCount;
+        this.totalBytes = totalBytes;
+        this.queryCount = queryCount;
+        this.totalLocalReadTime = totalLocalReadTime;
+        this.totalRemoteReadLatency = totalRemoteReadLatency;
+        this.columnStatistics = columnStatistics;
+    }
+
     @Override public String tableId() { return tableId; }
     @Override public String partitionId() { return partitionId; }
     @Override public long rowCount() { return rowCount; }
     @Override public long totalSize() { return totalBytes; }
-    @Override public int avgRowWidth() { return (int)(totalBytes/rowCount); }
     @Override public long queryCount() { return queryCount; }
     @Override public long localReadLatency() { return totalLocalReadTime /rowCount; }
     @Override public long remoteReadLatency() { return totalRemoteReadLatency/rowCount; }
     @Override public long collectionTime() { return totalLocalReadTime; }
     @Override public List<ColumnStatistics> columnStatistics() { return columnStatistics; }
+
+    @Override
+    public int avgRowWidth() {
+        if(rowCount<=0) return 0;
+        return (int)(totalBytes/rowCount);
+    }
 
     @Override
     public PartitionStatistics merge(PartitionStatistics other) {

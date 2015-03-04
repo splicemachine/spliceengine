@@ -64,6 +64,11 @@ class ByteHeavyHitters implements ByteFrequentElements {
     }
 
     @Override
+    public ByteFrequentElements getClone() {
+        return new ByteHeavyHitters(Arrays.copyOf(counts,counts.length),support);
+    }
+
+    @Override
     public FrequencyEstimate<? extends Byte> equal(Byte item) {
         assert item!=null: "Cannot determine frequent elements for null item!";
         return countEqual(item);
@@ -107,6 +112,11 @@ class ByteHeavyHitters implements ByteFrequentElements {
         }
         this.threshold = (long)(support*totalCount);
         return this;
+    }
+
+    @Override
+    public Set<? extends FrequencyEstimate<Byte>> allFrequentElements() {
+        return frequentBetween(Byte.MIN_VALUE,Byte.MAX_VALUE,true,true);
     }
 
     /******************************************************************************************************************/

@@ -39,4 +39,17 @@ class IntValueEstimate implements IntFrequencyEstimate {
         this.epsilon+=other.error();
         return this;
     }
+
+    @Override public String toString() { return "("+value+","+count+","+epsilon+")"; }
+
+    @Override public int hashCode() { return value; }
+
+    @Override
+    public boolean equals(Object obj) {
+        if(!(obj instanceof FrequencyEstimate)) return false;
+        if(obj instanceof IntFrequencyEstimate)
+            return ((IntFrequencyEstimate)obj).value()==value;
+        Object ob = ((FrequencyEstimate) obj).getValue();
+        return ob instanceof Long && (Long)ob == value;
+    }
 }

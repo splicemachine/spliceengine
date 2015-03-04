@@ -65,6 +65,11 @@ public class EnumeratingByteCardinalityEstimator implements ByteCardinalityEstim
         return this;
     }
 
+    @Override
+    public ByteCardinalityEstimator getClone() {
+        return new EnumeratingByteCardinalityEstimator((BitSet)bitSet.clone());
+    }
+
     /*Encoding logic*/
     public static Encoder<ByteCardinalityEstimator> newEncoder() {
         return EncoderDecoder.INSTANCE;

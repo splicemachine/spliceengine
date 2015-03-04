@@ -8,7 +8,6 @@ import com.splicemachine.primitives.ByteComparator;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.utils.ComparableComparator;
 
-import javax.annotation.concurrent.NotThreadSafe;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -20,12 +19,19 @@ import java.util.Comparator;
  * This class will generally construct a {@code FrequencyCounter} which has been optimized for space and
  * update performance, and are <em>not</em> guaranteed to return exact results.
  *
+ * Unless otherwise stated, all instances returned from the class are <em>not</em> thread safe, and
+ * care should be taken to ensure that external synchronization is used when accessing data from
+ * multiple threads. It should also be noted that cpu cache efficiency is taken into account (somewhat)
+ * inside of these instances, and that CPU cache efficiency is generally improved by practicing a thread-isolation
+ * model. As a result, it is recommended that returned types from this class be used in a thread-isolated
+ * setting.
+ *
  * @author Scott Fines
  * Date: 3/27/14
  */
 public class FrequencyCounters {
     private static final Hash32 TABLE_HASH_FUNCTION = HashFunctions.murmur3(0);
-    public static final float DEFAULT_LOAD_FACTOR = 0.9f;
+    private static final float DEFAULT_LOAD_FACTOR = 0.9f;
 
     /**
      * @return A FrequencyCounter which is specially designed to be efficient for boolean primitive types.
@@ -184,58 +190,127 @@ public class FrequencyCounters {
         return new ShortSpaceSaver(TABLE_HASH_FUNCTION,maxCounters,initialSize, DEFAULT_LOAD_FACTOR);
 		}
 
-    public static Encoder<ShortFrequentElements> shortEncoder(){
-        return ShortFrequentElements.EncoderDecoder.INSTANCE;
-    }
-
+    /**
+     * @param maxCounters the maximum number of counters to use. This means that the maximum number of
+     *                    {@code Top-K} elements which can possibly recorded (within the bounds of the error
+     *                    inherint in the <em>SpaceSaver</em> algorithm) is {@code maxCounters}--elements
+     *                    outside of this are guaranteed (within an error metric) not to be included
+     *                    in the resulting FrequentElements instance.
+     * @return A FrequencyCounter specifically designed to be efficient with integer data types.
+     */
 		public static IntFrequencyCounter intCounter(int maxCounters){
         return new IntSpaceSaver(TABLE_HASH_FUNCTION,maxCounters);
 		}
 
+    /**
+     * @param initialSize the initial number of counters to keep. When the size of the data set is known
+     *                    to be very large, setting this to {@code maxCounters} will prevent some table resizing,
+     *                    and therefore there will be some slight memory improvements. However, setting this
+     *                    too high may result in wasted memory when there are not many elements in the stream.
+     * @param maxCounters the maximum number of counters to use. This means that the maximum number of
+     *                    {@code Top-K} elements which can possibly recorded (within the bounds of the error
+     *                    inherint in the <em>SpaceSaver</em> algorithm) is {@code maxCounters}--elements
+     *                    outside of this are guaranteed (within an error metric) not to be included
+     *                    in the resulting FrequentElements instance.
+     * @return a FrequencyCounter specifically designed to be efficient with integer data types.
+     */
 		public static IntFrequencyCounter intCounter(int maxCounters, int initialSize){
         return new IntSpaceSaver(TABLE_HASH_FUNCTION,maxCounters,initialSize, DEFAULT_LOAD_FACTOR);
 		}
 
-    public static Encoder<IntFrequentElements> intEncoder(){
-        return IntFrequentElements.EncoderDecoder.INSTANCE;
-    }
-
+    /**
+     * @param maxCounters the maximum number of counters to use. This means that the maximum number of
+     *                    {@code Top-K} elements which can possibly recorded (within the bounds of the error
+     *                    inherint in the <em>SpaceSaver</em> algorithm) is {@code maxCounters}--elements
+     *                    outside of this are guaranteed (within an error metric) not to be included
+     *                    in the resulting FrequentElements instance.
+     * @return A FrequencyCounter specifically designed to be efficient with long data types.
+     */
 		public static LongFrequencyCounter longCounter(int maxCounters){
         return new LongSpaceSaver(TABLE_HASH_FUNCTION,maxCounters);
 		}
 
+    /**
+     * @param initialSize the initial number of counters to keep. When the size of the data set is known
+     *                    to be very large, setting this to {@code maxCounters} will prevent some table resizing,
+     *                    and therefore there will be some slight memory improvements. However, setting this
+     *                    too high may result in wasted memory when there are not many elements in the stream.
+     * @param maxCounters the maximum number of counters to use. This means that the maximum number of
+     *                    {@code Top-K} elements which can possibly recorded (within the bounds of the error
+     *                    inherint in the <em>SpaceSaver</em> algorithm) is {@code maxCounters}--elements
+     *                    outside of this are guaranteed (within an error metric) not to be included
+     *                    in the resulting FrequentElements instance.
+     * @return a FrequencyCounter specifically designed to be efficient with long data types.
+     */
 		public static LongFrequencyCounter longCounter(int maxCounters, int initialSize){
         return new LongSpaceSaver(TABLE_HASH_FUNCTION,maxCounters,initialSize, DEFAULT_LOAD_FACTOR);
 		}
-
-    public static Encoder<LongFrequentElements> longEncoder(){
-        return LongFrequentElements.EncoderDecoder.INSTANCE;
-    }
-
+    /**
+     * @param maxCounters the maximum number of counters to use. This means that the maximum number of
+     *                    {@code Top-K} elements which can possibly recorded (within the bounds of the error
+     *                    inherint in the <em>SpaceSaver</em> algorithm) is {@code maxCounters}--elements
+     *                    outside of this are guaranteed (within an error metric) not to be included
+     *                    in the resulting FrequentElements instance.
+     * @return A FrequencyCounter geared towards Comparable data types. This is equivalent to
+     * {@link #counter(java.util.Comparator, int)}, but it uses the compareTo() method defined
+     * in the comparable itself.
+     */
     public static <T extends Comparable<T>> FrequencyCounter<T> counter(int maxCounters){
         return new ObjectSpaceSaver<>(ComparableComparator.<T>newComparator(),TABLE_HASH_FUNCTION,maxCounters);
     }
 
+    /**
+     * @param initialCounters the initial number of counters to keep. When the size of the data set is known
+     *                    to be very large, setting this to {@code maxCounters} will prevent some table resizing,
+     *                    and therefore there will be some slight memory improvements. However, setting this
+     *                    too high may result in wasted memory when there are not many elements in the stream.
+     * @param maxCounters the maximum number of counters to use. This means that the maximum number of
+     *                    {@code Top-K} elements which can possibly recorded (within the bounds of the error
+     *                    inherint in the <em>SpaceSaver</em> algorithm) is {@code maxCounters}--elements
+     *                    outside of this are guaranteed (within an error metric) not to be included
+     *                    in the resulting FrequentElements instance.
+     * @return A FrequencyCounter geared towards Comparable data types. This is equivalent to
+     * {@link #counter(java.util.Comparator, int)}, but it uses the compareTo() method defined
+     * in the comparable itself.
+     */
     public static <T extends Comparable<T>> FrequencyCounter<T> counter(int maxCounters,int initialCounters){
         return new ObjectSpaceSaver<>(ComparableComparator.<T>newComparator(),TABLE_HASH_FUNCTION,maxCounters,initialCounters, DEFAULT_LOAD_FACTOR);
     }
 
-    public static <T extends Comparable<T>> Encoder<FrequentElements<T>> objectEncoder(Encoder<T> valueEncoder){
-        return new ObjectFrequentElements.EncoderDecoder<>(valueEncoder,ComparableComparator.<T>newComparator());
-    }
-
+    /**
+     * @param comparator A comparator to use when comparing two items. This is mainly used for comparison
+     *                   queries when using the build {@code FrequentElements} instance, but may be used for
+     *                   other things.
+     * @param initialCounters the initial number of counters to keep. When the size of the data set is known
+     *                    to be very large, setting this to {@code maxCounters} will prevent some table resizing,
+     *                    and therefore there will be some slight memory improvements. However, setting this
+     *                    too high may result in wasted memory when there are not many elements in the stream.
+     * @param maxCounters the maximum number of counters to use. This means that the maximum number of
+     *                    {@code Top-K} elements which can possibly recorded (within the bounds of the error
+     *                    inherint in the <em>SpaceSaver</em> algorithm) is {@code maxCounters}--elements
+     *                    outside of this are guaranteed (within an error metric) not to be included
+     *                    in the resulting FrequentElements instance.
+     * @return A FrequencyCounter for items which has a well-defined ordering.
+     */
     public static <T> FrequencyCounter<T> counter(Comparator<T> comparator, int maxCounters,int initialCounters){
         return new ObjectSpaceSaver<>(comparator,TABLE_HASH_FUNCTION,maxCounters,initialCounters, DEFAULT_LOAD_FACTOR);
     }
 
+    /**
+     * @param comparator A comparator to use when comparing two items. This is mainly used for comparison
+     *                   queries when using the build {@code FrequentElements} instance, but may be used for
+     *                   other things.
+     * @param maxCounters the maximum number of counters to use. This means that the maximum number of
+     *                    {@code Top-K} elements which can possibly recorded (within the bounds of the error
+     *                    inherint in the <em>SpaceSaver</em> algorithm) is {@code maxCounters}--elements
+     *                    outside of this are guaranteed (within an error metric) not to be included
+     *                    in the resulting FrequentElements instance.
+     * @return A FrequencyCounter for items which has a well-defined ordering.
+     */
     public static <T> FrequencyCounter<T> counter(Comparator<T> comparator, int maxCounters){
         return new ObjectSpaceSaver<>(comparator,TABLE_HASH_FUNCTION,maxCounters);
     }
 
-    public static <T> Encoder<FrequentElements<T>> objectEncoder(Encoder<T> valueEncoder,
-                                                                       Comparator<? super T> comparator){
-        return new ObjectFrequentElements.EncoderDecoder<>(valueEncoder,comparator);
-    }
 
     /**
      * @return an Encoder for converting a {@link com.splicemachine.stats.frequency.BooleanFrequentElements}
@@ -270,6 +345,30 @@ public class FrequencyCounters {
     }
 
     /**
+     * @return an Encoder for converting a {@link com.splicemachine.stats.frequency.ShortFrequentElements}
+     * to and from output streams and/or byte arrays.
+     */
+    public static Encoder<ShortFrequentElements> shortEncoder(){
+        return ShortFrequentElements.EncoderDecoder.INSTANCE;
+    }
+
+    /**
+     * @return an Encoder for converting a {@link com.splicemachine.stats.frequency.IntFrequentElements}
+     * to and from output streams and/or byte arrays.
+     */
+    public static Encoder<IntFrequentElements> intEncoder(){
+        return IntFrequentElements.EncoderDecoder.INSTANCE;
+    }
+
+    /**
+     * @return an Encoder for converting a {@link com.splicemachine.stats.frequency.LongFrequentElements}
+     * to and from output streams and/or byte arrays.
+     */
+    public static Encoder<LongFrequentElements> longEncoder(){
+        return LongFrequentElements.EncoderDecoder.INSTANCE;
+    }
+
+    /**
      * @return an Encoder for converting a {@link com.splicemachine.stats.frequency.DoubleFrequentElements}
      * to and from output streams and/or byte arrays.
      */
@@ -284,10 +383,35 @@ public class FrequencyCounters {
     public static Encoder<FloatFrequentElements> floatEncoder(){
         return FloatFrequentElements.EncoderDecoder.INSTANCE;
     }
+
+    /**
+     * @return an Encoder for converting a {@link com.splicemachine.stats.frequency.FrequentElements}
+     * to and from byte streams and/or byte arrays. This is equivalent to
+     * {@link #objectEncoder(com.splicemachine.encoding.Encoder, java.util.Comparator)}, but it uses
+     * the compareTo() method defined in the Comparable itself.
+     */
+    public static <T extends Comparable<T>> Encoder<FrequentElements<T>> objectEncoder(Encoder<T> valueEncoder){
+        return new ObjectFrequentElements.EncoderDecoder<>(valueEncoder,ComparableComparator.<T>newComparator());
+    }
+
+    /**
+     * @return an Encoder for converting a {@link com.splicemachine.stats.frequency.FrequentElements}
+     * to and from byte streams and/or byte arrays.
+     */
+    public static <T> Encoder<FrequentElements<T>> objectEncoder(Encoder<T> valueEncoder,
+                                                                 Comparator<? super T> comparator){
+        return new ObjectFrequentElements.EncoderDecoder<>(valueEncoder,comparator);
+    }
+
     /* ***************************************************************************************************************/
     /*private helper methods and classes*/
+
     private static class SwitchingByteEncoder implements Encoder<ByteFrequentElements>{
-        public static final Encoder<ByteFrequentElements> INSTANCE = new SwitchingByteEncoder();
+        /*
+         * This is a convenience class to quickly encode ByteFrequentElements instances
+         * without needing special encoders for each different type.
+         */
+        private static final Encoder<ByteFrequentElements> INSTANCE = new SwitchingByteEncoder();
 
         @Override
         public void encode(ByteFrequentElements item, DataOutput dataInput) throws IOException {

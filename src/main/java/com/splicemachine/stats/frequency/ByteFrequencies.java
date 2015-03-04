@@ -6,6 +6,7 @@ import com.splicemachine.encoding.Encoder;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Set;
 
@@ -90,6 +91,12 @@ class ByteFrequencies implements ByteFrequentElements {
     }
 
     @Override
+    public ByteFrequentElements getClone() {
+        Frequency[] heapCopy = Arrays.copyOf(heap,heap.length);
+        return new ByteFrequencies(heapCopy,maxSize,size);
+    }
+
+    @Override
     public FrequencyEstimate<? extends Byte> equal(Byte item) {
         assert item!=null: "Cannot estimate frequencies for null item!";
         return countEqual(item.byteValue());
@@ -106,6 +113,11 @@ class ByteFrequencies implements ByteFrequentElements {
             e = Byte.MAX_VALUE;
         else e = stop;
         return frequentBetween(s,e,includeMin,includeStop);
+    }
+
+    @Override
+    public Set<? extends FrequencyEstimate<Byte>> allFrequentElements() {
+        return frequentBetween(Byte.MIN_VALUE,Byte.MAX_VALUE,true,true);
     }
 
     @Override
@@ -172,7 +184,7 @@ class ByteFrequencies implements ByteFrequentElements {
 
         @Override
         public String toString() {
-            return "Frequency("+value+","+count+")";
+            return "("+value+","+count+",0)";
         }
     }
 

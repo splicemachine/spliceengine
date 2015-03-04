@@ -4,6 +4,8 @@ package com.splicemachine.stats.cardinality;
 import com.splicemachine.hash.Hash64;
 import com.splicemachine.primitives.Bytes;
 
+import java.util.Arrays;
+
 /**
  * Basic implementation of the HyperLogLog Cardinality estimator.
  *
@@ -23,6 +25,11 @@ public class HyperLogLogCounter extends BaseHyperLogLogCounter{
 				super(size, hashFunction);
 				this.buckets = new byte[numRegisters];
 		}
+
+    @Override
+    public BaseLogLogCounter getClone() {
+        return new HyperLogLogCounter(super.precision, Arrays.copyOf(buckets,buckets.length),hashFunction);
+    }
 
     public HyperLogLogCounter(int size,byte[] buckets, Hash64 hashFunction) {
         super(size, hashFunction);

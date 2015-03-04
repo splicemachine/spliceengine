@@ -51,4 +51,10 @@ public interface ColumnStatistics<T> extends Mergeable<ColumnStatistics<T>> {
      */
     long avgColumnWidth();
 
+    /**
+     * Make a copy of this Statistics object, for same thread management, etc.
+     * @return a copy of this Statistics Object
+     */
+    ColumnStatistics<T> getClone();
+
 }

@@ -58,6 +58,12 @@ public abstract class ObjectFrequentElements<T> implements FrequentElements<T>,M
 
     /* *********************************************************************************************/
     /*Accessors*/
+
+    @Override
+    public Set<? extends FrequencyEstimate<T>> allFrequentElements() {
+        return Collections.unmodifiableSet(elements);
+    }
+
     @Override
     public FrequencyEstimate<T> equal(T item) {
         for(FrequencyEstimate<T> n:elements){
@@ -161,7 +167,19 @@ public abstract class ObjectFrequentElements<T> implements FrequentElements<T>,M
         return this;
     }
 
+
+    @Override
+    public FrequentElements<T> getClone() {
+        Collection<FrequencyEstimate<T>> copy = new TreeSet<>(naturalComparator);
+        for(FrequencyEstimate<T> est:elements){
+            copy.add(new ValueEstimate<>(est.getValue(),est.count(),est.error(),comparator));
+        }
+        return getNew(totalCount,copy,comparator);
+    }
+
     protected abstract NavigableSet<FrequencyEstimate<T>> rebuild(long mergedCount,FrequencyEstimate<T>[] topK);
+
+    protected abstract FrequentElements<T> getNew(long totalCount, Collection<FrequencyEstimate<T>> copy,Comparator<? super T> comparator);
 
     /* ****************************************************************************************************************/
     /*private helper methods*/
@@ -184,6 +202,11 @@ public abstract class ObjectFrequentElements<T> implements FrequentElements<T>,M
             }
             return newElements;
         }
+
+        @Override
+        protected FrequentElements<E> getNew(long totalCount, Collection<FrequencyEstimate<E>> copy,Comparator<? super E> comparator) {
+            return new TopK<>(k,totalCount,copy,comparator);
+        }
     }
 
     private static class HeavyItems<E> extends ObjectFrequentElements<E>{
@@ -204,6 +227,11 @@ public abstract class ObjectFrequentElements<T> implements FrequentElements<T>,M
                     result.add(est);
             }
             return result;
+        }
+
+        @Override
+        protected FrequentElements<E> getNew(long totalCount, Collection<FrequencyEstimate<E>> copy, Comparator<? super E> comparator) {
+            return new HeavyItems<>(support,totalCount,copy,comparator);
         }
     }
 
@@ -306,7 +334,7 @@ public abstract class ObjectFrequentElements<T> implements FrequentElements<T>,M
         }
 
         private void encodeSet(NavigableSet<FrequencyEstimate<T>> elements, DataOutput dataInput) throws IOException {
-            dataInput.writeFloat(elements.size());
+            dataInput.writeInt(elements.size());
             for(FrequencyEstimate<T> element:elements){
                 valueEncoder.encode(element.getValue(), dataInput);
                 dataInput.writeLong(element.count());

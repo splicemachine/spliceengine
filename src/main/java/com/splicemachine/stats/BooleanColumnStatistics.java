@@ -1,6 +1,7 @@
 package com.splicemachine.stats;
 
 import com.splicemachine.encoding.Encoder;
+import com.splicemachine.stats.frequency.BooleanFrequencyEstimate;
 import com.splicemachine.stats.frequency.BooleanFrequentElements;
 import com.splicemachine.stats.frequency.FrequencyCounters;
 import com.splicemachine.stats.frequency.FrequentElements;
@@ -43,9 +44,21 @@ public class BooleanColumnStatistics implements ColumnStatistics<Boolean> {
     @Override public FrequentElements<Boolean> topK() { return frequentElements; }
     @Override public Boolean minValue() { return Boolean.TRUE; }
     @Override public Boolean maxValue() { return Boolean.FALSE; }
-    public boolean min(){ return true; }
-    public boolean max(){ return false; }
+
+    public BooleanFrequencyEstimate trueCount(){
+        return frequentElements.equalsTrue();
+    }
+
+    public BooleanFrequencyEstimate falseCount(){
+        return frequentElements.equalsTrue();
+    }
+
     @Override public long avgColumnWidth() { return totalBytes/totalCount;}
+
+    @Override
+    public ColumnStatistics<Boolean> getClone() {
+        return new BooleanColumnStatistics(frequentElements.getClone(),totalBytes,totalCount,nullCount);
+    }
 
     @Override
     public ColumnStatistics<Boolean> merge(ColumnStatistics<Boolean> other) {
@@ -56,6 +69,10 @@ public class BooleanColumnStatistics implements ColumnStatistics<Boolean> {
         totalCount+=o.totalCount;
         nullCount+=o.nullCount;
         return this;
+    }
+
+    public static Encoder<BooleanColumnStatistics> encoder(){
+        return EncDec.INSTANCE;
     }
 
     static class EncDec implements Encoder<BooleanColumnStatistics> {

@@ -41,6 +41,11 @@ public abstract class ShortFrequentElements implements FrequentElements<Short> {
         return new HeavyItems(support,totalCount,elements);
     }
 
+    @Override
+    public Set<? extends FrequencyEstimate<Short>> allFrequentElements() {
+        return Collections.unmodifiableSet(elements);
+    }
+
     public ShortFrequencyEstimate countEqual(short item){
         for(ShortFrequencyEstimate est:elements){
             if(est.value()==item) return est;
@@ -176,9 +181,22 @@ public abstract class ShortFrequentElements implements FrequentElements<Short> {
         return this;
     }
 
-    protected abstract NavigableSet<ShortFrequencyEstimate> rebuild(long mergedCount,ShortFrequencyEstimate[] topK);
 
     public Encoder<ShortFrequentElements> encoder(){ return EncoderDecoder.INSTANCE; }
+
+    @Override public FrequentElements<Short> getClone() { return newCopy(); }
+
+    public ShortFrequentElements newCopy(){
+        Collection<ShortFrequencyEstimate> ests = new TreeSet<>(naturalComparator);
+        for(ShortFrequencyEstimate est:elements){
+            ests.add(new ShortValueEstimate(est.value(),est.count(),est.error()));
+        }
+        return getNew(totalCount,ests);
+    }
+
+    protected abstract NavigableSet<ShortFrequencyEstimate> rebuild(long mergedCount,ShortFrequencyEstimate[] topK);
+
+    protected abstract ShortFrequentElements getNew(long totalCount, Collection<ShortFrequencyEstimate> ests);
 
     /* ****************************************************************************************************************/
     /*private helper methods*/
@@ -210,6 +228,11 @@ public abstract class ShortFrequentElements implements FrequentElements<Short> {
             }
             return newElements;
         }
+
+        @Override
+        protected ShortFrequentElements getNew(long totalCount, Collection<ShortFrequencyEstimate> ests) {
+            return new TopK(k,totalCount,ests);
+        }
     }
 
     private static class HeavyItems extends ShortFrequentElements{
@@ -230,6 +253,11 @@ public abstract class ShortFrequentElements implements FrequentElements<Short> {
                     result.add(est);
             }
             return result;
+        }
+
+        @Override
+        protected ShortFrequentElements getNew(long totalCount, Collection<ShortFrequencyEstimate> ests) {
+            return new HeavyItems(support,totalCount,ests);
         }
     }
     private class ZeroFreq implements ShortFrequencyEstimate {

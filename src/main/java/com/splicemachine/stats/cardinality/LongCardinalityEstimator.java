@@ -10,4 +10,5 @@ public interface LongCardinalityEstimator extends CardinalityEstimator<Long>,Lon
 
     LongCardinalityEstimator merge(LongCardinalityEstimator other);
 
+    LongCardinalityEstimator newCopy();
 }

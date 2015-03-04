@@ -182,7 +182,7 @@ public class SparseAdjustedHyperLogLogCounter extends BaseBiasAdjustedHyperLogLo
 								resizeOrMergeBuffer();
 						}
 				}else{
-						super.update(hash);
+						super.doUpdate(hash);
 				}
 		}
 
@@ -211,7 +211,15 @@ public class SparseAdjustedHyperLogLogCounter extends BaseBiasAdjustedHyperLogLo
 						return super.getEstimate();
 		}
 
-		@Override protected int getRegister(int register) { return denseRegisters[register]; }
+    @Override
+    public BaseLogLogCounter getClone() {
+        if(isSparse)
+            return new SparseAdjustedHyperLogLogCounter(precision,sparseSize,sparse,hashFunction,biasAdjuster);
+        else
+            return new SparseAdjustedHyperLogLogCounter(precision,denseRegisters,hashFunction,biasAdjuster);
+    }
+
+    @Override protected int getRegister(int register) { return denseRegisters[register]; }
 
     /* ****************************************************************************************************************/
 		/*private helper functions*/

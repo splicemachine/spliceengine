@@ -38,4 +38,19 @@ class LongValueEstimate implements LongFrequencyEstimate {
         this.epsilon+=other.error();
         return this;
     }
+
+    @Override public String toString() { return "("+value+","+count+","+epsilon+")"; }
+
+    @Override public int hashCode() { return Longs.hashCode(value); }
+
+    @Override
+    public boolean equals(Object obj) {
+        if(!(obj instanceof FrequencyEstimate)) return false;
+        if(obj instanceof LongFrequencyEstimate){
+            return value==((LongFrequencyEstimate)obj).value();
+        }else {
+            Object ob = ((FrequencyEstimate) obj).getValue();
+            return ob instanceof Long && (Long) ob == value;
+        }
+    }
 }

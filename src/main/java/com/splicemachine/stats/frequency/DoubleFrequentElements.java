@@ -3,7 +3,6 @@ package com.splicemachine.stats.frequency;
 import com.google.common.primitives.Doubles;
 import com.google.common.primitives.Longs;
 import com.splicemachine.encoding.Encoder;
-import com.splicemachine.stats.Mergeable;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -42,6 +41,25 @@ public abstract class DoubleFrequentElements implements FrequentElements<Double>
         this.elements = elems;
         this.totalCount = totalCount;
     }
+
+    @Override
+    public Set<? extends FrequencyEstimate<Double>> allFrequentElements() {
+        return frequentBetween(elements.first().value(),elements.last().value(),true,true);
+    }
+
+    @Override
+    public FrequentElements<Double> getClone() {
+        return newCopy();
+    }
+
+    public DoubleFrequentElements newCopy() {
+        Collection<DoubleFrequencyEstimate> copy = new TreeSet<>(naturalComparator);
+        for(DoubleFrequencyEstimate est:elements){
+            copy.add(new DoubleValueEstimate(est.value(),est.count(),est.error()));
+        }
+        return getNew(totalCount,copy);
+    }
+
 
     public DoubleFrequencyEstimate countEqual(double item){
         for(DoubleFrequencyEstimate est:elements){
@@ -175,6 +193,8 @@ public abstract class DoubleFrequentElements implements FrequentElements<Double>
 
     protected abstract NavigableSet<DoubleFrequencyEstimate> rebuild(long totalCount, DoubleFrequencyEstimate[] all);
 
+    protected abstract DoubleFrequentElements getNew(long totalCount, Collection<DoubleFrequencyEstimate> copy);
+
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private static class TopK extends DoubleFrequentElements{
@@ -206,6 +226,11 @@ public abstract class DoubleFrequentElements implements FrequentElements<Double>
             }
             return newTree;
         }
+
+        @Override
+        protected DoubleFrequentElements getNew(long totalCount, Collection<DoubleFrequencyEstimate> copy) {
+            return new TopK(k,totalCount,copy);
+        }
     }
 
     private static class HeavyItems extends DoubleFrequentElements{
@@ -228,6 +253,11 @@ public abstract class DoubleFrequentElements implements FrequentElements<Double>
                     result.add(est);
             }
             return result;
+        }
+
+        @Override
+        protected DoubleFrequentElements getNew(long totalCount, Collection<DoubleFrequencyEstimate> copy) {
+            return new HeavyItems(support,totalCount,copy);
         }
     }
 
@@ -289,7 +319,7 @@ public abstract class DoubleFrequentElements implements FrequentElements<Double>
         }
 
         private void encodeSet(NavigableSet<DoubleFrequencyEstimate> elements, DataOutput dataInput) throws IOException {
-            dataInput.writeDouble(elements.size());
+            dataInput.writeInt(elements.size());
             for(DoubleFrequencyEstimate element:elements){
                 dataInput.writeDouble(element.value());
                 dataInput.writeLong(element.count());

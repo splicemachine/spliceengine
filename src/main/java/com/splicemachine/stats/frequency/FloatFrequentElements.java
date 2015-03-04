@@ -3,7 +3,6 @@ package com.splicemachine.stats.frequency;
 import com.google.common.primitives.Floats;
 import com.google.common.primitives.Longs;
 import com.splicemachine.encoding.Encoder;
-import com.splicemachine.stats.Mergeable;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -40,6 +39,11 @@ public abstract class FloatFrequentElements implements FrequentElements<Float> {
 
     public static FloatFrequentElements heavyHitters(float support, long totalCount,Collection<FloatFrequencyEstimate> elements){
         return new HeavyItems(support,totalCount,elements);
+    }
+
+    @Override
+    public Set<? extends FrequencyEstimate<Float>> allFrequentElements() {
+        return Collections.unmodifiableSet(elements);
     }
 
     public FloatFrequencyEstimate countEqual(float item){
@@ -178,7 +182,19 @@ public abstract class FloatFrequentElements implements FrequentElements<Float> {
         return this;
     }
 
+    @Override public FrequentElements<Float> getClone() { return newCopy(); }
+
+    public FloatFrequentElements newCopy() {
+        Collection<FloatFrequencyEstimate> ests = new TreeSet<>(naturalComparator);
+        for(FloatFrequencyEstimate est:elements){
+            ests.add(new FloatValueEstimate(est.value(),est.count(),est.error()));
+        }
+        return getNew(totalCount,ests);
+    }
+
     protected abstract NavigableSet<FloatFrequencyEstimate> rebuild(long mergedCount,FloatFrequencyEstimate[] topK);
+
+    protected abstract FloatFrequentElements getNew(long totalCount, Collection<FloatFrequencyEstimate> ests);
 
     /* ****************************************************************************************************************/
     /*private helper methods*/
@@ -210,6 +226,12 @@ public abstract class FloatFrequentElements implements FrequentElements<Float> {
             }
             return newElements;
         }
+
+        @Override
+        protected FloatFrequentElements getNew(long totalCount, Collection<FloatFrequencyEstimate> ests) {
+            return new TopK(k,totalCount,ests);
+        }
+
     }
 
     private static class HeavyItems extends FloatFrequentElements{
@@ -231,6 +253,11 @@ public abstract class FloatFrequentElements implements FrequentElements<Float> {
                     result.add(est);
             }
             return result;
+        }
+
+        @Override
+        protected FloatFrequentElements getNew(long totalCount, Collection<FloatFrequencyEstimate> ests) {
+            return new HeavyItems(support,totalCount,ests);
         }
     }
 
@@ -292,7 +319,7 @@ public abstract class FloatFrequentElements implements FrequentElements<Float> {
         }
 
         private void encodeSet(NavigableSet<FloatFrequencyEstimate> elements, DataOutput dataInput) throws IOException {
-            dataInput.writeFloat(elements.size());
+            dataInput.writeInt(elements.size());
             for(FloatFrequencyEstimate element:elements){
                 dataInput.writeFloat(element.value());
                 dataInput.writeLong(element.count());

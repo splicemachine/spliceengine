@@ -4,7 +4,6 @@ import com.google.common.primitives.Longs;
 import com.splicemachine.annotations.Untested;
 import com.splicemachine.encoding.Encoder;
 import com.splicemachine.primitives.ByteComparator;
-import com.splicemachine.stats.Mergeable;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -83,6 +82,11 @@ public abstract class BytesFrequentElements implements FrequentElements<byte[]>{
     @Override
     public FrequencyEstimate<? extends byte[]> equal(byte[] item) {
         return countEqual(item,0,item.length);
+    }
+
+    @Override
+    public Set<? extends FrequencyEstimate<byte[]>> allFrequentElements() {
+        return Collections.unmodifiableSet(elements);
     }
 
     @Untested
@@ -276,6 +280,13 @@ public abstract class BytesFrequentElements implements FrequentElements<byte[]>{
         return new EncoderDecoder(byteComparator);
     }
 
+    public BytesFrequentElements getClone(){
+        Collection<BytesFrequencyEstimate> copy = new TreeSet<>(elements);
+        return getNew(totalCount,copy,comparator);
+    }
+
+    protected abstract BytesFrequentElements getNew(long totalCount, Collection<BytesFrequencyEstimate> copy, ByteComparator comparator);
+
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private static class TopK extends BytesFrequentElements {
@@ -298,6 +309,11 @@ public abstract class BytesFrequentElements implements FrequentElements<byte[]>{
                 result.add(topK[i]);
             }
             return result;
+        }
+
+        @Override
+        protected BytesFrequentElements getNew(long totalCount, Collection<BytesFrequencyEstimate> copy, ByteComparator comparator) {
+            return new TopK(k,totalCount,copy,comparator);
         }
     }
 
@@ -323,6 +339,11 @@ public abstract class BytesFrequentElements implements FrequentElements<byte[]>{
                     result.add(est);
             }
             return result;
+        }
+
+        @Override
+        protected BytesFrequentElements getNew(long totalCount, Collection<BytesFrequencyEstimate> copy, ByteComparator comparator) {
+            return new HeavyItems(support,totalCount,copy,comparator);
         }
     }
 

@@ -3,6 +3,8 @@ package com.splicemachine.stats.cardinality;
 import com.splicemachine.hash.Hash64;
 import com.splicemachine.stats.DoubleFunction;
 
+import java.util.Arrays;
+
 /**
  * Cardinality Estimator with automatic bias-adjustment for low-cardinality estimations.
  *
@@ -21,7 +23,17 @@ public class AdjustedHyperLogLogCounter extends BaseBiasAdjustedHyperLogLogCount
 				this.buckets = new byte[numRegisters];
 		}
 
-		public AdjustedHyperLogLogCounter(int precision, Hash64 hashFunction, DoubleFunction biasAdjuster) {
+    public AdjustedHyperLogLogCounter(int precision, Hash64 hashFunction, byte[] bytes) {
+        super(precision, hashFunction);
+        this.buckets = bytes;
+    }
+
+    @Override
+    public BaseLogLogCounter getClone() {
+        return new AdjustedHyperLogLogCounter(precision,hashFunction, Arrays.copyOf(buckets,buckets.length));
+    }
+
+    public AdjustedHyperLogLogCounter(int precision, Hash64 hashFunction, DoubleFunction biasAdjuster) {
 				super(precision, hashFunction, biasAdjuster);
 				this.buckets = new byte[numRegisters];
 		}

@@ -39,4 +39,27 @@ class ShortValueEstimate implements ShortFrequencyEstimate {
         this.epsilon+=other.error();
         return this;
     }
+
+    @Override
+    public String toString() {
+        return "("+value+","+count+","+epsilon+")";
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if(!(obj instanceof FrequencyEstimate)) return false;
+        if(obj instanceof ShortFrequencyEstimate)
+            return value==((ShortFrequencyEstimate)obj).value();
+        else {
+            FrequencyEstimate est = (FrequencyEstimate) obj;
+            Object o = est.getValue();
+            //not comparing with a short frequency estimate
+            return o instanceof Short && (Short) o == value;
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        return Shorts.hashCode(value);
+    }
 }

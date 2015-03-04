@@ -46,7 +46,20 @@ public class LongColumnStatistics implements ColumnStatistics<Long> {
     @Override public FrequentElements<Long> topK() { return frequentElements; }
     @Override public Long minValue() { return min; }
     @Override public Long maxValue() { return max; }
+    public long min() { return min; }
+    public long max() { return max; }
     @Override public long avgColumnWidth() { return totalBytes/totalCount; }
+
+    @Override
+    public ColumnStatistics<Long> getClone() {
+        return new LongColumnStatistics(cardinalityEstimator.newCopy(),
+                frequentElements.newCopy(),
+                min,
+                max,
+                totalBytes,
+                totalCount,
+                nullCount);
+    }
 
     @Override
     public ColumnStatistics<Long> merge(ColumnStatistics<Long> other) {
@@ -62,6 +75,10 @@ public class LongColumnStatistics implements ColumnStatistics<Long> {
         totalCount+=lo.totalCount;
         nullCount+=lo.nullCount;
         return this;
+    }
+
+    public static Encoder<LongColumnStatistics> encoder(){
+        return EncDec.INSTANCE;
     }
 
     static class EncDec implements Encoder<LongColumnStatistics> {

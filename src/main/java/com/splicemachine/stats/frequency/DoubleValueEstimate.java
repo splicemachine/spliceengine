@@ -39,4 +39,20 @@ class DoubleValueEstimate implements DoubleFrequencyEstimate {
         this.epsilon+=other.error();
         return this;
     }
- }
+
+    @Override
+    public int hashCode() {
+        return super.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if(!(obj instanceof  FrequencyEstimate)) return false;
+        if(obj instanceof DoubleFrequencyEstimate)
+            return ((DoubleFrequencyEstimate)obj).value()==value;
+        Object ob = ((FrequencyEstimate)obj).getValue();
+        return ob instanceof Double && (Double)ob == value;
+    }
+
+    @Override public String toString() { return "("+value+","+count+","+epsilon+")"; }
+}

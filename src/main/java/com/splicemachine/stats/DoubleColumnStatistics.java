@@ -52,6 +52,17 @@ public class DoubleColumnStatistics implements ColumnStatistics<Double> {
     @Override public long avgColumnWidth() { return totalBytes/totalCount;}
 
     @Override
+    public ColumnStatistics<Double> getClone() {
+        return new DoubleColumnStatistics(cardinalityEstimator.newCopy(),
+                frequentElements.newCopy(),
+                min,
+                max,
+                totalBytes,
+                totalCount,
+                nullCount);
+    }
+
+    @Override
     public ColumnStatistics<Double> merge(ColumnStatistics<Double> other) {
         assert other instanceof DoubleColumnStatistics: "Cannot merge statistics of type "+ other.getClass();
         DoubleColumnStatistics o = (DoubleColumnStatistics)other;
@@ -65,6 +76,10 @@ public class DoubleColumnStatistics implements ColumnStatistics<Double> {
         totalCount+=o.totalCount;
         nullCount+=o.nullCount;
         return this;
+    }
+
+    public static Encoder<DoubleColumnStatistics> encoder(){
+        return EncDec.INSTANCE;
     }
 
     static class EncDec implements Encoder<DoubleColumnStatistics> {

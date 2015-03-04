@@ -52,4 +52,6 @@ class BytesValueEstimate implements BytesFrequencyEstimate {
         this.error+=other.error();
         return this;
     }
+
+    //TODO -sf- do equals and hashCode methods
 }

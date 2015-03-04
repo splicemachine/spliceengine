@@ -23,6 +23,20 @@ public class ConcurrentHyperLogLogCounter extends BaseHyperLogLogCounter {
         this.buckets = new AtomicIntegerArray(numRegisters);
     }
 
+    private ConcurrentHyperLogLogCounter(int precision, Hash64 hashFunction, AtomicIntegerArray buckets) {
+        super(precision, hashFunction);
+        this.buckets = buckets;
+    }
+
+    @Override
+    public BaseLogLogCounter getClone() {
+        AtomicIntegerArray atomicIntegerArray = new AtomicIntegerArray(buckets.length());
+        for(int i=0;i<buckets.length();i++){
+            atomicIntegerArray.set(i,buckets.get(i));
+        }
+        return new ConcurrentHyperLogLogCounter(precision,hashFunction, atomicIntegerArray);
+    }
+
     @Override
     protected void updateRegister(int register, int value) {
         boolean success =false;

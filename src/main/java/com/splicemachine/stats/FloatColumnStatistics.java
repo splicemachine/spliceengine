@@ -52,6 +52,18 @@ public class FloatColumnStatistics implements ColumnStatistics<Float> {
     @Override public long avgColumnWidth() { return totalBytes/totalCount;}
 
     @Override
+    public ColumnStatistics<Float> getClone() {
+        return new FloatColumnStatistics(cardinalityEstimator.newCopy(),
+                frequentElements.newCopy(),
+                min,
+                max,
+                totalBytes,
+                totalCount,
+                nullCount);
+    }
+
+
+    @Override
     public ColumnStatistics<Float> merge(ColumnStatistics<Float> other) {
         assert other instanceof FloatColumnStatistics: "Cannot merge statistics of type "+ other.getClass();
         FloatColumnStatistics o = (FloatColumnStatistics)other;
@@ -65,6 +77,10 @@ public class FloatColumnStatistics implements ColumnStatistics<Float> {
         totalCount+=o.totalCount;
         nullCount+=o.nullCount;
         return this;
+    }
+
+    public static Encoder<FloatColumnStatistics> encoder(){
+        return EncDec.INSTANCE;
     }
 
     static class EncDec implements Encoder<FloatColumnStatistics> {

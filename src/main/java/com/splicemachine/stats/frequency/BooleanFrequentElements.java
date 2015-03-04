@@ -12,4 +12,6 @@ public interface BooleanFrequentElements extends FrequentElements<Boolean> {
     BooleanFrequencyEstimate equalsFalse();
 
     BooleanFrequencyEstimate equals(boolean value);
+
+    BooleanFrequentElements getClone();
 }

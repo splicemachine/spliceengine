@@ -9,4 +9,6 @@ import com.splicemachine.stats.BytesUpdateable;
 public interface BytesCardinalityEstimator extends CardinalityEstimator<byte[]>,BytesUpdateable{
 
     BytesCardinalityEstimator merge(BytesCardinalityEstimator other);
+
+    BytesCardinalityEstimator getClone();
 }

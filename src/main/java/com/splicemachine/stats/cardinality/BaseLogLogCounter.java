@@ -58,7 +58,7 @@ import java.nio.ByteBuffer;
 public abstract class BaseLogLogCounter{
 		protected final int numRegisters;
 		protected final int precision;
-		private final Hash64 hashFunction;
+		protected final Hash64 hashFunction;
 
 		//cached for performance
 		protected final double alphaM;
@@ -132,6 +132,12 @@ public abstract class BaseLogLogCounter{
             updateRegister(i,otherCounter.getRegister(i));
         }
     }
+
+    /**
+     * Clone this counter
+     * @return a new Counter with the same contents
+     */
+    public abstract BaseLogLogCounter getClone();
 
     /**
 		 * Compute the multiplicative scale factor {@code alpha}. Generally,
