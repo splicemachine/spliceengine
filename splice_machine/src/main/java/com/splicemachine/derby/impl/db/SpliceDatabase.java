@@ -45,7 +45,6 @@ import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
 import org.apache.hadoop.hbase.HTableDescriptor;
-import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.log4j.Logger;
@@ -444,10 +443,10 @@ public class SpliceDatabase extends BasicDatabase {
             		" starts for "+ descriptorArray.length+" tables.");
             long globalStart = System.currentTimeMillis();
             for (HTableDescriptor descriptor: descriptorArray) {
-                TableName tableName = descriptor.getTableName();                
+                String tableName = descriptor.getNameAsString();                
                 long start = System.currentTimeMillis();
-                String snapshotName = tableName.getNameAsString() + "_"+snapId;
-                admin.snapshot(snapshotName.getBytes(), tableName.toBytes());
+                String snapshotName = tableName + "_"+snapId;
+                admin.snapshot(snapshotName.getBytes(), tableName.getBytes());
                 LOG.info("Snapshot: "+tableName+" done in "+ (System.currentTimeMillis() - start)+"ms");
             }
             LOG.info("Snapshot database finished in +" +(System.currentTimeMillis() - globalStart)/1000+ " sec");
