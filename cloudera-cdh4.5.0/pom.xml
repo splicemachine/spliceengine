@@ -150,12 +150,12 @@
 			<artifactId>super-csv</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>org.apache.derby</groupId>
-			<artifactId>derby</artifactId>
+			<groupId>com.splicemachine</groupId>
+			<artifactId>db</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>org.apache.derby</groupId>
-			<artifactId>derbyclient</artifactId>
+			<groupId>com.splicemachine</groupId>
+			<artifactId>dbclient</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.lucene</groupId>
