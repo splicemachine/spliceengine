@@ -145,12 +145,14 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
         if(rowDecodingMap!=null) {
             for (int i = 0; i < rowDecodingMap.length; i++) {
                 int pos = rowDecodingMap[i];
+                if(pos<0) continue;
                 columnLengths[pos] = accumulator.getCurrentLength(i);
             }
         }
         if(keyDecodingMap!=null) {
             for (int i = 0; i < keyDecodingMap.length; i++) {
                 int pos = keyDecodingMap[i];
+                if(pos<0) continue;
                 columnLengths[pos] = keyAccumulator.getCurrentLength(i);
             }
         }

@@ -23,6 +23,8 @@ import java.util.Set;
 public class DoubleStats extends BaseDvdStatistics{
     private DoubleColumnStatistics stats;
 
+    public DoubleStats(){}
+
     public DoubleStats(DoubleColumnStatistics build) {
         super(build);
         stats = build;
@@ -35,7 +37,7 @@ public class DoubleStats extends BaseDvdStatistics{
 
     @Override public DataValueDescriptor minValue() {
         try {
-            return new SQLDouble(stats.max());
+            return new SQLDouble(stats.min());
         } catch (StandardException e) {
             throw new RuntimeException(e);
         }

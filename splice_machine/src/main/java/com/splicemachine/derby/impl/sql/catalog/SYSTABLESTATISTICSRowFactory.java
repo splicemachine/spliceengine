@@ -141,20 +141,22 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
         DataTypeDescriptor varcharType = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR);
         DataTypeDescriptor longType = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT);
         return new ColumnDescriptor[]{
-                new ColumnDescriptor("TABLENAME"         ,1,varcharType,varcharType.getNull(),null,view,viewId,0,0),
-                new ColumnDescriptor("TOTAL_ROW_COUNT"   ,2,longType,longType.getNull(),null,view,viewId,0,0),
-                new ColumnDescriptor("AVG_ROW_COUNT"     ,3,longType,longType.getNull(),null,view,viewId,0,0),
-                new ColumnDescriptor("TOTAL_SIZE"        ,4,longType,longType.getNull(),null,view,viewId,0,0),
-                new ColumnDescriptor("NUM_PARTITIONS"    ,5,longType,longType.getNull(),null,view,viewId,0,0),
-                new ColumnDescriptor("AVG_PARTITION_SIZE",6,longType,longType.getNull(),null,view,viewId,0,0),
-                new ColumnDescriptor("ROW_WIDTH"         ,7,longType,longType.getNull(),null,view,viewId,0,0),
-                new ColumnDescriptor("TOTAL_QUERY_COUNT" ,8,longType,longType.getNull(),null,view,viewId,0,0),
-                new ColumnDescriptor("AVG_QUERY_COUNT"   ,9,longType,longType.getNull(),null,view,viewId,0,0),
+                new ColumnDescriptor("SCHEMANAME"         ,1,varcharType,null,null,view,viewId,0,0),
+                new ColumnDescriptor("TABLENAME"          ,2,varcharType,null,null,view,viewId,0,0),
+                new ColumnDescriptor("TOTAL_ROW_COUNT"    ,3,longType,null,null,view,viewId,0,0),
+                new ColumnDescriptor("AVG_ROW_COUNT"      ,4,longType,null,null,view,viewId,0,0),
+                new ColumnDescriptor("TOTAL_SIZE"         ,5,longType,null,null,view,viewId,0,0),
+                new ColumnDescriptor("NUM_PARTITIONS"     ,6,longType,null,null,view,viewId,0,0),
+                new ColumnDescriptor("AVG_PARTITION_SIZE" ,7,longType,null,null,view,viewId,0,0),
+                new ColumnDescriptor("ROW_WIDTH"          ,8,longType,null,null,view,viewId,0,0),
+                new ColumnDescriptor("TOTAL_QUERY_COUNT"  ,9,longType,null,null,view,viewId,0,0),
+                new ColumnDescriptor("AVG_QUERY_COUNT"    ,10,longType,null,null,view,viewId,0,0),
         };
     }
 
     public static final String STATS_VIEW_SQL = "create view systablestatistics as select " +
-            "t.tablename" + // 0
+            "s.schemaname" +
+            ",t.tablename" + // 0
             ",sum(ts.rowCount) as TOTAL_ROW_COUNT" +  //1
             ",avg(ts.rowCount) as AVG_ROW_COUNT" +      //2
             ",sum(ts.partition_size) as TOTAL_SIZE" + //3
@@ -165,14 +167,17 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
             ",avg(ts.queryCount) as AVG_QUERY_COUNT" + //8
             " from " +
             "sys.systables t" +
+            ",sys.sysschemas s" +
             ",sys.sysconglomerates c" +
             ",sys.systablestats ts" +
             " where " +
             "t.tableid = c.tableid " +
             "and c.conglomeratenumber = ts.conglomerateid " +
+            "and t.schemaid = s.schemaid " +
             "and PARTITION_EXISTS(ts.conglomerateId,ts.partitionid)" +
             " group by " +
-            "t.tablename";
+            "s.schemaname" +
+            ",t.tablename";
 
     public static void main(String...args) {
         System.out.println(STATS_VIEW_SQL);

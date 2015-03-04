@@ -22,6 +22,7 @@ import java.util.Set;
  */
 public class RealStats extends BaseDvdStatistics {
     private FloatColumnStatistics stats;
+    public RealStats(){}
 
     public RealStats(FloatColumnStatistics build) {
         super(build);
