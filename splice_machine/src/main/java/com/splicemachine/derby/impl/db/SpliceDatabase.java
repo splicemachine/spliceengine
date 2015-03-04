@@ -435,7 +435,7 @@ public class SpliceDatabase extends BasicDatabase {
 
     }
 
-    private static List<String> createSnapshots(String snapId) throws StandardException {
+    private static void createSnapshots(String snapId) throws StandardException {
         
     	try {
             HBaseAdmin admin = SpliceUtilities.getAdmin();
