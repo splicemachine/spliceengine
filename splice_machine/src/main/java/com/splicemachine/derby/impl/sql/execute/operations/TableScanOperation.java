@@ -414,7 +414,7 @@ public class TableScanOperation extends ScanOperation {
 								.keyDecodingMap(getKeyDecodingMap())
 								.rowDecodingMap(baseColumnMap);        	
             JavaSparkContext ctx = SpliceSpark.getContext();
-            Configuration conf = HBaseConfiguration.create(SIConstants.config);
+            Configuration conf = new Configuration(SIConstants.config);
             conf.set(MRConstants.SPLICE_INPUT_CONGLOMERATE, tableName);
             conf.set(MRConstants.SPLICE_JDBC_STR, "jdbc:derby://localhost:1527/splicedb;create=true;user=splice;password=admin");            
             try {
