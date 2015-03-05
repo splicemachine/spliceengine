@@ -8,7 +8,6 @@ import com.splicemachine.derby.impl.temp.TempTable;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.mrio.api.MemstoreAware;
-import com.splicemachine.mrio.api.UnstableScannerDNRIOException;
 import com.splicemachine.pipeline.api.WriteContext;
 import com.splicemachine.pipeline.writecontextfactory.WriteContextFactory;
 import com.splicemachine.pipeline.constraint.Constraint;
@@ -24,6 +23,7 @@ import com.splicemachine.si.impl.WriteConflict;
 import com.splicemachine.utils.SpliceLogUtils;
 
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
+import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.client.IsolationLevel;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Scan;
@@ -226,6 +226,16 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
         }
     }
     
+    private boolean startRowInRange(ObserverContext<RegionCoprocessorEnvironment> c, byte[] startRow) {
+    	return HRegion.rowIsInRange(c.getEnvironment().getRegion().getRegionInfo(), startRow);
+    }
+
+    private boolean stopRowInRange(ObserverContext<RegionCoprocessorEnvironment> c, byte[] stopRow) {
+    	return HRegion.rowIsInRange(c.getEnvironment().getRegion().getRegionInfo(), stopRow)
+    			|| Bytes.equals(c.getEnvironment().getRegion().getRegionInfo().getEndKey(),stopRow);
+    	
+    }
+
     @Override
 	public KeyValueScanner preStoreScannerOpen(
 			ObserverContext<RegionCoprocessorEnvironment> c, Store store,
@@ -238,11 +248,10 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
 						c.getEnvironment().getRegion() );
 			}
 			if(LOG.isDebugEnabled()){
-				SpliceLogUtils.debug(LOG, "scan Check Code startKey {value=%s, inRange=%s}, endKey {value=%s, inRange=%s}", 
-						scan.getStartRow(), HRegion.rowIsInRange(c.getEnvironment().getRegion().getRegionInfo(), scan.getStartRow()),
-						scan.getStopRow(), HRegion.rowIsInRange(c.getEnvironment().getRegion().getRegionInfo(), scan.getStopRow()));
+				SpliceLogUtils.debug(LOG, "scan Check Code scan=%s, startKey {value=%s, inRange=%s}, endKey {value=%s, inRange=%s}",scan ,
+						scan.getStartRow().length > 0?org.apache.hadoop.hbase.util.Bytes.toHex(scan.getStartRow()):"[]", startRowInRange(c, scan.getStartRow()),
+						scan.getStopRow().length > 0?org.apache.hadoop.hbase.util.Bytes.toHex(scan.getStopRow()):"[]", stopRowInRange(c, scan.getStopRow()));
 			}
-			
 			
 			// Throw Retry Exception if the region is splitting
 			
@@ -251,20 +260,20 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
 				MemstoreAware currentState = memstoreAware.get();
 				if (currentState.splitMerge || currentState.compactionCount>0) {
 					SpliceLogUtils.warn(LOG, "splitting, merging, or active compaction on scan on %s",c.getEnvironment().getRegion().getRegionNameAsString());
-					throw new UnstableScannerDNRIOException();
+					throw new DoNotRetryIOException();
 				}					
 	            if (memstoreAware.compareAndSet(currentState, MemstoreAware.incrementScannerCount(currentState)));
 	                break;
 	        }
-				if (!HRegion.rowIsInRange(c.getEnvironment().getRegion().getRegionInfo(), scan.getStartRow()) ||
-						!HRegion.rowIsInRange(c.getEnvironment().getRegion().getRegionInfo(), scan.getStartRow())) {
+				if (!startRowInRange(c, scan.getStartRow()) ||
+						!stopRowInRange(c, scan.getStopRow())) {
 					while (true) {
 						MemstoreAware latest = memstoreAware.get();
 						if(memstoreAware.compareAndSet(latest, MemstoreAware.decrementScannerCount(latest)));
 							break;
 					}
-					SpliceLogUtils.warn(LOG, "scan missed do to split after task creation beginKey=%s, endKey=%s, region=%s",scan.getStartRow(), scan.getStopRow(),c.getEnvironment().getRegion().getRegionNameAsString());
-					throw new UnstableScannerDNRIOException();
+					SpliceLogUtils.warn(LOG, "scan missed do to split after task creation beginKey=%s, endKey=%s, region=%s",scan.getStartRow().length > 0?org.apache.hadoop.hbase.util.Bytes.toHex(scan.getStartRow()):"[]", scan.getStopRow().length > 0?org.apache.hadoop.hbase.util.Bytes.toHex(scan.getStopRow()):"[]",c.getEnvironment().getRegion().getRegionNameAsString());
+					throw new DoNotRetryIOException();
 				}
 			
 			InternalScan iscan = new InternalScan(scan);
