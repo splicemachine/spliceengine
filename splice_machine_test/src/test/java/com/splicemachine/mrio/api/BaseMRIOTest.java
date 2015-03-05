@@ -24,6 +24,7 @@ public class BaseMRIOTest extends SpliceUnitTest {
 		config = HBaseConfiguration.create();
 		config.set("hbase.zookeeper.quorum", "127.0.0.1:2181");
 		config.set(HConstants.HBASE_DIR,getHBaseDirectory());
+        config.set("fs.default.name", "file:///"); // MapR Hack, tells it local filesystem
 		sqlUtil = SMSQLUtil.getInstance(SpliceNetConnection.getDefaultLocalURL());
 	}
 	
