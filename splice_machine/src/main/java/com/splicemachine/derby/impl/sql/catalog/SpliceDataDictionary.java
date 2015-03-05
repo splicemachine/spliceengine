@@ -286,17 +286,9 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
         return backupItemsTable;
     }
 
-    private TabInfoImpl getBackupRegionsTable() throws StandardException {
-        if (backupRegionsTable == null) {
-            backupRegionsTable = new TabInfoImpl(new BACKUPREGIONSRowFactory(uuidFactory,exFactory,dvf));
-        }
-        initSystemIndexVariables(backupRegionsTable);
-        return backupRegionsTable;
-    }
-
     private TabInfoImpl getBackupStatesTable() throws StandardException {
         if (backupStatesTable == null) {
-            backupStatesTable = new TabInfoImpl(new BACKUPSTATESRowFactory(uuidFactory,exFactory,dvf));
+            backupStatesTable = new TabInfoImpl(new BACKUPFILESETRowFactory(uuidFactory,exFactory,dvf));
         }
         initSystemIndexVariables(backupStatesTable);
         return backupStatesTable;
@@ -427,15 +419,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
             createUserTable(backupItemsTabInfo, backupSchemaDesc, tc);
         } else {
             if (LOG.isTraceEnabled()) LOG.trace(String.format("Skipping table creation since system table %s.%s already exists.", backupSchemaDesc.getSchemaName(), backupItemsTabInfo.getTableName()));
-        }
-
-        // Create BACKUPREGIONS
-        TabInfoImpl backupRegionsTabInfo = getBackupRegionsTable();
-        if (getTableDescriptor(backupRegionsTabInfo.getTableName(), backupSchemaDesc, tc) == null ) {
-            if (LOG.isTraceEnabled()) LOG.trace(String.format("Creating system table %s.%s", backupSchemaDesc.getSchemaName(), backupRegionsTabInfo.getTableName()));
-            createUserTable(backupRegionsTabInfo, backupSchemaDesc, tc);
-        } else {
-            if (LOG.isTraceEnabled()) LOG.trace(String.format("Skipping table creation since system table %s.%s already exists.", backupSchemaDesc.getSchemaName(), backupRegionsTabInfo.getTableName()));
         }
 
         // Create BACKUPSTATES

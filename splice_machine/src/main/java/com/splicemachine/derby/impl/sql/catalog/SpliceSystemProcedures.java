@@ -36,6 +36,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
     private static final String IMPORT_DATA_NAME = "SYSCS_IMPORT_DATA";
     private static final String XPLAIN_SCHEMA_NAME = "SYSCS_SET_XPLAIN_SCHEMA";
     public static final String RESTORE_DATABASE_NAME = "SYSCS_RESTORE_DATABASE";
+    public static final String BACKUP_DATABASE_NAME = "SYSCS_BACKUP_DATABASE";
 
     /** Flag to ensure the list of procedures is only initialized once. */
     private static volatile boolean initialized = false;
@@ -83,7 +84,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                                 .varchar("columnIndexes",32672)
                                 .varchar("fileName",32672)
                                 .varchar("columnDelimiter",5)
-                                .varchar("characterDelimiter",5)
+                                .varchar("characterDelimiter", 5)
                                 .varchar("timestampFormat",32672)
                                 .varchar("dateFormat",32672)
                                 .varchar("timeFormat",32672).build();
@@ -96,7 +97,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                                 .varchar("insertColumnList",32672)
                                 .varchar("fileName",32672)
                                 .varchar("columnDelimiter",5)
-                                .varchar("characterDelimiter",5)
+                                .varchar("characterDelimiter", 5)
                                 .varchar("timestampFormat",32672)
                                 .varchar("dateFormat",32672)
                                 .varchar("timeFormat",32672)
@@ -112,7 +113,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                                 .varchar("insertColumnList",32672)
                                 .varchar("fileName",32672)
                                 .varchar("columnDelimiter",5)
-                                .varchar("characterDelimiter",5)
+                                .varchar("characterDelimiter", 5)
                                 .varchar("timestampFormat",32672)
                                 .varchar("dateFormat",32672)
                                 .varchar("timeFormat",32672)
@@ -140,6 +141,14 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                                 .bigint("backupId")
                                 .build();
                         procedures.set(i, restore);
+                    } else if(BACKUP_DATABASE_NAME.equals(sysProc.getName())) {
+                        Procedure backup = Procedure.newBuilder().name(BACKUP_DATABASE_NAME)
+                                .numOutputParams(0).numResultSets(1).ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                                .varchar("directory", 32672)
+                                .varchar("type", 32672)
+                                .integer("frequency")
+                                .build();
+                        procedures.set(i, backup);
                     }
                 } // End iteration through existing procedures
 

@@ -18,7 +18,6 @@ import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -212,10 +211,7 @@ public class Backup implements InternalTable {
     public void setBackupFilesystem(String backupFilesystem) {
         this.backupFilesystem = backupFilesystem;
         this.baseFolder = backupFilesystem + "/" + BACKUP_BASE_FOLDER;
-        if (incrementalParentBackupID != -1) {
-            this.baseFolder += "$" + incrementalParentBackupID;
-        }
-        this.baseFolder += "_" + backupTransaction.getBeginTimestamp();
+        this.baseFolder += "$" + backupTransaction.getBeginTimestamp();
     }
 
     public BackupScope getBackupScope() {
@@ -447,11 +443,15 @@ public class Backup implements InternalTable {
         };
     }
 
-    public void createBackupItems(HBaseAdmin admin) throws IOException, StandardException {
+    public void createBackupItems(HBaseAdmin admin, Set<String> snapshotNameSet, Set<String> newSnapshotNameSet)
+                                                                            throws IOException, StandardException {
         HTableDescriptor[] descriptorArray = admin.listTables();
+
         for (HTableDescriptor descriptor: descriptorArray) {
             BackupItem item = new BackupItem(descriptor,this);
+            item.createSnapshot(admin, backupTransaction.getBeginTimestamp(), newSnapshotNameSet);
             item.setLastBackupTimestamp();
+            item.setLastSnapshotName(snapshotNameSet);
             addBackupItem(item);
         }
     }
@@ -614,7 +614,7 @@ public class Backup implements InternalTable {
         if (fileSystem.exists(oldBase)) {
             fileSystem.delete(oldBase, true);
         }
-        Path base = new Path(backupFilesystem + "/" + BACKUP_BASE_FOLDER);
+        Path base = new Path(backupFilesystem + "/" + BACKUP_BASE_FOLDER + "$" + backupTransaction.getBeginTimestamp());
         fileSystem.rename(base, oldBase);
 
         fileSystem.rename(getBaseBackupFilesystemAsPath(), base);

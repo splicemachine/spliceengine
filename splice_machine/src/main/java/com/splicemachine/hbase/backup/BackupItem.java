@@ -6,12 +6,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.CancellationException;
-import java.util.concurrent.ExecutionException;
 
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.JobInfo;
@@ -20,7 +16,7 @@ import com.splicemachine.job.JobFuture;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.types.SQLTimestamp;
+import com.splicemachine.utils.SpliceUtilities;
 import org.apache.hadoop.fs.*;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HTableDescriptor;
@@ -33,12 +29,18 @@ import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.utils.SpliceAdmin;
 import org.apache.hadoop.hbase.util.Pair;
 
+import org.apache.hadoop.hbase.TableName;
+import org.apache.log4j.Logger;
+
 public class BackupItem implements InternalTable {
+
+    private static Logger LOG = Logger.getLogger(BackupItem.class);
+
 	public static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
 	public static final String DEFAULT_SCHEMA = Backup.DEFAULT_SCHEMA;
 	public static final String DEFAULT_TABLE = "BACKUP_ITEMS";
-	public static final String INSERT_BACKUP_ITEM = "insert into %s.%s (transaction_id, item, begin_timestamp)"
-			+ " values (?,?,?)";
+	public static final String INSERT_BACKUP_ITEM = "insert into %s.%s (transaction_id, item, begin_timestamp, snapshot_name)"
+			+ " values (?,?,?, ?)";
     public static final String UPDATE_BACKUP_ITEM_STATUS = "update %s.%s set end_timestamp = ? where transaction_id = ? and item = ?";
     public static final String QUERY_BACKUP_ITEM = "select item, begin_timestamp, end_timestamp from %s.%s where transaction_id=?";
 
@@ -58,6 +60,8 @@ public class BackupItem implements InternalTable {
 	private Timestamp backupItemEndTimestamp;
     private long lastBackupTimestamp;
     private List<Long> backupIdList;
+    private String snapshotName;
+    private String lastSnapshotName;
 
     private List<RegionInfo> regionInfoList = new ArrayList<RegionInfo>();
 
@@ -125,7 +129,6 @@ public class BackupItem implements InternalTable {
         out.writeObject(backup); // TODO Needs to be replaced with protobuf
         out.writeUTF(backupItem);
         out.writeLong(lastBackupTimestamp);
-        //out.writeObject(lastBackupTimestamp);
         out.writeObject(regionInfoList);
     }
 
@@ -137,6 +140,9 @@ public class BackupItem implements InternalTable {
         regionInfoList = (List<RegionInfo>) in.readObject();
     }
 
+    public String getSnapshotName() {
+        return snapshotName;
+    }
     public void insertBackupItem() throws SQLException {
         Connection connection = null;
         try {
@@ -145,6 +151,7 @@ public class BackupItem implements InternalTable {
             preparedStatement.setLong(1, getBackupTransaction().getTxnId());
             preparedStatement.setString(2, getBackupItem());
             preparedStatement.setTimestamp(3, getBackupItemBeginTimestamp());
+            preparedStatement.setString(4, getSnapshotName());
             preparedStatement.execute();
             return;
         } catch (SQLException e) {
@@ -270,6 +277,17 @@ public class BackupItem implements InternalTable {
         regionInfoList.add(regionInfo);
     }
 
+    public void setLastSnapshotName(Set<String> snapshotNameSet) throws StandardException {
+        Backup parentBackup = backup.getIncrementalParentBackup();
+        if (parentBackup != null) {
+            long backupTxnId = parentBackup.getBackupId();
+            String name = backupItem + "_" + backupTxnId;
+            if (snapshotNameSet.contains(name)) {
+                lastSnapshotName = name;
+            }
+        }
+    }
+
     public void setLastBackupTimestamp() throws StandardException{
         Backup parentBackup = backup.getIncrementalParentBackup();
         if (parentBackup != null) {
@@ -317,12 +335,21 @@ public class BackupItem implements InternalTable {
             createBackupItemFilesystem();
             writeDescriptorToFileSystem();
             HTableInterface table = SpliceAccessManager.getHTable(getBackupItemBytes());
-            CreateBackupJob job = new CreateBackupJob(this, table, getBackupItemFilesystem());
-            JobFuture future = SpliceDriver.driver().getJobScheduler().submit(job);
-            info = new JobInfo(job.getJobId(), future.getNumTasks(), System.currentTimeMillis());
-            info.setJobFuture(future);
-            future.completeAll(info);
-            writeRegionSplitInfo();
+            if (backup.getIncrementalParentBackupID() > 0) {
+                CreateIncrementalBackupJob job = new CreateIncrementalBackupJob(this, table, getBackupItemFilesystem(), snapshotName, lastSnapshotName);
+                JobFuture future = SpliceDriver.driver().getJobScheduler().submit(job);
+                info = new JobInfo(job.getJobId(), future.getNumTasks(), System.currentTimeMillis());
+                info.setJobFuture(future);
+                future.completeAll(info);
+            }
+            else {
+                CreateBackupJob job = new CreateBackupJob(this, table, getBackupItemFilesystem());
+                JobFuture future = SpliceDriver.driver().getJobScheduler().submit(job);
+                info = new JobInfo(job.getJobId(), future.getNumTasks(), System.currentTimeMillis());
+                info.setJobFuture(future);
+                future.completeAll(info);
+            }
+            //writeRegionSplitInfo();
             setBackupItemEndTimestamp(new Timestamp(System.currentTimeMillis()));
             updateBackupItem();
         } catch (CancellationException ce) {
@@ -332,8 +359,21 @@ public class BackupItem implements InternalTable {
             throw Exceptions.parseException(e);
         }
     }
- 
-    
+
+    public void createSnapshot(HBaseAdmin admin, long snapId, Set<String> snapshotNameSet) throws StandardException {
+        try {
+            TableName tableName = tableDescriptor.getTableName();
+            long start = System.currentTimeMillis();
+            snapshotName = tableName.getNameAsString() + "_" + snapId;
+            admin.snapshot(snapshotName.getBytes(), tableName.toBytes());
+            snapshotNameSet.add(snapshotName);
+            LOG.info("Snapshot: " + tableName + " done in " + (System.currentTimeMillis() - start) + "ms");
+        }
+        catch (Exception e) {
+            throw StandardException.newException(e.getMessage());
+        }
+    }
+
     public static class RegionInfo implements Externalizable {
         private HRegionInfo hRegionInfo;
         private List<Pair<byte[], String>> famPaths;

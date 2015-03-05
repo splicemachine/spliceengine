@@ -47,6 +47,7 @@ import com.splicemachine.db.shared.common.sanity.SanityManager;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.protobuf.generated.HBaseProtos;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.derby.hbase.SpliceDriver;
@@ -466,6 +467,7 @@ public class SpliceDatabase extends BasicDatabase {
 
         HBaseAdmin admin = null;
         Backup backup = null;
+        Set<String> newSnapshotNameSet = new HashSet<>();
         try {
 
             // Check for ongoing backup...
@@ -477,7 +479,12 @@ public class SpliceDatabase extends BasicDatabase {
             backup = Backup.createBackup(backupDir, BackupScope.D, parent_backup_id);
             backup.createBaseBackupDirectory();
             admin = SpliceUtilities.getAdmin();
-            backup.createBackupItems(admin);
+            Set<String> snapshotNameSet = new HashSet<>();
+            List<HBaseProtos.SnapshotDescription> snapshots = admin.listSnapshots();
+            for (HBaseProtos.SnapshotDescription s : snapshots) {
+                snapshotNameSet.add(s.getName());
+            }
+            backup.createBackupItems(admin, snapshotNameSet, newSnapshotNameSet);
             backup.insertBackup();
             backup.createProperties();
             // Create snapshots first for all tables in backup list

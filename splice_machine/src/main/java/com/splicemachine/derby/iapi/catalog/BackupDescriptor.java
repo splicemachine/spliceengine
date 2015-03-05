@@ -3,7 +3,7 @@ package com.splicemachine.derby.iapi.catalog;
 /**
  * Created by jyuan on 2/6/15.
  */
-import org.apache.derby.iapi.sql.dictionary.TupleDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.TupleDescriptor;
 import org.joda.time.DateTime;
 
 public class BackupDescriptor extends TupleDescriptor {
