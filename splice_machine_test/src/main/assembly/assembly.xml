@@ -42,8 +42,8 @@
 				<include>net.sf.ehcache:ehcache-core</include>
 				<include>net.sf.opencsv:opencsv</include>
 				<include>net.sf.supercsv:super-csv</include>
-				<include>org.apache.derby:derby</include>
-				<include>org.apache.derby:derbyclient</include>
+				<include>com.splicemachine:db</include>
+				<include>com.splicemachine:dbclient</include>
 				<include>org.apache.lucene:lucene-core</include>
 				<include>org.apache.spark</include>				
 			</includes>
