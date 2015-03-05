@@ -5,6 +5,7 @@ import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.Txn.IsolationLevel;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.ByteSlice;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -88,6 +89,11 @@ public abstract class AbstractTxnView implements TxnView {
     }
 
     @Override
+    public String getSavePointName() {
+    	return null;
+    }
+
+    @Override
     public boolean canSee(TxnView otherTxn) {
         assert otherTxn!=null: "Cannot access visibility semantics of a null transaction!";
         if(equals(otherTxn)) return true; //you can always see your own writes
@@ -124,15 +130,15 @@ public abstract class AbstractTxnView implements TxnView {
            * the READ_COMMITTED semantics. If the level is READ_UNCOMMITTED, use READ_UNCOMMITTED semantics.
            */
 
-          TxnView t = otherTxn;
+          TxnView lat = otherTxn;
           TxnView below = null;
-          while(t.getState()!=Txn.State.ACTIVE){
-              if(t.getState()== Txn.State.ROLLEDBACK) return false; //never see rolled back transactions
-              below = t;
-              t = t.getParentTxnView();
+          while(lat.getState()!=Txn.State.ACTIVE){
+              if(lat.getState()== Txn.State.ROLLEDBACK) return false; //never see rolled back transactions
+              below = lat;
+              lat = lat.getParentTxnView();
           }
 
-          if(t.descendsFrom(this)){
+          if(otherTxn.descendsFrom(this)){
               //we are an ancestor, so use READ_COMMITTED/READ_UNCOMMITTED semantics
               Txn.IsolationLevel level = isolationLevel;
               if(level== Txn.IsolationLevel.SNAPSHOT_ISOLATION)
@@ -143,34 +149,34 @@ public abstract class AbstractTxnView implements TxnView {
                */
               return level.canSee(beginTimestamp,otherTxn,true);
           }
-          else if(descendsFrom(t)){
-              if(below==null) return true; //we are a child of t, so we can see  the reads
+          else if(descendsFrom(lat)){
+              if(below==null) return true; //we are a child of lat, so we can see  the reads
               /*
                * We are a descendant of the LAT. Thus, we use the commit timestamp of below,
-               * and the begin timestamp of the child of t which is also our ancestor.
+               * and the begin timestamp of the child of lat which is also our ancestor.
                */
-              TxnView b = getImmediateChild(t);
+              TxnView b = getImmediateChild(lat);
 
               return isolationLevel.canSee(b.getBeginTimestamp(),below,false);
           }else{
              /*
               * We have no transactions in common. One of two things is true:
               *
-              * 1. we are at the ROOT transaction => do an isolationLevel visibility on t
+              * 1. we are at the ROOT transaction => do an isolationLevel visibility on lat
               * 2. we are at some node before the transaction => we are active.
               *
               * In either case, we allow the normal transactional semantics to determine our
               * effective state.
               */
               TxnView b = this;
-              while(!t.equals(b)){
+              while(!lat.equals(b)){
                   if(Txn.ROOT_TRANSACTION.equals(b.getParentTxnView())) break;
                   b = b.getParentTxnView();
               }
-              if(Txn.ROOT_TRANSACTION.equals(t))
-                  t = below; //the next element below
+              if(Txn.ROOT_TRANSACTION.equals(lat))
+                  lat = below; //the next element below
 
-              return isolationLevel.canSee(b.getBeginTimestamp(),t,false);
+              return isolationLevel.canSee(b.getBeginTimestamp(),lat,false);
           }
 
 		}
@@ -317,6 +323,9 @@ public abstract class AbstractTxnView implements TxnView {
     	output.writeLong(beginTimestamp);
     	output.writeByte(isolationLevel.encode());    			
 	}
-    
-    
+
+    @Override
+    public String toString(){
+        return getClass().getSimpleName() + "(" + txnId + "," + getState() + "," + getSavePointName() + ") -> " + getParentTxnView();
+    }    
 }

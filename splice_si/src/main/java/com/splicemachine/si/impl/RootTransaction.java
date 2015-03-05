@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Iterator;
+
 import com.google.common.collect.Iterators;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
@@ -61,6 +62,7 @@ public class RootTransaction implements Txn {
 
         @Override public State getState() { return State.ACTIVE; }
         @Override public boolean allowsWrites() { return true; }
+		@Override public String getSavePointName() { return null; }
 
         @Override
         public void commit() throws IOException {
@@ -96,5 +98,9 @@ public class RootTransaction implements Txn {
 		public void writeExternal(ObjectOutput out) throws IOException {
 			// No-Op
 		}
-        	
+
+		@Override
+		public void setSavePointName(String savePointName) {
+			// No-Op
+		}
 }

@@ -18,4 +18,14 @@ public abstract class AbstractTxn extends AbstractTxnView implements Txn {
         super(txnId,beginTimestamp,isolationLevel);
 		}
 
+		protected String savePointName = null;
+
+		public void setSavePointName(String savePointName) {
+			this.savePointName = savePointName;
+		}
+
+		@Override
+	    public String getSavePointName() {
+	    	return savePointName;
+	    }
 }
