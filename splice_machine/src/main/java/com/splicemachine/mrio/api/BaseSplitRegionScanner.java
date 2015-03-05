@@ -3,7 +3,9 @@ package com.splicemachine.mrio.api;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.hadoop.hbase.client.HTable;
@@ -13,6 +15,7 @@ import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Logger;
+
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.impl.HTransactorFactory;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -37,9 +40,10 @@ public abstract class BaseSplitRegionScanner<T> implements SpliceRegionScanner {
 	
 	public BaseSplitRegionScanner(Scan scan, HTable table, List<HRegionLocation> locations) throws IOException {
 		if (LOG.isDebugEnabled()) {
-			SpliceLogUtils.debug(LOG, "init");
+			SpliceLogUtils.debug(LOG, "init split scanner with scan=%s, table=%s, location_number=%d ,locations=%s",scan,table,locations.size(),locations);
 		}
 		this.scan = scan;
+		this.htable = table;
 		boolean hasAdditionalScanners = true;
 		while (hasAdditionalScanners) {
 			try {
@@ -63,11 +67,11 @@ public abstract class BaseSplitRegionScanner<T> implements SpliceRegionScanner {
 				    	  newScan.setStartRow(splitStart);
 				    	  newScan.setStopRow(splitStop);
 				    	  SpliceLogUtils.debug(LOG, "adding Split Region Scanner for startKey=%s, endKey=%s",splitStart,splitStop);
-				    	  createAndRegisterClientSideRegionScanner(table,scan);
+				    	  createAndRegisterClientSideRegionScanner(table,newScan);
 				    }
 				 }
 				 hasAdditionalScanners = false;
-			} catch (UnstableScannerDNRIOException ioe) {
+			} catch (DoNotRetryIOException ioe) {
 				if (LOG.isDebugEnabled())
 					SpliceLogUtils.debug(LOG, "exception logged creating split region scanner %s",StringUtils.stringifyException(ioe));
 				hasAdditionalScanners = true;
