@@ -43,8 +43,8 @@ public abstract class BaseMemstoreKeyValueScanner<T> implements KeyValueScanner,
 	  public boolean nextResult() throws IOException {
 		  cellScannerIndex = 0;
 		  currentResult = this.resultScanner.next();
-			if (LOG.isTraceEnabled())
-				SpliceLogUtils.trace(LOG, "nextResult=%s",currentResult);				
+//			if (LOG.isTraceEnabled())
+//				SpliceLogUtils.trace(LOG, "nextResult=%s",currentResult);				
 		  if (currentResult!= null) {
 				cells = (T[]) dataLib.getDataFromResult(currentResult);
 				peakKeyValue = (KeyValue) current();
@@ -59,14 +59,14 @@ public abstract class BaseMemstoreKeyValueScanner<T> implements KeyValueScanner,
 	
 	@Override
 	public KeyValue peek() {
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "peek %s", peakKeyValue);
+//		if (LOG.isTraceEnabled())
+//			SpliceLogUtils.trace(LOG, "peek %s", peakKeyValue);
 		return peakKeyValue;
 	}
 	@Override
 	public KeyValue next() throws IOException {
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "nextKeyValue %s", peakKeyValue);
+//		if (LOG.isTraceEnabled())
+//			SpliceLogUtils.trace(LOG, "nextKeyValue %s", peakKeyValue);
 		KeyValue returnValue = peakKeyValue;		
 		if (currentResult!=null && advance())
 			peakKeyValue = (KeyValue)current();
@@ -78,8 +78,8 @@ public abstract class BaseMemstoreKeyValueScanner<T> implements KeyValueScanner,
 	}
 	@Override
 	public boolean seek(KeyValue key) throws IOException {
-		if (LOG.isDebugEnabled())
-			SpliceLogUtils.debug(LOG, "seek to KeyValue %s", key);
+//		if (LOG.isDebugEnabled())
+//			SpliceLogUtils.debug(LOG, "seek to KeyValue %s", key);
 		while (KeyValue.COMPARATOR.compare(peakKeyValue, key)>0 && peakKeyValue!=null) {
 			next();
 		}
@@ -120,15 +120,14 @@ public abstract class BaseMemstoreKeyValueScanner<T> implements KeyValueScanner,
 	}
 	@Override
 	public boolean realSeekDone() {
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "realSeekDone");
-//		Thread.dumpStack();
+//		if (LOG.isTraceEnabled())
+//			SpliceLogUtils.trace(LOG, "realSeekDone");
 		return true;
 	}
 	@Override
 	public void enforceSeek() throws IOException {
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "enforceSeek");		
+//		if (LOG.isTraceEnabled())
+//			SpliceLogUtils.trace(LOG, "enforceSeek");		
 //		Thread.dumpStack();
 	}
 	@Override
