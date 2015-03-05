@@ -50,9 +50,9 @@ while getopts ":chp:b:" flag ; do
 done
 
 # Check if server running. Shut down if so.
-S=$(ps -ef | awk '/SpliceTestPlatform|SpliceSinglePlatform|SpliceTestClusterParticipant/ && !/awk/ {print $2}')
-Z=$(ps -ef | awk '/ZooKeeperServerMain/ && !/awk/ {print $2}')
-if [[ -n ${S} || -n ${Z} ]]; then
+S=( $(ps -ef | awk '/SpliceTestPlatform|SpliceSinglePlatform|SpliceTestClusterParticipant/ && !/awk/ {print $2}') )
+Z=( $(ps -ef | awk '/ZooKeeperServerMain/ && !/awk/ {print $2}') )
+if [[ -n ${S[0]} || -n ${Z[0]} ]]; then
     echo "Splice server is running. Shutting down."
     "${SCRIPT_DIR}"/stop-splice-its
 fi

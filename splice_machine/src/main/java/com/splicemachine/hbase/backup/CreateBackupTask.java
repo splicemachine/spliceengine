@@ -125,7 +125,8 @@ public class CreateBackupTask extends ZkTask {
     
     private void doFullBackup() throws IOException
     {
-    	List<Path> files = getFilesForFullBackup();
+    	SnapshotUtils utils = SnapshotUtilsFactory.snapshotUtils;
+    	List<Path> files = utils.getFilesForFullBackup(getSnapshotName(), region);
     	String backupDirectory = backupItem.getBackupItemFilesystem();
     	String name = region.getRegionNameAsString();
     	FileSystem backupFs = FileSystem.get(URI.create(backupFileSystem), SpliceConstants.config);
@@ -136,12 +137,8 @@ public class CreateBackupTask extends ZkTask {
     	}
     }
     
-    private List<Path> getFilesForFullBackup() {
-		String snapshotName = getSnapshotName();		
-		//TODO list of hfiles from snapshots
-		return null;
-	}
 
+    
 	private void doIncrementalBackup()
     {
     	// TODO
