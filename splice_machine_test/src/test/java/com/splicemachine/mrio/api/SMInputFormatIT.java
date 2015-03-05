@@ -3,18 +3,23 @@ package com.splicemachine.mrio.api;
 import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.util.List;
+
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
+
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.junit.Assert;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
+
 import scala.Tuple2;
+
 import com.splicemachine.derby.test.framework.SpliceSparkWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.SpliceDataWatcher;
@@ -87,6 +92,7 @@ public class SMInputFormatIT extends BaseMRIOTest {
     
     
     @Test
+    @Ignore
     public void testSparkIntegrationWithInputFormat() throws IOException {
     	config.set(MRConstants.SPLICE_JDBC_STR, "jdbc:derby://localhost:1527/splicedb;user=splice;password=admin");
     	config.set(MRConstants.SPLICE_INPUT_TABLE_NAME, tableWatcherA.toString());
@@ -103,6 +109,7 @@ public class SMInputFormatIT extends BaseMRIOTest {
     }
     
     @Test
+    @Ignore
     public void testCountOverMultipleRegionsInSpark() throws IOException {
     	config.set(MRConstants.SPLICE_JDBC_STR, "jdbc:derby://localhost:1527/splicedb;user=splice;password=admin");
     	config.set(MRConstants.SPLICE_INPUT_TABLE_NAME, tableWatcherB.toString());
