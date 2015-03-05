@@ -14,6 +14,7 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.log4j.Logger;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -86,6 +87,7 @@ public class ClientSideRegionScannerIT extends BaseMRIOTest {
 	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
 	@Test
+	@Ignore
 	public void validateAccurateRecordsWithStoreFileAndMemstore() throws SQLException, IOException, InterruptedException {
 		int i = 0;
     	HBaseAdmin admin = null;
@@ -123,6 +125,7 @@ public class ClientSideRegionScannerIT extends BaseMRIOTest {
 
 	
 	@Test
+	@Ignore
 	public void validateAccurateRecordsWithRegionFlush() throws SQLException, IOException, InterruptedException {
 		int i = 0;
     	HBaseAdmin admin = null;
