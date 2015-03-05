@@ -1,18 +1,18 @@
 package com.splicemachine.derby.iapi.catalog;
 
-import org.apache.derby.iapi.sql.dictionary.TupleDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.TupleDescriptor;
 
 /**
  * Created by jyuan on 2/6/15.
  */
-public class BackupStatesDescriptor extends TupleDescriptor {
+public class BackupFileSetDescriptor extends TupleDescriptor {
 
     private String backupItem;
     private String regionName;
     private String fileName;
     private String state;
 
-    public BackupStatesDescriptor(String backupItem, String regionName, String fileName, String state) {
+    public BackupFileSetDescriptor(String backupItem, String regionName, String fileName, String state) {
         this.backupItem = backupItem;
         this.regionName = regionName;
         this.fileName = fileName;

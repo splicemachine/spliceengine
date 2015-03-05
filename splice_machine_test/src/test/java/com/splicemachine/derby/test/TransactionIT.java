@@ -44,7 +44,6 @@ public class TransactionIT extends SpliceUnitTest {
     private static final String TABLE_NAME_19 = "S";
 
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
-
     public String getTableReference(String tableName) {
         return CLASS_NAME + "." + tableName;
     }

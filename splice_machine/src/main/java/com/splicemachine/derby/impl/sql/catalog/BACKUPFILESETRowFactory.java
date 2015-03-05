@@ -1,29 +1,28 @@
 package com.splicemachine.derby.impl.sql.catalog;
 
-import com.splicemachine.derby.iapi.catalog.BackupRegionsDescriptor;
-import com.splicemachine.derby.iapi.catalog.BackupStatesDescriptor;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.sanity.SanityManager;
-import org.apache.derby.iapi.services.uuid.UUIDFactory;
-import org.apache.derby.iapi.sql.dictionary.CatalogRowFactory;
-import org.apache.derby.iapi.sql.dictionary.DataDictionary;
-import org.apache.derby.iapi.sql.dictionary.SystemColumn;
-import org.apache.derby.iapi.sql.dictionary.TupleDescriptor;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.sql.execute.ExecutionFactory;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.DataValueFactory;
-import org.apache.derby.iapi.types.SQLVarchar;
-import org.apache.derby.impl.sql.catalog.SystemColumnImpl;
+import com.splicemachine.derby.iapi.catalog.BackupFileSetDescriptor;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
+import com.splicemachine.db.iapi.sql.dictionary.CatalogRowFactory;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.SystemColumn;
+import com.splicemachine.db.iapi.sql.dictionary.TupleDescriptor;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.DataValueFactory;
+import com.splicemachine.db.iapi.types.SQLVarchar;
+import com.splicemachine.db.impl.sql.catalog.SystemColumnImpl;
 
 import java.sql.Types;
 
 /**
  * Created by jyuan on 2/6/15.
  */
-public class BACKUPSTATESRowFactory extends CatalogRowFactory {
+public class BACKUPFILESETRowFactory extends CatalogRowFactory {
 
-    private static final String TABLENAME_STRING = "BACKUP_STATES";
+    private static final String TABLENAME_STRING = "BACKUP_FILESET";
     private static final int BACKUPSTATES_COLUMN_COUNT = 4;
 
     private static final int BACKUP_ITEM = 1;
@@ -36,7 +35,7 @@ public class BACKUPSTATESRowFactory extends CatalogRowFactory {
             "cb4d2219-fd7a-4003-9e42-beff555a365c"
     };
 
-    public BACKUPSTATESRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf) {
+    public BACKUPFILESETRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf) {
         super(uuidf, ef, dvf);
         initInfo(BACKUPSTATES_COLUMN_COUNT, TABLENAME_STRING, null, null, uuids);
     }
@@ -50,7 +49,7 @@ public class BACKUPSTATESRowFactory extends CatalogRowFactory {
         String state = null;
 
         if (td != null) {
-            BackupStatesDescriptor d = (BackupStatesDescriptor)td;
+            BackupFileSetDescriptor d = (BackupFileSetDescriptor)td;
             backup_item = d.getBackupItem();
             region_name = d.getRegionName();
             file_name = d.getFileName();
@@ -74,7 +73,7 @@ public class BACKUPSTATESRowFactory extends CatalogRowFactory {
         if (SanityManager.DEBUG) {
             SanityManager.ASSERT(
                     row.nColumns() == BACKUPSTATES_COLUMN_COUNT,
-                    "Wrong number of columns for a BACKUP_STATES row");
+                    "Wrong number of columns for a BACKUP_FILESET row");
         }
 
         DataValueDescriptor col = row.getColumn(BACKUP_ITEM);
@@ -89,7 +88,7 @@ public class BACKUPSTATESRowFactory extends CatalogRowFactory {
         col = row.cloneColumn(STATE);
         String state = col.getString();
 
-        return new BackupStatesDescriptor(backupItem, regionName, fileName, state);
+        return new BackupFileSetDescriptor(backupItem, regionName, fileName, state);
     }
 
     @Override

@@ -1,6 +1,6 @@
 package com.splicemachine.derby.iapi.catalog;
 
-import org.apache.derby.iapi.sql.dictionary.TupleDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.TupleDescriptor;
 import org.joda.time.DateTime;
 
 /**
@@ -11,15 +11,18 @@ public class BackupItemsDescriptor extends TupleDescriptor {
     private String item;
     private DateTime beginTimestamp;
     private DateTime endTimestamp;
+    private String snapshotName;
 
     public BackupItemsDescriptor(long txnId,
                                  String item,
                                  DateTime beginTimestamp,
-                                 DateTime endTimestamp) {
+                                 DateTime endTimestamp,
+                                 String snapshotName) {
         this.txnId = txnId;
         this.item = item;
         this.beginTimestamp = beginTimestamp;
         this.endTimestamp = endTimestamp;
+        this.snapshotName = snapshotName;
     }
 
     public long getTxnId() {
@@ -36,6 +39,10 @@ public class BackupItemsDescriptor extends TupleDescriptor {
 
     public DateTime getEndTimestamp() {
         return endTimestamp;
+    }
+
+    public String getSnapshotName() {
+        return snapshotName;
     }
 }
 
