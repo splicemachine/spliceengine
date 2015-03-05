@@ -9,6 +9,8 @@ import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.log4j.Logger;
+
+import com.splicemachine.utils.SpliceLogUtils;
 /*
  * 
  * Split Scanner for multiple region scanners
@@ -42,6 +44,8 @@ public class SplitRegionScanner extends BaseSplitRegionScanner<Cell> {
 	}
 	
 	void createAndRegisterClientSideRegionScanner(HTable table, Scan newScan) throws IOException {
+		if (LOG.isDebugEnabled())
+			SpliceLogUtils.debug(LOG, "createAndRegisterClientSideRegionScanner");
 	  ClientSideRegionScanner clientSideRegionScanner = 
 				  new ClientSideRegionScanner(table, table.getConfiguration(),FSUtils.getCurrentFileSystem(table.getConfiguration()), FSUtils.getRootDir(table.getConfiguration()),
 					table.getTableDescriptor(),table.getRegionLocation(newScan.getStartRow()).getRegionInfo(),
