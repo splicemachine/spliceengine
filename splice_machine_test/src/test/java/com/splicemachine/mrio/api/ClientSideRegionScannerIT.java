@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.Assert;
-
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.ResultScanner;
@@ -22,11 +21,16 @@ import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
 import com.splicemachine.constants.SIConstants;
+import com.splicemachine.derby.hbase.DerbyFactory;
+import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.mrio.MRConstants;
+import com.splicemachine.si.data.api.SDataLib;
+import com.splicemachine.si.impl.HTransactorFactory;
+import com.splicemachine.si.impl.SITransactor;
 
 public class ClientSideRegionScannerIT extends BaseMRIOTest {
     private static final Logger LOG = Logger.getLogger(ClientSideRegionScannerIT.class);
@@ -34,7 +38,8 @@ public class ClientSideRegionScannerIT extends BaseMRIOTest {
 	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA_NAME);	
 	protected static SpliceTableWatcher spliceTableWatcherA = new SpliceTableWatcher("A",SCHEMA_NAME,"(col1 int, col2 varchar(56), primary key (col1))");
-	
+	SDataLib dataLib = HTransactorFactory.getTransactor().getDataLib();
+
 	@ClassRule 
 	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 		.around(spliceSchemaWatcher)
@@ -95,11 +100,11 @@ public class ClientSideRegionScannerIT extends BaseMRIOTest {
 	    	scan.setMaxVersions();
 	    	scan.setAttribute(MRConstants.SPLICE_SCAN_MEMSTORE_ONLY, SIConstants.EMPTY_BYTE_ARRAY);    	
 			ClientSideRegionScanner clientSideRegionScanner = 
-					new ClientSideRegionScanner(htable.getConfiguration(),FSUtils.getCurrentFileSystem(htable.getConfiguration()), FSUtils.getRootDir(htable.getConfiguration()),
+					new ClientSideRegionScanner(htable,htable.getConfiguration(),FSUtils.getCurrentFileSystem(htable.getConfiguration()), FSUtils.getRootDir(htable.getConfiguration()),
 							htable.getTableDescriptor(),htable.getRegionLocation(scan.getStartRow()).getRegionInfo(),
 							scan,null);
 			List results = new ArrayList();
-			while (clientSideRegionScanner.nextRaw(results)) {
+			while (dataLib.internalScannerNext(clientSideRegionScanner, results)) {
 				i++;
 				results.clear();
 			}
@@ -134,11 +139,11 @@ public class ClientSideRegionScannerIT extends BaseMRIOTest {
 	    	scan.setAttribute(MRConstants.SPLICE_SCAN_MEMSTORE_ONLY, SIConstants.EMPTY_BYTE_ARRAY);    	
 	    	
 			ClientSideRegionScanner clientSideRegionScanner = 
-					new ClientSideRegionScanner(htable.getConfiguration(),FSUtils.getCurrentFileSystem(htable.getConfiguration()), FSUtils.getRootDir(htable.getConfiguration()),
+					new ClientSideRegionScanner(htable,htable.getConfiguration(),FSUtils.getCurrentFileSystem(htable.getConfiguration()), FSUtils.getRootDir(htable.getConfiguration()),
 							htable.getTableDescriptor(),htable.getRegionLocation(scan.getStartRow()).getRegionInfo(),
 							scan,null);
 			List results = new ArrayList();
-			while (clientSideRegionScanner.nextRaw(results)) {
+			while (dataLib.internalScannerNext(clientSideRegionScanner, results)) {
 				i++;
 				if (i==100) 
 					admin.flush(tableName);
