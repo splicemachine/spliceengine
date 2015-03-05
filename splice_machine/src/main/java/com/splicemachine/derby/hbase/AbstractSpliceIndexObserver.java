@@ -249,8 +249,8 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
 			}
 			if(LOG.isDebugEnabled()){
 				SpliceLogUtils.debug(LOG, "scan Check Code scan=%s, startKey {value=%s, inRange=%s}, endKey {value=%s, inRange=%s}",scan ,
-						scan.getStartRow().length > 0?org.apache.hadoop.hbase.util.Bytes.toHex(scan.getStartRow()):"[]", startRowInRange(c, scan.getStartRow()),
-						scan.getStopRow().length > 0?org.apache.hadoop.hbase.util.Bytes.toHex(scan.getStopRow()):"[]", stopRowInRange(c, scan.getStopRow()));
+						scan.getStartRow(), startRowInRange(c, scan.getStartRow()),
+						scan.getStopRow(), stopRowInRange(c, scan.getStopRow()));
 			}
 			
 			// Throw Retry Exception if the region is splitting
@@ -272,7 +272,7 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
 						if(memstoreAware.compareAndSet(latest, MemstoreAware.decrementScannerCount(latest)));
 							break;
 					}
-					SpliceLogUtils.warn(LOG, "scan missed do to split after task creation beginKey=%s, endKey=%s, region=%s",scan.getStartRow().length > 0?org.apache.hadoop.hbase.util.Bytes.toHex(scan.getStartRow()):"[]", scan.getStopRow().length > 0?org.apache.hadoop.hbase.util.Bytes.toHex(scan.getStopRow()):"[]",c.getEnvironment().getRegion().getRegionNameAsString());
+					SpliceLogUtils.warn(LOG, "scan missed do to split after task creation beginKey=%s, endKey=%s, region=%s",scan.getStartRow(), scan.getStopRow(),c.getEnvironment().getRegion().getRegionNameAsString());
 					throw new DoNotRetryIOException();
 				}
 			
