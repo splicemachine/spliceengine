@@ -223,12 +223,12 @@ public interface LanguageConnectionContext extends Context {
 
 	/**
 	 * Drop (mark the declared global temporary table for dropping) from the list of temporary tables known by this connection.
-	 * @param tableName look for this table name in the saved list and drop it if found
+	 * @param td Corresponding to the temporary table
 	 * @return true if dropped the temporary table. False if no such temporary table exists.
 	 *
-	 * @see org.apache.derby.impl.sql.conn.TempTableInfo
+	 * @see com.splicemachine.db.impl.sql.conn.TempTableInfo
 	 */
-	public boolean dropDeclaredGlobalTempTable(String tableName);
+	public boolean dropDeclaredGlobalTempTable(TableDescriptor td);
 
 	/**
 	 * Get table descriptor for the declared global temporary table from the list of temporary
@@ -1018,7 +1018,7 @@ public interface LanguageConnectionContext extends Context {
 	 * to an existing table.
 	 * 
 	 * @param flag 	the value for autoincrementUpdate (TRUE or FALSE)
-	 * @see org.apache.derby.impl.sql.execute.AlterTableConstantAction#updateNewAutoincrementColumn
+	 * @see com.splicemachine.db.impl.sql.execute.AlterTableConstantAction#updateNewAutoincrementColumn
 	 *
 	 */
 	public void setAutoincrementUpdate(boolean flag);
@@ -1187,7 +1187,7 @@ public interface LanguageConnectionContext extends Context {
 	 * The new SQL session context is also set in the current statement
 	 * context (of the invocation).
 	 *
-	 * @see org.apache.derby.impl.sql.compile.StaticMethodCallNode#generateSetupNestedSessionContext
+	 * @see com.splicemachine.db.impl.sql.compile.StaticMethodCallNode#generateSetupNestedSessionContext
 	 * @see StatementContext#getSQLSessionContext
 	 * @see #setupSubStatementSessionContext
 	 *
@@ -1248,7 +1248,7 @@ public interface LanguageConnectionContext extends Context {
 	/**
 	 * Return a map of AST nodes that have already been printed during a
 	 * compiler phase, so as to be able to avoid printing a node more than once.
-	 * @see org.apache.derby.impl.sql.compile.QueryTreeNode#treePrint(int)
+	 * @see com.splicemachine.db.impl.sql.compile.QueryTreeNode#treePrint(int)
 	 * @return the map
 	 */
     public Map getPrintedObjectsMap();

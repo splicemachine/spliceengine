@@ -149,7 +149,7 @@ class DropTableConstantAction extends DDLSingleTableConstantAction
 			if (td.getTableType() ==  TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE) {
 				dm.invalidateFor(td, DependencyManager.DROP_TABLE, lcc);
 				tc.dropConglomerate(td.getHeapConglomerateId());
-				lcc.dropDeclaredGlobalTempTable(tableName);
+				lcc.dropDeclaredGlobalTempTable(td);
 				return;
 			}
     }

@@ -600,10 +600,10 @@ public class GenericLanguageConnectionContext
             //if table already declared, throw an exception
             throw StandardException.newException(
                 SQLState.LANG_OBJECT_ALREADY_EXISTS_IN_OBJECT,
-                "Declared global temporary table",
+                "Temporary table",
                 td.getName(),
                 "Schema",
-                SchemaDescriptor.STD_DECLARED_GLOBAL_TEMPORARY_TABLES_SCHEMA_NAME);
+                td.getSchemaName());
         }
 
         //save all the information about temp table in this special class
@@ -622,41 +622,31 @@ public class GenericLanguageConnectionContext
     /**
      * @see LanguageConnectionContext#dropDeclaredGlobalTempTable
      */
-    public boolean dropDeclaredGlobalTempTable(String tableName) 
-    {
-        TempTableInfo tempTableInfo = findDeclaredGlobalTempTable(tableName);
+    public boolean dropDeclaredGlobalTempTable(TableDescriptor td) {
+        TempTableInfo tempTableInfo = findDeclaredGlobalTempTable(td.getName());
 
-        if (tempTableInfo != null)
-        {
-            if (SanityManager.DEBUG)
-            {
-                if (tempTableInfo.getDeclaredInSavepointLevel() > 
-                        currentSavepointLevel)
-                {
+        if (tempTableInfo != null) {
+            if (SanityManager.DEBUG) {
+                if (tempTableInfo.getDeclaredInSavepointLevel() > currentSavepointLevel) {
                     SanityManager.THROWASSERT(
-                        "declared in savepoint level (" + 
-                            tempTableInfo.getDeclaredInSavepointLevel() + 
-                        ") can not be higher than current savepoint level (" +
+                        "declared in savepoint level (" +
+                            tempTableInfo.getDeclaredInSavepointLevel() +
+                            ") can not be higher than current savepoint level (" +
                             currentSavepointLevel +
-                        ").");
+                            ").");
                 }
             }
 
             // check if the table was declared in the current unit of work.
-            if (tempTableInfo.getDeclaredInSavepointLevel() == 
-                    currentSavepointLevel)
-            {
+            if (tempTableInfo.getDeclaredInSavepointLevel() == currentSavepointLevel) {
                 // since the table was declared in this unit of work, the drop 
                 // table method should remove it from the valid list of temp 
                 // table for this unit of work
-                allDeclaredGlobalTempTables.remove(
-                        allDeclaredGlobalTempTables.indexOf(tempTableInfo));
+                allDeclaredGlobalTempTables.remove(allDeclaredGlobalTempTables.indexOf(tempTableInfo));
 
                 if (allDeclaredGlobalTempTables.size() == 0)
                     allDeclaredGlobalTempTables = null;
-            }
-            else
-            {
+            } else {
                 // since the table was not declared in this unit of work, the
                 // drop table method will just mark the table as dropped
                 // in the current unit of work. This information will be used 
@@ -666,9 +656,7 @@ public class GenericLanguageConnectionContext
             }
 
             return true;
-        } 
-        else
-        {
+        } else {
             return false;
         }
     }
@@ -3948,7 +3936,7 @@ public class GenericLanguageConnectionContext
     /**
      * This holds a map of AST nodes that have already been printed during a
      * compiler phase, so as to be able to avoid printing a node more than once.
-     * @see org.apache.derby.impl.sql.compile.QueryTreeNode#treePrint(int)
+     * @see com.splicemachine.db.impl.sql.compile.QueryTreeNode#treePrint(int)
      */
     Map printedObjectsMap = null;
 

@@ -174,24 +174,6 @@ public class CreateTableNode extends DDLStatementNode
 		}
 
 	/**
-	 * If no schema name specified for global temporary table, SESSION is the implicit schema.
-	 * Otherwise, make sure the specified schema name for global temporary table is SESSION.
-	 * @param objectName		The name of the new object being declared (ie temporary table)
-	*/
-	private Object tempTableSchemaNameCheck(Object objectName)
-		throws StandardException {
-		TableName	tempTableName = (TableName) objectName;
-		if (tempTableName != null)
-		{
-			if (tempTableName.getSchemaName() == null)
-				tempTableName.setSchemaName(SchemaDescriptor.STD_DECLARED_GLOBAL_TEMPORARY_TABLES_SCHEMA_NAME); //If no schema specified, SESSION is the implicit schema.
-			else if (!(isSessionSchema(tempTableName.getSchemaName())))
-				throw StandardException.newException(SQLState.LANG_DECLARED_GLOBAL_TEMP_TABLE_ONLY_IN_SESSION_SCHEMA);
-		}
-		return(tempTableName);
-	}
-
-	/**
 	 * Convert this object to a String.  See comments in QueryTreeNode.java
 	 * for how this should be done for tree printing.
 	 *

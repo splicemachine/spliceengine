@@ -2156,8 +2156,13 @@ public class SQLParser
 		    throw StandardException.newException(SQLState.LANG_TEMP_TABLE_DELETE_ROWS_NO_SUPPORTED, "COMMIT");
 		}
 		// if ON ROLLBACK behavior not explicitly specified in DECLARE command, default to ON ROLLBACK DELETE ROWS
-		if (declareTableClauses[2] == null)
-				declareTableClauses[2] = Boolean.TRUE;
+		if (declareTableClauses[2] == Boolean.TRUE) {
+            // ON ROLLBACK DELETE ROWS is not supported
+            throw StandardException.newException(SQLState.LANG_TEMP_TABLE_DELETE_ROWS_NO_SUPPORTED, "ROLLBACK");
+        } else {
+            // set it to TRUE anyway. too much expects is to be so dispite it never working
+            declareTableClauses[2] = Boolean.TRUE;
+        }
 		return (StatementNode) nodeFactory.getNode(
 								C_NodeTypes.CREATE_TABLE_NODE,
 								tableName,
@@ -4202,7 +4207,7 @@ declareTemporaryTableDeclaration() throws StandardException :
 { 
 	<DECLARE> <GLOBAL> <TEMPORARY> <TABLE> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
 		tableElementList = tableElementList()
-		( declareTableClause(declareTableClauses) ) +
+		( declareTableClause(declareTableClauses) ) *
 	{
 		return verifySyntaxAndCreate(declareTableClauses, tableName, tableElementList);
 	}
@@ -4228,7 +4233,7 @@ createTemporaryTableDeclaration() throws StandardException :
 {
 	( <LOCAL>  | <GLOBAL> ) <TEMPORARY> <TABLE> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
 		tableElementList = tableElementList()
-		( declareTableClause(declareTableClauses) ) +
+		( declareTableClause(declareTableClauses) ) *
 	{
 		return verifySyntaxAndCreate(declareTableClauses, tableName, tableElementList);
 	}
@@ -4247,7 +4252,7 @@ void declareTableClause(Object[] declareTableClauses) throws StandardException :
 		<ON> <COMMIT> ( clauseValue = onCommitRollback() ) <ROWS> { clausePosition = 1;}
 	|
 		LOOKAHEAD( {getToken(1).kind == ON && getToken(2).kind == ROLLBACK} )
-		<ON> <ROLLBACK> ( clauseValue = onCommitRollback() ) <ROWS> { clauseValue = Boolean.TRUE; clausePosition = 2;}
+		<ON> <ROLLBACK> ( clauseValue = onCommitRollback() ) <ROWS> { clausePosition = 2;}
 	)
 
 
