@@ -34,7 +34,7 @@
 				<!-- third party artifacts -->
 				<include>com.carrotsearch:hppc</include>
 				<include>com.esotericsoftware.kryo:kryo</include>
-				<include>com.google.code.gson:gson</include>
+				<include>com.google.code.gson:gson</include> 
 				<include>com.google.protobuf:protobuf-java</include>
 				<include>com.lmax:disruptor</include>
 				<include>com.stumbleupon:async</include>
@@ -46,6 +46,7 @@
 				<include>com.splicemachine:dbclient</include>
 				<include>org.apache.lucene:lucene-core</include>
 				<include>org.apache.spark</include>				
+				<include>com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru</include>
 			</includes>
 		</dependencySet>
 
