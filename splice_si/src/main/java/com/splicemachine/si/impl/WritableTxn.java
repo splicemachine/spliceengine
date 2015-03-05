@@ -6,13 +6,14 @@ import com.splicemachine.si.api.TxnLifecycleManager;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.SliceIterator;
+import com.splicemachine.utils.SpliceLogUtils;
 
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
+
+import org.apache.log4j.Logger;
 
 /**
  * Represents a Transaction.
@@ -22,7 +23,8 @@ import java.util.concurrent.CopyOnWriteArraySet;
  */
 public class WritableTxn extends AbstractTxn {
 
-		private TxnView parent;
+		private static final Logger LOG = Logger.getLogger(WritableTxn.class);
+		private volatile TxnView parentTxn;
 		private volatile long commitTimestamp = -1l;
 		private volatile long globalCommitTimestamp = -1l;
 		private TxnLifecycleManager tc;
@@ -37,20 +39,20 @@ public class WritableTxn extends AbstractTxn {
 		public WritableTxn(long txnId,
                        long beginTimestamp,
                        IsolationLevel isolationLevel,
-                       TxnView parent,
+                       TxnView parentTxn,
                        TxnLifecycleManager tc,
                        boolean isAdditive) {
-			this(txnId, beginTimestamp, isolationLevel, parent, tc, isAdditive,null);
+			this(txnId, beginTimestamp, isolationLevel, parentTxn, tc, isAdditive,null);
 		}
 		public WritableTxn(long txnId,
                        long beginTimestamp,
                        IsolationLevel isolationLevel,
-                       TxnView parent,
+                       TxnView parentTxn,
                        TxnLifecycleManager tc,
                        boolean isAdditive,
                        byte[] destinationTable) {
 				super(txnId, beginTimestamp, isolationLevel);
-				this.parent = parent;
+				this.parentTxn = parentTxn;
 				this.tc = tc;
 				this.isAdditive = isAdditive;
 
@@ -60,9 +62,10 @@ public class WritableTxn extends AbstractTxn {
 
 		public WritableTxn(Txn txn,TxnLifecycleManager tc, byte[] destinationTable) {
 				super(txn.getTxnId(),txn.getBeginTimestamp(),txn.getIsolationLevel());
-				this.parent = txn.getParentTxnView();
+				this.parentTxn = txn.getParentTxnView();
 				this.tc = tc;
 				this.isAdditive = txn.isAdditive();
+				this.savePointName = txn.getSavePointName();
 				if(destinationTable!=null)
 						this.tableWrites.add(destinationTable);
 		}
@@ -71,7 +74,7 @@ public class WritableTxn extends AbstractTxn {
 
 		@Override
 		public long getGlobalCommitTimestamp() {
-				if(globalCommitTimestamp<0) return parent.getGlobalCommitTimestamp();
+				if(globalCommitTimestamp<0) return parentTxn.getGlobalCommitTimestamp();
 				return globalCommitTimestamp;
 		}
 
@@ -84,15 +87,15 @@ public class WritableTxn extends AbstractTxn {
 		public long getEffectiveCommitTimestamp() {
         if(state==State.ROLLEDBACK) return -1l;
 				if(globalCommitTimestamp>=0) return globalCommitTimestamp;
-        if(Txn.ROOT_TRANSACTION.equals(parent))
+        if(Txn.ROOT_TRANSACTION.equals(parentTxn))
             globalCommitTimestamp = commitTimestamp;
         else
-						globalCommitTimestamp = parent.getEffectiveCommitTimestamp();
+						globalCommitTimestamp = parentTxn.getEffectiveCommitTimestamp();
 
         return globalCommitTimestamp;
 		}
 
-    @Override public TxnView getParentTxnView() { return parent; }
+    @Override public TxnView getParentTxnView() { return parentTxn; }
 
     @Override
 		public State getState() {
@@ -101,6 +104,8 @@ public class WritableTxn extends AbstractTxn {
 
 		@Override
 		public void commit() throws IOException {
+				if(LOG.isTraceEnabled())
+					SpliceLogUtils.trace(LOG,"Before commit: txn=%s",this);
 				switch (state){
 						case COMMITTED:
 								return;
@@ -118,10 +123,14 @@ public class WritableTxn extends AbstractTxn {
 						commitTimestamp = tc.commit(txnId);
 						state = State.COMMITTED;
 				}
+				if(LOG.isTraceEnabled())
+					SpliceLogUtils.trace(LOG,"After commit: txn=%s,commitTimestamp=%s",this,commitTimestamp);
 		}
 
 		@Override
 		public void rollback() throws IOException {
+				if(LOG.isTraceEnabled())
+					SpliceLogUtils.trace(LOG,"Before rollback: txn=%s",this);
 				switch(state){
 						case COMMITTED://don't need to rollback
 						case ROLLEDBACK:
@@ -138,16 +147,22 @@ public class WritableTxn extends AbstractTxn {
 						tc.rollback(txnId);
 						state = State.ROLLEDBACK;
 				}
+				if(LOG.isTraceEnabled())
+					SpliceLogUtils.trace(LOG,"After rollback: txn=%s",this);
 		}
 
 		@Override public boolean allowsWrites() { return true; }
 
 		@Override
 		public Txn elevateToWritable(byte[] writeTable) throws IOException {
-        assert state==State.ACTIVE: "Cannot elevate an inactive transaction: "+ state;
+				assert state==State.ACTIVE: "Cannot elevate an inactive transaction: "+ state;
+				if(LOG.isTraceEnabled())
+					SpliceLogUtils.trace(LOG,"Before elevateToWritable: txn=%s,writeTable=%s",this,writeTable);
 				if(tableWrites.add(writeTable)){
 						tc.elevateTransaction(this,writeTable);
 				}
+				if(LOG.isTraceEnabled())
+					SpliceLogUtils.trace(LOG,"After elevateToWritable: txn=%s",this);
 				return this;
 		}
 
@@ -155,10 +170,4 @@ public class WritableTxn extends AbstractTxn {
 		public Iterator<ByteSlice> getDestinationTables() {
         return new SliceIterator(tableWrites.iterator());
 		}
-
-    @Override
-    public String toString(){
-        return "WritableTxn("+txnId+","+getState()+","+parent+")";
-    }    
-    
 }

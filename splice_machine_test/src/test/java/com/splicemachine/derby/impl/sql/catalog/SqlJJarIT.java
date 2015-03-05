@@ -4,7 +4,6 @@ import java.sql.ResultSet;
 
 import org.junit.Assert;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -15,7 +14,12 @@ import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 
 /**
- * Tests for the SQLJ JAR file management stored procedures.
+ * This class tests the SQLJ JAR file loading system procedures (INSTALL_JAR, REPLACE_JAR, and REMOVE_JAR).
+ * The stored procedures are contained in an external JAR file that are dynamically loaded into the Splice Machine
+ * database with the SQLJ JAR file loading system procedures.  If your tests require a custom stored procedure,
+ * you can add it to that JAR file and load into your 'IT' tests like you see below in the tests.
+ *
+ * @see org.splicetest.sqlj.SqlJTestProcs
  *
  * @author David Winters
  *		 Created on: 9/25/14
@@ -29,16 +33,12 @@ public class SqlJJarIT extends SpliceUnitTest {
 
 	// Names of files and SQL objects.
 	private static final String SCHEMA_NAME = CLASS_NAME;
-	private static final String STORED_PROCS_JAR_FILE = getResourceDirectory() + "/sqlj-it-procs/sqlj-it-procs-1.0-SNAPSHOT.jar";
+	private static final String STORED_PROCS_JAR_FILE = getResourceDirectory() + "/sqlj-it-procs/sqlj-it-procs-1.0.1.jar";
 	private static final String JAR_FILE_SQL_NAME = SCHEMA_NAME + ".SQLJ_IT_PROCS_JAR";
 
 	// SQL statements to create and drop stored procedures.
-	private static final String CREATE_SIMPLE_ONE_ARG_PROC =
-		"CREATE PROCEDURE " + SCHEMA_NAME + ".SIMPLE_ONE_ARG_PROC(IN name VARCHAR(30)) " +
-		"PARAMETER STYLE JAVA READS SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 " +
-		"EXTERNAL NAME 'org.splicetest.sqlj.SqlJTestProcs.SIMPLE_ONE_ARG_PROC'";
-	private static final String DROP_SIMPLE_ONE_ARG_PROC =
-		"DROP PROCEDURE " + SCHEMA_NAME + ".SIMPLE_ONE_ARG_PROC";
+	private static final String CREATE_PROC_SIMPLE_ONE_ARG = String.format("CREATE PROCEDURE %s.SIMPLE_ONE_ARG_PROC(IN name VARCHAR(30)) PARAMETER STYLE JAVA READS SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'org.splicetest.sqlj.SqlJTestProcs.SIMPLE_ONE_ARG_PROC'", SCHEMA_NAME);
+	private static final String DROP_PROC_SIMPLE_ONE_ARG = String.format("DROP PROCEDURE %s.SIMPLE_ONE_ARG_PROC", SCHEMA_NAME);
 
 	// SQL statements to call stored procedures.
 	private static final String CALL_INSTALL_JAR_FORMAT_STRING = "CALL SQLJ.INSTALL_JAR('%s', '%s', 0)";
@@ -76,7 +76,7 @@ public class SqlJJarIT extends SpliceUnitTest {
 		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
 
 		// Create the user-defined stored procedure.
-		rc = methodWatcher.executeUpdate(CREATE_SIMPLE_ONE_ARG_PROC);
+		rc = methodWatcher.executeUpdate(CREATE_PROC_SIMPLE_ONE_ARG);
 		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
 
 		// Call the user-defined stored procedure.
@@ -92,7 +92,7 @@ public class SqlJJarIT extends SpliceUnitTest {
 		Assert.assertTrue("Incorrect rows returned!", resultSetSize(rs) > 10);
 
 		// Drop the user-defined stored procedure.
-		rc = methodWatcher.executeUpdate(DROP_SIMPLE_ONE_ARG_PROC);
+		rc = methodWatcher.executeUpdate(DROP_PROC_SIMPLE_ONE_ARG);
 		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
 
 		// Remove the jar file from the DB class path.

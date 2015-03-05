@@ -1,4 +1,4 @@
-connect 'jdbc:derby://localhost:1527/splicedb';
+connect 'jdbc:splice://localhost:1527/splicedb';
 create schema test;
 set schema test;
 create table omslog (
