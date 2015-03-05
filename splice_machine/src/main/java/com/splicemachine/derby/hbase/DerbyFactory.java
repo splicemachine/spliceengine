@@ -6,13 +6,18 @@ import java.io.ObjectOutput;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.NavigableSet;
 import java.util.SortedSet;
+import java.util.concurrent.atomic.AtomicReference;
+
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 import javax.management.remote.JMXConnector;
+
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -27,10 +32,14 @@ import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.master.MasterServices;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
+import org.apache.hadoop.hbase.regionserver.KeyValueScanner;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.regionserver.RegionServerServices;
+import org.apache.hadoop.hbase.regionserver.*;
+import org.apache.hadoop.hbase.regionserver.Store.*;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
+
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.scheduler.BaseJobControl;
 import com.splicemachine.derby.impl.job.scheduler.JobMetrics;
@@ -38,6 +47,7 @@ import com.splicemachine.pipeline.api.BulkWritesInvoker;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceZooKeeperManager;
+import com.splicemachine.mrio.api.MemstoreAware;
 import com.splicemachine.mrio.api.SpliceRegionScanner;
 
 public interface DerbyFactory<Transaction> {
@@ -72,4 +82,6 @@ public interface DerbyFactory<Transaction> {
 		ExceptionTranslator getExceptionHandler();
         SparkUtils getSparkUtils();
         SpliceRegionScanner getSplitRegionScanner(Scan scan, HTable htable) throws IOException;
+        KeyValueScanner getMemstoreFlushAwareScanner(HRegion region, Store store, ScanInfo scanInfo, Scan scan, 
+				final NavigableSet<byte[]> columns, long readPt, AtomicReference<MemstoreAware> memstoreAware, MemstoreAware initialValue) throws IOException;
 }

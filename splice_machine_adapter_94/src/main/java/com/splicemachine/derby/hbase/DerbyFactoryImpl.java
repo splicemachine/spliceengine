@@ -12,7 +12,9 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableSet;
 import java.util.SortedSet;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.splicemachine.derby.impl.sql.execute.operations.SparkUtilsImpl;
 
@@ -20,6 +22,7 @@ import javax.management.MBeanServerConnection;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 import javax.management.remote.JMXConnector;
+
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -40,11 +43,16 @@ import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.*;
+
+import com.splicemachine.mrio.api.MemStoreFlushAwareScanner;
+import com.splicemachine.mrio.api.MemstoreAware;
 import com.splicemachine.mrio.api.SpliceRegionScanner;
+
 import org.apache.hadoop.hbase.HServerLoad.RegionLoad;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HConnection;
@@ -58,8 +66,11 @@ import org.apache.hadoop.hbase.ipc.RpcCallContext;
 import org.apache.hadoop.hbase.master.MasterServices;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
+import org.apache.hadoop.hbase.regionserver.KeyValueScanner;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.regionserver.RegionServerServices;
+import org.apache.hadoop.hbase.regionserver.*;
+import org.apache.hadoop.hbase.regionserver.Store.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
@@ -553,4 +564,13 @@ public class DerbyFactoryImpl implements DerbyFactory<SparseTxn> {
 		public SpliceRegionScanner getSplitRegionScanner(Scan scan, HTable htable) throws IOException {
 			 return new SplitRegionScanner(scan,htable,htable.getRegionsInRange(scan.getStartRow(), scan.getStopRow()));
 		}
+		@Override
+		public KeyValueScanner getMemstoreFlushAwareScanner(HRegion region,
+				Store store, ScanInfo scanInfo, Scan scan,
+				NavigableSet<byte[]> columns, long readPt,
+				AtomicReference<MemstoreAware> memstoreAware,
+				MemstoreAware initialValue) throws IOException {
+			return new MemStoreFlushAwareScanner(region,store,scanInfo,scan,columns,readPt,memstoreAware,initialValue);
+		}
+
 }

@@ -18,6 +18,8 @@ import com.splicemachine.hbase.HBaseRegionLoads;
 import com.splicemachine.hbase.HBaseServerUtils;
 import com.splicemachine.hbase.debug.HBaseEntryPredicateFilter;
 import com.splicemachine.hbase.jmx.JMXUtils;
+import com.splicemachine.mrio.api.MemStoreFlushAwareScanner;
+import com.splicemachine.mrio.api.MemstoreAware;
 import com.splicemachine.mrio.api.SpliceRegionScanner;
 import com.splicemachine.mrio.api.SplitRegionScanner;
 import com.splicemachine.pipeline.api.BulkWritesInvoker.Factory;
@@ -28,7 +30,6 @@ import com.splicemachine.si.coprocessor.TxnMessage;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
-
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -49,6 +50,7 @@ import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -76,6 +78,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.management.MBeanServerConnection;
 import javax.management.MalformedObjectNameException;
@@ -532,6 +535,15 @@ public class DerbyFactoryImpl implements DerbyFactory<TxnMessage.TxnInfo> {
 		@Override
 		public SpliceRegionScanner getSplitRegionScanner(Scan scan, HTable htable) throws IOException {
 			return new SplitRegionScanner(scan,htable,htable.getRegionsInRange(scan.getStartRow(), scan.getStopRow(), false));
+		}
+
+		@Override
+		public KeyValueScanner getMemstoreFlushAwareScanner(HRegion region,
+				Store store, ScanInfo scanInfo, Scan scan,
+				NavigableSet<byte[]> columns, long readPt,
+				AtomicReference<MemstoreAware> memstoreAware,
+				MemstoreAware initialValue) throws IOException {
+			return new MemStoreFlushAwareScanner(region,store,scanInfo,scan,columns,readPt,memstoreAware,initialValue);
 		}
 
 }
