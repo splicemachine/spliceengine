@@ -173,6 +173,9 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
       // Drop all of those dependencies now.
       adjustUDTDependencies(lcc, dd, td, null, true);
 
+        // remove from LCC
+        lcc.dropDeclaredGlobalTempTable(td);
+
       /* Drop the table */
       dd.dropTableDescriptor(td, sd, tc);
 
