@@ -41,8 +41,8 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
 		public MemStoreFlushAwareScanner(HRegion region, Store store, ScanInfo scanInfo, Scan scan, 
 				final NavigableSet<byte[]> columns, long readPt, AtomicReference<MemstoreAware> memstoreAware, MemstoreAware initialValue) throws IOException {
 			super(store, scanInfo, scan, columns, readPt);
-			if (LOG.isTraceEnabled())
-				SpliceLogUtils.trace(LOG, "init");
+			if (LOG.isDebugEnabled())
+				SpliceLogUtils.debug(LOG, "init for region=%s, scan=%s", region.getRegionNameAsString(),scan);
 			this.memstoreAware = memstoreAware;
 			this.initialValue = initialValue;
 			this.region = region;

@@ -58,8 +58,8 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 	}
 	
 	public void init(Configuration config, InputSplit split) throws IOException, InterruptedException {	
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "init");
+		if (LOG.isDebugEnabled())
+			SpliceLogUtils.debug(LOG, "init");
 		String tableScannerAsString = config.get(MRConstants.SPLICE_SCAN_INFO);
 		if (tableScannerAsString == null)
 			throw new IOException("splice scan info was not serialized to task, failing");

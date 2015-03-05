@@ -51,6 +51,8 @@ public abstract class BaseClientSideRegionScanner<T> implements RegionScanner {
 			Path rootDir, HTableDescriptor htd, HRegionInfo hri, Scan scan,
 			ScanMetrics scanMetrics)
 			throws IOException {
+		if (LOG.isDebugEnabled())
+			SpliceLogUtils.debug(LOG, "init for regionInfo=%s, scan=%s", hri,scan);
 		this.table = htable;
 		scan.setIsolationLevel(IsolationLevel.READ_UNCOMMITTED); 
 		this.conf = conf;
