@@ -88,7 +88,9 @@ public class DerbyBytesUtil {
 				}
 		}
 
-		public static byte[] generateScanKeyForIndex(DataValueDescriptor[] startKeyValue,int startSearchOperator, boolean[] sortOrder,String tableVersion) throws IOException, StandardException {
+		public static byte[] generateScanKeyForIndex(DataValueDescriptor[] startKeyValue,
+                                                 int startSearchOperator,
+                                                 boolean[] sortOrder,String tableVersion) throws IOException, StandardException {
 				if(startKeyValue==null)return null;
 				switch(startSearchOperator) { // public static final int GT = -1;
 						case ScanController.NA:
