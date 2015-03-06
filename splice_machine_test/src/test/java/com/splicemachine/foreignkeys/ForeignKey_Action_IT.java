@@ -103,6 +103,24 @@ public class ForeignKey_Action_IT {
         assertQueryFail("update P set a=-1 where a = 1", "Operation on table 'P' caused a violation of foreign key constraint 'FK_1' for key (A).  The statement has been rolled back.");
     }
 
+    @Test
+    public void onDeleteNoAction_primaryKey_successAfterDeleteReference() throws Exception {
+        methodWatcher.executeUpdate("create table P (a int primary key, b int)");
+        methodWatcher.executeUpdate("create table C (a int, b int, CONSTRAINT FK_1 FOREIGN KEY (a) REFERENCES P(a) ON DELETE NO ACTION)");
+        methodWatcher.executeUpdate("insert into P values(1,10),(2,20),(3,30)");
+        methodWatcher.executeUpdate("insert into C values(1,10),(1,15),(2,20),(2,20),(3,30),(3,35)");
+
+        assertQueryFail("delete from P where a = 2", "Operation on table 'P' caused a violation of foreign key constraint 'FK_1' for key (A).  The statement has been rolled back.");
+        assertQueryFail("update P set a=-1 where a = 2", "Operation on table 'P' caused a violation of foreign key constraint 'FK_1' for key (A).  The statement has been rolled back.");
+
+        // delete references
+        methodWatcher.executeUpdate("delete from C where a=2");
+
+        // now delete from parent should succeed
+        assertEquals(4L, methodWatcher.query("select count(*) from C"));
+        assertEquals(1L, methodWatcher.executeUpdate("delete from P where a = 2"));
+    }
+
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     //
     // helper methods
