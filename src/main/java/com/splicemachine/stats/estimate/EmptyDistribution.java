@@ -8,11 +8,11 @@ package com.splicemachine.stats.estimate;
  * @author Scott Fines
  *         Date: 3/5/15
  */
-public class EmptyDistribution<T extends Comparable<T>> implements Distribution<T>{
+public class EmptyDistribution<T> implements Distribution<T>{
     private static final EmptyDistribution INSTANCE = new EmptyDistribution();
 
     @SuppressWarnings("unchecked")
-    public static <T extends Comparable<T>> Distribution<T> emptyDistribution(){
+    public static <T> Distribution<T> emptyDistribution(){
         //unchecked cast is fine here, because we don't do anything with the type info anyway
         return (EmptyDistribution<T>)INSTANCE;
     }
