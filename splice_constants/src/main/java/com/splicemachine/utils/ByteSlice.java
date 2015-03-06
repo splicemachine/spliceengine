@@ -1,6 +1,7 @@
 package com.splicemachine.utils;
 
 import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.hash.HashFunctions;
 
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.lucene.util.ArrayUtil;
@@ -207,10 +208,7 @@ public class ByteSlice implements Externalizable,Comparable<ByteSlice> {
 
 		@Override
 		public int hashCode() {
-				int result = buffer != null ? Arrays.hashCode(buffer) : 0;
-				result = 31 * result + offset;
-				result = 31 * result + length;
-				return result;
+			return buffer != null ? HashFunctions.murmur3(0).hash(buffer,offset,length):0;
 		}
 
 		@Override
