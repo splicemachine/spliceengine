@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.stats;
 
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.collector.ColumnStatsCollector;
+import com.splicemachine.stats.estimate.DistributionFactory;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 
@@ -25,6 +26,7 @@ public class NumericStatsCollector extends DvdStatsCollector {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     protected ColumnStatistics<DataValueDescriptor> newStats(ColumnStatistics build) {
         return new NumericStats((ColumnStatistics<BigDecimal>)build);
     }

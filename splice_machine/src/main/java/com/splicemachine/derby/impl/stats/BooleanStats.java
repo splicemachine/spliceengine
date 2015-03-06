@@ -3,6 +3,8 @@ package com.splicemachine.derby.impl.stats;
 import com.google.common.base.Function;
 import com.splicemachine.stats.BooleanColumnStatistics;
 import com.splicemachine.stats.ColumnStatistics;
+import com.splicemachine.stats.estimate.BooleanDistribution;
+import com.splicemachine.stats.estimate.Distribution;
 import com.splicemachine.stats.frequency.BooleanFrequencyEstimate;
 import com.splicemachine.stats.frequency.BooleanFrequentElements;
 import com.splicemachine.stats.frequency.FrequencyEstimate;
@@ -50,6 +52,11 @@ public class BooleanStats extends BaseDvdStatistics {
     }
 
     @Override
+    protected Distribution<DataValueDescriptor> newDistribution(ColumnStatistics baseStats) {
+        return new BooleanDist(this.baseStats);
+    }
+
+    @Override
     public ColumnStatistics<DataValueDescriptor> getClone() {
         return new BooleanStats((BooleanColumnStatistics)baseStats.getClone());
     }
@@ -87,6 +94,8 @@ public class BooleanStats extends BaseDvdStatistics {
                 throw new RuntimeException(e);
             }
         }
+
+        @Override public long totalFrequentElements() { return frequentElements.totalFrequentElements(); }
 
         @Override
         public FrequentElements<DataValueDescriptor> getClone() {
@@ -133,6 +142,48 @@ public class BooleanStats extends BaseDvdStatistics {
 
         private Set<? extends FrequencyEstimate<DataValueDescriptor>> convert(Set<BooleanFrequencyEstimate> other) {
             return new ConvertingSetView<>(other,conversionFunction);
+        }
+    }
+
+    private static boolean safeGetBoolean(DataValueDescriptor element) {
+        try {
+            return element.getBoolean();
+        } catch (StandardException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static class BooleanDist implements Distribution<DataValueDescriptor>{
+        private ColumnStatistics<Boolean> stats;
+
+        public BooleanDist(ColumnStatistics<Boolean> stats) {
+            this.stats = stats;
+        }
+
+        @Override
+        public long selectivity(DataValueDescriptor element) {
+            if(element==null||element.isNull()) return stats.nullCount();
+            boolean d = safeGetBoolean(element);
+            return ((BooleanDistribution)stats.getDistribution()).selectivity(d);
+        }
+
+
+        @Override
+        public long rangeSelectivity(DataValueDescriptor start, DataValueDescriptor stop, boolean includeStart, boolean includeStop) {
+            Boolean s;
+            Boolean e;
+            if(start==null||start.isNull())
+                s = null;
+            else //noinspection UnnecessaryBoxing
+                s = Boolean.valueOf(safeGetBoolean(start));
+            if(stop==null || stop.isNull())
+               e = null;
+            else {
+                //noinspection UnnecessaryBoxing
+                e = Boolean.valueOf(safeGetBoolean(stop));
+            }
+
+            return stats.getDistribution().rangeSelectivity(s,e,includeStart,includeStop);
         }
     }
 

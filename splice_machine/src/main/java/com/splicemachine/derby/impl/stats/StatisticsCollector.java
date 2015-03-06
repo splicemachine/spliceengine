@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.stats;
 
+import com.google.common.base.Supplier;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.hbase.MeasuredRegionScanner;
@@ -42,6 +43,17 @@ public class StatisticsCollector {
     private final String tableVersion;
     private final TransactionalRegion txnRegion;
     private final MeasuredRegionScanner scanner;
+    /*
+     * A reverse mapping between the output column position and that column's position in
+     * the original row.
+     */
+    private final int[] columnPositionMap;
+    /*
+     * The maximum length of any individual fields. -1 if there is no maximum length.
+     *
+     * This is primarily useful for string fields. Most other types will have no maximum length
+     */
+    private final int[] lengths;
 
     public StatisticsCollector(TxnView txn,
                                ExecRow template,
@@ -51,6 +63,8 @@ public class StatisticsCollector {
                                boolean[] keyColumnSortOrder,
                                int[] keyColumnTypes,
                                int[] keyDecodingMap,
+                               int[] columnPositionMap,
+                               int[] lengths,
                                FormatableBitSet collectedKeyColumns,
                                String tableVersion,
                                TransactionalRegion txnRegion,
@@ -68,6 +82,8 @@ public class StatisticsCollector {
         this.tableVersion = tableVersion;
         this.txnRegion = txnRegion;
         this.scanner = scanner;
+        this.columnPositionMap = columnPositionMap;
+        this.lengths = lengths;
     }
 
     @SuppressWarnings("unchecked")
@@ -119,7 +135,10 @@ public class StatisticsCollector {
         DataValueDescriptor[] dvds = template.getRowArray();
         ColumnStatsCollector<DataValueDescriptor> [] collectors = new ColumnStatsCollector[dvds.length];
         for(int i=0;i<dvds.length;i++){
-            collectors[i] = DvdStatsCollector.newCollector(dvds[i].getTypeFormatId(),cardinalityPrecision,topKSize);
+            DataValueDescriptor dvd = dvds[i];
+            int columnId = columnPositionMap[i];
+            int columnLength = lengths[i];
+            collectors[i] = DvdStatsCollector.newCollector(columnId,dvd.getTypeFormatId(),columnLength,cardinalityPrecision,topKSize);
         }
         return collectors;
     }

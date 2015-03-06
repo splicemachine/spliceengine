@@ -3,6 +3,8 @@ package com.splicemachine.derby.impl.stats;
 import com.google.common.base.Function;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.IntColumnStatistics;
+import com.splicemachine.stats.estimate.Distribution;
+import com.splicemachine.stats.estimate.IntDistribution;
 import com.splicemachine.stats.frequency.FrequencyEstimate;
 import com.splicemachine.stats.frequency.FrequentElements;
 import com.splicemachine.stats.frequency.IntFrequencyEstimate;
@@ -22,6 +24,7 @@ import java.util.Set;
  */
 public class IntStats extends BaseDvdStatistics {
     private IntColumnStatistics intStats; //integer-typed reference
+
     public IntStats() { }
 
     public IntStats(IntColumnStatistics build) {
@@ -36,6 +39,8 @@ public class IntStats extends BaseDvdStatistics {
 
     @Override public DataValueDescriptor minValue() { return new SQLInteger(intStats.min()); }
     @Override public DataValueDescriptor maxValue() { return new SQLInteger(intStats.max()); }
+
+
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
@@ -52,6 +57,11 @@ public class IntStats extends BaseDvdStatistics {
         return new IntStats((IntColumnStatistics)intStats.getClone());
     }
 
+    @Override
+    protected Distribution<DataValueDescriptor> newDistribution(ColumnStatistics baseStats) {
+        return new IntDist(intStats);
+    }
+
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private class IntFreqs implements FrequentElements<DataValueDescriptor> {
@@ -64,6 +74,11 @@ public class IntStats extends BaseDvdStatistics {
         @Override
         public FrequentElements<DataValueDescriptor> getClone() {
             return new IntFreqs((IntFrequentElements)frequentElements.getClone());
+        }
+
+        @Override
+        public long totalFrequentElements() {
+            return frequentElements.totalFrequentElements();
         }
 
         @Override
@@ -141,4 +156,48 @@ public class IntStats extends BaseDvdStatistics {
         }
     };
 
+    private static int safeGetInt(DataValueDescriptor element) {
+        try {
+            return element.getInt();
+        } catch (StandardException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static class IntDist implements Distribution<DataValueDescriptor> {
+        private IntColumnStatistics intStats;
+
+        public IntDist(IntColumnStatistics intStats) {
+            this.intStats = intStats;
+        }
+
+        @Override
+        public long selectivity(DataValueDescriptor element) {
+            if(element==null||element.isNull())
+                return intStats.nullCount();
+
+            int value = safeGetInt(element);
+            return ((IntDistribution)intStats.getDistribution()).selectivity(value);
+        }
+
+
+        @Override
+        public long rangeSelectivity(DataValueDescriptor start, DataValueDescriptor stop, boolean includeStart, boolean includeStop) {
+            if(start==null||start.isNull()){
+                if(stop==null||stop.isNull()){
+                    return intStats.getDistribution().rangeSelectivity(null,null,includeStart,includeStop);
+                }else{
+                    return ((IntDistribution)intStats.getDistribution()).selectivityBefore(safeGetInt(stop), includeStop);
+                }
+            }else{
+                int s = safeGetInt(start);
+                if(stop==null||stop.isNull()){
+                    return ((IntDistribution)intStats.getDistribution()).selectivityAfter(s, includeStart);
+                }else {
+                    int e = safeGetInt(stop);
+                    return ((IntDistribution)intStats.getDistribution()).rangeSelectivity(s,e,includeStart,includeStop);
+                }
+            }
+        }
+    }
 }

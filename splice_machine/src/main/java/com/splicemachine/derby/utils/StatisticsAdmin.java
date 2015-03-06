@@ -13,7 +13,6 @@ import com.splicemachine.job.JobFuture;
 import com.splicemachine.pipeline.exception.ErrorState;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.TxnView;
-import com.splicemachine.utils.IntArrays;
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -180,18 +179,22 @@ public class StatisticsAdmin {
         int outputCol = 0;
         int[] columnPositionMap = new int[tableDesc.getNumberOfColumns()];
         Arrays.fill(columnPositionMap,-1);
+        int[] allColumnLengths = new int[tableDesc.getNumberOfColumns()];
         for(ColumnDescriptor descriptor:colsToCollect){
             accessedColumns.set(descriptor.getPosition()-1);
             row.setColumn(outputCol+1,descriptor.getType().getNull());
             columnPositionMap[outputCol] = descriptor.getPosition()-1;
             outputCol++;
+            allColumnLengths[descriptor.getPosition()-1] = descriptor.getType().getMaximumWidth();
         }
 
         int[] rowDecodingMap = new int[accessedColumns.length()];
+        int[] fieldLengths = new int[accessedColumns.length()];
         Arrays.fill(rowDecodingMap,-1);
         outputCol = 0;
         for(int i=accessedColumns.nextSetBit(0);i>=0;i = accessedColumns.nextSetBit(i+1)){
             rowDecodingMap[i] = outputCol;
+            fieldLengths[outputCol] = allColumnLengths[i];
             outputCol++;
         }
         TransactionController transactionExecute = conn.getLanguageConnection().getTransactionExecute();
@@ -227,7 +230,9 @@ public class StatisticsAdmin {
                 keyColumnEncodingOrder,
                 keyColumnSortOrder,
                 keyColumnTypes,
-                collectedKeyColumns,tableVersion);
+                fieldLengths,
+                collectedKeyColumns,
+                tableVersion);
 
         HTableInterface table = SpliceAccessManager.getHTable(tableDesc.getHeapConglomerateId());
         //elevate the parent transaction with both tables

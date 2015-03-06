@@ -3,6 +3,8 @@ package com.splicemachine.derby.impl.stats;
 import com.google.common.base.Function;
 import com.splicemachine.stats.ByteColumnStatistics;
 import com.splicemachine.stats.ColumnStatistics;
+import com.splicemachine.stats.estimate.ByteDistribution;
+import com.splicemachine.stats.estimate.Distribution;
 import com.splicemachine.stats.frequency.ByteFrequencyEstimate;
 import com.splicemachine.stats.frequency.ByteFrequentElements;
 import com.splicemachine.stats.frequency.FrequencyEstimate;
@@ -26,6 +28,11 @@ public class TinyintStats extends BaseDvdStatistics {
     public TinyintStats(ByteColumnStatistics build) {
         super(build);
         this.stats = build;
+    }
+
+    @Override
+    protected Distribution<DataValueDescriptor> newDistribution(ColumnStatistics baseStats) {
+        return new ByteDist(stats);
     }
 
     @Override
@@ -64,6 +71,8 @@ public class TinyintStats extends BaseDvdStatistics {
         public FrequentElements<DataValueDescriptor> getClone() {
             return new TinyintFreqs(frequentElements.getClone());
         }
+
+        @Override public long totalFrequentElements() { return frequentElements.totalFrequentElements(); }
 
         @Override
         @SuppressWarnings("unchecked")
@@ -137,4 +146,45 @@ public class TinyintStats extends BaseDvdStatistics {
             return new TinyFreq(intFrequencyEstimate);
         }
     };
+
+    private static class ByteDist implements Distribution<DataValueDescriptor> {
+        private ByteColumnStatistics stats;
+
+        public ByteDist(ByteColumnStatistics stats) {
+            this.stats = stats;
+        }
+
+        @Override
+        public long selectivity(DataValueDescriptor element) {
+            if(element==null||element.isNull())
+                return stats.nullCount();
+            return ((ByteDistribution)stats.getDistribution()).selectivity(safeGetByte(element));
+        }
+
+        @Override
+        public long rangeSelectivity(DataValueDescriptor start, DataValueDescriptor stop, boolean includeStart, boolean includeStop) {
+            ByteDistribution dist = (ByteDistribution)stats.getDistribution();
+            if(start==null||start.isNull()){
+                if(stop==null||stop.isNull()){
+                    return dist.rangeSelectivity(null,null,includeStart,includeStop);
+                }else{
+                    return dist.selectivityBefore(safeGetByte(stop),includeStop);
+                }
+            }else{
+                byte s = safeGetByte(start);
+                if(stop==null||stop.isNull())
+                    return dist.selectivityAfter(s,includeStart);
+                else
+                    return dist.rangeSelectivity(s,safeGetByte(stop),includeStart,includeStop);
+            }
+        }
+    }
+
+    private static byte safeGetByte(DataValueDescriptor element) {
+        try {
+            return element.getByte();
+        } catch (StandardException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

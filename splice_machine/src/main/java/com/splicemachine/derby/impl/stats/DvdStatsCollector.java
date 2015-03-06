@@ -1,9 +1,12 @@
 package com.splicemachine.derby.impl.stats;
 
-import com.splicemachine.encoding.Encoder;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.collector.ColumnStatsCollector;
 import com.splicemachine.stats.collector.ColumnStatsCollectors;
+import com.splicemachine.stats.estimate.Distribution;
+import com.splicemachine.stats.estimate.DistributionFactory;
+import com.splicemachine.stats.estimate.UniformDecimalDistribution;
+import com.splicemachine.stats.estimate.UniformStringDistribution;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.types.DataValueDescriptor;
@@ -57,14 +60,16 @@ public abstract class DvdStatsCollector implements ColumnStatsCollector<DataValu
 
     protected abstract ColumnStatistics<DataValueDescriptor> newStats(ColumnStatistics build);
 
-    public static ColumnStatsCollector<DataValueDescriptor> newCollector(int typeFormatId,
+    public static ColumnStatsCollector<DataValueDescriptor> newCollector(int columnId,
+                                                                         int typeFormatId,
+                                                                         int columnLen,
                                                                          int topKSize,
                                                                          int cardPrecision){
         switch(typeFormatId){
             case StoredFormatIds.SQL_BOOLEAN_ID:
-                return new BooleanDvdStatsCollector(ColumnStatsCollectors.booleanCollector());
+                return new BooleanDvdStatsCollector(ColumnStatsCollectors.booleanCollector(columnId));
             case StoredFormatIds.SQL_TINYINT_ID:
-                return new TinyintStatsCollector(ColumnStatsCollectors.byteCollector(topKSize));
+                return new TinyintStatsCollector(ColumnStatsCollectors.byteCollector(columnId,topKSize));
             case StoredFormatIds.SQL_SMALLINT_ID:
                 /*
                  * We need to make sure that the downcasting doesn't result in garbage configurations. If
@@ -77,24 +82,40 @@ public abstract class DvdStatsCollector implements ColumnStatsCollector<DataValu
                 short topKS = (short)topKSize;
                 if(topKS<0)
                     topKS =(short)StatsConstants.DEFAULT_TOPK_PRECISION;
-                return new SmallintStatsCollector(ColumnStatsCollectors.shortCollector(cP,topKS));
+                return new SmallintStatsCollector(ColumnStatsCollectors.shortCollector(columnId,cP,topKS));
             case StoredFormatIds.SQL_INTEGER_ID:
-                return new IntDvdStatsCollector(ColumnStatsCollectors.intCollector(cardPrecision,topKSize));
+                return new IntDvdStatsCollector(ColumnStatsCollectors.intCollector(columnId,cardPrecision,topKSize));
             case StoredFormatIds.SQL_LONGINT_ID:
-                return new BigintStatsCollector(ColumnStatsCollectors.longCollector(cardPrecision,topKSize));
+                return new BigintStatsCollector(ColumnStatsCollectors.longCollector(columnId,cardPrecision,topKSize));
             case StoredFormatIds.SQL_REAL_ID:
-                return new RealStatsCollector(ColumnStatsCollectors.floatCollector(cardPrecision, topKSize));
+                return new RealStatsCollector(ColumnStatsCollectors.floatCollector(columnId,cardPrecision, topKSize));
             case StoredFormatIds.SQL_DOUBLE_ID:
-                return new DoubleStatsCollector(ColumnStatsCollectors.doubleCollector(cardPrecision, topKSize));
+                return new DoubleStatsCollector(ColumnStatsCollectors.doubleCollector(columnId,cardPrecision, topKSize));
             case StoredFormatIds.SQL_DECIMAL_ID:
-                return new NumericStatsCollector(ColumnStatsCollectors.<BigDecimal>collector(cardPrecision, topKSize));
+                return new NumericStatsCollector(ColumnStatsCollectors.collector(columnId, cardPrecision, topKSize, decimalDistributionFactory));
             case StoredFormatIds.SQL_CHAR_ID:
-                return StringStatsCollector.charCollector(ColumnStatsCollectors.<String>collector(cardPrecision, topKSize));
+                return StringStatsCollector.charCollector(ColumnStatsCollectors.collector(columnId,
+                        cardPrecision,
+                        topKSize,
+                        stringDistributionFactory(columnLen)),columnLen);
             case StoredFormatIds.SQL_VARCHAR_ID:
             case StoredFormatIds.SQL_LONGVARCHAR_ID:
-                return StringStatsCollector.varcharCollector(ColumnStatsCollectors.<String>collector(cardPrecision, topKSize));
+                return StringStatsCollector.varcharCollector(ColumnStatsCollectors.collector(columnId,
+                        cardPrecision,
+                        topKSize,
+                        stringDistributionFactory(columnLen)),columnLen);
             default:
                 throw new UnsupportedOperationException("Programmer error: Cannot collect statistics for format id "+ typeFormatId);
         }
+    }
+    public static DistributionFactory<BigDecimal> decimalDistributionFactory = new DistributionFactory<BigDecimal>() {
+        @Override
+        public Distribution<BigDecimal> newDistribution(ColumnStatistics<BigDecimal> statistics) {
+            return new UniformDecimalDistribution(statistics);
+        }
+    };
+
+    public static DistributionFactory<String> stringDistributionFactory(int maxStringLength) {
+        return UniformStringDistribution.factory(maxStringLength);
     }
 }
