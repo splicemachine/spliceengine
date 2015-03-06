@@ -45,7 +45,6 @@ import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
-import org.apache.http.conn.util.InetAddressUtils;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -74,6 +73,7 @@ public class StatisticsTask extends ZkTask{
     private int[] keyColumnTypes;
     private FormatableBitSet collectedKeyColumns;
     private String tableVersion;
+    private int[] fieldLengths;
 
     /**Serialization Constructor. DO NOT USE*/
     @Deprecated
@@ -87,6 +87,7 @@ public class StatisticsTask extends ZkTask{
                           int[] keyColumnEncodingOrder,
                           boolean[] keyColumnSortOrder,
                           int[] keyColumnTypes,
+                          int[] fieldLengths,
                           FormatableBitSet collectedKeyColumns,
                           String tableVersion) {
         super(jobId,SchedulerPriorities.INSTANCE.getBasePriority(StatisticsTask.class));
@@ -99,6 +100,7 @@ public class StatisticsTask extends ZkTask{
         this.keyColumnTypes = keyColumnTypes;
         this.collectedKeyColumns = collectedKeyColumns;
         this.tableVersion = tableVersion;
+        this.fieldLengths = fieldLengths;
     }
 
     @Override
@@ -120,6 +122,8 @@ public class StatisticsTask extends ZkTask{
                     keyColumnSortOrder,
                     keyColumnTypes,
                     keyDecodingMap,
+                    columnPositionMap,
+                    fieldLengths,
                     collectedKeyColumns,
                     tableVersion,
                     txnRegion,
@@ -156,6 +160,7 @@ public class StatisticsTask extends ZkTask{
                 keyColumnEncodingOrder,
                 keyColumnSortOrder,
                 keyColumnTypes,
+                fieldLengths,
                 collectedKeyColumns,
                 tableVersion);
     }
@@ -178,6 +183,7 @@ public class StatisticsTask extends ZkTask{
         else
             keyColumnSortOrder = null;
         keyColumnTypes = ArrayUtil.readIntArray(in);
+        fieldLengths = ArrayUtil.readIntArray(in);
         collectedKeyColumns = (FormatableBitSet)in.readObject();
         tableVersion = in.readUTF();
     }
@@ -194,6 +200,7 @@ public class StatisticsTask extends ZkTask{
         if(keyColumnSortOrder!=null)
             ArrayUtil.writeBooleanArray(out, keyColumnSortOrder);
         ArrayUtil.writeIntArray(out, keyColumnTypes);
+        ArrayUtil.writeIntArray(out,fieldLengths);
         out.writeObject(collectedKeyColumns);
         out.writeUTF(tableVersion);
     }

@@ -22,22 +22,22 @@ public abstract class StringStatsCollector extends DvdStatsCollector{
         baseCollector.update(dataValueDescriptor.getString(),count);
     }
 
-    public static StringStatsCollector charCollector(ColumnStatsCollector<String> collector){
+    public static StringStatsCollector charCollector(ColumnStatsCollector<String> collector,final int strLen){
         return new StringStatsCollector(collector) {
             @Override
             @SuppressWarnings("unchecked")
             protected ColumnStatistics<DataValueDescriptor> newStats(ColumnStatistics build) {
-                return new CharStats((ColumnStatistics<String>)build);
+                return new CharStats((ColumnStatistics<String>)build,strLen);
             }
         };
     }
 
-    public static StringStatsCollector varcharCollector(ColumnStatsCollector<String> collector){
+    public static StringStatsCollector varcharCollector(ColumnStatsCollector<String> collector,final int strLen){
         return new StringStatsCollector(collector) {
             @Override
             @SuppressWarnings("unchecked")
             protected ColumnStatistics<DataValueDescriptor> newStats(ColumnStatistics build) {
-                return new VarcharStats((ColumnStatistics<String>)build);
+                return new VarcharStats((ColumnStatistics<String>)build,strLen);
             }
         };
     }

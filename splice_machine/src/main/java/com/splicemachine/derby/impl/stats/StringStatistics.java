@@ -4,6 +4,8 @@ import com.google.common.base.Function;
 import com.splicemachine.encoding.Encoder;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.ComparableColumnStatistics;
+import com.splicemachine.stats.estimate.Distribution;
+import com.splicemachine.stats.estimate.DistributionFactory;
 import com.splicemachine.stats.frequency.FrequencyEstimate;
 import com.splicemachine.stats.frequency.FrequentElements;
 import org.apache.derby.iapi.error.StandardException;
@@ -18,12 +20,16 @@ import java.util.Set;
  */
 public abstract class StringStatistics extends BaseDvdStatistics{
     private ColumnStatistics<String> stats;
+    protected int strLen;
+    private DistributionFactory<String> distributionFactory;
 
     public StringStatistics() { }
 
-    public StringStatistics(ColumnStatistics<String> stats) {
+    public StringStatistics(ColumnStatistics<String> stats,int strLen) {
         super(stats);
         this.stats = stats;
+        this.strLen = strLen;
+        this.distributionFactory = DvdStatsCollector.stringDistributionFactory(strLen);
     }
 
     @Override
@@ -36,14 +42,21 @@ public abstract class StringStatistics extends BaseDvdStatistics{
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
-        ComparableColumnStatistics.encoder(stringEncoder).encode((ComparableColumnStatistics<String>) stats,out);
+        out.writeInt(strLen);
+        ComparableColumnStatistics.encoder(stringEncoder,distributionFactory).encode((ComparableColumnStatistics<String>) stats,out);
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        baseStats = stats = ComparableColumnStatistics.encoder(stringEncoder).decode(in);
+        strLen = in.readInt();
+        distributionFactory = DvdStatsCollector.stringDistributionFactory(strLen);
+        baseStats = stats = ComparableColumnStatistics.encoder(stringEncoder,distributionFactory).decode(in);
     }
 
+    @Override
+    protected Distribution<DataValueDescriptor> newDistribution(ColumnStatistics baseStats) {
+        return new StringDistribution(stats);
+    }
 
     protected abstract DataValueDescriptor getDvd(String s);
 
@@ -57,6 +70,8 @@ public abstract class StringStatistics extends BaseDvdStatistics{
         public Freqs(FrequentElements<String> freqs) {
             this.frequentElements = freqs;
         }
+
+        @Override public long totalFrequentElements() { return frequentElements.totalFrequentElements(); }
 
         @Override
         @SuppressWarnings("unchecked")
@@ -72,6 +87,7 @@ public abstract class StringStatistics extends BaseDvdStatistics{
         @Override
         @SuppressWarnings("unchecked")
         public FrequencyEstimate<? extends DataValueDescriptor> equal(DataValueDescriptor element) {
+            //TODO -sf- deal with nulls here
             try {
                 return conversionFunction().apply((FrequencyEstimate<String>) frequentElements.equal((String)element.getObject()));
             } catch (StandardException e) {
@@ -82,28 +98,16 @@ public abstract class StringStatistics extends BaseDvdStatistics{
         @Override
         public Set<? extends FrequencyEstimate<DataValueDescriptor>> frequentElementsBetween(
                 DataValueDescriptor start, DataValueDescriptor stop, boolean includeStart, boolean includeStop) {
-            try {
-                String startBd;
-                String stopBd;
-                if (start == null || start.isNull()) {
-                    if (stop == null||stop.isNull()) {
-                        //get everything
-                        return allFrequentElements();
-                    } else{
-                        startBd = null;
-                        stopBd = stop.getString();
-                    }
-                }else if(stop==null||stop.isNull()){
-                    stopBd = null;
-                    startBd = start.getString();
-                } else{
-                    startBd = start.getString();
-                    stopBd = stop.getString();
-                }
-                return convert(frequentElements.frequentElementsBetween(startBd,stopBd,includeStart,includeStop));
-            }catch(StandardException se){
-                throw new RuntimeException(se); //shouldn't happen
-            }
+            String startBd;
+            String stopBd;
+            if(start==null || start.isNull())
+                startBd = null;
+            else startBd = safeGetString(start);
+            if(stop==null || stop.isNull())
+                stopBd = null;
+            else
+                stopBd = safeGetString(stop);
+            return convert(frequentElements.frequentElementsBetween(startBd,stopBd,includeStart,includeStop));
         }
 
         @Override
@@ -153,4 +157,38 @@ public abstract class StringStatistics extends BaseDvdStatistics{
             return input.readUTF();
         }
     };
+
+    private static class StringDistribution implements Distribution<DataValueDescriptor> {
+        private ColumnStatistics<String> stats;
+
+        public StringDistribution(ColumnStatistics<String> stats) {
+            this.stats = stats;
+        }
+
+        @Override
+        public long selectivity(DataValueDescriptor element) {
+            if(element==null||element.isNull()) return stats.nullCount();
+            String d = safeGetString(element);
+            return stats.getDistribution().selectivity(d);
+        }
+
+        @Override
+        public long rangeSelectivity(DataValueDescriptor start, DataValueDescriptor stop, boolean includeStart, boolean includeStop) {
+            String s;
+            String e;
+            if(start==null||start.isNull()) s = null;
+            else s = safeGetString(start);
+            if(stop==null||stop.isNull()) e = null;
+            else e = safeGetString(stop);
+            return stats.getDistribution().rangeSelectivity(s,e,includeStart,includeStop);
+        }
+    }
+
+    private static String safeGetString(DataValueDescriptor element) {
+        try {
+            return element.getString();
+        } catch (StandardException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

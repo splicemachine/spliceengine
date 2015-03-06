@@ -13,8 +13,8 @@ import org.apache.derby.iapi.types.SQLVarchar;
 public class VarcharStats extends StringStatistics {
     public VarcharStats() { }
 
-    public VarcharStats(ColumnStatistics<String> stats) {
-        super(stats);
+    public VarcharStats(ColumnStatistics<String> stats,int strLen) {
+        super(stats,strLen);
     }
 
     @Override protected DataValueDescriptor getDvd(String s) { return new SQLVarchar(s); }
@@ -27,7 +27,7 @@ public class VarcharStats extends StringStatistics {
     @Override
     @SuppressWarnings("unchecked")
     public ColumnStatistics<DataValueDescriptor> getClone() {
-        return new VarcharStats((ColumnStatistics<String>)baseStats.getClone());
+        return new VarcharStats((ColumnStatistics<String>)baseStats.getClone(),strLen);
     }
 
     /* ***************************************************************************************************************/

@@ -3,6 +3,8 @@ package com.splicemachine.derby.impl.stats;
 import com.google.common.base.Function;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.FloatColumnStatistics;
+import com.splicemachine.stats.estimate.Distribution;
+import com.splicemachine.stats.estimate.FloatDistribution;
 import com.splicemachine.stats.frequency.FrequencyEstimate;
 import com.splicemachine.stats.frequency.FrequentElements;
 import com.splicemachine.stats.frequency.FloatFrequencyEstimate;
@@ -22,11 +24,18 @@ import java.util.Set;
  */
 public class RealStats extends BaseDvdStatistics {
     private FloatColumnStatistics stats;
+
     public RealStats(){}
 
     public RealStats(FloatColumnStatistics build) {
         super(build);
         stats = build;
+    }
+
+
+    @Override
+    protected Distribution<DataValueDescriptor> newDistribution(ColumnStatistics baseStats) {
+        return new RealDist(stats);
     }
 
     @Override
@@ -51,6 +60,7 @@ public class RealStats extends BaseDvdStatistics {
             throw new RuntimeException(e);
         }
     }
+
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
@@ -125,6 +135,8 @@ public class RealStats extends BaseDvdStatistics {
         private Set<? extends FrequencyEstimate<DataValueDescriptor>> convert(Set<FloatFrequencyEstimate> other) {
             return new ConvertingSetView<>(other,conversionFunction);
         }
+
+        @Override public long totalFrequentElements() { return frequentElements.totalFrequentElements(); }
     }
 
     private static class FloatFreq implements FrequencyEstimate<DataValueDescriptor> {
@@ -161,4 +173,47 @@ public class RealStats extends BaseDvdStatistics {
             return new FloatFreq(intFrequencyEstimate);
         }
     };
+
+    private class RealDist implements Distribution<DataValueDescriptor> {
+        private FloatColumnStatistics stats;
+
+        public RealDist(FloatColumnStatistics build) {
+            stats = build;
+        }
+
+        @Override
+        public long selectivity(DataValueDescriptor element) {
+            if(element==null||element.isNull()) return stats.nullCount();
+            float e = safeGetFloat(element);
+            return ((FloatDistribution)stats.getDistribution()).selectivity(e);
+        }
+
+        @Override
+        public long rangeSelectivity(DataValueDescriptor start, DataValueDescriptor stop, boolean includeStart, boolean includeStop) {
+            if(start==null||start.isNull()){
+                if(stop==null|| stop.isNull())
+                    return stats.getDistribution().rangeSelectivity(null,null,includeStart,includeStop);
+                else{
+                    float s = safeGetFloat(stop);
+                    return ((FloatDistribution)stats.getDistribution()).selectivityBefore(s,includeStop);
+                }
+            }else{
+                float s = safeGetFloat(start);
+                if(stop==null|| stop.isNull())
+                    return ((FloatDistribution)stats.getDistribution()).selectivityAfter(s,includeStart);
+                else{
+                    float e = safeGetFloat(stop);
+                    return ((FloatDistribution)stats.getDistribution()).rangeSelectivity(s,e,includeStart, includeStop);
+                }
+            }
+        }
+    }
+
+    private static float safeGetFloat(DataValueDescriptor element) {
+        try {
+            return element.getFloat();
+        } catch (StandardException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

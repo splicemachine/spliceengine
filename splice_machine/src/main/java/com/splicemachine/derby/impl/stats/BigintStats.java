@@ -3,6 +3,8 @@ package com.splicemachine.derby.impl.stats;
 import com.google.common.base.Function;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.LongColumnStatistics;
+import com.splicemachine.stats.estimate.Distribution;
+import com.splicemachine.stats.estimate.LongDistribution;
 import com.splicemachine.stats.frequency.FrequencyEstimate;
 import com.splicemachine.stats.frequency.FrequentElements;
 import com.splicemachine.stats.frequency.LongFrequencyEstimate;
@@ -26,6 +28,11 @@ public class BigintStats extends BaseDvdStatistics {
 
     public BigintStats(LongColumnStatistics build) {
         stats = build;
+    }
+
+    @Override
+    protected Distribution<DataValueDescriptor> newDistribution(ColumnStatistics baseStats) {
+        return new LongDist(stats);
     }
 
     @Override
@@ -65,6 +72,8 @@ public class BigintStats extends BaseDvdStatistics {
         public Set<? extends FrequencyEstimate<DataValueDescriptor>> allFrequentElements() {
             return convert((Set<LongFrequencyEstimate>)frequentElements.allFrequentElements());
         }
+
+        @Override public long totalFrequentElements() { return frequentElements.totalFrequentElements(); }
 
         @Override
         public FrequencyEstimate<? extends DataValueDescriptor> equal(DataValueDescriptor element) {
@@ -139,4 +148,44 @@ public class BigintStats extends BaseDvdStatistics {
             return new LongFreq(intFrequencyEstimate);
         }
     };
+
+    private static long safeGetLong(DataValueDescriptor element) {
+        try {
+            return element.getLong();
+        } catch (StandardException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static class LongDist implements Distribution<DataValueDescriptor> {
+        private LongColumnStatistics stats;
+
+        public LongDist(LongColumnStatistics stats) {
+            this.stats = stats;
+        }
+
+        @Override
+        public long selectivity(DataValueDescriptor element) {
+            if(element==null||element.isNull())
+                return stats.nullCount();
+            return ((LongDistribution)stats.getDistribution()).selectivity(safeGetLong(element));
+        }
+
+        @Override
+        public long rangeSelectivity(DataValueDescriptor start, DataValueDescriptor stop, boolean includeStart, boolean includeStop) {
+            LongDistribution dist = (LongDistribution)stats.getDistribution();
+            if(start==null||start.isNull()){
+                if(stop==null||stop.isNull())
+                    return dist.rangeSelectivity(null,null,includeStart,includeStop);
+                else
+                    return dist.selectivityBefore(safeGetLong(stop),includeStop);
+            }else{
+                long s = safeGetLong(start);
+                if(stop==null||stop.isNull())
+                    return dist.selectivityAfter(s,includeStart);
+                else
+                    return dist.rangeSelectivity(s,safeGetLong(stop),includeStart,includeStop);
+            }
+        }
+    }
 }

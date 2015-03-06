@@ -3,6 +3,8 @@ package com.splicemachine.derby.impl.stats;
 import com.google.common.base.Function;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.DoubleColumnStatistics;
+import com.splicemachine.stats.estimate.Distribution;
+import com.splicemachine.stats.estimate.DoubleDistribution;
 import com.splicemachine.stats.frequency.FrequencyEstimate;
 import com.splicemachine.stats.frequency.FrequentElements;
 import com.splicemachine.stats.frequency.DoubleFrequencyEstimate;
@@ -41,6 +43,11 @@ public class DoubleStats extends BaseDvdStatistics{
         } catch (StandardException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    protected Distribution<DataValueDescriptor> newDistribution(ColumnStatistics baseStats) {
+        return new DoubleDist(stats);
     }
 
     @Override
@@ -85,6 +92,8 @@ public class DoubleStats extends BaseDvdStatistics{
         public Set<? extends FrequencyEstimate<DataValueDescriptor>> allFrequentElements() {
             return convert((Set<DoubleFrequencyEstimate>)frequentElements.allFrequentElements());
         }
+
+        @Override public long totalFrequentElements() { return frequentElements.totalFrequentElements(); }
 
         @Override
         public FrequencyEstimate<? extends DataValueDescriptor> equal(DataValueDescriptor element) {
@@ -161,4 +170,45 @@ public class DoubleStats extends BaseDvdStatistics{
         }
     };
 
+    private static class DoubleDist implements Distribution<DataValueDescriptor> {
+        private DoubleColumnStatistics stats;
+
+        public DoubleDist(DoubleColumnStatistics stats) {
+            this.stats = stats;
+        }
+
+        @Override
+        public long selectivity(DataValueDescriptor element) {
+            if(element==null || element.isNull())
+                return stats.nullCount();
+            double d = safeGetDouble(element);
+            return ((DoubleDistribution)stats.getDistribution()).selectivity(d);
+        }
+
+        @Override
+        public long rangeSelectivity(DataValueDescriptor start, DataValueDescriptor stop, boolean includeStart, boolean includeStop) {
+            if(start==null||start.isNull()){
+                if(stop==null||stop.isNull())
+                    return stats.getDistribution().rangeSelectivity(null,null,includeStart,includeStop);
+                else
+                    return ((DoubleDistribution)stats.getDistribution()).selectivityBefore(safeGetDouble(stop),includeStop);
+            }else{
+                double s = safeGetDouble(start);
+                if(stop==null||stop.isNull())
+                    return ((DoubleDistribution)stats.getDistribution()).selectivityAfter(s,includeStart);
+                else {
+                    double e=  safeGetDouble(stop);
+                    return ((DoubleDistribution)stats.getDistribution()).rangeSelectivity(s,e,includeStart,includeStop);
+                }
+            }
+        }
+    }
+
+    private static double safeGetDouble(DataValueDescriptor dvd){
+        try {
+            return dvd.getDouble();
+        } catch (StandardException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

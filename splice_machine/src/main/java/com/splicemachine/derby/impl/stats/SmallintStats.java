@@ -3,6 +3,8 @@ package com.splicemachine.derby.impl.stats;
 import com.google.common.base.Function;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.ShortColumnStatistics;
+import com.splicemachine.stats.estimate.Distribution;
+import com.splicemachine.stats.estimate.ShortDistribution;
 import com.splicemachine.stats.frequency.FrequencyEstimate;
 import com.splicemachine.stats.frequency.FrequentElements;
 import com.splicemachine.stats.frequency.ShortFrequencyEstimate;
@@ -27,6 +29,11 @@ public class SmallintStats extends BaseDvdStatistics {
 
     public SmallintStats(ShortColumnStatistics build) {
         stats = build;
+    }
+
+    @Override
+    protected Distribution<DataValueDescriptor> newDistribution(ColumnStatistics baseStats) {
+        return new ShortDist(stats);
     }
 
     @Override
@@ -65,6 +72,8 @@ public class SmallintStats extends BaseDvdStatistics {
         public FrequentElements<DataValueDescriptor> getClone() {
             return new ShortFreqs(frequentElements.newCopy());
         }
+
+        @Override public long totalFrequentElements() { return frequentElements.totalFrequentElements(); }
 
         @Override
         @SuppressWarnings("unchecked")
@@ -140,4 +149,46 @@ public class SmallintStats extends BaseDvdStatistics {
             return new ShortFreq(intFrequencyEstimate);
         }
     };
+
+    private static class ShortDist implements Distribution<DataValueDescriptor> {
+        private ShortColumnStatistics stats;
+
+        public ShortDist(ShortColumnStatistics stats) {
+            this.stats = stats;
+        }
+
+        @Override
+        public long selectivity(DataValueDescriptor element) {
+            if(element==null||element.isNull())
+                return stats.nullCount();
+            short s = safeGetShort(element);
+            return ((ShortDistribution)stats.getDistribution()).selectivity(s);
+        }
+
+        @Override
+        public long rangeSelectivity(DataValueDescriptor start, DataValueDescriptor stop, boolean includeStart, boolean includeStop) {
+            if(start==null||start.isNull()){
+                if(stop==null||stop.isNull())
+                    return stats.getDistribution().rangeSelectivity(null,null,includeStart,includeStop);
+                else
+                    return ((ShortDistribution)stats.getDistribution()).selectivityBefore(safeGetShort(stop),includeStop);
+            }else{
+                short s = safeGetShort(start);
+                if(stop==null||stop.isNull())
+                    return ((ShortDistribution)stats.getDistribution()).selectivityAfter(s,includeStart);
+                else{
+                    short e = safeGetShort(stop);
+                    return ((ShortDistribution)stats.getDistribution()).rangeSelectivity(s,e,includeStart,includeStop);
+                }
+            }
+        }
+    }
+
+    private static short safeGetShort(DataValueDescriptor element) {
+        try {
+            return element.getShort();
+        } catch (StandardException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

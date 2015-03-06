@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.stats;
 
 import com.google.common.base.Function;
 import com.splicemachine.stats.ColumnStatistics;
+import com.splicemachine.stats.estimate.Distribution;
 import com.splicemachine.stats.frequency.FrequencyEstimate;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.SQLChar;
@@ -14,8 +15,8 @@ public class CharStats extends StringStatistics {
 
     public CharStats() { }
 
-    public CharStats(ColumnStatistics<String> stats) {
-        super(stats);
+    public CharStats(ColumnStatistics<String> stats,int strLen) {
+        super(stats,strLen);
     }
 
     @Override protected DataValueDescriptor getDvd(String s) { return new SQLChar(s); }
@@ -28,8 +29,9 @@ public class CharStats extends StringStatistics {
     @Override
     @SuppressWarnings("unchecked")
     public ColumnStatistics<DataValueDescriptor> getClone() {
-        return new CharStats((ColumnStatistics<String>)baseStats.getClone());
+        return new CharStats((ColumnStatistics<String>)baseStats.getClone(),strLen);
     }
+
 
     /* ***************************************************************************************************************/
     /*private helper methods*/
