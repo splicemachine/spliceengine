@@ -137,7 +137,7 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
             //add Constraint checks before anything else
             if (SpliceConstants.constraintsEnabled) {
                 for (ConstraintFactory constraintFactory : constraintFactories) {
-                    context.addLast(constraintFactory.create());
+                    context.addLast(constraintFactory.create(expectedWrites));
                 }
             }
 

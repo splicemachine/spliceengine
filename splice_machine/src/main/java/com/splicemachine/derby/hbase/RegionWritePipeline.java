@@ -82,7 +82,7 @@ public class RegionWritePipeline {
 
         WriteContext context;
         try {
-            context = ctxFactory.create(writeBufferFactory, txn, txnRegion, rce);
+            context = ctxFactory.create(writeBufferFactory, txn, txnRegion, toWrite.getSize(), rce);
         } catch (InterruptedException e) {
             return INTERRUPTED;
         } catch (IndexNotSetUpException e) {
