@@ -15,6 +15,14 @@
 			<groupId>com.splicemachine</groupId>
 			<artifactId>splice_si_adapter_94-cloudera-cdh4.5.0</artifactId>
 			<version>1.1.0-SNAPSHOT</version>
+			<exclusions>
+				<exclusion>
+					<artifactId>
+						spark-assembly-hadoop2.0.0-cdh4.5.0
+					</artifactId>
+					<groupId>org.apache.spark</groupId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>com.splicemachine</groupId>
