@@ -42,6 +42,24 @@ public class UniformByteDistribution extends BaseDistribution<Byte> implements B
     }
 
     @Override
+    public long selectivityBefore(byte stop, boolean includeStop) {
+        ByteColumnStatistics bcs = (ByteColumnStatistics)columnStats;
+        byte min = bcs.min();
+        if(stop<min ||(!includeStop && stop==min)) return 0l;
+
+        return rangeSelectivity(min,stop,true,includeStop);
+    }
+
+    @Override
+    public long selectivityAfter(byte start, boolean includeStart) {
+        ByteColumnStatistics bcs = (ByteColumnStatistics)columnStats;
+        byte max = bcs.max();
+        if(start>max||(!includeStart && start==max)) return 0l;
+
+        return rangeSelectivity(start,max,includeStart,true);
+    }
+
+    @Override
     protected long estimateEquals(Byte element) {
         return selectivity(element.byteValue());
     }

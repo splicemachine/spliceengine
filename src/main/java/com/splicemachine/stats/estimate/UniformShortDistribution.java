@@ -34,6 +34,21 @@ public class UniformShortDistribution extends BaseDistribution<Short> implements
     }
 
     @Override
+    public long selectivityBefore(short stop, boolean includeStop) {
+        ShortColumnStatistics scs = (ShortColumnStatistics)columnStats;
+        if(stop<scs.min()||(!includeStop && stop==scs.min())) return 0l;
+
+        return rangeSelectivity(scs.min(),stop,true,includeStop);
+    }
+
+    @Override
+    public long selectivityAfter(short start, boolean includeStart) {
+        ShortColumnStatistics scs = (ShortColumnStatistics)columnStats;
+        if(start>scs.max()||(!includeStart && start==scs.max())) return 0l;
+        return rangeSelectivity(start,scs.max(),includeStart,true);
+    }
+
+    @Override
     public long rangeSelectivity(short start, short stop, boolean includeStart, boolean includeStop) {
         ShortColumnStatistics scs = (ShortColumnStatistics)columnStats;
         if(start==stop &&(!includeStart || !includeStop)) return 0l; //asking for an empty range

@@ -38,6 +38,24 @@ public class UniformDoubleDistribution extends BaseDistribution<Double> implemen
     }
 
     @Override
+    public long selectivityBefore(double stop, boolean includeStop) {
+        DoubleColumnStatistics fcs = (DoubleColumnStatistics)columnStats;
+        double min = fcs.min();
+        if(stop<min ||(!includeStop && min==stop)) return 0l;
+
+        return rangeSelectivity(min,stop,true,includeStop);
+    }
+
+    @Override
+    public long selectivityAfter(double start, boolean includeStart) {
+        DoubleColumnStatistics fcs = (DoubleColumnStatistics)columnStats;
+        double max = fcs.max();
+        if(start>max || (!includeStart &&start==max)) return 0l;
+
+        return rangeSelectivity(start,max,includeStart,true);
+    }
+
+    @Override
     public long rangeSelectivity(double start, double stop, boolean includeStart, boolean includeStop) {
         DoubleColumnStatistics fcs = (DoubleColumnStatistics)columnStats;
         double min = fcs.min();

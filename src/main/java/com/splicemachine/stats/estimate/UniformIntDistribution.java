@@ -34,6 +34,22 @@ public class UniformIntDistribution extends BaseDistribution<Integer> implements
     }
 
     @Override
+    public long selectivityBefore(int stop, boolean includeStop) {
+        IntColumnStatistics ics = (IntColumnStatistics)columnStats;
+        if(stop<ics.min()||(!includeStop && stop==ics.min())) return 0l;
+
+        return rangeSelectivity(ics.min(),stop,true,includeStop);
+    }
+
+    @Override
+    public long selectivityAfter(int start, boolean includeStart) {
+        IntColumnStatistics ics = (IntColumnStatistics)columnStats;
+        if(start>ics.max()||(!includeStart && start==ics.max())) return 0l;
+
+        return rangeSelectivity(start,ics.max(),includeStart,true);
+    }
+
+    @Override
     public long rangeSelectivity(int start, int stop, boolean includeStart, boolean includeStop) {
         if(start==stop &&(!includeStart || !includeStop)) return 0l; //empty interval has no data
         IntColumnStatistics ics = (IntColumnStatistics)columnStats;

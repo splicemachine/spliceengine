@@ -34,6 +34,22 @@ public class UniformLongDistribution extends BaseDistribution<Long> implements L
     }
 
     @Override
+    public long selectivityBefore(long stop, boolean includeStop) {
+        LongColumnStatistics scs = (LongColumnStatistics)columnStats;
+        if(stop<scs.min()||(!includeStop && stop==scs.min())) return 0l;
+
+        return rangeSelectivity(scs.min(),stop,true,includeStop);
+    }
+
+    @Override
+    public long selectivityAfter(long start, boolean includeStart) {
+        LongColumnStatistics scs = (LongColumnStatistics)columnStats;
+        if(start>scs.max()||(!includeStart && start==scs.max())) return 0l;
+
+        return rangeSelectivity(start,scs.max(),includeStart,true);
+    }
+
+    @Override
     public long rangeSelectivity(long start, long stop, boolean includeStart, boolean includeStop) {
         LongColumnStatistics scs = (LongColumnStatistics)columnStats;
         if(start==stop &&(!includeStart || !includeStop)) return 0l; //asking for an empty range

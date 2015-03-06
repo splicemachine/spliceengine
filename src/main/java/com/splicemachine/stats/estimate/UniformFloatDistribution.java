@@ -38,6 +38,23 @@ public class UniformFloatDistribution extends BaseDistribution<Float> implements
     }
 
     @Override
+    public long selectivityBefore(float stop, boolean includeStop) {
+        FloatColumnStatistics fcs = (FloatColumnStatistics)columnStats;
+        float min = fcs.min();
+        if(stop<min||(!includeStop && stop==min)) return 0l;
+
+        return rangeSelectivity(min,stop,true,includeStop);
+    }
+
+    @Override
+    public long selectivityAfter(float start, boolean includeStart) {
+        FloatColumnStatistics fcs = (FloatColumnStatistics)columnStats;
+        float max = fcs.max();
+        if(start>max ||(!includeStart &&start==max)) return 0l;
+        return rangeSelectivity(start,max,includeStart,true);
+    }
+
+    @Override
     public long rangeSelectivity(float start, float stop, boolean includeStart, boolean includeStop) {
         FloatColumnStatistics fcs = (FloatColumnStatistics)columnStats;
         float min = fcs.min();
