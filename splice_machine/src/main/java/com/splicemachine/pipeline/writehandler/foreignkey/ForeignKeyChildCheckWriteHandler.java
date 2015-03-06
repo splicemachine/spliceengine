@@ -1,7 +1,9 @@
 package com.splicemachine.pipeline.writehandler.foreignkey;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.db.iapi.sql.dictionary.ForeignKeyConstraintDescriptor;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.api.Code;
 import com.splicemachine.pipeline.api.WriteContext;
@@ -13,9 +15,11 @@ import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.TxnOperationFactory;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.impl.HTransactorFactory;
-import com.splicemachine.db.iapi.sql.dictionary.ForeignKeyConstraintDescriptor;
+import com.splicemachine.si.impl.SIFilter;
+import com.splicemachine.si.impl.TxnFilter;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.filter.PrefixFilter;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 
@@ -28,14 +32,14 @@ import java.util.List;
  */
 public class ForeignKeyChildCheckWriteHandler implements WriteHandler {
 
-    private final TransactionalRegion region;
+    private final TransactionalRegion transactionalRegion;
     private final TxnOperationFactory txnOperationFactory;
     private final RegionCoprocessorEnvironment env;
     private final ForeignKeyConstraintDescriptor foreignKeyConstraintDescriptor;
     private final SDataLib dataLib;
 
-    public ForeignKeyChildCheckWriteHandler(TransactionalRegion region, RegionCoprocessorEnvironment env, ForeignKeyConstraintDescriptor foreignKeyConstraintDescriptor) {
-        this.region = region;
+    public ForeignKeyChildCheckWriteHandler(TransactionalRegion transactionalRegion, RegionCoprocessorEnvironment env, ForeignKeyConstraintDescriptor foreignKeyConstraintDescriptor) {
+        this.transactionalRegion = transactionalRegion;
         this.env = env;
         this.foreignKeyConstraintDescriptor = foreignKeyConstraintDescriptor;
         this.txnOperationFactory = TransactionOperations.getOperationFactory();
@@ -46,21 +50,13 @@ public class ForeignKeyChildCheckWriteHandler implements WriteHandler {
     public void next(KVPair kvPair, WriteContext ctx) {
         // I only do foreign key checks.
         if (kvPair.getType() == KVPair.Type.FOREIGN_KEY_CHILDREN_EXISTENCE_CHECK) {
-            if (!region.rowInRange(kvPair.getRowKey())) {
+            if (!transactionalRegion.rowInRange(kvPair.getRowKey())) {
                 // The row would not longer be in this region, if it did/does exist.
                 ctx.failed(kvPair, WriteResult.wrongRegion());
             } else {
                 try {
-                    Scan scan = txnOperationFactory.newScan(ctx.getTxn());
-                    byte[] startKey = kvPair.getRowKey();
-                    scan.setStartRow(startKey);
-                    scan.setFilter(new PrefixFilter(startKey));
-
-                    List result = Lists.newArrayList();
-                    RegionScanner regionScanner = env.getRegion().getScanner(scan);
-                    dataLib.regionScannerNext(regionScanner, result);
-
-                    if (!result.isEmpty()) {
+                    List rowsReferencingParent = scanForReferences(kvPair, ctx);
+                    if (!rowsReferencingParent.isEmpty()) {
                         String failedKvAsHex = BytesUtil.toHex(kvPair.getRowKey());
                         ConstraintContext context = ConstraintContext.foreignKey(foreignKeyConstraintDescriptor).withInsertedMessage(0, failedKvAsHex);
                         WriteResult foreignKeyConstraint = new WriteResult(Code.FOREIGN_KEY_VIOLATION, context);
@@ -68,13 +64,30 @@ public class ForeignKeyChildCheckWriteHandler implements WriteHandler {
                     } else {
                         ctx.success(kvPair);
                     }
-
                 } catch (IOException e) {
                     throw new IllegalStateException(e);
                 }
             }
         }
         ctx.sendUpstream(kvPair);
+    }
+
+    private List scanForReferences(KVPair kvPair, WriteContext ctx) throws IOException {
+        byte[] startKey = kvPair.getRowKey();
+
+        TxnFilter txnFilter = transactionalRegion.unpackedFilter(ctx.getTxn());
+        SIFilter siFilter = new SIFilter(txnFilter);
+        PrefixFilter prefixFilter = new PrefixFilter(startKey);
+
+        Scan scan = txnOperationFactory.newScan(ctx.getTxn());
+        scan.addFamily(SIConstants.DEFAULT_FAMILY_BYTES);
+        scan.setStartRow(startKey);
+        scan.setFilter(new FilterList(prefixFilter, siFilter));
+
+        List result = Lists.newArrayList();
+        RegionScanner regionScanner = env.getRegion().getScanner(scan);
+        dataLib.regionScannerNext(regionScanner, result);
+        return result;
     }
 
     @Override
