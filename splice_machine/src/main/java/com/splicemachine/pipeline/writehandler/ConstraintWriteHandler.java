@@ -6,6 +6,7 @@ import com.splicemachine.pipeline.api.WriteContext;
 import com.splicemachine.pipeline.api.WriteHandler;
 import com.splicemachine.pipeline.constraint.Constraint;
 import com.splicemachine.pipeline.impl.WriteResult;
+
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 
@@ -24,16 +25,19 @@ public class ConstraintWriteHandler implements WriteHandler {
     private boolean failed;
     private ObjectOpenHashSet<KVPair> visitedRows;
     private final WriteResult invalidResult;
+    private int expectedWrites;
 
-    public ConstraintWriteHandler(Constraint localConstraint) {
-        this.localConstraint = localConstraint;
+    public ConstraintWriteHandler(Constraint localConstraint, int expectedWrites) {
+    	this.expectedWrites = expectedWrites;
+    	this.localConstraint = localConstraint;
         this.invalidResult = new WriteResult(WriteResult.convertType(localConstraint.getType()), localConstraint.getConstraintContext());
     }
 
     @Override
     public void next(KVPair mutation, WriteContext ctx) {
-        if (visitedRows == null) {
-            visitedRows = new ObjectOpenHashSet<>();
+        if (visitedRows == null) {        	
+        	int initialCapacity = (int) Math.ceil(expectedWrites/0.9f);
+            visitedRows = new ObjectOpenHashSet<>(initialCapacity,0.9f);
         }
         if (failed) {
             ctx.notRun(mutation);
