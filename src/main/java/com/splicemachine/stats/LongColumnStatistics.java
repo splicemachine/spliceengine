@@ -3,6 +3,9 @@ package com.splicemachine.stats;
 import com.splicemachine.encoding.Encoder;
 import com.splicemachine.stats.cardinality.CardinalityEstimators;
 import com.splicemachine.stats.cardinality.LongCardinalityEstimator;
+import com.splicemachine.stats.estimate.Distribution;
+import com.splicemachine.stats.estimate.LongDistribution;
+import com.splicemachine.stats.estimate.UniformLongDistribution;
 import com.splicemachine.stats.frequency.FrequencyCounters;
 import com.splicemachine.stats.frequency.FrequentElements;
 import com.splicemachine.stats.frequency.LongFrequentElements;
@@ -15,50 +18,47 @@ import java.io.IOException;
  * @author Scott Fines
  *         Date: 2/23/15
  */
-public class LongColumnStatistics implements ColumnStatistics<Long> {
+public class LongColumnStatistics extends BaseColumnStatistics<Long> {
     private LongCardinalityEstimator cardinalityEstimator;
     private LongFrequentElements frequentElements;
     private long min;
     private long max;
-    private long totalBytes;
-    private long totalCount;
-    private long nullCount;
+    private LongDistribution distribution;
 
-    public LongColumnStatistics(LongCardinalityEstimator cardinalityEstimator,
+    public LongColumnStatistics(int columnId,LongCardinalityEstimator cardinalityEstimator,
                                 LongFrequentElements frequentElements,
                                 long min,
                                 long max,
                                 long totalBytes,
                                 long totalCount,
-                                long nullCount) {
+                                long nullCount,
+                                long minCount) {
+        super(columnId, totalBytes, totalCount, nullCount,minCount);
         this.cardinalityEstimator = cardinalityEstimator;
         this.frequentElements = frequentElements;
         this.min = min;
         this.max = max;
-        this.totalBytes = totalBytes;
-        this.totalCount = totalCount;
-        this.nullCount = nullCount;
+        this.distribution = new UniformLongDistribution(this);
     }
 
+    @Override public Distribution<Long> getDistribution() { return distribution; }
     @Override public long cardinality() { return cardinalityEstimator.getEstimate(); }
-    @Override public float nullFraction() { return ((float)nullCount)/totalCount; }
-    @Override public long nullCount() { return nullCount; }
     @Override public FrequentElements<Long> topK() { return frequentElements; }
     @Override public Long minValue() { return min; }
     @Override public Long maxValue() { return max; }
     public long min() { return min; }
     public long max() { return max; }
-    @Override public long avgColumnWidth() { return totalBytes/totalCount; }
 
     @Override
     public ColumnStatistics<Long> getClone() {
-        return new LongColumnStatistics(cardinalityEstimator.newCopy(),
+        return new LongColumnStatistics(columnId,cardinalityEstimator.newCopy(),
                 frequentElements.newCopy(),
                 min,
                 max,
                 totalBytes,
                 totalCount,
-                nullCount);
+                nullCount,
+                minCount);
     }
 
     @Override
@@ -86,25 +86,25 @@ public class LongColumnStatistics implements ColumnStatistics<Long> {
 
         @Override
         public void encode(LongColumnStatistics item,DataOutput encoder) throws IOException {
+            BaseColumnStatistics.write(item, encoder);
             encoder.writeLong(item.min);
             encoder.writeLong(item.max);
-            encoder.writeLong(item.totalBytes);
-            encoder.writeLong(item.totalCount);
-            encoder.writeLong(item.nullCount);
             CardinalityEstimators.longEncoder().encode(item.cardinalityEstimator, encoder);
             FrequencyCounters.longEncoder().encode(item.frequentElements,encoder);
         }
 
         @Override
         public LongColumnStatistics decode(DataInput decoder) throws IOException {
-            long min = decoder.readLong();
-            long max = decoder.readLong();
+            int columnId = decoder.readInt();
             long totalBytes = decoder.readLong();
             long totalCount = decoder.readLong();
             long nullCount = decoder.readLong();
+            long minCount = decoder.readLong();
+            long min = decoder.readLong();
+            long max = decoder.readLong();
             LongCardinalityEstimator cardinalityEstimator = CardinalityEstimators.longEncoder().decode(decoder);
             LongFrequentElements frequentElements = FrequencyCounters.longEncoder().decode(decoder);
-            return new LongColumnStatistics(cardinalityEstimator,frequentElements,min,max,totalBytes,totalCount,nullCount);
+            return new LongColumnStatistics(columnId,cardinalityEstimator,frequentElements,min,max,totalBytes,totalCount,nullCount,minCount);
         }
     }
 

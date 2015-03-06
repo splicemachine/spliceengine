@@ -195,6 +195,15 @@ public abstract class IntFrequentElements implements FrequentElements<Integer> {
         return getNew(totalCount,ests);
     }
 
+    @Override
+    public long totalFrequentElements() {
+        long total = 0l;
+        for(FrequencyEstimate<Integer> est:elements)
+            total+=est.count();
+
+        return total;
+    }
+
     protected abstract IntFrequentElements getNew(long totalCount, Collection<IntFrequencyEstimate> ests);
 
     protected abstract NavigableSet<IntFrequencyEstimate> rebuild(long mergedCount,IntFrequencyEstimate[] topK);

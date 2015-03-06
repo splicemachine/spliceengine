@@ -2,13 +2,15 @@ package com.splicemachine.stats.frequency;
 
 import com.splicemachine.stats.BytesUpdateable;
 
+import java.nio.ByteBuffer;
+
 /**
  * Marker interface for a byte[] specific frequency counter
  *
  * @author Scott Fines
  * Date: 3/27/14
  */
-public interface BytesFrequencyCounter extends FrequencyCounter<byte[]>,BytesUpdateable {
+public interface BytesFrequencyCounter extends FrequencyCounter<ByteBuffer>,BytesUpdateable {
 
     /**
      * Get all elements which have occurred more than {@code support*numVisited} times,

@@ -1,9 +1,7 @@
 package com.splicemachine.stats.collector;
 
 import com.splicemachine.stats.IntColumnStatistics;
-import com.splicemachine.stats.cardinality.CardinalityEstimators;
 import com.splicemachine.stats.cardinality.IntCardinalityEstimator;
-import com.splicemachine.stats.frequency.FrequencyCounters;
 import com.splicemachine.stats.frequency.IntFrequencyCounter;
 import com.splicemachine.stats.order.IntMinMaxCollector;
 
@@ -14,6 +12,7 @@ import com.splicemachine.stats.order.IntMinMaxCollector;
  *         Date: 2/23/15
  */
 class IntColumn implements IntColumnStatsCollector {
+    private final int columnId;
     private final IntCardinalityEstimator cardinalityEstimator;
     private final IntFrequencyCounter frequencyCounter;
     private final IntMinMaxCollector minMaxCollector;
@@ -25,7 +24,8 @@ class IntColumn implements IntColumnStatsCollector {
     /*The number of frequent elements to keep*/
     private int topK;
 
-    public IntColumn(IntCardinalityEstimator cardinalityEstimator,
+    public IntColumn(int columnId,
+                     IntCardinalityEstimator cardinalityEstimator,
                      IntFrequencyCounter frequencyCounter,
                      IntMinMaxCollector minMaxCollector,
                      int topK) {
@@ -33,17 +33,20 @@ class IntColumn implements IntColumnStatsCollector {
         this.frequencyCounter = frequencyCounter;
         this.minMaxCollector = minMaxCollector;
         this.topK = topK;
+        this.columnId = columnId;
     }
 
     @Override
     public IntColumnStatistics build() {
-        return new IntColumnStatistics(cardinalityEstimator,
+        return new IntColumnStatistics(columnId,
+                cardinalityEstimator,
                 frequencyCounter.frequentElements(topK),
                 minMaxCollector.min(),
                 minMaxCollector.max(),
                 totalBytes,
                 count,
-                nullCount );
+                nullCount,
+                minMaxCollector.minCount());
     }
 
     @Override public void updateSize(int size) { totalBytes+=size; }

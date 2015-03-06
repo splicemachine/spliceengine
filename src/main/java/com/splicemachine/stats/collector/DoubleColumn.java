@@ -10,7 +10,7 @@ import com.splicemachine.stats.order.DoubleMinMaxCollector;
  *         Date: 2/24/15
  */
 class DoubleColumn implements DoubleColumnStatsCollector {
-
+    private final int columnId;
     private final DoubleCardinalityEstimator cardinalityEstimator;
     private final DoubleFrequencyCounter frequencyCounter;
     private final DoubleMinMaxCollector minMaxCollector;
@@ -22,25 +22,29 @@ class DoubleColumn implements DoubleColumnStatsCollector {
     /*The number of frequent elements to keep*/
     private int topK;
 
-    public DoubleColumn(DoubleCardinalityEstimator cardinalityEstimator,
-                      DoubleFrequencyCounter frequencyCounter,
-                      DoubleMinMaxCollector minMaxCollector,
-                      int topK) {
+    public DoubleColumn(int columnId,
+                        DoubleCardinalityEstimator cardinalityEstimator,
+                        DoubleFrequencyCounter frequencyCounter,
+                        DoubleMinMaxCollector minMaxCollector,
+                        int topK) {
         this.cardinalityEstimator = cardinalityEstimator;
         this.frequencyCounter = frequencyCounter;
         this.minMaxCollector = minMaxCollector;
         this.topK = topK;
+        this.columnId = columnId;
     }
 
     @Override
     public DoubleColumnStatistics build() {
-        return new DoubleColumnStatistics(cardinalityEstimator,
+        return new DoubleColumnStatistics(columnId,
+                cardinalityEstimator,
                 frequencyCounter.frequentElements(topK),
                 minMaxCollector.min(),
                 minMaxCollector.max(),
                 totalBytes,
                 count,
-                nullCount );
+                nullCount,
+                minMaxCollector.minCount());
     }
 
     @Override public void updateSize(int size) { totalBytes+=size; }

@@ -121,6 +121,15 @@ class ByteFrequencies implements ByteFrequentElements {
     }
 
     @Override
+    public long totalFrequentElements() {
+        long totalRowSize=0;
+        for (FrequencyEstimate<Byte> estimate : allFrequentElements()) {
+            totalRowSize+=estimate.getValue();
+        }
+        return totalRowSize;
+    }
+
+    @Override
     public FrequentElements<Byte> merge(FrequentElements<Byte> other) {
         assert other instanceof ByteFrequencies: "Cannot merge instance of type "+ other.getClass();
         return merge((ByteFrequencies)other);

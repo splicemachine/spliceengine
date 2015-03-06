@@ -161,11 +161,9 @@ public class CardinalityEstimators {
 				@Override public void update(byte[] bytes, int offset, int length, long count) { counter.update(bytes,offset,length); }
 				@Override public void update(ByteBuffer bytes) { counter.update(bytes); }
 				@Override public void update(ByteBuffer bytes, long count) { counter.update(bytes); }
-				@Override public void update(byte[] item) { counter.update(item,0,item.length); }
-				@Override public void update(byte[] item, long count) { counter.update(item,0,item.length);  }
 
         @Override
-        public CardinalityEstimator<byte[]> merge(CardinalityEstimator<byte[]> otherEstimator) {
+        public CardinalityEstimator<ByteBuffer> merge(CardinalityEstimator<ByteBuffer> otherEstimator) {
             assert otherEstimator instanceof BytesCardinalityEstimator: "Cannot merge with a non-loglog cardinality estimator";
             return merge((BytesCardinalityEstimator)otherEstimator);
         }

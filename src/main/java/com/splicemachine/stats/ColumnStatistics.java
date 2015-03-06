@@ -1,5 +1,6 @@
 package com.splicemachine.stats;
 
+import com.splicemachine.stats.estimate.Distribution;
 import com.splicemachine.stats.frequency.FrequentElements;
 
 /**
@@ -13,6 +14,11 @@ import com.splicemachine.stats.frequency.FrequentElements;
  *         Date: 2/23/15
  */
 public interface ColumnStatistics<T> extends Mergeable<ColumnStatistics<T>> {
+
+    /**
+     * @return the total number of <em>non-null</em> elements in the data set.
+     */
+    long nonNullCount();
 
     /**
      * @return the cardinality of the Column values (e.g. the number of distinct
@@ -41,6 +47,7 @@ public interface ColumnStatistics<T> extends Mergeable<ColumnStatistics<T>> {
      */
     T minValue();
 
+    long minCount();
     /**
      * @return the maximum value for this column
      */
@@ -57,4 +64,14 @@ public interface ColumnStatistics<T> extends Mergeable<ColumnStatistics<T>> {
      */
     ColumnStatistics<T> getClone();
 
+    /**
+     * @return a unique numeric identifier for this column (usually it's position from left to right in the table).
+     * This value should be indexed from 0
+     */
+    int columnId();
+
+    /**
+     * @return a Distribution of values for the column
+     */
+    Distribution<T> getDistribution();
 }

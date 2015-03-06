@@ -44,6 +44,11 @@ class SimpleBooleanFrequentElements implements BooleanFrequentElements {
     }
 
     @Override
+    public long totalFrequentElements() {
+        return trueValue.count+falseValue.count;
+    }
+
+    @Override
     public Set<? extends FrequencyEstimate<Boolean>> frequentElementsBetween(Boolean start, Boolean stop, boolean includeMin, boolean includeStop) {
         /*
          * we arbitrarily decided that true < false. Why, do you ask? Because we can, that's why. If you don't like it,

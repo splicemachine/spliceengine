@@ -192,6 +192,15 @@ public abstract class FloatFrequentElements implements FrequentElements<Float> {
         return getNew(totalCount,ests);
     }
 
+    @Override
+    public long totalFrequentElements() {
+        long total = 0l;
+        for(FrequencyEstimate<Float> freq:elements){
+            total+=freq.count();
+        }
+        return total;
+    }
+
     protected abstract NavigableSet<FloatFrequencyEstimate> rebuild(long mergedCount,FloatFrequencyEstimate[] topK);
 
     protected abstract FloatFrequentElements getNew(long totalCount, Collection<FloatFrequencyEstimate> ests);

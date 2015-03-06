@@ -1,6 +1,7 @@
 package com.splicemachine.stats;
 
 import com.splicemachine.annotations.ThreadSafe;
+import com.splicemachine.stats.estimate.Distribution;
 
 import java.util.List;
 
@@ -72,4 +73,6 @@ public interface PartitionStatistics extends Mergeable<PartitionStatistics> {
      * @return Statistics about individual columns (which were most recently collected).
      */
     List<ColumnStatistics> columnStatistics();
+
+    <T extends Comparable<T>> Distribution<T> columnDistribution(int columnId);
 }

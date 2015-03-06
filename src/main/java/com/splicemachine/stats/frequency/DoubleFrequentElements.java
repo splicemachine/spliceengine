@@ -191,6 +191,15 @@ public abstract class DoubleFrequentElements implements FrequentElements<Double>
         return this;
     }
 
+    @Override
+    public long totalFrequentElements() {
+        long total = 0l;
+        for(FrequencyEstimate<Double> est:elements){
+            total+=est.count();
+        }
+        return total;
+    }
+
     protected abstract NavigableSet<DoubleFrequencyEstimate> rebuild(long totalCount, DoubleFrequencyEstimate[] all);
 
     protected abstract DoubleFrequentElements getNew(long totalCount, Collection<DoubleFrequencyEstimate> copy);

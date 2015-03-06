@@ -2,29 +2,34 @@ package com.splicemachine.stats.collector;
 
 import com.splicemachine.stats.BooleanColumnStatistics;
 import com.splicemachine.stats.frequency.BooleanFrequencyCounter;
+import com.splicemachine.stats.frequency.BooleanFrequentElements;
 
 /**
  * @author Scott Fines
  *         Date: 2/24/15
  */
 class BooleanColumn implements BooleanColumnStatsCollector {
+    private final int columnId;
     private final BooleanFrequencyCounter frequencyCounter;
 
     private long nullCount;
     private long totalBytes;
     private long count;
 
-    public BooleanColumn(BooleanFrequencyCounter frequencyCounter) {
+    public BooleanColumn(int columnId,BooleanFrequencyCounter frequencyCounter) {
+        this.columnId = columnId;
         this.frequencyCounter = frequencyCounter;
     }
 
     @Override
     public BooleanColumnStatistics build() {
+        BooleanFrequentElements frequencies = frequencyCounter.frequencies();
         return new BooleanColumnStatistics(
-                frequencyCounter.frequencies(),
+                columnId,
+                frequencies,
                 totalBytes,
                 count,
-                nullCount );
+                nullCount,frequencies.equalsTrue().count());
     }
 
     @Override public void updateSize(int size) { totalBytes+=size; }

@@ -3,6 +3,8 @@ package com.splicemachine.stats;
 import com.splicemachine.encoding.Encoder;
 import com.splicemachine.stats.cardinality.CardinalityEstimators;
 import com.splicemachine.stats.cardinality.ShortCardinalityEstimator;
+import com.splicemachine.stats.estimate.Distribution;
+import com.splicemachine.stats.estimate.UniformShortDistribution;
 import com.splicemachine.stats.frequency.FrequencyCounters;
 import com.splicemachine.stats.frequency.FrequentElements;
 import com.splicemachine.stats.frequency.ShortFrequentElements;
@@ -15,52 +17,49 @@ import java.io.IOException;
  * @author Scott Fines
  *         Date: 2/23/15
  */
-public class ShortColumnStatistics implements ColumnStatistics<Short> {
+public class ShortColumnStatistics extends BaseColumnStatistics<Short> {
 
     private ShortCardinalityEstimator cardinalityEstimator;
     private ShortFrequentElements frequentElements;
     private short min;
     private short max;
+    private Distribution<Short> distribution;
 
-    private long totalBytes;
-    private long totalCount;
-    private long nullCount;
 
-    public ShortColumnStatistics(ShortCardinalityEstimator cardinalityEstimator,
+    public ShortColumnStatistics(int columnId,
+                                 ShortCardinalityEstimator cardinalityEstimator,
                                   ShortFrequentElements frequentElements,
                                   short min,
                                   short max,
                                   long totalBytes,
                                   long totalCount,
-                                  long nullCount) {
+                                  long nullCount,
+                                 long minCount) {
+        super(columnId, totalBytes, totalCount, nullCount,minCount);
         this.cardinalityEstimator = cardinalityEstimator;
         this.frequentElements = frequentElements;
         this.min = min;
         this.max = max;
-        this.totalBytes = totalBytes;
-        this.totalCount = totalCount;
-        this.nullCount = nullCount;
+        this.distribution = new UniformShortDistribution(this);
     }
 
     @Override public long cardinality() { return cardinalityEstimator.getEstimate(); }
-    @Override public float nullFraction() { return ((float)nullCount)/totalCount; }
-    @Override public long nullCount() { return nullCount; }
     @Override public FrequentElements<Short> topK() { return frequentElements; }
     @Override public Short minValue() { return min; }
     @Override public Short maxValue() { return max; }
     public short min(){ return min; }
     public short max(){ return max; }
-    @Override public long avgColumnWidth() { return totalBytes/totalCount;}
 
     @Override
     public ColumnStatistics<Short> getClone() {
-        return new ShortColumnStatistics(cardinalityEstimator.newCopy(),
+        return new ShortColumnStatistics(columnId,cardinalityEstimator.newCopy(),
                 frequentElements.newCopy(),
                 min,
                 max,
                 totalBytes,
                 totalCount,
-                nullCount);
+                nullCount,
+                minCount);
     }
 
     @Override
@@ -79,6 +78,11 @@ public class ShortColumnStatistics implements ColumnStatistics<Short> {
         return this;
     }
 
+    @Override
+    public Distribution<Short> getDistribution() {
+        return distribution;
+    }
+
     public static Encoder<ShortColumnStatistics> encoder(){
         return EncDec.INSTANCE;
     }
@@ -88,25 +92,25 @@ public class ShortColumnStatistics implements ColumnStatistics<Short> {
 
         @Override
         public void encode(ShortColumnStatistics item,DataOutput encoder) throws IOException {
+            BaseColumnStatistics.write(item, encoder);
             encoder.writeShort(item.min);
             encoder.writeShort(item.max);
-            encoder.writeLong(item.totalBytes);
-            encoder.writeLong(item.totalCount);
-            encoder.writeLong(item.nullCount);
             CardinalityEstimators.shortEncoder().encode(item.cardinalityEstimator, encoder);
             FrequencyCounters.shortEncoder().encode(item.frequentElements,encoder);
         }
 
         @Override
         public ShortColumnStatistics decode(DataInput decoder) throws IOException {
-            short min = decoder.readShort();
-            short max = decoder.readShort();
+            int colId = decoder.readInt();
             long totalBytes = decoder.readLong();
             long totalCount = decoder.readLong();
             long nullCount = decoder.readLong();
+            long minCount = decoder.readLong();
+            short min = decoder.readShort();
+            short max = decoder.readShort();
             ShortCardinalityEstimator cardinalityEstimator = CardinalityEstimators.shortEncoder().decode(decoder);
             ShortFrequentElements frequentElements = FrequencyCounters.shortEncoder().decode(decoder);
-            return new ShortColumnStatistics(cardinalityEstimator,frequentElements,min,max,totalBytes,totalCount,nullCount);
+            return new ShortColumnStatistics(colId,cardinalityEstimator,frequentElements,min,max,totalBytes,totalCount,nullCount,minCount);
         }
     }
 }

@@ -22,7 +22,6 @@ public class Distributions {
         return new UniformDistribution(new Random());
     }
 
-
     private static class ShiftedGaussian implements RandomDistribution{
         private final GaussianDistribution baseGaussian;
         private final double mean;

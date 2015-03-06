@@ -177,6 +177,15 @@ public abstract class ObjectFrequentElements<T> implements FrequentElements<T>,M
         return getNew(totalCount,copy,comparator);
     }
 
+    @Override
+    public long totalFrequentElements() {
+        long total = 0l;
+        for(FrequencyEstimate<T> est: elements){
+            total+=est.count();
+        }
+        return total;
+    }
+
     protected abstract NavigableSet<FrequencyEstimate<T>> rebuild(long mergedCount,FrequencyEstimate<T>[] topK);
 
     protected abstract FrequentElements<T> getNew(long totalCount, Collection<FrequencyEstimate<T>> copy,Comparator<? super T> comparator);

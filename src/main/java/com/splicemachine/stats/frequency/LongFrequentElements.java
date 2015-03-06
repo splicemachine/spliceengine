@@ -193,6 +193,15 @@ public abstract class LongFrequentElements implements FrequentElements<Long> {
         return getNew(totalCount,ests);
     }
 
+    @Override
+    public long totalFrequentElements() {
+        long total = 0l;
+        for(FrequencyEstimate<Long> est:elements){
+            total+=est.count();
+        }
+        return total;
+    }
+
     protected abstract NavigableSet<LongFrequencyEstimate> rebuild(long mergedCount,LongFrequencyEstimate[] topK);
 
     protected abstract LongFrequentElements getNew(long totalCount, Collection<LongFrequencyEstimate> ests);

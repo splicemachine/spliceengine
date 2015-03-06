@@ -6,7 +6,7 @@ import java.nio.ByteBuffer;
  * @author Scott Fines
  *         Date: 2/18/15
  */
-public interface BytesFrequencyEstimate extends FrequencyEstimate<byte[]>,Comparable<BytesFrequencyEstimate>{
+public interface BytesFrequencyEstimate extends FrequencyEstimate<ByteBuffer>,Comparable<BytesFrequencyEstimate>{
 
     ByteBuffer valueBuffer();
 

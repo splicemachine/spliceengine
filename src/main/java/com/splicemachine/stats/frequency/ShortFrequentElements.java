@@ -194,6 +194,15 @@ public abstract class ShortFrequentElements implements FrequentElements<Short> {
         return getNew(totalCount,ests);
     }
 
+    @Override
+    public long totalFrequentElements() {
+        long total = 0l;
+        for(FrequencyEstimate<Short> est:elements){
+            total+=est.count();
+        }
+        return total;
+    }
+
     protected abstract NavigableSet<ShortFrequencyEstimate> rebuild(long mergedCount,ShortFrequencyEstimate[] topK);
 
     protected abstract ShortFrequentElements getNew(long totalCount, Collection<ShortFrequencyEstimate> ests);

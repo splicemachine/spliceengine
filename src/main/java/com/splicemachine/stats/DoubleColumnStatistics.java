@@ -3,6 +3,8 @@ package com.splicemachine.stats;
 import com.splicemachine.encoding.Encoder;
 import com.splicemachine.stats.cardinality.CardinalityEstimators;
 import com.splicemachine.stats.cardinality.DoubleCardinalityEstimator;
+import com.splicemachine.stats.estimate.Distribution;
+import com.splicemachine.stats.estimate.UniformDoubleDistribution;
 import com.splicemachine.stats.frequency.DoubleFrequentElements;
 import com.splicemachine.stats.frequency.FrequencyCounters;
 import com.splicemachine.stats.frequency.FrequentElements;
@@ -15,51 +17,53 @@ import java.io.IOException;
  * @author Scott Fines
  *         Date: 2/23/15
  */
-public class DoubleColumnStatistics implements ColumnStatistics<Double> {
+public class DoubleColumnStatistics extends BaseColumnStatistics<Double> {
     private DoubleCardinalityEstimator cardinalityEstimator;
     private DoubleFrequentElements frequentElements;
     private double min;
     private double max;
+    private Distribution<Double> distribution;
 
-    private long totalBytes;
-    private long totalCount;
-    private long nullCount;
-
-    public DoubleColumnStatistics(DoubleCardinalityEstimator cardinalityEstimator,
-                               DoubleFrequentElements frequentElements,
-                               double min,
-                               double max,
-                               long totalBytes,
-                               long totalCount,
-                               long nullCount) {
+    public DoubleColumnStatistics(int columnId,
+                                  DoubleCardinalityEstimator cardinalityEstimator,
+                                  DoubleFrequentElements frequentElements,
+                                  double min,
+                                  double max,
+                                  long totalBytes,
+                                  long totalCount,
+                                  long nullCount,
+                                  long minCount) {
+        super(columnId, totalBytes, totalCount, nullCount,minCount);
         this.cardinalityEstimator = cardinalityEstimator;
         this.frequentElements = frequentElements;
         this.min = min;
         this.max = max;
-        this.totalBytes = totalBytes;
-        this.totalCount = totalCount;
-        this.nullCount = nullCount;
+        this.distribution = new UniformDoubleDistribution(this);
     }
 
+
     @Override public long cardinality() { return cardinalityEstimator.getEstimate(); }
-    @Override public float nullFraction() { return ((float)nullCount)/totalCount; }
-    @Override public long nullCount() { return nullCount; }
     @Override public FrequentElements<Double> topK() { return frequentElements; }
     @Override public Double minValue() { return min; }
     @Override public Double maxValue() { return max; }
     public double min(){ return min; }
     public double max(){ return max; }
-    @Override public long avgColumnWidth() { return totalBytes/totalCount;}
+
+    @Override
+    public Distribution<Double> getDistribution() {
+        return distribution;
+    }
 
     @Override
     public ColumnStatistics<Double> getClone() {
-        return new DoubleColumnStatistics(cardinalityEstimator.newCopy(),
+        return new DoubleColumnStatistics(columnId,cardinalityEstimator.newCopy(),
                 frequentElements.newCopy(),
                 min,
                 max,
                 totalBytes,
                 totalCount,
-                nullCount);
+                nullCount,
+                minCount);
     }
 
     @Override
@@ -87,25 +91,25 @@ public class DoubleColumnStatistics implements ColumnStatistics<Double> {
 
         @Override
         public void encode(DoubleColumnStatistics item,DataOutput encoder) throws IOException {
+            BaseColumnStatistics.write(item,encoder);
             encoder.writeDouble(item.min);
             encoder.writeDouble(item.max);
-            encoder.writeLong(item.totalBytes);
-            encoder.writeLong(item.totalCount);
-            encoder.writeLong(item.nullCount);
             CardinalityEstimators.doubleEncoder().encode(item.cardinalityEstimator, encoder);
             FrequencyCounters.doubleEncoder().encode(item.frequentElements,encoder);
         }
 
         @Override
         public DoubleColumnStatistics decode(DataInput decoder) throws IOException {
-            double min = decoder.readDouble();
-            double max = decoder.readDouble();
+            int columnId = decoder.readInt();
             long totalBytes = decoder.readLong();
             long totalCount = decoder.readLong();
             long nullCount = decoder.readLong();
+            long minCount = decoder.readLong();
+            double min = decoder.readDouble();
+            double max = decoder.readDouble();
             DoubleCardinalityEstimator cardinalityEstimator = CardinalityEstimators.doubleEncoder().decode(decoder);
             DoubleFrequentElements frequentElements = FrequencyCounters.doubleEncoder().decode(decoder);
-            return new DoubleColumnStatistics(cardinalityEstimator,frequentElements,min,max,totalBytes,totalCount,nullCount);
+            return new DoubleColumnStatistics(columnId,cardinalityEstimator,frequentElements,min,max,totalBytes,totalCount,nullCount,minCount);
         }
     }
 }

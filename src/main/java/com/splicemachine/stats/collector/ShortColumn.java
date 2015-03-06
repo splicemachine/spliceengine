@@ -10,6 +10,7 @@ import com.splicemachine.stats.order.ShortMinMaxCollector;
  *         Date: 2/24/15
  */
 class ShortColumn implements ShortColumnStatsCollector {
+    private final int columnId;
     private final ShortCardinalityEstimator cardinalityEstimator;
     private final ShortFrequencyCounter frequencyCounter;
     private final ShortMinMaxCollector minMaxCollector;
@@ -21,25 +22,29 @@ class ShortColumn implements ShortColumnStatsCollector {
     /*The number of frequent elements to keep*/
     private int topK;
 
-    public ShortColumn(ShortCardinalityEstimator cardinalityEstimator,
-                      ShortFrequencyCounter frequencyCounter,
-                      ShortMinMaxCollector minMaxCollector,
-                      int topK) {
+    public ShortColumn(int columnId,
+                       ShortCardinalityEstimator cardinalityEstimator,
+                       ShortFrequencyCounter frequencyCounter,
+                       ShortMinMaxCollector minMaxCollector,
+                       int topK) {
         this.cardinalityEstimator = cardinalityEstimator;
         this.frequencyCounter = frequencyCounter;
         this.minMaxCollector = minMaxCollector;
         this.topK = topK;
+        this.columnId = columnId;
     }
 
     @Override
     public ShortColumnStatistics build() {
-        return new ShortColumnStatistics(cardinalityEstimator,
+        return new ShortColumnStatistics(columnId,
+                cardinalityEstimator,
                 frequencyCounter.frequentElements(topK),
                 minMaxCollector.min(),
                 minMaxCollector.max(),
                 totalBytes,
                 count,
-                nullCount );
+                nullCount,
+                minMaxCollector.minCount());
     }
 
     @Override public void updateSize(int size) { totalBytes+=size; }

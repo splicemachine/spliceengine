@@ -10,6 +10,7 @@ import com.splicemachine.stats.order.FloatMinMaxCollector;
  *         Date: 2/24/15
  */
 class FloatColumn implements FloatColumnStatsCollector {
+    private final int columnId;
     private final FloatCardinalityEstimator cardinalityEstimator;
     private final FloatFrequencyCounter frequencyCounter;
     private final FloatMinMaxCollector minMaxCollector;
@@ -21,7 +22,8 @@ class FloatColumn implements FloatColumnStatsCollector {
     /*The number of frequent elements to keep*/
     private int topK;
 
-    public FloatColumn(FloatCardinalityEstimator cardinalityEstimator,
+    public FloatColumn(int columnId,
+                       FloatCardinalityEstimator cardinalityEstimator,
                       FloatFrequencyCounter frequencyCounter,
                       FloatMinMaxCollector minMaxCollector,
                       int topK) {
@@ -29,17 +31,20 @@ class FloatColumn implements FloatColumnStatsCollector {
         this.frequencyCounter = frequencyCounter;
         this.minMaxCollector = minMaxCollector;
         this.topK = topK;
+        this.columnId = columnId;
     }
 
     @Override
     public FloatColumnStatistics build() {
-        return new FloatColumnStatistics(cardinalityEstimator,
+        return new FloatColumnStatistics(columnId,
+                cardinalityEstimator,
                 frequencyCounter.frequentElements(topK),
                 minMaxCollector.min(),
                 minMaxCollector.max(),
                 totalBytes,
                 count,
-                nullCount );
+                nullCount,
+                minMaxCollector.minCount());
     }
 
     @Override public void updateSize(int size) { totalBytes+=size; }

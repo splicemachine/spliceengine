@@ -15,7 +15,7 @@ import java.util.*;
  * @author Scott Fines
  *         Date: 12/5/14
  */
-public abstract class BytesFrequentElements implements FrequentElements<byte[]>{
+public abstract class BytesFrequentElements implements FrequentElements<ByteBuffer>{
     private static final Comparator<BytesFrequencyEstimate> frequencyComparator = new Comparator<BytesFrequencyEstimate>() {
         @Override
         public int compare(BytesFrequencyEstimate o1, BytesFrequencyEstimate o2) {
@@ -59,11 +59,11 @@ public abstract class BytesFrequentElements implements FrequentElements<byte[]>{
         return new HeavyItems(support,totalCount,elements,comparator);
     }
 
-    public FrequencyEstimate<byte[]> countEqual(byte[] bytes){
+    public FrequencyEstimate<ByteBuffer> countEqual(byte[] bytes){
        return countEqual(bytes,0,bytes.length);
     }
 
-    public FrequencyEstimate<byte[]> countEqual(byte[] bytes, int offset, int length){
+    public FrequencyEstimate<ByteBuffer> countEqual(byte[] bytes, int offset, int length){
         for(BytesFrequencyEstimate estimate:elements){
             if(estimate.compare(bytes,offset,length)==0)
                 return estimate;
@@ -71,7 +71,7 @@ public abstract class BytesFrequentElements implements FrequentElements<byte[]>{
         return new ZeroBytes(bytes,offset,length);
     }
 
-    public FrequencyEstimate<byte[]> countEqual(ByteBuffer buffer){
+    public FrequencyEstimate<ByteBuffer> countEqual(ByteBuffer buffer){
         for(BytesFrequencyEstimate estimate:elements){
             if(estimate.compare(buffer)==0)
                 return estimate;
@@ -80,18 +80,31 @@ public abstract class BytesFrequentElements implements FrequentElements<byte[]>{
     }
 
     @Override
-    public FrequencyEstimate<? extends byte[]> equal(byte[] item) {
-        return countEqual(item,0,item.length);
+    public FrequencyEstimate<? extends ByteBuffer> equal(ByteBuffer item) {
+        return countEqual(item);
     }
 
     @Override
-    public Set<? extends FrequencyEstimate<byte[]>> allFrequentElements() {
+    public Set<? extends FrequencyEstimate<ByteBuffer>> allFrequentElements() {
         return Collections.unmodifiableSet(elements);
     }
 
-    @Untested
     @Override
-    public Set<? extends FrequencyEstimate<byte[]>> frequentElementsBetween(byte[] start, byte[] stop, boolean includeMin, boolean includeStop) {
+    public long totalFrequentElements() {
+        long count = 0l;
+        for(FrequencyEstimate<ByteBuffer> est:allFrequentElements()){
+            count+=est.count();
+        }
+        return count;
+    }
+
+    @Override
+    public Set<? extends FrequencyEstimate<ByteBuffer>> frequentElementsBetween(ByteBuffer start, ByteBuffer stop, boolean includeMin, boolean includeStop) {
+        return frequentBetween(start,stop,includeMin,includeStop);
+    }
+
+    @Untested
+    public Set<? extends FrequencyEstimate<ByteBuffer>> frequentElementsBetween(byte[] start, byte[] stop, boolean includeMin, boolean includeStop) {
         return frequentBetween(start,0,start.length,
                 stop,0,stop.length,
                 includeMin,includeStop);
@@ -232,7 +245,7 @@ public abstract class BytesFrequentElements implements FrequentElements<byte[]>{
     }
 
     @Override
-    public FrequentElements<byte[]> merge(FrequentElements<byte[]> other) {
+    public FrequentElements<ByteBuffer> merge(FrequentElements<ByteBuffer> other) {
         assert other instanceof BytesFrequentElements: "Cannot merge instance of type "+ other.getClass();
         return merge((BytesFrequentElements)other);
     }
@@ -383,7 +396,7 @@ public abstract class BytesFrequentElements implements FrequentElements<byte[]>{
         }
 
         @Override
-        public FrequencyEstimate<byte[]> merge(FrequencyEstimate<byte[]> otherEst) {
+        public FrequencyEstimate<ByteBuffer> merge(FrequencyEstimate<ByteBuffer> otherEst) {
             return otherEst;
         }
 
@@ -394,7 +407,11 @@ public abstract class BytesFrequentElements implements FrequentElements<byte[]>{
         }
 
         @Override
-        public byte[] getValue() {
+        public ByteBuffer getValue() {
+            return valueBuffer();
+        }
+
+        public byte[] byteValue() {
             if(cachedCopy==null){
                 cachedCopy = new byte[length];
                 System.arraycopy(bytes,offset,cachedCopy,0,length);
@@ -420,12 +437,16 @@ public abstract class BytesFrequentElements implements FrequentElements<byte[]>{
             this.cachedCopy = null;
         }
 
-        @Override public FrequencyEstimate<byte[]> merge(FrequencyEstimate<byte[]> otherEst) { return otherEst; }
+        @Override public FrequencyEstimate<ByteBuffer> merge(FrequencyEstimate<ByteBuffer> otherEst) { return otherEst; }
         @Override public ByteBuffer valueBuffer() {  return buffer;}
         @Override public int valueArrayLength() {return buffer.remaining();}
         @Override public byte[] valueArrayBuffer() {
             if(buffer.hasArray()) return buffer.array();
-            return getValue();
+            if(cachedCopy==null){
+                cachedCopy = new byte[buffer.remaining()];
+                buffer.get(cachedCopy);
+            }
+            return cachedCopy;
         }
 
 
@@ -450,13 +471,8 @@ public abstract class BytesFrequentElements implements FrequentElements<byte[]>{
             return comparator.compare(this.buffer,buffer,offset,length);
         }
 
-        @Override
-        public byte[] getValue() {
-            if(cachedCopy==null){
-                cachedCopy = new byte[buffer.remaining()];
-                buffer.get(cachedCopy);
-            }
-            return cachedCopy;
+        public ByteBuffer getValue(){
+            return valueBuffer();
         }
 
         @Override public long count() { return 0; }
@@ -499,9 +515,9 @@ public abstract class BytesFrequentElements implements FrequentElements<byte[]>{
         private void encodeSet(NavigableSet<BytesFrequencyEstimate> elements, DataOutput dataInput) throws IOException {
             dataInput.writeInt(elements.size());
             for(BytesFrequencyEstimate element:elements){
-                byte[] data = element.getValue(); //does a memcp, but that's probably okay, considering how rarely this is used
-                dataInput.writeInt(data.length);
-                dataInput.write(data);
+                byte[] data = element.valueArrayBuffer(); //does a memcp, but that's probably okay, considering how rarely this is used
+                dataInput.writeInt(element.valueArrayLength());
+                dataInput.write(data,element.valueArrayOffset(),element.valueArrayLength());
                 dataInput.writeLong(element.count());
                 dataInput.writeLong(element.error());
             }

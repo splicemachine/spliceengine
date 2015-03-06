@@ -11,6 +11,7 @@ import com.splicemachine.stats.order.ByteMinMaxCollector;
  */
 class ByteColumn implements ByteColumnStatsCollector {
 
+    private final int columnId;
     private final ByteCardinalityEstimator cardinalityEstimator;
     private final ByteFrequencyCounter frequencyCounter;
     private final ByteMinMaxCollector minMaxCollector;
@@ -22,10 +23,12 @@ class ByteColumn implements ByteColumnStatsCollector {
     /*The number of frequent elements to keep*/
     private int topK;
 
-    public ByteColumn(ByteCardinalityEstimator cardinalityEstimator,
+    public ByteColumn(int columnId,
+                      ByteCardinalityEstimator cardinalityEstimator,
                       ByteFrequencyCounter frequencyCounter,
                       ByteMinMaxCollector minMaxCollector,
                       int topK) {
+        this.columnId = columnId;
         this.cardinalityEstimator = cardinalityEstimator;
         this.frequencyCounter = frequencyCounter;
         this.minMaxCollector = minMaxCollector;
@@ -34,13 +37,16 @@ class ByteColumn implements ByteColumnStatsCollector {
 
     @Override
     public ByteColumnStatistics build() {
-        return new ByteColumnStatistics(cardinalityEstimator,
+        return new ByteColumnStatistics(
+                columnId,
+                cardinalityEstimator,
                 frequencyCounter.frequentElements(topK),
                 minMaxCollector.min(),
                 minMaxCollector.max(),
                 totalBytes,
                 count,
-                nullCount );
+                nullCount,
+                minMaxCollector.minCount());
     }
 
     @Override public void updateSize(int size) { totalBytes+=size; }

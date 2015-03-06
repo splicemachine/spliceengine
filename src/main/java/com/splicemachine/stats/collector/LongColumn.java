@@ -10,6 +10,7 @@ import com.splicemachine.stats.order.LongMinMaxCollector;
  *         Date: 2/24/15
  */
 class LongColumn implements LongColumnStatsCollector {
+    private final int columnId;
     private final LongCardinalityEstimator cardinalityEstimator;
     private final LongFrequencyCounter frequencyCounter;
     private final LongMinMaxCollector minMaxCollector;
@@ -21,25 +22,29 @@ class LongColumn implements LongColumnStatsCollector {
     /*The number of frequent elements to keep*/
     private int topK;
 
-    public LongColumn(LongCardinalityEstimator cardinalityEstimator,
-                     LongFrequencyCounter frequencyCounter,
-                     LongMinMaxCollector minMaxCollector,
-                     int topK) {
+    public LongColumn(int columnId,
+                      LongCardinalityEstimator cardinalityEstimator,
+                      LongFrequencyCounter frequencyCounter,
+                      LongMinMaxCollector minMaxCollector,
+                      int topK) {
         this.cardinalityEstimator = cardinalityEstimator;
         this.frequencyCounter = frequencyCounter;
         this.minMaxCollector = minMaxCollector;
         this.topK = topK;
+        this.columnId = columnId;
     }
 
     @Override
     public LongColumnStatistics build() {
-        return new LongColumnStatistics(cardinalityEstimator,
+        return new LongColumnStatistics(columnId,
+                cardinalityEstimator,
                 frequencyCounter.frequentElements(topK),
                 minMaxCollector.min(),
                 minMaxCollector.max(),
                 totalBytes,
                 count,
-                nullCount );
+                nullCount,
+                minMaxCollector.minCount());
     }
 
     @Override public void updateSize(int size) { totalBytes+=size; }

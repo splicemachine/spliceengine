@@ -1,5 +1,9 @@
 package com.splicemachine.stats;
 
+import com.splicemachine.stats.estimate.Distribution;
+import com.splicemachine.stats.estimate.EmptyDistribution;
+import com.splicemachine.stats.random.Distributions;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -36,13 +40,31 @@ public class SimplePartitionStatistics implements PartitionStatistics {
         this.columnStatistics = columnStatistics;
     }
 
+    @Override
+    @SuppressWarnings("unchecked")
+    public <T extends Comparable<T>> Distribution<T> columnDistribution(int columnId) {
+        if(columnId<0) return EmptyDistribution.emptyDistribution();
+        for(ColumnStatistics stats:columnStatistics){
+            if(stats.columnId()==columnId)
+                return (Distribution<T>)stats.getDistribution();
+        }
+        return EmptyDistribution.emptyDistribution(); //no column matched that requested
+    }
+
     @Override public String tableId() { return tableId; }
     @Override public String partitionId() { return partitionId; }
     @Override public long rowCount() { return rowCount; }
     @Override public long totalSize() { return totalBytes; }
     @Override public long queryCount() { return queryCount; }
-    @Override public long localReadLatency() { return totalLocalReadTime /rowCount; }
-    @Override public long remoteReadLatency() { return totalRemoteReadLatency/rowCount; }
+    @Override public long localReadLatency() {
+        if(rowCount<=0) return 0;
+        return totalLocalReadTime /rowCount;
+    }
+    @Override
+    public long remoteReadLatency() {
+        if(rowCount<=0) return 0;
+        return totalRemoteReadLatency/rowCount;
+    }
     @Override public long collectionTime() { return totalLocalReadTime; }
     @Override public List<ColumnStatistics> columnStatistics() { return columnStatistics; }
 

@@ -9,7 +9,7 @@ import java.nio.ByteBuffer;
  * @author Scott Fines
  * Date: 3/26/14
  */
-public interface BytesUpdateable extends Updateable<byte[]>{
+public interface BytesUpdateable extends Updateable<ByteBuffer>{
 
 		/**
 		 * Update the structure using the bytes contained in {@code bytes}, beginning

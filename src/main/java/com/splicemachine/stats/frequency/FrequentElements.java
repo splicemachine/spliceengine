@@ -18,5 +18,10 @@ public interface FrequentElements<T>  extends Mergeable<FrequentElements<T>> {
 
     Set<? extends FrequencyEstimate<T>> allFrequentElements();
 
+    /**
+     * @return the total number of elements which have a value matching a frequent element
+     */
+    long totalFrequentElements();
+
     FrequentElements<T> getClone();
 }

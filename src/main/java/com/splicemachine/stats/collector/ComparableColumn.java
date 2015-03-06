@@ -4,6 +4,7 @@ import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.ComparableColumnStatistics;
 import com.splicemachine.stats.Updateable;
 import com.splicemachine.stats.cardinality.CardinalityEstimator;
+import com.splicemachine.stats.estimate.DistributionFactory;
 import com.splicemachine.stats.frequency.FrequencyCounter;
 import com.splicemachine.stats.order.ComparableMinMaxCollector;
 
@@ -12,6 +13,7 @@ import com.splicemachine.stats.order.ComparableMinMaxCollector;
  *         Date: 2/24/15
  */
 class ComparableColumn<T extends Comparable<T>> implements ColumnStatsCollector<T>,Updateable<T> {
+    private final int columnId;
     private final CardinalityEstimator<T> cardinalityEstimator;
     private final FrequencyCounter<T> frequencyCounter;
     private final ComparableMinMaxCollector<T> minMaxCollector;
@@ -21,26 +23,33 @@ class ComparableColumn<T extends Comparable<T>> implements ColumnStatsCollector<
     private long nullCount;
 
     private int topK;
+    private DistributionFactory<T> distributionFactory;
 
-    public ComparableColumn(CardinalityEstimator<T> cardinalityEstimator,
+    public ComparableColumn(int columnId,
+                            CardinalityEstimator<T> cardinalityEstimator,
                             FrequencyCounter<T> frequencyCounter,
                             ComparableMinMaxCollector<T> minMaxCollector,
-                            int topK) {
+                            int topK,
+                            DistributionFactory<T> distributionFactory) {
         this.cardinalityEstimator = cardinalityEstimator;
         this.frequencyCounter = frequencyCounter;
         this.minMaxCollector = minMaxCollector;
         this.topK = topK;
+        this.columnId =columnId;
+        this.distributionFactory = distributionFactory;
     }
 
     @Override
     public ColumnStatistics<T> build() {
-        return new ComparableColumnStatistics<>(cardinalityEstimator,
+        return new ComparableColumnStatistics<>(columnId,cardinalityEstimator,
                 frequencyCounter.frequentElements(topK),
                 minMaxCollector.minimum(),
                 minMaxCollector.maximum(),
                 totalBytes,
                 count,
-                nullCount);
+                nullCount,
+                minMaxCollector.minCount(),
+                distributionFactory);
     }
 
     @Override public void updateNull() { updateNull(1l); }

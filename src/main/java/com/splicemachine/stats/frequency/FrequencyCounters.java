@@ -49,68 +49,6 @@ public class FrequencyCounters {
      *                    inherint in the <em>SpaceSaver</em> algorithm) is {@code maxCounters}--elements
      *                    outside of this are guaranteed (within an error metric) not to be included
      *                    in the resulting FrequentElements instance.
-     * @return a FrequencyCounter specifically designed to be efficient for handling byte[] types. This method
-     * uses the default {@link com.splicemachine.primitives.ByteComparator} to perform equality checking.
-     */
-		public static BytesFrequencyCounter byteArrayCounter(int maxCounters){
-        return new BytesSpaceSaver(Bytes.basicByteComparator(),TABLE_HASH_FUNCTION,maxCounters);
-		}
-
-    /**
-     * @param initialSize the initial number of counters to keep. When the size of the data set is known
-     *                    to be very large, setting this to {@code maxCounters} will prevent some table resizing,
-     *                    and therefore there will be some slight memory improvements. However, setting this
-     *                    too high may result in wasted memory when there are not many elements in the stream.
-     * @param maxCounters the maximum number of counters to use. This means that the maximum number of
-     *                    {@code Top-K} elements which can possibly recorded (within the bounds of the error
-     *                    inherint in the <em>SpaceSaver</em> algorithm) is {@code maxCounters}--elements
-     *                    outside of this are guaranteed (within an error metric) not to be included
-     *                    in the resulting FrequentElements instance.
-     * @return a FrequencyCounter specifically designed to be efficient for handling byte[] types. This
-     * version uses the default {@link com.splicemachine.primitives.ByteComparator} to perform equality checking.
-     */
-		public static BytesFrequencyCounter byteArrayCounter(int maxCounters, int initialSize){
-        return new BytesSpaceSaver(Bytes.basicByteComparator(),TABLE_HASH_FUNCTION,maxCounters,initialSize, DEFAULT_LOAD_FACTOR);
-		}
-
-    /**
-     * @param byteComparator the comparison algorithm for comparing two byte arrays. Equality in particular
-     *                       will use methods provided here.
-     * @param maxCounters the maximum number of counters to use. This means that the maximum number of
-     *                    {@code Top-K} elements which can possibly recorded (within the bounds of the error
-     *                    inherint in the <em>SpaceSaver</em> algorithm) is {@code maxCounters}--elements
-     *                    outside of this are guaranteed (within an error metric) not to be included
-     *                    in the resulting FrequentElements instance.
-     * @return a FrequencyCounter specifically designed to be efficient for handling byte[] types.
-     */
-    public static BytesFrequencyCounter byteArrayCounter(ByteComparator byteComparator,int maxCounters){
-        return new BytesSpaceSaver(byteComparator,TABLE_HASH_FUNCTION,maxCounters);
-    }
-
-    /**
-     * @param byteComparator the comparison algorithm for comparing two byte arrays. Equality in particular
-     *                       will use methods provided here.
-     * @param initialSize the initial number of counters to keep. When the size of the data set is known
-     *                    to be very large, setting this to {@code maxCounters} will prevent some table resizing,
-     *                    and therefore there will be some slight memory improvements. However, setting this
-     *                    too high may result in wasted memory when there are not many elements in the stream.
-     * @param maxCounters the maximum number of counters to use. This means that the maximum number of
-     *                    {@code Top-K} elements which can possibly recorded (within the bounds of the error
-     *                    inherint in the <em>SpaceSaver</em> algorithm) is {@code maxCounters}--elements
-     *                    outside of this are guaranteed (within an error metric) not to be included
-     *                    in the resulting FrequentElements instance.
-     * @return a FrequencyCounter specifically designed to be efficient for handling byte[] types.
-     */
-    public static BytesFrequencyCounter byteArrayCounter(ByteComparator byteComparator,int maxCounters, int initialSize){
-        return new BytesSpaceSaver(byteComparator,TABLE_HASH_FUNCTION,maxCounters,initialSize, DEFAULT_LOAD_FACTOR);
-    }
-
-    /**
-     * @param maxCounters the maximum number of counters to use. This means that the maximum number of
-     *                    {@code Top-K} elements which can possibly recorded (within the bounds of the error
-     *                    inherint in the <em>SpaceSaver</em> algorithm) is {@code maxCounters}--elements
-     *                    outside of this are guaranteed (within an error metric) not to be included
-     *                    in the resulting FrequentElements instance.
      * @return A FrequencyCounter specifically designed to be efficient with double data types.
      */
 		public static DoubleFrequencyCounter doubleCounter(int maxCounters){

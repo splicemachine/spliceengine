@@ -42,12 +42,12 @@ class BytesValueEstimate implements BytesFrequencyEstimate {
         return compare(o.valueArrayBuffer(),o.valueArrayOffset(),o.valueArrayLength());
     }
 
-    @Override public byte[] getValue() { return data; }
+    @Override public ByteBuffer getValue() { return valueBuffer(); }
     @Override public long count() { return count; }
     @Override public long error() { return error; }
 
     @Override
-    public FrequencyEstimate<byte[]> merge(FrequencyEstimate<byte[]> other) {
+    public FrequencyEstimate<ByteBuffer> merge(FrequencyEstimate<ByteBuffer> other) {
         this.count+=other.count();
         this.error+=other.error();
         return this;

@@ -75,6 +75,15 @@ class ByteHeavyHitters implements ByteFrequentElements {
     }
 
     @Override
+    public long totalFrequentElements() {
+        long total = 0l;
+        for(FrequencyEstimate<Byte> est:allFrequentElements()){
+            total+=est.count();
+        }
+        return total;
+    }
+
+    @Override
     public Set<? extends FrequencyEstimate<Byte>> frequentElementsBetween(Byte start, Byte stop, boolean includeMin, boolean includeStop) {
         if(start==null){
             if(stop==null) return new InnerSet(Byte.MIN_VALUE,Byte.MAX_VALUE);
