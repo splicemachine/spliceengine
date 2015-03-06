@@ -26,22 +26,28 @@ public class Murmur32Test {
         Collection<Object[]> data = Lists.newArrayListWithCapacity(100);
         Random random = new Random(0l);
         for(int i=0;i<maxRuns;i++){
-            byte[] dataPoint = new byte[i];
+            byte[] dataPoint = new byte[i+1];
             random.nextBytes(dataPoint);
-            data.add(new Object[]{dataPoint,random.nextInt(),random.nextLong()});
+            int dataPointOffset = random.nextInt(dataPoint.length);
+            int dataPointLength = random.nextInt(dataPoint.length-dataPointOffset);
+            data.add(new Object[]{dataPoint,random.nextInt(), dataPointOffset,dataPointLength, random.nextLong()});
         }
         return data;
     }
 
     private final byte[] sampleData;
+    private final int sampleOffset;
+    private final int sampleLength;
     private final int sampleValue;
     private final long sampleLong;
     private final Murmur32 murmur32 = new Murmur32(0);
 
-    public Murmur32Test(byte[] sampleData,int sampleValue,long sampleLong) {
+    public Murmur32Test(byte[] sampleData,int sampleValue,int sampleOffset,int sampleLength,long sampleLong) {
         this.sampleData = sampleData;
         this.sampleValue = sampleValue;
         this.sampleLong = sampleLong;
+        this.sampleOffset = sampleOffset;
+        this.sampleLength = sampleLength;
     }
 
     @Test
@@ -50,6 +56,16 @@ public class Murmur32Test {
         int actual =hashCode.asInt();
 
         int hash = murmur32.hash(sampleData, 0, sampleData.length);
+
+        Assert.assertEquals(actual,hash);
+    }
+
+    @Test
+    public void testMatchesGoogleVersionMurmur332SubBuffers() throws Exception {
+        HashCode hashCode = Hashing.murmur3_32(0).hashBytes(sampleData, sampleOffset, sampleLength);
+        int actual =hashCode.asInt();
+
+        int hash = murmur32.hash(sampleData, sampleOffset, sampleLength);
 
         Assert.assertEquals(actual,hash);
     }

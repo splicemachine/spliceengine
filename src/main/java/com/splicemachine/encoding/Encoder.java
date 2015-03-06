@@ -13,4 +13,5 @@ public interface Encoder<T> {
     void encode(T item,DataOutput dataInput) throws IOException;
 
     T decode(DataInput input) throws IOException;
+
 }

@@ -27,7 +27,7 @@ public class Murmur32 implements Hash32{
         int pos = 0;
         int visited =0;
         char[] chars = elem.toCharArray();
-        while(length-pos>=4){
+        while(length-visited>=4){
             /*
              * Since a char has two bytes, we create one int by packing together two chars
              */
@@ -46,7 +46,7 @@ public class Murmur32 implements Hash32{
         int pos = offset;
         int visited=0;
         int h = seed;
-        while(length-pos>=4){
+        while(length-visited>=4){
             int k1 = LittleEndianBits.toInt(bytes, pos);
             h =mutate(h,k1);
             pos+=4;
