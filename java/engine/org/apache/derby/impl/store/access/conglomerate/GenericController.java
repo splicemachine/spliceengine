@@ -25,7 +25,7 @@ import org.apache.derby.iapi.reference.SQLState;
 
 import org.apache.derby.iapi.services.sanity.SanityManager;
 
-import org.apache.derby.iapi.error.StandardException; 
+import org.apache.derby.iapi.error.StandardException;
 
 import org.apache.derby.iapi.store.access.SpaceInfo;
 
@@ -33,12 +33,12 @@ import org.apache.derby.iapi.store.raw.ContainerHandle;
 
 import org.apache.derby.iapi.types.RowLocation;
 
-import java.util.Properties; 
+import java.util.Properties;
 
 /**
-**/
+ **/
 
-abstract class GenericController 
+public abstract class GenericController
 {
     /**************************************************************************
      * Fields of the class
@@ -55,24 +55,15 @@ abstract class GenericController
      * Private/Protected methods of This class:
      **************************************************************************
      */
-    protected void getRowPositionFromRowLocation(
-    RowLocation row_loc,
-    RowPosition pos)
-        throws StandardException
-    {
+    protected void getRowPositionFromRowLocation( RowLocation row_loc, RowPosition pos) throws StandardException {
         // Not implemented in default conglomerate, needs to be overridden.
-        throw StandardException.newException(
-                SQLState.HEAP_UNIMPLEMENTED_FEATURE);
-       
+        throw StandardException.newException( SQLState.HEAP_UNIMPLEMENTED_FEATURE);
+
     }
 
-    protected void queueDeletePostCommitWork(
-    RowPosition pos)
-        throws StandardException
-    {
+    protected void queueDeletePostCommitWork( RowPosition pos) throws StandardException {
         // Not implemented in default conglomerate, needs to be overridden.
-        throw StandardException.newException(
-                SQLState.HEAP_UNIMPLEMENTED_FEATURE);
+        throw StandardException.newException( SQLState.HEAP_UNIMPLEMENTED_FEATURE);
     }
 
 
@@ -80,10 +71,7 @@ abstract class GenericController
      * Public Methods of This class:
      **************************************************************************
      */
-    public void init(
-    OpenConglomerate    open_conglom)
-        throws StandardException
-    {
+    public void init( OpenConglomerate    open_conglom) throws StandardException {
         if (SanityManager.DEBUG)
             SanityManager.ASSERT(open_conglom != null);
 
@@ -102,56 +90,41 @@ abstract class GenericController
      **************************************************************************
      */
 
-    public void checkConsistency()
-		throws StandardException
-    {
+    public void checkConsistency() throws StandardException {
         open_conglom.checkConsistency();
     }
 
-    public void debugConglomerate()
-		throws StandardException
-    {
+    public void debugConglomerate() throws StandardException {
         open_conglom.debugConglomerate();
     }
 
-    public void getTableProperties(Properties prop)
-		throws StandardException
-    {
+    public void getTableProperties(Properties prop) throws StandardException {
         open_conglom.getTableProperties(prop);
     }
 
-    public Properties getInternalTablePropertySet(Properties prop)
-		throws StandardException
-    {
+    public Properties getInternalTablePropertySet(Properties prop) throws StandardException {
         return(open_conglom.getInternalTablePropertySet(prop));
     }
 
-    public SpaceInfo getSpaceInfo()
-        throws StandardException
-    {
+    public SpaceInfo getSpaceInfo() throws StandardException {
         return(open_conglom.getSpaceInfo());
     }
 
-    public void close()
-        throws StandardException
-    {
+    public void close() throws StandardException {
         if (open_conglom != null)
             open_conglom.close();
     }
 
-	public boolean isKeyed()
-	{
-		return(open_conglom.isKeyed());
-	}
+    public boolean isKeyed() {
+        return(open_conglom.isKeyed());
+    }
 
-	public RowLocation newRowLocationTemplate()
-		throws StandardException
-	{
+    public RowLocation newRowLocationTemplate() throws StandardException {
         if (open_conglom.isClosed())
             open_conglom.reopen();
 
         return(open_conglom.newRowLocationTemplate());
-	}
+    }
 
     /**
      * is the open btree table locked?
@@ -173,13 +146,11 @@ abstract class GenericController
      * This call is currently only supported on Heap conglomerates, it
      * will throw an exception if called on btree conglomerates.
      *
-	 * @return The total estimated number of rows in the conglomerate.
+     * @return The total estimated number of rows in the conglomerate.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
-    public long getEstimatedRowCount()
-		throws StandardException
-    {
+    public long getEstimatedRowCount() throws StandardException {
         if (open_conglom.isClosed())
             open_conglom.reopen();
 
@@ -211,11 +182,9 @@ abstract class GenericController
      *
      * @param count the estimated number of rows in the container.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
-    public void setEstimatedRowCount(long count)
-		throws StandardException
-    {
+    public void setEstimatedRowCount(long count) throws StandardException {
         ContainerHandle container = open_conglom.getContainer();
 
         if (container == null)
@@ -226,10 +195,8 @@ abstract class GenericController
 
         container = open_conglom.getContainer();
 
-        if ( container != null )
-        {
-            container.setEstimatedRowCount(
-                count, /* unused flag */ 0);
+        if ( container != null ) {
+            container.setEstimatedRowCount( count, /* unused flag */ 0);
         }
     }
 

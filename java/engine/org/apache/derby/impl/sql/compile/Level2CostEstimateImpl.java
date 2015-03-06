@@ -29,40 +29,28 @@ import org.apache.derby.iapi.services.sanity.SanityManager;
 
 import org.apache.derby.impl.sql.compile.CostEstimateImpl;
 
-public class Level2CostEstimateImpl extends CostEstimateImpl 
-{
-	public Level2CostEstimateImpl() 
-	{
-	}
+public class Level2CostEstimateImpl extends CostEstimateImpl  {
+	public Level2CostEstimateImpl()  { }
 
 	public Level2CostEstimateImpl(double theCost,
 							double theRowCount,
-							double theSingleScanRowCount) 
-	{
+							double theSingleScanRowCount)  {
 		super(theCost, theRowCount, theSingleScanRowCount);
 	}
 
 	/** @see CostEstimate#cloneMe */
-	public CostEstimate cloneMe() 
-	{
-		return new Level2CostEstimateImpl(cost,
-									rowCount,
-									singleScanRowCount);
+	public CostEstimate cloneMe()  {
+		return new Level2CostEstimateImpl(cost, rowCount, singleScanRowCount);
 	}
 
-	public String toString() 
-	{
+	public String toString()  {
 		return "Level2CostEstimateImpl: at " + hashCode() + ", cost == " + cost +
 				", rowCount == " + rowCount + 
 				", singleScanRowCount == " + singleScanRowCount;
 	}
 
-	public CostEstimateImpl setState(double theCost,
-										double theRowCount,
-										CostEstimateImpl retval) 
-	{
-		if (retval == null) 
-		{
+	public CostEstimateImpl setState(double theCost, double theRowCount, CostEstimateImpl retval)  {
+		if (retval == null)  {
 			retval = new Level2CostEstimateImpl();
 		}
 

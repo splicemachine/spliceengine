@@ -21,7 +21,7 @@
 
 package org.apache.derby.impl.store.access.conglomerate;
 
-import org.apache.derby.iapi.error.StandardException; 
+import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.sql.compile.CostEstimate;
 import org.apache.derby.iapi.store.access.StoreCostController;
@@ -29,14 +29,12 @@ import org.apache.derby.iapi.services.io.FormatableBitSet;
 
 /**
 
-A Generic class which implements the basic functionality needed for a cost 
-controller.  
+ A Generic class which implements the basic functionality needed for a cost
+ controller.
 
-**/
+ **/
 
-public abstract class GenericCostController 
-    extends GenericController implements StoreCostController
-{
+public abstract class GenericCostController  extends GenericController implements StoreCostController {
 
     /**************************************************************************
      * Fields of the class
@@ -90,7 +88,7 @@ public abstract class GenericCostController
      * getScanCost()
      * <p>
      *
-	 * @param validColumns    A description of which columns to return from
+     * @param validColumns    A description of which columns to return from
      *                        row on the page into "templateRow."  templateRow,
      *                        and validColumns work together to
      *                        describe the row to be returned by the fetch - 
@@ -110,27 +108,27 @@ public abstract class GenericCostController
      *                            set then each scan will be costed independant
      *                            of any other predicted scan access.
      *
-	 * @return The cost of the fetch.
+     * @return The cost of the fetch.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      *
-	 * @see org.apache.derby.iapi.store.access.RowUtil
+     * @see org.apache.derby.iapi.store.access.RowUtil
      **/
     public void getFetchFromFullKeyCost(
-    FormatableBitSet validColumns,
-    int     access_type, CostEstimate cost)
-		throws StandardException
+            FormatableBitSet validColumns,
+            int     access_type, CostEstimate cost)
+            throws StandardException
     {
         // Not implemented in default conglomerate, needs to be overridden.
         throw StandardException.newException(
                 SQLState.HEAP_UNIMPLEMENTED_FEATURE);
     }
-    
-	public void extraQualifierSelectivity(CostEstimate costEstimate) throws StandardException {
-		// Not Implemented...
+
+    public void extraQualifierSelectivity(CostEstimate costEstimate) throws StandardException {
+        // Not Implemented...
         throw StandardException.newException(
                 SQLState.HEAP_UNIMPLEMENTED_FEATURE);
-	};
+    };
 
 
 }
