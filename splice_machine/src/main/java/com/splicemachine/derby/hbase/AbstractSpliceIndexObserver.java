@@ -45,6 +45,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
+import java.sql.ResultSet;
 
 /**
  * Region Observer for managing indices.
@@ -156,6 +157,30 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
      */
     /*private helper methods*/
 
+    private void updateFileSet(String tableName, String parentRegionName, Set<String> pathSet,
+                               HashMap<String, Collection<StoreFileInfo>> storeFileInfoMap, HRegion r) {
+
+        String childRegionName = r.getRegionInfo().getEncodedName();
+        for(Collection<StoreFileInfo> storeFiles : storeFileInfoMap.values()) {
+            for (StoreFileInfo storeFile : storeFiles) {
+                String referenceFileName = storeFile.getPath().getName();
+                String[] s = referenceFileName.split("\\.");
+                if (pathSet.contains(s[0])) {
+                    // If referenced file appears in the last snapshot, then reference file in child region
+                    // should not be included in next incremental backup
+                    BackupUtils.insertFileSet(tableName, childRegionName, referenceFileName, false);
+                }
+                BackupUtils.FileSet fileSet = BackupUtils.getFileSet(tableName, parentRegionName, s[0]);
+                if (fileSet != null) {
+                    // If there is an entry in Backup.FileSet for the referenceD file in parent region, an entry should
+                    // be created for reference file in child region
+                    BackupUtils.insertFileSet(fileSet.getTableName(), childRegionName,
+                            referenceFileName, fileSet.shouldInclude());
+                }
+            }
+        }
+    }
+
     private void recordRegionSplitForBackup(ObserverContext<RegionCoprocessorEnvironment> e, HRegion l, HRegion r) {
         try {
 
@@ -167,35 +192,26 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
             String tableName = e.getEnvironment().getRegion().getTableDesc().getNameAsString();
             String encodedRegionName = e.getEnvironment().getRegion().getRegionInfo().getEncodedName();
 
-            HashMap<String, Collection<StoreFileInfo>> lStoreFileInfoMap =
-                    BackupUtils.getStoreFileInfo(l);
-
-            HashMap<String, Collection<StoreFileInfo>> rStoreFileInfoMap =
-                    BackupUtils.getStoreFileInfo(l);
-
-            /*String snapshotName = BackupUtils.getLastSnapshotName(tableName);
+            String snapshotName = BackupUtils.getLastSnapshotName(tableName);
             Configuration conf = SpliceConstants.config;
             HRegion region = e.getEnvironment().getRegion();
             FileSystem fs = region.getFilesystem();
             Path rootDir = FSUtils.getRootDir(conf);
             Path snapshotDir = SnapshotDescriptionUtils.getCompletedSnapshotDir(snapshotName, rootDir);
             List<Path> pathList = SnapshotUtils.getSnapshotFilesForRegion(region, conf, fs, snapshotDir);
-
-            if (pathList == null || pathList.size() == 0) {
-                // No snapshot was take for this region
-                return;
-            }*/
-            BackupUtils.recordRegionSplit(e, l, r);
-
-            byte[][] families = new byte[2][];
-            families[0] = SpliceConstants.DEFAULT_FAMILY_BYTES;
-            families[1] = SpliceConstants.SI_PERMISSION_FAMILY.getBytes();
-            List<String> storeFiles = l.getStoreFileList(families);
-            for (String storeFile : storeFiles) {
-                String[]  s = storeFile.split("/");
-                String name = s[s.length-1];
-                BackupUtils.insertFileSet(tableName, encodedRegionName, name, false);
+            Set<String> pathSet = new HashSet<>();
+            for (Path p : pathList) {
+                String name = p.getName();
+                pathSet.add(name);
             }
+
+            HashMap<String, Collection<StoreFileInfo>> lStoreFileInfoMap = BackupUtils.getStoreFileInfo(l);
+            HashMap<String, Collection<StoreFileInfo>> rStoreFileInfoMap = BackupUtils.getStoreFileInfo(l);
+
+            updateFileSet(tableName, encodedRegionName, pathSet, lStoreFileInfoMap, l);
+            updateFileSet(tableName, encodedRegionName, pathSet, rStoreFileInfoMap, r);
+            BackupUtils.deleteFileSetForRegion(tableName, encodedRegionName);
+            BackupUtils.recordRegionSplit(e, l, r);
 
         }catch (Exception ex) {
             SpliceLogUtils.warn(LOG, "postSplit: cannot query last backup");
@@ -229,20 +245,20 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
 
             String tableName = e.getEnvironment().getRegion().getTableDesc().getNameAsString();
             String snapshotName = BackupUtils.getLastSnapshotName(tableName);
-            if (snapshotName == null)
-                return;
-
-            String encodedRegionName = e.getEnvironment().getRegion().getRegionInfo().getEncodedName();
-            Configuration conf = SpliceConstants.config;
-            HRegion region = e.getEnvironment().getRegion();
-            FileSystem fs = region.getFilesystem();
-            Path rootDir = FSUtils.getRootDir(conf);
-            Path snapshotDir = SnapshotDescriptionUtils.getCompletedSnapshotDir(snapshotName, rootDir);
-            List<Path> pathList = SnapshotUtils.getSnapshotFilesForRegion(region, conf, fs, snapshotDir);
-
             Set<String> pathSet = new HashSet<>();
-            for (Path path : pathList) {
-                pathSet.add(path.toString());
+            String encodedRegionName = e.getEnvironment().getRegion().getRegionInfo().getEncodedName();
+
+            if (snapshotName != null) {
+                Configuration conf = SpliceConstants.config;
+                HRegion region = e.getEnvironment().getRegion();
+                FileSystem fs = region.getFilesystem();
+                Path rootDir = FSUtils.getRootDir(conf);
+                Path snapshotDir = SnapshotDescriptionUtils.getCompletedSnapshotDir(snapshotName, rootDir);
+                List<Path> pathList = SnapshotUtils.getSnapshotFilesForRegion(region, conf, fs, snapshotDir);
+
+                for (Path path : pathList) {
+                    pathSet.add(path.toString());
+                }
             }
             List<StoreFile> oldHFile = new ArrayList<>();
             List<StoreFile> newHFile = new ArrayList<>();
