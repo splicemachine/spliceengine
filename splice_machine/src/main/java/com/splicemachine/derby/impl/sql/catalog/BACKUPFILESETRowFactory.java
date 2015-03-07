@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.catalog;
 
+import com.splicemachine.db.iapi.types.SQLBoolean;
 import com.splicemachine.derby.iapi.catalog.BackupFileSetDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -28,7 +29,7 @@ public class BACKUPFILESETRowFactory extends CatalogRowFactory {
     private static final int BACKUP_ITEM = 1;
     private static final int REGION_NAME = 2;
     private static final int FILE_NAME = 3;
-    private static final int STATE = 4;
+    private static final int INCLUDE = 4;
 
     private static String uuids[] = {
             "cb4d2219-fd7a-4003-9e42-beff555a365c",
@@ -46,14 +47,14 @@ public class BACKUPFILESETRowFactory extends CatalogRowFactory {
         String backup_item = null;
         String region_name = null;
         String file_name = null;
-        String state = null;
+        boolean include = false;
 
         if (td != null) {
             BackupFileSetDescriptor d = (BackupFileSetDescriptor)td;
             backup_item = d.getBackupItem();
             region_name = d.getRegionName();
             file_name = d.getFileName();
-            state = d.getState();
+            include = d.shouldInclude();
         }
 
         ExecRow row = getExecutionFactory().getValueRow(BACKUPSTATES_COLUMN_COUNT);
@@ -61,7 +62,7 @@ public class BACKUPFILESETRowFactory extends CatalogRowFactory {
         row.setColumn(BACKUP_ITEM, new SQLVarchar(backup_item));
         row.setColumn(REGION_NAME, new SQLVarchar(region_name));
         row.setColumn(FILE_NAME, new SQLVarchar(file_name));
-        row.setColumn(STATE, new SQLVarchar(state));
+        row.setColumn(INCLUDE, new SQLBoolean(include));
 
         return row;
     }
@@ -85,10 +86,10 @@ public class BACKUPFILESETRowFactory extends CatalogRowFactory {
         col = row.getColumn(FILE_NAME);
         String fileName = col.getString();
 
-        col = row.cloneColumn(STATE);
-        String state = col.getString();
+        col = row.cloneColumn(INCLUDE);
+        boolean include = col.getBoolean();
 
-        return new BackupFileSetDescriptor(backupItem, regionName, fileName, state);
+        return new BackupFileSetDescriptor(backupItem, regionName, fileName, include);
     }
 
     @Override
@@ -97,7 +98,7 @@ public class BACKUPFILESETRowFactory extends CatalogRowFactory {
                 SystemColumnImpl.getColumn("BACKUP_ITEM", Types.VARCHAR, false, 32642),
                 SystemColumnImpl.getColumn("REGION_NAME",Types.VARCHAR,false,32642),
                 SystemColumnImpl.getColumn("FILE_NAME",Types.VARCHAR,false,32642),
-                SystemColumnImpl.getColumn("STATE",Types.VARCHAR,false,32642)
+                SystemColumnImpl.getColumn("INCLUDE",Types.BOOLEAN,false)
         };
     }
 }

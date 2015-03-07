@@ -5,7 +5,10 @@ import com.splicemachine.async.Bytes;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.temp.TempTable;
+import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.KVPair;
+import com.splicemachine.hbase.backup.Backup;
+import com.splicemachine.hbase.backup.SnapshotUtils;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.mrio.api.core.MemstoreAware;
 import com.splicemachine.hbase.backup.BackupUtils;
@@ -23,23 +26,23 @@ import com.splicemachine.si.impl.TransactionalRegions;
 import com.splicemachine.si.impl.WriteConflict;
 import com.splicemachine.utils.SpliceLogUtils;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
-import org.apache.hadoop.hbase.client.IsolationLevel;
-import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.BaseRegionObserver;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
+import org.apache.hadoop.hbase.snapshot.SnapshotDescriptionUtils;
+import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.NavigableSet;
-import java.util.Collection;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -131,9 +134,12 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
     @Override
     public void postCompact(ObserverContext<RegionCoprocessorEnvironment> e,
                             Store store, StoreFile resultFile, CompactionRequest request) throws IOException {
-        recordCompactedFilesForBackup(e, request, resultFile);
+
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "postCompact store=%s, storeFile=%s, request=%s", store, resultFile, request);
+
+        recordCompactedFilesForBackup(e, request, resultFile);
+
         while (true) {
             MemstoreAware latest = memstoreAware.get();
             if (memstoreAware.compareAndSet(latest, MemstoreAware.decrementCompactionCount(latest))) ;
@@ -153,46 +159,124 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
     private void recordRegionSplitForBackup(ObserverContext<RegionCoprocessorEnvironment> e, HRegion l, HRegion r) {
         try {
 
-            boolean hasBackup = BackupUtils.hasBackup();
-
-            if (!hasBackup)
+            // Nothing needs to be done if there was never a succeeded backup
+            boolean exists = BackupUtils.existBackupWithStatus(Backup.BackupStatus.S.toString());
+            if (!exists)
                 return;
 
+            String tableName = e.getEnvironment().getRegion().getTableDesc().getNameAsString();
+            String encodedRegionName = e.getEnvironment().getRegion().getRegionInfo().getEncodedName();
+
+            HashMap<String, Collection<StoreFileInfo>> lStoreFileInfoMap =
+                    BackupUtils.getStoreFileInfo(l);
+
+            HashMap<String, Collection<StoreFileInfo>> rStoreFileInfoMap =
+                    BackupUtils.getStoreFileInfo(l);
+
+            /*String snapshotName = BackupUtils.getLastSnapshotName(tableName);
+            Configuration conf = SpliceConstants.config;
+            HRegion region = e.getEnvironment().getRegion();
+            FileSystem fs = region.getFilesystem();
+            Path rootDir = FSUtils.getRootDir(conf);
+            Path snapshotDir = SnapshotDescriptionUtils.getCompletedSnapshotDir(snapshotName, rootDir);
+            List<Path> pathList = SnapshotUtils.getSnapshotFilesForRegion(region, conf, fs, snapshotDir);
+
+            if (pathList == null || pathList.size() == 0) {
+                // No snapshot was take for this region
+                return;
+            }*/
             BackupUtils.recordRegionSplit(e, l, r);
+
+            byte[][] families = new byte[2][];
+            families[0] = SpliceConstants.DEFAULT_FAMILY_BYTES;
+            families[1] = SpliceConstants.SI_PERMISSION_FAMILY.getBytes();
+            List<String> storeFiles = l.getStoreFileList(families);
+            for (String storeFile : storeFiles) {
+                String[]  s = storeFile.split("/");
+                String name = s[s.length-1];
+                BackupUtils.insertFileSet(tableName, encodedRegionName, name, false);
+            }
 
         }catch (Exception ex) {
             SpliceLogUtils.warn(LOG, "postSplit: cannot query last backup");
         }
     }
 
-    private void recordCompactedFilesForBackup(ObserverContext<RegionCoprocessorEnvironment> e, CompactionRequest request, StoreFile resultFile) {
-        try {
-            String tableName = e.getEnvironment().getRegion().getTableDesc().getNameAsString();
-            HRegion region = e.getEnvironment().getRegion();
-            long lastBackupTimestamp = BackupUtils.getLastBackupTimestamp(tableName, region);
+    private void recordCompactedFilesForBackup(ObserverContext<RegionCoprocessorEnvironment> e,
+                                               CompactionRequest request, StoreFile resultFile) {
 
-            if (lastBackupTimestamp <= 0)
+        // During compaction, an HFile may need to be registered to Backup.FileSet for incremental backup
+        // Check HFiles in compaction request, and classify them into 2 categories
+        // 1. HFile that contains new data only. a HFile does not appear in the last snapshot, and was not a result of
+        //    a recent(after last snapshot) compaction. For latter case, Backup.FileSet contains a row for the HFile
+        //    and indicate it should be excluded.
+        // 2. HFile that contains old data. A HFile either appears in the last snapshot, or was a result of a recent
+        //    compaction.
+        //
+        // If the set of HFiles are all in category 1, there is no need to keep track of HFiles. The resultant HFile
+        // contains new data only, and the next incremental backup will copy it.
+        // If the set of HFiles are all in category 2, insert an entry into BACKUP.FileSet for the resultant HFile, and
+        // indicate it should be excluded for next incremental backup.
+        // If the set of HFile are in both category 1 and 2. Then for each HFile in category 1, insert an entry and
+        // indicate it should be included for next incremental backup. Insert an entry for resultant HFile to indicate
+        // it should be excluded for next incremental backup.
+        try {
+
+            // Nothing needs to be done if there was never a succeeded backup
+            boolean exists = BackupUtils.existBackupWithStatus(Backup.BackupStatus.S.toString());
+            if (!exists)
                 return;
 
-            Collection<StoreFile> before = new LinkedList<StoreFile>();
-            Collection<StoreFile> after = new LinkedList<StoreFile>();
+            String tableName = e.getEnvironment().getRegion().getTableDesc().getNameAsString();
+            String snapshotName = BackupUtils.getLastSnapshotName(tableName);
+            if (snapshotName == null)
+                return;
+
             String encodedRegionName = e.getEnvironment().getRegion().getRegionInfo().getEncodedName();
+            Configuration conf = SpliceConstants.config;
+            HRegion region = e.getEnvironment().getRegion();
+            FileSystem fs = region.getFilesystem();
+            Path rootDir = FSUtils.getRootDir(conf);
+            Path snapshotDir = SnapshotDescriptionUtils.getCompletedSnapshotDir(snapshotName, rootDir);
+            List<Path> pathList = SnapshotUtils.getSnapshotFilesForRegion(region, conf, fs, snapshotDir);
+
+            Set<String> pathSet = new HashSet<>();
+            for (Path path : pathList) {
+                pathSet.add(path.toString());
+            }
+            List<StoreFile> oldHFile = new ArrayList<>();
+            List<StoreFile> newHFile = new ArrayList<>();
             Collection<StoreFile> storeFiles = request.getFiles();
-            for (StoreFile storeFile : storeFiles) {
-                long modificationTimestamp = storeFile.getModificationTimeStamp();
-                if (modificationTimestamp <= lastBackupTimestamp){
-                    before.add(storeFile);
+            for(StoreFile storeFile : storeFiles) {
+                Path p = storeFile.getPath();
+                String name = p.toString();
+                if(pathSet.contains(name)) {
+                    oldHFile.add(storeFile);
+                }
+                else if (BackupUtils.shouldExclude(tableName, encodedRegionName, p.getName())) {
+                    oldHFile.add(storeFile);
                 }
                 else {
-                    after.add(storeFile);
+                    newHFile.add(storeFile);
                 }
             }
 
-            if (before.size() > 0 && after.size() > 0) {
-                for (StoreFile storeFile : after) {
-                    BackupUtils.recordBackupState(tableName, encodedRegionName, storeFile.getPath().getName(), "INCLUDE");
+            if (newHFile.size() == 0 && oldHFile.size() > 0) {
+                BackupUtils.insertFileSet(tableName, encodedRegionName, resultFile.getPath().getName(), false);
+                for(StoreFile storeFile : oldHFile) {
+                    // These HFile will be removed to archived directory and purged.
+                    BackupUtils.deleteFileSet(tableName, encodedRegionName, storeFile.getPath().getName(), false);
                 }
-                BackupUtils.recordBackupState(tableName, encodedRegionName, resultFile.getPath().getName(), "EXCLUDE");
+            }
+            else if (newHFile.size() > 0 && oldHFile.size() > 0) {
+                for (StoreFile storeFile : newHFile) {
+                    BackupUtils.insertFileSet(tableName, encodedRegionName, storeFile.getPath().getName(), true);
+                }
+                BackupUtils.insertFileSet(tableName, encodedRegionName, resultFile.getPath().getName(), false);
+                for (StoreFile storeFile:oldHFile) {
+                    // These HFile will be removed to archived directory and purged.
+                    BackupUtils.deleteFileSet(tableName, encodedRegionName, storeFile.getPath().getName(), false);
+                }
             }
         }
         catch (Exception ex) {

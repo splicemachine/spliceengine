@@ -10,13 +10,13 @@ public class BackupFileSetDescriptor extends TupleDescriptor {
     private String backupItem;
     private String regionName;
     private String fileName;
-    private String state;
+    private boolean include;
 
-    public BackupFileSetDescriptor(String backupItem, String regionName, String fileName, String state) {
+    public BackupFileSetDescriptor(String backupItem, String regionName, String fileName, boolean incldue) {
         this.backupItem = backupItem;
         this.regionName = regionName;
         this.fileName = fileName;
-        this.state = state;
+        this.include = include;
     }
 
     public String getBackupItem() {
@@ -31,7 +31,7 @@ public class BackupFileSetDescriptor extends TupleDescriptor {
         return fileName;
     }
 
-    public String getState() {
-        return state;
+    public boolean shouldInclude() {
+        return include;
     }
 }
