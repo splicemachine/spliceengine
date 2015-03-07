@@ -249,8 +249,8 @@ public class BroadcastJoinOperation extends JoinOperation {
         stats.addMetric(OperationMetric.OUTPUT_ROWS, timer.getNumEvents());
 
         TimeView remoteTime = rightHandTimer.getTime();
-        stats.addMetric(OperationMetric.REMOTE_SCAN_ROWS, rightHandTimer.getRows());
-        stats.addMetric(OperationMetric.REMOTE_SCAN_BYTES, rightHandTimer.getBytes());
+        stats.addMetric(OperationMetric.REMOTE_SCAN_ROWS, rightHandTimer.elementsSeen());
+        stats.addMetric(OperationMetric.REMOTE_SCAN_BYTES, rightHandTimer.bytesSeen());
         stats.addMetric(OperationMetric.REMOTE_SCAN_WALL_TIME, remoteTime.getWallClockTime());
         stats.addMetric(OperationMetric.REMOTE_SCAN_CPU_TIME, remoteTime.getCpuTime());
         stats.addMetric(OperationMetric.REMOTE_SCAN_USER_TIME, remoteTime.getUserTime());

@@ -3,11 +3,14 @@ package com.splicemachine.hbase;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.CachedByteSlice;
 
+import java.util.Arrays;
+
 /**
  * @author Scott Fines
  *         Created on: 8/8/13
  */
 public class KVPair implements Comparable<KVPair> {
+
 
     public enum Type{
         INSERT((byte)0x01),
@@ -44,6 +47,9 @@ public class KVPair implements Comparable<KVPair> {
     private Type type;
     private final ByteSlice rowKey;
     private final ByteSlice value;
+
+    private transient int hashCode;
+    private transient boolean hashSet = false;
 
     /*Factory methods*/
     public static KVPair delete(byte[] rowKey) {
@@ -88,16 +94,6 @@ public class KVPair implements Comparable<KVPair> {
      */
     public KVPair shallowClone(){
        return new KVPair(new CachedByteSlice(rowKey),new CachedByteSlice(value),type);
-    }
-
-    /**
-     * @return a deep copy of this KVPair. This will copy both references <em>and</em> bytes from
-     * the any underlying byte arrays. This is significantly more expensive to perform, but will
-     * give you greater copy safety. However, you should only need to do this if you plan on
-     * modifying the underlying byte buffers directly, which you should rarely wish to do.
-     */
-    public KVPair deepClone(){
-        return new KVPair(getRowKey(),getValue(),type);
     }
 
     /**
@@ -169,8 +165,12 @@ public class KVPair implements Comparable<KVPair> {
 
     @Override
     public int hashCode() {
-        int result = rowKey.hashCode();
-        result = 31 * result + type.hashCode();
-        return result;
+        if(!hashSet) {
+            int result = rowKey.hashCode();
+            result = 31 * result + type.hashCode();
+            hashCode =  result;
+            hashSet=true;
+        }
+        return hashCode;
     }
 }

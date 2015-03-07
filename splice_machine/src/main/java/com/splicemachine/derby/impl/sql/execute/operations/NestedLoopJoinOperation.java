@@ -329,8 +329,8 @@ public class NestedLoopJoinOperation extends JoinOperation {
 										probeResultSet.getDelegate().setRegionName(region.getRegionNameAsString());
 
                             IOStats stats = probeResultSet.getStats();
-                            rowsSeenRight += stats.getRows();
-                            bytesReadRight += stats.getBytes();
+                            rowsSeenRight += stats.elementsSeen();
+                            bytesReadRight += stats.bytesSeen();
                             TimeView timer = stats.getTime();
                             remoteScanCpuTime += timer.getCpuTime();
                             remoteScanUserTime += timer.getUserTime();

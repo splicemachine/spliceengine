@@ -406,7 +406,7 @@ public class HashNestedLoopJoinOperation extends JoinOperation{
             rightHashTable.markAllBuffers();
             if(shouldRecordStats()) {
                 IOStats ioStats = rightRs.getStats();
-                bytesReadRight += ioStats.getBytes();
+                bytesReadRight += ioStats.bytesSeen();
                 remoteScanCpuTime += ioStats.getTime().getCpuTime();
                 remoteScanUserTime += ioStats.getTime().getUserTime();
                 remoteScanWallTime += ioStats.getTime().getWallClockTime();

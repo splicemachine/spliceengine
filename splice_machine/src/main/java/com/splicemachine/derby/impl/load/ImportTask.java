@@ -223,8 +223,8 @@ public class ImportTask extends ZkTask{
 						runtimeStats.addMetric(OperationMetric.TOTAL_USER_TIME, totalTimeView.getUserTime());
 						runtimeStats.addMetric(OperationMetric.TASK_QUEUE_WAIT_WALL_TIME,waitTimeNs);
 
-						runtimeStats.addMetric(OperationMetric.REMOTE_SCAN_BYTES,readStats.getBytes());
-						runtimeStats.addMetric(OperationMetric.REMOTE_SCAN_ROWS,readStats.getRows());
+						runtimeStats.addMetric(OperationMetric.REMOTE_SCAN_BYTES,readStats.bytesSeen());
+						runtimeStats.addMetric(OperationMetric.REMOTE_SCAN_ROWS,readStats.elementsSeen());
 						runtimeStats.addMetric(OperationMetric.REMOTE_SCAN_WALL_TIME,readView.getWallClockTime());
 						runtimeStats.addMetric(OperationMetric.REMOTE_SCAN_CPU_TIME,readView.getCpuTime());
 						runtimeStats.addMetric(OperationMetric.REMOTE_SCAN_USER_TIME,readView.getUserTime());
