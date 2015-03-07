@@ -3,9 +3,11 @@ package com.splicemachine.pipeline.constraint;
 import com.carrotsearch.hppc.ObjectOpenHashSet;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.si.api.TxnView;
+import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 
 import java.io.IOException;
+import java.util.Set;
 
 /**
  * A Constraint on a Table.
@@ -75,7 +77,7 @@ public interface Constraint {
      * context of a given BatchWrite -- used to validate the mutations within that batch do not violate the constraint.
      * BatchConstraintChecker is then used to fully validate the constraint.
      */
-    Result validate(KVPair mutation, TxnView txn, RegionCoprocessorEnvironment rce, ObjectOpenHashSet<KVPair> priorValues) throws IOException;
+    Result validate(KVPair mutation, TxnView txn, RegionCoprocessorEnvironment rce, Set<ByteSlice> priorValues) throws IOException;
 
     ConstraintContext getConstraintContext();
 

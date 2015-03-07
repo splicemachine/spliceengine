@@ -7,7 +7,7 @@ import com.splicemachine.encoding.Encoding;
 import com.splicemachine.si.api.*;
 import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.si.impl.TransactionStorage;
-import com.splicemachine.stream.CloseableStream;
+import com.splicemachine.stream.Stream;
 import com.splicemachine.stream.StreamException;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.pipeline.exception.Exceptions;
@@ -43,17 +43,14 @@ import java.util.List;
 public class TransactionAdmin {
 
     public static void killAllActiveTransactions(long maxTxnId) throws SQLException{
-        try {
-            ActiveTransactionReader reader = new ActiveTransactionReader(0l,maxTxnId,null);
-            CloseableStream<TxnView> activeTransactions = reader.getActiveTransactions();
+        ActiveTransactionReader reader = new ActiveTransactionReader(0l,maxTxnId,null);
+        try(Stream<TxnView> activeTransactions = reader.getActiveTransactions()) {
             final TxnLifecycleManager tc = TransactionLifecycle.getLifecycleManager();
             TxnView next;
-            while((next = activeTransactions.next())!=null){
+            while ((next = activeTransactions.next()) != null) {
                 tc.rollback(next.getTxnId());
             }
-        }catch (StreamException e) {
-            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
-        } catch (IOException e) {
+        } catch (StreamException | IOException e) {
             throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
         }
     }
@@ -96,15 +93,12 @@ public class TransactionAdmin {
         try {
             ExecRow template = toRow(CURRENT_TXN_ID_COLUMNS);
             List<ExecRow> results = Lists.newArrayList();
-            CloseableStream<TxnView> activeTxns = reader.getActiveTransactions();
-            try{
+            try(Stream<TxnView> activeTxns = reader.getActiveTransactions()){
                 TxnView n;
                 while((n = activeTxns.next())!=null){
                     template.getColumn(1).setValue(n.getTxnId());
                     results.add(template.getClone());
                 }
-            }  finally{
-                activeTxns.close();
             }
 
             EmbedConnection defaultConn = (EmbedConnection) SpliceAdmin.getDefaultConn();
@@ -140,44 +134,41 @@ public class TransactionAdmin {
         try {
             ExecRow template = toRow(TRANSACTION_TABLE_COLUMNS);
             List<ExecRow> results = Lists.newArrayList();
-            CloseableStream<TxnView> activeTxns = reader.getAllTransactions();
-            try{
+
+            try(Stream<TxnView> activeTxns = reader.getAllTransactions()) {
                 TxnView txn;
-                while((txn = activeTxns.next())!=null){
+                while ((txn = activeTxns.next()) != null) {
                     template.resetRowArray();
                     DataValueDescriptor[] dvds = template.getRowArray();
                     dvds[0].setValue(txn.getTxnId());
-                    if(txn.getParentTxnId()!=-1l)
+                    if (txn.getParentTxnId() != -1l)
                         dvds[1].setValue(txn.getParentTxnId());
                     else
                         dvds[1].setToNull();
                     Iterator<ByteSlice> destTables = txn.getDestinationTables();
-                    if(destTables!=null && destTables.hasNext()){
+                    if (destTables != null && destTables.hasNext()) {
                         StringBuilder tables = new StringBuilder();
-                        boolean isFirst=true;
-                        while(destTables.hasNext()){
+                        boolean isFirst = true;
+                        while (destTables.hasNext()) {
                             ByteSlice table = destTables.next();
-                            if(!isFirst) tables.append(",");
-                            else isFirst=false;
+                            if (!isFirst) tables.append(",");
+                            else isFirst = false;
                             tables.append(Bytes.toString(Encoding.decodeBytesUnsortd(table.array(), table.offset(), table.length())));
                         }
                         dvds[2].setValue(tables.toString());
-                    }else
+                    } else
                         dvds[2].setToNull();
 
                     dvds[3].setValue(txn.getState().toString());
                     dvds[4].setValue(txn.getIsolationLevel().toHumanFriendlyString());
                     dvds[5].setValue(txn.getBeginTimestamp());
                     setLong(dvds[6], txn.getCommitTimestamp());
-                    setLong(dvds[7],txn.getEffectiveCommitTimestamp());
+                    setLong(dvds[7], txn.getEffectiveCommitTimestamp());
                     dvds[8].setValue(txn.isAdditive());
-                    dvds[9].setValue(new Timestamp(txn.getLastKeepAliveTimestamp()),null);
+                    dvds[9].setValue(new Timestamp(txn.getLastKeepAliveTimestamp()), null);
                     results.add(template.getClone());
                 }
-            }  finally{
-                activeTxns.close();
             }
-
             EmbedConnection defaultConn = (EmbedConnection) SpliceAdmin.getDefaultConn();
             Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
             IteratorNoPutResultSet rs = new IteratorNoPutResultSet(results,TRANSACTION_TABLE_COLUMNS,lastActivation);

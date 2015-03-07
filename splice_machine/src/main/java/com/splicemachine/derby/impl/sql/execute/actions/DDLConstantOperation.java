@@ -4,7 +4,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
-import com.splicemachine.stream.CloseableStream;
+import com.splicemachine.stream.Stream;
 import com.splicemachine.stream.StreamException;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.catalog.AliasInfo;
@@ -893,8 +893,7 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
         long timeAvailable = maxWait;
         long activeTxnId = -1l;
         do{
-            CloseableStream<TxnView> activeTxns = transactionReader.getActiveTransactions();
-            try{
+            try(Stream<TxnView> activeTxns = transactionReader.getActiveTransactions()){
                 TxnView txn;
                 while((txn = activeTxns.next())!=null){
                     if(!txn.descendsFrom(userTxn)){
@@ -903,8 +902,6 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
                 }
             } catch (StreamException e) {
                 throw new IOException(e.getCause());
-            } finally{
-                activeTxns.close();
             }
             if(activeTxnId<0) return activeTxnId;
             /*

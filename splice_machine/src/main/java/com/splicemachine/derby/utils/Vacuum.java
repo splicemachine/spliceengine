@@ -5,7 +5,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.execute.actions.ActiveTransactionReader;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.si.api.TxnView;
-import com.splicemachine.stream.CloseableStream;
+import com.splicemachine.stream.Stream;
 import com.splicemachine.stream.StreamException;
 import com.splicemachine.pipeline.exception.ErrorState;
 import com.splicemachine.pipeline.exception.Exceptions;
@@ -115,36 +115,31 @@ public class Vacuum {
 				}
 		}
 
-		private long waitForConcurrentTransactions(TxnView txn) throws StandardException {
-			ActiveTransactionReader reader = new ActiveTransactionReader(0l,txn.getTxnId(),null);
-			long timeRemaining = SpliceConstants.ddlDrainingMaximumWait;
-			long pollPeriod = SpliceConstants.pause;
-			int tryNum = 1;
-			long activeTxn;
+    private long waitForConcurrentTransactions(TxnView txn) throws StandardException {
+        ActiveTransactionReader reader = new ActiveTransactionReader(0l,txn.getTxnId(),null);
+        long timeRemaining = SpliceConstants.ddlDrainingMaximumWait;
+        long pollPeriod = SpliceConstants.pause;
+        int tryNum = 1;
+        long activeTxn;
 
-			try {
-				do {
-					activeTxn = -1l;
-                
-	                CloseableStream<TxnView> activeTransactions = reader.getActiveTransactions(10);
-	                TxnView next;
-	                try {
-		                while((next = activeTransactions.next())!=null){
-		                    long txnId = next.getTxnId();
-		                    if(txnId!=txn.getTxnId()){
-		                        activeTxn = txnId;
-		                        break;
-		                    }
-		                }
-	                } finally {
-	                	if (activeTransactions != null) {
-	                		activeTransactions.close(); // mandatory for job cleanup
-	                	}
-	                }
-	                
-	                if(activeTxn<0) return activeTxn; //no active transactions
+        try {
+            do {
+                activeTxn = -1l;
 
-					long time = System.currentTimeMillis();
+                TxnView next;
+                try (Stream<TxnView> activeTransactions = reader.getActiveTransactions(10)){
+                    while((next = activeTransactions.next())!=null){
+                        long txnId = next.getTxnId();
+                        if(txnId!=txn.getTxnId()){
+                            activeTxn = txnId;
+                            break;
+                        }
+                    }
+                }
+
+                if(activeTxn<0) return activeTxn; //no active transactions
+
+                long time = System.currentTimeMillis();
 					
 					try {
 						Thread.sleep(Math.min(tryNum*pollPeriod,timeRemaining));
@@ -154,13 +149,11 @@ public class Vacuum {
 					timeRemaining-=(System.currentTimeMillis()-time);
 					tryNum++;
 				} while (timeRemaining>0);
-			} catch (IOException e) {
-				throw Exceptions.parseException(e);
-			} catch (StreamException e) {
+			} catch (IOException | StreamException e) {
 				throw Exceptions.parseException(e);
 			}
 
-			return activeTxn;
+        return activeTxn;
 		} // end waitForConcurrentTransactions
 
 		public void shutdown() throws SQLException {
