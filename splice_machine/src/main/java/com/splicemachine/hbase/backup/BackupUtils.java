@@ -357,7 +357,7 @@ public class BackupUtils {
 
         HRegion parentRegion = e.getEnvironment().getRegion();
         String tableName = parentRegion.getRegionInfo().getTable().getNameAsString();
-        String parentRegionName = parentRegion.getRegionNameAsString();
+        String parentRegionName = parentRegion.getRegionInfo().getEncodedName();
         String lRegionName = l.getRegionNameAsString();
         String rRegionName = r.getRegionNameAsString();
 
@@ -499,7 +499,7 @@ public class BackupUtils {
 
         boolean exclude = false;
         Connection connection = null;
-        String sqlText = "select count(*) from %s.%s where backup_item=? and region_name=? and file_name=? and exclude=?";
+        String sqlText = "select count(*) from %s.%s where backup_item=? and region_name=? and file_name=? and include=?";
 
         try {
             connection = SpliceDriver.driver().getInternalConnection();
@@ -514,7 +514,7 @@ public class BackupUtils {
                  exclude = (rs.getInt(1) > 0);
             }
         } catch (Exception e) {
-            SpliceLogUtils.warn(LOG, "cannot query backup.fileset");
+            SpliceLogUtils.warn(LOG, "ShouldExcluded: cannot query backup.fileset");
         }
         return exclude;
     }
@@ -534,7 +534,7 @@ public class BackupUtils {
             ps.execute();
             ps.close();
         } catch (Exception e) {
-            SpliceLogUtils.warn(LOG, "cannot insert into backup.fileset");
+            SpliceLogUtils.warn(LOG, "insertFileSet: cannot insert into backup.fileset");
         }
     }
 
@@ -553,7 +553,7 @@ public class BackupUtils {
             rs = ps.executeQuery();
 
         } catch (Exception e) {
-            SpliceLogUtils.warn(LOG, "cannot query backup.fileset");
+            SpliceLogUtils.warn(LOG, "queryFileSet: cannot query backup.fileset");
         }
         return rs;
     }
@@ -574,9 +574,51 @@ public class BackupUtils {
             ps.execute();
             ps.close();
         } catch (Exception e) {
-            SpliceLogUtils.warn(LOG, "cannot query backup.fileset");
+            SpliceLogUtils.warn(LOG, "deleteFileSet: cannot delete backup.fileset");
         }
     }
+
+    public static void deleteFileSetForRegion(String tableName, String encodedRegionName) {
+
+        Connection connection = null;
+        ResultSet rs = null;
+        String sqlText = "delete from %s.%s where backup_item=? and region_name=?";
+        try {
+            connection = SpliceDriver.driver().getInternalConnection();
+            PreparedStatement ps = connection.prepareStatement(
+                    String.format(sqlText, BackupItem.DEFAULT_SCHEMA, BACKUP_FILESET_TABLE));
+            ps.setString(1, tableName);
+            ps.setString(2, encodedRegionName);
+            ps.execute();
+            ps.close();
+        } catch (Exception e) {
+            SpliceLogUtils.warn(LOG, "deleteFileSetForRegion: cannot delete from backup.fileset");
+        }
+    }
+
+    public static FileSet getFileSet(String tableName, String encodedRegionName, String fileName) {
+        Connection connection = null;
+        ResultSet rs = null;
+        String sqlText = "select include from %s.%s where backup_item=? and region_name=? and file_name=?";
+        try {
+            connection = SpliceDriver.driver().getInternalConnection();
+            PreparedStatement ps = connection.prepareStatement(
+                    String.format(sqlText, BackupItem.DEFAULT_SCHEMA, BACKUP_FILESET_TABLE));
+            ps.setString(1, tableName);
+            ps.setString(2, encodedRegionName);
+            ps.setString(3, fileName);
+            rs = ps.executeQuery();
+            if (rs.next()) {
+                boolean include = rs.getBoolean(1);
+                return new FileSet(tableName, encodedRegionName, fileName, include);
+            }
+
+        } catch (Exception e) {
+            SpliceLogUtils.warn(LOG, "getFileSet: cannot query backup.fileset");
+        }
+        return null;
+    }
+
 
     // Get a list of parent backup ids
     public static List<Long> getParentBackupIds(long backupId) throws SQLException{
@@ -652,6 +694,38 @@ public class BackupUtils {
 
         public RegionSplitTreeNode getRight() {
             return right;
+        }
+    }
+
+    public static class FileSet {
+        private String tableName;
+        private String regionName;
+        private String fileName;
+        private boolean include;
+
+        public FileSet() {}
+
+        public FileSet(String tableName, String regionName, String fileName, boolean include) {
+            this.tableName = tableName;
+            this.regionName = regionName;
+            this.fileName = fileName;
+            this.include = include;
+        }
+
+        public String getTableName() {
+            return tableName;
+        }
+
+        public String getRegionName() {
+            return regionName;
+        }
+
+        public String getFileName() {
+            return fileName;
+        }
+
+        public boolean shouldInclude() {
+            return include;
         }
     }
 }
