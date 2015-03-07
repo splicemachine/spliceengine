@@ -44,6 +44,7 @@ public class BackupItem implements InternalTable {
     public static final String UPDATE_BACKUP_ITEM_STATUS = "update %s.%s set end_timestamp = ? where transaction_id = ? and item = ?";
     public static final String QUERY_BACKUP_ITEM = "select item, begin_timestamp, end_timestamp from %s.%s where transaction_id=?";
 
+    public static final String QUERY_LAST_SNAPSHOTNAME = "select snapshot_name from %s.%s where item=? order by transaction_id desc";
 	public BackupItem () {
 		
 	}
@@ -332,8 +333,8 @@ public class BackupItem implements InternalTable {
         try {
             setBackupItemBeginTimestamp(new Timestamp(System.currentTimeMillis()));
             insertBackupItem();
-            createBackupItemFilesystem();
-            writeDescriptorToFileSystem();
+            //createBackupItemFilesystem();
+            //writeDescriptorToFileSystem();
             HTableInterface table = SpliceAccessManager.getHTable(getBackupItemBytes());
             if (backup.getIncrementalParentBackupID() > 0) {
                 CreateIncrementalBackupJob job = new CreateIncrementalBackupJob(this, table, getBackupItemFilesystem(), snapshotName, lastSnapshotName);
@@ -348,6 +349,10 @@ public class BackupItem implements InternalTable {
                 info = new JobInfo(job.getJobId(), future.getNumTasks(), System.currentTimeMillis());
                 info.setJobFuture(future);
                 future.completeAll(info);
+            }
+            FileSystem fileSystem = FileSystem.get(URI.create(getBackupItemFilesystem()),SpliceConstants.config);
+            if (fileSystem.exists(new Path(getBackupItemFilesystem()))) {
+                writeDescriptorToFileSystem();
             }
             //writeRegionSplitInfo();
             setBackupItemEndTimestamp(new Timestamp(System.currentTimeMillis()));

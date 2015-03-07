@@ -174,7 +174,7 @@ public class BackupSystemProcedures {
             preparedStatement = connection.prepareStatement(String.format(Backup.INSERT_START_BACKUP,Backup.DEFAULT_SCHEMA,Backup.DEFAULT_TABLE));
             preparedStatement.setLong(1, 1);
             preparedStatement.setTimestamp(2, new Timestamp(1));
-            preparedStatement.setString(3, "Succeeded");
+            preparedStatement.setString(3, "S");
             preparedStatement.setString(4, backupDir);
             preparedStatement.setString(5, "D");
             preparedStatement.setBoolean(6, false);

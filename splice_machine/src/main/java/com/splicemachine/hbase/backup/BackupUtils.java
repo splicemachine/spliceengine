@@ -33,6 +33,7 @@ public class BackupUtils {
 
     public static final String QUERY_LAST_BACKUP = "select max(transaction_id) from %s.%s";
     public static final String BACKUP_STATE_TABLE = "BACKUP_STATES";
+    public static final String BACKUP_FILESET_TABLE = "BACKUP_FILESET";
     public static final String QUERY_BACKUP_STATE = "select region_name from %s.%s where backup_item=? and region_name=? and state=?";
     public static final String DELETE_BACKUP_STATE = "delete from %s.%s where backup_item=? and region_name=? and file_name=?";
     public static final String INSERT_BACKUP_STATE = "insert into %s.%s values(?, ?, ?, ?)";
@@ -85,7 +86,7 @@ public class BackupUtils {
         }
     }
 
-    private static HashMap<String, Collection<StoreFileInfo>> getStoreFileInfo(HRegion region) throws ExecutionException {
+    public static HashMap<String, Collection<StoreFileInfo>> getStoreFileInfo(HRegion region) throws ExecutionException {
         try {
             HashMap<String, Collection<StoreFileInfo>> storeFileInfo = new HashMap<>();
             HRegionFileSystem hRegionFileSystem = region.getRegionFileSystem();
@@ -455,6 +456,126 @@ public class BackupUtils {
             }
         }
         return forest;
+    }
+
+    public static boolean existBackupWithStatus(String status) {
+        boolean exists = false;
+        Connection connection = null;
+        try {
+            connection = SpliceDriver.driver().getInternalConnection();
+            PreparedStatement ps = connection.prepareStatement(
+                    String.format(Backup.RUNNING_CHECK, Backup.DEFAULT_SCHEMA, Backup.DEFAULT_TABLE));
+            ps.setString(1, status);
+            ResultSet rs = ps.executeQuery();
+            exists = rs.next();
+        } catch (Exception e) {
+            SpliceLogUtils.warn(LOG, "cannot query last backup");
+        }
+
+        return exists;
+    }
+
+    public static String getLastSnapshotName(String tableName) {
+
+        String snapshotName = null;
+        Connection connection = null;
+        try {
+            connection = SpliceDriver.driver().getInternalConnection();
+            PreparedStatement ps = connection.prepareStatement(
+                    String.format(BackupItem.QUERY_LAST_SNAPSHOTNAME, BackupItem.DEFAULT_SCHEMA, BackupItem.DEFAULT_TABLE));
+            ps.setString(1, tableName);
+            ResultSet rs = ps.executeQuery();
+            if(rs.next()) {
+                snapshotName = rs.getString(1);
+            }
+        } catch (Exception e) {
+            SpliceLogUtils.warn(LOG, "cannot query last snapshot name");
+        }
+
+        return snapshotName;
+    }
+
+    public static boolean shouldExclude(String tableName, String encodedRegionName, String fileName) {
+
+        boolean exclude = false;
+        Connection connection = null;
+        String sqlText = "select count(*) from %s.%s where backup_item=? and region_name=? and file_name=? and exclude=?";
+
+        try {
+            connection = SpliceDriver.driver().getInternalConnection();
+            PreparedStatement ps = connection.prepareStatement(
+                    String.format(sqlText, BackupItem.DEFAULT_SCHEMA, BACKUP_FILESET_TABLE));
+            ps.setString(1, tableName);
+            ps.setString(2, encodedRegionName);
+            ps.setString(3, fileName);
+            ps.setBoolean(4, false);
+            ResultSet rs = ps.executeQuery();
+            if(rs.next()) {
+                 exclude = (rs.getInt(1) > 0);
+            }
+        } catch (Exception e) {
+            SpliceLogUtils.warn(LOG, "cannot query backup.fileset");
+        }
+        return exclude;
+    }
+
+    public static void insertFileSet(String tableName, String encodedRegionName, String fileName, boolean include) {
+        Connection connection = null;
+        String sqlText = "insert into %s.%s (backup_item,region_name,file_name,include) values(?,?,?,?) ";
+
+        try {
+            connection = SpliceDriver.driver().getInternalConnection();
+            PreparedStatement ps = connection.prepareStatement(
+                    String.format(sqlText, BackupItem.DEFAULT_SCHEMA, BACKUP_FILESET_TABLE));
+            ps.setString(1, tableName);
+            ps.setString(2, encodedRegionName);
+            ps.setString(3, fileName);
+            ps.setBoolean(4, include);
+            ps.execute();
+            ps.close();
+        } catch (Exception e) {
+            SpliceLogUtils.warn(LOG, "cannot insert into backup.fileset");
+        }
+    }
+
+    public static ResultSet queryFileSet(String tableName, String encodedRegionName, boolean include) {
+
+        Connection connection = null;
+        ResultSet rs = null;
+        String sqlText = "select file_name from %s.%s where backup_item=? and region_name=? and include=?";
+        try {
+            connection = SpliceDriver.driver().getInternalConnection();
+            PreparedStatement ps = connection.prepareStatement(
+                    String.format(sqlText, BackupItem.DEFAULT_SCHEMA, BACKUP_FILESET_TABLE));
+            ps.setString(1, tableName);
+            ps.setString(2, encodedRegionName);
+            ps.setBoolean(3, include);
+            rs = ps.executeQuery();
+
+        } catch (Exception e) {
+            SpliceLogUtils.warn(LOG, "cannot query backup.fileset");
+        }
+        return rs;
+    }
+
+    public static void deleteFileSet(String tableName, String encodedRegionName, String fileName, boolean include) {
+
+        Connection connection = null;
+        ResultSet rs = null;
+        String sqlText = "delete from %s.%s where backup_item=? and region_name=? and file_name like ? and include=?";
+        try {
+            connection = SpliceDriver.driver().getInternalConnection();
+            PreparedStatement ps = connection.prepareStatement(
+                    String.format(sqlText, BackupItem.DEFAULT_SCHEMA, BACKUP_FILESET_TABLE));
+            ps.setString(1, tableName);
+            ps.setString(2, encodedRegionName);
+            ps.setString(3, fileName);
+            ps.setBoolean(4, include);
+            ps.execute();
+            ps.close();
+        } catch (Exception e) {
+            SpliceLogUtils.warn(LOG, "cannot query backup.fileset");
+        }
     }
 
     // Get a list of parent backup ids
