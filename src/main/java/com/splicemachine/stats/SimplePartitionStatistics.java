@@ -42,7 +42,7 @@ public class SimplePartitionStatistics implements PartitionStatistics {
 
     @Override
     @SuppressWarnings("unchecked")
-    public <T extends Comparable<T>> Distribution<T> columnDistribution(int columnId) {
+    public <T> Distribution<T> columnDistribution(int columnId) {
         if(columnId<0) return EmptyDistribution.emptyDistribution();
         for(ColumnStatistics stats:columnStatistics){
             if(stats.columnId()==columnId)

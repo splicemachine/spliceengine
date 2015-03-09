@@ -74,5 +74,5 @@ public interface PartitionStatistics extends Mergeable<PartitionStatistics> {
      */
     List<ColumnStatistics> columnStatistics();
 
-    <T extends Comparable<T>> Distribution<T> columnDistribution(int columnId);
+    <T> Distribution<T> columnDistribution(int columnId);
 }
