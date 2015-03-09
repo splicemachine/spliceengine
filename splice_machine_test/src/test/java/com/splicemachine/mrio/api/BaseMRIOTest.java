@@ -2,19 +2,13 @@ package com.splicemachine.mrio.api;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.List;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.mapreduce.TableInputFormat;
-import org.apache.hadoop.mapreduce.InputSplit;
-import org.apache.hadoop.mapreduce.JobContext;
-import org.apache.hadoop.mapreduce.task.JobContextImpl;
-
 import com.splicemachine.derby.test.framework.SpliceNetConnection;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
+import com.splicemachine.mrio.MRConstants;
 
 public class BaseMRIOTest extends SpliceUnitTest {
 	protected static Configuration config;
@@ -25,6 +19,7 @@ public class BaseMRIOTest extends SpliceUnitTest {
 		config.set("hbase.zookeeper.quorum", "127.0.0.1:2181");
 		config.set(HConstants.HBASE_DIR,getHBaseDirectory());
         config.set("fs.default.name", "file:///"); // MapR Hack, tells it local filesystem
+    	config.set(MRConstants.SPLICE_JDBC_STR, SpliceNetConnection.getDefaultLocalURL());
 		sqlUtil = SMSQLUtil.getInstance(SpliceNetConnection.getDefaultLocalURL());
 	}
 	
