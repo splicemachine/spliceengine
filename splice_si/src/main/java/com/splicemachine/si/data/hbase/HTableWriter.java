@@ -46,7 +46,7 @@ public class HTableWriter<HbRowLock> implements STableWriter<HbRowLock, IHTable<
 
     @Override
     public HbRowLock tryLock(IHTable<HbRowLock> ihTable, byte[] rowKey) throws IOException {
-        return ihTable.tryLock(rowKey);
+        return ihTable.getLock(rowKey, false);
     }
 
     @Override

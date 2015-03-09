@@ -174,6 +174,11 @@ public class TransactionalRegions {
             return delegate.bulkWrite(txn, family, qualifier, constraintChecker, data);
         }
 
+        @Override
+        public boolean verifyForeignKeyReferenceExists(TxnView txnView, byte[] rowKey) throws IOException {
+            return delegate.verifyForeignKeyReferenceExists(txnView, rowKey);
+        }
+
         @Override public String getRegionName() { return delegate.getRegionName(); }
         @Override public TxnSupplier getTxnSupplier() { return delegate.getTxnSupplier(); }
         @Override public ReadResolver getReadResolver() { return delegate.getReadResolver(); }
