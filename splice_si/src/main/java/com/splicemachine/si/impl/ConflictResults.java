@@ -4,6 +4,7 @@ import com.carrotsearch.hppc.LongOpenHashSet;
 
 public class ConflictResults {
 
+    /* careful mutable */
     public static final ConflictResults NO_CONFLICT = new ConflictResults(LongOpenHashSet.from(), false);
 
     private LongOpenHashSet childConflicts;

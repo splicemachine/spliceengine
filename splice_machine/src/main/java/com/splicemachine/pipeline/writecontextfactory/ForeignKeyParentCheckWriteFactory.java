@@ -19,7 +19,7 @@ class ForeignKeyParentCheckWriteFactory implements LocalWriteFactory {
 
     @Override
     public void addTo(PipelineWriteContext ctx, boolean keepState, int expectedWrites) throws IOException {
-        ctx.addLast(new ForeignKeyParentCheckWriteHandler(ctx.getTransactionalRegion(), ctx.getCoprocessorEnvironment(), formatIds));
+        ctx.addLast(new ForeignKeyParentCheckWriteHandler(ctx.getTransactionalRegion(), formatIds));
     }
 
     @Override

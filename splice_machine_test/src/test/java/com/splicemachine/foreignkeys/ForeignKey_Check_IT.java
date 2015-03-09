@@ -4,7 +4,10 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.test_dao.TableDAO;
 import com.splicemachine.test_tools.TableCreator;
-import org.junit.*;
+import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
 
 import java.sql.Connection;
 
@@ -27,7 +30,9 @@ public class ForeignKey_Check_IT {
 
     @Before
     public void deleteTables() throws Exception {
-        new TableDAO(connection()).drop(SCHEMA, "C", "P");
+        Connection connection = connection();
+        new TableDAO(connection).drop(SCHEMA, "C", "P");
+        connection.commit();
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -537,6 +542,7 @@ public class ForeignKey_Check_IT {
         assertQueryFail("update C1 set a=-1", "Operation on table 'C1' caused a violation of foreign key constraint 'C_FK_1' for key (A).  The statement has been rolled back.");
         assertQueryFail("update C2 set a=-1", "Operation on table 'C2' caused a violation of foreign key constraint 'C_FK_2' for key (A).  The statement has been rolled back.");
     }
+
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     //

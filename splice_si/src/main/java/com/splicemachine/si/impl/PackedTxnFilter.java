@@ -43,6 +43,7 @@ public class PackedTxnFilter<Data> implements TxnFilter<Data>,SIFilter<Data> {
                 }
             case TOMBSTONE:
             case ANTI_TOMBSTONE:
+            case FOREIGN_KEY_COUNTER:
             case OTHER:
                 return returnCode; // These are always skip...
 

@@ -72,7 +72,9 @@ public class DataStore<RowLock, Data, Mutation, Put extends OperationWithAttribu
         this.userFamilyColumnList = Arrays.asList(
                 Arrays.asList(this.userColumnFamily, tombstoneQualifier),
                 Arrays.asList(this.userColumnFamily, commitTimestampQualifier),
-                Arrays.asList(this.userColumnFamily, SIConstants.PACKED_COLUMN_BYTES));
+                Arrays.asList(this.userColumnFamily, SIConstants.PACKED_COLUMN_BYTES),
+                Arrays.asList(this.userColumnFamily, SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES)
+        );
     }
 
     public byte[] getSINeededAttribute(OperationWithAttributes operation) {
@@ -106,7 +108,7 @@ public class DataStore<RowLock, Data, Mutation, Put extends OperationWithAttribu
         return delete;
     }
 
-    Result getCommitTimestampsAndTombstonesSingle(IHTable table, byte[] rowKey) throws IOException {
+    public Result getCommitTimestampsAndTombstonesSingle(IHTable table, byte[] rowKey) throws IOException {
         Get get = dataLib.newGet(rowKey, null, userFamilyColumnList, null, 1); // Just Retrieve one per...
         suppressIndexing(get);
         checkBloom(get);
@@ -126,15 +128,16 @@ public class DataStore<RowLock, Data, Mutation, Put extends OperationWithAttribu
             return KeyValueType.COMMIT_TIMESTAMP;
         } else if (dataLib.singleMatchingQualifier(keyValue, SIConstants.PACKED_COLUMN_BYTES)) {
             return KeyValueType.USER_DATA;
-        } else { // Took out the check...
+        } else if (dataLib.singleMatchingQualifier(keyValue, tombstoneQualifier)) {
             if (dataLib.matchingValue(keyValue, siNull)) {
                 return KeyValueType.TOMBSTONE;
             } else if (dataLib.matchingValue(keyValue, siAntiTombstoneValue)) {
                 return KeyValueType.ANTI_TOMBSTONE;
-            } else {
-                return KeyValueType.OTHER;
             }
+        } else if (dataLib.singleMatchingQualifier(keyValue, SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES)) {
+            return KeyValueType.FOREIGN_KEY_COUNTER;
         }
+        return KeyValueType.OTHER;
     }
 
     public boolean isSINull(Data keyValue) {

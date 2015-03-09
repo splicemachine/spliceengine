@@ -67,6 +67,10 @@ public class SimpleTxnFilter<RowLock,Data> implements TxnFilter<Data> {
 						ensureTransactionIsCached(element);
 						return Filter.ReturnCode.SKIP;
 				}
+                if(type == KeyValueType.FOREIGN_KEY_COUNTER) {
+                    /* Transactional reads always ignore this column, no exceptions. */
+                    return Filter.ReturnCode.SKIP;
+                }
 
 				readResolve(element);
 				switch(type){
