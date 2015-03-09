@@ -92,9 +92,7 @@ public class SMInputFormatIT extends BaseMRIOTest {
     
     
     @Test
-    @Ignore
     public void testSparkIntegrationWithInputFormat() throws IOException {
-    	config.set(MRConstants.SPLICE_JDBC_STR, "jdbc:derby://localhost:1527/splicedb;user=splice;password=admin");
     	config.set(MRConstants.SPLICE_INPUT_TABLE_NAME, tableWatcherA.toString());
     	Job job = new Job(config, "Test Scan");	
         JavaPairRDD<RowLocation, ExecRow> table = sparkWatcher.jsc.newAPIHadoopRDD(job.getConfiguration(), SMInputFormat.class, RowLocation.class, ExecRow.class);
@@ -109,9 +107,7 @@ public class SMInputFormatIT extends BaseMRIOTest {
     }
     
     @Test
-    @Ignore
     public void testCountOverMultipleRegionsInSpark() throws IOException {
-    	config.set(MRConstants.SPLICE_JDBC_STR, "jdbc:derby://localhost:1527/splicedb;user=splice;password=admin");
     	config.set(MRConstants.SPLICE_INPUT_TABLE_NAME, tableWatcherB.toString());
     	Job job = new Job(config, "Test Scan");	
         JavaPairRDD<RowLocation, ExecRow> table = sparkWatcher.jsc.newAPIHadoopRDD(job.getConfiguration(), SMInputFormat.class, RowLocation.class, ExecRow.class);
