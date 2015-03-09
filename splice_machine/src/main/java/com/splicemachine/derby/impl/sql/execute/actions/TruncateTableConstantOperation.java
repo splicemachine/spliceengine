@@ -133,7 +133,7 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
         if (columnOrder != null) {
             columnOrdering = new ColumnOrdering[columnOrder.length];
             for (int i = 0; i < columnOrder.length; i++) {
-                columnOrdering[i] = new IndexColumnOrder(columnOrder[0]);
+                columnOrdering[i] = new IndexColumnOrder(columnOrder[i]);
             }
         }
 
