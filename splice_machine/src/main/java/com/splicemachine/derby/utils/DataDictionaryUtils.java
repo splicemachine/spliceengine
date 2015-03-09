@@ -19,17 +19,21 @@ import java.util.List;
 public class DataDictionaryUtils {
 
     public static String getTableVersion(TxnView txn, UUID tableId) throws StandardException {
+        TableDescriptor td;
         try {
             SpliceTransactionResourceImpl impl = new SpliceTransactionResourceImpl();
             impl.marshallTransaction(txn);
             LanguageConnectionContext lcc = impl.getLcc();
 
             DataDictionary dd = lcc.getDataDictionary();
-            TableDescriptor td = dd.getTableDescriptor(tableId);
-            return td.getVersion();
+            td = dd.getTableDescriptor(tableId);
         } catch (SQLException e) {
             throw Exceptions.parseException(e);
         }
+        if (td != null) {
+            return td.getVersion();
+        }
+        return null;
     }
 
     // Get 0-based columnOrdering from a table with primary key
