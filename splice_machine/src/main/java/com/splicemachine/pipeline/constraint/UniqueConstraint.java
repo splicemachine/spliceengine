@@ -1,18 +1,11 @@
 package com.splicemachine.pipeline.constraint;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.Collections2;
-import com.google.common.collect.Lists;
-import com.splicemachine.constants.SIConstants;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.regionserver.HRegionUtil;
 
 import java.io.IOException;
-import java.util.Collection;
-import java.util.List;
 import java.util.Set;
 
 /**
@@ -24,14 +17,6 @@ import java.util.Set;
 public class UniqueConstraint implements Constraint {
 
     private final ConstraintContext constraintContext;
-
-    private static final Predicate<? super KVPair> INSERT_UPSERT_PREDICATE = new Predicate<KVPair>() {
-        @Override
-        public boolean apply(KVPair input) {
-            KVPair.Type type = input.getType();
-            return type == KVPair.Type.INSERT || type == KVPair.Type.UPSERT;
-        }
-    };
 
     public UniqueConstraint(ConstraintContext constraintContext) {
         this.constraintContext = constraintContext;
@@ -49,11 +34,15 @@ public class UniqueConstraint implements Constraint {
 
     @Override
     public Result validate(KVPair mutation, TxnView txn, RegionCoprocessorEnvironment rce, Set<ByteSlice> priorValues) throws IOException {
-        // if prior visited values has it, it's in the same batch mutation, so don't fail it
-        if (!priorValues.contains(mutation.rowKeySlice())) {
-            return Result.SUCCESS;
+        KVPair.Type type = mutation.getType();
+        // Only these mutation types can cause UniqueConstraint violations.
+        if (type == KVPair.Type.INSERT || type == KVPair.Type.UPSERT) {
+            // if prior visited values has it, it's in the same batch mutation, so don't fail it
+            if (priorValues.contains(mutation.rowKeySlice())) {
+                return (type == KVPair.Type.UPSERT) ? Result.ADDITIVE_WRITE_CONFLICT : Result.FAILURE;
+            }
         }
-        return (mutation.getType() == KVPair.Type.UPSERT) ? Result.ADDITIVE_WRITE_CONFLICT : Result.FAILURE;
+        return Result.SUCCESS;
     }
 
     @Override

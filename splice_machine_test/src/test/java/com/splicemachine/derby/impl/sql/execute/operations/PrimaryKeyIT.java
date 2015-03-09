@@ -36,6 +36,16 @@ public class PrimaryKeyIT {
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
 
+    // DB-3013: Updating row with primary key and unique index fails.
+    @Test
+    public void updatePrimaryKeyOnRowWithUniqueIndex() throws Exception {
+        methodWatcher.executeUpdate("create table UU(a int primary key, b int unique)");
+        methodWatcher.executeUpdate("insert into UU values(1,1)");
+        methodWatcher.executeUpdate("update UU set a=-10 where a=1");
+        assertEquals(1L, methodWatcher.query("select count(*) from UU where a=-10"));
+        assertEquals(0L, methodWatcher.query("select count(*) from UU where a=1"));
+    }
+
     @Test
     public void testCannotInsertDuplicatePks() throws Exception {
         try {
