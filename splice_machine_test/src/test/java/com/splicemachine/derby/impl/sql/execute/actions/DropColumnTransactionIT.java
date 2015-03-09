@@ -183,7 +183,6 @@ public class DropColumnTransactionIT {
     }
 
     @Test
-    @Ignore("Ignored until DB-1893 is resolved")
     public void testDropColumnBeforeInsertionWorks() throws Exception {
         /*
          * This is a test to ensure that the following sequence holds:
