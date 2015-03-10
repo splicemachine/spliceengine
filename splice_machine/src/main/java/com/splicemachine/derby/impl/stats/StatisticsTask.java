@@ -283,6 +283,7 @@ public class StatisticsTask extends ZkTask{
     }
 
     private void writeColumnStats(TransactionalRegion txnRegion,long columnStatsConglomerate,List<ColumnStatistics> collected) throws ExecutionException {
+        if(collected.size()<=0) return; //nothing to write, so don't bother
         long tableConglomerateId = Long.parseLong(txnRegion.getTableName());
         //get Row Key
         MultiFieldEncoder keyEncoder = MultiFieldEncoder.create(3);

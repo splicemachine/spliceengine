@@ -105,7 +105,7 @@ public class DDLTxnView extends AbstractTxnView {
             t = t.getParentTxnView();
         }
 
-        if(t.descendsFrom(this)){
+        if(otherTxn.descendsFrom(this)){
             //we are an ancestor, so use READ_COMMITTED/READ_UNCOMMITTED semantics
             Txn.IsolationLevel level = isolationLevel;
             if(level== Txn.IsolationLevel.SNAPSHOT_ISOLATION)

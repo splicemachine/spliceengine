@@ -9,6 +9,7 @@ import com.splicemachine.metrics.Timer;
 import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.collector.ColumnStatsCollector;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -21,6 +22,8 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
 import java.util.Random;
 
 /**
@@ -71,6 +74,11 @@ public class IndexStatisticsCollector extends StatisticsCollector {
         baseTable = SpliceAccessManager.getHTable(Long.toString(baseConglomerateId).getBytes());
     }
 
+
+    @Override
+    protected List<ColumnStatistics> getFinalColumnStats(ColumnStatsCollector<DataValueDescriptor>[] dvdCollectors) {
+        return Collections.emptyList();
+    }
 
     @Override
     protected void populateCollectors(DataValueDescriptor[] dvds, ColumnStatsCollector<DataValueDescriptor>[] collectors) {

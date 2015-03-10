@@ -1,6 +1,7 @@
 
 package com.splicemachine.derby.impl.store.access.btree;
 
+import com.splicemachine.derby.impl.stats.IndexStatsCostController;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
@@ -360,8 +361,7 @@ public class IndexConglomerate extends SpliceConglomerate {
                 false,
                 ContainerHandle.MODE_READONLY,
                 TransactionController.MODE_TABLE, null, null, null, this);
-        IndexCostController hbasecost = new IndexCostController(open_conglom);
-        return(hbasecost);
+        return new IndexStatsCostController(open_conglom);
     }
 
 

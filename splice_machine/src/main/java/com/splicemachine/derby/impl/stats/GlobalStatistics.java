@@ -4,6 +4,7 @@ import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.PartitionStatistics;
 import com.splicemachine.stats.TableStatistics;
 import com.splicemachine.stats.estimate.Distribution;
+import com.splicemachine.stats.estimate.GlobalDistribution;
 
 import java.util.List;
 
@@ -126,7 +127,7 @@ public class GlobalStatistics implements TableStatistics {
 
     @Override
     public <T> Distribution<T> columnDistribution(int columnId) {
-        throw new UnsupportedOperationException("IMPLEMENT");
+        return new GlobalDistribution<>(this,columnId);
     }
 
     @Override
