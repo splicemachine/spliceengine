@@ -387,7 +387,7 @@ public class SITransactor<Data,Table,
                 }
             }
 
-            conflictingChildren[i] = conflictResults.childConflicts;
+            conflictingChildren[i] = conflictResults.getChildConflicts();
             Mutation mutationToRun = getMutationToRun(table, rollForwardQueue, kvPair,
                     family, qualifier, transaction, conflictResults);
 						finalMutationsToWrite.put(i, Pair.newPair(mutationToRun, baseDataAndLock.getSecond()));
@@ -484,7 +484,7 @@ public class SITransactor<Data,Table,
 
 				dataStore.suppressIndexing(newPut);
 //				if (LOG.isTraceEnabled()) LOG.trace(String.format("Checking for anti-tombstone condition: kvPair.type is not Delete = %s, conflictResults.hasTombstone = %s", (kvPair.getType()!= KVPair.Type.DELETE), conflictResults.hasTombstone));
-				if(kvPair.getType()!= KVPair.Type.DELETE && conflictResults.hasTombstone)
+				if(kvPair.getType()!= KVPair.Type.DELETE && conflictResults.hasTombstone())
 						dataStore.setAntiTombstoneOnPut(newPut, txnIdLong);
 
         if(rollForwardQueue!=null)
@@ -519,7 +519,7 @@ public class SITransactor<Data,Table,
                 userDataKeyValue);
 
         boolean hasTombstone = hasCurrentTransactionTombstone(updateTransaction, tombstoneKeyValue);
-        timestampConflicts.tombstone(hasTombstone);
+        timestampConflicts.setHasTombstone(hasTombstone);
 //        if (LOG.isTraceEnabled()) LOG.trace(String.format("ensureNoWriteConflict: hasTombstone = %s", hasTombstone));
         return timestampConflicts;
     }
@@ -580,12 +580,6 @@ public class SITransactor<Data,Table,
 						if (dataStore.isSINull(dataCommitKeyValue)) {
 								// Unknown transaction status
 								final TxnView dataTransaction = transactionStore.getTransaction(dataTransactionId);
-								if (dataTransaction.getState().isFinal()) {
-										// Transaction is now in a final state so asynchronously update the data row with the status
-                    if(conflictResults==null)
-                        conflictResults = new ConflictResults();
-                    conflictResults.addRollForward(dataTransactionId);
-								}
 								if(dataTransaction.getState()== Txn.State.ROLLEDBACK)
 										return conflictResults; //can't conflict with a rolled back transaction
 								final ConflictType conflictType = updateTransaction.conflicts(dataTransaction);
@@ -593,12 +587,12 @@ public class SITransactor<Data,Table,
 										case CHILD:
                         if(conflictResults==null)
                             conflictResults = new ConflictResults();
-                        conflictResults.child(dataTransactionId);
+                        conflictResults.addChild(dataTransactionId);
 												break;
                     case ADDITIVE:
                         if(conflictResults==null)
                             conflictResults = new ConflictResults();
-                        conflictResults.additive(dataTransactionId);
+                        conflictResults.addAdditive(dataTransactionId);
                         break;
                     case SIBLING:
                         if(LOG.isTraceEnabled()){
@@ -632,12 +626,6 @@ public class SITransactor<Data,Table,
         final long dataTransactionId = dataLib.getTimestamp(dataCommitKeyValue);
         if (updateTransaction.getTxnId() !=(dataTransactionId)) {
             final TxnView dataTransaction = transactionStore.getTransaction(dataTransactionId);
-            if (dataTransaction.getState().isFinal()) {
-                // Transaction is now in a final state so asynchronously update the data row with the status
-                if(conflictResults==null)
-                    conflictResults = new ConflictResults();
-                conflictResults.addRollForward(dataTransactionId);
-            }
             if(dataTransaction.getState()== Txn.State.ROLLEDBACK)
                 return conflictResults; //can't conflict with a rolled back transaction
             final ConflictType conflictType = updateTransaction.conflicts(dataTransaction);
@@ -645,12 +633,12 @@ public class SITransactor<Data,Table,
                 case CHILD:
                     if(conflictResults==null)
                         conflictResults = new ConflictResults();
-                    conflictResults.child(dataTransactionId);
+                    conflictResults.addChild(dataTransactionId);
                     break;
                 case ADDITIVE:
                     if(conflictResults==null)
                         conflictResults = new ConflictResults();
-                    conflictResults.additive(dataTransactionId);
+                    conflictResults.addAdditive(dataTransactionId);
                     break;
                 case SIBLING:
                     if(LOG.isTraceEnabled()){
