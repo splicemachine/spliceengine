@@ -10,7 +10,7 @@
 	<parent>
 		<groupId>com.splicemachine</groupId>
 		<artifactId>splice-maven-parent</artifactId>
-		<version>1.0.0</version>
+		<version>1.0.2-SNAPSHOT</version>
 	</parent>
 	<scm>
 		<connection>scm:git:git@github.com:splicemachine/${project.artifactId}.git</connection>
@@ -24,11 +24,6 @@
 		</repository>
 	</repositories>
 	<dependencies>
-		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<scope>test</scope>
-		</dependency>
 		<dependency>
 			<groupId>com.splicemachine</groupId>
 			<artifactId>utilities</artifactId>
