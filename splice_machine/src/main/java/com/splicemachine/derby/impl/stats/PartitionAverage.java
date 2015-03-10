@@ -19,8 +19,10 @@ public class PartitionAverage implements PartitionStatistics {
     private int mergeCount;
     private long totalSize;
     private long totalQueryCount;
-    private long totalLocalReadLatency;
-    private long totalRemoteReadLatency;
+    private double totalLocalReadLatency;
+    private double totalRemoteReadLatency;
+    private long totalLocalReadTime;
+    private long totalRemoteReadTime;
     private long totalCollectionTime;
 
     private List<ColumnStatistics> columnStats;
@@ -38,6 +40,8 @@ public class PartitionAverage implements PartitionStatistics {
         pa.totalQueryCount = totalQueryCount;
         pa.totalLocalReadLatency = totalLocalReadLatency;
         pa.totalRemoteReadLatency = totalRemoteReadLatency;
+        pa.totalLocalReadTime = totalLocalReadTime;
+        pa.totalRemoteReadTime = totalRemoteReadTime;
         pa.totalCollectionTime = totalCollectionTime;
         return pa;
     }
@@ -71,15 +75,29 @@ public class PartitionAverage implements PartitionStatistics {
     @Override public String tableId() { return tableId; }
 
     @Override
-    public long localReadLatency() {
+    public double localReadLatency() {
         if(mergeCount<=0) return 0l;
-        return totalLocalReadLatency/mergeCount;
+        return totalLocalReadLatency /mergeCount;
     }
 
     @Override
-    public long remoteReadLatency() {
+    public double remoteReadLatency() {
         if(mergeCount<=0) return 0l;
-        return totalRemoteReadLatency/mergeCount;
+        return totalRemoteReadLatency /mergeCount;
+    }
+
+    @Override
+    public long localReadTime() {
+        if(mergeCount<=0)
+            return 0l;
+        return totalLocalReadTime/mergeCount;
+    }
+
+    @Override
+    public long remoteReadTime() {
+        if(mergeCount<=0)
+            return 0l;
+        return totalRemoteReadTime/mergeCount;
     }
 
     @Override
@@ -109,6 +127,8 @@ public class PartitionAverage implements PartitionStatistics {
         totalQueryCount+=other.queryCount();
         totalLocalReadLatency+=other.localReadLatency();
         totalRemoteReadLatency+=other.remoteReadLatency();
+        totalLocalReadTime+=other.localReadTime();
+        totalRemoteReadTime+=other.remoteReadTime();
         totalCollectionTime+=other.collectionTime();
         mergeColumns(other.columnStatistics());
         mergeCount++;

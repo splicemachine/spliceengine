@@ -15,14 +15,6 @@ public class GlobalStatistics implements TableStatistics {
     private final String tableId;
     private final List<PartitionStatistics> partitionStatistics;
 
-    /*
-     * We cache fields here, so that multiple requests won't have to go through a potentially expensive
-     * rebuilding process here whenever our data is necessary. This makes the assumption that the Partition
-     * Statistics don't change
-     */
-    private transient long cachedRowCount = -1;
-    private transient long cachedSize = -1;
-
     public GlobalStatistics(String tableId,List<PartitionStatistics> partitionStatistics) {
         this.partitionStatistics = partitionStatistics;
         this.tableId = tableId;
@@ -30,13 +22,10 @@ public class GlobalStatistics implements TableStatistics {
 
     @Override
     public long rowCount() {
-        if(cachedRowCount<0){
-            long rc = 0;
-            for(PartitionStatistics statistics: partitionStatistics)
-                rc+=statistics.rowCount();
-            cachedRowCount = rc;
-        }
-        return cachedRowCount;
+        long rc = 0;
+        for(PartitionStatistics statistics: partitionStatistics)
+            rc+=statistics.rowCount();
+        return rc;
     }
 
     @Override
@@ -58,22 +47,42 @@ public class GlobalStatistics implements TableStatistics {
     }
 
     @Override
-    public long localReadLatency() {
-        long rc = 0;
+    public double localReadLatency() {
+        double rc = 0;
         if(partitionStatistics.size()<=0) return 0l;
 
         for(PartitionStatistics statistics: partitionStatistics)
             rc+=statistics.localReadLatency();
-        return rc/partitionStatistics.size();
+        return rc /partitionStatistics.size();
     }
 
     @Override
-    public long remoteReadLatency() {
-        long rc = 0;
+    public double remoteReadLatency() {
+        double rc = 0;
         if(partitionStatistics.size()<=0) return 0l;
 
         for(PartitionStatistics statistics: partitionStatistics)
             rc+=statistics.remoteReadLatency();
+        return rc /partitionStatistics.size();
+    }
+
+    @Override
+    public long localReadTime() {
+        if(partitionStatistics.size()<=0) return 0l;
+        long rc = 0l;
+        for(PartitionStatistics statistics:partitionStatistics){
+           rc+=statistics.localReadTime();
+        }
+        return rc/partitionStatistics.size();
+    }
+
+    @Override
+    public long remoteReadTime() {
+        if(partitionStatistics.size()<=0) return 0l;
+        long rc = 0l;
+        for(PartitionStatistics statistics:partitionStatistics){
+            rc+=statistics.remoteReadTime();
+        }
         return rc/partitionStatistics.size();
     }
 

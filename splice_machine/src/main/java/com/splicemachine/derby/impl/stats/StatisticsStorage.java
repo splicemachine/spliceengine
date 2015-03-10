@@ -9,11 +9,13 @@ import com.splicemachine.derby.impl.sql.catalog.SYSCOLUMNSTATISTICSRowFactory;
 import com.splicemachine.derby.impl.sql.catalog.SYSPHYSICALSTATISTICSRowFactory;
 import com.splicemachine.derby.impl.sql.catalog.SYSTABLESTATISTICSRowFactory;
 import com.splicemachine.hbase.regioninfocache.HBaseRegionCache;
+import com.splicemachine.pipeline.exception.Exceptions;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
 import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
@@ -44,7 +46,11 @@ public class StatisticsStorage {
     public static void start(long tableStatsId, long columnStatsConglomId, long physStatsConglomId) {
         if(runState.get()) return; //already started
         synchronized (lock){
-            initializeStore(tableStatsId, columnStatsConglomId, physStatsConglomId);
+            try {
+                initializeStore(tableStatsId, columnStatsConglomId, physStatsConglomId);
+            } catch (ExecutionException e) {
+                throw new RuntimeException(e.getCause());
+            }
             runState.set(true);
         }
     }
@@ -59,14 +65,18 @@ public class StatisticsStorage {
             TableDescriptor colStats= dDictionary.getTableDescriptor(SYSCOLUMNSTATISTICSRowFactory.TABLENAME_STRING, systemSchemaDescriptor, null);
             TableDescriptor physStats= dDictionary.getTableDescriptor(SYSPHYSICALSTATISTICSRowFactory.TABLENAME_STRING, systemSchemaDescriptor, null);
 
-            initializeStore(tableStats.getHeapConglomerateId(),colStats.getHeapConglomerateId(),physStats.getHeapConglomerateId());
+            try {
+                initializeStore(tableStats.getHeapConglomerateId(),colStats.getHeapConglomerateId(),physStats.getHeapConglomerateId());
+            } catch (ExecutionException e) {
+                throw Exceptions.parseException(e.getCause());
+            }
             runState.set(true);
         }
     }
 
     /* ****************************************************************************************************************/
     /*private helper methods*/
-    private static void initializeStore(long tableStatsId, long columnStatsConglomId, long physStatsConglomId) {
+    private static void initializeStore(long tableStatsId, long columnStatsConglomId, long physStatsConglomId) throws ExecutionException {
         ThreadFactory refreshThreadFactory = new ThreadFactoryBuilder()
                 .setDaemon(true)
                 .setNameFormat("statistics-refresher-%d")
@@ -76,14 +86,18 @@ public class StatisticsStorage {
         HBaseClient hbaseClient = AsyncHbase.HBASE_CLIENT;
         byte[] physStatTable = Long.toString(physStatsConglomId).getBytes();
         PhysicalStatisticsStore physicalStore = new CachedPhysicalStatsStore(refreshExecutor, hbaseClient, physStatTable);
+        //TODO -sf- uncomment this when you want to start using Physical Statistics
+//        physicalStore.start();
 
         byte[] colStatTable = Long.toString(columnStatsConglomId).getBytes();
         ColumnStatisticsStore columnStatsStore = new HBaseColumnStatisticsStore(refreshExecutor,colStatTable,hbaseClient);
+        columnStatsStore.start();
 
         byte[] tableStatTable = Long.toString(tableStatsId).getBytes();
         TableStatisticsStore tableStatsStore = new HBaseTableStatisticsStore(refreshExecutor,tableStatTable,hbaseClient);
+        tableStatsStore.start();
 
-        partitionStore = new PartitionStatsStore(HBaseRegionCache.getInstance(),tableStatsStore,columnStatsStore,physicalStore);
+        partitionStore = new PartitionStatsStore(HBaseRegionCache.getInstance(),tableStatsStore,columnStatsStore);
     }
 
 }

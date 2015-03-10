@@ -19,6 +19,7 @@ import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.stats.ColumnStatistics;
+import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.utils.kryo.KryoObjectInput;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -76,15 +77,17 @@ public class HBaseColumnStatisticsStore implements ColumnStatisticsStore {
         Map<String,List<ColumnStatistics>> toCacheMap = new HashMap<>(partitions.size()-partitionIdToColumnMap.size());
         try(SortedMultiScanner scanner = getScanner(txn, conglomerateId, toFetch)){
             List<KeyValue> nextRow;
-            MultiFieldDecoder decoder = MultiFieldDecoder.create();
+            EntryDecoder decoder = new EntryDecoder();
             while((nextRow = scanner.nextKeyValues())!=null){
                 KeyValue kv = matchDataColumn(nextRow);
-                decoder.set(kv.key());
-                long conglomId = decoder.decodeNextLong();
-                String partitionId = decoder.decodeNextString();
-                int colId = decoder.decodeNextInt();
+                MultiFieldDecoder fieldDecoder = decoder.get();
+                fieldDecoder.set(kv.key());
+                long conglomId = fieldDecoder.decodeNextLong();
+                String partitionId = fieldDecoder.decodeNextString();
+                int colId = fieldDecoder.decodeNextInt();
 
-                byte[] data = kv.value();
+                decoder.set(kv.value());
+                byte[] data = decoder.get().decodeNextBytesUnsorted();
                 KryoObjectInput koi = new KryoObjectInput(new Input(data),kryo);
                 ColumnStatistics stats = (ColumnStatistics)koi.readObject();
                 List<ColumnStatistics> colStats = partitionIdToColumnMap.get(partitionId);
@@ -108,6 +111,12 @@ public class HBaseColumnStatisticsStore implements ColumnStatisticsStore {
         return partitionIdToColumnMap;
     }
 
+    @Override
+    public void invalidate(long conglomerateId, Collection<String> partitions) {
+        for(String partition:partitions){
+            columnStatsCache.invalidate(partition);
+        }
+    }
 
     private SortedMultiScanner getScanner(TxnView txn, long conglomId, List<String> toFetch) {
         byte[] encodedTxn = TransactionOperations.getOperationFactory().encode(txn);
@@ -164,15 +173,17 @@ public class HBaseColumnStatisticsStore implements ColumnStatisticsStore {
             Map<String,List<ColumnStatistics>> toCacheMap = new HashMap<>();
             try (SortedMultiScanner scanner = getScanner(baseTxn, -1, null)) {
                 List<KeyValue> nextRow;
-                MultiFieldDecoder decoder = MultiFieldDecoder.create();
+                EntryDecoder decoder = new EntryDecoder();
                 while ((nextRow = scanner.nextKeyValues()) != null) {
                     KeyValue kv = matchDataColumn(nextRow);
-                    decoder.set(kv.key());
-                    long conglomId = decoder.decodeNextLong();
-                    String partitionId = decoder.decodeNextString();
-                    int colId = decoder.decodeNextInt();
+                    MultiFieldDecoder fieldDecoder = decoder.get();
+                    fieldDecoder.set(kv.key());
+                    long conglomId = fieldDecoder.decodeNextLong();
+                    String partitionId = fieldDecoder.decodeNextString();
+                    int colId = fieldDecoder.decodeNextInt();
 
-                    byte[] data = kv.value();
+                    decoder.set(kv.value());
+                    byte[] data = decoder.get().decodeNextBytesUnsorted();
                     KryoObjectInput koi = new KryoObjectInput(new Input(data), kryo);
                     ColumnStatistics stats = (ColumnStatistics) koi.readObject();
                     List<ColumnStatistics> colStats = toCacheMap.get(partitionId);
