@@ -27,7 +27,6 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.mapreduce.TableSplit;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.log4j.Logger;
-import org.apache.mina.proxy.utils.ByteUtilities;
 import org.apache.spark.Partition;
 import org.apache.spark.Partitioner;
 import org.apache.spark.api.java.JavaNewHadoopRDD;
