@@ -27,21 +27,21 @@ import static com.google.common.base.Preconditions.checkState;
 
 public class NestedLoopJoinStrategy extends BaseJoinStrategy {
     private static final Logger LOG = Logger.getLogger(NestedLoopJoinStrategy.class);
-	public NestedLoopJoinStrategy() {
-	}
+    public NestedLoopJoinStrategy() {
+    }
 
 
-	/**
-	 * @see JoinStrategy#feasible
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public boolean feasible(Optimizable innerTable,
-							OptimizablePredicateList predList,
-							Optimizer optimizer
-							)
-					throws StandardException 
-	{
+    /**
+     * @see JoinStrategy#feasible
+     *
+     * @exception StandardException		Thrown on error
+     */
+    public boolean feasible(Optimizable innerTable,
+                            OptimizablePredicateList predList,
+                            Optimizer optimizer
+    )
+            throws StandardException
+    {
 		/* Nested loop is feasible, except in the corner case
 		 * where innerTable is a VTI that cannot be materialized
 		 * (because it has a join column as a parameter) and
@@ -55,159 +55,159 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy {
 		 * "instantiated" multiple times because that only has
 		 * meaning for VTIs.
 		 */
-		if (innerTable.isMaterializable())
-		{
-			return true;
-		}
-		if (innerTable.supportsMultipleInstantiations())
-		{
-			return true;
-		}
-		return false;
-	}
+        if (innerTable.isMaterializable())
+        {
+            return true;
+        }
+        if (innerTable.supportsMultipleInstantiations())
+        {
+            return true;
+        }
+        return false;
+    }
 
-	/** @see JoinStrategy#multiplyBaseCostByOuterRows */
-	public boolean multiplyBaseCostByOuterRows() {
-		return true;
-	}
+    /** @see JoinStrategy#multiplyBaseCostByOuterRows */
+    public boolean multiplyBaseCostByOuterRows() {
+        return true;
+    }
 
-	/**
-	 * @see JoinStrategy#getBasePredicates
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public OptimizablePredicateList getBasePredicates(
-									OptimizablePredicateList predList,
-									OptimizablePredicateList basePredicates,
-									Optimizable innerTable)
-							throws StandardException {
-		if (SanityManager.DEBUG) {
-			SanityManager.ASSERT(basePredicates == null ||
-								 basePredicates.size() == 0,
-				"The base predicate list should be empty.");
-		}
+    /**
+     * @see JoinStrategy#getBasePredicates
+     *
+     * @exception StandardException		Thrown on error
+     */
+    public OptimizablePredicateList getBasePredicates(
+            OptimizablePredicateList predList,
+            OptimizablePredicateList basePredicates,
+            Optimizable innerTable)
+            throws StandardException {
+        if (SanityManager.DEBUG) {
+            SanityManager.ASSERT(basePredicates == null ||
+                            basePredicates.size() == 0,
+                    "The base predicate list should be empty.");
+        }
 
-		if (predList != null) {
-			predList.transferAllPredicates(basePredicates);
-			basePredicates.classify(innerTable,
-				innerTable.getCurrentAccessPath().getConglomerateDescriptor());
-		}
+        if (predList != null) {
+            predList.transferAllPredicates(basePredicates);
+            basePredicates.classify(innerTable,
+                    innerTable.getCurrentAccessPath().getConglomerateDescriptor());
+        }
 
-		return basePredicates;
-	}
+        return basePredicates;
+    }
 
-	/** @see JoinStrategy#nonBasePredicateSelectivity */
-	public double nonBasePredicateSelectivity(
-										Optimizable innerTable,
-										OptimizablePredicateList predList) {
+    /** @see JoinStrategy#nonBasePredicateSelectivity */
+    public double nonBasePredicateSelectivity(
+            Optimizable innerTable,
+            OptimizablePredicateList predList) {
 		/*
 		** For nested loop, all predicates are base predicates, so there
 		** is no extra selectivity.
 		*/
-		return 1.0;
-	}
-	
-	/**
-	 * @see JoinStrategy#putBasePredicates
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public void putBasePredicates(OptimizablePredicateList predList,
-									OptimizablePredicateList basePredicates)
-					throws StandardException {
-		for (int i = basePredicates.size() - 1; i >= 0; i--) {
-			OptimizablePredicate pred = basePredicates.getOptPredicate(i);
+        return 1.0;
+    }
 
-			predList.addOptPredicate(pred);
-			basePredicates.removeOptPredicate(i);
-		}
-	}
+    /**
+     * @see JoinStrategy#putBasePredicates
+     *
+     * @exception StandardException		Thrown on error
+     */
+    public void putBasePredicates(OptimizablePredicateList predList,
+                                  OptimizablePredicateList basePredicates)
+            throws StandardException {
+        for (int i = basePredicates.size() - 1; i >= 0; i--) {
+            OptimizablePredicate pred = basePredicates.getOptPredicate(i);
 
-	/* @see JoinStrategy#estimateCost */
-	public void estimateCost(Optimizable innerTable,
-							 OptimizablePredicateList predList,
-							 ConglomerateDescriptor cd,
-							 CostEstimate outerCost,
-							 Optimizer optimizer,
-							 CostEstimate costEstimate) {
-    	SpliceLogUtils.trace(LOG, "estimateCost innerTable=%s,predList=%s,conglomerateDescriptor=%s,outerCost=%s,optimizer=%s,costEstimate=%s",innerTable,predList,cd,outerCost,optimizer,costEstimate);
-    	costEstimate.multiply(outerCost.rowCount(), costEstimate);
-		optimizer.trace(Optimizer.COST_OF_N_SCANS, innerTable.getTableNumber(), 0, outerCost.rowCount(),
-						costEstimate);
-	}
+            predList.addOptPredicate(pred);
+            basePredicates.removeOptPredicate(i);
+        }
+    }
 
-	/** @see JoinStrategy#maxCapacity */
-	public int maxCapacity( int userSpecifiedCapacity,
+    /* @see JoinStrategy#estimateCost */
+    public void estimateCost(Optimizable innerTable,
+                             OptimizablePredicateList predList,
+                             ConglomerateDescriptor cd,
+                             CostEstimate outerCost,
+                             Optimizer optimizer,
+                             CostEstimate costEstimate) {
+        SpliceLogUtils.trace(LOG, "estimateCost innerTable=%s,predList=%s,conglomerateDescriptor=%s,outerCost=%s,optimizer=%s,costEstimate=%s",innerTable,predList,cd,outerCost,optimizer,costEstimate);
+        costEstimate.multiply(outerCost.rowCount(), costEstimate);
+        optimizer.trace(Optimizer.COST_OF_N_SCANS, innerTable.getTableNumber(), 0, outerCost.rowCount(),
+                costEstimate);
+    }
+
+    /** @see JoinStrategy#maxCapacity */
+    public int maxCapacity( int userSpecifiedCapacity,
                             int maxMemoryPerTable,
                             double perRowUsage) {
-		return Integer.MAX_VALUE;
-	}
+        return Integer.MAX_VALUE;
+    }
 
-	/** @see JoinStrategy#getName */
-	public String getName() {
-		return "NESTEDLOOP";
-	}
+    /** @see JoinStrategy#getName */
+    public String getName() {
+        return "NESTEDLOOP";
+    }
 
-	/** @see JoinStrategy#scanCostType */
-	public int scanCostType() {
-		return StoreCostController.STORECOST_SCAN_NORMAL;
-	}
+    /** @see JoinStrategy#scanCostType */
+    public int scanCostType() {
+        return StoreCostController.STORECOST_SCAN_NORMAL;
+    }
 
-	/** @see JoinStrategy#resultSetMethodName */
-	public String resultSetMethodName(boolean bulkFetch, boolean multiprobe) {
-		if (bulkFetch)
-			return "getBulkTableScanResultSet";
-		else if (multiprobe)
-			return "getMultiProbeTableScanResultSet";
-		else
-			return "getTableScanResultSet";
-	}
+    /** @see JoinStrategy#resultSetMethodName */
+    public String resultSetMethodName(boolean bulkFetch, boolean multiprobe) {
+        if (bulkFetch)
+            return "getBulkTableScanResultSet";
+        else if (multiprobe)
+            return "getMultiProbeTableScanResultSet";
+        else
+            return "getTableScanResultSet";
+    }
 
-	/** @see JoinStrategy#joinResultSetMethodName */
-	public String joinResultSetMethodName() {
-		return "getNestedLoopJoinResultSet";
-	}
+    /** @see JoinStrategy#joinResultSetMethodName */
+    public String joinResultSetMethodName() {
+        return "getNestedLoopJoinResultSet";
+    }
 
-	/** @see JoinStrategy#halfOuterJoinResultSetMethodName */
-	public String halfOuterJoinResultSetMethodName() {
-		return "getNestedLoopLeftOuterJoinResultSet";
-	}
+    /** @see JoinStrategy#halfOuterJoinResultSetMethodName */
+    public String halfOuterJoinResultSetMethodName() {
+        return "getNestedLoopLeftOuterJoinResultSet";
+    }
 
-	/**
-	 * @see JoinStrategy#getScanArgs
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public int getScanArgs(
-							TransactionController tc,
-							MethodBuilder mb,
-							Optimizable innerTable,
-							OptimizablePredicateList storeRestrictionList,
-							OptimizablePredicateList nonStoreRestrictionList,
-							ExpressionClassBuilderInterface acbi,
-							int bulkFetch,
-							MethodBuilder resultRowAllocator,
-							int colRefItem,
-							int indexColItem,
-							int lockMode,
-							boolean tableLocked,
-							int isolationLevel,
-							int maxMemoryPerTable,
-							boolean genInListVals
-							)
-						throws StandardException {
-		ExpressionClassBuilder acb = (ExpressionClassBuilder) acbi;
-		int numArgs;
+    /**
+     * @see JoinStrategy#getScanArgs
+     *
+     * @exception StandardException		Thrown on error
+     */
+    public int getScanArgs(
+            TransactionController tc,
+            MethodBuilder mb,
+            Optimizable innerTable,
+            OptimizablePredicateList storeRestrictionList,
+            OptimizablePredicateList nonStoreRestrictionList,
+            ExpressionClassBuilderInterface acbi,
+            int bulkFetch,
+            MethodBuilder resultRowAllocator,
+            int colRefItem,
+            int indexColItem,
+            int lockMode,
+            boolean tableLocked,
+            int isolationLevel,
+            int maxMemoryPerTable,
+            boolean genInListVals
+    )
+            throws StandardException {
+        ExpressionClassBuilder acb = (ExpressionClassBuilder) acbi;
+        int numArgs;
 
-		if (SanityManager.DEBUG) {
-			if (nonStoreRestrictionList.size() != 0) {
-				SanityManager.THROWASSERT(
-					"nonStoreRestrictionList should be empty for " +
-					"nested loop join strategy, but it contains " +
-					nonStoreRestrictionList.size() +
-					" elements");
-			}
-		}
+        if (SanityManager.DEBUG) {
+            if (nonStoreRestrictionList.size() != 0) {
+                SanityManager.THROWASSERT(
+                        "nonStoreRestrictionList should be empty for " +
+                                "nested loop join strategy, but it contains " +
+                                nonStoreRestrictionList.size() +
+                                " elements");
+            }
+        }
 
 		/* If we're going to generate a list of IN-values for index probing
 		 * at execution time then we push TableScanResultSet arguments plus
@@ -215,140 +215,140 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy {
 		 * a boolean indicating whether or not the IN-list values are already
 		 * sorted.
 		 */
-		if (genInListVals)
-		{
-			numArgs = 26;
-		}
-		else if (bulkFetch > 1)
-		{
+        if (genInListVals)
+        {
+            numArgs = 26;
+        }
+        else if (bulkFetch > 1)
+        {
             // Bulk-fetch uses TableScanResultSet arguments plus two
             // additional arguments: 1) bulk fetch size, and 2) whether the
             // table contains LOB columns (used at runtime to decide if
             // bulk fetch is safe DERBY-1511).
             numArgs = 26;
-		}
-		else
-		{
-			numArgs = 24 ;
-		}
+        }
+        else
+        {
+            numArgs = 24 ;
+        }
 
-		fillInScanArgs1(tc, mb,
-										innerTable,
-										storeRestrictionList,
-										acb,
-										resultRowAllocator);
+        fillInScanArgs1(tc, mb,
+                innerTable,
+                storeRestrictionList,
+                acb,
+                resultRowAllocator);
 
-		if (genInListVals)
-			((PredicateList)storeRestrictionList).generateInListValues(acb, mb);
+        if (genInListVals)
+            ((PredicateList)storeRestrictionList).generateInListValues(acb, mb);
 
-		if (SanityManager.DEBUG)
-		{
+        if (SanityManager.DEBUG)
+        {
 			/* If we're not generating IN-list values with which to probe
 			 * the table then storeRestrictionList should not have any
 			 * IN-list probing predicates.  Make sure that's the case.
 			 */
-			if (!genInListVals)
-			{
-				Predicate pred = null;
-				for (int i = storeRestrictionList.size() - 1; i >= 0; i--)
-				{
-					pred = (Predicate)storeRestrictionList.getOptPredicate(i);
-					if (pred.isInListProbePredicate())
-					{
-						SanityManager.THROWASSERT("Found IN-list probing " +
-							"predicate (" + pred.binaryRelOpColRefsToString() +
-							") when no such predicates were expected.");
-					}
-				}
-			}
-		}
+            if (!genInListVals)
+            {
+                Predicate pred = null;
+                for (int i = storeRestrictionList.size() - 1; i >= 0; i--)
+                {
+                    pred = (Predicate)storeRestrictionList.getOptPredicate(i);
+                    if (pred.isInListProbePredicate())
+                    {
+                        SanityManager.THROWASSERT("Found IN-list probing " +
+                                "predicate (" + pred.binaryRelOpColRefsToString() +
+                                ") when no such predicates were expected.");
+                    }
+                }
+            }
+        }
 
-		fillInScanArgs2(mb,
-						innerTable,
-						bulkFetch,
-						colRefItem,
-						indexColItem,
-						lockMode,
-						tableLocked,
-						isolationLevel);
+        fillInScanArgs2(mb,
+                innerTable,
+                bulkFetch,
+                colRefItem,
+                indexColItem,
+                lockMode,
+                tableLocked,
+                isolationLevel);
 
-		return numArgs;
-	}
+        return numArgs;
+    }
 
-	/**
-	 * @see JoinStrategy#divideUpPredicateLists
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public void divideUpPredicateLists(
-					Optimizable				 innerTable,
-					OptimizablePredicateList originalRestrictionList,
-					OptimizablePredicateList storeRestrictionList,
-					OptimizablePredicateList nonStoreRestrictionList,
-					OptimizablePredicateList requalificationRestrictionList,
-					DataDictionary			 dd
-					) throws StandardException
-	{
+    /**
+     * @see JoinStrategy#divideUpPredicateLists
+     *
+     * @exception StandardException		Thrown on error
+     */
+    public void divideUpPredicateLists(
+            Optimizable				 innerTable,
+            OptimizablePredicateList originalRestrictionList,
+            OptimizablePredicateList storeRestrictionList,
+            OptimizablePredicateList nonStoreRestrictionList,
+            OptimizablePredicateList requalificationRestrictionList,
+            DataDictionary			 dd
+    ) throws StandardException
+    {
 		/*
 		** All predicates are store predicates.  No requalification is
 		** necessary for non-covering index scans.
 		*/
-		originalRestrictionList.setPredicatesAndProperties(storeRestrictionList);
-	}
+        originalRestrictionList.setPredicatesAndProperties(storeRestrictionList);
+    }
 
-	/**
-	 * @see JoinStrategy#doesMaterialization
-	 */
-	public boolean doesMaterialization()
-	{
-		return false;
-	}
+    /**
+     * @see JoinStrategy#doesMaterialization
+     */
+    public boolean doesMaterialization()
+    {
+        return false;
+    }
 
-	public String toString() {
-		return getName();
-	}
+    public String toString() {
+        return getName();
+    }
 
-	/**
-	 * Can this join strategy be used on the
-	 * outermost table of a join.
-	 *
-	 * @return Whether or not this join strategy
-	 * can be used on the outermose table of a join.
-	 */
-	protected boolean validForOutermostTable() {
-		return true;
-	}
-	
-	@Override
-	public void oneRowRightResultSetCostEstimate(OptimizablePredicateList predList, CostEstimate outerCost, CostEstimate innerFullKeyCost) {
-		SpliceLogUtils.trace(LOG, "oneRowRightResultSetCostEstimate");
-		rightResultSetCostEstimate(predList, outerCost, innerFullKeyCost);
-	};
-	/**
-	 * 
-	 * (Network Cost + Right Side Cost)* Left Side Number of Rows
-	 * 
-	 */
-	@Override
-	public void rightResultSetCostEstimate(OptimizablePredicateList predList, CostEstimate outerCost, CostEstimate innerCost) {
-		
-		SpliceLogUtils.trace(LOG, "rightResultSetCostEstimate outerCost=%s, innerFullKeyCost=%s",outerCost, innerCost);
-		if (outerCost.getEstimatedCost() == 0.0 && outerCost.getEstimatedRowCount() == 1) // I am not really a NLJ but a table scan, do not add network costs...
-			return;
-		SpliceCostEstimateImpl inner = (SpliceCostEstimateImpl) innerCost;
-		inner.setBase(innerCost.cloneMe());
-		SpliceCostEstimateImpl outer = (SpliceCostEstimateImpl) outerCost;
+    /**
+     * Can this join strategy be used on the
+     * outermost table of a join.
+     *
+     * @return Whether or not this join strategy
+     * can be used on the outermose table of a join.
+     */
+    protected boolean validForOutermostTable() {
+        return true;
+    }
+
+    @Override
+    public void oneRowRightResultSetCostEstimate(OptimizablePredicateList predList, CostEstimate outerCost, CostEstimate innerFullKeyCost) {
+        SpliceLogUtils.trace(LOG, "oneRowRightResultSetCostEstimate");
+        rightResultSetCostEstimate(predList, outerCost, innerFullKeyCost);
+    };
+    /**
+     *
+     * (Network Cost + Right Side Cost)* Left Side Number of Rows
+     *
+     */
+    @Override
+    public void rightResultSetCostEstimate(OptimizablePredicateList predList, CostEstimate outerCost, CostEstimate innerCost) {
+
+        SpliceLogUtils.trace(LOG, "rightResultSetCostEstimate outerCost=%s, innerFullKeyCost=%s",outerCost, innerCost);
+        if (outerCost.getEstimatedCost() == 0.0 && outerCost.getEstimatedRowCount() == 1) // I am not really a NLJ but a table scan, do not add network costs...
+            return;
+        SpliceCostEstimateImpl inner = (SpliceCostEstimateImpl) innerCost;
+        inner.setBase(innerCost.cloneMe());
+        SpliceCostEstimateImpl outer = (SpliceCostEstimateImpl) outerCost;
         checkState(outer.numberOfRegions > 0);
         double rightSideCost = (innerCost.getEstimatedCost()* (double) outer.getEstimatedRowCount()*(double) outer.getEstimatedRowCount()* SpliceConstants.optimizerNetworkCost)/outer.numberOfRegions;
-		inner.baseCost.setEstimatedRowCount((long)(innerCost.rowCount() * outer.rowCount()));
-		inner.baseCost.setSingleScanRowCount(innerCost.rowCount());
-		inner.baseCost.cost = rightSideCost;
-		double cost = rightSideCost + outer.getEstimatedCost();
-		innerCost.setCost(cost, innerCost.rowCount() * outer.rowCount(), innerCost.rowCount() * outer.rowCount());		
-		inner.setNumberOfRegions(outer.numberOfRegions);
-		inner.setRowOrdering(outer.rowOrdering);
-		SpliceLogUtils.trace(LOG, "rightResultSetCostEstimate computed cost innerCost=%s",innerCost);
-	};	
-	
+        inner.baseCost.setEstimatedRowCount((long)(innerCost.rowCount() * outer.rowCount()));
+        inner.baseCost.setSingleScanRowCount(innerCost.rowCount());
+        inner.baseCost.cost = rightSideCost;
+        double cost = rightSideCost + outer.getEstimatedCost();
+        innerCost.setCost(cost, innerCost.rowCount() * outer.rowCount(), innerCost.rowCount() * outer.rowCount());
+        inner.setNumberOfRegions(outer.numberOfRegions);
+        inner.setRowOrdering(outer.rowOrdering);
+        SpliceLogUtils.trace(LOG, "rightResultSetCostEstimate computed cost innerCost=%s",innerCost);
+    };
+
 }
 

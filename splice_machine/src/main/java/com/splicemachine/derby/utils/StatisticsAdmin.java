@@ -230,8 +230,9 @@ public class StatisticsAdmin {
                                              TxnView baseTxn) {
         ExecRow indexRow = new ValueRow(1);
         indexRow.getRowArray()[0] = new HBaseRowLocation();
-        int[] rowDecodingMap = new int[2];
-        rowDecodingMap[1] = 0;
+        int[] rowDecodingMap = new int[irg.numberOfOrderedColumns()+1];
+        Arrays.fill(rowDecodingMap,-1); //just to be safe
+        rowDecodingMap[rowDecodingMap.length-1] = 0;
 
         String jobId = "Statistics-"+SpliceDriver.driver().getUUIDGenerator().nextUUID();
         StatisticsTask baseTask = new StatisticsTask(jobId,indexRow,

@@ -24,7 +24,7 @@ package com.splicemachine.derby.impl.store.access.btree;
 import java.util.Arrays;
 import java.util.SortedSet;
 import org.apache.derby.iapi.services.sanity.SanityManager;
-import org.apache.derby.iapi.error.StandardException; 
+import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.compile.CostEstimate;
 import org.apache.derby.iapi.store.access.StoreCostController;
 import org.apache.derby.iapi.store.access.StoreCostResult;
@@ -46,40 +46,40 @@ import com.splicemachine.utils.SpliceLogUtils;
 
 /**
 
-The StoreCostController interface provides methods that an access client
-(most likely the system optimizer) can use to get store's estimated cost of
-various operations on the conglomerate the StoreCostController was opened
-for.
-<p>
-It is likely that the implementation of StoreCostController will open 
-the conglomerate and will leave the conglomerate open until the
-StoreCostController is closed.  This represents a significant amount of
-work, so the caller if possible should attempt to open the StoreCostController
-once per unit of work and rather than close and reopen the controller.  For
-instance if the optimizer needs to cost 2 different scans against a single
-conglomerate, it should use one instance of the StoreCostController.
-<p>
-The locking behavior of the implementation of a StoreCostController is
-undefined, it may or may not get locks on the underlying conglomerate.  It
-may or may not hold locks until end of transaction.  
-An optimal implementation will not get any locks on the underlying 
-conglomerate, thus allowing concurrent access to the table by a executing
-query while another query is optimizing.
-<p>
-The StoreCostController gives 2 kinds of cost information
+ The StoreCostController interface provides methods that an access client
+ (most likely the system optimizer) can use to get store's estimated cost of
+ various operations on the conglomerate the StoreCostController was opened
+ for.
+ <p>
+ It is likely that the implementation of StoreCostController will open
+ the conglomerate and will leave the conglomerate open until the
+ StoreCostController is closed.  This represents a significant amount of
+ work, so the caller if possible should attempt to open the StoreCostController
+ once per unit of work and rather than close and reopen the controller.  For
+ instance if the optimizer needs to cost 2 different scans against a single
+ conglomerate, it should use one instance of the StoreCostController.
+ <p>
+ The locking behavior of the implementation of a StoreCostController is
+ undefined, it may or may not get locks on the underlying conglomerate.  It
+ may or may not hold locks until end of transaction.
+ An optimal implementation will not get any locks on the underlying
+ conglomerate, thus allowing concurrent access to the table by a executing
+ query while another query is optimizing.
+ <p>
+ The StoreCostController gives 2 kinds of cost information
 
-**/
+ **/
 
 public class IndexCostController extends SpliceGenericCostController implements StoreCostController {
     private static final Logger LOG = Logger.getLogger(IndexCostController.class);
-	private OpenSpliceConglomerate open_conglom;
-	private SpliceConglomerate baseConglomerate;
-	
+    private OpenSpliceConglomerate open_conglom;
+    private SpliceConglomerate baseConglomerate;
+
     public IndexCostController(OpenSpliceConglomerate open_conglom) throws StandardException {
-    	if (LOG.isTraceEnabled())
-    		SpliceLogUtils.trace(LOG, "init with open_conglom=%s",open_conglom);
-    	this.open_conglom = open_conglom;
-    	this.baseConglomerate = (SpliceConglomerate) ((SpliceTransactionManager) open_conglom.getTransactionManager()).findConglomerate(open_conglom.getIndexConglomerate());
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "init with open_conglom=%s",open_conglom);
+        this.open_conglom = open_conglom;
+        this.baseConglomerate = (SpliceConglomerate) ((SpliceTransactionManager) open_conglom.getTransactionManager()).findConglomerate(open_conglom.getIndexConglomerate());
     }
 
     /**
@@ -95,7 +95,7 @@ public class IndexCostController extends SpliceGenericCostController implements 
      * <p>
      *
      *
-	 * @param validColumns    A description of which columns to return from
+     * @param validColumns    A description of which columns to return from
      *                        row on the page into "templateRow."  templateRow,
      *                        and validColumns work together to
      *                        describe the row to be returned by the fetch - 
@@ -119,21 +119,21 @@ public class IndexCostController extends SpliceGenericCostController implements 
      *                            in turn into the base table is "random".
      *
      *
-	 * @return The cost of the fetch.
+     * @return The cost of the fetch.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      *
-	 * @see org.apache.derby.iapi.store.access.RowUtil
+     * @see org.apache.derby.iapi.store.access.RowUtil
      **/
     @Override
     public void getFetchFromRowLocationCost(
-    FormatableBitSet validColumns,int access_type, CostEstimate costEstimate)
-		throws StandardException {
-    	if (LOG.isTraceEnabled())
-    		SpliceLogUtils.trace(LOG, "getFetchFromRowLocation {conglomerate=%s, validColumns=%s, accessType=%d",
-    				open_conglom, validColumns==null?"null":validColumns.toString(),access_type);
-    	double cost = SpliceConstants.fetchFromRowLocationCost*costEstimate.rowCount();
-    	costEstimate.setEstimatedCost(costEstimate.getEstimatedCost() + cost);
+            FormatableBitSet validColumns,int access_type, CostEstimate costEstimate)
+            throws StandardException {
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "getFetchFromRowLocation {conglomerate=%s, validColumns=%s, accessType=%d",
+                    open_conglom, validColumns==null?"null":validColumns.toString(),access_type);
+        double cost = SpliceConstants.fetchFromRowLocationCost*costEstimate.rowCount();
+        costEstimate.setEstimatedCost(costEstimate.getEstimatedCost() + cost);
     }
 
     /**
@@ -189,18 +189,18 @@ public class IndexCostController extends SpliceGenericCostController implements 
      * @param group_size      The number of rows to be returned by a single
      *                        fetch call for STORECOST_SCAN_NORMAL scans.
      *
-	 * @param forUpdate       Should be true if the caller intends to update 
+     * @param forUpdate       Should be true if the caller intends to update
      *                        through the scan.
-     * 
-	 * @param scanColumnList  A description of which columns to return from 
+     *
+     * @param scanColumnList  A description of which columns to return from
      *                        every fetch in the scan.  template, 
      *                        and scanColumnList work together
      *                        to describe the row to be returned by the scan - 
      *                        see RowUtil for description of how these three 
      *                        parameters work together to describe a "row".
-     * 
+     *
      * @param template        A prototypical row which the scan may use to
-	 *                        maintain its position in the conglomerate.  Not 
+     *                        maintain its position in the conglomerate.  Not
      *                        all access method scan types will require this, 
      *                        if they don't it's ok to pass in null.
      *                        In order to scan a conglomerate one must 
@@ -214,7 +214,7 @@ public class IndexCostController extends SpliceGenericCostController implements 
      *                        template must be for the full row, whether a 
      *                        partial row scan is being executed or not.
      *
-	 * @param startKeyValue   An indexable row which holds a (partial) key 
+     * @param startKeyValue   An indexable row which holds a (partial) key
      *                        value which, in combination with the 
      *                        startSearchOperator, defines the starting 
      *                        position of the scan.  If null, the starting
@@ -222,18 +222,18 @@ public class IndexCostController extends SpliceGenericCostController implements 
      *                        conglomerate.  The startKeyValue must only
      *                        reference columns included in the scanColumnList.
      *
-	 * @param startSearchOperator 
+     * @param startSearchOperator
      *                        an operator which defines how the startKeyValue
      *                        is to be searched for.  If startSearchOperation 
      *                        is ScanController.GE, the scan starts on the 
      *                        first row which is greater than or equal to the 
-	 *                        startKeyValue.  If startSearchOperation is 
+     *                        startKeyValue.  If startSearchOperation is
      *                        ScanController.GT, the scan starts on the first
      *                        row whose key is greater than startKeyValue.  The
      *                        startSearchOperation parameter is ignored if the
      *                        startKeyValue parameter is null.
      *
-	 * @param stopKeyValue    An indexable row which holds a (partial) key 
+     * @param stopKeyValue    An indexable row which holds a (partial) key
      *                        value which, in combination with the 
      *                        stopSearchOperator, defines the ending position
      *                        of the scan.  If null, the ending position of the
@@ -241,7 +241,7 @@ public class IndexCostController extends SpliceGenericCostController implements 
      *                        stopKeyValue must only reference columns included
      *                        in the scanColumnList.
      *
-	 * @param stopSearchOperator
+     * @param stopSearchOperator
      *                        an operator which defines how the stopKeyValue
      *                        is used to determine the scan stopping position. 
      *                        If stopSearchOperation is ScanController.GE, the
@@ -253,7 +253,7 @@ public class IndexCostController extends SpliceGenericCostController implements 
      *                        stopSearchOperation parameter is ignored if the
      *                        stopKeyValue parameter is null.
      *
-     *                        
+     *
      * @param access_type     Describe the type of access the query will be
      *                        performing to the ScanController.  
      *
@@ -267,38 +267,38 @@ public class IndexCostController extends SpliceGenericCostController implements 
      *                            of any other predicted scan access.
      *
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      *
-	 * @see org.apache.derby.iapi.store.access.RowUtil
+     * @see org.apache.derby.iapi.store.access.RowUtil
      **/
     @Override
-	public void getScanCost(
-    int                     scanType,
-    long                    rowCount,
-    int                     groupSize,
-    boolean                 forUpdate,
-    FormatableBitSet        scanColumnList,
-    DataValueDescriptor[]   template,
-    DataValueDescriptor[]   startKeyValue,
-    int                     startSearchOperator,
-    DataValueDescriptor[]   stopKeyValue,
-    int                     stopSearchOperator,
-    boolean                 reopenScan,
-    int                     accessType,
-    StoreCostResult         costResult) throws StandardException {
-    	if (LOG.isTraceEnabled())
-    		SpliceLogUtils.trace(LOG, "getScanCost input {scan_type=%d, row_count=%d, group_size=%d, "
-    				+ "forUpdate=%s, scanColumnList=%s, template=%s, startKeyValue=%s, startSearchOperator=%d"
-    				+ "stopKeyValue=%s, stopSearchOperator=%d, reopen_scan=%s, access_type=%d",
-    				scanType, rowCount, groupSize, forUpdate, scanColumnList, template==null?"null":Arrays.toString(template), startKeyValue, startSearchOperator,
-    				stopKeyValue, stopSearchOperator, reopenScan, accessType);
-    	SpliceScan spliceScan = new SpliceScan(open_conglom,scanColumnList,startKeyValue,startSearchOperator,null,stopKeyValue,stopSearchOperator,open_conglom.getTransaction(),false);
-		spliceScan.setupScan();
-    	if (LOG.isTraceEnabled())
-    		SpliceLogUtils.trace(LOG, "getScanCost generated Scan %s",spliceScan.getScan());				
+    public void getScanCost(
+            int                     scanType,
+            long                    rowCount,
+            int                     groupSize,
+            boolean                 forUpdate,
+            FormatableBitSet        scanColumnList,
+            DataValueDescriptor[]   template,
+            DataValueDescriptor[]   startKeyValue,
+            int                     startSearchOperator,
+            DataValueDescriptor[]   stopKeyValue,
+            int                     stopSearchOperator,
+            boolean                 reopenScan,
+            int                     accessType,
+            StoreCostResult         costResult) throws StandardException {
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "getScanCost input {scan_type=%d, row_count=%d, group_size=%d, "
+                            + "forUpdate=%s, scanColumnList=%s, template=%s, startKeyValue=%s, startSearchOperator=%d"
+                            + "stopKeyValue=%s, stopSearchOperator=%d, reopen_scan=%s, access_type=%d",
+                    scanType, rowCount, groupSize, forUpdate, scanColumnList, template==null?"null":Arrays.toString(template), startKeyValue, startSearchOperator,
+                    stopKeyValue, stopSearchOperator, reopenScan, accessType);
+        SpliceScan spliceScan = new SpliceScan(open_conglom,scanColumnList,startKeyValue,startSearchOperator,null,stopKeyValue,stopSearchOperator,open_conglom.getTransaction(),false);
+        spliceScan.setupScan();
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "getScanCost generated Scan %s",spliceScan.getScan());
         SortedSet<Pair<HRegionInfo,ServerName>> baseRegions = getRegions(baseConglomerate.getContainerid());
-    	((SortState) costResult).setNumberOfRegions(baseRegions==null?0:baseRegions.size());
-    	long estimatedRowCount = derbyFactory.computeRowCount(LOG, baseConglomerate.getContainerid()+"", baseRegions, spliceScan.getScan());    	
+        ((SortState) costResult).setNumberOfRegions(baseRegions==null?0:baseRegions.size());
+        long estimatedRowCount = derbyFactory.computeRowCount(LOG, baseConglomerate.getContainerid()+"", baseRegions, spliceScan.getScan());
         double cost = (double) estimatedRowCount*SpliceConstants.indexPerRowCost*((double)open_conglom.getFormatIds().length/ (double)baseConglomerate.getFormat_ids().length); // Attempt to make bigger indexes / tables cost more.
         if (SanityManager.DEBUG) {
             SanityManager.ASSERT(cost >= 0);
@@ -309,12 +309,12 @@ public class IndexCostController extends SpliceGenericCostController implements 
         SpliceLogUtils.trace(LOG, "getScanCost output costResult=%s",costResult);
         return;
     }
-	
-	@Override
-	public void getFetchFromFullKeyCost(FormatableBitSet validColumns, int access_type, CostEstimate costEstimate) throws StandardException {
-    	if (LOG.isTraceEnabled())
-    		SpliceLogUtils.trace(LOG, "getFetchFromFullKeyCost {conglomerate=%s, validColumns=%s, accessType=%d",
-    				open_conglom, validColumns==null?"null":validColumns.toString(),access_type);
-    	costEstimate.setCost(SpliceConstants.getIndexFetchFromFullKeyCost, 1.0d, 1.0d);
-	}	
+
+    @Override
+    public void getFetchFromFullKeyCost(FormatableBitSet validColumns, int access_type, CostEstimate costEstimate) throws StandardException {
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "getFetchFromFullKeyCost {conglomerate=%s, validColumns=%s, accessType=%d",
+                    open_conglom, validColumns==null?"null":validColumns.toString(),access_type);
+        costEstimate.setCost(SpliceConstants.getIndexFetchFromFullKeyCost, 1.0d, 1.0d);
+    }
 }

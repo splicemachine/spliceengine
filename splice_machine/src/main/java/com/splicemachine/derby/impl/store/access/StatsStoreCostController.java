@@ -4,7 +4,6 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.stats.StatisticsStorage;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.pipeline.exception.Exceptions;
-import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.stats.TableStatistics;
 import com.splicemachine.stats.estimate.Distribution;
@@ -29,8 +28,8 @@ import java.util.concurrent.ExecutionException;
  *         Date: 3/4/15
  */
 public class StatsStoreCostController extends GenericController implements StoreCostController{
-    private TableStatistics tableStatistics;
-    private OpenSpliceConglomerate baseConglomerate;
+    protected TableStatistics conglomerateStatistics;
+    protected OpenSpliceConglomerate baseConglomerate;
 
     public StatsStoreCostController(OpenSpliceConglomerate baseConglomerate) throws StandardException {
         this.baseConglomerate = baseConglomerate;
@@ -39,7 +38,7 @@ public class StatsStoreCostController extends GenericController implements Store
         long conglomId = baseConglomerate.getConglomerate().getContainerid();
 
         try {
-            this.tableStatistics = StatisticsStorage.getPartitionStore().getStatistics(txn, conglomId);
+            this.conglomerateStatistics = StatisticsStorage.getPartitionStore().getStatistics(txn, conglomId);
         } catch (ExecutionException e) {
             throw Exceptions.parseException(e);
         }
@@ -52,7 +51,7 @@ public class StatsStoreCostController extends GenericController implements Store
 
     @Override
     public long getEstimatedRowCount() throws StandardException {
-        return tableStatistics.rowCount();
+        return conglomerateStatistics.rowCount();
     }
 
     @Override
@@ -61,7 +60,7 @@ public class StatsStoreCostController extends GenericController implements Store
          * This is useful when estimating the cost of an index lookup. We approximate it by using
          * Remote Latency
          */
-        cost.setEstimatedCost(cost.getEstimatedCost()+tableStatistics.remoteReadLatency()*cost.rowCount());
+        cost.setEstimatedCost(cost.getEstimatedCost()+ conglomerateStatistics.remoteReadLatency()*cost.rowCount());
     }
 
     @Override
@@ -79,7 +78,7 @@ public class StatsStoreCostController extends GenericController implements Store
          * The first scenario uses this method, but the second scenario actually uses getScanCost(), so we're safe
          * assuming just a single row here
          */
-        cost.setEstimatedCost(cost.getEstimatedCost()+tableStatistics.remoteReadLatency());
+        cost.setEstimatedCost(cost.getEstimatedCost() + conglomerateStatistics.remoteReadLatency());
         cost.setEstimatedRowCount(1l);
     }
 
@@ -109,6 +108,33 @@ public class StatsStoreCostController extends GenericController implements Store
         * the selectivity is rangeSelectivity(start,null) or rangeSelectivity(null,stop). The column
         * id for the keys is located in the conglomerate.
         */
+        long numRows = getRowsInKeyRange(conglomerateStatistics,
+                startKeyValue, startSearchOperator,
+                stopKeyValue, stopSearchOperator);
+        /*
+         * numRows contains how many rows we are going to touch, so now just set a cost as
+         * remoteReadLatency()*numRows
+         */
+        cost_result.setEstimatedRowCount(numRows);
+        cost_result.setEstimatedCost(numRows * conglomerateStatistics.localReadLatency());
+    }
+
+    @Override
+    public void extraQualifierSelectivity(CostEstimate costEstimate) throws StandardException {
+        //TODO -sf- implement!
+        costEstimate.setCost(costEstimate.getEstimatedCost()* SpliceConstants.extraQualifierMultiplier,
+                (double) costEstimate.getEstimatedRowCount()*SpliceConstants.extraQualifierMultiplier,
+                costEstimate.singleScanRowCount()*SpliceConstants.extraQualifierMultiplier);
+    }
+
+    @Override public RowLocation newRowLocationTemplate() throws StandardException { return null; }
+
+    @SuppressWarnings("unchecked")
+    protected long getRowsInKeyRange(TableStatistics stats,
+                                     DataValueDescriptor[] startKeyValue,
+                                     int startSearchOperator,
+                                     DataValueDescriptor[] stopKeyValue,
+                                     int stopSearchOperator) {
         if(startKeyValue==null && stopKeyValue==null){
             /*
              * There are no keys to scan, so we are doing a full table scan. We estimate
@@ -117,12 +143,9 @@ public class StatsStoreCostController extends GenericController implements Store
              * TODO -sf- make a distinction about parallel reads here based on the fact that there
              * may be multiple partitions
              */
-            cost_result.setEstimatedRowCount(tableStatistics.rowCount());
-            cost_result.setEstimatedCost(tableStatistics.rowCount()*tableStatistics.remoteReadLatency());
-            return;
+            return conglomerateStatistics.rowCount();
         }
         int[] keyOrdering = baseConglomerate.getColumnOrdering();
-        boolean[] sortOrdering = baseConglomerate.getAscDescInfo();
 
         Pair<DataValueDescriptor,DataValueDescriptor>[] columnRanges;
         boolean[] startInclusion;
@@ -157,7 +180,7 @@ public class StatsStoreCostController extends GenericController implements Store
             Arrays.fill(stopInclusion, includeStop);
         }
 
-        long numRows = tableStatistics.rowCount();
+        long numRows = conglomerateStatistics.rowCount();
         for(int i=0;i<columnRanges.length;i++){
             DataValueDescriptor start = columnRanges[i].getFirst();
             DataValueDescriptor stop = columnRanges[i].getSecond();
@@ -165,26 +188,10 @@ public class StatsStoreCostController extends GenericController implements Store
             boolean includeStop = stopInclusion[i];
 
             Distribution<DataValueDescriptor> columnDistribution =
-                                                   tableStatistics.columnDistribution(keyOrdering[i]);
+                    stats.columnDistribution(keyOrdering[i]);
             long nR = columnDistribution.rangeSelectivity(start,stop,includeStart,includeStop);
             numRows = Math.min(numRows,nR);
         }
-
-        /*
-         * numRows contains how many rows we are going to touch, so now just set a cost as
-         * remoteReadLatency()*numRows
-         */
-        cost_result.setEstimatedRowCount(numRows);
-        cost_result.setEstimatedCost(numRows*tableStatistics.remoteReadLatency());
+        return numRows;
     }
-
-    @Override
-    public void extraQualifierSelectivity(CostEstimate costEstimate) throws StandardException {
-        //TODO -sf- implement!
-        costEstimate.setCost(costEstimate.getEstimatedCost()* SpliceConstants.extraQualifierMultiplier,
-                (double) costEstimate.getEstimatedRowCount()*SpliceConstants.extraQualifierMultiplier,
-                costEstimate.singleScanRowCount()*SpliceConstants.extraQualifierMultiplier);
-    }
-
-    @Override public RowLocation newRowLocationTemplate() throws StandardException { return null; }
 }
