@@ -79,7 +79,7 @@ public class RealStats extends BaseDvdStatistics {
 
     /* ****************************************************************************************************************/
     /*private helper methods*/
-    private class FloatFreqs implements FrequentElements<DataValueDescriptor> {
+    static class FloatFreqs implements FrequentElements<DataValueDescriptor> {
         private FloatFrequentElements frequentElements;
 
         public FloatFreqs(FloatFrequentElements freqs) {
@@ -174,7 +174,7 @@ public class RealStats extends BaseDvdStatistics {
         }
     };
 
-    private class RealDist implements Distribution<DataValueDescriptor> {
+    static class RealDist implements Distribution<DataValueDescriptor> {
         private FloatColumnStatistics stats;
 
         public RealDist(FloatColumnStatistics build) {

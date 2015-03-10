@@ -18,7 +18,7 @@ import java.util.List;
  * @author Scott Fines
  *         Date: 12/15/14
  */
-public abstract class BaseAsyncScanner implements AsyncScanner{
+public abstract class BaseAsyncScanner implements AsyncScanner,AutoCloseable{
     protected final Timer timer;
     protected final com.splicemachine.metrics.Counter remoteBytesCounter;
 

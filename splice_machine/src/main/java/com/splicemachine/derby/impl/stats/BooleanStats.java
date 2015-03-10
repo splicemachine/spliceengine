@@ -73,7 +73,7 @@ public class BooleanStats extends BaseDvdStatistics {
 
     /* ****************************************************************************************************************/
     /*private helper methods*/
-    private class BooleanFreqs implements FrequentElements<DataValueDescriptor> {
+    public static class BooleanFreqs implements FrequentElements<DataValueDescriptor> {
         private BooleanFrequentElements frequentElements;
 
         public BooleanFreqs(BooleanFrequentElements freqs) {
@@ -153,7 +153,7 @@ public class BooleanStats extends BaseDvdStatistics {
         }
     }
 
-    private static class BooleanDist implements Distribution<DataValueDescriptor>{
+    public  static class BooleanDist implements Distribution<DataValueDescriptor>{
         private ColumnStatistics<Boolean> stats;
 
         public BooleanDist(ColumnStatistics<Boolean> stats) {

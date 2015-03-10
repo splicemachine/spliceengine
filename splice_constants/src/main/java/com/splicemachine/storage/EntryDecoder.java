@@ -136,9 +136,13 @@ public class EntryDecoder implements FieldSkipper, Supplier<MultiFieldDecoder> {
 
     public MultiFieldDecoder getEntryDecoder() throws IOException {
         if (decoder == null) {
-            decoder = MultiFieldDecoder.wrap(currentData);
+            if(currentData!=null) {
+                decoder = MultiFieldDecoder.wrap(currentData);
+            }else
+                decoder = MultiFieldDecoder.create();
         }
-        decoder.seek(currentData.offset() + dataOffset);
+        if(currentData!=null)
+            decoder.seek(currentData.offset() + dataOffset);
         return decoder;
     }
 

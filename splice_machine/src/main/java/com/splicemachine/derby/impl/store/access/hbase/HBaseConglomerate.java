@@ -7,6 +7,7 @@ import java.util.Properties;
 import com.google.common.io.Closeables;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.impl.store.access.StatsStoreCostController;
 import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.Txn;
@@ -341,9 +342,12 @@ public class HBaseConglomerate extends SpliceConglomerate {
 						TransactionManager  xact_manager,
 						Transaction         rawtran) throws StandardException {
 				SpliceLogUtils.trace(LOG,"openStoreCost: %s", id);
-				OpenSpliceConglomerate open_conglom = new OpenSpliceConglomerate(xact_manager,rawtran,false,ContainerHandle.MODE_READONLY,TransactionController.MODE_TABLE,(LockingPolicy) null,(StaticCompiledOpenConglomInfo) null,(DynamicCompiledOpenConglomInfo) null, this);
-				HBaseCostController hbasecost = new HBaseCostController(open_conglom);
-				return(hbasecost);
+				OpenSpliceConglomerate open_conglom = new OpenSpliceConglomerate(xact_manager,rawtran,false,
+                ContainerHandle.MODE_READONLY,
+                TransactionController.MODE_TABLE, null, null, null, this);
+        return new StatsStoreCostController(open_conglom);
+//				HBaseCostController hbasecost = new HBaseCostController(open_conglom);
+//				return(hbasecost);
 		}
 
 		/**************************************************************************

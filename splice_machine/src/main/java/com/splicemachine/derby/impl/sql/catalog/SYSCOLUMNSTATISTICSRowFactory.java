@@ -21,7 +21,7 @@ import java.sql.Types;
  *         Date: 2/25/15
  */
 public class SYSCOLUMNSTATISTICSRowFactory extends CatalogRowFactory {
-    private static final String TABLENAME_STRING = "SYSCOLUMNSTATS";
+    public static final String TABLENAME_STRING = "SYSCOLUMNSTATS";
     private static final int SYSCOLUMNSTATISTICS_COLUMN_COUNT = 4;
     private static final int CONGLOMID      = 1;
     private static final int PARTITIONID    = 2;

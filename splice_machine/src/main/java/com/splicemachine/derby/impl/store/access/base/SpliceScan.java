@@ -121,7 +121,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
         this.trans = (BaseSpliceTransaction)trans;
 				setupScan();
 				attachFilter();
-				tableName = spliceConglomerate.getConglomerate().getContainerid() + "";
+				tableName = Long.toString(spliceConglomerate.getConglomerate().getContainerid());
         if(LOG.isTraceEnabled()){
             SpliceLogUtils.trace(LOG,"scanning with start key %s and stop key %s and transaction %s", Arrays.toString(startKeyValue),Arrays.toString(stopKeyValue),trans);
         }

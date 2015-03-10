@@ -1,7 +1,8 @@
 package com.splicemachine.derby.impl.store.access.base;
 
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
-import com.splicemachine.derby.impl.store.access.SpliceTransactionView;
+import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
+import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.store.access.DynamicCompiledOpenConglomInfo;
 import org.apache.derby.iapi.store.access.RowUtil;
@@ -12,10 +13,6 @@ import org.apache.derby.iapi.store.raw.LockingPolicy;
 import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
-
-import com.splicemachine.derby.impl.store.access.SpliceTransaction;
-import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
-import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 
 /**
 *

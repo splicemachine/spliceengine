@@ -6,6 +6,7 @@ import com.splicemachine.derby.impl.sql.catalog.upgrade.SpliceCatalogUpgradeScri
 import com.splicemachine.derby.impl.sql.depend.SpliceDependencyManager;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequenceKey;
+import com.splicemachine.derby.impl.stats.StatisticsStorage;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
