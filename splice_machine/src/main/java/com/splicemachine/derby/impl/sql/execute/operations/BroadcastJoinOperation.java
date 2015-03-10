@@ -404,11 +404,9 @@ public class BroadcastJoinOperation extends JoinOperation {
             LOG.debug("RDD for operation " + this + " :\n " + keyedRight.toDebugString());
         }
         Multimap<ExecRow, ExecRow> collectedMap = collectAsMap(keyedRight);
-
-        // TODO do a proper broadcast...
-//        Broadcast<Multimap<ExecRow, ExecRow>> broadcast = SpliceSpark.getContext().broadcast(collectedMap);
+        Broadcast<Multimap<ExecRow, ExecRow>> broadcast = SpliceSpark.getContext().broadcast(collectedMap);
         final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this, spliceRuntimeContext);
-        return left.mapPartitions(new BroadcastSparkOperation(this, soi, collectedMap));
+        return left.mapPartitions(new BroadcastSparkOperation(this, soi, broadcast));
     }
 
     private Multimap<ExecRow, ExecRow> collectAsMap(JavaPairRDD<ExecRow, ExecRow> rdd) {
@@ -426,14 +424,14 @@ public class BroadcastJoinOperation extends JoinOperation {
     }
 
     public static final class BroadcastSparkOperation extends SparkFlatMapOperation<BroadcastJoinOperation, Iterator<ExecRow>, ExecRow> {
-        private Multimap<ExecRow, ExecRow> right;
+        private Broadcast<Multimap<ExecRow, ExecRow>> right;
         private Joiner joiner;
 
         public BroadcastSparkOperation() {
         }
 
         public BroadcastSparkOperation(BroadcastJoinOperation spliceOperation, SpliceObserverInstructions soi,
-                                       Multimap<ExecRow, ExecRow> right) {
+                                       Broadcast<Multimap<ExecRow, ExecRow>> right) {
             super(spliceOperation, soi);
             this.right = right;
         }
@@ -453,7 +451,7 @@ public class BroadcastJoinOperation extends JoinOperation {
                 public List<ExecRow> apply(ExecRow leftRow) {
                     try {
                         ExecRow key = RDDUtils.getKey(leftRow, op.leftHashKeys);
-                        Collection<ExecRow> rightRows = right.get(key);
+                        Collection<ExecRow> rightRows = right.value().get(key);
                         return Lists.newArrayList(rightRows);
                     } catch (Exception e) {
                         throw new RuntimeException(String.format("Unable to lookup %s in" +
@@ -482,7 +480,7 @@ public class BroadcastJoinOperation extends JoinOperation {
         @Override
         public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
             super.readExternal(in);
-            this.right = (Multimap<ExecRow, ExecRow>) in.readObject();
+            this.right = (Broadcast<Multimap<ExecRow, ExecRow>>) in.readObject();
         }
 
         private class JoinerIterator implements Iterator<ExecRow>, Iterable<ExecRow> {
