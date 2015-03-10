@@ -75,9 +75,13 @@ public class StatisticsTask extends ZkTask{
     private String tableVersion;
     private int[] fieldLengths;
 
+    //for use on when scanning index tables--set to -1 when scanning the base table
+    private long baseTableConglomerateId;
+
     /**Serialization Constructor. DO NOT USE*/
     @Deprecated
     public StatisticsTask() { }
+
 
     public StatisticsTask(String jobId,
                           ExecRow colsToCollect,
@@ -90,6 +94,32 @@ public class StatisticsTask extends ZkTask{
                           int[] fieldLengths,
                           FormatableBitSet collectedKeyColumns,
                           String tableVersion) {
+        this(jobId,
+                colsToCollect,
+                columnPositionMap,
+                rowDecodingMap,
+                keyDecodingMap,
+                keyColumnEncodingOrder,
+                keyColumnSortOrder,
+                keyColumnTypes,
+                fieldLengths,
+                collectedKeyColumns,
+                -1l,
+                tableVersion);
+    }
+
+    public StatisticsTask(String jobId,
+                          ExecRow colsToCollect,
+                          int[] columnPositionMap,
+                          int[] rowDecodingMap,
+                          int[] keyDecodingMap,
+                          int[] keyColumnEncodingOrder,
+                          boolean[] keyColumnSortOrder,
+                          int[] keyColumnTypes,
+                          int[] fieldLengths,
+                          FormatableBitSet collectedKeyColumns,
+                          long baseTableConglomerateId,
+                          String tableVersion) {
         super(jobId,SchedulerPriorities.INSTANCE.getBasePriority(StatisticsTask.class));
         this.colsToCollect = colsToCollect;
         this.rowDecodingMap = rowDecodingMap;
@@ -101,6 +131,7 @@ public class StatisticsTask extends ZkTask{
         this.collectedKeyColumns = collectedKeyColumns;
         this.tableVersion = tableVersion;
         this.fieldLengths = fieldLengths;
+        this.baseTableConglomerateId = baseTableConglomerateId;
     }
 
     @Override
@@ -115,26 +146,45 @@ public class StatisticsTask extends ZkTask{
         Txn txn = getTxn();
 
         try(TransactionalRegion txnRegion = TransactionalRegions.get(region)) {
-            long start = System.nanoTime();
-            StatisticsCollector collector = new StatisticsCollector(txn, colsToCollect, partitionScan,
-                    rowDecodingMap,
-                    keyColumnEncodingOrder,
-                    keyColumnSortOrder,
-                    keyColumnTypes,
-                    keyDecodingMap,
-                    columnPositionMap,
-                    fieldLengths,
-                    collectedKeyColumns,
-                    tableVersion,
-                    txnRegion,
-                    getScanner());
+            StatisticsCollector collector;
+            if(baseTableConglomerateId<0) {
+                collector = new StatisticsCollector(txn, colsToCollect, partitionScan,
+                        rowDecodingMap,
+                        keyColumnEncodingOrder,
+                        keyColumnSortOrder,
+                        keyColumnTypes,
+                        keyDecodingMap,
+                        columnPositionMap,
+                        fieldLengths,
+                        collectedKeyColumns,
+                        tableVersion,
+                        txnRegion,
+                        getScanner());
+            }else{
+                collector = new IndexStatisticsCollector(txn,
+                        colsToCollect,
+                        partitionScan,
+                        rowDecodingMap,
+                        keyColumnEncodingOrder,
+                        keyColumnSortOrder,
+                        keyColumnTypes,
+                        keyDecodingMap,
+                        columnPositionMap,
+                        fieldLengths,
+                        collectedKeyColumns,
+                        tableVersion,
+                        txnRegion,
+                        getScanner(),
+                        baseTableConglomerateId);
 
+            }
+
+            long start = System.nanoTime();
             PartitionStatistics collected = collector.collect();
 
             long[] statsTableIds = getStatsConglomerateIds();
-            writeTableStats(txnRegion,statsTableIds[0],collected);
-            writeColumnStats(txnRegion,statsTableIds[1], collected.columnStatistics());
-            writePhysicalStats(statsTableIds[2], collected);
+            writeTableStats(txnRegion, statsTableIds[0], collected);
+            writeColumnStats(txnRegion, statsTableIds[1], collected.columnStatistics());
             long end = System.nanoTime();
 
             TaskStats ts = new TaskStats(end-start,collected.rowCount(),3l);
@@ -162,6 +212,7 @@ public class StatisticsTask extends ZkTask{
                 keyColumnTypes,
                 fieldLengths,
                 collectedKeyColumns,
+                baseTableConglomerateId,
                 tableVersion);
     }
 
@@ -186,6 +237,7 @@ public class StatisticsTask extends ZkTask{
         fieldLengths = ArrayUtil.readIntArray(in);
         collectedKeyColumns = (FormatableBitSet)in.readObject();
         tableVersion = in.readUTF();
+        baseTableConglomerateId = in.readLong();
     }
 
     @Override
@@ -193,7 +245,7 @@ public class StatisticsTask extends ZkTask{
         super.writeExternal(out);
         out.writeObject(colsToCollect);
         ArrayUtil.writeIntArray(out, rowDecodingMap);
-        ArrayUtil.writeIntArray(out,columnPositionMap);
+        ArrayUtil.writeIntArray(out, columnPositionMap);
         ArrayUtil.writeIntArray(out,keyDecodingMap);
         ArrayUtil.writeIntArray(out, keyColumnEncodingOrder);
         out.writeBoolean(keyColumnSortOrder!=null);
@@ -203,6 +255,7 @@ public class StatisticsTask extends ZkTask{
         ArrayUtil.writeIntArray(out,fieldLengths);
         out.writeObject(collectedKeyColumns);
         out.writeUTF(tableVersion);
+        out.writeLong(baseTableConglomerateId);
     }
 
     /* ****************************************************************************************************************/
@@ -269,34 +322,6 @@ public class StatisticsTask extends ZkTask{
         }
     }
 
-    private void writePhysicalStats(long physStatsConglomerate,PartitionStatistics collected) throws ExecutionException {
-        try {
-            byte[] key = Encoding.encode(InetAddress.getLocalHost().getHostName());
-            Runtime runtime = Runtime.getRuntime();
-            BitSet nonNullFields = new BitSet(6);
-            nonNullFields.set(1,4);
-            BitSet scalarFields = new BitSet(6);
-            scalarFields.set(1,4);
-            BitSet empty = BitSet.newInstance();
-            EntryEncoder rowEncoder = EntryEncoder.create(SpliceKryoRegistry.getInstance(),6,nonNullFields,scalarFields,empty,empty);
-            try(CallBuffer<KVPair> buffer = SpliceDriver.driver().getTableWriter().writeBuffer(Long.toString(physStatsConglomerate).getBytes(),getTxn())){
-                MultiFieldEncoder encoder = rowEncoder.getEntryEncoder();
-                encoder.encodeNext(runtime.availableProcessors())
-                        .encodeNext(runtime.maxMemory())
-                        .encodeNext(SpliceConstants.ipcThreads);
-
-                //write the data
-                KVPair kvPair = new KVPair(key,rowEncoder.encode(), KVPair.Type.UPSERT);
-                buffer.add(kvPair);
-                buffer.flushBuffer();
-            } catch (Exception e) {
-                throw new ExecutionException(e);
-            }
-        } catch (UnknownHostException e) {
-            throw new ExecutionException(e);
-        }
-    }
-
     private void writeTableStats(TransactionalRegion txnRegion, long tableStatsConglomerate,PartitionStatistics collected) throws ExecutionException {
         long tableConglomerateId = Long.parseLong(txnRegion.getTableName());
         //get Row Key
@@ -312,8 +337,7 @@ public class StatisticsTask extends ZkTask{
         scalarFields.set(5,12);
 
         BitSet floatFields = new BitSet();
-        BitSet doubleFields = floatFields;
-        EntryEncoder rowEncoder = EntryEncoder.create(SpliceKryoRegistry.getInstance(),11,nonNullRowFields,scalarFields,floatFields,doubleFields);
+        EntryEncoder rowEncoder = EntryEncoder.create(SpliceKryoRegistry.getInstance(),11,nonNullRowFields,scalarFields,floatFields, floatFields);
 
         try(CallBuffer<KVPair> buffer = SpliceDriver.driver().getTableWriter().writeBuffer(Long.toString(tableStatsConglomerate).getBytes(),getTxn())){
             MultiFieldEncoder rEncoder = rowEncoder.getEntryEncoder();

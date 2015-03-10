@@ -49,6 +49,10 @@ public class StatsConstants extends SpliceConstants {
     @Parameter public static final String PARTITION_CACHE_EXPIRATION = "splice.statistics.partitionCache.expiration";
     @DefaultValue(value = PARTITION_CACHE_EXPIRATION) public static final long DEFAULT_PARTITION_CACHE_EXPIRATION = 60*1000; //1 minute by default
 
+    public static int fetchSampleSize;
+    @SpliceConstants.Parameter public static final String INDEX_FETCH_SAMPLE_SIZE = "splice.statistics.indexFetch.sampleSize";
+    @DefaultValue(value = INDEX_FETCH_SAMPLE_SIZE) public static final int DEFAULT_INDEX_FETCH_SAMPLE_SIZE = 128;
+
     public static void setParameters(Configuration config){
         int cp = config.getInt(CARDINALITY_PRECISION,DEFAULT_CARDINALITY_PRECISION);
         if(cp <4) {
@@ -59,5 +63,11 @@ public class StatsConstants extends SpliceConstants {
         topKSize = config.getInt(TOPK_SIZE,DEFAULT_TOPK_PRECISION);
         partitionCacheSize = config.getLong(PARTITION_CACHE_SIZE,DEFAULT_PARTITION_CACHE_SIZE);
         partitionCacheExpiration = config.getLong(PARTITION_CACHE_EXPIRATION,DEFAULT_PARTITION_CACHE_EXPIRATION);
+
+        int ifs = config.getInt(INDEX_FETCH_SAMPLE_SIZE,DEFAULT_INDEX_FETCH_SAMPLE_SIZE);
+        int i = 1;
+        while(i<ifs)
+            i<<=1;
+        fetchSampleSize = i;
     }
 }
