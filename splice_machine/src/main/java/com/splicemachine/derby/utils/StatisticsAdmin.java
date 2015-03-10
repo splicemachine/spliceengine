@@ -2,6 +2,7 @@ package com.splicemachine.derby.utils;
 
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.stats.StatisticsJob;
+import com.splicemachine.derby.impl.stats.StatisticsStorage;
 import com.splicemachine.derby.impl.stats.StatisticsTask;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
@@ -151,6 +152,8 @@ public class StatisticsAdmin {
             dvds[2].setValue(regionsToCollect.size());
             dvds[3].setValue(taskStats.size());
             dvds[4].setValue(totalRows);
+
+            StatisticsStorage.getPartitionStore().invalidateCachedStatistics(tableDesc.getHeapConglomerateId());
 
             Activation lastActivation = conn.getLanguageConnection().getLastActivation();
             IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(Arrays.asList(outputRow),COLLECTED_STATS_OUTPUT_COLUMNS,lastActivation);

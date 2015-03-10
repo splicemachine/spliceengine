@@ -1,8 +1,7 @@
 package com.splicemachine.derby.impl.stats;
 
 import com.splicemachine.async.Bytes;
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.iapi.catalog.PhysicalStatsDescriptor;
+import com.splicemachine.derby.iapi.catalog.TableStatisticsDescriptor;
 import com.splicemachine.hbase.regioninfocache.RegionCache;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
@@ -30,16 +29,13 @@ public class PartitionStatsStore {
     private final RegionCache regionCache;
     private final TableStatisticsStore tableStatsReader;
     private final ColumnStatisticsStore columnStatsReader;
-    private final PhysicalStatisticsStore physicalStatsStore;
 
     public PartitionStatsStore(RegionCache regionCache,
                                TableStatisticsStore tableStatsReader,
-                               ColumnStatisticsStore columnStatsReader,
-                               PhysicalStatisticsStore physicalStatsStore) {
+                               ColumnStatisticsStore columnStatsReader) {
         this.regionCache = regionCache;
         this.tableStatsReader = tableStatsReader;
         this.columnStatsReader = columnStatsReader;
-        this.physicalStatsStore = physicalStatsStore;
     }
 
     @SuppressWarnings("ThrowFromFinallyBlock")
@@ -57,6 +53,14 @@ public class PartitionStatsStore {
         }
     }
 
+    public void invalidateCachedStatistics(long conglomerateId) throws ExecutionException{
+        List<String> partitions = new ArrayList<>();
+        getPartitions(Long.toString(conglomerateId).getBytes(),partitions);
+
+        tableStatsReader.invalidate(conglomerateId,partitions);
+        columnStatsReader.invalidate(conglomerateId,partitions);
+    }
+
     /* ****************************************************************************************************************/
     /*private helper methods and classes*/
 
@@ -64,14 +68,13 @@ public class PartitionStatsStore {
         byte[] table = Long.toString(conglomerateId).getBytes();
 
         List<String> partitions = new ArrayList<>();
-        Map<String, PhysicalStatsDescriptor> partitionIdToPhysicalLocationMap = new HashMap<>();
-        int missingPartitions = getPartitions(table, partitions, partitionIdToPhysicalLocationMap);
+        int missingPartitions = getPartitions(table, partitions);
 
-        TableStatisticsStore.TableStats[] tableStatses = tableStatsReader.fetchTableStatistics(txn, conglomerateId, partitions);
+        TableStatisticsDescriptor[] tableStatses = tableStatsReader.fetchTableStatistics(txn, conglomerateId, partitions);
         List<String> noStatsPartitions = new LinkedList<>();
         List<String> columnStatsFetchable = new ArrayList<>();
         for (int i = 0; i < tableStatses.length; i++) {
-            TableStatisticsStore.TableStats tStats = tableStatses[i];
+            TableStatisticsDescriptor tStats = tableStatses[i];
             if (tStats == null) {
                 noStatsPartitions.add(partitions.get(i));
             } else {
@@ -81,19 +84,18 @@ public class PartitionStatsStore {
 
         Map<String, List<ColumnStatistics>> columnStatsMap = columnStatsReader.fetchColumnStats(txn, conglomerateId, columnStatsFetchable);
         List<PartitionStatistics> partitionStats = new ArrayList<>(partitions.size());
-        List<Pair<TableStatisticsStore.TableStats, PhysicalStatsDescriptor>> partiallyOccupied = new LinkedList<>();
+        List<TableStatisticsDescriptor> partiallyOccupied = new LinkedList<>();
         String tableId = Long.toString(conglomerateId);
         for (int i = 0; i < tableStatses.length; i++) {
-            TableStatisticsStore.TableStats tStats = tableStatses[i];
+            TableStatisticsDescriptor tStats = tableStatses[i];
             if (tStats == null) continue; //skip missing partitions entirely
 
             List<ColumnStatistics> columnStats = columnStatsMap.get(tStats.getPartitionId());
             if (columnStats != null && columnStats.size() > 0) {
-            /*
-             * We have Column Statistics, which means that we have everything we need to build a complete
-             * partition statistics entity here
-             */
-                PhysicalStatsDescriptor physStats = partitionIdToPhysicalLocationMap.get(tStats.getPartitionId());
+                /*
+                 * We have Column Statistics, which means that we have everything we need to build a complete
+                 * partition statistics entity here
+                 */
                 List<ColumnStatistics> copy = new ArrayList<>(columnStats.size());
                 for (ColumnStatistics column : columnStats) {
                     copy.add(column.getClone());
@@ -103,37 +105,36 @@ public class PartitionStatsStore {
                         tStats.getRowCount(),
                         tStats.getPartitionSize(),
                         tStats.getQueryCount(),
-                        physStats.getLocalReadLatency(),
-                        physStats.getRemoteReadLatency(),
+                        tStats.getLocalReadLatency(),
+                        tStats.getRemoteReadLatency(),
                         copy);
                 partitionStats.add(pStats);
             } else if (columnStatsMap.size() > 0) {
-            /*
-             * We have an awkward situation here. We expect that the column statistics are present,
-             * because the table statistics are. However, table statistics may not include column statistics,
-             * because we may not have enabled any. Additionally, column statistics may be absent if we
-             * just recently enabled them but haven't refreshed yet. So in one situation, no partitions
-             * in the table will have columns, but in another situation, some will and some won't. When
-             * Column statistics aren't available for any partition, then we just don't add much. But when
-             * ColumnStatistics *are* available for other partitions, we add this to a list of partitions
-             * to average
-             */
-                partiallyOccupied.add(Pair.newPair(tStats, partitionIdToPhysicalLocationMap.get(tStats.getPartitionId())));
+                /*
+		             * We have an awkward situation here. We expect that the column statistics are present,
+		             * because the table statistics are. However, table statistics may not include column statistics,
+		             * because we may not have enabled any. Additionally, column statistics may be absent if we
+		             * just recently enabled them but haven't refreshed yet. So in one situation, no partitions
+		             * in the table will have columns, but in another situation, some will and some won't. When
+		             * Column statistics aren't available for any partition, then we just don't add much. But when
+		             * ColumnStatistics *are* available for other partitions, we add this to a list of partitions
+		             * to average
+		             */
+                partiallyOccupied.add(tStats);
             } else {
-            /*
-             * It turns out that there is no available column statistics information for this table. This
-             * occurs when all column collections are disabled, or when the table has just been created. This
-             * is kind of bad news, since we rely on it to generate appropriate distributions. Still,
-             *  we will return what we can
-             */
-                PhysicalStatsDescriptor physStats = partitionIdToPhysicalLocationMap.get(tStats.getPartitionId());
+		            /*
+		             * It turns out that there is no available column statistics information for this table. This
+		             * occurs when all column collections are disabled, or when the table has just been created. This
+		             * is kind of bad news, since we rely on it to generate appropriate distributions. Still,
+		             *  we will return what we can
+		             */
                 PartitionStatistics pStats = new SimplePartitionStatistics(tableId,
                         tStats.getPartitionId(),
                         tStats.getRowCount(),
                         tStats.getPartitionSize(),
                         tStats.getQueryCount(),
-                        physStats.getLocalReadLatency(),
-                        physStats.getRemoteReadLatency(),
+                        tStats.getLocalReadLatency(),
+                        tStats.getRemoteReadLatency(),
                         Collections.<ColumnStatistics>emptyList());
                 partitionStats.add(pStats);
             }
@@ -163,7 +164,12 @@ public class PartitionStatsStore {
          * To do this, we first compute an average of data over all *completely populated Partitions*. Then,
          * we take that average and use it to populate cases 1 and 2. Then, we take the averaged column
          * information, and use it to populate any situations in case 3.
+         *
+         * Of course, we first want to check if this is necessary--if we have no items in Case 1,2, or
+         * 3 states, then we can just return what we have
          */
+        if(missingPartitions<=0 && noStatsPartitions.size()<=0 && partiallyOccupied.size()<=0)
+            return new GlobalStatistics(tableId,partitionStats);
         PartitionAverage average = averageKnown(tableId, partitionStats);
 
         //fill case 1 scenarios
@@ -178,21 +184,19 @@ public class PartitionStatsStore {
         }
 
         //fill case 3 scenario)
-        for (Pair<TableStatisticsStore.TableStats, PhysicalStatsDescriptor> partial : partiallyOccupied) {
+        for (TableStatisticsDescriptor tStats: partiallyOccupied) {
             List<ColumnStatistics> avg = average.columnStatistics();
             List<ColumnStatistics> copy = new ArrayList<>(avg.size());
             for (ColumnStatistics avgCol : avg) {
                 copy.add(avgCol.getClone());
             }
 
-            TableStatisticsStore.TableStats tStats = partial.getFirst();
-            PhysicalStatsDescriptor phyStats = partial.getSecond();
             PartitionStatistics pStats = new SimplePartitionStatistics(tableId, tStats.getPartitionId(),
                     tStats.getRowCount(),
                     tStats.getPartitionSize(),
                     tStats.getQueryCount(),
-                    phyStats.getLocalReadLatency(),
-                    phyStats.getRemoteReadLatency(),
+                    tStats.getLocalReadLatency(),
+                    tStats.getRemoteReadLatency(),
                     copy);
             partitionStats.add(pStats);
         }
@@ -209,9 +213,7 @@ public class PartitionStatsStore {
         }
     }
 
-    private int getPartitions(byte[] table,List<String> partitions,
-                              Map<String,PhysicalStatsDescriptor> physicalStatsDescriptorMap) throws ExecutionException {
-        List<PhysicalStatsDescriptor> allPhysStats = physicalStatsStore.allPhysicalStats();
+    private int getPartitions(byte[] table, List<String> partitions) throws ExecutionException {
         /*
          * Returns the number of partitions which cannot be found from the RegionCache.
          *
@@ -221,8 +223,8 @@ public class PartitionStatsStore {
          */
         SortedSet<Pair<HRegionInfo, ServerName>> regions = regionCache.getRegions(table);
         int tryNum = 0;
-        int missingSize = 0;
-        while(tryNum<5) {
+        int missingSize = regions.size();
+        while(missingSize>0 && tryNum<5) {
             byte[] lastEndKey = HConstants.EMPTY_START_ROW;
             List<Pair<byte[],byte[]>> missingRanges = new LinkedList<>();
             for (Pair<HRegionInfo, ServerName> servers : regions) {
@@ -235,7 +237,6 @@ public class PartitionStatsStore {
                     missingRanges.add(Pair.newPair(lastEndKey,start));
                 }else{
                     String encodedName = servers.getFirst().getEncodedName();
-                    physicalStatsDescriptorMap.put(encodedName,getPhysicalStats(allPhysStats,servers.getSecond().getHostname()));
                     partitions.add(encodedName);
                 }
                 lastEndKey = servers.getFirst().getEndKey();
@@ -258,33 +259,6 @@ public class PartitionStatsStore {
         }
         return missingSize;
     }
-
-    private PhysicalStatsDescriptor getPhysicalStats(List<PhysicalStatsDescriptor> allPhysStats, String hostname) {
-        for(PhysicalStatsDescriptor physStats:allPhysStats){
-            if(physStats.getHostName().equals(hostname)){
-                return physStats;
-            }
-        }
-
-        /*
-         * We are missing the Physical Statistics for this server. That's weird, because we would expect
-         * it to be there,but it might not be (if, for example, the server is starting up for the first time
-         * and hasn't had a chance to write it yet). In this case, we will make the "homogeneous server" assumption,
-         * where we assume that all servers have the same hardware and are configured similarly. In that case, we
-         * can just take the first PhysicalStatsDescriptor we have, because that's really what we want anyway.
-         *
-         * Alas, it may be possible that there are *no* physical stats descriptors at all. This can occur
-         * when the cluster boots for the first time. In that scenario, we just pick some arbitrary numbers
-         * for the latencies and go with that
-         */
-        if(allPhysStats.size()>0)
-            return allPhysStats.get(0);
-        else{
-            return new PhysicalStatsDescriptor(hostname,Runtime.getRuntime().availableProcessors(),
-                    Runtime.getRuntime().maxMemory(),SpliceConstants.ipcThreads,500,750,800); //TODO -sf- make sure these are reasonable guesses
-        }
-    }
-
 
     private PartitionAverage averageKnown(String tableId,List<PartitionStatistics> statistics) {
         /*

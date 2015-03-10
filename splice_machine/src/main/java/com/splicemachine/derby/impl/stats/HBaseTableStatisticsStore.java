@@ -1,11 +1,11 @@
 package com.splicemachine.derby.impl.stats;
 
-import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.splicemachine.async.HBaseClient;
 import com.splicemachine.async.KeyValue;
 import com.splicemachine.constants.SIConstants;
+import com.splicemachine.derby.iapi.catalog.TableStatisticsDescriptor;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
@@ -36,7 +36,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class HBaseTableStatisticsStore implements TableStatisticsStore {
     private static final Logger LOG = Logger.getLogger(HBaseColumnStatisticsStore.class);
-    private final Cache<String,TableStats> tableStatsCache;
+    private final Cache<String,TableStatisticsDescriptor> tableStatsCache;
     private final ScheduledExecutorService refreshThread;
     private final byte[] tableStatsConglom;
     private final HBaseClient hbaseClient;
@@ -59,12 +59,12 @@ public class HBaseTableStatisticsStore implements TableStatisticsStore {
     }
 
     @Override
-    public TableStats[] fetchTableStatistics(TxnView txn, long conglomerateId, List<String> partitionsToFetch) throws ExecutionException {
-        TableStats[]  stats =new TableStats[partitionsToFetch.size()];
+    public TableStatisticsDescriptor[] fetchTableStatistics(TxnView txn, long conglomerateId, List<String> partitionsToFetch) throws ExecutionException {
+        TableStatisticsDescriptor[]  stats =new TableStatisticsDescriptor[partitionsToFetch.size()];
         Map<String,Integer> toFetch = new HashMap<>();
         for(int i=0;i<partitionsToFetch.size();i++){
             String partition = partitionsToFetch.get(i);
-            TableStats tStats = tableStatsCache.getIfPresent(partition);
+            TableStatisticsDescriptor tStats = tableStatsCache.getIfPresent(partition);
             if(tStats!=null)stats[i] = tStats;
             else{
                toFetch.put(partition, i);
@@ -98,7 +98,14 @@ public class HBaseTableStatisticsStore implements TableStatisticsStore {
         return stats;
     }
 
-    protected TableStats decode(EntryDecoder cachedDecoder,Cell cell) throws IOException {
+    @Override
+    public void invalidate(long conglomerateId,Collection<String> partitionsToInvalidate) {
+        for(String partition:partitionsToInvalidate){
+            tableStatsCache.invalidate(partition);
+        }
+    }
+
+    protected TableStatisticsDescriptor decode(EntryDecoder cachedDecoder,Cell cell) throws IOException {
         assert cell!=null: "Programmer error: no data column returned!";
         MultiFieldDecoder decoder = cachedDecoder.get();
         decoder.set(cell.getRowArray(),cell.getRowOffset(),cell.getRowLength());
@@ -114,8 +121,21 @@ public class HBaseTableStatisticsStore implements TableStatisticsStore {
         long size = decoder.decodeNextLong();
         int avgRowWidth = decoder.decodeNextInt();
         long queryCount = decoder.decodeNextLong();
+        long localReadLat = decoder.decodeNextLong();
+        long remoteReadLat = decoder.decodeNextLong();
+        long writeLat = decoder.decodeNextLong();
 
-        TableStats stats = new TableStats(conglomId,partitionId,timestamp,rowCount,size,avgRowWidth,queryCount);
+        TableStatisticsDescriptor stats = new TableStatisticsDescriptor(conglomId,
+                partitionId,
+                timestamp,
+                isStale,inProgress,
+                rowCount,
+                size,
+                avgRowWidth,
+                queryCount,
+                localReadLat,
+                remoteReadLat,
+                writeLat );
         if(!inProgress){
             /*
              * If the table is currently in progress, then we don't want to cache the value
@@ -127,22 +147,37 @@ public class HBaseTableStatisticsStore implements TableStatisticsStore {
         return stats;
     }
 
-    protected TableStats decode(MultiFieldDecoder cachedDecoder,KeyValue cell) {
+    protected TableStatisticsDescriptor decode(EntryDecoder cachedDecoder,KeyValue cell) {
         assert cell!=null: "Programmer error: no data column returned!";
-        cachedDecoder.set(cell.key());
-        long conglomId = cachedDecoder.decodeNextLong();
-        String partitionId = cachedDecoder.decodeNextString();
+        MultiFieldDecoder decoder = cachedDecoder.get();
+        decoder.set(cell.key());
+        long conglomId = decoder.decodeNextLong();
+        String partitionId = decoder.decodeNextString();
 
         cachedDecoder.set(cell.value());
-        long timestamp = cachedDecoder.decodeNextLong();
-        boolean isStale = cachedDecoder.decodeNextBoolean();
-        boolean inProgress= cachedDecoder.decodeNextBoolean();
-        long rowCount = cachedDecoder.decodeNextLong();
-        long size = cachedDecoder.decodeNextLong();
-        int avgRowWidth = cachedDecoder.decodeNextInt();
-        long queryCount = cachedDecoder.decodeNextLong();
+        decoder = cachedDecoder.get();
+        long timestamp = decoder.decodeNextLong();
+        boolean isStale = decoder.decodeNextBoolean();
+        boolean inProgress= decoder.decodeNextBoolean();
+        long rowCount = decoder.decodeNextLong();
+        long size = decoder.decodeNextLong();
+        int avgRowWidth = decoder.decodeNextInt();
+        long queryCount = decoder.decodeNextLong();
+        long localReadLat = decoder.decodeNextLong();
+        long remoteReadLat = decoder.decodeNextLong();
+        long writeLat = decoder.decodeNextLong();
 
-        TableStats stats = new TableStats(conglomId,partitionId,timestamp,rowCount,size,avgRowWidth,queryCount);
+        TableStatisticsDescriptor stats = new TableStatisticsDescriptor(conglomId,
+                partitionId,
+                timestamp,
+                isStale,inProgress,
+                rowCount,
+                size,
+                avgRowWidth,
+                queryCount,
+                localReadLat,
+                remoteReadLat,
+                writeLat );
         if(!inProgress){
             /*
              * If the table is currently in progress, then we don't want to cache the value
@@ -166,12 +201,12 @@ public class HBaseTableStatisticsStore implements TableStatisticsStore {
             com.splicemachine.async.Scanner scanner = hbaseClient.newScanner(tableStatsConglom);
             Deferred<ArrayList<ArrayList<KeyValue>>> data = scanner.nextRows();
             ArrayList<ArrayList<KeyValue>> rowBatch;
-            MultiFieldDecoder decoder = MultiFieldDecoder.create();
+            EntryDecoder decoder = new EntryDecoder();
             try {
                 while((rowBatch = data.join())!=null){
                     for(List<KeyValue> row:rowBatch){
                         KeyValue kv = matchDataColumn(row);
-                        TableStats stats = decode(decoder,kv); //caches the record
+                        TableStatisticsDescriptor stats = decode(decoder,kv); //caches the record
                     }
                     data = scanner.nextRows();
                 }

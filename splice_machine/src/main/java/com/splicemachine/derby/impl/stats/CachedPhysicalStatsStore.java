@@ -8,6 +8,7 @@ import com.splicemachine.async.Scanner;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.derby.iapi.catalog.PhysicalStatsDescriptor;
 import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.storage.EntryDecoder;
 import com.stumbleupon.async.Deferred;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -67,27 +68,23 @@ public class CachedPhysicalStatsStore implements PhysicalStatisticsStore {
             try{
                 Deferred<ArrayList<ArrayList<KeyValue>>> arrayListDeferred = scanner.nextRows();
                 ArrayList<ArrayList<KeyValue>> join;
-                MultiFieldDecoder decoder = MultiFieldDecoder.create();
+                EntryDecoder decoder = new EntryDecoder();
                 while((join = arrayListDeferred.join())!=null){
                     for(ArrayList<KeyValue> row:join){
                         KeyValue dataColumn = matchDataColumn(row);
-                        decoder.set(dataColumn.key());
-                        String hostname = decoder.decodeNextString();
-                        decoder.set(dataColumn.value());
-                        int cpus = decoder.decodeNextInt();
-                        long maxHeap = decoder.decodeNextLong();
-                        int numIpc = decoder.decodeNextInt();
-                        long localReadLatency = decoder.decodeNextLong();
-                        long remoteReadLatency = decoder.decodeNextLong();
-                        long writeLatency = decoder.decodeNextLong();
+                        MultiFieldDecoder fieldDecoder = decoder.get();
+                        fieldDecoder.set(dataColumn.key());
+                        String hostname = fieldDecoder.decodeNextString();
 
+                        decoder.set(dataColumn.value());
+                        fieldDecoder = decoder.get();
+                        int cpus = fieldDecoder.decodeNextInt();
+                        long maxHeap = fieldDecoder.decodeNextLong();
+                        int numIpc = fieldDecoder.decodeNextInt();
                         PhysicalStatsDescriptor statsDescriptor = new PhysicalStatsDescriptor(hostname,
                                 cpus,
                                 maxHeap,
-                                numIpc,
-                                localReadLatency,
-                                remoteReadLatency,
-                                writeLatency);
+                                numIpc);
                         physicalStatisticsCache.put(hostname,statsDescriptor);
                     }
                     arrayListDeferred = scanner.nextRows();

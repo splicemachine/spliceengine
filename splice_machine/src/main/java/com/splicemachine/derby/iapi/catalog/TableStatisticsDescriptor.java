@@ -16,6 +16,9 @@ public class TableStatisticsDescriptor extends TupleDescriptor {
     private long partitionSize;
     private long rowCount;
     private boolean inProgress;
+    private long totalLocalReadLatency;
+    private long totalRemoteReadLatency;
+    private long totalWriteLatency;
 
     public TableStatisticsDescriptor(long conglomerateId,
                                      String partitionId,
@@ -25,7 +28,10 @@ public class TableStatisticsDescriptor extends TupleDescriptor {
                                      long rowCount,
                                      long partitionSize,
                                      int meanRowWidth,
-                                     long queryCount) {
+                                     long queryCount,
+                                     long totalLocalReadLatency,
+                                     long totalRemoteReadLatency,
+                                     long totalWriteLatency) {
         this.conglomerateId = conglomerateId;
         this.partitionId = partitionId;
         this.timestamp = timestamp;
@@ -35,6 +41,9 @@ public class TableStatisticsDescriptor extends TupleDescriptor {
         this.partitionSize = partitionSize;
         this.rowCount = rowCount;
         this.inProgress = inProgress;
+        this.totalLocalReadLatency = totalLocalReadLatency;
+        this.totalRemoteReadLatency = totalRemoteReadLatency;
+        this.totalWriteLatency = totalWriteLatency;
     }
 
     public long getConglomerateId() { return conglomerateId; }
@@ -45,6 +54,8 @@ public class TableStatisticsDescriptor extends TupleDescriptor {
     public long getQueryCount() { return queryCount; }
     public long getPartitionSize() { return partitionSize; }
     public long getRowCount() { return rowCount; }
-
+    public long getLocalReadLatency() {  return totalLocalReadLatency; }
+    public long getRemoteReadLatency() { return totalRemoteReadLatency; }
+    public long getWriteLatency() { return totalWriteLatency; }
     public boolean isInProgress() { return inProgress; }
 }

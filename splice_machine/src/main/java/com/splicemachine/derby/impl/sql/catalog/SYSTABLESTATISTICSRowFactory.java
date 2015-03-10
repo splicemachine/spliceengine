@@ -31,6 +31,9 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
     private static final int PARTITION_SIZE = 7;
     private static final int MEANROWWIDTH= 8;
     private static final int QUERYCOUNT = 9;
+    private static final int LOCALREADLATENCY = 10;
+    private static final int REMOTEREADLATENCY = 11;
+    private static final int WRITELATENCY = 12;
 
     private String[] uuids = {
             "08264012-014b-c29b-a826-000003009390",
@@ -53,6 +56,9 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
         long partitionSize = 0;
         int meanRowWidth=0;
         long queryCount = 0;
+        long localReadLatencyMicros = 0;
+        long remoteReadLatencyMicros = 0;
+        long writeLatencyMicros = 0;
 
         if(td!=null){
             TableStatisticsDescriptor tsd = (TableStatisticsDescriptor)td;
@@ -65,6 +71,9 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
             partitionSize = tsd.getPartitionSize();
             meanRowWidth = tsd.getMeanRowWidth();
             queryCount = tsd.getQueryCount();
+            localReadLatencyMicros = tsd.getLocalReadLatency();
+            remoteReadLatencyMicros = tsd.getRemoteReadLatency();
+            writeLatencyMicros = tsd.getWriteLatency();
         }
 
         ExecRow row = getExecutionFactory().getValueRow(SYSTABLESTATISTICS_COLUMN_COUNT);
@@ -77,6 +86,9 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
         row.setColumn(PARTITION_SIZE,new SQLLongint(partitionSize));
         row.setColumn(MEANROWWIDTH,new SQLInteger(meanRowWidth));
         row.setColumn(QUERYCOUNT,new SQLLongint(queryCount));
+        row.setColumn(LOCALREADLATENCY,new SQLLongint(localReadLatencyMicros));
+        row.setColumn(REMOTEREADLATENCY,new SQLLongint(remoteReadLatencyMicros));
+        row.setColumn(WRITELATENCY,new SQLLongint(writeLatencyMicros));
         return row;
     }
 
@@ -105,6 +117,12 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
         int rowWidth = col.getInt();
         col = row.getColumn(QUERYCOUNT);
         long queryCount = col.getLong();
+        col = row.getColumn(LOCALREADLATENCY);
+        long localReadLatency = col.getLong();
+        col = row.getColumn(REMOTEREADLATENCY);
+        long remoteReadLatency = col.getLong();
+        col = row.getColumn(WRITELATENCY);
+        long writeLatency = col.getLong();
 
         return new TableStatisticsDescriptor(conglomId,
                 partitionId,
@@ -114,7 +132,10 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
                 rowCount,
                 partitionSize,
                 rowWidth,
-                queryCount);
+                queryCount,
+                localReadLatency,
+                remoteReadLatency,
+                writeLatency);
     }
 
     @Override
@@ -128,7 +149,10 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
                 SystemColumnImpl.getColumn("ROWCOUNT",Types.BIGINT,true),
                 SystemColumnImpl.getColumn("PARTITION_SIZE",Types.BIGINT,true),
                 SystemColumnImpl.getColumn("MEANROWWIDTH",Types.INTEGER,true),
-                SystemColumnImpl.getColumn("QUERYCOUNT",Types.BIGINT,true)
+                SystemColumnImpl.getColumn("QUERYCOUNT",Types.BIGINT,true),
+                SystemColumnImpl.getColumn("LOCALREADLATENCY",Types.BIGINT,true),
+                SystemColumnImpl.getColumn("REMOTEREADLATENCY",Types.BIGINT,true),
+                SystemColumnImpl.getColumn("WRITELATENCY",Types.BIGINT,true)
         };
     }
 
@@ -141,30 +165,36 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
         DataTypeDescriptor varcharType = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR);
         DataTypeDescriptor longType = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT);
         return new ColumnDescriptor[]{
-                new ColumnDescriptor("SCHEMANAME"         ,1,varcharType,null,null,view,viewId,0,0),
-                new ColumnDescriptor("TABLENAME"          ,2,varcharType,null,null,view,viewId,0,0),
-                new ColumnDescriptor("TOTAL_ROW_COUNT"    ,3,longType,null,null,view,viewId,0,0),
-                new ColumnDescriptor("AVG_ROW_COUNT"      ,4,longType,null,null,view,viewId,0,0),
-                new ColumnDescriptor("TOTAL_SIZE"         ,5,longType,null,null,view,viewId,0,0),
-                new ColumnDescriptor("NUM_PARTITIONS"     ,6,longType,null,null,view,viewId,0,0),
-                new ColumnDescriptor("AVG_PARTITION_SIZE" ,7,longType,null,null,view,viewId,0,0),
-                new ColumnDescriptor("ROW_WIDTH"          ,8,longType,null,null,view,viewId,0,0),
-                new ColumnDescriptor("TOTAL_QUERY_COUNT"  ,9,longType,null,null,view,viewId,0,0),
-                new ColumnDescriptor("AVG_QUERY_COUNT"    ,10,longType,null,null,view,viewId,0,0),
+                new ColumnDescriptor("SCHEMANAME"               ,1,varcharType,null,null,view,viewId,0,0),
+                new ColumnDescriptor("TABLENAME"                ,2,varcharType,null,null,view,viewId,0,0),
+                new ColumnDescriptor("TOTAL_ROW_COUNT"          ,3,longType,null,null,view,viewId,0,0),
+                new ColumnDescriptor("AVG_ROW_COUNT"            ,4,longType,null,null,view,viewId,0,0),
+                new ColumnDescriptor("TOTAL_SIZE"               ,5,longType,null,null,view,viewId,0,0),
+                new ColumnDescriptor("NUM_PARTITIONS"           ,6,longType,null,null,view,viewId,0,0),
+                new ColumnDescriptor("AVG_PARTITION_SIZE"       ,7,longType,null,null,view,viewId,0,0),
+                new ColumnDescriptor("ROW_WIDTH"                ,8,longType,null,null,view,viewId,0,0),
+                new ColumnDescriptor("TOTAL_QUERY_COUNT"        ,9,longType,null,null,view,viewId,0,0),
+                new ColumnDescriptor("AVG_QUERY_COUNT"          ,10,longType,null,null,view,viewId,0,0),
+                new ColumnDescriptor("AVG_LOCAL_READ_LATENCY"   ,11,longType,null,null,view,viewId,0,0),
+                new ColumnDescriptor("AVG_REMOTE_READ_LATENCY"  ,12,longType,null,null,view,viewId,0,0),
+                new ColumnDescriptor("AVG_WRITE_LATENCY"        ,13,longType,null,null,view,viewId,0,0),
         };
     }
 
     public static final String STATS_VIEW_SQL = "create view systablestatistics as select " +
             "s.schemaname" +
-            ",t.tablename" + // 0
-            ",sum(ts.rowCount) as TOTAL_ROW_COUNT" +  //1
-            ",avg(ts.rowCount) as AVG_ROW_COUNT" +      //2
-            ",sum(ts.partition_size) as TOTAL_SIZE" + //3
-            ",count(ts.rowCount) as NUM_PARTITIONS" + //4
-            ",avg(ts.partition_size) as AVG_PARTITION_SIZE" + //5
-            ",max(ts.meanrowWidth) as ROW_WIDTH" + //6
-            ",sum(ts.queryCount) as TOTAL_QUERY_COUNT" + //7
-            ",avg(ts.queryCount) as AVG_QUERY_COUNT" + //8
+            ",t.tablename" + // 1
+            ",sum(ts.rowCount) as TOTAL_ROW_COUNT" +  //2
+            ",avg(ts.rowCount) as AVG_ROW_COUNT" +      //3
+            ",sum(ts.partition_size) as TOTAL_SIZE" + //4
+            ",count(ts.rowCount) as NUM_PARTITIONS" + //5
+            ",avg(ts.partition_size) as AVG_PARTITION_SIZE" + //6
+            ",max(ts.meanrowWidth) as ROW_WIDTH" + //7
+            ",sum(ts.queryCount) as TOTAL_QUERY_COUNT" + //8
+            ",avg(ts.queryCount) as AVG_QUERY_COUNT" + //9
+            ",avg(ts.localReadLatency/ts.rowCount) as AVG_LOCAL_READ_LATENCY" + //10
+            ",avg(ts.remoteReadLatency/ts.rowCount) as AVG_REMOTE_READ_LATENCY" + //11
+            ",avg(ts.writeLatency/ts.rowCount) as AVG_WRITE_LATENCY" + //12
             " from " +
             "sys.systables t" +
             ",sys.sysschemas s" +

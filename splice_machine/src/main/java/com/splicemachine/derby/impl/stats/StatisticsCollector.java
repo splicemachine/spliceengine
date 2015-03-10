@@ -114,12 +114,13 @@ public class StatisticsCollector {
 
             String tableId = txnRegion.getTableName();
             String regionId = txnRegion.getRegionName();
+            long localReadTimeMicros = readTime.getWallClockTime() / 1000; //scale to microseconds
             return new SimplePartitionStatistics(tableId,regionId,
                     rowCount,
                     byteCount,
                     0l, //TODO -sf- get Query count for this region
-                    readTime.getWallClockTime(),
-                    rowCount>0?readTime.getWallClockTime():0l,
+                    localReadTimeMicros,
+                    rowCount>0? localReadTimeMicros :0l,
                     columnStats);
         } catch (StandardException | IOException e) {
             throw new ExecutionException(e); //should only be IOExceptions

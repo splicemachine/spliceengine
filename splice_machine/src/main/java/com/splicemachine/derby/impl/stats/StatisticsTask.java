@@ -274,19 +274,16 @@ public class StatisticsTask extends ZkTask{
             byte[] key = Encoding.encode(InetAddress.getLocalHost().getHostName());
             Runtime runtime = Runtime.getRuntime();
             BitSet nonNullFields = new BitSet(6);
-            nonNullFields.set(1,7);
+            nonNullFields.set(1,4);
             BitSet scalarFields = new BitSet(6);
-            scalarFields.set(1,7);
+            scalarFields.set(1,4);
             BitSet empty = BitSet.newInstance();
             EntryEncoder rowEncoder = EntryEncoder.create(SpliceKryoRegistry.getInstance(),6,nonNullFields,scalarFields,empty,empty);
             try(CallBuffer<KVPair> buffer = SpliceDriver.driver().getTableWriter().writeBuffer(Long.toString(physStatsConglomerate).getBytes(),getTxn())){
                 MultiFieldEncoder encoder = rowEncoder.getEntryEncoder();
                 encoder.encodeNext(runtime.availableProcessors())
                         .encodeNext(runtime.maxMemory())
-                        .encodeNext(SpliceConstants.ipcThreads)
-                        .encodeNext(collected.localReadLatency())
-                        .encodeNext(collected.remoteReadLatency())
-                        .encodeNext(collected.remoteReadLatency()); //TODO -sf- implement write latency values!
+                        .encodeNext(SpliceConstants.ipcThreads);
 
                 //write the data
                 KVPair kvPair = new KVPair(key,rowEncoder.encode(), KVPair.Type.UPSERT);
@@ -309,14 +306,14 @@ public class StatisticsTask extends ZkTask{
         byte[] rowKey = keyEncoder.build();
 
         BitSet nonNullRowFields = new BitSet();
-        nonNullRowFields.set(2,9);
+        nonNullRowFields.set(2,12);
         BitSet scalarFields = new BitSet();
         scalarFields.set(2);
-        scalarFields.set(5,9);
+        scalarFields.set(5,12);
 
         BitSet floatFields = new BitSet();
         BitSet doubleFields = floatFields;
-        EntryEncoder rowEncoder = EntryEncoder.create(SpliceKryoRegistry.getInstance(),7,nonNullRowFields,scalarFields,floatFields,doubleFields);
+        EntryEncoder rowEncoder = EntryEncoder.create(SpliceKryoRegistry.getInstance(),11,nonNullRowFields,scalarFields,floatFields,doubleFields);
 
         try(CallBuffer<KVPair> buffer = SpliceDriver.driver().getTableWriter().writeBuffer(Long.toString(tableStatsConglomerate).getBytes(),getTxn())){
             MultiFieldEncoder rEncoder = rowEncoder.getEntryEncoder();
@@ -329,7 +326,10 @@ public class StatisticsTask extends ZkTask{
                     .encodeNext(collected.rowCount())
                     .encodeNext(collected.totalSize())
                     .encodeNext(collected.avgRowWidth())
-                    .encodeNext(collected.queryCount());
+                    .encodeNext(collected.queryCount())
+                    .encodeNext(collected.localReadTime())
+                    .encodeNext(collected.remoteReadTime())
+                    .encodeNext(collected.remoteReadTime()); //TODO -sf- add in write latency
 
             byte[] row = rowEncoder.encode();
 
