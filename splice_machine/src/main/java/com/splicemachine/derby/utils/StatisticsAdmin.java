@@ -1,16 +1,19 @@
 package com.splicemachine.derby.utils;
 
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.stats.StatisticsJob;
 import com.splicemachine.derby.impl.stats.StatisticsStorage;
 import com.splicemachine.derby.impl.stats.StatisticsTask;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
+import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.hbase.regioninfocache.HBaseRegionCache;
 import com.splicemachine.hbase.regioninfocache.RegionCache;
 import com.splicemachine.job.JobFuture;
+import com.splicemachine.job.JobScheduler;
 import com.splicemachine.pipeline.exception.ErrorState;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.TxnView;
@@ -129,34 +132,66 @@ public class StatisticsAdmin {
                 //TODO -sf- make this a warning
             }
 
-
-            Collection<HRegionInfo> regionsToCollect = getCollectedRegions(conn,tableDesc.getHeapConglomerateId(), staleOnly);
-            StatisticsJob job = getStatisticsJob(conn,tableDesc, colsToCollect, regionsToCollect);
-            JobFuture jobFuture = SpliceDriver.driver().getJobScheduler().submit(job);
-            jobFuture.completeAll(null);
-
-            List<TaskStats> taskStats = jobFuture.getJobStats().getTaskStats();
-            long totalRows = 0l;
-            for( TaskStats stats:taskStats){
-                totalRows+=stats.getTotalRowsProcessed();
-            }
-
             ExecRow outputRow =  new ValueRow(COLLECTED_STATS_OUTPUT_COLUMNS.length);
             DataValueDescriptor[] dvds = new DataValueDescriptor[COLLECTED_STATS_OUTPUT_COLUMNS.length];
             for(int i=0;i<dvds.length;i++){
                 dvds[i] = COLLECTED_STATS_OUTPUT_COLUMNS[i].getType().getNull();
             }
-            outputRow.setRowArray(dvds);
             dvds[0].setValue(schema);
-            dvds[1].setValue(table);
-            dvds[2].setValue(regionsToCollect.size());
-            dvds[3].setValue(taskStats.size());
-            dvds[4].setValue(totalRows);
 
-            StatisticsStorage.getPartitionStore().invalidateCachedStatistics(tableDesc.getHeapConglomerateId());
+            //get the indices for the table
+            IndexLister indexLister = tableDesc.getIndexLister();
+            IndexRowGenerator[] indexGenerators;
+            if(indexLister!=null) {
+                indexGenerators = indexLister.getDistinctIndexRowGenerators();
+            }else
+                indexGenerators = new IndexRowGenerator[]{};
+
+            //submit the base job
+            long heapConglomerateId = tableDesc.getHeapConglomerateId();
+            Collection<HRegionInfo> regionsToCollect = getCollectedRegions(conn, heapConglomerateId, staleOnly);
+            int partitionSize = regionsToCollect.size();
+            dvds[1].setValue(table);
+            dvds[2].setValue(partitionSize);
+            outputRow.setRowArray(dvds);
+
+            JobScheduler<CoprocessorJob> jobScheduler = SpliceDriver.driver().getJobScheduler();
+            TransactionController transactionExecute = conn.getLanguageConnection().getTransactionExecute();
+            transactionExecute.elevate("statistics");
+            TxnView txn = ((SpliceTransactionManager) transactionExecute).getRawTransaction().getActiveStateTxn();
+            List<Pair<ExecRow,JobFuture>> collectionFutures = new ArrayList<>(indexGenerators.length+1);
+            StatisticsJob job = getBaseTableStatisticsJob(conn, tableDesc, colsToCollect, regionsToCollect, txn);
+            JobFuture jobFuture = jobScheduler.submit(job);
+            collectionFutures.add(new Pair<>(outputRow.getClone(), jobFuture));
+
+            //submit all index collection jobs
+            if(indexGenerators.length>0) {
+                long[] indexConglomIds = indexLister.getDistinctIndexConglomerateNumbers();
+                String[] distinctIndexNames = indexLister.getDistinctIndexNames();
+                for (int i = 0; i < indexGenerators.length; i++) {
+                    IndexRowGenerator irg = indexGenerators[i];
+                    long indexConglomId = indexConglomIds[i];
+                    Collection<HRegionInfo> indexRegions = getCollectedRegions(conn, indexConglomId, staleOnly);
+                    StatisticsJob indexJob = getIndexJob(irg, indexConglomId, heapConglomerateId, tableDesc, indexRegions, txn);
+                    JobFuture future = jobScheduler.submit(indexJob);
+                    outputRow.getColumn(2).setValue(distinctIndexNames[i]);
+                    collectionFutures.add(new Pair<>(outputRow.getClone(),future));
+                }
+            }
+
+            List<ExecRow> rows = new ArrayList<>(collectionFutures.size());
+            for(Pair<ExecRow,JobFuture> row:collectionFutures){
+                ExecRow statusRow = row.getFirst();
+                completeJob(statusRow,row.getSecond());
+                rows.add(statusRow);
+            }
+
+            //invalidate statistics stored in the cache, since we know we have new data
+            if(StatisticsStorage.isStoreRunning())
+                StatisticsStorage.getPartitionStore().invalidateCachedStatistics(heapConglomerateId);
 
             Activation lastActivation = conn.getLanguageConnection().getLastActivation();
-            IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(Arrays.asList(outputRow),COLLECTED_STATS_OUTPUT_COLUMNS,lastActivation);
+            IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows,COLLECTED_STATS_OUTPUT_COLUMNS,lastActivation);
             resultsToWrap.openCore();
 
             outputResults[0] = new EmbedResultSet40(conn,resultsToWrap,false,null,true);
@@ -173,10 +208,59 @@ public class StatisticsAdmin {
     /* ****************************************************************************************************************/
     /*private helper methods*/
 
-    private static StatisticsJob getStatisticsJob(EmbedConnection conn,
-                                                  TableDescriptor tableDesc,
-                                                  List<ColumnDescriptor> colsToCollect,
-                                                  Collection<HRegionInfo> regionsToCollect) throws StandardException {
+
+    private static void completeJob(ExecRow outputRow, JobFuture jobFuture) throws ExecutionException, InterruptedException, StandardException {
+        jobFuture.completeAll(null);
+
+        List<TaskStats> taskStats = jobFuture.getJobStats().getTaskStats();
+        long totalRows = 0l;
+        for( TaskStats stats:taskStats){
+            totalRows+=stats.getTotalRowsProcessed();
+        }
+
+        outputRow.getColumn(4).setValue(taskStats.size());
+        outputRow.getColumn(5).setValue(totalRows);
+    }
+
+    private static StatisticsJob getIndexJob(IndexRowGenerator irg,
+                                             long indexConglomerateId,
+                                             long heapConglomerateId,
+                                             TableDescriptor tableDesc,
+                                             Collection<HRegionInfo> indexRegions,
+                                             TxnView baseTxn) {
+        ExecRow indexRow = new ValueRow(1);
+        indexRow.getRowArray()[0] = new HBaseRowLocation();
+        int[] rowDecodingMap = new int[2];
+        rowDecodingMap[1] = 0;
+
+        String jobId = "Statistics-"+SpliceDriver.driver().getUUIDGenerator().nextUUID();
+        StatisticsTask baseTask = new StatisticsTask(jobId,indexRow,
+                rowDecodingMap,
+                rowDecodingMap,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                heapConglomerateId,
+                tableDesc.getVersion());
+
+        HTableInterface table = SpliceAccessManager.getHTable(Long.toString(indexConglomerateId).getBytes());
+        //elevate the parent transaction with both tables
+        List<Pair<byte[],byte[]>> regionBounds = new ArrayList<>(indexRegions.size());
+        for(HRegionInfo info:indexRegions){
+            regionBounds.add(Pair.newPair(info.getStartKey(),info.getEndKey()));
+        }
+
+        return new StatisticsJob(regionBounds,table,baseTask,baseTxn);
+    }
+
+    private static StatisticsJob getBaseTableStatisticsJob(EmbedConnection conn,
+                                                           TableDescriptor tableDesc,
+                                                           List<ColumnDescriptor> colsToCollect,
+                                                           Collection<HRegionInfo> regionsToCollect,
+                                                           TxnView baseTxn) throws StandardException {
         ExecRow row = new ValueRow(colsToCollect.size());
         BitSet accessedColumns = new BitSet(tableDesc.getNumberOfColumns());
         int outputCol = 0;
@@ -239,14 +323,12 @@ public class StatisticsAdmin {
 
         HTableInterface table = SpliceAccessManager.getHTable(tableDesc.getHeapConglomerateId());
         //elevate the parent transaction with both tables
-        transactionExecute.elevate("statistics");
-        TxnView txn = ((SpliceTransactionManager) transactionExecute).getRawTransaction().getActiveStateTxn();
         List<Pair<byte[],byte[]>> regionBounds = new ArrayList<>(regionsToCollect.size());
         for(HRegionInfo info:regionsToCollect){
             regionBounds.add(Pair.newPair(info.getStartKey(),info.getEndKey()));
         }
 
-        return new StatisticsJob(regionBounds,table,baseTask,txn);
+        return new StatisticsJob(regionBounds,table,baseTask,baseTxn);
     }
 
     private static TableDescriptor verifyTableExists(Connection conn,String schema, String table) throws SQLException, StandardException {

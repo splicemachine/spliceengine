@@ -102,7 +102,7 @@ public class IndexConglomerate extends SpliceConglomerate {
         }
 
         // Check input arguments
-        allowDuplicates = (Boolean.valueOf(properties.getProperty(PROPERTY_ALLOWDUPLICATES, "false"))).booleanValue();
+        allowDuplicates = Boolean.valueOf(properties.getProperty(PROPERTY_ALLOWDUPLICATES, "false"));
 
         property_value = properties.getProperty(PROPERTY_NKEYFIELDS);
         if (property_value == null)
@@ -122,8 +122,8 @@ public class IndexConglomerate extends SpliceConglomerate {
         }
 
         property_value = properties.getProperty(PROPERTY_UNIQUE_WITH_DUPLICATE_NULLS, "false");
-        uniqueWithDuplicateNulls = new Boolean (property_value).booleanValue();
-        maintainParentLinks = (Boolean.valueOf(properties.getProperty(PROPERTY_PARENTLINKS, "true"))).booleanValue();
+        uniqueWithDuplicateNulls = Boolean.valueOf(property_value);
+        maintainParentLinks = Boolean.valueOf(properties.getProperty(PROPERTY_PARENTLINKS, "true"));
 
         if (SanityManager.DEBUG) {
             SanityManager.ASSERT((nUniqueColumns == nKeyFields) || (nUniqueColumns == (nKeyFields - 1)));
@@ -355,7 +355,11 @@ public class IndexConglomerate extends SpliceConglomerate {
             Transaction         rawtran)
             throws StandardException {
         SpliceLogUtils.trace(LOG, "openStoreCost: %s", id);
-        OpenSpliceConglomerate open_conglom = new OpenSpliceConglomerate(xact_manager,rawtran,false,ContainerHandle.MODE_READONLY,TransactionController.MODE_TABLE,(LockingPolicy) null,(StaticCompiledOpenConglomInfo) null,(DynamicCompiledOpenConglomInfo) null, this);
+        OpenSpliceConglomerate open_conglom = new OpenSpliceConglomerate(xact_manager,
+                rawtran,
+                false,
+                ContainerHandle.MODE_READONLY,
+                TransactionController.MODE_TABLE, null, null, null, this);
         IndexCostController hbasecost = new IndexCostController(open_conglom);
         return(hbasecost);
     }

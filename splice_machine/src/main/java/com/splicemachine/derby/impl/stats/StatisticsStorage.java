@@ -37,6 +37,10 @@ public class StatisticsStorage {
 
     private static final AtomicBoolean runState = new AtomicBoolean(false);
 
+    public static boolean isStoreRunning(){
+        return runState.get();
+    }
+
     public static PartitionStatsStore getPartitionStore(){
         if(!runState.get()) throw new IllegalStateException("Cannot get Partition Store, system has not booted yet");
 

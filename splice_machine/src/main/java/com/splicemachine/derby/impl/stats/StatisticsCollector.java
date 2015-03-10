@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl.stats;
 
-import com.google.common.base.Supplier;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.hbase.MeasuredRegionScanner;
@@ -31,7 +30,7 @@ import java.util.concurrent.ExecutionException;
  *         Date: 2/26/15
  */
 public class StatisticsCollector {
-    private final TxnView txn;
+    protected final TxnView txn;
     private final ExecRow template;
     private final Scan partitionScan;
     private final int[] rowDecodingMap;
@@ -88,25 +87,14 @@ public class StatisticsCollector {
 
     @SuppressWarnings("unchecked")
     public PartitionStatistics collect() throws ExecutionException {
-        List<ColumnStatistics> columnStats;
         try(SITableScanner scanner = getTableScanner()){
             ColumnStatsCollector<DataValueDescriptor>[] dvdCollectors = getCollectors();
             int[] fieldLengths = new int[dvdCollectors.length];
             ExecRow row;
             while((row = scanner.next(null))!=null){
-                scanner.recordFieldLengths(fieldLengths); //get the size of each column
-                DataValueDescriptor[] dvds = row.getRowArray();
-                for (int i = 0; i < dvds.length; i++) {
-                    DataValueDescriptor dvd = dvds[i];
-                    dvdCollectors[i].update(dvd);
-                    dvdCollectors[i].updateSize(fieldLengths[i]);
-                }
+                updateRow(scanner, dvdCollectors, fieldLengths, row);
             }
-
-            columnStats = new ArrayList<>(dvdCollectors.length);
-            for(int i=0;i<dvdCollectors.length;i++){
-                columnStats.add(dvdCollectors[i].build());
-            }
+            List<ColumnStatistics> columnStats = getFinalColumnStats(dvdCollectors);
 
             TimeView readTime = scanner.getTime();
             long byteCount = scanner.getBytesVisited();
@@ -115,35 +103,78 @@ public class StatisticsCollector {
             String tableId = txnRegion.getTableName();
             String regionId = txnRegion.getRegionName();
             long localReadTimeMicros = readTime.getWallClockTime() / 1000; //scale to microseconds
+            long remoteReadTimeMicros = getRemoteReadTime(rowCount);
+            if(remoteReadTimeMicros<0)
+                remoteReadTimeMicros = localReadTimeMicros;
+            else
+                remoteReadTimeMicros/=1000;
             return new SimplePartitionStatistics(tableId,regionId,
                     rowCount,
                     byteCount,
                     0l, //TODO -sf- get Query count for this region
                     localReadTimeMicros,
-                    rowCount>0? localReadTimeMicros :0l,
+                    remoteReadTimeMicros,
                     columnStats);
         } catch (StandardException | IOException e) {
             throw new ExecutionException(e); //should only be IOExceptions
+        }finally{
+            closeResources();
+        }
+    }
+
+    protected void closeResources() {
+
+    }
+
+    protected void updateRow(SITableScanner scanner,
+                             ColumnStatsCollector<DataValueDescriptor>[] dvdCollectors,
+                             int[] fieldLengths,
+                             ExecRow row) throws StandardException, IOException {
+        scanner.recordFieldLengths(fieldLengths); //get the size of each column
+        DataValueDescriptor[] dvds = row.getRowArray();
+        for (int i = 0; i < dvds.length; i++) {
+            DataValueDescriptor dvd = dvds[i];
+            dvdCollectors[i].update(dvd);
+            dvdCollectors[i].updateSize(fieldLengths[i]);
+        }
+    }
+
+    protected long getRemoteReadTime(long rowCount) {
+        return -1;
+    }
+
+    protected List<ColumnStatistics> getFinalColumnStats(ColumnStatsCollector<DataValueDescriptor>[] dvdCollectors) {
+        List<ColumnStatistics> columnStats;
+        columnStats = new ArrayList<>(dvdCollectors.length);
+        for (int i = 0; i < dvdCollectors.length; i++) {
+            columnStats.add(dvdCollectors[i].build());
+        }
+        return columnStats;
+    }
+
+    protected void populateCollectors(DataValueDescriptor[] dvds, ColumnStatsCollector<DataValueDescriptor>[] collectors) {
+        int cardinalityPrecision = StatsConstants.cardinalityPrecision;
+        int topKSize = StatsConstants.topKSize;
+        for(int i=0;i<dvds.length;i++){
+            DataValueDescriptor dvd = dvds[i];
+            int columnId = columnPositionMap[i];
+            int columnLength = lengths[i];
+            collectors[i] = DvdStatsCollector.newCollector(columnId, dvd.getTypeFormatId(), columnLength, cardinalityPrecision, topKSize);
         }
     }
 
     /* ****************************************************************************************************************/
     /*private helper methods*/
+
     @SuppressWarnings("unchecked")
     private ColumnStatsCollector<DataValueDescriptor>[] getCollectors() {
-        int cardinalityPrecision = StatsConstants.cardinalityPrecision;
-        int topKSize = StatsConstants.topKSize;
         DataValueDescriptor[] dvds = template.getRowArray();
         ColumnStatsCollector<DataValueDescriptor> [] collectors = new ColumnStatsCollector[dvds.length];
-        for(int i=0;i<dvds.length;i++){
-            DataValueDescriptor dvd = dvds[i];
-            int columnId = columnPositionMap[i];
-            int columnLength = lengths[i];
-            collectors[i] = DvdStatsCollector.newCollector(columnId,dvd.getTypeFormatId(),columnLength,cardinalityPrecision,topKSize);
-        }
+        populateCollectors(dvds, collectors);
         return collectors;
     }
 
+    @SuppressWarnings("unchecked")
     private SITableScanner getTableScanner() {
         return new TableScannerBuilder()
                 .transaction(txn)
