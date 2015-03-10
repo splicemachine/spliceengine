@@ -46,7 +46,7 @@ public class RDDUtils {
         }
     }
 
-    public static ExecRow getKey(ExecRow row, int[] keyColumns) throws Exception {
+    public static ExecRow getKey(ExecRow row, int[] keyColumns) throws StandardException {
         ValueRow key = new ValueRow(keyColumns.length);
         int position = 1;
         for (int keyColumn : keyColumns) {
