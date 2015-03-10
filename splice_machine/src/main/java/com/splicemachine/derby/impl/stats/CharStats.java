@@ -47,7 +47,7 @@ public class CharStats extends StringStatistics {
         }
     }
 
-    private static final Function<FrequencyEstimate<String>,FrequencyEstimate<DataValueDescriptor>> conversionFunction = new Function<FrequencyEstimate<String>, FrequencyEstimate<DataValueDescriptor>>() {
+    static final Function<FrequencyEstimate<String>,FrequencyEstimate<DataValueDescriptor>> conversionFunction = new Function<FrequencyEstimate<String>, FrequencyEstimate<DataValueDescriptor>>() {
         @Override
         public FrequencyEstimate<DataValueDescriptor> apply(FrequencyEstimate<String> stringFrequencyEstimate) {
             return new CharFreq(stringFrequencyEstimate);

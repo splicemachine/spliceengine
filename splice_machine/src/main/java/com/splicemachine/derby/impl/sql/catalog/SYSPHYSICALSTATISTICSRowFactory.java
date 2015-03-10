@@ -19,7 +19,7 @@ import java.sql.Types;
  *         Date: 2/25/15
  */
 public class SYSPHYSICALSTATISTICSRowFactory extends CatalogRowFactory {
-    private static final String TABLENAME_STRING = "SYSPHYSICALSTATS";
+    public static final String TABLENAME_STRING = "SYSPHYSICALSTATS";
     private static final int COLUMN_COUNT = 7;
     private static final int HOSTNAME           = 1;
     private static final int NUMCPUS            = 2;

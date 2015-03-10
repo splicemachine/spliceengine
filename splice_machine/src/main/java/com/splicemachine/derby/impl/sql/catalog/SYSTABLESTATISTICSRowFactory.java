@@ -20,7 +20,7 @@ import java.util.Properties;
  *         Date: 2/25/15
  */
 public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
-    private static final String TABLENAME_STRING = "SYSTABLESTATS";
+    public static final String TABLENAME_STRING = "SYSTABLESTATS";
     private static final int SYSTABLESTATISTICS_COLUMN_COUNT = 9;
     private static final int CONGLOMID = 1;
     private static final int PARTITIONID = 2;

@@ -64,7 +64,7 @@ public class NumericStats extends BaseDvdStatistics{
 
     /* ****************************************************************************************************************/
     /*private helper methods*/
-    private class Freqs implements FrequentElements<DataValueDescriptor> {
+    static class Freqs implements FrequentElements<DataValueDescriptor> {
         private FrequentElements<BigDecimal> frequentElements;
 
         public Freqs(FrequentElements<BigDecimal> freqs) {
@@ -176,7 +176,7 @@ public class NumericStats extends BaseDvdStatistics{
         }
     };
 
-    private static class NumericDistribution implements Distribution<DataValueDescriptor> {
+    static class NumericDistribution implements Distribution<DataValueDescriptor> {
         private ColumnStatistics<BigDecimal> baseStats;
 
         public NumericDistribution(ColumnStatistics<BigDecimal> baseStats) {

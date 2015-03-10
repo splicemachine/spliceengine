@@ -37,7 +37,7 @@ public class VarcharStats extends StringStatistics {
         @Override protected DataValueDescriptor getDvd(String value) { return new SQLVarchar(value); }
     }
 
-    private static final Function<FrequencyEstimate<String>,FrequencyEstimate<DataValueDescriptor>> conversionFunction
+    static final Function<FrequencyEstimate<String>,FrequencyEstimate<DataValueDescriptor>> conversionFunction
                                     = new Function<FrequencyEstimate<String>, FrequencyEstimate<DataValueDescriptor>>() {
         @Override
         public FrequencyEstimate<DataValueDescriptor> apply(FrequencyEstimate<String> stringFrequencyEstimate) {

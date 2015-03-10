@@ -1,7 +1,11 @@
 package com.splicemachine.derby.impl.store.access;
 
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.impl.stats.StatisticsStorage;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
+import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.stats.TableStatistics;
 import com.splicemachine.stats.estimate.Distribution;
 import com.splicemachine.utils.Pair;
@@ -16,6 +20,7 @@ import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.impl.store.access.conglomerate.GenericController;
 
 import java.util.Arrays;
+import java.util.concurrent.ExecutionException;
 
 /**
  * A Cost Controller which uses underlying Statistics information to estimate the cost of a scan.
@@ -23,13 +28,31 @@ import java.util.Arrays;
  * @author Scott Fines
  *         Date: 3/4/15
  */
-public class StatsCostController extends GenericController implements StoreCostController{
+public class StatsStoreCostController extends GenericController implements StoreCostController{
     private TableStatistics tableStatistics;
     private OpenSpliceConglomerate baseConglomerate;
+
+    public StatsStoreCostController(OpenSpliceConglomerate baseConglomerate) throws StandardException {
+        this.baseConglomerate = baseConglomerate;
+        BaseSpliceTransaction bst = (BaseSpliceTransaction)baseConglomerate.getTransaction();
+        TxnView txn = bst.getActiveStateTxn();
+        long conglomId = baseConglomerate.getConglomerate().getContainerid();
+
+        try {
+            this.tableStatistics = StatisticsStorage.getPartitionStore().getStatistics(txn, conglomId);
+        } catch (ExecutionException e) {
+            throw Exceptions.parseException(e);
+        }
+    }
 
     @Override
     public void close() throws StandardException {
 
+    }
+
+    @Override
+    public long getEstimatedRowCount() throws StandardException {
+        return tableStatistics.rowCount();
     }
 
     @Override
@@ -86,6 +109,18 @@ public class StatsCostController extends GenericController implements StoreCostC
         * the selectivity is rangeSelectivity(start,null) or rangeSelectivity(null,stop). The column
         * id for the keys is located in the conglomerate.
         */
+        if(startKeyValue==null && stopKeyValue==null){
+            /*
+             * There are no keys to scan, so we are doing a full table scan. We estimate
+             * that cost in a sequential manner, by taking rowCount*localReadLatency()
+             *
+             * TODO -sf- make a distinction about parallel reads here based on the fact that there
+             * may be multiple partitions
+             */
+            cost_result.setEstimatedRowCount(tableStatistics.rowCount());
+            cost_result.setEstimatedCost(tableStatistics.rowCount()*tableStatistics.remoteReadLatency());
+            return;
+        }
         int[] keyOrdering = baseConglomerate.getColumnOrdering();
         boolean[] sortOrdering = baseConglomerate.getAscDescInfo();
 

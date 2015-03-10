@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.stats;
 
 import com.google.common.base.Function;
 import com.splicemachine.stats.ColumnStatistics;
+import com.splicemachine.stats.CombinedShortColumnStatistics;
 import com.splicemachine.stats.ShortColumnStatistics;
 import com.splicemachine.stats.estimate.Distribution;
 import com.splicemachine.stats.estimate.ShortDistribution;
@@ -46,12 +47,12 @@ public class SmallintStats extends BaseDvdStatistics {
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
-        ShortColumnStatistics.encoder().encode(stats,out);
+        CombinedShortColumnStatistics.encoder().encode(stats,out);
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        baseStats = stats = ShortColumnStatistics.encoder().decode(in);
+        baseStats = stats = CombinedShortColumnStatistics.encoder().decode(in);
     }
 
     @Override
@@ -61,7 +62,7 @@ public class SmallintStats extends BaseDvdStatistics {
 
     /* ****************************************************************************************************************/
     /*private helper methods*/
-    private class ShortFreqs implements FrequentElements<DataValueDescriptor> {
+    static class ShortFreqs implements FrequentElements<DataValueDescriptor> {
         private ShortFrequentElements frequentElements;
 
         public ShortFreqs(ShortFrequentElements freqs) {
@@ -121,7 +122,7 @@ public class SmallintStats extends BaseDvdStatistics {
         }
     }
 
-    private static class ShortFreq implements FrequencyEstimate<DataValueDescriptor> {
+    public static class ShortFreq implements FrequencyEstimate<DataValueDescriptor> {
         private ShortFrequencyEstimate baseEstimate;
 
         public ShortFreq(ShortFrequencyEstimate intFrequencyEstimate) {
@@ -150,35 +151,42 @@ public class SmallintStats extends BaseDvdStatistics {
         }
     };
 
-    private static class ShortDist implements Distribution<DataValueDescriptor> {
-        private ShortColumnStatistics stats;
+    public static class ShortDist implements Distribution<DataValueDescriptor> {
+        private ShortDistribution distribution;
+        private long nullCount;
+
+        public ShortDist(long nullCount,ShortDistribution distribution) {
+            this.distribution = distribution;
+            this.nullCount = nullCount;
+        }
 
         public ShortDist(ShortColumnStatistics stats) {
-            this.stats = stats;
+            this.nullCount = stats.nullCount();
+            this.distribution = (ShortDistribution)stats.getDistribution();
         }
 
         @Override
         public long selectivity(DataValueDescriptor element) {
             if(element==null||element.isNull())
-                return stats.nullCount();
+                return nullCount;
             short s = safeGetShort(element);
-            return ((ShortDistribution)stats.getDistribution()).selectivity(s);
+            return distribution.selectivity(s);
         }
 
         @Override
         public long rangeSelectivity(DataValueDescriptor start, DataValueDescriptor stop, boolean includeStart, boolean includeStop) {
             if(start==null||start.isNull()){
                 if(stop==null||stop.isNull())
-                    return stats.getDistribution().rangeSelectivity(null,null,includeStart,includeStop);
+                    return distribution.rangeSelectivity(null,null,includeStart,includeStop);
                 else
-                    return ((ShortDistribution)stats.getDistribution()).selectivityBefore(safeGetShort(stop),includeStop);
+                    return distribution.selectivityBefore(safeGetShort(stop),includeStop);
             }else{
                 short s = safeGetShort(start);
                 if(stop==null||stop.isNull())
-                    return ((ShortDistribution)stats.getDistribution()).selectivityAfter(s,includeStart);
+                    return distribution.selectivityAfter(s,includeStart);
                 else{
                     short e = safeGetShort(stop);
-                    return ((ShortDistribution)stats.getDistribution()).rangeSelectivity(s,e,includeStart,includeStop);
+                    return distribution.rangeSelectivity(s,e,includeStart,includeStop);
                 }
             }
         }

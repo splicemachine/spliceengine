@@ -11,12 +11,15 @@ import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.scheduler.*;
 import com.splicemachine.derby.impl.sql.execute.sequence.AbstractSequenceKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
+import com.splicemachine.derby.impl.stats.StatisticsStorage;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.temp.TempTable;
+import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
 import com.splicemachine.derby.management.StatementManager;
 import com.splicemachine.derby.management.XplainTaskReporter;
 import com.splicemachine.derby.utils.ErrorReporter;
+import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.SpliceMetrics;
 import com.splicemachine.job.*;
@@ -41,6 +44,9 @@ import com.yammer.metrics.reporting.JmxReporter;
 import org.apache.derby.drda.NetworkServerControl;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.Property;
+import org.apache.derby.iapi.sql.dictionary.DataDictionary;
+import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
+import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.HColumnDescriptor;
@@ -379,7 +385,6 @@ public class SpliceDriver {
                 // External connections to Derby are created later when the Derby network server is started.
                 EmbedConnectionMaker maker = new EmbedConnectionMaker();
                 connection = maker.createNew();
-
                 return true;
             }
         } finally {

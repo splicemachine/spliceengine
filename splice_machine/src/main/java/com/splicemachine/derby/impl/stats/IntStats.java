@@ -64,7 +64,7 @@ public class IntStats extends BaseDvdStatistics {
 
     /* ****************************************************************************************************************/
     /*private helper methods*/
-    private class IntFreqs implements FrequentElements<DataValueDescriptor> {
+    static class IntFreqs implements FrequentElements<DataValueDescriptor> {
         private IntFrequentElements frequentElements;
 
         public IntFreqs(IntFrequentElements freqs) {
@@ -164,7 +164,7 @@ public class IntStats extends BaseDvdStatistics {
         }
     }
 
-    private static class IntDist implements Distribution<DataValueDescriptor> {
+    static class IntDist implements Distribution<DataValueDescriptor> {
         private IntColumnStatistics intStats;
 
         public IntDist(IntColumnStatistics intStats) {

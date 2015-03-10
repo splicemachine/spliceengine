@@ -75,7 +75,7 @@ public class DoubleStats extends BaseDvdStatistics{
     }
     /* ****************************************************************************************************************/
     /*private helper methods*/
-    private class DoubleFreqs implements FrequentElements<DataValueDescriptor> {
+    static class DoubleFreqs implements FrequentElements<DataValueDescriptor> {
         private DoubleFrequentElements frequentElements;
 
         public DoubleFreqs(DoubleFrequentElements freqs) {
@@ -170,7 +170,7 @@ public class DoubleStats extends BaseDvdStatistics{
         }
     };
 
-    private static class DoubleDist implements Distribution<DataValueDescriptor> {
+    static class DoubleDist implements Distribution<DataValueDescriptor> {
         private DoubleColumnStatistics stats;
 
         public DoubleDist(DoubleColumnStatistics stats) {

@@ -60,7 +60,7 @@ public class BigintStats extends BaseDvdStatistics {
 
     /* ****************************************************************************************************************/
     /*private helper methods*/
-    private class LongFreqs implements FrequentElements<DataValueDescriptor> {
+    static class LongFreqs implements FrequentElements<DataValueDescriptor> {
         private LongFrequentElements frequentElements;
 
         public LongFreqs(LongFrequentElements freqs) {
@@ -157,7 +157,7 @@ public class BigintStats extends BaseDvdStatistics {
         }
     }
 
-    private static class LongDist implements Distribution<DataValueDescriptor> {
+    static class LongDist implements Distribution<DataValueDescriptor> {
         private LongColumnStatistics stats;
 
         public LongDist(LongColumnStatistics stats) {

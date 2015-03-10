@@ -34,7 +34,7 @@ public abstract class StringStatistics extends BaseDvdStatistics{
 
     @Override
     public FrequentElements<DataValueDescriptor> topK() {
-        return new Freqs(stats.topK());
+        return new Freqs(stats.topK(),conversionFunction());
     }
 
     @Override public DataValueDescriptor minValue() { return getDvd(stats.minValue()); }
@@ -58,17 +58,23 @@ public abstract class StringStatistics extends BaseDvdStatistics{
         return new StringDistribution(stats);
     }
 
+    public int maxLength(){
+        return strLen;
+    }
+
     protected abstract DataValueDescriptor getDvd(String s);
 
     protected abstract Function<FrequencyEstimate<String>,FrequencyEstimate<DataValueDescriptor>> conversionFunction();
 
     /* ****************************************************************************************************************/
     /*private helper methods*/
-    private class Freqs implements FrequentElements<DataValueDescriptor> {
+    public static class Freqs implements FrequentElements<DataValueDescriptor> {
         private FrequentElements<String> frequentElements;
+        private Function<FrequencyEstimate<String>, FrequencyEstimate<DataValueDescriptor>> conversionFunction;
 
-        public Freqs(FrequentElements<String> freqs) {
+        public Freqs(FrequentElements<String> freqs,Function<FrequencyEstimate<String>,FrequencyEstimate<DataValueDescriptor>> conversionFunction) {
             this.frequentElements = freqs;
+            this.conversionFunction = conversionFunction;
         }
 
         @Override public long totalFrequentElements() { return frequentElements.totalFrequentElements(); }
@@ -81,7 +87,7 @@ public abstract class StringStatistics extends BaseDvdStatistics{
 
         @Override
         public FrequentElements<DataValueDescriptor> getClone() {
-            return new Freqs(frequentElements.getClone());
+            return new Freqs(frequentElements.getClone(),conversionFunction);
         }
 
         @Override
@@ -89,7 +95,7 @@ public abstract class StringStatistics extends BaseDvdStatistics{
         public FrequencyEstimate<? extends DataValueDescriptor> equal(DataValueDescriptor element) {
             //TODO -sf- deal with nulls here
             try {
-                return conversionFunction().apply((FrequencyEstimate<String>) frequentElements.equal((String)element.getObject()));
+                return conversionFunction.apply((FrequencyEstimate<String>) frequentElements.equal((String)element.getObject()));
             } catch (StandardException e) {
                 throw new RuntimeException(e);
             }
@@ -118,7 +124,7 @@ public abstract class StringStatistics extends BaseDvdStatistics{
         }
 
         private Set<? extends FrequencyEstimate<DataValueDescriptor>> convert(Set<? extends FrequencyEstimate<String>> other) {
-            return new ConvertingSetView<>(other,conversionFunction());
+            return new ConvertingSetView<>(other,conversionFunction);
         }
     }
 
@@ -158,7 +164,7 @@ public abstract class StringStatistics extends BaseDvdStatistics{
         }
     };
 
-    private static class StringDistribution implements Distribution<DataValueDescriptor> {
+    public static class StringDistribution implements Distribution<DataValueDescriptor> {
         private ColumnStatistics<String> stats;
 
         public StringDistribution(ColumnStatistics<String> stats) {
