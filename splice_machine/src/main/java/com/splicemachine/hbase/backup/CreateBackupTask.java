@@ -126,6 +126,9 @@ public class CreateBackupTask extends ZkTask {
     private void doFullBackup() throws IOException
     {
     	SnapshotUtils utils = SnapshotUtilsFactory.snapshotUtils;
+    	// TODO
+    	// Make sure that backup directory structure is
+    	// backupId/namespace/table/region/cf
     	List<Path> files = utils.getFilesForFullBackup(getSnapshotName(), region);
     	String backupDirectory = backupItem.getBackupItemFilesystem();
     	String name = region.getRegionNameAsString();

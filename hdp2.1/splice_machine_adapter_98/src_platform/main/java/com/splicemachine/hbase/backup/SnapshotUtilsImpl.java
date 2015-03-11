@@ -20,7 +20,7 @@ import org.apache.log4j.Logger;
 
 import com.splicemachine.constants.SpliceConstants;
 
-public class SnapshotUtilsImpl {
+public class SnapshotUtilsImpl implements SnapshotUtils {
     static final Logger LOG = Logger.getLogger(SnapshotUtilsImpl.class);
 	
     public List<Path> getFilesForFullBackup(String snapshotName, HRegion region) throws IOException {
@@ -29,15 +29,16 @@ public class SnapshotUtilsImpl {
         FileSystem fs = rootDir.getFileSystem(conf);
         Path snapshotDir = SnapshotDescriptionUtils.getCompletedSnapshotDir(snapshotName, rootDir);
         
-		return getSnapshotFilesForRegion(region.getRegionNameAsString() ,conf, fs, snapshotDir);
+		return getSnapshotFilesForRegion(region ,conf, fs, snapshotDir);
 	}
 
     /**
      * Extract the list of files (HFiles/HLogs) to copy 
      * @return list of files referenced by the snapshot
      */
-    public List<Path> getSnapshotFilesForRegion(final String regionName, final Configuration conf,
+    public List<Path> getSnapshotFilesForRegion(final HRegion reg, final Configuration conf,
         final FileSystem fs, final Path snapshotDir) throws IOException {
+      final String regionName = reg.getRegionNameAsString();
       SnapshotDescription snapshotDesc = SnapshotDescriptionUtils.readSnapshotInfo(fs, snapshotDir);
 
       final List<Path> files = new ArrayList<Path>();
@@ -51,7 +52,10 @@ public class SnapshotUtilsImpl {
         	if( regionName.equals(region) ){  
         		Path path = HFileLink.createPath(TableName.valueOf(table), region, family, hfile);
         		//long size = new HFileLink(conf, path).getFileStatus(fs).getLen();
-        		files.add(path);
+        		if( isReference(hfile) ) {
+            	  		path = materializeRefFile(conf, fs, path);
+              		}
+			files.add(path);
         	}
           }
 
@@ -70,6 +74,11 @@ public class SnapshotUtilsImpl {
       return files;
     }
     
+    private boolean isReference( String fileName)
+    {
+    	return fileName.indexOf(".") > 0;
+    }
+
     public Path getAvailableFilePath( final Path relativePath)
             throws IOException {
           try {
@@ -88,5 +97,13 @@ public class SnapshotUtilsImpl {
           }
         }
     
- 	
+         /**
+	  * Materializes snapshot reference file - creates real hfile in a local tmp directory.  
+	  */
+    
+	public Path materializeRefFile(Configuration conf, FileSystem fs, Path refFilePath )
+	 	throws IOException
+	{
+    	   return null;
+	} 	
 }

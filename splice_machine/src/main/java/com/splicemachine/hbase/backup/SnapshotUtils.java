@@ -22,4 +22,10 @@ public interface SnapshotUtils {
 	 */
 	 public List<Path> getSnapshotFilesForRegion(final HRegion region, final Configuration conf,
 	        final FileSystem fs, final Path snapshotDir) throws IOException ;
+	 
+	 /**
+	  * Materializes snapshot reference file - creates real hfile in a local tmp directory.  
+	  */
+	 public Path materializeRefFile(Configuration conf, FileSystem fs, Path refFilePath )
+	 	throws IOException;
 }

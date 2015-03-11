@@ -23,9 +23,10 @@ import org.apache.log4j.Logger;
 
 import com.splicemachine.constants.SpliceConstants;
 
-public class SnapshotUtilsImpl {
+public class SnapshotUtilsImpl implements SnapshotUtils{
     static final Logger LOG = Logger.getLogger(SnapshotUtilsImpl.class);
 	
+    @Override
     public List<Path> getFilesForFullBackup(String snapshotName, HRegion region) throws IOException {
 		Configuration conf = SpliceConstants.config;
         Path rootDir = new Path(conf.get(HConstants.HBASE_DIR));
@@ -39,12 +40,12 @@ public class SnapshotUtilsImpl {
      * Extract the list of files (HFiles/HLogs) to copy using Map-Reduce.
      * @return list of files referenced by the snapshot (pair of path and size)
      */
+    @Override
     public List<Path> getSnapshotFilesForRegion(final HRegion region, final Configuration conf,
         final FileSystem fs, final Path snapshotDir) throws IOException {
       SnapshotDescription snapshotDesc = SnapshotDescriptionUtils.readSnapshotInfo(fs, snapshotDir);
 
       final List<Path> files = new ArrayList<Path>();
-      // TODO 0.94 
       final TableName table = TableName.valueOf(snapshotDesc.getTable());
 
       // Get snapshot files
@@ -54,9 +55,9 @@ public class SnapshotUtilsImpl {
           @Override
           public void storeFile(final HRegionInfo regionInfo, final String family,
               final SnapshotRegionManifest.StoreFile storeFile) throws IOException {
-            if (storeFile.hasReference()) {
-              // copied as part of the manifest
-            } else {
+            
+        	  boolean isReference = storeFile.hasReference();
+
               String regionName = regionInfo.getEncodedName();
               if(isCurrentRegion(region, regionInfo) == false){
             	  // If not current return
@@ -70,8 +71,12 @@ public class SnapshotUtilsImpl {
                 .setHfile(path.toString())
                 .build();
               
-              files.add(getFilePath(fileInfo));
-            }
+              Path filePath = getFilePath(fileInfo);
+              if( isReference ) {
+            	  filePath = materializeRefFile(conf, fs, filePath);
+              }
+              files.add(filePath);
+            
           }
 
 
@@ -120,7 +125,17 @@ public class SnapshotUtilsImpl {
             throw e;
           }
         }
-    
+	 
+    /**
+	  * Materializes snapshot reference file - creates real hfile in a local tmp directory.  
+	  */
+    @Override
+	public Path materializeRefFile(Configuration conf, FileSystem fs, Path refFilePath )
+	 	throws IOException
+	{
+    	return null;
+	}
+	 
     private boolean isCurrentRegion(HRegion region, HRegionInfo regInfo) {		
 		return region.getRegionNameAsString().equals(regInfo.getRegionNameAsString());
 	}	
