@@ -15,7 +15,7 @@ import java.util.List;
  * @author Scott Fines
  *         Date: 3/4/15
  */
-public class GlobalDistribution<T extends Comparable<T>> implements Distribution<T> {
+public class GlobalDistribution<T> implements Distribution<T> {
     /**
      * A reference to the underlying table statistics used for this distribution.
      *

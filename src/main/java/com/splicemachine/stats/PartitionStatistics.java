@@ -51,17 +51,27 @@ public interface PartitionStatistics extends Mergeable<PartitionStatistics> {
     String tableId();
 
     /**
-     * @return the 5-minute Exponentially weighted moving average
-     *          latency to read a single row from local storage(measured in microseconds)
+     * @return the (estimated) latency to read a single row from local storage(measured in microseconds)
      */
-    long localReadLatency();
+    double localReadLatency();
 
     /**
-     * @return the 5-minute Exponentially weighted moving average
-     *          latency to read a single row from this partition locally(measured
+     * @return the (estimated) latency to read a single row from this partition locally(measured
      *          in microseconds)
      */
-    long remoteReadLatency();
+    double remoteReadLatency();
+
+    /**
+     * @return the time required to read the entire partition (measured in microseconds). This can be
+     * measured or estimated.
+     */
+    long localReadTime();
+
+    /**
+     * @return the time required to read the entire partition (measured in microseconds). This can be
+     * measured or estimated.
+     */
+    long remoteReadTime();
 
     /**
      * @return the time taken to collect statistics against this partition

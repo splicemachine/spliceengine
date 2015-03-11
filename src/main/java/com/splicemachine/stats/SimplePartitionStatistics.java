@@ -56,17 +56,23 @@ public class SimplePartitionStatistics implements PartitionStatistics {
     @Override public long rowCount() { return rowCount; }
     @Override public long totalSize() { return totalBytes; }
     @Override public long queryCount() { return queryCount; }
-    @Override public long localReadLatency() {
-        if(rowCount<=0) return 0;
-        return totalLocalReadTime /rowCount;
-    }
-    @Override
-    public long remoteReadLatency() {
-        if(rowCount<=0) return 0;
-        return totalRemoteReadLatency/rowCount;
-    }
     @Override public long collectionTime() { return totalLocalReadTime; }
     @Override public List<ColumnStatistics> columnStatistics() { return columnStatistics; }
+    @Override public long localReadTime() { return totalLocalReadTime; }
+    @Override public long remoteReadTime() { return totalRemoteReadLatency; }
+
+    @Override
+    public double localReadLatency() {
+        if(rowCount<=0) return 0d;
+        return ((double)totalLocalReadTime)/rowCount;
+    }
+
+    @Override
+    public double remoteReadLatency() {
+        if(rowCount<=0) return 0;
+        return ((double)totalRemoteReadLatency)/rowCount;
+    }
+
 
     @Override
     public int avgRowWidth() {
@@ -95,9 +101,18 @@ public class SimplePartitionStatistics implements PartitionStatistics {
         List<ColumnStatistics> otherStats = other.columnStatistics();
         for(int i=0;i<columnStatistics.size();i++){
             ColumnStatistics left = columnStatistics.get(i);
-            ColumnStatistics right = otherStats.get(i);
-            @SuppressWarnings("unchecked") ColumnStatistics merged = (ColumnStatistics) left.merge(right);
-            mergedStats.add(merged);
+            boolean found = false;
+            for(int j=0;j<otherStats.size();j++) {
+                ColumnStatistics right = otherStats.get(j);
+                if(right.columnId()==left.columnId()){
+                    @SuppressWarnings("unchecked") ColumnStatistics merged = (ColumnStatistics) left.merge(right);
+                    mergedStats.add(merged);
+                    found = true;
+                    break;
+                }
+            }
+            if(!found)
+                otherStats.add(left);
         }
         this.columnStatistics = mergedStats;
 

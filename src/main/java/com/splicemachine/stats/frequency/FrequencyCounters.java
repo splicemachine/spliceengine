@@ -36,6 +36,13 @@ public class FrequencyCounters {
     /**
      * @return A FrequencyCounter which is specially designed to be efficient for boolean primitive types.
      */
+    public static BooleanFrequentElements booleanValues(long trueCount, long falseCount){
+        return new SimpleBooleanFrequentElements(trueCount,falseCount);
+    }
+
+    /**
+     * @return A FrequencyCounter which is specially designed to be efficient for boolean primitive types.
+     */
     public static BooleanFrequencyCounter booleanCounter(){ return new SimpleBooleanFrequencyCounter(); }
 
     /**

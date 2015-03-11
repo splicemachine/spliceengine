@@ -40,12 +40,14 @@ public abstract class BaseColumnStatistics<T extends Comparable<T>> implements C
         return ((float)nullCount)/totalCount;
     }
 
-    protected static void write(BaseColumnStatistics<?> item,DataOutput output) throws IOException {
-        output.writeInt(item.columnId);
-        output.writeLong(item.totalBytes);
-        output.writeLong(item.totalCount);
-        output.writeLong(item.nullCount);
-        output.writeLong(item.minCount);
+    protected static void write(ColumnStatistics<?> item,DataOutput output) throws IOException {
+        assert item instanceof BaseColumnStatistics: "Cannot encode non-BaseColumnStatistics";
+        BaseColumnStatistics bsc = (BaseColumnStatistics)item;
+        output.writeInt(bsc.columnId);
+        output.writeLong(bsc.totalBytes);
+        output.writeLong(bsc.totalCount);
+        output.writeLong(bsc.nullCount);
+        output.writeLong(bsc.minCount);
     }
 
 }

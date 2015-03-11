@@ -1,5 +1,6 @@
 package com.splicemachine.stats.collector;
 
+import com.splicemachine.stats.CombinedShortColumnStatistics;
 import com.splicemachine.stats.ShortColumnStatistics;
 import com.splicemachine.stats.cardinality.ShortCardinalityEstimator;
 import com.splicemachine.stats.frequency.ShortFrequencyCounter;
@@ -36,7 +37,7 @@ class ShortColumn implements ShortColumnStatsCollector {
 
     @Override
     public ShortColumnStatistics build() {
-        return new ShortColumnStatistics(columnId,
+        return new CombinedShortColumnStatistics(columnId,
                 cardinalityEstimator,
                 frequencyCounter.frequentElements(topK),
                 minMaxCollector.min(),

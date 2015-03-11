@@ -40,14 +40,14 @@ public interface TableStatistics extends PartitionStatistics{
      * across all partitions.
      */
     @Override
-    long localReadLatency();
+    double localReadLatency();
 
     /**
      * @return the "local" read latency of a single entry. Note that this is the <em>average</em>
      * across all partitions
      */
     @Override
-    long remoteReadLatency();
+    double remoteReadLatency();
 
     /**
      * @return the average width of a single row (in bytes) across all partitions. This includes
@@ -55,6 +55,18 @@ public interface TableStatistics extends PartitionStatistics{
      */
     @Override
     int avgRowWidth();
+
+    /**
+     * @return the local read time, averaged over all partitions
+     */
+    @Override
+    long localReadTime();
+
+    /**
+     * @return the remote read time, averaged over all partitions
+     */
+    @Override
+    long remoteReadTime();
 
     /**
      * @return the 5-minute exponentially weighted moving average number of queries executed
