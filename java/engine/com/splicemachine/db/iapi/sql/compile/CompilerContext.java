@@ -27,12 +27,7 @@ import com.splicemachine.db.iapi.services.loader.ClassFactory;
 
 import com.splicemachine.db.iapi.error.StandardException;
 
-import com.splicemachine.db.iapi.sql.dictionary.AliasDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.SequenceDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.PrivilegedSQLObject;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 
 import com.splicemachine.db.iapi.sql.depend.Dependent;
 import com.splicemachine.db.iapi.sql.depend.Provider;
@@ -432,15 +427,13 @@ public interface CompilerContext extends Context
 	/**
 	 * Get a StoreCostController for the given conglomerate.
 	 *
-	 * @param conglomerateNumber	The conglomerate for which to get a
-	 *								StoreCostController.
+	 * @param conglomerateDescriptor	The conglomerate for which to get a StoreCostController.
 	 *
 	 * @return	The appropriate StoreCostController.
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public StoreCostController getStoreCostController(long conglomerateNumber)
-			throws StandardException;
+	public StoreCostController getStoreCostController(ConglomerateDescriptor conglomerateDescriptor) throws StandardException;
 
 	/**
 	 * Get a SortCostController.

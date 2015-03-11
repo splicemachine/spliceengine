@@ -27,6 +27,7 @@ import java.util.Iterator;
 import java.util.Properties;
 
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 
 import com.splicemachine.db.iapi.services.context.ContextManager;
@@ -1645,23 +1646,20 @@ public class RAMTransaction
      * ConglomerateController operations, on the given conglomerate.
      * <p>
      *
-	 * @return The open StoreCostController.
+     * @return The open StoreCostController.
      *
-     * @param conglomId The identifier of the conglomerate to open.
+     * @param cd The identifier of the conglomerate to open.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      *
      * @see StoreCostController
      **/
-    public StoreCostController openStoreCost(
-    long        conglomId)
-		throws StandardException
-    {
+    public StoreCostController openStoreCost(ConglomerateDescriptor cd) throws StandardException {
 		// Find the conglomerate.
-		Conglomerate conglom = findExistingConglomerate(conglomId);
+		Conglomerate conglom = findExistingConglomerate(cd.getConglomerateNumber());
 
 		// Get a scan controller.
-		StoreCostController scc = conglom.openStoreCost(this, rawtran);
+		StoreCostController scc = conglom.openStoreCost(cd, this, rawtran);
 
 		return(scc);
     }

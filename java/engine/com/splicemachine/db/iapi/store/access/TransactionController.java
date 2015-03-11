@@ -30,6 +30,7 @@ import com.splicemachine.db.iapi.services.io.Storable;
 
 import com.splicemachine.db.iapi.error.StandardException;
 
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.raw.Loggable;
 
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
@@ -1425,17 +1426,15 @@ public interface TransactionController
      * ConglomerateController operations, on the given conglomerate.
      * <p>
      *
-	 * @return The open StoreCostController.
+     * @return The open StoreCostController.
      *
-     * @param conglomId The identifier of the conglomerate to open.
+     * @param conglomerateDescriptor The identifier of the conglomerate to open.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      *
      * @see StoreCostController
      **/
-    StoreCostController openStoreCost(
-    long        conglomId)
-		throws StandardException;
+    StoreCostController openStoreCost(ConglomerateDescriptor conglomerateDescriptor) throws StandardException;
 
 
     /**

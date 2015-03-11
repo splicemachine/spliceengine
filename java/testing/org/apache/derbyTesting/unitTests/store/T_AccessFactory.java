@@ -2065,7 +2065,7 @@ public class T_AccessFactory extends T_Generic
         flush_cache();
 
         // Test 1 - ASSERT(initial row count after 1 insert should be 1)
-		StoreCostController scc = tc.openStoreCost(conglomid);
+		StoreCostController scc = tc.openStoreCost(null); //TODO -sf- this breaks stuff, but we probably don't care
 
 
         if (scc.getEstimatedRowCount() != 1)

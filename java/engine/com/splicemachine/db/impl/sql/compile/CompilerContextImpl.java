@@ -50,19 +50,7 @@ import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.depend.Dependent;
 import com.splicemachine.db.iapi.sql.depend.Provider;
 import com.splicemachine.db.iapi.sql.depend.ProviderList;
-import com.splicemachine.db.iapi.sql.dictionary.AliasDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.PermDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.PrivilegedSQLObject;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.SequenceDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.StatementColumnPermission;
-import com.splicemachine.db.iapi.sql.dictionary.StatementGenericPermission;
-import com.splicemachine.db.iapi.sql.dictionary.StatementRolePermission;
-import com.splicemachine.db.iapi.sql.dictionary.StatementRoutinePermission;
-import com.splicemachine.db.iapi.sql.dictionary.StatementSchemaPermission;
-import com.splicemachine.db.iapi.sql.dictionary.StatementTablePermission;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
 import com.splicemachine.db.iapi.store.access.SortCostController;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
@@ -429,31 +417,28 @@ public class CompilerContextImpl extends ContextImpl
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public StoreCostController getStoreCostController(long conglomerateNumber)
-			throws StandardException
-	{
+	public StoreCostController getStoreCostController(ConglomerateDescriptor cd) throws StandardException {
+      long conglomerateNumber = cd.getConglomerateNumber();
 		/*
 		** Try to find the given conglomerate number in the array of
 		** conglom ids.
 		*/
-		for (int i = 0; i < storeCostConglomIds.size(); i++)
-		{
-			Long conglomId = (Long) storeCostConglomIds.get(i);
-			if (conglomId.longValue() == conglomerateNumber)
-				return (StoreCostController) storeCostControllers.get(i);
-		}
+      for (int i = 0; i < storeCostConglomIds.size(); i++) {
+          Long conglomId = (Long) storeCostConglomIds.get(i);
+          if (conglomId.longValue() == conglomerateNumber)
+              return (StoreCostController) storeCostControllers.get(i);
+      }
 
 		/*
 		** Not found, so get a StoreCostController from the store.
 		*/
-		StoreCostController retval =
-						lcc.getTransactionCompile().openStoreCost(conglomerateNumber);
+      StoreCostController retval = lcc.getTransactionCompile().openStoreCost(cd);
 
 		/* Put it in the array */
-		storeCostControllers.add(storeCostControllers.size(), retval);
+      storeCostControllers.add(storeCostControllers.size(), retval);
 
 		/* Put the conglomerate number in its array */
-		storeCostConglomIds.add(storeCostConglomIds.size(), new Long(conglomerateNumber));
+      storeCostConglomIds.add(storeCostConglomIds.size(), conglomerateNumber);
 
 		return retval;
 	}

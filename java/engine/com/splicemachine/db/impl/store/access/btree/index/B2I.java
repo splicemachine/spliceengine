@@ -33,6 +33,7 @@ import com.splicemachine.db.iapi.services.io.ArrayInputStream;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.error.StandardException;
 
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.impl.store.access.conglomerate.ConglomerateUtil;
 import com.splicemachine.db.iapi.store.access.conglomerate.LogicalUndo;
 import com.splicemachine.db.iapi.store.access.conglomerate.ScanManager;
@@ -970,11 +971,9 @@ public class B2I extends BTree
      *
      * @see StoreCostController
      **/
-    public StoreCostController openStoreCost(
-    TransactionManager  xact_manager,
-    Transaction         rawtran)
-		throws StandardException
-    {
+    public StoreCostController openStoreCost(ConglomerateDescriptor cd,
+                                             TransactionManager  xact_manager,
+                                             Transaction         rawtran) throws StandardException {
         B2ICostController b2icost = new B2ICostController();
 
         b2icost.init(xact_manager, this, rawtran);

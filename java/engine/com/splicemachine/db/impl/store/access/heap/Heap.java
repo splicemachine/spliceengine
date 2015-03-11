@@ -40,6 +40,7 @@ import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 
 import com.splicemachine.db.iapi.error.StandardException;
 
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.store.access.conglomerate.LogicalUndo;
 import com.splicemachine.db.iapi.store.access.conglomerate.ScanManager;
@@ -1030,15 +1031,13 @@ public class Heap
      *
      * @see StoreCostController
      **/
-    public StoreCostController openStoreCost(
-    TransactionManager  xact_manager,
-    Transaction         rawtran)
-		throws StandardException
-    {
+    public StoreCostController openStoreCost(ConglomerateDescriptor cd,
+                                             TransactionManager  xact_manager,
+                                             Transaction rawtran) throws StandardException {
         OpenHeap open_conglom = new OpenHeap();
 
         if (open_conglom.init(
-                (ContainerHandle) null,
+                null,
                 this,
                 this.format_ids,
                 this.collation_ids,
@@ -1047,11 +1046,10 @@ public class Heap
                 false,
                 ContainerHandle.MODE_READONLY,
                 TransactionController.MODE_TABLE,
-                (LockingPolicy) null,
-                (DynamicCompiledOpenConglomInfo) null) == null)
-        {
+                null,
+                null) == null) {
             throw StandardException.newException(
-                    SQLState.HEAP_CONTAINER_NOT_FOUND, 
+                    SQLState.HEAP_CONTAINER_NOT_FOUND,
                     new Long(id.getContainerId()));
         }
 

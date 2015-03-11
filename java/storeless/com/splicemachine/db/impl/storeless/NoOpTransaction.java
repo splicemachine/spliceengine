@@ -28,6 +28,7 @@ import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.Storable;
 import com.splicemachine.db.iapi.services.locks.CompatibilitySpace;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.AccessFactory;
 import com.splicemachine.db.iapi.store.access.BackingStoreHashtable;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
@@ -218,7 +219,7 @@ class NoOpTransaction implements TransactionController {
         return false;
     }
 
-    public StoreCostController openStoreCost(long conglomId)
+    public StoreCostController openStoreCost(ConglomerateDescriptor cd)
             throws StandardException {
         // Auto-generated method stub
         return null;

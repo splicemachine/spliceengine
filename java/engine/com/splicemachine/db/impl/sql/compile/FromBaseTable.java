@@ -4409,11 +4409,8 @@ public class FromBaseTable extends FromTable {
 	** RESOLVE: This whole thing should probably be moved somewhere else,
 	** like the optimizer or the data dictionary.
 	*/
-	private StoreCostController getStoreCostController(
-										ConglomerateDescriptor cd)
-			throws StandardException
-	{
-		return getCompilerContext().getStoreCostController(cd.getConglomerateNumber());
+	private StoreCostController getStoreCostController( ConglomerateDescriptor cd) throws StandardException {
+		return getCompilerContext().getStoreCostController(cd);
 	}
 
 	private StoreCostController getBaseCostController()
