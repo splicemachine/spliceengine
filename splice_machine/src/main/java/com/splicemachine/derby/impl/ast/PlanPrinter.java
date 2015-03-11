@@ -147,7 +147,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
         info.put("level", level);
         info.put("cost", String.format("%.3f",co.getEstimatedCost()));
         info.put("estRowCount", co.getEstimatedRowCount());
-        info.put("estSingleScanCount", co.singleScanRowCount());
+        info.put("estSingleScanCount", String.format("%.3f",co.singleScanRowCount()));
         info.put("regions", ((SortState) co).getNumberOfRegions());
         if (Level.TRACE.equals(LOG.getLevel())) {
 //        if(LOG.isTraceEnabled()){

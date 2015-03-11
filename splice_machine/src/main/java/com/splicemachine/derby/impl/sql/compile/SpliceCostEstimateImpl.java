@@ -170,10 +170,14 @@ public class SpliceCostEstimateImpl extends Level2CostEstimateImpl implements So
     }
 
     @Override
-    public void setCost(double cost, double rowCount, double singleScanRowCount) {
-        SpliceLogUtils.trace(LOG, "setCost cost=%f, rowCount=%f, singleScanRowCount=%f",cost,rowCount,singleScanRowCount);
-        super.setCost(cost, rowCount, singleScanRowCount);
-        numberOfRegions=numberOfRegions==0?1:numberOfRegions;
+    public void setCost(double cost, double rowCount, double singleScanRowCount, int numPartitions) {
+        super.setCost(cost, rowCount, singleScanRowCount, numPartitions);
+        this.numberOfRegions = numPartitions;
+    }
+
+    @Override
+    public int partitionCount() {
+        return numberOfRegions;
     }
 
     @Override

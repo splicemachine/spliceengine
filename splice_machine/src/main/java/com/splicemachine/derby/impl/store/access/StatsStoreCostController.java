@@ -14,10 +14,11 @@ import com.splicemachine.derby.impl.stats.StatisticsStorage;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.TxnView;
+import com.splicemachine.stats.PartitionStatistics;
 import com.splicemachine.stats.TableStatistics;
 import com.splicemachine.stats.estimate.Distribution;
-import com.splicemachine.utils.Pair;
-import java.util.Arrays;
+
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -107,15 +108,9 @@ public class StatsStoreCostController extends GenericController implements Store
         * the selectivity is rangeSelectivity(start,null) or rangeSelectivity(null,stop). The column
         * id for the keys is located in the conglomerate.
         */
-        long numRows = getRowsInKeyRange(conglomerateStatistics,
+        estimateCost(conglomerateStatistics,
                 startKeyValue, startSearchOperator,
-                stopKeyValue, stopSearchOperator,baseConglomerate.getColumnOrdering());
-        /*
-         * numRows contains how many rows we are going to touch, so now just set a cost as
-         * remoteReadLatency()*numRows
-         */
-        cost_result.setEstimatedRowCount(numRows);
-        cost_result.setEstimatedCost(numRows * conglomerateStatistics.localReadLatency());
+                stopKeyValue, stopSearchOperator, baseConglomerate.getColumnOrdering(), (CostEstimate) cost_result,false);
     }
 
     @Override
@@ -129,70 +124,89 @@ public class StatsStoreCostController extends GenericController implements Store
     @Override public RowLocation newRowLocationTemplate() throws StandardException { return null; }
 
     @SuppressWarnings("unchecked")
-    protected long getRowsInKeyRange(TableStatistics stats,
-                                     DataValueDescriptor[] startKeyValue,
-                                     int startSearchOperator,
-                                     DataValueDescriptor[] stopKeyValue,
-                                     int stopSearchOperator,
-                                     int[] keyMap) {
-        if(startKeyValue==null && stopKeyValue==null){
+    protected void estimateCost(TableStatistics stats,
+                                DataValueDescriptor[] startKeyValue,
+                                int startSearchOperator,
+                                DataValueDescriptor[] stopKeyValue,
+                                int stopSearchOperator,
+                                int[] keyMap,
+                                CostEstimate costEstimate,
+                                boolean scalePartition) {
             /*
-             * There are no keys to scan, so we are doing a full table scan. We estimate
-             * that cost in a sequential manner, by taking rowCount*localReadLatency()
+             * We need to estimate the scan selectivity.
              *
-             * TODO -sf- make a distinction about parallel reads here based on the fact that there
-             * may be multiple partitions
+             * Unfortunately, we don't have multi-dimensional statistics (e.g. the statistics
+             * for pred(A) and pred(B)), so we can't do this easily. Instead, we use a fairly
+             * straightforward heuristic.
+             *
+             * First, we count the number of rows which match the first predicate. Because we
+             * use this to construct the row key range on the sorted table, we can say that
+             * this is the maximum number of rows that we are going to visit. Then we compute the
+             * number of rows that match the second predicate. That number is independent of
+             * the number of rows matching the first predicate, so we have two numbers: N1 and N2.
+             * We know that condition 1 has to hold, so N2 *should* be strictly less. However, we don't really
+             * know that that's true--the data could be elsewhere. So we assume that the distribution is
+             * evenly in or out, and the number of rows is then N2/size(partition)*N1. We then repeat
+             * this process recursively, to reduce the total number of rows down. Not as good a heuristic
+             * as maintaining a distribution of row keys directly, but for now it'll do.
              */
-            return conglomerateStatistics.rowCount();
+        List<PartitionStatistics> partitionStatistics = stats.partitionStatistics();
+        boolean includeStop = stopSearchOperator == ScanController.GT;
+        boolean includeStart = startSearchOperator != ScanController.GT;
+        long numRows = 0l;
+        double cost = 0d;
+        int numPartitions = 0;
+        for (PartitionStatistics partStats : partitionStatistics) {
+            long count = count(partStats,
+                    startKeyValue, includeStart,
+                    stopKeyValue, includeStop,
+                    0, partStats.rowCount(), keyMap);
+            numRows += count;
+            if (count > 0) {
+                numPartitions += 1;
+                double l = count * partStats.localReadLatency();
+                if(scalePartition)
+                    cost += l*costScaleFactor(partStats);
+                else
+                    cost+=l;
+            }
         }
+        costEstimate.setEstimatedRowCount(numRows);
+        costEstimate.setEstimatedCost(cost);
+        costEstimate.setNumPartitions(numPartitions);
+    }
 
-        Pair<DataValueDescriptor,DataValueDescriptor>[] columnRanges;
-        boolean[] startInclusion;
-        boolean[] stopInclusion;
+    protected double costScaleFactor(PartitionStatistics partStats) {
+        return 1d;
+    }
+
+    private long count(PartitionStatistics partStats,
+                       DataValueDescriptor[] startKeyValue,
+                       boolean includeStart,
+                       DataValueDescriptor[] stopKeyValue,
+                       boolean includeStop,
+                       int keyPosition,
+                       long currentCount,
+                       int[] keyMap) {
         if(startKeyValue==null){
-            //we have no start keys
-            columnRanges = new Pair[stopKeyValue.length];
-            startInclusion = new boolean[stopKeyValue.length];
-            stopInclusion = new boolean[stopKeyValue.length];
-            for(int i=0;i<columnRanges.length;i++){
-                columnRanges[i] = Pair.newPair(null,null);
-                startInclusion[i] = true;
-            }
-        }else{
-            columnRanges = new Pair[startKeyValue.length];
-            startInclusion = new boolean[startKeyValue.length];
-            stopInclusion = new boolean[startKeyValue.length];
-            boolean includeStart = startSearchOperator != ScanController.GT;
-            for(int i=0;i<columnRanges.length;i++){
-                columnRanges[i] = Pair.newPair(startKeyValue[i],null);
-                startInclusion[i] = includeStart;
-            }
-        }
+            if(stopKeyValue==null) return currentCount;
+            else if(keyPosition>=stopKeyValue.length) return currentCount;
+        }else if(keyPosition>=startKeyValue.length) return currentCount;
+        DataValueDescriptor start = startKeyValue==null? null: startKeyValue[keyPosition];
+        DataValueDescriptor stop = stopKeyValue==null?null: stopKeyValue[keyPosition];
 
-        if(stopKeyValue==null){
-            for(int i=0;i<columnRanges.length;i++){
-                columnRanges[i].setSecond(null);
-                stopInclusion[i] = true;
-            }
-        }else{
-            boolean includeStop = stopSearchOperator==ScanController.GT;
-            for(int i=0;i<stopKeyValue.length;i++){
-                columnRanges[i].setSecond(stopKeyValue[i]);
-                stopInclusion[i] = includeStop;
-            }
-        }
-
-        long numRows = conglomerateStatistics.rowCount();
-        for (int i = 0; i < columnRanges.length; i++) {
-            DataValueDescriptor start = columnRanges[i].getFirst();
-            DataValueDescriptor stop = columnRanges[i].getSecond();
-            boolean includeStart = startInclusion[i];
-            boolean includeStop = stopInclusion[i];
-
-            Distribution<DataValueDescriptor> columnDistribution = stats.columnDistribution(keyMap[i]);
-            long nR = columnDistribution.rangeSelectivity(start, stop, includeStart, includeStop);
-            numRows = Math.min(numRows, nR);
-        }
-        return numRows;
+        int columnId = keyMap[keyPosition];
+        Distribution<DataValueDescriptor> dist = partStats.columnDistribution(columnId);
+        long c = dist.rangeSelectivity(start, stop, includeStart, includeStop);
+        if(c>0){
+            double size = partStats.totalSize();
+            double estCount;
+            if(keyPosition==0)
+                estCount = c;
+            else
+                estCount = c*currentCount/size;
+            return count(partStats,startKeyValue,includeStart,stopKeyValue,includeStop,keyPosition+1,(long)estCount,keyMap);
+        }else
+            return 0l;
     }
 }
