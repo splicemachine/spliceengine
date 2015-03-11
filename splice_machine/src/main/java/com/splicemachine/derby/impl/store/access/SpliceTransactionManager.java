@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.store.access;
 
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
 import com.splicemachine.si.api.ReadOnlyModificationException;
 import com.splicemachine.si.api.Txn;
@@ -1279,23 +1280,19 @@ public class SpliceTransactionManager implements XATransactionController,
      *
      * @return The open StoreCostController.
      *
-     * @param conglomId
-     *            The identifier of the conglomerate to open.
+     * @param cd  The descriptor of the conglomerate to open.
      *
-     * @exception StandardException
-     *                Standard exception policy.
+     * @exception StandardException Standard exception policy.
      *
      * @see StoreCostController
      **/
-    public StoreCostController openStoreCost(long conglomId)
-            throws StandardException {
-        if (LOG.isTraceEnabled())
-            LOG.trace("openStoreCost conglomId " + conglomId);
+    @Override
+    public StoreCostController openStoreCost(ConglomerateDescriptor cd) throws StandardException {
         // Find the conglomerate.
-        Conglomerate conglom = findExistingConglomerate(conglomId);
+        Conglomerate conglom = findExistingConglomerate(cd.getConglomerateNumber());
 
         // Get a scan controller.
-        return conglom.openStoreCost(this, rawtran);
+        return conglom.openStoreCost(cd,this, rawtran);
     }
 
     /**
@@ -1303,6 +1300,7 @@ public class SpliceTransactionManager implements XATransactionController,
      * @exception StandardException
      *                Standard error policy.
      **/
+    @Override
     public long createSort(Properties implParameters,
                            DataValueDescriptor[] template, ColumnOrdering columnOrdering[],
                            SortObserver sortObserver, boolean alreadyInOrder,

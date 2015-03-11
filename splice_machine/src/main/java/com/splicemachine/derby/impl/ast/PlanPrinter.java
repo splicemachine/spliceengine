@@ -67,7 +67,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
             String plan = treeToString(rsn);
             HashMap<String, String[]> m = planMap.get();
             if (m == null) {
-                m = new HashMap<String, String[]>();
+                m = new HashMap<>();
                 planMap.set(m);
             }
             m.put(query, plan.split("\n"));
@@ -78,8 +78,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
             }
             if (PLAN_LOG.isTraceEnabled()){
                 Gson gson = new GsonBuilder().setPrettyPrinting().create();
-                PLAN_LOG.trace(gson.toJson(
-                                              ImmutableMap.of("query", query, "plan", nodeInfo(rsn, 0))));
+                PLAN_LOG.trace(gson.toJson(ImmutableMap.of("query", query, "plan", nodeInfo(rsn, 0))));
             }
         }
         explain = false;
@@ -94,12 +93,10 @@ public class PlanPrinter extends AbstractSpliceVisitor {
     }
 
     public static Map prune(Map m){
-        List<Object> toPrune = new LinkedList<Object>();
+        List<Object> toPrune = new LinkedList<>();
         for (Map.Entry e: (Set<Map.Entry<Object,Object>>)m.entrySet()){
             Object val = e.getValue();
-            if (val == null ||
-                    val instanceof List &&
-                            ((List)val).size() == 0){
+            if (val == null || (val instanceof List && ((List)val).size() == 0)){
                 toPrune.add(e.getKey());
             }
         }
@@ -111,7 +108,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
 
     public static String infoToString(Map<String,Object> info)
             throws StandardException {
-        Map<String,Object> copy = new HashMap<String, Object>(info);
+        Map<String,Object> copy = new HashMap<>(info);
         Object clazz = copy.get("class");
         Object results = copy.get("results");
         int level = (Integer)copy.get("level");
@@ -142,14 +139,13 @@ public class PlanPrinter extends AbstractSpliceVisitor {
         return buf.toString();
     }
 
-    public static Map<String,Object> nodeInfo(final ResultSetNode rsn, final int level)
-            throws StandardException {
-        Map<String,Object> info = new HashMap<String, Object>();
+    public static Map<String,Object> nodeInfo(final ResultSetNode rsn, final int level) throws StandardException {
+        Map<String,Object> info = new HashMap<>();
         CostEstimate co = rsn.getFinalCostEstimate().getBase();
         info.put("class", JoinInfo.className.apply(rsn));
         info.put("n", rsn.getResultSetNumber());
         info.put("level", level);
-        info.put("cost", co.getEstimatedCost());
+        info.put("cost", String.format("%.3f",co.getEstimatedCost()));
         info.put("estRowCount", co.getEstimatedRowCount());
         info.put("estSingleScanCount", co.singleScanRowCount());
         info.put("regions", ((SortState) co).getNumberOfRegions());
@@ -215,8 +211,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
             //info.put("name", idx.getName());
         }
         if (rsn instanceof ProjectRestrictNode){
-            info.put("quals", Lists.transform(preds(rsn),
-                                                PredicateUtils.predToString));
+            info.put("quals", Lists.transform(preds(rsn), PredicateUtils.predToString));
         }
         if (rsn instanceof WindowResultSetNode) {
             info.put("functions",((WindowResultSetNode)rsn).getFunctionNames());
@@ -288,7 +283,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
             List<Map> subqs = (List<Map>)node.get("subqueries");
             if (subqs != null){
                 for (Map subInfo: subqs){
-                    subs.add(new Pair<Integer,Map>((Integer)node.get("n"), subInfo));
+                    subs.add(new Pair<>((Integer)node.get("n"), subInfo));
                 }
             }
             sb.append(infoToString(node));
