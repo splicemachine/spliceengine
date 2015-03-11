@@ -135,11 +135,8 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory
      * @exception   StandardException thrown on failure
      */
 
-    public ExecRow makeRow(TupleDescriptor td, TupleDescriptor parent)
-            throws StandardException
-    {
+    public ExecRow makeRow(TupleDescriptor td, TupleDescriptor parent) throws StandardException {
         ExecRow    				row;
-
         String					colName = null;
         String					defaultID = null;
         String					tabID = null;
@@ -156,9 +153,9 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory
         //start value? Following variable is used to keep track of what happened
         //to the autoincrement column.
         long autoinc_create_or_modify_Start_Increment = -1;
+        boolean collectStats = false;
 
-        if (td != null)
-        {
+        if (td != null) {
             ColumnDescriptor  column = (ColumnDescriptor)td;
 		
 			/* Lots of info in the column's type descriptor */
@@ -171,18 +168,15 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory
             autoincInc   = column.getAutoincInc();
             autoincValue   = column.getAutoincValue();
             autoinc_create_or_modify_Start_Increment = column.getAutoinc_create_or_modify_Start_Increment();
-            if (column.getDefaultInfo() != null)
-            {
+            if (column.getDefaultInfo() != null) {
                 defaultSerializable = column.getDefaultInfo();
-            }
-            else
-            {
+            } else {
                 defaultSerializable = column.getDefaultValue();
             }
-            if  (column.getDefaultUUID() != null)
-            {
+            if  (column.getDefaultUUID() != null) {
                 defaultID = column.getDefaultUUID().toString();
             }
+            collectStats = column.collectStatistics();
         }
 
 		/* Insert info into syscolumns */
@@ -256,7 +250,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory
         /*
          * TODO -sf- Automatically collect statistics for Orderable columns
          */
-        row.setColumn(SYSCOLUMNS_COLLECTSTATS,new SQLBoolean(false));
+        row.setColumn(SYSCOLUMNS_COLLECTSTATS,new SQLBoolean(collectStats));
 
         return row;
     }
