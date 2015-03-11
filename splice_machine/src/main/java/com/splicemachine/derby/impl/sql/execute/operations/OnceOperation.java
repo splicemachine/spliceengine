@@ -21,15 +21,15 @@ import com.splicemachine.job.JobResults;
 import com.splicemachine.metrics.IOStats;
 import com.splicemachine.utils.SpliceLogUtils;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.reference.SQLState;
-import org.apache.derby.iapi.services.loader.GeneratedMethod;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.conn.StatementContext;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.RowLocation;
-import org.apache.derby.shared.common.sanity.SanityManager;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.conn.StatementContext;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.db.shared.common.sanity.SanityManager;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaRDD;
@@ -459,8 +459,8 @@ public class OnceOperation extends SpliceBaseOperation {
     @Override
     public SpliceNoPutResultSet executeRDD(SpliceRuntimeContext runtimeContext) throws StandardException {
         JavaRDD<ExecRow> rdd = getRDD(runtimeContext, this);
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("RDD for operation " + this + " :\n " + rdd.toDebugString());
+        if (LOG.isInfoEnabled()) {
+            LOG.info("RDD for operation " + this + " :\n " + rdd.toDebugString());
         }
         return new SpliceNoPutResultSet(getActivation(), this,
                 new RDDRowProvider(rdd, runtimeContext){

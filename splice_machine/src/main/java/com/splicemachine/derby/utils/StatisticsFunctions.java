@@ -1,12 +1,12 @@
 package com.splicemachine.derby.utils;
 
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.hbase.regioninfocache.HBaseRegionCache;
 import com.splicemachine.hbase.regioninfocache.RegionCache;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.frequency.FrequentElements;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.util.Pair;

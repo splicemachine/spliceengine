@@ -7,9 +7,9 @@ import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.utils.kryo.KryoPool;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.StoredFormatIds;
-import org.apache.derby.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
 import java.io.Closeable;
 import java.io.IOException;

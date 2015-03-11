@@ -1,6 +1,6 @@
 /*
 
-   Derby - Class org.apache.derby.tools.ij
+   Derby - Class com.splicemachine.db.tools.ij
 
    Licensed to the Apache Software Foundation (ASF) under one or more
    contributor license agreements.  See the NOTICE file distributed with
@@ -21,20 +21,18 @@
 
 package com.splicemachine.tools;
 
-import org.apache.derby.iapi.tools.i18n.LocalizedInput;
-import org.apache.derby.iapi.tools.i18n.LocalizedOutput;
-import org.apache.derby.iapi.tools.i18n.LocalizedResource;
+import com.splicemachine.db.iapi.tools.i18n.LocalizedInput;
+import com.splicemachine.db.iapi.tools.i18n.LocalizedOutput;
+import com.splicemachine.db.iapi.tools.i18n.LocalizedResource;
 
-import org.apache.derby.impl.tools.ij.Main;
-import org.apache.derby.impl.tools.ij.utilMain;
+import com.splicemachine.db.impl.tools.ij.Main;
+import com.splicemachine.db.impl.tools.ij.utilMain;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.sql.Connection;
-import java.util.Properties;
 
 /**
 	
@@ -46,7 +44,7 @@ import java.util.Properties;
 
 	To run from the command line enter the following:
 	<p>
-	java [options] org.apache.derby.tools.splice [arguments]
+	java [options] com.splicemachine.db.tools.splice [arguments]
 	<P>
 	splice can also be used with any database server that supports a JDBC driver.
 */
@@ -129,17 +127,17 @@ public class splice {
   
   public static String getArg(String param, String[] args)
   {
-	  return org.apache.derby.impl.tools.ij.util.getArg(param, args);
+	  return com.splicemachine.db.impl.tools.ij.util.getArg(param, args);
   }
 
   public static void getPropertyArg(String[] args) throws IOException
   {
-	  org.apache.derby.impl.tools.ij.util.getPropertyArg(args);
+	  com.splicemachine.db.impl.tools.ij.util.getPropertyArg(args);
   }
 
   public static java.sql.Connection startJBMS()
 	  throws java.sql.SQLException, IllegalAccessException, ClassNotFoundException, InstantiationException
   {			
-		return org.apache.derby.impl.tools.ij.util.startJBMS();
+		return com.splicemachine.db.impl.tools.ij.util.startJBMS();
   }
 }

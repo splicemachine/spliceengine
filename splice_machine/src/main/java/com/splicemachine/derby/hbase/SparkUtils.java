@@ -1,8 +1,8 @@
 package com.splicemachine.derby.hbase;
 
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.client.Result;
 
 /**

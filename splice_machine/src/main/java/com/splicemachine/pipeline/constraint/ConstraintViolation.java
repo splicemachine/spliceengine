@@ -92,7 +92,7 @@ public final class ConstraintViolation {
         public ForeignKeyConstraintViolation(ConstraintContext cc) { super("", cc); }
         public ForeignKeyConstraintViolation(String message) {
             super(message);
-        };
+        }
 
         @Override
         public String toString(){

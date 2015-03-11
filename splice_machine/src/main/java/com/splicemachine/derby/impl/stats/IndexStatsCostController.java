@@ -1,5 +1,9 @@
 package com.splicemachine.derby.impl.stats;
 
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.store.access.StoreCostResult;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.StatsStoreCostController;
@@ -8,13 +12,6 @@ import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.stats.TableStatistics;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
-import org.apache.derby.iapi.sql.compile.CostEstimate;
-import org.apache.derby.iapi.store.access.StoreCostResult;
-import org.apache.derby.iapi.store.access.conglomerate.Conglomerate;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-
 import java.util.concurrent.ExecutionException;
 
 /**

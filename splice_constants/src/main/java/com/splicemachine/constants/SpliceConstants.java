@@ -18,6 +18,8 @@ import java.util.concurrent.TimeUnit;
 public class SpliceConstants {
     private static final Logger LOG = Logger.getLogger(SpliceConstants.class);
 
+    public static final String SPLICE_JDBC_DRIVER = "com.splicemachine.db.jdbc.ClientDriver";
+    
     /**
      * Flag to force the upgrade process to execute during database boot-up.
      * This flag should only be true for the master server.  If the upgrade runs on the region server,
@@ -1004,16 +1006,11 @@ public class SpliceConstants {
 		public static final byte[] TENTATIVE_TABLE_BYTES = Bytes.toBytes(TENTATIVE_TABLE);
 		public static final byte[] CONGLOMERATE_TABLE_NAME_BYTES = Bytes.toBytes(CONGLOMERATE_TABLE_NAME);
 		public static final byte[] SEQUENCE_TABLE_NAME_BYTES = Bytes.toBytes(SEQUENCE_TABLE_NAME);
-		public static final int PACKED_COLUMN = 7;
-		public static final String PACKED_COLUMN_STRING = PACKED_COLUMN+"";
-		public static final byte[] PACKED_COLUMN_BYTES = Bytes.toBytes(PACKED_COLUMN_STRING);
-		public static final byte PACKED_COLUMN_BYTE = PACKED_COLUMN_BYTES[0];		
 
-		
-		
-		// Splice Family Information
-		public static final String DEFAULT_FAMILY = "V";
-		public static final byte[] DEFAULT_FAMILY_BYTES = Bytes.toBytes(DEFAULT_FAMILY);
+        // The column in which splice stores encoded/packed user data.
+        public static final byte[] PACKED_COLUMN_BYTES = Bytes.toBytes("7");
+
+        public static final byte[] DEFAULT_FAMILY_BYTES = Bytes.toBytes("V");
 
 		public static final String SI_PERMISSION_FAMILY = "P";
 

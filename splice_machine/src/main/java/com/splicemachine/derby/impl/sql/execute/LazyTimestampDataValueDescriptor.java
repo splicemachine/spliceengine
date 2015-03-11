@@ -1,26 +1,21 @@
 package com.splicemachine.derby.impl.sql.execute;
 
 import com.splicemachine.derby.impl.sql.execute.serial.DVDSerializer;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.types.BooleanDataValue;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.DateTimeDataValue;
-import org.apache.derby.iapi.types.NumberDataValue;
-import org.apache.derby.iapi.types.SQLBoolean;
-import org.apache.derby.iapi.types.DataValueFactoryImpl.Format;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.types.BooleanDataValue;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.DateTimeDataValue;
+import com.splicemachine.db.iapi.types.NumberDataValue;
+import com.splicemachine.db.iapi.types.SQLBoolean;
+import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
+import com.splicemachine.db.iapi.types.SQLVarchar;
+import com.splicemachine.db.iapi.types.StringDataValue;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.util.Date;
 
-/**
- * Created with IntelliJ IDEA.
- * User: jyuan
- * Date: 2/12/14
- * Time: 11:12 AM
- * To change this template use File | Settings | File Templates.
- */
 public class LazyTimestampDataValueDescriptor extends LazyDataValueDescriptor implements DateTimeDataValue
 {
 
@@ -65,6 +60,13 @@ public class LazyTimestampDataValueDescriptor extends LazyDataValueDescriptor im
     }
 
     @Override
+    public NumberDataValue getQuarter(NumberDataValue result)
+            throws StandardException {
+        forceDeserialization();
+        return dtdv.getQuarter(result);
+    }
+
+    @Override
     public NumberDataValue getMonth(NumberDataValue result)
             throws StandardException {
         forceDeserialization();
@@ -72,10 +74,45 @@ public class LazyTimestampDataValueDescriptor extends LazyDataValueDescriptor im
     }
 
     @Override
+    public StringDataValue getMonthName(StringDataValue result)
+            throws StandardException {
+        forceDeserialization();
+        return dtdv.getMonthName(result);
+    }
+
+    @Override
+    public NumberDataValue getWeek(NumberDataValue result)
+            throws StandardException {
+        forceDeserialization();
+        return dtdv.getWeek(result);
+    }
+
+    @Override
+    public NumberDataValue getWeekDay(NumberDataValue result)
+            throws StandardException {
+        forceDeserialization();
+        return dtdv.getWeekDay(result);
+    }
+
+    @Override
+    public StringDataValue getWeekDayName(StringDataValue result)
+            throws StandardException {
+        forceDeserialization();
+        return dtdv.getWeekDayName(result);
+    }
+
+    @Override
     public NumberDataValue getDate(NumberDataValue result)
             throws StandardException {
         forceDeserialization();
         return dtdv.getDate(result);
+    }
+
+    @Override
+    public NumberDataValue getDayOfYear(NumberDataValue result)
+            throws StandardException {
+        forceDeserialization();
+        return dtdv.getDayOfYear(result);
     }
 
     @Override

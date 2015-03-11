@@ -8,7 +8,7 @@ import com.splicemachine.derby.impl.sql.execute.serial.DoubleDVDSerializer;
 import com.splicemachine.derby.impl.sql.execute.serial.StringDVDSerializer;
 import com.splicemachine.utils.kryo.KryoObjectInput;
 import com.splicemachine.utils.kryo.KryoObjectOutput;
-import org.apache.derby.iapi.types.*;
+import com.splicemachine.db.iapi.types.*;
 import org.junit.Assert;
 import org.junit.Test;
 

@@ -1,13 +1,16 @@
 package com.splicemachine.pipeline.impl;
 
-import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.ExpandedDecoder;
 import com.splicemachine.encoding.ExpandingEncoder;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.TxnView;
+import com.splicemachine.utils.ByteSlice;
 
-import java.util.*;
+import java.util.AbstractCollection;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
 
 /**
  * Utilities around encoding and decoding BulkWriteRequests and responses.
@@ -121,10 +124,12 @@ public class PipelineEncoding {
                 int size = decoder.decodeInt();
                 Collection<KVPair> kvPairs = new ArrayList<>(size);
                 KVPair template = new KVPair();
+                ByteSlice rowKeySlice = template.rowKeySlice();
+                ByteSlice valueSlice = template.valueSlice();
                 for(int i=0;i<size;i++){
                     template.setType(KVPair.Type.decode(decoder.rawByte()));
-                    decoder.sliceNext(template.rowKeySlice());
-                    decoder.sliceNext(template.valueSlice());
+                    decoder.sliceNext(rowKeySlice);
+                    decoder.sliceNext(valueSlice);
                     kvPairs.add(template.shallowClone());
                 }
 

@@ -9,8 +9,8 @@ import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.metrics.Timer;
-import org.apache.derby.iapi.sql.ResultColumnDescriptor;
-import org.apache.derby.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import org.apache.log4j.Logger;
 import org.supercsv.io.CsvListWriter;
 

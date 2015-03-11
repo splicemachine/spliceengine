@@ -72,7 +72,7 @@ public class SIFilterTest extends SIConstants {
         insertAge(t2, "bill", 30);
 
         Result row = readEntireTuple("bill");
-        final List<KeyValue> keyValues = row.getColumn(dataLib.encode(DEFAULT_FAMILY_BYTES), dataLib.encode(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING));
+        final List<KeyValue> keyValues = row.getColumn(dataLib.encode(DEFAULT_FAMILY_BYTES), SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES);
         for (KeyValue kv : keyValues) {
 						filterState.filterKeyValue(kv);
         }

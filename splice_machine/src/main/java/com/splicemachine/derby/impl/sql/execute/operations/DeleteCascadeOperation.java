@@ -1,13 +1,13 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.ResultSet;
-import org.apache.derby.iapi.sql.execute.ConstantAction;
-import org.apache.derby.iapi.sql.execute.CursorResultSet;
-import org.apache.derby.iapi.sql.execute.NoPutResultSet;
-import org.apache.derby.impl.sql.execute.FKInfo;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.ResultSet;
+import com.splicemachine.db.iapi.sql.execute.ConstantAction;
+import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
+import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
+import com.splicemachine.db.impl.sql.execute.FKInfo;
 
 /**
  * Delete the rows from the specified  base table and executes delete/update

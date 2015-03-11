@@ -164,6 +164,8 @@ public class DDLTxnView extends AbstractTxnView {
 		output.writeObject(txn);
 	}
 
-    
-    
+    @Override
+    public String toString() {
+        return "DDL" + txn;
+    }
 }

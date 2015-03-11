@@ -7,7 +7,7 @@ import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.reflect.ConstructorUtils;
-import org.apache.derby.iapi.error.StandardException;
+import com.splicemachine.db.iapi.error.StandardException;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.log4j.Logger;
 

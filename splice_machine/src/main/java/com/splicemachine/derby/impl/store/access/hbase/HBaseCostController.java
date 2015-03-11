@@ -1,14 +1,14 @@
 package com.splicemachine.derby.impl.store.access.hbase;
 
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.derby.iapi.services.sanity.SanityManager;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.compile.CostEstimate;
-import org.apache.derby.iapi.store.access.StoreCostController;
-import org.apache.derby.iapi.store.access.StoreCostResult;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.RowLocation;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.compile.CostEstimate;
+import com.splicemachine.db.iapi.store.access.StoreCostController;
+import com.splicemachine.db.iapi.store.access.StoreCostResult;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.compile.SortState;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;

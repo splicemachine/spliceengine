@@ -1,20 +1,20 @@
 package org.apache.spark.examples;
 
-import org.apache.derby.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.RowLocation;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
 import org.apache.hadoop.hbase.mapreduce.TableInputFormat;
 import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.Text;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-import com.splicemachine.mrio.api.SQLUtil;
-import com.splicemachine.mrio.api.SpliceInputFormat;
+import com.splicemachine.mrio.api.SMInputFormat;
+import com.splicemachine.mrio.api.SMSQLUtil;
 import com.splicemachine.mrio.api.SpliceJob;
-import com.splicemachine.mrio.api.SpliceMRConstants;
+import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.mrio.api.SpliceTableMapReduceUtil;
 
 /**
@@ -28,13 +28,13 @@ public final class JavaSparkPI {
 	
 	long beginTime = System.currentTimeMillis();	
 	Configuration config = HBaseConfiguration.create();
-	config.set(SpliceMRConstants.SPLICE_JDBC_STR, "jdbc:derby://localhost:1527/splicedb;user=splice;password=admin");
+	config.set(MRConstants.SPLICE_JDBC_STR, "jdbc:derby://localhost:1527/splicedb;user=splice;password=admin");
 
 
-	SQLUtil sqlUtil = SQLUtil.getInstance(config.get(SpliceMRConstants.SPLICE_JDBC_STR));
+	SMSQLUtil sqlUtil = SMSQLUtil.getInstance(config.get(MRConstants.SPLICE_JDBC_STR));
 	String txsID = sqlUtil.getTransactionID();
 	
-	config.set(SpliceMRConstants.SPLICE_TRANSACTION_ID, txsID);
+	config.set(MRConstants.SPLICE_TRANSACTION_ID, txsID);
 	SpliceJob job = new SpliceJob(config, "Test Scan");	
 	job.setJarByClass(JavaSparkPI.class);     // class that contains mapper
 	Scan scan = new Scan();
@@ -50,14 +50,14 @@ public final class JavaSparkPI {
 		inputTableName,        // input Splice table name
 		scan,             // Scan instance to control CF and attribute selection
 		null,   // mapper
-		Text.class,       // mapper output key
-		IntWritable.class,  // mapper output value
+		IntWritable.class,       // mapper output key
+		ExecRow.class,  // mapper output value
 		job,
 		true,
-		SpliceInputFormat.class);
+		SMInputFormat.class);
 		job.getConfiguration().set(TableInputFormat.SCAN,"");
 	
-		SpliceInputFormat format = new SpliceInputFormat();
+		SMInputFormat format = new SMInputFormat();
 		format.setConf(job.getConfiguration());  
 		
 		
@@ -65,7 +65,7 @@ public final class JavaSparkPI {
 	    sparkConf.set("spark.broadcast.compress", "false");
 	    JavaSparkContext jsc = new JavaSparkContext(sparkConf);
 		
-    JavaPairRDD<ImmutableBytesWritable, ExecRow> table = jsc.newAPIHadoopRDD(job.getConfiguration(), SpliceInputFormat.class, ImmutableBytesWritable.class, ExecRow.class);
+    JavaPairRDD<RowLocation, ExecRow> table = jsc.newAPIHadoopRDD(job.getConfiguration(), SMInputFormat.class, RowLocation.class, ExecRow.class);
     
 /*    
     int slices = (args.length == 1) ? Integer.parseInt(args[0]) : 2;

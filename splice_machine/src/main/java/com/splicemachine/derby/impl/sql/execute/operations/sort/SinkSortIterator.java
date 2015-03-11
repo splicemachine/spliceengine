@@ -10,8 +10,8 @@ import com.splicemachine.derby.utils.marshall.KeyEncoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.pipeline.exception.Exceptions;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 
 import java.io.IOException;
 

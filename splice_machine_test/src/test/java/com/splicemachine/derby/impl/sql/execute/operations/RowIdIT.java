@@ -1,7 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.test.framework.*;
-import org.apache.derby.iapi.types.SQLRef;
+import com.splicemachine.db.iapi.types.SQLRef;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -11,7 +11,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.PreparedStatement;
 import java.sql.RowId;
-//import org.apache.derby.client.am.RowId;
+
 /**
  * Created by jyuan on 9/28/14.
  */
@@ -229,7 +229,7 @@ public class RowIdIT extends SpliceUnitTest {
             Assert.assertTrue(s.compareToIgnoreCase(rId.toString()) == 0);
         }
 
-        org.apache.derby.client.am.RowId rowId = new org.apache.derby.client.am.RowId(rId.getBytes());
+        com.splicemachine.db.client.am.RowId rowId = new com.splicemachine.db.client.am.RowId(rId.getBytes());
 
         PreparedStatement ps = spliceClassWatcher.prepareStatement(
                 String.format("select i, rowid from %s where rowid = ?", spliceTableWatcher1));

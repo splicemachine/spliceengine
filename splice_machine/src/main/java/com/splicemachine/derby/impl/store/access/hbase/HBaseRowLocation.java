@@ -1,17 +1,16 @@
 package com.splicemachine.derby.impl.store.access.hbase;
 
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.cache.ClassSize;
+import com.splicemachine.db.iapi.services.io.ArrayInputStream;
+import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.types.DataType;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.DataValueFactoryImpl;
+import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.db.shared.common.sanity.SanityManager;
 import com.splicemachine.utils.ByteSlice;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.cache.ClassSize;
-import org.apache.derby.iapi.services.io.ArrayInputStream;
-import org.apache.derby.iapi.services.io.StoredFormatIds;
-import org.apache.derby.iapi.services.sanity.SanityManager;
-import org.apache.derby.iapi.types.DataType;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.DataValueFactoryImpl.Format;
-import org.apache.derby.iapi.types.RowLocation;
-import org.apache.derby.iapi.types.SQLRowId;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.ObjectOutput;
@@ -27,8 +26,8 @@ import java.io.IOException;
 public class HBaseRowLocation extends DataType implements RowLocation {
 
 	private ByteSlice slice;
-    private static final int BASE_MEMORY_USAGE = ClassSize.estimateBaseFromCatalog( HBaseRowLocation.class);
-    private static final int RECORD_HANDLE_MEMORY_USAGE = ClassSize.estimateBaseFromCatalog( org.apache.derby.impl.store.raw.data.RecordId.class);
+    private static final int BASE_MEMORY_USAGE = ClassSize.estimateBaseFromCatalog(HBaseRowLocation.class);
+    private static final int RECORD_HANDLE_MEMORY_USAGE = ClassSize.estimateBaseFromCatalog( com.splicemachine.db.impl.store.raw.data.RecordId.class);
 
 	public HBaseRowLocation()
 	{
@@ -153,7 +152,7 @@ public class HBaseRowLocation extends DataType implements RowLocation {
 	/**
 		Return my format identifier.
 
-		@see org.apache.derby.iapi.services.io.TypedFormat#getTypeFormatId
+		@see com.splicemachine.db.iapi.services.io.TypedFormat#getTypeFormatId
 	*/
 	public int getTypeFormatId() {
 		return StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID;
@@ -227,8 +226,8 @@ public class HBaseRowLocation extends DataType implements RowLocation {
         else return "null";
     }
 
-    public Format getFormat() {
-    	return Format.ROW_LOCATION;
+    public DataValueFactoryImpl.Format getFormat() {
+    	return DataValueFactoryImpl.Format.ROW_LOCATION;
     }
 
 		public ByteSlice getSlice() {

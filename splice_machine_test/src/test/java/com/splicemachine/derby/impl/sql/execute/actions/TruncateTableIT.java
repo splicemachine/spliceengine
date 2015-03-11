@@ -9,7 +9,7 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
 import java.sql.PreparedStatement;
-
+import java.sql.ResultSet;
 /**
  * @author Scott Fines
  *         Date: 9/2/14
@@ -18,7 +18,7 @@ public class TruncateTableIT {
 
     public static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(TruncateTableIT.class.getSimpleName().toUpperCase());
 
-    public static final SpliceTableWatcher table = new SpliceTableWatcher("A",schemaWatcher.schemaName,"(a int, b int, primary key (a))");
+    public static final SpliceTableWatcher table = new SpliceTableWatcher("A",schemaWatcher.schemaName,"(a int, b int, primary key (a, b))");
 
     public static final SpliceWatcher classWatcher = new SpliceWatcher();
 
@@ -163,5 +163,26 @@ public class TruncateTableIT {
 
         count = conn1.count(query+a);
         Assert.assertEquals("Truncate is not being rolled back correctly!",1l,count);
+    }
+
+    @Test
+    public void testTruncateTableWithMoreTHan2PKColumns() throws Exception {
+
+        conn1.createStatement().execute("truncate table "+ table);
+        int a = 2;
+        int b = 4;
+        PreparedStatement ps = conn1.prepareStatement("insert into " + table + "(a,b) values (?,?)");
+        ps.setInt(1,a);
+        ps.setInt(2,b);
+        ps.execute();
+
+        ps = conn1.prepareStatement("select a, b from " + table);
+        ResultSet rs = ps.executeQuery();
+
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals(2, rs.getInt(1));
+        Assert.assertEquals(4, rs.getInt(2));
+
+        conn1.commit();
     }
 }

@@ -17,37 +17,37 @@ import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.si.impl.DDLFilter;
 import com.splicemachine.si.impl.HTransactorFactory;
 
-import org.apache.derby.catalog.UUID;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.reference.Property;
-import org.apache.derby.iapi.reference.SQLState;
-import org.apache.derby.iapi.services.cache.CacheFactory;
-import org.apache.derby.iapi.services.cache.CacheManager;
-import org.apache.derby.iapi.services.cache.Cacheable;
-import org.apache.derby.iapi.services.cache.CacheableFactory;
-import org.apache.derby.iapi.services.context.ContextManager;
-import org.apache.derby.iapi.services.context.ContextService;
-import org.apache.derby.iapi.services.daemon.Serviceable;
-import org.apache.derby.iapi.services.locks.LockFactory;
-import org.apache.derby.iapi.services.monitor.ModuleControl;
-import org.apache.derby.iapi.services.monitor.Monitor;
-import org.apache.derby.iapi.services.property.PropertyFactory;
-import org.apache.derby.iapi.services.property.PropertySetCallback;
-import org.apache.derby.iapi.services.property.PropertyUtil;
-import org.apache.derby.iapi.services.sanity.SanityManager;
-import org.apache.derby.iapi.store.access.AccessFactory;
-import org.apache.derby.iapi.store.access.AccessFactoryGlobals;
-import org.apache.derby.iapi.store.access.TransactionController;
-import org.apache.derby.iapi.store.access.TransactionInfo;
-import org.apache.derby.iapi.store.access.conglomerate.Conglomerate;
-import org.apache.derby.iapi.store.access.conglomerate.ConglomerateFactory;
-import org.apache.derby.iapi.store.access.conglomerate.MethodFactory;
-import org.apache.derby.iapi.store.access.conglomerate.TransactionManager;
-import org.apache.derby.iapi.store.raw.ContainerHandle;
-import org.apache.derby.iapi.store.raw.ContainerKey;
-import org.apache.derby.iapi.store.raw.LockingPolicy;
-import org.apache.derby.iapi.store.raw.Transaction;
-import org.apache.derby.shared.common.reference.Attribute;
+import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.cache.CacheFactory;
+import com.splicemachine.db.iapi.services.cache.CacheManager;
+import com.splicemachine.db.iapi.services.cache.Cacheable;
+import com.splicemachine.db.iapi.services.cache.CacheableFactory;
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.services.context.ContextService;
+import com.splicemachine.db.iapi.services.daemon.Serviceable;
+import com.splicemachine.db.iapi.services.locks.LockFactory;
+import com.splicemachine.db.iapi.services.monitor.ModuleControl;
+import com.splicemachine.db.iapi.services.monitor.Monitor;
+import com.splicemachine.db.iapi.services.property.PropertyFactory;
+import com.splicemachine.db.iapi.services.property.PropertySetCallback;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.store.access.AccessFactory;
+import com.splicemachine.db.iapi.store.access.AccessFactoryGlobals;
+import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.store.access.TransactionInfo;
+import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
+import com.splicemachine.db.iapi.store.access.conglomerate.ConglomerateFactory;
+import com.splicemachine.db.iapi.store.access.conglomerate.MethodFactory;
+import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
+import com.splicemachine.db.iapi.store.raw.ContainerHandle;
+import com.splicemachine.db.iapi.store.raw.ContainerKey;
+import com.splicemachine.db.iapi.store.raw.LockingPolicy;
+import com.splicemachine.db.iapi.store.raw.Transaction;
+import com.splicemachine.db.shared.common.reference.Attribute;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.log4j.Logger;
 
@@ -211,20 +211,20 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
      *
      **/
 
-    /**
-     * Initialize the conglomerate cache.
-     * <p>
-     * Simply calls the cache manager to create the cache with some hard
-     * coded defaults for size.
-     * <p>
-     * @exception  StandardException  Standard exception policy.
-     **/
-    private void conglomCacheInit() throws StandardException {
-        // Get a cache factory to create the conglomerate cache.
-        CacheFactory cf = (CacheFactory) Monitor.startSystemModule(org.apache.derby.iapi.reference.Module.CacheFactory);
-        // Now create the conglomerate cache.
-        conglom_cache = cf.newCacheManager(this, AccessFactoryGlobals.CFG_CONGLOMDIR_CACHE, 200, 300);
-    }
+		/**
+		 * Initialize the conglomerate cache.
+		 * <p>
+		 * Simply calls the cache manager to create the cache with some hard
+		 * coded defaults for size.
+		 * <p>
+		 * @exception  StandardException  Standard exception policy.
+		 **/
+		private void conglomCacheInit() throws StandardException {
+				// Get a cache factory to create the conglomerate cache.
+				CacheFactory cf = (CacheFactory) Monitor.startSystemModule(com.splicemachine.db.iapi.reference.Module.CacheFactory);
+				// Now create the conglomerate cache.
+				conglom_cache = cf.newCacheManager(this, AccessFactoryGlobals.CFG_CONGLOMDIR_CACHE, 200, 300);
+		}
 
     /**
      * Find a conglomerate by conglomid in the cache.
@@ -742,12 +742,12 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
         rawstore.startReplicationMaster(dbmaster, host, port, replicationMode);
     }
 
-    /**
-     * @see org.apache.derby.iapi.store.access.AccessFactory#failover(String dbname).
-     */
-    public void failover(String dbname) throws StandardException {
-        rawstore.failover(dbname);
-    }
+		/**
+		 * @see com.splicemachine.db.iapi.store.access.AccessFactory#failover(String dbname).
+		 */
+		public void failover(String dbname) throws StandardException {
+				rawstore.failover(dbname);
+		}
 
     /**
      * Stop the replication master role for this database.
@@ -825,13 +825,13 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
         rawstore = new HBaseStore();
         rawstore.boot(true, serviceProperties);
 
-        // Note: we also boot this module here since we may start Derby
-        // system from store access layer, as some of the unit test case,
-        // not from JDBC layer.(See
-        // /protocol/Database/Storage/Access/Interface/T_AccessFactory.java)
-        // If this module has already been booted by the JDBC layer, this will
-        // have no effect at all.
-        Monitor.bootServiceModule(create, this, org.apache.derby.iapi.reference.Module.PropertyFactory, startParams);
+				// Note: we also boot this module here since we may start Derby
+				// system from store access layer, as some of the unit test case,
+				// not from JDBC layer.(See
+				// /protocol/Database/Storage/Access/Interface/T_AccessFactory.java)
+				// If this module has already been booted by the JDBC layer, this will
+				// have no effect at all.
+				Monitor.bootServiceModule(create, this, com.splicemachine.db.iapi.reference.Module.PropertyFactory, startParams);
 
         // Create the in-memory conglomerate directory
 
@@ -939,8 +939,8 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
 
         //tc.commit();
 
-        // set up the property validation
-        pf = (PropertyFactory) Monitor.findServiceModule(this, org.apache.derby.iapi.reference.Module.PropertyFactory);
+				// set up the property validation
+				pf = (PropertyFactory) Monitor.findServiceModule(this, com.splicemachine.db.iapi.reference.Module.PropertyFactory);
 
         if(create)
             ((SpliceTransaction)tc.getRawTransaction()).elevate("boot".getBytes());

@@ -4,34 +4,34 @@ import com.splicemachine.derby.ddl.DDLCoordinationFactory;
 import com.splicemachine.si.api.ReadOnlyModificationException;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
+import com.splicemachine.utils.SpliceLogUtils;
 
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Properties;
+import java.util.Stack;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.reference.SQLState;
-import org.apache.derby.iapi.services.context.ContextManager;
-import org.apache.derby.iapi.services.daemon.Serviceable;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
-import org.apache.derby.iapi.services.io.Storable;
-import org.apache.derby.iapi.services.locks.CompatibilitySpace;
-import org.apache.derby.iapi.services.sanity.SanityManager;
-import org.apache.derby.iapi.store.access.*;
-import org.apache.derby.iapi.store.access.conglomerate.*;
-import org.apache.derby.iapi.store.raw.ContainerHandle;
-import org.apache.derby.iapi.store.raw.LockingPolicy;
-import org.apache.derby.iapi.store.raw.Loggable;
-import org.apache.derby.iapi.store.raw.Transaction;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.util.ReuseFactory;
-import org.apache.derby.impl.store.access.conglomerate.ConglomerateUtil;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.services.daemon.Serviceable;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.services.io.Storable;
+import com.splicemachine.db.iapi.services.locks.CompatibilitySpace;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.store.access.*;
+import com.splicemachine.db.iapi.store.access.conglomerate.*;
+import com.splicemachine.db.iapi.store.raw.ContainerHandle;
+import com.splicemachine.db.iapi.store.raw.LockingPolicy;
+import com.splicemachine.db.iapi.store.raw.Loggable;
+import com.splicemachine.db.iapi.store.raw.Transaction;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.util.ReuseFactory;
+import com.splicemachine.db.impl.store.access.conglomerate.ConglomerateUtil;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
-import com.splicemachine.derby.impl.store.access.base.SpliceScan;
 import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.pipeline.exception.Exceptions;
 
@@ -1591,7 +1591,11 @@ public class SpliceTransactionManager implements XATransactionController,
             if (LOG.isTraceEnabled())
                 LOG.trace("commit transaction contextId=="
                         + ((SpliceTransaction) rawtran).getContextId());
+    	    if (LOG.isDebugEnabled())
+    	        SpliceLogUtils.debug(LOG, "Before commit: txn=%s, nestedTxnStack=\n%s", getRawTransaction(), getNestedTransactionStackString());
             rawtran.commit();
+    	    if (LOG.isDebugEnabled())
+    	        SpliceLogUtils.debug(LOG, "After commit: txn=%s, nestedTxnStack=\n%s", getRawTransaction(), getNestedTransactionStackString());
         }
 
         alterTableCallMade = false;
@@ -1602,13 +1606,20 @@ public class SpliceTransactionManager implements XATransactionController,
         LOG.debug("commitNoSync ");
         if (LOG.isTraceEnabled())
             LOG.trace("commitNoSync ");
+	    if (LOG.isDebugEnabled())
+	        SpliceLogUtils.debug(LOG, "Before commitNoSync: txn=%s, commitFlag=%s, nestedTxnStack=\n%s", getRawTransaction(), commitflag, getNestedTransactionStackString());
         this.closeControllers(false /* don't close held controllers */);
-        return rawtran.commitNoSync(commitflag);
+        DatabaseInstant dbi = rawtran.commitNoSync(commitflag);
+	    if (LOG.isDebugEnabled())
+	        SpliceLogUtils.debug(LOG, "After commitNoSync: txn=%s, nestedTxnStack=\n%s", getRawTransaction(), getNestedTransactionStackString());
+	    return dbi;
     }
 
     public void abort() throws StandardException {
         if (LOG.isTraceEnabled())
             LOG.trace("abort ");
+	    if (LOG.isDebugEnabled())
+	        SpliceLogUtils.debug(LOG, "Before abort: txn=%s, nestedTxnStack=\n%s", getRawTransaction(), getNestedTransactionStackString());
 
         if (alterTableCallMade) {
             accessmanager.conglomCacheInvalidate();
@@ -1617,6 +1628,8 @@ public class SpliceTransactionManager implements XATransactionController,
         this.closeControllers(true /* close all controllers */);
         rawtran.abort();
 
+	    if (LOG.isDebugEnabled())
+	        SpliceLogUtils.debug(LOG, "After abort: txn=%s, nestedTxnStack=\n%s", getRawTransaction(), getNestedTransactionStackString());
     }
 
     /**
@@ -1633,19 +1646,34 @@ public class SpliceTransactionManager implements XATransactionController,
 
     public int setSavePoint(String name, Object kindOfSavepoint) throws StandardException {
         assert rawtran instanceof SpliceTransaction : "Programmer error: cannot set a save point on a Transaction View";
-        return rawtran.setSavePoint(name, kindOfSavepoint);
+	    if (LOG.isDebugEnabled())
+	        SpliceLogUtils.debug(LOG, "Before setSavePoint: name=%s, parentTxn=%s, nestedTxnStack=\n%s", name, getRawTransaction(), getNestedTransactionStackString());
+        int numSavePoints = rawtran.setSavePoint(name, kindOfSavepoint);
+	    if (LOG.isDebugEnabled())
+	        SpliceLogUtils.debug(LOG, "After setSavePoint: name=%s, numSavePoints=%s, nestedTxnStack=\n%s", name, numSavePoints, getNestedTransactionStackString());
+        return numSavePoints;
     }
 
     public int releaseSavePoint(String name, Object kindOfSavepoint) throws StandardException {
         assert rawtran instanceof SpliceTransaction : "Programmer error: cannot release a save point on a Transaction View";
-        return rawtran.releaseSavePoint(name, kindOfSavepoint);
+	    if (LOG.isDebugEnabled())
+	    	SpliceLogUtils.debug(LOG, "Before releaseSavePoint: name=%s, parentTxn=%s, nestedTxnStack=\n%s", name, getRawTransaction(), getNestedTransactionStackString());
+	    int numSavePoints = rawtran.releaseSavePoint(name, kindOfSavepoint);
+	    if (LOG.isDebugEnabled())
+	        SpliceLogUtils.debug(LOG, "After releaseSavePoint: name=%s, numSavePoints=%s, nestedTxnStack=\n%s", name, numSavePoints, getNestedTransactionStackString());
+	    return numSavePoints;
     }
 
     public int rollbackToSavePoint(String name, boolean close_controllers, Object kindOfSavepoint) throws StandardException {
         assert rawtran instanceof SpliceTransaction : "Programmer error: cannot rollback a save point on a Transaction View";
+	    if (LOG.isDebugEnabled())
+	    	SpliceLogUtils.debug(LOG, "Before rollbackSavePoint: name=%s, parentTxn=%s, nestedTxnStack=\n%s", name, getRawTransaction(), getNestedTransactionStackString());
         if (close_controllers)
             this.closeControllers(true /* close all controllers */);
-        return rawtran.rollbackToSavePoint(name, kindOfSavepoint);
+        int numSavePoints = rawtran.rollbackToSavePoint(name, kindOfSavepoint);
+	    if (LOG.isDebugEnabled())
+	        SpliceLogUtils.debug(LOG, "After rollbackSavePoint: name=%s, numSavePoints=%s, nestedTxnStack=\n%s", name, numSavePoints, getNestedTransactionStackString());
+        return numSavePoints;
     }
 
     public void destroy() {
@@ -1681,7 +1709,11 @@ public class SpliceTransactionManager implements XATransactionController,
     public void elevate(String tableName) throws StandardException {
         assert rawtran instanceof SpliceTransaction: "Programmer error: cannot elevate a transaction view!";
         assert tableName !=null : "Programmer error: cannot elevate a transaction without specifying a label";
+	    if (LOG.isDebugEnabled())
+	    	SpliceLogUtils.debug(LOG, "Before elevate: txn=%s, tableName=%s, nestedTxnStack=\n%s", getRawTransaction(), tableName, getNestedTransactionStackString());
         ((SpliceTransaction)rawtran).elevate(tableName.getBytes());
+	    if (LOG.isDebugEnabled())
+	    	SpliceLogUtils.debug(LOG, "After elevate: txn=%s, nestedTxnStack=\n%s", getRawTransaction(), getNestedTransactionStackString());
     }
 
     public boolean anyoneBlocked() {
@@ -1949,6 +1981,8 @@ public class SpliceTransactionManager implements XATransactionController,
                                                             boolean flush_log_on_xact_end) throws StandardException {
         if (LOG.isTraceEnabled())
             LOG.trace("startNestedUserTransaction ");
+	    if (LOG.isDebugEnabled())
+	    	SpliceLogUtils.debug(LOG, "Before startNestedUserTransaction: parentTxn=%s, readOnly=%b, nestedTxnStack=\n%s", getRawTransaction(), readOnly, getNestedTransactionStackString());
         // Get the context manager.
         ContextManager cm = getContextManager();
 
@@ -1982,6 +2016,9 @@ public class SpliceTransactionManager implements XATransactionController,
         //this actually does some work, so don't remove it
         @SuppressWarnings("UnusedDeclaration") SpliceTransactionManagerContext rtc = new SpliceTransactionManagerContext(
                 cm, AccessFactoryGlobals.RAMXACT_CHILD_CONTEXT_ID, rt, true /* abortAll */);
+
+	    if (LOG.isDebugEnabled())
+	    	SpliceLogUtils.debug(LOG, "After startNestedUserTransaction: childTxn=%s, nestedTxnStack=\n%s", childTxn, rt.getNestedTransactionStackString());
 
         return (rt);
     }
@@ -2092,6 +2129,47 @@ public class SpliceTransactionManager implements XATransactionController,
             str = "rawtran = " + rawtran;
         }
         return str;
+    }
+
+    /**
+     * Return a string depicting the nested transaction stack with the current transaction being at the bottom and its ancestors above it.
+     * @return string depicting the nested transaction stack
+     */
+    private String getNestedTransactionStackString() {
+    	SpliceTransactionManager currentTxnMgr = parent_tran;
+    	Stack<SpliceTransactionManager> txnStack = new Stack<SpliceTransactionManager>();
+    	while (currentTxnMgr != null) {
+    		txnStack.push(currentTxnMgr);
+    		currentTxnMgr = currentTxnMgr.parent_tran;
+    	}
+
+    	StringBuffer sb = new StringBuffer();
+    	sb.append(Txn.ROOT_TRANSACTION);
+    	sb.append("\n");
+    	int count = 2;
+    	while (!txnStack.empty()) {
+    		appendSpaces(count, sb);
+    		sb.append(txnStack.pop().getRawTransaction().toString());
+    		sb.append("\n");
+    		count += 2;
+    	}
+		appendSpaces(count, sb);
+    	sb.append("currentTxn: ");
+    	BaseSpliceTransaction currentTxn = getRawTransaction();
+		sb.append(currentTxn == null ? "null" : currentTxn.toString());
+    	return sb.toString();
+    }
+
+    /**
+     * Adds 'n' number of spaces to a buffer.
+     * @param n number of spaces to add to a buffer.
+     */
+    private StringBuffer appendSpaces(int n, StringBuffer buf) {
+    	if (buf == null) buf = new StringBuffer(n);
+    	for (int i = 0; i < n; i++) {
+    		buf.append(" ");
+    	}
+    	return buf;
     }
 
     public TxnView getActiveStateTxn() {

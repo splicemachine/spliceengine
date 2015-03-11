@@ -1,10 +1,9 @@
 package com.splicemachine.derby.impl.stats;
 
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.collector.ColumnStatsCollector;
-import com.splicemachine.stats.estimate.DistributionFactory;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.types.DataValueDescriptor;
 
 import java.math.BigDecimal;
 

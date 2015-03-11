@@ -1,17 +1,17 @@
 package com.splicemachine.derby.impl.sql.catalog.upgrade;
 
-import com.splicemachine.derby.impl.sql.catalog.SYSTABLESTATISTICSRowFactory;
+import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.catalog.types.DefaultInfoImpl;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.SQLBoolean;
 import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
-import org.apache.derby.catalog.UUID;
-import org.apache.derby.catalog.types.DefaultInfoImpl;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.dictionary.*;
-import org.apache.derby.iapi.store.access.TransactionController;
-import org.apache.derby.iapi.types.DataTypeDescriptor;
-import org.apache.derby.iapi.types.SQLBoolean;
 
 import java.sql.Types;
-import java.util.Collections;
 
 /**
  * @author Scott Fines

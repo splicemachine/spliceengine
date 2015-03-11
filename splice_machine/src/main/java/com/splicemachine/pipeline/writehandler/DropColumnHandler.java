@@ -10,8 +10,8 @@ import com.splicemachine.pipeline.api.WriteContext;
 import com.splicemachine.pipeline.api.WriteHandler;
 import com.splicemachine.pipeline.impl.WriteResult;
 import com.splicemachine.si.api.TxnView;
-import org.apache.derby.catalog.UUID;
-import org.apache.derby.impl.sql.execute.ColumnInfo;
+import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import org.apache.hadoop.hbase.KeyValue;
 
 import java.io.IOException;

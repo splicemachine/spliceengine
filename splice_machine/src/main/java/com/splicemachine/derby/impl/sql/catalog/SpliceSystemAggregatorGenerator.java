@@ -1,18 +1,18 @@
 package com.splicemachine.derby.impl.sql.catalog;
 
+import com.splicemachine.db.catalog.TypeDescriptor;
+import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.TypeId;
+import com.splicemachine.db.impl.sql.catalog.Aggregate;
+import com.splicemachine.db.impl.sql.catalog.DefaultSystemAggregateGenerator;
 import com.splicemachine.derby.impl.sql.execute.operations.ColumnStatisticsMerge;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceStddevPop;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceStddevSamp;
 import com.splicemachine.stats.ColumnStatistics;
-import org.apache.derby.catalog.TypeDescriptor;
-import org.apache.derby.catalog.UUID;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.dictionary.DataDictionary;
-import org.apache.derby.iapi.store.access.TransactionController;
-import org.apache.derby.iapi.types.DataTypeDescriptor;
-import org.apache.derby.iapi.types.TypeId;
-import org.apache.derby.impl.sql.catalog.Aggregate;
-import org.apache.derby.impl.sql.catalog.DefaultSystemAggregateGenerator;
 
 /**
  * @author Scott Fines

@@ -1,9 +1,9 @@
 package com.splicemachine.derby.impl.stats;
 
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.estimate.Distribution;
 import com.splicemachine.stats.estimate.EmptyDistribution;
-import org.apache.derby.iapi.types.DataValueDescriptor;
 
 import java.io.Externalizable;
 

@@ -1,12 +1,12 @@
 package com.splicemachine.pipeline.exception;
 
-import org.apache.derby.iapi.error.StandardException;
+import com.splicemachine.db.iapi.error.StandardException;
 /**
  * 
  * Serializes the key elements of a Derby Standard Exception
  * 
  * @author John Leach
- * @see org.apache.derby.iapi.error.StandardException
+ * @see com.splicemachine.db.iapi.error.StandardException
  *
  */
 public class SpliceStandardException extends Exception{

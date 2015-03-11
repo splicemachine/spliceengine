@@ -1,6 +1,7 @@
 package com.splicemachine.derby.utils;
 
 import org.apache.commons.net.ntp.TimeStamp;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -88,16 +89,105 @@ public class SpliceDateFunctionsTest {
     public void toDate() throws SQLException, ParseException {
         String format = "yyyy/MM/dd";
         String source = "2014/06/24";
-        DateFormat formatter = new SimpleDateFormat("MM/dd/yy");
-        Date date = new Date(formatter.parse("06/24/2014").getTime());
+        DateFormat formatter = new SimpleDateFormat(format);
+        Date date = new Date(formatter.parse(source).getTime());
 
-        assertEquals(SpliceDateFunctions.TO_DATE(source, format), date);
+        assertEquals(date, SpliceDateFunctions.TO_DATE(source, format));
     }
 
     @Test
     public void toDate_throwsOnInvalidDateFormat() throws SQLException, ParseException {
         expectedException.expect(SQLException.class);
         SpliceDateFunctions.TO_DATE("bad-format", "yyyy/MM/dd");
+    }
+
+    @Test
+    public void toDateDefaultPattern() throws Exception {
+        String source = "2014-06-24";
+        DateFormat formatter = new SimpleDateFormat("MM/dd/yy");
+        Date date = new Date(formatter.parse("06/24/2014").getTime());
+
+        assertEquals(date, SpliceDateFunctions.TO_DATE(source));
+    }
+
+    @Test
+    public void toDateDefaultWrongPattern() throws Exception {
+        String source = "2014/06/24";
+        DateFormat formatter = new SimpleDateFormat("MM/dd/yy");
+        Date date = new Date(formatter.parse("06/24/2014").getTime());
+
+        try {
+            assertEquals(date, SpliceDateFunctions.TO_DATE(source));
+            fail("Expected to get an exception for parsing the wrong date pattern.");
+        } catch (SQLException e) {
+           assertEquals("Error parsing datatime 2014/06/24 with pattern: null. Try using an ISO8601 pattern such " +
+                            "as, yyyy-MM-dd'T'HH:mm:ss.SSSZZ, yyyy-MM-dd'T'HH:mm:ssZ or yyyy-MM-dd",
+                        e.getLocalizedMessage());
+        }
+    }
+
+    @Test
+    public void toTimestamp() throws SQLException, ParseException {
+        String format = "yyyy/MM/dd HH:mm:ss.SSS";
+        String source = "2014/06/24 12:13:14.123";
+        DateFormat formatter = new SimpleDateFormat("MM/dd/yy HH:mm:ss.SSS");
+        Timestamp date = new Timestamp(formatter.parse("06/24/2014 12:13:14.123").getTime());
+
+        assertEquals(date, SpliceDateFunctions.TO_TIMESTAMP(source, format));
+    }
+
+    @Test
+    public void toTimestamp_throwsOnInvalidDateFormat() throws SQLException, ParseException {
+        expectedException.expect(SQLException.class);
+        SpliceDateFunctions.TO_TIMESTAMP("bad-format", "yyyy/MM/dd HH:mm:ss.SSS");
+    }
+
+    @Test
+    public void toTimestampDefaultPattern() throws Exception {
+        String source = "2014-06-24T12:13:14.123";
+        DateFormat formatter = new SimpleDateFormat("MM/dd/yy HH:mm:ss.SSS");
+        Timestamp date = new Timestamp(formatter.parse("06/24/2014 12:13:14.123").getTime());
+
+        assertEquals(date, SpliceDateFunctions.TO_TIMESTAMP(source));
+    }
+
+    @Test @Ignore("Ignoring for CDH 4.5.0 which pulls in some jodatime version out of jruby-complete 1.6.5. We're not exposing to_timestamp() anyway.")
+    public void toTimestampISO8601Pattern() throws Exception {
+        String format = "yyyy-MM-dd'T'HH:mm:ssz";
+        String source = "2011-09-17T23:40:53EDT";
+        DateFormat formatter = new SimpleDateFormat(format);
+        Timestamp date = new Timestamp(formatter.parse(source).getTime());
+
+        assertEquals(date, SpliceDateFunctions.TO_TIMESTAMP(source, format));
+    }
+
+    @Test @Ignore("Ignoring for CDH 4.5.0 which pulls in some jodatime version out of jruby-complete 1.6.5. We're not exposing to_timestamp() anyway.")
+    public void toTimestampISO8601Pattern2() throws Exception {
+        String format = "yyyy-MM-dd'T'HH:mm:ssz";
+        String source = "2011-09-17T23:40:53GMT";
+        DateFormat formatter = new SimpleDateFormat(format);
+        Timestamp date = new Timestamp(formatter.parse(source).getTime());
+
+        assertEquals(date, SpliceDateFunctions.TO_TIMESTAMP(source, format));
+        // FIXME JC; Loss of timezone info causes java.sql.Timestamp, Jodatime DateTime and Derby SQLTimestamp
+        // to not match original string date, although all compare equally.
+//        assertEquals("2011-09-17 23:40:53.0", SpliceDateFunctions.TO_TIMESTAMP(source, format).toString());
+    }
+
+    @Test
+    public void toTimestampDefaultWrongPattern() throws Exception {
+        String source = "2014-06-24 12:13:14.123";
+        DateFormat formatter = new SimpleDateFormat("MM/dd/yy HH:mm:ss.SSS");
+        Timestamp date = new Timestamp(formatter.parse("06/24/2014 12:13:14.123").getTime());
+
+        try {
+            assertEquals(date, SpliceDateFunctions.TO_TIMESTAMP(source));
+            fail("Expected to get an exception for parsing the wrong date pattern.");
+        } catch (SQLException e) {
+           assertEquals("Error parsing datatime 2014-06-24 12:13:14.123 with pattern: null. Try using an ISO8601 " +
+                            "pattern such as, yyyy-MM-dd'T'HH:mm:ss.SSSZZ, yyyy-MM-dd'T'HH:mm:ssZ or yyyy-MM-dd",
+                        e.getLocalizedMessage());
+        }
     }
 
     @Test

@@ -1,11 +1,9 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.derby.impl.stats.BaseDvdStatistics;
+import com.splicemachine.db.agg.Aggregator;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.stats.ColumnStatistics;
-import org.apache.derby.agg.Aggregator;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;

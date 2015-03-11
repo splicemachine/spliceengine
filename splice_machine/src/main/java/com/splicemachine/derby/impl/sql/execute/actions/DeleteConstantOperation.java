@@ -1,16 +1,16 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import org.apache.derby.iapi.services.io.ArrayUtil;
-import org.apache.derby.iapi.services.io.StoredFormatIds;
-import org.apache.derby.iapi.sql.dictionary.IndexRowGenerator;
-import org.apache.derby.iapi.sql.execute.ConstantAction;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
-import org.apache.derby.catalog.UUID;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
-import org.apache.derby.iapi.sql.ResultDescription;
-import org.apache.derby.impl.sql.execute.FKInfo;
-import org.apache.derby.impl.sql.execute.TriggerInfo;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
+import com.splicemachine.db.iapi.sql.execute.ConstantAction;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
+import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.sql.ResultDescription;
+import com.splicemachine.db.impl.sql.execute.FKInfo;
+import com.splicemachine.db.impl.sql.execute.TriggerInfo;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
 import java.io.ObjectOutput;

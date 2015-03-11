@@ -2,6 +2,7 @@ package com.splicemachine.si.api;
 
 import com.splicemachine.si.impl.ConflictType;
 import com.splicemachine.utils.ByteSlice;
+
 import java.io.Externalizable;
 import java.util.Iterator;
 
@@ -10,7 +11,7 @@ import java.util.Iterator;
  *
  * This is primarily so that, in circumstances where there
  * is no need or desire to get a modifiable transaction, we
- * can assert that directly, rather than implicitely relying on
+ * can assert that directly, rather than implicitly relying on
  * code to do the right thing.
  *
  * @author Scott Fines

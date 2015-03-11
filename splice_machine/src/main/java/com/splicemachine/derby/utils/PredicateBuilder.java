@@ -5,10 +5,10 @@ import com.google.common.io.Closeables;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.storage.*;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.store.access.Qualifier;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.StringDataValue;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.store.access.Qualifier;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.StringDataValue;
 import org.apache.hadoop.hbase.filter.CompareFilter;
 
 /**

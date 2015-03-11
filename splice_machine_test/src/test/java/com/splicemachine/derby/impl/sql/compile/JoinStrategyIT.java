@@ -1,9 +1,9 @@
 package com.splicemachine.derby.impl.sql.compile;
 
 import org.junit.Assert;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.compile.CostEstimate;
-import org.apache.derby.impl.sql.compile.BaseJoinStrategy;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.compile.CostEstimate;
+import com.splicemachine.db.impl.sql.compile.BaseJoinStrategy;
 import org.junit.Test;
 
 import com.splicemachine.constants.SpliceConstants;

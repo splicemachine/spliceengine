@@ -6,7 +6,7 @@ import com.splicemachine.si.api.CannotCommitException;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.pipeline.constraint.ConstraintViolation;
 import com.splicemachine.si.impl.WriteConflict;
-import org.apache.derby.iapi.error.StandardException;
+import com.splicemachine.db.iapi.error.StandardException;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.RegionTooBusyException;
 import org.apache.hadoop.hbase.client.RetriesExhaustedException;
@@ -1042,7 +1042,7 @@ public enum ErrorState {
     //following 1 does not match the DB2 sql state, it is a Derby specific behavior which is not compatible with DB2
     LANG_OPERATION_NOT_ALLOWED_ON_SESSION_SCHEMA_TABLES( "XCL51.S"),
 
-    // org.apache.derby.impl.sql.execute.rts
+    // com.splicemachine.db.impl.sql.execute.rts
     RTS_ATTACHED_TO											( "43X00.U"),
     RTS_BEGIN_SQ_NUMBER										( "43X01.U"),
     RTS_ANY_RS												( "43X02.U"),
@@ -1205,7 +1205,7 @@ public enum ErrorState {
     RTS_EXCEPT_RS( "43Y60.U"),
     RTS_EXCEPT( "43Y61.U"),
 
-    // org.apache.derby.catalog.types
+    // com.splicemachine.db.catalog.types
     TI_SQL_TYPE_NAME			( "44X00.U"),
     TI_NEXT_ERROR			( "44X05.U"),
 
@@ -1716,7 +1716,7 @@ public enum ErrorState {
     DRDA_NO_AVAIL_CODEPAGE_CONVERSION( "57017.C"),
 
     /*
-    ** org.apache.derby.database.UserUtility
+    ** com.splicemachine.db.database.UserUtility
         */
     UU_UNKNOWN_PERMISSION									( "XCZ00.S"),
     UU_UNKNOWN_USER											( "XCZ01.S"),

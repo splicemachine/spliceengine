@@ -3,7 +3,7 @@ package com.splicemachine.derby.impl.sql.execute.operations.window;
 
 import java.io.Serializable;
 
-import org.apache.derby.iapi.services.io.FormatableHashtable;
+import com.splicemachine.db.iapi.services.io.FormatableHashtable;
 
 /**
  * This represent the frame definition for a given window function as a representation

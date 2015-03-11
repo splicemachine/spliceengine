@@ -3,8 +3,8 @@ package com.splicemachine.derby.impl.sql.execute.operations.sort;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.BufferedAggregator;
 import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import org.apache.log4j.Logger;
 /*
  * This handles distinct merging of data.

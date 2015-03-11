@@ -1,5 +1,8 @@
 package com.splicemachine.derby.impl.stats;
 
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.collector.ColumnStatsCollector;
 import com.splicemachine.stats.collector.ColumnStatsCollectors;
@@ -7,9 +10,6 @@ import com.splicemachine.stats.estimate.Distribution;
 import com.splicemachine.stats.estimate.DistributionFactory;
 import com.splicemachine.stats.estimate.UniformDecimalDistribution;
 import com.splicemachine.stats.estimate.UniformStringDistribution;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.StoredFormatIds;
-import org.apache.derby.iapi.types.DataValueDescriptor;
 
 import java.math.BigDecimal;
 

@@ -6,7 +6,7 @@ import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.utils.kryo.KryoPool;
-import org.apache.derby.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import org.junit.Test;
 
 import java.util.Random;

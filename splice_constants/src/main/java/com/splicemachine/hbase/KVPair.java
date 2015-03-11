@@ -3,11 +3,14 @@ package com.splicemachine.hbase;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.CachedByteSlice;
 
+import java.util.Arrays;
+
 /**
  * @author Scott Fines
  *         Created on: 8/8/13
  */
 public class KVPair implements Comparable<KVPair> {
+
 
     public enum Type{
         INSERT((byte)0x01),
@@ -15,7 +18,10 @@ public class KVPair implements Comparable<KVPair> {
         DELETE((byte)0x03),
         EMPTY_COLUMN((byte)0x04),
         UPSERT((byte)0x05),
-        FOREIGN_KEY_CHECK((byte)0x06);
+        /* For checking the existence of the rowKey in a parent (referenced) table's primary-key or unique-index  */
+        FOREIGN_KEY_PARENT_EXISTENCE_CHECK((byte)0x06),
+        /* For checking the existence of the rowKey in the FK backing-index(s) of referencing child table(s) */
+        FOREIGN_KEY_CHILDREN_EXISTENCE_CHECK((byte)0x07);
 
         private final byte typeCode;
 
@@ -31,12 +37,19 @@ public class KVPair implements Comparable<KVPair> {
         public byte asByte() {
             return typeCode;
         }
+
+        public boolean isForeignKeyExistenceCheck() {
+            return FOREIGN_KEY_CHILDREN_EXISTENCE_CHECK.equals(this) || FOREIGN_KEY_PARENT_EXISTENCE_CHECK.equals(this);
+        }
     }
 
     /*fields*/
     private Type type;
     private final ByteSlice rowKey;
     private final ByteSlice value;
+
+    private transient int hashCode;
+    private transient boolean hashSet = false;
 
     /*Factory methods*/
     public static KVPair delete(byte[] rowKey) {
@@ -81,16 +94,6 @@ public class KVPair implements Comparable<KVPair> {
      */
     public KVPair shallowClone(){
        return new KVPair(new CachedByteSlice(rowKey),new CachedByteSlice(value),type);
-    }
-
-    /**
-     * @return a deep copy of this KVPair. This will copy both references <em>and</em> bytes from
-     * the any underlying byte arrays. This is significantly more expensive to perform, but will
-     * give you greater copy safety. However, you should only need to do this if you plan on
-     * modifying the underlying byte buffers directly, which you should rarely wish to do.
-     */
-    public KVPair deepClone(){
-        return new KVPair(getRowKey(),getValue(),type);
     }
 
     /**
@@ -162,8 +165,12 @@ public class KVPair implements Comparable<KVPair> {
 
     @Override
     public int hashCode() {
-        int result = rowKey.hashCode();
-        result = 31 * result + type.hashCode();
-        return result;
+        if(!hashSet) {
+            int result = rowKey.hashCode();
+            result = 31 * result + type.hashCode();
+            hashCode =  result;
+            hashSet=true;
+        }
+        return hashCode;
     }
 }

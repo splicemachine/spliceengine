@@ -5,12 +5,12 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.ArrayList;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.loader.ClassFactory;
-import org.apache.derby.iapi.sql.execute.ExecAggregator;
-import org.apache.derby.iapi.sql.execute.WindowFunction;
-import org.apache.derby.iapi.types.DataTypeDescriptor;
-import org.apache.derby.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.loader.ClassFactory;
+import com.splicemachine.db.iapi.sql.execute.ExecAggregator;
+import com.splicemachine.db.iapi.sql.execute.WindowFunction;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
 /**
  * Base class for all window functions. Contains frame "chucking" mechanism for

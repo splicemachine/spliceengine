@@ -21,7 +21,7 @@ public abstract class ForwardingTxnView extends AbstractTxn{
 
     @Override
     public String toString() {
-        return "Txn("+getTxnId()+","+getState()+")";
+        return "Forwarding" + delegate;
     }
 
     @Override

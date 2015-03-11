@@ -1,7 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.sequence;
 
 import java.util.Arrays;
-import org.apache.derby.iapi.error.StandardException;
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.tools.ResourcePool;
 import org.apache.hadoop.hbase.client.HTableInterface;
 

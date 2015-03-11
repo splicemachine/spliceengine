@@ -2,10 +2,11 @@ package com.splicemachine.derby.impl.store.access.base;
 
 import java.util.SortedSet;
 import java.util.concurrent.ExecutionException;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.compile.CostEstimate;
-import org.apache.derby.iapi.types.RowLocation;
-import org.apache.derby.impl.store.access.conglomerate.GenericCostController;
+
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.compile.CostEstimate;
+import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.db.impl.store.access.conglomerate.GenericCostController;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.client.Scan;

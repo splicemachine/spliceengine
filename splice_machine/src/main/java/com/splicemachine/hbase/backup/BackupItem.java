@@ -18,7 +18,7 @@ import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.Txn;
-import org.apache.derby.iapi.error.StandardException;
+import com.splicemachine.db.iapi.error.StandardException;
 import org.apache.hadoop.fs.*;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HTableDescriptor;
@@ -238,7 +238,7 @@ public class BackupItem implements InternalTable {
         for (FileStatus stat : status) {
             String name = stat.getPath().getName();
             // We only care about Splice families, "V" and "P"
-            if (name.equals(SpliceConstants.DEFAULT_FAMILY)
+            if (name.equals(Bytes.toString(SpliceConstants.DEFAULT_FAMILY_BYTES))
                     || name.equals(SpliceConstants.SI_PERMISSION_FAMILY)) {
                 // we have a family directory, the hfile is inside it
                 byte[] family = Bytes.toBytes(stat.getPath().getName());
@@ -281,7 +281,8 @@ public class BackupItem implements InternalTable {
             throw Exceptions.parseException(e);
         }
     }
-
+ 
+    
     public static class RegionInfo implements Externalizable {
         private HRegionInfo hRegionInfo;
         private List<Pair<byte[], String>> famPaths;

@@ -26,11 +26,11 @@ import com.splicemachine.si.api.TxnLifecycleManager;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 
-import org.apache.derby.iapi.error.StandardException;
+import com.splicemachine.db.iapi.error.StandardException;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.derby.impl.sql.execute.ColumnInfo;
-import org.apache.derby.catalog.UUID;
+import com.splicemachine.db.impl.sql.execute.ColumnInfo;
+import com.splicemachine.db.catalog.UUID;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import java.lang.Exception;

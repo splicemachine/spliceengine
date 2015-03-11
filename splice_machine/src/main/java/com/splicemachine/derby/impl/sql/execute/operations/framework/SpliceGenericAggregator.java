@@ -1,18 +1,18 @@
 package com.splicemachine.derby.impl.sql.execute.operations.framework;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.Storable;
-import org.apache.derby.iapi.services.loader.ClassFactory;
-import org.apache.derby.iapi.sql.execute.ExecAggregator;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.UserDataValue;
-import org.apache.derby.impl.sql.execute.AggregatorInfo;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.Storable;
+import com.splicemachine.db.iapi.services.loader.ClassFactory;
+import com.splicemachine.db.iapi.sql.execute.ExecAggregator;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.UserDataValue;
+import com.splicemachine.db.impl.sql.execute.AggregatorInfo;
 import org.apache.log4j.Logger;
 
 /**
  * GenericAggregator wrapper. This is a near identical copy of
- * {@link org.apache.derby.impl.sql.execute.GenericAggregator}; That class
+ * {@link com.splicemachine.db.impl.sql.execute.GenericAggregator}; That class
  * has too strict of access restrictions to allow its constructive use outside of its
  * package, so this class had to be created to allow better access.
  *  

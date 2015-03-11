@@ -1,16 +1,15 @@
 package com.splicemachine.derby.impl.sql.catalog;
 
+import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
+import com.splicemachine.db.iapi.sql.dictionary.*;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.types.*;
+import com.splicemachine.db.impl.sql.catalog.SystemColumnImpl;
+import com.splicemachine.db.shared.common.sanity.SanityManager;
 import com.splicemachine.derby.iapi.catalog.TableStatisticsDescriptor;
-import org.apache.derby.catalog.UUID;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.sanity.SanityManager;
-import org.apache.derby.iapi.services.uuid.UUIDFactory;
-import org.apache.derby.iapi.sql.dictionary.*;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.sql.execute.ExecutionFactory;
-import org.apache.derby.iapi.types.*;
-import org.apache.derby.impl.sql.catalog.SystemColumnImpl;
-
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.Properties;
@@ -145,7 +144,7 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
                 SystemColumnImpl.getColumn("PARTITIONID",Types.VARCHAR,false),
                 SystemColumnImpl.getColumn("LAST_UPDATED",Types.TIMESTAMP,false),
                 SystemColumnImpl.getColumn("IS_STALE",Types.BOOLEAN,false),
-                SystemColumnImpl.getColumn("IN_PROGRESS",Types.BOOLEAN,false),
+                SystemColumnImpl.getColumn("IN_PROGRESS", Types.BOOLEAN, false),
                 SystemColumnImpl.getColumn("ROWCOUNT",Types.BIGINT,true),
                 SystemColumnImpl.getColumn("PARTITION_SIZE",Types.BIGINT,true),
                 SystemColumnImpl.getColumn("MEANROWWIDTH",Types.INTEGER,true),

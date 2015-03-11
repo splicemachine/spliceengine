@@ -1,8 +1,8 @@
 package com.splicemachine.derby.impl.stats;
 
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.collector.ColumnStatsCollector;
-import org.apache.derby.iapi.types.DataValueDescriptor;
 
 /**
  * @author Scott Fines

@@ -2,9 +2,10 @@ package com.splicemachine.derby.impl.sql.catalog.upgrade;
 
 import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 
-import org.apache.derby.catalog.AliasInfo;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.store.access.TransactionController;
+import com.splicemachine.db.catalog.AliasInfo;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.impl.sql.catalog.SystemProcedureGenerator;
 import org.apache.log4j.Logger;
 
 /**

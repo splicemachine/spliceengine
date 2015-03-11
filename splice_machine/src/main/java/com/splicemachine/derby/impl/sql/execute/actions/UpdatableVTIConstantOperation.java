@@ -1,7 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import org.apache.derby.iapi.services.io.StoredFormatIds;
-import org.apache.derby.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 
 /**
  *	This class  describes compiled constants that are passed into

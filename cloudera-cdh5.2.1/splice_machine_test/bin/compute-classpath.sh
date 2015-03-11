@@ -2,11 +2,8 @@
 
 cwd=$(pwd)
 
-for i in `ls target/dependency/*.jar`
-do
-  THE_CLASSPATH=${THE_CLASSPATH}:${cwd}/${i}
-done
+mvn -q dependency:build-classpath -Dmdep.outputFile=classpath
 
-THE_CLASSPATH=${THE_CLASSPATH}:${cwd}/target/classes
+THE_CLASSPATH=`cat classpath`:${cwd}/target/classes
 
 echo ${THE_CLASSPATH}

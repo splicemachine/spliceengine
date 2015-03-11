@@ -2,7 +2,7 @@ package com.splicemachine.job;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.stats.TaskStats;
-import org.apache.derby.iapi.error.StandardException;
+import com.splicemachine.db.iapi.error.StandardException;
 import org.apache.log4j.Logger;
 
 import java.util.ArrayList;

@@ -2,10 +2,10 @@ package com.splicemachine.derby.impl.sql.execute;
 
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.homeless.SerializationUtils;
-import org.apache.derby.iapi.types.BooleanDataValue;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.Orderable;
-import org.apache.derby.iapi.types.SQLVarchar;
+import com.splicemachine.db.iapi.types.BooleanDataValue;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.Orderable;
+import com.splicemachine.db.iapi.types.SQLVarchar;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
 import org.junit.Ignore;

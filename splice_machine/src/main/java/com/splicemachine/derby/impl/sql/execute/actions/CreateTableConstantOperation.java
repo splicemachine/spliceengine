@@ -1,19 +1,19 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.derby.catalog.UUID;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.sanity.SanityManager;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
-import org.apache.derby.iapi.sql.dictionary.*;
-import org.apache.derby.iapi.sql.execute.ConstantAction;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.store.access.ColumnOrdering;
-import org.apache.derby.iapi.store.access.TransactionController;
-import org.apache.derby.impl.sql.execute.ColumnInfo;
-import org.apache.derby.impl.sql.execute.IndexColumnOrder;
-import org.apache.derby.impl.sql.execute.RowUtil;
+import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.dictionary.*;
+import com.splicemachine.db.iapi.sql.execute.ConstantAction;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.store.access.ColumnOrdering;
+import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.impl.sql.execute.ColumnInfo;
+import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
+import com.splicemachine.db.impl.sql.execute.RowUtil;
 import org.apache.log4j.Logger;
 
 import java.util.Arrays;

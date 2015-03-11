@@ -3,19 +3,19 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.ddl.DropTableDDLChangeDesc;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import org.apache.derby.catalog.UUID;
+import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.pipeline.exception.Exceptions;
-import org.apache.derby.iapi.sql.execute.ConstantAction;
-import org.apache.derby.iapi.services.sanity.SanityManager;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.reference.SQLState;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.StatementType;
-import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
-import org.apache.derby.iapi.sql.depend.DependencyManager;
-import org.apache.derby.iapi.sql.dictionary.*;
-import org.apache.derby.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.sql.execute.ConstantAction;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.StatementType;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.depend.DependencyManager;
+import com.splicemachine.db.iapi.sql.dictionary.*;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 
 
 /**
@@ -172,6 +172,9 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
       // The table itself can depend on the user defined types of its columns.
       // Drop all of those dependencies now.
       adjustUDTDependencies(lcc, dd, td, null, true);
+
+        // remove from LCC
+        lcc.dropDeclaredGlobalTempTable(td);
 
       /* Drop the table */
       dd.dropTableDescriptor(td, sd, tc);

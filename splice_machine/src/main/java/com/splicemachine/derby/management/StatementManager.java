@@ -5,7 +5,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 
-import org.apache.derby.iapi.error.StandardException;
+import com.splicemachine.db.iapi.error.StandardException;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;

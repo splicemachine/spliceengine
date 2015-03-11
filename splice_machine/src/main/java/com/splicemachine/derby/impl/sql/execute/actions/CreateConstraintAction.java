@@ -1,16 +1,16 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import org.apache.derby.catalog.UUID;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.sanity.SanityManager;
-import org.apache.derby.iapi.services.uuid.UUIDFactory;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.depend.ProviderInfo;
-import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
-import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
-import org.apache.derby.iapi.sql.execute.ConstantAction;
-import org.apache.derby.impl.sql.execute.ConstraintInfo;
-import org.apache.derby.impl.sql.execute.CreateConstraintConstantAction;
+import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.depend.ProviderInfo;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.sql.execute.ConstantAction;
+import com.splicemachine.db.impl.sql.execute.ConstraintInfo;
+import com.splicemachine.db.impl.sql.execute.CreateConstraintConstantAction;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.utils.SpliceLogUtils;

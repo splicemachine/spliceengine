@@ -8,7 +8,7 @@ import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.perf.runner.qualifiers.Result;
 import com.splicemachine.pipeline.exception.ErrorState;
 
-import org.apache.derby.iapi.error.StandardException;
+import com.splicemachine.db.iapi.error.StandardException;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;

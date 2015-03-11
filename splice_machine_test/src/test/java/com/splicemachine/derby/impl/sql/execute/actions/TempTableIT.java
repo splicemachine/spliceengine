@@ -1,5 +1,8 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import static junit.framework.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -82,8 +85,9 @@ public class TempTableIT {
      * Help test temp table syntax parsing.
      * @throws Exception
      */
-    private void helpTestSyntax(final String sqlString) throws Exception {
+    private void helpTestSyntax(final String sqlString, final String expectedExceptionMsg) throws Exception {
         Connection connection = methodWatcher.createConnection();
+        boolean expectExcepiton = (expectedExceptionMsg != null && ! expectedExceptionMsg.isEmpty());
         try {
             SQLClosures.execute(connection, new SQLClosures.SQLAction<Statement>() {
                 @Override
@@ -94,8 +98,7 @@ public class TempTableIT {
                 }
             });
             connection.commit();
-            SQLClosures.query(connection, String.format("select * from %s.%s", tableSchema.schemaName,
-                                                        SIMPLE_TEMP_TABLE),
+            SQLClosures.query(connection, String.format("select * from %s.%s", tableSchema.schemaName, SIMPLE_TEMP_TABLE),
                               new SQLClosures.SQLAction<ResultSet>() {
                                   @Override
                                   public void execute(ResultSet resultSet) throws Exception {
@@ -103,7 +106,16 @@ public class TempTableIT {
                                   }
                               });
             connection.commit();
-        } finally{
+            if (expectExcepiton) {
+                fail("Expected exception '"+expectedExceptionMsg+"' but didn't get one.");
+            }
+        } catch (Exception e) {
+            if (! expectExcepiton) {
+                throw e;
+            }
+            assertEquals("Expected exception '"+expectedExceptionMsg+"' but got: "+e.getLocalizedMessage(),
+                         expectedExceptionMsg, e.getLocalizedMessage());
+        } finally {
             connection = methodWatcher.createConnection();
             SQLClosures.execute(connection, new SQLClosures.SQLAction<Statement>() {
                 @Override
@@ -121,17 +133,32 @@ public class TempTableIT {
 
     /**
      * Test given syntax of all three supported; Derby, Tableau and MicroStrategy
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testCreateTempTableDerby() throws Exception {
+        String tmpCreate = "DECLARE GLOBAL TEMPORARY TABLE %s.%s %s";
+        helpTestSyntax(tmpCreate, null);
+        tmpCreate = "CREATE LOCAL TEMPORARY TABLE %s.%s %s";
+        helpTestSyntax(tmpCreate, null);
+        tmpCreate = "CREATE GLOBAL TEMPORARY TABLE %s.%s %s";
+        helpTestSyntax(tmpCreate, null);
+    }
+
+    /**
+     * Test given syntax of all three supported; Derby, Tableau and MicroStrategy
      * "NOT LOGGED"
      * @throws Exception
      */
     @Test
     public void testCreateTempTableDerbyNotLogged() throws Exception {
         String tmpCreate = "DECLARE GLOBAL TEMPORARY TABLE %s.%s %s not logged";
-        helpTestSyntax(tmpCreate);
+        helpTestSyntax(tmpCreate, null);
         tmpCreate = "CREATE LOCAL TEMPORARY TABLE %s.%s %s not logged";
-        helpTestSyntax(tmpCreate);
+        helpTestSyntax(tmpCreate, null);
         tmpCreate = "CREATE GLOBAL TEMPORARY TABLE %s.%s %s not logged";
-        helpTestSyntax(tmpCreate);
+        helpTestSyntax(tmpCreate, null);
     }
 
     /**
@@ -142,11 +169,11 @@ public class TempTableIT {
     @Test
     public void testCreateTempTableDerbyNoLogging() throws Exception {
         String tmpCreate = "DECLARE GLOBAL TEMPORARY TABLE %s.%s %s nologging";
-        helpTestSyntax(tmpCreate);
+        helpTestSyntax(tmpCreate, null);
         tmpCreate = "CREATE LOCAL TEMPORARY TABLE %s.%s %s nologging";
-        helpTestSyntax(tmpCreate);
+        helpTestSyntax(tmpCreate, null);
         tmpCreate = "CREATE GLOBAL TEMPORARY TABLE %s.%s %s nologging";
-        helpTestSyntax(tmpCreate);
+        helpTestSyntax(tmpCreate, null);
     }
 
     /**
@@ -157,11 +184,11 @@ public class TempTableIT {
     @Test
     public void testCreateTempTableDerbyOnCommitPreserveRows() throws Exception {
         String tmpCreate = "DECLARE GLOBAL TEMPORARY TABLE %s.%s %s ON COMMIT PRESERVE ROWS";
-        helpTestSyntax(tmpCreate);
+        helpTestSyntax(tmpCreate, null);
         tmpCreate = "CREATE LOCAL TEMPORARY TABLE %s.%s %s ON COMMIT PRESERVE ROWS";
-        helpTestSyntax(tmpCreate);
+        helpTestSyntax(tmpCreate, null);
         tmpCreate = "CREATE GLOBAL TEMPORARY TABLE %s.%s %s ON COMMIT PRESERVE ROWS";
-        helpTestSyntax(tmpCreate);
+        helpTestSyntax(tmpCreate, null);
     }
 
     /**
@@ -173,11 +200,11 @@ public class TempTableIT {
     @Test(expected=SQLException.class)
     public void testCreateTempTableDerbyOnCommitDeleteRows() throws Exception {
         String tmpCreate = "DECLARE GLOBAL TEMPORARY TABLE %s.%s %s ON COMMIT DELETE ROWS";
-        helpTestSyntax(tmpCreate);
+        helpTestSyntax(tmpCreate, null);
         tmpCreate = "CREATE LOCAL TEMPORARY TABLE %s.%s %s ON COMMIT DELETE ROWS";
-        helpTestSyntax(tmpCreate);
+        helpTestSyntax(tmpCreate, null);
         tmpCreate = "CREATE GLOBAL TEMPORARY TABLE %s.%s %s ON COMMIT DELETE ROWS";
-        helpTestSyntax(tmpCreate);
+        helpTestSyntax(tmpCreate, null);
     }
 
     /**
@@ -188,11 +215,11 @@ public class TempTableIT {
     @Test
     public void testCreateTempTableDerbyOnRollbackPreserveRows() throws Exception {
         String tmpCreate = "DECLARE GLOBAL TEMPORARY TABLE %s.%s %s ON ROLLBACK PRESERVE ROWS";
-        helpTestSyntax(tmpCreate);
+        helpTestSyntax(tmpCreate, null);
         tmpCreate = "CREATE LOCAL TEMPORARY TABLE %s.%s %s ON ROLLBACK PRESERVE ROWS";
-        helpTestSyntax(tmpCreate);
+        helpTestSyntax(tmpCreate, null);
         tmpCreate = "CREATE GLOBAL TEMPORARY TABLE %s.%s %s ON ROLLBACK PRESERVE ROWS";
-        helpTestSyntax(tmpCreate);
+        helpTestSyntax(tmpCreate, null);
     }
 
     /**
@@ -203,11 +230,11 @@ public class TempTableIT {
     @Test
     public void testCreateTempTableDerbyOnRollbackDeleteRows() throws Exception {
         String tmpCreate = "DECLARE GLOBAL TEMPORARY TABLE %s.%s %s ON ROLLBACK DELETE ROWS";
-        helpTestSyntax(tmpCreate);
+        helpTestSyntax(tmpCreate, "DELETE ROWS is not supported for ON 'ROLLBACK'.");
         tmpCreate = "CREATE LOCAL TEMPORARY TABLE %s.%s %s ON ROLLBACK DELETE ROWS";
-        helpTestSyntax(tmpCreate);
+        helpTestSyntax(tmpCreate, "DELETE ROWS is not supported for ON 'ROLLBACK'.");
         tmpCreate = "CREATE GLOBAL TEMPORARY TABLE %s.%s %s ON ROLLBACK DELETE ROWS";
-        helpTestSyntax(tmpCreate);
+        helpTestSyntax(tmpCreate, "DELETE ROWS is not supported for ON 'ROLLBACK'.");
     }
 
     /**
@@ -297,10 +324,68 @@ public class TempTableIT {
                     try {
                         statement.executeQuery(String.format("select * from %s", tableSchema.schemaName + "." +
                             SIMPLE_TEMP_TABLE));
+                        fail("Expected exception querying temp table that no longer should exist.");
+                    } catch (SQLException e) {
+                        // expected
+                    }
+                }
+            });
+        }  finally {
+            methodWatcher.closeAll();
+        }
+    }
+
+    /**
+     * Create/drop temp table in Derby syntax.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testCreateDropCreateTempTableSimpleDerby() throws Exception {
+        final String tmpCreate = "DECLARE GLOBAL TEMPORARY TABLE %s.%s %s not logged on commit preserve rows";
+        try (Connection connection = methodWatcher.createConnection()) {
+            SQLClosures.execute(connection, new SQLClosures.SQLAction<Statement>() {
+                @Override
+                public void execute(Statement statement) throws Exception {
+                    statement.execute(String.format(tmpCreate, tableSchema.schemaName, SIMPLE_TEMP_TABLE, simpleDef));
+                    SpliceUnitTest.loadTable(statement, tableSchema.schemaName + "." + SIMPLE_TEMP_TABLE, empNameVals);
+                }
+            });
+            connection.commit();
+            SQLClosures.query(connection, String.format("select * from %s.%s", tableSchema.schemaName, SIMPLE_TEMP_TABLE),
+                              new SQLClosures.SQLAction<ResultSet>() {
+                                  @Override
+                                  public void execute(ResultSet resultSet) throws Exception {
+                                      Assert.assertEquals(5, SpliceUnitTest.resultSetSize(resultSet));
+                                  }
+                              });
+
+            SQLClosures.execute(connection, new SQLClosures.SQLAction<Statement>() {
+                @Override
+                public void execute(Statement statement) throws Exception {
+                    statement.execute(String.format("drop table %s", tableSchema.schemaName + "." + SIMPLE_TEMP_TABLE));
+                }
+            });
+            connection.commit();
+
+            SQLClosures.execute(connection, new SQLClosures.SQLAction<Statement>() {
+                @Override
+                public void execute(Statement statement) throws Exception {
+                    try {
+                        statement.executeQuery(String.format("select * from %s", tableSchema.schemaName + "." +
+                            SIMPLE_TEMP_TABLE));
                         Assert.fail("Expected exception querying temp table that no longer should exist.");
                     } catch (SQLException e) {
                         // expected
                     }
+                }
+            });
+
+            SQLClosures.execute(connection, new SQLClosures.SQLAction<Statement>() {
+                @Override
+                public void execute(Statement statement) throws Exception {
+                    statement.execute(String.format(tmpCreate, tableSchema.schemaName, SIMPLE_TEMP_TABLE, simpleDef));
+                    SpliceUnitTest.loadTable(statement, tableSchema.schemaName + "." + SIMPLE_TEMP_TABLE, empNameVals);
                 }
             });
         }  finally {
@@ -351,7 +436,7 @@ public class TempTableIT {
                     try {
                         statement.executeQuery(String.format("select * from %s", tableSchema.schemaName + "." +
                             CONSTRAINT_TEMP_TABLE));
-                        Assert.fail("Expected exception querying temp table that no longer should exist.");
+                        fail("Expected exception querying temp table that no longer should exist.");
                     } catch (SQLException e) {
                         // expected
                     }
@@ -402,7 +487,7 @@ public class TempTableIT {
                     try {
                         statement.executeQuery(String.format("select * from %s", tableSchema.schemaName + "." +
                             SIMPLE_TEMP_TABLE));
-                        Assert.fail("Expected exception querying temp table that no longer should exist.");
+                        fail("Expected exception querying temp table that no longer should exist.");
                     } catch (SQLException e) {
                         // expected
                     }
@@ -456,7 +541,7 @@ public class TempTableIT {
                     try {
                         statement.executeQuery(String.format("select * from %s", tableSchema.schemaName + "." +
                             CONSTRAINT_TEMP_TABLE));
-                        Assert.fail("Expected exception querying temp table that no longer should exist.");
+                        fail("Expected exception querying temp table that no longer should exist.");
                     } catch (SQLException e) {
                         // expected
                     }
@@ -510,7 +595,7 @@ public class TempTableIT {
                     try {
                         statement.executeQuery(String.format("select * from %s", tableSchema.schemaName + "." +
                             CONSTRAINT_TEMP_TABLE));
-                        Assert.fail("Expected exception querying temp table that no longer should exist.");
+                        fail("Expected exception querying temp table that no longer should exist.");
                     } catch (SQLException e) {
                         // expected
                     }
@@ -568,7 +653,7 @@ public class TempTableIT {
                     try {
                         statement.executeQuery(String.format("select id from %s", tableSchema.schemaName + "." +
                             CONSTRAINT_TEMP_TABLE));
-                        Assert.fail("Expected exception querying temp table that no longer should exist.");
+                        fail("Expected exception querying temp table that no longer should exist.");
                     } catch (SQLException e) {
                         // expected
                     }
@@ -612,7 +697,8 @@ public class TempTableIT {
                                                         tableSchema.schemaName, CONSTRAINT_TEMP_TABLE));
                     }
                 });
-                Assert.fail("Expected an exception attempting to create a table with a foreign key pointing to a temp table column.");
+                fail("Expected an exception attempting to create a table with a foreign key pointing to a temp table " +
+                         "column.");
             } catch (SQLSyntaxErrorException e) {
                 Assert.assertEquals("Temporary table columns cannot be referenced by foreign keys.", e.getLocalizedMessage());
             }
@@ -655,7 +741,7 @@ public class TempTableIT {
                     public void execute(Statement statement) throws Exception {
                         statement.execute(String.format("create view %s.%s ",
                                                         tableSchema.schemaName,  EMP_NAME_PRIV_VIEW) + viewDef);
-                        Assert.fail("Expected exception trying to create a view that depends on a temp table.");
+                        fail("Expected exception trying to create a view that depends on a temp table.");
                     }
                 });
             } catch (Exception e) {

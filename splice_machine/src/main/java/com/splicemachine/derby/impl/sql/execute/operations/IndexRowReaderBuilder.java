@@ -18,9 +18,9 @@ import com.splicemachine.metrics.Metrics;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
-import org.apache.derby.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.client.HTableInterface;
 
 import java.util.concurrent.*;

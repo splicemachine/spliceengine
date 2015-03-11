@@ -1,18 +1,15 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import com.splicemachine.derby.impl.store.access.SpliceTransaction;
-import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import org.apache.derby.catalog.UUID;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.reference.SQLState;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
-import org.apache.derby.iapi.sql.dictionary.DataDescriptorGenerator;
-import org.apache.derby.iapi.sql.dictionary.DataDictionary;
-import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
-import org.apache.derby.iapi.sql.execute.ConstantAction;
-import org.apache.derby.iapi.store.access.TransactionController;
-import org.apache.derby.impl.sql.execute.DDLConstantAction;
+import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.dictionary.DataDescriptorGenerator;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
+import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.impl.sql.execute.DDLConstantAction;
+import com.splicemachine.db.shared.common.reference.SQLState;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.utils.SpliceLogUtils;
@@ -43,7 +40,7 @@ public class CreateSchemaConstantOperation extends DDLConstantAction {
     /**
      *	This is the guts of the Execution-time logic for CREATE SCHEMA.
      *
-     *	@see ConstantAction#executeConstantAction
+     * @see com.splicemachine.db.iapi.sql.execute.ConstantAction#executeConstantAction(com.splicemachine.db.iapi.sql.Activation)
      *
      * @exception StandardException		Thrown on failure
      */

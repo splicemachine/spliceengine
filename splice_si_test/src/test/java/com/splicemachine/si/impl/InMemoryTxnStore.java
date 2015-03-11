@@ -30,7 +30,7 @@ public class InMemoryTxnStore implements TxnStore {
 
 
 		public InMemoryTxnStore(TimestampSource commitTsGenerator,long txnTimeOutIntervalMs) {
-				this.txnMap = new ConcurrentHashMap<Long, TxnHolder>();
+				this.txnMap = new ConcurrentHashMap<>();
 				this.commitTsGenerator = commitTsGenerator;
 				this.txnTimeOutIntervalMs = txnTimeOutIntervalMs;
 				this.lockStriper = LongStripedSynchronizer.stripedReadWriteLock(16,false);

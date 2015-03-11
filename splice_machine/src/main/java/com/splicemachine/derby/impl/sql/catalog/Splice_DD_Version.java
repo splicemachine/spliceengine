@@ -1,8 +1,8 @@
 package com.splicemachine.derby.impl.sql.catalog;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.impl.sql.catalog.DD_Version;
-import org.apache.derby.impl.sql.catalog.DataDictionaryImpl;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.impl.sql.catalog.DD_Version;
+import com.splicemachine.db.impl.sql.catalog.DataDictionaryImpl;
 
 import java.io.IOException;
 import java.io.ObjectInput;

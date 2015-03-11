@@ -1,10 +1,10 @@
 package com.splicemachine.derby.impl.stats;
 
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.LongColumnStatistics;
 import com.splicemachine.stats.collector.LongColumnStatsCollector;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.types.DataValueDescriptor;
 
 /**
  * @author Scott Fines

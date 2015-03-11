@@ -3,8 +3,8 @@ package com.splicemachine.pipeline.constraint;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.dictionary.*;
+import org.apache.commons.lang.ArrayUtils;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -47,7 +47,7 @@ public class ConstraintContext implements Externalizable {
         return new ConstraintContext(constraintName, tableName);
     }
 
-    public static ConstraintContext foreignKey(ForeignKeyConstraintDescriptor fkConstraintDesc) throws StandardException {
+    public static ConstraintContext foreignKey(ForeignKeyConstraintDescriptor fkConstraintDesc) {
         String tableName = fkConstraintDesc.getTableDescriptor().getName();
         String constraintName = fkConstraintDesc.getConstraintName();
         ColumnDescriptorList columnDescriptors = fkConstraintDesc.getColumnDescriptors();
@@ -65,6 +65,23 @@ public class ConstraintContext implements Externalizable {
     /* Use factory methods above instead for clarity */
     public ConstraintContext(String... messageArgs) {
         this.messageArgs = messageArgs;
+    }
+
+    /* Copy but with specified argument inserted at specified index */
+    public ConstraintContext withInsertedMessage(int index, String newMessage) {
+        return new ConstraintContext((String[]) ArrayUtils.add(messageArgs, index, newMessage));
+    }
+
+    /* Copy but with specified argument removed */
+    public ConstraintContext withoutMessage(int index) {
+        return new ConstraintContext((String[]) ArrayUtils.remove(messageArgs, index));
+    }
+
+    /* Copy but with specified argument set at specified index */
+    public ConstraintContext withMessage(int index, String newMessage) {
+        String[] newArgs = Arrays.copyOf(this.messageArgs, this.messageArgs.length);
+        newArgs[index] = newMessage;
+        return new ConstraintContext(newArgs);
     }
 
     public String[] getMessages() {

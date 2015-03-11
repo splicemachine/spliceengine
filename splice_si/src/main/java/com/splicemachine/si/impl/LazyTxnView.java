@@ -5,6 +5,7 @@ import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.ByteSlice;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -203,7 +204,8 @@ public class LazyTxnView implements TxnView {
 
     @Override
     public String toString() {
-        return "LazyWritableTxn("+txnId+")";
+        lookup(!inFinalState);
+        return "Lazy" + delegate;
     }
 
 	@Override

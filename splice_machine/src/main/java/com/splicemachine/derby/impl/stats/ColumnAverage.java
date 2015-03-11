@@ -1,15 +1,15 @@
 package com.splicemachine.derby.impl.stats;
 
 import com.google.common.base.Function;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.stats.*;
 import com.splicemachine.stats.cardinality.FixedCardinalityEstimate;
 import com.splicemachine.stats.estimate.Distribution;
 import com.splicemachine.stats.estimate.UniformShortDistribution;
 import com.splicemachine.stats.frequency.*;
 import com.splicemachine.utils.ComparableComparator;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.StoredFormatIds;
-import org.apache.derby.iapi.types.*;
 
 import java.math.BigDecimal;
 import java.util.Collections;

@@ -1,7 +1,7 @@
 package com.splicemachine.derby.iapi.types;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.types.NumberDataType;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.types.NumberDataType;
 
 /**
  * @author Scott Fines

@@ -1,8 +1,8 @@
 package com.splicemachine.derby.impl.spark;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.impl.sql.execute.ValueRow;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
@@ -46,7 +46,7 @@ public class RDDUtils {
         }
     }
 
-    public static ExecRow getKey(ExecRow row, int[] keyColumns) throws Exception {
+    public static ExecRow getKey(ExecRow row, int[] keyColumns) throws StandardException {
         ValueRow key = new ValueRow(keyColumns.length);
         int position = 1;
         for (int keyColumn : keyColumns) {

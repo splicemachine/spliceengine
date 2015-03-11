@@ -10,7 +10,7 @@ import com.splicemachine.pipeline.writehandler.SnapshotIsolatedWriteHandler;
 import com.splicemachine.pipeline.writehandler.UniqueIndexUpsertWriteHandler;
 import com.splicemachine.si.impl.DDLFilter;
 import com.splicemachine.si.impl.HTransactorFactory;
-import org.apache.derby.catalog.IndexDescriptor;
+import com.splicemachine.db.catalog.IndexDescriptor;
 
 import java.io.IOException;
 

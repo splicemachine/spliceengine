@@ -1,38 +1,49 @@
 package com.splicemachine.derby.impl.sql.execute.operations.scanner;
 
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.Arrays;
+import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.hbase.MeasuredRegionScanner;
+import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.metrics.MetricFactory;
+import com.splicemachine.mrio.api.SpliceTableMapReduceUtil;
 import com.splicemachine.si.api.TxnView;
-import com.splicemachine.si.impl.HTransactorFactory;
 import com.splicemachine.si.impl.SIFactoryDriver;
-
-import org.apache.derby.iapi.services.io.FormatableBitSet;
-import org.apache.derby.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import org.apache.commons.lang.SerializationUtils;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
+import org.apache.hadoop.hbase.util.Base64;
 
 /**
  * Companion Builder class for SITableScanner
  * @author Scott Fines
  * Date: 4/9/14
  */
-public class TableScannerBuilder {
-		private MeasuredRegionScanner scanner;
-		private	ExecRow template;
-		private	MetricFactory metricFactory;
-		private	Scan scan;
-		private	int[] rowColumnMap;
-		private TxnView txn;
-		private	int[] keyColumnEncodingOrder;
-		private	int[] keyColumnTypes;
-		private	int[] keyDecodingMap;
-		private	FormatableBitSet accessedKeys;
-		private	String indexName;
-		private	String tableVersion;
-
-		private SIFilterFactory filterFactory;
-		private boolean[] keyColumnSortOrder;
-		private TransactionalRegion region;
+public class TableScannerBuilder implements Externalizable {
+		protected MeasuredRegionScanner scanner;
+		protected	ExecRow template;
+		protected	MetricFactory metricFactory;
+		protected	Scan scan;
+		protected	int[] rowColumnMap;
+		protected TxnView txn;
+		protected	int[] keyColumnEncodingOrder;
+		protected	int[] keyColumnTypes;
+		protected	int[] keyDecodingMap;
+		protected	FormatableBitSet accessedKeys;
+		protected	String indexName;
+		protected	String tableVersion;
+		protected SIFilterFactory filterFactory;
+		protected boolean[] keyColumnSortOrder;
+		protected TransactionalRegion region;
+		protected int[] execRowTypeFormatIds;
 
 		public TableScannerBuilder scanner(MeasuredRegionScanner scanner) {
 				assert scanner !=null :"Null scanners are not allowed!";
@@ -56,6 +67,11 @@ public class TableScannerBuilder {
 				this.scan = scan;
 				return this;
 		}
+		public TableScannerBuilder execRowTypeFormatIds(int[] execRowTypeFormatIds) {
+			assert execRowTypeFormatIds!=null : "Null ExecRow formatIDs are not allowed!";
+			this.execRowTypeFormatIds = execRowTypeFormatIds;
+			return this;
+	}
 
 		public TableScannerBuilder transactionID(String transactionID) {
 				throw new UnsupportedOperationException("REMOVE");
@@ -220,4 +236,85 @@ public class TableScannerBuilder {
 								filterFactory);
 
 		}
+
+		@Override
+		public void writeExternal(ObjectOutput out) throws IOException {	
+			ArrayUtil.writeIntArray(out, execRowTypeFormatIds);
+			out.writeUTF(SpliceTableMapReduceUtil.convertScanToString(scan));
+			ArrayUtil.writeIntArray(out, rowColumnMap);
+			TransactionOperations.getOperationFactory().writeTxn(txn, out);
+			ArrayUtil.writeIntArray(out, keyColumnEncodingOrder);
+            out.writeBoolean(keyColumnSortOrder != null);
+            if (keyColumnSortOrder != null) {
+			    ArrayUtil.writeBooleanArray(out, keyColumnSortOrder);
+            }
+			ArrayUtil.writeIntArray(out, keyColumnTypes);
+            out.writeBoolean(keyDecodingMap != null);
+            if (keyDecodingMap != null) {
+                ArrayUtil.writeIntArray(out, keyDecodingMap);
+            }
+			out.writeObject(accessedKeys);
+			out.writeBoolean(indexName!=null);
+			if (indexName!=null)
+				out.writeUTF(indexName);
+			out.writeBoolean(tableVersion!=null);
+			if (tableVersion!=null)
+				out.writeUTF(tableVersion);			
+
+		}
+
+		@Override
+		public void readExternal(ObjectInput in) throws IOException,
+				ClassNotFoundException {
+			execRowTypeFormatIds = ArrayUtil.readIntArray(in);
+			scan = SpliceTableMapReduceUtil.convertStringToScan(in.readUTF());
+			rowColumnMap = ArrayUtil.readIntArray(in);
+			txn = TransactionOperations.getOperationFactory().readTxn(in);
+			keyColumnEncodingOrder = ArrayUtil.readIntArray(in);
+            if (in.readBoolean()) {
+                keyColumnSortOrder = ArrayUtil.readBooleanArray(in);
+            }
+			keyColumnTypes = ArrayUtil.readIntArray(in);
+            if (in.readBoolean()) {
+                keyDecodingMap = ArrayUtil.readIntArray(in);
+            }
+			accessedKeys = (FormatableBitSet) in.readObject();
+			if (in.readBoolean())
+				indexName = in.readUTF();
+			if (in.readBoolean())				
+				tableVersion = in.readUTF();
+		}
+		
+		public static TableScannerBuilder getTableScannerBuilderFromBase64String(String base64String) throws IOException, StandardException {
+			if (base64String == null)
+				throw new IOException("tableScanner base64 String is null");
+			return (TableScannerBuilder) SerializationUtils.deserialize(Base64.decode(base64String));
+		}
+
+		public String getTableScannerBuilderBase64String() throws IOException, StandardException {
+			return Base64.encodeBytes(SerializationUtils.serialize(this));
+		}
+
+		public Scan getScan() {
+			return scan;
+		}
+
+		@Override
+		public String toString() {
+			return String.format("template=%s, scan=%s, rowColumnMap=%s, txn=%s, "
+					+ "keyColumnEncodingOrder=%s, keyColumnSortOrder=%s, keyColumnTypes=%s, keyDecodingMap=%s, "
+					+ "accessedKeys=%s, indexName=%s, tableVerson=%s",
+					template,scan,rowColumnMap!=null?Arrays.toString(rowColumnMap):"NULL",
+							txn,
+							keyColumnEncodingOrder!=null?Arrays.toString(keyColumnEncodingOrder):"NULL",
+							keyColumnSortOrder!=null?Arrays.toString(keyColumnSortOrder):"NULL",
+							keyColumnTypes!=null?Arrays.toString(keyColumnTypes):"NULL",
+							keyDecodingMap!=null?Arrays.toString(keyDecodingMap):"NULL",
+							accessedKeys,indexName,tableVersion);
+		}
+
+		public int[] getExecRowTypeFormatIds() {
+			return execRowTypeFormatIds;
+		}
+		
 }

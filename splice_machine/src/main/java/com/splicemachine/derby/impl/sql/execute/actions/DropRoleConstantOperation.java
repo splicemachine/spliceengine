@@ -1,14 +1,14 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
-import org.apache.derby.iapi.sql.depend.DependencyManager;
-import org.apache.derby.iapi.sql.dictionary.DataDictionary;
-import org.apache.derby.iapi.sql.dictionary.RoleGrantDescriptor;
-import org.apache.derby.iapi.sql.dictionary.RoleClosureIterator;
-import org.apache.derby.shared.common.reference.SQLState;
-import org.apache.derby.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.depend.DependencyManager;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.RoleGrantDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.RoleClosureIterator;
+import com.splicemachine.db.shared.common.reference.SQLState;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 
 /**
  *  This class  describes actions that are ALWAYS performed for a
@@ -35,7 +35,7 @@ public class DropRoleConstantOperation extends DDLConstantOperation {
     /**
      * This is the guts of the Execution-time logic for DROP ROLE.
      *
-     * @see org.apache.derby.iapi.sql.execute.ConstantAction#executeConstantAction
+     * @see com.splicemachine.db.iapi.sql.execute.ConstantAction#executeConstantAction
      */
     public void executeConstantAction( Activation activation ) throws StandardException {
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();

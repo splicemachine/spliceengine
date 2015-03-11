@@ -1,12 +1,12 @@
 package com.splicemachine.derby.impl.ast;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.compile.Visitable;
-import org.apache.derby.impl.sql.compile.AndNode;
-import org.apache.derby.impl.sql.compile.BinaryListOperatorNode;
-import org.apache.derby.impl.sql.compile.BinaryRelationalOperatorNode;
-import org.apache.derby.impl.sql.compile.OrNode;
-import org.apache.derby.impl.sql.compile.ValueNode;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.compile.Visitable;
+import com.splicemachine.db.impl.sql.compile.AndNode;
+import com.splicemachine.db.impl.sql.compile.BinaryListOperatorNode;
+import com.splicemachine.db.impl.sql.compile.BinaryRelationalOperatorNode;
+import com.splicemachine.db.impl.sql.compile.OrNode;
+import com.splicemachine.db.impl.sql.compile.ValueNode;
 
 import java.util.HashMap;
 import java.util.Iterator;

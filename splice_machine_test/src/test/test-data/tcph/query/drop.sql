@@ -1,4 +1,4 @@
-connect 'jdbc:derby://localhost:1527/splicedb';
+connect 'jdbc:splice://localhost:1527/splicedb';
 
 drop table TPCH1X.lineitem;
 drop table TPCH1X.orders;

@@ -139,7 +139,7 @@ public class SpliceUtilities extends SIConstants {
 		HTableDescriptor desc = new HTableDescriptor(
 				SpliceConstants.TRANSACTION_TABLE_BYTES);
 		HColumnDescriptor columnDescriptor = new HColumnDescriptor(
-				DEFAULT_FAMILY.getBytes());
+				DEFAULT_FAMILY_BYTES);
 		columnDescriptor.setMaxVersions(5);
 		columnDescriptor.setCompressionType(Compression.Algorithm
 				.valueOf(compression.toUpperCase()));
@@ -163,7 +163,7 @@ public class SpliceUtilities extends SIConstants {
 
 	public static HColumnDescriptor createDataFamily() {
 		HColumnDescriptor snapshot = new HColumnDescriptor(
-				SpliceConstants.DEFAULT_FAMILY.getBytes());
+				SpliceConstants.DEFAULT_FAMILY_BYTES);
 		snapshot.setMaxVersions(Integer.MAX_VALUE);
 		snapshot.setCompressionType(Compression.Algorithm.valueOf(compression
 				.toUpperCase()));
@@ -176,7 +176,7 @@ public class SpliceUtilities extends SIConstants {
 
 	public static HColumnDescriptor createTempDataFamily() {
 		HColumnDescriptor snapshot = new HColumnDescriptor(
-				SpliceConstants.DEFAULT_FAMILY.getBytes());
+				SpliceConstants.DEFAULT_FAMILY_BYTES);
 		snapshot.setMaxVersions(Integer.MAX_VALUE);
 		snapshot.setCompressionType(Compression.Algorithm.valueOf(compression
 				.toUpperCase()));

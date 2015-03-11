@@ -18,6 +18,10 @@ import com.splicemachine.hbase.HBaseRegionLoads;
 import com.splicemachine.hbase.HBaseServerUtils;
 import com.splicemachine.hbase.debug.HBaseEntryPredicateFilter;
 import com.splicemachine.hbase.jmx.JMXUtils;
+import com.splicemachine.mrio.api.MemStoreFlushAwareScanner;
+import com.splicemachine.mrio.api.MemstoreAware;
+import com.splicemachine.mrio.api.SpliceRegionScanner;
+import com.splicemachine.mrio.api.SplitRegionScanner;
 import com.splicemachine.pipeline.api.BulkWritesInvoker.Factory;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.pipeline.impl.BulkWritesRPCInvoker;
@@ -26,27 +30,27 @@ import com.splicemachine.si.coprocessor.TxnMessage;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
+import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.iapi.error.PublicAPI;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.execute.ConstantAction;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.SQLInteger;
+import com.splicemachine.db.iapi.types.SQLLongint;
+import com.splicemachine.db.iapi.types.SQLReal;
+import com.splicemachine.db.iapi.types.SQLVarchar;
+import com.splicemachine.db.impl.jdbc.EmbedConnection;
+import com.splicemachine.db.impl.jdbc.EmbedResultSet;
+import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
+import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
+import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 
-import org.apache.derby.catalog.UUID;
-import org.apache.derby.iapi.error.PublicAPI;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.ResultColumnDescriptor;
-import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
-import org.apache.derby.iapi.sql.execute.ConstantAction;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.types.DataTypeDescriptor;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.SQLInteger;
-import org.apache.derby.iapi.types.SQLLongint;
-import org.apache.derby.iapi.types.SQLReal;
-import org.apache.derby.iapi.types.SQLVarchar;
-import org.apache.derby.impl.jdbc.EmbedConnection;
-import org.apache.derby.impl.jdbc.EmbedResultSet;
-import org.apache.derby.impl.jdbc.EmbedResultSet40;
-import org.apache.derby.impl.sql.GenericColumnDescriptor;
-import org.apache.derby.impl.sql.execute.IteratorNoPutResultSet;
-import org.apache.derby.impl.sql.execute.ValueRow;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -54,6 +58,7 @@ import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.catalog.MetaReader;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HConnection;
+import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
@@ -73,6 +78,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.management.MBeanServerConnection;
 import javax.management.MalformedObjectNameException;
@@ -525,5 +531,19 @@ public class DerbyFactoryImpl implements DerbyFactory<TxnMessage.TxnInfo> {
         public SparkUtils getSparkUtils() {
             return new SparkUtilsImpl();
         }
+
+		@Override
+		public SpliceRegionScanner getSplitRegionScanner(Scan scan, HTable htable) throws IOException {
+			return new SplitRegionScanner(scan,htable,htable.getRegionsInRange(scan.getStartRow(), scan.getStopRow(), false));
+		}
+
+		@Override
+		public KeyValueScanner getMemstoreFlushAwareScanner(HRegion region,
+				Store store, ScanInfo scanInfo, Scan scan,
+				NavigableSet<byte[]> columns, long readPt,
+				AtomicReference<MemstoreAware> memstoreAware,
+				MemstoreAware initialValue) throws IOException {
+			return new MemStoreFlushAwareScanner(region,store,scanInfo,scan,columns,readPt,memstoreAware,initialValue);
+		}
 
 }
